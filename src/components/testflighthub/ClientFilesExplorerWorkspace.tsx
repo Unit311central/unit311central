@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { ManagedClient } from "@/lib/client-management-data";
 import { clientStatusClass } from "@/lib/client-management-data";
-import { INTERNAL_OPERATIONS_BASE_PATH } from "@/lib/internal-operations-data";
+import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import { cn } from "@/lib/utils";
 import { FolderOpen, Loader2, Search } from "lucide-react";
 
@@ -22,6 +22,7 @@ async function readApiJson<T>(response: Response): Promise<T> {
 }
 
 export default function ClientFilesExplorerWorkspace() {
+  const basePath = useInternalOperationsBasePath();
   const [clients, setClients] = useState<ManagedClient[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -99,7 +100,7 @@ export default function ClientFilesExplorerWorkspace() {
           </div>
           {selectedClient?.filesFolderId && (
             <Link
-              href={`${INTERNAL_OPERATIONS_BASE_PATH}?view=files-internal&folderId=${encodeURIComponent(selectedClient.filesFolderId)}`}
+              href={`${basePath}?view=files-internal&folderId=${encodeURIComponent(selectedClient.filesFolderId)}`}
               className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
             >
               <FolderOpen className="h-3.5 w-3.5" />

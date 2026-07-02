@@ -12,7 +12,7 @@ import {
   clientStatusClass,
   type ManagedClient,
 } from "@/lib/client-management-data";
-import { INTERNAL_OPERATIONS_BASE_PATH } from "@/lib/internal-operations-data";
+import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import { cn } from "@/lib/utils";
 import { ExternalLink, FolderOpen, FolderPlus, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 
@@ -43,6 +43,7 @@ function inputClassName() {
 }
 
 export default function ClientManagementWorkspace({ onClientsChange }: ClientManagementWorkspaceProps) {
+  const basePath = useInternalOperationsBasePath();
   const [clients, setClients] = useState<ManagedClient[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -359,14 +360,14 @@ export default function ClientManagementWorkspace({ onClientsChange }: ClientMan
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
-                      href={`${INTERNAL_OPERATIONS_BASE_PATH}?view=projects&clientId=${encodeURIComponent(selectedClient.id)}`}
+                      href={`${basePath}?view=projects&clientId=${encodeURIComponent(selectedClient.id)}`}
                       className="inline-flex h-9 items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-400/60 hover:bg-amber-500/25"
                     >
                       Active projects ({selectedClient.activeProjects})
                     </Link>
                     {selectedClient.filesFolderId ? (
                       <Link
-                        href={`${INTERNAL_OPERATIONS_BASE_PATH}?view=files-internal&folderId=${encodeURIComponent(selectedClient.filesFolderId)}`}
+                        href={`${basePath}?view=files-internal&folderId=${encodeURIComponent(selectedClient.filesFolderId)}`}
                         className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
                       >
                         <FolderOpen className="h-3.5 w-3.5" />
@@ -384,7 +385,7 @@ export default function ClientManagementWorkspace({ onClientsChange }: ClientMan
                       </button>
                     )}
                     <Link
-                      href={`${INTERNAL_OPERATIONS_BASE_PATH}?view=files-client`}
+                      href={`${basePath}?view=files-client`}
                       className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white/70 transition-colors hover:bg-white/[0.08]"
                     >
                       Client file explorer

@@ -131,13 +131,17 @@ export const recentMissions = [
   },
 ] as const;
 
-export type SurveyOperationsBasePath = "/testflighthub" | "/internaldashboard";
+export type SurveyOperationsBasePath =
+  | "/testflighthub"
+  | "/internaldashboard"
+  | "/internaldashboard_grants";
 
 export const DEFAULT_SURVEY_OPERATIONS_BASE_PATH: SurveyOperationsBasePath = "/testflighthub";
 
 export const SURVEY_OPERATIONS_BASE_PATHS: SurveyOperationsBasePath[] = [
   "/testflighthub",
   "/internaldashboard",
+  "/internaldashboard_grants",
 ];
 
 export function isSurveyOperationsDashboardPath(pathname: string, basePath?: SurveyOperationsBasePath) {

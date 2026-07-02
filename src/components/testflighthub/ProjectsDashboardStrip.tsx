@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 import type { ManagedClient } from "@/lib/client-management-data";
-import { INTERNAL_OPERATIONS_BASE_PATH } from "@/lib/internal-operations-data";
+import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import type { InternalProject } from "@/lib/projects-data";
 import { cn } from "@/lib/utils";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -21,6 +21,7 @@ const PHASE_COLORS = {
 };
 
 export default function ProjectsDashboardStrip({ projects, clients }: ProjectsDashboardStripProps) {
+  const basePath = useInternalOperationsBasePath();
   const liveCount = projects.filter((project) => project.phase === "live").length;
   const upcomingCount = projects.filter((project) => project.phase === "upcoming").length;
   const avgProgress = useMemo(() => {
@@ -79,7 +80,7 @@ export default function ProjectsDashboardStrip({ projects, clients }: ProjectsDa
           {clients.slice(0, 4).map((client) => (
             <Link
               key={client.id}
-              href={`${INTERNAL_OPERATIONS_BASE_PATH}?view=projects&clientId=${encodeURIComponent(client.id)}`}
+              href={`${basePath}?view=projects&clientId=${encodeURIComponent(client.id)}`}
               className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/70 transition-colors hover:border-sky-400/30 hover:text-sky-200"
             >
               {client.companyName}
@@ -161,7 +162,7 @@ export default function ProjectsDashboardStrip({ projects, clients }: ProjectsDa
                   <div className="flex items-start justify-between gap-3">
                     {row.clientId ? (
                       <Link
-                        href={`${INTERNAL_OPERATIONS_BASE_PATH}?view=projects&clientId=${encodeURIComponent(row.clientId)}`}
+                        href={`${basePath}?view=projects&clientId=${encodeURIComponent(row.clientId)}`}
                         className="min-w-0 flex-1 text-sm font-medium leading-snug text-white/85 transition-colors hover:text-sky-200"
                         title={row.name}
                       >

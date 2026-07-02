@@ -41,6 +41,8 @@ export type InternalOperationsView =
   | "logistics";
 
 export const INTERNAL_OPERATIONS_BASE_PATH: SurveyOperationsBasePath = "/internaldashboard";
+export const INTERNAL_GRANTS_OPERATIONS_BASE_PATH: SurveyOperationsBasePath =
+  "/internaldashboard_grants";
 
 export const internalOperationsViews: InternalOperationsView[] = [
   "home",
@@ -360,18 +362,22 @@ export const internalHomeTileRows = [
 
 export type InternalHomeTile = (typeof internalHomeTileRows)[number][number];
 
-export function getInternalNavHref(view: InternalOperationsView | null) {
+export function getInternalNavHref(
+  view: InternalOperationsView | null,
+  basePath: SurveyOperationsBasePath = INTERNAL_OPERATIONS_BASE_PATH,
+) {
   if (!view || view === "home") {
-    return INTERNAL_OPERATIONS_BASE_PATH;
+    return basePath;
   }
 
-  return `${INTERNAL_OPERATIONS_BASE_PATH}?view=${view}`;
+  return `${basePath}?view=${view}`;
 }
 
 export function isInternalNavChildActive(
   item: InternalNavChildItem,
   activeView: InternalOperationsView = "home",
   pathname = "",
+  basePath: SurveyOperationsBasePath = INTERNAL_OPERATIONS_BASE_PATH,
 ) {
   if (item.href) {
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -383,16 +389,17 @@ export function isInternalNavItemActive(
   pathname: string,
   item: InternalNavItem,
   activeView: InternalOperationsView = "home",
+  basePath: SurveyOperationsBasePath = INTERNAL_OPERATIONS_BASE_PATH,
 ) {
   if (item.href) {
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 
   const childHrefActive =
-    item.children?.some((child) => isInternalNavChildActive(child, activeView, pathname)) ??
+    item.children?.some((child) => isInternalNavChildActive(child, activeView, pathname, basePath)) ??
     false;
 
-  if (pathname !== INTERNAL_OPERATIONS_BASE_PATH) {
+  if (pathname !== basePath) {
     return childHrefActive;
   }
 

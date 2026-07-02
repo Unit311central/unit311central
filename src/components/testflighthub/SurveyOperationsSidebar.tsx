@@ -165,7 +165,8 @@ export default function SurveyOperationsSidebar({
 
   const inAppNavigation =
     isSurveyOperationsDashboardPath(pathname, basePath) && onViewChange != null;
-  const logoHref = mode === "internal" ? "/internaldashboard" : basePath;
+  const logoHref = mode === "internal" ? basePath : basePath;
+  const internalBasePath = basePath;
 
   function renderNavItem(
     item: { label: string; icon: string },
@@ -216,8 +217,8 @@ export default function SurveyOperationsSidebar({
   }
 
   function renderInternalChildItem(child: InternalNavChildItem) {
-    const active = isInternalNavChildActive(child, resolvedActiveView, pathname);
-    const navHref = child.href ?? getInternalNavHref(child.view ?? "home");
+    const active = isInternalNavChildActive(child, resolvedActiveView, pathname, internalBasePath);
+    const navHref = child.href ?? getInternalNavHref(child.view ?? "home", internalBasePath);
 
     if (child.href) {
       return (
@@ -264,12 +265,12 @@ export default function SurveyOperationsSidebar({
   }
 
   function renderInternalNavItemBlock(item: InternalNavItem) {
-    const active = isInternalNavItemActive(pathname, item, resolvedActiveView);
+    const active = isInternalNavItemActive(pathname, item, resolvedActiveView, internalBasePath);
     const hasChildren = (item.children?.length ?? 0) > 0;
     const expanded = expandedParents[item.label] ?? active;
 
     if (item.indented && (item.view || item.href)) {
-      const navHref = item.href ?? getInternalNavHref(item.view as InternalOperationsView);
+      const navHref = item.href ?? getInternalNavHref(item.view as InternalOperationsView, internalBasePath);
       const Icon = iconMap[item.icon as keyof typeof iconMap];
       const linkActive = item.href
         ? pathname === item.href || pathname.startsWith(`${item.href}/`)
@@ -337,7 +338,7 @@ export default function SurveyOperationsSidebar({
       );
     }
 
-    const navHref = getInternalNavHref(item.view as InternalOperationsView);
+    const navHref = getInternalNavHref(item.view as InternalOperationsView, internalBasePath);
 
     if (inAppNavigation) {
       return renderNavItem(

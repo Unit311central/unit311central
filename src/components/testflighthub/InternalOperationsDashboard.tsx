@@ -21,6 +21,8 @@ import {
   normalizeInternalOperationsView,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
+import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
+import { InternalOperationsBasePathProvider } from "./InternalOperationsBasePathContext";
 import AssetManagementWorkspace from "./AssetManagementWorkspace";
 import ClientManagementWorkspace from "./ClientManagementWorkspace";
 import CalendarWorkspace from "./CalendarWorkspace";
@@ -66,7 +68,11 @@ function readInitialView(searchParams: ReturnType<typeof useSearchParams>): Inte
   return normalizeInternalOperationsView(searchParams.get("view"));
 }
 
-export default function InternalOperationsDashboard() {
+export default function InternalOperationsDashboard({
+  basePath = INTERNAL_OPERATIONS_BASE_PATH,
+}: {
+  basePath?: SurveyOperationsBasePath;
+}) {
   const searchParams = useSearchParams();
   const [activeView, setActiveView] = useState<InternalOperationsView>(() =>
     readInitialView(searchParams),
@@ -157,16 +163,17 @@ export default function InternalOperationsDashboard() {
   }, []);
 
   return (
-    <SurveyOperationsShell
-      mode="internal"
-      activeView={activeView}
-      onViewChange={(view) => {
-        if (isInternalOperationsView(view)) {
-          handleViewChange(view);
-        }
-      }}
-      basePath={INTERNAL_OPERATIONS_BASE_PATH}
-    >
+    <InternalOperationsBasePathProvider basePath={basePath}>
+      <SurveyOperationsShell
+        mode="internal"
+        activeView={activeView}
+        onViewChange={(view) => {
+          if (isInternalOperationsView(view)) {
+            handleViewChange(view);
+          }
+        }}
+        basePath={basePath}
+      >
       <div
         className={
           activeView === "home"
@@ -304,6 +311,7 @@ export default function InternalOperationsDashboard() {
           {activeView === "media-example" && <MediaExampleWorkspace />}
         </div>
       </div>
-    </SurveyOperationsShell>
+      </SurveyOperationsShell>
+    </InternalOperationsBasePathProvider>
   );
 }
