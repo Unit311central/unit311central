@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-label="Unit311 services offered">
+  <defs>
+    <style>
+      .bg { fill: #020617; }
+      .card { fill: #0b1524; stroke: rgba(255,255,255,0.12); stroke-width: 1; }
+      .header { fill: rgba(255,255,255,0.06); }
+      .accent { fill: #2563eb; }
+      .title { fill: #f8fafc; font: 700 15px Inter, system-ui, sans-serif; }
+      .tag { fill: #94a3b8; font: 400 11px Inter, system-ui, sans-serif; }
+      .item { fill: #cbd5e1; font: 400 12px Inter, system-ui, sans-serif; }
+      .banner-title { fill: #f8fafc; font: 700 28px Inter, system-ui, sans-serif; }
+      .banner-sub { fill: #94a3b8; font: 400 14px Inter, system-ui, sans-serif; }
+      .hub { fill: #2563eb; }
+      .hub-text { fill: #eff6ff; font: 600 13px Inter, system-ui, sans-serif; }
+      .flow { fill: rgba(255,255,255,0.04); stroke: rgba(255,255,255,0.1); }
+      .flow-text { fill: #94a3b8; font: 500 12px Inter, system-ui, sans-serif; }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="900"/>
+
+  <rect class="header" x="60" y="40" width="1080" height="90" rx="14"/>
+  <text class="banner-title" x="600" y="78" text-anchor="middle">Unit311</text>
+  <text class="banner-sub" x="600" y="105" text-anchor="middle">One-stop business operating system  services offered</text>
+
+  <line x1="600" y1="130" x2="600" y2="155" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <rect class="hub" x="490" y="155" width="220" height="36" rx="18"/>
+  <text class="hub-text" x="600" y="178" text-anchor="middle">All services · modular · white-label ready</text>
+
+  <!-- Row 1 -->
+  <g transform="translate(60,210)">
+    <rect class="card" width="255" height="230" rx="12"/>
+    <rect class="accent" x="0" y="0" width="5" height="44" rx="2"/>
+    <text class="title" x="16" y="28">Command Centre</text>
+    <text class="tag" x="16" y="44">Start every day with clarity</text>
+    <text class="item" x="20" y="72">" Home dashboard</text>
+    <text class="item" x="20" y="94">" KPIs &amp; action items</text>
+    <text class="item" x="20" y="116">" Weekly schedule</text>
+    <text class="item" x="20" y="138">" Mission overview</text>
+  </g>
+  <g transform="translate(335,210)">
+    <rect class="card" width="255" height="230" rx="12"/>
+    <rect class="accent" x="0" y="0" width="5" height="44" rx="2"/>
+    <text class="title" x="16" y="28">Business Central</text>
+    <text class="tag" x="16" y="44">Clients, people &amp; delivery</text>
+    <text class="item" x="20" y="72">" Client database &amp; CRM</text>
+    <text class="item" x="20" y="94">" Project management</text>
+    <text class="item" x="20" y="116">" Representatives &amp; offices</text>
+    <text class="item" x="20" y="138">" Human resources</text>
+    <text class="item" x="20" y="160">" Recent missions</text>
+  </g>
+  <g transform="translate(610,210)">
+    <rect class="card" width="255" height="230" rx="12"/>
+    <rect class="accent" x="0" y="0" width="5" height="44" rx="2"/>
+    <text class="title" x="16" y="28">Finance</text>
+    <text class="tag" x="16" y="44">Cash flow under control</text>
+    <text class="item" x="20" y="72">" Finance dashboard</text>
+    <text class="item" x="20" y="94">" Debtors &amp; creditors</text>
+    <text class="item" x="20" y="116">" Expense tracking</text>
+    <text class="item" x="20" y="138">" Accountancy integration</text>
+  </g>
+  <g transform="translate(885,210)">
+    <rect class="card" width="255" height="230" rx="12"/>
+    <rect class="accent" x="0" y="0" width="5" height="44" rx="2"/>
+    <text class="title" x="16" y="28">Inventory</text>
+    <text class="tag" x="16" y="44">Assets you can account for</text>
+    <text class="item" x="20" y="72">" Asset registry</text>
+    <text class="item" x="20" y="94">" Fleet management</text>
+    <text class="item" x="20" y="116">" Stock control</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(60,470)">
+    <rect class="card" width="255" height="250" rx="12"/>
+    <rect class="accent" x="0" y="0" width="5" height="44" rx="2"/>
+    <text class="title" x="16" y="28">Business Productivity</text>
+    <text class="tag" x="16" y="44">Communication &amp; files</text>
+    <text class="item" x="20" y="72">" File Explorer</text>
+    <text class="item" x="20" y="94">" Email &amp; calendars</text>
+    <text class="item" x="20" y="116">" Messaging, voice &amp; video</text>
+    <text class="item" x="20" y="138">" Social media</text>
+    <text class="item" x="20" y="160">" Support &amp; ticketing</text>
+    <text class="item" x="20" y="182">" Training &amp; logistics</text>
+  </g>
+  <g transform="translate(335,470)">
+    <rect class="card" width="255" height="250" rx="12"/>
+    <rect class="accent" x="0" y="0" width="5" height="44" rx="2"/>
+    <text class="title" x="16" y="28">Strategy &amp; Intelligence</text>
+    <text class="tag" x="16" y="44">Plan, compete, collaborate</text>
+    <text class="item" x="20" y="72">" Business plan &amp; verticals</text>
+    <text class="item" x="20" y="94">" Competitors by sector</text>
+    <text class="item" x="20" y="116">" Connections map</text>
+    <text class="item" x="20" y="138">" Whiteboard</text>
+    <text class="item" x="20" y="160">" Sector intelligence</text>
+  </g>
+  <g transform="translate(610,470)">
+    <rect class="card" width="255" height="250" rx="12"/>
+    <rect class="accent" x="0" y="0" width="5" height="44" rx="2"/>
+    <text class="title" x="16" y="28">Geospatial &amp; Field Ops</text>
+    <text class="tag" x="16" y="44">From capture to deliverable</text>
+    <text class="item" x="20" y="72">" WebODM processing</text>
+    <text class="item" x="20" y="94">" Orthophoto &amp; DSM viewers</text>
+    <text class="item" x="20" y="116">" Live telemetry</text>
+    <text class="item" x="20" y="138">" Flight simulator testing</text>
+  </g>
+  <g transform="translate(885,470)">
+    <rect class="card" width="255" height="250" rx="12"/>
+    <rect class="accent" x="0" y="0" width="5" height="44" rx="2"/>
+    <text class="title" x="16" y="28">Platform &amp; Portals</text>
+    <text class="tag" x="16" y="44">Users, settings &amp; client access</text>
+    <text class="item" x="20" y="72">" Internal user management</text>
+    <text class="item" x="20" y="94">" External client portals</text>
+    <text class="item" x="20" y="116">" Settings &amp; integrations</text>
+    <text class="item" x="20" y="138">" WhatsApp support flows</text>
+  </g>
+
+  <!-- lifecycle bar -->
+  <rect class="flow" x="120" y="780" width="960" height="56" rx="10"/>
+  <text class="flow-text" x="240" y="812" text-anchor="middle">Launch</text>
+  <text class="flow-text" x="440" y="812" text-anchor="middle">Run</text>
+  <text class="flow-text" x="640" y="812" text-anchor="middle">Operate</text>
+  <text class="flow-text" x="840" y="812" text-anchor="middle">Scale</text>
+  <line x1="320" y1="808" x2="360" y2="808" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="520" y1="808" x2="560" y2="808" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="720" y1="808" x2="760" y2="808" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" marker-end="url(#arr)"/>
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="rgba(255,255,255,0.25)"/>
+    </marker>
+  </defs>
+</svg>

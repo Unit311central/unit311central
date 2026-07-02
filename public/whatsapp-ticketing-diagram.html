@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BCN WhatsApp → Support Ticketing Flow</title>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: "dark",
+        themeVariables: {
+          primaryColor: "#0b1524",
+          primaryTextColor: "#e9edef",
+          primaryBorderColor: "#38bdf8",
+          lineColor: "#94a3b8",
+          secondaryColor: "#1f2c34",
+          tertiaryColor: "#0f172a",
+        },
+      });
+    </script>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, Segoe UI, system-ui, sans-serif;
+      }
+      body {
+        margin: 0;
+        background: #07111f;
+        color: #e9edef;
+      }
+      header {
+        padding: 24px 32px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: #0b1524;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.5rem;
+      }
+      p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .links a {
+        color: #7dd3fc;
+        font-size: 0.9rem;
+      }
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+      }
+      button,
+      a.button {
+        appearance: none;
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        background: rgba(56, 189, 248, 0.12);
+        color: #bae6fd;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      button:hover,
+      a.button:hover {
+        background: rgba(56, 189, 248, 0.2);
+      }
+      main {
+        padding: 24px 32px 48px;
+        display: grid;
+        gap: 32px;
+      }
+      section {
+        background: #0b1524;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px;
+        overflow-x: auto;
+      }
+      section h2 {
+        margin: 0 0 16px;
+        font-size: 1.1rem;
+        color: #7dd3fc;
+      }
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+      .note {
+        margin-top: 12px;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.55);
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>BCN WhatsApp → Support Ticketing</h1>
+      <p>
+        Conversational client intake, platform assignment, CallMeBot outbound alerts, ticket updates,
+        and close notifications.
+      </p>
+      <div class="links">
+        <a href="https://barcelonadronecenter.vercel.app/whatsapp/support">Support preview (2 panels)</a>
+        <a href="https://barcelonadronecenter.vercel.app/whatsapp/support-flow">Support flow demo (4 panels)</a>
+        <a href="https://barcelonadronecenter.vercel.app/internaldashboard?view=support">Internal Support workspace</a>
+        <a href="https://barcelonadronecenter.vercel.app/messaging">Messaging → Support</a>
+      </div>
+      <div class="actions">
+        <button type="button" id="download-svg">Download overview as SVG</button>
+        <button type="button" id="download-png">Download overview as PNG</button>
+        <a class="button" href="./whatsapp-ticketing-diagram.svg" download>Direct SVG file</a>
+      </div>
+    </header>
+
+    <main>
+      <section id="overview-section">
+        <h2>System overview</h2>
+        <pre class="mermaid">
+flowchart TB
+    subgraph Client["Client"]
+        WA["WhatsApp / support preview pages"]
+        Intake["Open new ticket → Q&amp;A intake"]
+    end
+
+    subgraph Inbound["Inbound — TextMeBot"]
+        TM["+34 657 106 176 webhook"]
+    end
+
+    subgraph Server["barcelonadronecenter.vercel.app"]
+        API["POST /api/whatsapp/inbound"]
+        IntakeLib["support-intake.ts"]
+        Session[("whatsapp_support_sessions")]
+        Tickets[("support_tickets")]
+        Channel["internal_messages · support-desk"]
+        AssignAPI["POST /api/whatsapp/support-flow/assign"]
+        UpdateAPI["POST …/client-update"]
+        CloseAPI["POST …/close"]
+    end
+
+    subgraph Outbound["Outbound — CallMeBot"]
+        CMB["DroneCatalyst Info Messages"]
+    end
+
+    subgraph Platform["Internal platform"]
+        SupportUI["Dashboard → Support"]
+        MessagingUI["Messaging → Support"]
+        FlowDemo["/whatsapp/support-flow"]
+    end
+
+    WA --> Intake
+    Intake -->|preview or webhook| API
+    TM -->|real phone webhook| API
+    API --> IntakeLib
+    IntakeLib --> Session
+    IntakeLib --> Tickets
+    IntakeLib --> Channel
+    Channel --> MessagingUI
+    Tickets --> SupportUI
+    MessagingUI -->|type User 1| AssignAPI
+    AssignAPI --> Tickets
+    AssignAPI --> Channel
+    SupportUI --> UpdateAPI
+    SupportUI --> CloseAPI
+    FlowDemo --> UpdateAPI
+    FlowDemo --> CloseAPI
+    UpdateAPI --> CMB
+    CloseAPI --> CMB
+    AssignAPI --> CMB
+    CMB --> WA
+        </pre>
+      </section>
+
+      <section>
+        <h2>Client intake sequence</h2>
+        <pre class="mermaid">
+sequenceDiagram
+    participant C as Client
+    participant P as /whatsapp/support or support-flow
+    participant API as /api/whatsapp/inbound
+    participant I as support-intake
+    participant DB as Supabase
+    participant M as Support channel
+
+    C->>P: Open new ticket
+    P->>API: preview POST
+    API->>I: step prompts
+    I-->>C: What is your name?
+    C-->>I: name
+    I-->>C: organisation / priority / description
+    C-->>I: answers
+    I->>DB: Create SUP-xxx
+    I->>M: New ticket + assignment prompt
+    I-->>C: Thank you. Agent will be assigned shortly.
+        </pre>
+      </section>
+
+      <section>
+        <h2>Assignment (platform only — not client)</h2>
+        <pre class="mermaid">
+sequenceDiagram
+    participant Op as Internal operator
+    participant Msg as Messaging → Support
+    participant API as assign API / claims handler
+    participant DB as support_tickets
+    participant CMB as CallMeBot
+    participant Client as Client WhatsApp
+
+    Op->>Msg: Join as User 1
+    Op->>Msg: User 1
+    Msg->>API: Claim message
+    API->>DB: user_assigned = User 1
+    API->>Msg: System: User1 assigned to SUP-xxx
+    API->>CMB: Operator alert on phone
+    API->>Client: Support ticket SUP-xxx created. User1 assigned…
+        </pre>
+        <p class="note">
+          Client never assigns themselves. Assignment happens only from Messaging → Support or the
+          support-flow demo panel 3.
+        </p>
+      </section>
+
+      <section>
+        <h2>Support-flow demo (4 progressive panels)</h2>
+        <pre class="mermaid">
+flowchart LR
+    P1["1 · Customer WhatsApp"]
+    P2["2 · DroneCatalyst Info"]
+    P3["3 · Messaging · Support"]
+    P4["4 · Ticket record"]
+
+    P1 -->|ticket submitted| P2
+    P2 -->|~3s| P3
+    P3 -->|~2s| P4
+    P3 -->|User 1| P2
+    P3 -->|User 1| P1
+    P4 -->|update / close| P1
+        </pre>
+        <p class="note">
+          Demo URL: <strong>/whatsapp/support-flow</strong> — panels reveal step by step; each panel
+          has clear / refresh; <strong>Start again</strong> resets the full flow.
+        </p>
+      </section>
+
+      <section>
+        <h2>Updates &amp; close ticket</h2>
+        <pre class="mermaid">
+sequenceDiagram
+    participant Op as Support workspace / flow panel 4
+    participant API as client-update / close API
+    participant CMB as CallMeBot
+    participant C as Client WhatsApp
+
+    Op->>API: Send update text
+    API->>CMB: Exact update message
+    CMB->>C: Status update
+
+    Op->>API: Close ticket
+    API->>DB: closed = true
+    API->>CMB: Ticket SUP-xxx is now closed.
+    CMB->>C: Close notification
+        </pre>
+      </section>
+
+      <section>
+        <h2>Correct chat vs wrong chat</h2>
+        <pre class="mermaid">
+flowchart TB
+    Wrong["DroneCatalyst Info Messages\nCallMeBot — outbound alerts only"]
+    Right["Message yourself\n+34 657 106 176\nor use /whatsapp/support"]
+    Preview["/whatsapp/support\n/whatsapp/support-flow\npreview mode — no real send"]
+    Wrong -.->|No inbound webhook| X[No intake]
+    Right -->|TextMeBot webhook| API[/api/whatsapp/inbound/]
+    Preview -->|preview: true| API
+        </pre>
+        <p class="note">
+          For demos use the support preview pages. For live phone testing, message yourself on the
+          TextMeBot-linked number — not the CallMeBot alerts thread.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      async function downloadOverview(kind) {
+        const svg = document.querySelector("#overview-section svg");
+        if (!svg) {
+          alert("Diagram still loading. Wait a second and try again.");
+          return;
+        }
+
+        const clone = svg.cloneNode(true);
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        const svgData = new XMLSerializer().serializeToString(clone);
+        const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+
+        if (kind === "svg") {
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "bcn-whatsapp-ticketing-flow.svg";
+          link.click();
+          URL.revokeObjectURL(url);
+          return;
+        }
+
+        const image = new Image();
+        image.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = image.width * 2;
+          canvas.height = image.height * 2;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#07111f";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((pngBlob) => {
+            if (!pngBlob) return;
+            const pngUrl = URL.createObjectURL(pngBlob);
+            const link = document.createElement("a");
+            link.href = pngUrl;
+            link.download = "bcn-whatsapp-ticketing-flow.png";
+            link.click();
+            URL.revokeObjectURL(pngUrl);
+            URL.revokeObjectURL(url);
+          }, "image/png");
+        };
+        image.src = url;
+      }
+
+      document.getElementById("download-svg").addEventListener("click", () => downloadOverview("svg"));
+      document.getElementById("download-png").addEventListener("click", () => downloadOverview("png"));
+    </script>
+  </body>
+</html>

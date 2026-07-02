@@ -1,0 +1,19 @@
+{
+  "name": "bcn-drone-center-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Capacitor shell for barcelonadronecenter.vercel.app",
+  "scripts": {
+    "sync": "cap sync",
+    "open:android": "cap open android",
+    "build:android": "cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.1",
+    "@capacitor/core": "^7.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.1",
+    "typescript": "^5"
+  }
+}

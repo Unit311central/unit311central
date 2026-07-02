@@ -1,0 +1,590 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050816;
+  --foreground: #f1f5f9;
+  --muted: #94a3b8;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --surface: #0c1222;
+  --surface-elevated: #111827;
+  --border: rgba(148, 163, 184, 0.12);
+  --border-strong: rgba(148, 163, 184, 0.2);
+  --glow: rgba(37, 99, 235, 0.15);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --font-sans: var(--font-inter);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.safe-area-pt {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+.safe-area-pb {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.safe-area-px {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+.logistics-live-tooltip {
+  background: rgba(7, 17, 31, 0.92) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  color: #e0f2fe !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  padding: 4px 8px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+  white-space: normal !important;
+  max-width: min(240px, 72vw) !important;
+}
+
+@media (max-width: 767px) {
+  .logistics-live-tooltip {
+    display: none !important;
+  }
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.35);
+  color: #fff;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #f8fafc 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.4),
+    rgba(148, 163, 184, 0.1)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+.topo-bg {
+  background-color: #f3f0e8;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cpath d='M0 120 Q60 95 120 120 T240 120 M0 155 Q60 130 120 155 T240 155 M0 85 Q60 60 120 85 T240 85 M0 190 Q60 165 120 190 T240 190' fill='none' stroke='%231a2b4a' stroke-opacity='0.05' stroke-width='0.75'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+}
+
+.workflow-bg {
+  background-color: #050816;
+  background-image:
+    radial-gradient(ellipse 35% 45% at 0% 100%, rgba(37, 99, 235, 0.18), transparent 68%),
+    radial-gradient(ellipse 45% 55% at 100% 30%, rgba(37, 99, 235, 0.12), transparent 72%);
+}
+
+@keyframes scanPulse {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes scanSweep {
+  0% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(150px);
+    opacity: 0.55;
+  }
+}
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+@keyframes pointShimmer {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes droneTakeoff {
+  0% {
+    transform: translateX(-50%) translateY(24px) scale(0.88);
+    opacity: 0;
+  }
+  12% {
+    transform: translateX(-50%) translateY(12px) scale(0.96);
+    opacity: 1;
+  }
+  70% {
+    transform: translateX(-50%) translateY(-120px) scale(1.05);
+    opacity: 0.92;
+  }
+  100% {
+    transform: translateX(-50%) translateY(-168px) scale(0.94);
+    opacity: 0;
+  }
+}
+
+@keyframes droneTakeoffRing {
+  0% {
+    transform: translateX(-50%) scale(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(-50%) scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes droneTakeoffLabel {
+  0%,
+  18% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  30%,
+  72% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+  }
+}
+
+@keyframes dronePropSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.drone-takeoff-scene {
+  animation: droneTakeoff 2.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.drone-takeoff-ring {
+  animation: droneTakeoffRing 2.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.drone-takeoff-label {
+  animation: droneTakeoffLabel 2.8s ease forwards;
+}
+
+.drone-propeller {
+  animation: dronePropSpin 0.16s linear infinite;
+}
+
+.drone-propeller-delay {
+  animation-duration: 0.2s;
+  animation-direction: reverse;
+}
+
+.drone-takeoff-trail {
+  animation: droneTakeoff 2.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes liveVideoRec {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes liveVideoPulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55);
+  }
+  50% {
+    opacity: 0.75;
+    box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
+  }
+}
+
+.live-video-rec {
+  animation: liveVideoRec 1.2s ease-in-out infinite;
+}
+
+.live-video-pulse {
+  animation: liveVideoPulse 1.6s ease-in-out infinite;
+}
+
+.live-video-map-shell {
+  isolation: isolate;
+}
+
+.live-video-camera-rig {
+  perspective: 820px;
+  perspective-origin: 50% 38%;
+}
+
+.live-video-map-stage {
+  transform: rotateX(52deg) scale(1.72) translate3d(0, -6px, 0);
+  transform-origin: 50% 72%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.live-video-viewport {
+  perspective: 820px;
+}
+
+.live-video-horizon {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(186, 230, 253, 0.45) 20%,
+    rgba(224, 242, 254, 0.65) 50%,
+    rgba(186, 230, 253, 0.45) 80%,
+    transparent
+  );
+  box-shadow: 0 0 18px rgba(125, 211, 252, 0.25);
+}
+
+.live-video-lens-ring {
+  box-shadow:
+    inset 0 0 24px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.live-video-map-shell .leaflet-container {
+  filter: saturate(1.14) contrast(1.1) brightness(0.98);
+}
+
+.live-video-map-shell--urban .leaflet-container {
+  filter: saturate(1.18) contrast(1.12) brightness(1.02);
+}
+
+.live-video-map-shell .leaflet-control-container,
+.live-video-map-shell .leaflet-pane.leaflet-marker-pane,
+.live-video-map-shell .leaflet-pane.leaflet-shadow-pane {
+  display: none;
+}
+
+.flight-path-map-shell {
+  isolation: isolate;
+}
+
+.flight-path-map-shell .leaflet-container {
+  filter: saturate(0.92) brightness(0.94);
+}
+
+.flight-path-map-shell--urban .leaflet-container {
+  filter: saturate(1.06) contrast(1.08) brightness(1.02);
+}
+
+.flight-path-map-shell--satellite-texture .leaflet-container {
+  filter: saturate(1.12) contrast(1.1) brightness(0.97);
+}
+
+.weather-broadcast-shell {
+  isolation: isolate;
+}
+
+.weather-broadcast-shell .leaflet-container {
+  background: #07111f;
+  filter: saturate(1.15) contrast(1.12) brightness(0.9);
+}
+
+.weather-broadcast-shell .leaflet-control-container {
+  display: none;
+}
+
+.aerial-intel-map-shell {
+  isolation: isolate;
+}
+
+.aerial-intel-map-shell .leaflet-container {
+  background: #08111f;
+  filter: saturate(1.08) contrast(1.06) brightness(0.98);
+}
+
+.aerial-intel-map-shell .leaflet-control-zoom a {
+  background: rgba(13, 27, 42, 0.92);
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.aerial-intel-map-shell .leaflet-control-zoom a:hover {
+  background: rgba(18, 35, 56, 0.95);
+  color: #fff;
+}
+
+.aerial-intel-dsm-map .leaflet-container {
+  filter: saturate(1.12) contrast(1.08) brightness(0.96);
+}
+
+.scan-point-cloud {
+  background-image:
+    radial-gradient(circle at 18% 32%, rgba(96, 165, 250, 0.9) 1px, transparent 1px),
+    radial-gradient(circle at 42% 58%, rgba(56, 189, 248, 0.85) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 68% 28%, rgba(37, 99, 235, 0.8) 1px, transparent 1px),
+    radial-gradient(circle at 82% 62%, rgba(96, 165, 250, 0.75) 1px, transparent 1px),
+    radial-gradient(circle at 55% 78%, rgba(56, 189, 248, 0.7) 1.5px, transparent 1.5px);
+  animation: pointShimmer 2s ease-in-out infinite;
+}
+
+.mission-replay-video {
+  filter: saturate(1.05) contrast(1.08) brightness(0.92);
+}
+
+.mission-replay-scene-takeoff {
+  transform: scale(1.04);
+  filter: saturate(1.1) contrast(1.12) brightness(0.88);
+}
+
+.mission-replay-scene-grid {
+  filter: saturate(0.95) contrast(1.15) brightness(0.9) hue-rotate(-4deg);
+}
+
+.mission-replay-scene-capture {
+  filter: saturate(1.2) contrast(1.2) brightness(1);
+}
+
+.mission-replay-scene-upload,
+.mission-replay-scene-processing {
+  filter: saturate(0.7) contrast(1.1) brightness(0.75) hue-rotate(180deg);
+}
+
+.mission-replay-scene-ortho {
+  filter: saturate(1.25) contrast(1.05) brightness(1.05);
+}
+
+.mission-replay-scene-model3d {
+  filter: saturate(0.85) contrast(1.2) brightness(0.82) hue-rotate(205deg);
+}
+
+.mission-replay-scene-elevation {
+  filter: saturate(1.35) contrast(1.1) brightness(0.95) hue-rotate(90deg);
+}
+
+.mission-replay-scene-measure {
+  filter: saturate(1.1) contrast(1.18) brightness(0.9);
+}
+
+.mission-replay-scene-complete {
+  filter: saturate(1.05) contrast(1.05) brightness(0.95);
+}
+
+.mission-replay-scene-overlay {
+  transition: opacity 0.6s ease, background 0.6s ease;
+}
+
+.mission-replay-scene-overlay[data-scene="grid"] {
+  background-image:
+    linear-gradient(rgba(96, 165, 250, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(96, 165, 250, 0.12) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: missionReplayGridDrift 8s linear infinite;
+}
+
+.mission-replay-scene-overlay[data-scene="capture"]::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  animation: missionReplayShutter 1.2s ease-in-out infinite;
+}
+
+.mission-replay-scene-overlay[data-scene="upload"] {
+  background: linear-gradient(180deg, transparent 55%, rgba(37, 99, 235, 0.22) 55%);
+}
+
+.mission-replay-scene-overlay[data-scene="upload"]::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 16%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.mission-replay-scene-overlay[data-scene="upload"]::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  bottom: 16%;
+  height: 6px;
+  width: 68%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
+  animation: missionReplayUpload 2.4s ease-in-out infinite;
+}
+
+.mission-replay-scene-overlay[data-scene="processing"] {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+  animation: missionReplayScan 1.8s linear infinite;
+}
+
+.mission-replay-scene-overlay[data-scene="ortho"] {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.12) 0%,
+    rgba(37, 99, 235, 0.08) 50%,
+    rgba(15, 23, 42, 0.2) 100%
+  );
+}
+
+.mission-replay-scene-overlay[data-scene="model3d"] {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  transform: perspective(800px) rotateX(18deg);
+  transform-origin: center bottom;
+}
+
+.mission-replay-scene-overlay[data-scene="elevation"] {
+  background: linear-gradient(
+    to top,
+    rgba(37, 99, 235, 0.35) 0%,
+    rgba(34, 197, 94, 0.25) 35%,
+    rgba(234, 179, 8, 0.25) 65%,
+    rgba(239, 68, 68, 0.3) 100%
+  );
+  mix-blend-mode: soft-light;
+}
+
+.mission-replay-scene-overlay[data-scene="measure"]::before,
+.mission-replay-scene-overlay[data-scene="measure"]::after {
+  content: "";
+  position: absolute;
+  border: 1px dashed rgba(250, 204, 21, 0.75);
+  border-radius: 8px;
+}
+
+.mission-replay-scene-overlay[data-scene="measure"]::before {
+  inset: 22% 48% 38% 18%;
+  box-shadow: inset 0 0 0 999px rgba(239, 68, 68, 0.12);
+}
+
+.mission-replay-scene-overlay[data-scene="measure"]::after {
+  inset: 38% 18% 22% 48%;
+  box-shadow: inset 0 0 0 999px rgba(34, 197, 94, 0.12);
+}
+
+@keyframes missionReplayGridDrift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 48px 48px, 48px 48px;
+  }
+}
+
+@keyframes missionReplayShutter {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes missionReplayUpload {
+  0% {
+    width: 18%;
+  }
+  100% {
+    width: 88%;
+  }
+}
+
+@keyframes missionReplayScan {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 24px;
+  }
+}
