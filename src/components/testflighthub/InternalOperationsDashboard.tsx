@@ -35,6 +35,7 @@ import CreditorsWorkspace from "./CreditorsWorkspace";
 import DebtorsWorkspace from "./DebtorsWorkspace";
 import ExpensesWorkspace from "./ExpensesWorkspace";
 import FinancialsWorkspace from "./FinancialsWorkspace";
+import GrantsWorkspace from "./GrantsWorkspace";
 import HrWorkspace from "./HrWorkspace";
 import FleetWorkspace from "./FleetWorkspace";
 import InfoEmailWorkspace from "./InfoEmailWorkspace";
@@ -224,6 +225,8 @@ export default function InternalOperationsDashboard({
           )}
 
           {activeView === "projects" && <ProjectsWorkspace clients={clients} />}
+
+          {activeView === "grants" && <GrantsWorkspace />}
 
           {activeView === "recent-missions" && <RecentMissionsPanel />}
 

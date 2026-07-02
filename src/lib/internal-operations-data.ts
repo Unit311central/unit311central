@@ -19,6 +19,7 @@ export type InternalOperationsView =
   | "fleet"
   | "testing"
   | "projects"
+  | "grants"
   | "recent-missions"
   | "webodm"
   | "messaging"
@@ -63,6 +64,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "fleet",
   "testing",
   "projects",
+  "grants",
   "recent-missions",
   "webodm",
   "messaging",
@@ -129,6 +131,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       { label: "Representatives", icon: "Handshake", view: "representatives" as const },
       { label: "Office Locations", icon: "MapPin", view: "office-locations" as const },
       { label: "Projects", icon: "FolderKanban", view: "projects" as const },
+      { label: "Grants", icon: "Landmark", view: "grants" as const },
       {
         label: "Financials",
         icon: "Wallet",
@@ -231,6 +234,7 @@ export const internalViewTitles: Record<
   fleet: { title: "Fleet", subtitle: "Internal Operations" },
   testing: { title: "Flight Simulator Testing", subtitle: "Internal Operations" },
   projects: { title: "Projects", subtitle: "Internal Operations" },
+  grants: { title: "Grants", subtitle: "Business Central" },
   "recent-missions": { title: "Recent Missions", subtitle: "Internal Operations" },
   webodm: { title: "WebODM Processing", subtitle: "Internal Operations" },
   messaging: { title: "Messaging", subtitle: "Internal Operations" },
