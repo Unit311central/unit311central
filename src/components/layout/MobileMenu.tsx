@@ -42,10 +42,10 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
         <div className="mb-8 flex items-center justify-between">
           <Logo
             height={56}
-            wordmark={pathname === "/" || pathname === "/contact" || pathname === "/book"}
-            onDark={pathname === "/" || pathname === "/contact" || pathname === "/book"}
+            wordmark={pathname === "/" || pathname === "/contact" || pathname === "/book" || pathname === "/payment"}
+            onDark={pathname === "/" || pathname === "/contact" || pathname === "/book" || pathname === "/payment"}
             className={
-              pathname === "/" || pathname === "/contact" || pathname === "/book"
+              pathname === "/" || pathname === "/contact" || pathname === "/book" || pathname === "/payment"
                 ? "origin-left"
                 : "scale-125 origin-left"
             }

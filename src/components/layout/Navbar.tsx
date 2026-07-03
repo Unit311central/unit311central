@@ -27,9 +27,10 @@ export default function Navbar() {
   const isHomePage = pathname === "/" || pathname === null;
   const isContactPage = pathname === "/contact";
   const isBookPage = pathname === "/book";
-  const isDarkNav = isHomePage || isContactPage || isBookPage || isLoginPage;
+  const isPaymentPage = pathname === "/payment";
+  const isDarkNav = isHomePage || isContactPage || isBookPage || isPaymentPage || isLoginPage;
   const isHeroOverlayNav = isHomePage;
-  const useWordmark = isContactPage || isBookPage;
+  const useWordmark = isContactPage || isBookPage || isPaymentPage;
   const isDashboard =
     pathname?.startsWith("/test1") ||
     pathname?.startsWith("/client/") ||

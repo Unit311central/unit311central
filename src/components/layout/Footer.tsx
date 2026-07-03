@@ -60,6 +60,19 @@ export default function Footer() {
                   Sign in
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/termsandconditions"
+                  className="text-[13px] text-[#1a2b4a]/65 hover:text-[#1a2b4a]"
+                >
+                  Terms &amp; Conditions
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacypolicy" className="text-[13px] text-[#1a2b4a]/65 hover:text-[#1a2b4a]">
+                  Privacy Policy
+                </Link>
+              </li>
             </ul>
           </div>
 
