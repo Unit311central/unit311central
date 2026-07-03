@@ -2,20 +2,20 @@ import type { EmailAccount, EmailAccountId } from "@/lib/email/types";
 
 import { resolveAccountCredentials } from "@/lib/email/credentials-service";
 
-export const ZOHO_IMAP_HOST = process.env.ZOHO_IMAP_HOST?.trim() || "imappro.zoho.eu";
+export const ZOHO_IMAP_HOST = process.env.ZOHO_IMAP_HOST?.trim() || "imap.zoho.eu";
 export const ZOHO_IMAP_PORT = Number(process.env.ZOHO_IMAP_PORT ?? 993);
-export const ZOHO_SMTP_HOST = process.env.ZOHO_SMTP_HOST?.trim() || "smtppro.zoho.eu";
+export const ZOHO_SMTP_HOST = process.env.ZOHO_SMTP_HOST?.trim() || "smtp.zoho.eu";
 export const ZOHO_SMTP_PORT = Number(process.env.ZOHO_SMTP_PORT ?? 465);
 
 const ACCOUNT_DEFINITIONS: readonly EmailAccount[] = [
   {
     id: "info",
-    email: "info@dronecatalyst.com",
+    email: "info@unit311central.com",
     name: "Shared Inbox",
   },
   {
     id: "paul",
-    email: "paul@dronecatalyst.com",
+    email: "paul@unit311central.com",
     name: "Paul",
   },
 ];

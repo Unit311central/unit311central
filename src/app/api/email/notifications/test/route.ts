@@ -16,7 +16,7 @@ export async function POST() {
   try {
     const timestamp = new Date().toISOString();
     const subject = `Unit311 WhatsApp alert test ${timestamp.slice(11, 19)} UTC`;
-    const sendAccount = (await isAccountConfigured("paul")) ? "paul" : "info";
+    const sendAccount = (await isAccountConfigured("info")) ? "info" : "paul";
 
     const emailResult = await sendMailboxEmail({
       account: sendAccount,

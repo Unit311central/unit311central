@@ -20,8 +20,8 @@ const operators = createInitialUsers();
 const REFRESH_INTERVAL_MS = 30_000;
 
 const DEFAULT_MAILBOXES: EmailAccountOption[] = [
-  { id: "info", email: "info@dronecatalyst.com", name: "Shared Inbox", configured: false },
-  { id: "paul", email: "paul@dronecatalyst.com", name: "Paul", configured: false },
+  { id: "info", email: "info@unit311central.com", name: "Shared Inbox", configured: false },
+  { id: "paul", email: "paul@unit311central.com", name: "Paul", configured: false },
 ];
 
 type EmailAccountOption = EmailAccount & { configured?: boolean };
@@ -274,6 +274,7 @@ export default function InfoEmailWorkspace() {
         body: JSON.stringify({
           account: selectedAccountId,
           password: setupPassword.trim(),
+          email: selectedAccount?.email,
         }),
       });
       const data = await readApiJson<{ ok?: boolean; error?: string }>(response);
@@ -475,8 +476,8 @@ export default function InfoEmailWorkspace() {
                 >
                   {accounts.length === 0 ? (
                     <>
-                      <option value="info">info@dronecatalyst.com</option>
-                      <option value="paul">paul@dronecatalyst.com</option>
+                      <option value="info">info@unit311central.com</option>
+                      <option value="paul">paul@unit311central.com</option>
                     </>
                   ) : (
                     accounts.map((account) => (
@@ -489,7 +490,7 @@ export default function InfoEmailWorkspace() {
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
               </div>
               <p className="mt-1 text-xs text-white/45">
-                {mailboxName} · shared Drone Catalyst mailbox · Zoho Mail · visible to all operators
+                {mailboxName} · Unit311 Central shared inbox · Zoho Mail · visible to all operators
               </p>
             </div>
           </div>

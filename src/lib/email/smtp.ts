@@ -28,6 +28,26 @@ function createTransport(accountId: EmailAccountId) {
   }));
 }
 
+export async function verifyMailboxTransport(accountId: EmailAccountId) {
+  const { credentials, transport } = await createTransport(accountId);
+
+  try {
+    await transport.verify();
+    return {
+      ok: true as const,
+      account: accountId,
+      email: credentials.email,
+      host: ZOHO_SMTP_HOST,
+      port: ZOHO_SMTP_PORT,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "SMTP verification failed.";
+    throw new EmailServiceError(message, "SEND_FAILED");
+  } finally {
+    transport.close();
+  }
+}
+
 function parseRecipients(value: string | undefined) {
   if (!value?.trim()) return undefined;
   return value
