@@ -147,31 +147,38 @@ function inputClassName() {
   return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50 placeholder:text-white/30";
 }
 
-function SectionCard({
+function SettingsColumn({
   title,
   description,
   icon,
+  accentClass,
   children,
 }: {
   title: string;
   description: string;
   icon: React.ReactNode;
+  accentClass?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
-      <div className="border-b border-white/10 px-4 py-4 sm:px-5">
+    <section
+      className={cn(
+        "flex min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl xl:min-h-[32rem]",
+        accentClass,
+      )}
+    >
+      <header className="shrink-0 border-b border-white/10 px-4 py-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-[#60a5fa]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-sky-300">
             {icon}
           </div>
-          <div>
-            <h2 className="text-base font-semibold text-white sm:text-lg">{title}</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/50">{description}</p>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-white">{title}</h2>
+            <p className="mt-1 text-xs leading-relaxed text-white/45">{description}</p>
           </div>
         </div>
-      </div>
-      <div className="p-4 sm:p-5">{children}</div>
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
     </section>
   );
 }
@@ -184,35 +191,30 @@ function PlatformCredentialsCard({ platform }: { platform: PlatformCredentials }
   return (
     <article
       className={cn(
-        "overflow-hidden rounded-2xl border bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl",
+        "overflow-hidden rounded-xl border bg-[#0b1524]/40",
         platform.accentBorder,
       )}
     >
-      <div
-        className={cn(
-          "border-b border-white/10 bg-gradient-to-r px-4 py-4 sm:px-5",
-          platform.accent,
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-black/30 text-white">
+      <div className={cn("border-b border-white/10 bg-gradient-to-r px-3 py-3", platform.accent)}>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-black/30 text-white">
             {platform.icon}
           </div>
-          <div>
-            <h3 className="text-base font-semibold text-white sm:text-lg">{platform.name}</h3>
-            <p className="text-xs text-white/50">Account credentials</p>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-white">{platform.name}</h3>
+            <p className="text-[10px] text-white/45">Account credentials</p>
           </div>
         </div>
       </div>
 
       <form
-        className="space-y-4 p-4 sm:p-5"
+        className="space-y-3 p-3"
         onSubmit={(event) => {
           event.preventDefault();
         }}
       >
         <div>
-          <FieldLabel>{platform.name} URL</FieldLabel>
+          <FieldLabel>URL</FieldLabel>
           <input
             type="url"
             value={url}
@@ -248,14 +250,10 @@ function PlatformCredentialsCard({ platform }: { platform: PlatformCredentials }
 
         <button
           type="submit"
-          className="inline-flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white/70 transition-colors hover:border-sky-400/40 hover:text-white"
+          className="inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white/70 transition-colors hover:border-sky-400/40 hover:text-white"
         >
           Save credentials
         </button>
-
-        <p className="text-center text-[11px] text-white/35">
-          Mockup only — credentials will connect to the Social page in a future release.
-        </p>
       </form>
     </article>
   );
@@ -398,138 +396,151 @@ export default function SettingsWorkspace() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+    <div className="space-y-4">
+      <section className="rounded-2xl border border-white/15 bg-white/[0.04] px-4 py-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:px-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-[#60a5fa]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-sky-300">
             <Settings className="h-5 w-5" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-white">Workspace settings</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/50">
-              Configure integrations, navigation, notifications, and social account credentials for
-              the internal operations workspace.
+            <p className="mt-1 text-sm leading-relaxed text-white/50">
+              External integrations, sidebar navigation, notifications, and social accounts — all in
+              one place.
             </p>
           </div>
         </div>
       </section>
 
-      <SectionCard
-        title="External integrations"
-        description="Connect accountancy packages for finance sync. Credentials are stored in local state only for this preview."
-        icon={<Link2 className="h-5 w-5" />}
-      >
-        <div className="grid gap-4 lg:grid-cols-3">
-          {ACCOUNTANCY_PACKAGES.map((pkg) => (
-            <AccountancyCard
-              key={pkg.id}
-              pkg={pkg}
-              integration={integrations[pkg.id]}
-              onChange={(next) =>
-                setIntegrations((current) => ({ ...current, [pkg.id]: next }))
-              }
-            />
-          ))}
-        </div>
-      </SectionCard>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 xl:items-stretch">
+        <SettingsColumn
+          title="External integrations"
+          description="Accountancy packages for finance sync."
+          icon={<Link2 className="h-4 w-4" />}
+          accentClass="border-emerald-400/20"
+        >
+          <div className="space-y-3">
+            {ACCOUNTANCY_PACKAGES.map((pkg) => (
+              <AccountancyCard
+                key={pkg.id}
+                pkg={pkg}
+                integration={integrations[pkg.id]}
+                onChange={(next) =>
+                  setIntegrations((current) => ({ ...current, [pkg.id]: next }))
+                }
+              />
+            ))}
+            <p className="text-[10px] leading-relaxed text-white/35">
+              Preview only — credentials are held in local state until live connectors ship.
+            </p>
+          </div>
+        </SettingsColumn>
 
-      <SectionCard
-        title="Sidebar menu editor"
-        description="Reorder, hide, or add custom navigation items. Custom entries are saved to localStorage."
-        icon={<Menu className="h-5 w-5" />}
-      >
-        <ul className="space-y-2">
-          {allNavItems.map((item, index) => {
-            const hidden = navCustom.hidden[item.id] ?? false;
-            return (
-              <li
-                key={item.id}
-                className={cn(
-                  "flex items-center gap-2 rounded-xl border border-white/10 bg-[#0b1524]/60 px-3 py-2",
-                  hidden && "opacity-50",
-                )}
+        <SettingsColumn
+          title="Sidebar"
+          description="Reorder, hide, or add custom nav items."
+          icon={<Menu className="h-4 w-4" />}
+          accentClass="border-violet-400/20"
+        >
+          <ul className="space-y-1.5">
+            {allNavItems.map((item, index) => {
+              const hidden = navCustom.hidden[item.id] ?? false;
+              return (
+                <li
+                  key={item.id}
+                  className={cn(
+                    "rounded-lg border border-white/10 bg-[#0b1524]/60 px-2.5 py-2",
+                    hidden && "opacity-50",
+                  )}
+                >
+                  <div className="flex items-start gap-1.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-medium text-white/90">
+                        {item.parentLabel ? `${item.parentLabel} › ${item.label}` : item.label}
+                        {item.custom && (
+                          <span className="ml-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-1 py-px text-[9px] text-violet-200">
+                            Custom
+                          </span>
+                        )}
+                      </p>
+                      <p className="truncate text-[10px] text-white/40">
+                        {item.sectionLabel ?? "General"}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => moveNavItem(index, -1)}
+                        disabled={index === 0}
+                        className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                        aria-label="Move up"
+                      >
+                        <ChevronUp className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveNavItem(index, 1)}
+                        disabled={index === allNavItems.length - 1}
+                        className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                        aria-label="Move down"
+                      >
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleNavHidden(item.id)}
+                        className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white"
+                        aria-label={hidden ? "Show item" : "Hide item"}
+                      >
+                        {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+            <FieldLabel>Add custom item</FieldLabel>
+            <div className="flex gap-2">
+              <input
+                value={customNavLabel}
+                onChange={(event) => setCustomNavLabel(event.target.value)}
+                placeholder="Menu label"
+                className={cn(inputClassName(), "mt-0 min-w-0 flex-1")}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addCustomNavItem();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={addCustomNavItem}
+                disabled={!customNavLabel.trim()}
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/15 px-2.5 py-2 text-xs font-semibold text-violet-200 hover:bg-violet-500/25 disabled:opacity-50"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-white/90">
-                    {item.parentLabel ? `${item.parentLabel} › ${item.label}` : item.label}
-                    {item.custom && (
-                      <span className="ml-2 rounded-full border border-violet-400/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] text-violet-200">
-                        Custom
-                      </span>
-                    )}
-                  </p>
-                  <p className="truncate text-xs text-white/40">{item.sectionLabel ?? "General"}</p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => moveNavItem(index, -1)}
-                    disabled={index === 0}
-                    className="rounded-lg border border-white/10 p-1.5 text-white/50 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-30"
-                    aria-label="Move up"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveNavItem(index, 1)}
-                    disabled={index === allNavItems.length - 1}
-                    className="rounded-lg border border-white/10 p-1.5 text-white/50 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-30"
-                    aria-label="Move down"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleNavHidden(item.id)}
-                    className="rounded-lg border border-white/10 p-1.5 text-white/50 transition-colors hover:bg-white/5 hover:text-white"
-                    aria-label={hidden ? "Show item" : "Hide item"}
-                  >
-                    {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </button>
+            </div>
+            <p className="text-[10px] text-white/35">
+              Saved to <code className="text-white/50">{NAV_CUSTOM_STORAGE_KEY}</code>
+            </p>
+          </div>
+        </SettingsColumn>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <input
-            value={customNavLabel}
-            onChange={(event) => setCustomNavLabel(event.target.value)}
-            placeholder="Custom menu label"
-            className={cn(inputClassName(), "mt-0 max-w-xs flex-1")}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addCustomNavItem();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={addCustomNavItem}
-            disabled={!customNavLabel.trim()}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 py-2 text-sm font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25 disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-            Add custom item
-          </button>
-        </div>
-        <p className="mt-2 text-[11px] text-white/35">
-          Stored under <code className="text-white/50">{NAV_CUSTOM_STORAGE_KEY}</code> in localStorage.
-        </p>
-      </SectionCard>
-
-      <SectionCard
-        title="Notifications"
-        description="Preview notification preferences. No messages are sent from this mockup."
-        icon={<Bell className="h-5 w-5" />}
-      >
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-4">
-            <label className="flex items-center justify-between rounded-xl border border-white/10 bg-[#0b1524]/60 px-4 py-3">
-              <span className="text-sm text-white/80">Phone notifications</span>
+        <SettingsColumn
+          title="Notifications"
+          description="Phone, email, and digest preferences."
+          icon={<Bell className="h-4 w-4" />}
+          accentClass="border-amber-400/20"
+        >
+          <div className="space-y-3">
+            <label className="flex items-center justify-between rounded-lg border border-white/10 bg-[#0b1524]/60 px-3 py-2.5">
+              <span className="text-xs text-white/80">Phone notifications</span>
               <input
                 type="checkbox"
                 checked={phoneNotifications}
@@ -537,8 +548,8 @@ export default function SettingsWorkspace() {
                 className="h-4 w-4 rounded border-white/20 bg-transparent accent-sky-500"
               />
             </label>
-            <label className="flex items-center justify-between rounded-xl border border-white/10 bg-[#0b1524]/60 px-4 py-3">
-              <span className="text-sm text-white/80">Email notifications</span>
+            <label className="flex items-center justify-between rounded-lg border border-white/10 bg-[#0b1524]/60 px-3 py-2.5">
+              <span className="text-xs text-white/80">Email notifications</span>
               <input
                 type="checkbox"
                 checked={emailNotifications}
@@ -549,11 +560,11 @@ export default function SettingsWorkspace() {
 
             <div>
               <FieldLabel>Functions</FieldLabel>
-              <div className="mt-2 space-y-2">
+              <div className="mt-1.5 space-y-1.5">
                 {NOTIFICATION_FUNCTIONS.map((fn) => (
                   <label
                     key={fn}
-                    className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#0b1524]/60 px-3 py-2.5"
+                    className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#0b1524]/60 px-3 py-2"
                   >
                     <input
                       type="checkbox"
@@ -564,32 +575,29 @@ export default function SettingsWorkspace() {
                           [fn]: event.target.checked,
                         }))
                       }
-                      className="h-4 w-4 rounded border-white/20 bg-transparent accent-sky-500"
+                      className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-sky-500"
                     />
-                    <span className="text-sm text-white/75">{fn}</span>
+                    <span className="text-xs text-white/75">{fn}</span>
                   </label>
                 ))}
               </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
             <div>
-              <FieldLabel>User alert targets</FieldLabel>
-              <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-[#0b1524] p-2">
+              <FieldLabel>Alert users</FieldLabel>
+              <div className="mt-1.5 max-h-36 overflow-y-auto rounded-lg border border-white/10 bg-[#0b1524] p-1.5">
                 {MOCK_USERS.map((user) => (
                   <label
                     key={user.id}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-white/5"
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-white/5"
                   >
                     <input
                       type="checkbox"
                       checked={alertUserIds.includes(user.id)}
                       onChange={() => toggleAlertUser(user.id)}
-                      className="h-4 w-4 rounded border-white/20 bg-transparent accent-sky-500"
+                      className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-sky-500"
                     />
-                    <span className="text-white/85">{user.fullName}</span>
-                    <span className="text-xs text-white/40">{user.email}</span>
+                    <span className="truncate text-white/85">{user.fullName}</span>
                   </label>
                 ))}
               </div>
@@ -614,28 +622,24 @@ export default function SettingsWorkspace() {
               </select>
             </div>
           </div>
-        </div>
-      </SectionCard>
+        </SettingsColumn>
 
-      <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-[#60a5fa]">
-            <Share2 className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-white">Social account settings</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/50">
-              Enter LinkedIn and Instagram account details here. These fields are placeholders for
-              now — they will power publishing on the Social page when integrations are enabled.
+        <SettingsColumn
+          title="Social accounts"
+          description="LinkedIn and Instagram publishing credentials."
+          icon={<Share2 className="h-4 w-4" />}
+          accentClass="border-pink-400/20"
+        >
+          <div className="space-y-3">
+            {PLATFORMS.map((platform) => (
+              <PlatformCredentialsCard key={platform.id} platform={platform} />
+            ))}
+            <p className="text-[10px] leading-relaxed text-white/35">
+              Mockup only — these credentials will power the Social workspace when integrations go
+              live.
             </p>
           </div>
-        </div>
-      </section>
-
-      <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
-        {PLATFORMS.map((platform) => (
-          <PlatformCredentialsCard key={platform.id} platform={platform} />
-        ))}
+        </SettingsColumn>
       </div>
     </div>
   );
