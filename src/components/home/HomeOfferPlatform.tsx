@@ -111,7 +111,7 @@ export default function HomeOfferPlatform() {
             <Link
               key={item.title}
               href={item.href}
-              className="group flex min-h-[220px] flex-col rounded-xl bg-white px-5 py-6 text-left shadow-[0_4px_24px_rgba(11,45,99,0.12)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(11,45,99,0.16)] sm:min-h-[240px] sm:px-6 sm:py-7"
+              className="flex min-h-[200px] flex-col rounded-xl bg-white px-5 py-6 text-left shadow-[0_4px_24px_rgba(11,45,99,0.12)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(11,45,99,0.16)] sm:min-h-[220px] sm:px-6 sm:py-7"
             >
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#2563eb] text-sm font-bold text-white">
                 {index + 1}
