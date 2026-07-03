@@ -65,6 +65,7 @@ export async function sendMailboxEmail(payload: EmailSendPayload) {
       to: parseRecipients(payload.to),
       cc: parseRecipients(payload.cc),
       bcc: parseRecipients(payload.bcc),
+      replyTo: parseRecipients(payload.replyTo)?.join(", "),
       subject: payload.subject,
       text: payload.text,
       html: payload.html ?? payload.text,

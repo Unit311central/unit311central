@@ -102,8 +102,8 @@ export default function HomeOfferPlatform() {
         <SectionTitle centered>What every new business needs</SectionTitle>
 
         <p className="mx-auto mt-5 max-w-3xl text-center text-[15px] leading-relaxed text-white/60 sm:text-[17px]">
-          Unit311 brings the core operating stack into one workspace — from first client to finance,
-          files, email, messaging, and social.
+          Unit311 Central brings the core operating stack into one workspace — from first client to
+          finance, files, email, messaging, social and more.
         </p>
 
         <div className="mx-auto mt-10 grid w-full max-w-[1400px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -122,9 +122,6 @@ export default function HomeOfferPlatform() {
               <p className="mt-3 flex-1 text-[14px] leading-relaxed text-[#1a2b4a]/72 sm:text-[15px]">
                 {item.description}
               </p>
-              <span className="mt-4 text-sm font-semibold text-[#2563eb] group-hover:underline">
-                Explore module
-              </span>
             </Link>
           ))}
         </div>
@@ -134,7 +131,8 @@ export default function HomeOfferPlatform() {
 
           <div className="mt-10 w-full">
             <p className="mx-auto mb-4 max-w-2xl text-center text-sm text-white/50">
-              Click any module in the sidebar to preview how Unit311 Central platform works
+              Click any module in the sidebar to preview how Unit311 Central organises clients,
+              projects, finance, files, email, and operations and more.
             </p>
             <div className="mx-auto w-full max-w-full px-1 sm:px-0 md:max-w-[92%] lg:max-w-[1200px]">
               <div className="overflow-hidden rounded-[28px] border border-white/12 bg-gradient-to-b from-white/[0.14] to-white/[0.06] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:p-4 lg:rounded-[32px]">

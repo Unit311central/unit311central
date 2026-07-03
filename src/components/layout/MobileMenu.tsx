@@ -40,7 +40,16 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
         className="absolute right-0 top-0 flex h-full w-full max-w-sm flex-col border-l border-border bg-surface p-6 shadow-2xl"
       >
         <div className="mb-8 flex items-center justify-between">
-          <Logo height={56} className="scale-125 origin-left" />
+          <Logo
+            height={56}
+            wordmark={pathname === "/" || pathname === "/contact" || pathname === "/book"}
+            onDark={pathname === "/" || pathname === "/contact" || pathname === "/book"}
+            className={
+              pathname === "/" || pathname === "/contact" || pathname === "/book"
+                ? "origin-left"
+                : "scale-125 origin-left"
+            }
+          />
           <button
             type="button"
             aria-label="Close menu"

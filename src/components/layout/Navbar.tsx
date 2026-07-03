@@ -24,7 +24,12 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const isLoginPage = pathname === "/login" || pathname === "/clientlogin";
-  const isDarkNav = pathname === "/" || pathname === "/contact" || pathname === "/book" || isLoginPage;
+  const isHomePage = pathname === "/";
+  const isContactPage = pathname === "/contact";
+  const isBookPage = pathname === "/book";
+  const isDarkNav = isHomePage || isContactPage || isBookPage || isLoginPage;
+  const isHeroOverlayNav = isHomePage;
+  const useWordmark = isHomePage || isContactPage || isBookPage;
   const isDashboard =
     pathname?.startsWith("/test1") ||
     pathname?.startsWith("/client/") ||
@@ -45,19 +50,39 @@ export default function Navbar() {
     <>
       <header
         className={
-          isDarkNav
+          isHeroOverlayNav
             ? "absolute inset-x-0 top-0 z-40 bg-transparent"
-            : "sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl"
+            : isDarkNav
+              ? "sticky top-0 z-40 border-b border-white/10 bg-[#020617]/90 backdrop-blur-xl"
+              : "sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl"
         }
       >
-        <div className="mx-auto flex h-32 max-w-[1400px] items-center px-6 sm:px-8 lg:grid lg:h-44 lg:grid-cols-[1fr_auto_1fr] lg:px-10">
+        <div
+          className={`mx-auto flex max-w-[1400px] items-center sm:px-8 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-10 ${
+            useWordmark ? "h-24 px-5 lg:h-28" : "h-32 px-6 lg:h-44"
+          }`}
+        >
           <div className="flex w-full items-center justify-between lg:contents">
             {/* Logo */}
-            <div className="flex items-center justify-start overflow-visible">
+            <div
+              className={`flex items-center justify-start overflow-visible ${
+                isHomePage ? "w-full max-w-[640px] lg:w-auto" : ""
+              }`}
+            >
               <Logo
-                height={isDarkNav ? 224 : 128}
+                height={useWordmark ? 72 : isDarkNav ? 224 : 128}
                 onDark={isDarkNav}
-                className={isDarkNav ? "origin-left scale-[1.35] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)]" : undefined}
+                wordmark={useWordmark}
+                heroAlign={isHomePage}
+                className={
+                  useWordmark
+                    ? isHomePage
+                      ? "block text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)]"
+                      : "block drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)]"
+                    : isDarkNav
+                      ? "origin-left scale-[1.35] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)]"
+                      : undefined
+                }
               />
             </div>
 

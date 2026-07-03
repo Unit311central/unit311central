@@ -13,6 +13,7 @@ type LogoProps = {
   onDark?: boolean;
   href?: string;
   wordmark?: boolean;
+  heroAlign?: boolean;
 };
 
 export default function Logo({
@@ -21,18 +22,27 @@ export default function Logo({
   onDark = false,
   href = "/",
   wordmark = false,
+  heroAlign = false,
 }: LogoProps) {
   if (wordmark) {
     const wordmarkSize = Math.round(height * 0.48);
 
     const content = (
-      <span className={cn("inline-flex items-center leading-none", className)}>
+      <span
+        className={cn(
+          heroAlign
+            ? "inline-block font-semibold uppercase leading-none tracking-[0.28em]"
+            : "inline-flex items-center leading-none",
+          className,
+        )}
+        style={heroAlign ? { fontSize: wordmarkSize } : undefined}
+      >
         <span
-          className="font-semibold tracking-[-0.03em]"
-          style={{ fontSize: wordmarkSize }}
+          className={cn(!heroAlign && "font-semibold tracking-[-0.03em]")}
+          style={heroAlign ? undefined : { fontSize: wordmarkSize }}
         >
-          <span className={onDark ? "text-white" : "text-[#0b2d63]"}>Unit</span>
-          <span className={onDark ? "text-[#60a5fa]" : "text-[#2563eb]"}>311</span>
+          <span className={onDark ? "!text-white" : "text-[#0b2d63]"}>UNIT</span>
+          <span className={onDark ? "text-[#60a5fa] !text-[#60a5fa]" : "text-[#2563eb]"}>311</span>
         </span>
       </span>
     );
@@ -40,7 +50,11 @@ export default function Logo({
     if (!href) return content;
 
     return (
-      <Link href={href} className="inline-flex shrink-0 items-center" aria-label={SITE_NAME}>
+      <Link
+        href={href}
+        className={cn("inline-flex shrink-0 items-center", onDark && "text-white")}
+        aria-label={SITE_NAME}
+      >
         {content}
       </Link>
     );
