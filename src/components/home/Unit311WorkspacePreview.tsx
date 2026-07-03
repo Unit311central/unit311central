@@ -4,9 +4,9 @@ import { useState } from "react";
 
 import WorkspaceDemoPanel from "@/components/home/WorkspaceDemoPanel";
 import {
-  internalSurveyNavSections,
   type InternalNavChildItem,
   type InternalNavItem,
+  type InternalNavSection,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import { cn } from "@/lib/utils";
@@ -21,16 +21,13 @@ import {
   FolderKanban,
   FolderOpen,
   GraduationCap,
-  Handshake,
   Landmark,
   LayoutDashboard,
   LifeBuoy,
   Mail,
-  MapPin,
   MessageSquare,
   Package,
   PenLine,
-  Pickaxe,
   Settings,
   Share2,
   Truck,
@@ -43,8 +40,6 @@ const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard,
   Building2,
   ContactRound,
-  Handshake,
-  MapPin,
   FolderKanban,
   Wallet,
   Briefcase,
@@ -60,23 +55,80 @@ const iconMap: Record<string, LucideIcon> = {
   Binoculars,
   PenLine,
   Landmark,
-  Pickaxe,
   GraduationCap,
   Users,
   Settings,
 };
 
-const PREVIEW_SECTIONS = internalSurveyNavSections.filter(
-  (section) =>
-    section.label === null ||
-    section.label === "Business Central" ||
-    section.label === "Inventory Management" ||
-    section.label === "Business Productivity" ||
-    section.label === "Strategy" ||
-    section.label === "Training" ||
-    section.label === "Tools" ||
-    section.label === "Settings",
-);
+const DEMO_NAV_SECTIONS: InternalNavSection[] = [
+  {
+    label: null,
+    items: [{ label: "Home", icon: "LayoutDashboard", view: "home" }],
+  },
+  {
+    label: "Business Central",
+    items: [
+      { label: "Clients", icon: "Building2", view: "clients" },
+      { label: "CRM", icon: "ContactRound", view: "crm" },
+      { label: "Projects", icon: "FolderKanban", view: "projects" },
+      { label: "Grants", icon: "Landmark", view: "grants" },
+      {
+        label: "Financials",
+        icon: "Wallet",
+        children: [
+          { label: "Overview", view: "financials" },
+          { label: "Expenses", view: "expenses" },
+        ],
+      },
+      { label: "HR", icon: "Briefcase", view: "hr" },
+    ],
+  },
+  {
+    label: "Inventory Management",
+    items: [{ label: "Assets", icon: "Package", view: "assets" }],
+  },
+  {
+    label: "Business Productivity",
+    items: [
+      { label: "Files", icon: "FolderOpen", view: "files-internal" },
+      { label: "Calendar", icon: "CalendarDays", view: "calendar" },
+      { label: "Logistics", icon: "Truck", view: "logistics" },
+      { label: "Email", icon: "Mail", view: "info-email" },
+      { label: "Messaging", icon: "MessageSquare", view: "messaging" },
+      { label: "Social", icon: "Share2", view: "social" },
+      { label: "Support", icon: "LifeBuoy", view: "support" },
+    ],
+  },
+  {
+    label: "Strategy",
+    items: [
+      { label: "Strategy", icon: "Compass", view: "strategy" },
+      { label: "Competitors", icon: "Binoculars", view: "competitors" },
+      { label: "Whiteboard", icon: "PenLine", view: "whiteboard" },
+    ],
+  },
+  {
+    label: "Training",
+    items: [{ label: "Training", icon: "GraduationCap", view: "training" }],
+  },
+  {
+    label: "Tools",
+    items: [{ label: "Users", icon: "Users", view: "users" }],
+  },
+  {
+    label: "Settings",
+    items: [
+      {
+        label: "Settings",
+        icon: "Settings",
+        children: [
+          { label: "General", view: "settings" },
+          { label: "Billing", view: "billing" },
+        ],
+      },
+    ],
+  },
+];
 
 function NavIcon({ name }: { name: string }) {
   const Icon = iconMap[name] ?? LayoutDashboard;
@@ -168,7 +220,7 @@ export default function Unit311WorkspacePreview({
         <aside
           className={cn(
             "w-full shrink-0 border-b border-white/10 bg-[#0a0f18]/95 lg:border-b-0 lg:border-r",
-            compact ? "lg:w-[165px]" : "lg:w-[220px]",
+            compact ? "lg:w-[206px]" : "lg:w-[220px]",
           )}
         >
           <div className="border-b border-white/10 px-3 py-3">
@@ -186,7 +238,7 @@ export default function Unit311WorkspacePreview({
             )}
             aria-label="Workspace demo navigation"
           >
-            {PREVIEW_SECTIONS.map((section) => (
+            {DEMO_NAV_SECTIONS.map((section) => (
               <div key={section.label ?? "home"} className="mb-3 last:mb-0">
                 {section.label ? (
                   <p className="px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-400/80">
