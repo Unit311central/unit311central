@@ -40,7 +40,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
         className="absolute right-0 top-0 flex h-full w-full max-w-sm flex-col border-l border-border bg-surface p-6 shadow-2xl"
       >
         <div className="mb-8 flex items-center justify-between">
-          <Logo height={28} />
+          <Logo height={40} />
           <button
             type="button"
             aria-label="Close menu"

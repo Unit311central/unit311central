@@ -99,7 +99,7 @@ export default function HomePricing() {
           <div className="mt-10 text-center">
             <Link
               href="/book"
-              className="inline-flex h-12 w-full max-w-md items-center justify-center rounded-xl bg-[#2563eb] px-8 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(37,99,235,0.35)] transition-colors hover:bg-[#1d4ed8] sm:w-auto"
+              className="inline-flex h-14 w-full max-w-lg items-center justify-center rounded-xl bg-white px-10 text-base font-semibold text-[#0b2d63] shadow-[0_10px_32px_rgba(255,255,255,0.18)] transition-colors hover:bg-white/95 sm:h-16 sm:text-lg sm:w-auto"
             >
               Book a Complimentary Founder Session
             </Link>

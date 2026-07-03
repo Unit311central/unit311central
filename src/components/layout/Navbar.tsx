@@ -50,11 +50,19 @@ export default function Navbar() {
             : "sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl"
         }
       >
-        <div className="mx-auto flex h-20 max-w-[1400px] items-center px-6 sm:px-8 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-10">
+        <div className="mx-auto flex h-24 max-w-[1400px] items-center px-6 sm:px-8 lg:grid lg:h-28 lg:grid-cols-[1fr_auto_1fr] lg:px-10">
           <div className="flex w-full items-center justify-between lg:contents">
             {/* Logo */}
             <div className="flex items-center justify-start">
-              <Logo height={60} onDark={isDarkNav} />
+              <div
+                className={
+                  isDarkNav
+                    ? "rounded-2xl bg-white/95 px-3 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.28)] sm:px-4 sm:py-2.5"
+                    : undefined
+                }
+              >
+                <Logo height={isDarkNav ? 72 : 52} onDark={isDarkNav} />
+              </div>
             </div>
 
             {/* Centered navigation */}

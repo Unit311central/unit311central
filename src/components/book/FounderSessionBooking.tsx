@@ -142,7 +142,7 @@ export default function FounderSessionBooking() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:p-6">
+      <section className="rounded-2xl border border-white/15 bg-[#07111f]/88 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.35)] sm:p-6">
         <div className="flex items-center gap-2 text-sky-300">
           <CalendarDays className="h-4 w-4" />
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em]">Choose a date</p>
@@ -203,7 +203,7 @@ export default function FounderSessionBooking() {
 
       <form
         onSubmit={(event) => void handleSubmit(event)}
-        className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:p-6"
+        className="rounded-2xl border border-white/15 bg-[#07111f]/88 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.35)] sm:p-6"
       >
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300">
           Your details
