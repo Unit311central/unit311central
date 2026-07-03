@@ -50,6 +50,7 @@ import MediaExampleWorkspace from "./MediaExampleWorkspace";
 import MessagingWorkspace from "./MessagingWorkspace";
 import SocialWorkspace from "./SocialWorkspace";
 import SettingsWorkspace from "./SettingsWorkspace";
+import BillingWorkspace from "./BillingWorkspace";
 import RecentMissionsPanel from "./RecentMissionsPanel";
 import RepresentativesWorkspace from "./RepresentativesWorkspace";
 import StrategyWorkspace from "./StrategyWorkspace";
@@ -177,7 +178,7 @@ export default function InternalOperationsDashboard({
       >
       <div
         className={
-          activeView === "home" || activeView === "settings"
+          activeView === "home" || activeView === "settings" || activeView === "billing"
             ? "relative mx-auto w-full min-w-0 px-1 py-1 sm:px-2 md:px-4 lg:px-6 lg:py-3 xl:max-w-[100rem]"
             : "relative mx-auto w-full min-w-0 max-w-7xl px-1 py-2 sm:px-2 md:px-4 lg:px-6 lg:py-4 xl:max-w-[90rem]"
         }
@@ -276,6 +277,8 @@ export default function InternalOperationsDashboard({
           {activeView === "social" && <SocialWorkspace />}
 
           {activeView === "settings" && <SettingsWorkspace />}
+
+          {activeView === "billing" && <BillingWorkspace />}
 
           {activeView === "calendar" && (
             <CalendarWorkspace users={users} clients={clients} />

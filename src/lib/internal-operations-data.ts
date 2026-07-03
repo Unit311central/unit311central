@@ -25,6 +25,7 @@ export type InternalOperationsView =
   | "messaging"
   | "social"
   | "settings"
+  | "billing"
   | "calendar"
   | "info-email"
   | "files"
@@ -70,6 +71,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "messaging",
   "social",
   "settings",
+  "billing",
   "calendar",
   "info-email",
   "files",
@@ -204,7 +206,16 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
   },
   {
     label: "Settings",
-    items: [{ label: "Settings", icon: "Settings", view: "settings" as const }],
+    items: [
+      {
+        label: "Settings",
+        icon: "Settings",
+        children: [
+          { label: "General", view: "settings" as const },
+          { label: "Billing", view: "billing" as const },
+        ],
+      },
+    ],
   },
 ];
 
@@ -240,6 +251,7 @@ export const internalViewTitles: Record<
   messaging: { title: "Messaging", subtitle: "Internal Operations" },
   social: { title: "Social", subtitle: "Unit311" },
   settings: { title: "Settings", subtitle: "Unit311" },
+  billing: { title: "Billing", subtitle: "Unit311 Professional" },
   calendar: { title: "Calendar", subtitle: "Internal Operations" },
   "info-email": { title: "Email", subtitle: "Internal Operations" },
   files: { title: "File Explorer", subtitle: "Internal Operations" },
