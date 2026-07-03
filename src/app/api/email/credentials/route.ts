@@ -6,7 +6,6 @@ import {
   saveMailboxCredentials,
 } from "@/lib/email/credentials-service";
 import { emailErrorResponse } from "@/lib/email/api-utils";
-import { ensureEmailInfrastructureTables } from "@/lib/internal-db-migrations";
 import type { EmailAccountId } from "@/lib/email/types";
 
 export const runtime = "nodejs";
@@ -14,7 +13,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await ensureEmailInfrastructureTables();
     const status = await getMailboxCredentialStatus();
     return NextResponse.json(status);
   } catch (error) {
@@ -38,7 +36,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password is required." }, { status: 400 });
     }
 
-    await ensureEmailInfrastructureTables();
     const saved = await saveMailboxCredentials(account, body.password, body.email);
     const status = await getMailboxCredentialStatus();
 

@@ -1,21 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createConnection, listConnections } from "@/lib/crm-connections-service";
+import { createInitialConnections } from "@/lib/connections-seed-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
+    return NextResponse.json({ connections: createInitialConnections(), source: "local" });
   }
 
   try {
     const connections = await listConnections();
+    if (connections.length === 0) {
+      return NextResponse.json({ connections: createInitialConnections(), source: "local" });
+    }
     return NextResponse.json({ connections });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load connections";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({
+      connections: createInitialConnections(),
+      source: "local",
+      warning: message,
+    });
   }
 }
 

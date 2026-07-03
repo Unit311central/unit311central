@@ -40,3 +40,22 @@ export function commissionSummaryForRep(repId: string) {
   const upcoming = rows.filter((r) => r.status === "Upcoming").reduce((s, r) => s + r.amountEur, 0);
   return { paid, outstanding, upcoming, rows };
 }
+
+export function commissionTrendForRep(repId: string) {
+  const rows = REP_COMMISSIONS.filter((row) => row.repId === repId);
+  const byPeriod = new Map<string, { paid: number; outstanding: number; upcoming: number }>();
+
+  for (const row of rows) {
+    const current = byPeriod.get(row.period) ?? { paid: 0, outstanding: 0, upcoming: 0 };
+    if (row.status === "Paid") current.paid += row.amountEur;
+    if (row.status === "Outstanding") current.outstanding += row.amountEur;
+    if (row.status === "Upcoming") current.upcoming += row.amountEur;
+    byPeriod.set(row.period, current);
+  }
+
+  return Array.from(byPeriod.entries()).map(([period, values]) => ({
+    period,
+    ...values,
+    total: values.paid + values.outstanding + values.upcoming,
+  }));
+}

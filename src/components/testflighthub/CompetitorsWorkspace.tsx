@@ -40,10 +40,9 @@ async function readApiJson<T>(response: Response): Promise<T> {
 
 type CompetitorDraft = Pick<
   Competitor,
-  "companyName" | "website" | "services" | "droneTechnology" | "lastRevenue" | "notes"
+  "companyName" | "website" | "droneTechnology" | "lastRevenue" | "notes"
 > & {
   serviceCategories: ServiceCategory[];
-  customServiceTags: string[];
 };
 
 type RegionOption = {
@@ -61,28 +60,6 @@ function slugifyRegionId(name: string): CompetitorRegion {
     .replace(/[^a-z0-9]+/g, "")
     .slice(0, 24);
   return (slug || "custom") as CompetitorRegion;
-}
-
-function parseCustomServiceTags(services: string): string[] {
-  if (!services.trim()) return [];
-  return services
-    .split(/[,;|]/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .filter(
-      (item) =>
-        !SERVICE_CATEGORY_ORDER.some(
-          (category) => SERVICE_CATEGORY_LABELS[category].toLowerCase() === item.toLowerCase(),
-        ),
-    );
-}
-
-function mergeServicesWithCustomTags(detail: string, tags: string[]) {
-  const normalizedTags = tags.map((tag) => tag.trim()).filter(Boolean);
-  const detailText = detail.trim();
-  if (normalizedTags.length === 0) return detailText;
-  if (!detailText) return normalizedTags.join(", ");
-  return `${normalizedTags.join(", ")} | ${detailText}`;
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -105,6 +82,10 @@ function formatWebsiteHref(website: string) {
   const trimmed = website.trim();
   if (!trimmed) return null;
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function serviceBadgeInitial(category: ServiceCategory) {
+  return SERVICE_CATEGORY_LABELS[category].slice(0, 1).toUpperCase();
 }
 
 function serviceBadgeClass(category: ServiceCategory) {
@@ -150,7 +131,6 @@ export default function CompetitorsWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [customRegions, setCustomRegions] = useState<RegionOption[]>([]);
   const [newRegionName, setNewRegionName] = useState("");
-  const [customTagInput, setCustomTagInput] = useState("");
 
   const regionOptions = useMemo(() => {
     const merged = new Map<string, RegionOption>();
@@ -207,34 +187,23 @@ export default function CompetitorsWorkspace() {
   useEffect(() => {
     setEditingId(null);
     setDraft(null);
-    setCustomTagInput("");
   }, [selectedRegion]);
 
   function startEdit(competitor: Competitor) {
     setEditingId(competitor.id);
-    const customServiceTags = parseCustomServiceTags(competitor.services);
-    const servicesDetail = competitor.services.includes("|")
-      ? competitor.services.split("|").slice(1).join("|").trim()
-      : customServiceTags.length > 0
-        ? ""
-        : competitor.services;
     setDraft({
       companyName: competitor.companyName,
       website: competitor.website,
-      services: servicesDetail,
       droneTechnology: competitor.droneTechnology,
       serviceCategories: resolveServiceCategories(competitor),
-      customServiceTags,
       lastRevenue: competitor.lastRevenue,
       notes: competitor.notes,
     });
-    setCustomTagInput("");
   }
 
   function cancelEdit() {
     setEditingId(null);
     setDraft(null);
-    setCustomTagInput("");
   }
 
   function patchDraft(patch: Partial<CompetitorDraft>) {
@@ -250,28 +219,6 @@ export default function CompetitorsWorkspace() {
       return {
         ...current,
         serviceCategories: SERVICE_CATEGORY_ORDER.filter((item) => selected.has(item)),
-      };
-    });
-  }
-
-  function addCustomServiceTag() {
-    const trimmed = customTagInput.trim();
-    if (!trimmed) return;
-    setDraft((current) => {
-      if (!current) return current;
-      const existing = new Set(current.customServiceTags.map((tag) => tag.toLowerCase()));
-      if (existing.has(trimmed.toLowerCase())) return current;
-      return { ...current, customServiceTags: [...current.customServiceTags, trimmed] };
-    });
-    setCustomTagInput("");
-  }
-
-  function removeCustomServiceTag(tag: string) {
-    setDraft((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        customServiceTags: current.customServiceTags.filter((item) => item !== tag),
       };
     });
   }
@@ -311,7 +258,9 @@ export default function CompetitorsWorkspace() {
         body: JSON.stringify({
           companyName: draft.companyName,
           website: draft.website,
-          services: mergeServicesWithCustomTags(draft.services, draft.customServiceTags),
+          services: draft.serviceCategories
+            .map((category) => SERVICE_CATEGORY_LABELS[category])
+            .join(", "),
           serviceCategories: serializeServiceCategories(draft.serviceCategories),
           droneTechnology: draft.droneTechnology,
           lastRevenue: draft.lastRevenue,
@@ -519,9 +468,6 @@ export default function CompetitorsWorkspace() {
                   const categories = isEditing && draft
                     ? draft.serviceCategories
                     : resolveServiceCategories(competitor);
-                  const customTags = isEditing && draft
-                    ? draft.customServiceTags
-                    : parseCustomServiceTags(competitor.services);
 
                   return (
                     <Fragment key={competitor.id}>
@@ -568,95 +514,49 @@ export default function CompetitorsWorkspace() {
 
                       <td className="px-4 py-3 sm:px-5">
                         {isEditing ? (
-                          <div className="space-y-2">
-                            <div className="flex flex-wrap gap-1.5">
-                              {SERVICE_CATEGORY_ORDER.map((category) => {
-                                const selected = draft?.serviceCategories.includes(category) ?? false;
-                                return (
-                                  <button
-                                    key={category}
-                                    type="button"
-                                    onClick={() => toggleDraftCategory(category)}
-                                    className={cn(
-                                      "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors",
-                                      selected
-                                        ? serviceBadgeClass(category)
-                                        : "border-white/10 bg-white/[0.03] text-white/40 hover:border-white/20",
-                                    )}
-                                  >
-                                    {SERVICE_CATEGORY_LABELS[category]}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {draft?.customServiceTags.map((tag) => (
+                          <div className="flex flex-wrap gap-1.5">
+                            {SERVICE_CATEGORY_ORDER.map((category) => {
+                              const selected = draft?.serviceCategories.includes(category) ?? false;
+                              return (
                                 <button
-                                  key={tag}
-                                  type="button"
-                                  onClick={() => removeCustomServiceTag(tag)}
-                                  className="inline-flex items-center gap-1 rounded-full border border-fuchsia-400/30 bg-fuchsia-500/10 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-100"
-                                  title="Remove custom tag"
-                                >
-                                  {tag}
-                                  <X className="h-3 w-3" />
-                                </button>
-                              ))}
-                            </div>
-                            <div className="flex gap-2">
-                              <input
-                                value={customTagInput}
-                                onChange={(event) => setCustomTagInput(event.target.value)}
-                                placeholder="Custom service tag"
-                                className={cellInputClassName()}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    event.preventDefault();
-                                    addCustomServiceTag();
-                                  }
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={addCustomServiceTag}
-                                disabled={!customTagInput.trim()}
-                                className="inline-flex h-10 shrink-0 items-center rounded-lg border border-white/10 px-3 text-xs font-semibold text-white/70 hover:bg-white/[0.05] disabled:opacity-50"
-                              >
-                                Add tag
-                              </button>
-                            </div>
-                          </div>
-                        ) : categories.length > 0 || customTags.length > 0 ? (
-                          <div className="space-y-2">
-                            <div className="flex flex-wrap gap-1">
-                              {categories.map((category) => (
-                                <span
                                   key={category}
+                                  type="button"
+                                  title={SERVICE_CATEGORY_LABELS[category]}
+                                  onClick={() => toggleDraftCategory(category)}
                                   className={cn(
-                                    "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
-                                    serviceBadgeClass(category),
+                                    "inline-flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold uppercase transition-colors",
+                                    selected
+                                      ? serviceBadgeClass(category)
+                                      : "border-white/10 bg-white/[0.03] text-white/40 hover:border-white/20",
                                   )}
                                 >
-                                  {SERVICE_CATEGORY_LABELS[category]}
-                                </span>
-                              ))}
-                              {customTags.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="inline-flex rounded-full border border-fuchsia-400/30 bg-fuchsia-500/10 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-100"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                            {competitor.services.trim() && (
-                              <p className="whitespace-pre-wrap text-sm leading-snug text-white/65">
-                                {competitor.services}
-                              </p>
-                            )}
+                                  {serviceBadgeInitial(category)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : categories.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {categories.map((category) => (
+                              <span
+                                key={category}
+                                title={SERVICE_CATEGORY_LABELS[category]}
+                                className={cn(
+                                  "inline-flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold uppercase",
+                                  serviceBadgeClass(category),
+                                )}
+                              >
+                                {serviceBadgeInitial(category)}
+                              </span>
+                            ))}
                           </div>
                         ) : (
-                          <p className="text-sm text-white/45">Other</p>
+                          <span
+                            title="Other"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-amber-400/30 bg-amber-500/10 text-[11px] font-semibold uppercase text-amber-200"
+                          >
+                            O
+                          </span>
                         )}
                       </td>
 
@@ -761,23 +661,6 @@ export default function CompetitorsWorkspace() {
                         </div>
                       </td>
                     </tr>
-
-                      {isEditing && draft ? (
-                        <tr key={`${competitor.id}-edit`} className="border-b border-white/[0.06]">
-                          <td className="px-4 pb-3 pt-0 sm:px-5" colSpan={7}>
-                            <div>
-                              <FieldLabel>Service detail</FieldLabel>
-                              <textarea
-                                value={draft.services}
-                                rows={2}
-                                onChange={(event) => patchDraft({ services: event.target.value })}
-                                placeholder="Optional detail on surveying, inspection, or media scope…"
-                                className={cn(cellInputClassName(), "mt-1.5 min-h-[3.25rem] resize-y")}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null}
                     </Fragment>
                   );
                 })}

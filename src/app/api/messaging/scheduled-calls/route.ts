@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createScheduledCall, listScheduledCalls } from "@/lib/internal-messaging-service";
+import { localListScheduledCalls } from "@/lib/internal-messaging-local-store";
 import { INTERNAL_MESSAGING_ROOM } from "@/lib/internal-messaging-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  if (!isSupabaseConfigured()) {
-    return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
-  }
-
   try {
     const room = request.nextUrl.searchParams.get("room") ?? undefined;
-    const scheduledCalls = await listScheduledCalls(room ?? undefined);
-    return NextResponse.json({ scheduledCalls });
+    const scheduledCalls = isSupabaseConfigured()
+      ? await listScheduledCalls(room ?? undefined)
+      : localListScheduledCalls();
+    return NextResponse.json({ scheduledCalls, source: isSupabaseConfigured() ? "supabase" : "local" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load scheduled calls";
     return NextResponse.json({ error: message }, { status: 500 });

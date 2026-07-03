@@ -15,6 +15,17 @@ import {
 import { cn } from "@/lib/utils";
 import SupportTicketClientActions from "@/components/testflighthub/SupportTicketClientActions";
 import { Archive, ArchiveRestore, BarChart3, LifeBuoy, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 type SupportStatsPeriod = "week" | "month" | "quarter";
 
@@ -168,6 +179,56 @@ export default function SupportWorkspace() {
   );
 
   const statsMax = Math.max(inQueueCount, outstandingCount, resolvedCount, 1);
+
+  const currentStateChartData = useMemo(
+    () => [
+      { label: "In queue", count: inQueueCount, fill: "#38bdf8" },
+      { label: "Outstanding", count: outstandingCount, fill: "#fbbf24" },
+      { label: "Resolved", count: resolvedCount, fill: "#34d399" },
+      {
+        label: "Archived",
+        count: periodTickets.filter((ticket) => ticket.archived).length,
+        fill: "#a78bfa",
+      },
+    ],
+    [inQueueCount, outstandingCount, periodTickets, resolvedCount],
+  );
+
+  const historicChartData = useMemo(() => {
+    const buckets: Array<{ week: string; opened: number; resolved: number }> = [];
+    const now = Date.now();
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+
+    for (let index = 5; index >= 0; index -= 1) {
+      const end = now - index * weekMs;
+      const start = end - weekMs;
+      const opened = tickets.filter((ticket) => {
+        const created = new Date(ticket.createdAt).getTime();
+        return created >= start && created < end;
+      }).length;
+      const resolved = tickets.filter((ticket) => {
+        if (!ticket.closed) return false;
+        const updated = new Date(ticket.updatedAt).getTime();
+        return updated >= start && updated < end;
+      }).length;
+      buckets.push({
+        week: new Date(end).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+        opened,
+        resolved,
+      });
+    }
+
+    return buckets;
+  }, [tickets]);
+
+  const openTicketsNow = useMemo(
+    () => tickets.filter((ticket) => !ticket.archived && !ticket.closed).length,
+    [tickets],
+  );
+  const closedTicketsNow = useMemo(
+    () => tickets.filter((ticket) => !ticket.archived && ticket.closed).length,
+    [tickets],
+  );
 
   const latestTicket = visibleTickets[0] ?? null;
   const urgentOpenCount = useMemo(
@@ -405,20 +466,102 @@ export default function SupportWorkspace() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-sky-300" />
-              <h3 className="text-sm font-semibold text-white">Ticket stats</h3>
+              <h3 className="text-sm font-semibold text-white">Support analytics</h3>
             </div>
-            <select
-              value={statsPeriod}
-              onChange={(event) => setStatsPeriod(event.target.value as SupportStatsPeriod)}
-              className={cn(inputClassName(), "mt-0 w-auto min-w-[10rem]")}
-            >
-              {(Object.keys(STATS_PERIOD_LABELS) as SupportStatsPeriod[]).map((period) => (
-                <option key={period} value={period}>
-                  {STATS_PERIOD_LABELS[period]}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-sky-200">
+                {openTicketsNow} open now
+              </span>
+              <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-emerald-200">
+                {closedTicketsNow} closed now
+              </span>
+            </div>
           </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Historic volume (6 weeks)
+              </p>
+              <div className="mt-3 h-52">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <LineChart data={historicChartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <XAxis
+                      dataKey="week"
+                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#0b1524",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 12,
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Line type="monotone" dataKey="opened" name="Opened" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="resolved" name="Resolved" stroke="#34d399" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                  Current state ({STATS_PERIOD_LABELS[statsPeriod]})
+                </p>
+                <select
+                  value={statsPeriod}
+                  onChange={(event) => setStatsPeriod(event.target.value as SupportStatsPeriod)}
+                  className={cn(inputClassName(), "mt-0 w-auto min-w-[10rem]")}
+                >
+                  {(Object.keys(STATS_PERIOD_LABELS) as SupportStatsPeriod[]).map((period) => (
+                    <option key={period} value={period}>
+                      {STATS_PERIOD_LABELS[period]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-3 h-52">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <BarChart data={currentStateChartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#0b1524",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 12,
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <StatBar label="In queue" count={inQueueCount} max={statsMax} tone="sky" />
             <StatBar label="Outstanding" count={outstandingCount} max={statsMax} tone="amber" />

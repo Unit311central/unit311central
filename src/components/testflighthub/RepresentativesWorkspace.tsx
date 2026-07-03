@@ -13,10 +13,21 @@ import {
 import {
   REP_DOCUMENTS,
   commissionSummaryForRep,
+  commissionTrendForRep,
 } from "@/lib/representatives-extended-data";
 import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import { FileText, Plus, Trash2, X } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 type RepresentativesWorkspaceProps = {
   representatives: Representative[];
@@ -69,6 +80,10 @@ export default function RepresentativesWorkspace({
   const commissionSummary = selectedRepresentative
     ? commissionSummaryForRep(selectedRepresentative.id)
     : { paid: 0, outstanding: 0, upcoming: 0, rows: [] };
+
+  const commissionTrend = selectedRepresentative
+    ? commissionTrendForRep(selectedRepresentative.id)
+    : [];
 
   const repCustomTerritories = selectedRepresentative
     ? (customTerritories[selectedRepresentative.id] ?? [])
@@ -473,6 +488,51 @@ export default function RepresentativesWorkspace({
                   </div>
                 )}
               </section>
+
+              {commissionTrend.length > 0 && (
+                <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
+                      Commission trend
+                    </p>
+                    <h3 className="mt-1 text-base font-semibold text-white">
+                      Paid, outstanding & upcoming by period
+                    </h3>
+                  </div>
+                  <div className="mt-4 h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                      <BarChart data={commissionTrend} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                        <XAxis
+                          dataKey="period"
+                          tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(value) => `€${Math.round(Number(value) / 1000)}k`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            background: "#0b1524",
+                            border: "1px solid rgba(255,255,255,0.12)",
+                            borderRadius: 12,
+                            color: "#f8fafc",
+                          }}
+                          formatter={(value) => formatEur(Number(value))}
+                        />
+                        <Legend wrapperStyle={{ color: "rgba(255,255,255,0.65)", fontSize: 12 }} />
+                        <Bar dataKey="paid" name="Paid" fill="#34d399" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="outstanding" name="Outstanding" fill="#fbbf24" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="upcoming" name="Upcoming" fill="#38bdf8" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+              )}
             </div>
           ) : null
         }

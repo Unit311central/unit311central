@@ -171,11 +171,21 @@ export default function ConnectionsWorkspace({ onBackToCrm }: ConnectionsWorkspa
 
     try {
       const response = await fetch("/api/crm/connections", { cache: "no-store" });
-      const data = await readApiJson<{ connections?: CrmConnection[]; error?: string }>(response);
-      if (!response.ok) throw new Error(data.error ?? "Failed to load connections");
+      const data = await readApiJson<{
+        connections?: CrmConnection[];
+        error?: string;
+        source?: string;
+        warning?: string;
+      }>(response);
 
       const next = data.connections ?? [];
-      setConnections(next);
+      if (!response.ok && next.length === 0) {
+        throw new Error(data.error ?? "Failed to load connections");
+      }
+
+      setConnections(next.length > 0 ? next : createInitialConnections());
+      setUseLocalFallback(data.source === "local" || next.length === 0);
+      setError(data.warning ?? null);
       setSelectedId((current) => {
         if (current === "__draft__") return current;
         if (current && next.some((entry) => entry.id === current)) return current;
@@ -186,7 +196,8 @@ export default function ConnectionsWorkspace({ onBackToCrm }: ConnectionsWorkspa
       setConnections(fallback);
       setUseLocalFallback(true);
       setSelectedId(fallback[0]?.id ?? null);
-      setError(loadError instanceof Error ? loadError.message : "Failed to load connections");
+      setError(null);
+      console.error(loadError);
     } finally {
       setLoading(false);
     }

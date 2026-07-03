@@ -52,11 +52,22 @@ export default function ClientManagementWorkspace({ onClientsChange }: ClientMan
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState<ManagedClient | null>(null);
   const [search, setSearch] = useState("");
+  const [filterIndustry, setFilterIndustry] = useState("all");
+  const [filterRegion, setFilterRegion] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterContract, setFilterContract] = useState("all");
+  const [detailClientId, setDetailClientId] = useState<string | null>(null);
   const snapshottedIdRef = useRef<string | null>(null);
+  const detailSectionRef = useRef<HTMLElement>(null);
 
   const selectedClient = useMemo(
-    () => clients.find((client) => client.id === selectedClientId) ?? clients[0] ?? null,
+    () => clients.find((client) => client.id === selectedClientId) ?? null,
     [clients, selectedClientId],
+  );
+
+  const detailClient = useMemo(
+    () => clients.find((client) => client.id === detailClientId) ?? null,
+    [clients, detailClientId],
   );
 
   const isDirty = useMemo(() => {
@@ -67,21 +78,37 @@ export default function ClientManagementWorkspace({ onClientsChange }: ClientMan
 
   const filteredClients = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return clients;
 
     return clients.filter((client) => {
+      if (filterIndustry !== "all" && client.industry !== filterIndustry) return false;
+      if (filterRegion !== "all" && client.region !== filterRegion) return false;
+      if (filterStatus !== "all" && client.accountStatus !== filterStatus) return false;
+      if (filterContract !== "all" && client.contractType !== filterContract) return false;
+      if (!query) return true;
+
       const haystack = [
         client.companyName,
         client.primaryContact,
         client.email,
         client.region,
         client.industry,
+        client.contractType,
+        client.accountStatus,
+        client.billingAddress,
       ]
         .join(" ")
         .toLowerCase();
       return haystack.includes(query);
     });
-  }, [clients, search]);
+  }, [clients, filterContract, filterIndustry, filterRegion, filterStatus, search]);
+
+  function openClient(clientId: string) {
+    setSelectedClientId(clientId);
+    setDetailClientId(clientId);
+    window.requestAnimationFrame(() => {
+      detailSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   const syncClients = useCallback(
     (nextClients: ManagedClient[]) => {
@@ -189,6 +216,7 @@ export default function ClientManagementWorkspace({ onClientsChange }: ClientMan
 
       syncClients([data.client, ...clients]);
       setSelectedClientId(data.client.id);
+      setDetailClientId(data.client.id);
       snapshottedIdRef.current = data.client.id;
       setSavedSnapshot(data.client);
       setSaveMessage("Client created");
@@ -300,9 +328,72 @@ export default function ClientManagementWorkspace({ onClientsChange }: ClientMan
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search clients…"
+                placeholder="Search by name, contact, email, location…"
                 className={cn(inputClassName(), "mt-0 pl-10")}
               />
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div>
+                <FieldLabel>Industry</FieldLabel>
+                <select
+                  className={inputClassName()}
+                  value={filterIndustry}
+                  onChange={(event) => setFilterIndustry(event.target.value)}
+                >
+                  <option value="all">All industries</option>
+                  {CLIENT_INDUSTRY_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <FieldLabel>Region</FieldLabel>
+                <select
+                  className={inputClassName()}
+                  value={filterRegion}
+                  onChange={(event) => setFilterRegion(event.target.value)}
+                >
+                  <option value="all">All regions</option>
+                  {CLIENT_REGION_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <FieldLabel>Status</FieldLabel>
+                <select
+                  className={inputClassName()}
+                  value={filterStatus}
+                  onChange={(event) => setFilterStatus(event.target.value)}
+                >
+                  <option value="all">All statuses</option>
+                  {CLIENT_STATUS_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <FieldLabel>Contract</FieldLabel>
+                <select
+                  className={inputClassName()}
+                  value={filterContract}
+                  onChange={(event) => setFilterContract(event.target.value)}
+                >
+                  <option value="all">All contract types</option>
+                  {CLIENT_CONTRACT_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {filteredClients.length === 0 ? (
@@ -310,7 +401,7 @@ export default function ClientManagementWorkspace({ onClientsChange }: ClientMan
             ) : (
               <ul className="mt-4 divide-y divide-white/10 rounded-xl border border-white/10 bg-[#0b1524]/40">
                 {filteredClients.map((client) => {
-                  const selected = client.id === selectedClient?.id;
+                  const selected = client.id === detailClientId;
 
                   return (
                     <li
@@ -327,11 +418,11 @@ export default function ClientManagementWorkspace({ onClientsChange }: ClientMan
                         <p className="text-xs text-white/45">{client.industry}</p>
                       </div>
                       <span className="rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
-                        Active
+                        {client.accountStatus}
                       </span>
                       <button
                         type="button"
-                        onClick={() => setSelectedClientId(client.id)}
+                        onClick={() => openClient(client.id)}
                         className={cn(
                           "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors",
                           selected
@@ -349,8 +440,11 @@ export default function ClientManagementWorkspace({ onClientsChange }: ClientMan
             )}
           </section>
 
-          {selectedClient ? (
-            <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+          {detailClient && selectedClient ? (
+            <section
+              ref={detailSectionRef}
+              className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6"
+            >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">

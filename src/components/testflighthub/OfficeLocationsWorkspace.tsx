@@ -47,7 +47,7 @@ export default function OfficeLocationsWorkspace() {
               type="button"
               onClick={() => toggleOffice(site.id)}
               className={cn(
-                "rounded-2xl border p-4 text-left shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-colors sm:p-5",
+                "group rounded-2xl border p-4 text-left shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-colors sm:p-5",
                 selected
                   ? "border-sky-400/40 bg-sky-500/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
                   : "border-white/15 bg-white/[0.04] hover:border-white/25 hover:bg-white/[0.06]",
@@ -80,11 +80,29 @@ export default function OfficeLocationsWorkspace() {
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-300/80" />
                   <p className="text-sm leading-relaxed text-white/70">{site.address}</p>
                 </div>
-                <div className="flex flex-wrap gap-3 text-[11px] text-white/45">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0b1524]/70 px-2.5 py-1">
-                    <Users className="h-3.5 w-3.5 text-emerald-300/80" />
-                    {site.staffCount} staff
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/30 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-200">
+                    <Users className="h-3.5 w-3.5" />
+                    {site.staffCount} staff on site
                   </span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                      selected
+                        ? "border-sky-400/40 bg-sky-500/20 text-sky-100"
+                        : "border-white/15 bg-white/[0.05] text-white/75 group-hover:border-sky-400/30",
+                    )}
+                  >
+                    {selected ? "Hide staff" : "View staff & details"}
+                    <ChevronDown
+                      className={cn(
+                        "h-3.5 w-3.5 transition-transform",
+                        selected && "rotate-180",
+                      )}
+                    />
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-3 text-[11px] text-white/45">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0b1524]/70 px-2.5 py-1">
                     <Clock className="h-3.5 w-3.5 text-violet-300/80" />
                     {site.timezone}

@@ -130,25 +130,14 @@ export default function InfoEmailWorkspace() {
       if (!accountsResponse.ok) throw new Error("Failed to load mailboxes");
 
       const status = statusResponse.ok
-        ? await readApiJson<{
-            info?: boolean;
-            paul?: boolean;
-            "dc-info"?: boolean;
-            "dc-paul"?: boolean;
-          }>(statusResponse)
+        ? await readApiJson<{ info?: boolean; paul?: boolean }>(statusResponse)
         : null;
 
       const merged = data.map((account) => ({
         ...account,
         configured:
           account.configured ||
-          (account.id === "info"
-            ? Boolean(status?.info)
-            : account.id === "paul"
-              ? Boolean(status?.paul)
-              : account.id === "dc-info"
-                ? Boolean(status?.["dc-info"])
-                : Boolean(status?.["dc-paul"])),
+          (account.id === "info" ? Boolean(status?.info) : Boolean(status?.paul)),
       }));
 
       setAccounts(merged);

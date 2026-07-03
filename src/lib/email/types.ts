@@ -1,4 +1,4 @@
-export type EmailAccountId = "info" | "paul" | "dc-info" | "dc-paul";
+export type EmailAccountId = "info" | "paul";
 
 export type EmailAccount = {
   id: EmailAccountId;
