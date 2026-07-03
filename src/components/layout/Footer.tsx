@@ -6,9 +6,9 @@ export default function Footer() {
   return (
     <footer className="bg-white text-[#1a2b4a]">
       <div className="mx-auto max-w-[1280px] px-8 pb-[32px] pt-[56px]">
-        <div className="grid gap-[48px] md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid items-start gap-[48px] md:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col items-start text-left">
-            <div className="w-fit -translate-x-5 sm:-translate-x-6">
+            <div className="w-fit -translate-x-5 -translate-y-7 sm:-translate-x-6 sm:-translate-y-8">
               <Logo height={192} className="block origin-left object-left" />
             </div>
             <p className="mt-[14px] text-[13px] font-medium text-[#1a2b4a]/65">
