@@ -22,7 +22,10 @@
 
 # misc
 .DS_Store
+Thumbs.db
 *.pem
+*.log
+.deploy*.log
 
 # debug
 npm-debug.log*
@@ -30,9 +33,22 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# environment & secrets — never commit
+.env
+.env.*
 !.env.example
+*.tmp
+*-secret.tmp
+.env-*-payload.json
+.env-api-payload.json
+.env-copy-*.json
+
+# local credential material
+wise-keys/
+*.p12
+*.pfx
+id_rsa
+id_rsa.pub
 
 # vercel
 .vercel
@@ -41,12 +57,23 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
-
-.vercel
-.env*
-
 # Capacitor / Android (generated locally; CI builds fresh)
 /mobile/node_modules
 /mobile/android
 /mobile/.capacitor
+
+# editor / agent local state
+.cursor/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# one-off local dump / inspect helpers (never commit)
+scripts/_*.mjs
+scripts/dump-*.mjs
+scripts/inspect-vercel-*.mjs
+
+# OS / trash
+$RECYCLE.BIN/
+Desktop.ini
