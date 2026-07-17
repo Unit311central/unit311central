@@ -60,6 +60,27 @@ export async function listInternalOperators(): Promise<ManagedUser[]> {
   });
 }
 
+export async function getInternalOperatorByUsername(
+  username: string,
+): Promise<ManagedUser | null> {
+  const normalized = normalizePlatformUsername(username);
+  if (!normalized) return null;
+
+  await ensureInternalOperatorsTable();
+  return withInternalOperatorsTable(async () => {
+    const supabase = requireOperatorsSupabase();
+    const { data, error } = await supabase
+      .from("internal_operators")
+      .select("*")
+      .eq("username", normalized)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) return null;
+    return mapInternalOperator(data as DbOperator);
+  });
+}
+
 export async function createInternalOperator(
   input: Partial<ManagedUser> & { fullName: string; username: string; password?: string },
 ): Promise<{ user: ManagedUser; temporaryPassword: string }> {
