@@ -19,7 +19,7 @@ npm run diagram:vercel-architecture
 | Runtime | Vercel Edge Middleware + Node.js App Router |
 | Production URL (apex) | `https://unit311central.com` |
 | Production database | Supabase Unit311 Central (`kkxtvzxqmbacjatkiupq`) |
-| Deploy command | `npx vercel --prod --yes` |
+| Deploy command | Git push to `Unit311central/unit311central` (CLI `vercel --prod` disabled in scripts) |
 | Git integration | Optional deploy from `main` |
 
 ---

@@ -208,7 +208,7 @@ npm run diagram:github-architecture
 | Item | Detail |
 | --- | --- |
 | Project | `unit311central` |
-| Deploy | `npx vercel --prod --yes` (or Git integration from `main`) |
+| Deploy | Git integration from `Unit311central/unit311central` `main` (CLI `--prod` disabled in scripts) |
 | Env | Vercel Environment Variables (names in `.env.example`) |
 | Domains | Apex, `internal.*`, wildcard `*.unit311central.com` |
 | Spec | `DEPLOYMENT.md`, `docs/VERCEL_ARCHITECTURE.md` |

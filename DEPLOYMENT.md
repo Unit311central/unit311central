@@ -11,15 +11,19 @@ Production database: Supabase **Unit311 Central** (`kkxtvzxqmbacjatkiupq`)
 
 ## Production deploy
 
-From the repo root:
+**Canonical repository:** `Unit311central/unit311central` (`Desktop\unit311`).
+
+Production must ship from **committed Git revisions** via Vercel Git integration.  
+CLI `vercel --prod` is disabled in ops scripts.
 
 ```bash
-npm install
-npx vercel link --project unit311central --yes
-npx vercel --prod --yes
+node scripts/assert-canonical-unit311-repo.mjs
+# then merge to main on Unit311central/unit311central
 ```
 
-Git pushes to `main` may also deploy via Vercel Git integration if enabled for this project.
+Full process and rollback: [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md).
+
+Do **not** deploy Unit311 Central from `Desktop\onwardair`.
 
 ## Domains (Vercel)
 

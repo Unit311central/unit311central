@@ -57,5 +57,6 @@ run(`npx vercel link --project ${PROJECT} --yes`);
 setEnvValue("WISE_API_PRIVATE_KEY_B64", privateKeyB64, "production");
 
 console.log("");
-console.log("Done. Upload the public key to Wise now, then redeploy:");
-console.log("  npx vercel deploy --prod");
+console.log("Done. Upload the public key to Wise now, then ship via Git (see docs/PRODUCTION_DEPLOYMENT.md).");
+console.log("  Do NOT run: npx vercel deploy --prod");
+console.log("  node scripts/assert-canonical-unit311-repo.mjs");
