@@ -428,8 +428,8 @@ export async function getReportChatSession(accessToken: string) {
 }
 
 export async function sendReportChatGuestMessage(accessToken: string, content: string) {
-  const session = await getReportChatSession(accessToken);
-  if (!session) {
+  const reportChat = await getReportChatSession(accessToken);
+  if (!reportChat) {
     throw new Error("Chat session not found.");
   }
 
@@ -438,16 +438,17 @@ export async function sendReportChatGuestMessage(accessToken: string, content: s
     throw new Error("Message cannot be empty.");
   }
 
+  // Tenant scope comes from the lead bound to the guest access token — not PlatformSession.
   return sendMessage(
     {
-      operatorId: `guest:${session.clientChatKey}`,
-      operatorName: session.contactName.trim() || session.companyName.trim() || "Client",
-      username: session.clientChatKey,
+      operatorId: `guest:${reportChat.clientChatKey}`,
+      operatorName: reportChat.contactName.trim() || reportChat.companyName.trim() || "Client",
+      username: reportChat.clientChatKey,
       content: trimmed,
-      room: session.room,
+      room: reportChat.room,
       messageType: "text",
     },
-    session.workspaceId ? { workspaceId: session.workspaceId } : undefined,
+    reportChat.workspaceId ? { workspaceId: reportChat.workspaceId } : undefined,
   );
 }
 

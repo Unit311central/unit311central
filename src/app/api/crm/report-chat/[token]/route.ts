@@ -18,16 +18,17 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   try {
     const { token } = await context.params;
-    const session = await getReportChatSession(token);
-    if (!session) {
+    const reportChat = await getReportChatSession(token);
+    if (!reportChat) {
       return NextResponse.json({ error: "Chat session not found." }, { status: 404 });
     }
 
+    // Tenant scope comes from the lead bound to the guest access token — not PlatformSession.
     const messages = await listMessages(
-      { room: session.room, limit: 200 },
-      session.workspaceId ? { workspaceId: session.workspaceId } : undefined,
+      { room: reportChat.room, limit: 200 },
+      reportChat.workspaceId ? { workspaceId: reportChat.workspaceId } : undefined,
     );
-    return NextResponse.json({ session, messages });
+    return NextResponse.json({ session: reportChat, messages });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load chat";
     return NextResponse.json({ error: message }, { status: 500 });

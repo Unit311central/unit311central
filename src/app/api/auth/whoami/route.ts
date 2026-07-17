@@ -11,13 +11,15 @@ export async function GET() {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
   }
 
+  // Active workspace comes from host → authz → getCurrentWorkspace only.
+  // Never fall back to session workspace claim fields for tenancy.
   const workspace = await getCurrentWorkspace();
 
   return NextResponse.json({
     displayName: session.displayName,
     userId: session.sub,
-    workspaceId: workspace?.id ?? session.workspaceId ?? null,
-    workspaceSlug: workspace?.slug ?? session.workspaceSlug ?? null,
-    workspaceName: workspace?.name ?? session.workspaceName ?? null,
+    workspaceId: workspace?.id ?? null,
+    workspaceSlug: workspace?.slug ?? null,
+    workspaceName: workspace?.name ?? null,
   });
 }
