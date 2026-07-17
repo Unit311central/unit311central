@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, startTransition } from "react";
 
 import { useTreasuryContext } from "@/components/treasury/treasury-context";
 import {
@@ -37,7 +37,9 @@ export default function TreasuryNotificationCenter() {
   }, [setNotifications]);
 
   useEffect(() => {
-    void loadNotifications();
+    startTransition(() => {
+      void loadNotifications();
+    });
   }, [loadNotifications]);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, startTransition } from "react";
 
 import { useTreasuryContext } from "@/components/treasury/treasury-context";
 import {
@@ -46,7 +46,9 @@ export default function TreasurySettingsPage() {
   }, []);
 
   useEffect(() => {
-    void loadSettings();
+    startTransition(() => {
+      void loadSettings();
+    });
   }, [loadSettings]);
 
   const saveSettings = async () => {

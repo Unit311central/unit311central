@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useTreasuryContext } from "@/components/treasury/treasury-context";
 import {
@@ -116,7 +116,11 @@ export default function TreasurySendMoneyWizard({
   }, [currency, recipientSearch]);
 
   useEffect(() => {
-    if (step >= 1) void loadRecipients();
+    if (step >= 1) {
+      startTransition(() => {
+        void loadRecipients();
+      });
+    }
   }, [step, loadRecipients]);
 
   const sortedRecipients = useMemo(

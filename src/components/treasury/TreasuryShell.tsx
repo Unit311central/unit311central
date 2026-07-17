@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, startTransition } from "react";
 
 import TreasuryActivityFeed from "@/components/treasury/TreasuryActivityFeed";
 import TreasuryAnalyticsPage from "@/components/treasury/TreasuryAnalyticsPage";
@@ -213,7 +213,9 @@ function TreasuryShellContent({
   }, [status?.connected, setNotifications]);
 
   useEffect(() => {
-    void loadSummary();
+    startTransition(() => {
+      void loadSummary();
+    });
   }, [loadSummary]);
 
   function navigate(

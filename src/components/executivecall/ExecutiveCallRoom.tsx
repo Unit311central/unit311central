@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 
 import { useExecutiveCallWebRtc } from "@/hooks/useExecutiveCallWebRtc";
 import { useSpeechTranscription } from "@/hooks/useSpeechTranscription";
@@ -114,15 +114,17 @@ export default function ExecutiveCallRoom({
 
   useEffect(() => {
     let cancelled = false;
-    void loadSession()
-      .catch((loadError) => {
-        if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "Failed to load meeting");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    startTransition(() => {
+      void loadSession()
+        .catch((loadError) => {
+          if (!cancelled) {
+            setError(loadError instanceof Error ? loadError.message : "Failed to load meeting");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    });
 
     const interval = window.setInterval(() => {
       if (leftCall) return;
@@ -138,7 +140,9 @@ export default function ExecutiveCallRoom({
   useEffect(() => {
     if (!payload || payload.viewer.isHost) return;
     if (payload.meeting.clientJoinedAt) {
-      setJoined(true);
+      startTransition(() => {
+        setJoined(true);
+      });
     }
   }, [payload?.meeting.clientJoinedAt, payload?.viewer.isHost]);
 
@@ -342,7 +346,11 @@ export default function ExecutiveCallRoom({
     if (!payload?.meeting.hostStarted || payload.viewer.isHost || !joined) return;
     if (guestMediaStartedRef.current) return;
     guestMediaStartedRef.current = true;
-    void startMedia();
+    startTransition(() => {
+
+      void startMedia();
+
+    });
   }, [joined, leftCall, payload?.meeting.hostStarted, payload?.viewer.isHost, startMedia]);
 
   useEffect(() => {

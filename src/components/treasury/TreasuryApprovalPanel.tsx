@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, startTransition } from "react";
 
 import { useTreasuryContext } from "@/components/treasury/treasury-context";
 import {
@@ -50,7 +50,9 @@ export default function TreasuryApprovalPanel({ onResolved }: { onResolved?: () 
   }, []);
 
   useEffect(() => {
-    void loadApprovals("initial");
+    startTransition(() => {
+      void loadApprovals("initial");
+    });
   }, [loadApprovals]);
 
   const resolveApproval = async (id: string, action: "approve" | "reject", reason?: string) => {

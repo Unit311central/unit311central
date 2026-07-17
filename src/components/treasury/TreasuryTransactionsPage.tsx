@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, startTransition } from "react";
 
 import TreasuryTransactionDetailPanel from "@/components/treasury/TreasuryTransactionDetailPanel";
 import {
@@ -125,7 +125,9 @@ export default function TreasuryTransactionsPage({
   );
 
   useEffect(() => {
-    void loadTransactions("initial");
+    startTransition(() => {
+      void loadTransactions("initial");
+    });
   }, [loadTransactions]);
 
   const exportStatement = (format: "csv" | "pdf") => {

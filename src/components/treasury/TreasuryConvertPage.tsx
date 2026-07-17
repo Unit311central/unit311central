@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 
 import { useTreasuryContext } from "@/components/treasury/treasury-context";
 import {
@@ -68,7 +68,9 @@ export default function TreasuryConvertPage({ balances, onComplete }: TreasuryCo
   }, []);
 
   useEffect(() => {
-    void loadOwnedRecipients();
+    startTransition(() => {
+      void loadOwnedRecipients();
+    });
   }, [loadOwnedRecipients]);
 
   const targetRecipient = useMemo(() => {
