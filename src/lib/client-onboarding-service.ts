@@ -28,7 +28,7 @@ import {
 } from "@/lib/organisation-service";
 import { buildPaymentAcceptedEmail } from "@/lib/platform-email-verification/emails";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { getCurrentWorkspace } from "@/lib/workspace-context";
+import { getCurrentWorkspace, resolveWorkspaceBinding } from "@/lib/workspace-context";
 
 type CreateClientOnboardingInput = {
   platformOrganisationId?: string | null;
@@ -189,6 +189,7 @@ export async function createClientOnboardingRecordForSignup(
 
   const supabase = requireSupabase();
   const now = new Date().toISOString();
+  const workspace = await resolveWorkspaceBinding({ fallbackInternal: true });
 
   return withClientOnboardingTable(async () => {
     const row = {
@@ -204,6 +205,7 @@ export async function createClientOnboardingRecordForSignup(
       signed_up_at: now,
       signed_up_by: "System",
       updated_at: now,
+      ...(workspace ? { workspace_id: workspace.id } : {}),
     };
 
     const { data, error } = await supabase
@@ -220,21 +222,27 @@ export async function createClientOnboardingRecordForSignup(
   });
 }
 
-export async function listClientOnboardingRecords(options?: {
+export async function listClientOnboardingRecords(options: {
   status?: "all" | "in_progress" | "platform_live";
+  workspaceId: string;
 }): Promise<ClientOnboardingRecord[]> {
   await ensureClientOnboardingRecordsTable().catch(() => false);
   const supabase = requireSupabase();
+  const workspaceId = options.workspaceId.trim();
+  if (!workspaceId) {
+    throw new Error("Workspace context is required.");
+  }
 
   return withClientOnboardingTable(async () => {
     let query = supabase
       .from("client_onboarding_records")
       .select("*")
+      .eq("workspace_id", workspaceId)
       .order("signup_date", { ascending: false });
 
-    if (options?.status === "in_progress") {
+    if (options.status === "in_progress") {
       query = query.eq("current_status", "In Progress");
-    } else if (options?.status === "platform_live") {
+    } else if (options.status === "platform_live") {
       query = query.eq("current_status", "Platform Live");
     }
 
@@ -247,15 +255,23 @@ export async function listClientOnboardingRecords(options?: {
   });
 }
 
-export async function getClientOnboardingRecord(id: string): Promise<ClientOnboardingRecord | null> {
+export async function getClientOnboardingRecord(
+  id: string,
+  workspaceId: string,
+): Promise<ClientOnboardingRecord | null> {
   await ensureClientOnboardingRecordsTable().catch(() => false);
   const supabase = requireSupabase();
+  const scopedWorkspaceId = workspaceId.trim();
+  if (!scopedWorkspaceId) {
+    throw new Error("Workspace context is required.");
+  }
 
   return withClientOnboardingTable(async () => {
     const { data, error } = await supabase
       .from("client_onboarding_records")
       .select("*")
       .eq("id", id)
+      .eq("workspace_id", scopedWorkspaceId)
       .maybeSingle();
 
     if (error) {
@@ -270,12 +286,20 @@ export async function getClientOnboardingRecord(id: string): Promise<ClientOnboa
   });
 }
 
-export async function deleteClientOnboardingRecord(id: string): Promise<void> {
+export async function deleteClientOnboardingRecord(id: string, workspaceId: string): Promise<void> {
   await ensureClientOnboardingRecordsTable().catch(() => false);
   const supabase = requireSupabase();
+  const scopedWorkspaceId = workspaceId.trim();
+  if (!scopedWorkspaceId) {
+    throw new Error("Workspace context is required.");
+  }
 
   return withClientOnboardingTable(async () => {
-    const { error } = await supabase.from("client_onboarding_records").delete().eq("id", id);
+    const { error } = await supabase
+      .from("client_onboarding_records")
+      .delete()
+      .eq("id", id)
+      .eq("workspace_id", scopedWorkspaceId);
     if (error) throw new Error(error.message);
   });
 }
@@ -284,10 +308,16 @@ export async function advanceClientOnboardingStage(input: {
   id: string;
   action: ClientOnboardingAdvanceAction;
   actorLabel: string;
+  workspaceId: string;
 }): Promise<ClientOnboardingRecord> {
   await ensureClientOnboardingRecordsTable().catch(() => false);
   const supabase = requireSupabase();
-  const existing = await getClientOnboardingRecord(input.id);
+  const workspaceId = input.workspaceId.trim();
+  if (!workspaceId) {
+    throw new Error("Workspace context is required.");
+  }
+
+  const existing = await getClientOnboardingRecord(input.id, workspaceId);
 
   if (!existing) {
     throw new Error("Onboarding record not found.");
@@ -312,6 +342,7 @@ export async function advanceClientOnboardingStage(input: {
       .from("client_onboarding_records")
       .update(update)
       .eq("id", input.id)
+      .eq("workspace_id", workspaceId)
       .select("*")
       .single();
 
@@ -390,8 +421,9 @@ function mapSelectedModuleLabels(
 
 export async function getClientOnboardingQuestionnaireSummary(
   recordId: string,
+  workspaceId: string,
 ): Promise<ClientOnboardingQuestionnaireSummary | null> {
-  const record = await getClientOnboardingRecord(recordId);
+  const record = await getClientOnboardingRecord(recordId, workspaceId);
   if (!record) {
     return null;
   }
@@ -418,8 +450,9 @@ export async function getClientOnboardingQuestionnaireSummary(
 
 export async function getClientOnboardingPaymentReceipt(
   recordId: string,
+  workspaceId: string,
 ): Promise<{ url: string; name: string } | null> {
-  const record = await getClientOnboardingRecord(recordId);
+  const record = await getClientOnboardingRecord(recordId, workspaceId);
   if (!record?.platformOrganisationId) {
     return null;
   }
@@ -445,7 +478,7 @@ export async function getClientOnboardingPaymentReceipt(
     return null;
   }
 
-  const download = await getFileDownloadUrl(receiptFileId);
+  const download = await getFileDownloadUrl(receiptFileId, { workspaceId });
   return {
     url: download.url,
     name: download.name,

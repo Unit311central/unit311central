@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { advanceClientOnboardingStage } from "@/lib/client-onboarding-service";
 import type { ClientOnboardingAdvanceAction } from "@/lib/client-onboarding-data";
+import { requireInternalWorkspaceSession } from "@/lib/internal-admin-auth";
 import { ensureClientOnboardingRecordsTable } from "@/lib/internal-db-migrations";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -18,6 +19,9 @@ const ADVANCE_ACTIONS = new Set<ClientOnboardingAdvanceAction>([
 ]);
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  const auth = await requireInternalWorkspaceSession();
+  if ("error" in auth) return auth.error;
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
@@ -37,6 +41,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       id,
       action,
       actorLabel: body.actorLabel?.trim() || "Internal team",
+      workspaceId: auth.workspace.id,
     });
 
     return NextResponse.json({ record });

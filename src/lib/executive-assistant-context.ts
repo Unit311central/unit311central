@@ -7,6 +7,7 @@ import { listOpenActionItems } from "@/lib/internal-action-items-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { listStrategyItems } from "@/lib/strategy-items-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { getCurrentWorkspace } from "@/lib/workspace-context";
 
 export type ExecutivePlatformSnapshot = {
   generatedAt: string;
@@ -132,13 +133,23 @@ export async function buildExecutivePlatformSnapshot(): Promise<ExecutivePlatfor
     };
   }
 
+  const workspace = await getCurrentWorkspace();
+  const workspaceId = workspace?.id;
+
   const [leads, clients, projects, expenses, onboardingRecords, actionItems, strategyItems] =
     await Promise.all([
       loadModule("crm", () => listLeads("All"), unavailableModules),
       loadModule("clients", () => listInternalClients(), unavailableModules),
       loadModule("projects", () => listProjects(), unavailableModules),
       loadModule("expenses", () => listExpenses(), unavailableModules),
-      loadModule("onboarding", () => listClientOnboardingRecords({ status: "all" }), unavailableModules),
+      loadModule(
+        "onboarding",
+        () =>
+          workspaceId
+            ? listClientOnboardingRecords({ status: "all", workspaceId })
+            : Promise.resolve([]),
+        unavailableModules,
+      ),
       loadModule("action_items", () => listOpenActionItems(8), unavailableModules),
       loadModule("strategy", () => listStrategyItems(), unavailableModules),
     ]);
