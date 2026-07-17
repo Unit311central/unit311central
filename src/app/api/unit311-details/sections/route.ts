@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireInternalWorkspaceSession } from "@/lib/internal-admin-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createUnit311DetailSection } from "@/lib/unit311-details-service";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const auth = await requireInternalWorkspaceSession();
+  if ("error" in auth) return auth.error;
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
@@ -18,7 +22,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Section name is required." }, { status: 400 });
     }
 
-    const created = await createUnit311DetailSection(name);
+    const created = await createUnit311DetailSection(name, {
+      workspaceId: auth.workspace.id,
+    });
     return NextResponse.json(created);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create section";

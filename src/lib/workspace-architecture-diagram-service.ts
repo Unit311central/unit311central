@@ -20,6 +20,10 @@ import {
 } from "@/lib/internal-files-service";
 import { INTERNAL_FILES_BUCKET, type FileFolder } from "@/lib/internal-files-data";
 import { ensureUnit311DetailsFolders } from "@/lib/unit311-details-service";
+import {
+  resolveFilesWorkspaceId,
+  type FilesWorkspaceScope,
+} from "@/lib/files-workspace";
 
 const SUPABASE_SECTION_FOLDER = "Supabase";
 const DIAGRAM_NAME_RE = new RegExp(
@@ -44,9 +48,16 @@ function toUploadFile(name: string, buffer: Buffer, mimeType: string) {
 async function findFolderByName(
   name: string,
   parentId: string | null,
+  scope?: FilesWorkspaceScope,
 ): Promise<FileFolder | null> {
+  const workspaceId = await resolveFilesWorkspaceId(scope);
   const supabase = requireFilesSupabase();
-  let query = supabase.from("file_folders").select("*").eq("name", name).limit(1);
+  let query = supabase
+    .from("file_folders")
+    .select("*")
+    .eq("name", name)
+    .eq("workspace_id", workspaceId)
+    .limit(1);
 
   if (parentId === null) {
     query = query.is("parent_id", null);
@@ -68,42 +79,55 @@ async function findFolderByName(
   };
 }
 
-async function ensureSupabaseDetailsFolder(): Promise<{ rootFolderId: string; folderId: string }> {
-  const bootstrap = await ensureUnit311DetailsFolders();
+async function ensureSupabaseDetailsFolder(
+  scope?: FilesWorkspaceScope,
+): Promise<{ rootFolderId: string; folderId: string }> {
+  const bootstrap = await ensureUnit311DetailsFolders(scope);
   const existingId = bootstrap.folders.supabase;
   if (existingId) {
     return { rootFolderId: bootstrap.rootFolderId, folderId: existingId };
   }
 
   const root =
-    (await findFolderByName(UNIT311_DETAILS_ROOT_FOLDER_NAME, null)) ??
-    (await createFolder(UNIT311_DETAILS_ROOT_FOLDER_NAME, null, null));
+    (await findFolderByName(UNIT311_DETAILS_ROOT_FOLDER_NAME, null, scope)) ??
+    (await createFolder(UNIT311_DETAILS_ROOT_FOLDER_NAME, null, null, scope));
   const folder =
-    (await findFolderByName(SUPABASE_SECTION_FOLDER, root.id)) ??
-    (await createFolder(SUPABASE_SECTION_FOLDER, root.id, null));
+    (await findFolderByName(SUPABASE_SECTION_FOLDER, root.id, scope)) ??
+    (await createFolder(SUPABASE_SECTION_FOLDER, root.id, null, scope));
 
   return { rootFolderId: root.id, folderId: folder.id };
 }
 
-async function listFilesInFolder(folderId: string): Promise<DbFile[]> {
+async function listFilesInFolder(
+  folderId: string,
+  scope?: FilesWorkspaceScope,
+): Promise<DbFile[]> {
+  const workspaceId = await resolveFilesWorkspaceId(scope);
   const supabase = requireFilesSupabase();
   const { data, error } = await supabase
     .from("file_objects")
     .select("id, name, storage_path, created_at, mime_type")
     .eq("folder_id", folderId)
+    .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
   return (data ?? []) as DbFile[];
 }
 
-async function findFileByName(folderId: string, name: string): Promise<DbFile | null> {
+async function findFileByName(
+  folderId: string,
+  name: string,
+  scope?: FilesWorkspaceScope,
+): Promise<DbFile | null> {
+  const workspaceId = await resolveFilesWorkspaceId(scope);
   const supabase = requireFilesSupabase();
   const { data, error } = await supabase
     .from("file_objects")
     .select("id, name, storage_path, created_at, mime_type")
     .eq("folder_id", folderId)
     .eq("name", name)
+    .eq("workspace_id", workspaceId)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -156,9 +180,13 @@ async function readStorageText(storagePath: string): Promise<string> {
   return data.text();
 }
 
-async function ensureLinkedInSupabaseDetails(folderId: string, link: WorkspaceArchitectureLink) {
+async function ensureLinkedInSupabaseDetails(
+  folderId: string,
+  link: WorkspaceArchitectureLink,
+  scope?: FilesWorkspaceScope,
+) {
   const txtName = detailTxtFileName("Supabase");
-  const existing = await findFileByName(folderId, txtName);
+  const existing = await findFileByName(folderId, txtName, scope);
   const current = existing ? await readStorageText(existing.storage_path) : "";
 
   const marker = "Workspace Architecture Diagram";
@@ -197,51 +225,62 @@ async function ensureLinkedInSupabaseDetails(folderId: string, link: WorkspaceAr
   }
 
   if (existing) {
-    await deleteFile(existing.id);
+    await deleteFile(existing.id, scope);
   }
 
-  await uploadFile({
-    file: toUploadFile(txtName, Buffer.from(nextContent, "utf8"), "text/plain"),
-    folderId,
-    categoryId: null,
-  });
+  await uploadFile(
+    {
+      file: toUploadFile(txtName, Buffer.from(nextContent, "utf8"), "text/plain"),
+      folderId,
+      categoryId: null,
+    },
+    scope,
+  );
 
-  // Keep a lightweight pointer file for latest resolution.
-  const linkFile = await findFileByName(folderId, WORKSPACE_ARCHITECTURE_LINK_FILE);
+  const linkFile = await findFileByName(folderId, WORKSPACE_ARCHITECTURE_LINK_FILE, scope);
   if (linkFile) {
-    await deleteFile(linkFile.id);
+    await deleteFile(linkFile.id, scope);
   }
-  await uploadFile({
-    file: toUploadFile(
-      WORKSPACE_ARCHITECTURE_LINK_FILE,
-      Buffer.from(JSON.stringify(link, null, 2), "utf8"),
-      "application/json",
-    ),
-    folderId,
-    categoryId: null,
-  });
+  await uploadFile(
+    {
+      file: toUploadFile(
+        WORKSPACE_ARCHITECTURE_LINK_FILE,
+        Buffer.from(JSON.stringify(link, null, 2), "utf8"),
+        "application/json",
+      ),
+      folderId,
+      categoryId: null,
+    },
+    scope,
+  );
 }
 
-export async function regenerateWorkspaceArchitectureDiagram() {
-  const { folderId } = await ensureSupabaseDetailsFolder();
+export async function regenerateWorkspaceArchitectureDiagram(scope?: FilesWorkspaceScope) {
+  const { folderId } = await ensureSupabaseDetailsFolder(scope);
   const artifacts = createWorkspaceArchitectureDiagramArtifacts();
   const pngBuffer = await sharp(Buffer.from(artifacts.svg, "utf8"), { density: 160 })
     .png()
     .toBuffer();
 
-  const svgUploaded = await uploadFile({
-    file: toUploadFile(artifacts.svgFileName, Buffer.from(artifacts.svg, "utf8"), "image/svg+xml"),
-    folderId,
-    categoryId: null,
-  });
+  const svgUploaded = await uploadFile(
+    {
+      file: toUploadFile(artifacts.svgFileName, Buffer.from(artifacts.svg, "utf8"), "image/svg+xml"),
+      folderId,
+      categoryId: null,
+    },
+    scope,
+  );
 
-  const pngUploaded = await uploadFile({
-    file: toUploadFile(artifacts.pngFileName, pngBuffer, "image/png"),
-    folderId,
-    categoryId: null,
-  });
+  const pngUploaded = await uploadFile(
+    {
+      file: toUploadFile(artifacts.pngFileName, pngBuffer, "image/png"),
+      folderId,
+      categoryId: null,
+    },
+    scope,
+  );
 
-  await ensureLinkedInSupabaseDetails(folderId, artifacts.link);
+  await ensureLinkedInSupabaseDetails(folderId, artifacts.link, scope);
 
   return {
     folderId,
@@ -254,10 +293,14 @@ export async function regenerateWorkspaceArchitectureDiagram() {
 
 export async function resolveLatestWorkspaceArchitectureDiagram(options?: {
   regenerateIfMissing?: boolean;
+  workspaceId?: string;
 }) {
+  const scope: FilesWorkspaceScope | undefined = options?.workspaceId
+    ? { workspaceId: options.workspaceId }
+    : undefined;
   const regenerateIfMissing = options?.regenerateIfMissing ?? true;
-  const { folderId } = await ensureSupabaseDetailsFolder();
-  const files = await listFilesInFolder(folderId);
+  const { folderId } = await ensureSupabaseDetailsFolder(scope);
+  const files = await listFilesInFolder(folderId, scope);
 
   const linkFile = files.find((file) => file.name === WORKSPACE_ARCHITECTURE_LINK_FILE);
   let link: WorkspaceArchitectureLink | null = null;
@@ -293,10 +336,10 @@ export async function resolveLatestWorkspaceArchitectureDiagram(options?: {
     if (!regenerateIfMissing) {
       return null;
     }
-    const regenerated = await regenerateWorkspaceArchitectureDiagram();
-    const svgDownload = await getFileDownloadUrl(regenerated.svgFileId);
+    const regenerated = await regenerateWorkspaceArchitectureDiagram(scope);
+    const svgDownload = await getFileDownloadUrl(regenerated.svgFileId, scope);
     const pngDownload = regenerated.pngFileId
-      ? await getFileDownloadUrl(regenerated.pngFileId)
+      ? await getFileDownloadUrl(regenerated.pngFileId, scope)
       : null;
 
     return {
@@ -322,10 +365,10 @@ export async function resolveLatestWorkspaceArchitectureDiagram(options?: {
       pngFileName: pngFile?.name ?? svgFile.name.replace(/\.svg$/i, ".png"),
     } satisfies WorkspaceArchitectureLink);
 
-  const svgPayload = await downloadFileBuffer(svgFile.id);
+  const svgPayload = await downloadFileBuffer(svgFile.id, scope);
   const svg = svgPayload.buffer.toString("utf8");
-  const svgDownload = await getFileDownloadUrl(svgFile.id);
-  const pngDownload = pngFile ? await getFileDownloadUrl(pngFile.id) : null;
+  const svgDownload = await getFileDownloadUrl(svgFile.id, scope);
+  const pngDownload = pngFile ? await getFileDownloadUrl(pngFile.id, scope) : null;
 
   return {
     folderId,
@@ -337,8 +380,4 @@ export async function resolveLatestWorkspaceArchitectureDiagram(options?: {
     pngDownloadUrl: pngDownload?.url ?? null,
     regenerated: false,
   };
-}
-
-export function isSupabaseDetailsCategory(categoryId: string | null | undefined) {
-  return categoryId === "supabase";
 }

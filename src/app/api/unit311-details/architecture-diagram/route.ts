@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireInternalWorkspaceSession } from "@/lib/internal-admin-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   regenerateWorkspaceArchitectureDiagram,
@@ -9,20 +10,26 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireInternalWorkspaceSession();
+  if ("error" in auth) return auth.error;
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
+
+  const workspaceId = auth.workspace.id;
 
   try {
     const force = request.nextUrl.searchParams.get("regenerate") === "1";
     const format = request.nextUrl.searchParams.get("format");
 
     if (force) {
-      await regenerateWorkspaceArchitectureDiagram();
+      await regenerateWorkspaceArchitectureDiagram({ workspaceId });
     }
 
     const resolved = await resolveLatestWorkspaceArchitectureDiagram({
       regenerateIfMissing: true,
+      workspaceId,
     });
 
     if (!resolved) {
@@ -62,14 +69,20 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST() {
+  const auth = await requireInternalWorkspaceSession();
+  if ("error" in auth) return auth.error;
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
 
+  const workspaceId = auth.workspace.id;
+
   try {
-    const regenerated = await regenerateWorkspaceArchitectureDiagram();
+    const regenerated = await regenerateWorkspaceArchitectureDiagram({ workspaceId });
     const latest = await resolveLatestWorkspaceArchitectureDiagram({
       regenerateIfMissing: false,
+      workspaceId,
     });
 
     return NextResponse.json({

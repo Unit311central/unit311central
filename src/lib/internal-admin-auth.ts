@@ -4,6 +4,10 @@ import { getInternalOperatorByUsername } from "@/lib/internal-operators-service"
 import { getPlatformSession, type PlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { normalizeUserRole } from "@/lib/user-management-data";
+import {
+  requireCurrentWorkspace,
+  type CurrentWorkspace,
+} from "@/lib/workspace-context";
 
 const AUTH_REQUIRED = "Authentication required.";
 const INSUFFICIENT_PRIVILEGES = "Insufficient privileges.";
@@ -46,4 +50,32 @@ export async function requireInternalAdministratorSession(): Promise<
   }
 
   return { session };
+}
+
+/**
+ * Authenticated internal user with an active workspace context.
+ * Used by internal module APIs (e.g. Unit311 Details) that are not Admin-only.
+ * 401 = no session / no workspace; 403 = external user.
+ */
+export async function requireInternalWorkspaceSession(): Promise<
+  { error: NextResponse } | { session: PlatformSession; workspace: CurrentWorkspace }
+> {
+  const session = await getPlatformSession();
+  if (!session) {
+    return { error: NextResponse.json({ error: AUTH_REQUIRED }, { status: 401 }) };
+  }
+
+  if (session.userType !== "internal") {
+    return {
+      error: NextResponse.json({ error: INSUFFICIENT_PRIVILEGES }, { status: 403 }),
+    };
+  }
+
+  try {
+    const workspace = await requireCurrentWorkspace();
+    return { session, workspace };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : AUTH_REQUIRED;
+    return { error: NextResponse.json({ error: message }, { status: 401 }) };
+  }
 }
