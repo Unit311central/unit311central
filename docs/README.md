@@ -2,6 +2,11 @@
 
 | Document | Description |
 | --- | --- |
+| [platform-architecture/](./platform-architecture/) | **Platform Reference Models (PRM)** + Module Register |
+| [platform-architecture/PRM-001-CLIENT.md](./platform-architecture/PRM-001-CLIENT.md) | **PRM-001 – Client** (LOCKED) |
+| [platform-architecture/PRM-002-WORKSPACE.md](./platform-architecture/PRM-002-WORKSPACE.md) | **PRM-002 – Workspace** (LOCKED) |
+| [platform-architecture/INTERNAL_NAVIGATION_BLUEPRINT.md](./platform-architecture/INTERNAL_NAVIGATION_BLUEPRINT.md) | **Internal Navigation** (APPROVED / FROZEN) |
+| [platform-architecture/PLATFORM_MODULE_REGISTER.md](./platform-architecture/PLATFORM_MODULE_REGISTER.md) | **Platform Module Register** — master implementation tracker |
 | [PRODUCT_ARCHITECTURE.md](./PRODUCT_ARCHITECTURE.md) | Navigation IA, Billing/Users/Roles recommendations (pre-isolation) |
 | [WORKSPACE_ARCHITECTURE.md](./WORKSPACE_ARCHITECTURE.md) | Multi-workspace / `workspace_id` technical specification |
 | [VERCEL_ARCHITECTURE.md](./VERCEL_ARCHITECTURE.md) | Vercel deployment / host / middleware architecture (source for generated diagrams) |

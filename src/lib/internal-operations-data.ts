@@ -38,9 +38,13 @@ export type InternalOperationsView =
   | "whiteboard"
   | "competitors"
   | "assets"
+  | "inventory-management"
   | "fleet"
   | "testing"
   | "projects"
+  | "projects-dashboard"
+  | "projects-internal"
+  | "projects-external"
   | "grants"
   | "recent-missions"
   | "webodm"
@@ -72,7 +76,9 @@ export type InternalOperationsView =
   | "profile"
   | "executive-assistant"
   | "website-management"
-  | "engineering";
+  | "engineering"
+  | "engineering-dashboard"
+  | "engineering-resources";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -147,9 +153,13 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "whiteboard",
   "competitors",
   "assets",
+  "inventory-management",
   "fleet",
   "testing",
   "projects",
+  "projects-dashboard",
+  "projects-internal",
+  "projects-external",
   "grants",
   "recent-missions",
   "webodm",
@@ -182,7 +192,40 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "executive-assistant",
   "website-management",
   "engineering",
+  "engineering-dashboard",
+  "engineering-resources",
 ];
+
+/** Nav aliases that share one implementation until modules are redesigned. */
+export const PROJECTS_NAV_VIEWS = [
+  "projects",
+  "projects-dashboard",
+  "projects-internal",
+  "projects-external",
+] as const satisfies readonly InternalOperationsView[];
+
+export const ENGINEERING_NAV_VIEWS = [
+  "engineering",
+  "engineering-dashboard",
+  "engineering-resources",
+] as const satisfies readonly InternalOperationsView[];
+
+export const ASSETS_NAV_VIEWS = [
+  "assets",
+  "inventory-management",
+] as const satisfies readonly InternalOperationsView[];
+
+export function isProjectsNavView(view: InternalOperationsView): boolean {
+  return (PROJECTS_NAV_VIEWS as readonly string[]).includes(view);
+}
+
+export function isEngineeringNavView(view: InternalOperationsView): boolean {
+  return (ENGINEERING_NAV_VIEWS as readonly string[]).includes(view);
+}
+
+export function isAssetsNavView(view: InternalOperationsView): boolean {
+  return (ASSETS_NAV_VIEWS as readonly string[]).includes(view);
+}
 
 export function isInternalOperationsView(value: string | null): value is InternalOperationsView {
   return internalOperationsViews.includes(value as InternalOperationsView);
@@ -196,6 +239,23 @@ export function normalizeInternalOperationsView(value: string | null): InternalO
   if (value === "creditors") return "accounts-payable";
   if (value === "opex") return "financials";
   return isInternalOperationsView(value) ? value : "home";
+}
+
+/** Banner for nav leaves that reuse an existing module. */
+export function getNavImplementationNotice(
+  view: InternalOperationsView,
+): "uses-current" | "coming-soon" | null {
+  if (
+    view === "projects-dashboard" ||
+    view === "projects-internal" ||
+    view === "projects-external" ||
+    view === "inventory-management" ||
+    view === "engineering-dashboard" ||
+    view === "engineering-resources"
+  ) {
+    return "uses-current";
+  }
+  return null;
 }
 
 export type InternalNavChildItem = {
@@ -221,9 +281,12 @@ export type InternalNavSection = {
 
 export const internalSurveyNavSections: readonly InternalNavSection[] = [
   {
-    label: null,
+    label: "HOME",
+    items: [{ label: "Home Dashboard", icon: "LayoutDashboard", view: "home" as const }],
+  },
+  {
+    label: "EXECUTIVE",
     items: [
-      { label: "Home", icon: "LayoutDashboard", view: "home" as const },
       {
         label: "Executive Assistant",
         icon: "Bot",
@@ -240,7 +303,6 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         children: [
           { label: "Dashboard", view: "clients-dashboard" as const },
           { label: "Client Directory", view: "clients" as const },
-          { label: "Client Onboarding", view: "client-onboarding" as const },
         ],
       },
       {
@@ -248,12 +310,21 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         icon: "ContactRound",
         children: [
           { label: "Pipeline", view: "crm" as const },
-          { label: "Executive Strategy Session Meetings", view: "crm-meetings" as const },
+          { label: "Discovery & Demo Sessions", view: "crm-meetings" as const },
           { label: "Potential Clients", view: "potential-clients" as const },
+          { label: "Client Onboarding", view: "client-onboarding" as const },
         ],
       },
       { label: "Partners", icon: "Handshake", view: "representatives" as const },
-      { label: "Projects", icon: "FolderKanban", view: "projects" as const },
+      {
+        label: "Projects",
+        icon: "FolderKanban",
+        children: [
+          { label: "Dashboard", view: "projects-dashboard" as const },
+          { label: "Internal Projects", view: "projects-internal" as const },
+          { label: "External Projects", view: "projects-external" as const },
+        ],
+      },
       { label: "Grants", icon: "Landmark", view: "grants" as const },
       {
         label: "Financials",
@@ -269,14 +340,14 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         ],
       },
       {
-        label: "HR",
+        label: "Human Resources",
         icon: "Briefcase",
         children: [
           { label: "Dashboard", view: "hr-dashboard" as const },
           { label: "Employees", view: "hr" as const },
-          { label: "Recruitment", view: "hr-recruitment" as const },
           { label: "Leave", view: "hr-leave" as const },
           { label: "Performance", view: "hr-performance" as const },
+          { label: "Recruitment", view: "hr-recruitment" as const },
         ],
       },
       {
@@ -287,17 +358,27 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
           { label: "Company Details", view: "corporate-company-details" as const },
           { label: "Office Locations", view: "office-locations" as const },
           { label: "Bank Accounts", view: "corporate-bank-accounts" as const },
-          { label: "Professional Advisers", view: "corporate-advisers" as const },
-          { label: "Insurance", view: "corporate-insurance" as const },
+          { label: "Professional Advisors", view: "corporate-advisers" as const },
           { label: "Software & Licences", view: "corporate-software" as const },
           { label: "Contracts", view: "corporate-contracts" as const },
+          { label: "Unit311 Details", view: "unit311-details" as const },
         ],
       },
     ],
   },
   {
-    label: "Inventory Management",
-    items: [{ label: "Assets", icon: "Package", view: "assets" as const }],
+    label: "Assets",
+    items: [
+      {
+        label: "Assets",
+        icon: "Package",
+        children: [
+          { label: "Assets", view: "assets" as const },
+          { label: "Inventory Management", view: "inventory-management" as const },
+          { label: "Logistics", view: "logistics" as const },
+        ],
+      },
+    ],
   },
   {
     label: "Business Productivity",
@@ -306,25 +387,16 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         label: "File Explorer",
         icon: "FolderOpen",
         children: [
-          { label: "Internal files", view: "files-internal" as const },
-          { label: "Unit311 Details", view: "unit311-details" as const },
-          { label: "External files", view: "files-external" as const },
-          { label: "Client explorer", view: "files-client" as const },
+          { label: "Internal Files", view: "files-internal" as const },
+          { label: "External Files", view: "files-external" as const },
+          { label: "Client Explorer", view: "files-client" as const },
         ],
       },
       { label: "Calendar", icon: "CalendarDays", view: "calendar" as const },
-      { label: "Logistics", icon: "Truck", view: "logistics" as const },
       { label: "Email", icon: "Mail", view: "info-email" as const },
       { label: "Messaging", icon: "MessageSquare", view: "messaging" as const },
       { label: "Social", icon: "Share2", view: "social" as const },
-      {
-        label: "Support",
-        icon: "LifeBuoy",
-        children: [
-          { label: "Support desk", view: "support" as const },
-          { label: "Whatsapp Testing", href: "/whatsapp/support-flow" },
-        ],
-      },
+      { label: "Support Desk", icon: "LifeBuoy", view: "support" as const },
     ],
   },
   {
@@ -344,21 +416,25 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
   {
     label: "QMS",
     items: [
-      { label: "Quality Management", icon: "ShieldCheck", view: "quality-management" as const },
-    ],
-  },
-  {
-    label: "Strategy",
-    items: [
-      { label: "Board deck", icon: "ScrollText", view: "board-pack" as const },
-      { label: "Strategy", icon: "Compass", view: "strategy" as const },
-      { label: "Competitors", icon: "Binoculars", view: "competitors" as const },
-      { label: "Whiteboard", icon: "PenLine", view: "whiteboard" as const },
+      {
+        label: "Quality Management System",
+        icon: "ShieldCheck",
+        view: "quality-management" as const,
+      },
     ],
   },
   {
     label: "Engineering",
-    items: [{ label: "Engineering", icon: "Wrench", view: "engineering" as const }],
+    items: [
+      {
+        label: "Engineering",
+        icon: "Wrench",
+        children: [
+          { label: "Dashboard", view: "engineering-dashboard" as const },
+          { label: "Engineer / Resource Breakdown", view: "engineering-resources" as const },
+        ],
+      },
+    ],
   },
   {
     label: "Tools",
@@ -391,7 +467,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         children: [
           { label: "Profile", view: "profile" as const },
           { label: "General", view: "settings" as const },
-          { label: "Billing", view: "billing" as const },
+          { label: "Platform Billing", view: "billing" as const },
         ],
       },
     ],
@@ -406,12 +482,12 @@ export const internalViewTitles: Record<
   InternalOperationsView,
   { title: string; subtitle: string }
 > = {
-  home: { title: "Internal Operations", subtitle: "Unit311" },
+  home: { title: "Home Dashboard", subtitle: "HOME" },
   clients: { title: "Client Directory", subtitle: "Clients" },
   "clients-dashboard": { title: "Clients Dashboard", subtitle: "Clients" },
   crm: { title: "CRM Pipeline", subtitle: "CRM" },
   "crm-meetings": {
-    title: "Executive Strategy Session Meetings",
+    title: "Discovery & Demo Sessions",
     subtitle: "CRM",
   },
   "crm-questions-test": {
@@ -424,7 +500,7 @@ export const internalViewTitles: Record<
   "corporate-dashboard": { title: "Corporate Information", subtitle: "Dashboard" },
   "corporate-company-details": { title: "Company Details", subtitle: "Corporate Information" },
   "corporate-bank-accounts": { title: "Bank Accounts", subtitle: "Corporate Information" },
-  "corporate-advisers": { title: "Professional Advisers", subtitle: "Corporate Information" },
+  "corporate-advisers": { title: "Professional Advisors", subtitle: "Corporate Information" },
   "corporate-insurance": { title: "Insurance", subtitle: "Corporate Information" },
   "corporate-software": { title: "Software & Licences", subtitle: "Corporate Information" },
   "corporate-contracts": { title: "Contracts", subtitle: "Corporate Information" },
@@ -434,59 +510,68 @@ export const internalViewTitles: Record<
   "accounts-payable": { title: "Accounts Payable", subtitle: "Financials" },
   "financial-reports": { title: "Reports", subtitle: "Financials" },
   opex: { title: "Opex", subtitle: "Financials" },
-  wise: { title: "Wise", subtitle: "Financials Integration" },
+  wise: { title: "Wise", subtitle: "Financials" },
   "board-pack": { title: "Board deck", subtitle: "Strategy" },
   debtors: { title: "Accounts Receivable", subtitle: "Financials" },
   creditors: { title: "Accounts Payable", subtitle: "Financials" },
   expenses: { title: "Expenses", subtitle: "Financials" },
-  hr: { title: "Employees", subtitle: "HR" },
-  "hr-dashboard": { title: "HR Dashboard", subtitle: "HR" },
-  "hr-recruitment": { title: "Recruitment", subtitle: "HR" },
-  "hr-leave": { title: "Leave", subtitle: "HR" },
-  "hr-performance": { title: "Performance", subtitle: "HR" },
-  strategy: { title: "Strategy", subtitle: "Internal Operations" },
+  hr: { title: "Employees", subtitle: "Human Resources" },
+  "hr-dashboard": { title: "HR Dashboard", subtitle: "Human Resources" },
+  "hr-recruitment": { title: "Recruitment", subtitle: "Human Resources" },
+  "hr-leave": { title: "Leave", subtitle: "Human Resources" },
+  "hr-performance": { title: "Performance", subtitle: "Human Resources" },
+  strategy: { title: "Strategy", subtitle: "Strategy" },
   "potential-clients": { title: "Potential Clients", subtitle: "CRM" },
-  whiteboard: { title: "Whiteboard", subtitle: "Internal Operations" },
-  competitors: { title: "Competitors", subtitle: "Internal Operations" },
-  assets: { title: "Asset Registry", subtitle: "Internal Operations" },
+  whiteboard: { title: "Whiteboard", subtitle: "Strategy" },
+  competitors: { title: "Competitors", subtitle: "Strategy" },
+  assets: { title: "Assets", subtitle: "Assets" },
+  "inventory-management": { title: "Inventory Management", subtitle: "Assets" },
   fleet: { title: "Fleet", subtitle: "Internal Operations" },
-  testing: { title: "Flight Simulator Testing", subtitle: "Internal Operations" },
-  projects: { title: "Projects", subtitle: "Internal Operations" },
+  testing: { title: "Flight Simulator Testing", subtitle: "Tools" },
+  projects: { title: "Projects", subtitle: "Projects" },
+  "projects-dashboard": { title: "Projects Dashboard", subtitle: "Projects" },
+  "projects-internal": { title: "Internal Projects", subtitle: "Projects" },
+  "projects-external": { title: "External Projects", subtitle: "Projects" },
   grants: { title: "Grants", subtitle: "Business Central" },
   "recent-missions": { title: "Recent Missions", subtitle: "Internal Operations" },
   webodm: { title: "WebODM Processing", subtitle: "Internal Operations" },
-  messaging: { title: "Messaging", subtitle: "Internal Operations" },
-  social: { title: "Social", subtitle: "Unit311" },
-  settings: { title: "Settings", subtitle: "Unit311" },
-  billing: { title: "Platform Billing", subtitle: "Customer subscriptions" },
-  calendar: { title: "Calendar", subtitle: "Internal Operations" },
-  "info-email": { title: "Email", subtitle: "Internal Operations" },
-  files: { title: "File Explorer", subtitle: "Internal Operations" },
-  "files-internal": { title: "Internal Files", subtitle: "Internal Operations" },
-  "unit311-details": { title: "Unit311 Details", subtitle: "Business Productivity" },
-  "files-external": { title: "External Files", subtitle: "Internal Operations" },
-  "files-client": { title: "Client File Explorer", subtitle: "Internal Operations" },
+  messaging: { title: "Messaging", subtitle: "Business Productivity" },
+  social: { title: "Social", subtitle: "Business Productivity" },
+  settings: { title: "General", subtitle: "Settings" },
+  billing: { title: "Platform Billing", subtitle: "Settings" },
+  calendar: { title: "Calendar", subtitle: "Business Productivity" },
+  "info-email": { title: "Email", subtitle: "Business Productivity" },
+  files: { title: "File Explorer", subtitle: "Business Productivity" },
+  "files-internal": { title: "Internal Files", subtitle: "File Explorer" },
+  "unit311-details": { title: "Unit311 Details", subtitle: "Corporate Information" },
+  "files-external": { title: "External Files", subtitle: "File Explorer" },
+  "files-client": { title: "Client Explorer", subtitle: "File Explorer" },
   users: { title: "Internal Users", subtitle: "Tools" },
   "users-external": { title: "External Users", subtitle: "External Client Access" },
   "external-client-access": {
     title: "External Client Access",
-    subtitle: "Client Portals",
+    subtitle: "External Client Access",
   },
-  support: { title: "Support", subtitle: "Internal Operations" },
-  telemetry: { title: "Live Telemetry", subtitle: "Internal Operations" },
+  support: { title: "Support Desk", subtitle: "Business Productivity" },
+  telemetry: { title: "Live Telemetry", subtitle: "Tools" },
   "media-example": { title: "Media Example", subtitle: "Internal Operations" },
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },
   sector: { title: "Sector Intelligence", subtitle: "Unit311" },
   training: { title: "Staff Training", subtitle: "Training" },
   "training-dashboard": { title: "Training Dashboard", subtitle: "Training" },
-  logistics: { title: "Logistics", subtitle: "Package tracking" },
-  "client-onboarding": { title: "Client Onboarding", subtitle: "Clients" },
-  "quality-management": { title: "Quality Management", subtitle: "QMS" },
+  logistics: { title: "Logistics", subtitle: "Assets" },
+  "client-onboarding": { title: "Client Onboarding", subtitle: "CRM" },
+  "quality-management": { title: "Quality Management System", subtitle: "QMS" },
   "qms-training": { title: "QMS Training", subtitle: "Training" },
   profile: { title: "Profile", subtitle: "Settings" },
-  "executive-assistant": { title: "Executive Assistant", subtitle: "Unit311 Central" },
-  "website-management": { title: "Website Management", subtitle: "unit311central.com" },
-  engineering: { title: "Engineering", subtitle: "Internal Operations" },
+  "executive-assistant": { title: "Executive Assistant", subtitle: "EXECUTIVE" },
+  "website-management": { title: "Website Management", subtitle: "Tools" },
+  engineering: { title: "Engineering", subtitle: "Engineering" },
+  "engineering-dashboard": { title: "Engineering Dashboard", subtitle: "Engineering" },
+  "engineering-resources": {
+    title: "Engineer / Resource Breakdown",
+    subtitle: "Engineering",
+  },
 };
 
 export const internalHomeTileRows = [
@@ -680,6 +765,15 @@ export function isInternalNavChildActive(
       pathname === assistantPath ||
       pathname.startsWith(`${assistantPath}/`)
     );
+  }
+  if (item.view && isProjectsNavView(item.view) && isProjectsNavView(activeView)) {
+    return true;
+  }
+  if (item.view && isEngineeringNavView(item.view) && isEngineeringNavView(activeView)) {
+    return true;
+  }
+  if (item.view && isAssetsNavView(item.view) && isAssetsNavView(activeView)) {
+    return true;
   }
   return item.view === activeView;
 }

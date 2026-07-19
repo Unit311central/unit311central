@@ -18,8 +18,9 @@ import {
 import { isInternalDomainHost } from "@/lib/app-domains";
 import {
   INTERNAL_OPERATIONS_BASE_PATH,
-  isInternalOperationsView,
+  getNavImplementationNotice,
   internalViewTitles,
+  isInternalOperationsView,
   normalizeInternalOperationsView,
   resolveInternalOperationsBasePath,
   type InternalOperationsView,
@@ -97,46 +98,44 @@ function PlaceholderForView({ view }: { view: InternalOperationsView }) {
   const descriptions: Partial<Record<InternalOperationsView, { description: string; bullets?: string[] }>> = {
     "hr-recruitment": {
       description:
-        "Recruitment pipeline for open roles, applicants, and hiring stages. Placeholder until the careers workflow is connected here.",
+        "Coming Soon — Recruitment pipeline for open roles, applicants, and hiring stages.",
     },
     "hr-leave": {
       description:
-        "Leave requests, balances, and approvals. Placeholder until leave booking is wired to HR records.",
+        "Coming Soon — Leave requests, balances, and approvals.",
     },
     "hr-performance": {
       description:
-        "Performance reviews, goals, and manager feedback. Placeholder until the review cycle is implemented.",
+        "Coming Soon — Performance reviews, goals, and manager feedback.",
     },
     "training-dashboard": {
-      description:
-        "Overview of staff and QMS training progress across the organisation.",
+      description: "Coming Soon — Overview of staff and QMS training progress across the organisation.",
     },
     "corporate-dashboard": {
       description:
-        "Summary of company corporate records — locations, advisers, insurance, licences, and contracts.",
+        "Coming Soon — Summary of company corporate records — locations, advisers, licences, and contracts.",
     },
     "corporate-company-details": {
-      description:
-        "Legal entity details, registration numbers, and corporate profile. Placeholder for now.",
+      description: "Coming Soon — Legal entity details, registration numbers, and corporate profile.",
     },
     "corporate-bank-accounts": {
-      description: "Company bank accounts and payment details used for operations.",
+      description: "Coming Soon — Company bank accounts and payment details used for operations.",
     },
     "corporate-advisers": {
-      description: "Lawyers, accountants, and other professional advisers on retainer.",
+      description: "Coming Soon — Lawyers, accountants, and other professional advisers on retainer.",
     },
     "corporate-insurance": {
-      description: "Insurance policies, renewals, and coverage notes.",
+      description: "Coming Soon — Insurance policies, renewals, and coverage notes.",
     },
     "corporate-software": {
-      description: "Software subscriptions, licences, and vendor accounts.",
+      description: "Coming Soon — Software subscriptions, licences, and vendor accounts.",
     },
     "corporate-contracts": {
-      description: "Corporate contracts, MSAs, and key commercial agreements.",
+      description: "Coming Soon — Corporate contracts, MSAs, and key commercial agreements.",
     },
     "external-client-access": {
       description:
-        "Configure secure external portals for selected clients — choose visible modules, invite users, and manage permissions.",
+        "Coming Soon — Configure secure external portals for selected clients — choose visible modules, invite users, and manage permissions.",
       bullets: [
         "Select one of our Clients",
         "Create an External Portal",
@@ -151,9 +150,27 @@ function PlaceholderForView({ view }: { view: InternalOperationsView }) {
   return (
     <ModulePlaceholderWorkspace
       title={meta.title}
-      description={extra?.description ?? `${meta.title} is coming soon.`}
+      description={extra?.description ?? `Coming Soon — ${meta.title} is not yet implemented.`}
       bullets={extra?.bullets}
     />
+  );
+}
+
+function NavImplementationNotice({ view }: { view: InternalOperationsView }) {
+  const notice = getNavImplementationNotice(view);
+  if (!notice) return null;
+  const meta = internalViewTitles[view];
+  return (
+    <div
+      role="status"
+      className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90"
+    >
+      <span className="font-semibold text-amber-50">Uses current implementation</span>
+      <span className="text-amber-100/70">
+        {" "}
+        — {meta.title} opens the existing module until this navigation area is redesigned.
+      </span>
+    </div>
   );
 }
 
@@ -382,6 +399,7 @@ export default function InternalOperationsDashboard({
         }
       >
         <div className={activeView === "home" ? "relative min-w-0" : "relative min-w-0 space-y-4 sm:space-y-6"}>
+          {activeView !== "home" && <NavImplementationNotice view={activeView} />}
           {activeView === "home" &&
             (isInternalHost ? (
               <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(300px,3fr)] xl:items-start xl:gap-5">
@@ -413,7 +431,7 @@ export default function InternalOperationsDashboard({
 
           {activeView === "client-onboarding" && <ClientOnboardingWorkspace />}
 
-          {activeView === "assets" && (
+          {(activeView === "assets" || activeView === "inventory-management") && (
             <AssetManagementWorkspace
               assets={assets}
               categories={assetCategories}
@@ -444,7 +462,12 @@ export default function InternalOperationsDashboard({
             </div>
           )}
 
-          {activeView === "projects" && <ProjectsWorkspace clients={clients} />}
+          {(activeView === "projects" ||
+            activeView === "projects-dashboard" ||
+            activeView === "projects-internal" ||
+            activeView === "projects-external") && (
+            <ProjectsWorkspace clients={clients} />
+          )}
 
           {activeView === "grants" && <GrantsWorkspace />}
 
@@ -586,7 +609,9 @@ export default function InternalOperationsDashboard({
 
           {activeView === "website-management" && <WebsiteManagementWorkspace />}
 
-          {activeView === "engineering" && <EngineeringWorkspace />}
+          {(activeView === "engineering" ||
+            activeView === "engineering-dashboard" ||
+            activeView === "engineering-resources") && <EngineeringWorkspace />}
         </div>
       </div>
       </SurveyOperationsShell>

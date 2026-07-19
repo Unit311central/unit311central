@@ -3,6 +3,17 @@
 Navigation and information-architecture notes for Unit311 Central (ops shell).  
 Workspace Isolation is paused until this structure is reviewed and approved.
 
+## Platform Reference Models
+
+Business-object architecture is governed by locked **Platform Reference Models**:
+
+| ID | Document | Status |
+| --- | --- | --- |
+| **PRM-001** | [Platform Reference Model 001 – Client](./platform-architecture/PRM-001-CLIENT.md) | **LOCKED** |
+| **PRM-002** | [Platform Reference Model 002 – Workspace](./platform-architecture/PRM-002-WORKSPACE.md) | **LOCKED** |
+
+All future module reviews must conform to **PRM-001** (Client Identity) and **PRM-002** (Workspace Runtime). Conflicts must be called out explicitly. Do not implement changes that violate locked PRMs until the full platform architecture is approved.
+
 ## Current navigation (post-refinement)
 
 ### Business Central
