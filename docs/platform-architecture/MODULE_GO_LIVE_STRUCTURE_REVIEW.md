@@ -80,12 +80,14 @@
 | MOD-071 Employees | **Keep** | Master Data (approved FDR) |
 | MOD-072 Leave | **Keep** — clarity name **Leave Management** | Workflow / Operational |
 | MOD-073 Performance | **Keep** — clarity name **Performance Management** | Workflow |
-| MOD-074 Recruitment | **Keep** | Workflow |
+| MOD-074 Reports | **Remapped 2026-07-21** | Was Recruitment; now **HR Reports**. Closed Ready under MOD-200. |
+| MOD-201 Recruitment ATS | **Added 2026-07-21** | Recruitment workflow / ATS. Closed Ready under MOD-201. |
 | MOD-120–122 Training / QMS Training | **Keep** (Training domain) | Do **not** duplicate under HR; Employees displays training by reference |
 
 | Candidate | Decision | Rationale |
 | --- | --- | --- |
-| Recruitment | **Already present** | MOD-074 |
+| Recruitment | **MOD-201** | Closed Ready — [MOD-201](./MOD-201-RECRUITMENT-ATS.md) |
+| Reports (HR) | **MOD-074** | Closed Ready — [MOD-200](./MOD-200-HR-DOMAIN.md) |
 | Employee Onboarding | **Approve MOD-075** | Multi-team checklist (IT, assets, access, induction) after Offer Accepted — Employees owns the person; Onboarding owns the process. Aligns with FDR-071 “display, don’t own” for related processes. |
 | Leave Management | **Already present** | MOD-072 |
 | Performance Management | **Already present** | MOD-073 |
@@ -268,7 +270,8 @@ Notable clarifications (name only, same ID):
 | MOD-071 | Employees | Master Data | Optional | Approved FDR; owns offboarding metadata |
 | MOD-072 | Leave *(Management)* | Workflow | Optional | Clarity rename only |
 | MOD-073 | Performance *(Management)* | Workflow | None | Clarity rename only |
-| MOD-074 | Recruitment | Workflow | Optional | |
+| MOD-074 | Reports | Reporting | Optional | Closed Ready (MOD-200) |
+| MOD-201 | Recruitment ATS | Workflow | Optional | Closed Ready (MOD-201) |
 | **MOD-075** | **Employee Onboarding** | **Workflow** | **Optional** | **NEW** |
 | MOD-080 | Corporate Information Dashboard | Dashboard | None | |
 | MOD-081 | Company Details | Master Data / Administration | None | |
