@@ -148,8 +148,8 @@ Nav leaves that share one implementation until redesigned are noted. Each row is
 
 | Module Name | Navigation Location | Status | Related PRMs | Dependencies | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Assets | Assets → Assets | Not Started | PRM-001 (optional tag) | — | Asset registry |
-| Inventory Management | Assets → Inventory Management | Not Started | — | Assets | **Shares** Assets implementation today |
+| Assets | Assets → Assets | Not Started | PRM-001 (optional tag) | — | Asset registry (master data) — unchanged by MOD-500 |
+| Inventory Management | Assets → Inventory Management | **Ready** | — | — | Operational EAM workspace · [MOD-500](./MOD-500-INVENTORY-MANAGEMENT.md) **CLOSED · READY** |
 | Logistics | Assets → Logistics | **Approved** | PRM-001 · PRM-002 · **PRM-003** | Shipping Providers | [FDR-MOD-092](./FDR-MOD-092-LOGISTICS.md) **APPROVED** · Architecture **COMPLETE / FROZEN**. Go-Live **READY**. [Readiness](./MOD-092-IMPLEMENTATION-READINESS.md) **APPROVED**. No implementation yet. |
 
 ### Business Productivity

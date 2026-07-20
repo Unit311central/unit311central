@@ -309,7 +309,6 @@ export function getNavImplementationNotice(
     view === "projects-dashboard" ||
     view === "projects-internal" ||
     view === "projects-external" ||
-    view === "inventory-management" ||
     view === "engineering-dashboard" ||
     view === "engineering-resources"
   ) {

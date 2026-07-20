@@ -35,6 +35,7 @@ import {
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import { InternalOperationsBasePathProvider } from "./InternalOperationsBasePathContext";
 import AssetManagementWorkspace from "./AssetManagementWorkspace";
+import InventoryManagementWorkspace from "./InventoryManagementWorkspace";
 import BoardPackCustomizerWorkspace from "./BoardPackCustomizerWorkspace";
 import ClientManagementWorkspace from "./ClientManagementWorkspace";
 import ClientsDashboardWorkspace from "./ClientsDashboardWorkspace";
@@ -507,7 +508,7 @@ export default function InternalOperationsDashboard({
 
           {activeView === "client-onboarding" && <ClientOnboardingWorkspace />}
 
-          {(activeView === "assets" || activeView === "inventory-management") && (
+          {activeView === "assets" && (
             <AssetManagementWorkspace
               assets={assets}
               categories={assetCategories}
@@ -521,6 +522,8 @@ export default function InternalOperationsDashboard({
               onLocationsChange={setAssetLocations}
             />
           )}
+
+          {activeView === "inventory-management" && <InventoryManagementWorkspace />}
 
           {activeView === "fleet" && (
             <FleetWorkspace

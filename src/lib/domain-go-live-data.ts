@@ -313,8 +313,6 @@ export const DOMAIN_SHARED_IMPLEMENTATION_WARNINGS: Readonly<
 > = {
   "DOM-06":
     "Projects views still share one implementation until Internal/External behaviour is differentiated.",
-  "DOM-11":
-    "Assets and Inventory still share one implementation until inventory behaviour is differentiated.",
   "DOM-15":
     "Engineering views still share one implementation until Dashboard vs Resource Breakdown differ.",
 };

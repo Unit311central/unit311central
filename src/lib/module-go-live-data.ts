@@ -101,6 +101,8 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   "MOD-085": "Ready",
   "MOD-086": "Ready",
   "MOD-087": "Ready",
+  /** MOD-500 — Inventory Management operational EAM Ready (2026-07-21). Asset Register (MOD-090) unchanged. */
+  "MOD-091": "Ready",
   /** Profile bound to session / whoami (Wave 0). */
   "MOD-170": "Ready",
   /** Wave 1 — Client Directory lifecycle rewrite (FDR-MOD-011-LIFECYCLE). */

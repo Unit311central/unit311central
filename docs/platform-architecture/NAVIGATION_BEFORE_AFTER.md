@@ -24,7 +24,7 @@ Navigation refactor only (2026-07-19). Existing routes preserved.
 | Unit311 Details | File Explorer | **Corporate Information** (last) |
 | Logistics | Business Productivity | **Assets** |
 | Projects | Single item | Dashboard · Internal · External → **same Projects module** + “Uses current implementation” |
-| Inventory Management | — | Nav leaf → **Assets module** + “Uses current implementation” |
+| Inventory Management | — | Dedicated operational EAM workspace (MOD-500 / MOD-091) — no longer shares Assets UI |
 | Engineering split | Single item | Dashboard / Resource Breakdown → **Engineering module** + notice |
 | Insurance | Corporate child | Removed from nav (`?view=corporate-insurance` still works) |
 | WhatsApp Testing | Under Support | Removed from nav (`/whatsapp/support-flow` still works) |
