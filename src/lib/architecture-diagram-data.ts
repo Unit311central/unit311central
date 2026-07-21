@@ -87,7 +87,13 @@ export type ArchitectureCatalogEntry = {
   sectionSlug: string;
   title: string;
   description?: string;
-  seedTemplate?: "blank" | "storage" | "platform-overview" | "voice-and-video" | "software-asset-register";
+  seedTemplate?:
+    | "blank"
+    | "storage"
+    | "platform-overview"
+    | "voice-and-video"
+    | "software-asset-register"
+    | "executive-ai";
 };
 
 /** Node colour tokens matching Unit311 dark UI. */
@@ -178,9 +184,9 @@ export const ARCHITECTURE_DIAGRAM_CATALOG: readonly ArchitectureCatalogEntry[] =
   },
   {
     sectionSlug: "ai-agent",
-    title: "AI Agent",
-    description: "Agent tooling and automation",
-    seedTemplate: "blank",
+    title: "Executive AI Platform",
+    description: "Operating Assistant, Command Centre, Guided Learning, trust",
+    seedTemplate: "executive-ai",
   },
   {
     sectionSlug: "website",
@@ -473,12 +479,13 @@ export function createPlatformOverviewDiagram(): ArchitectureDiagramDocument {
       status: "live",
       description: "internal.unit311central.com",
     }),
-    node("ai-agent", "AI Agent", "service", 50, 130, {
+    node("ai-agent", "Executive AI Platform", "service", 50, 130, {
       parentId: "group-platform",
       docSectionSlug: "ai-agent",
       icon: "bot",
-      status: "planned",
-      badges: [{ label: "Planned", tone: "amber" }],
+      status: "live",
+      description: "Command Centre + Operating Assistant",
+      badges: [{ label: "Live", tone: "emerald" }],
     }),
     node("authentication", "Authentication", "service", 50, 210, {
       parentId: "group-platform",
@@ -800,6 +807,139 @@ export function createSoftwareAssetRegisterArchitectureDiagram(): ArchitectureDi
   };
 }
 
+function createExecutiveAiArchitectureDiagram(): ArchitectureDiagramDocument {
+  return {
+    version: 1,
+    viewport: { x: 40, y: 20, zoom: 0.85 },
+    meta: {
+      title: "Executive AI Platform",
+      sourceDocument: "docs/EXECUTIVE_AI_PLATFORM.md",
+      updated: "2026-07-21",
+    },
+    nodes: [
+      node("group-ui", "Operator surfaces", "group", 40, 40, {
+        style: { width: 360, height: 360 },
+      }),
+      node("command-centre", "Executive Command Centre", "frontend", 40, 50, {
+        parentId: "group-ui",
+        docSectionSlug: "ai-agent",
+        icon: "layout-dashboard",
+        description: "Brief · Health · Risks · Finance pulse",
+        status: "live",
+      }),
+      node("floating-assistant", "Floating Operating Assistant", "frontend", 40, 130, {
+        parentId: "group-ui",
+        docSectionSlug: "ai-agent",
+        icon: "sparkles",
+        description: "Single launcher · SSE chat",
+        status: "live",
+      }),
+      node("guided-learning", "Guided Learning", "frontend", 40, 210, {
+        parentId: "group-ui",
+        docSectionSlug: "ai-agent",
+        icon: "compass",
+        description: "Overlays · page registry · workflows",
+        status: "live",
+      }),
+      node("proactive-layer", "Proactive Layer", "frontend", 40, 290, {
+        parentId: "group-ui",
+        docSectionSlug: "ai-agent",
+        icon: "bell",
+        description: "Brief cards · notifications · release tour",
+        status: "live",
+      }),
+
+      node("group-api", "API & runtime", "group", 460, 40, {
+        style: { width: 380, height: 360 },
+      }),
+      node("chat-api", "/api/executive-assistant/chat", "service", 40, 50, {
+        parentId: "group-api",
+        icon: "message-square",
+        description: "Operating SSE · legacy {messages} compat",
+        status: "live",
+      }),
+      node("proactive-api", "/api/executive-assistant/proactive", "service", 40, 130, {
+        parentId: "group-api",
+        icon: "activity",
+        status: "live",
+      }),
+      node("conversations-api", "/api/executive-assistant/conversations", "service", 40, 210, {
+        parentId: "group-api",
+        icon: "messages-square",
+        status: "live",
+      }),
+      node("feedback-api", "/api/executive-assistant/feedback", "service", 40, 290, {
+        parentId: "group-api",
+        icon: "thumbs-up",
+        description: "Anonymous trust signals",
+        status: "live",
+      }),
+
+      node("group-ai", "AI services", "group", 900, 40, {
+        style: { width: 340, height: 280 },
+      }),
+      node("runtime", "assistant-runtime", "service", 40, 50, {
+        parentId: "group-ai",
+        icon: "cpu",
+        description: "Tools · streaming · persistence",
+        status: "live",
+      }),
+      node("openai", "OpenAI Responses API", "integration", 40, 130, {
+        parentId: "group-ai",
+        icon: "bot",
+        description: "OPENAI_API_KEY",
+        status: "live",
+      }),
+      node("enterprise-ui", "Enterprise UI tokens", "service", 40, 210, {
+        parentId: "group-ai",
+        icon: "palette",
+        docSectionSlug: "ai-agent",
+        status: "live",
+      }),
+
+      node("group-data", "Data & trust store", "group", 460, 460, {
+        style: { width: 560, height: 280 },
+      }),
+      node("domain-data", "Live domain tables", "database", 40, 50, {
+        parentId: "group-data",
+        icon: "database",
+        description: "projects · clients · CRM · HR · invoices",
+        status: "live",
+      }),
+      node("ea-conversations", "executive_assistant_conversations", "database", 40, 130, {
+        parentId: "group-data",
+        icon: "database",
+        description: "Migration 101 · RLS · service-role writes",
+        status: "live",
+      }),
+      node("ea-trust", "feedback + quality_events", "database", 40, 210, {
+        parentId: "group-data",
+        icon: "shield",
+        description: "Migration 102 · RLS · service-role writes",
+        status: "live",
+      }),
+    ],
+    edges: [
+      { id: "e-cc-proactive", source: "command-centre", target: "proactive-api", animated: true },
+      { id: "e-float-chat", source: "floating-assistant", target: "chat-api", animated: true },
+      { id: "e-guided-runtime", source: "guided-learning", target: "runtime", label: "tools" },
+      { id: "e-proactive-api", source: "proactive-layer", target: "proactive-api", animated: true },
+      { id: "e-chat-runtime", source: "chat-api", target: "runtime", animated: true },
+      {
+        id: "e-conv-store",
+        source: "conversations-api",
+        target: "ea-conversations",
+        label: "service role",
+      },
+      { id: "e-fb-store", source: "feedback-api", target: "ea-trust", label: "service role" },
+      { id: "e-runtime-openai", source: "runtime", target: "openai", animated: true },
+      { id: "e-runtime-domain", source: "runtime", target: "domain-data", label: "tools" },
+      { id: "e-proactive-domain", source: "proactive-api", target: "domain-data" },
+      { id: "e-runtime-conv", source: "runtime", target: "ea-conversations" },
+    ],
+  };
+}
+
 export function resolveSeedTemplate(
   template: ArchitectureCatalogEntry["seedTemplate"] | undefined,
   title?: string,
@@ -810,6 +950,7 @@ export function resolveSeedTemplate(
   if (template === "software-asset-register") {
     return createSoftwareAssetRegisterArchitectureDiagram();
   }
+  if (template === "executive-ai") return createExecutiveAiArchitectureDiagram();
   return createBlankArchitectureDiagram(title);
 }
 

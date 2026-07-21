@@ -146,7 +146,9 @@ export async function createArchitectureDiagramForSection(input: {
           ? "voice-and-video"
           : sectionSlug === "software-asset-register"
             ? "software-asset-register"
-            : catalog?.seedTemplate ?? "blank");
+            : sectionSlug === "ai-agent"
+              ? "executive-ai"
+              : catalog?.seedTemplate ?? "blank");
 
   const title =
     input.title?.trim() ||
@@ -159,7 +161,9 @@ export async function createArchitectureDiagramForSection(input: {
           ? "Voice & Video Architecture"
           : seedTemplate === "software-asset-register"
             ? "Software Asset Register Architecture"
-            : `${sectionSlug} Architecture`);
+            : seedTemplate === "executive-ai"
+              ? "Executive AI Platform Architecture"
+              : `${sectionSlug} Architecture`);
 
   const diagramJson = resolveSeedTemplate(seedTemplate, title);
   return upsertArchitectureDiagram({ sectionSlug, title, diagramJson });
@@ -170,30 +174,33 @@ export async function ensureCoreArchitectureSeeds(): Promise<{
   platformOverview: SystemArchitectureDiagram;
   voiceAndVideo: SystemArchitectureDiagram;
   softwareAssetRegister: SystemArchitectureDiagram;
+  executiveAi: SystemArchitectureDiagram;
 }> {
-  const [storage, platformOverview, voiceAndVideo, softwareAssetRegister] = await Promise.all([
-    createArchitectureDiagramForSection({
-      sectionSlug: "storage",
-      title: "Storage Architecture",
-      seedTemplate: "storage",
-    }),
-    createArchitectureDiagramForSection({
-      sectionSlug: "platform-overview",
-      title: "Platform Overview",
-      seedTemplate: "platform-overview",
-    }),
-    createArchitectureDiagramForSection({
-      sectionSlug: "voice-and-video",
-      title: "Voice & Video Architecture",
-      seedTemplate: "voice-and-video",
-    }),
-    createArchitectureDiagramForSection({
-      sectionSlug: "software-asset-register",
-      title: "Software Asset Register Architecture",
-      seedTemplate: "software-asset-register",
-    }),
-  ]);
-  return { storage, platformOverview, voiceAndVideo, softwareAssetRegister };
+  const [storage, platformOverview, voiceAndVideo, softwareAssetRegister, executiveAi] =
+    await Promise.all([
+      createArchitectureDiagramForSection({
+        sectionSlug: "storage",
+        title: "Storage Architecture",
+        seedTemplate: "storage",
+      }),
+      createArchitectureDiagramForSection({
+        sectionSlug: "platform-overview",
+        title: "Platform Overview",
+        seedTemplate: "platform-overview",
+      }),
+      createArchitectureDiagramForSection({
+        sectionSlug: "voice-and-video",
+        title: "Voice & Video Architecture",
+        seedTemplate: "voice-and-video",
+      }),
+      createArchitectureDiagramForSection({
+        sectionSlug: "software-asset-register",
+        title: "Software Asset Register Architecture",
+        seedTemplate: "software-asset-register",
+      }),
+      ensureExecutiveAiArchitectureSeed(true),
+    ]);
+  return { storage, platformOverview, voiceAndVideo, softwareAssetRegister, executiveAi };
 }
 
 /** Ensure the Storage Architecture seed exists (idempotent). */
@@ -224,3 +231,19 @@ export {
   createVoiceAndVideoArchitectureDiagram,
   createSoftwareAssetRegisterArchitectureDiagram,
 };
+
+export async function ensureExecutiveAiArchitectureSeed(
+  force = false,
+): Promise<SystemArchitectureDiagram> {
+  const sectionSlug = "ai-agent";
+  if (!force) {
+    const existing = await getArchitectureDiagramBySection(sectionSlug);
+    if (existing) return existing;
+  }
+  const diagramJson = resolveSeedTemplate("executive-ai", "Executive AI Platform Architecture");
+  return upsertArchitectureDiagram({
+    sectionSlug,
+    title: "Executive AI Platform Architecture",
+    diagramJson,
+  });
+}

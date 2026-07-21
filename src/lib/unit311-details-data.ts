@@ -69,7 +69,7 @@ export const UNIT311_DETAIL_CATEGORIES: readonly Unit311DetailCategory[] = [
     folderName: "Workspace Onboarding",
     builtin: true,
   },
-  { id: "ai-agent", label: "AI Agent", folderName: "AI Agent", builtin: true },
+  { id: "ai-agent", label: "Executive AI Platform", folderName: "Executive AI Platform", builtin: true },
   {
     id: "nakama-technology-holdings",
     label: "Nakama Technology Holdings",
