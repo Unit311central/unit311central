@@ -78,6 +78,11 @@ export type InternalOperationsView =
   | "client-onboarding"
   | "quality-management"
   | "qms-training"
+  | "qms-document-control"
+  | "qms-capa"
+  | "qms-internal-audits"
+  | "qms-management-review"
+  | "qms-reports"
   | "profile"
   | "executive-assistant"
   | "website-management"
@@ -208,6 +213,11 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "client-onboarding",
   "quality-management",
   "qms-training",
+  "qms-document-control",
+  "qms-capa",
+  "qms-internal-audits",
+  "qms-management-review",
+  "qms-reports",
   "profile",
   "executive-assistant",
   "website-management",
@@ -505,9 +515,16 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     label: "QMS",
     items: [
       {
-        label: "Quality Management System",
+        label: "Quality Management",
         icon: "ShieldCheck",
-        view: "quality-management" as const,
+        children: [
+          { label: "Dashboard", view: "quality-management" as const },
+          { label: "Document Control", view: "qms-document-control" as const },
+          { label: "CAPA", view: "qms-capa" as const },
+          { label: "Internal Audits", view: "qms-internal-audits" as const },
+          { label: "Management Review", view: "qms-management-review" as const },
+          { label: "Reporting", view: "qms-reports" as const },
+        ],
       },
     ],
   },
@@ -658,6 +675,11 @@ export const internalViewTitles: Record<
   "client-onboarding": { title: "Client Onboarding", subtitle: "CRM" },
   "quality-management": { title: "Quality Management System", subtitle: "QMS" },
   "qms-training": { title: "QMS Training", subtitle: "Training" },
+  "qms-document-control": { title: "Document Control", subtitle: "QMS" },
+  "qms-capa": { title: "CAPA", subtitle: "QMS" },
+  "qms-internal-audits": { title: "Internal Audits", subtitle: "QMS" },
+  "qms-management-review": { title: "Management Review", subtitle: "QMS" },
+  "qms-reports": { title: "Reporting", subtitle: "Training & QMS" },
   profile: { title: "Profile", subtitle: "Settings" },
   "executive-assistant": { title: "Executive Assistant", subtitle: "Executive" },
   "website-management": { title: "Website Management", subtitle: "Tools" },

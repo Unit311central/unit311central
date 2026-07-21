@@ -73,9 +73,15 @@ import ExecutiveAssistantWorkspace from "./ExecutiveAssistantWorkspace";
 import ProfileWorkspace from "./ProfileWorkspace";
 import QmsTrainingWorkspace from "./QmsTrainingWorkspace";
 import QualityManagementWorkspace from "./QualityManagementWorkspace";
+import DocumentControlWorkspace from "./DocumentControlWorkspace";
+import CapaWorkspace from "./CapaWorkspace";
+import InternalAuditsWorkspace from "./InternalAuditsWorkspace";
+import ManagementReviewWorkspace from "./ManagementReviewWorkspace";
+import TqmsReportsWorkspace from "./TqmsReportsWorkspace";
+import TrainingDashboardWorkspace from "./TrainingDashboardWorkspace";
+import StaffTrainingWorkspace from "./StaffTrainingWorkspace";
 import InternalDesignMockups from "./InternalDesignMockups";
 import SectorWorkspace from "./SectorWorkspace";
-import TrainingWorkspace from "./TrainingWorkspace";
 import ProjectsWorkspace from "./ProjectsWorkspace";
 import LogisticsWorkspace from "./LogisticsWorkspace";
 import MediaExampleWorkspace from "./MediaExampleWorkspace";
@@ -107,9 +113,6 @@ import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvide
 function PlaceholderForView({ view }: { view: InternalOperationsView }) {
   const meta = internalViewTitles[view];
   const descriptions: Partial<Record<InternalOperationsView, { description: string; bullets?: string[] }>> = {
-    "training-dashboard": {
-      description: "Coming Soon — Overview of staff and QMS training progress across the organisation.",
-    },
     "corporate-dashboard": {
       description:
         "Executive overview of company records — locations, banking, advisers, licences, and contracts.",
@@ -492,6 +495,11 @@ export default function InternalOperationsDashboard({
           )}
           {activeView === "quality-management" && <QualityManagementWorkspace />}
           {activeView === "qms-training" && <QmsTrainingWorkspace />}
+          {activeView === "qms-document-control" && <DocumentControlWorkspace />}
+          {activeView === "qms-capa" && <CapaWorkspace />}
+          {activeView === "qms-internal-audits" && <InternalAuditsWorkspace />}
+          {activeView === "qms-management-review" && <ManagementReviewWorkspace />}
+          {activeView === "qms-reports" && <TqmsReportsWorkspace />}
           {activeView === "profile" && <ProfileWorkspace />}
 
           {activeView === "design-mockups" && (
@@ -615,9 +623,9 @@ export default function InternalOperationsDashboard({
 
           {activeView === "sector" && <SectorWorkspace />}
 
-          {activeView === "training" && <TrainingWorkspace />}
+          {activeView === "training" && <StaffTrainingWorkspace />}
 
-          {activeView === "training-dashboard" && <PlaceholderForView view="training-dashboard" />}
+          {activeView === "training-dashboard" && <TrainingDashboardWorkspace />}
 
           {activeView === "corporate-dashboard" && <CorporateDashboardWorkspace />}
 
