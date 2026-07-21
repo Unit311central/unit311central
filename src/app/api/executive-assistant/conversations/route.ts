@@ -5,9 +5,23 @@ import {
   listConversationsForUser,
 } from "@/lib/ai-operating-assistant";
 import { getPlatformSession } from "@/lib/platform-session";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import {
+  isSupabaseConfigured,
+  isSupabaseServiceRoleConfigured,
+} from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+function persistenceUnavailable() {
+  return NextResponse.json(
+    {
+      error:
+        "Conversation persistence requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+      persistence: "unavailable",
+    },
+    { status: 503 },
+  );
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +30,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
 
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || !isSupabaseServiceRoleConfigured()) {
       return NextResponse.json({ conversations: [], persistence: "unavailable" });
     }
 
@@ -41,11 +55,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
 
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json(
-        { error: "Conversation persistence requires Supabase." },
-        { status: 503 },
-      );
+    if (!isSupabaseConfigured() || !isSupabaseServiceRoleConfigured()) {
+      return persistenceUnavailable();
     }
 
     const body = (await request.json()) as {

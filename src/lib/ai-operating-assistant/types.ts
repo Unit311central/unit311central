@@ -12,6 +12,8 @@ export type AssistantMessageArtifact = {
   filename: string;
   downloadUrl: string;
   openUrl: string;
+  /** Base64 PDF payload — enables client download even if serverless memory is cold. */
+  contentBase64?: string;
 };
 
 export type AssistantChatMessage = {

@@ -253,10 +253,19 @@ export default function ExecutiveAssistantPanel({
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ messages: persistable }),
+            body: JSON.stringify({
+              messages: persistable,
+              title: persistable.find((entry) => entry.role === "user")?.content.slice(0, 72),
+            }),
           },
         );
-        if (!response.ok) throw new Error("Save failed");
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+          conversation?: AssistantConversationRecord;
+        } | null;
+        if (!response.ok) {
+          throw new Error(data?.error ?? `Save failed (${response.status})`);
+        }
       } else {
         const response = await fetch("/api/executive-assistant/conversations", {
           method: "POST",
@@ -266,14 +275,19 @@ export default function ExecutiveAssistantPanel({
             messages: persistable,
           }),
         });
-        if (!response.ok) throw new Error("Save failed");
-        const data = (await response.json()) as { conversation?: AssistantConversationRecord };
-        if (data.conversation?.id) setActiveConversationId(data.conversation.id);
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+          conversation?: AssistantConversationRecord;
+        } | null;
+        if (!response.ok) {
+          throw new Error(data?.error ?? `Save failed (${response.status})`);
+        }
+        if (data?.conversation?.id) setActiveConversationId(data.conversation.id);
       }
       await refreshConversations();
       showNotice("Chat saved");
-    } catch {
-      showNotice("Could not save chat");
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : "Could not save chat");
     }
   }
 
@@ -306,28 +320,64 @@ export default function ExecutiveAssistantPanel({
     }
   }
 
+  function openArtifactBlob(artifact: AssistantMessageArtifact, disposition: "inline" | "attachment") {
+    if (artifact.contentBase64) {
+      const binary = atob(artifact.contentBase64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      if (disposition === "attachment") {
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = artifact.filename;
+        anchor.click();
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return;
+    }
+    window.open(
+      disposition === "attachment" ? artifact.downloadUrl : artifact.openUrl,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  }
+
   async function runFollowUp(action: AssistantFollowUpAction) {
-    if (action.href && (action.kind === "navigate" || action.kind === "open" || action.kind === "download")) {
-      if (action.kind === "download" || action.kind === "open") {
-        window.open(action.href, "_blank", "noopener,noreferrer");
+    if (action.kind === "download" || action.kind === "open") {
+      const artifact = messages
+        .flatMap((entry) => entry.artifacts ?? [])
+        .find((entry) => entry.id === action.artifactId);
+      if (artifact) {
+        openArtifactBlob(artifact, action.kind === "download" ? "attachment" : "inline");
         return;
       }
+      if (action.href) {
+        window.open(action.href, "_blank", "noopener,noreferrer");
+      }
+      return;
+    }
+
+    if (action.href && action.kind === "navigate") {
       if (handleExecutiveActionHref(action.href, activeView || "home")) return;
       if (handleGuidedHref(action.href, activeView || "home")) return;
       window.location.href = action.href;
       return;
     }
 
-    if (action.kind === "email_artifact" && action.artifactId) {
-      void handleSend(
-        undefined,
-        `Email the PDF (${action.artifactId}) to the Board.`,
-      );
+    if (action.kind === "email_artifact") {
+      void handleSend(undefined, "Email it to the Board.");
       return;
     }
 
-    if (action.kind === "generate" && action.actionId === "generateEmployeeListPdf") {
-      void handleSend(undefined, "Create a PDF of all employees.");
+    if (
+      action.kind === "generate" ||
+      /^generate\s*pdf$/i.test(action.label) ||
+      action.actionId === "generateEmployeeListPdf"
+    ) {
+      void handleSend(undefined, "Generate PDF");
       return;
     }
 
@@ -488,24 +538,22 @@ export default function ExecutiveAssistantPanel({
             key={artifact.id}
             className="rounded-xl border border-sky-400/25 bg-sky-500/10 px-3 py-2.5"
           >
-            <p className="text-xs font-semibold text-sky-50">{artifact.title}</p>
-            <p className="mt-0.5 text-[10px] text-sky-100/60">{artifact.filename}</p>
+            <p className="text-xs font-semibold text-sky-50">{artifact.filename}</p>
+            <p className="mt-0.5 text-[10px] text-sky-100/60">Generated successfully</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <ActionButton
-                label="Download PDF"
+                label="Open"
+                onClick={() => openArtifactBlob(artifact, "inline")}
+              />
+              <ActionButton
+                label="Download"
                 icon={<Download className="h-3 w-3" />}
-                onClick={() => window.open(artifact.downloadUrl, "_blank", "noopener,noreferrer")}
+                onClick={() => openArtifactBlob(artifact, "attachment")}
               />
               <ActionButton
-                label="Open PDF"
-                onClick={() => window.open(artifact.openUrl, "_blank", "noopener,noreferrer")}
-              />
-              <ActionButton
-                label="Email PDF"
+                label="Email"
                 icon={<Mail className="h-3 w-3" />}
-                onClick={() =>
-                  void handleSend(undefined, `Email the PDF (${artifact.id}) to the Board.`)
-                }
+                onClick={() => void handleSend(undefined, "Email it to the Board.")}
               />
             </div>
           </div>
@@ -699,26 +747,10 @@ export default function ExecutiveAssistantPanel({
               entry.followUpActions.length > 0 &&
               !entry.artifacts?.length ? (
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  {entry.followUpActions.map((action) => (
-                    <ActionButton
-                      key={action.id}
-                      label={action.label}
-                      onClick={() => void runFollowUp(action)}
-                    />
-                  ))}
-                </div>
-              ) : null}
-              {entry.role === "assistant" &&
-              entry.followUpActions &&
-              entry.followUpActions.length > 0 &&
-              entry.artifacts?.length ? (
-                <div className="mt-2 flex flex-wrap gap-1.5">
                   {entry.followUpActions
                     .filter(
                       (action) =>
-                        action.kind !== "download" &&
-                        action.kind !== "open" &&
-                        action.kind !== "email_artifact",
+                        !/excel|email summary|generate report/i.test(action.label),
                     )
                     .map((action) => (
                       <ActionButton

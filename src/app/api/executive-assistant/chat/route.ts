@@ -49,16 +49,50 @@ function parseOperatingMessages(raw: unknown): AssistantChatMessage[] | undefine
         (entry.role === "user" || entry.role === "assistant" || entry.role === "tool") &&
         typeof entry.content === "string",
     )
-    .map((entry) => ({
-      id: typeof entry.id === "string" ? entry.id : `msg_${Math.random().toString(36).slice(2)}`,
-      role: entry.role,
-      content: entry.content,
-      createdAt:
-        typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
-      toolName: typeof entry.toolName === "string" ? entry.toolName : undefined,
-      toolCallId: typeof entry.toolCallId === "string" ? entry.toolCallId : undefined,
-    }));
+    .map((entry) => {
+      const artifacts = Array.isArray(entry.artifacts)
+        ? entry.artifacts
+            .filter(
+              (artifact): artifact is NonNullable<AssistantChatMessage["artifacts"]>[number] =>
+                Boolean(artifact) &&
+                typeof artifact === "object" &&
+                typeof artifact.id === "string" &&
+                typeof artifact.filename === "string",
+            )
+            .map((artifact) => ({
+              id: artifact.id,
+              kind: artifact.kind === "pdf" ? ("pdf" as const) : ("pdf" as const),
+              title: typeof artifact.title === "string" ? artifact.title : artifact.filename,
+              filename: artifact.filename,
+              downloadUrl:
+                typeof artifact.downloadUrl === "string"
+                  ? artifact.downloadUrl
+                  : `/api/executive-assistant/artifacts/${artifact.id}?disposition=attachment`,
+              openUrl:
+                typeof artifact.openUrl === "string"
+                  ? artifact.openUrl
+                  : `/api/executive-assistant/artifacts/${artifact.id}?disposition=inline`,
+              contentBase64:
+                typeof artifact.contentBase64 === "string" ? artifact.contentBase64 : undefined,
+            }))
+        : undefined;
+
+      return {
+        id: typeof entry.id === "string" ? entry.id : `msg_${Math.random().toString(36).slice(2)}`,
+        role: entry.role,
+        content: entry.content,
+        createdAt:
+          typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
+        toolName: typeof entry.toolName === "string" ? entry.toolName : undefined,
+        toolCallId: typeof entry.toolCallId === "string" ? entry.toolCallId : undefined,
+        followUpActions: Array.isArray(entry.followUpActions)
+          ? entry.followUpActions
+          : undefined,
+        artifacts: artifacts && artifacts.length > 0 ? artifacts : undefined,
+      };
+    });
 }
+
 
 function parseLegacyMessages(raw: unknown): ExecutiveAssistantChatTurn[] | null {
   if (!Array.isArray(raw)) return null;

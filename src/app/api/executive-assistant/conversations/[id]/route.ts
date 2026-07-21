@@ -6,13 +6,26 @@ import {
   renameConversation,
 } from "@/lib/ai-operating-assistant";
 import { getPlatformSession } from "@/lib/platform-session";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import {
+  isSupabaseConfigured,
+  isSupabaseServiceRoleConfigured,
+} from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
+
+function persistenceUnavailable() {
+  return NextResponse.json(
+    {
+      error:
+        "Conversation persistence requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+    },
+    { status: 503 },
+  );
+}
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
@@ -21,8 +34,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
 
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json({ error: "Supabase unavailable." }, { status: 503 });
+    if (!isSupabaseConfigured() || !isSupabaseServiceRoleConfigured()) {
+      return persistenceUnavailable();
     }
 
     const { id } = await context.params;
@@ -45,8 +58,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
 
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json({ error: "Supabase unavailable." }, { status: 503 });
+    if (!isSupabaseConfigured() || !isSupabaseServiceRoleConfigured()) {
+      return persistenceUnavailable();
     }
 
     const { id } = await context.params;
@@ -90,8 +103,8 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
 
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json({ error: "Supabase unavailable." }, { status: 503 });
+    if (!isSupabaseConfigured() || !isSupabaseServiceRoleConfigured()) {
+      return persistenceUnavailable();
     }
 
     const { id } = await context.params;

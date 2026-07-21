@@ -37,6 +37,20 @@ function mapRow(row: DbRow): AssistantConversationRecord {
   };
 }
 
+function mapListRow(row: Omit<DbRow, "messages"> & { messages?: AssistantChatMessage[] | null }) {
+  return {
+    id: row.id,
+    title: row.title,
+    userId: row.user_id,
+    workspaceId: row.workspace_id,
+    organisationId: row.organisation_id,
+    messages: [],
+    workspaceContext: row.workspace_context ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  } satisfies AssistantConversationRecord;
+}
+
 function requireClient() {
   if (!isSupabaseServiceRoleConfigured()) {
     throw new Error(
@@ -66,7 +80,9 @@ export async function listConversationsForUser(input: {
   const supabase = requireClient();
   let query = supabase
     .from(TABLE)
-    .select("*")
+    .select(
+      "id, title, user_id, workspace_id, organisation_id, created_at, updated_at, workspace_context",
+    )
     .eq("user_id", input.userId)
     .order("updated_at", { ascending: false })
     .limit(input.limit ?? 40);
@@ -77,7 +93,7 @@ export async function listConversationsForUser(input: {
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return (data as DbRow[]).map(mapRow);
+  return (data as Array<Omit<DbRow, "messages">>).map(mapListRow);
 }
 
 export async function getConversationForUser(

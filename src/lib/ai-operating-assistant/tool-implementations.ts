@@ -28,12 +28,9 @@ function nav(href: string, label: string): AssistantFollowUpAction {
   return { id: `nav_${href}`, label, kind: "navigate", href };
 }
 
-function exportActions(entity: string): AssistantFollowUpAction[] {
-  return [
-    { id: `export_excel_${entity}`, label: "Export Excel", kind: "export" },
-    { id: `export_pdf_${entity}`, label: "Generate PDF", kind: "generate" },
-    { id: `email_${entity}`, label: "Email Summary", kind: "email" },
-  ];
+/** Contextual navigate-only follow-ups — never fake Excel/PDF/Email menus. */
+function exportActions(_entity: string): AssistantFollowUpAction[] {
+  return [];
 }
 
 function resolveClientFilter(
@@ -320,14 +317,12 @@ export async function searchEmployees(
           openingsUnavailable,
         ],
         followUpActions: [
-          nav("/internaldashboard?view=hr", "Open HR"),
           {
             id: "generate_employee_pdf",
             label: "Generate PDF",
             kind: "generate",
             actionId: "generateEmployeeListPdf",
           },
-          ...actionFollowUps(["create_employee", "approve_leave"]),
         ],
         citations: filtered.slice(0, 10).map((employee) => ({
           type: "employee",
@@ -474,8 +469,6 @@ export async function searchFiles(
           dataGaps: content.dataGaps,
           followUpActions: [
             nav("/internaldashboard?view=files-internal", "View Files"),
-            { id: "generate_summary", label: "Generate PDF", kind: "generate" },
-            { id: "email_doc_summary", label: "Email Summary", kind: "email" },
           ],
           citations: [
             {
@@ -859,12 +852,10 @@ export async function generateReport(
           "Careers openings/applicants are not connected to live storage.",
           "Board narrative text must be written from these figures only — do not invent metrics.",
         ],
-        followUpActions: [
-          { id: "export_report_pdf", label: "Generate PDF", kind: "generate" },
-          { id: "export_report_excel", label: "Export Excel", kind: "export" },
-          { id: "email_report", label: "Email Summary", kind: "email" },
-          ...actionFollowUps(["generate_report"]),
-        ],
+        followUpActions: actionFollowUps(["generate_report"]).filter(
+          (action) =>
+            !/excel|email summary|generate pdf/i.test(action.label),
+        ),
         appliedContext: {
           clientId: ctx.business.selection.clientId,
           projectId: ctx.business.selection.projectId,

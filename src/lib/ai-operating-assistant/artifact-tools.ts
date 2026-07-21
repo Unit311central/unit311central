@@ -1,7 +1,13 @@
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { sendMailboxEmail } from "@/lib/email/smtp";
 import { generateEmployeeDirectoryPdf } from "@/lib/ai-operating-assistant/employee-pdf-service";
-import { getAssistantArtifact, getLatestArtifactForUser } from "@/lib/ai-operating-assistant/artifact-store";
+import {
+  getAssistantArtifact,
+  getLatestArtifactForUser,
+  hydrateArtifactFromMessagePayload,
+  loadArtifactBytes,
+  persistArtifactToStorage,
+} from "@/lib/ai-operating-assistant/artifact-store";
 import {
   asString,
   toolError,
@@ -15,21 +21,21 @@ function artifactActions(artifactId: string) {
   return [
     {
       id: `download_${artifactId}`,
-      label: "Download PDF",
+      label: "Download",
       kind: "download" as const,
       artifactId,
       href: `/api/executive-assistant/artifacts/${artifactId}?disposition=attachment`,
     },
     {
       id: `open_${artifactId}`,
-      label: "Open PDF",
+      label: "Open",
       kind: "open" as const,
       artifactId,
       href: `/api/executive-assistant/artifacts/${artifactId}?disposition=inline`,
     },
     {
       id: `email_${artifactId}`,
-      label: "Email PDF",
+      label: "Email",
       kind: "email_artifact" as const,
       artifactId,
       actionId: "emailAssistantArtifact",
@@ -53,11 +59,12 @@ export async function generateEmployeeListPdf(
 
   try {
     const employees = await listHrEmployees();
-    const artifact = await generateEmployeeDirectoryPdf({
+    let artifact = await generateEmployeeDirectoryPdf({
       employees,
       userId: ctx.business.user.id,
       organisationName: ctx.business.organisation.name,
     });
+    artifact = await persistArtifactToStorage(artifact);
 
     return toolOk(
       "generateEmployeeListPdf",
@@ -69,6 +76,7 @@ export async function generateEmployeeListPdf(
           employeeCount: employees.length,
           downloadUrl: `/api/executive-assistant/artifacts/${artifact.id}?disposition=attachment`,
           openUrl: `/api/executive-assistant/artifacts/${artifact.id}?disposition=inline`,
+          contentBase64: artifact.contentBase64,
           columns: ["Name", "Department", "Job title", "Status"],
         },
       ],
@@ -81,7 +89,8 @@ export async function generateEmployeeListPdf(
           title: artifact.title,
           filename: artifact.filename,
           employeeCount: employees.length,
-          message: `PDF ready: ${artifact.title} (${employees.length} employees).`,
+          byteLength: artifact.bytes.length,
+          message: `${artifact.filename} ready (${employees.length} employees).`,
         },
         followUpActions: artifactActions(artifact.id),
       },
@@ -104,19 +113,38 @@ export async function emailAssistantArtifact(
 ): Promise<AssistantToolResult> {
   const artifactId =
     asString(args.artifactId) || getLatestArtifactForUser(ctx.business.user.id)?.id;
-  if (!artifactId) {
+  const contentBase64 = asString(args.contentBase64);
+  const title = asString(args.title) || "Employee Directory";
+  const filename = asString(args.filename) || "unit311-employee-directory.pdf";
+
+  if (!artifactId && !contentBase64) {
     return toolError(
       "emailAssistantArtifact",
-      "No PDF is attached to this conversation yet. Generate the employee PDF first.",
+      "No PDF is available in this conversation yet. Generate the employee PDF first.",
       [],
     );
   }
 
-  const artifact = getAssistantArtifact(artifactId, ctx.business.user.id);
+  let artifact =
+    (artifactId
+      ? getAssistantArtifact(artifactId, ctx.business.user.id) ||
+        (await loadArtifactBytes(artifactId, ctx.business.user.id))
+      : null) ?? null;
+
+  if (!artifact && contentBase64 && artifactId) {
+    artifact = hydrateArtifactFromMessagePayload({
+      id: artifactId,
+      title,
+      filename,
+      userId: ctx.business.user.id,
+      contentBase64,
+    });
+  }
+
   if (!artifact) {
     return toolError(
       "emailAssistantArtifact",
-      "That file is no longer available. Generate the PDF again.",
+      "That file could not be loaded. Generate the PDF again, then email it.",
       [],
     );
   }
@@ -146,17 +174,17 @@ export async function emailAssistantArtifact(
 
     return toolOk(
       "emailAssistantArtifact",
-      [{ artifactId, to, filename: artifact.filename }],
+      [{ artifactId: artifact.id, to, filename: artifact.filename }],
       {
         source: ["assistant:pdf", "smtp:paul"],
         pageSize: 1,
         summary: {
           executed: true,
-          artifactId,
+          artifactId: artifact.id,
           emailedTo: to,
           message: `Emailed ${artifact.filename} to ${to}.`,
         },
-        followUpActions: artifactActions(artifactId),
+        followUpActions: artifactActions(artifact.id),
       },
     );
   } catch (error) {

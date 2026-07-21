@@ -1,3 +1,4 @@
+import { resolveDirectIntent, topicHintFromHistory } from "./intent-router";
 import {
   createAssistantResponse,
   formatOpenAIError,
@@ -67,7 +68,21 @@ async function resolveHistory(
           message.content.trim().length > 0,
       );
       // Prefer the longer continuous thread so client/server never drop context.
-      const history = dbHistory.length >= clientPrior.length ? dbHistory : clientPrior;
+      // Prefer client copies when they carry durable artifact bytes (base64).
+      const base = dbHistory.length >= clientPrior.length ? dbHistory : clientPrior;
+      const clientById = new Map(clientPrior.map((message) => [message.id, message]));
+      const history = base.map((message) => {
+        const client = clientById.get(message.id);
+        if (client?.artifacts?.some((artifact) => Boolean(artifact.contentBase64))) {
+          return client;
+        }
+        return message;
+      });
+      // Append any newer client-only turns not yet in DB.
+      const knownIds = new Set(history.map((message) => message.id));
+      for (const message of clientPrior) {
+        if (!knownIds.has(message.id)) history.push(message);
+      }
       return {
         conversationId: existing.id,
         history,
@@ -88,6 +103,86 @@ async function resolveHistory(
     conversationId: null,
     history: [],
     title: "New conversation",
+  };
+}
+
+function extractArtifactsFromToolResult(
+  result: unknown,
+): {
+  followUps: NonNullable<AssistantChatMessage["followUpActions"]>;
+  artifacts: NonNullable<AssistantChatMessage["artifacts"]>;
+  successText: string | null;
+  errorText: string | null;
+} {
+  if (!result || typeof result !== "object") {
+    return { followUps: [], artifacts: [], successText: null, errorText: null };
+  }
+  const status = String((result as { status?: string }).status ?? "");
+  const followUps = Array.isArray((result as { followUpActions?: unknown }).followUpActions)
+    ? ((result as { followUpActions: NonNullable<AssistantChatMessage["followUpActions"]> })
+        .followUpActions ?? [])
+    : [];
+  const summary = (result as { summary?: Record<string, unknown> }).summary;
+  const items = (result as { items?: Array<Record<string, unknown>> }).items;
+  const artifactId =
+    (typeof summary?.artifactId === "string" && summary.artifactId) ||
+    (typeof items?.[0]?.artifactId === "string" && items[0].artifactId) ||
+    null;
+
+  if (status === "error" || status === "forbidden") {
+    return {
+      followUps: [],
+      artifacts: [],
+      successText: null,
+      errorText:
+        (typeof (result as { error?: string }).error === "string" &&
+          (result as { error: string }).error) ||
+        (typeof summary?.message === "string" && summary.message) ||
+        "That action could not be completed.",
+    };
+  }
+
+  if (!artifactId) {
+    return {
+      followUps,
+      artifacts: [],
+      successText:
+        typeof summary?.message === "string"
+          ? summary.message
+          : status === "ok"
+            ? "Done."
+            : null,
+      errorText: null,
+    };
+  }
+
+  const title =
+    (typeof summary?.title === "string" && summary.title) ||
+    (typeof items?.[0]?.title === "string" && String(items[0].title)) ||
+    "Document";
+  const filename =
+    (typeof summary?.filename === "string" && summary.filename) ||
+    (typeof items?.[0]?.filename === "string" && String(items[0].filename)) ||
+    "document.pdf";
+  const contentBase64 =
+    (typeof items?.[0]?.contentBase64 === "string" && String(items[0].contentBase64)) ||
+    undefined;
+
+  return {
+    followUps,
+    artifacts: [
+      {
+        id: artifactId,
+        kind: "pdf",
+        title,
+        filename,
+        downloadUrl: `/api/executive-assistant/artifacts/${artifactId}?disposition=attachment`,
+        openUrl: `/api/executive-assistant/artifacts/${artifactId}?disposition=inline`,
+        contentBase64,
+      },
+    ],
+    successText: `Done.\n\n${filename} is ready.`,
+    errorText: null,
   };
 }
 
@@ -190,6 +285,7 @@ export async function* runAssistantTurn(input: {
             openUrl: activeArtifact.openUrl,
           }
         : null,
+      topicHint: topicHintFromHistory(resolved.history),
     }),
     input.request.structuredJson ? buildStructuredJsonHint() : "",
   ]
@@ -207,6 +303,68 @@ export async function* runAssistantTurn(input: {
   let turnArtifacts: NonNullable<AssistantChatMessage["artifacts"]> = [];
 
   try {
+    const directIntent = resolveDirectIntent(message, resolved.history);
+    if (directIntent) {
+      const toolArgs =
+        directIntent.tool === "emailAssistantArtifact" && activeArtifact
+          ? {
+              ...directIntent.args,
+              artifactId:
+                (typeof directIntent.args.artifactId === "string" &&
+                  directIntent.args.artifactId) ||
+                activeArtifact.id,
+              contentBase64: activeArtifact.contentBase64,
+              title: activeArtifact.title,
+              filename: activeArtifact.filename,
+            }
+          : directIntent.args;
+      yield {
+        type: "tool_call",
+        name: directIntent.tool,
+        arguments: toolArgs,
+      };
+      const result = await executeAssistantTool(
+        directIntent.tool,
+        toolArgs,
+        context,
+      );
+      yield { type: "tool_result", name: directIntent.tool, result };
+      const extracted = extractArtifactsFromToolResult(result);
+      turnFollowUps = extracted.followUps;
+      turnArtifacts = extracted.artifacts;
+      assistantText =
+        extracted.errorText ??
+        extracted.successText ??
+        "Done.";
+      yield { type: "delta", text: assistantText };
+
+      const assistantMessage: AssistantChatMessage = {
+        id: createMessageId(),
+        role: "assistant",
+        content: assistantText,
+        createdAt: new Date().toISOString(),
+        followUpActions: turnFollowUps.length > 0 ? turnFollowUps : undefined,
+        artifacts: turnArtifacts.length > 0 ? turnArtifacts : undefined,
+      };
+
+      const saved = await persistTurn({
+        session: input.session,
+        conversationId: resolved.conversationId,
+        history: resolved.history,
+        userMessage,
+        assistantMessage,
+        context,
+        title: resolved.title,
+      });
+
+      yield {
+        type: "done",
+        message: assistantMessage,
+        conversationId: saved.conversationId,
+      };
+      return;
+    }
+
     while (toolLoops < 4) {
       const stream = await createAssistantResponse({
         model: getAssistantModel(),
@@ -319,39 +477,9 @@ export async function* runAssistantTurn(input: {
           });
         }
         yield { type: "tool_result", name: call.name, result };
-        if (result && typeof result === "object") {
-          const followUps = (result as { followUpActions?: AssistantChatMessage["followUpActions"] })
-            .followUpActions;
-          if (Array.isArray(followUps) && followUps.length > 0) {
-            turnFollowUps = followUps;
-          }
-          const summary = (result as { summary?: Record<string, unknown> }).summary;
-          const items = (result as { items?: Array<Record<string, unknown>> }).items;
-          const artifactId =
-            (typeof summary?.artifactId === "string" && summary.artifactId) ||
-            (typeof items?.[0]?.artifactId === "string" && items[0].artifactId) ||
-            null;
-          if (artifactId) {
-            const title =
-              (typeof summary?.title === "string" && summary.title) ||
-              (typeof items?.[0]?.title === "string" && String(items[0].title)) ||
-              "Generated PDF";
-            const filename =
-              (typeof summary?.filename === "string" && summary.filename) ||
-              (typeof items?.[0]?.filename === "string" && String(items[0].filename)) ||
-              "report.pdf";
-            turnArtifacts = [
-              {
-                id: artifactId,
-                kind: "pdf",
-                title,
-                filename,
-                downloadUrl: `/api/executive-assistant/artifacts/${artifactId}?disposition=attachment`,
-                openUrl: `/api/executive-assistant/artifacts/${artifactId}?disposition=inline`,
-              },
-            ];
-          }
-        }
+        const extracted = extractArtifactsFromToolResult(result);
+        if (extracted.followUps.length > 0) turnFollowUps = extracted.followUps;
+        if (extracted.artifacts.length > 0) turnArtifacts = extracted.artifacts;
         toolOutputs.push({
           type: "function_call_output",
           call_id: call.callId,
@@ -377,7 +505,7 @@ export async function* runAssistantTurn(input: {
             })),
             null,
             2,
-          )}\nContinue with a SHORT executive reply (1–3 sentences). Confirm what you executed. Do not dump markdown lists or technical details. UI buttons will present followUpActions.`,
+          )}\nIf a tool executed successfully and created a file, reply ONLY with a short confirmation like "Done." and the filename. Do not invent success. Do not suggest Excel/Email/Report unless the user asked. Do not ask what PDF to generate when context already established employees.`,
         },
       ];
       assistantText = "";
@@ -386,13 +514,23 @@ export async function* runAssistantTurn(input: {
 
     if (!assistantText.trim()) {
       if (turnArtifacts.length > 0) {
-        assistantText = `${turnArtifacts[0]!.title} is ready.`;
+        assistantText = `Done.\n\n${turnArtifacts[0]!.filename} is ready.`;
       } else {
-        assistantText =
-          "I could not complete that just now. Please try again.";
+        assistantText = "I could not complete that just now. Please try again.";
       }
       yield { type: "delta", text: assistantText };
       void recordQualityEvent({ kind: "hallucination_guard", meta: { reason: "empty_assistant_text" } });
+    }
+
+    // Never claim a PDF was generated unless we have a real artifact.
+    if (/generated|created|ready/i.test(assistantText) && /pdf/i.test(assistantText) && turnArtifacts.length === 0) {
+      assistantText =
+        "I could not create the PDF. Please try again, or say “Create a PDF of all employees.”";
+    }
+
+    // Prefer concise confirmation when we have a real artifact.
+    if (turnArtifacts.length > 0) {
+      assistantText = `Done.\n\n${turnArtifacts[0]!.filename} is ready.`;
     }
 
     void recordQualityEvent({
