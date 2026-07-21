@@ -9,8 +9,11 @@ export const LOGO_HERO_SRC = "/images/unit311central-hero.png";
 export const LOGO_ASPECT = 198 / 90;
 export const LOGO_STANDARD_HEIGHT = 72;
 export const LOGO_HOME_HERO_HEIGHT = 151;
-/** Reference height for sidebar slot sizing (actual draw uses fill + scale). */
-export const LOGO_SIDEBAR_HEIGHT = 80;
+/**
+ * Intrinsic Image height for the sidebar hero mark (keeps Next/Image sharp).
+ * Visual size is controlled by the sidebar header slot via fillContainer.
+ */
+export const LOGO_SIDEBAR_HEIGHT = 120;
 export const LOGO_FOOTER_HEIGHT = 80;
 
 type LogoProps = {

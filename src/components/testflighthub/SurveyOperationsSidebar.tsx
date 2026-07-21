@@ -501,9 +501,10 @@ export default function SurveyOperationsSidebar({
       <div
         className={cn(
           "flex shrink-0 items-center justify-between border-b border-white/[0.08]",
-          // Match main chrome header height (h-14 / lg:h-16) — do not grow this slot.
+          // Keep overall sidebar height (full viewport); enlarge header strip so the
+          // hero mark can render ~50% larger than the previous padded/scaled draw.
           isInternalCompact
-            ? "h-14 px-2.5 lg:h-16 lg:px-3"
+            ? "h-[4.5rem] px-2.5 lg:h-[5.25rem] lg:px-3"
             : "px-3 pb-4 pt-2.5 lg:px-3.5 lg:pb-5 lg:pt-3",
         )}
       >
@@ -514,7 +515,7 @@ export default function SurveyOperationsSidebar({
               fillContainer
               height={LOGO_SIDEBAR_HEIGHT}
               href={logoHref}
-              className="origin-left drop-shadow-[0_4px_20px_rgba(0,0,0,0.35)] [transform:scale(0.975)]"
+              className="origin-left drop-shadow-[0_6px_24px_rgba(0,0,0,0.4)]"
             />
           </div>
         ) : (
