@@ -7,6 +7,9 @@
 | **Domain** | DOM-01 Home |
 | **Status** | **READY** |
 | **Completion date** | 2026-07-21 |
+| **Feature SHA** | `daf2a72` on `main` (Command Centre v2 UI) |
+| **Closeout SHA** | `5115e41` on `main` |
+| **Production deployment** | `dpl_EFxs4QKQojjLBib3s1sgUWJT5WX8` |
 | **Purpose** | Configurable executive command centre — primary Unit311 Central home workspace |
 
 ---
