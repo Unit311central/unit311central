@@ -50,7 +50,22 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
-    const body = (await request.json()) as { title?: string };
+    const body = (await request.json()) as {
+      title?: string;
+      messages?: import("@/lib/ai-operating-assistant/types").AssistantChatMessage[];
+    };
+
+    if (body.messages) {
+      const { updateConversation } = await import("@/lib/ai-operating-assistant");
+      const conversation = await updateConversation({
+        conversationId: id,
+        userId: session.sub,
+        messages: body.messages,
+        title: body.title?.trim() || undefined,
+      });
+      return NextResponse.json({ conversation });
+    }
+
     if (!body.title?.trim()) {
       return NextResponse.json({ error: "title is required." }, { status: 400 });
     }

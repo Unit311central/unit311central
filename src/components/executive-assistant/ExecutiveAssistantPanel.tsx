@@ -5,9 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   AssistantChatMessage,
   AssistantConversationRecord,
+  AssistantMessageArtifact,
   AssistantPageSelection,
   AssistantStreamEvent,
 } from "@/lib/ai-operating-assistant/types";
+import type { AssistantFollowUpAction } from "@/lib/ai-operating-assistant/tool-result";
 import {
   applyGuidedToolResult,
   handleGuidedHref,
@@ -24,24 +26,23 @@ import {
   type AssistantPendingActionKind,
 } from "@/lib/ai-operating-assistant/action-service";
 import { requestShowMeAround } from "@/components/executive-assistant/GuidedLearningProvider";
-import AssistantFeedbackButtons from "@/components/executive-assistant/AssistantFeedbackButtons";
-import ExplanationPanel from "@/components/executive-assistant/ExplanationPanel";
 import {
-  GENERATE_ACTIONS,
   HOME_SUGGESTED_ACTIONS,
   resolveExecutiveAssistantContext,
   type ExecutiveAssistantVariant,
 } from "@/lib/executive-assistant-ui";
 import { cn } from "@/lib/utils";
 import {
-  Eraser,
-  FileText,
+  Download,
   Loader2,
+  Mail,
+  MoreHorizontal,
   Pencil,
   Plus,
+  Save,
   Send,
-  Settings,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -59,30 +60,9 @@ export type ExecutiveAssistantPanelProps = {
 const WELCOME: AssistantChatMessage = {
   id: "welcome",
   role: "assistant",
-  content:
-    "I'm your Unit311 Executive Operating Assistant. I watch live platform activity, surface risks and recommendations, and can guide you through workflows — not just answer questions. Ask for today's brief, business health, or say “I need to onboard a client.”",
+  content: "Ready when you are. Ask me to brief you, generate a report, or take an action.",
   createdAt: new Date().toISOString(),
 };
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
-      {children}
-    </p>
-  );
-}
-
-function ChipButton({ label, onClick }: { label: string; onClick?: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-left text-[11px] font-medium text-white/70 transition-colors hover:border-sky-400/35 hover:bg-sky-500/10 hover:text-sky-100"
-    >
-      {label}
-    </button>
-  );
-}
 
 async function readSseStream(
   response: Response,
@@ -117,6 +97,35 @@ async function readSseStream(
   }
 }
 
+function formatConversationDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function ActionButton({
+  label,
+  onClick,
+  icon,
+}: {
+  label: string;
+  onClick: () => void;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-xl border border-sky-400/35 bg-sky-500/15 px-3 py-1.5 text-[11px] font-semibold text-sky-50 transition-colors hover:border-sky-400/50 hover:bg-sky-500/25"
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 export default function ExecutiveAssistantPanel({
   variant,
   activeView = "home",
@@ -130,18 +139,18 @@ export default function ExecutiveAssistantPanel({
   const [message, setMessage] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showMoreActions, setShowMoreActions] = useState(false);
   const [conversations, setConversations] = useState<AssistantConversationRecord[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<AssistantChatMessage[]>([WELCOME]);
+  const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [lastExplanation, setLastExplanation] = useState<AiExplanation | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<{
     kind: AssistantPendingActionKind;
     label: string;
   } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const threadRef = useRef<HTMLDivElement | null>(null);
 
   const context = useMemo(
     () => resolveExecutiveAssistantContext(activeView, mode),
@@ -149,15 +158,6 @@ export default function ExecutiveAssistantPanel({
   );
   const isPage = variant === "page" || variant === "home";
   const suggested = isPage ? HOME_SUGGESTED_ACTIONS : context.suggestedPrompts;
-  const selectionLabel = [
-    selection?.clientName ? `Client · ${selection.clientName}` : null,
-    selection?.projectName ? `Project · ${selection.projectName}` : null,
-    selection?.employeeName ? `Employee · ${selection.employeeName}` : null,
-    selection?.contractName ? `Contract · ${selection.contractName}` : null,
-    selection?.fileName ? `File · ${selection.fileName}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -196,6 +196,10 @@ export default function ExecutiveAssistantPanel({
     };
   }, [variant, open]);
 
+  useEffect(() => {
+    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, sending]);
+
   function showNotice(label: string) {
     setNotice(label);
     window.setTimeout(() => setNotice(null), 2400);
@@ -206,17 +210,13 @@ export default function ExecutiveAssistantPanel({
     setActiveConversationId(null);
     setMessages([WELCOME]);
     setMessage("");
-    setRenameValue("");
-    showNotice("Started a new conversation");
-  }
-
-  function clearConversation() {
-    setMessages([WELCOME]);
-    setMessage("");
-    showNotice("Conversation cleared");
+    setRenameId(null);
+    setMenuId(null);
+    showNotice("New chat ready");
   }
 
   async function openConversation(conversation: AssistantConversationRecord) {
+    setMenuId(null);
     try {
       const response = await fetch(
         `/api/executive-assistant/conversations/${conversation.id}`,
@@ -231,47 +231,115 @@ export default function ExecutiveAssistantPanel({
       const loaded = data.conversation ?? conversation;
       setActiveConversationId(loaded.id);
       setMessages(loaded.messages.length > 0 ? loaded.messages : [WELCOME]);
-      setRenameValue(loaded.title);
     } catch {
       setActiveConversationId(conversation.id);
       setMessages(conversation.messages.length > 0 ? conversation.messages : [WELCOME]);
     }
   }
 
-  async function renameActiveConversation() {
-    if (!activeConversationId || !renameValue.trim()) return;
-    const response = await fetch(
-      `/api/executive-assistant/conversations/${activeConversationId}`,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: renameValue.trim() }),
-      },
+  async function saveChat() {
+    const persistable = messages.filter(
+      (entry) => entry.id !== "welcome" && entry.content.trim().length > 0,
     );
-    if (response.ok) {
-      showNotice("Conversation renamed");
+    if (persistable.length === 0) {
+      showNotice("Send a message before saving");
+      return;
+    }
+
+    try {
+      if (activeConversationId) {
+        const response = await fetch(
+          `/api/executive-assistant/conversations/${activeConversationId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: persistable }),
+          },
+        );
+        if (!response.ok) throw new Error("Save failed");
+      } else {
+        const response = await fetch("/api/executive-assistant/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: persistable.find((entry) => entry.role === "user")?.content.slice(0, 72),
+            messages: persistable,
+          }),
+        });
+        if (!response.ok) throw new Error("Save failed");
+        const data = (await response.json()) as { conversation?: AssistantConversationRecord };
+        if (data.conversation?.id) setActiveConversationId(data.conversation.id);
+      }
       await refreshConversations();
-    } else {
-      showNotice("Could not rename conversation");
+      showNotice("Chat saved");
+    } catch {
+      showNotice("Could not save chat");
     }
   }
 
-  async function deleteActiveConversation() {
-    if (!activeConversationId) {
-      clearConversation();
-      return;
-    }
-    const response = await fetch(
-      `/api/executive-assistant/conversations/${activeConversationId}`,
-      { method: "DELETE" },
-    );
+  async function renameConversation(conversationId: string) {
+    if (!renameValue.trim()) return;
+    const response = await fetch(`/api/executive-assistant/conversations/${conversationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: renameValue.trim() }),
+    });
     if (response.ok) {
-      startNewConversation();
+      setRenameId(null);
+      await refreshConversations();
+      showNotice("Conversation renamed");
+    } else {
+      showNotice("Could not rename");
+    }
+  }
+
+  async function deleteConversation(conversationId: string) {
+    const response = await fetch(`/api/executive-assistant/conversations/${conversationId}`, {
+      method: "DELETE",
+    });
+    if (response.ok) {
+      if (activeConversationId === conversationId) startNewConversation();
       await refreshConversations();
       showNotice("Conversation deleted");
     } else {
-      showNotice("Could not delete conversation");
+      showNotice("Could not delete");
     }
+  }
+
+  async function runFollowUp(action: AssistantFollowUpAction) {
+    if (action.href && (action.kind === "navigate" || action.kind === "open" || action.kind === "download")) {
+      if (action.kind === "download" || action.kind === "open") {
+        window.open(action.href, "_blank", "noopener,noreferrer");
+        return;
+      }
+      if (handleExecutiveActionHref(action.href, activeView || "home")) return;
+      if (handleGuidedHref(action.href, activeView || "home")) return;
+      window.location.href = action.href;
+      return;
+    }
+
+    if (action.kind === "email_artifact" && action.artifactId) {
+      void handleSend(
+        undefined,
+        `Email the PDF (${action.artifactId}) to the Board.`,
+      );
+      return;
+    }
+
+    if (action.kind === "generate" && action.actionId === "generateEmployeeListPdf") {
+      void handleSend(undefined, "Create a PDF of all employees.");
+      return;
+    }
+
+    if (action.kind === "confirm_action" && action.actionId) {
+      setPendingConfirm({
+        kind: action.actionId as AssistantPendingActionKind,
+        label: action.label,
+      });
+      return;
+    }
+
+    void handleSend(undefined, action.label);
   }
 
   async function handleSend(event?: React.FormEvent, overrideText?: string) {
@@ -279,17 +347,21 @@ export default function ExecutiveAssistantPanel({
     const trimmed = (overrideText ?? message).trim();
     if (!trimmed || sending) return;
 
+    const priorMessages = messages.filter(
+      (entry) =>
+        entry.id !== "welcome" &&
+        (entry.role === "user" || entry.role === "assistant") &&
+        entry.content.trim().length > 0,
+    );
+
     const userMessage: AssistantChatMessage = {
       id: `local_${Date.now()}`,
       role: "user",
       content: trimmed,
       createdAt: new Date().toISOString(),
     };
-    const nextMessages = [
-      ...messages.filter((entry) => entry.id !== "welcome" || entry.content.trim().length > 0),
-      userMessage,
-    ];
-    setMessages(nextMessages);
+
+    setMessages([...priorMessages, userMessage]);
     setMessage("");
     setSending(true);
 
@@ -316,6 +388,7 @@ export default function ExecutiveAssistantPanel({
         body: JSON.stringify({
           message: trimmed,
           conversationId: activeConversationId,
+          messages: priorMessages,
           activeView,
           selection,
           roleView,
@@ -337,16 +410,6 @@ export default function ExecutiveAssistantPanel({
           if (event.type === "tool_result") {
             applyGuidedToolResult(event.result);
             applyProactiveToolResult(event.name, event.result);
-            if (
-              event.result &&
-              typeof event.result === "object" &&
-              "explanation" in event.result &&
-              (event.result as { explanation?: AiExplanation }).explanation
-            ) {
-              setLastExplanation(
-                (event.result as { explanation: AiExplanation }).explanation,
-              );
-            }
           }
           if (event.type === "delta") {
             setMessages((current) =>
@@ -361,7 +424,14 @@ export default function ExecutiveAssistantPanel({
             setActiveConversationId(event.conversationId);
             setMessages((current) =>
               current.map((entry) =>
-                entry.id === assistantId ? { ...event.message, id: assistantId } : entry,
+                entry.id === assistantId
+                  ? {
+                      ...event.message,
+                      id: assistantId,
+                      followUpActions: event.message.followUpActions,
+                      artifacts: event.message.artifacts,
+                    }
+                  : entry,
               ),
             );
           }
@@ -382,7 +452,7 @@ export default function ExecutiveAssistantPanel({
             entry.id === assistantId
               ? {
                   ...entry,
-                  content: data.reply?.trim() || "I could not generate a reply just now.",
+                  content: data.reply?.trim() || "I could not complete that just now.",
                 }
               : entry,
           ),
@@ -398,7 +468,7 @@ export default function ExecutiveAssistantPanel({
           entry.id === assistantId
             ? {
                 ...entry,
-                content: `I could not complete that request (${detail}). No business data was invented.`,
+                content: `I could not complete that request. ${detail}`,
               }
             : entry,
         ),
@@ -409,178 +479,273 @@ export default function ExecutiveAssistantPanel({
     }
   }
 
+  function renderArtifacts(artifacts: AssistantMessageArtifact[] | undefined) {
+    if (!artifacts?.length) return null;
+    return (
+      <div className="mt-2 space-y-2">
+        {artifacts.map((artifact) => (
+          <div
+            key={artifact.id}
+            className="rounded-xl border border-sky-400/25 bg-sky-500/10 px-3 py-2.5"
+          >
+            <p className="text-xs font-semibold text-sky-50">{artifact.title}</p>
+            <p className="mt-0.5 text-[10px] text-sky-100/60">{artifact.filename}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <ActionButton
+                label="Download PDF"
+                icon={<Download className="h-3 w-3" />}
+                onClick={() => window.open(artifact.downloadUrl, "_blank", "noopener,noreferrer")}
+              />
+              <ActionButton
+                label="Open PDF"
+                onClick={() => window.open(artifact.openUrl, "_blank", "noopener,noreferrer")}
+              />
+              <ActionButton
+                label="Email PDF"
+                icon={<Mail className="h-3 w-3" />}
+                onClick={() =>
+                  void handleSend(undefined, `Email the PDF (${artifact.id}) to the Board.`)
+                }
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const sidebar = (
+    <aside className="flex w-[13.5rem] shrink-0 flex-col border-r border-white/10 bg-[#060e1a]">
+      <div className="border-b border-white/10 px-3 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+          Conversations
+        </p>
+      </div>
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
+        {conversations.length === 0 ? (
+          <p className="px-2 py-4 text-[11px] leading-relaxed text-white/35">
+            Saved chats appear here.
+          </p>
+        ) : (
+          conversations.map((conversation) => (
+            <div
+              key={conversation.id}
+              className={cn(
+                "group relative rounded-xl border px-2.5 py-2 transition-colors",
+                activeConversationId === conversation.id
+                  ? "border-sky-400/35 bg-sky-500/10"
+                  : "border-transparent hover:border-white/10 hover:bg-white/[0.04]",
+              )}
+            >
+              {renameId === conversation.id ? (
+                <form
+                  className="space-y-1.5"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void renameConversation(conversation.id);
+                  }}
+                >
+                  <input
+                    autoFocus
+                    value={renameValue}
+                    onChange={(event) => setRenameValue(event.target.value)}
+                    className="w-full rounded-md border border-white/15 bg-[#0b1524] px-2 py-1 text-[11px] text-white outline-none"
+                  />
+                  <div className="flex gap-1">
+                    <button
+                      type="submit"
+                      className="rounded-md bg-sky-500/20 px-2 py-0.5 text-[10px] text-sky-100"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRenameId(null)}
+                      className="rounded-md px-2 py-0.5 text-[10px] text-white/50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void openConversation(conversation)}
+                    className="w-full text-left"
+                  >
+                    <p className="truncate text-[12px] font-medium text-white/90">
+                      {conversation.title}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-white/35">
+                      {formatConversationDate(conversation.createdAt)}
+                      {" · "}
+                      Updated {formatConversationDate(conversation.updatedAt)}
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Conversation menu"
+                    onClick={() =>
+                      setMenuId((value) => (value === conversation.id ? null : conversation.id))
+                    }
+                    className="absolute right-1.5 top-1.5 rounded-md p-1 text-white/30 opacity-0 transition-opacity hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                  >
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </button>
+                  {menuId === conversation.id ? (
+                    <div className="absolute right-1 top-8 z-10 w-32 overflow-hidden rounded-lg border border-white/12 bg-[#0b1524] shadow-xl">
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] text-white/75 hover:bg-white/[0.06]"
+                        onClick={() => {
+                          setRenameId(conversation.id);
+                          setRenameValue(conversation.title);
+                          setMenuId(null);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] text-rose-200 hover:bg-white/[0.06]"
+                        onClick={() => {
+                          setMenuId(null);
+                          void deleteConversation(conversation.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Delete
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </aside>
+  );
+
   const panelBody = (
     <div
       data-ai-target="ai-assistant"
       className={cn(
-        "flex h-full min-h-0 flex-col overflow-hidden",
-        isPage
-          ? "rounded-2xl border border-white/12 bg-[#0c1628]"
-          : "bg-[#07111f]",
+        "flex h-full min-h-0 overflow-hidden",
+        isPage ? "rounded-2xl border border-white/12 bg-[#0c1628]" : "bg-[#07111f]",
         className,
       )}
     >
-      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
-        <div>
-          <h2 className="text-base font-semibold tracking-tight text-white">
-            AI Executive Assistant
-          </h2>
-          <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-emerald-300/90">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            Online
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowSettings((value) => !value)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
-            aria-label="Assistant settings"
-          >
-            <Settings className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={clearConversation}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
-            aria-label="Clear conversation"
-          >
-            <Eraser className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={startNewConversation}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 text-[11px] font-semibold text-white/70 hover:bg-white/[0.08]"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New
-          </button>
-          {variant === "drawer" ? (
+      {sidebar}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-3.5 sm:px-5">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight text-white">
+              AI Executive Assistant
+            </h2>
+            <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-emerald-300/90">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Online
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
-              aria-label="Close Executive Assistant"
+              onClick={startNewConversation}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-2.5 text-[11px] font-semibold text-white/75 hover:bg-white/[0.08] hover:text-white"
             >
-              <X className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
+              New Chat
             </button>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        {showSettings ? (
-          <section className="rounded-xl border border-white/10 bg-[#0b1524]/60 p-3">
-            <SectionLabel>Settings</SectionLabel>
-            <p className="mt-2 text-xs text-white/55">
-              Conversations stay with you across modules. Rename or clear a thread anytime.
-            </p>
-            <div className="mt-3 flex flex-col gap-2">
-              <div className="flex gap-2">
-                <input
-                  value={renameValue}
-                  onChange={(event) => setRenameValue(event.target.value)}
-                  placeholder="Rename conversation"
-                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#07111f] px-2.5 py-1.5 text-xs text-white outline-none focus:border-sky-400/40"
-                />
-                <button
-                  type="button"
-                  onClick={() => void renameActiveConversation()}
-                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-white/10 px-2 text-[11px] text-white/70 hover:bg-white/[0.06]"
-                >
-                  <Pencil className="h-3 w-3" />
-                  Save
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <ChipButton label="New conversation" onClick={startNewConversation} />
-                <ChipButton label="Clear chat" onClick={clearConversation} />
-                <ChipButton
-                  label="Delete conversation"
-                  onClick={() => void deleteActiveConversation()}
-                />
-              </div>
-            </div>
-          </section>
-        ) : null}
-
-        <section>
-          <SectionLabel>Current context</SectionLabel>
-          <p className="mt-2 text-base font-semibold text-white">Viewing · {context.label}</p>
-          {selectionLabel ? (
-            <p className="mt-1 text-xs text-sky-200/80">{selectionLabel}</p>
-          ) : null}
-        </section>
-
-        <section data-ai-target="ea-conversation">
-          <div className="mt-1 space-y-2 rounded-xl border border-white/10 bg-[#0b1524]/60 p-3">
-            {messages.length === 0 ? (
-              <div className="px-2 py-6 text-center">
-                <FileText className="mx-auto h-5 w-5 text-white/25" />
-                <p className="mt-3 text-sm text-white/45">Ask anything about your business…</p>
-              </div>
-            ) : (
-              messages.map((entry) => (
-                <div
-                  key={entry.id}
-                  className={cn(
-                    "rounded-lg px-3 py-2 text-sm leading-relaxed",
-                    entry.role === "assistant"
-                      ? "border border-white/10 bg-white/[0.03] text-white/80"
-                      : "border border-sky-400/20 bg-sky-500/10 text-sky-50",
-                  )}
-                >
-                  <p className="mb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/35">
-                    {entry.role === "assistant" ? "Assistant" : "You"}
-                  </p>
-                  <p className="whitespace-pre-wrap">
-                    {entry.content || (sending ? "…" : "")}
-                  </p>
-                  {entry.role === "assistant" &&
-                  entry.id !== "welcome" &&
-                  entry.content.trim() &&
-                  !sending ? (
-                    <div className="mt-2 space-y-2">
-                      {lastExplanation && entry.id === messages[messages.length - 1]?.id ? (
-                        <ExplanationPanel
-                          compact
-                          explanation={lastExplanation}
-                          feedbackTargetId={entry.id}
-                          feedbackTargetType="message"
-                          contextView={activeView}
-                        />
-                      ) : (
-                        <AssistantFeedbackButtons
-                          targetId={entry.id}
-                          targetType="message"
-                          contextView={activeView}
-                        />
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              ))
-            )}
-            {sending ? (
-              <p className="inline-flex items-center gap-2 text-[11px] text-white/45">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Thinking…
-              </p>
+            <button
+              type="button"
+              onClick={() => void saveChat()}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sky-400/30 bg-sky-500/10 px-2.5 text-[11px] font-semibold text-sky-100 hover:bg-sky-500/20"
+            >
+              <Save className="h-3.5 w-3.5" />
+              Save Chat
+            </button>
+            {variant === "drawer" ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
+                aria-label="Close Executive Assistant"
+              >
+                <X className="h-4 w-4" />
+              </button>
             ) : null}
           </div>
+        </div>
+
+        <div ref={threadRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+          {messages.map((entry) => (
+            <div
+              key={entry.id}
+              className={cn(
+                "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+                entry.role === "assistant"
+                  ? "border border-white/10 bg-white/[0.03] text-white/85"
+                  : "ml-8 border border-sky-400/20 bg-sky-500/10 text-sky-50",
+              )}
+            >
+              <p className="whitespace-pre-wrap">{entry.content || (sending ? "…" : "")}</p>
+              {entry.role === "assistant" ? renderArtifacts(entry.artifacts) : null}
+              {entry.role === "assistant" &&
+              entry.followUpActions &&
+              entry.followUpActions.length > 0 &&
+              !entry.artifacts?.length ? (
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {entry.followUpActions.map((action) => (
+                    <ActionButton
+                      key={action.id}
+                      label={action.label}
+                      onClick={() => void runFollowUp(action)}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              {entry.role === "assistant" &&
+              entry.followUpActions &&
+              entry.followUpActions.length > 0 &&
+              entry.artifacts?.length ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {entry.followUpActions
+                    .filter(
+                      (action) =>
+                        action.kind !== "download" &&
+                        action.kind !== "open" &&
+                        action.kind !== "email_artifact",
+                    )
+                    .map((action) => (
+                      <ActionButton
+                        key={action.id}
+                        label={action.label}
+                        onClick={() => void runFollowUp(action)}
+                      />
+                    ))}
+                </div>
+              ) : null}
+            </div>
+          ))}
+          {sending ? (
+            <p className="inline-flex items-center gap-2 text-[11px] text-white/45">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Working…
+            </p>
+          ) : null}
           {notice ? (
-            <p className="mt-2 rounded-lg border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-[11px] text-sky-100">
+            <p className="rounded-lg border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-[11px] text-sky-100">
               {notice}
             </p>
           ) : null}
           {pendingConfirm ? (
-            <div className="mt-2 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/90">
-                Confirm action
-              </p>
-              <p className="mt-1 text-xs text-white/75">
-                Recommended: <span className="font-semibold">{pendingConfirm.label}</span>. Nothing
-                runs until you confirm.
+            <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3">
+              <p className="text-xs text-white/80">
+                Confirm: <span className="font-semibold">{pendingConfirm.label}</span>
               </p>
               <div className="mt-2 flex gap-2">
                 <button
@@ -607,43 +772,26 @@ export default function ExecutiveAssistantPanel({
               </div>
             </div>
           ) : null}
-        </section>
 
-        <section>
-          <SectionLabel>Actions</SectionLabel>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              data-ai-target="ea-tour"
-              onClick={() => {
-                requestShowMeAround(activeView || "home");
-                showNotice("Starting walkthrough");
-              }}
-              className="rounded-lg border border-sky-400/35 bg-sky-500/15 px-2.5 py-1.5 text-left text-[11px] font-semibold text-sky-100 transition-colors hover:border-sky-400/50 hover:bg-sky-500/25"
-            >
-              30-second tour
-            </button>
-            <ChipButton
-              label="Daily brief"
-              onClick={() => void handleSend(undefined, "Give me today's Daily Executive Brief.")}
-            />
-            <ChipButton
-              label="Business health"
-              onClick={() => void handleSend(undefined, "What is our Business Health Score?")}
-            />
-            <ChipButton
-              label="Top risks"
-              onClick={() => void handleSend(undefined, "What needs my attention today?")}
-            />
-            <ChipButton
-              label={showMoreActions ? "Less" : "More"}
-              onClick={() => setShowMoreActions((value) => !value)}
-            />
-          </div>
-          {showMoreActions ? (
-            <div className="mt-2 flex flex-wrap gap-1.5 border-t border-white/8 pt-2">
-              {suggested.slice(0, 4).map((action) => (
-                <ChipButton
+          {!sending && messages.length <= 1 ? (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <ActionButton
+                label="Daily brief"
+                onClick={() => void handleSend(undefined, "Give me today's Daily Executive Brief.")}
+              />
+              <ActionButton
+                label="Employee PDF"
+                onClick={() => void handleSend(undefined, "Create a PDF of all employees.")}
+              />
+              <ActionButton
+                label="30-second tour"
+                onClick={() => {
+                  requestShowMeAround(activeView || "home");
+                  showNotice("Starting walkthrough");
+                }}
+              />
+              {suggested.slice(0, 2).map((action) => (
+                <ActionButton
                   key={action}
                   label={action}
                   onClick={() => {
@@ -653,7 +801,7 @@ export default function ExecutiveAssistantPanel({
                   }}
                 />
               ))}
-              <ChipButton
+              <ActionButton
                 label="Onboard a client"
                 onClick={() => {
                   startWorkflowGuide("onboard_client", 0);
@@ -663,89 +811,40 @@ export default function ExecutiveAssistantPanel({
                   );
                 }}
               />
-              <ChipButton
-                label="Create a project"
-                onClick={() => {
-                  startWorkflowGuide("create_project", 0);
-                  void handleSend(
-                    undefined,
-                    "I need to create a project. Guide me through the workflow.",
-                  );
-                }}
-              />
-              {!isPage
-                ? GENERATE_ACTIONS.slice(0, 3).map((action) => (
-                    <ChipButton
-                      key={action}
-                      label={action}
-                      onClick={() => void handleSend(undefined, action)}
-                    />
-                  ))
-                : null}
             </div>
           ) : null}
-        </section>
-
-        {conversations.length > 0 ? (
-          <section>
-            <SectionLabel>Recent</SectionLabel>
-            <ul className="mt-2 space-y-1">
-              {conversations.slice(0, 5).map((conversation) => (
-                <li key={conversation.id}>
-                  <button
-                    type="button"
-                    onClick={() => void openConversation(conversation)}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-left text-[11px] transition-colors",
-                      activeConversationId === conversation.id
-                        ? "border-sky-400/35 bg-sky-500/10 text-sky-50"
-                        : "border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/[0.05]",
-                    )}
-                  >
-                    <span className="min-w-0 truncate font-medium">{conversation.title}</span>
-                    <span className="shrink-0 text-white/35">
-                      {new Date(conversation.updatedAt).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-      </div>
-
-      <form
-        data-ai-target="ea-chat"
-        className="shrink-0 border-t border-white/10 p-4"
-        onSubmit={(event) => void handleSend(event)}
-      >
-        <div className="flex items-end gap-2">
-          <textarea
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            rows={2}
-            placeholder="Ask the Operating Assistant…"
-            className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-sky-400/40"
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void handleSend();
-              }
-            }}
-          />
-          <button
-            type="submit"
-            disabled={!message.trim() || sending}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-500/15 text-sky-100 transition-colors hover:bg-sky-500/25 disabled:opacity-40"
-            aria-label="Send message"
-          >
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          </button>
         </div>
-      </form>
+
+        <form
+          data-ai-target="ea-chat"
+          className="shrink-0 border-t border-white/10 p-4"
+          onSubmit={(event) => void handleSend(event)}
+        >
+          <div className="flex items-end gap-2">
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              rows={2}
+              placeholder="Ask your Executive Assistant…"
+              className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-sky-400/40"
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void handleSend();
+                }
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!message.trim() || sending}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-500/15 text-sky-100 transition-colors hover:bg-sky-500/25 disabled:opacity-40"
+              aria-label="Send message"
+            >
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 
@@ -781,7 +880,7 @@ export default function ExecutiveAssistantPanel({
       />
       <aside
         className={cn(
-          "relative flex h-full w-full max-w-[420px] border-l border-white/10 transition-transform duration-300 ease-out",
+          "relative flex h-full w-full max-w-[720px] border-l border-white/10 transition-transform duration-300 ease-out",
           open ? "translate-x-0" : "translate-x-full",
         )}
         role="dialog"

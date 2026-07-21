@@ -5,6 +5,15 @@
 
 export type AssistantMessageRole = "user" | "assistant" | "system" | "tool";
 
+export type AssistantMessageArtifact = {
+  id: string;
+  kind: "pdf";
+  title: string;
+  filename: string;
+  downloadUrl: string;
+  openUrl: string;
+};
+
 export type AssistantChatMessage = {
   id: string;
   role: Exclude<AssistantMessageRole, "system">;
@@ -12,6 +21,8 @@ export type AssistantChatMessage = {
   createdAt: string;
   toolName?: string;
   toolCallId?: string;
+  followUpActions?: import("./tool-result").AssistantFollowUpAction[];
+  artifacts?: AssistantMessageArtifact[];
 };
 
 export type AssistantPageSelection = {

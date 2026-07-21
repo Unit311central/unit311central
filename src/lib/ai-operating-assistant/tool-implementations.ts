@@ -262,7 +262,7 @@ export async function searchEmployees(
     const onLeave = args.onLeave === true || args.onLeave === "true";
     const selectedId =
       asString(args.employeeId) || ctx.business.selection.employeeId || undefined;
-    const includeCompensation = ctx.business.permissions.roleView !== "staff";
+    const includeCompensation = false;
 
     let filtered = employees.filter((employee) => {
       if (selectedId) return employee.id === selectedId;
@@ -320,9 +320,13 @@ export async function searchEmployees(
           openingsUnavailable,
         ],
         followUpActions: [
-          nav("/internaldashboard?view=hr", "View HR"),
-          nav("/internaldashboard?view=careers", "View Careers"),
-          ...exportActions("employees"),
+          nav("/internaldashboard?view=hr", "Open HR"),
+          {
+            id: "generate_employee_pdf",
+            label: "Generate PDF",
+            kind: "generate",
+            actionId: "generateEmployeeListPdf",
+          },
           ...actionFollowUps(["create_employee", "approve_leave"]),
         ],
         citations: filtered.slice(0, 10).map((employee) => ({

@@ -51,24 +51,36 @@ function encodeSse(event: AssistantStreamEvent) {
 async function resolveHistory(
   session: PlatformSession,
   request: AssistantChatRequest,
-  context: AssistantBusinessContext,
+  _context: AssistantBusinessContext,
 ): Promise<{ conversationId: string | null; history: AssistantChatMessage[]; title: string }> {
+  const clientPrior = (request.messages ?? [])
+    .filter((message) => message.role === "user" || message.role === "assistant")
+    .filter((message) => message.id !== "welcome" && message.content.trim().length > 0);
+
   if (request.conversationId && isSupabaseServiceRoleConfigured()) {
     const existing = await getConversationForUser(request.conversationId, session.sub);
     if (existing) {
+      const dbHistory = existing.messages.filter(
+        (message) =>
+          (message.role === "user" || message.role === "assistant") &&
+          message.id !== "welcome" &&
+          message.content.trim().length > 0,
+      );
+      // Prefer the longer continuous thread so client/server never drop context.
+      const history = dbHistory.length >= clientPrior.length ? dbHistory : clientPrior;
       return {
         conversationId: existing.id,
-        history: existing.messages,
+        history,
         title: existing.title,
       };
     }
   }
 
-  if (request.messages?.length) {
+  if (clientPrior.length) {
     return {
       conversationId: request.conversationId ?? null,
-      history: request.messages,
-      title: titleFromMessages(request.messages),
+      history: clientPrior,
+      title: titleFromMessages(clientPrior),
     };
   }
 
@@ -77,6 +89,16 @@ async function resolveHistory(
     history: [],
     title: "New conversation",
   };
+}
+
+function extractActiveArtifact(history: AssistantChatMessage[]) {
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const artifacts = history[index]?.artifacts;
+    if (artifacts && artifacts.length > 0) {
+      return artifacts[artifacts.length - 1] ?? null;
+    }
+  }
+  return null;
 }
 
 async function persistTurn(input: {
@@ -143,6 +165,7 @@ export async function* runAssistantTurn(input: {
   });
 
   const resolved = await resolveHistory(input.session, input.request, context);
+  const activeArtifact = extractActiveArtifact(resolved.history);
   const userMessage: AssistantChatMessage = {
     id: createMessageId(),
     role: "user",
@@ -157,7 +180,17 @@ export async function* runAssistantTurn(input: {
   };
 
   const instructions = [
-    buildSystemInstructions(context),
+    buildSystemInstructions(context, {
+      activeArtifact: activeArtifact
+        ? {
+            artifactId: activeArtifact.id,
+            title: activeArtifact.title,
+            filename: activeArtifact.filename,
+            downloadUrl: activeArtifact.downloadUrl,
+            openUrl: activeArtifact.openUrl,
+          }
+        : null,
+    }),
     input.request.structuredJson ? buildStructuredJsonHint() : "",
   ]
     .filter(Boolean)
@@ -170,6 +203,8 @@ export async function* runAssistantTurn(input: {
   let inputItems: EasyInputMessage[] = toInputMessages(resolved.history, message);
   let assistantText = "";
   let toolLoops = 0;
+  let turnFollowUps: NonNullable<AssistantChatMessage["followUpActions"]> = [];
+  let turnArtifacts: NonNullable<AssistantChatMessage["artifacts"]> = [];
 
   try {
     while (toolLoops < 4) {
@@ -284,6 +319,39 @@ export async function* runAssistantTurn(input: {
           });
         }
         yield { type: "tool_result", name: call.name, result };
+        if (result && typeof result === "object") {
+          const followUps = (result as { followUpActions?: AssistantChatMessage["followUpActions"] })
+            .followUpActions;
+          if (Array.isArray(followUps) && followUps.length > 0) {
+            turnFollowUps = followUps;
+          }
+          const summary = (result as { summary?: Record<string, unknown> }).summary;
+          const items = (result as { items?: Array<Record<string, unknown>> }).items;
+          const artifactId =
+            (typeof summary?.artifactId === "string" && summary.artifactId) ||
+            (typeof items?.[0]?.artifactId === "string" && items[0].artifactId) ||
+            null;
+          if (artifactId) {
+            const title =
+              (typeof summary?.title === "string" && summary.title) ||
+              (typeof items?.[0]?.title === "string" && String(items[0].title)) ||
+              "Generated PDF";
+            const filename =
+              (typeof summary?.filename === "string" && summary.filename) ||
+              (typeof items?.[0]?.filename === "string" && String(items[0].filename)) ||
+              "report.pdf";
+            turnArtifacts = [
+              {
+                id: artifactId,
+                kind: "pdf",
+                title,
+                filename,
+                downloadUrl: `/api/executive-assistant/artifacts/${artifactId}?disposition=attachment`,
+                openUrl: `/api/executive-assistant/artifacts/${artifactId}?disposition=inline`,
+              },
+            ];
+          }
+        }
         toolOutputs.push({
           type: "function_call_output",
           call_id: call.callId,
@@ -309,7 +377,7 @@ export async function* runAssistantTurn(input: {
             })),
             null,
             2,
-          )}\nContinue and answer the user using ONLY these tool results. Include contextual follow-up actions from followUpActions. Do not invent missing data. If dataGaps are present, state them. When presenting recommendations, include Confidence, Evidence, Data Sources, Reasoning Summary, and Recommended Actions from tool explanation payloads when available.`,
+          )}\nContinue with a SHORT executive reply (1–3 sentences). Confirm what you executed. Do not dump markdown lists or technical details. UI buttons will present followUpActions.`,
         },
       ];
       assistantText = "";
@@ -317,8 +385,12 @@ export async function* runAssistantTurn(input: {
     }
 
     if (!assistantText.trim()) {
-      assistantText =
-        "I could not produce a response just now. Please try again — no business data was invented.";
+      if (turnArtifacts.length > 0) {
+        assistantText = `${turnArtifacts[0]!.title} is ready.`;
+      } else {
+        assistantText =
+          "I could not complete that just now. Please try again.";
+      }
       yield { type: "delta", text: assistantText };
       void recordQualityEvent({ kind: "hallucination_guard", meta: { reason: "empty_assistant_text" } });
     }
@@ -335,6 +407,8 @@ export async function* runAssistantTurn(input: {
       role: "assistant",
       content: assistantText,
       createdAt: new Date().toISOString(),
+      followUpActions: turnFollowUps.length > 0 ? turnFollowUps : undefined,
+      artifacts: turnArtifacts.length > 0 ? turnArtifacts : undefined,
     };
 
     const saved = await persistTurn({

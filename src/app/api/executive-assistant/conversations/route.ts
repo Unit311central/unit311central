@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       title?: string;
       workspaceId?: string | null;
       organisationId?: string | null;
+      messages?: import("@/lib/ai-operating-assistant/types").AssistantChatMessage[];
     };
 
     const conversation = await createConversation({
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       title: body.title?.trim() || "New conversation",
       workspaceId: body.workspaceId ?? null,
       organisationId: body.organisationId ?? null,
-      messages: [],
+      messages: body.messages ?? [],
     });
 
     return NextResponse.json({ conversation });

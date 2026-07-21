@@ -11,6 +11,10 @@ import {
   searchTasks,
 } from "./tool-implementations";
 import {
+  emailAssistantArtifact,
+  generateEmployeeListPdf,
+} from "./artifact-tools";
+import {
   getPageGuideTool,
   highlightUiTarget,
   listPageGuidesTool,
@@ -169,6 +173,30 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
         clientId: { type: "string" },
       },
       required: ["reportType"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "generateEmployeeListPdf",
+    description:
+      "Immediately generate a PDF of all employees (name, department, job title, status only — never salary). Use when the user asks to create/export/download an employee PDF or directory. Do not ask for confirmation.",
+    parameters: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "emailAssistantArtifact",
+    description:
+      "Email a previously generated assistant PDF/artifact (resolve pronouns like it/that PDF/the report to the latest artifactId). Use immediately when the user asks to email it. Default recipient is the Board distribution.",
+    parameters: {
+      type: "object",
+      properties: {
+        artifactId: { type: "string" },
+        to: { type: "string", description: "Optional recipient override" },
+      },
+      required: ["artifactId"],
       additionalProperties: false,
     },
   },
@@ -351,6 +379,8 @@ const handlers: Record<string, ContextualToolHandler> = {
   searchTasks,
   searchCRM,
   generateReport,
+  generateEmployeeListPdf,
+  emailAssistantArtifact,
   getPageGuide: getPageGuideTool,
   startGuidedTour,
   highlightUiTarget,

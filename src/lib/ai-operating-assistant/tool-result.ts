@@ -5,9 +5,18 @@ export type AssistantToolResultStatus = "ok" | "error" | "forbidden" | "partial"
 export type AssistantFollowUpAction = {
   id: string;
   label: string;
-  kind: "navigate" | "export" | "email" | "open" | "generate" | "confirm_action";
+  kind:
+    | "navigate"
+    | "export"
+    | "email"
+    | "open"
+    | "generate"
+    | "confirm_action"
+    | "download"
+    | "email_artifact";
   href?: string;
   actionId?: string;
+  artifactId?: string;
   requiresConfirmation?: boolean;
 };
 
