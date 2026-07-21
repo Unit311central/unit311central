@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Eye,
   EyeOff,
+  Globe,
   Link2,
   Mail,
   Menu,
@@ -20,6 +21,9 @@ import {
   Truck,
   Wallet,
 } from "lucide-react";
+
+import type { IntegrationConnectionPublic } from "@/lib/integration-framework-data";
+import { useWebsiteMockStore } from "./useWebsiteMockStore";
 
 const NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 const MOCK_USERS = createInitialUsers();
@@ -426,6 +430,41 @@ export default function SettingsWorkspace() {
   const [notificationFrequency, setNotificationFrequency] =
     useState<(typeof NOTIFICATION_FREQUENCIES)[number]>("Daily digest");
 
+  const websiteStore = useWebsiteMockStore();
+  const [frameworkConnections, setFrameworkConnections] = useState<
+    IntegrationConnectionPublic[]
+  >([]);
+  const [frameworkLoadState, setFrameworkLoadState] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+
+  useEffect(() => {
+    let cancelled = false;
+    setFrameworkLoadState("loading");
+    void fetch("/api/integrations/connections")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Failed to load connections");
+        const payload = (await response.json()) as {
+          connections?: IntegrationConnectionPublic[];
+        };
+        if (cancelled) return;
+        setFrameworkConnections(payload.connections ?? []);
+        setFrameworkLoadState("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFrameworkLoadState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const websiteConnections = useMemo(
+    () => frameworkConnections.filter((row) => row.category === "website"),
+    [frameworkConnections],
+  );
+
   const allNavItems = useMemo(() => {
     const byId = new Map<string, NavEditorItem>();
     defaultNavItems.forEach((item) => byId.set(item.id, item));
@@ -515,11 +554,65 @@ export default function SettingsWorkspace() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 xl:items-stretch">
         <SettingsColumn
           title="Integrations"
-          description="Finance, logistics, and email provider connections."
+          description="Finance, logistics, email, and website CMS connections."
           icon={<Link2 className="h-4 w-4" />}
           accentClass="border-emerald-400/20"
         >
           <div className="space-y-3">
+            <div className="rounded-xl border border-white/10 bg-[#0b1524]/60 p-3">
+              <div className="mb-2 flex items-center gap-2 text-sky-300">
+                <Globe className="h-4 w-4" />
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/70">
+                  Website CMS
+                </p>
+              </div>
+              <p className="mb-3 text-[11px] leading-relaxed text-white/45">
+                Managed through Website Management and stored in the Integration Framework — not a
+                second credential store.
+              </p>
+              {frameworkLoadState === "loading" ? (
+                <p className="text-xs text-white/45">Loading framework connections…</p>
+              ) : null}
+              {websiteConnections.length > 0 ? (
+                <ul className="space-y-2">
+                  {websiteConnections.map((connection) => (
+                    <li
+                      key={connection.id}
+                      className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-2"
+                    >
+                      <p className="text-xs font-medium text-white">
+                        {connection.displayLabel || connection.providerDisplayName}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-white/50">
+                        {connection.providerCode} · {connection.status}
+                        {connection.credentialsSet ? " · credentials set" : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <ul className="space-y-2">
+                  {websiteStore.websites.map((site) => (
+                    <li
+                      key={site.id}
+                      className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2"
+                    >
+                      <p className="text-xs font-medium text-white">{site.name}</p>
+                      <p className="mt-0.5 text-[10px] text-white/50">
+                        {site.providerCode} · {site.cms} · {site.connectionStatus}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {frameworkLoadState === "error" ? (
+                <p className="mt-2 text-[10px] text-amber-200/80">
+                  Framework API unavailable — showing Website Management local connections until
+                  migration 099 is applied.
+                </p>
+              ) : null}
+            </div>
+
             <ProviderIntegrationSection
               title="Finance"
               description="Accounting and payroll systems."
@@ -586,7 +679,8 @@ export default function SettingsWorkspace() {
             />
 
             <p className="text-[10px] leading-relaxed text-white/35">
-              Preview only — credentials are held in local state until live connectors ship.
+              Finance, logistics, and email credentials remain local until those connectors ship.
+              Website CMS connections use the Integration Framework.
             </p>
           </div>
         </SettingsColumn>

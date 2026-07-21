@@ -7,6 +7,7 @@ export const INTEGRATION_CATEGORIES = [
   "shipping",
   "storage",
   "ai",
+  "website",
 ] as const;
 
 export type IntegrationCategory = (typeof INTEGRATION_CATEGORIES)[number];

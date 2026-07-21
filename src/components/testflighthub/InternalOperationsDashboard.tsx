@@ -101,44 +101,16 @@ import TestingWeatherPanel from "./TestingWeatherPanel";
 import SupportWorkspace from "./SupportWorkspace";
 import ExternalUsersWorkspace from "./ExternalUsersWorkspace";
 import UserManagementWorkspace from "./UserManagementWorkspace";
-import EngineeringWorkspace from "./EngineeringWorkspace";
+import EngineeringDashboardWorkspace from "./EngineeringDashboardWorkspace";
+import EngineeringResourcesWorkspace from "./EngineeringResourcesWorkspace";
+import EngineeringCapacityWorkspace from "./EngineeringCapacityWorkspace";
+import ExternalClientAccessWorkspace from "./ExternalClientAccessWorkspace";
 import WebsiteManagementWorkspace from "./WebsiteManagementWorkspace";
 import WebODMWorkspace from "./WebODMWorkspace";
-import ModulePlaceholderWorkspace from "./ModulePlaceholderWorkspace";
 import TelemetryDashboard from "@/components/telemetry/TelemetryDashboard";
 import { type ManagedUser } from "@/lib/user-management-data";
 import { useInfoEmailWhatsAppPoller } from "@/hooks/useInfoEmailWhatsAppPoller";
 import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvider";
-
-function PlaceholderForView({ view }: { view: InternalOperationsView }) {
-  const meta = internalViewTitles[view];
-  const descriptions: Partial<Record<InternalOperationsView, { description: string; bullets?: string[] }>> = {
-    "corporate-dashboard": {
-      description:
-        "Executive overview of company records — locations, banking, advisers, licences, and contracts.",
-    },
-    "external-client-access": {
-      description:
-        "Coming Soon — Configure secure external portals for selected clients — choose visible modules, invite users, and manage permissions.",
-      bullets: [
-        "Select one of our Clients",
-        "Create an External Portal",
-        "Select which modules are visible",
-        "Invite External Users",
-        "Configure permissions",
-        "Generate secure external logins",
-      ],
-    },
-  };
-  const extra = descriptions[view];
-  return (
-    <ModulePlaceholderWorkspace
-      title={meta.title}
-      description={extra?.description ?? `Coming Soon — ${meta.title} is not yet implemented.`}
-      bullets={extra?.bullets}
-    />
-  );
-}
 
 function NavImplementationNotice({ view }: { view: InternalOperationsView }) {
   const notice = getNavImplementationNotice(view);
@@ -632,9 +604,7 @@ export default function InternalOperationsDashboard({
           {activeView === "corporate-information" && <CorporateInformationWorkspace />}
           {activeView === "corporate-cap-table" && <CapTableWorkspace />}
 
-          {activeView === "external-client-access" && (
-            <PlaceholderForView view="external-client-access" />
-          )}
+          {activeView === "external-client-access" && <ExternalClientAccessWorkspace />}
 
           {activeView === "messaging" && <MessagingWorkspace />}
 
@@ -689,9 +659,13 @@ export default function InternalOperationsDashboard({
 
           {activeView === "website-management" && <WebsiteManagementWorkspace />}
 
-          {(activeView === "engineering" ||
-            activeView === "engineering-dashboard" ||
-            activeView === "engineering-resources") && <EngineeringWorkspace />}
+          {(activeView === "engineering" || activeView === "engineering-dashboard") && (
+            <EngineeringDashboardWorkspace />
+          )}
+
+          {activeView === "engineering-resources" && <EngineeringResourcesWorkspace />}
+
+          {activeView === "engineering-capacity" && <EngineeringCapacityWorkspace />}
         </div>
       </div>
       </SurveyOperationsShell>

@@ -88,7 +88,8 @@ export type InternalOperationsView =
   | "website-management"
   | "engineering"
   | "engineering-dashboard"
-  | "engineering-resources";
+  | "engineering-resources"
+  | "engineering-capacity";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -224,6 +225,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "engineering",
   "engineering-dashboard",
   "engineering-resources",
+  "engineering-capacity",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -238,6 +240,7 @@ export const ENGINEERING_NAV_VIEWS = [
   "engineering",
   "engineering-dashboard",
   "engineering-resources",
+  "engineering-capacity",
 ] as const satisfies readonly InternalOperationsView[];
 
 export const ASSETS_NAV_VIEWS = [
@@ -318,9 +321,7 @@ export function getNavImplementationNotice(
   if (
     view === "projects-dashboard" ||
     view === "projects-internal" ||
-    view === "projects-external" ||
-    view === "engineering-dashboard" ||
-    view === "engineering-resources"
+    view === "projects-external"
   ) {
     return "uses-current";
   }
@@ -537,6 +538,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         children: [
           { label: "Dashboard", view: "engineering-dashboard" as const },
           { label: "Engineer / Resource Breakdown", view: "engineering-resources" as const },
+          { label: "Capacity Planning", view: "engineering-capacity" as const },
         ],
       },
     ],
@@ -689,6 +691,7 @@ export const internalViewTitles: Record<
     title: "Engineer / Resource Breakdown",
     subtitle: "Engineering",
   },
+  "engineering-capacity": { title: "Capacity Planning", subtitle: "Engineering" },
 };
 
 /** Breadcrumb labels for the active internal leaf (section → … → page). */

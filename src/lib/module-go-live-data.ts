@@ -108,6 +108,11 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   "MOD-121": "Ready",
   "MOD-122": "Ready",
   "MOD-130": "Ready",
+  /** MOD-600/610/620 program wave — Engineering, Website Management, External Client Access. */
+  "MOD-140": "Ready",
+  "MOD-141": "Ready",
+  "MOD-150": "Ready",
+  "MOD-160": "Ready",
   /** Profile bound to session / whoami (Wave 0). */
   "MOD-170": "Ready",
   /** Wave 1 — Client Directory lifecycle rewrite (FDR-MOD-011-LIFECYCLE). */
