@@ -85,6 +85,8 @@ export function isModuleGoLiveStatus(value: unknown): value is ModuleGoLiveStatu
 
 /** Wave 0 verified defaults when no stored status exists. */
 const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiveStatus>>> = {
+  /** MOD-001 Command Centre v2. */
+  "MOD-001": "Ready",
   /** MOD-200 / MOD-201 — HR domain closed Ready (2026-07-21). Only backlog: HR-201. */
   "MOD-070": "Ready",
   "MOD-071": "Ready",

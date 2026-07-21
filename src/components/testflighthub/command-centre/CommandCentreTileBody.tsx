@@ -315,6 +315,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
           projects: hrefs.projects,
           hrLeave: hrefs.hrLeave,
           training: hrefs.training,
+          hr: hrefs.hr,
         },
       }),
     [data.events, data.projects, data.employees, hrMock.leaveRequests, hrefs],

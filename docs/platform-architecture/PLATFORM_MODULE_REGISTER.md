@@ -53,7 +53,7 @@ Nav leaves that share one implementation until redesigned are noted. Each row is
 
 | Module Name | Navigation Location | Status | Related PRMs | Dependencies | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Home Dashboard | HOME → Home Dashboard | Not Started | — | — | Ops home |
+| Home Dashboard | HOME → Home Dashboard | **Ready** | — | — | Command Centre v2 · [MOD-001](./MOD-001-COMMAND-CENTRE.md) **CLOSED · READY** |
 | Executive Assistant | EXECUTIVE → Executive Assistant | Not Started | PRM-001 (context) | Clients, Financials, Projects (read) | AI ops; consume Client context per PRM-001 |
 
 ### Business Central — Clients
