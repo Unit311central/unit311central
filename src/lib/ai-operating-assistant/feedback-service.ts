@@ -1,4 +1,7 @@
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import {
+  createSupabaseServiceRoleClient,
+  isSupabaseServiceRoleConfigured,
+} from "@/lib/supabase/server";
 import type {
   AssistantFeedbackRecord,
   AssistantQualityEvent,
@@ -9,6 +12,7 @@ import type {
 /**
  * Feedback + quality persistence.
  * Anonymous feedback improves prompts/workflows/tools — never used for identity.
+ * Writes use the service-role client to match migrations 101/102 (RLS on, no open policies).
  */
 
 function randomId(prefix: string) {
@@ -34,22 +38,25 @@ export async function recordAnonymousFeedback(input: {
     createdAt: new Date().toISOString(),
   };
 
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = createSupabaseServerClient();
-      await supabase.from("executive_assistant_feedback").insert({
-        id: record.id,
-        verdict: record.verdict,
-        target_type: record.targetType,
-        target_id: record.targetId,
-        comment: record.comment,
-        anonymous_session_id: record.anonymousSessionId,
-        context_view: record.contextView,
-        created_at: record.createdAt,
-      });
-    } catch {
-      // Persistence optional until migration applied
-    }
+  if (!isSupabaseServiceRoleConfigured()) {
+    throw new Error(
+      "Feedback persistence requires SUPABASE_SERVICE_ROLE_KEY (RLS has no open policies).",
+    );
+  }
+
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.from("executive_assistant_feedback").insert({
+    id: record.id,
+    verdict: record.verdict,
+    target_type: record.targetType,
+    target_id: record.targetId,
+    comment: record.comment,
+    anonymous_session_id: record.anonymousSessionId,
+    context_view: record.contextView,
+    created_at: record.createdAt,
+  });
+  if (error) {
+    throw new Error(error.message);
   }
 
   await recordQualityEvent({
@@ -77,9 +84,9 @@ export async function recordQualityEvent(input: {
     createdAt: new Date().toISOString(),
   };
 
-  if (isSupabaseConfigured()) {
+  if (isSupabaseServiceRoleConfigured()) {
     try {
-      const supabase = createSupabaseServerClient();
+      const supabase = createSupabaseServiceRoleClient();
       await supabase.from("executive_assistant_quality_events").insert({
         id: event.id,
         kind: event.kind,
@@ -90,7 +97,7 @@ export async function recordQualityEvent(input: {
         created_at: event.createdAt,
       });
     } catch {
-      // optional
+      // Quality telemetry must not break assistant turns.
     }
   }
 
@@ -124,10 +131,10 @@ export async function getAiQualitySummary(limit = 500): Promise<AiQualitySummary
     generatedAt: new Date().toISOString(),
   };
 
-  if (!isSupabaseConfigured()) return empty;
+  if (!isSupabaseServiceRoleConfigured()) return empty;
 
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = createSupabaseServiceRoleClient();
     const { data, error } = await supabase
       .from("executive_assistant_quality_events")
       .select("kind, tool_name, duration_ms, success, meta, created_at")
@@ -151,13 +158,15 @@ export async function getAiQualitySummary(limit = 500): Promise<AiQualitySummary
     };
 
     for (const row of data) {
-      const kind = row.kind as QualityEventKind;
-      if (kind === "turn" && typeof row.duration_ms === "number") {
+      const kind = String(row.kind);
+      if (kind === "assistant_turn" && typeof row.duration_ms === "number") {
         turnDurations += row.duration_ms;
         turnCount += 1;
       }
-      if (kind === "tool_success") toolOk += 1;
-      if (kind === "tool_error") toolErr += 1;
+      if (kind === "tool_call") {
+        if (row.success === false) toolErr += 1;
+        else toolOk += 1;
+      }
       if (kind === "data_gap") dataGaps += 1;
       if (kind === "hallucination_guard") guards += 1;
       if (kind === "confirmation_blocked") confirms += 1;
@@ -167,12 +176,11 @@ export async function getAiQualitySummary(limit = 500): Promise<AiQualitySummary
       }
     }
 
-    const toolCalls = toolOk + toolErr;
-
     return {
       responseTimeMsAvg: turnCount > 0 ? Math.round(turnDurations / turnCount) : null,
-      toolSuccessRate: toolCalls > 0 ? Math.round((toolOk / toolCalls) * 1000) / 10 : null,
-      toolCalls,
+      toolSuccessRate:
+        toolOk + toolErr > 0 ? Math.round((toolOk / (toolOk + toolErr)) * 100) : null,
+      toolCalls: toolOk + toolErr,
       toolErrors: toolErr,
       dataGapEvents: dataGaps,
       hallucinationGuards: guards,

@@ -40,11 +40,17 @@ function isGoLiveStorageCategory(categoryId: string) {
 }
 
 const VOICE_AND_VIDEO_DOC_PATH = "docs/VOICE_AND_VIDEO_ARCHITECTURE.md";
+const EXECUTIVE_AI_DOC_PATH = "docs/EXECUTIVE_AI_PLATFORM.md";
 
 function readSeedDetailContent(categoryId: string): string | null {
-  if (categoryId !== "voice-and-video") return null;
+  const pathByCategory: Record<string, string> = {
+    "voice-and-video": VOICE_AND_VIDEO_DOC_PATH,
+    "ai-agent": EXECUTIVE_AI_DOC_PATH,
+  };
+  const relativePath = pathByCategory[categoryId];
+  if (!relativePath) return null;
   try {
-    return readFileSync(join(process.cwd(), VOICE_AND_VIDEO_DOC_PATH), "utf8");
+    return readFileSync(join(process.cwd(), relativePath), "utf8");
   } catch {
     return null;
   }

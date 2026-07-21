@@ -22,7 +22,7 @@ import type {
   AssistantStreamEvent,
 } from "./types";
 import type { PlatformSession } from "@/lib/platform-auth";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
 
 type EasyInputMessage = {
   role: "user" | "assistant" | "system" | "developer";
@@ -53,7 +53,7 @@ async function resolveHistory(
   request: AssistantChatRequest,
   context: AssistantBusinessContext,
 ): Promise<{ conversationId: string | null; history: AssistantChatMessage[]; title: string }> {
-  if (request.conversationId && isSupabaseConfigured()) {
+  if (request.conversationId && isSupabaseServiceRoleConfigured()) {
     const existing = await getConversationForUser(request.conversationId, session.sub);
     if (existing) {
       return {
@@ -88,7 +88,7 @@ async function persistTurn(input: {
   context: AssistantBusinessContext;
   title: string;
 }) {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseServiceRoleConfigured()) {
     return {
       conversationId: input.conversationId ?? `local_${createMessageId()}`,
       title: input.title,

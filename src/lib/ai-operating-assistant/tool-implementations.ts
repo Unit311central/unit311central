@@ -5,12 +5,9 @@ import { vacationDaysRemaining } from "@/lib/hr-data";
 import { listLeads } from "@/lib/crm-leads-service";
 import { browseFolder, getFileDownloadUrl } from "@/lib/internal-files-service";
 import { listExpenses } from "@/lib/financial-expenses-service";
-import { actionRequiredItems } from "@/lib/internal-operations-command-data";
-import { CAREER_APPLICANTS } from "@/lib/career-applicants-data";
-import { CAREER_OPENINGS } from "@/lib/careers-data";
-import { DEBTORS_ACCOUNTS } from "@/lib/financials-ledger-mock-data";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { INTERNAL_FILES_BUCKET } from "@/lib/internal-files-data";
+import { loadLiveInvoices } from "./live-finance";
 
 import { actionFollowUps } from "./action-service";
 import type { AssistantToolExecutionContext } from "./tool-result";
@@ -285,8 +282,8 @@ export async function searchEmployees(
       filtered = filtered.filter((employee) => vacationDaysRemaining(employee) <= 0);
     }
 
-    const openings = CAREER_OPENINGS;
-    const openRecruitmentPositions = openings.length;
+    const openingsUnavailable =
+      "Careers openings are not connected to live storage — open recruitment count is unavailable.";
 
     return toolOk(
       "searchEmployees",
@@ -309,18 +306,18 @@ export async function searchEmployees(
           : {}),
       })),
       {
-        source: ["supabase:hr_employees", "mock:career_openings"],
+        source: ["supabase:hr_employees"],
         page: asNumber(args.page, 1),
         pageSize: asNumber(args.pageSize, 20),
         summary: {
           matched: filtered.length,
           headcount: employees.length,
-          openRecruitmentPositions,
-          openRoles: openings.map((opening) => opening.title),
+          openRecruitmentPositions: null,
+          openRoles: [] as string[],
         },
         dataGaps: [
           "Dated leave requests are not stored; onLeave approximates employees with no remaining vacation days.",
-          "Recruitment openings currently come from careers mock data until careers tables are live.",
+          openingsUnavailable,
         ],
         followUpActions: [
           nav("/internaldashboard?view=hr", "View HR"),
@@ -359,19 +356,6 @@ export async function searchTasks(
     const status = asString(args.status);
     const now = new Date();
 
-    const dashboardTasks = actionRequiredItems.map((item) => ({
-      id: item.id,
-      title: item.task,
-      assignedTo: item.assignedTo,
-      due: item.due,
-      priority: item.priority,
-      status: isOverdue(item.due, now) ? "overdue" : "open",
-      source: "command_centre",
-      href: item.href ?? "/internaldashboard?view=home",
-      projectId: ctx.business.selection.projectId ?? null,
-      clientId: ctx.business.selection.clientId ?? null,
-    }));
-
     const leads = await listLeads("All").catch(() => []);
     const crmTasks = leads
       .filter((lead) => lead.nextAction?.trim())
@@ -389,7 +373,7 @@ export async function searchTasks(
         companyName: lead.companyName,
       }));
 
-    let items = [...dashboardTasks, ...crmTasks];
+    let items = [...crmTasks];
     if (status) {
       items = items.filter((item) => item.status === status.toLowerCase());
     }
@@ -409,7 +393,7 @@ export async function searchTasks(
     const highestWorkload = [...workload.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
 
     return toolOk("searchTasks", items, {
-      source: ["mock:command_centre_action_items", "supabase:crm_leads.next_action"],
+      source: ["supabase:crm_leads.next_action"],
       page: asNumber(args.page, 1),
       pageSize: asNumber(args.pageSize, 20),
       summary: {
@@ -420,7 +404,7 @@ export async function searchTasks(
           : null,
       },
       dataGaps: [
-        "Dedicated tasks table is not live; results combine command-centre action items and CRM next actions.",
+        "Dedicated tasks table is not live; results use CRM next actions only.",
       ],
       followUpActions: [
         nav("/internaldashboard", "View Tasks"),
@@ -753,9 +737,9 @@ export async function generateReport(
 
     const overdueProjects = projects.filter((project) => isOverdue(project.endDate));
     const unpaidExpenses = expenses.filter((expense) => !expense.paid);
-    const overdueDebtors = DEBTORS_ACCOUNTS.filter((row) => row.status === "overdue");
-    const openRoles = CAREER_OPENINGS;
-    const applicants = CAREER_APPLICANTS;
+    const invoiceLoad = ctx.business.permissions.canAccessFinancials
+      ? await loadLiveInvoices()
+      : { ok: false as const, invoices: [], overdue: [], error: "Finance restricted" };
 
     const sections: Array<{ title: string; bullets: string[]; citations: string[] }> = [];
 
@@ -807,17 +791,23 @@ export async function generateReport(
     if (reportType === "finance" || reportType === "board") {
       sections.push({
         title: "Financial summary",
-        bullets: [
-          `${unpaidExpenses.length} unpaid expense records (live)`,
-          `${overdueDebtors.length} overdue debtor accounts (ledger dataset)`,
-          ...overdueDebtors
-            .slice(0, 5)
-            .map(
-              (row) =>
-                `${row.name} · outstanding ${row.outstanding} · due ${row.dueDate} (${row.daysOverdue}d)`,
-            ),
-        ],
-        citations: ["financial_expenses", "financials_ledger_dataset"],
+        bullets: invoiceLoad.ok
+          ? [
+              `${unpaidExpenses.length} unpaid expense records (live)`,
+              `${invoiceLoad.invoices.length} invoices in the live ledger`,
+              `${invoiceLoad.overdue.length} overdue invoices`,
+              ...invoiceLoad.overdue.slice(0, 5).map(
+                (invoice) =>
+                  `${invoice.clientName ?? invoice.invoiceNumber} · ${invoice.currency} ${invoice.amount} · due ${invoice.dueDate}`,
+              ),
+            ]
+          : [
+              `${unpaidExpenses.length} unpaid expense records (live)`,
+              "Data unavailable — live invoice ledger could not be loaded.",
+            ],
+        citations: invoiceLoad.ok
+          ? ["financial_expenses", "invoices"]
+          : ["financial_expenses"],
       });
     }
 
@@ -825,11 +815,10 @@ export async function generateReport(
       sections.push({
         title: "HR summary",
         bullets: [
-          `${employees.length} employees`,
-          `${openRoles.length} open recruitment positions`,
-          `${applicants.length} applicants in pipeline (careers dataset)`,
+          `${employees.length} employees (live)`,
+          "Data unavailable — careers openings and applicants are not connected to live storage.",
         ],
-        citations: ["hr_employees", "careers_dataset"],
+        citations: ["hr_employees"],
       });
     }
 
@@ -851,8 +840,7 @@ export async function generateReport(
           "supabase:crm_leads",
           "supabase:financial_expenses",
           "supabase:hr_employees",
-          "dataset:debtors",
-          "dataset:careers",
+          ...(invoiceLoad.ok ? ["supabase:invoices"] : []),
         ],
         page: 1,
         pageSize: sections.length,
@@ -863,7 +851,8 @@ export async function generateReport(
           workspace: ctx.business.workspace.name,
         },
         dataGaps: [
-          "Debtors/creditors and careers openings are dataset-backed until dedicated tables are live.",
+          ...(invoiceLoad.ok ? [] : ["Live invoice ledger unavailable for this report."]),
+          "Careers openings/applicants are not connected to live storage.",
           "Board narrative text must be written from these figures only — do not invent metrics.",
         ],
         followUpActions: [

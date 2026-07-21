@@ -1,4 +1,7 @@
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import {
+  createSupabaseServiceRoleClient,
+  isSupabaseServiceRoleConfigured,
+} from "@/lib/supabase/server";
 
 import type {
   AssistantBusinessContext,
@@ -35,10 +38,12 @@ function mapRow(row: DbRow): AssistantConversationRecord {
 }
 
 function requireClient() {
-  if (!isSupabaseConfigured()) {
-    throw new Error("Supabase is not configured for conversation storage.");
+  if (!isSupabaseServiceRoleConfigured()) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is required for conversation storage (RLS has no open policies).",
+    );
   }
-  return createSupabaseServerClient();
+  return createSupabaseServiceRoleClient();
 }
 
 export function createMessageId() {
@@ -182,11 +187,11 @@ export async function deleteConversation(input: {
 }
 
 export async function ensureConversationTables(): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
+  if (!isSupabaseServiceRoleConfigured()) return false;
   try {
     // Tables are created by supabase/migrations/101_executive_assistant_conversations.sql
     // (and 102 for trust). Probe availability; do not auto-apply migrations here.
-    const supabase = createSupabaseServerClient();
+    const supabase = createSupabaseServiceRoleClient();
     const { error } = await supabase.from(TABLE).select("id").limit(1);
     return !error;
   } catch {

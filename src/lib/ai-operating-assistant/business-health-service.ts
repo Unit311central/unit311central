@@ -1,9 +1,9 @@
 import { listProjects } from "@/lib/internal-projects-service";
 import { listLeads } from "@/lib/crm-leads-service";
 import { listInternalClients } from "@/lib/internal-clients-service";
-import { DEBTORS_ACCOUNTS } from "@/lib/financials-ledger-mock-data";
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { vacationDaysRemaining } from "@/lib/hr-data";
+import { loadLiveInvoices } from "./live-finance";
 import { isOverdue, type AssistantFollowUpAction } from "./tool-result";
 import type { AssistantBusinessContext } from "./types";
 import type { BusinessHealthScore, HealthDimension } from "./executive-types";
@@ -24,7 +24,8 @@ function nav(href: string, label: string): AssistantFollowUpAction {
 export async function buildBusinessHealthScore(
   context: AssistantBusinessContext,
 ): Promise<BusinessHealthScore> {
-  const { insights, dataGaps } = await analysePlatformInsights(context);
+  const { insights, dataGaps: insightGaps } = await analysePlatformInsights(context);
+  const dataGaps = [...insightGaps];
   const [projects, leads, clients] = await Promise.all([
     listProjects().catch(() => []),
     listLeads().catch(() => []),
@@ -39,18 +40,24 @@ export async function buildBusinessHealthScore(
     88 - overdue.length * 12 - stale.length * 6 + Math.min(live.length, 5) * 2,
   );
 
-  let financeScore = 72;
+  let financeScore = 0;
   const financeStrengths: string[] = [];
   const financeRisks: string[] = [];
   if (context.permissions.canAccessFinancials) {
-    const overdueInvoices = DEBTORS_ACCOUNTS.filter(
-      (account) => account.status === "overdue" || account.daysOverdue > 0,
-    );
-    financeScore = clampScore(90 - overdueInvoices.length * 10);
-    if (overdueInvoices.length === 0) {
-      financeStrengths.push("No overdue receivables in the current ledger snapshot");
+    const invoiceLoad = await loadLiveInvoices();
+    if (!invoiceLoad.ok) {
+      financeScore = 0;
+      financeRisks.push("Data unavailable — live invoice ledger could not be loaded");
+      dataGaps.push(invoiceLoad.error);
     } else {
-      financeRisks.push(`${overdueInvoices.length} overdue receivable accounts`);
+      financeScore = clampScore(90 - invoiceLoad.overdue.length * 10);
+      if (invoiceLoad.overdue.length === 0) {
+        financeStrengths.push(
+          `No overdue invoices among ${invoiceLoad.invoices.length} live invoice records`,
+        );
+      } else {
+        financeRisks.push(`${invoiceLoad.overdue.length} overdue invoices in the live ledger`);
+      }
     }
   } else {
     financeScore = 0;
@@ -213,7 +220,7 @@ export async function buildBusinessHealthScore(
         "supabase:internal_projects",
         "supabase:internal_clients",
         "supabase:crm_leads",
-        ...(context.permissions.canAccessFinancials ? ["dataset:debtors"] : []),
+        ...(context.permissions.canAccessFinancials ? ["supabase:invoices"] : []),
         ...(context.permissions.canAccessHr ? ["supabase:hr_employees"] : []),
         "ai:smart-insights",
       ],

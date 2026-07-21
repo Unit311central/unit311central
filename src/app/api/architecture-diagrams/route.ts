@@ -8,6 +8,7 @@ import {
   listArchitectureDiagrams,
   upsertArchitectureDiagram,
 } from "@/lib/architecture-diagram-service";
+import type { ArchitectureCatalogEntry } from "@/lib/architecture-diagram-data";
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
       title?: string;
       useStorageTemplate?: boolean;
       usePlatformOverviewTemplate?: boolean;
-      seedTemplate?: "blank" | "storage" | "platform-overview" | "voice-and-video" | "software-asset-register";
+      seedTemplate?: ArchitectureCatalogEntry["seedTemplate"];
       diagramJson?: unknown;
     };
 

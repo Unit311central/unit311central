@@ -1,11 +1,9 @@
-import { executiveRevenueSummary } from "@/lib/internal-operations-command-data";
 import { listProjects } from "@/lib/internal-projects-service";
 import { listInternalClients } from "@/lib/internal-clients-service";
 import { listLeads } from "@/lib/crm-leads-service";
-import { CAREER_APPLICANTS } from "@/lib/career-applicants-data";
-import { DEBTORS_ACCOUNTS } from "@/lib/financials-ledger-mock-data";
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { vacationDaysRemaining } from "@/lib/hr-data";
+import { loadLiveInvoices } from "./live-finance";
 import { isOverdue } from "./tool-result";
 import type { AssistantBusinessContext } from "./types";
 import type { DailyExecutiveBrief } from "./executive-types";
@@ -22,7 +20,7 @@ export { briefDateKey } from "./date-keys";
 
 /**
  * Daily Executive Brief — personalised, concise, actionable.
- * Generated from live platform data + smart insights (no separate LLM call required).
+ * Generated from live platform data only (no mock revenue / debtors / careers).
  */
 export async function buildDailyExecutiveBrief(
   context: AssistantBusinessContext,
@@ -32,7 +30,8 @@ export async function buildDailyExecutiveBrief(
     context.user.displayName,
   );
   const focus = getRoleFocusProfile(persona);
-  const { insights, dataGaps } = await analysePlatformInsights(context);
+  const { insights, dataGaps: insightGaps } = await analysePlatformInsights(context);
+  const dataGaps = [...insightGaps];
 
   const [projects, clients, leads] = await Promise.all([
     listProjects().catch(() => []),
@@ -74,7 +73,7 @@ export async function buildDailyExecutiveBrief(
       bullets:
         overdueProjects.length > 0
           ? overdueProjects.slice(0, 5).map((project) => `${project.name} · ${project.clientName}`)
-          : ["No overdue projects in the current dataset."],
+          : ["No overdue projects in the current live dataset."],
     },
     {
       id: "overdue_tasks",
@@ -98,7 +97,7 @@ export async function buildDailyExecutiveBrief(
 
   if (sections.find((section) => section.id === "overdue_tasks")?.bullets.length === 0) {
     sections.find((section) => section.id === "overdue_tasks")!.bullets = [
-      "No high-priority operational tasks flagged.",
+      "No overdue CRM next-actions flagged from live leads.",
     ];
   }
 
@@ -119,23 +118,13 @@ export async function buildDailyExecutiveBrief(
   if (context.permissions.canAccessHr) {
     const employees = await listHrEmployees().catch(() => []);
     const leaveToday = employees.filter((employee) => vacationDaysRemaining(employee) <= 0);
-    const recruitment = CAREER_APPLICANTS.filter(
-      (row) =>
-        row.status === "new" ||
-        row.status === "screening" ||
-        row.status === "interview-scheduled",
-    );
 
     sections.push({
       id: "recruitment",
       title: "Recruitment activity",
-      bullets:
-        recruitment.length > 0
-          ? recruitment
-              .slice(0, 4)
-              .map((row) => `${row.name} · ${row.openingId} · ${row.status}`)
-          : ["No active applicants in the careers pipeline dataset."],
+      bullets: ["Data unavailable — careers applicant storage is not connected."],
     });
+    dataGaps.push("Careers applicant pipeline is not connected to live storage.");
 
     sections.push({
       id: "leave",
@@ -148,25 +137,29 @@ export async function buildDailyExecutiveBrief(
   }
 
   if (context.permissions.canAccessFinancials) {
-    const overdueInvoices = DEBTORS_ACCOUNTS.filter(
-      (account) => account.status === "overdue" || account.daysOverdue > 0,
-    );
-    sections.push({
-      id: "finance",
-      title: "Financial highlights",
-      bullets: [
-        `Past month revenue signal: €${executiveRevenueSummary.pastMonth.value.toLocaleString()} (${executiveRevenueSummary.pastMonth.change})`,
-        overdueInvoices.length > 0
-          ? `${overdueInvoices.length} overdue receivable account${overdueInvoices.length === 1 ? "" : "s"}`
-          : "No overdue receivables in the current ledger snapshot.",
-        ...overdueInvoices
-          .slice(0, 2)
-          .map(
-            (account) =>
-              `${account.name}: €${account.outstanding.toLocaleString()} · ${account.daysOverdue}d overdue`,
-          ),
-      ],
-    });
+    const invoiceLoad = await loadLiveInvoices();
+    if (!invoiceLoad.ok) {
+      sections.push({
+        id: "finance",
+        title: "Financial highlights",
+        bullets: ["Data unavailable — live invoice ledger could not be loaded."],
+      });
+      dataGaps.push(invoiceLoad.error);
+    } else {
+      sections.push({
+        id: "finance",
+        title: "Financial highlights",
+        bullets: [
+          `${invoiceLoad.invoices.length} invoices in the live ledger`,
+          invoiceLoad.overdue.length > 0
+            ? `${invoiceLoad.overdue.length} overdue invoice${invoiceLoad.overdue.length === 1 ? "" : "s"}`
+            : "No overdue invoices in the live ledger.",
+          ...invoiceLoad.overdue.slice(0, 2).map((invoice) => {
+            return `${invoice.clientName ?? invoice.invoiceNumber}: ${invoice.currency} ${invoice.amount.toLocaleString()} · due ${invoice.dueDate}`;
+          }),
+        ],
+      });
+    }
   }
 
   const recentClients = clients.slice(0, 3);

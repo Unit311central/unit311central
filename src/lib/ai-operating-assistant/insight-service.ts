@@ -3,12 +3,10 @@ import { listProjects } from "@/lib/internal-projects-service";
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { vacationDaysRemaining } from "@/lib/hr-data";
 import { listLeads } from "@/lib/crm-leads-service";
-import { actionRequiredItems } from "@/lib/internal-operations-command-data";
-import { CAREER_APPLICANTS } from "@/lib/career-applicants-data";
-import { DEBTORS_ACCOUNTS } from "@/lib/financials-ledger-mock-data";
+import { daysOverdue, loadLiveInvoices } from "./live-finance";
 import { isOverdue, parseDate, type AssistantFollowUpAction } from "./tool-result";
 import type { AssistantBusinessContext } from "./types";
-import type { ExecutiveInsight, InsightSeverity, ProactiveNotification } from "./executive-types";
+import type { ExecutiveInsight, ProactiveNotification } from "./executive-types";
 import {
   filterInsightsForRole,
   resolveExecutivePersona,
@@ -52,14 +50,14 @@ function defaultSources(category: ExecutiveInsight["category"]): string[] {
     case "contracts":
       return ["supabase:internal_clients"];
     case "finance":
-      return ["dataset:debtors"];
+      return ["supabase:invoices"];
     case "hr":
     case "recruitment":
-      return ["supabase:hr_employees", "dataset:career_applicants"];
+      return ["supabase:hr_employees"];
     case "crm":
       return ["supabase:crm_leads"];
     case "operations":
-      return ["dataset:command_centre_actions"];
+      return ["supabase:crm_leads.next_action"];
     case "compliance":
       return ["ai:compliance-watch"];
     default:
@@ -339,47 +337,58 @@ export async function analysePlatformInsights(
     }
   }
 
-  // Overdue tasks from command centre
-  for (const item of actionRequiredItems) {
-    if (item.priority === "critical" || item.priority === "high") {
-      insights.push(
-        insight({
-          id: `task_${item.id}`,
-          category: "operations",
-          severity: item.priority as InsightSeverity,
-          title: item.task,
-          summary: `Assigned to ${item.assignedTo} · due ${item.due}`,
-          entityType: "task",
-          entityId: item.id,
-          entityLabel: item.task,
-          recommendedActions: actions(
-            nav(item.href ?? "/internaldashboard?view=home", "Open related view"),
-            { id: `email_${item.id}`, label: "Email Owner", kind: "email" },
-          ),
-        }),
-      );
-    }
+  // Operational tasks — live CRM next-actions only (no mock command-centre tasks)
+  for (const lead of leads) {
+    const next = (lead.nextAction ?? "").trim();
+    if (!next) continue;
+    const due = lead.nextActionDate ?? null;
+    const overdueNext = due ? isOverdue(due) : false;
+    if (!overdueNext) continue;
+    insights.push(
+      insight({
+        id: `crm_task_${lead.id}`,
+        category: "operations",
+        severity: "high",
+        title: next,
+        summary: `CRM next action overdue for ${lead.companyName || lead.contactName}${due ? ` · due ${due}` : ""}`,
+        entityType: "lead",
+        entityId: lead.id,
+        entityLabel: lead.companyName || lead.contactName,
+        dataSources: ["supabase:crm_leads.next_action"],
+        recommendedActions: actions(
+          nav("/internaldashboard?view=crm", "Open CRM"),
+          { id: `email_${lead.id}`, label: "Email Contact", kind: "email" },
+        ),
+      }),
+    );
   }
 
-  // Finance — overdue invoices
+  // Finance — live overdue invoices only
   if (context.permissions.canAccessFinancials) {
-    for (const account of DEBTORS_ACCOUNTS) {
-      if (account.status === "overdue" || account.daysOverdue > 0) {
+    const invoiceLoad = await loadLiveInvoices();
+    if (!invoiceLoad.ok) {
+      dataGaps.push("Live invoice ledger unavailable — financial pulse shows Data unavailable.");
+    } else if (invoiceLoad.overdue.length === 0) {
+      // no fabricated “all clear” insight — absence is reported via brief/health gaps
+    } else {
+      for (const invoice of invoiceLoad.overdue.slice(0, 12)) {
+        const days = daysOverdue(invoice);
         insights.push(
           insight({
-            id: `invoice_${account.id}`,
+            id: `invoice_${invoice.id}`,
             category: "finance",
-            severity: account.daysOverdue >= 30 ? "critical" : "high",
-            title: `Invoice overdue · ${account.name}`,
-            summary: `${account.reference} · €${account.outstanding.toLocaleString()} · ${account.daysOverdue} days overdue`,
+            severity: days >= 30 ? "critical" : "high",
+            title: `Invoice overdue · ${invoice.clientName ?? invoice.invoiceNumber}`,
+            summary: `${invoice.invoiceNumber} · ${invoice.currency} ${invoice.amount.toLocaleString()} · ${days} days overdue`,
             entityType: "invoice",
-            entityId: account.id,
-            entityLabel: account.name,
+            entityId: invoice.id,
+            entityLabel: invoice.clientName ?? invoice.invoiceNumber,
+            dataSources: ["supabase:invoices"],
             relatedWorkflowId: "chase_overdue_invoice",
             recommendedActions: actions(
+              nav("/internaldashboard?view=financials", "Open Finance"),
               nav("/internaldashboard?view=debtors", "Open Debtors"),
               { id: "email_accounts", label: "Email Accounts Contact", kind: "email" },
-              nav("/internaldashboard?view=clients", "Open Client"),
             ),
           }),
         );
@@ -437,29 +446,9 @@ export async function analysePlatformInsights(
       }
     }
 
-    // Mandatory training proxy via careers / QMS — flag if many open applicants (recruitment)
-    const openApplicants = CAREER_APPLICANTS.filter(
-      (row) =>
-        row.status === "new" ||
-        row.status === "screening" ||
-        row.status === "interview-scheduled",
+    dataGaps.push(
+      "Careers / recruitment applicant pipeline is not connected to live storage — recruitment metrics show Data unavailable.",
     );
-    if (openApplicants.length > 0) {
-      insights.push(
-        insight({
-          id: "recruitment_pipeline",
-          category: "recruitment",
-          severity: "low",
-          title: `${openApplicants.length} active recruitment candidate${openApplicants.length === 1 ? "" : "s"}`,
-          summary: "Careers pipeline has applicants needing review.",
-          relatedWorkflowId: "recruit_employee",
-          recommendedActions: actions(
-            nav("/internaldashboard?view=careers", "Open Careers"),
-            nav("/internaldashboard?view=hr", "Open HR"),
-          ),
-        }),
-      );
-    }
 
     insights.push(
       insight({

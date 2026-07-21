@@ -346,7 +346,7 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
               )}
             >
               <Sparkles className="h-3 w-3" />
-              {brief ? "Live" : loading ? "Loading" : "Unavailable"}
+              {brief ? "Live analysis" : loading ? "Loading" : "Unavailable"}
             </span>
           </div>
 
