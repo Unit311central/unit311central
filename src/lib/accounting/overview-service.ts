@@ -12,6 +12,7 @@ import {
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { listWiseBalances } from "@/lib/wise-service";
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
@@ -20,14 +21,14 @@ function roundMoney(value: number) {
 function emptyBurnRate(cashBalance = 0): FinancialOverviewSnapshot["burnRate"] {
   return {
     source: "live",
-    currency: "EUR",
+    currency: "USD",
     monthly: 0,
     quarterly: 0,
     annual: 0,
     previousMonthly: 0,
     changePct: 0,
     trend: "stable",
-    trendLabel: "—",
+    trendLabel: "No change",
     cashBalance,
     runwayMonths: null,
     forecastMonthly: 0,
@@ -40,6 +41,17 @@ function emptyBurnRate(cashBalance = 0): FinancialOverviewSnapshot["burnRate"] {
       offices: [],
     },
   };
+}
+
+/** Live Wise treasury total when API is available; otherwise GL Wise accounts. */
+async function resolveTreasuryCash(glWiseCash: number): Promise<number> {
+  try {
+    const balances = await listWiseBalances();
+    if (balances.length === 0) return roundMoney(glWiseCash);
+    return roundMoney(balances.reduce((sum, balance) => sum + (Number(balance.amount) || 0), 0));
+  } catch {
+    return roundMoney(glWiseCash);
+  }
 }
 
 function emptyOverview(): FinancialOverviewSnapshot {
@@ -165,7 +177,6 @@ export async function getFinancialOverview(
     });
 
     const yearPrefix = todayIso.slice(0, 4);
-    const monthlyRevenuePoint = charts.monthlyRevenue.find((point) => point.month === monthPrefix);
     const monthlyExpensePoint = charts.monthlyOutgoings.find((point) => point.month === monthPrefix);
     const annualRevenue = roundMoney(
       charts.monthlyRevenue
@@ -184,10 +195,22 @@ export async function getFinancialOverview(
             cashBalance: totals.cashPosition,
             monthlyOutgoings: charts.monthlyOutgoings,
             postedExpenses,
-            currency: "EUR",
+            currency: "USD",
             allowDemo: false,
           })
         : emptyBurnRate(totals.cashPosition);
+
+    const glRevenue = totals.income;
+    const glSpend = totals.expenses;
+    const netProfit = roundMoney(glRevenue - glSpend);
+    const cashPosition = await resolveTreasuryCash(totals.cashPosition);
+
+    // Monthly burn from live expenses only — never invent a forecast base.
+    const monthlyBurn =
+      burnRate.lines.length > 0
+        ? burnRate.monthly
+        : monthlyExpensePoint?.amount ?? 0;
+    const forecastMonthly = burnRate.lines.length > 0 ? burnRate.forecastMonthly : 0;
 
     const payrollPoint =
       burnRate.series.find((point) => point.month === monthPrefix) ??
@@ -199,17 +222,24 @@ export async function getFinancialOverview(
     }));
 
     return {
-      revenueYtd: totals.income,
-      cashPosition: totals.cashPosition,
+      revenueYtd: glRevenue,
+      cashPosition,
       accountsReceivable: totals.accountsReceivable,
       accountsPayable: totals.accountsPayable,
-      netProfit: totals.netProfit,
+      netProfit,
       outstandingInvoices: unpaid.length,
-      monthlyRevenue: monthlyRevenuePoint?.amount ?? 0,
-      monthlyExpenses: monthlyExpensePoint?.amount ?? 0,
+      // Executive KPIs: current GL revenue / total GL expenses (0 when empty).
+      monthlyRevenue: glRevenue,
+      monthlyExpenses: glSpend,
       annualRevenue,
       annualExpenses,
-      burnRate,
+      burnRate: {
+        ...burnRate,
+        monthly: roundMoney(monthlyBurn),
+        forecastMonthly: roundMoney(forecastMonthly),
+        cashBalance: cashPosition,
+        trendLabel: burnRate.lines.length > 0 ? burnRate.trendLabel : "No change",
+      },
       ar: {
         outstanding: unpaid.reduce((sum, invoice) => sum + invoice.amount, 0),
         overdue: overdue.reduce((sum, invoice) => sum + invoice.amount, 0),

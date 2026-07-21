@@ -158,7 +158,7 @@ function MiniSpark({
 }
 
 function ProfessionalEmpty({
-  children = "Historical financial trends will appear as transactions are recorded.",
+  children = "Historical financial trends will appear automatically as financial transactions are recorded.",
 }: {
   children?: ReactNode;
 }) {
@@ -717,41 +717,24 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
   const payrollSpark = liveSpark(payrollLive);
   const burnSpark = liveSpark(spendLive);
 
-  const hasFinancialHistory = Boolean(
-    financial &&
-      (financial.charts.monthlyRevenue.length > 0 ||
-        financial.charts.monthlyOutgoings.length > 0 ||
-        financial.charts.cashPosition.length > 0 ||
-        financial.activity.length > 0 ||
-        financial.burnRate.lines.length > 0 ||
-        financial.monthlyRevenue !== 0 ||
-        financial.monthlyExpenses !== 0 ||
-        financial.cashPosition !== 0 ||
-        financial.accountsReceivable !== 0 ||
-        financial.accountsPayable !== 0 ||
-        financial.payroll.monthly !== 0),
+  /** Always show a currency amount — finance empty state is $0, never em dash. */
+  const money = (value: number | null | undefined) => formatMoney(value ?? 0);
+
+  const burnPerMonth = (value: number | null | undefined) => {
+    const formatted = money(value);
+    return formatted.endsWith("/month") ? formatted : `${formatted}/month`;
+  };
+
+  const hasTrendHistory = Boolean(
+    cashSpark || revenueSpark || spendSpark || (financial?.charts.cashPosition.length ?? 0) >= 2,
   );
 
-  const money = (value: number | null | undefined, opts?: { allowZero?: boolean }) => {
-    if (value == null) return "—";
-    if (!opts?.allowZero && !hasFinancialHistory && value === 0) return "—";
-    return formatMoney(value);
-  };
-
-  const burnMoney = (value: number | null | undefined) => {
-    if (!financial || financial.burnRate.lines.length === 0) return "—";
-    return money(value);
-  };
-
   const runwayLabel =
-    financial && financial.burnRate.lines.length > 0 && financial.burnRate.runwayMonths != null
+    financial?.burnRate.runwayMonths != null
       ? `${financial.burnRate.runwayMonths} mo`
-      : "—";
+      : "0 mo";
 
-  const burnTrendLabel =
-    financial && financial.burnRate.lines.length > 0 && financial.burnRate.trendLabel !== "—"
-      ? financial.burnRate.trendLabel
-      : "—";
+  const burnTrendLabel = financial?.burnRate.trendLabel || "No change";
 
   const purple = ACCENT.purple.spark;
   const cyan = ACCENT.cyan.spark;
@@ -852,8 +835,8 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
                     sparkColor={purple}
                   />
                   <KpiCell
-                    label="Forecast"
-                    value={burnMoney(financial?.burnRate.forecastMonthly)}
+                    label="Current forecast"
+                    value={money(financial?.burnRate.forecastMonthly)}
                     spark={burnSpark}
                     sparkColor="#c4b5fd"
                   />
@@ -866,7 +849,7 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
                   />
                   <KpiCell
                     label="Burn"
-                    value={burnMoney(financial?.burnRate.monthly)}
+                    value={burnPerMonth(financial?.burnRate.monthly)}
                     spark={burnSpark}
                     sparkColor="#a78bfa"
                   />
@@ -896,7 +879,10 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
                       spark={cashSpark}
                       sparkColor={purple}
                     />
-                    <KpiCell label="Burn / month" value={burnMoney(financial?.burnRate.monthly)} />
+                    <KpiCell
+                      label="Burn / month"
+                      value={burnPerMonth(financial?.burnRate.monthly)}
+                    />
                     <KpiCell label="Debtors" value={money(financial?.accountsReceivable)} />
                     <KpiCell label="Creditors" value={money(financial?.accountsPayable)} />
                   </div>
@@ -935,8 +921,8 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
                   <div className="grid grid-cols-2 content-start gap-2">
                     <KpiCell label="Revenue" value={money(financial?.monthlyRevenue)} />
                     <KpiCell
-                      label="Spend forecast"
-                      value={burnMoney(financial?.burnRate.forecastMonthly)}
+                      label="Current forecast"
+                      value={money(financial?.burnRate.forecastMonthly)}
                     />
                     <KpiCell label="Runway" value={runwayLabel} />
                     <KpiCell label="Burn trend" value={burnTrendLabel} />
@@ -949,17 +935,21 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
                     <KpiCell label="Net profit" value={money(financial?.netProfit)} />
                   </div>
                   <div className="min-h-0 flex-1">
-                    {revenueSpark ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={revenueSpark}>
-                          <Bar
-                            dataKey="amount"
-                            fill={purple}
-                            radius={[4, 4, 0, 0]}
-                            isAnimationActive={false}
-                          />
-                        </BarChart>
-                      </ResponsiveContainer>
+                    {revenueSpark || hasTrendHistory ? (
+                      revenueSpark ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={revenueSpark}>
+                            <Bar
+                              dataKey="amount"
+                              fill={purple}
+                              radius={[4, 4, 0, 0]}
+                              isAnimationActive={false}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <ProfessionalEmpty />
+                      )
                     ) : (
                       <ProfessionalEmpty />
                     )}
@@ -983,8 +973,8 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
               {tab === 0 ? (
                 <div className="flex h-full flex-col gap-2">
                   <div className="grid grid-cols-2 gap-2">
-                    <KpiCell label="Pipeline" value={money(commercial.pipeline, { allowZero: true })} />
-                    <KpiCell label="Closing" value={money(commercial.closingValue, { allowZero: true })} />
+                    <KpiCell label="Pipeline" value={money(commercial.pipeline)} />
+                    <KpiCell label="Closing" value={money(commercial.closingValue)} />
                     <KpiCell label="Opportunities" value={String(commercial.openCount)} />
                     <KpiCell
                       label="Win rate"
@@ -1003,7 +993,7 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
                     <KpiCell label="Active" value={String(commercial.activeCustomers)} />
                     <KpiCell label="Inactive" value={String(commercial.inactiveCustomers)} />
                     <KpiCell label="Total" value={String(commercial.customerTotal)} />
-                    <KpiCell label="Pipeline" value={money(commercial.pipeline, { allowZero: true })} />
+                    <KpiCell label="Pipeline" value={money(commercial.pipeline)} />
                   </div>
                   <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                     Customer portfolio
@@ -1036,7 +1026,7 @@ export default function InternalDashboardHome(_props?: { showCustomize?: boolean
                 <div className="flex h-full flex-col gap-2">
                   <div className="grid grid-cols-2 gap-2">
                     <KpiCell label="Closing" value={String(commercial.closingCount)} />
-                    <KpiCell label="Closing value" value={money(commercial.closingValue, { allowZero: true })} />
+                    <KpiCell label="Closing value" value={money(commercial.closingValue)} />
                     <KpiCell
                       label="Win rate"
                       value={commercial.winRate != null ? `${commercial.winRate}%` : "—"}
