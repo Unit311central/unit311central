@@ -4,7 +4,13 @@ import { listLeads } from "@/lib/crm-leads-service";
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { vacationDaysRemaining } from "@/lib/hr-data";
 import { listExpenses } from "@/lib/financial-expenses-service";
-import { getFinancialOverview } from "@/lib/accounting/overview-service";
+import {
+  FINANCIAL_REPORTING_CURRENCY,
+  getFinancialOverview,
+  resolveTreasuryCash,
+} from "@/lib/accounting/overview-service";
+import { getWiseConnectionStatus, listWiseBalances } from "@/lib/wise-service";
+import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import { loadLiveInvoices } from "./live-finance";
 import { isOverdue } from "./tool-result";
 import type { AssistantBusinessContext } from "./types";
@@ -37,6 +43,7 @@ export async function buildBusinessSnapshot(
     expenses,
     invoiceLoad,
     financialOverview,
+    wiseCash,
   ] = await Promise.all([
     want("clients") || want("overview")
       ? listInternalClients().catch(() => [])
@@ -64,6 +71,68 @@ export async function buildBusinessSnapshot(
           context.workspace.id ? { workspaceId: context.workspace.id } : undefined,
         ).catch(() => null)
       : Promise.resolve(null),
+    // Always try live Wise when finance is in scope — same source as Finance → Bank.
+    want("finance") && context.permissions.canAccessFinancials
+      ? (async () => {
+          try {
+            const status = await getWiseConnectionStatus();
+            if (!status.configured) {
+              return {
+                ok: false as const,
+                totalGbp: await resolveTreasuryCash(0),
+                balances: [] as Array<{
+                  currency: string;
+                  amount: number;
+                  type: string;
+                }>,
+                error: "Wise is not configured.",
+                connected: false,
+              };
+            }
+            if (!status.connected) {
+              const totalGbp = await resolveTreasuryCash(0);
+              return {
+                ok: false as const,
+                totalGbp,
+                balances: [] as Array<{
+                  currency: string;
+                  amount: number;
+                  type: string;
+                }>,
+                error: status.error || "Wise is not connected.",
+                connected: false,
+              };
+            }
+            const balances = await listWiseBalances(status.profileId ?? undefined);
+            const mapped = balances.map((balance) => ({
+              currency: balance.currency,
+              amount: balance.amount,
+              type: balance.type,
+              amountGbp: convertToGbp(balance.amount, balance.currency),
+            }));
+            const totalGbp = mapped.reduce((sum, row) => sum + row.amountGbp, 0);
+            return {
+              ok: true as const,
+              totalGbp: Math.round(totalGbp * 100) / 100,
+              balances: mapped,
+              error: null as string | null,
+              connected: true,
+            };
+          } catch (error) {
+            return {
+              ok: false as const,
+              totalGbp: await resolveTreasuryCash(0).catch(() => 0),
+              balances: [] as Array<{
+                currency: string;
+                amount: number;
+                type: string;
+              }>,
+              error: error instanceof Error ? error.message : "Wise balances unavailable.",
+              connected: false,
+            };
+          }
+        })()
+      : Promise.resolve(null),
   ]);
 
   const activeClients = clients.filter((client) => client.accountStatus === "Active");
@@ -82,6 +151,14 @@ export async function buildBusinessSnapshot(
   if (want("finance") && context.permissions.canAccessFinancials && !invoiceLoad.ok) {
     dataGaps.push(invoiceLoad.error || "Invoice ledger unavailable.");
   }
+  if (want("finance") && context.permissions.canAccessFinancials && wiseCash && !wiseCash.ok) {
+    dataGaps.push(wiseCash.error || "Live Wise balances unavailable.");
+  }
+
+  const cashPosition =
+    wiseCash?.ok && wiseCash.totalGbp > 0
+      ? wiseCash.totalGbp
+      : financialOverview?.cashPosition ?? wiseCash?.totalGbp ?? null;
 
   return {
     asOf: new Date().toISOString(),
@@ -99,7 +176,10 @@ export async function buildBusinessSnapshot(
       outstandingInvoices: invoiceLoad.ok ? invoiceLoad.invoices.filter((i) => i.status !== "paid" && i.status !== "cancelled" && i.status !== "draft").length : null,
       overdueInvoices: invoiceLoad.ok ? invoiceLoad.overdue.length : null,
       unpaidExpenses: context.permissions.canAccessFinancials ? unpaidExpenses.length : null,
-      cashPosition: financialOverview?.cashPosition ?? null,
+      cashPosition,
+      reportingCurrency: FINANCIAL_REPORTING_CURRENCY,
+      wiseBalances: wiseCash?.balances ?? null,
+      wiseConnected: wiseCash?.connected ?? null,
       revenueYtd: financialOverview?.revenueYtd ?? null,
       netProfit: financialOverview?.netProfit ?? null,
       monthlyBurn: financialOverview?.burnRate.monthly ?? null,
@@ -182,7 +262,17 @@ export async function buildBusinessSnapshot(
     finance: want("finance")
       ? context.permissions.canAccessFinancials
         ? {
-            cashPosition: financialOverview?.cashPosition ?? 0,
+            reportingCurrency: FINANCIAL_REPORTING_CURRENCY,
+            cashPosition: cashPosition ?? 0,
+            bankBalanceGbp: cashPosition ?? 0,
+            wise: wiseCash
+              ? {
+                  connected: wiseCash.connected,
+                  totalGbp: wiseCash.totalGbp,
+                  balances: wiseCash.balances,
+                  error: wiseCash.error,
+                }
+              : null,
             revenueYtd: financialOverview?.revenueYtd ?? 0,
             netProfit: financialOverview?.netProfit ?? 0,
             accountsReceivable: financialOverview?.accountsReceivable ?? 0,
@@ -211,6 +301,6 @@ export async function buildBusinessSnapshot(
       : undefined,
     dataGaps,
     guidance:
-      "Answer the user's question using only these live figures. If a field is null/empty/zero, say so plainly — do not invent numbers.",
+      "Answer the user's question using only these live figures. Cash / bank balance comes from Wise treasury (GBP total plus per-currency balances). If a field is null/empty/zero, say so plainly — do not invent numbers. Prefer GBP formatting for cashPosition.",
   };
 }

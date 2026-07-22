@@ -1025,7 +1025,7 @@ export default function ExecutiveAssistantPanel({
             </button>
           </div>
           <p className="mt-2 text-[10px] text-white/30">
-            Voice shortcut: CTRL + Q · Esc cancels listening
+            Voice shortcut: CTRL + Q · Esc ends voice mode
           </p>
         </form>
 

@@ -15,6 +15,7 @@ type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  maxAlternatives?: number;
   onstart: ((event: Event) => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onerror: ((event: SpeechRecognitionErrorLike) => void) | null;
@@ -36,15 +37,27 @@ type SpeechRecognitionErrorLike = {
   error: string;
 };
 
-function getSpeechRecognitionCtor():
-  | (new () => SpeechRecognitionLike)
-  | null {
+function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
   if (typeof window === "undefined") return null;
   const w = window as Window & {
     SpeechRecognition?: new () => SpeechRecognitionLike;
     webkitSpeechRecognition?: new () => SpeechRecognitionLike;
   };
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
+}
+
+/** Remove STT command fluff like trailing “submit” / “send”. */
+export function cleanVoiceTranscript(raw: string) {
+  return raw
+    .replace(/\b(submit|send|please submit|go ahead)\b\.?$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 export function useExecutiveVoice(options: {
@@ -62,13 +75,20 @@ export function useExecutiveVoice(options: {
 
   const prefsRef = useRef(prefs);
   const statusRef = useRef(status);
+  const liveTranscriptRef = useRef("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const wantListenRef = useRef(false);
+  /** Stay in voice conversation until Esc / explicit cancel. */
+  const voiceSessionRef = useRef(false);
   const finalTranscriptRef = useRef("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const pendingIntroActionRef = useRef<"start" | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
+  const startTokenRef = useRef(0);
+  const submitInFlightRef = useRef(false);
+  const onSubmitRef = useRef(options.onSubmitTranscript);
+  const beginListeningRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     prefsRef.current = prefs;
@@ -77,6 +97,10 @@ export function useExecutiveVoice(options: {
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
+
+  useEffect(() => {
+    onSubmitRef.current = options.onSubmitTranscript;
+  }, [options.onSubmitTranscript]);
 
   useEffect(() => {
     setSupported(Boolean(getSpeechRecognitionCtor()));
@@ -96,6 +120,25 @@ export function useExecutiveVoice(options: {
     },
     [options.userId],
   );
+
+  const hardStopRecognition = useCallback(() => {
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
+    if (!recognition) return;
+    recognition.onresult = null;
+    recognition.onerror = null;
+    recognition.onend = null;
+    recognition.onstart = null;
+    try {
+      recognition.abort();
+    } catch {
+      try {
+        recognition.stop();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
 
   const stopSpeaking = useCallback(() => {
     ttsAbortRef.current?.abort();
@@ -149,24 +192,61 @@ export function useExecutiveVoice(options: {
         audioUrlRef.current = url;
         const audio = new Audio(url);
         audioRef.current = audio;
-        audio.onended = () => {
-          if (audioUrlRef.current === url) {
-            URL.revokeObjectURL(url);
-            audioUrlRef.current = null;
-          }
-          audioRef.current = null;
-          if (statusRef.current === "speaking") setStatus("idle");
-        };
-        audio.onerror = () => {
-          if (statusRef.current === "speaking") setStatus("idle");
-        };
-        await audio.play();
+
+        await new Promise<void>((resolve) => {
+          audio.onended = () => {
+            if (audioUrlRef.current === url) {
+              URL.revokeObjectURL(url);
+              audioUrlRef.current = null;
+            }
+            audioRef.current = null;
+            resolve();
+          };
+          audio.onerror = () => resolve();
+          void audio.play().catch(() => resolve());
+        });
+
+        if (statusRef.current === "speaking") setStatus("idle");
+
+        // Continuous voice session: listen again after the assistant finishes speaking.
+        if (voiceSessionRef.current && !wantListenRef.current && !submitInFlightRef.current) {
+          window.setTimeout(() => beginListeningRef.current(), 180);
+        }
       } catch (error) {
         if ((error as Error).name === "AbortError") return;
         if (statusRef.current === "speaking") setStatus("idle");
       }
     },
     [stopSpeaking],
+  );
+
+  const submitTranscript = useCallback(
+    async (raw: string) => {
+      const transcript = cleanVoiceTranscript(raw);
+      if (!transcript || submitInFlightRef.current) {
+        setStatus("idle");
+        return;
+      }
+      submitInFlightRef.current = true;
+      setStatus("processing");
+      try {
+        setStatus("thinking");
+        const reply = await onSubmitRef.current(transcript);
+        if (reply && prefsRef.current.voiceEnabled) {
+          await speakText(reply);
+        } else {
+          setStatus("idle");
+          if (voiceSessionRef.current) {
+            window.setTimeout(() => beginListeningRef.current(), 180);
+          }
+        }
+      } catch {
+        setStatus("idle");
+      } finally {
+        submitInFlightRef.current = false;
+      }
+    },
+    [speakText],
   );
 
   const beginListeningInternal = useCallback(() => {
@@ -178,109 +258,130 @@ export function useExecutiveVoice(options: {
     }
 
     stopSpeaking();
+    hardStopRecognition();
     setMicError(null);
     finalTranscriptRef.current = "";
+    liveTranscriptRef.current = "";
     setLiveTranscript("");
     wantListenRef.current = true;
+    voiceSessionRef.current = true;
     setStatus("listening");
 
-    const recognition = new Ctor();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-    recognitionRef.current = recognition;
+    const token = ++startTokenRef.current;
 
-    recognition.onresult = (event) => {
-      let interim = "";
-      let finalChunk = "";
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        const result = event.results[i];
-        const text = result?.[0]?.transcript ?? "";
-        if (result.isFinal) finalChunk += text;
-        else interim += text;
+    void (async () => {
+      // Chrome needs a brief gap between recognition sessions.
+      await wait(140);
+      if (token !== startTokenRef.current || !wantListenRef.current) return;
+
+      const recognition = new Ctor();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+      if (typeof recognition.maxAlternatives === "number") {
+        recognition.maxAlternatives = 1;
       }
+      recognitionRef.current = recognition;
+
+      recognition.onresult = (event) => {
+        let interim = "";
+        let finalChunk = "";
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const result = event.results[i];
+          const text = result?.[0]?.transcript ?? "";
+          if (result.isFinal) finalChunk += text;
+          else interim += text;
+        }
       if (finalChunk) {
         finalTranscriptRef.current = `${finalTranscriptRef.current} ${finalChunk}`.trim();
       }
-      setLiveTranscript(
-        `${finalTranscriptRef.current}${interim ? ` ${interim}` : ""}`.trim(),
-      );
-    };
+      const heard = `${finalTranscriptRef.current}${interim ? ` ${interim}` : ""}`.trim();
+      liveTranscriptRef.current = heard;
+      setLiveTranscript(heard);
+      };
 
-    recognition.onerror = (event) => {
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+      recognition.onerror = (event) => {
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          wantListenRef.current = false;
+          voiceSessionRef.current = false;
+          setStatus("idle");
+          setMicError(
+            "Microphone access is disabled. Enable microphone permissions in your browser settings.",
+          );
+          return;
+        }
+        // no-speech / aborted are normal for push-to-talk end.
+      };
+
+      recognition.onend = () => {
+        if (recognitionRef.current === recognition) {
+          recognitionRef.current = null;
+        }
+        const wasWanting = wantListenRef.current;
         wantListenRef.current = false;
-        setStatus("idle");
-        setMicError(
-          "Microphone access is disabled. Enable microphone permissions in your browser settings.",
-        );
-        return;
-      }
-      if (event.error === "aborted" || event.error === "no-speech") {
-        return;
-      }
-    };
+        const transcript = finalTranscriptRef.current.trim();
+        finalTranscriptRef.current = "";
+        setLiveTranscript("");
 
-    recognition.onend = () => {
-      if (wantListenRef.current) {
-        // Chrome stops after silence — keep listening while user still wants mic on.
+        if (!wasWanting && !transcript) {
+          setStatus("idle");
+          return;
+        }
+
+        if (transcript) {
+          void submitTranscript(transcript);
+          return;
+        }
+
+        // Ended with no speech (silence). Keep session alive and listen again.
+        setStatus("idle");
+        if (voiceSessionRef.current) {
+          window.setTimeout(() => beginListeningRef.current(), 200);
+        }
+      };
+
+      try {
+        recognition.start();
+      } catch {
+        // Retry once after a longer delay — common after prior session.
+        await wait(250);
+        if (token !== startTokenRef.current || !wantListenRef.current) return;
         try {
           recognition.start();
-          return;
         } catch {
+          setMicError("Could not start the microphone. Try again.");
+          setStatus("idle");
           wantListenRef.current = false;
         }
       }
+    })();
+  }, [hardStopRecognition, stopSpeaking, submitTranscript]);
 
-      const transcript = finalTranscriptRef.current.trim();
-      finalTranscriptRef.current = "";
-      setLiveTranscript("");
-      recognitionRef.current = null;
-
-      if (!transcript) {
-        setStatus("idle");
-        return;
-      }
-
-      setStatus("processing");
-      void (async () => {
-        try {
-          setStatus("thinking");
-          const reply = await options.onSubmitTranscript(transcript);
-          if (reply && prefsRef.current.voiceEnabled) {
-            await speakText(reply);
-          } else {
-            setStatus("idle");
-          }
-        } catch {
-          setStatus("idle");
-        }
-      })();
-    };
-
-    try {
-      recognition.start();
-    } catch {
-      setMicError("Could not start the microphone. Try again.");
-      setStatus("idle");
-      wantListenRef.current = false;
-    }
-  }, [options, speakText, stopSpeaking]);
+  useEffect(() => {
+    beginListeningRef.current = beginListeningInternal;
+  }, [beginListeningInternal]);
 
   const requestStartListening = useCallback(() => {
     if (!options.enabled) return;
+
+    // Toggle off while listening — stop captures speech and submits via onend.
     if (wantListenRef.current || statusRef.current === "listening") {
-      // toggle off — stop without forcing empty submit if nothing said yet
+      const hasSpeech = Boolean(
+        finalTranscriptRef.current.trim() || liveTranscriptRef.current.trim(),
+      );
       wantListenRef.current = false;
+      // Only end the voice session when stopping with nothing said.
+      if (!hasSpeech) voiceSessionRef.current = false;
       try {
         recognitionRef.current?.stop();
       } catch {
-        // ignore
+        hardStopRecognition();
+        setStatus("idle");
       }
       return;
     }
 
-    // Interrupt speaking immediately
+    // Interrupt speaking → start listening immediately
     if (statusRef.current === "speaking") {
       stopSpeaking();
     }
@@ -293,32 +394,29 @@ export function useExecutiveVoice(options: {
       return;
     }
     beginListeningInternal();
-  }, [beginListeningInternal, options.enabled, options.userId, stopSpeaking]);
+  }, [
+    beginListeningInternal,
+    hardStopRecognition,
+    options.enabled,
+    options.userId,
+    stopSpeaking,
+  ]);
 
   const cancelListening = useCallback(() => {
     wantListenRef.current = false;
-    try {
-      recognitionRef.current?.abort();
-    } catch {
-      try {
-        recognitionRef.current?.stop();
-      } catch {
-        // ignore
-      }
-    }
-    recognitionRef.current = null;
+    voiceSessionRef.current = false;
+    startTokenRef.current += 1;
+    hardStopRecognition();
+    stopSpeaking();
     finalTranscriptRef.current = "";
     setLiveTranscript("");
     setStatus("idle");
-  }, []);
+  }, [hardStopRecognition, stopSpeaking]);
 
   const completeIntro = useCallback(
     (dontShowAgain: boolean, startAfter: boolean) => {
       const userKey = options.userId || "anon";
-      const next = {
-        ...loadExecutiveVoicePrefs(userKey),
-        hideIntro: dontShowAgain ? true : loadExecutiveVoicePrefs(userKey).hideIntro,
-      };
+      const next = { ...loadExecutiveVoicePrefs(userKey) };
       if (dontShowAgain) next.hideIntro = true;
       persistPrefs(next);
       setIntroOpen(false);
@@ -329,51 +427,48 @@ export function useExecutiveVoice(options: {
     [beginListeningInternal, options.userId, persistPrefs],
   );
 
-  // Global CTRL+Q
   useEffect(() => {
     if (!options.enabled) return;
 
     function onKeyDown(event: KeyboardEvent) {
       if (!(event.ctrlKey || event.metaKey)) return;
       if (event.key.toLowerCase() !== "q") return;
-      // Avoid stealing when typing in native browser chrome; claim for app voice mode.
       event.preventDefault();
       event.stopPropagation();
       requestStartListening();
     }
 
-    function onKeyUp(event: KeyboardEvent) {
-      if (event.key === "Escape" && statusRef.current === "listening") {
+    function onEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (
+        statusRef.current === "listening" ||
+        statusRef.current === "speaking" ||
+        voiceSessionRef.current
+      ) {
         event.preventDefault();
         cancelListening();
       }
     }
 
     window.addEventListener("keydown", onKeyDown, true);
-    window.addEventListener("keydown", onKeyUp, true);
+    window.addEventListener("keydown", onEscape, true);
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
-      window.removeEventListener("keydown", onKeyUp, true);
+      window.removeEventListener("keydown", onEscape, true);
     };
   }, [cancelListening, options.enabled, requestStartListening]);
 
   useEffect(() => {
     return () => {
       wantListenRef.current = false;
-      try {
-        recognitionRef.current?.abort();
-      } catch {
-        // ignore
-      }
+      voiceSessionRef.current = false;
+      startTokenRef.current += 1;
+      hardStopRecognition();
       stopSpeaking();
     };
-  }, [stopSpeaking]);
+  }, [hardStopRecognition, stopSpeaking]);
 
-  const micVisual:
-    | "off"
-    | "listening"
-    | "processing"
-    | "speaking" =
+  const micVisual: "off" | "listening" | "processing" | "speaking" =
     status === "listening"
       ? "listening"
       : status === "processing" || status === "thinking"

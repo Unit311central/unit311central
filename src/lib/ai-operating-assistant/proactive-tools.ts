@@ -42,9 +42,16 @@ function resolveSnapshotDomain(raw: string | null): BusinessSnapshotDomain {
   ) {
     return value;
   }
-  if (/client|customer|account/.test(value)) return "clients";
+  // Finance / treasury BEFORE generic “account” (bank account ≠ CRM client account).
+  if (
+    /finance|financial|cash|bank|wise|treasury|balance|revenue|invoice|expense|p\s*&?\s*l|profit|burn|debtor|creditor/.test(
+      value,
+    )
+  ) {
+    return "finance";
+  }
+  if (/client|customer/.test(value)) return "clients";
   if (/project|delivery|portfolio/.test(value)) return "projects";
-  if (/finance|cash|revenue|invoice|expense|p&l|profit/.test(value)) return "finance";
   if (/hr|employee|staff|people|leave/.test(value)) return "hr";
   if (/crm|lead|pipeline|sales/.test(value)) return "crm";
   if (/health|brief|overview|business|company|status/.test(value)) return "overview";
@@ -59,10 +66,10 @@ export async function queryBusinessTool(
   ctx: AssistantToolExecutionContext,
 ) {
   try {
-    const domain = resolveSnapshotDomain(
-      asString(args.domain) || asString(args.topic) || null,
-    );
     const question = asString(args.question) || "";
+    const domain = resolveSnapshotDomain(
+      asString(args.domain) || asString(args.topic) || question || null,
+    );
     const snapshot = await buildBusinessSnapshot(ctx.business, domain);
     return toolOk("queryBusiness", [snapshot], {
       source: ["live-platform", "assistant:business-snapshot"],
@@ -75,6 +82,8 @@ export async function queryBusinessTool(
         liveProjects: snapshot.overview.liveProjects,
         headcount: snapshot.overview.headcount,
         cashPosition: snapshot.overview.cashPosition,
+        reportingCurrency: snapshot.overview.reportingCurrency ?? "GBP",
+        wiseBalances: snapshot.overview.wiseBalances ?? null,
       },
       dataGaps: snapshot.dataGaps,
       appliedContext: { activeView: ctx.business.page.activeView },
