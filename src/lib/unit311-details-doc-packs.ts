@@ -159,6 +159,13 @@ const CRA_DOCS: readonly Unit311DetailDocPackEntry[] = [
     sourcePath: "docs/cyber-resilience-act/19-action-tracker.md",
     order: 19,
   },
+  {
+    id: "20-compliance-gaps-to-fix",
+    title: "20 - Compliance gaps to fix",
+    fileName: "20 - Compliance gaps to fix.md",
+    sourcePath: "docs/cyber-resilience-act/20-compliance-gaps-to-fix.md",
+    order: 20,
+  },
 ] as const;
 
 export const CYBER_RESILIENCE_ACT_DOC_PACK: Unit311DetailDocPack = {
