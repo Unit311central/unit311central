@@ -86,8 +86,8 @@ export default function FinancialsWorkspace() {
             </p>
             <h2 className="mt-1 text-lg font-semibold text-white">Overview</h2>
             <p className="mt-1 text-sm text-white/55">
-              Live figures from the General Ledger. Burn Rate uses posted expenses when available,
-              otherwise a GL-derived demo ledger.
+              Live figures from the shared financial overview service (GL, AR, AP, Wise treasury).
+              Burn Rate uses posted expenses when available.
             </p>
           </div>
           <button

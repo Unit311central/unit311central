@@ -486,10 +486,9 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
     ],
   );
 
-  const moneyOrDash = (value: number | null | undefined, loading: boolean) => {
+  const moneyOrZero = (value: number | null | undefined, loading: boolean) => {
     if (loading) return "…";
-    if (value == null || value === 0) return "—";
-    return formatMoney(value).replace(/\.00$/, "");
+    return formatMoney(value ?? 0);
   };
 
   const upcomingEvents = useMemo(() => {
@@ -650,17 +649,17 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
           <KpiChip label="Clients" value={data.clients.length} href={hrefs.clients} />
           <KpiChip
             label="Revenue"
-            value={moneyOrDash(revenueYtd, data.loading.financials)}
+            value={moneyOrZero(revenueYtd, data.loading.financials)}
             href={hrefs.financials}
           />
           <KpiChip
             label="Burn Rate"
-            value={moneyOrDash(burnMonthly, data.loading.financials)}
+            value={moneyOrZero(burnMonthly, data.loading.financials)}
             href={hrefs.financials}
           />
           <KpiChip
             label="Cash"
-            value={moneyOrDash(cashPosition, data.loading.financials)}
+            value={moneyOrZero(cashPosition, data.loading.financials)}
             href={hrefs.financials}
           />
           <KpiChip label="Projects" value={liveProjects} href={hrefs.projects} />
@@ -778,9 +777,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
       return (
         <MetricCard
           label="Revenue"
-          value={
-            revenueYtd != null && revenueYtd > 0 ? formatMoney(revenueYtd) : "—"
-          }
+          value={formatMoney(revenueYtd ?? 0)}
           href={hrefs.financials}
           loading={data.loading.financials}
           hint="YTD from ledger"
@@ -791,10 +788,10 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
       return (
         <MetricCard
           label="Cash Flow"
-          value={cashPosition != null ? formatMoney(cashPosition) : "—"}
+          value={formatMoney(cashPosition ?? 0)}
           href={hrefs.financials}
           loading={data.loading.financials}
-          hint="Cash position"
+          hint="Wise treasury"
         />
       );
 
@@ -802,7 +799,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
       return (
         <MetricCard
           label="Burn Rate"
-          value={burnMonthly != null ? formatMoney(burnMonthly) : "—"}
+          value={formatMoney(burnMonthly ?? 0)}
           href={hrefs.financials}
           loading={data.loading.financials}
           hint="Monthly operating burn"

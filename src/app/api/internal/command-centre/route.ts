@@ -40,7 +40,8 @@ export async function GET() {
         listLeads("All", scope).catch(() => []),
         listCalendarEvents(from.toISOString(), to.toISOString(), scope).catch(() => []),
         listSupportTickets(false, scope).catch(() => []),
-        getFinancialOverview(scope).catch(() => null),
+        // Same SSOT as Financial Overview / GL / AR / AP / Wise — never null.
+        getFinancialOverview(scope),
         listOpenActionItems(scope).catch(() => []),
       ]);
 

@@ -68,19 +68,19 @@ export const PROJECTS_DASHBOARD_TILES: DashboardTileDefinition[] = [
 ];
 
 export const FINANCIALS_DASHBOARD_TILES: DashboardTileDefinition[] = [
-  { id: "revenue-ytd", label: "Revenue YTD", value: "$0", hint: "From general ledger" },
-  { id: "cash-position", label: "Cash Position", value: "$0", hint: "Wise cash accounts" },
-  { id: "burn-rate", label: "Burn Rate", value: "€0 / month", hint: "Operating spend pace" },
-  { id: "accounts-receivable", label: "Accounts Receivable", value: "$0", hint: "Outstanding AR" },
-  { id: "accounts-payable", label: "Accounts Payable", value: "$0", hint: "Outstanding AP" },
-  { id: "net-profit", label: "Net Profit", value: "$0", hint: "Income − expenses" },
+  { id: "revenue-ytd", label: "Revenue YTD", value: "£0.00", hint: "From general ledger" },
+  { id: "cash-position", label: "Cash Position", value: "£0.00", hint: "Wise treasury balances" },
+  { id: "burn-rate", label: "Burn Rate", value: "£0.00 / month", hint: "Operating spend pace" },
+  { id: "accounts-receivable", label: "Accounts Receivable", value: "£0.00", hint: "Outstanding AR" },
+  { id: "accounts-payable", label: "Accounts Payable", value: "£0.00", hint: "Outstanding AP" },
+  { id: "net-profit", label: "Net Profit", value: "£0.00", hint: "Income − expenses" },
   { id: "outstanding-invoices", label: "Outstanding Invoices", value: "0", hint: "Open invoice count" },
-  { id: "monthly-revenue", label: "Monthly Revenue", value: "$0", hint: "Current month" },
-  { id: "monthly-expenses", label: "Monthly Expenses", value: "$0", hint: "Current month" },
-  { id: "annual-revenue", label: "Annual Revenue", value: "$0", hint: "Calendar year" },
-  { id: "annual-expenses", label: "Annual Expenses", value: "$0", hint: "Calendar year" },
+  { id: "monthly-revenue", label: "Monthly Revenue", value: "£0.00", hint: "Current month" },
+  { id: "monthly-expenses", label: "Monthly Expenses", value: "£0.00", hint: "Current month" },
+  { id: "annual-revenue", label: "Annual Revenue", value: "£0.00", hint: "Calendar year" },
+  { id: "annual-expenses", label: "Annual Expenses", value: "£0.00", hint: "Calendar year" },
   { id: "gross-margin", label: "Gross Margin", value: "0%", hint: "From ledger income/expenses" },
-  { id: "forecast", label: "Forecast", value: "$0", hint: "Not configured yet" },
+  { id: "forecast", label: "Forecast", value: "£0.00", hint: "Not configured yet" },
 ];
 
 export function buildFinancialsDashboardCatalog(
@@ -107,17 +107,19 @@ export function buildFinancialsDashboardCatalog(
   } | null,
 ): DashboardTileDefinition[] {
   const money = (value: number) =>
-    new Intl.NumberFormat("en-US", {
+    new Intl.NumberFormat("en-GB", {
       style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
+      currency: "GBP",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
 
-  const burnMoney = (value: number, currency = "EUR") =>
+  const burnMoney = (value: number, currency = "GBP") =>
     new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
 
   if (!overview) return FINANCIALS_DASHBOARD_TILES;

@@ -7,12 +7,17 @@ import {
 import { buildBurnRateSnapshot } from "@/lib/accounting/burn-rate";
 import { listInvoices } from "@/lib/accounting/invoices-service";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
+import { listExpenses } from "@/lib/financial-expenses-service";
 import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { listWiseBalances } from "@/lib/wise-service";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { convertToGbp } from "@/lib/treasury/treasury-utils";
+import { getWiseConnectionStatus, listWiseBalances } from "@/lib/wise-service";
+
+/** Platform reporting currency — matches Wise Bank treasury totals. */
+export const FINANCIAL_REPORTING_CURRENCY = "GBP";
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
@@ -21,7 +26,7 @@ function roundMoney(value: number) {
 function emptyBurnRate(cashBalance = 0): FinancialOverviewSnapshot["burnRate"] {
   return {
     source: "live",
-    currency: "USD",
+    currency: FINANCIAL_REPORTING_CURRENCY,
     monthly: 0,
     quarterly: 0,
     annual: 0,
@@ -43,21 +48,34 @@ function emptyBurnRate(cashBalance = 0): FinancialOverviewSnapshot["burnRate"] {
   };
 }
 
-/** Live Wise treasury total when API is available; otherwise GL Wise accounts. */
-async function resolveTreasuryCash(glWiseCash: number): Promise<number> {
+/**
+ * Live Wise treasury total in GBP — same calculation as Finance → Bank
+ * (`computeTreasurySummary.totalTreasuryValueGbp`). Falls back to GL Wise
+ * cash accounts when Wise is unavailable.
+ */
+export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
   try {
-    const balances = await listWiseBalances();
+    const status = await getWiseConnectionStatus();
+    if (!status.configured || !status.connected) {
+      return roundMoney(glWiseCash);
+    }
+    const balances = await listWiseBalances(status.profileId ?? undefined);
     if (balances.length === 0) return roundMoney(glWiseCash);
-    return roundMoney(balances.reduce((sum, balance) => sum + (Number(balance.amount) || 0), 0));
+    return roundMoney(
+      balances.reduce(
+        (sum, balance) => sum + convertToGbp(Number(balance.amount) || 0, balance.currency),
+        0,
+      ),
+    );
   } catch {
     return roundMoney(glWiseCash);
   }
 }
 
-function emptyOverview(): FinancialOverviewSnapshot {
+function emptyOverview(cashPosition = 0): FinancialOverviewSnapshot {
   return {
     revenueYtd: 0,
-    cashPosition: 0,
+    cashPosition,
     accountsReceivable: 0,
     accountsPayable: 0,
     netProfit: 0,
@@ -66,7 +84,7 @@ function emptyOverview(): FinancialOverviewSnapshot {
     monthlyExpenses: 0,
     annualRevenue: 0,
     annualExpenses: 0,
-    burnRate: emptyBurnRate(0),
+    burnRate: emptyBurnRate(cashPosition),
     ar: {
       outstanding: 0,
       overdue: 0,
@@ -106,22 +124,94 @@ function emptyOverview(): FinancialOverviewSnapshot {
   };
 }
 
+/**
+ * Single financial source of truth for Home, Financial Overview, GL KPIs,
+ * AR, AP, and Wise cash. Always returns numeric values (never null / —).
+ */
 export async function getFinancialOverview(
   scope?: FinancialsWorkspaceScope,
 ): Promise<FinancialOverviewSnapshot> {
-  if (!isSupabaseConfigured()) return emptyOverview();
+  if (!isSupabaseConfigured()) {
+    // Wise cash still loads without Supabase — same as Finance → Bank.
+    return emptyOverview(await resolveTreasuryCash(0));
+  }
 
   try {
     const workspaceId = await resolveFinancialsWorkspaceId(scope);
     const workspaceScope: FinancialsWorkspaceScope = { workspaceId };
 
-    const [totals, charts, invoices, activity, postedExpenses] = await Promise.all([
-      getTypeTotals(workspaceScope),
-      getMonthlySeriesFromPostedLines(workspaceScope),
-      listInvoices(workspaceScope),
-      listFinancialActivity(25, workspaceScope),
-      getPostedExpenseLines(workspaceScope),
+    const [
+      totalsResult,
+      chartsResult,
+      invoicesResult,
+      activityResult,
+      postedExpensesResult,
+      expensesResult,
+    ] = await Promise.all([
+      getTypeTotals(workspaceScope).then(
+        (value) => ({ ok: true as const, value }),
+        () => ({ ok: false as const }),
+      ),
+      getMonthlySeriesFromPostedLines(workspaceScope).then(
+        (value) => ({ ok: true as const, value }),
+        () => ({ ok: false as const }),
+      ),
+      listInvoices(workspaceScope).then(
+        (value) => ({ ok: true as const, value }),
+        () => ({ ok: false as const }),
+      ),
+      listFinancialActivity(25, workspaceScope).then(
+        (value) => ({ ok: true as const, value }),
+        () => ({ ok: false as const }),
+      ),
+      getPostedExpenseLines(workspaceScope).then(
+        (value) => ({ ok: true as const, value }),
+        () => ({ ok: false as const }),
+      ),
+      // Same service as Accounts Payable (`/api/financials/expenses`).
+      listExpenses({ workspaceId }).then(
+        (value) => ({ ok: true as const, value }),
+        () => ({ ok: false as const }),
+      ),
     ]);
+
+    const totals = totalsResult.ok
+      ? totalsResult.value
+      : {
+          income: 0,
+          expenses: 0,
+          assets: 0,
+          liabilities: 0,
+          equity: 0,
+          netProfit: 0,
+          cashPosition: 0,
+          accountsReceivable: 0,
+          accountsPayable: 0,
+        };
+    const charts = chartsResult.ok
+      ? chartsResult.value
+      : {
+          monthlyRevenue: [],
+          monthlyProfitLoss: [],
+          monthlyOutgoings: [],
+          cashPosition: [],
+        };
+    const invoices = invoicesResult.ok ? invoicesResult.value : [];
+    const activity = activityResult.ok ? activityResult.value : [];
+    const postedExpenses = postedExpensesResult.ok ? postedExpensesResult.value : [];
+    const allExpenses = expensesResult.ok ? expensesResult.value : [];
+
+    // Resolve after GL so we can fall back to Wise GL accounts if Wise API is down.
+    const cashPosition = await resolveTreasuryCash(totals.cashPosition);
+
+    if (
+      !totalsResult.ok &&
+      !chartsResult.ok &&
+      !invoicesResult.ok &&
+      !expensesResult.ok
+    ) {
+      return emptyOverview(cashPosition);
+    }
 
     const today = new Date();
     const todayIso = today.toISOString().slice(0, 10);
@@ -156,23 +246,14 @@ export async function getFinancialOverview(
       else ageing[4].amount = roundMoney(ageing[4].amount + invoice.amount);
     }
 
-    const supabase = createSupabaseServerClient();
-    const { data: expenses } = await supabase
-      .from("financial_expenses")
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .eq("paid", false)
-      .order("date_submitted", { ascending: false })
-      .limit(20);
-
-    const unpaidExpenses = expenses ?? [];
+    const unpaidExpenses = allExpenses.filter((expense) => !expense.paid);
     const monthEnd = `${monthPrefix}-31`;
     const apDueThisMonth = unpaidExpenses.filter((expense) => {
-      const date = String(expense.expense_date ?? expense.date_submitted ?? "");
+      const date = String(expense.expenseDate ?? expense.dateSubmitted ?? "");
       return date >= `${monthPrefix}-01` && date <= monthEnd;
     });
     const apOverdue = unpaidExpenses.filter((expense) => {
-      const date = String(expense.expense_date ?? expense.date_submitted ?? "");
+      const date = String(expense.expenseDate ?? expense.dateSubmitted ?? "");
       return date < todayIso;
     });
 
@@ -192,24 +273,21 @@ export async function getFinancialOverview(
     const burnRate =
       postedExpenses.length > 0 || charts.monthlyOutgoings.some((point) => point.amount > 0)
         ? buildBurnRateSnapshot({
-            cashBalance: totals.cashPosition,
+            cashBalance: cashPosition,
             monthlyOutgoings: charts.monthlyOutgoings,
             postedExpenses,
-            currency: "USD",
+            currency: FINANCIAL_REPORTING_CURRENCY,
             allowDemo: false,
           })
-        : emptyBurnRate(totals.cashPosition);
+        : emptyBurnRate(cashPosition);
 
     const glRevenue = totals.income;
     const glSpend = totals.expenses;
     const netProfit = roundMoney(glRevenue - glSpend);
-    const cashPosition = await resolveTreasuryCash(totals.cashPosition);
 
-    // Monthly burn from live expenses only — never invent a forecast base.
+    // Monthly burn from posted expense journals only — never invent a forecast.
     const monthlyBurn =
-      burnRate.lines.length > 0
-        ? burnRate.monthly
-        : monthlyExpensePoint?.amount ?? 0;
+      burnRate.lines.length > 0 ? burnRate.monthly : (monthlyExpensePoint?.amount ?? 0);
     const forecastMonthly = burnRate.lines.length > 0 ? burnRate.forecastMonthly : 0;
 
     const payrollPoint =
@@ -221,14 +299,21 @@ export async function getFinancialOverview(
       amount: point.payroll,
     }));
 
+    // Debtors / Creditors from the same AR / AP modules (invoices + expenses).
+    const arOutstanding = roundMoney(
+      unpaid.reduce((sum, invoice) => sum + invoice.amount, 0),
+    );
+    const apOutstanding = roundMoney(
+      unpaidExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0),
+    );
+
     return {
       revenueYtd: glRevenue,
       cashPosition,
-      accountsReceivable: totals.accountsReceivable,
-      accountsPayable: totals.accountsPayable,
+      accountsReceivable: arOutstanding,
+      accountsPayable: apOutstanding,
       netProfit,
       outstandingInvoices: unpaid.length,
-      // Executive KPIs: current GL revenue / total GL expenses (0 when empty).
       monthlyRevenue: glRevenue,
       monthlyExpenses: glSpend,
       annualRevenue,
@@ -238,36 +323,40 @@ export async function getFinancialOverview(
         monthly: roundMoney(monthlyBurn),
         forecastMonthly: roundMoney(forecastMonthly),
         cashBalance: cashPosition,
+        currency: FINANCIAL_REPORTING_CURRENCY,
         trendLabel: burnRate.lines.length > 0 ? burnRate.trendLabel : "No change",
       },
       ar: {
-        outstanding: unpaid.reduce((sum, invoice) => sum + invoice.amount, 0),
-        overdue: overdue.reduce((sum, invoice) => sum + invoice.amount, 0),
-        dueSoon: dueSoon.reduce((sum, invoice) => sum + invoice.amount, 0),
+        outstanding: arOutstanding,
+        overdue: roundMoney(overdue.reduce((sum, invoice) => sum + invoice.amount, 0)),
+        dueSoon: roundMoney(dueSoon.reduce((sum, invoice) => sum + invoice.amount, 0)),
         collectionRate,
         ageing,
         recentUnpaid: unpaid.slice(0, 8),
       },
       ap: {
-        outstanding: unpaidExpenses.reduce(
-          (sum, expense) => sum + (Number(expense.amount) || 0),
-          0,
+        outstanding: apOutstanding,
+        dueThisMonth: roundMoney(
+          apDueThisMonth.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0),
         ),
-        dueThisMonth: apDueThisMonth.reduce(
-          (sum, expense) => sum + (Number(expense.amount) || 0),
-          0,
+        overdue: roundMoney(
+          apOverdue.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0),
         ),
-        overdue: apOverdue.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0),
-        upcoming: unpaidExpenses
-          .filter((expense) => String(expense.expense_date ?? expense.date_submitted) >= todayIso)
-          .reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0),
+        upcoming: roundMoney(
+          unpaidExpenses
+            .filter(
+              (expense) =>
+                String(expense.expenseDate ?? expense.dateSubmitted) >= todayIso,
+            )
+            .reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0),
+        ),
         recent: unpaidExpenses.slice(0, 8).map((expense) => ({
           id: String(expense.id),
-          supplier: String(expense.supplier ?? expense.submitter_name ?? "Supplier"),
-          description: String(expense.purpose_description ?? ""),
+          supplier: String(expense.supplier ?? expense.submitterName ?? "Supplier"),
+          description: String(expense.purposeDescription ?? ""),
           amount: Number(expense.amount) || 0,
-          currency: String(expense.currency ?? "USD"),
-          dueDate: String(expense.expense_date ?? expense.date_submitted),
+          currency: String(expense.currency ?? FINANCIAL_REPORTING_CURRENCY),
+          dueDate: String(expense.expenseDate ?? expense.dateSubmitted),
           paid: Boolean(expense.paid),
         })),
       },
@@ -283,6 +372,7 @@ export async function getFinancialOverview(
       activity,
     };
   } catch {
-    return emptyOverview();
+    // Even when the ledger path blows up, surface live Wise treasury cash.
+    return emptyOverview(await resolveTreasuryCash(0));
   }
 }
