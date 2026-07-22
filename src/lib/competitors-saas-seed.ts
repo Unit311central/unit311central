@@ -135,14 +135,4 @@ export const SAAS_COMPETITOR_SEEDS: SaasCompetitorSeed[] = [
 /** Inline SQL used when the migration file is not present in the serverless bundle. */
 export const COMPETITORS_SAAS_MARKETS_INLINE_SQL = `
 alter table public.competitors drop constraint if exists competitors_region_check;
-
-alter table public.competitors
-  add constraint competitors_region_check
-  check (
-    region in (
-      'us','uk','canada','spain','france','italy','germany',
-      'portugal','kenya','namibia','southafrica','congo',
-      'northamerica','europe','asia','middleeast','africa','latam','global'
-    )
-  );
 `;

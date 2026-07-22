@@ -701,18 +701,13 @@ async function seedSaasCompetitorsProgrammatically(): Promise<boolean> {
   if (!isSupabaseServiceRoleConfigured()) return false;
 
   try {
-    // Expand allowed regions first (inline SQL — no migration file required on Vercel).
-    const dbUrl = getDatabaseUrl();
-    if (dbUrl) {
-      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-      try {
-        await client.connect();
-        await client.query(COMPETITORS_SAAS_MARKETS_INLINE_SQL);
-        await client.query(`notify pgrst, 'reload schema'`);
-      } finally {
-        await client.end().catch(() => undefined);
-      }
-    } else {
+    // Drop region CHECK via direct/pooler DB when available (management token often unavailable).
+    const dropped = await withResolvedDatabaseClient(async (client) => {
+      await client.query(COMPETITORS_SAAS_MARKETS_INLINE_SQL);
+      await client.query(`notify pgrst, 'reload schema'`);
+      return true;
+    });
+    if (!dropped) {
       await applySqlViaManagementApi(COMPETITORS_SAAS_MARKETS_INLINE_SQL, "competitors-region-check");
       await reloadPostgrestSchema();
     }
@@ -752,7 +747,6 @@ async function seedSaasCompetitorsProgrammatically(): Promise<boolean> {
 
     if (rows.length === 0) return true;
 
-    // Insert in chunks to stay within PostgREST payload limits.
     for (let i = 0; i < rows.length; i += 40) {
       const chunk = rows.slice(i, i + 40);
       const { error } = await supabase.from("competitors").insert(chunk);
@@ -800,7 +794,7 @@ export async function ensureCompetitorsSeedData(): Promise<void> {
     }
 
     // Prefer programmatic seed (works without shipping .sql into the serverless bundle).
-    const seeded = await seedSaasCompetitorsProgrammatically();
+    let seeded = await seedSaasCompetitorsProgrammatically();
     if (!seeded) {
       const saasPath = join(process.cwd(), COMPETITORS_SAAS_MARKETS_MIGRATION_PATH);
       if (existsSync(saasPath)) {
@@ -814,11 +808,12 @@ export async function ensureCompetitorsSeedData(): Promise<void> {
             try {
               await client.connect();
               await applyMigration(client, COMPETITORS_SAAS_MARKETS_MIGRATION_PATH);
+              seeded = true;
             } finally {
               await client.end().catch(() => undefined);
             }
           } else {
-            await applyMigrationViaManagementApi(COMPETITORS_SAAS_MARKETS_MIGRATION_PATH);
+            seeded = await applyMigrationViaManagementApi(COMPETITORS_SAAS_MARKETS_MIGRATION_PATH);
           }
         } catch (error) {
           console.error(
@@ -829,7 +824,8 @@ export async function ensureCompetitorsSeedData(): Promise<void> {
       }
     }
 
-    return true;
+    // Only memoize success — failed seeds must retry on the next request.
+    return seeded;
   });
 }
 
