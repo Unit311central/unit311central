@@ -394,7 +394,7 @@ function Tile({
     <section
       className={cn(
         "flex h-full min-h-0 flex-col overflow-hidden rounded-2xl",
-        "bg-gradient-to-br from-[#1a2740] via-[#152033] to-[#101a2c]",
+        "bg-gradient-to-br from-[#223352] via-[#1c2a42] to-[#162338]",
         "shadow-[0_12px_40px_-20px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.06)]",
         "ring-1 ring-white/[0.08]",
       )}
