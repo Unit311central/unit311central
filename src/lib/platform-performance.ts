@@ -190,11 +190,13 @@ export function installPerformanceFetchPatch() {
         : input instanceof URL
           ? input.toString()
           : input.url;
-    const method = (
-      init?.method ??
-      (typeof input !== "string" && !(input instanceof URL) ? input.method : undefined) ??
-      "GET"
-    ).toUpperCase();
+    let method = "GET";
+    if (init?.method) {
+      method = init.method;
+    } else if (typeof input !== "string" && !(input instanceof URL) && input.method) {
+      method = input.method;
+    }
+    method = method.toUpperCase();
     const isApi = url.includes("/api/");
     const started = performance.now();
     try {
