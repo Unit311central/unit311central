@@ -155,8 +155,24 @@ export default function ExecutiveAssistantPanel({
     kind: AssistantPendingActionKind;
     label: string;
   } | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);
+  const handleSendRef = useRef<
+    (
+      event?: React.FormEvent,
+      overrideText?: string,
+      opts?: { skipSpeak?: boolean },
+    ) => Promise<string | null>
+  >(async () => null);
+
+  const voice = useExecutiveVoice({
+    enabled: true,
+    userId,
+    onSubmitTranscript: async (text) => {
+      return handleSendRef.current(undefined, text, { skipSpeak: true });
+    },
+  });
 
   const context = useMemo(
     () => resolveExecutiveAssistantContext(activeView, mode),
@@ -185,13 +201,32 @@ export default function ExecutiveAssistantPanel({
   }, [refreshConversations]);
 
   useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch("/api/auth/whoami", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = (await response.json()) as { userId?: string; username?: string };
+        setUserId(data.userId || data.username || null);
+      } catch {
+        // voice prefs fall back to anon
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     if (variant !== "drawer" || !open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose?.();
+      if (event.key !== "Escape") return;
+      if (voice.status === "listening") {
+        event.preventDefault();
+        voice.cancelListening();
+        return;
+      }
+      onClose?.();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [variant, open, onClose]);
+  }, [variant, open, onClose, voice.status, voice.cancelListening]);
 
   useEffect(() => {
     if (variant !== "drawer" || !open) return;
@@ -404,10 +439,19 @@ export default function ExecutiveAssistantPanel({
     void handleSend(undefined, action.label);
   }
 
-  async function handleSend(event?: React.FormEvent, overrideText?: string) {
+  async function handleSend(
+    event?: React.FormEvent,
+    overrideText?: string,
+    opts?: { skipSpeak?: boolean },
+  ): Promise<string | null> {
     event?.preventDefault();
     const trimmed = (overrideText ?? message).trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending) return null;
+
+    // Interrupt TTS if user sends while assistant is speaking
+    if (voice.status === "speaking") {
+      voice.stopSpeaking();
+    }
 
     const priorMessages = messages.filter(
       (entry) =>
@@ -441,6 +485,8 @@ export default function ExecutiveAssistantPanel({
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+
+    let finalReply: string | null = null;
 
     try {
       const response = await fetch("/api/executive-assistant/chat", {
@@ -484,6 +530,7 @@ export default function ExecutiveAssistantPanel({
           }
           if (event.type === "done") {
             setActiveConversationId(event.conversationId);
+            finalReply = event.message.content?.trim() || null;
             setMessages((current) =>
               current.map((entry) =>
                 entry.id === assistantId
@@ -509,12 +556,13 @@ export default function ExecutiveAssistantPanel({
         };
         if (data.error) throw new Error(data.error);
         if (data.conversationId) setActiveConversationId(data.conversationId);
+        finalReply = data.reply?.trim() || "I could not complete that just now.";
         setMessages((current) =>
           current.map((entry) =>
             entry.id === assistantId
               ? {
                   ...entry,
-                  content: data.reply?.trim() || "I could not complete that just now.",
+                  content: finalReply || "I could not complete that just now.",
                 }
               : entry,
           ),
@@ -522,8 +570,14 @@ export default function ExecutiveAssistantPanel({
       }
 
       await refreshConversations();
+
+      if (finalReply && voice.prefs.voiceEnabled && !opts?.skipSpeak) {
+        void voice.speakText(finalReply);
+      }
+
+      return finalReply;
     } catch (error) {
-      if ((error as Error).name === "AbortError") return;
+      if ((error as Error).name === "AbortError") return null;
       const detail = error instanceof Error ? error.message : "Assistant unavailable";
       setMessages((current) =>
         current.map((entry) =>
@@ -536,10 +590,13 @@ export default function ExecutiveAssistantPanel({
         ),
       );
       showNotice(detail);
+      return null;
     } finally {
       setSending(false);
     }
   }
+
+  handleSendRef.current = handleSend;
 
   function renderArtifacts(artifacts: AssistantMessageArtifact[] | undefined) {
     if (!artifacts?.length) return null;
@@ -871,6 +928,58 @@ export default function ExecutiveAssistantPanel({
           className="shrink-0 border-t border-white/10 p-4"
           onSubmit={(event) => void handleSend(event)}
         >
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1">
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  voice.status === "listening"
+                    ? "bg-sky-400 animate-pulse"
+                    : voice.status === "processing" || voice.status === "thinking"
+                      ? "bg-emerald-400"
+                      : voice.status === "speaking"
+                        ? "bg-sky-300"
+                        : "bg-white/30",
+                )}
+              />
+              <span className="text-[10px] font-medium text-white/55">
+                {sending && voice.status === "idle"
+                  ? "Thinking..."
+                  : voiceStatusLabel(voice.status)}
+              </span>
+              {voice.status === "listening" ? <VoiceWaveform active /> : null}
+            </div>
+            <VoiceSettingsPopover
+              open={voice.settingsOpen}
+              onOpenChange={voice.setSettingsOpen}
+              prefs={voice.prefs}
+              onChange={voice.setPrefs}
+            />
+          </div>
+
+          {voice.micError ? (
+            <div className="mb-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2">
+              <p className="text-[11px] text-amber-50/90">{voice.micError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  voice.setMicError(null);
+                  voice.requestStartListening();
+                }}
+                className="mt-1.5 rounded-lg border border-amber-400/40 bg-amber-500/20 px-2.5 py-1 text-[11px] font-semibold text-amber-50"
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
+
+          {voice.liveTranscript ? (
+            <p className="mb-2 text-[11px] text-sky-100/70">
+              <span className="text-white/35">Heard: </span>
+              {voice.liveTranscript}
+            </p>
+          ) : null}
+
           <div className="flex items-end gap-2">
             <textarea
               value={message}
@@ -886,6 +995,27 @@ export default function ExecutiveAssistantPanel({
               }}
             />
             <button
+              type="button"
+              onClick={() => voice.requestStartListening()}
+              disabled={!voice.supported && voice.micVisual === "off"}
+              className={cn(
+                "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors",
+                voice.micVisual === "listening"
+                  ? "border-sky-400/50 bg-sky-500/25 text-sky-50 shadow-[0_0_0_3px_rgba(56,189,248,0.15)] animate-pulse"
+                  : voice.micVisual === "processing"
+                    ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-100"
+                    : voice.micVisual === "speaking"
+                      ? "border-sky-400/40 bg-sky-500/20 text-sky-100"
+                      : "border-white/15 bg-white/[0.04] text-white/45 hover:bg-white/[0.08] hover:text-white/80",
+              )}
+              aria-label={
+                voice.micVisual === "listening" ? "Stop listening" : "Start voice conversation"
+              }
+              title="Voice (CTRL+Q)"
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+            <button
               type="submit"
               disabled={!message.trim() || sending}
               className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-500/15 text-sky-100 transition-colors hover:bg-sky-500/25 disabled:opacity-40"
@@ -894,7 +1024,16 @@ export default function ExecutiveAssistantPanel({
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </button>
           </div>
+          <p className="mt-2 text-[10px] text-white/30">
+            Voice shortcut: CTRL + Q · Esc cancels listening
+          </p>
         </form>
+
+        <VoiceIntroModal
+          open={voice.introOpen}
+          onGotIt={(dontShowAgain) => voice.completeIntro(dontShowAgain, true)}
+          onDismiss={(dontShowAgain) => voice.completeIntro(dontShowAgain, false)}
+        />
       </div>
     </div>
   );

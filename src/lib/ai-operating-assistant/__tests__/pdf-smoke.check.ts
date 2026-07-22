@@ -75,7 +75,7 @@ async function main() {
       renewalDate: null,
       onboardingStage: "Kickoff",
     },
-  ] as ManagedClient[];
+  ] as unknown as ManagedClient[];
 
   const eng = await generateTypedReportPdf({
     reportType: "engineering",
