@@ -621,16 +621,28 @@ export async function saveUnit311DetailTasks(
 }
 
 export async function getUnit311DetailsOverview(scope?: FilesWorkspaceScope) {
-  const bootstrap = await ensureUnit311DetailsFolders(scope);
+  await ensureUnit311DetailsFolders(scope);
+
+  // Ensure the Cyber Resilience Act section button/folder exists (no duplicate).
+  try {
+    const { ensureCyberResilienceActSection } = await import(
+      "@/lib/unit311-details-doc-pack-service"
+    );
+    await ensureCyberResilienceActSection(scope);
+  } catch (error) {
+    console.warn("[unit311-details] CRA section ensure failed", error);
+  }
+
+  const refreshed = await ensureUnit311DetailsFolders(scope);
   const contents: Record<string, string> = {};
   const tasks: Record<string, Unit311DetailTask[]> = {};
 
-  for (const category of bootstrap.categories) {
+  for (const category of refreshed.categories) {
     if (isGoLiveStorageCategory(category.id)) {
       continue;
     }
 
-    const folderId = bootstrap.folders[category.id];
+    const folderId = refreshed.folders[category.id];
     if (!folderId) {
       contents[category.id] = "";
       tasks[category.id] = [];
@@ -643,9 +655,9 @@ export async function getUnit311DetailsOverview(scope?: FilesWorkspaceScope) {
   }
 
   return {
-    rootFolderId: bootstrap.rootFolderId,
-    folders: bootstrap.folders,
-    categories: bootstrap.categories.filter(
+    rootFolderId: refreshed.rootFolderId,
+    folders: refreshed.folders,
+    categories: refreshed.categories.filter(
       (category) => !isGoLiveStorageCategory(category.id),
     ),
     contents,
