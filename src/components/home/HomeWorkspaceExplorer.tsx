@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -48,12 +48,16 @@ type Capability = {
   icon: LucideIcon;
 };
 
+type WorkspaceVisual = "central" | "clients" | "finance" | "people" | "engineering" | "corporate" | "assets" | "productivity" | "integrations";
+
 type Workspace = {
   id: string;
   title: string;
   descriptor: string;
   description: string;
   icon: LucideIcon;
+  visual: WorkspaceVisual;
+  accent: string;
   capabilities: Capability[];
   footnote?: string;
 };
@@ -66,6 +70,8 @@ const WORKSPACES: Workspace[] = [
     description:
       "Executive oversight, strategic planning, AI-powered decision making and enterprise-wide workflow automation.",
     icon: LayoutDashboard,
+    visual: "central",
+    accent: "rgba(125, 211, 252, 0.55)",
     capabilities: [
       { label: "Executive Dashboard", icon: Gauge },
       { label: "Executive AI Assistant", icon: Sparkles },
@@ -87,6 +93,8 @@ const WORKSPACES: Workspace[] = [
     description:
       "Manage client relationships, pipeline, onboarding and project delivery in one connected workspace.",
     icon: Briefcase,
+    visual: "clients",
+    accent: "rgba(147, 197, 253, 0.55)",
     capabilities: [
       { label: "Client Directory", icon: Users },
       { label: "CRM & Pipeline", icon: Handshake },
@@ -103,6 +111,8 @@ const WORKSPACES: Workspace[] = [
     description:
       "Run finance operations, banking connections and reporting from a unified financial command centre.",
     icon: Wallet,
+    visual: "finance",
+    accent: "rgba(110, 231, 183, 0.45)",
     capabilities: [
       { label: "Financial Dashboard", icon: ChartColumn },
       { label: "General Ledger", icon: FileText },
@@ -120,6 +130,8 @@ const WORKSPACES: Workspace[] = [
     description:
       "Coordinate workforce management across people, leave, performance, payroll and training.",
     icon: UsersRound,
+    visual: "people",
+    accent: "rgba(196, 181, 253, 0.5)",
     capabilities: [
       { label: "HR Dashboard", icon: Gauge },
       { label: "Employees", icon: Users },
@@ -138,6 +150,8 @@ const WORKSPACES: Workspace[] = [
     description:
       "Plan capacity, deliver engineering projects and maintain technical quality and compliance.",
     icon: Wrench,
+    visual: "engineering",
+    accent: "rgba(125, 211, 252, 0.5)",
     capabilities: [
       { label: "Engineering Dashboard", icon: Gauge },
       { label: "Resource Utilisation", icon: Activity },
@@ -155,6 +169,8 @@ const WORKSPACES: Workspace[] = [
     description:
       "Govern company structure, contracts, compliance and advisory relationships from one place.",
     icon: Scale,
+    visual: "corporate",
+    accent: "rgba(186, 230, 253, 0.5)",
     capabilities: [
       { label: "Company Information", icon: Building2 },
       { label: "Cap Table & Shareholder Management", icon: ChartColumn },
@@ -172,6 +188,8 @@ const WORKSPACES: Workspace[] = [
     description:
       "Track assets, inventory, logistics movements and procurement across your organisation.",
     icon: Package,
+    visual: "assets",
+    accent: "rgba(253, 224, 71, 0.35)",
     capabilities: [
       { label: "Asset Register", icon: Boxes },
       { label: "Inventory", icon: Package },
@@ -186,6 +204,8 @@ const WORKSPACES: Workspace[] = [
     description:
       "Centralise communication, knowledge, calendar and support across your organisation.",
     icon: MessageSquare,
+    visual: "productivity",
+    accent: "rgba(165, 180, 252, 0.5)",
     capabilities: [
       { label: "Information Repository", icon: Database },
       { label: "Email", icon: Mail },
@@ -203,6 +223,8 @@ const WORKSPACES: Workspace[] = [
     description:
       "Connect Unit311 Central to the specialist systems your business already relies on—integrate rather than replace.",
     icon: Plug,
+    visual: "integrations",
+    accent: "rgba(56, 189, 248, 0.5)",
     capabilities: [
       { label: "Microsoft 365", icon: Cloud },
       { label: "Outlook", icon: Mail },
@@ -233,10 +255,137 @@ const WORKSPACES: Workspace[] = [
   },
 ];
 
+function Atmosphere({ visual }: { visual: WorkspaceVisual }) {
+  switch (visual) {
+    case "central":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <rect x="18" y="42" width="124" height="10" rx="5" fill="currentColor" opacity="0.1" />
+          <rect x="18" y="62" width="92" height="8" rx="4" fill="currentColor" opacity="0.07" />
+          <rect x="18" y="84" width="124" height="38" rx="10" fill="currentColor" opacity="0.06" />
+          <rect x="18" y="132" width="58" height="34" rx="9" fill="currentColor" opacity="0.08" />
+          <rect x="84" y="132" width="58" height="34" rx="9" fill="currentColor" opacity="0.05" />
+          <rect x="18" y="176" width="124" height="8" rx="4" fill="currentColor" opacity="0.05" />
+        </svg>
+      );
+    case "clients":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <path d="M42 70C58 92 78 98 104 86" stroke="currentColor" strokeWidth="1.2" opacity="0.22" />
+          <path d="M36 128C62 112 96 118 124 146" stroke="currentColor" strokeWidth="1.2" opacity="0.18" />
+          <path d="M78 56C86 88 88 120 74 162" stroke="currentColor" strokeWidth="1.1" opacity="0.14" />
+          <circle cx="42" cy="70" r="5" fill="currentColor" opacity="0.28" />
+          <circle cx="104" cy="86" r="4.5" fill="currentColor" opacity="0.22" />
+          <circle cx="36" cy="128" r="4" fill="currentColor" opacity="0.2" />
+          <circle cx="124" cy="146" r="5" fill="currentColor" opacity="0.18" />
+          <circle cx="78" cy="56" r="3.5" fill="currentColor" opacity="0.16" />
+          <circle cx="74" cy="162" r="3.5" fill="currentColor" opacity="0.14" />
+        </svg>
+      );
+    case "finance":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <path
+            className="workspace-atmosphere-flow"
+            d="M16 158C36 148 44 118 62 112C84 104 90 142 112 136C128 131 138 108 148 96"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            opacity="0.28"
+          />
+          <path
+            d="M16 172C40 166 52 148 70 146C92 143 98 168 120 162C134 157 142 142 148 132"
+            stroke="currentColor"
+            strokeWidth="1"
+            opacity="0.12"
+          />
+          <circle cx="62" cy="112" r="2.5" fill="currentColor" opacity="0.3" />
+          <circle cx="112" cy="136" r="2.5" fill="currentColor" opacity="0.24" />
+          <circle cx="148" cy="96" r="2.5" fill="currentColor" opacity="0.28" />
+        </svg>
+      );
+    case "people":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <circle cx="80" cy="108" r="34" stroke="currentColor" strokeWidth="1" opacity="0.1" />
+          <circle cx="80" cy="108" r="54" stroke="currentColor" strokeWidth="1" opacity="0.06" />
+          <circle cx="54" cy="88" r="7" fill="currentColor" opacity="0.18" />
+          <circle cx="104" cy="84" r="6" fill="currentColor" opacity="0.16" />
+          <circle cx="80" cy="128" r="7.5" fill="currentColor" opacity="0.2" />
+          <circle cx="48" cy="132" r="5" fill="currentColor" opacity="0.12" />
+          <circle cx="116" cy="126" r="5.5" fill="currentColor" opacity="0.14" />
+          <path d="M54 88L80 128L104 84M48 132L80 128L116 126" stroke="currentColor" strokeWidth="1" opacity="0.14" />
+        </svg>
+      );
+    case "engineering":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <path d="M24 48H136M24 78H136M24 108H136M24 138H136M24 168H136" stroke="currentColor" strokeWidth="0.8" opacity="0.08" />
+          <path d="M40 40V180M70 40V180M100 40V180M130 40V180" stroke="currentColor" strokeWidth="0.8" opacity="0.07" />
+          <path d="M34 164L78 72L118 128L142 92" stroke="currentColor" strokeWidth="1.2" opacity="0.22" />
+          <path d="M52 52H92V84H52V52Z" stroke="currentColor" strokeWidth="1" opacity="0.16" />
+          <circle cx="78" cy="72" r="3" fill="currentColor" opacity="0.28" />
+        </svg>
+      );
+    case "corporate":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <rect x="28" y="48" width="44" height="132" rx="8" stroke="currentColor" strokeWidth="1" opacity="0.14" />
+          <rect x="80" y="68" width="52" height="112" rx="8" stroke="currentColor" strokeWidth="1" opacity="0.1" />
+          <rect x="40" y="64" width="20" height="14" rx="3" fill="currentColor" opacity="0.08" />
+          <rect x="40" y="90" width="20" height="14" rx="3" fill="currentColor" opacity="0.06" />
+          <rect x="40" y="116" width="20" height="14" rx="3" fill="currentColor" opacity="0.07" />
+          <rect x="92" y="88" width="28" height="18" rx="4" fill="currentColor" opacity="0.07" />
+          <rect x="92" y="120" width="28" height="18" rx="4" fill="currentColor" opacity="0.05" />
+          <path d="M28 180H132" stroke="currentColor" strokeWidth="1" opacity="0.12" />
+        </svg>
+      );
+    case "assets":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <rect x="30" y="148" width="36" height="28" rx="5" fill="currentColor" opacity="0.1" />
+          <rect x="72" y="132" width="36" height="44" rx="5" fill="currentColor" opacity="0.12" />
+          <rect x="114" y="116" width="28" height="60" rx="5" fill="currentColor" opacity="0.08" />
+          <path
+            className="workspace-atmosphere-flow"
+            d="M24 96C48 88 68 104 88 92C108 80 124 70 144 78"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            opacity="0.22"
+          />
+          <path d="M24 112C52 106 70 118 92 110C112 103 128 94 144 100" stroke="currentColor" strokeWidth="1" opacity="0.1" />
+        </svg>
+      );
+    case "productivity":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <path d="M20 120C48 72 112 72 140 120" stroke="currentColor" strokeWidth="1.2" opacity="0.16" />
+          <path d="M28 140C54 100 106 100 132 140" stroke="currentColor" strokeWidth="1.1" opacity="0.12" />
+          <path d="M36 158C58 128 102 128 124 158" stroke="currentColor" strokeWidth="1" opacity="0.09" />
+          <circle cx="52" cy="78" r="10" stroke="currentColor" strokeWidth="1" opacity="0.14" />
+          <circle cx="108" cy="74" r="8" stroke="currentColor" strokeWidth="1" opacity="0.12" />
+          <circle cx="80" cy="98" r="6" fill="currentColor" opacity="0.14" />
+        </svg>
+      );
+    case "integrations":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <rect x="28" y="64" width="22" height="22" rx="6" stroke="currentColor" strokeWidth="1" opacity="0.18" />
+          <rect x="110" y="58" width="22" height="22" rx="6" stroke="currentColor" strokeWidth="1" opacity="0.14" />
+          <rect x="68" y="108" width="24" height="24" rx="7" stroke="currentColor" strokeWidth="1" opacity="0.2" />
+          <rect x="34" y="148" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="1" opacity="0.12" />
+          <rect x="108" y="146" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="1" opacity="0.12" />
+          <path d="M50 75L68 118M110 69L92 118M80 132L44 158M80 132L118 156" stroke="currentColor" strokeWidth="1" opacity="0.16" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 function CapabilityChip({ label, icon: Icon }: Capability) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] bg-white/[0.04] px-3 py-1.5 text-[12px] font-medium text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-sm transition-colors duration-200 sm:gap-2 sm:px-3.5 sm:py-2 sm:text-[13px]">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-sky-400/80 sm:h-4 sm:w-4" strokeWidth={1.75} aria-hidden />
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.035] px-3.5 py-2 text-[12.5px] font-medium tracking-wide text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-sm sm:text-[13px]">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-sky-300/85 sm:h-4 sm:w-4" strokeWidth={1.6} aria-hidden />
       {label}
     </span>
   );
@@ -258,42 +407,112 @@ function ExpandedPanel({
       aria-labelledby={workspace ? `${panelId}-${workspace.id}` : undefined}
       aria-hidden={!workspace}
       className={[
-        "rounded-2xl border border-white/[0.1] bg-gradient-to-b from-white/[0.09] to-white/[0.03] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-opacity duration-300 sm:rounded-[24px] sm:p-7 lg:p-8",
+        "workspace-panel relative overflow-hidden rounded-[28px] border border-white/[0.1] p-6 sm:rounded-[32px] sm:p-8 lg:p-10",
         workspace ? "opacity-100" : "pointer-events-none opacity-0",
       ].join(" ")}
     >
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.1] via-white/[0.03] to-transparent" aria-hidden />
+      <div
+        className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full blur-3xl"
+        style={{ background: workspace ? workspace.accent : "transparent", opacity: 0.18 }}
+        aria-hidden
+      />
+
       {workspace && Icon ? (
-        <>
-          <div className="flex items-start gap-3 sm:gap-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-sky-400/25 bg-sky-400/12 text-sky-300 sm:h-12 sm:w-12">
-              <Icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={1.75} aria-hidden />
+        <div className="relative">
+          <div className="flex items-start gap-4 sm:gap-5">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px] border border-white/12 bg-white/[0.05] text-sky-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] sm:h-16 sm:w-16">
+              <Icon className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={1.5} aria-hidden />
             </span>
-            <div className="min-w-0">
-              <h3 className="text-lg font-semibold tracking-tight text-white sm:text-xl lg:text-[22px]">
+            <div className="min-w-0 pt-0.5">
+              <h3 className="text-[1.35rem] font-semibold tracking-[-0.02em] text-white sm:text-[1.65rem] lg:text-[1.85rem]">
                 {workspace.title}
               </h3>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/60 sm:text-[15px] lg:text-[16px]">
+              <p className="mt-2.5 max-w-3xl text-[14px] leading-relaxed text-white/58 sm:mt-3 sm:text-[16px] sm:leading-relaxed lg:text-[17px]">
                 {workspace.description}
               </p>
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2 sm:mt-6 sm:gap-2.5">
+          <div className="mt-6 flex flex-wrap gap-2.5 sm:mt-8 sm:gap-3">
             {workspace.capabilities.map((capability) => (
               <CapabilityChip key={capability.label} {...capability} />
             ))}
           </div>
 
           {workspace.footnote ? (
-            <p className="mt-5 max-w-4xl text-[13px] leading-relaxed text-white/48 sm:mt-6 sm:text-sm">
+            <p className="mt-6 max-w-4xl text-[13px] leading-relaxed text-white/45 sm:mt-7 sm:text-[14px]">
               {workspace.footnote}
             </p>
           ) : null}
-        </>
+        </div>
       ) : (
-        <div className="h-24" aria-hidden />
+        <div className="h-28" aria-hidden />
       )}
     </div>
+  );
+}
+
+function WorkspaceTile({
+  workspace,
+  isOpen,
+  panelId,
+  onToggle,
+}: {
+  workspace: Workspace;
+  isOpen: boolean;
+  panelId: string;
+  onToggle: () => void;
+}) {
+  const Icon = workspace.icon;
+
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={isOpen}
+      aria-expanded={isOpen}
+      aria-controls={panelId}
+      id={`${panelId}-${workspace.id}`}
+      onClick={onToggle}
+      className={[
+        "workspace-tile group relative flex min-h-[232px] flex-col overflow-hidden rounded-[28px] text-left sm:min-h-[248px] sm:rounded-[30px]",
+        "md:min-h-[268px] lg:min-h-[280px] lg:rounded-[28px] xl:min-h-[300px] xl:rounded-[24px] 2xl:min-h-[328px] 2xl:rounded-[28px]",
+        "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050816]",
+        isOpen ? "is-open" : "",
+      ].join(" ")}
+      style={{ "--tile-accent": workspace.accent } as CSSProperties}
+    >
+      <span className="workspace-tile-sheen" aria-hidden />
+      <span className="workspace-tile-glow" aria-hidden />
+
+      <span
+        className="pointer-events-none absolute inset-0 text-sky-200/80"
+        style={{ color: workspace.accent }}
+        aria-hidden
+      >
+        <Atmosphere visual={workspace.visual} />
+      </span>
+
+      <span className="relative z-[1] flex h-full flex-col p-6 sm:p-7 md:p-7 lg:p-8 xl:p-4 2xl:p-5">
+        <span className="workspace-tile-icon mb-auto flex h-16 w-16 items-center justify-center rounded-[22px] sm:h-[4.5rem] sm:w-[4.5rem] sm:rounded-[24px] md:h-[4.75rem] md:w-[4.75rem] lg:h-20 lg:w-20 lg:rounded-[26px] xl:h-14 xl:w-14 xl:rounded-[18px] 2xl:h-16 2xl:w-16 2xl:rounded-[22px]">
+          <Icon
+            className="h-8 w-8 text-white sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-10 lg:w-10 xl:h-7 xl:w-7 2xl:h-8 2xl:w-8"
+            strokeWidth={1.35}
+            aria-hidden
+          />
+        </span>
+
+        <span className="mt-10 block sm:mt-12 lg:mt-14 xl:mt-auto xl:pt-6">
+          <span className="block text-[1.2rem] font-semibold leading-[1.18] tracking-[-0.03em] text-white sm:text-[1.28rem] md:text-[1.32rem] lg:text-[1.4rem] xl:text-[15px] 2xl:text-[16.5px]">
+            {workspace.title}
+          </span>
+          <span className="mt-2 block text-[13px] font-medium leading-snug tracking-[0.01em] text-white/40 sm:text-[13.5px] lg:text-[14px] xl:mt-1.5 xl:text-[11.5px] 2xl:text-[12.5px]">
+            {workspace.descriptor}
+          </span>
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -308,7 +527,7 @@ export default function HomeWorkspaceExplorer() {
 
   return (
     <div
-      className="relative mt-10 sm:mt-14 lg:mt-16"
+      className="relative mt-12 sm:mt-16 lg:mt-20"
       onKeyDown={(event) => {
         if (event.key === "Escape" && openId) {
           setOpenId(null);
@@ -316,78 +535,38 @@ export default function HomeWorkspaceExplorer() {
       }}
     >
       <div
-        className="pointer-events-none absolute inset-x-0 top-8 h-[min(420px,70%)] rounded-[40px] opacity-80"
+        className="pointer-events-none absolute inset-x-[8%] top-[12%] h-[55%] rounded-full opacity-70 blur-3xl"
         aria-hidden
         style={{
           background:
-            "radial-gradient(ellipse 70% 55% at 50% 40%, rgba(59,130,246,0.1) 0%, rgba(56,189,248,0.04) 45%, transparent 75%)",
+            "radial-gradient(ellipse at center, rgba(56,189,248,0.09), rgba(37,99,235,0.04) 45%, transparent 70%)",
         }}
       />
 
-      <div className="relative -mx-4 overflow-x-auto px-4 pb-1 [scrollbar-width:thin] sm:mx-0 sm:px-0 lg:overflow-visible">
-        <div
-          role="tablist"
-          aria-label="Unit311 Central workspaces"
-          className="flex min-w-max gap-2 sm:gap-2.5 lg:min-w-0 lg:w-full lg:gap-2.5 xl:gap-3"
-        >
-          {WORKSPACES.map((workspace) => {
-            const Icon = workspace.icon;
-            const isOpen = openId === workspace.id;
-
-            return (
-              <button
-                key={workspace.id}
-                type="button"
-                role="tab"
-                aria-selected={isOpen}
-                aria-expanded={isOpen}
-                aria-controls={panelId}
-                id={`${panelId}-${workspace.id}`}
-                onClick={() => toggleWorkspace(workspace.id)}
-                className={[
-                  "group relative flex min-h-[124px] w-[126px] shrink-0 flex-col items-start rounded-2xl border p-3 text-left backdrop-blur-md transition-all duration-300 ease-out",
-                  "sm:min-h-[136px] sm:w-[138px] sm:rounded-[18px] sm:p-3.5",
-                  "lg:min-h-[148px] lg:w-auto lg:min-w-0 lg:flex-1 lg:rounded-[18px] lg:p-3",
-                  "xl:min-h-[156px] xl:rounded-[20px] xl:p-4",
-                  "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050816]",
-                  isOpen
-                    ? "border-sky-400/35 bg-gradient-to-b from-white/[0.12] to-white/[0.05] shadow-[0_16px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.1)]"
-                    : "border-white/[0.08] bg-gradient-to-b from-white/[0.08] to-white/[0.025] shadow-[0_10px_28px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-sky-400/25 hover:bg-white/[0.07]",
-                ].join(" ")}
-              >
-                <span
-                  className={[
-                    "mb-2.5 flex h-8 w-8 items-center justify-center rounded-xl border transition-colors duration-300 sm:mb-3 sm:h-9 sm:w-9",
-                    isOpen
-                      ? "border-sky-400/30 bg-sky-400/15 text-sky-300"
-                      : "border-white/10 bg-white/[0.04] text-sky-400/85 group-hover:border-sky-400/25 group-hover:bg-sky-400/10",
-                  ].join(" ")}
-                >
-                  <Icon className="h-4 w-4 sm:h-[17px] sm:w-[17px]" strokeWidth={1.75} aria-hidden />
-                </span>
-                <span className="text-[11px] font-semibold leading-snug tracking-tight text-white sm:text-[12px] lg:text-[11.5px] xl:text-[12.5px] 2xl:text-[13px]">
-                  {workspace.title}
-                </span>
-                <span className="mt-1 text-[10px] leading-snug text-white/45 sm:text-[11px] lg:text-[10.5px] xl:text-[11.5px]">
-                  {workspace.descriptor}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      <div
+        role="tablist"
+        aria-label="Unit311 Central workspaces"
+        className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 md:gap-5 lg:gap-5 xl:grid-cols-9 xl:gap-3 2xl:gap-3.5"
+      >
+        {WORKSPACES.map((workspace) => (
+          <WorkspaceTile
+            key={workspace.id}
+            workspace={workspace}
+            isOpen={openId === workspace.id}
+            panelId={panelId}
+            onToggle={() => toggleWorkspace(workspace.id)}
+          />
+        ))}
       </div>
 
       <div
         className={[
           "grid transition-[grid-template-rows] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-          openWorkspace ? "mt-4 grid-rows-[1fr] sm:mt-5" : "mt-0 grid-rows-[0fr]",
+          openWorkspace ? "mt-5 grid-rows-[1fr] sm:mt-6 lg:mt-7" : "mt-0 grid-rows-[0fr]",
         ].join(" ")}
       >
         <div className="min-h-0 overflow-hidden">
-          <ExpandedPanel
-            panelId={panelId}
-            workspace={openWorkspace}
-          />
+          <ExpandedPanel panelId={panelId} workspace={openWorkspace} />
         </div>
       </div>
     </div>

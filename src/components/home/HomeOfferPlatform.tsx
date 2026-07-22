@@ -39,7 +39,7 @@ export default function HomeOfferPlatform() {
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
-      <div className="relative mx-auto max-w-[1760px] px-4 sm:px-8 lg:px-10">
+      <div className="relative mx-auto max-w-[1760px] px-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10">
         <HomeSectionTitle singleLine>
           Explore everything Unit311 Central has to offer
         </HomeSectionTitle>
