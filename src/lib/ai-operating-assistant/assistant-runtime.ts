@@ -122,7 +122,10 @@ function formatSearchEmployeesReply(result: unknown): string | null {
   const headcount =
     typeof summary?.headcount === "number" ? summary.headcount : items.length;
   if (items.length === 0) {
-    return `No employees matched. Headcount on file: ${headcount}.`;
+    return (
+      (typeof summary?.message === "string" && summary.message) ||
+      `There are currently no employees matching that request. Headcount on file: ${headcount}.`
+    );
   }
   const lines = items.slice(0, 40).map((item, index) => {
     const name = String(item.fullName ?? "—");
@@ -132,7 +135,113 @@ function formatSearchEmployeesReply(result: unknown): string | null {
   });
   const more =
     items.length > 40 ? `\n…and ${items.length - 40} more.` : "";
-  return `Here are the employees on file (${items.length} shown, headcount ${headcount}):\n\n${lines.join("\n")}${more}`;
+  const lead =
+    (typeof summary?.message === "string" && summary.message) ||
+    `I found ${items.length} employee${items.length === 1 ? "" : "s"}.`;
+  return `${lead}\n\n${lines.join("\n")}${more}`;
+}
+
+function formatListedToolReply(
+  result: unknown,
+  options: {
+    emptyFallback: string;
+    line: (item: Record<string, unknown>, index: number) => string;
+    maxLines?: number;
+  },
+): string | null {
+  if (!result || typeof result !== "object") return null;
+  const status = String((result as { status?: string }).status ?? "");
+  const summary = (result as { summary?: Record<string, unknown> }).summary;
+  if (status === "error" || status === "forbidden") {
+    return (
+      (typeof (result as { error?: string }).error === "string" &&
+        (result as { error: string }).error) ||
+      (typeof summary?.message === "string" && summary.message) ||
+      "That query could not be completed."
+    );
+  }
+  const items = (result as { items?: Array<Record<string, unknown>> }).items;
+  if (!Array.isArray(items)) {
+    return typeof summary?.message === "string" ? summary.message : null;
+  }
+  if (items.length === 0) {
+    return (typeof summary?.message === "string" && summary.message) || options.emptyFallback;
+  }
+  const max = options.maxLines ?? 40;
+  const lines = items.slice(0, max).map((item, index) => options.line(item, index));
+  const more = items.length > max ? `\n…and ${items.length - max} more.` : "";
+  const lead =
+    (typeof summary?.message === "string" && summary.message) ||
+    `I found ${items.length} result${items.length === 1 ? "" : "s"}.`;
+  return `${lead}\n\n${lines.join("\n")}${more}`;
+}
+
+function formatDirectListReply(toolName: string, result: unknown): string | null {
+  switch (toolName) {
+    case "searchEmployees":
+      return formatSearchEmployeesReply(result);
+    case "searchPerformanceReviews":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no performance reviews.",
+        line: (item, index) =>
+          `${index + 1}. ${String(item.employeeName ?? "—")} — ${String(item.reviewPeriod ?? "—")} — ${String(item.status ?? "—")}${
+            item.overallRating ? ` — ${String(item.overallRating)}` : ""
+          }`,
+      });
+    case "searchLeave":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no leave requests matching that request.",
+        line: (item, index) =>
+          `${index + 1}. ${String(item.employeeName ?? "—")} — ${String(item.type ?? "—")} — ${String(item.startDate ?? "")} → ${String(item.endDate ?? "")} — ${String(item.status ?? "")}`,
+      });
+    case "searchClients":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no clients matching that request.",
+        line: (item, index) =>
+          `${index + 1}. ${String(item.companyName ?? "—")} — ${String(item.accountStatus ?? "—")} — ${String(item.region ?? item.companyCountry ?? "—")} — ${String(item.activeProjects ?? 0)} active projects`,
+      });
+    case "searchProjects":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no projects matching that request.",
+        line: (item, index) =>
+          `${index + 1}. ${String(item.name ?? "—")} — ${String(item.clientName ?? "Internal")} — ${String(item.phase ?? "—")}`,
+      });
+    case "searchInvoices":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no outstanding invoices.",
+        line: (item, index) =>
+          `${index + 1}. ${String(item.clientName ?? "—")} — ${String(item.number ?? "")} — ${Number(item.amount ?? 0).toLocaleString("en-GB", {
+            style: "currency",
+            currency: String(item.currency ?? "GBP"),
+            maximumFractionDigits: 0,
+          })} — due ${String(item.dueDate ?? "—")} — ${String(item.status ?? "")}`,
+      });
+    case "searchExpenses":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no expenses matching that request.",
+        line: (item, index) =>
+          `${index + 1}. ${String(item.supplier ?? "—")} — ${Number(item.amount ?? 0).toLocaleString("en-GB", {
+            style: "currency",
+            currency: String(item.currency ?? "GBP"),
+            maximumFractionDigits: 0,
+          })} — ${String(item.date ?? "—")}${item.description ? ` — ${String(item.description)}` : ""}`,
+      });
+    case "platformSearch":
+      return formatListedToolReply(result, {
+        emptyFallback: "No platform matches.",
+        line: (item, index) =>
+          `${index + 1}. [${String(item.module ?? "Module")}] ${String(item.label ?? "—")}${
+            item.detail ? ` — ${String(item.detail)}` : ""
+          }`,
+      });
+    case "getCashPosition":
+    case "getMonthlyPayrollObligation": {
+      const summary = (result as { summary?: Record<string, unknown> }).summary;
+      return typeof summary?.message === "string" ? summary.message : null;
+    }
+    default:
+      return null;
+  }
 }
 
 function extractArtifactsFromToolResult(
@@ -172,13 +281,16 @@ function extractArtifactsFromToolResult(
     };
   }
 
-  if (toolName === "searchEmployees") {
-    return {
-      followUps,
-      artifacts: [],
-      successText: formatSearchEmployeesReply(result),
-      errorText: null,
-    };
+  if (toolName) {
+    const listed = formatDirectListReply(toolName, result);
+    if (listed) {
+      return {
+        followUps,
+        artifacts: [],
+        successText: listed,
+        errorText: null,
+      };
+    }
   }
 
   if (toolName === "emailAssistantArtifact") {

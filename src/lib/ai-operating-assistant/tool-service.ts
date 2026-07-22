@@ -40,6 +40,16 @@ import {
   generatePayrollPdf,
   queryPayroll,
 } from "./payroll-tools";
+import {
+  getCashPosition,
+  getMonthlyPayrollObligation,
+  platformSearch,
+  searchExpenses,
+  searchInventory,
+  searchInvoices,
+  searchLeave,
+  searchPerformanceReviews,
+} from "./platform-tools";
 
 /**
  * Tool Service — register OpenAI function tools and handlers here.
@@ -72,12 +82,17 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "searchClients",
     description:
-      "Search live client directory. Use for active clients, inactive clients, contract type, and client details. Respects selected client in context.",
+      "Search live client directory. Use for active clients, top clients (topN), country/region filters (e.g. Germany), contract type, and client details.",
     parameters: {
       type: "object",
       properties: {
         query: { type: "string", description: "Search text" },
         status: { type: "string", description: "Optional account status filter" },
+        country: { type: "string", description: "Country or region filter, e.g. Germany" },
+        topN: {
+          type: "number",
+          description: "Return the top N clients ranked by active projects (e.g. 10)",
+        },
         clientId: { type: "string" },
         inactiveDays: {
           type: "number",
@@ -92,7 +107,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "searchProjects",
     description:
-      "Search live projects. Use overdue=true for projects past end date. Uses selected client/project from context when relevant.",
+      "Search live projects (internal/external). Use query for engineering/domain filters, overdue=true for projects past end date. Uses selected client/project from context when relevant.",
     parameters: {
       type: "object",
       properties: {
@@ -110,7 +125,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "searchEmployees",
     description:
-      "Search HR employees, leave balances, and recruitment open roles. Requires HR permission.",
+      "Search live HR employees (directory / headcount). For who is currently on leave use searchLeave. For performance reviews use searchPerformanceReviews. Requires HR permission.",
     parameters: {
       type: "object",
       properties: {
@@ -120,6 +135,114 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
         page: { type: "number" },
         pageSize: { type: "number" },
       },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "searchPerformanceReviews",
+    description:
+      "List or search live HR performance reviews from Unit311 Performance. Use for “show all performance reviews”, ratings, review periods, or an employee’s reviews. Never say you lack access — query this tool.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        status: { type: "string" },
+        employeeId: { type: "string" },
+        pageSize: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "searchLeave",
+    description:
+      "Query live HR leave requests. Use currentlyOnLeave=true for “who is on leave / currently on leave”. Also supports pending approvals.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        status: { type: "string" },
+        currentlyOnLeave: { type: "boolean" },
+        onLeave: { type: "boolean" },
+        pendingOnly: { type: "boolean" },
+        pageSize: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "searchInvoices",
+    description:
+      "Query live accounts receivable / invoices. Use outstandingOnly for unpaid invoices, overdueOnly for overdue.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        outstandingOnly: { type: "boolean" },
+        overdueOnly: { type: "boolean" },
+        pageSize: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "searchExpenses",
+    description:
+      "Query live expenses. Use recentOnly for recent expenses, minAmount for thresholds (e.g. over $1000).",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        minAmount: { type: "number" },
+        recentOnly: { type: "boolean" },
+        unpaidOnly: { type: "boolean" },
+        pageSize: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "getCashPosition",
+    description:
+      "Return live bank / cash / treasury balance plus AR, AP, burn, and payroll monthly from Finance.",
+    parameters: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "getMonthlyPayrollObligation",
+    description:
+      "Return the live monthly payroll obligation (gross + employer tax) and headcount. Use for “how much is monthly payroll”.",
+    parameters: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "searchInventory",
+    description: "Search live inventory / assets register.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        pageSize: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "platformSearch",
+    description:
+      "Cross-module search across Employees, Performance, Leave, Clients, Projects, CRM, Recruitment, and Finance. Use when the user searches a person or company name (e.g. John Smith).",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+      },
+      required: ["query"],
       additionalProperties: false,
     },
   },
@@ -503,6 +626,14 @@ const handlers: Record<string, ContextualToolHandler> = {
   searchClients,
   searchProjects,
   searchEmployees,
+  searchPerformanceReviews,
+  searchLeave,
+  searchInvoices,
+  searchExpenses,
+  getCashPosition,
+  getMonthlyPayrollObligation,
+  searchInventory,
+  platformSearch,
   searchFiles,
   searchContracts,
   searchTasks,

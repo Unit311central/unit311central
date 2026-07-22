@@ -11,8 +11,19 @@ export type DirectAssistantIntent = {
     | "generateEmployeeListPdf"
     | "generateFinancialReportPdf"
     | "generateReportPdf"
+    | "generatePayrollPdf"
     | "emailAssistantArtifact"
-    | "searchEmployees";
+    | "searchEmployees"
+    | "searchPerformanceReviews"
+    | "searchLeave"
+    | "searchClients"
+    | "searchProjects"
+    | "searchInvoices"
+    | "searchExpenses"
+    | "getCashPosition"
+    | "getMonthlyPayrollObligation"
+    | "platformSearch"
+    | "queryPayroll";
   args: Record<string, unknown>;
   reason: string;
 };
@@ -75,7 +86,36 @@ export function resolveDirectIntent(
   const lower = text.toLowerCase();
   const hasPdf = historyHasPdfArtifact(history);
 
-  // List employees only (no PDF) — return the list, do not invent a file.
+  // —— Live data lists (never invent “no access”) ——
+
+  if (
+    /\b(performance\s+reviews?|reviews?\s+performance|appraisal|appraisals)\b/i.test(lower) &&
+    !/\b(pdf|export|download|email)\b/i.test(lower)
+  ) {
+    return {
+      tool: "searchPerformanceReviews",
+      args: { pageSize: 100 },
+      reason: "list_performance_reviews",
+    };
+  }
+
+  if (
+    (/\b(on\s+leave|currently\s+on\s+leave|who('?s| is)\s+on\s+leave|everyone\s+.*leave|people\s+.*leave)\b/i.test(
+      lower,
+    ) ||
+      /^(list|show|get|give me|display)\s+(all\s+)?leave\b/i.test(text)) &&
+    !/\b(pdf|export|download|balance|balances)\b/i.test(lower)
+  ) {
+    return {
+      tool: "searchLeave",
+      args: {
+        currentlyOnLeave: /\bon\s+leave\b/i.test(lower),
+        pageSize: 100,
+      },
+      reason: "list_leave",
+    };
+  }
+
   if (
     /^(list|show|get|give me|display)\s+(all\s+)?(employees|staff|people|headcount)\b/i.test(
       text,
@@ -86,6 +126,142 @@ export function resolveDirectIntent(
       tool: "searchEmployees",
       args: { pageSize: 100 },
       reason: "list_employees_only",
+    };
+  }
+
+  if (
+    /\b(monthly\s+payroll|how\s+much\s+.*payroll|payroll\s+(cost|obligation|total|amount)|what\s+is\s+(the\s+)?payroll)\b/i.test(
+      lower,
+    ) &&
+    !/\b(pdf|export|download|report)\b/i.test(lower)
+  ) {
+    return {
+      tool: "getMonthlyPayrollObligation",
+      args: {},
+      reason: "monthly_payroll",
+    };
+  }
+
+  if (
+    /\b(top\s+\d+\s+clients?|top\s+clients?|biggest\s+clients?|who\s+are\s+my\s+top)\b/i.test(lower)
+  ) {
+    const topMatch = lower.match(/top\s+(\d+)/);
+    const topN = topMatch ? Number(topMatch[1]) : 10;
+    return {
+      tool: "searchClients",
+      args: { topN: Number.isFinite(topN) && topN > 0 ? topN : 10, pageSize: 50 },
+      reason: "top_clients",
+    };
+  }
+
+  if (
+    /\b(clients?\s+in\s+[a-z]+|customers?\s+in\s+[a-z]+)\b/i.test(lower) &&
+    !/\b(pdf|export)\b/i.test(lower)
+  ) {
+    const countryMatch = lower.match(/\b(?:clients?|customers?)\s+in\s+([a-z][a-z\s-]{1,40})\b/i);
+    const country = countryMatch?.[1]?.trim();
+    return {
+      tool: "searchClients",
+      args: country ? { country, pageSize: 50 } : { pageSize: 50 },
+      reason: "clients_by_country",
+    };
+  }
+
+  if (
+    /\b(outstanding\s+invoices?|unpaid\s+invoices?|open\s+invoices?|accounts\s+receivable|who\s+owes)\b/i.test(
+      lower,
+    ) &&
+    !/\b(pdf|export)\b/i.test(lower)
+  ) {
+    return {
+      tool: "searchInvoices",
+      args: { outstandingOnly: true, pageSize: 50 },
+      reason: "outstanding_invoices",
+    };
+  }
+
+  if (
+    /\b(bank\s+balance|cash\s+balance|cash\s+position|treasury|wise\s+balance|how\s+much\s+cash)\b/i.test(
+      lower,
+    ) &&
+    !/\b(pdf|export)\b/i.test(lower)
+  ) {
+    return {
+      tool: "getCashPosition",
+      args: {},
+      reason: "cash_position",
+    };
+  }
+
+  if (
+    /\b(recent\s+expenses?|latest\s+expenses?|show\s+.*expenses?|expenses?\s+over|expenses?\s+above)\b/i.test(
+      lower,
+    ) &&
+    !/\b(pdf|export)\b/i.test(lower)
+  ) {
+    const amountMatch = lower.match(/(?:over|above|more than)\s*[$£€]?\s*([\d,]+)/i);
+    const minAmount = amountMatch
+      ? Number(String(amountMatch[1]).replace(/,/g, ""))
+      : undefined;
+    return {
+      tool: "searchExpenses",
+      args: {
+        recentOnly: true,
+        ...(minAmount && Number.isFinite(minAmount) ? { minAmount } : {}),
+        pageSize: 25,
+      },
+      reason: "recent_expenses",
+    };
+  }
+
+  if (
+    /\b(engineering\s+projects?|current\s+projects?|show\s+.*projects?|list\s+.*projects?|active\s+projects?)\b/i.test(
+      lower,
+    ) &&
+    !/\b(pdf|export|report)\b/i.test(lower)
+  ) {
+    const wantsEngineering = /\bengineering\b/i.test(lower);
+    return {
+      tool: "searchProjects",
+      args: {
+        query: wantsEngineering ? "engineering" : undefined,
+        phase: /\bcurrent|active|live\b/i.test(lower) ? "live" : "all",
+        pageSize: 50,
+      },
+      reason: wantsEngineering ? "engineering_projects" : "list_projects",
+    };
+  }
+
+  // Person / company style search (e.g. “John Smith”)
+  if (
+    /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$/.test(text) ||
+    /^(search|find|look\s+up|who\s+is)\s+.+/i.test(text)
+  ) {
+    const query = text.replace(/^(search|find|look\s+up|who\s+is)\s+/i, "").trim();
+    if (query && !/\b(pdf|report|export)\b/i.test(query)) {
+      return {
+        tool: "platformSearch",
+        args: { query },
+        reason: "cross_module_search",
+      };
+    }
+  }
+
+  // —— Payroll PDF (before generic report classifier) ——
+  if (
+    /\bpayroll\b/i.test(lower) &&
+    /\b(pdf|report|export|document)\b/i.test(lower) &&
+    /\b(generate|create|make|export|produce|build|prepare|give|get|show)\b/i.test(lower)
+  ) {
+    const reportType = /\bboard\b/i.test(lower)
+      ? "board"
+      : /\bdepartment\b/i.test(lower)
+        ? "department"
+        : "summary";
+    return {
+      tool: "generatePayrollPdf",
+      args: { reportType },
+      reason: "payroll_pdf",
     };
   }
 

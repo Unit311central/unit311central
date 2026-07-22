@@ -94,11 +94,24 @@ export function classifyReportIntent(message: string): ClassifiedReportIntent | 
   }
 
   if (
-    /\b(employees?|staff|headcount|people|directory|hr\s+list)\b/.test(lower) &&
+    /\b(employees?|staff|headcount|people|directory|hr\s+list|employee\s+report)\b/.test(lower) &&
     /\b(pdf|export|directory|list|report|document)\b/.test(lower)
   ) {
     const meta = reportDisplayMeta("employee");
     return { reportType: "employee", ...meta, reason: "explicit_employee" };
+  }
+
+  if (
+    /\b(board\s+(financial|finance|p\s*(&|and)\s*l)|financial\s+board|board\s+financial\s+report)\b/.test(
+      lower,
+    )
+  ) {
+    return {
+      reportType: "financial",
+      title: `Board Financial Report - ${MONTH_YEAR()}`,
+      filename: `Board Financial Report - ${MONTH_YEAR()}.pdf`,
+      reason: "explicit_board_financial",
+    };
   }
 
   if (
@@ -110,18 +123,6 @@ export function classifyReportIntent(message: string): ClassifiedReportIntent | 
   ) {
     const meta = reportDisplayMeta("financial");
     return { reportType: "financial", ...meta, reason: "explicit_financial" };
-  }
-
-  if (
-    /\b(board\s+(financial|finance|p\s*(&|and)\s*l)|financial\s+board)\b/.test(lower)
-  ) {
-    const meta = reportDisplayMeta("financial");
-    return {
-      reportType: "financial",
-      title: `Board Financial Report - ${MONTH_YEAR()}`,
-      filename: `Board Financial Report - ${MONTH_YEAR()}.pdf`,
-      reason: "explicit_board_financial",
-    };
   }
 
   if (/\b(project\s+portfolio|portfolio\s+report|project\s+report|projects?\s+report)\b/.test(lower)) {

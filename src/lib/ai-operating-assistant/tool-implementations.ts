@@ -2,6 +2,7 @@ import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { vacationDaysRemaining } from "@/lib/hr-data";
+import { listLeaveRequests } from "@/lib/hr-mock-store";
 import { listLeads } from "@/lib/crm-leads-service";
 import { browseFolder, getFileDownloadUrl } from "@/lib/internal-files-service";
 import { listExpenses } from "@/lib/financial-expenses-service";
@@ -59,26 +60,33 @@ export async function searchClients(
     const clients = await listInternalClients();
     const query = asString(args.query);
     const status = asString(args.status);
+    const country = asString(args.country);
+    const topN = asNumber(args.topN, 0);
     const inactiveDays = asNumber(args.inactiveDays, 0);
     const selectedId = resolveClientFilter(args, ctx);
 
     let filtered = clients.filter((client) => {
-      if (selectedId && client.id === selectedId && !query && !status) return true;
+      if (selectedId && client.id === selectedId && !query && !status && !country) return true;
       if (status && client.accountStatus.toLowerCase() !== status.toLowerCase()) return false;
+      if (country) {
+        const place = `${client.region ?? ""} ${client.companyCountry ?? ""}`.toLowerCase();
+        if (!place.includes(country.toLowerCase())) return false;
+      }
       const haystack = [
         client.companyName,
         client.primaryContact,
         client.email,
         client.industry,
         client.region,
+        client.companyCountry ?? "",
         client.notes,
       ].join(" ");
       return matchesQuery(haystack, query);
     });
 
-    if (selectedId && (query || status)) {
+    if (selectedId && (query || status || country)) {
       // keep broader search, but prefer selected when no query
-    } else if (selectedId && !query && !status) {
+    } else if (selectedId && !query && !status && !country) {
       filtered = clients.filter((client) => client.id === selectedId);
     }
 
@@ -92,7 +100,14 @@ export async function searchClients(
       );
     }
 
+    if (topN > 0) {
+      filtered = [...filtered]
+        .sort((a, b) => (b.activeProjects ?? 0) - (a.activeProjects ?? 0))
+        .slice(0, topN);
+    }
+
     const activeCount = clients.filter((client) => client.accountStatus === "Active").length;
+    const pageSize = topN > 0 ? topN : asNumber(args.pageSize, 20);
 
     return toolOk(
       "searchClients",
@@ -102,6 +117,7 @@ export async function searchClients(
         accountStatus: client.accountStatus,
         industry: client.industry,
         region: client.region,
+        companyCountry: client.companyCountry ?? null,
         contractType: client.contractType,
         primaryContact: client.primaryContact,
         email: client.email,
@@ -111,11 +127,21 @@ export async function searchClients(
       {
         source: ["supabase:internal_clients"],
         page: asNumber(args.page, 1),
-        pageSize: asNumber(args.pageSize, 20),
+        pageSize,
         summary: {
           activeClients: activeCount,
           matched: filtered.length,
           totalClients: clients.length,
+          topN: topN > 0 ? topN : null,
+          country: country ?? null,
+          message:
+            filtered.length === 0
+              ? country
+                ? `There are currently no clients in ${country}.`
+                : "There are currently no clients matching that request."
+              : topN > 0
+                ? `I found your top ${filtered.length} client${filtered.length === 1 ? "" : "s"} by active projects.`
+                : `I found ${filtered.length} client${filtered.length === 1 ? "" : "s"}.`,
         },
         dataGaps:
           inactiveDays > 0
@@ -206,6 +232,10 @@ export async function searchProjects(
           live: projects.filter((project) => project.phase === "live").length,
           upcoming: projects.filter((project) => project.phase === "upcoming").length,
           overdueCount: overdue.length,
+          message:
+            filtered.length === 0
+              ? "There are currently no projects matching that request."
+              : `I found ${filtered.length} project${filtered.length === 1 ? "" : "s"}.`,
         },
         followUpActions: [
           nav("/internaldashboard?view=projects", "View Projects"),
@@ -275,12 +305,19 @@ export async function searchEmployees(
     });
 
     if (onLeave) {
-      // No leave-request calendar — approximate with zero remaining vacation days.
-      filtered = filtered.filter((employee) => vacationDaysRemaining(employee) <= 0);
+      const today = new Date().toISOString().slice(0, 10);
+      const onLeaveIds = new Set(
+        listLeaveRequests()
+          .filter(
+            (request) =>
+              request.status === "approved" &&
+              request.startDate <= today &&
+              request.endDate >= today,
+          )
+          .map((request) => request.employeeId),
+      );
+      filtered = filtered.filter((employee) => onLeaveIds.has(employee.id));
     }
-
-    const openingsUnavailable =
-      "Careers openings are not connected to live storage — open recruitment count is unavailable.";
 
     return toolOk(
       "searchEmployees",
@@ -303,7 +340,7 @@ export async function searchEmployees(
           : {}),
       })),
       {
-        source: ["supabase:hr_employees"],
+        source: ["supabase:hr_employees", "hr-leave:requests"],
         page: asNumber(args.page, 1),
         pageSize: asNumber(args.pageSize, 20),
         summary: {
@@ -311,11 +348,13 @@ export async function searchEmployees(
           headcount: employees.length,
           openRecruitmentPositions: null,
           openRoles: [] as string[],
+          message:
+            filtered.length === 0
+              ? onLeave
+                ? "Nobody is currently on approved leave."
+                : "There are currently no employees matching that request."
+              : `I found ${filtered.length} employee${filtered.length === 1 ? "" : "s"}.`,
         },
-        dataGaps: [
-          "Dated leave requests are not stored; onLeave approximates employees with no remaining vacation days.",
-          openingsUnavailable,
-        ],
         followUpActions: [
           {
             id: "generate_employee_pdf",
