@@ -86,6 +86,7 @@ export type InternalOperationsView =
   | "qms-management-review"
   | "qms-reports"
   | "profile"
+  | "appearance"
   | "executive-assistant"
   | "website-management"
   | "engineering"
@@ -224,6 +225,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "qms-management-review",
   "qms-reports",
   "profile",
+  "appearance",
   "executive-assistant",
   "website-management",
   "engineering",
@@ -339,7 +341,7 @@ export type InternalNavChildItem = {
   readonly view?: InternalOperationsView;
   readonly href?: string;
   readonly query?: Record<string, string>;
-  /** One nested level only (e.g. Unit311 Details → Module Go-Live). */
+  /** Nested groups (e.g. Clients → Dashboard). */
   readonly children?: readonly InternalNavChildItem[];
 };
 
@@ -354,17 +356,25 @@ export type InternalNavItem = {
 
 export type InternalNavSection = {
   readonly label: string | null;
+  /** Pin items sit above workspace cards (Home, Executive Assistant). */
+  readonly kind?: "pin" | "workspace";
+  /** Workspace card accent colour. */
+  readonly color?: string;
+  /** Workspace card header icon (Lucide name). */
+  readonly icon?: string;
   readonly items: readonly InternalNavItem[];
 };
 
 export const internalSurveyNavSections: readonly InternalNavSection[] = [
   {
-    label: "Home",
-    items: [{ label: "Dashboard", icon: "LayoutDashboard", view: "home" as const }],
+    kind: "pin",
+    label: null,
+    items: [{ label: "Home", icon: "LayoutDashboard", view: "home" as const }],
   },
   ...(EXECUTIVE_ASSISTANT_VISIBLE
     ? [
         {
+          kind: "pin" as const,
           label: null,
           items: [
             {
@@ -377,7 +387,10 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       ]
     : []),
   {
+    kind: "workspace",
     label: "Business Central",
+    icon: "Briefcase",
+    color: "#2F80ED",
     items: [
       {
         label: "Clients",
@@ -388,16 +401,15 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         ],
       },
       {
-        label: "CRM",
+        label: "Customer Management",
         icon: "ContactRound",
         children: [
           { label: "Pipeline", view: "crm" as const },
-          { label: "Discovery & Demo Sessions", view: "crm-meetings" as const },
+          { label: "Discovery & Demo", view: "crm-meetings" as const },
           { label: "Client Onboarding", view: "client-onboarding" as const },
           { label: "Potential Clients", view: "potential-clients" as const },
         ],
       },
-      { label: "Partners", icon: "Handshake", view: "representatives" as const },
       {
         label: "Projects",
         icon: "FolderKanban",
@@ -405,93 +417,72 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
           { label: "Dashboard", view: "projects-dashboard" as const },
           { label: "Internal Projects", view: "projects-internal" as const },
           { label: "External Projects", view: "projects-external" as const },
+          { label: "Grants", view: "grants" as const },
         ],
       },
-      { label: "Grants", icon: "Landmark", view: "grants" as const },
     ],
   },
   {
+    kind: "workspace",
     label: "Financials",
+    icon: "Wallet",
+    color: "#27AE60",
     items: [
-      {
-        label: "Financials",
-        icon: "Wallet",
-        children: [
-          { label: "Overview", view: "financials" as const },
-          { label: "General Ledger", view: "general-ledger" as const },
-          { label: "Accounts Receivable", view: "accounts-receivable" as const },
-          { label: "Accounts Payable", view: "accounts-payable" as const },
-          { label: "Expenses", view: "expenses" as const },
-          { label: "Bank", view: "wise" as const },
-          { label: "Financial Reports", view: "financial-reports" as const },
-        ],
-      },
+      { label: "Dashboard", icon: "LayoutDashboard", view: "financials" as const },
+      { label: "General Ledger", icon: "ScrollText", view: "general-ledger" as const },
+      { label: "Accounts Receivable", icon: "ArrowDownLeft", view: "accounts-receivable" as const },
+      { label: "Accounts Payable", icon: "ArrowUpRight", view: "accounts-payable" as const },
+      { label: "Expenses", icon: "Receipt", view: "expenses" as const },
+      { label: "Bank", icon: "Landmark", view: "wise" as const },
+      { label: "Financial Reports", icon: "ScrollText", view: "financial-reports" as const },
     ],
   },
   {
+    kind: "workspace",
     label: "Human Resources",
+    icon: "Users",
+    color: "#9B51E0",
     items: [
-      {
-        label: "Human Resources",
-        icon: "Briefcase",
-        children: [
-          { label: "Dashboard", view: "hr-dashboard" as const },
-          { label: "Employees", view: "hr" as const },
-          { label: "Leave", view: "hr-leave" as const },
-          { label: "Performance", view: "hr-performance" as const },
-          { label: "Recruitment", view: "hr-recruitment" as const },
-          { label: "Payroll", view: "hr-payroll" as const },
-          { label: "Reports", view: "hr-reports" as const },
-        ],
-      },
+      { label: "Dashboard", icon: "LayoutDashboard", view: "hr-dashboard" as const },
+      { label: "Employees", icon: "Users", view: "hr" as const },
+      { label: "Recruitment", icon: "ContactRound", view: "hr-recruitment" as const },
+      { label: "Time & Attendance", icon: "CalendarDays", view: "hr-leave" as const },
+      { label: "Payroll", icon: "Wallet", view: "hr-payroll" as const },
+      { label: "Performance", icon: "Target", view: "hr-performance" as const },
+      { label: "HR Reports", icon: "ScrollText", view: "hr-reports" as const },
     ],
   },
   {
+    kind: "workspace",
     label: "Corporate Information",
+    icon: "Building2",
+    color: "#F2A900",
     items: [
+      { label: "Dashboard", icon: "LayoutDashboard", view: "corporate-dashboard" as const },
+      { label: "Cap Table Management", icon: "Layers", view: "corporate-cap-table" as const },
+      { label: "Company Details", icon: "Building2", view: "corporate-company-details" as const },
+      { label: "Office Locations", icon: "MapPin", view: "office-locations" as const },
+      { label: "Bank Accounts", icon: "Landmark", view: "corporate-bank-accounts" as const },
+      { label: "Professional Advisors", icon: "Handshake", view: "corporate-advisers" as const },
+      { label: "Software Licences", icon: "KeyRound", view: "corporate-software" as const },
+      { label: "Contracts", icon: "ScrollText", view: "corporate-contracts" as const },
       {
-        label: "Corporate Information",
-        icon: "MapPin",
+        label: "Unit311 Details",
+        icon: "ShieldCheck",
         children: [
-          { label: "Dashboard", view: "corporate-dashboard" as const },
-          { label: "Company Details", view: "corporate-company-details" as const },
-          { label: "Cap Table", view: "corporate-cap-table" as const },
-          { label: "Office Locations", view: "office-locations" as const },
-          { label: "Bank Accounts", view: "corporate-bank-accounts" as const },
-          { label: "Professional Advisors", view: "corporate-advisers" as const },
-          { label: "Software & Licences", view: "corporate-software" as const },
-          { label: "Contracts", view: "corporate-contracts" as const },
-          {
-            label: "Unit311 Details",
-            children: [
-              { label: "Overview", view: "unit311-details" as const },
-              { label: "Module Go-Live", view: "module-go-live" as const },
-            ],
-          },
+          { label: "Dashboard", view: "unit311-details" as const },
+          { label: "Module Go-Live", view: "module-go-live" as const },
         ],
       },
     ],
   },
   {
-    label: "Assets, Inventory & Logistics",
-    items: [
-      { label: "Assets", icon: "Package", view: "assets" as const },
-      { label: "Inventory", icon: "Layers", view: "inventory-management" as const },
-      { label: "Procurement", icon: "ShoppingCart", view: "procurement" as const },
-      { label: "Logistics", icon: "Truck", view: "logistics" as const },
-    ],
-  },
-  {
-    label: "Strategy",
-    items: [
-      { label: "Competitors", icon: "Binoculars", view: "competitors" as const },
-      { label: "Whiteboard", icon: "PenLine", view: "whiteboard" as const },
-      { label: "Board Deck", icon: "ScrollText", view: "board-pack" as const },
-    ],
-  },
-  {
+    kind: "workspace",
     label: "Business Productivity",
+    icon: "MessageSquare",
+    color: "#00B8D9",
     items: [
+      { label: "Dashboard", icon: "LayoutDashboard", view: "files" as const },
       {
         label: "File Explorer",
         icon: "FolderOpen",
@@ -501,8 +492,9 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
           { label: "Client Explorer", view: "files-client" as const },
         ],
       },
-      { label: "Calendar", icon: "CalendarDays", view: "calendar" as const },
       { label: "Email", icon: "Mail", view: "info-email" as const },
+      { label: "Calendar", icon: "CalendarDays", view: "calendar" as const },
+      { label: "Voice & Video", icon: "Video", view: "media-example" as const },
       { label: "Messaging", icon: "MessageSquare", view: "messaging" as const },
       { label: "Social", icon: "Share2", view: "social" as const },
       {
@@ -510,58 +502,70 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         icon: "LifeBuoy",
         children: [
           { label: "Tickets", view: "support" as const },
-          { label: "WhatsApp Integration Testing", href: "/whatsapp/support-flow" },
+          { label: "WhatsApp Integration", href: "/whatsapp/support-flow" },
         ],
       },
     ],
   },
   {
-    label: "Training",
+    kind: "workspace",
+    label: "Assets, Inventory & Logistics",
+    icon: "Package",
+    color: "#00D4C7",
     items: [
+      { label: "Assets", icon: "Package", view: "assets" as const },
+      { label: "Inventory", icon: "Layers", view: "inventory-management" as const },
+      { label: "Procurement", icon: "Receipt", view: "procurement" as const },
+      { label: "Logistics", icon: "Truck", view: "logistics" as const },
+    ],
+  },
+  {
+    kind: "workspace",
+    label: "Training",
+    icon: "GraduationCap",
+    color: "#F2994A",
+    items: [
+      { label: "Dashboard", icon: "LayoutDashboard", view: "training-dashboard" as const },
       {
-        label: "Training",
+        label: "Courses",
         icon: "GraduationCap",
         children: [
-          { label: "Dashboard", view: "training-dashboard" as const },
-          { label: "Staff Training", view: "training" as const },
-          { label: "QMS Training", view: "qms-training" as const },
+          { label: "Staff Courses", view: "training" as const },
+          { label: "QMS Courses", view: "qms-training" as const },
         ],
       },
     ],
   },
   {
+    kind: "workspace",
     label: "QMS",
+    icon: "ShieldCheck",
+    color: "#7ED321",
     items: [
-      {
-        label: "Quality Management",
-        icon: "ShieldCheck",
-        children: [
-          { label: "Dashboard", view: "quality-management" as const },
-          { label: "Document Control", view: "qms-document-control" as const },
-          { label: "CAPA", view: "qms-capa" as const },
-          { label: "Internal Audits", view: "qms-internal-audits" as const },
-          { label: "Management Review", view: "qms-management-review" as const },
-          { label: "Reporting", view: "qms-reports" as const },
-        ],
-      },
+      { label: "Dashboard", icon: "LayoutDashboard", view: "quality-management" as const },
+      { label: "Document Control", icon: "ScrollText", view: "qms-document-control" as const },
+      { label: "CAPA", icon: "Target", view: "qms-capa" as const },
+      { label: "Internal Audits", icon: "ClipboardCheck", view: "qms-internal-audits" as const },
+      { label: "Management Review", icon: "Users", view: "qms-management-review" as const },
+      { label: "Reporting", icon: "ScrollText", view: "qms-reports" as const },
     ],
   },
   {
+    kind: "workspace",
     label: "Engineering",
+    icon: "Wrench",
+    color: "#3B82F6",
     items: [
-      {
-        label: "Engineering",
-        icon: "Wrench",
-        children: [
-          { label: "Dashboard", view: "engineering-dashboard" as const },
-          { label: "Engineer / Resource Breakdown", view: "engineering-resources" as const },
-          { label: "Capacity Planning", view: "engineering-capacity" as const },
-        ],
-      },
+      { label: "Dashboard", icon: "LayoutDashboard", view: "engineering-dashboard" as const },
+      { label: "Engineer Resourcing", icon: "Users", view: "engineering-resources" as const },
+      { label: "Capacity Planning", icon: "Layers", view: "engineering-capacity" as const },
     ],
   },
   {
+    kind: "workspace",
     label: "Tools",
+    icon: "FlaskConical",
+    color: "#6C63FF",
     items: [
       { label: "Website Management", icon: "Globe", view: "website-management" as const },
       { label: "Testing", icon: "FlaskConical", view: "testing" as const },
@@ -570,30 +574,25 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     ],
   },
   {
+    kind: "workspace",
     label: "External Client Access",
+    icon: "KeyRound",
+    color: "#8B7CFF",
     items: [
-      {
-        label: "External Client Access",
-        icon: "KeyRound",
-        children: [
-          { label: "Dashboard", view: "external-client-access" as const },
-          { label: "External Users", view: "users-external" as const },
-        ],
-      },
+      { label: "Dashboard", icon: "LayoutDashboard", view: "external-client-access" as const },
+      { label: "External Users", icon: "Users", view: "users-external" as const },
     ],
   },
   {
+    kind: "workspace",
     label: "Settings",
+    icon: "Settings",
+    color: "#7AA2FF",
     items: [
-      {
-        label: "Settings",
-        icon: "Settings",
-        children: [
-          { label: "Profile", view: "profile" as const },
-          { label: "General", view: "settings" as const },
-          { label: "Platform Billing", view: "billing" as const },
-        ],
-      },
+      { label: "Profile", icon: "Users", view: "profile" as const },
+      { label: "General", icon: "Settings", view: "settings" as const },
+      { label: "Billing", icon: "Wallet", view: "billing" as const },
+      { label: "Appearance", icon: "Layers", view: "appearance" as const },
     ],
   },
 ];
@@ -606,13 +605,13 @@ export const internalViewTitles: Record<
   InternalOperationsView,
   { title: string; subtitle: string }
 > = {
-  home: { title: "Dashboard", subtitle: "Home" },
+  home: { title: "Home", subtitle: "Home" },
   clients: { title: "Client Directory", subtitle: "Clients" },
   "clients-dashboard": { title: "Dashboard", subtitle: "Clients" },
-  crm: { title: "Pipeline", subtitle: "CRM" },
+  crm: { title: "Pipeline", subtitle: "Customer Management" },
   "crm-meetings": {
-    title: "Discovery & Demo Sessions",
-    subtitle: "CRM",
+    title: "Discovery & Demo",
+    subtitle: "Customer Management",
   },
   "crm-questions-test": {
     title: "CRM Discovery Questions (Test)",
@@ -624,13 +623,13 @@ export const internalViewTitles: Record<
   "corporate-dashboard": { title: "Dashboard", subtitle: "Corporate Information" },
   "corporate-information": { title: "Corporate Information", subtitle: "Corporate Information" },
   "corporate-company-details": { title: "Company Details", subtitle: "Corporate Information" },
-  "corporate-cap-table": { title: "Cap Table", subtitle: "Corporate Information" },
+  "corporate-cap-table": { title: "Cap Table Management", subtitle: "Corporate Information" },
   "corporate-bank-accounts": { title: "Bank Accounts", subtitle: "Corporate Information" },
   "corporate-advisers": { title: "Professional Advisors", subtitle: "Corporate Information" },
   "corporate-insurance": { title: "Insurance", subtitle: "Corporate Information" },
-  "corporate-software": { title: "Software & Licences", subtitle: "Corporate Information" },
+  "corporate-software": { title: "Software Licences", subtitle: "Corporate Information" },
   "corporate-contracts": { title: "Contracts", subtitle: "Corporate Information" },
-  financials: { title: "Financial Overview", subtitle: "Financials" },
+  financials: { title: "Dashboard", subtitle: "Financials" },
   "general-ledger": { title: "General Ledger", subtitle: "Financials" },
   "accounts-receivable": { title: "Accounts Receivable", subtitle: "Financials" },
   "accounts-payable": { title: "Accounts Payable", subtitle: "Financials" },
@@ -644,9 +643,9 @@ export const internalViewTitles: Record<
   hr: { title: "Employees", subtitle: "Human Resources" },
   "hr-dashboard": { title: "Dashboard", subtitle: "Human Resources" },
   "hr-recruitment": { title: "Recruitment", subtitle: "Human Resources" },
-  "hr-leave": { title: "Leave", subtitle: "Human Resources" },
+  "hr-leave": { title: "Time & Attendance", subtitle: "Human Resources" },
   "hr-performance": { title: "Performance", subtitle: "Human Resources" },
-  "hr-reports": { title: "Reports", subtitle: "Human Resources" },
+  "hr-reports": { title: "HR Reports", subtitle: "Human Resources" },
   "hr-payroll": { title: "Payroll", subtitle: "Human Resources" },
   strategy: { title: "Strategy", subtitle: "Strategy" },
   "potential-clients": { title: "Potential Clients", subtitle: "CRM" },
@@ -661,18 +660,18 @@ export const internalViewTitles: Record<
   "projects-dashboard": { title: "Projects Dashboard", subtitle: "Projects" },
   "projects-internal": { title: "Internal Projects", subtitle: "Projects" },
   "projects-external": { title: "External Projects", subtitle: "Projects" },
-  grants: { title: "Grants", subtitle: "Business Central" },
+  grants: { title: "Grants", subtitle: "Projects" },
   "recent-missions": { title: "Recent Missions", subtitle: "Internal Operations" },
   webodm: { title: "WebODM Processing", subtitle: "Internal Operations" },
   messaging: { title: "Messaging", subtitle: "Business Productivity" },
   social: { title: "Social", subtitle: "Business Productivity" },
   settings: { title: "General", subtitle: "Settings" },
-  billing: { title: "Platform Billing", subtitle: "Settings" },
+  billing: { title: "Billing", subtitle: "Settings" },
   calendar: { title: "Calendar", subtitle: "Business Productivity" },
   "info-email": { title: "Email", subtitle: "Business Productivity" },
-  files: { title: "File Explorer", subtitle: "Business Productivity" },
+  files: { title: "Dashboard", subtitle: "Business Productivity" },
   "files-internal": { title: "Internal Files", subtitle: "File Explorer" },
-  "unit311-details": { title: "Unit311 Details", subtitle: "Corporate Information" },
+  "unit311-details": { title: "Dashboard", subtitle: "Unit311 Details" },
   "module-go-live": {
     title: "Module Go-Live",
     subtitle: "Unit311 Details",
@@ -687,27 +686,28 @@ export const internalViewTitles: Record<
   },
   support: { title: "Support Desk", subtitle: "Business Productivity" },
   telemetry: { title: "Live Telemetry", subtitle: "Tools" },
-  "media-example": { title: "Media Example", subtitle: "Internal Operations" },
+  "media-example": { title: "Voice & Video", subtitle: "Business Productivity" },
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },
   sector: { title: "Sector Intelligence", subtitle: "Unit311" },
-  training: { title: "Staff Training", subtitle: "Training" },
+  training: { title: "Staff Courses", subtitle: "Training" },
   "training-dashboard": { title: "Training Dashboard", subtitle: "Training" },
   logistics: { title: "Logistics", subtitle: "Assets, Inventory & Logistics" },
-  "client-onboarding": { title: "Client Onboarding", subtitle: "CRM" },
+  "client-onboarding": { title: "Client Onboarding", subtitle: "Customer Management" },
   "quality-management": { title: "Quality Management System", subtitle: "QMS" },
-  "qms-training": { title: "QMS Training", subtitle: "Training" },
+  "qms-training": { title: "QMS Courses", subtitle: "Training" },
   "qms-document-control": { title: "Document Control", subtitle: "QMS" },
   "qms-capa": { title: "CAPA", subtitle: "QMS" },
   "qms-internal-audits": { title: "Internal Audits", subtitle: "QMS" },
   "qms-management-review": { title: "Management Review", subtitle: "QMS" },
   "qms-reports": { title: "Reporting", subtitle: "Training & QMS" },
   profile: { title: "Profile", subtitle: "Settings" },
+  appearance: { title: "Appearance", subtitle: "Settings" },
   "executive-assistant": { title: "Executive Assistant", subtitle: "Executive" },
   "website-management": { title: "Website Management", subtitle: "Tools" },
   engineering: { title: "Engineering", subtitle: "Engineering" },
   "engineering-dashboard": { title: "Engineering Dashboard", subtitle: "Engineering" },
   "engineering-resources": {
-    title: "Engineer / Resource Breakdown",
+    title: "Engineer Resourcing",
     subtitle: "Engineering",
   },
   "engineering-capacity": { title: "Capacity Planning", subtitle: "Engineering" },

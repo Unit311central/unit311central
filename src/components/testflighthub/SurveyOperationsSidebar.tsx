@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import Logo from "@/components/layout/Logo";
-import Unit311CentralWordmark from "@/components/layout/Unit311CentralWordmark";
+import EnterprisePlatformSidebar from "./EnterprisePlatformSidebar";
 import {
   getInternalNavHref,
   internalSurveyNavSections,
@@ -521,13 +521,24 @@ export default function SurveyOperationsSidebar({
     );
   }
 
-  const isInternalCompact = mode === "internal";
-
   useEffect(() => {
     onClose?.();
     // Close drawer on route change only — not when onClose identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  if (mode === "internal") {
+    return (
+      <EnterprisePlatformSidebar
+        mobileOpen={mobileOpen}
+        onClose={onClose}
+        activeView={(activeView as InternalOperationsView | undefined) ?? "home"}
+        onViewChange={onViewChange as ((view: InternalOperationsView) => void) | undefined}
+        basePath={basePath}
+        onPrefetchView={onPrefetchView}
+      />
+    );
+  }
 
   return (
     <aside
@@ -540,29 +551,10 @@ export default function SurveyOperationsSidebar({
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
       )}
     >
-      <div
-        className={cn(
-          "flex shrink-0 items-center justify-between",
-          isInternalCompact
-            ? "px-3 pb-3 pt-3 lg:px-3.5 lg:pb-3.5 lg:pt-3.5"
-            : "px-3 pb-4 pt-3 lg:px-3.5 lg:pb-5 lg:pt-4",
-        )}
-      >
-        {mode === "internal" ? (
-          <div className="flex min-w-0 flex-1 items-center justify-start">
-            <Link
-              href={logoHref}
-              aria-label="Unit311 Central home"
-              className="inline-flex shrink-0 rounded-lg px-0.5 py-0.5 transition-opacity duration-200 hover:opacity-90"
-            >
-              <Unit311CentralWordmark variant="sidebar" />
-            </Link>
-          </div>
-        ) : (
-          <div className="min-w-0 flex-1 rounded-xl bg-white px-2.5 py-1.5 shadow-[0_1px_0_rgba(255,255,255,0.4)]">
-            <Logo height={30} href={logoHref} className="block w-full max-w-none" />
-          </div>
-        )}
+      <div className="flex shrink-0 items-center justify-between px-3 pb-4 pt-3 lg:px-3.5 lg:pb-5 lg:pt-4">
+        <div className="min-w-0 flex-1 rounded-xl bg-white px-2.5 py-1.5 shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+          <Logo height={30} href={logoHref} className="block w-full max-w-none" />
+        </div>
         <button
           type="button"
           className="ml-2 flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-white/[0.06] text-white/55 transition-colors duration-200 hover:bg-white/[0.04] hover:text-white/80 lg:hidden"
@@ -573,19 +565,9 @@ export default function SurveyOperationsSidebar({
         </button>
       </div>
 
-      <nav
-        className={cn(
-          "sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-2.5 pb-[max(1.25rem,env(safe-area-inset-bottom))] lg:px-3",
-          isInternalCompact ? "pt-1 lg:pt-1.5" : "pt-2 lg:pt-3",
-        )}
-      >
-        {mode === "internal" ? (
-          <div className="space-y-3 lg:space-y-3.5">
-            {internalNavSections.map((section) => renderInternalSection(section))}
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {surveyNavItems.map((item) => {
+      <nav className="sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-2.5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 lg:px-3 lg:pt-3">
+        <div className="space-y-1.5">
+          {surveyNavItems.map((item) => {
               const active = isSurveyNavItemActive(
                 pathname,
                 item as (typeof surveyNavItems)[number],
@@ -616,8 +598,7 @@ export default function SurveyOperationsSidebar({
 
               return renderNavItem(item, active, () => undefined, true, navHref);
             })}
-          </div>
-        )}
+        </div>
       </nav>
     </aside>
   );

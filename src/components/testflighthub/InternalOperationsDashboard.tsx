@@ -55,6 +55,7 @@ import {
   AccountsPayableWorkspace,
   AccountsReceivableWorkspace,
   AssetManagementWorkspace,
+  AppearanceSettingsWorkspace,
   BillingWorkspace,
   BoardPackCustomizerWorkspace,
   CalendarWorkspace,
@@ -557,6 +558,7 @@ export default function InternalOperationsDashboard({
           {activeView === "qms-management-review" && <ManagementReviewWorkspace />}
           {activeView === "qms-reports" && <TqmsReportsWorkspace />}
           {activeView === "profile" && <ProfileWorkspace />}
+          {activeView === "appearance" && <AppearanceSettingsWorkspace />}
 
           {activeView === "design-mockups" && (
             <InternalDesignMockups onBack={() => handleViewChange("home")} />
