@@ -486,8 +486,9 @@ function WorkspaceTile({
       id={`${panelId}-${workspace.id}`}
       onClick={onToggle}
       className={[
-        "workspace-tile group relative flex min-h-[154px] flex-col overflow-hidden rounded-[20px] text-left sm:min-h-[164px] sm:rounded-[22px]",
-        "md:min-h-[176px] lg:min-h-[184px] lg:rounded-[20px] xl:min-h-[198px] xl:rounded-[18px] 2xl:min-h-[216px] 2xl:rounded-[20px]",
+        "workspace-tile group relative flex flex-col overflow-hidden rounded-[16px] text-left sm:rounded-[18px]",
+        // Compact software selectors — height follows content, not marketing-card min heights.
+        "min-h-0 xl:rounded-[14px] 2xl:rounded-[16px]",
         "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050816]",
         isOpen ? "is-open" : "",
       ].join(" ")}
@@ -504,20 +505,20 @@ function WorkspaceTile({
         <Atmosphere visual={workspace.visual} />
       </span>
 
-      <span className="relative z-[1] flex h-full flex-col gap-2.5 p-4 sm:gap-2.5 sm:p-5 md:p-5 lg:gap-3 lg:p-5 xl:gap-2.5 xl:p-3.5 2xl:gap-3 2xl:p-4">
-        <span className="workspace-tile-icon flex h-[3.6rem] w-[3.6rem] items-center justify-center rounded-[16px] sm:h-16 sm:w-16 sm:rounded-[18px] md:h-[4.15rem] md:w-[4.15rem] lg:h-[4.4rem] lg:w-[4.4rem] lg:rounded-[20px] xl:h-12 xl:w-12 xl:rounded-[14px] 2xl:h-14 2xl:w-14 2xl:rounded-[16px]">
+      <span className="relative z-[1] flex flex-col gap-1.5 p-3 sm:gap-2 sm:p-3.5 md:p-3.5 lg:gap-2 lg:p-3.5 xl:gap-1.5 xl:p-2.5 2xl:gap-2 2xl:p-3">
+        <span className="workspace-tile-icon flex h-11 w-11 items-center justify-center rounded-[12px] sm:h-12 sm:w-12 sm:rounded-[14px] md:h-[3.15rem] md:w-[3.15rem] lg:h-12 lg:w-12 xl:h-10 xl:w-10 xl:rounded-[11px] 2xl:h-11 2xl:w-11 2xl:rounded-[12px]">
           <Icon
-            className="h-7 w-7 text-white sm:h-8 sm:w-8 md:h-9 md:w-9 lg:h-9 lg:w-9 xl:h-6 xl:w-6 2xl:h-7 2xl:w-7"
-            strokeWidth={1.4}
+            className="h-5 w-5 text-white sm:h-[1.35rem] sm:w-[1.35rem] md:h-6 md:w-6 lg:h-6 lg:w-6 xl:h-[1.15rem] xl:w-[1.15rem] 2xl:h-5 2xl:w-5"
+            strokeWidth={1.45}
             aria-hidden
           />
         </span>
 
-        <span className="flex min-h-0 flex-col gap-1 sm:gap-1 md:gap-1.5">
-          <span className="line-clamp-2 text-[1.05rem] font-semibold leading-[1.2] tracking-[-0.03em] text-white sm:text-[1.12rem] md:text-[1.15rem] lg:text-[1.18rem] xl:line-clamp-3 xl:text-[13.5px] xl:leading-[1.3] 2xl:text-[15px] 2xl:leading-[1.3]">
+        <span className="flex min-h-0 flex-col gap-0.5 sm:gap-1">
+          <span className="line-clamp-2 text-[0.95rem] font-semibold leading-[1.2] tracking-[-0.03em] text-white sm:text-[1rem] md:text-[1.02rem] lg:text-[1.05rem] xl:line-clamp-3 xl:text-[12.5px] xl:leading-[1.25] 2xl:text-[13.5px] 2xl:leading-[1.25]">
             {workspace.title}
           </span>
-          <span className="line-clamp-2 text-[12px] font-medium leading-snug tracking-[0.01em] text-white/40 sm:text-[12.5px] md:text-[12.5px] lg:text-[13px] xl:text-[10.5px] xl:leading-[1.3] 2xl:text-[11.5px]">
+          <span className="line-clamp-2 text-[11px] font-medium leading-snug tracking-[0.01em] text-white/40 sm:text-[11.5px] md:text-[12px] lg:text-[12px] xl:text-[10px] xl:leading-[1.25] 2xl:text-[10.5px]">
             {workspace.descriptor}
           </span>
         </span>
@@ -557,7 +558,7 @@ export default function HomeWorkspaceExplorer() {
         role="tablist"
         aria-label="Unit311 Central workspaces"
         className={[
-          "relative grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3.5 md:grid-cols-3 md:gap-3.5 lg:gap-3.5 xl:grid-cols-9 xl:gap-2.5 2xl:gap-3",
+          "relative grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-3 lg:gap-3 xl:grid-cols-9 xl:gap-2 2xl:gap-2.5",
           openWorkspace ? "workspace-explorer-open" : "",
         ].join(" ")}
       >
