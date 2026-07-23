@@ -66,7 +66,7 @@ export const SIDEBAR_THEMES: readonly SidebarThemeTokens[] = [
 export const DEFAULT_SIDEBAR_THEME_ID: SidebarThemeId = "unit311-dark";
 
 export const SIDEBAR_THEME_STORAGE_KEY = "unit311-sidebar-theme";
-export const SIDEBAR_EXPANDED_STORAGE_KEY = "unit311-sidebar-expanded-v4";
+export const SIDEBAR_EXPANDED_STORAGE_KEY = "unit311-sidebar-expanded-v5";
 
 export function getSidebarTheme(id: SidebarThemeId | string | null | undefined): SidebarThemeTokens {
   return SIDEBAR_THEMES.find((theme) => theme.id === id) ?? SIDEBAR_THEMES[0];

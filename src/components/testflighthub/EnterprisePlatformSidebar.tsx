@@ -26,6 +26,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   Mail,
+  MapPin,
   MessageSquare,
   Package,
   Radio,
@@ -45,7 +46,6 @@ import {
 
 import Unit311CentralWordmark from "@/components/layout/Unit311CentralWordmark";
 import {
-  getInternalNavHref,
   internalSurveyNavSections,
   isInternalNavChildActive,
   isInternalNavItemActive,
@@ -86,6 +86,7 @@ const iconMap = {
   Layers,
   LifeBuoy,
   Mail,
+  MapPin,
   MessageSquare,
   Package,
   Radio,
@@ -102,6 +103,9 @@ const iconMap = {
   Wrench,
 } as const;
 
+const SUBMENU_ICON = "text-[#8B9BB0]";
+const NESTED_TEXT = "text-[#D7DEE8]";
+
 type EnterprisePlatformSidebarProps = {
   mobileOpen?: boolean;
   onClose?: () => void;
@@ -111,16 +115,9 @@ type EnterprisePlatformSidebarProps = {
   onPrefetchView?: (view: InternalOperationsView) => void;
 };
 
-function sectionHasActiveItem(
-  section: InternalNavSection,
-  activeView: InternalOperationsView,
-  pathname: string,
-  basePath: SurveyOperationsBasePath,
-  searchParams: URLSearchParams | null,
-) {
-  return section.items.some((item) =>
-    isInternalNavItemActive(pathname, item, activeView, basePath, searchParams),
-  );
+function resolveIcon(name?: string) {
+  if (!name) return LayoutDashboard;
+  return iconMap[name as keyof typeof iconMap] ?? LayoutDashboard;
 }
 
 export default function EnterprisePlatformSidebar({
@@ -146,40 +143,15 @@ export default function EnterprisePlatformSidebar({
   });
 
   useEffect(() => {
+    // First login: empty storage → all workspace cards collapsed.
+    // Later sessions: restore exact expand/collapse preferences (no auto-expand).
     const saved = readSidebarExpandedState();
-    const auto: Record<string, boolean> = {};
-    internalSurveyNavSections.forEach((section) => {
-      if (section.kind === "workspace" && section.label) {
-        const workspaceKey = `workspace::${section.label}`;
-        if (sectionHasActiveItem(section, activeView, pathname, basePath, searchParams)) {
-          auto[workspaceKey] = true;
-        }
-        section.items.forEach((item) => {
-          if (
-            item.children?.some((child) =>
-              isInternalNavChildActive(child, activeView, pathname, basePath, searchParams),
-            )
-          ) {
-            auto[`${workspaceKey}::${item.label}`] = true;
-            item.children?.forEach((child) => {
-              if (
-                child.children?.some((nested) =>
-                  isInternalNavChildActive(nested, activeView, pathname, basePath, searchParams),
-                )
-              ) {
-                auto[`${workspaceKey}::${item.label}::${child.label}`] = true;
-              }
-            });
-          }
-        });
-      }
-    });
     startTransition(() => {
-      setExpanded({ ...saved, ...auto });
+      setExpanded(saved);
       setTheme(getSidebarTheme(readSidebarThemeId()));
       setHydrated(true);
     });
-  }, [activeView, pathname, searchParams, basePath]);
+  }, []);
 
   useEffect(() => {
     const onTheme = (event: Event) => {
@@ -220,31 +192,44 @@ export default function EnterprisePlatformSidebar({
     opts: {
       view?: InternalOperationsView;
       href?: string;
-      nested?: boolean;
-      bullet?: boolean;
+      icon?: string;
+      depth: number;
     },
   ) {
+    const nested = opts.depth > 0;
+    const Icon = resolveIcon(opts.icon);
     const className = cn(
-      "flex w-full items-center rounded-[10px] text-left text-[13px] font-medium transition-colors duration-200",
-      opts.nested ? "min-h-9 py-2 pl-8 pr-3" : "min-h-10 gap-3 py-2.5 pl-3 pr-3",
-      active ? "text-white" : "text-white/70 hover:bg-white/[0.04] hover:text-white/90",
+      "flex w-full items-center rounded-[10px] text-left transition-colors duration-200",
+      nested
+        ? cn("min-h-[35px] gap-0 py-1.5 pl-11 pr-3 text-[13px] font-[450] leading-[1.4]", NESTED_TEXT)
+        : "min-h-10 gap-3 py-2 pl-2.5 pr-3 text-[14px] font-medium leading-[1.4] text-white",
+      active
+        ? "text-white"
+        : nested
+          ? "hover:bg-white/[0.03] hover:text-white"
+          : "hover:bg-white/[0.04] hover:text-white",
     );
-    const style = active
-      ? { background: "#1F4FBF" }
-      : undefined;
+    const style = active ? { background: "#1F4FBF", color: "#FFFFFF" } : undefined;
 
     const content = (
       <>
-        {opts.bullet ? (
-          <span className="mr-3 h-1.5 w-1.5 shrink-0 rounded-full bg-white/35" aria-hidden />
+        {!nested && opts.icon ? (
+          <Icon className={cn("h-[18px] w-[18px] shrink-0", SUBMENU_ICON)} strokeWidth={1.75} />
         ) : null}
-        <span className="truncate">{label}</span>
+        <span className="min-w-0 flex-1 whitespace-normal break-words">{label}</span>
       </>
     );
 
     if (opts.href) {
       return (
-        <Link key={key} href={opts.href} aria-current={active ? "page" : undefined} onClick={onClose} className={className} style={style}>
+        <Link
+          key={key}
+          href={opts.href}
+          aria-current={active ? "page" : undefined}
+          onClick={onClose}
+          className={className}
+          style={style}
+        >
           {content}
         </Link>
       );
@@ -284,18 +269,20 @@ export default function EnterprisePlatformSidebar({
       basePath,
       searchParams,
     );
+    const itemIcon = "icon" in item ? item.icon : undefined;
 
     if (!hasChildren) {
       return renderLeaf(key, childLabel(item as InternalNavChildItem), active, {
         view: item.view,
         href: item.href,
-        nested: depth > 0,
-        bullet: depth > 0,
+        icon: itemIcon,
+        depth,
       });
     }
 
     const isOpen = hydrated ? Boolean(expanded[key]) : false;
     const Chevron = isOpen ? ChevronDown : ChevronRight;
+    const Icon = resolveIcon(itemIcon);
 
     return (
       <div key={key}>
@@ -304,12 +291,24 @@ export default function EnterprisePlatformSidebar({
           aria-expanded={isOpen}
           onClick={() => toggleExpanded(key)}
           className={cn(
-            "flex w-full items-center justify-between rounded-[10px] py-2.5 text-left text-[13px] font-medium text-white/80 transition-colors duration-200 hover:bg-white/[0.04] hover:text-white",
-            depth > 0 ? "pl-3 pr-2" : "pl-3 pr-2",
+            "flex w-full items-center gap-3 rounded-[10px] py-2.5 pr-2 text-left transition-colors duration-200 hover:bg-white/[0.04]",
+            depth > 0 ? "min-h-[35px] pl-11" : "min-h-10 pl-2.5",
           )}
         >
-          <span className="truncate">{item.label}</span>
-          <Chevron className="h-[18px] w-[18px] shrink-0 text-white/35" strokeWidth={1.75} />
+          {depth === 0 && itemIcon ? (
+            <Icon className={cn("h-[18px] w-[18px] shrink-0", SUBMENU_ICON)} strokeWidth={1.75} />
+          ) : null}
+          <span
+            className={cn(
+              "min-w-0 flex-1 whitespace-normal break-words text-left leading-[1.4]",
+              depth > 0
+                ? cn("text-[13px] font-[450]", NESTED_TEXT)
+                : "text-[14px] font-medium text-white",
+            )}
+          >
+            {item.label}
+          </span>
+          <Chevron className="h-3.5 w-3.5 shrink-0 text-white/70" strokeWidth={1.75} />
         </button>
         <div
           className={cn(
@@ -319,7 +318,7 @@ export default function EnterprisePlatformSidebar({
           aria-hidden={!isOpen}
         >
           <div className="min-h-0 overflow-hidden">
-            <div className="mt-1 space-y-1">
+            <div className="mt-0.5 space-y-0.5">
               {item.children?.map((child) => renderGroup(child, key, depth + 1))}
             </div>
           </div>
@@ -330,10 +329,10 @@ export default function EnterprisePlatformSidebar({
 
   function renderPinItem(item: InternalNavItem) {
     const active = isInternalNavItemActive(pathname, item, activeView, basePath, searchParams);
-    const Icon = iconMap[item.icon as keyof typeof iconMap] ?? LayoutDashboard;
+    const Icon = resolveIcon(item.icon);
     const className = cn(
-      "flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-left text-[13px] font-semibold uppercase tracking-[0.08em] transition-colors duration-200",
-      active ? "text-white" : "text-white/75 hover:bg-white/[0.04] hover:text-white",
+      "flex w-full items-center gap-3 rounded-[10px] px-3 py-3 text-left text-[14px] font-medium uppercase tracking-[0.08em] transition-colors duration-200",
+      active ? "text-white" : "text-white/80 hover:bg-white/[0.04] hover:text-white",
     );
     const style = active ? { background: "#1F4FBF" } : undefined;
 
@@ -349,8 +348,11 @@ export default function EnterprisePlatformSidebar({
           className={className}
           style={style}
         >
-          <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
-          <span className="truncate">{item.label}</span>
+          <Icon
+            className={cn("h-[18px] w-[18px] shrink-0", active ? "text-white" : SUBMENU_ICON)}
+            strokeWidth={1.75}
+          />
+          <span className="min-w-0 flex-1 whitespace-normal">{item.label}</span>
         </button>
       );
     }
@@ -361,18 +363,19 @@ export default function EnterprisePlatformSidebar({
   function renderWorkspace(section: InternalNavSection) {
     const workspaceKey = `workspace::${section.label ?? "workspace"}`;
     const isOpen = hydrated ? Boolean(expanded[workspaceKey]) : false;
-    const Icon = iconMap[(section.icon ?? "Layers") as keyof typeof iconMap] ?? Layers;
+    const Icon = resolveIcon(section.icon);
     const color = section.color ?? theme.accent;
     const Chevron = isOpen ? ChevronDown : ChevronRight;
 
     return (
       <div
         key={workspaceKey}
-        className="rounded-[14px] border p-[18px]"
+        className="rounded-[14px] border"
         style={{
           background: theme.card,
           borderColor: theme.cardBorder,
           boxShadow: "0 1px 0 rgba(255,255,255,0.02)",
+          padding: "18px",
         }}
       >
         <button
@@ -380,15 +383,20 @@ export default function EnterprisePlatformSidebar({
           aria-expanded={isOpen}
           onClick={() => toggleExpanded(workspaceKey)}
           className="flex w-full items-center gap-3 text-left"
+          style={{ marginTop: 0 }}
         >
-          <Icon className="h-[18px] w-[18px] shrink-0" style={{ color }} strokeWidth={1.75} />
+          <Icon
+            className="h-[18px] w-[18px] shrink-0"
+            style={{ color, opacity: 0.9 }}
+            strokeWidth={1.75}
+          />
           <span
-            className="min-w-0 flex-1 truncate text-[13px] font-semibold uppercase tracking-[0.08em]"
-            style={{ color }}
+            className="min-w-0 flex-1 text-[11px] font-semibold uppercase leading-snug tracking-[0.12em]"
+            style={{ color, opacity: 0.9 }}
           >
             {section.label}
           </span>
-          <Chevron className="h-[18px] w-[18px] shrink-0 text-white/35" strokeWidth={1.75} />
+          <Chevron className="h-3.5 w-3.5 shrink-0 text-white/70" strokeWidth={1.75} />
         </button>
 
         <div
@@ -399,7 +407,8 @@ export default function EnterprisePlatformSidebar({
           aria-hidden={!isOpen}
         >
           <div className="min-h-0 overflow-hidden">
-            <div className="mt-2 space-y-1">
+            {/* Exactly 8px blank whitespace below workspace title */}
+            <div className="mt-2 space-y-0.5">
               {section.items.map((item) => {
                 if (item.children?.length) {
                   return renderGroup(item, workspaceKey, 0);
@@ -414,6 +423,8 @@ export default function EnterprisePlatformSidebar({
                 return renderLeaf(`${workspaceKey}::${item.label}`, item.label, leafActive, {
                   view: item.view,
                   href: item.href,
+                  icon: item.icon,
+                  depth: 0,
                 });
               })}
             </div>
@@ -424,7 +435,9 @@ export default function EnterprisePlatformSidebar({
   }
 
   const pinSections = internalSurveyNavSections.filter((section) => section.kind === "pin");
-  const workspaceSections = internalSurveyNavSections.filter((section) => section.kind === "workspace");
+  const workspaceSections = internalSurveyNavSections.filter(
+    (section) => section.kind === "workspace",
+  );
 
   return (
     <aside
@@ -433,7 +446,7 @@ export default function EnterprisePlatformSidebar({
       role={mobileOpen ? "dialog" : undefined}
       aria-label={mobileOpen ? "Navigation menu" : undefined}
       className={cn(
-        "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(300px,92vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:w-[300px] lg:shrink-0 lg:translate-x-0 lg:pt-0",
+        "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(320px,94vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:w-[320px] lg:shrink-0 lg:translate-x-0 lg:pt-0",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
       )}
       style={{
@@ -461,13 +474,12 @@ export default function EnterprisePlatformSidebar({
       </div>
 
       <nav className="sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <div className="space-y-2">
-          {pinSections.map((section) =>
-            section.items.map((item) => renderPinItem(item)),
-          )}
+        <div className="space-y-1.5">
+          {pinSections.map((section) => section.items.map((item) => renderPinItem(item)))}
         </div>
 
-        <div className="mt-4 space-y-4">
+        {/* ~18px breathing room into the first workspace card / between cards via gap */}
+        <div className="mt-[18px] flex flex-col gap-4">
           {workspaceSections.map((section) => renderWorkspace(section))}
         </div>
       </nav>
