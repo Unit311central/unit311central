@@ -1,9 +1,154 @@
+import { formatMoney } from "@/lib/accounting/chart-of-accounts";
+import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
+import type { ManagedClient } from "@/lib/client-management-data";
 import { normalizeKpiRow } from "@/lib/dashboard-framework";
-import type { WorkspaceDashboardConfig } from "@/lib/dashboard-framework";
+import type {
+  DashboardKpiItem,
+  WorkspaceDashboardConfig,
+} from "@/lib/dashboard-framework";
+import { countLiveProjects } from "@/lib/home-executive-dashboard";
+import type { InternalProject } from "@/lib/projects-data";
+
+function formatCompactMoney(amount: number, currency = "GBP") {
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000 || abs >= 10_000) {
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency,
+      notation: "compact",
+      maximumFractionDigits: 2,
+    }).format(amount);
+  }
+  return formatMoney(amount, currency);
+}
+
+function monthDelta(
+  series: Array<{ amount: number }> | undefined,
+): { label: string; tone: DashboardKpiItem["tone"] } | null {
+  if (!series || series.length < 2) return null;
+  const current = series[series.length - 1]?.amount ?? 0;
+  const prior = series[series.length - 2]?.amount ?? 0;
+  const change = current - prior;
+  if (Math.abs(change) < 0.005) {
+    return { label: "Flat vs prior month", tone: "neutral" };
+  }
+  const sign = change > 0 ? "+" : "−";
+  return {
+    label: `${sign}${formatCompactMoney(Math.abs(change))} vs prior month`,
+    tone: change > 0 ? "positive" : "warning",
+  };
+}
+
+function revenuePctDelta(
+  series: Array<{ amount: number }> | undefined,
+): { label: string; tone: DashboardKpiItem["tone"] } | null {
+  if (!series || series.length < 2) return null;
+  const current = series[series.length - 1]?.amount ?? 0;
+  const prior = series[series.length - 2]?.amount ?? 0;
+  if (prior === 0) {
+    if (current === 0) return { label: "No prior-month revenue", tone: "neutral" };
+    return { label: "New vs prior month", tone: "positive" };
+  }
+  const pct = ((current - prior) / Math.abs(prior)) * 100;
+  const sign = pct >= 0 ? "+" : "−";
+  return {
+    label: `${sign}${Math.abs(pct).toFixed(1)}% vs prior month`,
+    tone: pct >= 0 ? "positive" : "warning",
+  };
+}
+
+export function countProjectsAtRisk(projects: InternalProject[], now = Date.now()) {
+  return projects.filter((project) => {
+    if (project.phase !== "live") return false;
+    if (project.notes?.toLowerCase().includes("risk")) return true;
+    if (!project.endDate) return project.progressPct < 35;
+    const days = (new Date(`${project.endDate}T12:00:00`).getTime() - now) / 86_400_000;
+    return days <= 14 && project.progressPct < 70;
+  }).length;
+}
+
+/** Live KPI values for the Executive Home row (same SSOT as Command Centre). */
+export function buildExecutiveHomeLiveKpis(input: {
+  financials: FinancialOverviewSnapshot | null;
+  projects: InternalProject[];
+  clients: ManagedClient[];
+}): [
+  DashboardKpiItem,
+  DashboardKpiItem,
+  DashboardKpiItem,
+  DashboardKpiItem,
+] {
+  const currency = "GBP";
+  const revenueYtd = input.financials?.revenueYtd ?? 0;
+  const cash = input.financials?.cashPosition ?? 0;
+  const openProjects = countLiveProjects(input.projects);
+  const atRisk = countProjectsAtRisk(input.projects);
+  const activeClients = input.clients.filter((client) => client.accountStatus === "Active").length;
+  const onboarding = input.clients.filter((client) =>
+    ["Client Created", "Workspace Provisioned", "Onboarding"].includes(client.accountStatus),
+  ).length;
+
+  const revenueDelta = revenuePctDelta(input.financials?.charts.monthlyRevenue);
+  const cashDelta = monthDelta(input.financials?.charts.cashPosition);
+
+  return normalizeKpiRow([
+    {
+      id: "revenue",
+      label: "Revenue",
+      value: formatCompactMoney(revenueYtd, currency),
+      delta: revenueDelta?.label ?? "YTD from ledger",
+      tone: revenueDelta?.tone ?? "neutral",
+      hint: "YTD · general ledger",
+    },
+    {
+      id: "cash",
+      label: "Cash Available",
+      value: formatCompactMoney(cash, currency),
+      delta: cashDelta?.label ?? "Operating + treasury",
+      tone: cashDelta?.tone ?? "neutral",
+      hint: "Wise / treasury position",
+    },
+    {
+      id: "projects",
+      label: "Open Projects",
+      value: String(openProjects),
+      delta: atRisk > 0 ? `${atRisk} at risk` : "None at risk",
+      tone: atRisk > 0 ? "warning" : "positive",
+      hint: "Live projects",
+    },
+    {
+      id: "clients",
+      label: "Active Clients",
+      value: String(activeClients),
+      delta: onboarding > 0 ? `${onboarding} onboarding` : `${input.clients.length} total`,
+      tone: "positive",
+      hint: "Live commercial relationships",
+    },
+  ]);
+}
+
+export function withExecutiveHomeLiveKpis(
+  config: WorkspaceDashboardConfig,
+  kpis: ReturnType<typeof buildExecutiveHomeLiveKpis>,
+): WorkspaceDashboardConfig {
+  return {
+    ...config,
+    sections: config.sections.map((section) => {
+      if (section.slot !== "kpi-row") return section;
+      return {
+        ...section,
+        widgets: section.widgets.map((widget) =>
+          widget.type === "kpi-row" ? { ...widget, kpis } : widget,
+        ),
+      };
+    }),
+  };
+}
 
 /**
  * Flagship Executive Home Dashboard — composed entirely from the
  * universal dashboard framework. No bespoke layout.
+ * KPI values are placeholders until live data is merged via withExecutiveHomeLiveKpis.
  */
 export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
   id: "executive-home-dashboard",
@@ -54,33 +199,25 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
             {
               id: "revenue",
               label: "Revenue",
-              value: "£4.82m",
-              delta: "+6.2% vs last quarter",
-              tone: "positive",
-              hint: "YTD · all entities",
+              value: "—",
+              hint: "YTD · general ledger",
             },
             {
               id: "cash",
               label: "Cash Available",
-              value: "£1.12m",
-              delta: "+£42k this month",
-              tone: "positive",
-              hint: "Operating accounts",
+              value: "—",
+              hint: "Wise / treasury position",
             },
             {
               id: "projects",
               label: "Open Projects",
-              value: "17",
-              delta: "4 at risk",
-              tone: "warning",
-              hint: "Internal + external",
+              value: "—",
+              hint: "Live projects",
             },
             {
               id: "clients",
               label: "Active Clients",
-              value: "48",
-              delta: "+3 this month",
-              tone: "positive",
+              value: "—",
               hint: "Live commercial relationships",
             },
           ]),
