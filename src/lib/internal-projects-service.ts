@@ -237,7 +237,7 @@ export async function updateProject(
 ): Promise<InternalProject> {
   const workspaceId = await resolveProjectsWorkspaceId(scope);
   const supabase = requireProjectsSupabase();
-  const existing = await getProject(id, { workspaceId });
+  const existing = await requireProjectInWorkspace(id, { workspaceId });
 
   const payload: Record<string, string | number | null> = {
     updated_at: new Date().toISOString(),
