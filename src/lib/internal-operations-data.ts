@@ -91,6 +91,7 @@ export type InternalOperationsView =
   | "appearance"
   | "executive-assistant"
   | "website-management"
+  | "integrations"
   | "engineering"
   | "engineering-dashboard"
   | "engineering-resources"
@@ -240,6 +241,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "appearance",
   "executive-assistant",
   "website-management",
+  "integrations",
   "engineering",
   "engineering-dashboard",
   "engineering-resources",
@@ -608,6 +610,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     color: "#6C63FF",
     items: [
       { label: "Website Management", icon: "Globe", view: "website-management" as const },
+      { label: "Integrations", icon: "Plug", view: "integrations" as const },
       { label: "Media Library", icon: "Film", view: "media-example" as const },
       { label: "Testing", icon: "FlaskConical", view: "testing" as const },
       { label: "Telemetry", icon: "Radio", view: "telemetry" as const },
@@ -747,6 +750,7 @@ export const internalViewTitles: Record<
   appearance: { title: "Appearance", subtitle: "Settings" },
   "executive-assistant": { title: "Executive Assistant", subtitle: "Executive" },
   "website-management": { title: "Website Management", subtitle: "Tools" },
+  integrations: { title: "Integrations", subtitle: "Tools" },
   engineering: { title: "Technology Overview", subtitle: "Technology Management" },
   "engineering-dashboard": { title: "Technology Dashboard", subtitle: "Technology Management" },
   "engineering-resources": {

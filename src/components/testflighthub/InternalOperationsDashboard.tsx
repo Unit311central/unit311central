@@ -128,6 +128,7 @@ import {
   UserManagementWorkspace,
   WebODMWorkspace,
   WebsiteManagementWorkspace,
+  IntegrationsWorkspace,
   WhiteboardWorkspace,
   WiseWorkspace,
 } from "./lazy-workspaces";
@@ -811,6 +812,12 @@ export default function InternalOperationsDashboard({
           {activeView === "media-example" && <MediaExampleWorkspace />}
 
           {activeView === "website-management" && <WebsiteManagementWorkspace />}
+
+          {activeView === "integrations" && (
+            <WorkspaceErrorBoundary title="Integrations">
+              <IntegrationsWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
 
           {(activeView === "engineering" || activeView === "engineering-dashboard") && (
             <EngineeringDashboardWorkspace />

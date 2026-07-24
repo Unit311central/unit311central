@@ -89,6 +89,8 @@ export const EXECUTIVE_CALL_WEBRTC_SIGNALS_MIGRATION_PATH =
   "supabase/migrations/085_executive_call_webrtc_signals.sql";
 export const SOFTWARE_ASSET_REGISTER_MIGRATION_PATH =
   "supabase/migrations/086_software_asset_register.sql";
+export const INTEGRATIONS_REGISTRY_MIGRATION_PATH =
+  "supabase/migrations/111_integrations_registry.sql";
 export const CRM_PROJECTS_WORKSPACE_ISOLATION_MIGRATION_PATH =
   "supabase/migrations/087_crm_projects_workspace_isolation.sql";
 export const FINANCIALS_FILES_WORKSPACE_ISOLATION_MIGRATION_PATH =
@@ -256,6 +258,55 @@ export async function withSoftwareAssetRegisterTables<T>(
   }
 
   throw new Error("software_assets table is unavailable.");
+}
+
+export async function ensureIntegrationsRegistryTables(): Promise<boolean> {
+  const exists = await tableExistsViaManagementApi("integrations");
+  if (exists === true) return true;
+
+  const dbUrl = getDatabaseUrl();
+  if (dbUrl) {
+    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    try {
+      await client.connect();
+      if (await tableExists(client, "integrations")) return true;
+      await applyMigration(client, INTEGRATIONS_REGISTRY_MIGRATION_PATH);
+      await reloadPostgrestSchema();
+      return true;
+    } catch (error) {
+      if (!isDirectDbConnectionError(error)) {
+        console.warn("[integrations-registry] direct DB ensure failed", error);
+      }
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  const applied = await applyMigrationViaManagementApi(INTEGRATIONS_REGISTRY_MIGRATION_PATH);
+  if (applied) {
+    await reloadPostgrestSchema();
+    return true;
+  }
+
+  return false;
+}
+
+export async function withIntegrationsRegistryTables<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isMissingTableError(error, "integrations")) throw error;
+      await ensureIntegrationsRegistryTables();
+      await reloadPostgrestSchema();
+      if (attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+    }
+  }
+
+  throw new Error("integrations table is unavailable.");
 }
 
 export async function ensureExecutiveCallWebrtcSignalsTable(): Promise<boolean> {

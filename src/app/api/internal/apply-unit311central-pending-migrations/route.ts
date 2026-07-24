@@ -73,6 +73,7 @@ const MIGRATIONS = [
   "supabase/migrations/108_calendar_meeting_sessions.sql",
   "supabase/migrations/109_executive_assistant_action_framework.sql",
   "supabase/migrations/110_executive_assistant_planning_engine.sql",
+  "supabase/migrations/111_integrations_registry.sql",
 ];
 
 function isAuthorized(request: NextRequest) {
