@@ -27,6 +27,7 @@ import {
   UsersRound,
   Video,
   Wallet,
+  Wrench,
 } from "lucide-react";
 import {
   MARKETING_WORKSPACE_COPY,
@@ -135,7 +136,7 @@ const WORKSPACE_SHELLS: WorkspaceShell[] = [
     icon: Package,
     visual: "operations",
     accent: { rgb: "6, 182, 212", label: "cyan" },
-    featuredIcons: [Boxes, Package, Truck, Target],
+    featuredIcons: [Boxes, Package, Truck, Wrench],
   },
   {
     id: "business-productivity",
@@ -423,22 +424,80 @@ function TileAtmosphere({ visual }: { visual: WorkspaceVisual }) {
   }
 }
 
+const VISIBLE_CAPABILITY_COUNT = 6;
+
+function IntegrationLogoGrid({
+  categories,
+}: {
+  categories: MarketingIntegrationCategory[];
+}) {
+  return (
+    <div className="mt-4 flex min-h-0 flex-1 flex-col gap-5 overflow-hidden sm:mt-5 sm:gap-6">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pr-1 sm:space-y-6">
+        {categories.map((category) => (
+          <div key={category.name}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+              {category.name}
+            </p>
+            <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {category.tools.map((tool) => (
+                <li
+                  key={tool.name}
+                  className="flex min-h-[5.5rem] flex-col items-center justify-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.96] px-3 py-3 shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/images/integrations/${tool.logo}`}
+                    alt=""
+                    className="h-9 w-9 object-contain sm:h-10 sm:w-10"
+                    loading="lazy"
+                  />
+                  <span className="line-clamp-1 text-center text-[12px] font-semibold tracking-tight text-[#0f172a] sm:text-[13px]">
+                    {tool.name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p className="shrink-0 text-center text-[13px] leading-relaxed text-white/50 sm:text-[14px]">
+        Examples of software that can be connected using Unit311 Central Integration Wizards.
+      </p>
+    </div>
+  );
+}
+
 function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
   const Icon = workspace.icon;
-  const featuredLabels = new Set(workspace.featuredCapabilities.map((item) => item.label));
-  const remainingCapabilities = workspace.capabilities.filter((label) => !featuredLabels.has(label));
   const isIntegrations = Boolean(workspace.integrationCategories?.length);
+  const visibleCapabilities = workspace.capabilities.slice(0, VISIBLE_CAPABILITY_COUNT);
+  const moreCount = Math.max(0, workspace.capabilities.length - visibleCapabilities.length);
 
   return (
-    <div className="relative h-[24rem] sm:h-[25.5rem] lg:h-[24rem]">
-      <div
-        className="workspace-panel-atmosphere pointer-events-none absolute inset-y-0 right-0 hidden w-[42%] lg:block"
-        aria-hidden
-      >
-        <PanelAtmosphere visual={workspace.visual} />
-      </div>
+    <div
+      className={
+        isIntegrations
+          ? "relative min-h-[26rem] sm:min-h-[28rem]"
+          : "relative h-[20rem] sm:h-[21rem] lg:h-[20rem]"
+      }
+    >
+      {!isIntegrations ? (
+        <div
+          className="workspace-panel-atmosphere pointer-events-none absolute inset-y-0 right-0 hidden w-[42%] lg:block"
+          aria-hidden
+        >
+          <PanelAtmosphere visual={workspace.visual} />
+        </div>
+      ) : null}
 
-      <div className="relative z-[1] flex h-full min-h-0 flex-col overflow-hidden lg:max-w-[62%] xl:max-w-[58%]">
+      <div
+        className={
+          isIntegrations
+            ? "relative z-[1] flex h-full min-h-0 flex-col overflow-hidden"
+            : "relative z-[1] flex h-full min-h-0 flex-col overflow-hidden lg:max-w-[62%] xl:max-w-[58%]"
+        }
+      >
         <div className="flex shrink-0 items-start gap-3.5 sm:gap-5">
           <span className="workspace-hero-icon shrink-0">
             <Icon className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" strokeWidth={1.45} aria-hidden />
@@ -447,95 +506,47 @@ function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
             <h3 className="truncate text-[1.35rem] font-semibold tracking-[-0.035em] text-white sm:text-[1.65rem] lg:text-[2rem]">
               {workspace.title}
             </h3>
-            <p className="workspace-panel-kicker mt-1.5 truncate text-[13px] font-semibold tracking-[0.01em] sm:text-[14px]">
-              {workspace.subtitle}
-            </p>
-            <p className="mt-3 line-clamp-2 max-w-2xl text-[14px] leading-relaxed text-white/68 sm:mt-4 sm:text-[15px] sm:leading-relaxed">
-              {workspace.description}
-            </p>
+            {isIntegrations ? (
+              <p className="mt-3 max-w-none text-[14px] leading-relaxed text-white/68 sm:mt-4 sm:text-[15px] lg:whitespace-nowrap lg:text-[15px] xl:max-w-none xl:text-[16px]">
+                {workspace.description}
+              </p>
+            ) : (
+              <p className="workspace-panel-kicker mt-2 line-clamp-2 text-[14px] font-medium leading-snug tracking-[0.01em] sm:mt-2.5 sm:text-[15px]">
+                {workspace.subtitle}
+              </p>
+            )}
           </div>
         </div>
 
-        <section className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden sm:mt-5">
-          <h4 className="workspace-panel-section-label shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em]">
-            {isIntegrations ? "Integrations by function" : "Key capabilities"}
-          </h4>
-
-          {isIntegrations && workspace.integrationCategories ? (
-            <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 sm:mt-4">
-              <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                {workspace.integrationCategories.map((category) => (
-                  <li
-                    key={category.name}
-                    className="workspace-feature-card min-h-0 overflow-hidden !items-start"
-                  >
-                    <span className="min-w-0 overflow-hidden">
-                      <span className="line-clamp-1 block text-[13px] font-semibold leading-snug text-white/90 sm:text-[14px]">
-                        {category.name}
-                      </span>
-                      <span className="mt-1.5 flex flex-wrap gap-1.5">
-                        {category.tools.map((tool) => (
-                          <span
-                            key={tool}
-                            className="inline-flex max-w-full truncate rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-medium text-white/65"
-                          >
-                            {tool}
-                          </span>
-                        ))}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <>
-              <ul
-                className="mt-3 grid min-h-0 flex-1 grid-cols-2 gap-2.5 sm:mt-4 sm:gap-3"
-                style={{ gridTemplateRows: "repeat(2, minmax(0, 1fr))" }}
-              >
-                {workspace.featuredCapabilities.map((capability) => {
-                  const CapIcon = capability.icon;
-                  return (
-                    <li
-                      key={capability.label}
-                      className="workspace-feature-card min-h-0 overflow-hidden !items-start"
-                    >
-                      <span className="workspace-feature-icon">
-                        <CapIcon className="h-4 w-4" strokeWidth={1.55} aria-hidden />
-                      </span>
-                      <span className="min-w-0 overflow-hidden">
-                        <span className="line-clamp-1 block break-words text-[13px] font-semibold leading-snug text-white/90 sm:text-[14px]">
-                          {capability.label}
-                        </span>
-                        <span className="mt-1 line-clamp-2 block break-words text-[12px] leading-snug text-white/48 sm:text-[13px]">
-                          {capability.detail}
-                        </span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-              {remainingCapabilities.length > 0 ? (
-                <div className="mt-3 flex min-h-0 shrink-0 flex-wrap gap-1.5 overflow-hidden">
-                  {remainingCapabilities.map((label) => (
-                    <span
-                      key={label}
-                      className="inline-flex max-w-full truncate rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] font-medium text-white/58"
-                      title={label}
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 h-4 shrink-0 text-[12px] leading-none text-white/42 sm:text-[13px]">
-                  &nbsp;
-                </p>
-              )}
-            </>
-          )}
-        </section>
+        {isIntegrations && workspace.integrationCategories ? (
+          <IntegrationLogoGrid categories={workspace.integrationCategories} />
+        ) : (
+          <section className="mt-5 flex min-h-0 flex-1 flex-col overflow-hidden sm:mt-6">
+            <h4 className="workspace-panel-section-label shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em]">
+              Key capabilities
+            </h4>
+            <ul className="mt-3 grid grid-cols-1 gap-2 sm:mt-4 sm:grid-cols-2 sm:gap-2.5">
+              {visibleCapabilities.map((label) => (
+                <li
+                  key={label}
+                  className="flex min-h-0 items-center gap-2.5 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+                >
+                  <span
+                    aria-hidden
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-[rgb(var(--ws-accent-rgb))]"
+                    style={{ background: `rgb(${workspace.accent.rgb})` }}
+                  />
+                  <span className="line-clamp-1 text-[13px] font-medium text-white/85 sm:text-[14px]">
+                    {label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 shrink-0 text-[12px] font-medium text-white/45 sm:text-[13px]">
+              {moreCount > 0 ? `+${moreCount} more` : "\u00a0"}
+            </p>
+          </section>
+        )}
       </div>
     </div>
   );
@@ -595,8 +606,7 @@ function WorkspaceTile({
       id={`${panelId}-${workspace.id}`}
       onClick={onToggle}
       className={[
-        "workspace-tile group relative flex shrink-0 flex-col overflow-hidden rounded-[16px] text-left sm:rounded-[18px]",
-        "min-h-[7.75rem] w-[7.75rem] sm:min-h-[8.75rem] sm:w-[8.5rem] md:min-h-[9.25rem] lg:w-auto lg:min-w-0 xl:min-h-[9rem] xl:rounded-[14px] 2xl:min-h-[9.35rem] 2xl:rounded-[16px]",
+        "workspace-tile group relative flex min-h-[7.5rem] w-full flex-col overflow-hidden rounded-[16px] text-left sm:min-h-[8rem] sm:rounded-[18px] xl:min-h-[8.5rem] xl:rounded-[14px]",
         "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050816]",
         isOpen ? "is-open is-detached" : "",
       ].join(" ")}
@@ -613,20 +623,16 @@ function WorkspaceTile({
         <TileAtmosphere visual={workspace.visual} />
       </span>
 
-      <span className="relative z-[1] flex h-full flex-col justify-between gap-2 p-3 sm:gap-2.5 sm:p-3.5 md:gap-3 md:p-4 xl:gap-2.5 xl:p-3 2xl:gap-3 2xl:p-3.5">
-        <span className="workspace-tile-icon flex h-10 w-10 items-center justify-center rounded-[12px] sm:h-11 sm:w-11 sm:rounded-[13px] md:h-12 md:w-12 md:rounded-[14px] xl:h-11 xl:w-11 xl:rounded-[12px] 2xl:h-11 2xl:w-11">
-          <Icon
-            className="h-5 w-5 text-white sm:h-5 sm:w-5 md:h-6 md:w-6 xl:h-5 xl:w-5"
-            strokeWidth={1.45}
-            aria-hidden
-          />
+      <span className="relative z-[1] flex h-full flex-col justify-between gap-2 p-3 sm:gap-2.5 sm:p-3.5">
+        <span className="workspace-tile-icon flex h-10 w-10 items-center justify-center rounded-[12px] sm:h-11 sm:w-11">
+          <Icon className="h-5 w-5 text-white" strokeWidth={1.45} aria-hidden />
         </span>
 
-        <span className="flex min-h-0 flex-col gap-1 sm:gap-1.5">
-          <span className="line-clamp-2 text-[0.95rem] font-semibold leading-[1.2] tracking-[-0.03em] text-white sm:text-[1rem] md:text-[1.02rem] xl:line-clamp-3 xl:text-[13px] xl:leading-[1.25] 2xl:text-[13.5px]">
+        <span className="flex min-h-0 flex-col gap-1">
+          <span className="line-clamp-2 text-[0.92rem] font-semibold leading-[1.2] tracking-[-0.03em] text-white sm:text-[0.98rem] xl:text-[13px] xl:leading-[1.25]">
             {workspace.title}
           </span>
-          <span className="line-clamp-2 text-[12px] font-medium leading-snug tracking-[0.01em] text-white/40 sm:text-[12px] md:text-[12.5px] xl:text-[11px] xl:leading-[1.3] 2xl:text-[11.5px]">
+          <span className="line-clamp-2 text-[11px] font-medium leading-snug text-white/40 sm:text-[12px] xl:text-[11px]">
             {workspace.subtitle}
           </span>
         </span>
@@ -665,7 +671,7 @@ export default function HomeWorkspaceExplorer() {
       <div
         role="tablist"
         aria-label="Unit311 Central workspaces"
-        className="workspace-explorer-open relative flex flex-nowrap gap-2 overflow-x-auto pb-1 sm:gap-2.5 lg:grid lg:grid-cols-10 lg:gap-2 lg:overflow-visible lg:pb-0"
+        className="workspace-explorer-open relative grid grid-cols-2 gap-2 overflow-x-hidden sm:grid-cols-3 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-10 lg:gap-2"
       >
         {WORKSPACES.map((workspace) => (
           <WorkspaceTile

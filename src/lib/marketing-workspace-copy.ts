@@ -5,9 +5,15 @@ export type MarketingCapabilityCopy = {
   detail: string;
 };
 
+export type MarketingIntegrationTool = {
+  name: string;
+  /** Filename under /images/integrations/ */
+  logo: string;
+};
+
 export type MarketingIntegrationCategory = {
   name: string;
-  tools: string[];
+  tools: MarketingIntegrationTool[];
 };
 
 export type MarketingWorkspaceCopy = {
@@ -15,9 +21,9 @@ export type MarketingWorkspaceCopy = {
   title: string;
   subtitle: string;
   description: string;
-  /** Four highlighted cards shown in the panel. */
+  /** Four highlighted cards (icons + labels) for non-integration panels. */
   featured: [MarketingCapabilityCopy, MarketingCapabilityCopy, MarketingCapabilityCopy, MarketingCapabilityCopy];
-  /** Full capability set for this workspace (includes featured labels). */
+  /** Full capability set; panels show 4–6 then +X more. */
   capabilities: string[];
   integrationCategories?: MarketingIntegrationCategory[];
 };
@@ -184,15 +190,15 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
       },
     ],
     capabilities: [
+      "Training",
       "Executive Dashboard",
       "Employees",
       "Payroll",
-      "Leave Management",
+      "Partners",
       "Organisation Chart",
+      "Leave Management",
       "Performance",
       "Recruitment",
-      "Training",
-      "Partners",
     ],
   },
   {
@@ -258,23 +264,23 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
       },
     ],
     capabilities: [
-      "Executive Dashboard",
       "Cap Table Management",
+      "Executive Dashboard",
+      "Board Management",
+      "Governance",
+      "Shareholders",
       "Contracts",
       "Professional Advisors",
-      "Governance",
       "Legal",
       "Insurance",
-      "Board Management",
-      "Shareholders",
     ],
   },
   {
     id: "operations",
     title: "Operations",
-    subtitle: "Assets and field operations",
+    subtitle: "Assets and logistics",
     description:
-      "Run assets, inventory, procurement, warehousing, logistics, fleet, maintenance and field operations from one workspace.",
+      "Run assets, inventory, procurement, warehousing, logistics, fleet and maintenance from one workspace.",
     featured: [
       {
         label: "Asset Management",
@@ -289,8 +295,8 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
         detail: "Coordinate shipments, transfers and operational flow.",
       },
       {
-        label: "Field Operations",
-        detail: "Support teams working beyond the office with live context.",
+        label: "Maintenance",
+        detail: "Plan upkeep and keep critical assets reliable.",
       },
     ],
     capabilities: [
@@ -301,7 +307,6 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
       "Logistics",
       "Fleet",
       "Maintenance",
-      "Field Operations",
     ],
   },
   {
@@ -344,41 +349,79 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
   },
   {
     id: "business-app-integrations",
-    title: "Business App Integrations",
+    title: "Business App Integrations (Examples)",
     subtitle: "Connect by business function",
     description:
       "Connect the specialist systems you already use—organised by business function—so Unit311 Central becomes the operating layer without rip-and-replace.",
     featured: [
       {
         label: "Project Management",
-        detail: "Monday, Asana, ClickUp, Jira and more.",
-      },
-      {
-        label: "Accounting",
-        detail: "Xero, QuickBooks, Sage, NetSuite and more.",
+        detail: "Monday, Asana, Airtable, Microsoft Project.",
       },
       {
         label: "CRM",
-        detail: "Salesforce, HubSpot, Zoho and more.",
+        detail: "HubSpot, Salesforce, Pipedrive.",
+      },
+      {
+        label: "Financials",
+        detail: "Xero, QuickBooks, Sage, NetSuite, Stripe.",
       },
       {
         label: "Communications",
-        detail: "Teams, Slack, Zoom, WhatsApp and more.",
+        detail: "Microsoft 365, Teams, Zoom.",
       },
     ],
     capabilities: [
       "Project Management",
-      "Accounting",
       "CRM",
+      "Financials",
       "Communications",
-      "Storage",
+      "Documents",
     ],
     integrationCategories: [
-      { name: "Project Management", tools: ["Monday", "Asana", "ClickUp", "Jira"] },
-      { name: "Accounting", tools: ["Xero", "QuickBooks", "Sage", "NetSuite"] },
-      { name: "CRM", tools: ["Salesforce", "HubSpot", "Zoho"] },
-      { name: "Communications", tools: ["Teams", "Slack", "Zoom", "WhatsApp"] },
-      { name: "Storage", tools: ["Google Drive", "OneDrive", "Dropbox", "SharePoint"] },
+      {
+        name: "Project Management",
+        tools: [
+          { name: "Monday", logo: "monday.svg" },
+          { name: "Asana", logo: "asana.svg" },
+          { name: "Airtable", logo: "airtable.svg" },
+          { name: "Microsoft Project", logo: "microsoft-project.svg" },
+        ],
+      },
+      {
+        name: "CRM",
+        tools: [
+          { name: "HubSpot", logo: "hubspot.svg" },
+          { name: "Salesforce", logo: "salesforce.svg" },
+          { name: "Pipedrive", logo: "pipedrive.svg" },
+        ],
+      },
+      {
+        name: "Financials",
+        tools: [
+          { name: "Xero", logo: "xero.svg" },
+          { name: "QuickBooks", logo: "quickbooks.svg" },
+          { name: "Sage", logo: "sage.svg" },
+          { name: "NetSuite", logo: "netsuite.svg" },
+          { name: "Stripe", logo: "stripe.svg" },
+        ],
+      },
+      {
+        name: "Communications",
+        tools: [
+          { name: "Microsoft 365", logo: "microsoft365.svg" },
+          { name: "Teams", logo: "teams.svg" },
+          { name: "Zoom", logo: "zoom.svg" },
+        ],
+      },
+      {
+        name: "Documents",
+        tools: [
+          { name: "SharePoint", logo: "sharepoint.svg" },
+          { name: "Google Drive", logo: "google-drive.svg" },
+          { name: "AWS", logo: "aws.svg" },
+        ],
+      },
     ],
   },
 ];
