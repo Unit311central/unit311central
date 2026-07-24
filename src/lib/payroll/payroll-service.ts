@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { isBoardPackPayrollEligible, type HrEmployee } from "@/lib/hr-data";
-import { listHrEmployees, getHrEmployee } from "@/lib/hr-employees-service";
+import { listHrEmployees, getHrEmployee, updateHrEmployee } from "@/lib/hr-employees-service";
 import { resolveHrWorkspaceId, type HrWorkspaceScope } from "@/lib/hr-workspace";
 import {
   ensurePayrollModuleTables,
@@ -287,7 +287,30 @@ export async function upsertEmployeePayrollProfile(
     .select("*")
     .single();
   if (error) throw new Error(error.message);
-  return mapProfile(data as Record<string, unknown>);
+  const saved = mapProfile(data as Record<string, unknown>);
+
+  const nextAnnual =
+    patch.annualSalary !== undefined
+      ? patch.annualSalary
+      : patch.monthlySalary !== undefined && patch.monthlySalary != null
+        ? roundPayrollMoney(patch.monthlySalary * 12)
+        : undefined;
+
+  if (nextAnnual !== undefined && nextAnnual !== null && nextAnnual !== employee.salaryCurrent) {
+    await updateHrEmployee(
+      employeeId,
+      {
+        salaryCurrent: nextAnnual,
+        currency: saved.currency,
+        bonus: saved.bonus,
+        compensationReason: "Salary update via Payroll tab",
+        compensationApprovedBy: "payroll",
+      },
+      { workspaceId },
+    );
+  }
+
+  return saved;
   });
 }
 

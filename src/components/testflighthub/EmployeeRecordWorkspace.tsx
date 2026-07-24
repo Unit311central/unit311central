@@ -293,10 +293,14 @@ export default function EmployeeRecordWorkspace() {
           endDate: draft.endDate,
           currency: draft.currency,
           payFrequency: draft.payFrequency,
+          salaryCurrent: draft.salaryCurrent,
+          bonus: draft.bonus,
           holidayCalendar: draft.holidayCalendar,
           vacationDaysPerYear: draft.vacationDaysPerYear,
           vacationDaysTaken: draft.vacationDaysTaken,
           offboarding: draft.offboarding,
+          compensationReason: "Salary update via employee Save",
+          compensationApprovedBy: "hr",
         }),
       });
       const data = await readApiJson<{ employee?: HrEmployee; error?: string }>(response);
@@ -431,7 +435,11 @@ export default function EmployeeRecordWorkspace() {
       const response = await fetch(`/api/hr/employees/${draft.id}/compensation-history`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(compForm),
+        body: JSON.stringify({
+          ...compForm,
+          reason: compForm.reason.trim() || "Compensation update",
+          approvedBy: compForm.approvedBy.trim() || "hr",
+        }),
       });
       const data = await readApiJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to add compensation");
@@ -966,26 +974,61 @@ export default function EmployeeRecordWorkspace() {
         {tab === "Compensation" ? (
           <div className="space-y-4">
             <p className="text-sm text-white/50">
-              Compensation history drives HR salary. Open the Payroll tab for tax, bank, and live net
-              pay calculations.
+              Edit annual salary below and click Save. History rows keep an audit trail of changes.
+              Open Payroll for tax, bank, and live net pay.
             </p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-white/45">Current salary</p>
-                <p className="mt-1 text-lg text-white">
-                  {formatSalary(draft.salaryCurrent, draft.currency)}
-                </p>
-                <p className="text-xs text-white/40">Annual equivalent · {draft.payFrequency}</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <FieldLabel>Salary per year</FieldLabel>
+                <input
+                  type="number"
+                  className={inputClass()}
+                  value={draft.salaryCurrent}
+                  onChange={(event) => {
+                    const salaryCurrent = Number(event.target.value) || 0;
+                    setDraft({ ...draft, salaryCurrent });
+                    setCompForm((current) => ({
+                      ...current,
+                      category: "salary",
+                      amount: salaryCurrent,
+                      currency: draft.currency,
+                    }));
+                  }}
+                />
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-white/45">Current bonus</p>
-                <p className="mt-1 text-lg text-white">
-                  {formatSalary(draft.bonus, draft.currency)}
-                </p>
+              <div>
+                <FieldLabel>Bonus (annual)</FieldLabel>
+                <input
+                  type="number"
+                  className={inputClass()}
+                  value={draft.bonus}
+                  onChange={(event) => setDraft({ ...draft, bonus: Number(event.target.value) || 0 })}
+                />
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-white/45">Currency</p>
-                <p className="mt-1 text-lg text-white">{draft.currency}</p>
+              <div>
+                <FieldLabel>Currency</FieldLabel>
+                <input
+                  className={inputClass()}
+                  value={draft.currency}
+                  onChange={(event) => {
+                    const currency = event.target.value.toUpperCase();
+                    setDraft({ ...draft, currency });
+                    setCompForm((current) => ({ ...current, currency }));
+                  }}
+                />
+              </div>
+              <div>
+                <FieldLabel>Pay frequency</FieldLabel>
+                <select
+                  className={inputClass()}
+                  value={draft.payFrequency}
+                  onChange={(event) => setDraft({ ...draft, payFrequency: event.target.value })}
+                >
+                  <option value="annual">Annual</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="biweekly">Biweekly</option>
+                  <option value="weekly">Weekly</option>
+                </select>
               </div>
             </div>
 
@@ -1050,6 +1093,7 @@ export default function EmployeeRecordWorkspace() {
                   className={inputClass()}
                   value={compForm.reason}
                   onChange={(event) => setCompForm({ ...compForm, reason: event.target.value })}
+                  placeholder="Optional — defaults to Compensation update"
                 />
               </div>
               <div>
@@ -1060,6 +1104,7 @@ export default function EmployeeRecordWorkspace() {
                   onChange={(event) =>
                     setCompForm({ ...compForm, approvedBy: event.target.value })
                   }
+                  placeholder="Optional — defaults to hr"
                 />
               </div>
             </div>

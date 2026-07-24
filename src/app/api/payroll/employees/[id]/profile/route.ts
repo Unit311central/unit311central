@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const { id } = await params;
-    const [employee, profile, settings] = await Promise.all([
+    const [employee, profileRow, settings] = await Promise.all([
       getHrEmployee(id, { workspaceId: workspace.id }),
       getEmployeePayrollProfile(id, { workspaceId: workspace.id }),
       getPayrollSettings({ workspaceId: workspace.id }),
@@ -27,13 +27,22 @@ export async function GET(_request: NextRequest, { params }: Params) {
     if (!employee) {
       return NextResponse.json({ error: "Employee not found." }, { status: 404 });
     }
+    const profile = profileRow ?? {
+      annualSalary: employee.salaryCurrent,
+      monthlySalary: employee.salaryCurrent > 0 ? employee.salaryCurrent / 12 : null,
+      bonus: employee.bonus,
+      currency: employee.currency,
+      payrollFrequency: "monthly",
+      taxState: "CA",
+      payrollStatus: "active" as const,
+    };
     const calculation = calculateEmployeePayroll(
       {
         salaryCurrent: employee.salaryCurrent,
         bonus: employee.bonus,
         payFrequency: employee.payFrequency,
         currency: employee.currency,
-        profile,
+        profile: profileRow,
       },
       settings,
     );

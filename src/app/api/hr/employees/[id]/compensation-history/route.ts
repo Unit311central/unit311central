@@ -56,11 +56,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     ) {
       return NextResponse.json({ error: "Valid category is required." }, { status: 400 });
     }
-    if (!body.effectiveDate?.trim() || !body.reason?.trim() || !body.approvedBy?.trim()) {
-      return NextResponse.json(
-        { error: "effectiveDate, reason, and approvedBy are required." },
-        { status: 400 },
-      );
+    if (!body.effectiveDate?.trim()) {
+      return NextResponse.json({ error: "effectiveDate is required." }, { status: 400 });
     }
 
     const entry = await appendCompensationHistory(
@@ -70,8 +67,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         effectiveDate: body.effectiveDate,
         amount: body.amount ?? null,
         currency: body.currency,
-        reason: body.reason,
-        approvedBy: body.approvedBy,
+        reason: body.reason?.trim() || "Compensation update",
+        approvedBy: body.approvedBy?.trim() || "hr",
         terms: body.terms,
       },
       { workspaceId: workspace.id },
