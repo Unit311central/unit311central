@@ -44,6 +44,7 @@
     "test:ea-intelligence": "node scripts/verify-ea-intelligence.mjs"
   },
   "dependencies": {
+    "@daily-co/daily-js": "^0.91.0",
     "@excalidraw/excalidraw": "^0.18.1",
     "@radix-ui/react-avatar": "^1.2.0",
     "@radix-ui/react-progress": "^1.1.10",

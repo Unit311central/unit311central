@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
+import { useCallback, useEffect, useRef, useState, startTransition } from "react";
+import DailyIframe, { type DailyCall } from "@daily-co/daily-js";
 
 import { useExecutiveCallWebRtc } from "@/hooks/useExecutiveCallWebRtc";
 import type { MessagingCallSessionPayload } from "@/lib/messaging-call-service";
@@ -11,10 +12,14 @@ import { Loader2, Mic, MicOff, MonitorUp, Paperclip, PhoneOff, ScreenShareOff, V
 type MessagingCallRoomProps = {
   sessionId: string;
   expectedMode: "voice" | "video";
-  /** When true, fills a parent panel instead of owning the full viewport. */
   embedded?: boolean;
-  /** Guest token for external join without login (from ?guest=). */
   guestToken?: string | null;
+};
+
+type DailyCredentials = {
+  roomUrl: string;
+  token: string;
+  provider: "daily";
 };
 
 function guestHeaders(guestToken?: string | null): HeadersInit {
@@ -54,6 +59,8 @@ export default function MessagingCallRoom({
   guestToken = null,
 }: MessagingCallRoomProps) {
   const isExternalGuest = Boolean(guestToken);
+  const isVoice = expectedMode === "voice";
+  const signalingBasePath = "/api/messaging/calls";
 
   const [payload, setPayload] = useState<MessagingCallSessionPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,14 +69,16 @@ export default function MessagingCallRoom({
   const [joined, setJoined] = useState(false);
   const [leftCall, setLeftCall] = useState(false);
   const [guestName, setGuestName] = useState("");
+  const [mediaProvider, setMediaProvider] = useState<"daily" | "webrtc" | null>(null);
+  const [dailyReady, setDailyReady] = useState(false);
+  const [fileStatus, setFileStatus] = useState<string | null>(null);
+  const [sharingFile, setSharingFile] = useState(false);
+
+  // Legacy WebRTC fallback state
   const [videoEnabled, setVideoEnabled] = useState(expectedMode === "video");
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [sharingScreen, setSharingScreen] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [fileStatus, setFileStatus] = useState<string | null>(null);
-  const [sharingFile, setSharingFile] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
@@ -79,8 +88,9 @@ export default function MessagingCallRoom({
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const mediaStartedRef = useRef(false);
 
-  const isVoice = expectedMode === "voice";
-  const signalingBasePath = "/api/messaging/calls";
+  const dailyContainerRef = useRef<HTMLDivElement>(null);
+  const dailyCallRef = useRef<DailyCall | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadSession = useCallback(async () => {
     const params = new URLSearchParams();
@@ -100,27 +110,34 @@ export default function MessagingCallRoom({
   useEffect(() => {
     let cancelled = false;
     startTransition(() => {
-      void loadSession()
-        .catch((loadError) => {
+      void (async () => {
+        try {
+          await loadSession();
+        } catch (loadError) {
           if (!cancelled) {
             setError(loadError instanceof Error ? loadError.message : "Failed to load call");
           }
-        })
-        .finally(() => {
+        } finally {
           if (!cancelled) setLoading(false);
-        });
+        }
+      })();
     });
-
-    const interval = window.setInterval(() => {
-      if (leftCall) return;
-      void loadSession().catch(() => undefined);
-    }, 2500);
-
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
     };
-  }, [leftCall, loadSession]);
+  }, [loadSession]);
+
+  const destroyDaily = useCallback(() => {
+    const call = dailyCallRef.current;
+    dailyCallRef.current = null;
+    setDailyReady(false);
+    if (!call) return;
+    try {
+      call.destroy();
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const stopMedia = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -130,155 +147,83 @@ export default function MessagingCallRoom({
     cameraStreamRef.current = null;
     screenStreamRef.current = null;
     setLocalStream(null);
-    setSharingScreen(false);
-    if (localVideoRef.current) localVideoRef.current.srcObject = null;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
+    mediaStartedRef.current = false;
   }, []);
 
-  const videoEnabledRef = useRef(videoEnabled);
-  const audioEnabledRef = useRef(audioEnabled);
+  useEffect(() => () => {
+    destroyDaily();
+    stopMedia();
+  }, [destroyDaily, stopMedia]);
 
-  useEffect(() => {
-    videoEnabledRef.current = videoEnabled;
-  }, [videoEnabled]);
+  const startDailyCall = useCallback(
+    async (credentials: DailyCredentials) => {
+      destroyDaily();
+      const container = dailyContainerRef.current;
+      if (!container) throw new Error("Call display is not ready.");
 
-  useEffect(() => {
-    audioEnabledRef.current = audioEnabled;
-  }, [audioEnabled]);
+      const call = DailyIframe.createFrame(container, {
+        showLeaveButton: true,
+        showFullscreenButton: true,
+        iframeStyle: {
+          width: "100%",
+          height: "100%",
+          border: "0",
+          borderRadius: "16px",
+        },
+        theme: {
+          colors: {
+            accent: "#2563eb",
+            accentText: "#ffffff",
+            background: "#020617",
+            backgroundAccent: "#0b1524",
+            baseText: "#f8fafc",
+            border: "#1e293b",
+            mainAreaBg: "#020617",
+            mainAreaBgAccent: "#0b1524",
+            mainAreaText: "#f8fafc",
+            supportiveText: "#94a3b8",
+          },
+        },
+      });
+      dailyCallRef.current = call;
 
-  const startMedia = useCallback(async () => {
+      call.on("left-meeting", () => {
+        setLeftCall(true);
+        setJoined(false);
+        destroyDaily();
+      });
+      call.on("error", (event) => {
+        setError(event?.errorMsg || "Daily call error");
+      });
+
+      await call.join({
+        url: credentials.roomUrl,
+        token: credentials.token,
+        startVideoOff: isVoice,
+        startAudioOff: false,
+      });
+      setMediaProvider("daily");
+      setDailyReady(true);
+    },
+    [destroyDaily, isVoice],
+  );
+
+  const startWebRtcMedia = useCallback(async () => {
     setMediaError(null);
     try {
-      stopMedia();
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: isVoice ? false : true,
         audio: true,
+        video: isVoice ? false : { facingMode: "user" },
       });
       cameraStreamRef.current = stream;
       streamRef.current = stream;
       setLocalStream(stream);
-      stream.getVideoTracks().forEach((track) => {
-        track.enabled = videoEnabledRef.current;
-      });
-      stream.getAudioTracks().forEach((track) => {
-        track.enabled = audioEnabledRef.current;
-      });
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-        void localVideoRef.current.play().catch(() => undefined);
-      }
+      setMediaProvider("webrtc");
     } catch {
-      setMediaError(
-        isVoice
-          ? "Unable to access microphone. Check browser permissions and try again."
-          : "Unable to access camera or microphone. Check browser permissions and try again.",
-      );
+      setMediaError("Unable to access camera/microphone. Check browser permissions.");
+      throw new Error("Media permission denied");
     }
-  }, [isVoice, stopMedia]);
-
-  useEffect(() => {
-    const video = localVideoRef.current;
-    if (!video || !localStream || isVoice) return;
-    video.srcObject = localStream;
-    void video.play().catch(() => undefined);
-  }, [isVoice, localStream, joined, leftCall, videoEnabled]);
-
-  const webrtcEnabled = useMemo(() => {
-    if (!payload || !joined || leftCall || !localStream) return false;
-    return true;
-  }, [joined, leftCall, localStream, payload]);
-
-  const { remoteStream, connectionState, signalingError } = useExecutiveCallWebRtc({
-    slug: sessionId,
-    role: payload?.viewer.isHost ? "host" : "guest",
-    enabled: webrtcEnabled,
-    localStream,
-    signalingBasePath,
-    receiveVideo: !isVoice,
-    guestToken,
-  });
-
-  useEffect(() => {
-    if (isVoice) {
-      const audio = remoteAudioRef.current;
-      if (!audio) return;
-      audio.srcObject = remoteStream;
-      if (remoteStream) void audio.play().catch(() => undefined);
-      return;
-    }
-    const video = remoteVideoRef.current;
-    if (!video) return;
-    video.srcObject = remoteStream;
-    if (remoteStream) void video.play().catch(() => undefined);
-  }, [isVoice, remoteStream]);
-
-  const toggleVideo = useCallback(() => {
-    if (isVoice || sharingScreen) return;
-    setVideoEnabled((current) => {
-      const next = !current;
-      streamRef.current?.getVideoTracks().forEach((track) => {
-        track.enabled = next;
-      });
-      return next;
-    });
-  }, [isVoice, sharingScreen]);
-
-  const toggleAudio = useCallback(() => {
-    setAudioEnabled((current) => {
-      const next = !current;
-      streamRef.current?.getAudioTracks().forEach((track) => {
-        track.enabled = next;
-      });
-      return next;
-    });
-  }, []);
-
-  const stopScreenShare = useCallback(() => {
-    screenStreamRef.current?.getTracks().forEach((track) => track.stop());
-    screenStreamRef.current = null;
-    const camera = cameraStreamRef.current;
-    if (camera) {
-      streamRef.current = camera;
-      setLocalStream(camera);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = camera;
-        void localVideoRef.current.play().catch(() => undefined);
-      }
-    }
-    setSharingScreen(false);
-  }, []);
-
-  const startScreenShare = useCallback(async () => {
-    if (isVoice) return;
-    setMediaError(null);
-    try {
-      const display = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false,
-      });
-      const screenTrack = display.getVideoTracks()[0];
-      if (!screenTrack) throw new Error("No screen track");
-
-      screenStreamRef.current?.getTracks().forEach((track) => track.stop());
-      screenStreamRef.current = display;
-
-      const audioTracks = (cameraStreamRef.current ?? streamRef.current)?.getAudioTracks() ?? [];
-      const outbound = new MediaStream([screenTrack, ...audioTracks]);
-      streamRef.current = outbound;
-      setLocalStream(outbound);
-      setSharingScreen(true);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = outbound;
-        void localVideoRef.current.play().catch(() => undefined);
-      }
-      screenTrack.onended = () => stopScreenShare();
-    } catch {
-      setMediaError("Unable to share screen. Check browser permissions and try again.");
-    }
-  }, [isVoice, stopScreenShare]);
-
-  useEffect(() => () => stopMedia(), [stopMedia]);
+  }, [isVoice]);
 
   async function handleJoin() {
     if (isExternalGuest && !guestName.trim()) {
@@ -307,12 +252,46 @@ export default function MessagingCallRoom({
       }
       setPayload(data);
       setJoined(true);
-      if (!mediaStartedRef.current) {
-        mediaStartedRef.current = true;
-        await startMedia();
+
+      // Prefer Daily (multiparty). Fall back to legacy WebRTC if Daily is not configured.
+      const dailyResponse = await fetch(`${signalingBasePath}/${sessionId}/daily`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...guestHeaders(guestToken),
+        },
+        body: JSON.stringify({
+          guestToken: guestToken || undefined,
+          displayName: isExternalGuest ? guestName.trim() : undefined,
+        }),
+      });
+      const dailyData = await readApiJson<{
+        roomUrl?: string;
+        token?: string;
+        error?: string;
+      }>(dailyResponse);
+
+      if (dailyResponse.ok && dailyData.roomUrl && dailyData.token) {
+        // Wait a tick so the Daily container mounts after joined=true
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
+        await startDailyCall({
+          roomUrl: dailyData.roomUrl,
+          token: dailyData.token,
+          provider: "daily",
+        });
+      } else if (dailyResponse.status === 503) {
+        if (!mediaStartedRef.current) {
+          mediaStartedRef.current = true;
+          await startWebRtcMedia();
+        }
+      } else {
+        throw new Error(dailyData.error ?? "Failed to start meeting media");
       }
     } catch (joinError) {
       setError(joinError instanceof Error ? joinError.message : "Failed to join call");
+      setJoined(false);
+      destroyDaily();
+      stopMedia();
     } finally {
       setBusy(false);
     }
@@ -322,6 +301,14 @@ export default function MessagingCallRoom({
     setBusy(true);
     setError(null);
     try {
+      if (dailyCallRef.current) {
+        try {
+          await dailyCallRef.current.leave();
+        } catch {
+          // ignore
+        }
+        destroyDaily();
+      }
       await fetch(`${signalingBasePath}/${sessionId}`, {
         method: "POST",
         headers: {
@@ -342,6 +329,95 @@ export default function MessagingCallRoom({
       setBusy(false);
     }
   }
+
+  // --- WebRTC fallback helpers ---
+  useEffect(() => {
+    const video = localVideoRef.current;
+    if (!video || !localStream || isVoice || mediaProvider !== "webrtc") return;
+    video.srcObject = localStream;
+    void video.play().catch(() => undefined);
+  }, [isVoice, localStream, joined, leftCall, videoEnabled, mediaProvider]);
+
+  const webrtcEnabled =
+    mediaProvider === "webrtc" && Boolean(payload && joined && !leftCall && localStream);
+
+  const { remoteStream, connectionState, signalingError } = useExecutiveCallWebRtc({
+    slug: sessionId,
+    role: payload?.viewer.isHost ? "host" : "guest",
+    enabled: webrtcEnabled,
+    localStream,
+    signalingBasePath,
+    receiveVideo: !isVoice,
+    guestToken,
+  });
+
+  useEffect(() => {
+    if (mediaProvider !== "webrtc") return;
+    if (isVoice) {
+      const audio = remoteAudioRef.current;
+      if (!audio) return;
+      audio.srcObject = remoteStream;
+      if (remoteStream) void audio.play().catch(() => undefined);
+      return;
+    }
+    const video = remoteVideoRef.current;
+    if (!video) return;
+    video.srcObject = remoteStream;
+    if (remoteStream) void video.play().catch(() => undefined);
+  }, [isVoice, remoteStream, mediaProvider]);
+
+  const toggleVideo = useCallback(() => {
+    if (isVoice || sharingScreen || mediaProvider !== "webrtc") return;
+    setVideoEnabled((current) => {
+      const next = !current;
+      streamRef.current?.getVideoTracks().forEach((track) => {
+        track.enabled = next;
+      });
+      return next;
+    });
+  }, [isVoice, sharingScreen, mediaProvider]);
+
+  const toggleAudio = useCallback(() => {
+    if (mediaProvider !== "webrtc") return;
+    setAudioEnabled((current) => {
+      const next = !current;
+      streamRef.current?.getAudioTracks().forEach((track) => {
+        track.enabled = next;
+      });
+      return next;
+    });
+  }, [mediaProvider]);
+
+  const stopScreenShare = useCallback(() => {
+    screenStreamRef.current?.getTracks().forEach((track) => track.stop());
+    screenStreamRef.current = null;
+    const camera = cameraStreamRef.current;
+    if (camera) {
+      streamRef.current = camera;
+      setLocalStream(camera);
+    }
+    setSharingScreen(false);
+  }, []);
+
+  const startScreenShare = useCallback(async () => {
+    if (isVoice || mediaProvider !== "webrtc") return;
+    setMediaError(null);
+    try {
+      const display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const screenTrack = display.getVideoTracks()[0];
+      if (!screenTrack) throw new Error("No screen track");
+      screenStreamRef.current?.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = display;
+      const audioTracks = (cameraStreamRef.current ?? streamRef.current)?.getAudioTracks() ?? [];
+      const outbound = new MediaStream([screenTrack, ...audioTracks]);
+      streamRef.current = outbound;
+      setLocalStream(outbound);
+      setSharingScreen(true);
+      screenTrack.onended = () => stopScreenShare();
+    } catch {
+      setMediaError("Unable to share screen. Check browser permissions and try again.");
+    }
+  }, [isVoice, mediaProvider, stopScreenShare]);
 
   async function handleShareFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -368,11 +444,10 @@ export default function MessagingCallRoom({
         throw new Error(uploadData.error ?? "Failed to upload file");
       }
 
-      const username =
-        payload.viewer.displayName.includes("@")
-          ? payload.viewer.displayName.split("@")[0] || payload.viewer.operatorId
-          : payload.viewer.displayName.replace(/\s+/g, ".").toLowerCase() ||
-            payload.viewer.operatorId;
+      const username = payload.viewer.displayName.includes("@")
+        ? payload.viewer.displayName.split("@")[0] || payload.viewer.operatorId
+        : payload.viewer.displayName.replace(/\s+/g, ".").toLowerCase() ||
+          payload.viewer.operatorId;
 
       const messageResponse = await fetch("/api/messaging/messages", {
         method: "POST",
@@ -426,7 +501,9 @@ export default function MessagingCallRoom({
       >
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#07111f] p-8 text-center">
           <h1 className="text-lg font-semibold text-white">Call ended</h1>
-          <p className="mt-2 text-sm text-white/55">You can close this panel and return to Communications.</p>
+          <p className="mt-2 text-sm text-white/55">
+            You can close this panel and return to Communications.
+          </p>
           {!embedded ? (
             <Link
               href="/internaldashboard?view=communications"
@@ -451,19 +528,12 @@ export default function MessagingCallRoom({
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#07111f] p-8 text-center">
           <h1 className="text-lg font-semibold text-white">Unable to open call</h1>
           <p className="mt-2 text-sm text-white/55">{error}</p>
-          <p className="mt-4 text-xs text-white/40">
-            {isExternalGuest
-              ? "Ask the host to send you a fresh Instant Meeting link from Communications."
-              : "Sign in to Unit311 Central, then open the Join call link from Communications."}
-          </p>
         </div>
       </section>
     );
   }
 
-  const peerName = payload?.viewer.isHost
-    ? payload.room.guestOperatorName || "Waiting for guest…"
-    : payload?.room.hostOperatorName || "Host";
+  const usingDaily = mediaProvider === "daily" || (joined && mediaProvider !== "webrtc");
 
   return (
     <section
@@ -472,63 +542,95 @@ export default function MessagingCallRoom({
         embedded ? "h-full min-h-0" : "min-h-screen",
       )}
     >
-      <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+      <header className="flex items-center justify-between border-b border-white/10 px-5 py-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300">
-            Communications {isVoice ? "voice" : "video"}
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-300">
+            Communications · {isVoice ? "Voice" : "Video"}
+            {mediaProvider === "daily" ? " · Daily" : mediaProvider === "webrtc" ? " · Direct" : ""}
           </p>
-          <h1 className="text-lg font-semibold">
-            {payload?.viewer.isHost ? "You are hosting" : "Joined call"} · {peerName}
+          <h1 className="text-base font-semibold sm:text-lg">
+            {payload?.viewer.isHost ? "Hosting" : "In call"}
+            {payload?.room.hostOperatorName
+              ? ` · ${payload.viewer.isHost ? "you" : payload.room.hostOperatorName}`
+              : ""}
           </h1>
         </div>
-        <p className="text-xs text-white/50">{connectionLabel(connectionState)}</p>
+        <p className="text-xs text-white/50">
+          {mediaProvider === "daily"
+            ? dailyReady
+              ? "Live"
+              : "Connecting…"
+            : mediaProvider === "webrtc"
+              ? connectionLabel(connectionState)
+              : "Ready"}
+        </p>
       </header>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-4 px-5 py-8">
-        {isVoice ? (
-          <>
-            <audio ref={remoteAudioRef} autoPlay playsInline />
-            <div className="flex h-48 w-48 items-center justify-center rounded-full border border-sky-400/30 bg-sky-500/10 text-sky-100">
-              <Mic className="h-12 w-12" />
-            </div>
-            <p className="text-sm text-white/60">
-              {remoteStream ? "Live audio connected" : "Waiting for the other participant…"}
-            </p>
-          </>
-        ) : (
-          <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black/40 aspect-video">
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className={cn("h-full w-full object-cover", !remoteStream && "opacity-0")}
-            />
-            {!remoteStream && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-white/50">
-                Waiting for the other participant…
-              </div>
+      <div className="relative flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-5 sm:py-4">
+        {/* Daily mounts here once joined */}
+        <div
+          ref={dailyContainerRef}
+          className={cn(
+            "min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/40",
+            (!joined || mediaProvider === "webrtc") && "hidden",
+            embedded ? "min-h-[280px]" : "min-h-[420px]",
+          )}
+        />
+
+        {(!joined || mediaProvider === "webrtc") && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4">
+            {mediaProvider === "webrtc" ? (
+              isVoice ? (
+                <>
+                  <audio ref={remoteAudioRef} autoPlay playsInline />
+                  <div className="flex h-48 w-48 items-center justify-center rounded-full border border-sky-400/30 bg-sky-500/10 text-sky-100">
+                    <Mic className="h-12 w-12" />
+                  </div>
+                  <p className="text-sm text-white/60">
+                    {remoteStream ? "Live audio connected" : "Waiting for the other participant…"}
+                  </p>
+                </>
+              ) : (
+                <div className="relative aspect-video w-full max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className={cn("h-full w-full object-cover", !remoteStream && "opacity-0")}
+                  />
+                  {!remoteStream && (
+                    <div className="absolute inset-0 flex items-center justify-center text-sm text-white/50">
+                      Waiting for the other participant…
+                    </div>
+                  )}
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="absolute bottom-4 right-4 h-28 w-40 rounded-xl border border-white/20 object-cover shadow-lg"
+                  />
+                </div>
+              )
+            ) : (
+              <p className="text-sm text-white/50">
+                {joined ? "Starting meeting…" : "Join to start voice, video, and screen share."}
+              </p>
             )}
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className="absolute bottom-4 right-4 h-28 w-40 rounded-xl border border-white/20 object-cover shadow-lg"
-            />
           </div>
         )}
 
         {(error || mediaError || signalingError) && (
-          <p className="max-w-xl text-center text-sm text-rose-300">
+          <p className="mt-3 text-center text-sm text-rose-300">
             {error || mediaError || signalingError}
           </p>
         )}
         {fileStatus ? (
-          <p className="max-w-xl text-center text-sm text-emerald-300">{fileStatus}</p>
+          <p className="mt-2 text-center text-sm text-emerald-300">{fileStatus}</p>
         ) : null}
       </div>
 
-      <footer className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 px-5 py-5">
+      <footer className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 px-5 py-4">
         {!joined ? (
           <div className="flex w-full max-w-md flex-col items-center gap-3">
             {isExternalGuest ? (
@@ -557,10 +659,45 @@ export default function MessagingCallRoom({
             </button>
             {isExternalGuest ? (
               <p className="text-center text-xs text-white/45">
-                No Unit311 account needed. Voice, video, and screen share work in this browser.
+                No Unit311 account needed. Up to 10 people can join this link.
               </p>
             ) : null}
           </div>
+        ) : usingDaily && mediaProvider === "daily" ? (
+          <>
+            {!isExternalGuest ? (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(event) => void handleShareFile(event)}
+                />
+                <button
+                  type="button"
+                  disabled={sharingFile}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex h-11 items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/10 px-4 text-sm text-sky-100 disabled:opacity-50"
+                >
+                  {sharingFile ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                  File to Messaging
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void handleLeave()}
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-rose-600 px-5 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              <PhoneOff className="h-4 w-4" />
+              Leave
+            </button>
+          </>
         ) : (
           <>
             {!isExternalGuest ? (
@@ -585,7 +722,6 @@ export default function MessagingCallRoom({
                 onClick={toggleVideo}
                 disabled={sharingScreen}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 disabled:opacity-40"
-                aria-label={videoEnabled ? "Stop camera" : "Start camera"}
               >
                 {videoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
               </button>
@@ -601,7 +737,11 @@ export default function MessagingCallRoom({
                     : "border-white/15 bg-white/5",
                 )}
               >
-                {sharingScreen ? <ScreenShareOff className="h-4 w-4" /> : <MonitorUp className="h-4 w-4" />}
+                {sharingScreen ? (
+                  <ScreenShareOff className="h-4 w-4" />
+                ) : (
+                  <MonitorUp className="h-4 w-4" />
+                )}
                 {sharingScreen ? "Stop share" : "Share"}
               </button>
             )}
@@ -611,9 +751,12 @@ export default function MessagingCallRoom({
                 disabled={sharingFile}
                 onClick={() => fileInputRef.current?.click()}
                 className="inline-flex h-11 items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/10 px-4 text-sm text-sky-100 disabled:opacity-50"
-                aria-label="Send file to Messaging"
               >
-                {sharingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                {sharingFile ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Paperclip className="h-4 w-4" />
+                )}
                 File
               </button>
             ) : null}

@@ -258,12 +258,18 @@ export async function joinMessagingCallRoom(input: {
     };
   }
 
+  // Multiparty (Daily): additional authenticated participants may join without
+  // overwriting the primary guest slot.
   if (
     room.guestOperatorId &&
     room.guestOperatorId !== operatorId &&
     room.guestOperatorId !== input.session.username
   ) {
-    throw new Error("This call already has two participants.");
+    return {
+      room,
+      viewer: { isHost: false, displayName, operatorId, isExternalGuest: false },
+      bothJoined: true,
+    };
   }
 
   const { data, error } = await supabase
@@ -300,12 +306,20 @@ export async function joinMessagingCallRoomAsGuest(input: {
   if (!displayName) throw new Error("Display name is required.");
 
   const operatorId = guestOperatorIdFromToken(input.guestToken);
+  // Multiparty: same guest link can be used by several externals (Daily).
+  // Only block if a *different* guest identity already occupies the primary slot
+  // and we are not using shared-token joins — shared token shares operatorId.
   if (
     room.guestOperatorId &&
     room.guestOperatorId !== operatorId &&
     room.guestJoinedAt
   ) {
-    throw new Error("This call already has two participants.");
+    // Allow additional guests; return session without overwriting primary guest metadata.
+    return {
+      room,
+      viewer: { isHost: false, displayName, operatorId, isExternalGuest: true },
+      bothJoined: true,
+    };
   }
 
   const now = new Date().toISOString();

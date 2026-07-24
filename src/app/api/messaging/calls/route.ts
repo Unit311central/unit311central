@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { ensureDailyRoomForMessagingCall, isDailyConfigured } from "@/lib/daily-call-service";
 import {
   createMessagingCallRoom,
   parseMessagingCallSessionId,
@@ -95,13 +96,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let dailyRoomUrl: string | null = null;
+    if (isDailyConfigured()) {
+      try {
+        const daily = await ensureDailyRoomForMessagingCall({
+          sessionId: room.sessionId,
+          callType,
+        });
+        dailyRoomUrl = daily.roomUrl;
+      } catch (dailyError) {
+        console.error("[messaging/calls] Daily room ensure failed", dailyError);
+      }
+    }
+
     const callLink = `${CENTRAL_SITE_URL}/meet/${callType}/${room.sessionId}`;
     const guestLink =
       room.allowGuestJoin && room.guestToken
         ? `${callLink}?guest=${encodeURIComponent(room.guestToken)}`
         : null;
 
-    return NextResponse.json({ room, callLink, guestLink, instantMeeting });
+    return NextResponse.json({
+      room,
+      callLink,
+      guestLink,
+      instantMeeting,
+      provider: isDailyConfigured() ? "daily" : "webrtc",
+      dailyRoomUrl,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create call room";
     return NextResponse.json({ error: message }, { status: authErrorStatus(message) });
