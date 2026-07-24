@@ -67,82 +67,100 @@ const TEAM_MEMBERS = [
   },
 ] as const;
 
+function FlowStep({ label, tone = "neutral" }: { label: string; tone?: "bad" | "good" | "neutral" | "hub" }) {
+  const tones = {
+    bad: "border-rose-400/35 bg-rose-500/10 text-rose-100",
+    good: "border-emerald-400/35 bg-emerald-500/10 text-emerald-50",
+    neutral: "border-white/15 bg-white/[0.05] text-white/85",
+    hub: "border-sky-400/40 bg-sky-500/15 text-sky-50",
+  } as const;
+
+  return (
+    <div
+      className={`rounded-xl border px-3 py-2 text-center text-[11px] font-semibold leading-snug sm:px-3.5 sm:text-[12px] ${tones[tone]}`}
+    >
+      {label}
+    </div>
+  );
+}
+
+function FlowArrow() {
+  return <ArrowRight className="mx-auto h-4 w-4 shrink-0 text-white/35" strokeWidth={1.8} aria-hidden />;
+}
+
 function WhyIllustration() {
   return (
-    <svg viewBox="0 0 280 160" fill="none" aria-hidden className="h-full w-full">
-      <rect x="24" y="36" width="72" height="88" rx="14" stroke="#60a5fa" strokeWidth="1.4" opacity="0.55" />
-      <rect x="104" y="28" width="72" height="104" rx="14" stroke="#93c5fd" strokeWidth="1.6" />
-      <rect x="184" y="44" width="72" height="72" rx="14" stroke="#38bdf8" strokeWidth="1.4" opacity="0.55" />
-      <circle cx="140" cy="80" r="10" fill="#3b82f6" opacity="0.9" />
-      <path d="M96 80H130M150 80H184" stroke="#60a5fa" strokeWidth="1.5" strokeDasharray="3 4" />
-    </svg>
+    <div className="flex h-full flex-col items-center justify-center gap-3 px-2" aria-hidden>
+      <div className="grid w-full grid-cols-3 gap-2">
+        {["CRM", "Finance", "HR", "Projects", "Docs", "Email"].map((label) => (
+          <FlowStep key={label} label={label} tone="neutral" />
+        ))}
+      </div>
+      <FlowArrow />
+      <FlowStep label="One Unit311 Central operating platform" tone="hub" />
+    </div>
   );
 }
 
 function ProblemIllustration() {
   return (
-    <svg viewBox="0 0 320 180" fill="none" aria-hidden className="h-full w-full">
-      {[
-        { x: 28, y: 28, label: "CRM" },
-        { x: 210, y: 24, label: "Finance" },
-        { x: 30, y: 112, label: "HR" },
-        { x: 208, y: 108, label: "Projects" },
-      ].map((node) => (
-        <g key={node.label}>
-          <rect x={node.x} y={node.y} width="84" height="40" rx="10" fill="rgba(255,255,255,0.04)" stroke="#64748b" strokeWidth="1.2" />
-          <text x={node.x + 42} y={node.y + 24} textAnchor="middle" fill="#cbd5e1" fontSize="12" fontFamily="system-ui">
-            {node.label}
-          </text>
-        </g>
-      ))}
-      <path d="M112 48C148 48 148 48 184 44" stroke="#f87171" strokeWidth="1.4" strokeDasharray="4 5" opacity="0.85" />
-      <path d="M112 132C150 96 170 96 208 128" stroke="#f87171" strokeWidth="1.4" strokeDasharray="4 5" opacity="0.7" />
-      <path d="M70 68V112" stroke="#f87171" strokeWidth="1.3" strokeDasharray="4 5" opacity="0.65" />
-      <path d="M252 64V108" stroke="#f87171" strokeWidth="1.3" strokeDasharray="4 5" opacity="0.65" />
-    </svg>
+    <div className="flex h-full flex-col justify-center gap-3 px-1" aria-hidden>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+        {["CRM", "Finance", "HR", "Projects", "Documents"].map((label) => (
+          <FlowStep key={label} label={label} tone="bad" />
+        ))}
+      </div>
+      <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-300/70">
+        all disconnected
+      </p>
+      <div className="flex flex-col items-center gap-2">
+        <FlowArrow />
+        <FlowStep label="Duplicate work" tone="bad" />
+        <FlowArrow />
+        <FlowStep label="Poor visibility" tone="bad" />
+        <FlowArrow />
+        <FlowStep label="Slow decisions" tone="bad" />
+      </div>
+    </div>
   );
 }
 
 function SolutionIllustration() {
   return (
-    <svg viewBox="0 0 320 180" fill="none" aria-hidden className="h-full w-full">
-      <circle cx="160" cy="90" r="34" fill="rgba(59,130,246,0.18)" stroke="#60a5fa" strokeWidth="1.5" />
-      <text x="160" y="94" textAnchor="middle" fill="#bfdbfe" fontSize="11" fontFamily="system-ui" fontWeight="600">
-        Unit311
-      </text>
-      {[
-        { x: 36, y: 34, label: "Shared AI" },
-        { x: 214, y: 34, label: "Shared Data" },
-        { x: 110, y: 132, label: "Shared Workflow" },
-      ].map((node) => (
-        <g key={node.label}>
-          <rect x={node.x} y={node.y} width="96" height="34" rx="10" fill="rgba(56,189,248,0.08)" stroke="#38bdf8" strokeWidth="1.2" />
-          <text x={node.x + 48} y={node.y + 21} textAnchor="middle" fill="#e2e8f0" fontSize="11" fontFamily="system-ui">
-            {node.label}
-          </text>
-        </g>
-      ))}
-      <path d="M132 51L148 70" stroke="#60a5fa" strokeWidth="1.3" />
-      <path d="M214 51L176 70" stroke="#60a5fa" strokeWidth="1.3" />
-      <path d="M160 124L160 110" stroke="#60a5fa" strokeWidth="1.3" />
-    </svg>
+    <div className="flex h-full flex-col justify-center gap-2.5 px-1" aria-hidden>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {["CRM", "Finance", "HR", "Projects"].map((label) => (
+          <FlowStep key={label} label={label} tone="neutral" />
+        ))}
+      </div>
+      <FlowArrow />
+      <FlowStep label="Shared Data" tone="good" />
+      <FlowArrow />
+      <FlowStep label="Shared Workflow Engine" tone="good" />
+      <FlowArrow />
+      <FlowStep label="AI Executive Assistant" tone="good" />
+      <FlowArrow />
+      <FlowStep label="One Operating Platform" tone="hub" />
+    </div>
   );
 }
 
 function GrowthIllustration() {
+  const steps = [
+    "Start with CRM",
+    "Add Projects",
+    "Add Financials",
+    "Add HR",
+    "Add AI Executive Assistant",
+    "One Connected Platform",
+  ];
+
   return (
-    <div className="flex h-full items-center justify-center gap-3 sm:gap-5" aria-hidden>
-      {["Startup", "SME", "Enterprise"].map((stage, index) => (
-        <div key={stage} className="flex items-center gap-3 sm:gap-5">
-          <div
-            className="flex flex-col items-center justify-center rounded-2xl border border-sky-400/25 bg-sky-400/10 px-4 py-5 text-center sm:px-6 sm:py-6"
-            style={{ minWidth: `${5.5 + index * 0.8}rem`, minHeight: `${4.5 + index * 0.55}rem` }}
-          >
-            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
-              {stage}
-            </span>
-          </div>
-          {index < 2 ? <ArrowRight className="h-4 w-4 text-sky-300/50" strokeWidth={1.75} /> : null}
+    <div className="mx-auto flex max-w-xl flex-col items-stretch gap-2.5" aria-hidden>
+      {steps.map((step, index) => (
+        <div key={step} className="flex flex-col items-center gap-2.5">
+          <FlowStep label={step} tone={index === steps.length - 1 ? "hub" : "neutral"} />
+          {index < steps.length - 1 ? <FlowArrow /> : null}
         </div>
       ))}
     </div>
@@ -150,31 +168,31 @@ function GrowthIllustration() {
 }
 
 function PlatformIllustration() {
+  const workspaces = [
+    "Business Central",
+    "Clients & Projects",
+    "Financials",
+    "HR & People",
+    "Technology",
+    "Corporate",
+    "Operations",
+    "Productivity",
+    "AI Assistant",
+    "Integrations",
+  ];
+
   return (
-    <svg viewBox="0 0 340 180" fill="none" aria-hidden className="h-full w-full">
-      <rect x="108" y="68" width="124" height="48" rx="14" fill="rgba(59,130,246,0.16)" stroke="#60a5fa" strokeWidth="1.5" />
-      <text x="170" y="96" textAnchor="middle" fill="#dbeafe" fontSize="12" fontFamily="system-ui" fontWeight="600">
-        Operating Platform
-      </text>
-      {["Central", "Finance", "People", "Ops", "AI", "Comms"].map((label, index) => {
-        const x = 18 + (index % 3) * 110;
-        const y = index < 3 ? 18 : 136;
-        return (
-          <g key={label}>
-            <rect x={x} y={y} width="84" height="28" rx="8" fill="rgba(255,255,255,0.04)" stroke="#64748b" strokeWidth="1" />
-            <text x={x + 42} y={y + 18} textAnchor="middle" fill="#cbd5e1" fontSize="11" fontFamily="system-ui">
-              {label}
-            </text>
-            <path
-              d={index < 3 ? `M${x + 42} ${y + 28}V68` : `M${x + 42} ${y}V116`}
-              stroke="#3b82f6"
-              strokeWidth="1.1"
-              opacity="0.55"
-            />
-          </g>
-        );
-      })}
-    </svg>
+    <div className="flex h-full flex-col justify-center gap-4 px-1" aria-hidden>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {workspaces.map((label) => (
+          <FlowStep key={label} label={label} tone="neutral" />
+        ))}
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <FlowArrow />
+        <FlowStep label="Unit311 Central · One Operating Platform" tone="hub" />
+      </div>
+    </div>
   );
 }
 
@@ -218,7 +236,7 @@ export default function AboutPageContent() {
         </div>
         <div className="relative overflow-hidden rounded-[28px] border border-sky-400/20 bg-gradient-to-br from-sky-500/10 via-[#0b1220] to-[#070b14] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
           <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-sky-400/20 blur-3xl" />
-          <div className="relative h-40 sm:h-48">
+          <div className="relative min-h-[14rem] sm:min-h-[16rem]">
             <WhyIllustration />
           </div>
         </div>
@@ -228,7 +246,7 @@ export default function AboutPageContent() {
       <section className={`grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14 ${marketingFadeIn}`}>
         <div className="relative order-2 overflow-hidden rounded-[28px] border border-rose-400/20 bg-gradient-to-br from-rose-500/10 via-[#120b12] to-[#070b14] p-6 lg:order-1">
           <div className="pointer-events-none absolute -left-8 bottom-0 h-36 w-36 rounded-full bg-rose-400/15 blur-3xl" />
-          <div className="relative h-44 sm:h-52">
+          <div className="relative min-h-[18rem] sm:min-h-[20rem]">
             <ProblemIllustration />
           </div>
         </div>
@@ -267,7 +285,7 @@ export default function AboutPageContent() {
           </p>
         </div>
         <div className="relative overflow-hidden rounded-[28px] border border-emerald-400/20 bg-gradient-to-br from-emerald-500/10 via-[#0a1412] to-[#070b14] p-6">
-          <div className="relative h-44 sm:h-52">
+          <div className="relative min-h-[20rem] sm:min-h-[22rem]">
             <SolutionIllustration />
           </div>
         </div>
@@ -300,7 +318,7 @@ export default function AboutPageContent() {
       {/* One platform */}
       <section className={`grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-14 ${marketingFadeIn}`}>
         <div className="relative overflow-hidden rounded-[28px] border border-indigo-400/20 bg-gradient-to-br from-indigo-500/10 via-[#0c1020] to-[#070b14] p-6">
-          <div className="relative h-44 sm:h-52">
+          <div className="relative min-h-[16rem] sm:min-h-[18rem]">
             <PlatformIllustration />
           </div>
         </div>
@@ -332,7 +350,8 @@ export default function AboutPageContent() {
             Our philosophy
           </p>
           <blockquote className="mt-5 text-balance text-2xl font-semibold leading-snug tracking-tight text-white sm:text-3xl sm:leading-snug">
-            Software should reduce operational drag, not create another silo.
+            Technology should help organisations move faster, make better decisions and operate as one
+            connected business.
           </blockquote>
           <p className="mx-auto mt-6 max-w-2xl text-[15px] leading-relaxed text-white/60 sm:text-[16px]">
             We build for clarity, practical adoption and real business action—so teams get instant

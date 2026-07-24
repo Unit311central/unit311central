@@ -4,43 +4,21 @@ import { useId, useState, type CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Bot,
-  Boxes,
   Briefcase,
-  Building2,
-  Cloud,
   Cpu,
-  FolderKanban,
-  Gauge,
-  GraduationCap,
-  Handshake,
-  HardDrive,
   LayoutDashboard,
-  Mail,
   MessageSquare,
   Package,
-  PieChart,
   Plug,
   Scale,
-  Target,
-  Truck,
-  Users,
   UsersRound,
-  Video,
   Wallet,
-  Wrench,
 } from "lucide-react";
 import {
   MARKETING_WORKSPACE_COPY,
+  type MarketingCapabilityCopy,
   type MarketingIntegrationCategory,
 } from "@/lib/marketing-workspace-copy";
-
-type Capability = {
-  label: string;
-  detail: string;
-  icon: LucideIcon;
-};
-
-type FeaturedCapabilities = [Capability, Capability, Capability, Capability];
 
 type WorkspaceVisual =
   | "central"
@@ -65,19 +43,17 @@ type WorkspaceShell = {
   icon: LucideIcon;
   visual: WorkspaceVisual;
   accent: WorkspaceAccent;
-  featuredIcons: [LucideIcon, LucideIcon, LucideIcon, LucideIcon];
 };
 
 type Workspace = {
   id: string;
   title: string;
-  subtitle: string;
+  outcome: string;
   description: string;
   icon: LucideIcon;
   visual: WorkspaceVisual;
   accent: WorkspaceAccent;
-  featuredCapabilities: FeaturedCapabilities;
-  capabilities: string[];
+  capabilities: MarketingCapabilityCopy[];
   integrationCategories?: MarketingIntegrationCategory[];
 };
 
@@ -87,70 +63,60 @@ const WORKSPACE_SHELLS: WorkspaceShell[] = [
     icon: LayoutDashboard,
     visual: "central",
     accent: { rgb: "59, 130, 246", label: "blue" },
-    featuredIcons: [Gauge, LayoutDashboard, Handshake, Target],
   },
   {
     id: "ai-executive-assistant",
     icon: Bot,
     visual: "assistant",
     accent: { rgb: "244, 114, 182", label: "pink" },
-    featuredIcons: [MessageSquare, Bot, FolderKanban, Gauge],
   },
   {
     id: "clients-projects",
     icon: Briefcase,
     visual: "clients",
     accent: { rgb: "20, 184, 166", label: "teal" },
-    featuredIcons: [Handshake, Target, FolderKanban, Briefcase],
   },
   {
     id: "financials",
     icon: Wallet,
     visual: "finance",
     accent: { rgb: "16, 185, 129", label: "emerald" },
-    featuredIcons: [Gauge, Wallet, PieChart, Cloud],
   },
   {
     id: "hr-people",
     icon: UsersRound,
     visual: "people",
     accent: { rgb: "168, 85, 247", label: "purple" },
-    featuredIcons: [GraduationCap, Gauge, Users, Handshake],
   },
   {
     id: "technology-engineering",
     icon: Cpu,
     visual: "technology",
     accent: { rgb: "56, 189, 248", label: "sky" },
-    featuredIcons: [Gauge, FolderKanban, HardDrive, Target],
   },
   {
     id: "corporate",
     icon: Scale,
     visual: "corporate",
     accent: { rgb: "148, 163, 184", label: "slate" },
-    featuredIcons: [PieChart, Gauge, Building2, Scale],
   },
   {
     id: "operations",
     icon: Package,
     visual: "operations",
     accent: { rgb: "6, 182, 212", label: "cyan" },
-    featuredIcons: [Boxes, Package, Truck, Wrench],
   },
   {
     id: "business-productivity",
     icon: MessageSquare,
     visual: "productivity",
     accent: { rgb: "99, 102, 241", label: "indigo" },
-    featuredIcons: [Mail, FolderKanban, Video, MessageSquare],
   },
   {
     id: "business-app-integrations",
     icon: Plug,
     visual: "integrations",
     accent: { rgb: "100, 116, 139", label: "blue-grey" },
-    featuredIcons: [FolderKanban, Wallet, Handshake, MessageSquare],
   },
 ];
 
@@ -160,22 +126,14 @@ const WORKSPACES: Workspace[] = MARKETING_WORKSPACE_COPY.map((copy) => {
     throw new Error(`Missing workspace shell for ${copy.id}`);
   }
 
-  const featuredCapabilities: FeaturedCapabilities = [
-    { ...copy.featured[0], icon: shell.featuredIcons[0] },
-    { ...copy.featured[1], icon: shell.featuredIcons[1] },
-    { ...copy.featured[2], icon: shell.featuredIcons[2] },
-    { ...copy.featured[3], icon: shell.featuredIcons[3] },
-  ];
-
   return {
     id: copy.id,
     title: copy.title,
-    subtitle: copy.subtitle,
+    outcome: copy.outcome,
     description: copy.description,
     icon: shell.icon,
     visual: shell.visual,
     accent: shell.accent,
-    featuredCapabilities,
     capabilities: copy.capabilities,
     integrationCategories: copy.integrationCategories,
   };
@@ -432,37 +390,43 @@ function IntegrationLogoGrid({
   categories: MarketingIntegrationCategory[];
 }) {
   return (
-    <div className="mt-4 flex min-h-0 flex-1 flex-col gap-5 overflow-hidden sm:mt-5 sm:gap-6">
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pr-1 sm:space-y-6">
+    <div className="mt-4 flex flex-col gap-6 sm:mt-5 sm:gap-7">
+      <div className="space-y-6 sm:space-y-7">
         {categories.map((category) => (
-          <div key={category.name}>
+          <div
+            key={category.name}
+            className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 sm:px-5 sm:py-5"
+          >
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
               {category.name}
             </p>
-            <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            <ul className="mt-3 flex flex-wrap gap-3">
               {category.tools.map((tool) => (
                 <li
                   key={tool.name}
-                  className="flex min-h-[5.5rem] flex-col items-center justify-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.96] px-3 py-3 shadow-[0_10px_28px_rgba(0,0,0,0.18)]"
+                  className="flex min-w-[6.5rem] flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-white px-3 py-3 shadow-[0_8px_20px_rgba(0,0,0,0.16)]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`/images/integrations/${tool.logo}`}
                     alt=""
-                    className="h-9 w-9 object-contain sm:h-10 sm:w-10"
+                    className="h-8 w-8 object-contain sm:h-9 sm:w-9"
                     loading="lazy"
                   />
-                  <span className="line-clamp-1 text-center text-[12px] font-semibold tracking-tight text-[#0f172a] sm:text-[13px]">
+                  <span className="line-clamp-1 text-center text-[11px] font-semibold text-[#0f172a] sm:text-[12px]">
                     {tool.name}
                   </span>
                 </li>
               ))}
             </ul>
+            <p className="mt-3 text-[13px] leading-relaxed text-white/62 sm:text-[14px]">
+              {category.outcome}
+            </p>
           </div>
         ))}
       </div>
-      <p className="shrink-0 text-center text-[13px] leading-relaxed text-white/50 sm:text-[14px]">
-        Examples of software that can be connected using Unit311 Central Integration Wizards.
+      <p className="text-center text-[13px] leading-relaxed text-white/50 sm:text-[14px]">
+        Examples of software that can be connected using Integration Wizards.
       </p>
     </div>
   );
@@ -472,19 +436,12 @@ function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
   const Icon = workspace.icon;
   const isIntegrations = Boolean(workspace.integrationCategories?.length);
   const visibleCapabilities = workspace.capabilities.slice(0, VISIBLE_CAPABILITY_COUNT);
-  const moreCount = Math.max(0, workspace.capabilities.length - visibleCapabilities.length);
 
   return (
-    <div
-      className={
-        isIntegrations
-          ? "relative min-h-[26rem] sm:min-h-[28rem]"
-          : "relative h-[20rem] sm:h-[21rem] lg:h-[20rem]"
-      }
-    >
+    <div className={isIntegrations ? "relative" : "relative"}>
       {!isIntegrations ? (
         <div
-          className="workspace-panel-atmosphere pointer-events-none absolute inset-y-0 right-0 hidden w-[42%] lg:block"
+          className="workspace-panel-atmosphere pointer-events-none absolute inset-y-0 right-0 hidden w-[38%] lg:block"
           aria-hidden
         >
           <PanelAtmosphere visual={workspace.visual} />
@@ -494,57 +451,52 @@ function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
       <div
         className={
           isIntegrations
-            ? "relative z-[1] flex h-full min-h-0 flex-col overflow-hidden"
-            : "relative z-[1] flex h-full min-h-0 flex-col overflow-hidden lg:max-w-[62%] xl:max-w-[58%]"
+            ? "relative z-[1] flex flex-col"
+            : "relative z-[1] flex flex-col lg:max-w-[66%] xl:max-w-[62%]"
         }
       >
-        <div className="flex shrink-0 items-start gap-3.5 sm:gap-5">
+        <div className="flex items-start gap-3.5 sm:gap-5">
           <span className="workspace-hero-icon shrink-0">
             <Icon className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" strokeWidth={1.45} aria-hidden />
           </span>
-          <div className="min-w-0 overflow-hidden pt-0.5 sm:pt-1">
-            <h3 className="truncate text-[1.35rem] font-semibold tracking-[-0.035em] text-white sm:text-[1.65rem] lg:text-[2rem]">
+          <div className="min-w-0 pt-0.5 sm:pt-1">
+            <h3 className="text-[1.35rem] font-semibold tracking-[-0.035em] text-white sm:text-[1.65rem] lg:text-[2rem]">
               {workspace.title}
             </h3>
-            {isIntegrations ? (
-              <p className="mt-3 max-w-none text-[14px] leading-relaxed text-white/68 sm:mt-4 sm:text-[15px] lg:whitespace-nowrap lg:text-[15px] xl:max-w-none xl:text-[16px]">
-                {workspace.description}
-              </p>
-            ) : (
-              <p className="workspace-panel-kicker mt-2 line-clamp-2 text-[14px] font-medium leading-snug tracking-[0.01em] sm:mt-2.5 sm:text-[15px]">
-                {workspace.subtitle}
-              </p>
-            )}
+            <p
+              className={
+                isIntegrations
+                  ? "mt-3 text-[14px] leading-relaxed text-white/68 sm:mt-3.5 sm:text-[15px] lg:whitespace-nowrap lg:text-[15px] xl:text-[16px]"
+                  : "workspace-panel-kicker mt-2 text-[14px] font-medium leading-snug sm:mt-2.5 sm:text-[15px]"
+              }
+            >
+              {isIntegrations ? workspace.description : workspace.outcome}
+            </p>
           </div>
         </div>
 
         {isIntegrations && workspace.integrationCategories ? (
           <IntegrationLogoGrid categories={workspace.integrationCategories} />
         ) : (
-          <section className="mt-5 flex min-h-0 flex-1 flex-col overflow-hidden sm:mt-6">
-            <h4 className="workspace-panel-section-label shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em]">
+          <section className="mt-5 sm:mt-6">
+            <h4 className="workspace-panel-section-label text-[11px] font-semibold uppercase tracking-[0.14em]">
               Key capabilities
             </h4>
-            <ul className="mt-3 grid grid-cols-1 gap-2 sm:mt-4 sm:grid-cols-2 sm:gap-2.5">
-              {visibleCapabilities.map((label) => (
+            <ul className="mt-3 grid grid-cols-1 gap-2.5 sm:mt-4 sm:grid-cols-2 sm:gap-3">
+              {visibleCapabilities.map((capability) => (
                 <li
-                  key={label}
-                  className="flex min-h-0 items-center gap-2.5 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+                  key={capability.label}
+                  className="min-h-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3"
                 >
-                  <span
-                    aria-hidden
-                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-[rgb(var(--ws-accent-rgb))]"
-                    style={{ background: `rgb(${workspace.accent.rgb})` }}
-                  />
-                  <span className="line-clamp-1 text-[13px] font-medium text-white/85 sm:text-[14px]">
-                    {label}
-                  </span>
+                  <p className="text-[13px] font-semibold leading-snug text-white/92 sm:text-[14px]">
+                    {capability.label}
+                  </p>
+                  <p className="mt-1.5 text-[12px] leading-relaxed text-white/55 sm:text-[13px]">
+                    {capability.detail}
+                  </p>
                 </li>
               ))}
             </ul>
-            <p className="mt-3 shrink-0 text-[12px] font-medium text-white/45 sm:text-[13px]">
-              {moreCount > 0 ? `+${moreCount} more` : "\u00a0"}
-            </p>
           </section>
         )}
       </div>
@@ -633,7 +585,7 @@ function WorkspaceTile({
             {workspace.title}
           </span>
           <span className="line-clamp-2 text-[11px] font-medium leading-snug text-white/40 sm:text-[12px] xl:text-[11px]">
-            {workspace.subtitle}
+            {workspace.outcome}
           </span>
         </span>
       </span>
