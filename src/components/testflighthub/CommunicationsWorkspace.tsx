@@ -28,6 +28,7 @@ import {
   Sparkles,
   Users,
   Video,
+  Zap,
 } from "lucide-react";
 
 type CommunicationsWorkspaceProps = {
@@ -89,8 +90,11 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
     mode: "voice" | "video";
   } | null>(callParam ? { sessionId: callParam, mode: modeParam } : null);
   const [meetingLink, setMeetingLink] = useState<string | null>(null);
+  const [guestLink, setGuestLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [scheduledCalls, setScheduledCalls] = useState<ScheduledCall[]>([]);
   const [busy, setBusy] = useState(false);
+  const [creatingInstant, setCreatingInstant] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [directoryQuery, setDirectoryQuery] = useState("");
   const [showSchedule, setShowSchedule] = useState(scheduleParam);
@@ -208,13 +212,18 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
           hostOperatorName: hostOperator.fullName,
         }),
       });
-      const data = await readApiJson<{ callLink?: string; error?: string }>(response);
+      const data = await readApiJson<{
+        callLink?: string;
+        guestLink?: string | null;
+        error?: string;
+      }>(response);
       if (!response.ok || !data.callLink) {
         throw new Error(data.error ?? "Failed to create call room");
       }
       const match = data.callLink.match(/\/meet\/(voice|video)\/([^/?#]+)/i);
       if (!match?.[1] || !match[2]) throw new Error("Invalid call link returned");
       setMeetingLink(data.callLink);
+      setGuestLink(data.guestLink ?? null);
       setActiveSession({
         sessionId: match[2],
         mode: match[1] === "voice" ? "voice" : "video",
@@ -224,6 +233,57 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
     } finally {
       setBusy(false);
     }
+  }
+
+  async function createInstantMeeting(type: "voice" | "video" = "video") {
+    if (!hostOperator) {
+      setError("Select your identity before creating an Instant Meeting.");
+      return;
+    }
+    setCreatingInstant(true);
+    setError(null);
+    setLinkCopied(false);
+    try {
+      const response = await fetch("/api/messaging/calls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          callType: type,
+          instantMeeting: true,
+          hostOperatorId: hostOperator.id,
+          hostOperatorName: hostOperator.fullName,
+        }),
+      });
+      const data = await readApiJson<{
+        callLink?: string;
+        guestLink?: string | null;
+        error?: string;
+      }>(response);
+      if (!response.ok || !data.callLink || !data.guestLink) {
+        throw new Error(data.error ?? "Failed to create Instant Meeting");
+      }
+      const match = data.callLink.match(/\/meet\/(voice|video)\/([^/?#]+)/i);
+      if (!match?.[1] || !match[2]) throw new Error("Invalid meeting link returned");
+      setMeetingLink(data.callLink);
+      setGuestLink(data.guestLink);
+      setActiveSession({
+        sessionId: match[2],
+        mode: match[1] === "voice" ? "voice" : "video",
+      });
+    } catch (createError) {
+      setError(
+        createError instanceof Error ? createError.message : "Failed to create Instant Meeting",
+      );
+    } finally {
+      setCreatingInstant(false);
+    }
+  }
+
+  async function copyGuestLink() {
+    if (!guestLink) return;
+    await navigator.clipboard.writeText(guestLink);
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 2000);
   }
 
   async function handleSchedule(event: React.FormEvent) {
@@ -304,6 +364,19 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
             Messaging.
           </p>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={creatingInstant || busy || !hostOperator}
+              onClick={() => void createInstantMeeting("video")}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#2563eb] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#1d4ed8] disabled:opacity-50"
+            >
+              {creatingInstant ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              Create Instant Meeting
+            </button>
             <button
               type="button"
               disabled={busy || !hostOperator}
@@ -489,7 +562,26 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
               <Link2 className="h-4 w-4 text-sky-300" />
               <h2 className="text-sm font-semibold text-white">Meeting link</h2>
             </div>
-            {meetingLink ? (
+            {guestLink ? (
+              <div className="mt-3 space-y-2">
+                <p className="text-[11px] text-emerald-200/90">
+                  Share this Instant Meeting link — guests join with no login.
+                </p>
+                <p className="break-all rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-50">
+                  {guestLink}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void copyGuestLink()}
+                  className="inline-flex h-9 w-full items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-500/15 text-sm font-semibold text-emerald-50 hover:bg-emerald-500/25"
+                >
+                  {linkCopied ? "Copied" : "Copy guest link"}
+                </button>
+                {meetingLink ? (
+                  <p className="break-all text-[10px] text-white/35">Host room: {meetingLink}</p>
+                ) : null}
+              </div>
+            ) : meetingLink ? (
               <div className="mt-3 space-y-2">
                 <p className="break-all rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-sky-100">
                   {meetingLink}
@@ -504,7 +596,7 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
               </div>
             ) : (
               <p className="mt-2 text-xs text-white/40">
-                A shareable link appears when you start or schedule a meeting.
+                Create Instant Meeting to get a unique guest link for voice, video, and screen share.
               </p>
             )}
           </section>

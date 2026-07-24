@@ -13,7 +13,13 @@ type MessagingCallRoomProps = {
   expectedMode: "voice" | "video";
   /** When true, fills a parent panel instead of owning the full viewport. */
   embedded?: boolean;
+  /** Guest token for external join without login (from ?guest=). */
+  guestToken?: string | null;
 };
+
+function guestHeaders(guestToken?: string | null): HeadersInit {
+  return guestToken ? { "x-call-guest-token": guestToken } : {};
+}
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -45,13 +51,17 @@ export default function MessagingCallRoom({
   sessionId,
   expectedMode,
   embedded = false,
+  guestToken = null,
 }: MessagingCallRoomProps) {
+  const isExternalGuest = Boolean(guestToken);
+
   const [payload, setPayload] = useState<MessagingCallSessionPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
   const [leftCall, setLeftCall] = useState(false);
+  const [guestName, setGuestName] = useState("");
   const [videoEnabled, setVideoEnabled] = useState(expectedMode === "video");
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [sharingScreen, setSharingScreen] = useState(false);
@@ -73,12 +83,19 @@ export default function MessagingCallRoom({
   const signalingBasePath = "/api/messaging/calls";
 
   const loadSession = useCallback(async () => {
-    const response = await fetch(`${signalingBasePath}/${sessionId}`, { cache: "no-store" });
+    const params = new URLSearchParams();
+    if (guestToken) params.set("guest", guestToken);
+    if (guestName.trim()) params.set("name", guestName.trim());
+    const query = params.toString();
+    const response = await fetch(
+      `${signalingBasePath}/${sessionId}${query ? `?${query}` : ""}`,
+      { cache: "no-store", headers: guestHeaders(guestToken) },
+    );
     const data = await readApiJson<MessagingCallSessionPayload & { error?: string }>(response);
     if (!response.ok) throw new Error(data.error ?? "Call not found");
     setPayload(data);
     return data;
-  }, [sessionId]);
+  }, [guestName, guestToken, sessionId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,6 +196,7 @@ export default function MessagingCallRoom({
     localStream,
     signalingBasePath,
     receiveVideo: !isVoice,
+    guestToken,
   });
 
   useEffect(() => {
@@ -263,13 +281,24 @@ export default function MessagingCallRoom({
   useEffect(() => () => stopMedia(), [stopMedia]);
 
   async function handleJoin() {
+    if (isExternalGuest && !guestName.trim()) {
+      setError("Enter your name before joining.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const response = await fetch(`${signalingBasePath}/${sessionId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "join" }),
+        headers: {
+          "Content-Type": "application/json",
+          ...guestHeaders(guestToken),
+        },
+        body: JSON.stringify({
+          action: "join",
+          guestToken: guestToken || undefined,
+          displayName: isExternalGuest ? guestName.trim() : undefined,
+        }),
       });
       const data = await readApiJson<MessagingCallSessionPayload & { error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to join call");
@@ -295,8 +324,14 @@ export default function MessagingCallRoom({
     try {
       await fetch(`${signalingBasePath}/${sessionId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "leave" }),
+        headers: {
+          "Content-Type": "application/json",
+          ...guestHeaders(guestToken),
+        },
+        body: JSON.stringify({
+          action: "leave",
+          guestToken: guestToken || undefined,
+        }),
       });
       setLeftCall(true);
       setJoined(false);
@@ -311,7 +346,7 @@ export default function MessagingCallRoom({
   async function handleShareFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file || !payload) return;
+    if (!file || !payload || isExternalGuest) return;
 
     setSharingFile(true);
     setFileStatus(null);
@@ -417,7 +452,9 @@ export default function MessagingCallRoom({
           <h1 className="text-lg font-semibold text-white">Unable to open call</h1>
           <p className="mt-2 text-sm text-white/55">{error}</p>
           <p className="mt-4 text-xs text-white/40">
-            Sign in to Unit311 Central, then open the Join call link from Communications.
+            {isExternalGuest
+              ? "Ask the host to send you a fresh Instant Meeting link from Communications."
+              : "Sign in to Unit311 Central, then open the Join call link from Communications."}
           </p>
         </div>
       </section>
@@ -493,23 +530,47 @@ export default function MessagingCallRoom({
 
       <footer className="flex flex-wrap items-center justify-center gap-3 border-t border-white/10 px-5 py-5">
         {!joined ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void handleJoin()}
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#2563eb] px-5 text-sm font-semibold text-white disabled:opacity-50"
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : isVoice ? <Mic className="h-4 w-4" /> : <Video className="h-4 w-4" />}
-            Join {isVoice ? "voice" : "video"} call
-          </button>
+          <div className="flex w-full max-w-md flex-col items-center gap-3">
+            {isExternalGuest ? (
+              <input
+                value={guestName}
+                onChange={(event) => setGuestName(event.target.value)}
+                placeholder="Your name"
+                className="w-full rounded-xl border border-white/15 bg-[#0b1524] px-4 py-3 text-sm text-white outline-none focus:border-sky-400/50"
+              />
+            ) : null}
+            <button
+              type="button"
+              disabled={busy || (isExternalGuest && !guestName.trim())}
+              onClick={() => void handleJoin()}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-5 text-sm font-semibold text-white disabled:opacity-50 sm:w-auto"
+            >
+              {busy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isVoice ? (
+                <Mic className="h-4 w-4" />
+              ) : (
+                <Video className="h-4 w-4" />
+              )}
+              Join {isVoice ? "voice" : "video"} call
+              {isExternalGuest ? " as guest" : ""}
+            </button>
+            {isExternalGuest ? (
+              <p className="text-center text-xs text-white/45">
+                No Unit311 account needed. Voice, video, and screen share work in this browser.
+              </p>
+            ) : null}
+          </div>
         ) : (
           <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(event) => void handleShareFile(event)}
-            />
+            {!isExternalGuest ? (
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(event) => void handleShareFile(event)}
+              />
+            ) : null}
             <button
               type="button"
               onClick={toggleAudio}
@@ -544,16 +605,18 @@ export default function MessagingCallRoom({
                 {sharingScreen ? "Stop share" : "Share"}
               </button>
             )}
-            <button
-              type="button"
-              disabled={sharingFile}
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/10 px-4 text-sm text-sky-100 disabled:opacity-50"
-              aria-label="Send file to Messaging"
-            >
-              {sharingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-              File
-            </button>
+            {!isExternalGuest ? (
+              <button
+                type="button"
+                disabled={sharingFile}
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex h-11 items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500/10 px-4 text-sm text-sky-100 disabled:opacity-50"
+                aria-label="Send file to Messaging"
+              >
+                {sharingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                File
+              </button>
+            ) : null}
             <button
               type="button"
               disabled={busy}

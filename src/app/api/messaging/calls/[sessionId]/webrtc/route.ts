@@ -7,8 +7,11 @@ import {
   type WebrtcSenderRole,
   type WebrtcSignalType,
 } from "@/lib/executive-call-webrtc-service";
-import { getMessagingCallSession } from "@/lib/messaging-call-service";
-import { requirePlatformSession } from "@/lib/platform-session";
+import {
+  getMessagingCallSession,
+  getMessagingCallSessionForGuest,
+} from "@/lib/messaging-call-service";
+import { getPlatformSession, requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -27,15 +30,31 @@ const SIGNAL_TYPES = new Set<WebrtcSignalType>([
 
 const ROLES = new Set<WebrtcSenderRole>(["host", "guest"]);
 
+function guestTokenFromRequest(request: NextRequest) {
+  return (
+    request.headers.get("x-call-guest-token")?.trim() ||
+    request.nextUrl.searchParams.get("guest")?.trim() ||
+    null
+  );
+}
+
+async function resolveSessionPayload(request: NextRequest, sessionId: string) {
+  const guestToken = guestTokenFromRequest(request);
+  if (guestToken) {
+    return getMessagingCallSessionForGuest(sessionId, guestToken);
+  }
+  const session = (await getPlatformSession()) ?? (await requirePlatformSession());
+  return getMessagingCallSession(sessionId, session);
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
 
   try {
-    const session = await requirePlatformSession();
     const { sessionId } = await context.params;
-    const payload = await getMessagingCallSession(sessionId, session);
+    const payload = await resolveSessionPayload(request, sessionId);
     if (!payload) {
       return NextResponse.json({ error: "Call not found." }, { status: 404 });
     }
@@ -66,9 +85,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const session = await requirePlatformSession();
     const { sessionId } = await context.params;
-    const payload = await getMessagingCallSession(sessionId, session);
+    const payload = await resolveSessionPayload(request, sessionId);
     if (!payload) {
       return NextResponse.json({ error: "Call not found." }, { status: 404 });
     }

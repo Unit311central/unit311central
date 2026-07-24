@@ -16,6 +16,7 @@ export const metadata = createNoIndexMetadata({
 
 type MeetVideoPageProps = {
   params: Promise<{ sessionId: string }>;
+  searchParams: Promise<{ guest?: string }>;
 };
 
 function NotFoundMeetStub({ sessionId }: { sessionId: string }) {
@@ -35,8 +36,8 @@ function NotFoundMeetStub({ sessionId }: { sessionId: string }) {
         </div>
 
         <p className="mt-5 text-sm leading-relaxed text-white/65">
-          This video link is inactive or unknown. Open a Calendar meeting link, or start a live call from
-          Messaging while signed in.
+          This video link is inactive or unknown. Ask the host for a fresh Instant Meeting link from
+          Communications, or open a Calendar meeting while signed in.
         </p>
 
         <div className="mt-6 rounded-xl border border-dashed border-white/15 bg-black/20 px-4 py-8 text-center">
@@ -58,14 +59,22 @@ function NotFoundMeetStub({ sessionId }: { sessionId: string }) {
   );
 }
 
-export default async function MeetVideoPage({ params }: MeetVideoPageProps) {
+export default async function MeetVideoPage({ params, searchParams }: MeetVideoPageProps) {
   const { sessionId } = await params;
+  const { guest } = await searchParams;
+  const guestToken = guest?.trim() || null;
 
   if (isSupabaseConfigured()) {
     try {
       const room = await getMessagingCallRoom(sessionId);
       if (room && !room.endedAt && room.callType === "video") {
-        return <MessagingCallRoom sessionId={room.sessionId} expectedMode="video" />;
+        return (
+          <MessagingCallRoom
+            sessionId={room.sessionId}
+            expectedMode="video"
+            guestToken={guestToken}
+          />
+        );
       }
     } catch {
       // Continue resolving calendar / unknown sessions.

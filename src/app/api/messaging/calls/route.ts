@@ -32,33 +32,47 @@ export async function POST(request: NextRequest) {
       channelRoom?: string;
       hostOperatorId?: string;
       hostOperatorName?: string;
+      instantMeeting?: boolean;
+      allowGuestJoin?: boolean;
     };
 
     const callType: MessagingCallType = body.callType === "voice" ? "voice" : "video";
+    const instantMeeting = Boolean(body.instantMeeting || body.allowGuestJoin);
     const sessionId =
       parseMessagingCallSessionId(body.sessionId || "") ||
-      crypto.randomUUID().replace(/-/g, "").slice(0, 10);
+      (instantMeeting
+        ? crypto.randomUUID().replace(/-/g, "")
+        : crypto.randomUUID().replace(/-/g, "").slice(0, 10));
     const hostOperatorId =
       body.hostOperatorId?.trim() || session.sub || session.username;
     const hostOperatorName =
       body.hostOperatorName?.trim() || session.displayName || session.username;
 
-    if (!body.channelRoom?.trim()) {
+    const channelRoom =
+      body.channelRoom?.trim() ||
+      (instantMeeting ? `instant-meeting:${sessionId}` : "");
+
+    if (!channelRoom) {
       return NextResponse.json({ error: "channelRoom is required." }, { status: 400 });
     }
 
     const room = await createMessagingCallRoom({
       sessionId,
       workspaceId: workspace.id,
-      channelRoom: body.channelRoom.trim(),
+      channelRoom,
       callType,
       hostOperatorId,
       hostOperatorName,
+      allowGuestJoin: instantMeeting,
     });
 
     const callLink = `${CENTRAL_SITE_URL}/meet/${callType}/${room.sessionId}`;
+    const guestLink =
+      room.allowGuestJoin && room.guestToken
+        ? `${callLink}?guest=${encodeURIComponent(room.guestToken)}`
+        : null;
 
-    return NextResponse.json({ room, callLink });
+    return NextResponse.json({ room, callLink, guestLink, instantMeeting });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create call room";
     return NextResponse.json({ error: message }, { status: authErrorStatus(message) });

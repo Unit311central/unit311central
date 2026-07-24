@@ -14,16 +14,25 @@ export const metadata = createNoIndexMetadata({
 
 type MeetVoicePageProps = {
   params: Promise<{ sessionId: string }>;
+  searchParams: Promise<{ guest?: string }>;
 };
 
-export default async function MeetVoicePage({ params }: MeetVoicePageProps) {
+export default async function MeetVoicePage({ params, searchParams }: MeetVoicePageProps) {
   const { sessionId } = await params;
+  const { guest } = await searchParams;
+  const guestToken = guest?.trim() || null;
 
   if (isSupabaseConfigured()) {
     try {
       const room = await getMessagingCallRoom(sessionId);
       if (room && !room.endedAt && room.callType === "voice") {
-        return <MessagingCallRoom sessionId={room.sessionId} expectedMode="voice" />;
+        return (
+          <MessagingCallRoom
+            sessionId={room.sessionId}
+            expectedMode="voice"
+            guestToken={guestToken}
+          />
+        );
       }
     } catch {
       // Fall through to not-found UI if lookup fails.
@@ -45,8 +54,8 @@ export default async function MeetVoicePage({ params }: MeetVoicePageProps) {
           </div>
         </div>
         <p className="mt-5 text-sm leading-relaxed text-white/65">
-          This voice link is inactive or has ended. Start a new call from Messaging, then open the Join
-          call link while signed in.
+          This voice link is inactive or has ended. Ask the host for a fresh Instant Meeting link from
+          Communications.
         </p>
         <p className="mt-6 text-center text-xs text-white/40">
           Session ID: {sessionId}

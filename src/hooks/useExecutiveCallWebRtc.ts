@@ -19,6 +19,8 @@ type UseExecutiveCallWebRtcOptions = {
   /** Defaults to executive call signaling. Messaging uses `/api/messaging/calls`. */
   signalingBasePath?: string;
   receiveVideo?: boolean;
+  /** External guest meeting token (no login). Sent as x-call-guest-token. */
+  guestToken?: string | null;
 };
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -30,16 +32,21 @@ async function readJson<T>(response: Response): Promise<T> {
   }
 }
 
+function guestHeaders(guestToken?: string | null): HeadersInit {
+  return guestToken ? { "x-call-guest-token": guestToken } : {};
+}
+
 async function postSignal(
   signalingBasePath: string,
   slug: string,
   senderRole: WebrtcSenderRole,
   signalType: WebrtcSignal["signalType"],
   payload: Record<string, unknown> = {},
+  guestToken?: string | null,
 ) {
   const response = await fetch(`${signalingBasePath}/${slug}/webrtc`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...guestHeaders(guestToken) },
     body: JSON.stringify({ senderRole, signalType, payload }),
   });
   const data = await readJson<{ error?: string }>(response);
@@ -53,6 +60,7 @@ export function useExecutiveCallWebRtc({
   localStream,
   signalingBasePath = "/api/executivecall",
   receiveVideo = true,
+  guestToken = null,
 }: UseExecutiveCallWebRtcOptions) {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [connectionState, setConnectionState] = useState<RTCPeerConnectionState>("new");
@@ -69,6 +77,7 @@ export function useExecutiveCallWebRtc({
   const postedReadyRef = useRef(false);
   const signalingBasePathRef = useRef(signalingBasePath);
   const receiveVideoRef = useRef(receiveVideo);
+  const guestTokenRef = useRef(guestToken);
 
   useEffect(() => {
     localStreamRef.current = localStream;
@@ -81,6 +90,10 @@ export function useExecutiveCallWebRtc({
   useEffect(() => {
     receiveVideoRef.current = receiveVideo;
   }, [receiveVideo]);
+
+  useEffect(() => {
+    guestTokenRef.current = guestToken;
+  }, [guestToken]);
 
   useEffect(() => {
     if (!enabled || !localStream) {
@@ -126,9 +139,14 @@ export function useExecutiveCallWebRtc({
 
       pc.onicecandidate = (event) => {
         if (!event.candidate || cancelled) return;
-        void postSignal(basePath, slug, role, "ice-candidate", {
-          candidate: event.candidate.toJSON(),
-        }).catch(() => undefined);
+        void postSignal(
+          basePath,
+          slug,
+          role,
+          "ice-candidate",
+          { candidate: event.candidate.toJSON() },
+          guestTokenRef.current,
+        ).catch(() => undefined);
       };
 
       pc.onconnectionstatechange = () => {
@@ -151,12 +169,19 @@ export function useExecutiveCallWebRtc({
           offerToReceiveVideo: receiveVideoRef.current,
         });
         await pc.setLocalDescription(offer);
-        await postSignal(basePath, slug, role, "offer", {
-          sdp: pc.localDescription?.toJSON?.() ?? {
-            type: offer.type,
-            sdp: offer.sdp,
+        await postSignal(
+          basePath,
+          slug,
+          role,
+          "offer",
+          {
+            sdp: pc.localDescription?.toJSON?.() ?? {
+              type: offer.type,
+              sdp: offer.sdp,
+            },
           },
-        });
+          guestTokenRef.current,
+        );
       } finally {
         makingOfferRef.current = false;
       }
@@ -190,12 +215,19 @@ export function useExecutiveCallWebRtc({
         hasRemoteDescriptionRef.current = true;
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        await postSignal(basePath, slug, role, "answer", {
-          sdp: pc.localDescription?.toJSON?.() ?? {
-            type: answer.type,
-            sdp: answer.sdp,
+        await postSignal(
+          basePath,
+          slug,
+          role,
+          "answer",
+          {
+            sdp: pc.localDescription?.toJSON?.() ?? {
+              type: answer.type,
+              sdp: answer.sdp,
+            },
           },
-        });
+          guestTokenRef.current,
+        );
         return;
       }
 
@@ -229,6 +261,7 @@ export function useExecutiveCallWebRtc({
         params.set("excludeRole", role);
         const response = await fetch(`${basePath}/${slug}/webrtc?${params.toString()}`, {
           cache: "no-store",
+          headers: guestHeaders(guestTokenRef.current),
         });
         const data = await readJson<{ signals?: WebrtcSignal[]; error?: string }>(response);
         if (!response.ok) throw new Error(data.error ?? "Failed to poll WebRTC signals");
@@ -253,7 +286,7 @@ export function useExecutiveCallWebRtc({
 
         if (!postedReadyRef.current) {
           postedReadyRef.current = true;
-          await postSignal(basePath, slug, role, "ready", {});
+          await postSignal(basePath, slug, role, "ready", {}, guestTokenRef.current);
           if (role === "guest") {
             guestReadyRef.current = true;
           }
@@ -269,7 +302,9 @@ export function useExecutiveCallWebRtc({
 
     const readyNudge = window.setInterval(() => {
       if (cancelled || hasRemoteStreamRef.current || hasRemoteDescriptionRef.current) return;
-      void postSignal(basePath, slug, role, "ready", {}).catch(() => undefined);
+      void postSignal(basePath, slug, role, "ready", {}, guestTokenRef.current).catch(
+        () => undefined,
+      );
       if (role === "host") {
         guestReadyRef.current = true;
         void createOfferIfNeeded().catch(() => undefined);
@@ -280,7 +315,9 @@ export function useExecutiveCallWebRtc({
       cancelled = true;
       window.clearInterval(readyNudge);
       if (pollTimer) window.clearTimeout(pollTimer);
-      void postSignal(basePath, slug, role, "hangup", {}).catch(() => undefined);
+      void postSignal(basePath, slug, role, "hangup", {}, guestTokenRef.current).catch(
+        () => undefined,
+      );
       pcRef.current?.close();
       pcRef.current = null;
       makingOfferRef.current = false;
@@ -293,7 +330,7 @@ export function useExecutiveCallWebRtc({
       setRemoteStream(null);
       setConnectionState("closed");
     };
-  }, [enabled, localStream, role, slug, signalingBasePath, receiveVideo]);
+  }, [enabled, localStream, role, slug, signalingBasePath, receiveVideo, guestToken]);
 
   // Keep senders in sync if local tracks are replaced while connected.
   useEffect(() => {
