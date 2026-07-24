@@ -1,13 +1,10 @@
 import type { AssistantFollowUpAction } from "./tool-result";
 
 /**
- * Legacy safe action catalogue — definitions + confirmation gate.
- *
- * Phase 1 Action Framework (`./actions`) is the path forward for real writes:
- * register handlers with `registerAssistantAction`, propose via
- * `proposeBusinessActionPlan`, confirm in UI, execute via `/api/.../actions/plans/[id]`.
- *
- * These catalogue kinds remain for older follow-up buttons until modules migrate.
+ * Legacy catalogue types retained only for stale follow-up action ids in old messages.
+ * There is no executable path here — writes go through Action Framework plans only:
+ * proposeBusinessActionPlan → Plan Viewer → POST /api/executive-assistant/actions/plans/{id}
+ * → executeActionPlan().
  */
 
 export type AssistantPendingActionKind =
@@ -65,6 +62,7 @@ export const ASSISTANT_ACTION_DEFINITIONS: Array<{
   },
 ];
 
+/** @deprecated Do not use — retained for type compatibility with old transcripts. */
 export function proposeAction(
   kind: AssistantPendingActionKind,
   payload: Record<string, unknown> = {},
@@ -81,6 +79,7 @@ export function proposeAction(
   };
 }
 
+/** @deprecated Do not emit confirm_action follow-ups for catalogue kinds. */
 export function actionFollowUps(
   kinds: AssistantPendingActionKind[],
 ): AssistantFollowUpAction[] {
@@ -89,34 +88,19 @@ export function actionFollowUps(
     return {
       id: `follow_${kind}`,
       label: definition?.label ?? kind,
-      kind: "confirm_action",
-      actionId: kind,
-      requiresConfirmation: true,
+      kind: "navigate" as const,
+      href: "/?view=clients",
+      requiresConfirmation: false,
     };
   });
 }
 
 /**
- * Legacy catalogue execution remains blocked.
- * Real writes must go through Action Framework plans (`./actions`).
+ * Removed. Any call is a hard error — there is no alternate write path.
  */
-export async function executeConfirmedAction(_action: AssistantPendingAction) {
-  try {
-    const { recordQualityEvent } = await import("./feedback-service");
-    void recordQualityEvent({
-      kind: "confirmation_blocked",
-      meta: {
-        actionKind: _action.kind,
-        status: "blocked",
-        hint: "Use Action Framework registerAssistantAction + proposeBusinessActionPlan",
-      },
-    });
-  } catch {
-    // optional
-  }
-  return {
-    status: "blocked" as const,
-    message:
-      "This legacy action catalogue entry is not executable. Domain modules must register Action Framework handlers (validate/preview/execute/rollback) and run through the confirmation pipeline.",
-  };
+export async function executeConfirmedAction(_action: AssistantPendingAction): Promise<never> {
+  void _action;
+  throw new Error(
+    "executeConfirmedAction was removed. Executable actions must use Plan Viewer → POST /api/executive-assistant/actions/plans/{id} → executeActionPlan().",
+  );
 }

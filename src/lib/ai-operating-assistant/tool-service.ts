@@ -642,7 +642,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "proposeBusinessActionPlan",
     description:
-      "Build a multi-step Action Framework plan with permission checks and previews. Does NOT execute writes. Returns a planId for the confirmation UI. After the user Approves, the client calls the execute API. Use registered actionIds from listBusinessActions — e.g. clients.createClient with { companyName }, clients.updateClient with { clientName, phone }, clients.assignAccountManager with { clientName, accountManagerName }, clients.archiveClient, clients.restoreClient, clients.mergeDuplicateClients with { sourceClientName, targetClientName }. Prefer planBusinessGoal for open-ended business goals that may need many coordinated actions.",
+      "Build a multi-step Action Framework plan with permission checks and previews. Does NOT execute writes. Returns a planId for the Plan Viewer. After the user Approves, the client calls POST /api/executive-assistant/actions/plans/{id} → executeActionPlan. Use registered actionIds from listBusinessActions.",
     parameters: {
       type: "object",
       properties: {
@@ -668,7 +668,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "planBusinessGoal",
     description:
-      "Planning Engine: turn a natural-language business GOAL into a coordinated execution graph of registered actions (dependencies, parallel groups, conditions, retries). Use for goals like “open a new office”, “onboard a new customer”, “hire a software engineer”, or any multi-action objective. Discovers actions from the registry — do not hardcode workflows. Returns a goalId + Plan Viewer model. Wait for user Approve before execution.",
+      "Turn a natural-language business GOAL into registered Action Framework steps, then return a planId for the Plan Viewer. Does NOT execute. After Approve, the UI calls POST /api/executive-assistant/actions/plans/{id} → executeActionPlan only.",
     parameters: {
       type: "object",
       properties: {

@@ -20,7 +20,6 @@ import {
   startWorkflowGuide,
 } from "@/lib/ai-operating-assistant/proactive-client";
 import type { AiExplanation } from "@/lib/ai-operating-assistant/explainability";
-import { type AssistantPendingActionKind } from "@/lib/ai-operating-assistant/action-service";
 import { PlanViewer } from "@/components/executive-assistant/PlanViewer";
 import { actionConfirmationToPlanViewer } from "@/lib/ai-operating-assistant/actions/planning/summaries";
 import type { PlanViewerModel } from "@/lib/ai-operating-assistant/actions/planning/types";
@@ -185,10 +184,6 @@ export default function ExecutiveAssistantPanel({
   const [messages, setMessages] = useState<AssistantChatMessage[]>([WELCOME]);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [pendingConfirm, setPendingConfirm] = useState<{
-    kind: AssistantPendingActionKind;
-    label: string;
-  } | null>(null);
   const [planViewer, setPlanViewer] = useState<PlanViewerModel | null>(null);
   /** Keep raw confirmation (with step inputs) for approve-time plan rehydration. */
   const [actionConfirmation, setActionConfirmation] = useState<ActionConfirmationView | null>(
@@ -489,47 +484,30 @@ export default function ExecutiveAssistantPanel({
     }
 
     if (action.kind === "confirm_action" && action.actionId) {
-      if (action.actionId.startsWith("goal_")) {
-        void (async () => {
-          try {
-            const response = await fetch(
-              `/api/executive-assistant/planning/goals/${action.actionId}`,
-              { cache: "no-store" },
-            );
-            if (!response.ok) throw new Error("Could not load goal plan");
-            const data = (await response.json()) as { viewer?: PlanViewerModel };
-            if (data.viewer) setPlanViewer(data.viewer);
-          } catch (error) {
-            showNotice(error instanceof Error ? error.message : "Could not load goal plan");
-          }
-        })();
+      // Single path only: load Action Framework plan into Plan Viewer.
+      // Never open a second Confirm UI; never call executeConfirmedAction.
+      if (!action.actionId.startsWith("plan_")) {
+        showNotice("Open the Plan Viewer and Approve to execute this action.");
         return;
       }
-      if (action.actionId.startsWith("plan_")) {
-        void (async () => {
-          try {
-            const response = await fetch(
-              `/api/executive-assistant/actions/plans/${action.actionId}`,
-              { cache: "no-store" },
-            );
-            if (!response.ok) throw new Error("Could not load action plan");
-            const data = (await response.json()) as {
-              confirmation?: ActionConfirmationView;
-            };
-            if (data.confirmation) {
-              setActionConfirmation(data.confirmation);
-              setPlanViewer(actionConfirmationToPlanViewer(data.confirmation));
-            }
-          } catch (error) {
-            showNotice(error instanceof Error ? error.message : "Could not load plan");
+      void (async () => {
+        try {
+          const response = await fetch(
+            `/api/executive-assistant/actions/plans/${action.actionId}`,
+            { cache: "no-store" },
+          );
+          if (!response.ok) throw new Error("Could not load action plan");
+          const data = (await response.json()) as {
+            confirmation?: ActionConfirmationView;
+          };
+          if (data.confirmation) {
+            setActionConfirmation(data.confirmation);
+            setPlanViewer(actionConfirmationToPlanViewer(data.confirmation));
           }
-        })();
-        return;
-      }
-      setPendingConfirm({
-        kind: action.actionId as AssistantPendingActionKind,
-        label: action.label,
-      });
+        } catch (error) {
+          showNotice(error instanceof Error ? error.message : "Could not load plan");
+        }
+      })();
       return;
     }
 
@@ -629,15 +607,13 @@ export default function ExecutiveAssistantPanel({
             }
             if (event.name === "planBusinessGoal" && event.result) {
               const result = event.result as {
-                items?: Array<{ viewer?: PlanViewerModel }>;
-                summary?: { requiresConfirmation?: boolean };
+                items?: Array<{ confirmation?: ActionConfirmationView }>;
               };
-              const viewer = result.items?.[0]?.viewer;
-              if (viewer) {
-                // Keep actionConfirmation null for goal plans, but viewer.steps must
-                // carry input (see toPlanViewerModel) so Approve does not send {}.
-                setActionConfirmation(null);
-                setPlanViewer(viewer);
+              // Same Plan Viewer path as proposeBusinessActionPlan (Action Framework plan id).
+              const confirmation = result.items?.[0]?.confirmation;
+              if (confirmation) {
+                setActionConfirmation(confirmation);
+                setPlanViewer(actionConfirmationToPlanViewer(confirmation));
               }
             }
           }
@@ -973,11 +949,8 @@ export default function ExecutiveAssistantPanel({
                     planViewer.kind,
                   );
                   try {
-                    const isGoal =
-                      planViewer.kind === "goal_plan" || planViewer.planId.startsWith("goal_");
-                    const url = isGoal
-                      ? `/api/executive-assistant/planning/goals/${planViewer.planId}`
-                      : `/api/executive-assistant/actions/plans/${planViewer.planId}`;
+                    // Single execution path: Action Framework plans API only.
+                    const url = `/api/executive-assistant/actions/plans/${planViewer.planId}`;
                     const response = await fetch(url, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -1099,11 +1072,7 @@ export default function ExecutiveAssistantPanel({
                 void (async () => {
                   setActionConfirmBusy(true);
                   try {
-                    const isGoal =
-                      planViewer.kind === "goal_plan" || planViewer.planId.startsWith("goal_");
-                    const url = isGoal
-                      ? `/api/executive-assistant/planning/goals/${planViewer.planId}`
-                      : `/api/executive-assistant/actions/plans/${planViewer.planId}`;
+                    const url = `/api/executive-assistant/actions/plans/${planViewer.planId}`;
                     await fetch(url, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -1142,47 +1111,6 @@ export default function ExecutiveAssistantPanel({
                 })();
               }}
             />
-          ) : null}
-          {pendingConfirm ? (
-            <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 p-3">
-              <p className="text-xs text-white/80">
-                Confirm: <span className="font-semibold">{pendingConfirm.label}</span>
-              </p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    void (async () => {
-                      // Legacy catalogue Confirm must NEVER call executeConfirmedAction
-                      // (client-side blocked stub). Re-route create-style confirms into chat
-                      // so Action Framework propose → Plan Viewer → Approve runs instead.
-                      const kind = pendingConfirm.kind;
-                      setPendingConfirm(null);
-                      if (kind === "create_client") {
-                        void handleSend(
-                          undefined,
-                          "Create a new client. Use the Action Framework plan and wait for Approve.",
-                        );
-                        return;
-                      }
-                      showNotice(
-                        "This confirmation path is retired. Ask the assistant to propose an Action Plan, then Approve in the Plan Viewer.",
-                      );
-                    })();
-                  }}
-                  className="rounded-lg border border-amber-400/40 bg-amber-500/20 px-2.5 py-1.5 text-[11px] font-semibold text-amber-50"
-                >
-                  Confirm
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPendingConfirm(null)}
-                  className="rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] text-white/60"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
           ) : null}
 
           {!sending && messages.length <= 1 ? (

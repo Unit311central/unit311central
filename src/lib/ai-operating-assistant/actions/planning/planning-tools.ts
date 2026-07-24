@@ -1,12 +1,15 @@
 /**
  * OpenAI-discoverable Planning Engine tools.
- * Additive — does not modify Phase 1 discovery-tools exports.
+ *
+ * Executable writes always materialise a Phase-1 Action Framework plan so the UI
+ * has exactly one approve path: POST /api/executive-assistant/actions/plans/{id}
+ * → executeActionPlan(). Goal graph execution is not exposed to the browser.
  */
 
 import { asString, toolOk, type AssistantToolExecutionContext } from "../../tool-result";
-import { executeGoalPlan } from "./graph-executor";
+import { buildActionPlan, toConfirmationView } from "../execution-pipeline";
 import { planBusinessGoal } from "./planner";
-import { toExecutionSummary, toPlanSummary, toPlanViewerModel } from "./summaries";
+import { toPlanSummary } from "./summaries";
 
 export async function planBusinessGoalTool(
   args: Record<string, unknown>,
@@ -33,41 +36,59 @@ export async function planBusinessGoalTool(
   });
 
   const summary = toPlanSummary(plan);
-  const viewer = toPlanViewerModel(plan);
+
+  // Single execution path: materialise Action Framework plan for Plan Viewer Approve.
+  const { plan: actionPlan, blocked: actionBlocked, blockReason: actionBlockReason } =
+    await buildActionPlan({
+      business: ctx.business,
+      steps: plan.steps.map((step) => ({
+        actionId: step.actionId,
+        input: step.input ?? {},
+        dependsOnStepIds: step.dependsOnStepIds,
+      })),
+      aiRequest: plan.goal,
+      conversationId,
+      title: plan.title,
+    });
+
+  const confirmation = toConfirmationView(actionPlan);
+  const effectivelyBlocked = blocked || actionBlocked;
 
   return toolOk(
     "planBusinessGoal",
     [
       {
         goalId: plan.id,
+        planId: actionPlan.id,
         plan: summary,
-        viewer,
-        blocked,
-        blockReason: blockReason ?? null,
+        confirmation,
+        blocked: effectivelyBlocked,
+        blockReason: blockReason ?? actionBlockReason ?? null,
       },
     ],
     {
-      source: ["assistant:planning-engine"],
+      source: ["assistant:planning-engine", "assistant:action-pipeline"],
       pageSize: 1,
       summary: {
         goalId: plan.id,
-        status: plan.status,
-        stepCount: plan.steps.length,
+        planId: actionPlan.id,
+        status: actionPlan.status,
+        stepCount: actionPlan.steps.length,
         plannerSource: plan.plannerSource,
-        requiresConfirmation: plan.status === "proposed",
-        blocked,
-        message: blocked
-          ? blockReason
-          : "Goal plan ready. Show Plan Viewer and wait for Approve before executeGoalPlan.",
+        requiresConfirmation: actionPlan.status === "proposed",
+        blocked: effectivelyBlocked,
+        message: effectivelyBlocked
+          ? (blockReason ?? actionBlockReason)
+          : "Ready — approve in the Plan Viewer to complete this.",
       },
       followUpActions:
-        plan.status === "proposed"
+        actionPlan.status === "proposed"
           ? [
               {
-                id: `confirm_goal_${plan.id}`,
-                label: "Review goal plan",
+                id: `confirm_plan_${actionPlan.id}`,
+                label: "Review & approve",
                 kind: "confirm_action",
-                actionId: plan.id,
+                actionId: actionPlan.id,
                 requiresConfirmation: true,
               },
             ]
@@ -76,45 +97,21 @@ export async function planBusinessGoalTool(
   );
 }
 
-/** Optional direct execute tool — UI normally calls the HTTP API after Approve. */
-export async function executeGoalPlanTool(
-  args: Record<string, unknown>,
-  ctx: AssistantToolExecutionContext,
-) {
-  const goalId = asString(args.goalId) || asString(args.planId);
-  if (!goalId) {
-    return toolOk("executeGoalPlan", [], {
-      source: ["assistant:planning-engine"],
-      pageSize: 0,
-      summary: { error: "goalId is required" },
-      dataGaps: ["goalId is required"],
-    });
-  }
-  const confirmed = args.confirmed !== false && args.confirmed !== "false";
-  const { plan, summary } = await executeGoalPlan({
-    goalId,
-    business: ctx.business,
-    confirmed,
-  });
-
-  return toolOk(
-    "executeGoalPlan",
-    [
-      {
-        goalId: plan.id,
-        execution: toExecutionSummary(plan),
-        viewer: toPlanViewerModel(plan),
-        summary,
-      },
-    ],
-    {
-      source: ["assistant:planning-engine"],
-      pageSize: 1,
-      summary: {
-        goalId: plan.id,
-        status: plan.status,
-        message: summary,
-      },
+/**
+ * Intentionally not executable from the assistant/LLM.
+ * Browser Approve must call POST /api/executive-assistant/actions/plans/{id}.
+ */
+export async function executeGoalPlanTool() {
+  return toolOk("executeGoalPlan", [], {
+    source: ["assistant:planning-engine"],
+    pageSize: 0,
+    summary: {
+      error:
+        "executeGoalPlan is disabled. Approve executable actions via the Plan Viewer (Action Framework plans API).",
+      blocked: true,
     },
-  );
+    dataGaps: [
+      "Use proposeBusinessActionPlan / Plan Viewer → POST /api/executive-assistant/actions/plans/{id}.",
+    ],
+  });
 }
