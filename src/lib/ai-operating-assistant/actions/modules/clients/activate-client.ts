@@ -106,11 +106,11 @@ export const activateClientAction: AssistantActionDefinition = {
     async execute(input, ctx) {
       const ws = requireWorkspaceScope(ctx.business);
       if (!ws.ok) {
-        return { ok: false, message: ws.validation.errors.join(" "), data: {} };
+        return { ok: false, message: ws.validation.errors.join(" ") };
       }
       const resolved = await resolveClientRef(input, ws.scope);
       if (!resolved.ok) {
-        return { ok: false, message: resolved.errors.join(" "), data: {} };
+        return { ok: false, message: resolved.errors.join(" ") };
       }
       const previous = resolved.client.accountStatus;
       const updated = await updateInternalClient(
@@ -121,26 +121,26 @@ export const activateClientAction: AssistantActionDefinition = {
       return {
         ok: true,
         message: `“${updated.companyName}” is now Active.`,
-        data: {
-          recordId: updated.id,
-          recordLabel: updated.companyName,
-          previousStatus: previous,
-        },
+        recordId: updated.id,
+        recordLabel: updated.companyName,
+        beforeState: { accountStatus: previous },
+        afterState: { accountStatus: updated.accountStatus },
+        output: { clientId: updated.id, companyName: updated.companyName },
       };
     },
 
-    async rollback(input, ctx, prior) {
-      const previousStatus = asTrimmedString(prior?.previousStatus);
+    async rollback(input, ctx) {
+      const previousStatus = asTrimmedString(ctx.executeResult.beforeState?.accountStatus);
       if (!previousStatus) {
-        return { ok: false, message: "No prior status to restore.", data: {} };
+        return { ok: false, message: "No prior status to restore." };
       }
       const ws = requireWorkspaceScope(ctx.business);
       if (!ws.ok) {
-        return { ok: false, message: ws.validation.errors.join(" "), data: {} };
+        return { ok: false, message: ws.validation.errors.join(" ") };
       }
       const resolved = await resolveClientRef(input, ws.scope);
       if (!resolved.ok) {
-        return { ok: false, message: resolved.errors.join(" "), data: {} };
+        return { ok: false, message: resolved.errors.join(" ") };
       }
       const updated = await updateInternalClient(
         resolved.client.id,
@@ -150,7 +150,6 @@ export const activateClientAction: AssistantActionDefinition = {
       return {
         ok: true,
         message: `Restored “${updated.companyName}” to ${updated.accountStatus}.`,
-        data: { recordId: updated.id, recordLabel: updated.companyName },
       };
     },
   },

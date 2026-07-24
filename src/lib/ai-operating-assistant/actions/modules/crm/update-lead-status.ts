@@ -177,42 +177,43 @@ export const updateLeadStatusAction: AssistantActionDefinition = {
     async execute(input, ctx) {
       const status = normalizeStatus(asTrimmedString(input.status));
       if (!status) {
-        return { ok: false, message: "Invalid lead status.", data: {} };
+        return { ok: false, message: "Invalid lead status." };
       }
       const scope = crmScope(ctx.business);
       const resolved = await resolveLead(input, scope);
       if (!resolved.ok) {
-        return { ok: false, message: resolved.errors.join(" "), data: {} };
+        return { ok: false, message: resolved.errors.join(" ") };
       }
       const previous = resolved.lead.status;
       const updated = await updateLead(resolved.lead.id, { status }, scope);
       return {
         ok: true,
         message: `Lead “${updated.companyName}” moved to ${updated.status}.`,
-        data: {
-          recordId: updated.id,
-          recordLabel: updated.companyName,
+        recordId: updated.id,
+        recordLabel: updated.companyName,
+        beforeState: { status: previous },
+        afterState: { status: updated.status },
+        output: {
+          leadId: updated.id,
           fromStatus: previous,
           toStatus: updated.status,
-          previousStatus: previous,
         },
       };
     },
 
-    async rollback(input, ctx, prior) {
-      const previousStatus = asTrimmedString(prior?.previousStatus);
+    async rollback(input, ctx) {
+      const previousStatus = asTrimmedString(ctx.executeResult.beforeState?.status);
       const status = normalizeStatus(previousStatus);
-      if (!status) return { ok: false, message: "No prior status to restore.", data: {} };
+      if (!status) return { ok: false, message: "No prior status to restore." };
       const scope = crmScope(ctx.business);
       const resolved = await resolveLead(input, scope);
       if (!resolved.ok) {
-        return { ok: false, message: resolved.errors.join(" "), data: {} };
+        return { ok: false, message: resolved.errors.join(" ") };
       }
       const updated = await updateLead(resolved.lead.id, { status }, scope);
       return {
         ok: true,
         message: `Lead status restored to ${updated.status}.`,
-        data: { recordId: updated.id, recordLabel: updated.companyName },
       };
     },
   },

@@ -115,7 +115,7 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
       const title = asTrimmedString(input.title);
       const startsAt = parseWhen(asTrimmedString(input.startsAt));
       if (!title || !startsAt) {
-        return { ok: false, message: "Title and start time are required.", data: {} };
+        return { ok: false, message: "Title and start time are required." };
       }
       let endsAt = parseWhen(asTrimmedString(input.endsAt));
       if (!endsAt) {
@@ -136,9 +136,18 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
       return {
         ok: true,
         message: `Scheduled “${event.title}”.`,
-        data: {
-          recordId: event.id,
-          recordLabel: event.title,
+        recordId: event.id,
+        recordLabel: event.title,
+        beforeState: null,
+        afterState: {
+          eventId: event.id,
+          title: event.title,
+          startsAt: event.startsAt,
+          endsAt: event.endsAt,
+        },
+        output: {
+          eventId: event.id,
+          title: event.title,
           startsAt: event.startsAt,
         },
       };
@@ -252,7 +261,7 @@ export const rescheduleMeetingAction: AssistantActionDefinition = {
     async execute(input, ctx) {
       const startsAt = parseWhen(asTrimmedString(input.startsAt));
       if (!startsAt) {
-        return { ok: false, message: "Invalid start time.", data: {} };
+        return { ok: false, message: "Invalid start time." };
       }
       const scope = calendarScope(ctx.business);
       const events = await listCalendarEvents(undefined, undefined, scope);
@@ -264,7 +273,7 @@ export const rescheduleMeetingAction: AssistantActionDefinition = {
           ? events.find((e) => e.title.toLowerCase().includes(title.toLowerCase()))
           : null;
       if (!match) {
-        return { ok: false, message: "Calendar event not found.", data: {} };
+        return { ok: false, message: "Calendar event not found." };
       }
       let endsAt = parseWhen(asTrimmedString(input.endsAt));
       if (!endsAt) {
@@ -282,22 +291,33 @@ export const rescheduleMeetingAction: AssistantActionDefinition = {
       return {
         ok: true,
         message: `Rescheduled “${updated.title}”.`,
-        data: {
-          recordId: updated.id,
-          recordLabel: updated.title,
+        recordId: updated.id,
+        recordLabel: updated.title,
+        beforeState: {
+          startsAt: match.startsAt,
+          endsAt: match.endsAt,
+        },
+        afterState: {
           startsAt: updated.startsAt,
-          previousStartsAt: match.startsAt,
-          previousEndsAt: match.endsAt,
+          endsAt: updated.endsAt,
+        },
+        output: {
+          eventId: updated.id,
+          startsAt: updated.startsAt,
         },
       };
     },
 
-    async rollback(_input, ctx, prior) {
-      const id = asTrimmedString(prior?.recordId);
-      const previousStartsAt = parseWhen(asTrimmedString(prior?.previousStartsAt));
-      const previousEndsAt = parseWhen(asTrimmedString(prior?.previousEndsAt));
+    async rollback(_input, ctx) {
+      const id = asTrimmedString(ctx.executeResult.recordId);
+      const previousStartsAt = parseWhen(
+        asTrimmedString(ctx.executeResult.beforeState?.startsAt),
+      );
+      const previousEndsAt = parseWhen(
+        asTrimmedString(ctx.executeResult.beforeState?.endsAt),
+      );
       if (!id || !previousStartsAt || !previousEndsAt) {
-        return { ok: false, message: "No prior schedule to restore.", data: {} };
+        return { ok: false, message: "No prior schedule to restore." };
       }
       const updated = await updateCalendarEvent(
         id,
@@ -307,7 +327,6 @@ export const rescheduleMeetingAction: AssistantActionDefinition = {
       return {
         ok: true,
         message: `Restored schedule for “${updated.title}”.`,
-        data: { recordId: updated.id, recordLabel: updated.title },
       };
     },
   },

@@ -149,17 +149,23 @@ export const convertLeadToClientAction: AssistantActionDefinition = {
       const scope = crmScope(ctx.business);
       const resolved = await resolveLead(input, scope);
       if (!resolved.ok) {
-        return { ok: false, message: resolved.errors.join(" "), data: {} };
+        return { ok: false, message: resolved.errors.join(" ") };
       }
       const client = await promoteCrmLeadToClient(resolved.lead.id, scope);
       return {
         ok: true,
         message: `“${client.companyName}” is in Client Directory (${client.accountStatus}).`,
-        data: {
-          recordId: client.id,
-          recordLabel: client.companyName,
+        recordId: client.id,
+        recordLabel: client.companyName,
+        beforeState: { leadId: resolved.lead.id, status: resolved.lead.status },
+        afterState: {
+          clientId: client.id,
           accountStatus: client.accountStatus,
+        },
+        output: {
+          clientId: client.id,
           leadId: resolved.lead.id,
+          accountStatus: client.accountStatus,
         },
       };
     },

@@ -19,12 +19,11 @@ async function resolveProject(input: Record<string, unknown>, scope: ProjectsWor
   const projectId = asTrimmedString(input.projectId);
   const projectName = asTrimmedString(input.projectName || input.name);
   if (projectId) {
-    try {
-      const project = await getProject(projectId, scope);
-      return { ok: true as const, project };
-    } catch {
+    const project = await getProject(projectId, scope);
+    if (!project) {
       return { ok: false as const, errors: [`Project id “${projectId}” not found.`] };
     }
+    return { ok: true as const, project };
   }
   if (!projectName) {
     return { ok: false as const, errors: ["Provide a project name or projectId."] };
@@ -147,19 +146,20 @@ export const closeProjectAction: AssistantActionDefinition = {
       const scope = projectsScope(ctx.business);
       const resolved = await resolveProject(input, scope);
       if (!resolved.ok) {
-        return { ok: false, message: resolved.errors.join(" "), data: {} };
+        return { ok: false, message: resolved.errors.join(" ") };
       }
+      const project = resolved.project;
       const today = new Date().toISOString().slice(0, 10);
       const noteExtra = asTrimmedString(input.notes);
-      const notes = [resolved.project.notes, noteExtra, `Closed via EA ${today}`]
+      const notes = [project.notes, noteExtra, `Closed via EA ${today}`]
         .filter(Boolean)
         .join("\n");
       const updated = await updateProject(
-        resolved.project.id,
+        project.id,
         {
           phase: "completed",
           progressPct: 100,
-          endDate: resolved.project.endDate || today,
+          endDate: project.endDate || today,
           notes,
         },
         scope,
@@ -167,44 +167,51 @@ export const closeProjectAction: AssistantActionDefinition = {
       return {
         ok: true,
         message: `Project “${updated.name}” marked completed.`,
-        data: {
-          recordId: updated.id,
-          recordLabel: updated.name,
-          previousPhase: resolved.project.phase,
-          previousProgressPct: resolved.project.progressPct,
-          previousEndDate: resolved.project.endDate,
-          previousNotes: resolved.project.notes,
+        recordId: updated.id,
+        recordLabel: updated.name,
+        beforeState: {
+          phase: project.phase,
+          progressPct: project.progressPct,
+          endDate: project.endDate,
+          notes: project.notes,
         },
+        afterState: {
+          phase: updated.phase,
+          progressPct: updated.progressPct,
+          endDate: updated.endDate,
+          notes: updated.notes,
+        },
+        output: { projectId: updated.id, name: updated.name },
       };
     },
 
-    async rollback(input, ctx, prior) {
+    async rollback(input, ctx) {
+      const before = ctx.executeResult.beforeState || {};
       const scope = projectsScope(ctx.business);
       const resolved = await resolveProject(input, scope);
       if (!resolved.ok) {
-        return { ok: false, message: resolved.errors.join(" "), data: {} };
+        return { ok: false, message: resolved.errors.join(" ") };
       }
-      const previousPhase = asTrimmedString(prior?.previousPhase) || "live";
+      const previousPhase = asTrimmedString(before.phase) || "live";
       const updated = await updateProject(
         resolved.project.id,
         {
           phase: previousPhase as "live" | "upcoming" | "completed",
-          progressPct: Number(prior?.previousProgressPct ?? 0),
+          progressPct: Number(before.progressPct ?? 0),
           endDate:
-            prior?.previousEndDate === undefined
+            before.endDate === undefined
               ? resolved.project.endDate
-              : (prior.previousEndDate as string | null),
+              : (before.endDate as string | null),
           notes:
-            prior?.previousNotes === undefined
+            before.notes === undefined
               ? resolved.project.notes
-              : (prior.previousNotes as string | null),
+              : (before.notes as string | null),
         },
         scope,
       );
       return {
         ok: true,
         message: `Restored project “${updated.name}”.`,
-        data: { recordId: updated.id, recordLabel: updated.name },
       };
     },
   },

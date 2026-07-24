@@ -112,9 +112,9 @@ const SCENARIOS = [
   },
   {
     id: "crm-stage",
-    prompt: "Move the Peak Infrastructure CRM lead to Qualified.",
+    prompt: "Move the Peak Infrastructure CRM lead to Hot.",
     domain: "write",
-    expect: [/lead|crm|qualified|status|confirm|approve|preview|stage/i],
+    expect: [/lead|crm|hot|status|confirm|approve|preview|stage/i],
   },
   {
     id: "convert-lead",
