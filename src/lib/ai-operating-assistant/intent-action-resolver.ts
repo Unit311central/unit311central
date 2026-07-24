@@ -183,13 +183,25 @@ export function extractConversationEntityMemory(
         const value = field.value == null ? "" : String(field.value).trim();
         if (!value) continue;
         if ((key === "id" || key === "recordid" || key === "clientid") && !memory.clientId) {
-          if (/^[0-9a-f-]{8,}$/i.test(value) || /^cli_/i.test(value)) {
+          if (
+            /^[0-9a-f-]{8,}$/i.test(value) ||
+            /^cli_/i.test(value) ||
+            /^client-/i.test(value)
+          ) {
             memory.clientId = value;
           }
         }
+        // Prefer explicit client fields — generic "name" is often the project title.
         if (
-          (key === "name" || key === "companyname" || key === "clientname" || key === "recordlabel") &&
+          (key === "companyname" || key === "clientname") &&
           !memory.clientName
+        ) {
+          memory.clientName = value;
+        }
+        if (
+          (key === "name" || key === "recordlabel") &&
+          !memory.clientName &&
+          !/\bproject\b/i.test(String(card.title ?? card.kind ?? ""))
         ) {
           memory.clientName = value;
         }
@@ -260,20 +272,26 @@ function applyConversationMemory(
 
   const clientName = memory.clientName?.trim() || null;
   const clientId = memory.clientId?.trim() || null;
+  const needsEntity = messageNeedsEntityResolution(message);
+  const isProjectAction = actionId.startsWith("projects.");
 
-  if (clientId) {
-    for (const key of ["clientId", "id"]) {
-      if (key in props && next[key] == null) next[key] = clientId;
-    }
+  if (clientId && "clientId" in props) {
+    // Pronoun follow-ups must win over a wrongly extracted project title.
+    if (needsEntity || next.clientId == null) next.clientId = clientId;
   }
+
   if (clientName) {
-    for (const key of ["clientName", "companyName", "name"]) {
-      if (key in props && next[key] == null) next[key] = clientName;
+    if ("clientName" in props) {
+      if (needsEntity || next.clientName == null) next.clientName = clientName;
     }
-    if (actionId.startsWith("projects.") && next.clientName == null && "clientName" in props) {
-      next.clientName = clientName;
+    if ("companyName" in props) {
+      if (needsEntity || next.companyName == null) next.companyName = clientName;
     }
-    if (actionId.startsWith("clients.") && messageNeedsEntityResolution(message)) {
+    // Never copy the remembered client into project `name` / primary title fields.
+    if (!isProjectAction && "name" in props && next.name == null) {
+      next.name = clientName;
+    }
+    if (actionId.startsWith("clients.") && needsEntity) {
       const primaries = definition?.capability.entityExtraction?.primaryNameFields ?? [];
       for (const field of primaries) {
         if (next[field] == null) next[field] = clientName;
@@ -281,11 +299,29 @@ function applyConversationMemory(
     }
   }
 
+  // If the model filled clientName with the project title, repair from memory.
+  if (
+    isProjectAction &&
+    clientName &&
+    typeof next.projectName === "string" &&
+    typeof next.clientName === "string" &&
+    next.clientName.trim().toLowerCase() === next.projectName.trim().toLowerCase()
+  ) {
+    next.clientName = clientName;
+    if (clientId) next.clientId = clientId;
+  }
+
   if (memory.projectName && "projectName" in props && next.projectName == null) {
     next.projectName = memory.projectName;
   }
   if (memory.employeeName) {
-    for (const key of ["employeeName", "managerName", "accountManager", "projectManager", "personName"]) {
+    for (const key of [
+      "employeeName",
+      "managerName",
+      "accountManager",
+      "projectManager",
+      "personName",
+    ]) {
       if (key in props && next[key] == null) next[key] = memory.employeeName;
     }
   }

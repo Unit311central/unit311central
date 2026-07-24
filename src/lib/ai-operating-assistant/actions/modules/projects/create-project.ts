@@ -57,7 +57,8 @@ export const createProjectAction: AssistantActionDefinition = {
       fields: [
         { field: "projectName", from: "named_entity" },
         { field: "name", from: "named_entity" },
-        { field: "clientName", from: "named_entity" },
+        // clientName must NOT use named_entity — "called Site Survey" is the project title.
+        // Client comes from conversation memory ("them") or explicit "for Acme".
         { field: "site", from: "location" },
         { field: "region", from: "location" },
       ],
@@ -105,16 +106,27 @@ export const createProjectAction: AssistantActionDefinition = {
     async execute(input, ctx) {
       const projectName =
         asTrimmedString(input.projectName) || asTrimmedString(input.name);
-      const clientName = asTrimmedString(input.clientName) || "Unassigned";
+      let clientName = asTrimmedString(input.clientName) || "Unassigned";
+      let clientId = asTrimmedString(input.clientId) || undefined;
       if (!projectName) {
         return { ok: false, message: "projectName is required.", error: "VALIDATION" };
+      }
+
+      // Never treat the project title as the client.
+      if (clientName && clientName.toLowerCase() === projectName.toLowerCase()) {
+        return {
+          ok: false,
+          message:
+            "Client is unclear — say which client this project is for (e.g. “for Acme Engineering Ltd”).",
+          error: "VALIDATION",
+        };
       }
 
       const created = await createProject(
         {
           name: projectName,
           clientName,
-          clientId: asTrimmedString(input.clientId) || undefined,
+          clientId,
           site: asTrimmedString(input.site) || undefined,
           region: asTrimmedString(input.region) || undefined,
           notes: asTrimmedString(input.notes) || undefined,
@@ -125,7 +137,7 @@ export const createProjectAction: AssistantActionDefinition = {
 
       return {
         ok: true,
-        message: `Created project “${created.name}”.`,
+        message: `Created project “${created.name}” for ${created.clientName || clientName}.`,
         recordId: created.id,
         recordLabel: created.name,
         beforeState: null,
@@ -133,8 +145,14 @@ export const createProjectAction: AssistantActionDefinition = {
           id: created.id,
           name: created.name,
           clientName: created.clientName,
+          clientId: created.clientId ?? clientId ?? null,
         },
-        output: { projectId: created.id, projectName: created.name },
+        output: {
+          projectId: created.id,
+          projectName: created.name,
+          clientId: created.clientId ?? clientId ?? null,
+          clientName: created.clientName || clientName,
+        },
       };
     },
   },
