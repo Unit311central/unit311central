@@ -65,6 +65,13 @@ export type ExecutiveAssistantPanelProps = {
   open?: boolean;
   onClose?: () => void;
   className?: string;
+  /** Hide the conversations sidebar (used by Operating Centre left rail). */
+  hideSidebar?: boolean;
+  /** Quieter chrome for embedding under an executive briefing. */
+  embedded?: boolean;
+  /** External prompt to send once (quick prompts / suggested actions). */
+  seedPrompt?: string | null;
+  onSeedConsumed?: () => void;
 };
 
 const WELCOME: AssistantChatMessage = {
@@ -175,13 +182,19 @@ export default function ExecutiveAssistantPanel({
   open = false,
   onClose,
   className,
+  hideSidebar = false,
+  embedded = false,
+  seedPrompt = null,
+  onSeedConsumed,
 }: ExecutiveAssistantPanelProps) {
   const [message, setMessage] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [conversations, setConversations] = useState<AssistantConversationRecord[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<AssistantChatMessage[]>([WELCOME]);
+  const [messages, setMessages] = useState<AssistantChatMessage[]>(() =>
+    embedded ? [] : [WELCOME],
+  );
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [planViewer, setPlanViewer] = useState<PlanViewerModel | null>(null);
@@ -190,6 +203,7 @@ export default function ExecutiveAssistantPanel({
     null,
   );
   const [actionConfirmBusy, setActionConfirmBusy] = useState(false);
+  const [eaCorrelationId, setEaCorrelationId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);
@@ -292,7 +306,7 @@ export default function ExecutiveAssistantPanel({
   function startNewConversation() {
     abortRef.current?.abort();
     setActiveConversationId(null);
-    setMessages([WELCOME]);
+    setMessages(embedded ? [] : [WELCOME]);
     setMessage("");
     setRenameId(null);
     showNotice("New chat ready");
@@ -562,11 +576,23 @@ export default function ExecutiveAssistantPanel({
     abortRef.current = controller;
 
     let finalReply: string | null = null;
+    const correlationId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? `ea_${crypto.randomUUID()}`
+        : `ea_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    setEaCorrelationId(correlationId);
+    console.info("[EA] Chat request received");
+    console.info(`- correlationId: ${correlationId}`);
+    console.info(`- conversationId: ${activeConversationId}`);
+    console.info(`- user message: ${trimmed}`);
 
     try {
       const response = await fetch("/api/executive-assistant/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-ea-correlation-id": correlationId,
+        },
         signal: controller.signal,
         body: JSON.stringify({
           message: trimmed,
@@ -576,6 +602,7 @@ export default function ExecutiveAssistantPanel({
           selection,
           roleView,
           stream: true,
+          correlationId,
         }),
       });
 
@@ -587,8 +614,13 @@ export default function ExecutiveAssistantPanel({
       const contentType = response.headers.get("content-type") ?? "";
       if (contentType.includes("text/event-stream")) {
         await readSseStream(response, (event) => {
-          if (event.type === "meta" && event.conversationId !== "pending") {
-            setActiveConversationId(event.conversationId);
+          if (event.type === "meta") {
+            if (event.conversationId !== "pending") {
+              setActiveConversationId(event.conversationId);
+            }
+            if (typeof event.correlationId === "string" && event.correlationId) {
+              setEaCorrelationId(event.correlationId);
+            }
           }
           if (event.type === "tool_result") {
             applyGuidedToolResult(event.result);
@@ -599,8 +631,8 @@ export default function ExecutiveAssistantPanel({
                 summary?: { requiresConfirmation?: boolean; blocked?: boolean };
               };
               const confirmation = result.items?.[0]?.confirmation;
-              // Always surface the Plan Viewer when a plan confirmation payload exists.
               if (confirmation) {
+                if (confirmation.correlationId) setEaCorrelationId(confirmation.correlationId);
                 setActionConfirmation(confirmation);
                 setPlanViewer(actionConfirmationToPlanViewer(confirmation));
               }
@@ -609,9 +641,9 @@ export default function ExecutiveAssistantPanel({
               const result = event.result as {
                 items?: Array<{ confirmation?: ActionConfirmationView }>;
               };
-              // Same Plan Viewer path as proposeBusinessActionPlan (Action Framework plan id).
               const confirmation = result.items?.[0]?.confirmation;
               if (confirmation) {
+                if (confirmation.correlationId) setEaCorrelationId(confirmation.correlationId);
                 setActionConfirmation(confirmation);
                 setPlanViewer(actionConfirmationToPlanViewer(confirmation));
               }
@@ -627,6 +659,9 @@ export default function ExecutiveAssistantPanel({
             );
           }
           if (event.type === "done") {
+            if (typeof event.correlationId === "string" && event.correlationId) {
+              setEaCorrelationId(event.correlationId);
+            }
             setActiveConversationId(event.conversationId);
             finalReply = event.message.content?.trim() || null;
             setMessages((current) =>
@@ -643,7 +678,15 @@ export default function ExecutiveAssistantPanel({
             );
           }
           if (event.type === "error") {
-            throw new Error(event.error);
+            console.error("[EA] Chat stream error");
+            console.error(`- correlationId: ${correlationId}`);
+            console.error(`- error: ${event.error}`);
+            console.error(`- stack: ${"stack" in event ? event.stack : "(none)"}`);
+            throw new Error(
+              "stack" in event && event.stack
+                ? `${event.error}\n${event.stack}`
+                : event.error,
+            );
           }
         });
       } else {
@@ -651,8 +694,13 @@ export default function ExecutiveAssistantPanel({
           reply?: string;
           conversationId?: string;
           error?: string;
+          stack?: string | null;
+          correlationId?: string;
         };
-        if (data.error) throw new Error(data.error);
+        if (data.correlationId) setEaCorrelationId(data.correlationId);
+        if (data.error) {
+          throw new Error(data.stack ? `${data.error}\n${data.stack}` : data.error);
+        }
         if (data.conversationId) setActiveConversationId(data.conversationId);
         finalReply = data.reply?.trim() || "I could not complete that just now.";
         setMessages((current) =>
@@ -693,6 +741,13 @@ export default function ExecutiveAssistantPanel({
   }
 
   handleSendRef.current = handleSend;
+
+  useEffect(() => {
+    if (!seedPrompt?.trim()) return;
+    const text = seedPrompt.trim();
+    onSeedConsumed?.();
+    void handleSendRef.current(undefined, text);
+  }, [seedPrompt, onSeedConsumed]);
 
   function renderArtifacts(artifacts: AssistantMessageArtifact[] | undefined) {
     if (!artifacts?.length) return null;
@@ -838,22 +893,42 @@ export default function ExecutiveAssistantPanel({
       data-ai-target="ai-assistant"
       className={cn(
         "flex h-full min-h-0 overflow-hidden",
-        isPage ? "rounded-2xl border border-white/12 bg-[#0c1628]" : "bg-[#07111f]",
+        isPage && !embedded
+          ? "rounded-2xl border border-white/12 bg-[#0c1628]"
+          : embedded
+            ? "rounded-xl border border-white/10 bg-[#0a1422]"
+            : "bg-[#07111f]",
         className,
       )}
     >
-      {sidebar}
+      {hideSidebar ? null : sidebar}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-3.5 sm:px-5">
+        <div
+          className={cn(
+            "flex shrink-0 items-start justify-between gap-3 border-b border-white/10",
+            embedded ? "px-3 py-2.5 sm:px-4" : "px-4 py-3.5 sm:px-5",
+          )}
+        >
           <div>
-            <h2 className="text-base font-semibold tracking-tight text-white">
-              AI Executive Assistant
+            <h2
+              className={cn(
+                "font-semibold tracking-tight text-white",
+                embedded ? "text-sm" : "text-base",
+              )}
+            >
+              {embedded ? "Conversation" : "AI Executive Assistant"}
             </h2>
-            <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-emerald-300/90">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Online
-            </p>
+            {!embedded ? (
+              <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-emerald-300/90">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Online
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[11px] text-white/45">
+                Context-aware · ask follow-ups or act on the briefing above
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -886,6 +961,12 @@ export default function ExecutiveAssistantPanel({
         </div>
 
         <div ref={threadRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
+          {messages.length === 0 && embedded && !sending ? (
+            <p className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-3.5 py-3 text-[12px] leading-relaxed text-white/40">
+              Use a suggested action or quick prompt, or type below — the assistant already has
+              live business context from the briefing.
+            </p>
+          ) : null}
           {messages.map((entry) => (
             <div
               key={entry.id}
@@ -943,46 +1024,57 @@ export default function ExecutiveAssistantPanel({
               onApprove={() => {
                 void (async () => {
                   setActionConfirmBusy(true);
-                  console.info(
-                    "[EA PlanViewer] approve clicked",
-                    planViewer.planId,
-                    planViewer.kind,
-                  );
+                  const correlationId =
+                    eaCorrelationId ||
+                    actionConfirmation?.correlationId ||
+                    planViewer.correlationId ||
+                    `ea_approve_${planViewer.planId}`;
+                  setEaCorrelationId(correlationId);
+                  const requestBody = {
+                    confirmed: true,
+                    correlationId,
+                    activeView,
+                    roleView,
+                    selection,
+                    title: planViewer.title,
+                    summary: planViewer.businessImpact,
+                    aiRequest: planViewer.goal,
+                    steps:
+                      actionConfirmation?.actions.map((action) => ({
+                        stepId: action.stepId,
+                        actionId: action.actionId,
+                        name: action.name,
+                        module: action.module,
+                        input: action.input ?? {},
+                        status: action.status,
+                      })) ??
+                      planViewer.steps.map((step) => ({
+                        stepId: step.stepId,
+                        actionId: step.actionId,
+                        name: step.name,
+                        module: step.module,
+                        input: step.input ?? {},
+                        status: step.status,
+                      })),
+                  };
+                  console.info("[EA] Browser Approve received");
+                  console.info(`- correlationId: ${correlationId}`);
+                  console.info(`- planId: ${planViewer.planId}`);
+                  console.info(`- request body: ${JSON.stringify(requestBody)}`);
                   try {
-                    // Single execution path: Action Framework plans API only.
                     const url = `/api/executive-assistant/actions/plans/${planViewer.planId}`;
                     const response = await fetch(url, {
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        confirmed: true,
-                        activeView,
-                        roleView,
-                        selection,
-                        title: planViewer.title,
-                        summary: planViewer.businessImpact,
-                        aiRequest: planViewer.goal,
-                        steps:
-                          actionConfirmation?.actions.map((action) => ({
-                            stepId: action.stepId,
-                            actionId: action.actionId,
-                            name: action.name,
-                            module: action.module,
-                            input: action.input ?? {},
-                            status: action.status,
-                          })) ??
-                          planViewer.steps.map((step) => ({
-                            stepId: step.stepId,
-                            actionId: step.actionId,
-                            name: step.name,
-                            module: step.module,
-                            input: step.input ?? {},
-                            status: step.status,
-                          })),
-                      }),
+                      headers: {
+                        "Content-Type": "application/json",
+                        "x-ea-correlation-id": correlationId,
+                      },
+                      body: JSON.stringify(requestBody),
                     });
                     const data = (await response.json().catch(() => null)) as {
                       error?: string;
+                      stack?: string | null;
+                      correlationId?: string;
                       summary?: string;
                       viewer?: PlanViewerModel;
                       confirmation?: ActionConfirmationView;
@@ -1000,13 +1092,17 @@ export default function ExecutiveAssistantPanel({
                         }>;
                       };
                     } | null;
-                    console.info(
-                      "[EA PlanViewer] approve response",
-                      response.status,
-                      data?.plan?.status ?? data?.error,
-                    );
+                    if (data?.correlationId) setEaCorrelationId(data.correlationId);
                     if (!response.ok) {
-                      throw new Error(data?.error ?? `Execute failed (${response.status})`);
+                      const detail = data?.stack
+                        ? `${data.error ?? `Execute failed (${response.status})`}\n${data.stack}`
+                        : data?.error ?? `Execute failed (${response.status})`;
+                      console.error("[EA] Browser Approve failed");
+                      console.error(`- correlationId: ${correlationId}`);
+                      console.error(`- status: ${response.status}`);
+                      console.error(`- error: ${data?.error}`);
+                      console.error(`- stack: ${data?.stack ?? "(none)"}`);
+                      throw new Error(detail);
                     }
                     if (data?.confirmation) {
                       setActionConfirmation(data.confirmation);
@@ -1050,19 +1146,34 @@ export default function ExecutiveAssistantPanel({
                         },
                       ]);
                     }
+                    console.info("[EA] Client cache invalidated");
+                    console.info(`- correlationId: ${correlationId}`);
+                    console.info(`- cacheKey: ${PLATFORM_CACHE_KEYS.clients}`);
                     invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
+                    console.info("[EA] Directory refresh requested");
+                    console.info(`- correlationId: ${correlationId}`);
+                    console.info(`- planId: ${planViewer.planId}`);
                     if (typeof window !== "undefined") {
                       window.dispatchEvent(
                         new CustomEvent("unit311:clients-changed", {
-                          detail: { planId: planViewer.planId },
+                          detail: {
+                            planId: planViewer.planId,
+                            correlationId,
+                          },
                         }),
                       );
                     }
                   } catch (error) {
-                    console.error("[EA PlanViewer] approve failed", error);
-                    showNotice(
-                      error instanceof Error ? error.message : "Plan execution failed",
+                    console.error("[EA] EXCEPTION — Browser Approve");
+                    console.error(`- correlationId: ${correlationId}`);
+                    console.error(
+                      `- message: ${error instanceof Error ? error.message : String(error)}`,
                     );
+                    console.error(
+                      `- stack: ${error instanceof Error ? error.stack ?? "(no stack)" : "(no stack)"}`,
+                    );
+                    if (error instanceof Error && error.stack) console.error(error.stack);
+                    showNotice(error instanceof Error ? error.message : String(error));
                   } finally {
                     setActionConfirmBusy(false);
                   }
@@ -1072,12 +1183,21 @@ export default function ExecutiveAssistantPanel({
                 void (async () => {
                   setActionConfirmBusy(true);
                   try {
+                    const correlationId =
+                      eaCorrelationId ||
+                      actionConfirmation?.correlationId ||
+                      planViewer.correlationId ||
+                      `ea_cancel_${planViewer.planId}`;
                     const url = `/api/executive-assistant/actions/plans/${planViewer.planId}`;
                     await fetch(url, {
                       method: "POST",
-                      headers: { "Content-Type": "application/json" },
+                      headers: {
+                        "Content-Type": "application/json",
+                        "x-ea-correlation-id": correlationId,
+                      },
                       body: JSON.stringify({
                         confirmed: false,
+                        correlationId,
                         activeView,
                         roleView,
                         selection,
@@ -1100,8 +1220,9 @@ export default function ExecutiveAssistantPanel({
                           })),
                       }),
                     });
-                  } catch {
-                    // ignore cancel network errors
+                  } catch (error) {
+                    console.error("[EA] EXCEPTION — Browser Cancel");
+                    console.error(error instanceof Error ? error.stack : error);
                   } finally {
                     setPlanViewer(null);
                     setActionConfirmation(null);

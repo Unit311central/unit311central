@@ -1,19 +1,14 @@
 "use client";
 
-import ExecutiveAssistantPanel from "@/components/executive-assistant/ExecutiveAssistantPanel";
+import ExecutiveOperatingCentre from "@/components/executive-assistant/ExecutiveOperatingCentre";
 
 /**
- * Full-page Executive Assistant workspace — chat, history, prompts, workspace context.
+ * Full-page Executive Assistant — Operating Centre (briefing-first, not empty chat).
  */
 export default function ExecutiveAssistantWorkspace() {
   return (
-    <div className="mx-auto w-full max-w-4xl">
-      <ExecutiveAssistantPanel
-        variant="page"
-        activeView="executive-assistant"
-        mode="internal"
-        className="min-h-[calc(100dvh-10rem)]"
-      />
+    <div className="mx-auto w-full max-w-[1600px]">
+      <ExecutiveOperatingCentre />
     </div>
   );
 }
