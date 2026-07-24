@@ -80,6 +80,7 @@ const NAMED_ENTITY_STOPWORDS =
 /**
  * True when the user is clearly requesting a mutation (create/update/archive/…).
  * Read interrogatives must NOT satisfy this.
+ * Document generation ("create me a pdf…") is NOT a write.
  */
 export function hasExplicitWriteIntent(message: string): boolean {
   const text = message.trim();
@@ -90,6 +91,18 @@ export function hasExplicitWriteIntent(message: string): boolean {
   if (
     /\bwhat\s+can\s+you\b/i.test(lower) &&
     !/\b(called|named|titled)\b/i.test(lower)
+  ) {
+    return false;
+  }
+
+  // "Create me a PDF / report / export" is document generation, not entity mutation.
+  if (
+    /\b(pdf|report|pack|directory|document|export)\b/i.test(lower) &&
+    /\b(create|make|generate|export|produce|build|prepare|give|get|show)\b/i.test(lower) &&
+    !/\b(called|named|titled)\b/i.test(lower) &&
+    !/\b(create|add|register)\s+(a\s+|an\s+|the\s+|me\s+a\s+|me\s+)?(new\s+)?(client|project|employee|invoice|lead|location|contact)\b/i.test(
+      lower,
+    )
   ) {
     return false;
   }

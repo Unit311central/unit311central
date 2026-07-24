@@ -37,6 +37,48 @@ async function main() {
     assert.deepEqual(intent?.args.metrics, scoped.metrics);
   }
 
+  // Regression: "create me a pdf…" must never become Create client location.
+  {
+    const { classifyKnowledgeDomain } = await import("../knowledge-domains");
+    const { hasExplicitWriteIntent } = await import("../intent-action-resolver");
+    const { resolveOrchestrationRoute } = await import("../action-orchestration");
+    const { registerAllActionModules } = await import("../actions/register-all-modules");
+    registerAllActionModules();
+    assert.equal(hasExplicitWriteIntent(DEMO), false);
+    assert.equal(classifyKnowledgeDomain(DEMO).domain, "business");
+    const business = {
+      user: { id: "u", username: "u", displayName: "U", userType: "internal" as const },
+      organisation: { id: null, name: null },
+      workspace: { id: null, name: "W", slug: "w" },
+      page: { activeView: "clients-dashboard", label: "Clients", pathname: null },
+      selection: {
+        clientId: null,
+        clientName: null,
+        projectId: null,
+        projectName: null,
+        employeeId: null,
+        employeeName: null,
+        contractId: null,
+        contractName: null,
+        fileId: null,
+        fileName: null,
+      },
+      permissions: {
+        roleView: "c-suite" as const,
+        canAccessFinancials: true,
+        canAccessUsers: true,
+        canAccessStrategy: true,
+        canAccessHr: true,
+      },
+      generatedAt: new Date().toISOString(),
+    };
+    const route = await resolveOrchestrationRoute(DEMO, [], business);
+    assert.equal(route.kind, "tool");
+    if (route.kind === "tool") {
+      assert.equal(route.intent.tool, "generateScopedBusinessPdf");
+    }
+  }
+
   {
     const intent = resolveDirectIntent("Create a financial report PDF", []);
     assert.equal(intent?.tool, "generateFinancialReportPdf");

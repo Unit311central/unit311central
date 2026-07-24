@@ -163,6 +163,23 @@ export async function resolveOrchestrationRoute(
     }
   }
 
+  // Document / PDF / export intents win before any write propose path.
+  // Prevents "create me a pdf…" becoming Create client location.
+  const documentIntent = resolveDirectIntent(message, history);
+  if (
+    documentIntent &&
+    [
+      "generateScopedBusinessPdf",
+      "generateFinancialReportPdf",
+      "generateReportPdf",
+      "generateEmployeeListPdf",
+      "generatePayrollPdf",
+      "emailAssistantArtifact",
+    ].includes(documentIntent.tool)
+  ) {
+    return { kind: "tool", intent: documentIntent };
+  }
+
   // BUSINESS — live data tools (deterministic read intents).
   if (domain.domain === "business") {
     const direct = resolveDirectIntent(message, history);

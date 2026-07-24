@@ -123,6 +123,15 @@ export function classifyKnowledgeDomain(message: string): EaKnowledgeClassificat
   }
 
   // Explicit write with entity → Action Framework.
+  // Never treat PDF/report generation as a write ("create me a pdf…").
+  if (
+    /\b(pdf|report|pack|directory|document|export)\b/i.test(lower) &&
+    /\b(create|make|generate|export|produce|build|prepare|give|get|show)\b/i.test(lower) &&
+    !/\b(called|named|titled)\b/i.test(lower)
+  ) {
+    return { domain: "business", reason: "document_generation_request" };
+  }
+
   if (
     WRITE_HINT.test(lower) &&
     (/\b(called|named|titled)\b/i.test(lower) ||
