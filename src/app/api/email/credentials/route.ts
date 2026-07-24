@@ -7,6 +7,7 @@ import {
 } from "@/lib/email/credentials-service";
 import { emailErrorResponse } from "@/lib/email/api-utils";
 import type { EmailAccountId } from "@/lib/email/types";
+import { withEmailMailboxCredentials } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -49,11 +50,14 @@ export async function POST(request: NextRequest) {
     if (!account) {
       return NextResponse.json({ error: "Valid account is required." }, { status: 400 });
     }
-    if (!body.password?.trim()) {
+    const password = body.password?.trim() ?? "";
+    if (!password) {
       return NextResponse.json({ error: "Password is required." }, { status: 400 });
     }
 
-    const saved = await saveMailboxCredentials(account, body.password, body.email, scope);
+    const saved = await withEmailMailboxCredentials(() =>
+      saveMailboxCredentials(account, password, body.email, scope),
+    );
     const status = await getMailboxCredentialStatus(scope);
 
     return NextResponse.json({ ok: true, saved, status });

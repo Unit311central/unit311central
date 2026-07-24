@@ -1,4 +1,4 @@
-import type { EmailAccount, EmailAccountId } from "@/lib/email/types";
+import type { EmailAccount, EmailAccountId, EmailMailboxFolder } from "@/lib/email/types";
 import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 
 import { resolveAccountCredentials } from "@/lib/email/credentials-service";
@@ -7,6 +7,8 @@ export const ZOHO_IMAP_HOST = process.env.ZOHO_IMAP_HOST?.trim() || "imap.zoho.e
 export const ZOHO_IMAP_PORT = Number(process.env.ZOHO_IMAP_PORT ?? 993);
 export const ZOHO_SMTP_HOST = process.env.ZOHO_SMTP_HOST?.trim() || "smtp.zoho.eu";
 export const ZOHO_SMTP_PORT = Number(process.env.ZOHO_SMTP_PORT ?? 465);
+export const ZOHO_CALDAV_HOST =
+  process.env.ZOHO_CALDAV_HOST?.trim() || "https://calendar.zoho.eu";
 
 const ACCOUNT_DEFINITIONS: readonly EmailAccount[] = [
   {
@@ -19,7 +21,23 @@ const ACCOUNT_DEFINITIONS: readonly EmailAccount[] = [
     email: "paul@unit311central.com",
     name: "Paul",
   },
+  {
+    id: "admin",
+    email: "admin@unit311central.com",
+    name: "Admin",
+  },
+  {
+    id: "demo",
+    email: "demo@unit311central.com",
+    name: "Demo",
+  },
 ];
+
+const ALL_ACCOUNT_IDS: readonly EmailAccountId[] = ["info", "paul", "admin", "demo"];
+
+export function listEmailAccountIds(): readonly EmailAccountId[] {
+  return ALL_ACCOUNT_IDS;
+}
 
 export function getPublicEmailAccounts(): EmailAccount[] {
   return ACCOUNT_DEFINITIONS.map((account) => ({
@@ -42,10 +60,14 @@ function isPlainEmail(value: string): boolean {
 }
 
 function resolveAccountEmailFromEnv(id: EmailAccountId): string | null {
-  const candidates =
+  const candidates: Array<string | undefined> =
     id === "info"
       ? [process.env.ZOHO_INFO_EMAIL, process.env.ZOHO_EMAIL]
-      : [process.env.ZOHO_PAUL_EMAIL, process.env.ZOHO_EMAIL];
+      : id === "paul"
+        ? [process.env.ZOHO_PAUL_EMAIL, process.env.ZOHO_EMAIL]
+        : id === "admin"
+          ? [process.env.ZOHO_ADMIN_EMAIL, process.env.ZOHO_EMAIL]
+          : [process.env.ZOHO_DEMO_EMAIL, process.env.ZOHO_EMAIL];
 
   for (const raw of candidates) {
     const value = raw?.trim();
@@ -61,10 +83,9 @@ export async function getAccountCredentials(
 ): Promise<{ email: string; password: string }> {
   const credentials = await resolveAccountCredentials(id, scope);
   if (!credentials) {
+    const mailbox = getAccountDefinition(id).email;
     throw new Error(
-      id === "info"
-        ? "Zoho info mailbox is not configured. Set ZOHO_INFO_PASSWORD on the server or save credentials in the Email settings panel."
-        : "Zoho paul mailbox is not configured. Set ZOHO_PAUL_PASSWORD on the server or save credentials in the Email settings panel.",
+      `Zoho mailbox ${mailbox} is not configured. Set ZOHO_${id.toUpperCase()}_PASSWORD on the server or save credentials in the Email settings panel.`,
     );
   }
 
@@ -84,16 +105,21 @@ export async function isAccountConfigured(
 }
 
 export async function isAnyMailboxConfigured(scope?: EmailWorkspaceScope): Promise<boolean> {
-  const [info, paul] = await Promise.all([
-    isAccountConfigured("info", scope),
-    isAccountConfigured("paul", scope),
-  ]);
-  return info || paul;
+  const results = await Promise.all(
+    ALL_ACCOUNT_IDS.map((id) => isAccountConfigured(id, scope)),
+  );
+  return results.some(Boolean);
 }
 
 export function parseAccountId(value: string | null): EmailAccountId | null {
-  if (value === "info" || value === "paul") return value;
+  if (value === "info" || value === "paul" || value === "admin" || value === "demo") {
+    return value;
+  }
   return null;
+}
+
+export function parseMailboxFolder(value: string | null): EmailMailboxFolder {
+  return value === "sent" ? "sent" : "inbox";
 }
 
 export function getMailboxLabel(accountId: EmailAccountId) {

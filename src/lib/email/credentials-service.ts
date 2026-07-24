@@ -2,7 +2,7 @@ import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase
 import type { EmailAccountId } from "@/lib/email/types";
 import { resolveEmailWorkspaceId, type EmailWorkspaceScope } from "@/lib/email-workspace";
 
-import { getAccountDefinition } from "@/lib/email/accounts";
+import { getAccountDefinition, listEmailAccountIds } from "@/lib/email/accounts";
 
 type DbCredential = {
   account_id: string;
@@ -33,24 +33,41 @@ function readMemoryCredential(workspaceId: string, id: EmailAccountId): MemoryCr
   return memoryCredentialStore().get(memoryKey(workspaceId, id)) ?? null;
 }
 
+function passwordEnvCandidates(id: EmailAccountId): Array<string | undefined> {
+  const shared = [
+    process.env.ZOHO_DRONECATALYST_PASSWORD,
+    process.env.ZOHO_PASSWORD,
+    process.env.ZOHO_APP_PASSWORD,
+  ];
+
+  if (id === "info") {
+    return [
+      process.env.ZOHO_INFO_PASSWORD,
+      process.env.ZOHO_DRONECATALYST_INFO_PASSWORD,
+      ...shared,
+    ];
+  }
+  if (id === "paul") {
+    return [
+      process.env.ZOHO_PAUL_PASSWORD,
+      process.env.ZOHO_DRONECATALYST_PAUL_PASSWORD,
+      ...shared,
+    ];
+  }
+  if (id === "admin") {
+    return [process.env.ZOHO_ADMIN_PASSWORD, ...shared];
+  }
+  return [process.env.ZOHO_DEMO_PASSWORD, ...shared];
+}
+
 /** Env credentials are shared platform secrets (not tenant DB rows). */
 function readEnvCredential(id: EmailAccountId): MemoryCredential | null {
   const account = getAccountDefinition(id);
-  const password =
-    id === "info"
-      ? process.env.ZOHO_INFO_PASSWORD?.trim() ||
-        process.env.ZOHO_DRONECATALYST_INFO_PASSWORD?.trim() ||
-        process.env.ZOHO_DRONECATALYST_PASSWORD?.trim() ||
-        process.env.ZOHO_PASSWORD?.trim() ||
-        process.env.ZOHO_APP_PASSWORD?.trim()
-      : process.env.ZOHO_PAUL_PASSWORD?.trim() ||
-        process.env.ZOHO_DRONECATALYST_PAUL_PASSWORD?.trim() ||
-        process.env.ZOHO_DRONECATALYST_PASSWORD?.trim() ||
-        process.env.ZOHO_PASSWORD?.trim() ||
-        process.env.ZOHO_APP_PASSWORD?.trim();
-
-  if (!password) return null;
-  return { email: account.email, password };
+  for (const raw of passwordEnvCandidates(id)) {
+    const password = raw?.trim();
+    if (password) return { email: account.email, password };
+  }
+  return null;
 }
 
 async function readSupabaseCredential(
@@ -100,10 +117,10 @@ export async function isAccountConfiguredAsync(
 
 export async function getMailboxCredentialStatus(scope?: EmailWorkspaceScope) {
   const workspaceId = await resolveEmailWorkspaceId(scope);
-  const [infoConfigured, paulConfigured] = await Promise.all([
-    isAccountConfiguredAsync("info", { workspaceId }),
-    isAccountConfiguredAsync("paul", { workspaceId }),
-  ]);
+  const ids = listEmailAccountIds();
+  const configured = await Promise.all(
+    ids.map(async (id) => [id, await isAccountConfiguredAsync(id, { workspaceId })] as const),
+  );
 
   const storage = isSupabaseConfigured()
     ? ("supabase" as const)
@@ -112,10 +129,9 @@ export async function getMailboxCredentialStatus(scope?: EmailWorkspaceScope) {
       : ("environment" as const);
 
   return {
-    info: infoConfigured,
-    paul: paulConfigured,
+    ...Object.fromEntries(configured),
     storage,
-  };
+  } as Record<EmailAccountId, boolean> & { storage: "supabase" | "memory" | "environment" };
 }
 
 export async function saveMailboxCredentials(

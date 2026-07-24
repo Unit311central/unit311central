@@ -74,6 +74,7 @@ const MIGRATIONS = [
   "supabase/migrations/109_executive_assistant_action_framework.sql",
   "supabase/migrations/110_executive_assistant_planning_engine.sql",
   "supabase/migrations/111_integrations_registry.sql",
+  "supabase/migrations/112_email_mailbox_demo_account.sql",
 ];
 
 function isAuthorized(request: NextRequest) {

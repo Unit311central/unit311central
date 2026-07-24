@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { parseAccountId, parseMailboxFolder } from "@/lib/email/accounts";
+import { parseAccountId } from "@/lib/email/accounts";
 import { emailErrorResponse } from "@/lib/email/api-utils";
-import { fetchMailboxMessages } from "@/lib/email/imap";
-import { processInfoMailboxWhatsAppNotifications } from "@/lib/email/whatsapp-notifications";
+import { fetchZohoMailboxCalendar } from "@/lib/email/zoho-caldav";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -23,24 +22,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Valid account query parameter is required." }, { status: 400 });
   }
 
-  const folder = parseMailboxFolder(request.nextUrl.searchParams.get("folder"));
-
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    const scope = { workspaceId: workspace.id };
-
-    const messages = await fetchMailboxMessages(account, undefined, folder);
-    if (account === "info" && folder === "inbox") {
-      void processInfoMailboxWhatsAppNotifications(messages, scope).catch((error) => {
-        console.error("[email/whatsapp] notification check failed", error);
-      });
-    }
-    return NextResponse.json(messages);
+    const calendar = await fetchZohoMailboxCalendar(account, { workspaceId: workspace.id });
+    return NextResponse.json(calendar);
   } catch (error) {
     if (error instanceof Error && authErrorStatus(error.message) === 401) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
-    return emailErrorResponse(error, "Failed to load mailbox messages.");
+    return emailErrorResponse(error, "Failed to load mailbox calendar.");
   }
 }

@@ -48,7 +48,7 @@ export const WORKSPACE_FOUNDATION_TABLES_MIGRATION_PATH =
 export const EMAIL_INFRASTRUCTURE_MIGRATION_PATH =
   "supabase/migrations/035_email_infrastructure.sql";
 export const EMAIL_MAILBOX_ADMIN_ACCOUNT_MIGRATION_PATH =
-  "supabase/migrations/059_email_mailbox_admin_account.sql";
+  "supabase/migrations/112_email_mailbox_demo_account.sql";
 export const INTERNAL_CLIENTS_MIGRATION_PATH =
   "supabase/migrations/037_create_internal_clients.sql";
 export const INTERNAL_CLIENTS_FILES_FOLDER_MIGRATION_PATH =
@@ -1451,7 +1451,7 @@ async function adminMailboxConstraintReadyViaManagementApi(): Promise<boolean | 
   const data = (await response.json()) as Array<{ definition?: string }> | { message?: string };
   if (!response.ok) return null;
   if (!Array.isArray(data)) return null;
-  return data[0]?.definition?.includes("'admin'") === true;
+  return data[0]?.definition?.includes("'demo'") === true;
 }
 
 async function adminMailboxConstraintReady(client: ClientBase): Promise<boolean> {
@@ -1465,7 +1465,7 @@ async function adminMailboxConstraintReady(client: ClientBase): Promise<boolean>
         and c.conname = 'email_mailbox_credentials_account_id_check'`,
   );
 
-  return result.rows[0]?.definition?.includes("'admin'") === true;
+  return result.rows[0]?.definition?.includes("'demo'") === true;
 }
 
 export async function ensureEmailMailboxAdminAccount(): Promise<boolean> {

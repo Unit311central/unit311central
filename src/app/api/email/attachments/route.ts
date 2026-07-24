@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { parseAccountId } from "@/lib/email/accounts";
+import { parseAccountId, parseMailboxFolder } from "@/lib/email/accounts";
 import { emailErrorResponse } from "@/lib/email/api-utils";
 import { fetchAttachmentContent } from "@/lib/email/imap";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   const account = parseAccountId(request.nextUrl.searchParams.get("account"));
   const messageId = request.nextUrl.searchParams.get("messageId");
   const partId = request.nextUrl.searchParams.get("partId");
+  const folder = parseMailboxFolder(request.nextUrl.searchParams.get("folder"));
 
   if (!account || !messageId || partId === null) {
     return NextResponse.json(
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     await requirePlatformSession();
     await requireCurrentWorkspace();
 
-    const attachment = await fetchAttachmentContent(account, messageId, partId);
+    const attachment = await fetchAttachmentContent(account, messageId, partId, folder);
     return new NextResponse(new Uint8Array(attachment.content), {
       headers: {
         "Content-Type": attachment.contentType,

@@ -10,15 +10,49 @@ import {
   threadStatusLabel,
   type InfoEmailThreadStatus,
 } from "@/lib/info-email-data";
-import type { EmailAccount, EmailAccountId, EmailMessage } from "@/lib/email/types";
+import type { EmailAccount, EmailAccountId, EmailMailboxFolder, EmailMessage } from "@/lib/email/types";
 import { groupMessagesIntoThreads, type EmailThread } from "@/lib/email/threading";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
-import { ChevronDown, Inbox, Loader2, Mail, MessageCircle, Paperclip, PenSquare, RefreshCw, Reply, Send, X } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronDown,
+  Inbox,
+  Loader2,
+  Mail,
+  MessageCircle,
+  Paperclip,
+  PenSquare,
+  RefreshCw,
+  Reply,
+  Send,
+  X,
+} from "lucide-react";
 
 const operators = createInitialUsers();
 const REFRESH_INTERVAL_MS = 30_000;
+
+type MailboxView = EmailMailboxFolder | "calendar";
+
+type ZohoCalendarEvent = {
+  id: string;
+  uid: string;
+  summary: string;
+  description: string;
+  location: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  calendarName: string;
+};
+
+type ZohoCalendarPayload = {
+  accountId: EmailAccountId;
+  email: string;
+  calendars: Array<{ href: string; name: string }>;
+  events: ZohoCalendarEvent[];
+};
 
 function normalizeEmailId(value: string | null | undefined) {
   return (value ?? "").trim().replace(/^<|>$/g, "").toLowerCase();
@@ -28,6 +62,7 @@ const DEFAULT_MAILBOXES: EmailAccountOption[] = [
   { id: "info", email: "info@unit311central.com", name: "Shared Inbox", configured: false },
   { id: "paul", email: "paul@unit311central.com", name: "Paul", configured: false },
   { id: "admin", email: "admin@unit311central.com", name: "Admin", configured: false },
+  { id: "demo", email: "demo@unit311central.com", name: "Demo", configured: false },
 ];
 
 type EmailAccountOption = EmailAccount & { configured?: boolean };
@@ -53,9 +88,40 @@ function inputClassName() {
   return "w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/50";
 }
 
-function attachmentUrl(account: EmailAccountId, messageId: string, partId: string) {
-  const params = new URLSearchParams({ account, messageId, partId });
+function attachmentUrl(
+  account: EmailAccountId,
+  messageId: string,
+  partId: string,
+  folder: EmailMailboxFolder = "inbox",
+) {
+  const params = new URLSearchParams({ account, messageId, partId, folder });
   return `/api/email/attachments?${params.toString()}`;
+}
+
+function formatCalendarWhen(event: ZohoCalendarEvent) {
+  const start = new Date(event.start);
+  const end = new Date(event.end);
+  if (Number.isNaN(start.getTime())) return "Unknown time";
+  if (event.allDay) {
+    return start.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  }
+  const sameDay = start.toDateString() === end.toDateString();
+  const startLabel = start.toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (!sameDay || Number.isNaN(end.getTime())) return startLabel;
+  return `${startLabel} – ${end.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
 }
 
 function MessageBody({ message }: { message: EmailMessage }) {
@@ -85,12 +151,18 @@ export default function InfoEmailWorkspace() {
   const [accounts, setAccounts] = useState<EmailAccountOption[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState<EmailAccountId>(
-    deepLinkAccount === "info" || deepLinkAccount === "paul" || deepLinkAccount === "admin"
+    deepLinkAccount === "info" ||
+      deepLinkAccount === "paul" ||
+      deepLinkAccount === "admin" ||
+      deepLinkAccount === "demo"
       ? deepLinkAccount
       : "info",
   );
+  const [mailboxView, setMailboxView] = useState<MailboxView>("inbox");
   const [threads, setThreads] = useState<EmailThread[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<ZohoCalendarEvent[]>([]);
+  const [calendarNames, setCalendarNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -108,6 +180,10 @@ export default function InfoEmailWorkspace() {
   const [composeBody, setComposeBody] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
+
+  const mailFolder: EmailMailboxFolder = mailboxView === "sent" ? "sent" : "inbox";
+  const isCalendarView = mailboxView === "calendar";
+  const isSentView = mailboxView === "sent";
 
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selectedAccountId) ?? null,
@@ -171,7 +247,7 @@ export default function InfoEmailWorkspace() {
     }
   }, [selectedAccountId]);
 
-  const loadInbox = useCallback(
+  const loadMailbox = useCallback(
     async (options?: { background?: boolean }) => {
       if (accountsLoading) return;
 
@@ -179,6 +255,8 @@ export default function InfoEmailWorkspace() {
         setLoading(false);
         setThreads([]);
         setSelectedThreadId(null);
+        setCalendarEvents([]);
+        setCalendarNames([]);
         return;
       }
 
@@ -191,8 +269,27 @@ export default function InfoEmailWorkspace() {
       setError(null);
 
       try {
+        if (mailboxView === "calendar") {
+          const response = await fetch(
+            `/api/email/calendar?account=${encodeURIComponent(selectedAccountId)}`,
+            { cache: "no-store" },
+          );
+          const data = await readApiJson<ZohoCalendarPayload | { error?: string }>(response);
+          if (!response.ok) {
+            throw new Error(
+              "error" in data && data.error ? data.error : "Failed to load calendar",
+            );
+          }
+          const payload = data as ZohoCalendarPayload;
+          setCalendarEvents(payload.events ?? []);
+          setCalendarNames((payload.calendars ?? []).map((entry) => entry.name));
+          setThreads([]);
+          setSelectedThreadId(null);
+          return;
+        }
+
         const response = await fetch(
-          `/api/email/messages?account=${encodeURIComponent(selectedAccountId)}`,
+          `/api/email/messages?account=${encodeURIComponent(selectedAccountId)}&folder=${mailFolder}`,
           { cache: "no-store" },
         );
         const data = await readApiJson<EmailMessage[] | { error?: string; code?: string }>(
@@ -203,13 +300,15 @@ export default function InfoEmailWorkspace() {
           const message =
             "error" in data && data.error
               ? data.error
-              : "Failed to load inbox";
+              : `Failed to load ${mailFolder === "sent" ? "sent items" : "inbox"}`;
           throw new Error(message);
         }
 
         const messages = data as EmailMessage[];
         const nextThreads = groupMessagesIntoThreads(messages);
         setThreads(nextThreads);
+        setCalendarEvents([]);
+        setCalendarNames([]);
 
         const wantedThreadId = deepLinkThreadId?.trim();
         const wantedMessageId = normalizeEmailId(deepLinkMessageId);
@@ -238,11 +337,17 @@ export default function InfoEmailWorkspace() {
         if (deepLinkedId) openDetail();
       } catch (loadError) {
         const message =
-          loadError instanceof Error ? loadError.message : "Failed to load inbox";
+          loadError instanceof Error
+            ? loadError.message
+            : mailboxView === "calendar"
+              ? "Failed to load calendar"
+              : `Failed to load ${mailFolder === "sent" ? "sent items" : "inbox"}`;
         setError(message);
         if (!background) {
           setThreads([]);
           setSelectedThreadId(null);
+          setCalendarEvents([]);
+          setCalendarNames([]);
         }
       } finally {
         if (background) {
@@ -252,7 +357,16 @@ export default function InfoEmailWorkspace() {
         }
       }
     },
-    [accountsLoading, selectedAccountId, selectedAccountConfigured, deepLinkThreadId, deepLinkMessageId, openDetail],
+    [
+      accountsLoading,
+      selectedAccountId,
+      selectedAccountConfigured,
+      mailboxView,
+      mailFolder,
+      deepLinkThreadId,
+      deepLinkMessageId,
+      openDetail,
+    ],
   );
 
   useEffect(() => {
@@ -269,9 +383,9 @@ export default function InfoEmailWorkspace() {
 
   useEffect(() => {
     startTransition(() => {
-      void loadInbox();
+      void loadMailbox();
     });
-  }, [loadInbox]);
+  }, [loadMailbox]);
 
   useEffect(() => {
     const to = deepLinkComposeTo?.trim();
@@ -287,12 +401,12 @@ export default function InfoEmailWorkspace() {
   useEffect(() => {
     const timer = window.setInterval(() => {
       startTransition(() => {
-        void loadInbox({ background: true });
+        void loadMailbox({ background: true });
       });
     }, REFRESH_INTERVAL_MS);
 
     return () => window.clearInterval(timer);
-  }, [loadInbox]);
+  }, [loadMailbox]);
 
   useEffect(() => {
     startTransition(() => {
@@ -300,7 +414,7 @@ export default function InfoEmailWorkspace() {
       setReplyBody("");
       closeDetail();
     });
-  }, [selectedAccountId, closeDetail]);
+  }, [selectedAccountId, mailboxView, closeDetail]);
 
   useEffect(() => {
     startTransition(() => {
@@ -341,7 +455,7 @@ export default function InfoEmailWorkspace() {
 
       setSetupPassword("");
       await loadAccounts();
-      await loadInbox();
+      await loadMailbox();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Failed to save credentials");
     } finally {
@@ -449,7 +563,7 @@ export default function InfoEmailWorkspace() {
 
       setReplyBody("");
       setSuccessMessage(`Reply sent from ${mailboxEmail}`);
-      await loadInbox({ background: true });
+      await loadMailbox({ background: true });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "Failed to send reply");
     } finally {
@@ -501,7 +615,7 @@ export default function InfoEmailWorkspace() {
       setComposeSubject("");
       setComposeBody("");
       setSuccessMessage(`Email sent from ${mailboxEmail}`);
-      await loadInbox({ background: true });
+      await loadMailbox({ background: true });
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "Failed to send email");
     } finally {
@@ -540,6 +654,7 @@ export default function InfoEmailWorkspace() {
                       <option value="info">info@unit311central.com</option>
                       <option value="paul">paul@unit311central.com</option>
                       <option value="admin">admin@unit311central.com</option>
+                      <option value="demo">demo@unit311central.com</option>
                     </>
                   ) : (
                     accounts.map((account) => (
@@ -551,6 +666,34 @@ export default function InfoEmailWorkspace() {
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
               </div>
+            </div>
+            <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-[#0b1524] p-1">
+              {(
+                [
+                  { id: "inbox" as const, label: "Inbox", icon: Inbox },
+                  { id: "sent" as const, label: "Sent", icon: Send },
+                  { id: "calendar" as const, label: "Calendar", icon: CalendarDays },
+                ] as const
+              ).map((tab) => {
+                const Icon = tab.icon;
+                const active = mailboxView === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setMailboxView(tab.id)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+                      active
+                        ? "bg-sky-500/15 text-sky-200"
+                        : "text-white/55 hover:bg-white/[0.04] hover:text-white/80",
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -613,7 +756,7 @@ export default function InfoEmailWorkspace() {
             </button>
             <button
               type="button"
-              onClick={() => void loadInbox()}
+              onClick={() => void loadMailbox()}
               disabled={loading}
               className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/70 transition-colors hover:bg-white/[0.04] disabled:opacity-60"
             >
@@ -777,17 +920,66 @@ export default function InfoEmailWorkspace() {
         </section>
       )}
 
+      {!accountsLoading && selectedAccountConfigured && isCalendarView ? (
+        <section className="rounded-2xl border border-white/10 bg-[#0a1422]/80">
+          <div className="border-b border-white/10 px-4 py-3">
+            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+              Calendar · {mailboxEmail}
+            </p>
+            <p className="mt-0.5 text-sm text-white/70">
+              {loading
+                ? "Loading…"
+                : `${calendarEvents.length} events · ${
+                    calendarNames.length > 0 ? calendarNames.join(", ") : "Zoho CalDAV"
+                  }`}
+            </p>
+          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12 text-white/50">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : calendarEvents.length === 0 ? (
+            <p className="px-4 py-8 text-sm text-white/45">
+              No upcoming events found for this mailbox calendar.
+            </p>
+          ) : (
+            <ul className="divide-y divide-white/5">
+              {calendarEvents.map((event) => (
+                <li key={event.id} className="px-4 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-white">{event.summary}</p>
+                      <p className="mt-0.5 text-xs text-white/50">{formatCalendarWhen(event)}</p>
+                    </div>
+                    <span className="rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] text-white/45">
+                      {event.calendarName}
+                    </span>
+                  </div>
+                  {event.location ? (
+                    <p className="mt-1 text-xs text-white/45">{event.location}</p>
+                  ) : null}
+                  {event.description ? (
+                    <p className="mt-1 line-clamp-3 text-xs text-white/40">{event.description}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
+      {!isCalendarView ? (
       <ResponsiveMasterDetail
         showDetail={showDetail && !!selectedThread}
         onBack={closeDetail}
-        backLabel="Back to inbox"
+        backLabel={isSentView ? "Back to sent" : "Back to inbox"}
         columnsClassName="xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]"
         className="min-h-[32rem]"
         master={
           <section className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-[#0a1422]/80">
             <div className="border-b border-white/10 px-4 py-3">
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
-                Inbox
+                {isSentView ? "Sent" : "Inbox"}
               </p>
               <p className="mt-0.5 text-sm text-white/70">
                 {loading ? "Loading…" : `${threads.length} threads`}
@@ -873,13 +1065,14 @@ export default function InfoEmailWorkspace() {
                     From {selectedThread.fromName} &lt;{selectedThread.fromEmail}&gt;
                   </p>
                   <p className="mt-0.5 text-xs text-white/40">
-                    Received {formatEmailDateLong(selectedThread.receivedAt)}
+                    {isSentView ? "Sent" : "Received"}{" "}
+                    {formatEmailDateLong(selectedThread.receivedAt)}
                   </p>
                 </div>
 
                 <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
                   {selectedThread.messages.map((message) => {
-                    const isOutbound = message.direction === "outbound";
+                    const isOutbound = message.direction === "outbound" || isSentView;
 
                     return (
                       <article
@@ -897,7 +1090,7 @@ export default function InfoEmailWorkspace() {
                               {message.fromName}
                               {isOutbound && (
                                 <span className="ml-2 text-xs font-normal text-sky-300">
-                                  team reply
+                                  {isSentView ? "sent" : "team reply"}
                                 </span>
                               )}
                             </p>
@@ -919,6 +1112,7 @@ export default function InfoEmailWorkspace() {
                                     selectedAccountId,
                                     message.id,
                                     attachment.partId,
+                                    mailFolder,
                                   )}
                                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-sky-300 transition-colors hover:bg-white/[0.06]"
                                 >
@@ -939,6 +1133,7 @@ export default function InfoEmailWorkspace() {
                   })}
                 </div>
 
+                {!isSentView ? (
                 <div className="border-t border-white/10 px-4 py-4 sm:px-5">
                   <div className="mb-3 flex items-center gap-2 text-sm text-white/60">
                     <Reply className="h-4 w-4" />
@@ -990,11 +1185,13 @@ export default function InfoEmailWorkspace() {
                     Send reply
                   </button>
                 </div>
+                ) : null}
               </>
             )}
           </section>
         }
       />
+      ) : null}
     </div>
   );
 }

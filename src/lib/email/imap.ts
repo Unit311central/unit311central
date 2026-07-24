@@ -7,7 +7,7 @@ import {
   ZOHO_IMAP_HOST,
   ZOHO_IMAP_PORT,
 } from "@/lib/email/accounts";
-import { EmailServiceError, type EmailAccountId, type EmailAttachmentMeta, type EmailMessage } from "@/lib/email/types";
+import { EmailServiceError, type EmailAccountId, type EmailAttachmentMeta, type EmailMailboxFolder, type EmailMessage } from "@/lib/email/types";
 
 const DEFAULT_FETCH_LIMIT = 50;
 
@@ -178,12 +178,44 @@ async function parseMessageSource(
   };
 }
 
+async function resolveImapFolderPath(
+  client: ImapFlow,
+  folder: EmailMailboxFolder,
+): Promise<string> {
+  if (folder === "inbox") return "INBOX";
+
+  try {
+    const mailboxes = await client.list();
+    const specialSent = mailboxes.find((box) =>
+      (box.specialUse ?? "").toUpperCase().includes("SENT"),
+    );
+    if (specialSent?.path) return specialSent.path;
+
+    const byName = mailboxes.find((box) => {
+      const name = `${box.name ?? ""} ${box.path ?? ""}`.toLowerCase();
+      return (
+        name === "sent" ||
+        name.includes("sent items") ||
+        name.includes("sent mail") ||
+        /(^|\/)sent($|\/)/.test(name)
+      );
+    });
+    if (byName?.path) return byName.path;
+  } catch (error) {
+    console.warn("[email/imap] mailbox list failed; falling back to Sent", error);
+  }
+
+  return "Sent";
+}
+
 export async function fetchMailboxMessages(
   accountId: EmailAccountId,
   limit = DEFAULT_FETCH_LIMIT,
+  folder: EmailMailboxFolder = "inbox",
 ): Promise<EmailMessage[]> {
   return withImapClient(accountId, async (client, mailboxEmail) => {
-    const lock = await client.getMailboxLock("INBOX");
+    const folderPath = await resolveImapFolderPath(client, folder);
+    const lock = await client.getMailboxLock(folderPath);
     try {
       if (!client.mailbox || client.mailbox.exists === 0) return [];
 
@@ -199,12 +231,15 @@ export async function fetchMailboxMessages(
       })) {
         if (!item.source || !item.uid) continue;
         const unread = !item.flags?.has("\\Seen");
+        const parsed = await parseMessageSource(item.source, {
+          uid: item.uid,
+          unread,
+          mailboxEmail,
+        });
         messages.push(
-          await parseMessageSource(item.source, {
-            uid: item.uid,
-            unread,
-            mailboxEmail,
-          }),
+          folder === "sent"
+            ? { ...parsed, direction: "outbound" as const, unread: false }
+            : parsed,
         );
       }
 
@@ -220,6 +255,7 @@ export async function fetchMailboxMessages(
 export async function fetchMailboxMessageById(
   accountId: EmailAccountId,
   messageId: string,
+  folder: EmailMailboxFolder = "inbox",
 ): Promise<EmailMessage> {
   const uid = Number(messageId);
   if (!Number.isFinite(uid) || uid <= 0) {
@@ -227,7 +263,8 @@ export async function fetchMailboxMessageById(
   }
 
   return withImapClient(accountId, async (client, mailboxEmail) => {
-    const lock = await client.getMailboxLock("INBOX");
+    const folderPath = await resolveImapFolderPath(client, folder);
+    const lock = await client.getMailboxLock(folderPath);
     try {
       const item = await client.fetchOne(String(uid), { uid: true, flags: true, source: true }, {
         uid: true,
@@ -237,11 +274,14 @@ export async function fetchMailboxMessageById(
         throw new EmailServiceError("Message not found.", "NOT_FOUND");
       }
 
-      return parseMessageSource(item.source, {
+      const parsed = await parseMessageSource(item.source, {
         uid: item.uid,
         unread: !item.flags?.has("\\Seen"),
         mailboxEmail,
       });
+      return folder === "sent"
+        ? { ...parsed, direction: "outbound" as const, unread: false }
+        : parsed;
     } finally {
       lock.release();
     }
@@ -252,8 +292,9 @@ export async function fetchAttachmentContent(
   accountId: EmailAccountId,
   messageId: string,
   partId: string,
+  folder: EmailMailboxFolder = "inbox",
 ): Promise<{ filename: string; contentType: string; content: Buffer }> {
-  const message = await fetchMailboxMessageById(accountId, messageId);
+  const message = await fetchMailboxMessageById(accountId, messageId, folder);
   const index = Number(partId);
   const attachment = message.attachments[index];
   if (!attachment) {
@@ -262,7 +303,8 @@ export async function fetchAttachmentContent(
 
   const uid = Number(messageId);
   return withImapClient(accountId, async (client) => {
-    const lock = await client.getMailboxLock("INBOX");
+    const folderPath = await resolveImapFolderPath(client, folder);
+    const lock = await client.getMailboxLock(folderPath);
     try {
       const item = await client.fetchOne(String(uid), { source: true }, { uid: true });
       if (!item || !item.source) {

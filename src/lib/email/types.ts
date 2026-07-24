@@ -1,4 +1,6 @@
-export type EmailAccountId = "info" | "paul" | "admin";
+export type EmailAccountId = "info" | "paul" | "admin" | "demo";
+
+export type EmailMailboxFolder = "inbox" | "sent";
 
 export type EmailAccount = {
   id: EmailAccountId;
