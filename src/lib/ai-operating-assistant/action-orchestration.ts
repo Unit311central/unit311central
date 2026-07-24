@@ -128,7 +128,12 @@ export async function resolveOrchestrationRoute(
   });
 
   // PLATFORM — Application Catalogue only (never Action Registry).
-  if (domain.domain === "platform" || isPlatformQuestion(message)) {
+  // Do not override an explicit business-domain classification with catalogue hits
+  // ("List our office locations" must stay live-data, not navigation copy).
+  if (
+    domain.domain === "platform" ||
+    (domain.domain === "unknown" && isPlatformQuestion(message))
+  ) {
     const answered = answerPlatformQuestion(message);
     if (answered) {
       const cards: EaExecutionCard[] = [];
@@ -167,6 +172,17 @@ export async function resolveOrchestrationRoute(
       direct.tool !== "planBusinessGoal"
     ) {
       return { kind: "tool", intent: direct };
+    }
+    // Prefer live business query over falling into platform/catalogue answers.
+    if (!hasExplicitWriteIntent(message)) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: "queryBusiness",
+          args: { question: message },
+          reason: "business_domain_fallback",
+        },
+      };
     }
   }
 
@@ -272,6 +288,23 @@ export async function resolveOrchestrationRoute(
         ),
       };
     }
+
+    // Honest unsupported write — do not invent CRM/leave/invoice mutations.
+    const capabilities = answerCapabilityQuestion("What can you do?", { business });
+    const registered = capabilities?.statements?.length
+      ? capabilities.statements.map((s) => `• ${s}`).join("\n")
+      : "• Create client\n• Create project\n• Related client contact / location actions";
+    return {
+      kind: "capability_answer",
+      message: [
+        "I don't have a registered write action for that request yet.",
+        "",
+        "Registered executable writes today:",
+        registered,
+        "",
+        "I can still look up related live data, or you can approve one of the registered actions above.",
+      ].join("\n"),
+    };
   }
 
   // BUSINESS / other reads — deterministic tools (PDF, email, search*).

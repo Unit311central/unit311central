@@ -371,8 +371,21 @@ export function answerPlatformQuestion(message: string): PlatformQuestionAnswer 
     return null;
   }
 
-  // Business-data list requests are not platform navigation.
+  // Live business data requests are not platform navigation.
   if (/\b(show|list)\s+(my\s+)?(clients?|projects?|employees?|invoices?|tasks?)\b/i.test(lower)) {
+    return null;
+  }
+  if (
+    /\b(show|list|summarise|summarize|explain|which|are)\b[\s\S]{0,80}\b(cap\s*table|office\s+locations?|bank\s+accounts?|advisers?|advisors?|share\s+classes?|certificates?|identities|integrations?|payroll\s+cost|leave\s+balance)\b/i.test(
+      lower,
+    )
+  ) {
+    return null;
+  }
+  if (
+    /\b(list|show)\s+(our|the|my)\s+/i.test(lower) &&
+    !/\b(modules?|apps?|applications?|pages?|views?)\b/i.test(lower)
+  ) {
     return null;
   }
 

@@ -28,13 +28,13 @@ const PLATFORM_HINT =
   /\b(modules?|application\s+catalogue|platform\s+structure|what\s+is\s+under|applications?\s+(are\s+)?under|apps?\s+(are\s+)?under|pages?\s+(are\s+)?under|open\s+(financials|human\s+resources|hr|operations|settings|business\s+central)|where\s+(do\s+i|can\s+i|is)|go\s+to\s+(financials|hr|human\s+resources))\b/i;
 
 const CAPABILITY_HINT =
-  /\b(what\s+can\s+you\s+do|what\s+are\s+you\s+(able|capable)\s+of|list\s+(your\s+)?(capabilities|actions)|what\s+actions?\s+(exist|are\s+(there|available)|for)|can\s+you\s+(create|add|archive|update|assign|merge)|capabilities?\s+for|actions?\s+for)\b/i;
+  /\b(what\s+can\s+you\s+(do|help|show|tell|answer|provide|generate|configure|change)|what\s+can\s+you\s+help\s+me\s+with|what\s+are\s+you\s+(able|capable)\s+of|list\s+(your\s+)?(capabilities|actions)|what\s+actions?\s+(exist|are\s+(there|available)|for)|can\s+you\s+(create|add|archive|update|assign|merge)|capabilities?\s+for|actions?\s+for|what\s+\w+\s+can\s+you\b)\b/i;
 
 const WRITE_HINT =
-  /\b(create|add|register|archive|restore|assign|merge|update|delete|terminate|approve\s+payment|signed|signing|we've\s+just\s+signed|just\s+signed|onboard|set\s*up)\b/i;
+  /\b(create|add|register|archive|restore|assign|merge|update|delete|terminate|approve|reject|cancel|book|reserve|reschedule|move|mark|qualify|chase|switch|confirm|write\s*off|approve\s+payment|signed|signing|we've\s+just\s+signed|just\s+signed|onboard|set\s*up)\b/i;
 
 const BUSINESS_HINT =
-  /\b(show\s+(my\s+)?|list\s+(my\s+)?|how\s+many|how\s+much\s+cash|how\s+healthy|who\s+(manages|owns|is|owes)|overdue|at\s+risk|biggest\s+risks|outstanding|which\s+(projects|clients|customers)|clients?\b|employees?\b|invoices?\b|headcount|cash\s+(position|do\s+we\s+have|balance)|overloaded|workload|what\s+(has\s+)?changed|what\s+happened|miss\s+deadlines?|highest\s+overdue|summarise|summarize|attention|focus\s+on\s+today|opportunities|pipeline|behind\s+schedule|delegate|meeting\s+with|leave|overnight|since\s+yesterday|portfolio|status|quiet|joined|blocking|one-line|overview)\b/i;
+  /\b(show\s+(my\s+|our\s+|the\s+)?|list\s+(my\s+|our\s+|the\s+)?|how\s+many|how\s+much\s+cash|how\s+healthy|who\s+(manages|owns|is|owes|can\s+grant)|overdue|at\s+risk|biggest\s+risks|outstanding|which\s+(projects|clients|customers|modules|locations|certificates|integrations|courses)|clients?\b|employees?\b|invoices?\b|headcount|cash\s+(position|do\s+we\s+have|balance)|overloaded|workload|what\s+(has\s+)?changed|what\s+happened|miss\s+deadlines?|highest\s+overdue|summarise|summarize|attention|focus\s+on\s+today|opportunities|pipeline|behind\s+schedule|delegate|meeting\s+with|leave|overnight|since\s+yesterday|portfolio|status|quiet|joined|blocking|one-line|overview|cap\s*table|office\s+locations?|bank\s+accounts?|share\s+classes?|advisers?|advisors?)\b/i;
 
 /**
  * Coarse domain classification used before tool selection.

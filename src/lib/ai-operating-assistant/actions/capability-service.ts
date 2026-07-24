@@ -382,9 +382,13 @@ export function answerCapabilityQuestion(
     /^(what\s+can\s+you\s+do|what\s+are\s+you\s+(able|capable)\s+of|list\s+(your\s+)?(capabilities|actions)|show\s+(me\s+)?(what\s+you\s+can\s+do|your\s+capabilities))\??$/i.test(
       lower,
     ) ||
-    /\b(what\s+can\s+you\s+do|list\s+your\s+capabilities|what\s+actions\s+(are\s+)?available)\b/i.test(
+    /\b(what\s+can\s+you\s+(do|help|show|tell|answer|provide|generate|configure|change)|what\s+can\s+you\s+help\s+me\s+with)\b/i.test(
       lower,
-    );
+    ) ||
+    /\bwhat\s+(financial|hr|security|qms|technology|billing)?\s*(questions|reports|insights|options)\s+can\s+you\b/i.test(
+      lower,
+    ) ||
+    /\b(list\s+your\s+capabilities|what\s+actions\s+(are\s+)?available)\b/i.test(lower);
 
   const objectScoped = lower.match(
     /\b(?:what\s+actions?\s+(?:exist|are\s+(?:there|available))\s+(?:for|on|in)|(?:list|show)\s+actions?\s+(?:for|on|in)|capabilities?\s+for|actions?\s+for)\s+(.+?)(?:\?|$)/i,

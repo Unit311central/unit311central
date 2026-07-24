@@ -94,7 +94,7 @@ export function hasExplicitWriteIntent(message: string): boolean {
     return false;
   }
 
-  return /\b(create|add|register|archive|restore|assign|appoint|merge|combine|update|change|edit|amend|delete|remove|onboard|set\s*up|setup|start|launch|signed|signing|we(?:'ve| have)?\s+(?:just\s+)?signed|just\s+signed)\b/i.test(
+  return /\b(create|add|register|archive|restore|assign|appoint|merge|combine|update|change|edit|amend|delete|remove|onboard|set\s*up|setup|start|launch|signed|signing|we(?:'ve| have)?\s+(?:just\s+)?signed|just\s+signed|move|reschedule|mark|qualify|chase|approve|reject|cancel|book|reserve|switch|confirm|write\s*off)\b/i.test(
     lower,
   );
 }
