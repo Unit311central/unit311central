@@ -96,7 +96,7 @@ const DEMO_NAV_SECTIONS: InternalNavSection[] = [
     ],
   },
   {
-    label: "Productivity & Collaboration",
+    label: "Business Productivity",
     items: [
       { label: "Files", icon: "FolderOpen", view: "files-internal" },
       { label: "Calendar", icon: "CalendarDays", view: "calendar" },

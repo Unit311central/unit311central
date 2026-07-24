@@ -46,8 +46,8 @@ const MODULES = [
     accent: "#a78bfa",
   },
   {
-    title: "Technology Management",
-    description: "Devices, software, SaaS, infrastructure, cloud, security and technology assets.",
+    title: "Technology & Engineering",
+    description: "Devices, software, infrastructure, cloud, engineering, APIs and DevOps.",
     icon: Cpu,
     accent: "#38bdf8",
   },

@@ -3,14 +3,13 @@
 import { useId, useState, type CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity,
   Banknote,
+  Bot,
   Boxes,
   Briefcase,
-  Cable,
-  ChartColumn,
-  ClipboardList,
+  Building2,
   Cloud,
+  Code2,
   Cpu,
   Database,
   FolderKanban,
@@ -24,6 +23,7 @@ import {
   MessageSquare,
   Package,
   Plug,
+  Scale,
   ShieldCheck,
   Target,
   Truck,
@@ -42,10 +42,12 @@ type FeaturedCapabilities = [Capability, Capability, Capability, Capability];
 
 type WorkspaceVisual =
   | "central"
+  | "assistant"
   | "clients"
   | "finance"
   | "people"
   | "technology"
+  | "corporate"
   | "operations"
   | "productivity"
   | "integrations";
@@ -74,7 +76,7 @@ const WORKSPACES: Workspace[] = [
     title: "Business Central",
     subtitle: "Executive oversight",
     description:
-      "Executive oversight, strategic planning, AI-powered decision making and enterprise-wide business management.",
+      "Executive oversight and enterprise-wide business management, including Quality Management (QMS).",
     icon: LayoutDashboard,
     visual: "central",
     accent: { rgb: "59, 130, 246", label: "blue" },
@@ -85,167 +87,228 @@ const WORKSPACES: Workspace[] = [
         icon: Gauge,
       },
       {
-        label: "Client Management",
-        detail: "Organisation-wide client visibility with relationship context.",
-        icon: Users,
+        label: "Quality Management",
+        detail: "Embed QMS controls into day-to-day operating workflows.",
+        icon: ShieldCheck,
       },
       {
-        label: "Sales & Onboarding",
-        detail: "Move opportunities from discovery through structured onboarding.",
-        icon: Handshake,
+        label: "Strategic Planning",
+        detail: "Keep priorities, ownership and delivery health in one view.",
+        icon: Target,
       },
       {
-        label: "Project Portfolio",
-        detail: "Portfolio health, delivery risk and progress in one executive view.",
-        icon: ChartColumn,
+        label: "Enterprise Oversight",
+        detail: "See the organisation as one connected operating picture.",
+        icon: LayoutDashboard,
       },
     ],
-    additionalCapabilityCount: 2,
+    additionalCapabilityCount: 0,
+  },
+  {
+    id: "ai-executive-assistant",
+    title: "AI Executive Assistant",
+    subtitle: "AI insights",
+    description:
+      "AI assistant, executive insights and business intelligence across the operating platform.",
+    icon: Bot,
+    visual: "assistant",
+    accent: { rgb: "244, 114, 182", label: "pink" },
+    featuredCapabilities: [
+      {
+        label: "AI Assistant",
+        detail: "Ask questions and take action across connected business data.",
+        icon: Bot,
+      },
+      {
+        label: "Executive Insights",
+        detail: "Surface what needs attention before it becomes friction.",
+        icon: Gauge,
+      },
+      {
+        label: "Business Intelligence",
+        detail: "Turn live workspace signals into clear decision support.",
+        icon: Target,
+      },
+      {
+        label: "Operating Briefings",
+        detail: "Keep leadership aligned with concise, current summaries.",
+        icon: MessageSquare,
+      },
+    ],
+    additionalCapabilityCount: 0,
   },
   {
     id: "clients-projects",
     title: "Clients & Projects",
-    subtitle: "Relationships & delivery",
-    description:
-      "Manage client relationships, pipeline, onboarding and project delivery in one connected workspace.",
+    subtitle: "CRM, sales and delivery",
+    description: "CRM, sales, projects and delivery in one connected workspace.",
     icon: Briefcase,
     visual: "clients",
     accent: { rgb: "20, 184, 166", label: "teal" },
     featuredCapabilities: [
       {
-        label: "Client Directory",
-        detail: "Accounts, contacts and commercial history in one place.",
-        icon: Users,
-      },
-      {
-        label: "CRM & Pipeline",
-        detail: "Qualify demand and advance opportunities with clear stage ownership.",
+        label: "CRM",
+        detail: "Qualify demand and advance opportunities with clear ownership.",
         icon: Handshake,
       },
       {
-        label: "Client Onboarding",
-        detail: "Standardise kickoff so every new client starts consistently.",
-        icon: ClipboardList,
+        label: "Sales",
+        detail: "Move commercial work from pipeline through close.",
+        icon: Target,
       },
       {
-        label: "Project Delivery",
-        detail: "Govern internal and external work with shared visibility.",
+        label: "Projects",
+        detail: "Plan and track delivery across internal and external work.",
         icon: FolderKanban,
       },
+      {
+        label: "Delivery",
+        detail: "Keep account and delivery teams aligned through close-out.",
+        icon: Briefcase,
+      },
     ],
-    additionalCapabilityCount: 2,
+    additionalCapabilityCount: 0,
   },
   {
     id: "financials",
     title: "Financials",
-    subtitle: "Finance & reporting",
-    description:
-      "Run finance operations, banking connections and reporting from a unified financial command centre.",
+    subtitle: "Finance and reporting",
+    description: "Finance, reporting and budgeting from a unified financial command centre.",
     icon: Wallet,
     visual: "finance",
     accent: { rgb: "16, 185, 129", label: "emerald" },
     featuredCapabilities: [
       {
-        label: "Financial Dashboard",
-        detail: "Cash, runway and performance signals in a single operating picture.",
-        icon: ChartColumn,
+        label: "Finance",
+        detail: "Run day-to-day finance operations in one place.",
+        icon: Wallet,
       },
       {
-        label: "Receivables & Payables",
-        detail: "Track invoices, collections and supplier obligations clearly.",
+        label: "Reporting",
+        detail: "Produce board-ready financial reporting without spreadsheet sprawl.",
         icon: Banknote,
       },
       {
-        label: "Expenses",
-        detail: "Capture and review spend with policy-aware workflows.",
-        icon: ClipboardList,
+        label: "Budgeting",
+        detail: "Plan and track budgets against live operating signals.",
+        icon: Gauge,
       },
       {
-        label: "Financial Reporting",
-        detail: "Produce board-ready reporting without spreadsheet sprawl.",
-        icon: Activity,
+        label: "Cash Visibility",
+        detail: "Keep runway, receivables and payables in one picture.",
+        icon: Gauge,
       },
     ],
-    additionalCapabilityCount: 2,
+    additionalCapabilityCount: 0,
   },
   {
     id: "hr-people",
     title: "HR & People",
     subtitle: "Workforce management",
-    description:
-      "Coordinate workforce management across people, leave, performance, payroll and training.",
+    description: "HR, recruitment, training, performance and workforce operations.",
     icon: UsersRound,
     visual: "people",
     accent: { rgb: "168, 85, 247", label: "purple" },
     featuredCapabilities: [
       {
-        label: "HR Dashboard",
-        detail: "See headcount, capacity and people risk before it becomes friction.",
-        icon: Gauge,
-      },
-      {
-        label: "Employees",
+        label: "HR",
         detail: "Maintain employee records, roles and organisational structure.",
         icon: Users,
       },
       {
-        label: "Leave & Performance",
-        detail: "Balance time-off and track goals, reviews and development.",
-        icon: Target,
+        label: "Recruitment",
+        detail: "Run hiring pipelines from requisition through offer.",
+        icon: UsersRound,
       },
       {
         label: "Training",
         detail: "Plan learning paths and keep workforce skills current.",
         icon: GraduationCap,
       },
+      {
+        label: "Performance",
+        detail: "Track goals, reviews and development conversations.",
+        icon: Target,
+      },
     ],
-    additionalCapabilityCount: 2,
+    additionalCapabilityCount: 1,
   },
   {
-    id: "technology-management",
-    title: "Technology Management",
-    subtitle: "Technology estate",
+    id: "technology-engineering",
+    title: "Technology & Engineering",
+    subtitle: "Technology estate and engineering",
     description:
-      "Manage your organisation's complete technology estate across devices, software, infrastructure, cloud, identity and security.",
+      "Devices, software, telecommunications, infrastructure, cloud, networks, engineering, APIs, development and DevOps.",
     icon: Cpu,
     visual: "technology",
     accent: { rgb: "56, 189, 248", label: "sky" },
     featuredCapabilities: [
       {
-        label: "Devices & Assets",
-        detail: "Track hardware, assignments, warranties and the physical estate.",
+        label: "Devices and Software",
+        detail: "Track hardware, licences and the technology estate.",
         icon: HardDrive,
       },
       {
-        label: "Software & SaaS",
-        detail: "Govern licences, subscriptions, renewals and application inventory.",
-        icon: KeyRound,
-      },
-      {
-        label: "Infrastructure & Cloud",
-        detail: "Operate servers, platforms and cloud footprint across providers.",
+        label: "Infrastructure and Cloud",
+        detail: "Operate platforms, networks and cloud footprint.",
         icon: Cloud,
       },
       {
-        label: "Identity & Security",
-        detail: "Coordinate identity, access, certificates and security controls.",
-        icon: ShieldCheck,
+        label: "Engineering",
+        detail: "Coordinate engineering delivery inside the technology workspace.",
+        icon: Code2,
+      },
+      {
+        label: "APIs and DevOps",
+        detail: "Connect development, APIs and operating workflows.",
+        icon: KeyRound,
       },
     ],
-    additionalCapabilityCount: 8,
+    additionalCapabilityCount: 6,
+  },
+  {
+    id: "corporate",
+    title: "Corporate",
+    subtitle: "Governance and compliance",
+    description: "Governance, compliance, risk, legal and policies.",
+    icon: Scale,
+    visual: "corporate",
+    accent: { rgb: "148, 163, 184", label: "slate" },
+    featuredCapabilities: [
+      {
+        label: "Governance",
+        detail: "Keep corporate structure and accountability clear.",
+        icon: Building2,
+      },
+      {
+        label: "Compliance",
+        detail: "Coordinate obligations and compliance evidence.",
+        icon: ShieldCheck,
+      },
+      {
+        label: "Risk",
+        detail: "Track risk ownership before issues become exposure.",
+        icon: Scale,
+      },
+      {
+        label: "Legal and Policies",
+        detail: "Store agreements, policies and controlled guidance.",
+        icon: Database,
+      },
+    ],
+    additionalCapabilityCount: 0,
   },
   {
     id: "operations",
     title: "Operations",
-    subtitle: "Inventory & logistics",
-    description:
-      "Run day-to-day operations across assets, inventory, logistics movements and procurement.",
+    subtitle: "Assets and logistics",
+    description: "Assets, inventory, logistics and procurement.",
     icon: Package,
     visual: "operations",
     accent: { rgb: "6, 182, 212", label: "cyan" },
     featuredCapabilities: [
       {
-        label: "Asset Register",
+        label: "Assets",
         detail: "Know what you own, where it sits and who is accountable.",
         icon: Boxes,
       },
@@ -262,50 +325,49 @@ const WORKSPACES: Workspace[] = [
       {
         label: "Procurement",
         detail: "Run purchasing with visibility from request to receipt.",
-        icon: ClipboardList,
+        icon: Handshake,
       },
     ],
-    additionalCapabilityCount: 2,
+    additionalCapabilityCount: 0,
   },
   {
-    id: "productivity",
-    title: "Productivity & Collaboration",
-    subtitle: "Communication & knowledge",
-    description:
-      "Centralise communication, knowledge, calendar and support across your organisation.",
+    id: "business-productivity",
+    title: "Business Productivity",
+    subtitle: "Communication and knowledge",
+    description: "Email, calendar, documents, knowledge, collaboration and communications.",
     icon: MessageSquare,
     visual: "productivity",
     accent: { rgb: "99, 102, 241", label: "indigo" },
     featuredCapabilities: [
       {
-        label: "Knowledge Repository",
-        detail: "Keep institutional knowledge searchable and structured.",
-        icon: Database,
-      },
-      {
-        label: "Email & Calendar",
+        label: "Email and Calendar",
         detail: "Operate shared inboxes and schedules in business context.",
         icon: Mail,
       },
       {
-        label: "Communications",
+        label: "Documents and Knowledge",
+        detail: "Keep institutional knowledge searchable and structured.",
+        icon: Database,
+      },
+      {
+        label: "Collaboration",
         detail: "Connect teams through organised channels and threads.",
         icon: MessageSquare,
       },
       {
-        label: "Support Desk",
-        detail: "Handle support conversations with clear ownership and history.",
-        icon: Cable,
+        label: "Communications",
+        detail: "Coordinate live and asynchronous operating conversations.",
+        icon: Users,
       },
     ],
-    additionalCapabilityCount: 2,
+    additionalCapabilityCount: 0,
   },
   {
-    id: "integrations",
-    title: "Business Integrations",
-    subtitle: "Connect your existing systems",
+    id: "business-app-integrations",
+    title: "Business App Integrations",
+    subtitle: "Connect your systems",
     description:
-      "Connect Unit311 Central to the specialist systems your business already relies on—integrate rather than replace.",
+      "Microsoft 365, Google Workspace, finance systems, CRM systems, REST APIs and custom integrations.",
     icon: Plug,
     visual: "integrations",
     accent: { rgb: "100, 116, 139", label: "blue-grey" },
@@ -316,22 +378,22 @@ const WORKSPACES: Workspace[] = [
         icon: Cloud,
       },
       {
-        label: "Finance Systems",
-        detail: "Sync accounting platforms without forcing a rip-and-replace.",
+        label: "Google Workspace",
+        detail: "Bring Google productivity systems into the operating layer.",
+        icon: Mail,
+      },
+      {
+        label: "Finance and CRM Systems",
+        detail: "Sync accounting and commercial platforms without rip-and-replace.",
         icon: Wallet,
       },
       {
-        label: "CRM Platforms",
-        detail: "Bridge commercial systems so pipeline data stays current.",
-        icon: Target,
-      },
-      {
-        label: "APIs & Integrations",
+        label: "REST APIs and Custom",
         detail: "Extend Unit311 Central through secure, composable interfaces.",
         icon: Plug,
       },
     ],
-    additionalCapabilityCount: 2,
+    additionalCapabilityCount: 0,
   },
 ];
 
@@ -398,6 +460,30 @@ function PanelAtmosphere({ visual }: { visual: WorkspaceVisual }) {
           <circle cx="130" cy="200" r="9" stroke="currentColor" strokeWidth="1" />
           <circle cx="290" cy="198" r="9" stroke="currentColor" strokeWidth="1" />
           <path d="M160 128L200 170M260 126L220 170M140 194L198 184M280 192L222 184" stroke="currentColor" strokeWidth="1" />
+        </svg>
+      );
+    case "assistant":
+      return (
+        <svg viewBox="0 0 420 320" fill="none" aria-hidden className="h-full w-full">
+          <circle cx="210" cy="150" r="58" stroke="currentColor" strokeWidth="1" />
+          <circle cx="210" cy="150" r="96" stroke="currentColor" strokeWidth="1" opacity="0.55" />
+          <path d="M150 150H270M210 110V190" stroke="currentColor" strokeWidth="1.2" />
+          <circle cx="150" cy="120" r="11" stroke="currentColor" strokeWidth="1.1" />
+          <circle cx="270" cy="118" r="11" stroke="currentColor" strokeWidth="1.1" />
+          <circle cx="210" cy="180" r="13" stroke="currentColor" strokeWidth="1.2" />
+        </svg>
+      );
+    case "corporate":
+      return (
+        <svg viewBox="0 0 420 320" fill="none" aria-hidden className="h-full w-full">
+          <rect x="90" y="70" width="90" height="180" rx="10" stroke="currentColor" strokeWidth="1.1" />
+          <rect x="210" y="100" width="110" height="150" rx="10" stroke="currentColor" strokeWidth="1.1" />
+          <rect x="112" y="100" width="28" height="18" rx="3" stroke="currentColor" strokeWidth="1" />
+          <rect x="112" y="136" width="28" height="18" rx="3" stroke="currentColor" strokeWidth="1" />
+          <rect x="112" y="172" width="28" height="18" rx="3" stroke="currentColor" strokeWidth="1" />
+          <rect x="236" y="130" width="40" height="24" rx="4" stroke="currentColor" strokeWidth="1" />
+          <rect x="236" y="174" width="40" height="24" rx="4" stroke="currentColor" strokeWidth="1" />
+          <path d="M70 260H350" stroke="currentColor" strokeWidth="1" />
         </svg>
       );
     case "technology":
@@ -499,6 +585,20 @@ function TileAtmosphere({ visual }: { visual: WorkspaceVisual }) {
           <circle cx="54" cy="88" r="7" fill="currentColor" opacity="0.18" />
           <circle cx="104" cy="84" r="6" fill="currentColor" opacity="0.16" />
           <circle cx="80" cy="128" r="7.5" fill="currentColor" opacity="0.2" />
+        </svg>
+      );
+    case "assistant":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <circle cx="80" cy="108" r="34" stroke="currentColor" strokeWidth="1" opacity="0.1" />
+          <path d="M56 108H104M80 84V132" stroke="currentColor" strokeWidth="1.2" opacity="0.2" />
+        </svg>
+      );
+    case "corporate":
+      return (
+        <svg className="workspace-atmosphere" viewBox="0 0 160 220" fill="none" aria-hidden>
+          <rect x="28" y="48" width="44" height="132" rx="8" stroke="currentColor" strokeWidth="1" opacity="0.14" />
+          <rect x="80" y="68" width="52" height="112" rx="8" stroke="currentColor" strokeWidth="1" opacity="0.1" />
         </svg>
       );
     case "technology":
@@ -659,8 +759,8 @@ function WorkspaceTile({
       id={`${panelId}-${workspace.id}`}
       onClick={onToggle}
       className={[
-        "workspace-tile group relative flex flex-col overflow-hidden rounded-[16px] text-left sm:rounded-[18px]",
-        "min-h-[7.75rem] sm:min-h-[8.75rem] md:min-h-[9.25rem] xl:min-h-[9rem] xl:rounded-[14px] 2xl:min-h-[9.35rem] 2xl:rounded-[16px]",
+        "workspace-tile group relative flex shrink-0 flex-col overflow-hidden rounded-[16px] text-left sm:rounded-[18px]",
+        "min-h-[7.75rem] w-[7.75rem] sm:min-h-[8.75rem] sm:w-[8.5rem] md:min-h-[9.25rem] lg:w-auto lg:min-w-0 xl:min-h-[9rem] xl:rounded-[14px] 2xl:min-h-[9.35rem] 2xl:rounded-[16px]",
         "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050816]",
         isOpen ? "is-open is-detached" : "",
       ].join(" ")}
@@ -729,7 +829,7 @@ export default function HomeWorkspaceExplorer() {
       <div
         role="tablist"
         aria-label="Unit311 Central workspaces"
-        className="workspace-explorer-open relative grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-3 lg:grid-cols-4 lg:gap-3 xl:grid-cols-4 xl:gap-2.5 2xl:grid-cols-8 2xl:gap-2.5"
+        className="workspace-explorer-open relative flex flex-nowrap gap-2 overflow-x-auto pb-1 sm:gap-2.5 lg:grid lg:grid-cols-10 lg:gap-2 lg:overflow-visible lg:pb-0"
       >
         {WORKSPACES.map((workspace) => (
           <WorkspaceTile

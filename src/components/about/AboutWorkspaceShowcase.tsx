@@ -3,15 +3,15 @@
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  Activity,
   Banknote,
+  Bot,
   Boxes,
   Briefcase,
-  CalendarDays,
-  ChartColumn,
-  ClipboardList,
+  Building2,
   Cloud,
+  Code2,
   Cpu,
+  Database,
   FolderKanban,
   Gauge,
   GraduationCap,
@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Package,
   Plug,
+  Scale,
   ShieldCheck,
   Target,
   Truck,
@@ -151,115 +152,99 @@ const WORKSPACES: Workspace[] = [
     shortTitle: "Central",
     subtitle: "Executive oversight",
     description:
-      "Run the organisation from one executive command centre — priorities, delivery health and strategic decisions in a single operating picture.",
+      "Executive oversight and enterprise-wide business management, including Quality Management (QMS).",
     accentRgb: "59, 130, 246",
     icon: LayoutDashboard,
     featuredCapabilities: [
-      {
-        label: "Executive Dashboard",
-        detail: "Live KPIs and strategic reporting tailored to leadership roles.",
-        icon: Gauge,
-      },
-      {
-        label: "Client Management",
-        detail: "Organisation-wide client visibility with relationship context.",
-        icon: Users,
-      },
-      {
-        label: "Sales & Onboarding",
-        detail: "Move opportunities from discovery through structured onboarding.",
-        icon: Handshake,
-      },
-      {
-        label: "Project Portfolio",
-        detail: "Track delivery risk, progress and ownership across the portfolio.",
-        icon: FolderKanban,
-      },
+      { label: "Executive Dashboard", detail: "Live KPIs and strategic reporting.", icon: Gauge },
+      { label: "Quality Management", detail: "Embed QMS controls into operating workflows.", icon: ShieldCheck },
+      { label: "Strategic Planning", detail: "Keep priorities and ownership visible.", icon: Target },
+      { label: "Enterprise Oversight", detail: "One connected operating picture.", icon: LayoutDashboard },
     ],
-    additionalCapabilityCount: 2,
-    screenshot: makeShot(
-      "Business Central · Executive Dashboard",
-      "59, 130, 246",
-      ["Health", "Pipeline", "At risk"],
-      ["Board pack review", "Enterprise renewals", "Capacity planning", "Grant milestones"],
+    additionalCapabilityCount: 0,
+    screenshot: (
+      <ShotShell title="Business Central · Executive Dashboard" accentRgb="59, 130, 246">
+        <KpiRow items={["Health", "QMS", "At risk"]} accentRgb="59, 130, 246" />
+        <ListRows
+          rows={["Board pack review", "QMS actions", "Enterprise renewals", "Capacity planning"]}
+          accentRgb="59, 130, 246"
+        />
+      </ShotShell>
+    ),
+  },
+  {
+    id: "ai-executive-assistant",
+    title: "AI Executive Assistant",
+    shortTitle: "Assistant",
+    subtitle: "AI insights",
+    description: "AI assistant, executive insights and business intelligence across the operating platform.",
+    accentRgb: "244, 114, 182",
+    icon: Bot,
+    featuredCapabilities: [
+      { label: "AI Assistant", detail: "Ask questions and take action across business data.", icon: Bot },
+      { label: "Executive Insights", detail: "Surface what needs attention early.", icon: Gauge },
+      { label: "Business Intelligence", detail: "Turn live signals into decision support.", icon: Target },
+      { label: "Operating Briefings", detail: "Keep leadership aligned with current summaries.", icon: MessageSquare },
+    ],
+    additionalCapabilityCount: 0,
+    screenshot: (
+      <ShotShell title="AI Executive Assistant · Insights" accentRgb="244, 114, 182">
+        <KpiRow items={["Alerts", "Actions", "Briefs"]} accentRgb="244, 114, 182" />
+        <ListRows
+          rows={["Cash watch", "Delivery risk", "People coverage", "Renewal pack"]}
+          accentRgb="244, 114, 182"
+        />
+      </ShotShell>
     ),
   },
   {
     id: "clients-projects",
     title: "Clients & Projects",
     shortTitle: "Clients",
-    subtitle: "Relationships & delivery",
-    description:
-      "Connect commercial pipeline and project delivery so account teams and delivery leads stay aligned from first conversation to close-out.",
+    subtitle: "CRM, sales and delivery",
+    description: "CRM, sales, projects and delivery in one connected workspace.",
     accentRgb: "20, 184, 166",
     icon: Briefcase,
     featuredCapabilities: [
-      {
-        label: "Client Directory",
-        detail: "Accounts, contacts and commercial history in one place.",
-        icon: Users,
-      },
-      {
-        label: "CRM & Pipeline",
-        detail: "Advance opportunities with clear stage ownership.",
-        icon: Handshake,
-      },
-      {
-        label: "Client Onboarding",
-        detail: "Standardise kickoff so every client starts consistently.",
-        icon: ClipboardList,
-      },
-      {
-        label: "Project Delivery",
-        detail: "Govern internal and external work with shared visibility.",
-        icon: FolderKanban,
-      },
+      { label: "CRM", detail: "Qualify demand with clear stage ownership.", icon: Handshake },
+      { label: "Sales", detail: "Move commercial work from pipeline through close.", icon: Target },
+      { label: "Projects", detail: "Plan and track delivery across the portfolio.", icon: FolderKanban },
+      { label: "Delivery", detail: "Keep account and delivery teams aligned.", icon: Briefcase },
     ],
-    additionalCapabilityCount: 2,
-    screenshot: makeShot(
-      "Clients & Projects · Pipeline",
-      "20, 184, 166",
-      ["Active", "Won", "Onboarding"],
-      ["Northwind renewal", "Helios discovery", "Atlas onboarding", "Orbit delivery"],
+    additionalCapabilityCount: 0,
+    screenshot: (
+      <ShotShell title="Clients & Projects · Pipeline" accentRgb="20, 184, 166">
+        <KpiRow items={["Active", "Won", "Delivery"]} accentRgb="20, 184, 166" />
+        <ListRows
+          rows={["Northwind renewal", "Helios discovery", "Atlas onboarding", "Orbit delivery"]}
+          accentRgb="20, 184, 166"
+        />
+      </ShotShell>
     ),
   },
   {
     id: "financials",
     title: "Financials",
     shortTitle: "Finance",
-    subtitle: "Finance & reporting",
-    description:
-      "Operate cash, receivables, payables and reporting from a unified financial command centre without spreadsheet sprawl.",
+    subtitle: "Finance and reporting",
+    description: "Finance, reporting and budgeting from a unified financial command centre.",
     accentRgb: "16, 185, 129",
     icon: Wallet,
     featuredCapabilities: [
-      {
-        label: "Financial Dashboard",
-        detail: "Cash, runway and performance in one operating picture.",
-        icon: ChartColumn,
-      },
-      {
-        label: "Receivables & Payables",
-        detail: "Track customer balances and supplier obligations clearly.",
-        icon: Banknote,
-      },
-      {
-        label: "Expenses",
-        detail: "Capture spend with policy-aware review workflows.",
-        icon: ClipboardList,
-      },
-      {
-        label: "Reporting",
-        detail: "Produce board-ready financial reporting faster.",
-        icon: Activity,
-      },
+      { label: "Finance", detail: "Run day-to-day finance operations in one place.", icon: Wallet },
+      { label: "Reporting", detail: "Produce board-ready financial reporting faster.", icon: Banknote },
+      { label: "Budgeting", detail: "Plan and track budgets against live signals.", icon: Gauge },
+      { label: "Cash Visibility", detail: "Keep runway and obligations in one picture.", icon: Gauge },
     ],
-    additionalCapabilityCount: 2,
-    screenshot: makeShot(
-      "Financials · Cash & Reporting",
-      "16, 185, 129",
-      ["Cash", "AR", "AP"],
-      ["Treasury summary", "Open invoices", "Supplier approvals", "Monthly close"],
+    additionalCapabilityCount: 0,
+    screenshot: (
+      <ShotShell title="Financials · Cash & Reporting" accentRgb="16, 185, 129">
+        <KpiRow items={["Cash", "AR", "AP"]} accentRgb="16, 185, 129" />
+        <ListRows
+          rows={["Treasury summary", "Open invoices", "Supplier approvals", "Monthly close"]}
+          accentRgb="16, 185, 129"
+        />
+      </ShotShell>
     ),
   },
   {
@@ -267,194 +252,151 @@ const WORKSPACES: Workspace[] = [
     title: "HR & People",
     shortTitle: "People",
     subtitle: "Workforce management",
-    description:
-      "Coordinate people operations across headcount, leave, performance and training before capacity issues become operational friction.",
+    description: "HR, recruitment, training, performance and workforce operations.",
     accentRgb: "168, 85, 247",
     icon: UsersRound,
     featuredCapabilities: [
-      {
-        label: "HR Dashboard",
-        detail: "See headcount, capacity and people risk early.",
-        icon: Gauge,
-      },
-      {
-        label: "Leave & Attendance",
-        detail: "Balance time-off with operational coverage.",
-        icon: CalendarDays,
-      },
-      {
-        label: "Performance",
-        detail: "Track goals, reviews and development conversations.",
-        icon: Target,
-      },
-      {
-        label: "Training",
-        detail: "Keep workforce skills current with structured learning.",
-        icon: GraduationCap,
-      },
+      { label: "HR", detail: "Maintain employee records and structure.", icon: Users },
+      { label: "Recruitment", detail: "Run hiring from requisition through offer.", icon: UsersRound },
+      { label: "Training", detail: "Keep workforce skills current.", icon: GraduationCap },
+      { label: "Performance", detail: "Track goals, reviews and development.", icon: Target },
     ],
-    additionalCapabilityCount: 2,
-    screenshot: makeShot(
-      "HR & People · Workforce",
-      "168, 85, 247",
-      ["Headcount", "Leave", "Training"],
-      ["Open requisitions", "Leave requests", "Review cycle", "Mandatory training"],
+    additionalCapabilityCount: 1,
+    screenshot: (
+      <ShotShell title="HR & People · Workforce" accentRgb="168, 85, 247">
+        <KpiRow items={["Headcount", "Leave", "Training"]} accentRgb="168, 85, 247" />
+        <ListRows
+          rows={["Open requisitions", "Leave requests", "Review cycle", "Mandatory training"]}
+          accentRgb="168, 85, 247"
+        />
+      </ShotShell>
     ),
   },
   {
-    id: "technology-management",
-    title: "Technology Management",
+    id: "technology-engineering",
+    title: "Technology & Engineering",
     shortTitle: "Technology",
-    subtitle: "Technology estate",
+    subtitle: "Technology estate and engineering",
     description:
-      "Manage the organisation's complete technology estate across devices, software, infrastructure, cloud, identity and security.",
+      "Devices, software, telecommunications, infrastructure, cloud, networks, engineering, APIs, development and DevOps.",
     accentRgb: "56, 189, 248",
     icon: Cpu,
     featuredCapabilities: [
-      {
-        label: "Devices & Assets",
-        detail: "Track hardware, assignments and the physical estate.",
-        icon: HardDrive,
-      },
-      {
-        label: "Software & SaaS",
-        detail: "Govern licences, subscriptions and renewals.",
-        icon: KeyRound,
-      },
-      {
-        label: "Infrastructure & Cloud",
-        detail: "Operate platforms, servers and cloud footprint.",
-        icon: Cloud,
-      },
-      {
-        label: "Identity & Security",
-        detail: "Coordinate access, domains, certificates and security.",
-        icon: ShieldCheck,
-      },
+      { label: "Devices and Software", detail: "Track hardware, licences and the estate.", icon: HardDrive },
+      { label: "Infrastructure and Cloud", detail: "Operate platforms, networks and cloud.", icon: Cloud },
+      { label: "Engineering", detail: "Coordinate engineering inside technology.", icon: Code2 },
+      { label: "APIs and DevOps", detail: "Connect development and operating workflows.", icon: KeyRound },
     ],
-    additionalCapabilityCount: 8,
-    screenshot: makeShot(
-      "Technology Management · Estate",
-      "56, 189, 248",
-      ["Devices", "Licences", "Alerts"],
-      ["Laptop fleet", "SaaS renewals", "SSL certificates", "Identity reviews"],
+    additionalCapabilityCount: 6,
+    screenshot: (
+      <ShotShell title="Technology & Engineering · Estate" accentRgb="56, 189, 248">
+        <KpiRow items={["Devices", "Cloud", "APIs"]} accentRgb="56, 189, 248" />
+        <ListRows
+          rows={["Laptop fleet", "SaaS renewals", "Release train", "Identity reviews"]}
+          accentRgb="56, 189, 248"
+        />
+      </ShotShell>
+    ),
+  },
+  {
+    id: "corporate",
+    title: "Corporate",
+    shortTitle: "Corporate",
+    subtitle: "Governance and compliance",
+    description: "Governance, compliance, risk, legal and policies.",
+    accentRgb: "148, 163, 184",
+    icon: Scale,
+    featuredCapabilities: [
+      { label: "Governance", detail: "Keep corporate structure and accountability clear.", icon: Building2 },
+      { label: "Compliance", detail: "Coordinate obligations and evidence.", icon: ShieldCheck },
+      { label: "Risk", detail: "Track risk ownership early.", icon: Scale },
+      { label: "Legal and Policies", detail: "Store agreements and controlled guidance.", icon: Database },
+    ],
+    additionalCapabilityCount: 0,
+    screenshot: (
+      <ShotShell title="Corporate · Governance" accentRgb="148, 163, 184">
+        <KpiRow items={["Entities", "Risk", "Policies"]} accentRgb="148, 163, 184" />
+        <ListRows
+          rows={["Board resolutions", "Vendor contracts", "Policy register", "Compliance evidence"]}
+          accentRgb="148, 163, 184"
+        />
+      </ShotShell>
     ),
   },
   {
     id: "operations",
     title: "Operations",
     shortTitle: "Operations",
-    subtitle: "Inventory & logistics",
-    description:
-      "Track assets, inventory movements and procurement so operations always know what is owned, where it sits and what needs ordering.",
+    subtitle: "Assets and logistics",
+    description: "Assets, inventory, logistics and procurement.",
     accentRgb: "6, 182, 212",
     icon: Package,
     featuredCapabilities: [
-      {
-        label: "Asset Register",
-        detail: "Know what you own and who is accountable.",
-        icon: Boxes,
-      },
-      {
-        label: "Inventory",
-        detail: "Monitor stock levels across locations.",
-        icon: Package,
-      },
-      {
-        label: "Logistics",
-        detail: "Coordinate shipments and operational flow.",
-        icon: Truck,
-      },
-      {
-        label: "Procurement",
-        detail: "Run purchasing from request through receipt.",
-        icon: ClipboardList,
-      },
+      { label: "Assets", detail: "Know what you own and who is accountable.", icon: Boxes },
+      { label: "Inventory", detail: "Monitor stock across locations.", icon: Package },
+      { label: "Logistics", detail: "Coordinate shipments and flow.", icon: Truck },
+      { label: "Procurement", detail: "Run purchasing from request to receipt.", icon: Handshake },
     ],
-    additionalCapabilityCount: 2,
-    screenshot: makeShot(
-      "Operations · Inventory & Logistics",
-      "6, 182, 212",
-      ["Assets", "Stock", "Orders"],
-      ["Field kits", "Warehouse transfer", "PO approvals", "Inbound shipments"],
+    additionalCapabilityCount: 0,
+    screenshot: (
+      <ShotShell title="Operations · Inventory & Logistics" accentRgb="6, 182, 212">
+        <KpiRow items={["Assets", "Stock", "Orders"]} accentRgb="6, 182, 212" />
+        <ListRows
+          rows={["Field kits", "Warehouse transfer", "PO approvals", "Inbound shipments"]}
+          accentRgb="6, 182, 212"
+        />
+      </ShotShell>
     ),
   },
   {
-    id: "productivity",
-    title: "Productivity & Collaboration",
-    shortTitle: "Collaborate",
-    subtitle: "Communication & knowledge",
-    description:
-      "Centralise messaging, knowledge, calendar and support so organisational work stays visible, searchable and coordinated.",
+    id: "business-productivity",
+    title: "Business Productivity",
+    shortTitle: "Productivity",
+    subtitle: "Communication and knowledge",
+    description: "Email, calendar, documents, knowledge, collaboration and communications.",
     accentRgb: "99, 102, 241",
     icon: MessageSquare,
     featuredCapabilities: [
-      {
-        label: "Knowledge Repository",
-        detail: "Keep institutional knowledge structured and searchable.",
-        icon: LayoutDashboard,
-      },
-      {
-        label: "Email & Calendar",
-        detail: "Operate shared inboxes and schedules in context.",
-        icon: Mail,
-      },
-      {
-        label: "Communications",
-        detail: "Connect teams through organised channels.",
-        icon: MessageSquare,
-      },
-      {
-        label: "Support Desk",
-        detail: "Handle support conversations with clear ownership.",
-        icon: Handshake,
-      },
+      { label: "Email and Calendar", detail: "Operate shared inboxes and schedules.", icon: Mail },
+      { label: "Documents and Knowledge", detail: "Keep knowledge searchable and structured.", icon: Database },
+      { label: "Collaboration", detail: "Connect teams through organised channels.", icon: MessageSquare },
+      { label: "Communications", detail: "Coordinate live and async conversations.", icon: Users },
     ],
-    additionalCapabilityCount: 2,
-    screenshot: makeShot(
-      "Productivity · Collaboration",
-      "99, 102, 241",
-      ["Unread", "Meetings", "Tickets"],
-      ["Ops channel", "Shared inbox", "Weekly standup", "Support queue"],
+    additionalCapabilityCount: 0,
+    screenshot: (
+      <ShotShell title="Business Productivity · Collaboration" accentRgb="99, 102, 241">
+        <KpiRow items={["Unread", "Meetings", "Docs"]} accentRgb="99, 102, 241" />
+        <ListRows
+          rows={["Ops channel", "Shared inbox", "Weekly standup", "Knowledge base"]}
+          accentRgb="99, 102, 241"
+        />
+      </ShotShell>
     ),
   },
   {
-    id: "integrations",
-    title: "Business Integrations",
+    id: "business-app-integrations",
+    title: "Business App Integrations",
     shortTitle: "Integrations",
     subtitle: "Connect your systems",
     description:
-      "Connect Unit311 Central to the specialist systems you already rely on — integrate data and workflows without rip-and-replace.",
+      "Microsoft 365, Google Workspace, finance systems, CRM systems, REST APIs and custom integrations.",
     accentRgb: "100, 116, 139",
     icon: Plug,
     featuredCapabilities: [
-      {
-        label: "Microsoft 365",
-        detail: "Connect identity, documents and collaboration.",
-        icon: Mail,
-      },
-      {
-        label: "Finance Systems",
-        detail: "Sync accounting platforms into one operating layer.",
-        icon: Wallet,
-      },
-      {
-        label: "CRM Platforms",
-        detail: "Keep commercial systems and pipeline data current.",
-        icon: Target,
-      },
-      {
-        label: "APIs & Webhooks",
-        detail: "Extend Unit311 Central with secure interfaces.",
-        icon: Plug,
-      },
+      { label: "Microsoft 365", detail: "Connect identity, documents and collaboration.", icon: Cloud },
+      { label: "Google Workspace", detail: "Bring Google productivity into the platform.", icon: Mail },
+      { label: "Finance and CRM Systems", detail: "Sync accounting and commercial platforms.", icon: Wallet },
+      { label: "REST APIs and Custom", detail: "Extend Unit311 Central securely.", icon: Plug },
     ],
-    additionalCapabilityCount: 2,
-    screenshot: makeShot(
-      "Business Integrations · Connections",
-      "100, 116, 139",
-      ["Connected", "Syncing", "Alerts"],
-      ["Microsoft 365", "Xero", "Salesforce", "Custom webhook"],
+    additionalCapabilityCount: 0,
+    screenshot: (
+      <ShotShell title="Business App Integrations · Connections" accentRgb="100, 116, 139">
+        <KpiRow items={["Connected", "Syncing", "Alerts"]} accentRgb="100, 116, 139" />
+        <ListRows
+          rows={["Microsoft 365", "Google Workspace", "Xero", "Custom webhook"]}
+          accentRgb="100, 116, 139"
+        />
+      </ShotShell>
     ),
   },
 ];
@@ -485,7 +427,7 @@ export default function AboutWorkspaceShowcase() {
         <div
           role="tablist"
           aria-label="Unit311 Central workspaces"
-          className="workspace-showcase-tabs flex gap-1.5 overflow-x-auto border-b border-white/10 p-2.5 sm:gap-2 sm:p-3 md:grid md:grid-cols-4 lg:grid-cols-8 lg:overflow-visible"
+          className="workspace-showcase-tabs flex flex-nowrap gap-1.5 overflow-x-auto border-b border-white/10 p-2.5 sm:gap-2 sm:p-3 lg:grid lg:grid-cols-10 lg:overflow-visible"
         >
           {WORKSPACES.map((workspace) => {
             const Icon = workspace.icon;

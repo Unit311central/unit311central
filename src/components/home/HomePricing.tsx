@@ -7,7 +7,7 @@ const MONTHLY_PRICE = 1300;
 const QUARTERLY_PRICE = MONTHLY_PRICE * 3;
 
 const PLAN_FEATURES = [
-  "Many modules including Client Management, CRM, Projects, Finance, HR, Technology Management, Operations, Communications and Training",
+  "Many modules including Business Central, AI Executive Assistant, Clients & Projects, Financials, HR & People, Technology & Engineering, Corporate, Operations, Business Productivity and Business App Integrations",
   "AI Executive Assistant and board pack / report automation",
   "Professional onboarding and business configuration",
   "Monthly allowance to ask for customization for any module",
