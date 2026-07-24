@@ -34,6 +34,37 @@ import {
 
 const operators = createInitialUsers();
 
+function portfolioDeletedStorageKey(scope: ProjectPortfolioScope) {
+  return `unit311-portfolio-deleted-projects:${scope}`;
+}
+
+function readDeletedPortfolioIds(scope: ProjectPortfolioScope): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(portfolioDeletedStorageKey(scope));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((id): id is string => typeof id === "string" && id.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function writeDeletedPortfolioIds(scope: ProjectPortfolioScope, ids: string[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    portfolioDeletedStorageKey(scope),
+    JSON.stringify([...new Set(ids)]),
+  );
+}
+
+function rememberDeletedPortfolioIds(scope: ProjectPortfolioScope, ids: string[]) {
+  const next = [...new Set([...readDeletedPortfolioIds(scope), ...ids])];
+  writeDeletedPortfolioIds(scope, next);
+  return next;
+}
+
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
   if (!text) throw new Error(`Request failed (${response.status})`);
@@ -139,6 +170,7 @@ export default function ProjectsWorkspace({
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [draft, setDraft] = useState(createBlankProjectInput);
 
   const liveProjects = useMemo(() => {
@@ -167,6 +199,10 @@ export default function ProjectsWorkspace({
     [projects, selectedProjectId],
   );
 
+  const allLiveSelected =
+    liveProjects.length > 0 && liveProjects.every((project) => selectedIds.includes(project.id));
+  const someLiveSelected = liveProjects.some((project) => selectedIds.includes(project.id));
+
   const portfolioTiles = useMemo(
     () => (usesPortfolio ? buildPortfolioTiles(projects) : PROJECTS_DASHBOARD_TILES),
     [projects, usesPortfolio],
@@ -177,8 +213,10 @@ export default function ProjectsWorkspace({
     setError(null);
 
     if (usesPortfolio) {
-      const next = getProjectsForScope(scope);
+      const deleted = new Set(readDeletedPortfolioIds(scope));
+      const next = getProjectsForScope(scope).filter((project) => !deleted.has(project.id));
       setProjects(next);
+      setSelectedIds((current) => current.filter((id) => next.some((project) => project.id === id)));
       const live = sortLatestFirst(next.filter((project) => project.phase === "live"));
       setSelectedProjectId((current) => {
         if (current && next.some((project) => project.id === current)) return current;
@@ -303,32 +341,89 @@ export default function ProjectsWorkspace({
 
   async function handleDeleteProject(id: string) {
     if (!window.confirm("Delete this project?")) return;
+    await deleteProjectsByIds([id]);
+  }
+
+  function toggleProjectSelected(id: string) {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id],
+    );
+  }
+
+  function toggleSelectAllLive() {
+    if (allLiveSelected) {
+      const visible = new Set(liveProjects.map((project) => project.id));
+      setSelectedIds((current) => current.filter((id) => !visible.has(id)));
+      return;
+    }
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const project of liveProjects) next.add(project.id);
+      return [...next];
+    });
+  }
+
+  async function deleteProjectsByIds(ids: string[]) {
+    const uniqueIds = [...new Set(ids.filter(Boolean))];
+    if (uniqueIds.length === 0) return;
 
     setBusy(true);
     setError(null);
 
     try {
-      if (usesPortfolio || isPortfolioProjectId(id)) {
-        setProjects((current) => current.filter((project) => project.id !== id));
-        setSelectedProjectId((selected) => {
-          if (selected !== id) return selected;
-          const remaining = projects.filter((project) => project.id !== id);
-          const live = sortLatestFirst(remaining.filter((project) => project.phase === "live"));
-          return live[0]?.id ?? null;
-        });
-        return;
+      const portfolioIds = uniqueIds.filter(
+        (id) => usesPortfolio || isPortfolioProjectId(id) || id.startsWith(`${scope}-`),
+      );
+      const apiIds = uniqueIds.filter((id) => !portfolioIds.includes(id));
+
+      if (portfolioIds.length > 0) {
+        if (usesPortfolio) {
+          rememberDeletedPortfolioIds(
+            scope,
+            portfolioIds.filter((id) => isPortfolioProjectId(id)),
+          );
+        }
+        setProjects((current) => current.filter((project) => !portfolioIds.includes(project.id)));
       }
 
-      const response = await fetch(`/api/projects/${id}`, { method: "DELETE" });
-      const data = await readApiJson<{ ok?: boolean; error?: string }>(response);
-      if (!response.ok) throw new Error(data.error ?? "Failed to delete project");
-      setProjects((current) => current.filter((project) => project.id !== id));
-      setSelectedProjectId((current) => (current === id ? null : current));
+      if (apiIds.length > 0) {
+        const response = await fetch("/api/projects/bulk-delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: apiIds }),
+        });
+        const data = await readApiJson<{ deletedIds?: string[]; error?: string }>(response);
+        if (!response.ok) throw new Error(data.error ?? "Failed to delete projects");
+        const removed = new Set(data.deletedIds ?? apiIds);
+        setProjects((current) => current.filter((project) => !removed.has(project.id)));
+      }
+
+      const removedSet = new Set(uniqueIds);
+      setSelectedIds((current) => current.filter((id) => !removedSet.has(id)));
+      setSelectedProjectId((current) => {
+        if (!current || !removedSet.has(current)) return current;
+        const remaining = projects.filter((project) => !removedSet.has(project.id));
+        const live = sortLatestFirst(remaining.filter((project) => project.phase === "live"));
+        return live[0]?.id ?? null;
+      });
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete project");
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete projects");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleDeleteSelectedProjects() {
+    if (selectedIds.length === 0 || busy) return;
+    const count = selectedIds.length;
+    if (
+      !window.confirm(
+        `Delete ${count} project${count === 1 ? "" : "s"}? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    await deleteProjectsByIds(selectedIds);
   }
 
   if (usesPortfolio) {
@@ -344,6 +439,17 @@ export default function ProjectsWorkspace({
         />
 
         <div className="flex flex-wrap items-center justify-end gap-3">
+          {selectedIds.length > 0 ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void handleDeleteSelectedProjects()}
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/15 px-4 py-2 text-sm font-semibold text-rose-100 transition-colors hover:bg-rose-500/25 disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Delete ({selectedIds.length})
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setShowForm((open) => !open)}
@@ -505,6 +611,23 @@ export default function ProjectsWorkspace({
                 </span>
               </div>
 
+              {liveProjects.length > 0 ? (
+                <label className="mb-2 inline-flex items-center gap-2 px-1 text-xs text-white/55">
+                  <input
+                    type="checkbox"
+                    checked={allLiveSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someLiveSelected && !allLiveSelected;
+                    }}
+                    onChange={toggleSelectAllLive}
+                  />
+                  {allLiveSelected ? "Clear selection" : "Select all"}
+                  {selectedIds.length > 0 ? (
+                    <span className="text-white/35">· {selectedIds.length} selected</span>
+                  ) : null}
+                </label>
+              ) : null}
+
               <div className="max-h-[min(70vh,46rem)] space-y-1.5 overflow-y-auto pr-1">
                 {liveProjects.length === 0 ? (
                   <p className="px-2 py-6 text-center text-sm text-white/45">No live projects.</p>
@@ -512,6 +635,7 @@ export default function ProjectsWorkspace({
                   liveProjects.map((project) => {
                     const portfolio = getPortfolioProject(project.id);
                     const active = project.id === selectedProjectId;
+                    const checked = selectedIds.includes(project.id);
                     const risk = portfolio ? topPortfolioRisk(portfolio) : null;
                     const subtitle =
                       scope === "internal"
@@ -519,42 +643,56 @@ export default function ProjectsWorkspace({
                         : project.clientName;
 
                     return (
-                      <button
+                      <div
                         key={project.id}
-                        type="button"
-                        onClick={() => setSelectedProjectId(project.id)}
                         className={cn(
-                          "w-full rounded-xl border px-3 py-3 text-left transition-colors",
+                          "flex w-full items-start gap-2 rounded-xl border px-3 py-3 transition-colors",
                           active
                             ? "border-sky-400/40 bg-sky-500/15 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.18)]"
-                            : "border-transparent bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.05]",
+                            : checked
+                              ? "border-rose-400/25 bg-rose-500/5"
+                              : "border-transparent bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.05]",
                         )}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <p
-                            className={cn(
-                              "text-sm font-semibold leading-snug",
-                              active ? "text-white" : "text-white/90",
-                            )}
-                          >
-                            {project.name}
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={checked}
+                          onChange={() => toggleProjectSelected(project.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          aria-label={`Select ${project.name}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProjectId(project.id)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p
+                              className={cn(
+                                "text-sm font-semibold leading-snug",
+                                active ? "text-white" : "text-white/90",
+                              )}
+                            >
+                              {project.name}
+                            </p>
+                            <span className="shrink-0 font-mono text-[11px] text-white/55">
+                              {project.progressPct.toFixed(0)}%
+                            </span>
+                          </div>
+                          <p className="mt-1 truncate text-[11px] text-white/45">{subtitle}</p>
+                          <p className="mt-1 text-[11px] text-white/40">
+                            PM {portfolio?.projectManager ?? project.operator ?? "Unassigned"}
+                            {risk?.severity === "high" ? " · At risk" : ""}
                           </p>
-                          <span className="shrink-0 font-mono text-[11px] text-white/55">
-                            {project.progressPct.toFixed(0)}%
-                          </span>
-                        </div>
-                        <p className="mt-1 truncate text-[11px] text-white/45">{subtitle}</p>
-                        <p className="mt-1 text-[11px] text-white/40">
-                          PM {portfolio?.projectManager ?? project.operator ?? "Unassigned"}
-                          {risk?.severity === "high" ? " · At risk" : ""}
-                        </p>
-                        <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-sky-500"
-                            style={{ width: `${Math.min(100, project.progressPct)}%` }}
-                          />
-                        </div>
-                      </button>
+                          <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-sky-500"
+                              style={{ width: `${Math.min(100, project.progressPct)}%` }}
+                            />
+                          </div>
+                        </button>
+                      </div>
                     );
                   })
                 )}

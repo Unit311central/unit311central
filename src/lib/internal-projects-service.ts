@@ -219,17 +219,50 @@ export async function createProject(
 }
 
 export async function deleteProject(id: string, scope?: ProjectsWorkspaceScope) {
+  await deleteProjects([id], scope);
+}
+
+export async function deleteProjects(ids: string[], scope?: ProjectsWorkspaceScope) {
+  const uniqueIds = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    throw new Error("At least one project id is required.");
+  }
+
   const workspaceId = await resolveProjectsWorkspaceId(scope);
-  const existing = await requireProjectInWorkspace(id, { workspaceId });
   const supabase = requireProjectsSupabase();
+
+  const { data: owned, error: ownedError } = await supabase
+    .from("internal_projects")
+    .select("id, client_id")
+    .eq("workspace_id", workspaceId)
+    .in("id", uniqueIds);
+
+  if (ownedError) throw new Error(ownedError.message);
+
+  const rows = (owned ?? []) as Array<{ id: string; client_id: string | null }>;
+  if (rows.length === 0) {
+    throw new Error("Project not found.");
+  }
+
+  const deletedIds = rows.map((row) => row.id);
   const { error } = await supabase
     .from("internal_projects")
     .delete()
-    .eq("id", id)
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId)
+    .in("id", deletedIds);
+
   if (error) throw new Error(error.message);
 
-  await syncClientActiveProjects(existing.clientId, workspaceId).catch(() => {
-    // Delete succeeded; counter refresh is best-effort.
-  });
+  const clientIds = [
+    ...new Set(rows.map((row) => row.client_id).filter((id): id is string => Boolean(id))),
+  ];
+  await Promise.all(
+    clientIds.map((clientId) =>
+      syncClientActiveProjects(clientId, workspaceId).catch(() => {
+        // Delete succeeded; counter refresh is best-effort.
+      }),
+    ),
+  );
+
+  return { deletedIds, deletedCount: deletedIds.length };
 }
