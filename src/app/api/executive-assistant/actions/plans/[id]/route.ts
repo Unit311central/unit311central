@@ -11,6 +11,7 @@ import {
 } from "@/lib/ai-operating-assistant/actions";
 import { formatActionSuccess } from "@/lib/ai-operating-assistant/action-ui-messages";
 import { ensureActionModulesRegistered } from "@/lib/ai-operating-assistant/action-orchestration";
+import { successCardsFromDefinitions } from "@/lib/ai-operating-assistant/execution-card-adapters";
 import { buildBusinessContext } from "@/lib/ai-operating-assistant/context-service";
 import {
   bindPlanCorrelation,
@@ -265,7 +266,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .filter((step) => step.status === "succeeded")
         .flatMap((step) => {
           const definition = getAssistantAction(step.actionId);
-          return (definition?.capability.suggestedFollowUps ?? []).map((followUp, index) => ({
+          if (!definition) return [];
+          const fromRelationships = definition.capability.relationships?.suggestedNext ?? [];
+          const fromLegacy = definition.capability.suggestedFollowUps ?? [];
+          const merged =
+            fromRelationships.length > 0
+              ? fromRelationships.map((f) => ({ label: f.label, actionId: f.actionId }))
+              : fromLegacy;
+          return merged.map((followUp, index) => ({
             id: `followup_${step.actionId}_${index}`,
             label: followUp.label,
             kind: "generate" as const,
@@ -273,11 +281,30 @@ export async function POST(request: NextRequest, context: RouteContext) {
           }));
         });
 
+      const definitions = plan.steps
+        .map((step) => getAssistantAction(step.actionId))
+        .filter((d): d is NonNullable<typeof d> => Boolean(d));
+
+      const executionCards = successCardsFromDefinitions({
+        definitions,
+        results: plan.steps
+          .filter((step) => step.status === "succeeded" && step.result)
+          .map((step) => ({
+            actionId: step.actionId,
+            message: step.result!.message,
+            recordLabel: step.result!.recordLabel,
+            recordId: step.result!.recordId,
+            input: step.input,
+          })),
+        followUpActions,
+      });
+
       const responseBody = {
         plan,
         summary,
         outcomeText: outcomeText || summary,
         followUpActions,
+        executionCards,
         confirmation: toConfirmationView(plan),
         correlationId: getEaCorrelationId(),
       };

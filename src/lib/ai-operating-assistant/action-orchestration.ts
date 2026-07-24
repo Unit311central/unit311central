@@ -16,6 +16,14 @@ import {
 } from "./actions/capability-service";
 import { resolveBusinessActionIntent } from "./intent-action-resolver";
 import { formatActionSuccess, formatPlanReadyMessage } from "./action-ui-messages";
+import {
+  buildNeedInfoCards,
+  buildReadWorkflowCards,
+  matchCapabilityWorkflow,
+  primaryWorkflowActionId,
+} from "./capability-workflows";
+import type { EaExecutionCard } from "./execution-cards";
+import { shortCardLead } from "./execution-cards";
 
 export { formatActionSuccess, formatPlanReadyMessage };
 /** @deprecated Prefer formatActionSuccess */
@@ -43,15 +51,25 @@ export type OrchestrationRoute =
   | {
       kind: "tool";
       intent: DirectAssistantIntent;
+      executionCards?: EaExecutionCard[];
     }
   | {
       kind: "need_info";
       message: string;
       actionId: string;
+      missingFields: string[];
+      input: Record<string, unknown>;
+      executionCards: EaExecutionCard[];
     }
   | {
       kind: "capability_answer";
       message: string;
+      executionCards?: EaExecutionCard[];
+    }
+  | {
+      kind: "workflow_read";
+      message: string;
+      executionCards: EaExecutionCard[];
     }
   | {
       kind: "none";
@@ -93,13 +111,82 @@ export async function resolveOrchestrationRoute(
     }
   }
 
+  // 0b) Multi-step capability workflows (COO orchestration presentation).
+  const workflow = matchCapabilityWorkflow(message);
+  if (workflow) {
+    const primaryActionId = primaryWorkflowActionId(workflow);
+    if (!primaryActionId) {
+      const cards = buildReadWorkflowCards(workflow);
+      return {
+        kind: "workflow_read",
+        message: shortCardLead(cards) || workflow.purpose,
+        executionCards: cards,
+      };
+    }
+
+    const businessIntent = await resolveBusinessActionIntent(message, business);
+    if (businessIntent.kind === "need_info") {
+      const cards = buildNeedInfoCards({
+        actionId: businessIntent.actionId,
+        message: businessIntent.question,
+        missingFields: businessIntent.missingFields,
+        prefill: businessIntent.input,
+        workflow,
+        business,
+      });
+      return {
+        kind: "need_info",
+        message: shortCardLead(cards) || businessIntent.question,
+        actionId: businessIntent.actionId,
+        missingFields: businessIntent.missingFields,
+        input: businessIntent.input,
+        executionCards: cards,
+      };
+    }
+
+    const actionId =
+      businessIntent.kind === "propose" ? businessIntent.actionId : primaryActionId;
+    const input = businessIntent.kind === "propose" ? businessIntent.input : {};
+    const cards = buildNeedInfoCards({
+      actionId,
+      message: workflow.purpose,
+      missingFields: [],
+      prefill: input,
+      workflow,
+      business,
+    }).filter((card) => card.kind === "workflow");
+
+    return {
+      kind: "tool",
+      intent: proposeSteps(
+        actionId,
+        input,
+        message,
+        businessIntent.kind === "propose"
+          ? `workflow:${workflow.id}|${businessIntent.reason}|confidence=${businessIntent.confidence}`
+          : `workflow:${workflow.id}`,
+      ),
+      executionCards: cards,
+    };
+  }
+
   // 1) Semantic write intent against the live action registry (meaning, not phrasing).
   const businessIntent = await resolveBusinessActionIntent(message, business);
   if (businessIntent.kind === "need_info") {
+    const cards = buildNeedInfoCards({
+      actionId: businessIntent.actionId,
+      message: businessIntent.question,
+      missingFields: businessIntent.missingFields,
+      prefill: businessIntent.input,
+      business,
+    });
     return {
       kind: "need_info",
-      message: businessIntent.question,
+      message: shortCardLead(cards) || businessIntent.question,
       actionId: businessIntent.actionId,
+      missingFields: businessIntent.missingFields,
+      input: businessIntent.input,
+      executionCards: cards,
     };
   }
   if (businessIntent.kind === "propose") {

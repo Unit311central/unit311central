@@ -5,6 +5,7 @@ import {
   resolveOrchestrationRoute,
 } from "./action-orchestration";
 import { getAssistantAction } from "./actions/registry";
+import { cardsFromArtifacts } from "./execution-card-adapters";
 import { eaStage, eaStop, getEaCorrelationId, setEaConversationId } from "./ea-forensic-trace";
 import { topicHintFromHistory } from "./intent-router";
 import {
@@ -490,7 +491,7 @@ export async function* runAssistantTurn(input: {
       eaStage("Intent resolved", {
         actionId: route.actionId,
         confidence: null,
-        "extracted input": null,
+        "extracted input": route.input,
         kind: "need_info",
       });
       eaStop("Intent resolved", "missing required fields — asking user before plan", {
@@ -504,6 +505,41 @@ export async function* runAssistantTurn(input: {
         role: "assistant",
         content: assistantText,
         createdAt: new Date().toISOString(),
+        executionCards: route.executionCards,
+      };
+      const saved = await persistTurn({
+        session: input.session,
+        conversationId: resolved.conversationId,
+        history: resolved.history,
+        userMessage,
+        assistantMessage,
+        context,
+        title: resolved.title,
+      });
+      yield {
+        type: "done",
+        message: assistantMessage,
+        conversationId: saved.conversationId,
+        correlationId: getEaCorrelationId(),
+      };
+      return;
+    }
+
+    if (route.kind === "workflow_read") {
+      eaStage("Intent resolved", {
+        actionId: null,
+        confidence: null,
+        "extracted input": null,
+        kind: "workflow_read",
+      });
+      assistantText = route.message;
+      yield { type: "delta", text: assistantText };
+      const assistantMessage: AssistantChatMessage = {
+        id: createMessageId(),
+        role: "assistant",
+        content: assistantText,
+        createdAt: new Date().toISOString(),
+        executionCards: route.executionCards,
       };
       const saved = await persistTurn({
         session: input.session,
@@ -537,6 +573,7 @@ export async function* runAssistantTurn(input: {
         role: "assistant",
         content: assistantText,
         createdAt: new Date().toISOString(),
+        executionCards: route.executionCards,
       };
       const saved = await persistTurn({
         session: input.session,
@@ -670,6 +707,11 @@ export async function* runAssistantTurn(input: {
       }
       yield { type: "delta", text: assistantText };
 
+      const executionCards = [
+        ...(route.executionCards ?? []),
+        ...cardsFromArtifacts(turnArtifacts),
+      ];
+
       const assistantMessage: AssistantChatMessage = {
         id: createMessageId(),
         role: "assistant",
@@ -677,6 +719,7 @@ export async function* runAssistantTurn(input: {
         createdAt: new Date().toISOString(),
         followUpActions: turnFollowUps.length > 0 ? turnFollowUps : undefined,
         artifacts: turnArtifacts.length > 0 ? turnArtifacts : undefined,
+        executionCards: executionCards.length > 0 ? executionCards : undefined,
       };
 
       const saved = await persistTurn({

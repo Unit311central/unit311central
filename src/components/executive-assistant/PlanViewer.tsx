@@ -72,11 +72,18 @@ export function PlanViewer({
 }: PlanViewerProps) {
   const canApprove = plan.phase === "summary" && plan.status === "proposed" && !busy;
   const showExecution = plan.phase === "complete" && plan.executionSummary;
+  const highRisk =
+    plan.riskLevel === "high" ||
+    plan.riskLevel === "critical" ||
+    plan.steps.some((step) => /archive|delete|merge|terminate|payment/i.test(step.actionId));
 
   return (
     <div
       className={cn(
-        "rounded-xl border border-sky-400/30 bg-sky-500/[0.07] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+        "rounded-xl border p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+        highRisk && plan.phase === "summary"
+          ? "border-rose-400/35 bg-rose-500/[0.07]"
+          : "border-sky-400/30 bg-sky-500/[0.07]",
         className,
       )}
     >
@@ -84,7 +91,13 @@ export function PlanViewer({
         <Shield className="mt-0.5 h-4 w-4 shrink-0 text-sky-200" />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold text-sky-50">
-            {plan.phase === "complete" ? "Execution Summary" : "Plan Summary"}
+            {plan.phase === "complete"
+              ? "Execution Summary"
+              : plan.phase === "executing"
+                ? "Execution Progress"
+                : highRisk
+                  ? "Confirm high-risk action"
+                  : "Plan Summary"}
           </p>
           <p className="mt-0.5 text-[11px] text-sky-100/80">{plan.title}</p>
           <p className="mt-1 text-[11px] text-white/60">
@@ -95,6 +108,13 @@ export function PlanViewer({
           {plan.riskLevel} risk
         </span>
       </div>
+
+      {highRisk && plan.phase === "summary" ? (
+        <p className="mt-2 rounded-lg border border-rose-400/25 bg-rose-500/10 px-2.5 py-2 text-[11px] text-rose-50/90">
+          This will change live business records. Review the action graph and affected records
+          before confirming.
+        </p>
+      ) : null}
 
       {plan.businessImpact ? (
         <p className="mt-2 text-[11px] text-white/65">{plan.businessImpact}</p>
@@ -262,10 +282,15 @@ export function PlanViewer({
             type="button"
             disabled={!canApprove}
             onClick={onApprove}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-300/50 bg-sky-400/20 px-3 py-1.5 text-[11px] font-semibold text-sky-50 transition-colors hover:bg-sky-400/30 disabled:cursor-not-allowed disabled:opacity-40"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+              highRisk
+                ? "border border-rose-300/50 bg-rose-500/20 text-rose-50 hover:bg-rose-500/30"
+                : "border border-sky-300/50 bg-sky-400/20 text-sky-50 hover:bg-sky-400/30",
+            )}
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            Approve plan
+            {highRisk ? "Confirm & execute" : "Approve plan"}
           </button>
           <button
             type="button"
@@ -273,7 +298,7 @@ export function PlanViewer({
             onClick={onCancel}
             className="rounded-lg border border-white/15 px-3 py-1.5 text-[11px] font-medium text-white/65 transition-colors hover:border-white/25 hover:text-white disabled:opacity-40"
           >
-            Cancel
+            {highRisk ? "Reject" : "Cancel"}
           </button>
         </div>
       ) : plan.phase === "executing" ? (

@@ -73,8 +73,7 @@ export const createClientAction: AssistantActionDefinition = {
     },
     confirmationPolicy: "always",
     successFormatter: {
-      template:
-        "Client created.\n\nName\n{recordLabel}\n\n{locationBlock}Would you like to add a contact, assign an account manager, or create a project?",
+      template: "Client created successfully.",
       fields: [
         { token: "recordLabel", path: "result.recordLabel" },
         { token: "locationBlock", path: "input.companyCity" },

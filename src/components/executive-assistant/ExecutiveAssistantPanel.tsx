@@ -21,6 +21,8 @@ import {
 } from "@/lib/ai-operating-assistant/proactive-client";
 import type { AiExplanation } from "@/lib/ai-operating-assistant/explainability";
 import { PlanViewer } from "@/components/executive-assistant/PlanViewer";
+import { ExecutionCardsList } from "@/components/executive-assistant/execution-cards";
+import type { EaCardAction, EaExecutionCard } from "@/lib/ai-operating-assistant/execution-cards";
 import { actionConfirmationToPlanViewer } from "@/lib/ai-operating-assistant/actions/planning/summaries";
 import type { PlanViewerModel } from "@/lib/ai-operating-assistant/actions/planning/types";
 import type { ActionConfirmationView } from "@/components/executive-assistant/ActionConfirmationCard";
@@ -671,6 +673,7 @@ export default function ExecutiveAssistantPanel({
                       id: assistantId,
                       followUpActions: event.message.followUpActions,
                       artifacts: event.message.artifacts,
+                      executionCards: event.message.executionCards,
                     }
                   : entry,
               ),
@@ -740,6 +743,48 @@ export default function ExecutiveAssistantPanel({
   }
 
   handleSendRef.current = handleSend;
+
+  function handleExecutionCardAction(
+    card: EaExecutionCard,
+    action: EaCardAction,
+    values?: Record<string, unknown>,
+  ) {
+    if (action.intent === "submit_form") {
+      const actionName = card.title;
+      const lines = Object.entries(values ?? {})
+        .filter(([, value]) => value != null && String(value).trim())
+        .map(([key, value]) => {
+          const label = key
+            .replace(/([A-Z])/g, " $1")
+            .replace(/^./, (c) => c.toUpperCase())
+            .trim();
+          return `${label}: ${String(value).trim()}`;
+        });
+      const prompt =
+        lines.length > 0
+          ? `${actionName}\n${lines.join("\n")}`
+          : actionName;
+      void handleSend(undefined, prompt);
+      return;
+    }
+
+    if (
+      action.intent === "approve_plan" ||
+      action.intent === "confirm_high_risk" ||
+      action.intent === "reject_plan"
+    ) {
+      showNotice(
+        action.intent === "reject_plan"
+          ? "Use Reject on the Plan Viewer to cancel."
+          : "Use Approve on the Plan Viewer to execute.",
+      );
+      return;
+    }
+
+    if (action.intent === "generate" && action.actionId) {
+      void handleSend(undefined, action.label);
+    }
+  }
 
   useEffect(() => {
     if (!seedPrompt?.trim()) return;
@@ -975,16 +1020,32 @@ export default function ExecutiveAssistantPanel({
                   : "ml-8 border border-sky-400/20 bg-sky-500/10 text-sky-50",
               )}
             >
-              {entry.artifacts?.length ? null : (
+              {entry.artifacts?.length || entry.executionCards?.length ? null : (
                 <p className="whitespace-pre-wrap">
                   {entry.content || (sending ? "…" : "")}
                 </p>
               )}
+              {entry.role === "assistant" && entry.executionCards?.length ? (
+                <div className="space-y-2.5">
+                  {entry.content?.trim() ? (
+                    <p className="text-[12px] text-white/70">{entry.content}</p>
+                  ) : null}
+                  <ExecutionCardsList
+                    cards={entry.executionCards}
+                    busy={sending || actionConfirmBusy}
+                    handlers={{
+                      onCardAction: handleExecutionCardAction,
+                      onFollowUp: (followUp) => void runFollowUp(followUp),
+                    }}
+                  />
+                </div>
+              ) : null}
               {entry.role === "assistant" ? renderArtifacts(entry.artifacts) : null}
               {entry.role === "assistant" &&
               entry.followUpActions &&
               entry.followUpActions.length > 0 &&
-              !entry.artifacts?.length ? (
+              !entry.artifacts?.length &&
+              !entry.executionCards?.some((card) => (card.nextActions?.length ?? 0) > 0) ? (
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {entry.followUpActions
                     .filter(
@@ -1078,6 +1139,7 @@ export default function ExecutiveAssistantPanel({
                       followUpActions?: NonNullable<
                         import("@/lib/ai-operating-assistant").AssistantChatMessage["followUpActions"]
                       >;
+                      executionCards?: EaExecutionCard[];
                       viewer?: PlanViewerModel;
                       confirmation?: ActionConfirmationView;
                       plan?: {
@@ -1117,15 +1179,16 @@ export default function ExecutiveAssistantPanel({
                     }
                     showNotice(data?.summary?.split("\n")[0] ?? "Plan completed");
                     const outcomeText = data?.outcomeText?.trim() || data?.summary || null;
-                    if (outcomeText) {
+                    if (outcomeText || data?.executionCards?.length) {
                       setMessages((current) => [
                         ...current,
                         {
                           id: `action_summary_${Date.now()}`,
                           role: "assistant",
-                          content: outcomeText,
+                          content: outcomeText || "Action complete.",
                           createdAt: new Date().toISOString(),
                           followUpActions: data?.followUpActions,
+                          executionCards: data?.executionCards,
                         },
                       ]);
                     }

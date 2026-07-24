@@ -25,6 +25,8 @@ export type AssistantChatMessage = {
   toolCallId?: string;
   followUpActions?: import("./tool-result").AssistantFollowUpAction[];
   artifacts?: AssistantMessageArtifact[];
+  /** Structured COO-style response surfaces (forms, workflows, approvals, summaries). */
+  executionCards?: import("./execution-cards").EaExecutionCard[];
 };
 
 export type AssistantPageSelection = {

@@ -105,16 +105,9 @@ export function formatActionSuccess(input: {
     text = text.replaceAll(`{${token}}`, value);
   }
 
-  const followUps =
-    definition.capability.relationships?.suggestedNext?.length
-      ? definition.capability.relationships.suggestedNext
-      : definition.capability.suggestedFollowUps ?? [];
-  if (followUps.length && !/would you like/i.test(text)) {
-    text = `${text.trim()}\n\nWould you like to ${followUps
-      .map((f) => f.label.toLowerCase())
-      .join(", ")
-      .replace(/, ([^,]*)$/, ", or $1")}?`;
-  }
+  // Next steps are presented as execution cards / follow-up actions — keep copy short.
+  void definition.capability.relationships;
+  void definition.capability.suggestedFollowUps;
 
   return text.trim() || result.message;
 }
