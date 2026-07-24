@@ -585,13 +585,18 @@ async function onceEnsured(key: string, run: () => Promise<boolean>): Promise<bo
 
 function isDirectDbConnectionError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
+  const normalized = message.toLowerCase();
   return (
     message.includes("ENOTFOUND") ||
     message.includes("ECONNREFUSED") ||
     message.includes("ETIMEDOUT") ||
     message.includes("getaddrinfo") ||
     message.includes("password authentication failed") ||
-    message.includes("SASL authentication failed")
+    message.includes("SASL authentication failed") ||
+    // Pooler lockout after bad password attempts — treat as soft fail, never surface to UI.
+    normalized.includes("ecircuitbreaker") ||
+    normalized.includes("too many authentication failures") ||
+    normalized.includes("temporarily blocked")
   );
 }
 

@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (instantMeeting) {
-      await ensureMessagingInstantMeetingSchema();
+      // Soft ensure only — never block Instant Meeting on pooler password probes.
+      await ensureMessagingInstantMeetingSchema().catch(() => false);
     }
 
     let room;
@@ -81,7 +82,11 @@ export async function POST(request: NextRequest) {
         createError instanceof Error ? createError.message : "Failed to create call room";
       if (instantMeeting && isMissingInstantMeetingColumnError(message)) {
         const ready = await ensureMessagingInstantMeetingSchema(true);
-        if (!ready) throw createError;
+        if (!ready) {
+          throw new Error(
+            "Instant Meeting columns are not ready yet. Wait a minute and try again, or run pending migrations.",
+          );
+        }
         room = await createMessagingCallRoom({
           sessionId,
           workspaceId: workspace.id,
@@ -124,7 +129,11 @@ export async function POST(request: NextRequest) {
       dailyRoomUrl,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create call room";
+    const raw = error instanceof Error ? error.message : "Failed to create call room";
+    const message =
+      /ecircuitbreaker|too many authentication failures|temporarily blocked/i.test(raw)
+        ? "Database connections are temporarily blocked after auth failures. Wait ~60 seconds and try Create Instant Meeting again."
+        : raw;
     return NextResponse.json({ error: message }, { status: authErrorStatus(message) });
   }
 }
