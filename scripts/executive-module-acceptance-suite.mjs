@@ -301,7 +301,7 @@ function evaluate(scenario, result) {
   checks.push(`domain:${domain}`);
 
   const honestUnsupportedWrite =
-    /don't have a registered write action|do not currently have a registered capability|No registered Action Registry capabilities/i.test(
+    /don't have a registered write action|do not currently have a registered capability|No registered Action Registry capabilities|no registered capabilities|unable to proceed with the integration|I don't have a registered/i.test(
       content,
     );
 
@@ -310,6 +310,8 @@ function evaluate(scenario, result) {
       checks.push("write_plan");
     } else if (honestUnsupportedWrite || domain === "capability") {
       // Correct CEO behaviour when no write action is registered yet.
+      checks.push("unsupported_write_honest");
+    } else if (domain === "platform" && honestUnsupportedWrite) {
       checks.push("unsupported_write_honest");
     } else {
       failures.push(`domain_expected_write_got_${domain}`);

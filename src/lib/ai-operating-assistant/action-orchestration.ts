@@ -165,8 +165,14 @@ export async function resolveOrchestrationRoute(
 
   // Document / PDF / export intents win before any write propose path.
   // Prevents "create me a pdf…" becoming Create client location.
+  // Preference changes that merely mention PDF must not steal this path.
   const documentIntent = resolveDirectIntent(message, history);
+  const isRealDocumentAsk =
+    /\b(create|make|generate|export|produce|build|prepare|give|get|show)\b/i.test(message) &&
+    /\b(pdf|report|pack|directory|document)\b/i.test(message) &&
+    !/\b(preference|switch\s+the|delivery\s+preference)\b/i.test(message);
   if (
+    isRealDocumentAsk &&
     documentIntent &&
     [
       "generateScopedBusinessPdf",

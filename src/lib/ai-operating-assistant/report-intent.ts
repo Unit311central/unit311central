@@ -84,10 +84,12 @@ export function classifyReportIntent(message: string): ClassifiedReportIntent | 
   }
 
   // Order matters: more specific before broader “board/report” matches.
+  // Do not treat "invoice delivery" / email delivery preferences as engineering.
   if (
-    /\b(engineer|engineering|delivery|milestone|tech\s*status|technical\s+status)\b/.test(
-      lower,
-    )
+    /\b(engineer|engineering|milestone|tech\s*status|technical\s+status)\b/.test(lower) ||
+    (/\bdelivery\b/.test(lower) &&
+      !/\b(invoice|email|preference|billing)\s+delivery\b/.test(lower) &&
+      !/\bdelivery\s+preference\b/.test(lower))
   ) {
     const meta = reportDisplayMeta("engineering");
     return { reportType: "engineering", ...meta, reason: "explicit_engineering" };

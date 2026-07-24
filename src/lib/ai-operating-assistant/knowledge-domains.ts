@@ -31,7 +31,7 @@ const CAPABILITY_HINT =
   /\b(what\s+can\s+you\s+(do|help|show|tell|answer|provide|generate|configure|change)|what\s+can\s+you\s+help\s+me\s+with|what\s+are\s+you\s+(able|capable)\s+of|list\s+(your\s+)?(capabilities|actions)|what\s+actions?\s+(exist|are\s+(there|available)|for)|can\s+you\s+(create|add|archive|update|assign|merge)|capabilities?\s+for|actions?\s+for|what\s+\w+\s+can\s+you\b)\b/i;
 
 const WRITE_HINT =
-  /\b(create|add|register|archive|restore|assign|merge|update|delete|terminate|approve|reject|cancel|book|reserve|reschedule|move|mark|qualify|chase|switch|confirm|write\s*off|approve\s+payment|signed|signing|we've\s+just\s+signed|just\s+signed|onboard|set\s*up)\b/i;
+  /\b(create|add|register|archive|restore|assign|merge|update|delete|terminate|approve|reject|cancel|book|reserve|reschedule|move|mark|qualify|chase|switch|confirm|write\s*off|approve\s+payment|signed|signing|we've\s+just\s+signed|just\s+signed|onboard|set\s*up|schedule|send|convert|close|tag|record|enrol|enroll|publish|retire|deactivate|revoke|connect)\b/i;
 
 const BUSINESS_HINT =
   /\b(show\s+(my\s+|our\s+|the\s+)?|list\s+(my\s+|our\s+|the\s+)?|how\s+many|how\s+much\s+cash|how\s+healthy|who\s+(manages|owns|is|owes|can\s+grant)|overdue|at\s+risk|biggest\s+risks|outstanding|which\s+(projects|clients|customers|modules|locations|certificates|integrations|courses|environments|tools|careers?)|clients?\b|employees?\b|invoices?\b|headcount|cash\s+(position|do\s+we\s+have|balance)|overloaded|workload|what\s+(has\s+)?changed|what\s+happened|miss\s+deadlines?|highest\s+overdue|summarise|summarize|attention|focus\s+on\s+today|opportunities|pipeline|behind\s+schedule|delegate|meeting\s+with|leave|overnight|since\s+yesterday|portfolio|status|quiet|joined|blocking|one-line|overview|cap\s*table|office\s+locations?|bank\s+accounts?|share\s+classes?|advisers?|advisors?|go\s*live|sign-?off|enabled|production-critical|mfa|vendor\s+sync|api\s+credentials?|security\s+brief|wordmark|sops?\b|careers?\s+listings?)\b/i;
@@ -53,13 +53,15 @@ export function isBusinessStatusRead(message: string): boolean {
   if (!lower) return false;
   if (isOrgModuleStateQuestion(lower)) return true;
   if (
-    /^(what|which|who|where|when|why|how|any|are|is|give|preview|show|list|summarise|summarize)\b/i.test(
+    /^(what|which|who|where|when|why|how|any|are|is|give|preview|show|list|summarise|summarize|find|flag|run|confirm)\b/i.test(
       lower,
     )
   ) {
     return true;
   }
-  return /\b(status|brief|enabled|complete|live|credentials?|stored|today)\b/i.test(lower);
+  return /\b(status|brief|enabled|complete|live|credentials?|stored|today|linked|correct|concentrated)\b/i.test(
+    lower,
+  );
 }
 
 /**
@@ -75,6 +77,16 @@ export function classifyKnowledgeDomain(message: string): EaKnowledgeClassificat
   // Org module enablement / go-live is live business state, not catalogue listing.
   if (isOrgModuleStateQuestion(lower)) {
     return { domain: "business", reason: "org_module_state" };
+  }
+
+  // Find / where / run-report / confirm-linked are live lookups, not writes or catalogue.
+  if (
+    /^(find|where|flag)\b/i.test(lower) ||
+    /\brun\s+(a\s+|an\s+|the\s+)?[\w\s-]{0,40}\breport\b/i.test(lower) ||
+    /\bconfirm\b[\s\S]{0,40}\b(is|are|linked|correct|connected)\b/i.test(lower) ||
+    /\bwhere\b[\s\S]{0,40}\b(spend|concentrated)\b/i.test(lower)
+  ) {
+    return { domain: "business", reason: "live_lookup_or_status" };
   }
 
   // Platform structure first — never confuse with Action Registry.

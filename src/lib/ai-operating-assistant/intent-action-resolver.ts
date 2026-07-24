@@ -75,7 +75,7 @@ const GENERIC_VERBS: Record<string, string[]> = {
 
 /** Single-token values that are never company/project names. */
 const NAMED_ENTITY_STOPWORDS =
-  /^(How|What|Which|Who|Where|When|Why|Any|Give|Show|List|Tell|Can|Could|Should|Would|Does|Did|Is|Are|Do|We|I|Please|Open|Start|Launch|Create|Add|Update|Surface|Ready|There|This|That|These|Those|Our|Your|Their|The|A|An|For|And|Or|If|So|My|Me|Us|Them|It)$/i;
+  /^(How|What|Which|Who|Where|When|Why|Any|Give|Show|List|Tell|Can|Could|Should|Would|Does|Did|Is|Are|Do|We|I|Please|Open|Start|Launch|Create|Add|Update|Surface|Ready|There|This|That|These|Those|Our|Your|Their|The|A|An|For|And|Or|If|So|My|Me|Us|Them|It|Confirm|Flag|Find|Run|Switch|Schedule|Send|Record|Close|Tag|Publish|Retire|Convert|Enrol|Enroll|Deactivate|Revoke|Connect|Cancel)$/i;
 
 /**
  * True when the user is clearly requesting a mutation (create/update/archive/…).
@@ -95,10 +95,22 @@ export function hasExplicitWriteIntent(message: string): boolean {
     return false;
   }
 
+  // Lookup / status / report runs are not entity mutations.
+  if (
+    /^(find|where|flag|run)\b/i.test(lower) ||
+    /\bconfirm\b[\s\S]{0,40}\b(is|are|linked|correct|connected)\b/i.test(lower) ||
+    /\brun\s+(a\s+|an\s+|the\s+)?[\w\s-]{0,40}\breport\b/i.test(lower) ||
+    /\bfind\b[\s\S]{0,60}\b(proposal|document|file|pack|video|draft|sop|guide)\b/i.test(lower)
+  ) {
+    return false;
+  }
+
   // "Create me a PDF / report / export" is document generation, not entity mutation.
+  // Do NOT treat preference changes that merely mention PDF as document generation.
   if (
     /\b(pdf|report|pack|directory|document|export)\b/i.test(lower) &&
     /\b(create|make|generate|export|produce|build|prepare|give|get|show)\b/i.test(lower) &&
+    !/\b(preference|switch|delivery|deactivate|revoke|connect)\b/i.test(lower) &&
     !/\b(called|named|titled)\b/i.test(lower) &&
     !/\b(create|add|register)\s+(a\s+|an\s+|the\s+|me\s+a\s+|me\s+)?(new\s+)?(client|project|employee|invoice|lead|location|contact)\b/i.test(
       lower,
@@ -107,7 +119,7 @@ export function hasExplicitWriteIntent(message: string): boolean {
     return false;
   }
 
-  return /\b(create|add|register|archive|restore|assign|appoint|merge|combine|update|change|edit|amend|delete|remove|onboard|set\s*up|setup|start|launch|signed|signing|we(?:'ve| have)?\s+(?:just\s+)?signed|just\s+signed|move|reschedule|mark|qualify|chase|approve|reject|cancel|book|reserve|switch|confirm|write\s*off)\b/i.test(
+  return /\b(create|add|register|archive|restore|assign|appoint|merge|combine|update|change|edit|amend|delete|remove|onboard|set\s*up|setup|start|launch|signed|signing|we(?:'ve| have)?\s+(?:just\s+)?signed|just\s+signed|move|reschedule|mark|qualify|chase|approve|reject|cancel|book|reserve|switch|confirm|write\s*off|schedule|send|convert|close|tag|record|enrol|enroll|publish|retire|deactivate|revoke|connect)\b/i.test(
     lower,
   );
 }

@@ -386,6 +386,15 @@ export function answerPlatformQuestion(message: string): PlatformQuestionAnswer 
   ) {
     return null;
   }
+  // Live lookup "find/where" for files, spend, media — not Application Catalogue.
+  if (
+    /\b(find|where)\b/i.test(lower) &&
+    /\b(spend|concentrated|board\s+pack|proposal|video|preview|draft|invoice|receipt|file|document|pack|sop|guide)\b/i.test(
+      lower,
+    )
+  ) {
+    return null;
+  }
   if (
     /\b(show|list|summarise|summarize|explain|which|are|is|give|preview)\b[\s\S]{0,80}\b(cap\s*table|office\s+locations?|bank\s+accounts?|advisers?|advisors?|share\s+classes?|certificates?|identities|integrations?|payroll\s+cost|leave\s+balance|careers?\s+listings?|api\s+credentials?|vendor\s+sync|mfa|security\s+brief|environments?|wordmark)\b/i.test(
       lower,
