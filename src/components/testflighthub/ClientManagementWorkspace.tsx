@@ -633,10 +633,10 @@ export default function ClientManagementWorkspace({
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
-                      href={`${basePath}?view=projects&clientId=${encodeURIComponent(selectedClient.id)}`}
+                      href={`${basePath}?view=projects-external&clientId=${encodeURIComponent(selectedClient.id)}`}
                       className="inline-flex h-9 items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-400/60 hover:bg-amber-500/25"
                     >
-                      Active projects ({selectedClient.activeProjects})
+                      Projects ({selectedClient.activeProjects})
                     </Link>
                     {selectedClient.filesFolderId ? (
                       <>
@@ -888,16 +888,15 @@ export default function ClientManagementWorkspace({
                     />
                   </div>
                   <div>
-                    <FieldLabel>Active Projects</FieldLabel>
+                    <FieldLabel>Projects</FieldLabel>
                     <input
                       type="number"
                       min={0}
                       className={inputClassName()}
                       value={selectedClient.activeProjects}
-                      onChange={(event) =>
-                        patchSelected({ activeProjects: Number(event.target.value) || 0 })
-                      }
-                      disabled={busy}
+                      readOnly
+                      disabled
+                      title="Derived from linked projects — not edited here"
                     />
                   </div>
                   <div className="sm:col-span-2">

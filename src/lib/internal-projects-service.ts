@@ -33,16 +33,102 @@ export async function resolveProjectsWorkspaceId(
   return workspace.id;
 }
 
+function normalizeCompanyKey(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\b(limited|ltd|llc|inc|plc|co\.?|company)\b/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** PRM-001: keep internal_clients.active_projects aligned with linked projects. */
+export async function syncClientActiveProjects(
+  clientId: string | null | undefined,
+  workspaceId: string,
+): Promise<number> {
+  const id = clientId?.trim();
+  if (!id) return 0;
+
+  const supabase = requireProjectsSupabase();
+  const { count, error } = await supabase
+    .from("internal_projects")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .eq("client_id", id);
+
+  if (error) throw new Error(error.message);
+
+  const activeProjects = count ?? 0;
+  const { error: updateError } = await supabase
+    .from("internal_clients")
+    .update({ active_projects: activeProjects })
+    .eq("id", id)
+    .eq("workspace_id", workspaceId);
+
+  if (updateError) throw new Error(updateError.message);
+  return activeProjects;
+}
+
+async function resolveClientLink(
+  workspaceId: string,
+  input: { clientId?: string; clientName: string },
+): Promise<{ clientId: string | null; clientName: string }> {
+  const supabase = requireProjectsSupabase();
+  const requestedId = input.clientId?.trim() || "";
+  const requestedName = input.clientName.trim();
+
+  if (requestedId) {
+    const { data } = await supabase
+      .from("internal_clients")
+      .select("id, company_name")
+      .eq("workspace_id", workspaceId)
+      .eq("id", requestedId)
+      .maybeSingle();
+    if (data?.id) {
+      return {
+        clientId: data.id as string,
+        clientName: (data.company_name as string) || requestedName || "Unassigned",
+      };
+    }
+  }
+
+  if (!requestedName || requestedName.toLowerCase() === "unassigned") {
+    return { clientId: null, clientName: requestedName || "Unassigned" };
+  }
+
+  const { data: clients, error } = await supabase
+    .from("internal_clients")
+    .select("id, company_name")
+    .eq("workspace_id", workspaceId);
+
+  if (error) throw new Error(error.message);
+
+  const target = normalizeCompanyKey(requestedName);
+  const match = (clients ?? []).find(
+    (row) => normalizeCompanyKey(String(row.company_name ?? "")) === target,
+  );
+
+  if (match?.id) {
+    return {
+      clientId: match.id as string,
+      clientName: (match.company_name as string) || requestedName,
+    };
+  }
+
+  return { clientId: null, clientName: requestedName };
+}
+
 export async function listProjects(scope?: ProjectsWorkspaceScope): Promise<InternalProject[]> {
   const workspaceId = await resolveProjectsWorkspaceId(scope);
   const supabase = requireProjectsSupabase();
-      const { data, error } = await supabase
-        .from("internal_projects")
-        .select(
-          "id,name,client_id,client_name,site,region,operator,phase,start_date,end_date,progress_pct,notes,created_at,updated_at",
-        )
-        .eq("workspace_id", workspaceId)
-        .order("updated_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("internal_projects")
+    .select(
+      "id,name,client_id,client_name,site,region,operator,phase,start_date,end_date,progress_pct,notes,created_at,updated_at",
+    )
+    .eq("workspace_id", workspaceId)
+    .order("updated_at", { ascending: false });
 
   if (error) throw new Error(error.message);
   return (data as DbProject[]).map(mapInternalProject);
@@ -99,14 +185,18 @@ export async function createProject(
   const supabase = requireProjectsSupabase();
   const phase = input.phase ?? "upcoming";
   const progressPct = phase === "live" ? 0 : 0;
+  const linked = await resolveClientLink(workspaceId, {
+    clientId: input.clientId,
+    clientName: input.clientName,
+  });
 
   const { data, error } = await supabase
     .from("internal_projects")
     .insert({
       workspace_id: workspaceId,
       name: input.name.trim(),
-      client_id: input.clientId?.trim() || null,
-      client_name: input.clientName.trim(),
+      client_id: linked.clientId,
+      client_name: linked.clientName,
       site: input.site?.trim() || null,
       region: input.region?.trim() || null,
       operator: input.operator?.trim() || null,
@@ -120,12 +210,17 @@ export async function createProject(
     .single();
 
   if (error) throw new Error(error.message);
+
+  await syncClientActiveProjects(linked.clientId, workspaceId).catch(() => {
+    // Project create must not fail if the derived counter write is blocked.
+  });
+
   return mapInternalProject(data as DbProject);
 }
 
 export async function deleteProject(id: string, scope?: ProjectsWorkspaceScope) {
   const workspaceId = await resolveProjectsWorkspaceId(scope);
-  await requireProjectInWorkspace(id, { workspaceId });
+  const existing = await requireProjectInWorkspace(id, { workspaceId });
   const supabase = requireProjectsSupabase();
   const { error } = await supabase
     .from("internal_projects")
@@ -133,4 +228,8 @@ export async function deleteProject(id: string, scope?: ProjectsWorkspaceScope) 
     .eq("id", id)
     .eq("workspace_id", workspaceId);
   if (error) throw new Error(error.message);
+
+  await syncClientActiveProjects(existing.clientId, workspaceId).catch(() => {
+    // Delete succeeded; counter refresh is best-effort.
+  });
 }

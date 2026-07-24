@@ -190,9 +190,42 @@ export async function listInternalClients(
         .order("company_name", { ascending: true });
 
       if (error) throw new Error(error.message);
-      return (data as unknown as DbClient[]).map(mapInternalClient);
+      const clients = (data as unknown as DbClient[]).map(mapInternalClient);
+      return attachDerivedActiveProjects(clients, workspaceId, supabase);
     }),
   );
+}
+
+/** PRM-001: derive active_projects from linked internal_projects rows. */
+async function attachDerivedActiveProjects(
+  clients: ManagedClient[],
+  workspaceId: string,
+  supabase: ReturnType<typeof requireClientsSupabase>,
+): Promise<ManagedClient[]> {
+  if (clients.length === 0) return clients;
+
+  const { data, error } = await supabase
+    .from("internal_projects")
+    .select("client_id")
+    .eq("workspace_id", workspaceId)
+    .not("client_id", "is", null);
+
+  if (error) {
+    // Projects table may be unavailable in older environments — keep stored values.
+    return clients;
+  }
+
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    const clientId = typeof row.client_id === "string" ? row.client_id.trim() : "";
+    if (!clientId) continue;
+    counts.set(clientId, (counts.get(clientId) ?? 0) + 1);
+  }
+
+  return clients.map((client) => ({
+    ...client,
+    activeProjects: counts.get(client.id) ?? 0,
+  }));
 }
 
 export async function getInternalClient(
@@ -213,7 +246,13 @@ export async function getInternalClient(
         .maybeSingle();
 
       if (error) throw new Error(error.message);
-      return data ? mapInternalClient(data as DbClient) : null;
+      if (!data) return null;
+      const [client] = await attachDerivedActiveProjects(
+        [mapInternalClient(data as DbClient)],
+        workspaceId,
+        supabase,
+      );
+      return client ?? null;
     }),
   );
 }

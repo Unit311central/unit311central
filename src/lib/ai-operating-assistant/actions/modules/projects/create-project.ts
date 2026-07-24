@@ -65,7 +65,8 @@ export const createProjectAction: AssistantActionDefinition = {
     },
     confirmationPolicy: "always",
     successFormatter: {
-      template: "Project created.\n\nName\n{recordLabel}",
+      template:
+        "Project created.\n\nName\n{recordLabel}\n\nOpen Projects → External Projects (or the client record) to see it. New projects start as Upcoming.",
       fields: [{ token: "recordLabel", path: "result.recordLabel" }],
     },
     suggestedFollowUps: [],

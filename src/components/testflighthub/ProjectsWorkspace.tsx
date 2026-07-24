@@ -129,7 +129,9 @@ export default function ProjectsWorkspace({
     () => clients.find((client) => client.id === clientFilterId) ?? null,
     [clients, clientFilterId],
   );
-  const usesPortfolio = scope === "internal" || scope === "external";
+  // Internal programmes stay on the demo portfolio. External / dashboard use live API projects
+  // so EA-created client work (e.g. Site Survey for Acme) is visible.
+  const usesPortfolio = scope === "internal";
 
   const [projects, setProjects] = useState<InternalProject[]>([]);
   const [loading, setLoading] = useState(true);
