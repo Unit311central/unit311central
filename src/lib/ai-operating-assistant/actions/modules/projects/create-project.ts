@@ -50,7 +50,6 @@ export const createProjectAction: AssistantActionDefinition = {
       "set up",
       "start",
       "launch",
-      "new",
     ],
     entityExtraction: {
       primaryNameFields: ["projectName", "name"],

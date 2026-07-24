@@ -17,7 +17,10 @@ import {
   answerCapabilityQuestion,
   isCapabilityQuestion,
 } from "./actions/capability-service";
-import { resolveBusinessActionIntent } from "./intent-action-resolver";
+import {
+  hasExplicitWriteIntent,
+  resolveBusinessActionIntent,
+} from "./intent-action-resolver";
 import { formatActionSuccess, formatPlanReadyMessage } from "./action-ui-messages";
 import {
   buildNeedInfoCards,
@@ -168,8 +171,14 @@ export async function resolveOrchestrationRoute(
   }
 
   // WRITE / multi-step capability workflows (COO orchestration presentation).
+  // Never run write workflows for live-data business questions.
   const workflow = matchCapabilityWorkflow(message);
-  if (workflow && domain.domain !== "business" && domain.domain !== "platform") {
+  if (
+    workflow &&
+    domain.domain !== "business" &&
+    domain.domain !== "platform" &&
+    hasExplicitWriteIntent(message)
+  ) {
     const primaryActionId = primaryWorkflowActionId(workflow);
     if (!primaryActionId) {
       const cards = buildReadWorkflowCards(workflow);
@@ -227,7 +236,13 @@ export async function resolveOrchestrationRoute(
   }
 
   // WRITE — registry-driven propose / need_info.
-  if (domain.domain !== "platform" && domain.domain !== "capability") {
+  // Business-domain reads must not fall into Approve plans.
+  const mayWrite =
+    domain.domain === "write" ||
+    (domain.domain !== "platform" &&
+      domain.domain !== "capability" &&
+      hasExplicitWriteIntent(message));
+  if (mayWrite) {
     const businessIntent = await resolveBusinessActionIntent(message, business, history);
     if (businessIntent.kind === "need_info") {
       const cards = buildNeedInfoCards({

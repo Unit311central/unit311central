@@ -51,14 +51,76 @@ export type ConversationEntityMemory = {
 
 /** Tiny generic verb list only — domain nouns come from capability metadata. */
 const GENERIC_VERBS: Record<string, string[]> = {
-  create: ["create", "add", "register", "setup", "set up", "onboard", "new", "signed", "sign", "start", "launch"],
-  update: ["update", "change", "edit", "set", "amend"],
-  archive: ["archive", "close", "deactivate", "retire"],
+  // Avoid ultra-broad tokens like "new" / "give" — they match read questions
+  // ("new clients joined", "Give me a status") and cause write overfire.
+  create: [
+    "create",
+    "add",
+    "register",
+    "setup",
+    "set up",
+    "onboard",
+    "signed",
+    "signing",
+    "start",
+    "launch",
+  ],
+  update: ["update", "change", "edit", "amend"],
+  archive: ["archive", "deactivate", "retire"],
   restore: ["restore", "reactivate", "unarchive", "reopen"],
-  assign: ["assign", "appoint", "give"],
-  merge: ["merge", "combine", "dedupe", "duplicate"],
+  assign: ["assign", "appoint"],
+  merge: ["merge", "combine", "dedupe"],
   remove: ["remove", "delete"],
 };
+
+/** Single-token values that are never company/project names. */
+const NAMED_ENTITY_STOPWORDS =
+  /^(How|What|Which|Who|Where|When|Why|Any|Give|Show|List|Tell|Can|Could|Should|Would|Does|Did|Is|Are|Do|We|I|Please|Open|Start|Launch|Create|Add|Update|Surface|Ready|There|This|That|These|Those|Our|Your|Their|The|A|An|For|And|Or|If|So|My|Me|Us|Them|It)$/i;
+
+/**
+ * True when the user is clearly requesting a mutation (create/update/archive/…).
+ * Read interrogatives must NOT satisfy this.
+ */
+export function hasExplicitWriteIntent(message: string): boolean {
+  const text = message.trim();
+  if (!text) return false;
+  const lower = text.toLowerCase();
+
+  // Capability discovery, not execution.
+  if (
+    /\bwhat\s+can\s+you\b/i.test(lower) &&
+    !/\b(called|named|titled)\b/i.test(lower)
+  ) {
+    return false;
+  }
+
+  return /\b(create|add|register|archive|restore|assign|appoint|merge|combine|update|change|edit|amend|delete|remove|onboard|set\s*up|setup|start|launch|signed|signing|we(?:'ve| have)?\s+(?:just\s+)?signed|just\s+signed)\b/i.test(
+    lower,
+  );
+}
+
+/**
+ * True for CEO-style read questions that must never become Approve plans.
+ */
+export function isInterrogativeRead(message: string): boolean {
+  const text = message.trim();
+  if (!text) return false;
+  if (hasExplicitWriteIntent(text)) {
+    // "Can you create a client called Acme?" is write, not a read.
+    if (
+      /\b(called|named|titled)\b/i.test(text) ||
+      /\b(ltd|limited|llc|inc|plc)\b/i.test(text) ||
+      /^(create|add|register|update|assign|archive|merge|onboard|signed)\b/i.test(text)
+    ) {
+      return false;
+    }
+  }
+  return (
+    /^(what|which|who|where|when|why|how|any|are|is|do|does|did|give\s+me|show(\s+me)?|list|summarise|summarize|tell\s+me|pin|flag|surface|compare|highlight|brief|walk\s+me)\b/i.test(
+      text,
+    ) || /\?\s*$/.test(text)
+  );
+}
 
 function tokenize(text: string): string[] {
   return text
@@ -80,10 +142,21 @@ function extractQuoted(message: string): string | null {
   return quoted?.[1] ? stripLocationSuffix(quoted[1].trim()) : null;
 }
 
+function isUsableNamedEntity(value: string | null | undefined): value is string {
+  if (!value) return false;
+  const cleaned = value.trim();
+  if (cleaned.length < 2) return false;
+  // Reject interrogatives / sentence starters mistaken for company names
+  // ("How healthy…", "Any clients…", "What discovery…").
+  if (NAMED_ENTITY_STOPWORDS.test(cleaned)) return false;
+  if (/^(how|what|which|who|where|when|why|any)\b/i.test(cleaned)) return false;
+  return true;
+}
+
 function extractNamedEntity(message: string): string | null {
   const text = message.trim();
   const quoted = extractQuoted(text);
-  if (quoted) return quoted;
+  if (isUsableNamedEntity(quoted)) return quoted;
 
   const patterns = [
     /(?:called|named|titled)\s+(.+?)(?:\s+in\s+[A-Za-z].*)?(?:\.|$)/i,
@@ -98,14 +171,18 @@ function extractNamedEntity(message: string): string | null {
           .replace(/^(a|an|the|new)\s+/i, "")
           .trim(),
       );
-      if (cleaned.length >= 2) return cleaned;
+      // "for them / for me / for us" are pronouns, not entities.
+      if (/^(them|they|their|me|us|you|it|this|that|him|her)$/i.test(cleaned)) {
+        continue;
+      }
+      if (isUsableNamedEntity(cleaned)) return cleaned;
     }
   }
 
   const caps = text.match(
     /\b([A-Z][A-Za-z0-9&'.-]+(?:\s+[A-Z][A-Za-z0-9&'.-]+){0,5}(?:\s+(?:Ltd|Limited|LLC|Inc|PLC|LLP))?)\b/,
   );
-  if (caps?.[1] && !/^(Create|Add|Register|Please|We|I|Set|Open|Start|Launch)$/i.test(caps[1])) {
+  if (caps?.[1] && isUsableNamedEntity(caps[1])) {
     return stripLocationSuffix(caps[1]);
   }
   return null;
@@ -531,6 +608,8 @@ Rules:
 - Choose by meaning using businessObject, description, and intentExamples — never invent actionIds.
 - Only use actionIds from the catalogue.
 - Fill input fields from the message when possible.
+- If the user is ASKING a question (what/which/how/any/who/show/list/status/healthy/summary) and is NOT clearly requesting a create/update/archive/assign/merge mutation, return actionId null.
+- Never invent company names from question words (How, What, Which, Any, Give, Surface).
 - confidence 0-1.
 - Return JSON only: { "actionId": string|null, "input": object, "confidence": number, "reason": string }`,
       input: [
@@ -578,6 +657,11 @@ function classifyHeuristic(
   message: string,
   descriptors: AssistantActionDescriptor[],
 ): { actionId: string; confidence: number } | null {
+  // Heuristic writes require an explicit mutation verb — noun overlap alone
+  // ("client", "project") is not enough for "Which clients are inactive?".
+  if (!hasExplicitWriteIntent(message)) return null;
+  if (isInterrogativeRead(message)) return null;
+
   let best: { actionId: string; score: number } | null = null;
   for (const descriptor of descriptors) {
     const score = scoreDescriptor(message, descriptor);
@@ -603,12 +687,21 @@ export async function resolveBusinessActionIntent(
   const text = message.trim();
   if (!text) return { kind: "none", reason: "empty" };
 
+  // Hard gate: no mutation language → never propose a write plan.
+  // Stops "How healthy…", "Any clients…", "What discovery…" becoming create/merge.
+  if (!hasExplicitWriteIntent(text)) {
+    return { kind: "none", reason: "no_write_language" };
+  }
+  if (isInterrogativeRead(text)) {
+    return { kind: "none", reason: "read_question" };
+  }
+
   // Pure read / report asks are not write intents.
   if (
-    /\b(pdf|report|export|list|show|how many|what is|who is|brief|dashboard)\b/i.test(text) &&
-    !/\b(create|add|register|update|assign|archive|restore|merge|signed|onboard|set\s*up|start|launch)\b/i.test(
+    /\b(pdf|report|export|list|show|how many|what is|who is|brief|dashboard|status|healthy|overview|summar)\b/i.test(
       text,
-    )
+    ) &&
+    !hasExplicitWriteIntent(text)
   ) {
     return { kind: "none", reason: "read_or_report" };
   }
@@ -631,6 +724,19 @@ export async function resolveBusinessActionIntent(
 
   if (!chosen) {
     return { kind: "none", reason: "no_semantic_match" };
+  }
+
+  // Defense: discard LLM picks that filled company/client names with stopwords.
+  const suspectName = [
+    chosen.input?.companyName,
+    chosen.input?.clientName,
+    chosen.input?.name,
+    chosen.input?.projectName,
+  ]
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .find(Boolean);
+  if (suspectName && !isUsableNamedEntity(suspectName)) {
+    return { kind: "none", reason: "invalid_extracted_entity" };
   }
 
   let input = buildInputForAction(text, chosen.actionId, chosen.input);

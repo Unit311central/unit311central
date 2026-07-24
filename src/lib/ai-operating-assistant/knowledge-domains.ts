@@ -31,10 +31,10 @@ const CAPABILITY_HINT =
   /\b(what\s+can\s+you\s+do|what\s+are\s+you\s+(able|capable)\s+of|list\s+(your\s+)?(capabilities|actions)|what\s+actions?\s+(exist|are\s+(there|available)|for)|can\s+you\s+(create|add|archive|update|assign|merge)|capabilities?\s+for|actions?\s+for)\b/i;
 
 const WRITE_HINT =
-  /\b(create|add|register|archive|restore|assign|merge|update|delete|terminate|approve\s+payment|signed|signing|we've\s+just\s+signed|just\s+signed)\b/i;
+  /\b(create|add|register|archive|restore|assign|merge|update|delete|terminate|approve\s+payment|signed|signing|we've\s+just\s+signed|just\s+signed|onboard|set\s*up)\b/i;
 
 const BUSINESS_HINT =
-  /\b(show\s+(my\s+)?|list\s+(my\s+)?|how\s+many|how\s+much\s+cash|who\s+(manages|owns|is|owes)|overdue|at\s+risk|biggest\s+risks|outstanding|which\s+projects|clients?\b|employees?\b|invoices?\b|headcount|cash\s+(position|do\s+we\s+have|balance)|overloaded|workload|what\s+(has\s+)?changed|what\s+happened|miss\s+deadlines?|highest\s+overdue|summarise|summarize|attention|focus\s+on\s+today|opportunities|pipeline|behind\s+schedule|delegate|meeting\s+with|leave|overnight|since\s+yesterday)\b/i;
+  /\b(show\s+(my\s+)?|list\s+(my\s+)?|how\s+many|how\s+much\s+cash|how\s+healthy|who\s+(manages|owns|is|owes)|overdue|at\s+risk|biggest\s+risks|outstanding|which\s+(projects|clients|customers)|clients?\b|employees?\b|invoices?\b|headcount|cash\s+(position|do\s+we\s+have|balance)|overloaded|workload|what\s+(has\s+)?changed|what\s+happened|miss\s+deadlines?|highest\s+overdue|summarise|summarize|attention|focus\s+on\s+today|opportunities|pipeline|behind\s+schedule|delegate|meeting\s+with|leave|overnight|since\s+yesterday|portfolio|status|quiet|joined|blocking|one-line|overview)\b/i;
 
 /**
  * Coarse domain classification used before tool selection.
@@ -70,6 +70,28 @@ export function classifyKnowledgeDomain(message: string): EaKnowledgeClassificat
   }
 
   // Explicit write with entity → Action Framework.
+  // Never treat interrogative reads as writes ("Which clients…", "How healthy…").
+  if (
+    /^(what|which|who|where|when|why|how|any|show|list|give\s+me|summarise|summarize)\b/i.test(
+      lower,
+    ) &&
+    !/\b(called|named|titled)\b/i.test(lower)
+  ) {
+    if (BUSINESS_HINT.test(lower) || CAPABILITY_HINT.test(lower) || PLATFORM_HINT.test(lower)) {
+      if (CAPABILITY_HINT.test(lower)) {
+        return { domain: "capability", reason: "capability_discovery_language" };
+      }
+      if (
+        PLATFORM_HINT.test(lower) &&
+        !/\b(show|list)\s+(my\s+)?(clients?|projects?|employees?|invoices?|tasks?)\b/i.test(lower)
+      ) {
+        return { domain: "platform", reason: "platform_structure_language" };
+      }
+      return { domain: "business", reason: "interrogative_business_read" };
+    }
+  }
+
+  // Explicit write with entity → Action Framework.
   if (
     WRITE_HINT.test(lower) &&
     (/\b(called|named|titled)\b/i.test(lower) ||
@@ -79,7 +101,11 @@ export function classifyKnowledgeDomain(message: string): EaKnowledgeClassificat
     return { domain: "write", reason: "write_with_entity" };
   }
 
-  if (WRITE_HINT.test(lower) && !/\b(what|which|where|how\s+many|show|list)\b/i.test(lower)) {
+  if (
+    WRITE_HINT.test(lower) &&
+    !/^(what|which|where|how|any|who|show|list)\b/i.test(lower) &&
+    !/\b(what|which|where|how\s+many|show|list)\b/i.test(lower)
+  ) {
     return { domain: "write", reason: "write_language" };
   }
 

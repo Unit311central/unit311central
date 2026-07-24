@@ -59,7 +59,6 @@ export const createClientAction: AssistantActionDefinition = {
       "onboard",
       "signed",
       "sign",
-      "new",
     ],
     entityExtraction: {
       primaryNameFields: ["companyName"],
