@@ -89,12 +89,21 @@ function inputClassName() {
 
 function projectIsAtRisk(project: InternalProject): boolean {
   const portfolio = getPortfolioProject(project.id);
-  if (!portfolio) return false;
-  const delivery = (portfolio.deliveryStatus ?? "").toLowerCase();
-  if (delivery.includes("risk") || delivery === "watch") return true;
-  if (portfolio.risks.some((risk) => risk.severity === "high")) return true;
-  if (portfolio.milestones.some((milestone) => milestone.status === "at-risk")) return true;
-  return false;
+  if (portfolio) {
+    const delivery = (portfolio.deliveryStatus ?? "").toLowerCase();
+    if (delivery.includes("risk") || delivery === "watch") return true;
+    if (portfolio.risks.some((risk) => risk.severity === "high")) return true;
+    if (portfolio.milestones.some((milestone) => milestone.status === "at-risk")) return true;
+    return false;
+  }
+
+  // Live API projects (no demo portfolio record)
+  if (project.phase !== "live") return false;
+  if (project.notes?.toLowerCase().includes("risk")) return true;
+  if (!project.endDate) return project.progressPct < 35;
+  const days =
+    (new Date(`${project.endDate}T12:00:00`).getTime() - Date.now()) / 86_400_000;
+  return days <= 14 && project.progressPct < 70;
 }
 
 function sortLatestFirst(projects: InternalProject[]): InternalProject[] {
@@ -117,7 +126,7 @@ function buildPortfolioTiles(projects: InternalProject[]): DashboardTileDefiniti
   return [
     {
       id: "live-projects",
-      label: "Live",
+      label: "Live projects",
       value: String(live.length),
       hint: "In delivery",
     },
@@ -125,7 +134,7 @@ function buildPortfolioTiles(projects: InternalProject[]): DashboardTileDefiniti
       id: "upcoming",
       label: "Upcoming",
       value: String(upcoming.length),
-      hint: "Not yet live",
+      hint: "Mobilising soon",
     },
     {
       id: "avg-progress",
@@ -203,10 +212,7 @@ export default function ProjectsWorkspace({
     liveProjects.length > 0 && liveProjects.every((project) => selectedIds.includes(project.id));
   const someLiveSelected = liveProjects.some((project) => selectedIds.includes(project.id));
 
-  const portfolioTiles = useMemo(
-    () => (usesPortfolio ? buildPortfolioTiles(projects) : PROJECTS_DASHBOARD_TILES),
-    [projects, usesPortfolio],
-  );
+  const portfolioTiles = useMemo(() => buildPortfolioTiles(projects), [projects]);
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -724,8 +730,9 @@ export default function ProjectsWorkspace({
     <div className="space-y-6">
       <DashboardTopTilesBar
         storageKey="unit311-projects-dashboard-tiles-all"
-        catalog={PROJECTS_DASHBOARD_TILES}
+        catalog={portfolioTiles}
         defaultLayout={DEFAULT_PROJECTS_TILE_LAYOUT}
+        tiles={portfolioTiles}
         title="Project key details"
         showCustomizeHint={false}
       />

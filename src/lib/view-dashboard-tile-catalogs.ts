@@ -61,10 +61,10 @@ export const REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[] = [
 ];
 
 export const PROJECTS_DASHBOARD_TILES: DashboardTileDefinition[] = [
-  { id: "live-projects", label: "Live projects", value: "9", hint: "In delivery" },
-  { id: "upcoming", label: "Upcoming", value: "4", hint: "Mobilising soon" },
-  { id: "avg-progress", label: "Avg progress", value: "67%", hint: "Live portfolio" },
-  { id: "at-risk", label: "At risk", value: "2", hint: "Needs attention" },
+  { id: "live-projects", label: "Live projects", value: "0", hint: "In delivery" },
+  { id: "upcoming", label: "Upcoming", value: "0", hint: "Mobilising soon" },
+  { id: "avg-progress", label: "Avg progress", value: "0%", hint: "Live portfolio" },
+  { id: "at-risk", label: "At risk", value: "0", hint: "Needs attention" },
 ];
 
 export const FINANCIALS_DASHBOARD_TILES: DashboardTileDefinition[] = [
