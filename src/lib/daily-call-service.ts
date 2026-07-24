@@ -45,7 +45,10 @@ async function dailyFetch<T>(path: string, init?: RequestInit): Promise<T> {
     info?: string;
   };
   if (!response.ok) {
-    throw new Error(data.error || data.info || `Daily API failed (${response.status})`);
+    throw new Error(
+      [data.error, data.info].filter(Boolean).join(": ") ||
+        `Daily API failed (${response.status})`,
+    );
   }
   return data;
 }
@@ -80,7 +83,6 @@ export async function ensureDailyRoomForMessagingCall(input: {
           exp,
           max_participants: 10,
           enable_screenshare: true,
-          enable_chat: true,
           start_video_off: input.callType === "voice",
           start_audio_off: false,
           eject_at_room_exp: true,

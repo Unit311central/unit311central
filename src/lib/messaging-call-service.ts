@@ -186,7 +186,19 @@ export async function getMessagingCallSession(
   if (!room || room.endedAt) return null;
 
   const operatorId = resolveOperatorId(session);
-  const isHost = room.hostOperatorId === operatorId || room.hostOperatorId === session.username;
+  const isHost =
+    room.hostOperatorId === operatorId ||
+    room.hostOperatorId === session.username ||
+    Boolean(
+      session.username &&
+        room.hostOperatorName &&
+        room.hostOperatorName.toLowerCase() === session.username.toLowerCase(),
+    ) ||
+    Boolean(
+      session.displayName &&
+        room.hostOperatorName &&
+        room.hostOperatorName.toLowerCase() === session.displayName.toLowerCase(),
+    );
 
   return {
     room,
@@ -239,7 +251,18 @@ export async function joinMessagingCallRoom(input: {
   const operatorId = resolveOperatorId(input.session);
   const displayName = resolveDisplayName(input.session);
   const isHost =
-    room.hostOperatorId === operatorId || room.hostOperatorId === input.session.username;
+    room.hostOperatorId === operatorId ||
+    room.hostOperatorId === input.session.username ||
+    Boolean(
+      input.session.username &&
+        room.hostOperatorName &&
+        room.hostOperatorName.toLowerCase() === input.session.username.toLowerCase(),
+    ) ||
+    Boolean(
+      input.session.displayName &&
+        room.hostOperatorName &&
+        room.hostOperatorName.toLowerCase() === input.session.displayName.toLowerCase(),
+    );
   const now = new Date().toISOString();
 
   if (isHost) {
@@ -352,7 +375,18 @@ export async function leaveMessagingCallRoom(input: {
 
   const operatorId = resolveOperatorId(input.session);
   const isHost =
-    room.hostOperatorId === operatorId || room.hostOperatorId === input.session.username;
+    room.hostOperatorId === operatorId ||
+    room.hostOperatorId === input.session.username ||
+    Boolean(
+      input.session.username &&
+        room.hostOperatorName &&
+        room.hostOperatorName.toLowerCase() === input.session.username.toLowerCase(),
+    ) ||
+    Boolean(
+      input.session.displayName &&
+        room.hostOperatorName &&
+        room.hostOperatorName.toLowerCase() === input.session.displayName.toLowerCase(),
+    );
   const now = new Date().toISOString();
 
   const { data, error } = await supabase

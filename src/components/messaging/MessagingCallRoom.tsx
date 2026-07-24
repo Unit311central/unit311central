@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, startTransition } from "react";
-import DailyIframe, { type DailyCall } from "@daily-co/daily-js";
 
 import { useExecutiveCallWebRtc } from "@/hooks/useExecutiveCallWebRtc";
 import type { MessagingCallSessionPayload } from "@/lib/messaging-call-service";
@@ -19,7 +18,6 @@ type MessagingCallRoomProps = {
 type DailyCredentials = {
   roomUrl: string;
   token: string;
-  provider: "daily";
 };
 
 function guestHeaders(guestToken?: string | null): HeadersInit {
@@ -52,6 +50,13 @@ function connectionLabel(state: RTCPeerConnectionState) {
   }
 }
 
+function dailyPrebuiltSrc(credentials: DailyCredentials, startVideoOff: boolean) {
+  const url = new URL(credentials.roomUrl);
+  url.searchParams.set("t", credentials.token);
+  if (startVideoOff) url.searchParams.set("video", "false");
+  return url.toString();
+}
+
 export default function MessagingCallRoom({
   sessionId,
   expectedMode,
@@ -70,11 +75,11 @@ export default function MessagingCallRoom({
   const [leftCall, setLeftCall] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [mediaProvider, setMediaProvider] = useState<"daily" | "webrtc" | null>(null);
-  const [dailyReady, setDailyReady] = useState(false);
+  const [dailyEmbedUrl, setDailyEmbedUrl] = useState<string | null>(null);
   const [fileStatus, setFileStatus] = useState<string | null>(null);
   const [sharingFile, setSharingFile] = useState(false);
+  const autoJoinAttemptedRef = useRef(false);
 
-  // Legacy WebRTC fallback state
   const [videoEnabled, setVideoEnabled] = useState(expectedMode === "video");
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [sharingScreen, setSharingScreen] = useState(false);
@@ -87,9 +92,6 @@ export default function MessagingCallRoom({
   const screenStreamRef = useRef<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const mediaStartedRef = useRef(false);
-
-  const dailyContainerRef = useRef<HTMLDivElement>(null);
-  const dailyCallRef = useRef<DailyCall | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadSession = useCallback(async () => {
@@ -127,18 +129,6 @@ export default function MessagingCallRoom({
     };
   }, [loadSession]);
 
-  const destroyDaily = useCallback(() => {
-    const call = dailyCallRef.current;
-    dailyCallRef.current = null;
-    setDailyReady(false);
-    if (!call) return;
-    try {
-      call.destroy();
-    } catch {
-      // ignore
-    }
-  }, []);
-
   const stopMedia = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -150,63 +140,7 @@ export default function MessagingCallRoom({
     mediaStartedRef.current = false;
   }, []);
 
-  useEffect(() => () => {
-    destroyDaily();
-    stopMedia();
-  }, [destroyDaily, stopMedia]);
-
-  const startDailyCall = useCallback(
-    async (credentials: DailyCredentials) => {
-      destroyDaily();
-      const container = dailyContainerRef.current;
-      if (!container) throw new Error("Call display is not ready.");
-
-      const call = DailyIframe.createFrame(container, {
-        showLeaveButton: true,
-        showFullscreenButton: true,
-        iframeStyle: {
-          width: "100%",
-          height: "100%",
-          border: "0",
-          borderRadius: "16px",
-        },
-        theme: {
-          colors: {
-            accent: "#2563eb",
-            accentText: "#ffffff",
-            background: "#020617",
-            backgroundAccent: "#0b1524",
-            baseText: "#f8fafc",
-            border: "#1e293b",
-            mainAreaBg: "#020617",
-            mainAreaBgAccent: "#0b1524",
-            mainAreaText: "#f8fafc",
-            supportiveText: "#94a3b8",
-          },
-        },
-      });
-      dailyCallRef.current = call;
-
-      call.on("left-meeting", () => {
-        setLeftCall(true);
-        setJoined(false);
-        destroyDaily();
-      });
-      call.on("error", (event) => {
-        setError(event?.errorMsg || "Daily call error");
-      });
-
-      await call.join({
-        url: credentials.roomUrl,
-        token: credentials.token,
-        startVideoOff: isVoice,
-        startAudioOff: false,
-      });
-      setMediaProvider("daily");
-      setDailyReady(true);
-    },
-    [destroyDaily, isVoice],
-  );
+  useEffect(() => () => stopMedia(), [stopMedia]);
 
   const startWebRtcMedia = useCallback(async () => {
     setMediaError(null);
@@ -225,7 +159,7 @@ export default function MessagingCallRoom({
     }
   }, [isVoice]);
 
-  async function handleJoin() {
+  const handleJoin = useCallback(async () => {
     if (isExternalGuest && !guestName.trim()) {
       setError("Enter your name before joining.");
       return;
@@ -246,14 +180,15 @@ export default function MessagingCallRoom({
         }),
       });
       const data = await readApiJson<MessagingCallSessionPayload & { error?: string }>(response);
-      if (!response.ok) throw new Error(data.error ?? "Failed to join call");
+      if (!response.ok) {
+        throw new Error(data.error ?? `Failed to join call (${response.status})`);
+      }
       if (data.room.callType !== expectedMode) {
         throw new Error(`This link is for a ${data.room.callType} call.`);
       }
       setPayload(data);
       setJoined(true);
 
-      // Prefer Daily (multiparty). Fall back to legacy WebRTC if Daily is not configured.
       const dailyResponse = await fetch(`${signalingBasePath}/${sessionId}/daily`, {
         method: "POST",
         headers: {
@@ -272,43 +207,53 @@ export default function MessagingCallRoom({
       }>(dailyResponse);
 
       if (dailyResponse.ok && dailyData.roomUrl && dailyData.token) {
-        // Wait a tick so the Daily container mounts after joined=true
-        await new Promise((resolve) => window.setTimeout(resolve, 50));
-        await startDailyCall({
-          roomUrl: dailyData.roomUrl,
-          token: dailyData.token,
-          provider: "daily",
-        });
+        setDailyEmbedUrl(
+          dailyPrebuiltSrc({ roomUrl: dailyData.roomUrl, token: dailyData.token }, isVoice),
+        );
+        setMediaProvider("daily");
       } else if (dailyResponse.status === 503) {
         if (!mediaStartedRef.current) {
           mediaStartedRef.current = true;
           await startWebRtcMedia();
         }
       } else {
-        throw new Error(dailyData.error ?? "Failed to start meeting media");
+        throw new Error(
+          dailyData.error ?? `Failed to start Daily meeting (${dailyResponse.status})`,
+        );
       }
     } catch (joinError) {
       setError(joinError instanceof Error ? joinError.message : "Failed to join call");
       setJoined(false);
-      destroyDaily();
+      setDailyEmbedUrl(null);
+      setMediaProvider(null);
       stopMedia();
     } finally {
       setBusy(false);
     }
-  }
+  }, [
+    expectedMode,
+    guestName,
+    guestToken,
+    isExternalGuest,
+    isVoice,
+    sessionId,
+    startWebRtcMedia,
+    stopMedia,
+  ]);
+
+  useEffect(() => {
+    if (loading || leftCall || joined || busy || error) return;
+    if (isExternalGuest) return;
+    if (!payload) return;
+    if (autoJoinAttemptedRef.current) return;
+    autoJoinAttemptedRef.current = true;
+    void handleJoin();
+  }, [busy, error, handleJoin, isExternalGuest, joined, leftCall, loading, payload]);
 
   async function handleLeave() {
     setBusy(true);
     setError(null);
     try {
-      if (dailyCallRef.current) {
-        try {
-          await dailyCallRef.current.leave();
-        } catch {
-          // ignore
-        }
-        destroyDaily();
-      }
       await fetch(`${signalingBasePath}/${sessionId}`, {
         method: "POST",
         headers: {
@@ -322,6 +267,8 @@ export default function MessagingCallRoom({
       });
       setLeftCall(true);
       setJoined(false);
+      setDailyEmbedUrl(null);
+      setMediaProvider(null);
       stopMedia();
     } catch (leaveError) {
       setError(leaveError instanceof Error ? leaveError.message : "Failed to leave call");
@@ -330,7 +277,6 @@ export default function MessagingCallRoom({
     }
   }
 
-  // --- WebRTC fallback helpers ---
   useEffect(() => {
     const video = localVideoRef.current;
     if (!video || !localStream || isVoice || mediaProvider !== "webrtc") return;
@@ -533,8 +479,6 @@ export default function MessagingCallRoom({
     );
   }
 
-  const usingDaily = mediaProvider === "daily" || (joined && mediaProvider !== "webrtc");
-
   return (
     <section
       className={cn(
@@ -549,7 +493,7 @@ export default function MessagingCallRoom({
             {mediaProvider === "daily" ? " · Daily" : mediaProvider === "webrtc" ? " · Direct" : ""}
           </p>
           <h1 className="text-base font-semibold sm:text-lg">
-            {payload?.viewer.isHost ? "Hosting" : "In call"}
+            {payload?.viewer.isHost ? "Hosting" : joined ? "In call" : "Ready to join"}
             {payload?.room.hostOperatorName
               ? ` · ${payload.viewer.isHost ? "you" : payload.room.hostOperatorName}`
               : ""}
@@ -557,25 +501,27 @@ export default function MessagingCallRoom({
         </div>
         <p className="text-xs text-white/50">
           {mediaProvider === "daily"
-            ? dailyReady
-              ? "Live"
-              : "Connecting…"
+            ? "Live"
             : mediaProvider === "webrtc"
               ? connectionLabel(connectionState)
-              : "Ready"}
+              : busy
+                ? "Connecting…"
+                : "Ready"}
         </p>
       </header>
 
       <div className="relative flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-5 sm:py-4">
-        {/* Daily mounts here once joined */}
-        <div
-          ref={dailyContainerRef}
-          className={cn(
-            "min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/40",
-            (!joined || mediaProvider === "webrtc") && "hidden",
-            embedded ? "min-h-[280px]" : "min-h-[420px]",
-          )}
-        />
+        {mediaProvider === "daily" && dailyEmbedUrl ? (
+          <iframe
+            title="Daily meeting"
+            src={dailyEmbedUrl}
+            allow="camera; microphone; fullscreen; display-capture; autoplay"
+            className={cn(
+              "min-h-0 w-full flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black",
+              embedded ? "min-h-[280px]" : "min-h-[420px]",
+            )}
+          />
+        ) : null}
 
         {(!joined || mediaProvider === "webrtc") && (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
@@ -614,7 +560,9 @@ export default function MessagingCallRoom({
               )
             ) : (
               <p className="text-sm text-white/50">
-                {joined ? "Starting meeting…" : "Join to start voice, video, and screen share."}
+                {busy || (!isExternalGuest && !error)
+                  ? "Starting meeting…"
+                  : "Join to start voice, video, and screen share."}
               </p>
             )}
           </div>
@@ -657,13 +605,8 @@ export default function MessagingCallRoom({
               Join {isVoice ? "voice" : "video"} call
               {isExternalGuest ? " as guest" : ""}
             </button>
-            {isExternalGuest ? (
-              <p className="text-center text-xs text-white/45">
-                No Unit311 account needed. Up to 10 people can join this link.
-              </p>
-            ) : null}
           </div>
-        ) : usingDaily && mediaProvider === "daily" ? (
+        ) : mediaProvider === "daily" ? (
           <>
             {!isExternalGuest ? (
               <>
@@ -712,7 +655,6 @@ export default function MessagingCallRoom({
               type="button"
               onClick={toggleAudio}
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5"
-              aria-label={audioEnabled ? "Mute" : "Unmute"}
             >
               {audioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
             </button>
