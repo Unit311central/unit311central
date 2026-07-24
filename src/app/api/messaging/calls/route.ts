@@ -5,6 +5,10 @@ import {
   parseMessagingCallSessionId,
   type MessagingCallType,
 } from "@/lib/messaging-call-service";
+import {
+  ensureMessagingInstantMeetingSchema,
+  isMissingInstantMeetingColumnError,
+} from "@/lib/messaging-instant-meeting-schema";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -56,15 +60,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "channelRoom is required." }, { status: 400 });
     }
 
-    const room = await createMessagingCallRoom({
-      sessionId,
-      workspaceId: workspace.id,
-      channelRoom,
-      callType,
-      hostOperatorId,
-      hostOperatorName,
-      allowGuestJoin: instantMeeting,
-    });
+    if (instantMeeting) {
+      await ensureMessagingInstantMeetingSchema();
+    }
+
+    let room;
+    try {
+      room = await createMessagingCallRoom({
+        sessionId,
+        workspaceId: workspace.id,
+        channelRoom,
+        callType,
+        hostOperatorId,
+        hostOperatorName,
+        allowGuestJoin: instantMeeting,
+      });
+    } catch (createError) {
+      const message =
+        createError instanceof Error ? createError.message : "Failed to create call room";
+      if (instantMeeting && isMissingInstantMeetingColumnError(message)) {
+        const ready = await ensureMessagingInstantMeetingSchema(true);
+        if (!ready) throw createError;
+        room = await createMessagingCallRoom({
+          sessionId,
+          workspaceId: workspace.id,
+          channelRoom,
+          callType,
+          hostOperatorId,
+          hostOperatorName,
+          allowGuestJoin: instantMeeting,
+        });
+      } else {
+        throw createError;
+      }
+    }
 
     const callLink = `${CENTRAL_SITE_URL}/meet/${callType}/${room.sessionId}`;
     const guestLink =
