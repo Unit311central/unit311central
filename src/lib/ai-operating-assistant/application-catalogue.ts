@@ -371,12 +371,23 @@ export function answerPlatformQuestion(message: string): PlatformQuestionAnswer 
     return null;
   }
 
-  // Live business data requests are not platform navigation.
+  // Live business data / org-state requests are not platform navigation.
   if (/\b(show|list)\s+(my\s+)?(clients?|projects?|employees?|invoices?|tasks?)\b/i.test(lower)) {
     return null;
   }
   if (
-    /\b(show|list|summarise|summarize|explain|which|are)\b[\s\S]{0,80}\b(cap\s*table|office\s+locations?|bank\s+accounts?|advisers?|advisors?|share\s+classes?|certificates?|identities|integrations?|payroll\s+cost|leave\s+balance)\b/i.test(
+    /\bmodules?\b/i.test(lower) &&
+    /\b(enabled|go\s*live|go-live|sign-?off|ready|for\s+us|rolled\s+out|owner)\b/i.test(lower)
+  ) {
+    return null;
+  }
+  if (
+    /\b(where\s+(are|is))\b[\s\S]{0,60}\b(sops?|files?|documents?|stored|wordmark)\b/i.test(lower)
+  ) {
+    return null;
+  }
+  if (
+    /\b(show|list|summarise|summarize|explain|which|are|is|give|preview)\b[\s\S]{0,80}\b(cap\s*table|office\s+locations?|bank\s+accounts?|advisers?|advisors?|share\s+classes?|certificates?|identities|integrations?|payroll\s+cost|leave\s+balance|careers?\s+listings?|api\s+credentials?|vendor\s+sync|mfa|security\s+brief|environments?|wordmark)\b/i.test(
       lower,
     )
   ) {
@@ -390,7 +401,9 @@ export function answerPlatformQuestion(message: string): PlatformQuestionAnswer 
   }
 
   const isModulesList =
-    /\b(what|list|show|which)\b[\s\S]{0,40}\bmodules?\b/i.test(lower) ||
+    /\b(what|list|show)\b[\s\S]{0,40}\bmodules?\b/i.test(lower) ||
+    (/\bwhich\s+modules?\b/i.test(lower) &&
+      !/\b(enabled|go\s*live|sign-?off|ready|for\s+us|owner)\b/i.test(lower)) ||
     /\bmodules?\s+(exist|are\s+there|available|in\s+(unit\s*311|the\s+platform|unit311central))\b/i.test(
       lower,
     ) ||

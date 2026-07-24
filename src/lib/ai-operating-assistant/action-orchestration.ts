@@ -34,7 +34,7 @@ import {
   answerPlatformQuestion,
   isPlatformQuestion,
 } from "./application-catalogue";
-import { classifyKnowledgeDomain } from "./knowledge-domains";
+import { classifyKnowledgeDomain, isBusinessStatusRead } from "./knowledge-domains";
 import { eaStage } from "./ea-forensic-trace";
 
 export { formatActionSuccess, formatPlanReadyMessage };
@@ -314,6 +314,18 @@ export async function resolveOrchestrationRoute(
   }
   if (direct) {
     return { kind: "tool", intent: direct };
+  }
+
+  // Unknown CEO status/lookup reads → live business query (never freeform Application Catalogue).
+  if (isBusinessStatusRead(message) && !hasExplicitWriteIntent(message)) {
+    return {
+      kind: "tool",
+      intent: {
+        tool: "queryBusiness",
+        args: { question: message },
+        reason: "unknown_business_read_fallback",
+      },
+    };
   }
 
   return { kind: "none" };

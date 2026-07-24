@@ -8,6 +8,7 @@
  *   node scripts/executive-module-acceptance-suite.mjs --limit=40
  *   node scripts/executive-module-acceptance-suite.mjs --module=Financials
  *   node scripts/executive-module-acceptance-suite.mjs --concurrency=3
+ *   node scripts/executive-module-acceptance-suite.mjs --ids-file=.tmp-rerun-ids.json
  *   node scripts/executive-module-acceptance-suite.mjs https://unit311.vercel.app
  *
  * Requires: .tmp-qa-creds.json + docs/executive-module-prompt-catalog.json
@@ -25,14 +26,21 @@ const baseUrl =
   args.find((a) => a.startsWith("http")) || "https://unit311.vercel.app";
 const limitArg = args.find((a) => a.startsWith("--limit="));
 const moduleArg = args.find((a) => a.startsWith("--module="));
+const idsFileArg = args.find((a) => a.startsWith("--ids-file="));
+const outArg = args.find((a) => a.startsWith("--out="));
 const concurrencyArg = args.find((a) => a.startsWith("--concurrency="));
 const limit = limitArg ? Number(limitArg.split("=")[1]) : Infinity;
 const moduleFilter = moduleArg ? moduleArg.split("=")[1] : null;
+const idsFile = idsFileArg ? idsFileArg.split("=")[1] : null;
 const concurrency = Math.max(1, Number(concurrencyArg?.split("=")[1] || 2));
 
 const credsPath = path.join(root, ".tmp-qa-creds.json");
 const catalogPath = path.join(root, "docs", "executive-module-prompt-catalog.json");
-const reportPath = path.join(root, ".tmp-executive-module-acceptance-report.json");
+const reportPath = outArg
+  ? path.isAbsolute(outArg.split("=")[1])
+    ? outArg.split("=")[1]
+    : path.join(root, outArg.split("=")[1])
+  : path.join(root, ".tmp-executive-module-acceptance-report.json");
 
 if (!fs.existsSync(credsPath)) {
   console.error(`Missing ${credsPath}`);
@@ -48,6 +56,13 @@ const catalog = JSON.parse(fs.readFileSync(catalogPath, "utf8"));
 
 /** @type {any[]} */
 let scenarios = catalog.scenarios || [];
+if (idsFile) {
+  const idsPath = path.isAbsolute(idsFile) ? idsFile : path.join(root, idsFile);
+  const raw = JSON.parse(fs.readFileSync(idsPath, "utf8"));
+  const idList = Array.isArray(raw) ? raw : raw.ids || [];
+  const want = new Set(idList.map(String));
+  scenarios = scenarios.filter((s) => want.has(String(s.id)));
+}
 if (moduleFilter) {
   const needle = moduleFilter.toLowerCase();
   scenarios = scenarios.filter(
@@ -182,7 +197,9 @@ function observedDomain(result, scenario) {
   }
   if (
     result.tools.some((t) => ["listPlatformModules", "searchApplications"].includes(t)) ||
-    /Unit311 Central platform modules|Application Catalogue|platform structure/i.test(content)
+    /Unit311 Central platform modules:|From the Application Catalogue \(platform structure/i.test(
+      content,
+    )
   ) {
     return "platform";
   }
