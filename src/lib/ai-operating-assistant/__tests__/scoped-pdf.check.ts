@@ -103,6 +103,28 @@ async function main() {
   }
 
   {
+    // General typo tolerance across metrics
+    const typos = parseScopedPdfRequest(
+      "create a pdf for payrol total, burnrte, headcont, active clienst, hot leeds",
+    );
+    assert.ok(typos.metrics.includes("payroll_total"), `got ${typos.metrics.join(",")}`);
+    assert.ok(typos.metrics.includes("burn_rate"), `got ${typos.metrics.join(",")}`);
+    assert.ok(typos.metrics.includes("headcount"), `got ${typos.metrics.join(",")}`);
+    assert.ok(typos.metrics.includes("active_clients"), `got ${typos.metrics.join(",")}`);
+    assert.ok(typos.metrics.includes("hot_leads"), `got ${typos.metrics.join(",")}`);
+  }
+
+  {
+    const cross = parseScopedPdfRequest(
+      "create a pdf with cash position, overdue projects, open vacancies, ar outstanding",
+    );
+    assert.ok(cross.metrics.includes("cash"));
+    assert.ok(cross.metrics.includes("overdue_projects"));
+    assert.ok(cross.metrics.includes("open_vacancies"));
+    assert.ok(cross.metrics.includes("ar_outstanding"));
+  }
+
+  {
     const scoped = parseScopedPdfRequest("create a pdf for P&L and marketing CAC");
     assert.equal(scoped.useScopedPath, true);
     assert.ok(scoped.metrics.includes("pnl"));

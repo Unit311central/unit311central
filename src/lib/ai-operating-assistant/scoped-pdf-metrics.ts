@@ -1,6 +1,7 @@
 /**
  * Natural-language → scoped live PDF metric selection.
  * Numbers never invented; unknown asks become honest gaps.
+ * Typos are tolerated via fuzzy phrase matching across all registered metrics.
  */
 
 import {
@@ -16,14 +17,28 @@ export type ScopedPdfMetricId =
   | "crm_pipeline_value"
   | "cash"
   | "ar_overdue"
+  | "ar_outstanding"
+  | "ap_outstanding"
+  | "revenue_ytd"
+  | "net_profit"
+  | "outstanding_invoices"
   | "headcount"
-  | "open_projects";
+  | "open_projects"
+  | "total_projects"
+  | "overdue_projects"
+  | "active_clients"
+  | "hot_leads"
+  | "open_leads"
+  | "open_vacancies"
+  | "pending_leave";
 
 export type ScopedPdfMetricDef = {
   id: ScopedPdfMetricId;
   label: string;
-  /** Matchers tested against the full lowercased message. */
+  /** Exact / near-exact regex for the full message. */
   match: RegExp;
+  /** Canonical phrases used for fuzzy typo matching. */
+  phrases: string[];
   permission: "financials" | "hr" | "crm" | "projects" | "any";
 };
 
@@ -31,20 +46,22 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
   {
     id: "pnl",
     label: "Profit & Loss",
-    match:
-      /\b(p\s*&\s*l|p\s+and\s+l|pnl|profit\s*(and|&)\s*loss|profit\s+and\s+loss)\b/i,
+    match: /\b(p\s*&\s*l|p\s+and\s+l|pnl|profit\s*(and|&)\s*loss)\b/i,
+    phrases: ["profit and loss", "p and l", "pnl", "p&l"],
     permission: "financials",
   },
   {
     id: "burn_rate",
     label: "Burn rate",
     match: /\b(burn\s*rate|monthly\s+burn)\b/i,
+    phrases: ["burn rate", "monthly burn", "burnrate"],
     permission: "financials",
   },
   {
     id: "runway",
     label: "Cash runway",
     match: /\b(cash\s+)?runway\b/i,
+    phrases: ["cash runway", "runway"],
     permission: "financials",
   },
   {
@@ -52,19 +69,36 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
     label: "Payroll total",
     match:
       /\b(payroll\s+(total|cost|obligation|amount|sum)|monthly\s+payroll|payroll)\b/i,
+    phrases: [
+      "payroll total",
+      "payroll cost",
+      "monthly payroll",
+      "payroll obligation",
+      "payroll",
+    ],
     permission: "hr",
   },
   {
     id: "crm_pipeline_value",
     label: "CRM pipeline value",
     match:
-      /\b((value\s+of\s+(the\s+)?)?crm\s+pipelin\w*|open\s+pipelin\w*(\s+value)?|pipelin\w*\s+value|sales\s+pipelin\w*|value\s+of\s+(the\s+)?crm\s+pipelin\w*)\b/i,
+      /\b((value\s+of\s+(the\s+)?)?crm\s+pipelin\w*|open\s+pipelin\w*|pipelin\w*\s+value|sales\s+pipelin\w*)\b/i,
+    phrases: [
+      "crm pipeline",
+      "crm pipeline value",
+      "value of crm pipeline",
+      "open pipeline",
+      "pipeline value",
+      "sales pipeline",
+      "pipeline",
+    ],
     permission: "crm",
   },
   {
     id: "cash",
     label: "Cash position",
     match: /\b(cash\s+position|how\s+much\s+cash|cash\s+balance|cash\s+on\s+hand)\b/i,
+    phrases: ["cash position", "cash balance", "cash on hand", "how much cash"],
     permission: "financials",
   },
   {
@@ -72,19 +106,143 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
     label: "AR overdue",
     match:
       /\b(ar\s+overdue|overdue\s+(invoices?|receivables?)|accounts?\s+receivable\s+overdue)\b/i,
+    phrases: [
+      "ar overdue",
+      "overdue invoices",
+      "overdue receivables",
+      "accounts receivable overdue",
+    ],
+    permission: "financials",
+  },
+  {
+    id: "ar_outstanding",
+    label: "AR outstanding",
+    match:
+      /\b(ar\s+outstanding|accounts?\s+receivable|receivables?\s+total|unpaid\s+receivables?)\b/i,
+    phrases: [
+      "ar outstanding",
+      "accounts receivable",
+      "receivables total",
+      "unpaid receivables",
+    ],
+    permission: "financials",
+  },
+  {
+    id: "ap_outstanding",
+    label: "AP outstanding",
+    match:
+      /\b(ap\s+outstanding|accounts?\s+payable|what\s+we\s+owe|payables?\s+total)\b/i,
+    phrases: [
+      "ap outstanding",
+      "accounts payable",
+      "payables total",
+      "what we owe",
+    ],
+    permission: "financials",
+  },
+  {
+    id: "revenue_ytd",
+    label: "Revenue YTD",
+    match: /\b(revenue\s+ytd|ytd\s+revenue|year\s*to\s*date\s+revenue|ytd\s+sales)\b/i,
+    phrases: [
+      "revenue ytd",
+      "ytd revenue",
+      "year to date revenue",
+      "ytd sales",
+    ],
+    permission: "financials",
+  },
+  {
+    id: "net_profit",
+    label: "Net profit",
+    match: /\b(net\s+profit|net\s+income|bottom\s+line)\b/i,
+    phrases: ["net profit", "net income", "bottom line"],
+    permission: "financials",
+  },
+  {
+    id: "outstanding_invoices",
+    label: "Outstanding invoices",
+    match: /\b(outstanding\s+invoices?|unpaid\s+invoices?|invoice\s+count)\b/i,
+    phrases: [
+      "outstanding invoices",
+      "unpaid invoices",
+      "invoice count",
+      "outstanding invoice",
+    ],
     permission: "financials",
   },
   {
     id: "headcount",
     label: "Headcount",
     match: /\b(headcount|how\s+many\s+employees|employee\s+count|staff\s+count)\b/i,
+    phrases: ["headcount", "employee count", "staff count", "how many employees"],
     permission: "hr",
   },
   {
     id: "open_projects",
     label: "Open projects",
-    match: /\b(open\s+projects|live\s+projects|active\s+projects|project\s+count)\b/i,
+    match: /\b(open\s+projects|live\s+projects|active\s+projects)\b/i,
+    phrases: ["open projects", "live projects", "active projects"],
     permission: "projects",
+  },
+  {
+    id: "total_projects",
+    label: "Total projects",
+    match: /\b(total\s+projects|all\s+projects|project\s+count)\b/i,
+    phrases: ["total projects", "all projects", "project count"],
+    permission: "projects",
+  },
+  {
+    id: "overdue_projects",
+    label: "Overdue projects",
+    match: /\b(overdue\s+projects|late\s+projects|projects?\s+behind)\b/i,
+    phrases: ["overdue projects", "late projects", "projects behind"],
+    permission: "projects",
+  },
+  {
+    id: "active_clients",
+    label: "Active clients",
+    match: /\b(active\s+clients|client\s+count|how\s+many\s+clients|number\s+of\s+clients)\b/i,
+    phrases: [
+      "active clients",
+      "client count",
+      "how many clients",
+      "number of clients",
+    ],
+    permission: "crm",
+  },
+  {
+    id: "hot_leads",
+    label: "Hot leads",
+    match: /\b(hot\s+leads|hot\s+opportunities)\b/i,
+    phrases: ["hot leads", "hot opportunities"],
+    permission: "crm",
+  },
+  {
+    id: "open_leads",
+    label: "Open leads",
+    match: /\b(open\s+leads|open\s+opportunities|crm\s+opportunity\s+count)\b/i,
+    phrases: ["open leads", "open opportunities", "crm opportunity count"],
+    permission: "crm",
+  },
+  {
+    id: "open_vacancies",
+    label: "Open vacancies",
+    match: /\b(open\s+(roles|vacancies|positions)|vacancies|open\s+jobs)\b/i,
+    phrases: ["open vacancies", "open roles", "open positions", "vacancies"],
+    permission: "hr",
+  },
+  {
+    id: "pending_leave",
+    label: "Pending leave",
+    match: /\b(pending\s+leave|leave\s+requests?|awaiting\s+leave\s+approval)\b/i,
+    phrases: [
+      "pending leave",
+      "leave requests",
+      "leave request",
+      "awaiting leave approval",
+    ],
+    permission: "hr",
   },
 ];
 
@@ -108,10 +266,92 @@ function wantsDocument(lower: string): boolean {
   );
 }
 
+function normalizeToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const matrix: number[][] = Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => 0),
+  );
+  for (let i = 0; i < rows; i += 1) matrix[i]![0] = i;
+  for (let j = 0; j < cols; j += 1) matrix[0]![j] = j;
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i]![j] = Math.min(
+        matrix[i - 1]![j]! + 1,
+        matrix[i]![j - 1]! + 1,
+        matrix[i - 1]![j - 1]! + cost,
+      );
+    }
+  }
+  return matrix[a.length]![b.length]!;
+}
+
+/** True when two tokens are equal, a truncation, or within edit distance. */
+export function fuzzyTokenEquals(a: string, b: string): boolean {
+  const na = normalizeToken(a);
+  const nb = normalizeToken(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  // Truncation / unfinished typing: pipelin → pipeline, payrol → payroll
+  if (na.length >= 4 && nb.startsWith(na)) return true;
+  if (nb.length >= 4 && na.startsWith(nb)) return true;
+  const maxLen = Math.max(na.length, nb.length);
+  if (maxLen < 4) return false;
+  const maxDist = maxLen <= 5 ? 1 : maxLen <= 9 ? 2 : 3;
+  return levenshtein(na, nb) <= maxDist;
+}
+
+function tokenizeWords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9&\s]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/** Fuzzy-match a multi-word phrase inside free text. */
+export function fuzzyPhraseInText(text: string, phrase: string): boolean {
+  const lower = text.toLowerCase();
+  const exact = phrase.toLowerCase();
+  if (lower.includes(exact)) return true;
+
+  const phraseWords = tokenizeWords(phrase);
+  if (!phraseWords.length) return false;
+  if (phraseWords.length === 1) {
+    return tokenizeWords(lower).some((w) => fuzzyTokenEquals(w, phraseWords[0]!));
+  }
+
+  const textWords = tokenizeWords(lower);
+  for (let i = 0; i <= textWords.length - phraseWords.length; i += 1) {
+    let ok = true;
+    for (let j = 0; j < phraseWords.length; j += 1) {
+      if (!fuzzyTokenEquals(textWords[i + j]!, phraseWords[j]!)) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
+function metricMatchesText(def: ScopedPdfMetricDef, text: string): boolean {
+  if (def.match.test(text)) return true;
+  return def.phrases.some((phrase) => fuzzyPhraseInText(text, phrase));
+}
+
 function detectMetrics(lower: string): ScopedPdfMetricId[] {
   const found: ScopedPdfMetricId[] = [];
   for (const def of SCOPED_PDF_METRICS) {
-    if (def.match.test(lower) && !found.includes(def.id)) {
+    if (metricMatchesText(def, lower) && !found.includes(def.id)) {
       found.push(def.id);
     }
   }
@@ -122,35 +362,27 @@ function detectMetrics(lower: string): ScopedPdfMetricId[] {
 function isNoiseSegment(seg: string): boolean {
   const s = seg.trim().toLowerCase();
   if (!s || s.length < 3) return true;
-  if (
-    /\b(pdf|report|document|export|create|make|generate|give|show|me|a|the|for|last|past|previous|months?|ytd|year|to|date|my|our|please)\b/.test(
-      s,
-    ) &&
-    s.split(/\s+/).length <= 4 &&
-    !/\b(cac|marketing|nps|churn|ltv|mrr|arr)\b/.test(s)
-  ) {
-    // Pure period / verb chrome
-    if (/^(last|past|previous)\s+\d+\s+months?$/.test(s)) return true;
-    if (/^(last|past|previous)\s+six\s+months$/.test(s)) return true;
-    if (/^(ytd|year\s+to\s+date|this\s+year)$/.test(s)) return true;
-    if (/^(a\s+)?pdf$/.test(s)) return true;
-    if (/^(create|make|generate|export|give)\b/.test(s) && !/\b(cac|marketing)\b/.test(s)) {
-      return true;
-    }
-  }
   if (/^(last|past|previous)\s+\d+\s+months?$/.test(s)) return true;
+  if (/^(last|past|previous)\s+six\s+months$/.test(s)) return true;
+  if (/^(ytd|year\s+to\s+date|this\s+year)$/.test(s)) return true;
+  if (/^(a\s+)?pdf$/.test(s)) return true;
   if (/^\d+\s+months?$/.test(s)) return true;
+  if (
+    /^(create|make|generate|export|give|show|get)\b/.test(s) &&
+    !/\b(cac|marketing|nps|churn|ltv|mrr|arr)\b/.test(s) &&
+    s.split(/\s+/).length <= 5
+  ) {
+    return true;
+  }
   return false;
 }
 
 function segmentMatchesMetric(seg: string): boolean {
-  const lower = seg.toLowerCase();
-  return SCOPED_PDF_METRICS.some((def) => def.match.test(lower));
+  return SCOPED_PDF_METRICS.some((def) => metricMatchesText(def, seg));
 }
 
 function detectUnknownTopics(message: string, metrics: ScopedPdfMetricId[]): string[] {
   const lower = message.toLowerCase();
-  // Prefer content after "pdf for" / "report for" / "showing"
   const afterFor =
     lower.match(
       /\b(?:pdf|report|document|export)\b[\s\S]{0,40}?\b(?:for|showing|including|with)\s+(.+)$/i,
@@ -158,60 +390,43 @@ function detectUnknownTopics(message: string, metrics: ScopedPdfMetricId[]): str
     lower.match(/\b(?:for|showing|including)\s+(.+)$/i)?.[1] ??
     lower;
 
-  // Protect multi-word metric phrases so "and" split does not invent false unknowns.
-  const protectedBody = afterFor
-    .replace(/\bprofit\s*(and|&)\s*loss\b/gi, "profit_and_loss")
-    .replace(/\bp\s*&\s*l\b/gi, "pnl_token")
-    .replace(/\bvalue\s+of\s+(the\s+)?crm\s+pipelin\w*\b/gi, "crm_pipeline_value")
-    .replace(/\bcrm\s+pipelin\w*\b/gi, "crm_pipeline_value")
-    .replace(/\bopen\s+pipelin\w*(\s+value)?\b/gi, "crm_pipeline_value")
-    .replace(/\bpipelin\w*\s+value\b/gi, "crm_pipeline_value")
-    .replace(/\bsales\s+pipelin\w*\b/gi, "crm_pipeline_value")
-    .replace(/\bburn\s*rate\b/gi, "burn_rate")
-    .replace(/\bmonthly\s+burn\b/gi, "burn_rate")
-    .replace(/\bpayroll\s+(total|cost|obligation|amount|sum)\b/gi, "payroll_total")
-    .replace(/\bmonthly\s+payroll\b/gi, "payroll_total")
-    .replace(/\bcash\s+position\b/gi, "cash_position")
-    .replace(/\bar\s+overdue\b/gi, "ar_overdue")
-    .replace(/\bopen\s+projects\b/gi, "open_projects")
-    .replace(/\blive\s+projects\b/gi, "open_projects")
-    .replace(/\bactive\s+projects\b/gi, "open_projects");
+  // Soft-protect common compound phrases before splitting on "and".
+  let protectedBody = afterFor;
+  for (const def of SCOPED_PDF_METRICS) {
+    for (const phrase of def.phrases) {
+      if (phrase.split(/\s+/).length < 2) continue;
+      if (fuzzyPhraseInText(protectedBody, phrase)) {
+        const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+        protectedBody = protectedBody.replace(new RegExp(escaped, "gi"), def.id);
+      }
+    }
+  }
+  // Also protect fuzzy pipeline / payroll compounds that regex may miss after split.
+  protectedBody = protectedBody
+    .replace(/\bprofit\s*(and|&)\s*loss\b/gi, "pnl")
+    .replace(/\bvalue\s+of\s+(the\s+)?crm\s+\w+\b/gi, (m) =>
+      fuzzyPhraseInText(m, "value of crm pipeline") ? "crm_pipeline_value" : m,
+    );
 
   const segments = protectedBody
     .split(/\s*,\s*|\s+and\s+/i)
     .map((s) => s.replace(/[?.!]+$/g, "").trim())
     .filter(Boolean);
 
-  const knownTokens = new Set([
-    "profit_and_loss",
-    "pnl_token",
-    "crm_pipeline_value",
-    "burn_rate",
-    "payroll_total",
-    "cash_position",
-    "ar_overdue",
-    "open_projects",
-    "payroll",
-    "headcount",
-    "runway",
-  ]);
+  const knownIds = new Set(SCOPED_PDF_METRICS.map((m) => m.id));
 
   const unknowns: string[] = [];
   for (const seg of segments) {
-    if (knownTokens.has(seg.replace(/^(the|a|an|our|my)\s+/i, "").trim())) continue;
+    const cleaned = seg.replace(/^(the|a|an|our|my)\s+/i, "").trim();
+    if (knownIds.has(cleaned as ScopedPdfMetricId)) continue;
     if (isNoiseSegment(seg)) continue;
     if (segmentMatchesMetric(seg)) continue;
-    // Period fragment glued to metric text e.g. "profit_and_loss for last 6 months"
-    if (/^(profit_and_loss|pnl_token|burn_rate|payroll_total|crm_pipeline_value)\b/.test(seg)) {
-      continue;
-    }
     if (segmentMatchesMetric(seg.replace(/\bfor\s+last\s+\d+\s+months?\b/i, ""))) continue;
     if (/\blast\s+\d+\s+months?\b/.test(seg) && metrics.includes("pnl")) continue;
-    // Skip generic financial report phrasing when only template path
     if (/\b(financials?|board|engineering|employees?|directory)\b/.test(seg) && metrics.length <= 1) {
       continue;
     }
-    const cleaned = seg.replace(/^(the|a|an|our|my)\s+/i, "").trim();
+    // Truly unknown marketing/product metrics stay listed.
     if (cleaned.length >= 3 && !unknowns.includes(cleaned)) {
       unknowns.push(cleaned);
     }

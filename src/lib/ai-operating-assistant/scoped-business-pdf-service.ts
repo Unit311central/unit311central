@@ -20,8 +20,11 @@ import {
   metricLabel,
   type ScopedPdfMetricId,
 } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
+import { isOverdue } from "@/lib/ai-operating-assistant/tool-result";
 import { listLeads } from "@/lib/crm-leads-service";
+import { listLeaveRequests, listVacancies } from "@/lib/hr-mock-store";
 import { listHrEmployees } from "@/lib/hr-employees-service";
+import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { calculateLivePayrollSnapshot } from "@/lib/payroll/payroll-service";
 
@@ -146,15 +149,33 @@ export async function loadScopedPdfBundle(input: {
   const blocked: string[] = [];
   const sections: ScopedPdfSection[] = [];
 
-  const needsFinance = input.metrics.some((m) =>
-    ["pnl", "burn_rate", "runway", "cash", "ar_overdue", "payroll_total"].includes(m),
-  );
+  const financeIds: ScopedPdfMetricId[] = [
+    "pnl",
+    "burn_rate",
+    "runway",
+    "cash",
+    "ar_overdue",
+    "ar_outstanding",
+    "ap_outstanding",
+    "revenue_ytd",
+    "net_profit",
+    "outstanding_invoices",
+    "payroll_total",
+  ];
+  const needsFinance = input.metrics.some((m) => financeIds.includes(m));
   const needsPayroll = input.metrics.includes("payroll_total");
-  const needsCrm = input.metrics.includes("crm_pipeline_value");
-  const needsHr = input.metrics.includes("headcount");
-  const needsProjects = input.metrics.includes("open_projects");
+  const needsCrm = input.metrics.some((m) =>
+    ["crm_pipeline_value", "hot_leads", "open_leads"].includes(m),
+  );
+  const needsClients = input.metrics.includes("active_clients");
+  const needsHr = input.metrics.some((m) =>
+    ["headcount", "open_vacancies", "pending_leave"].includes(m),
+  );
+  const needsProjects = input.metrics.some((m) =>
+    ["open_projects", "total_projects", "overdue_projects"].includes(m),
+  );
 
-  const [overview, payrollSnap, leads, employees, projects] = await Promise.all([
+  const [overview, payrollSnap, leads, clients, employees, projects] = await Promise.all([
     needsFinance && input.canAccessFinancials
       ? getFinancialOverview().catch(() => null)
       : Promise.resolve(null),
@@ -162,181 +183,322 @@ export async function loadScopedPdfBundle(input: {
       ? calculateLivePayrollSnapshot().catch(() => null)
       : Promise.resolve(null),
     needsCrm ? listLeads("All").catch(() => []) : Promise.resolve([]),
-    needsHr && input.canAccessHr ? listHrEmployees().catch(() => []) : Promise.resolve([]),
+    needsClients ? listInternalClients().catch(() => []) : Promise.resolve([]),
+    needsHr && input.canAccessHr && input.metrics.includes("headcount")
+      ? listHrEmployees().catch(() => [])
+      : Promise.resolve([]),
     needsProjects ? listProjects().catch(() => []) : Promise.resolve([]),
   ]);
+
+  const vacancies =
+    needsHr && input.canAccessHr && input.metrics.includes("open_vacancies")
+      ? listVacancies()
+      : [];
+  const leaveRequests =
+    needsHr && input.canAccessHr && input.metrics.includes("pending_leave")
+      ? listLeaveRequests()
+      : [];
 
   if (overview) sources.add("supabase:financials");
   if (payrollSnap) sources.add("payroll:live");
   if (needsCrm) sources.add("supabase:crm_leads");
-  if (needsHr) sources.add("supabase:hr_employees");
+  if (needsClients) sources.add("supabase:clients");
+  if (employees.length || vacancies.length || leaveRequests.length) {
+    sources.add("hr:live");
+  }
   if (needsProjects) sources.add("supabase:projects");
+
+  const denyFinance = (metricId: ScopedPdfMetricId, heading: string) => {
+    blocked.push(heading);
+    sections.push({
+      metricId,
+      heading,
+      rows: [{ label: "Status", value: "Permission denied" }],
+      note: "Your role cannot access financials.",
+    });
+  };
+  const denyHr = (metricId: ScopedPdfMetricId, heading: string) => {
+    blocked.push(heading);
+    sections.push({
+      metricId,
+      heading,
+      rows: [{ label: "Status", value: "Permission denied" }],
+      note: "Your role cannot access HR.",
+    });
+  };
 
   for (const metricId of input.metrics) {
     const heading = metricLabel(metricId);
 
-    if (
-      (metricId === "pnl" ||
-        metricId === "burn_rate" ||
-        metricId === "runway" ||
-        metricId === "cash" ||
-        metricId === "ar_overdue") &&
-      !input.canAccessFinancials
-    ) {
-      blocked.push(heading);
-      sections.push({
-        metricId,
-        heading,
-        rows: [{ label: "Status", value: "Permission denied" }],
-        note: "Your role cannot access financials.",
-      });
+    if (financeIds.includes(metricId) && metricId !== "payroll_total" && !input.canAccessFinancials) {
+      denyFinance(metricId, heading);
       continue;
     }
-
-    if (metricId === "payroll_total" && !input.canAccessHr && !input.canAccessFinancials) {
-      blocked.push(heading);
+    if (
+      metricId === "payroll_total" &&
+      !input.canAccessHr &&
+      !input.canAccessFinancials
+    ) {
       sections.push({
         metricId,
         heading,
         rows: [{ label: "Status", value: "Permission denied" }],
         note: "Your role cannot access payroll.",
       });
-      continue;
-    }
-
-    if (metricId === "headcount" && !input.canAccessHr) {
       blocked.push(heading);
-      sections.push({
-        metricId,
-        heading,
-        rows: [{ label: "Status", value: "Permission denied" }],
-        note: "Your role cannot access HR.",
-      });
+      continue;
+    }
+    if (
+      (metricId === "headcount" ||
+        metricId === "open_vacancies" ||
+        metricId === "pending_leave") &&
+      !input.canAccessHr
+    ) {
+      denyHr(metricId, heading);
       continue;
     }
 
-    if (metricId === "pnl") {
-      if (!overview) {
+    switch (metricId) {
+      case "pnl": {
+        if (!overview) {
+          sections.push({
+            metricId,
+            heading,
+            rows: [{ label: "Status", value: "No live financial data" }],
+          });
+        } else {
+          const built = pnlForPeriod(overview, input.period);
+          sections.push({ metricId, heading, rows: built.rows, note: built.note });
+        }
+        break;
+      }
+      case "burn_rate": {
+        const monthly = overview?.burnRate.monthly ?? 0;
+        const currency = overview?.burnRate.currency || "GBP";
         sections.push({
           metricId,
           heading,
-          rows: [{ label: "Status", value: "No live financial data" }],
+          rows: [{ label: "Monthly burn", value: money(monthly, currency) }],
         });
-      } else {
-        const built = pnlForPeriod(overview, input.period);
-        sections.push({ metricId, heading, rows: built.rows, note: built.note });
+        break;
       }
-      continue;
-    }
-
-    if (metricId === "burn_rate") {
-      const monthly = overview?.burnRate.monthly ?? 0;
-      const currency = overview?.burnRate.currency || "GBP";
-      sections.push({
-        metricId,
-        heading,
-        rows: [{ label: "Monthly burn", value: money(monthly, currency) }],
-      });
-      continue;
-    }
-
-    if (metricId === "runway") {
-      const runway = overview?.burnRate.runwayMonths;
-      sections.push({
-        metricId,
-        heading,
-        rows: [
-          {
-            label: "Cash runway (months)",
-            value: runway == null ? "Not available" : String(runway),
-          },
-        ],
-      });
-      continue;
-    }
-
-    if (metricId === "cash") {
-      sections.push({
-        metricId,
-        heading,
-        rows: [{ label: "Cash position", value: money(overview?.cashPosition ?? 0) }],
-      });
-      continue;
-    }
-
-    if (metricId === "ar_overdue") {
-      sections.push({
-        metricId,
-        heading,
-        rows: [
-          { label: "AR overdue", value: money(overview?.ar.overdue ?? 0) },
-          {
-            label: "Outstanding invoices",
-            value: String(overview?.outstandingInvoices ?? 0),
-          },
-        ],
-      });
-      continue;
-    }
-
-    if (metricId === "payroll_total") {
-      const monthly = payrollSnap
-        ? Math.round((payrollSnap.monthlyGross + payrollSnap.employerTax) * 100) / 100
-        : overview?.payroll.monthly ?? 0;
-      const currency = payrollSnap?.currency ?? "GBP";
-      const employees = payrollSnap?.employeeCount ?? overview?.payroll.employees ?? 0;
-      sections.push({
-        metricId,
-        heading,
-        rows: [
-          { label: "Monthly payroll total", value: money(monthly, currency) },
-          { label: "Employees on payroll", value: String(employees) },
-        ],
-      });
-      continue;
-    }
-
-    if (metricId === "crm_pipeline_value") {
-      const open = leads.filter((l) => l.status !== "Won" && l.status !== "Lost");
-      const value = open.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
-      sections.push({
-        metricId,
-        heading,
-        rows: [
-          { label: "Open pipeline value", value: money(Math.round(value)) },
-          { label: "Open opportunities", value: String(open.length) },
-        ],
-      });
-      continue;
-    }
-
-    if (metricId === "headcount") {
-      const active = employees.filter(
-        (e) => String((e as { status?: string }).status || "active").toLowerCase() !== "terminated",
-      );
-      sections.push({
-        metricId,
-        heading,
-        rows: [
-          { label: "Headcount", value: String(active.length || employees.length) },
-        ],
-      });
-      continue;
-    }
-
-    if (metricId === "open_projects") {
-      const open = projects.filter((p) => {
-        const phase = String(p.phase || "").toLowerCase();
-        return phase === "live" || phase === "active" || phase === "in_progress";
-      });
-      sections.push({
-        metricId,
-        heading,
-        rows: [
-          { label: "Open / live projects", value: String(open.length) },
-          { label: "Total projects", value: String(projects.length) },
-        ],
-      });
+      case "runway": {
+        const runway = overview?.burnRate.runwayMonths;
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            {
+              label: "Cash runway (months)",
+              value: runway == null ? "Not available" : String(runway),
+            },
+          ],
+        });
+        break;
+      }
+      case "cash": {
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "Cash position", value: money(overview?.cashPosition ?? 0) }],
+        });
+        break;
+      }
+      case "ar_overdue": {
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "AR overdue", value: money(overview?.ar.overdue ?? 0) }],
+        });
+        break;
+      }
+      case "ar_outstanding": {
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            {
+              label: "AR outstanding",
+              value: money(overview?.ar.outstanding ?? overview?.accountsReceivable ?? 0),
+            },
+          ],
+        });
+        break;
+      }
+      case "ap_outstanding": {
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            {
+              label: "AP outstanding",
+              value: money(overview?.ap.outstanding ?? overview?.accountsPayable ?? 0),
+            },
+          ],
+        });
+        break;
+      }
+      case "revenue_ytd": {
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            {
+              label: "Revenue YTD",
+              value: money(overview?.revenueYtd ?? overview?.annualRevenue ?? 0),
+            },
+          ],
+        });
+        break;
+      }
+      case "net_profit": {
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "Net profit", value: money(overview?.netProfit ?? 0) }],
+        });
+        break;
+      }
+      case "outstanding_invoices": {
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            {
+              label: "Outstanding invoices",
+              value: String(overview?.outstandingInvoices ?? 0),
+            },
+          ],
+        });
+        break;
+      }
+      case "payroll_total": {
+        const monthly = payrollSnap
+          ? Math.round((payrollSnap.monthlyGross + payrollSnap.employerTax) * 100) / 100
+          : overview?.payroll.monthly ?? 0;
+        const currency = payrollSnap?.currency ?? "GBP";
+        const empCount = payrollSnap?.employeeCount ?? overview?.payroll.employees ?? 0;
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            { label: "Monthly payroll total", value: money(monthly, currency) },
+            { label: "Employees on payroll", value: String(empCount) },
+          ],
+        });
+        break;
+      }
+      case "crm_pipeline_value": {
+        const open = leads.filter((l) => l.status !== "Won" && l.status !== "Lost");
+        const value = open.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            { label: "Open pipeline value", value: money(Math.round(value)) },
+            { label: "Open opportunities", value: String(open.length) },
+          ],
+        });
+        break;
+      }
+      case "hot_leads": {
+        const hot = leads.filter((l) => l.status === "Hot");
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "Hot leads", value: String(hot.length) }],
+        });
+        break;
+      }
+      case "open_leads": {
+        const open = leads.filter((l) => l.status !== "Won" && l.status !== "Lost");
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "Open leads", value: String(open.length) }],
+        });
+        break;
+      }
+      case "active_clients": {
+        const active = clients.filter(
+          (c) => String(c.accountStatus || "").toLowerCase() === "active",
+        );
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            { label: "Active clients", value: String(active.length) },
+            { label: "Total clients", value: String(clients.length) },
+          ],
+        });
+        break;
+      }
+      case "headcount": {
+        const active = employees.filter(
+          (e) =>
+            String((e as { status?: string }).status || "active").toLowerCase() !==
+            "terminated",
+        );
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            { label: "Headcount", value: String(active.length || employees.length) },
+          ],
+        });
+        break;
+      }
+      case "open_vacancies": {
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "Open vacancies", value: String(vacancies.length) }],
+        });
+        break;
+      }
+      case "pending_leave": {
+        const pending = leaveRequests.filter((r) => {
+          const status = String((r as { status?: string }).status || "").toLowerCase();
+          return status === "pending" || status === "requested" || status === "awaiting";
+        });
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "Pending leave requests", value: String(pending.length) }],
+        });
+        break;
+      }
+      case "open_projects": {
+        const open = projects.filter((p) => {
+          const phase = String(p.phase || "").toLowerCase();
+          return phase === "live" || phase === "active" || phase === "in_progress";
+        });
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "Open / live projects", value: String(open.length) }],
+        });
+        break;
+      }
+      case "total_projects": {
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "Total projects", value: String(projects.length) }],
+        });
+        break;
+      }
+      case "overdue_projects": {
+        const overdue = projects.filter((p) => isOverdue(p.endDate));
+        sections.push({
+          metricId,
+          heading,
+          rows: [{ label: "Overdue projects", value: String(overdue.length) }],
+        });
+        break;
+      }
+      default:
+        break;
     }
   }
 
