@@ -10,6 +10,15 @@ import {
 } from "@/lib/ai-operating-assistant/financial-pdf-service";
 import { generateTypedReportPdf } from "@/lib/ai-operating-assistant/report-pdf-service";
 import {
+  loadScopedPdfBundle,
+  renderScopedBusinessPdf,
+} from "@/lib/ai-operating-assistant/scoped-business-pdf-service";
+import {
+  parseScopedPdfRequest,
+  type ScopedPdfMetricId,
+} from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
+import { parseReportPeriod } from "@/lib/ai-operating-assistant/report-period";
+import {
   reportDisplayMeta,
   type AssistantReportType,
 } from "@/lib/ai-operating-assistant/report-intent";
@@ -195,6 +204,101 @@ export async function generateFinancialReportPdf(
       "generateFinancialReportPdf",
       error instanceof Error ? error.message : "Failed to generate financial PDF",
       ["supabase:financials"],
+    );
+  }
+}
+
+/**
+ * Custom NL PDF: only the metrics the user asked for, from live data.
+ */
+export async function generateScopedBusinessPdf(
+  args: Record<string, unknown>,
+  ctx: AssistantToolExecutionContext,
+): Promise<AssistantToolResult> {
+  try {
+    const question = asString(args.question) || asString(args.prompt) || "";
+    const parsed = question ? parseScopedPdfRequest(question) : null;
+    const metricsFromArgs = Array.isArray(args.metrics)
+      ? (args.metrics as string[]).filter((m): m is ScopedPdfMetricId => typeof m === "string")
+      : [];
+    const metrics =
+      metricsFromArgs.length > 0 ? metricsFromArgs : parsed?.metrics ?? [];
+    const unknownTopics =
+      Array.isArray(args.unknownTopics)
+        ? (args.unknownTopics as string[]).filter((t): t is string => typeof t === "string")
+        : parsed?.unknownTopics ?? [];
+    const period =
+      parsed?.period ??
+      parseReportPeriod(asString(args.period) || question);
+
+    if (metrics.length === 0 && unknownTopics.length === 0) {
+      return toolError(
+        "generateScopedBusinessPdf",
+        "No live metrics recognised in that PDF request. Ask for specific figures such as P&L, burn rate, payroll, or CRM pipeline value.",
+        [],
+      );
+    }
+
+    const bundle = await loadScopedPdfBundle({
+      metrics,
+      period,
+      unknownTopics,
+      canAccessFinancials: ctx.business.permissions.canAccessFinancials,
+      canAccessHr: ctx.business.permissions.canAccessHr,
+    });
+
+    let artifact = await renderScopedBusinessPdf({
+      bundle,
+      userId: ctx.business.user.id,
+      organisationName: ctx.business.organisation.name,
+      title: asString(args.title) || parsed?.title || "Custom Business Report",
+      filename: asString(args.filename) || undefined,
+      requestPreview: question.slice(0, 240) || undefined,
+    });
+    artifact = await persistArtifactToStorage(artifact);
+
+    const included = bundle.sections.map((s) => s.heading).join(", ");
+    const gaps =
+      unknownTopics.length > 0
+        ? `\nNo live source registered for: ${unknownTopics.join("; ")}.`
+        : "";
+
+    return toolOk(
+      "generateScopedBusinessPdf",
+      [
+        {
+          artifactId: artifact.id,
+          title: artifact.title,
+          filename: artifact.filename,
+          downloadUrl: `/api/executive-assistant/artifacts/${artifact.id}?disposition=attachment`,
+          openUrl: `/api/executive-assistant/artifacts/${artifact.id}?disposition=inline`,
+          contentBase64: artifact.contentBase64,
+          metrics,
+          unknownTopics,
+          periodLabel: bundle.periodLabel,
+        },
+      ],
+      {
+        source: bundle.sources,
+        pageSize: 1,
+        summary: {
+          executed: true,
+          artifactId: artifact.id,
+          title: artifact.title,
+          filename: artifact.filename,
+          byteLength: artifact.bytes.length,
+          metrics,
+          unknownTopics,
+          message: `${artifact.filename}\n\nIncluded: ${included || "none"}.${gaps}`,
+        },
+        followUpActions: artifactActions(artifact.id),
+      },
+    );
+  } catch (error) {
+    return toolError(
+      "generateScopedBusinessPdf",
+      error instanceof Error ? error.message : "Failed to generate scoped business PDF",
+      ["assistant:scoped-pdf"],
     );
   }
 }

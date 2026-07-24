@@ -6,6 +6,11 @@ import {
   putAssistantArtifact,
   type AssistantStoredArtifact,
 } from "@/lib/ai-operating-assistant/artifact-store";
+import {
+  resolveFinancialPeriod,
+} from "@/lib/ai-operating-assistant/report-period";
+
+export { resolveFinancialPeriod } from "@/lib/ai-operating-assistant/report-period";
 
 function money(value: number, currency = "USD") {
   try {
@@ -27,23 +32,6 @@ function monthLabel(isoMonth: string) {
     year: "numeric",
     timeZone: "UTC",
   });
-}
-
-function previousMonthKey(now = new Date()) {
-  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-  return d.toISOString().slice(0, 7);
-}
-
-export function resolveFinancialPeriod(periodHint?: string | null) {
-  const hint = (periodHint || "").toLowerCase();
-  const now = new Date();
-  if (/last\s+month|previous\s+month|prior\s+month/.test(hint)) {
-    return previousMonthKey(now);
-  }
-  if (/ytd|year\s+to\s+date|this\s+year/.test(hint)) {
-    return "ytd";
-  }
-  return now.toISOString().slice(0, 7);
 }
 
 /**

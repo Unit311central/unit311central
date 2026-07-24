@@ -5,6 +5,7 @@ import {
   reportDisplayMeta,
   type AssistantReportType,
 } from "./report-intent";
+import { parseScopedPdfRequest } from "./scoped-pdf-metrics";
 
 export type DirectAssistantIntent = {
   tool:
@@ -12,6 +13,7 @@ export type DirectAssistantIntent = {
     | "generateFinancialReportPdf"
     | "generateReportPdf"
     | "generatePayrollPdf"
+    | "generateScopedBusinessPdf"
     | "emailAssistantArtifact"
     | "searchEmployees"
     | "searchPerformanceReviews"
@@ -435,7 +437,28 @@ export function resolveDirectIntent(
     }
   }
 
-  // —— Payroll PDF (before generic report classifier) ——
+  // —— Scoped multi-metric NL PDF (before payroll / fixed templates) ——
+  const scoped = parseScopedPdfRequest(text);
+  if (scoped.useScopedPath) {
+    return {
+      tool: "generateScopedBusinessPdf",
+      args: {
+        question: text,
+        metrics: scoped.metrics,
+        unknownTopics: scoped.unknownTopics,
+        title: scoped.title,
+        period:
+          scoped.period.kind === "last_n_months"
+            ? `last ${scoped.period.n} months`
+            : scoped.period.kind === "ytd"
+              ? "ytd"
+              : scoped.period.key,
+      },
+      reason: "scoped_business_pdf",
+    };
+  }
+
+  // —— Payroll PDF (payroll-only; composites already handled above) ——
   if (
     /\bpayroll\b/i.test(lower) &&
     /\b(pdf|report|export|document)\b/i.test(lower) &&

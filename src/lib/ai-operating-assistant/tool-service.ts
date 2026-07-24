@@ -15,6 +15,7 @@ import {
   generateEmployeeListPdf,
   generateFinancialReportPdf,
   generateReportPdf,
+  generateScopedBusinessPdf,
 } from "./artifact-tools";
 import {
   getPageGuideTool,
@@ -327,7 +328,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "generateReport",
     description:
-      "Generate a text executive/board/client/project/HR/finance/engineering summary from live tool data. Prefer generateReportPdf / generateFinancialReportPdf / generateEmployeeListPdf when the user asked for a PDF.",
+      "Generate a text executive/board/client/project/HR/finance/engineering summary from live tool data. Prefer generateScopedBusinessPdf for multi-metric natural-language PDF asks, generateReportPdf / generateFinancialReportPdf / generateEmployeeListPdf for single-template PDFs.",
     parameters: {
       type: "object",
       properties: {
@@ -380,6 +381,33 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
           type: "string",
           description: "Optional period hint such as 'last month', 'YTD', or YYYY-MM",
         },
+        title: { type: "string" },
+        filename: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "generateScopedBusinessPdf",
+    description:
+      "Generate a custom PDF containing ONLY the live metrics the user asked for (e.g. P&L last 6 months + burn rate + payroll + CRM pipeline). Prefer this for multi-metric or natural-language composite PDF requests. Never invent figures; list unregistered topics as unavailable.",
+    parameters: {
+      type: "object",
+      properties: {
+        question: {
+          type: "string",
+          description: "Original user request (preferred).",
+        },
+        metrics: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional metric ids if already parsed.",
+        },
+        unknownTopics: {
+          type: "array",
+          items: { type: "string" },
+        },
+        period: { type: "string" },
         title: { type: "string" },
         filename: { type: "string" },
       },
@@ -755,6 +783,7 @@ const handlers: Record<string, ContextualToolHandler> = {
   generateEmployeeListPdf,
   generateFinancialReportPdf,
   generateReportPdf,
+  generateScopedBusinessPdf,
   emailAssistantArtifact,
   getPageGuide: getPageGuideTool,
   startGuidedTour,

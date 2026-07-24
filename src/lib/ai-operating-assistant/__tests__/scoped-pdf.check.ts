@@ -1,0 +1,117 @@
+/**
+ * Scoped NL business PDF — routing, period, gaps.
+ * Run: node --import tsx src/lib/ai-operating-assistant/__tests__/scoped-pdf.check.ts
+ */
+import assert from "node:assert/strict";
+import { resolveDirectIntent } from "../intent-router";
+import { parseReportPeriod, lastNMonthKeys } from "../report-period";
+import { parseScopedPdfRequest } from "../scoped-pdf-metrics";
+import {
+  renderScopedBusinessPdf,
+  type ScopedPdfLiveBundle,
+} from "../scoped-business-pdf-service";
+
+const DEMO =
+  "create me a pdf for the profit and loss for last 6 months, burn rate, payroll total, value of crm pipeline";
+
+async function main() {
+  {
+    const period = parseReportPeriod(DEMO);
+    assert.equal(period.kind, "last_n_months");
+    if (period.kind === "last_n_months") assert.equal(period.n, 6);
+    assert.equal(lastNMonthKeys(6).length, 6);
+  }
+
+  {
+    const scoped = parseScopedPdfRequest(DEMO);
+    assert.equal(scoped.useScopedPath, true);
+    assert.deepEqual(scoped.metrics, [
+      "pnl",
+      "burn_rate",
+      "payroll_total",
+      "crm_pipeline_value",
+    ]);
+    assert.deepEqual(scoped.unknownTopics, []);
+    const intent = resolveDirectIntent(DEMO, []);
+    assert.equal(intent?.tool, "generateScopedBusinessPdf");
+    assert.deepEqual(intent?.args.metrics, scoped.metrics);
+  }
+
+  {
+    const intent = resolveDirectIntent("Create a financial report PDF", []);
+    assert.equal(intent?.tool, "generateFinancialReportPdf");
+  }
+
+  {
+    const intent = resolveDirectIntent("Create a payroll PDF", []);
+    assert.equal(intent?.tool, "generatePayrollPdf");
+  }
+
+  {
+    const intent = resolveDirectIntent("Export all employees to PDF", []);
+    assert.equal(intent?.tool, "generateEmployeeListPdf");
+  }
+
+  {
+    const scoped = parseScopedPdfRequest("create a pdf for P&L and marketing CAC");
+    assert.equal(scoped.useScopedPath, true);
+    assert.ok(scoped.metrics.includes("pnl"));
+    assert.ok(scoped.unknownTopics.some((t) => /marketing\s+cac/i.test(t)));
+  }
+
+  {
+    const bundle: ScopedPdfLiveBundle = {
+      sections: [
+        {
+          metricId: "pnl",
+          heading: "Profit & Loss",
+          rows: [
+            { label: "Revenue (sum)", value: "£10" },
+            { label: "Expenses (sum)", value: "£4" },
+            { label: "Net profit / (loss)", value: "£6" },
+          ],
+        },
+        {
+          metricId: "burn_rate",
+          heading: "Burn rate",
+          rows: [{ label: "Monthly burn", value: "£2" }],
+        },
+        {
+          metricId: "payroll_total",
+          heading: "Payroll total",
+          rows: [{ label: "Monthly payroll total", value: "£1" }],
+        },
+        {
+          metricId: "crm_pipeline_value",
+          heading: "CRM pipeline value",
+          rows: [{ label: "Open pipeline value", value: "£50" }],
+        },
+      ],
+      unknownTopics: ["marketing cac"],
+      periodLabel: "Last 6 months",
+      sources: ["assistant:scoped-pdf"],
+      blocked: [],
+    };
+
+    const artifact = await renderScopedBusinessPdf({
+      bundle,
+      userId: "test-user",
+      organisationName: "Unit311",
+      title: "Custom Business Report",
+      requestPreview: DEMO,
+    });
+
+    assert.equal(artifact.bytes.slice(0, 4).toString(), "%PDF");
+    assert.ok(
+      artifact.filename.toLowerCase().includes("custom") || artifact.filename.endsWith(".pdf"),
+    );
+    assert.deepEqual(artifact.meta?.unknownTopics, ["marketing cac"]);
+  }
+
+  console.log(JSON.stringify({ ok: true }, null, 2));
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

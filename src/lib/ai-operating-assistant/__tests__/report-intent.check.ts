@@ -37,6 +37,19 @@ function check(label: string, condition: boolean) {
 }
 
 {
+  const intent = resolveDirectIntent(
+    "create me a pdf for the profit and loss for last 6 months, burn rate, payroll total, value of crm pipeline",
+    [],
+  );
+  check("scoped composite tool", intent?.tool === "generateScopedBusinessPdf");
+  check(
+    "scoped metrics include pnl",
+    Array.isArray(intent?.args.metrics) &&
+      (intent?.args.metrics as string[]).includes("pnl"),
+  );
+}
+
+{
   const intent = resolveDirectIntent("Export all employees to PDF", []);
   check("employee tool", intent?.tool === "generateEmployeeListPdf");
 }
