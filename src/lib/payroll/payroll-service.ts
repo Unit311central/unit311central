@@ -9,8 +9,12 @@ import {
 } from "@/lib/internal-db-migrations";
 import {
   calculateEmployeePayroll,
+  nextBonusPayDate,
   nextPayDateFromSettings,
   periodBoundsForPayDate,
+  prorateAnnualBonus,
+  resolveAnnualBonusEntitlement,
+  resolveMonthlyGrossBase,
 } from "@/lib/payroll/engine";
 import { glJournalProvider } from "@/lib/payroll/providers/journal-provider";
 import { wisePaymentProvider } from "@/lib/payroll/providers/wise-payment-provider";
@@ -55,6 +59,8 @@ function mapSettings(row: Record<string, unknown>, workspaceId: string): Payroll
       row.payroll_frequency ?? DEFAULT_PAYROLL_SETTINGS.payrollFrequency,
     ) as PayrollFrequency,
     payDay: Number(row.pay_day ?? DEFAULT_PAYROLL_SETTINGS.payDay),
+    bonusPayMonth: Number(row.bonus_pay_month ?? DEFAULT_PAYROLL_SETTINGS.bonusPayMonth),
+    bonusPayDay: Number(row.bonus_pay_day ?? DEFAULT_PAYROLL_SETTINGS.bonusPayDay),
     countryCode: String(row.country_code ?? DEFAULT_PAYROLL_SETTINGS.countryCode),
     defaultTaxState: String(row.default_tax_state ?? DEFAULT_PAYROLL_SETTINGS.defaultTaxState),
     updatedAt: String(row.updated_at ?? new Date().toISOString()),
@@ -168,6 +174,8 @@ export async function getPayrollSettings(scope?: HrWorkspaceScope): Promise<Payr
         default_currency: DEFAULT_PAYROLL_SETTINGS.defaultCurrency,
         payroll_frequency: DEFAULT_PAYROLL_SETTINGS.payrollFrequency,
         pay_day: DEFAULT_PAYROLL_SETTINGS.payDay,
+        bonus_pay_month: DEFAULT_PAYROLL_SETTINGS.bonusPayMonth,
+        bonus_pay_day: DEFAULT_PAYROLL_SETTINGS.bonusPayDay,
         country_code: DEFAULT_PAYROLL_SETTINGS.countryCode,
         default_tax_state: DEFAULT_PAYROLL_SETTINGS.defaultTaxState,
         updated_at: now,
@@ -202,6 +210,8 @@ export async function updatePayrollSettings(
     default_currency: patch.defaultCurrency ?? current.defaultCurrency,
     payroll_frequency: patch.payrollFrequency ?? current.payrollFrequency,
     pay_day: patch.payDay ?? current.payDay,
+    bonus_pay_month: patch.bonusPayMonth ?? current.bonusPayMonth,
+    bonus_pay_day: patch.bonusPayDay ?? current.bonusPayDay,
     country_code: patch.countryCode ?? current.countryCode,
     default_tax_state: patch.defaultTaxState ?? current.defaultTaxState,
     updated_at: new Date().toISOString(),
@@ -338,6 +348,10 @@ export async function calculateLivePayrollSnapshot(scope?: HrWorkspaceScope) {
     }),
   );
 
+  const nextPay = nextPayDateFromSettings(settings);
+  const bonusDate = nextBonusPayDate(settings);
+  const bonusYear = Number(bonusDate.slice(0, 4));
+
   const lines = eligibleEmployees(employees)
     .filter((employee) => {
       const profile = profileByEmployee.get(employee.id);
@@ -345,21 +359,34 @@ export async function calculateLivePayrollSnapshot(scope?: HrWorkspaceScope) {
     })
     .map((employee) => {
       const profile = profileByEmployee.get(employee.id) ?? null;
-      const calc = calculateEmployeePayroll(
-        {
-          salaryCurrent: employee.salaryCurrent,
-          bonus: employee.bonus,
-          payFrequency: employee.payFrequency,
-          currency: employee.currency,
-          profile,
-        },
-        settings,
+      const joinedOn = profile?.hireDate || employee.dateJoined || null;
+      const payInput = {
+        salaryCurrent: employee.salaryCurrent,
+        bonus: employee.bonus,
+        payFrequency: employee.payFrequency,
+        currency: employee.currency,
+        profile,
+        joinedOn,
+      };
+      // Monthly KPI: salary (+ commission) only — never fold annual bonus into monthly gross.
+      const calc = calculateEmployeePayroll(payInput, settings);
+      const annualBonus = resolveAnnualBonusEntitlement(payInput);
+      const bonusDueThisYear = prorateAnnualBonus({
+        annualBonus,
+        joinedOn,
+        year: bonusYear,
+        throughMonth: settings.bonusPayMonth,
+      });
+      const annualCompensation = roundPayrollMoney(
+        resolveMonthlyGrossBase(payInput) * 12 + annualBonus,
       );
       return {
         employee,
         profile,
         calc,
         department: profile?.department || employee.department || "Unassigned",
+        annualCompensation,
+        bonusDueThisYear,
       };
     });
 
@@ -371,6 +398,15 @@ export async function calculateLivePayrollSnapshot(scope?: HrWorkspaceScope) {
     lines.reduce((sum, line) => sum + line.calc.employerTax, 0),
   );
   const net = roundPayrollMoney(lines.reduce((sum, line) => sum + line.calc.net, 0));
+  const totalBonusDueThisYear = roundPayrollMoney(
+    lines.reduce((sum, line) => sum + line.bonusDueThisYear, 0),
+  );
+  const averageSalary =
+    lines.length === 0
+      ? 0
+      : roundPayrollMoney(
+          lines.reduce((sum, line) => sum + line.annualCompensation, 0) / lines.length,
+        );
 
   return {
     settings,
@@ -380,9 +416,10 @@ export async function calculateLivePayrollSnapshot(scope?: HrWorkspaceScope) {
     employerTax,
     net,
     employeeCount: lines.length,
-    averageSalary:
-      lines.length === 0 ? 0 : roundPayrollMoney(monthlyGross / lines.length),
-    nextPayrollDate: nextPayDateFromSettings(settings),
+    averageSalary,
+    nextPayrollDate: nextPay,
+    nextBonusPayDate: bonusDate,
+    totalBonusDueThisYear,
     currency: settings.defaultCurrency,
   };
   });
@@ -440,6 +477,32 @@ export async function createPayrollRun(
   const runId = randomUUID();
   const now = new Date().toISOString();
 
+  const pricedLines = live.lines.map((line) => {
+    const joinedOn = line.profile?.hireDate || line.employee.dateJoined || null;
+    const calc = calculateEmployeePayroll(
+      {
+        salaryCurrent: line.employee.salaryCurrent,
+        bonus: line.employee.bonus,
+        payFrequency: line.employee.payFrequency,
+        currency: line.employee.currency,
+        profile: line.profile,
+        joinedOn,
+      },
+      live.settings,
+      { payDate },
+    );
+    return { ...line, calc };
+  });
+
+  const grossPayroll = roundPayrollMoney(pricedLines.reduce((sum, line) => sum + line.calc.gross, 0));
+  const employeeTax = roundPayrollMoney(
+    pricedLines.reduce((sum, line) => sum + line.calc.employeeTaxTotal, 0),
+  );
+  const employerTax = roundPayrollMoney(
+    pricedLines.reduce((sum, line) => sum + line.calc.employerTax, 0),
+  );
+  const netPayroll = roundPayrollMoney(pricedLines.reduce((sum, line) => sum + line.calc.net, 0));
+
   const runRow = {
     id: runId,
     workspace_id: workspaceId,
@@ -447,11 +510,11 @@ export async function createPayrollRun(
     period_end: bounds.periodEnd,
     pay_date: payDate,
     status: "draft",
-    employee_count: live.employeeCount,
-    gross_payroll: live.monthlyGross,
-    employee_tax: live.employeeTax,
-    employer_tax: live.employerTax,
-    net_payroll: live.net,
+    employee_count: pricedLines.length,
+    gross_payroll: grossPayroll,
+    employee_tax: employeeTax,
+    employer_tax: employerTax,
+    net_payroll: netPayroll,
     currency: live.currency,
     wise_payment_status: "none",
     notes: input?.notes ?? "",
@@ -459,7 +522,7 @@ export async function createPayrollRun(
     updated_at: now,
   };
 
-  const lineRows = live.lines.map((line) => ({
+  const lineRows = pricedLines.map((line) => ({
     id: randomUUID(),
     workspace_id: workspaceId,
     run_id: runId,
@@ -681,6 +744,12 @@ export async function getPayrollDashboard(
     next.setUTCDate(next.getUTCDate() + 1);
     cursor = next;
   }
+  upcoming.push({
+    date: live.nextBonusPayDate,
+    label: "Annual bonus pay date",
+    amount: live.totalBonusDueThisYear,
+  });
+  upcoming.sort((a, b) => a.date.localeCompare(b.date));
 
   return {
     monthlyGrossPayroll: live.monthlyGross,
@@ -688,6 +757,8 @@ export async function getPayrollDashboard(
     estimatedEmployeeTaxWithheld: live.employeeTax,
     estimatedNetPayroll: live.net,
     nextPayrollDate: live.nextPayrollDate,
+    nextBonusPayDate: live.nextBonusPayDate,
+    totalBonusDueThisYear: live.totalBonusDueThisYear,
     payrollRunStatus: latest?.status ?? "none",
     employeesPaid: paidThisMonth.reduce((sum, run) => sum + run.employeeCount, 0),
     pendingPayroll: pending.length,

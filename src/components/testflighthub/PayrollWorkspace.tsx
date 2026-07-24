@@ -328,12 +328,21 @@ export default function PayrollWorkspace() {
               hint={`${dashboard.employeeCount} employees`}
             />
             <Kpi
+              label="Next bonus pay date"
+              value={dashboard.nextBonusPayDate}
+              hint={`Due ${money(dashboard.totalBonusDueThisYear)} (pro-rated)`}
+            />
+            <Kpi
               label="Payroll run status"
               value={String(dashboard.payrollRunStatus).toUpperCase()}
             />
             <Kpi label="Employees paid" value={String(dashboard.employeesPaid)} />
             <Kpi label="Pending payroll" value={String(dashboard.pendingPayroll)} />
-            <Kpi label="Average salary" value={money(dashboard.averageSalary)} />
+            <Kpi
+              label="Average annual salary"
+              value={money(dashboard.averageSalary)}
+              hint="Salary + annual bonus entitlement"
+            />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -673,6 +682,32 @@ export default function PayrollWorkspace() {
               />
             </label>
             <label className="block text-sm text-white/70">
+              Annual bonus pay month
+              <input
+                type="number"
+                min={1}
+                max={12}
+                className="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-white"
+                value={settings.bonusPayMonth}
+                onChange={(event) =>
+                  setSettings({ ...settings, bonusPayMonth: Number(event.target.value) })
+                }
+              />
+            </label>
+            <label className="block text-sm text-white/70">
+              Annual bonus pay day
+              <input
+                type="number"
+                min={1}
+                max={31}
+                className="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-white"
+                value={settings.bonusPayDay}
+                onChange={(event) =>
+                  setSettings({ ...settings, bonusPayDay: Number(event.target.value) })
+                }
+              />
+            </label>
+            <label className="block text-sm text-white/70">
               Default tax state
               <input
                 className="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-white"
@@ -683,6 +718,10 @@ export default function PayrollWorkspace() {
               />
             </label>
           </div>
+          <p className="text-xs text-white/45">
+            Annual bonuses are paid on the bonus date only (default 31 Dec), pro-rated by months
+            including the join month. Bonus tax is withheld only on that payroll.
+          </p>
           <button
             type="button"
             disabled={busy}

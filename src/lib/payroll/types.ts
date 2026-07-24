@@ -23,6 +23,10 @@ export type PayrollSettings = {
   payrollFrequency: PayrollFrequency;
   /** 0 = last calendar day of month */
   payDay: number;
+  /** Site-wide annual bonus pay month (1–12). Default December. */
+  bonusPayMonth: number;
+  /** Site-wide annual bonus pay day (clamped to month length). Default 31. */
+  bonusPayDay: number;
   countryCode: string;
   defaultTaxState: string;
   updatedAt: string;
@@ -128,9 +132,12 @@ export type PayrollDashboardSnapshot = {
   estimatedEmployeeTaxWithheld: number;
   estimatedNetPayroll: number;
   nextPayrollDate: string;
+  nextBonusPayDate: string;
+  totalBonusDueThisYear: number;
   payrollRunStatus: PayrollRunStatus | "none";
   employeesPaid: number;
   pendingPayroll: number;
+  /** Mean annual salary + annual bonus entitlement. */
   averageSalary: number;
   currency: string;
   employeeCount: number;
@@ -149,6 +156,8 @@ export const DEFAULT_PAYROLL_SETTINGS: Omit<PayrollSettings, "workspaceId" | "up
   defaultCurrency: "USD",
   payrollFrequency: "monthly",
   payDay: 0,
+  bonusPayMonth: 12,
+  bonusPayDay: 31,
   countryCode: "US",
   defaultTaxState: "CA",
 };

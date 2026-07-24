@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { calculateEmployeePayroll } from "@/lib/payroll/engine";
+import { calculateEmployeePayroll, nextBonusPayDate, prorateAnnualBonus } from "@/lib/payroll/engine";
 import {
   getEmployeePayrollProfile,
   getPayrollSettings,
@@ -35,18 +35,33 @@ export async function GET(_request: NextRequest, { params }: Params) {
       payrollFrequency: "monthly",
       taxState: "CA",
       payrollStatus: "active" as const,
+      hireDate: employee.dateJoined,
     };
-    const calculation = calculateEmployeePayroll(
-      {
-        salaryCurrent: employee.salaryCurrent,
-        bonus: employee.bonus,
-        payFrequency: employee.payFrequency,
-        currency: employee.currency,
-        profile: profileRow,
-      },
+    const joinedOn = profileRow?.hireDate || employee.dateJoined || null;
+    const payInput = {
+      salaryCurrent: employee.salaryCurrent,
+      bonus: employee.bonus,
+      payFrequency: employee.payFrequency,
+      currency: employee.currency,
+      profile: profileRow,
+      joinedOn,
+    };
+    const calculation = calculateEmployeePayroll(payInput, settings);
+    const nextBonusDate = nextBonusPayDate(settings);
+    const bonusDueThisYear = prorateAnnualBonus({
+      annualBonus: Number(profileRow?.bonus ?? employee.bonus ?? 0),
+      joinedOn,
+      year: Number(nextBonusDate.slice(0, 4)),
+      throughMonth: settings.bonusPayMonth,
+    });
+    return NextResponse.json({
+      profile,
+      calculation,
       settings,
-    );
-    return NextResponse.json({ profile, calculation, settings, employee });
+      employee,
+      nextBonusPayDate: nextBonusDate,
+      bonusDueThisYear,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load payroll profile.";
     const status = message.includes("Authentication") || message.includes("Workspace") ? 401 : 500;
@@ -67,6 +82,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       getHrEmployee(id, { workspaceId: workspace.id }),
       getPayrollSettings({ workspaceId: workspace.id }),
     ]);
+    const joinedOn = profile.hireDate || employee?.dateJoined || null;
     const calculation = employee
       ? calculateEmployeePayroll(
           {
@@ -75,11 +91,24 @@ export async function PATCH(request: NextRequest, { params }: Params) {
             payFrequency: employee.payFrequency,
             currency: employee.currency,
             profile,
+            joinedOn,
           },
           settings,
         )
       : null;
-    return NextResponse.json({ profile, calculation });
+    const nextBonusDate = nextBonusPayDate(settings);
+    const bonusDueThisYear = prorateAnnualBonus({
+      annualBonus: Number(profile.bonus ?? employee?.bonus ?? 0),
+      joinedOn,
+      year: Number(nextBonusDate.slice(0, 4)),
+      throughMonth: settings.bonusPayMonth,
+    });
+    return NextResponse.json({
+      profile,
+      calculation,
+      nextBonusPayDate: nextBonusDate,
+      bonusDueThisYear,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update payroll profile.";
     const status = message.includes("Authentication") || message.includes("Workspace") ? 401 : 500;

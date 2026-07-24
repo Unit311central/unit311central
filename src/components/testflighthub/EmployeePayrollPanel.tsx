@@ -38,6 +38,8 @@ const inputClass =
 export default function EmployeePayrollPanel({ employeeId }: { employeeId: string }) {
   const [profile, setProfile] = useState<Partial<PayrollEmployeeProfile>>({});
   const [calculation, setCalculation] = useState<PayrollCalculation | null>(null);
+  const [nextBonusPayDate, setNextBonusPayDate] = useState<string | null>(null);
+  const [bonusDueThisYear, setBonusDueThisYear] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,11 +55,15 @@ export default function EmployeePayrollPanel({ employeeId }: { employeeId: strin
       const data = await readJson<{
         profile?: PayrollEmployeeProfile | null;
         calculation?: PayrollCalculation;
+        nextBonusPayDate?: string;
+        bonusDueThisYear?: number;
         error?: string;
       }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load payroll profile");
       setProfile(data.profile ?? {});
       setCalculation(data.calculation ?? null);
+      setNextBonusPayDate(data.nextBonusPayDate ?? null);
+      setBonusDueThisYear(Number(data.bonusDueThisYear ?? 0));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load payroll");
     } finally {
@@ -82,11 +88,15 @@ export default function EmployeePayrollPanel({ employeeId }: { employeeId: strin
       const data = await readJson<{
         profile?: PayrollEmployeeProfile;
         calculation?: PayrollCalculation;
+        nextBonusPayDate?: string;
+        bonusDueThisYear?: number;
         error?: string;
       }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to save");
       setProfile(data.profile ?? profile);
       setCalculation(data.calculation ?? null);
+      setNextBonusPayDate(data.nextBonusPayDate ?? null);
+      setBonusDueThisYear(Number(data.bonusDueThisYear ?? 0));
       setMessage("Payroll profile saved — Finance and Dashboard recalculate automatically.");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Save failed");
@@ -119,8 +129,9 @@ export default function EmployeePayrollPanel({ employeeId }: { employeeId: strin
         <div>
           <h3 className="text-base font-semibold text-white">Payroll</h3>
           <p className="mt-1 text-sm text-white/50">
-            Salary feeds from HR compensation. Taxes calculate automatically from Payroll Settings
-            (US V1).
+            Annual salary feeds monthly pay (÷ 12). Annual bonus is paid on the site-wide bonus date
+            only (default 31 Dec), pro-rated by months including join month — tax on bonus is
+            withheld only on that payroll.
           </p>
         </div>
         <button
@@ -133,6 +144,25 @@ export default function EmployeePayrollPanel({ employeeId }: { employeeId: strin
           Save payroll
         </button>
       </div>
+
+      {nextBonusPayDate ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+              Next bonus pay date
+            </p>
+            <p className="mt-1 text-lg font-semibold text-white">{nextBonusPayDate}</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+              Pro-rated bonus this year
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-white">
+              {formatMoney(bonusDueThisYear, currency)}
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <p className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">

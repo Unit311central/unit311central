@@ -15,9 +15,16 @@ export type EmployeePayInput = {
   payFrequency?: string | null;
   currency?: string | null;
   profile?: Partial<PayrollEmployeeProfile> | null;
+  /** HR dateJoined or payroll hireDate (YYYY-MM-DD). */
+  joinedOn?: string | null;
 };
 
-/** Derive monthly base salary from HR + optional payroll profile overrides. */
+export type PayrollCalcOptions = {
+  /** When set, annual bonus is included only if this equals the site-wide bonus pay date. */
+  payDate?: string | null;
+};
+
+/** HR salaryCurrent is always annual. Profile monthly/annual overrides win when set. */
 export function resolveMonthlyGrossBase(input: EmployeePayInput): number {
   const profile = input.profile;
   if (profile?.monthlySalary != null && profile.monthlySalary > 0) {
@@ -31,36 +38,121 @@ export function resolveMonthlyGrossBase(input: EmployeePayInput): number {
     return roundPayrollMoney(profile.hourlyRate * 160);
   }
 
+  // salaryCurrent is annual regardless of payFrequency label
   const salary = Number(input.salaryCurrent || 0);
-  const frequency = String(input.payFrequency || profile?.payrollFrequency || "annual").toLowerCase();
-  if (frequency.includes("month")) return roundPayrollMoney(salary);
-  if (frequency.includes("week") && !frequency.includes("bi")) {
-    return roundPayrollMoney((salary * 52) / 12);
-  }
-  if (frequency.includes("bi") || frequency.includes("fortnight")) {
-    return roundPayrollMoney((salary * 26) / 12);
-  }
   return roundPayrollMoney(salary / 12);
 }
 
-export function resolvePayAddOns(input: EmployeePayInput): { bonus: number; commission: number } {
+/** Annual bonus entitlement from profile or HR (not yet pro-rated). */
+export function resolveAnnualBonusEntitlement(input: EmployeePayInput): number {
   const profileBonus = input.profile?.bonus;
   const hrBonus = Number(input.bonus || 0);
-  const bonus =
-    profileBonus != null && profileBonus > 0
-      ? roundPayrollMoney(profileBonus)
-      : roundPayrollMoney(hrBonus);
-  const commission = roundPayrollMoney(Number(input.profile?.commission || 0));
-  return { bonus, commission };
+  if (profileBonus != null && profileBonus > 0) return roundPayrollMoney(profileBonus);
+  return roundPayrollMoney(hrBonus);
+}
+
+export function resolvePayAddOns(input: EmployeePayInput): { bonus: number; commission: number } {
+  return {
+    bonus: resolveAnnualBonusEntitlement(input),
+    commission: roundPayrollMoney(Number(input.profile?.commission || 0)),
+  };
+}
+
+export function bonusPayDateForYear(
+  settings: Pick<PayrollSettings, "bonusPayMonth" | "bonusPayDay">,
+  year: number,
+): string {
+  const month = Math.min(12, Math.max(1, Number(settings.bonusPayMonth || 12)));
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const day = Math.min(Math.max(1, Number(settings.bonusPayDay || 31)), lastDay);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+export function nextBonusPayDate(
+  settings: Pick<PayrollSettings, "bonusPayMonth" | "bonusPayDay">,
+  from = new Date(),
+): string {
+  const year = from.getUTCFullYear();
+  const thisYear = bonusPayDateForYear(settings, year);
+  if (from.toISOString().slice(0, 10) <= thisYear) return thisYear;
+  return bonusPayDateForYear(settings, year + 1);
+}
+
+export function isBonusPayDate(
+  payDate: string | null | undefined,
+  settings: Pick<PayrollSettings, "bonusPayMonth" | "bonusPayDay">,
+): boolean {
+  if (!payDate) return false;
+  const year = Number(payDate.slice(0, 4));
+  if (!Number.isFinite(year)) return false;
+  return payDate === bonusPayDateForYear(settings, year);
+}
+
+/**
+ * Months employed in `year` through `throughMonth` (1–12), inclusive of the join month.
+ * Example: join 15 June, through Dec → 7 months (Jun–Dec).
+ */
+export function monthsEmployedInYearInclusive(
+  joinedOn: string | null | undefined,
+  year: number,
+  throughMonth = 12,
+): number {
+  const endMonth = Math.min(12, Math.max(1, throughMonth));
+  if (!joinedOn) return endMonth;
+
+  const join = new Date(`${joinedOn.slice(0, 10)}T12:00:00.000Z`);
+  if (Number.isNaN(join.getTime())) return endMonth;
+
+  const joinYear = join.getUTCFullYear();
+  const joinMonth = join.getUTCMonth() + 1;
+  if (joinYear > year) return 0;
+  if (joinYear < year) return endMonth;
+  return Math.max(0, endMonth - joinMonth + 1);
+}
+
+/** Pro-rate annual bonus by months including join month / 12. */
+export function prorateAnnualBonus(input: {
+  annualBonus: number;
+  joinedOn?: string | null;
+  year: number;
+  throughMonth?: number;
+}): number {
+  const annual = Number(input.annualBonus || 0);
+  if (annual <= 0) return 0;
+  const months = monthsEmployedInYearInclusive(
+    input.joinedOn,
+    input.year,
+    input.throughMonth ?? 12,
+  );
+  return roundPayrollMoney((annual * months) / 12);
+}
+
+export function bonusDueOnPayDate(
+  input: EmployeePayInput,
+  settings: PayrollSettings,
+  payDate: string | null | undefined,
+): number {
+  if (!isBonusPayDate(payDate, settings)) return 0;
+  const annual = resolveAnnualBonusEntitlement(input);
+  const year = Number(String(payDate).slice(0, 4));
+  const throughMonth = Number(String(payDate).slice(5, 7)) || settings.bonusPayMonth || 12;
+  return prorateAnnualBonus({
+    annualBonus: annual,
+    joinedOn: input.joinedOn ?? input.profile?.hireDate ?? null,
+    year,
+    throughMonth,
+  });
 }
 
 export function calculateEmployeePayroll(
   input: EmployeePayInput,
   settings: PayrollSettings,
+  options?: PayrollCalcOptions,
 ): PayrollCalculation {
   const country = getCountryRules(settings.countryCode);
   const base = resolveMonthlyGrossBase(input);
-  const { bonus, commission } = resolvePayAddOns(input);
+  const { commission } = resolvePayAddOns(input);
+  const bonus = bonusDueOnPayDate(input, settings, options?.payDate);
   const gross = roundPayrollMoney(base + bonus + commission);
 
   const rates = ratesFromSettings(settings, {
