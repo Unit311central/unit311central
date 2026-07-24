@@ -1,0 +1,35 @@
+# 10 - Diagram: Module Dependencies
+
+Mermaid source: /architecture/executive-assistant/diagrams/08-module-dependencies.mmd
+
+`mermaid
+flowchart TB
+  CHAT[api/chat/route]
+  RT[assistant-runtime]
+  ORCH[action-orchestration]
+  KR[knowledge-domains]
+  IR[intent-router]
+  IAR[intent-action-resolver]
+  PS[prompt-service]
+  TS[tool-service]
+  TI[tool-implementations / platform / proactive]
+  ACT[actions/*]
+  CS[conversation-service]
+  OAI[openai-client]
+
+  CHAT --> RT
+  RT --> ORCH
+  RT --> PS
+  RT --> TS
+  RT --> OAI
+  RT --> CS
+  ORCH --> KR
+  ORCH --> IR
+  ORCH --> IAR
+  ORCH --> ACT
+  TS --> TI
+  IAR --> ACT
+  IAR --> OAI
+  ACT --> PIPE[execution-pipeline]
+  ACT --> REG[registry]
+`

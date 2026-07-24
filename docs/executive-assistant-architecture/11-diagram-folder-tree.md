@@ -1,0 +1,33 @@
+# 11 - Diagram: Folder Tree
+
+Mermaid source: /architecture/executive-assistant/diagrams/09-folder-tree.mmd
+
+`mermaid
+flowchart TB
+  ROOT[unit311]
+  APP[src/app/api/executive-assistant]
+  COMP[src/components/executive-assistant]
+  LIB[src/lib/ai-operating-assistant]
+  LEG[src/lib/executive-assistant-*]
+  MIG[supabase/migrations 101/102/106/109/110]
+  SCR[scripts/executive-acceptance*]
+
+  ROOT --> APP
+  ROOT --> COMP
+  ROOT --> LIB
+  ROOT --> LEG
+  ROOT --> MIG
+  ROOT --> SCR
+
+  APP --> A1[chat · conversations · feedback]
+  APP --> A2[actions/plans · planning/goals]
+  APP --> A3[proactive · artifacts · tts]
+
+  COMP --> C1[Panel · OperatingCentre · PlanViewer]
+  COMP --> C2[execution-cards · voice · guided learning]
+
+  LIB --> L1[runtime · orchestration · intents]
+  LIB --> L2[tools · prompts · context]
+  LIB --> L3[actions/ Action Framework]
+  LIB --> L4[insights · brief · health · artifacts]
+`

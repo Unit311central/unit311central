@@ -124,15 +124,19 @@ export async function syncDocPackToFolder(
   const indexBody = [
     `# ${pack.label}`,
     "",
-    "This Unit311 Details section contains the Cyber Resilience Act documentation pack.",
+    `This Unit311 Details section contains the ${pack.label} documentation pack.`,
     "",
-    "Open a document from the list on the left to review each control area.",
+    "Open a document from the list on the left to review each item.",
     "",
     "## Documents",
     "",
     ...pack.documents.map((doc) => `- ${doc.title}`),
     "",
-    "Source of truth also lives in the repository under `docs/cyber-resilience-act/`.",
+    pack.id === "executive-ai-platform"
+      ? "Source of truth also lives in the repository under `docs/executive-assistant-architecture/`."
+      : pack.id === "cyber-resilience-act"
+        ? "Source of truth also lives in the repository under `docs/cyber-resilience-act/`."
+        : `Source of truth also lives in the repository pack \`${pack.id}\`.`,
     "",
   ].join("\n");
 

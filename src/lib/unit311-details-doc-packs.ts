@@ -176,8 +176,104 @@ export const CYBER_RESILIENCE_ACT_DOC_PACK: Unit311DetailDocPack = {
   documents: CRA_DOCS,
 };
 
+const EXECUTIVE_AI_DOCS: readonly Unit311DetailDocPackEntry[] = [
+  {
+    id: "01-architecture-report",
+    title: "01 - Architecture Report",
+    fileName: "01 - Architecture Report.md",
+    sourcePath: "docs/executive-assistant-architecture/01-architecture-report.md",
+    order: 1,
+  },
+  {
+    id: "02-executive-ai-platform",
+    title: "02 - Executive AI Platform",
+    fileName: "02 - Executive AI Platform.md",
+    sourcePath: "docs/executive-assistant-architecture/02-executive-ai-platform.md",
+    order: 2,
+  },
+  {
+    id: "03-diagram-high-level",
+    title: "03 - Diagram: High-Level Architecture",
+    fileName: "03 - Diagram High-Level Architecture.md",
+    sourcePath: "docs/executive-assistant-architecture/03-diagram-high-level.md",
+    order: 3,
+  },
+  {
+    id: "04-diagram-knowledge-domains",
+    title: "04 - Diagram: Knowledge Domains",
+    fileName: "04 - Diagram Knowledge Domains.md",
+    sourcePath: "docs/executive-assistant-architecture/04-diagram-knowledge-domains.md",
+    order: 4,
+  },
+  {
+    id: "05-diagram-ai-lifecycle",
+    title: "05 - Diagram: AI Request Lifecycle",
+    fileName: "05 - Diagram AI Request Lifecycle.md",
+    sourcePath: "docs/executive-assistant-architecture/05-diagram-ai-lifecycle.md",
+    order: 5,
+  },
+  {
+    id: "06-diagram-write-path",
+    title: "06 - Diagram: Write Path",
+    fileName: "06 - Diagram Write Path.md",
+    sourcePath: "docs/executive-assistant-architecture/06-diagram-write-path.md",
+    order: 6,
+  },
+  {
+    id: "07-diagram-auth-flow",
+    title: "07 - Diagram: Auth Flow",
+    fileName: "07 - Diagram Auth Flow.md",
+    sourcePath: "docs/executive-assistant-architecture/07-diagram-auth-flow.md",
+    order: 7,
+  },
+  {
+    id: "08-diagram-database-er",
+    title: "08 - Diagram: Database ER",
+    fileName: "08 - Diagram Database ER.md",
+    sourcePath: "docs/executive-assistant-architecture/08-diagram-database-er.md",
+    order: 8,
+  },
+  {
+    id: "09-diagram-component-hierarchy",
+    title: "09 - Diagram: Component Hierarchy",
+    fileName: "09 - Diagram Component Hierarchy.md",
+    sourcePath: "docs/executive-assistant-architecture/09-diagram-component-hierarchy.md",
+    order: 9,
+  },
+  {
+    id: "10-diagram-module-dependencies",
+    title: "10 - Diagram: Module Dependencies",
+    fileName: "10 - Diagram Module Dependencies.md",
+    sourcePath: "docs/executive-assistant-architecture/10-diagram-module-dependencies.md",
+    order: 10,
+  },
+  {
+    id: "11-diagram-folder-tree",
+    title: "11 - Diagram: Folder Tree",
+    fileName: "11 - Diagram Folder Tree.md",
+    sourcePath: "docs/executive-assistant-architecture/11-diagram-folder-tree.md",
+    order: 11,
+  },
+  {
+    id: "12-diagram-state-flow",
+    title: "12 - Diagram: State Flow",
+    fileName: "12 - Diagram State Flow.md",
+    sourcePath: "docs/executive-assistant-architecture/12-diagram-state-flow.md",
+    order: 12,
+  },
+] as const;
+
+export const EXECUTIVE_AI_PLATFORM_DOC_PACK: Unit311DetailDocPack = {
+  id: "executive-ai-platform",
+  label: "Executive AI Platform",
+  categoryIds: ["ai-agent"],
+  folderNames: ["Executive AI Platform", "AI Agent", "Executive Assistant"],
+  documents: EXECUTIVE_AI_DOCS,
+};
+
 export const UNIT311_DETAIL_DOC_PACKS: readonly Unit311DetailDocPack[] = [
   CYBER_RESILIENCE_ACT_DOC_PACK,
+  EXECUTIVE_AI_PLATFORM_DOC_PACK,
 ];
 
 export function findDocPackForCategory(input: {

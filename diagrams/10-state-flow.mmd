@@ -1,0 +1,16 @@
+%% State flow (frontend)
+flowchart LR
+  S1[React useState<br/>messages · input · plans]
+  S2[Conversation list<br/>server fetch]
+  S3[SSE stream reducer<br/>deltas · tool_call · done]
+  S4[PlanViewer local state<br/>confirm / edit inputs]
+  S5[GuidedLearning context]
+  S6[Voice hook state]
+
+  S2 --> S1
+  S3 --> S1
+  S1 --> S4
+  S1 --> S5
+  S1 --> S6
+  S4 -->|POST plans/id| API[API]
+  S3 -->|POST chat stream| API

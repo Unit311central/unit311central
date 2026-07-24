@@ -1,0 +1,92 @@
+%% EA database ER (dedicated tables)
+erDiagram
+  executive_assistant_conversations {
+    uuid id PK
+    text title
+    text user_id
+    text workspace_id
+    text organisation_id
+    jsonb messages
+    jsonb workspace_context
+    boolean is_saved
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  executive_assistant_feedback {
+    text id PK
+    text verdict
+    text target_type
+    text target_id
+    text comment
+    text anonymous_session_id
+    text context_view
+    timestamptz created_at
+  }
+
+  executive_assistant_quality_events {
+    text id PK
+    text kind
+    text tool_name
+    integer duration_ms
+    boolean success
+    jsonb meta
+    timestamptz created_at
+  }
+
+  executive_assistant_action_plans {
+    text id PK
+    text user_id
+    text workspace_id
+    text organisation_id
+    text conversation_id
+    text status
+    text title
+    text summary
+    text ai_request
+    jsonb steps
+    jsonb warnings
+    jsonb permission_notes
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz completed_at
+  }
+
+  executive_assistant_action_audit {
+    text id PK
+    text plan_id
+    text step_id
+    text user_id
+    text workspace_id
+    text module
+    text action_id
+    text action_name
+    jsonb before_state
+    jsonb after_state
+    text result
+    integer duration_ms
+    text ai_request
+    jsonb tool_calls
+    text error
+    timestamptz created_at
+  }
+
+  executive_assistant_goal_plans {
+    text id PK
+    text user_id
+    text workspace_id
+    text goal
+    text status
+    text title
+    jsonb steps
+    jsonb graph
+    text risk_level
+    text action_plan_id
+    text planner_source
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  executive_assistant_conversations ||--o{ executive_assistant_action_plans : "conversation_id (logical)"
+  executive_assistant_action_plans ||--o{ executive_assistant_action_audit : "plan_id (logical)"
+  executive_assistant_goal_plans ||--o| executive_assistant_action_plans : "action_plan_id (logical)"

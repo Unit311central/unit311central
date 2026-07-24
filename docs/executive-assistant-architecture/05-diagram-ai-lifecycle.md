@@ -1,0 +1,38 @@
+# 05 - Diagram: AI Request Lifecycle
+
+Mermaid source: /architecture/executive-assistant/diagrams/03-ai-request-lifecycle.mmd
+
+`mermaid
+sequenceDiagram
+  participant U as User
+  participant UI as ExecutiveAssistantPanel
+  participant API as POST /chat
+  participant ORCH as action-orchestration
+  participant RT as assistant-runtime
+  participant OAI as OpenAI
+  participant TOOL as Tool handlers
+  participant DB as Supabase
+
+  U->>UI: Natural language prompt
+  UI->>API: Cookie session + SSE body
+  API->>API: getPlatformSession()
+  API->>RT: runAssistantTurn()
+  RT->>ORCH: routeOrchstrate(message, history)
+  alt Direct intent / domain short-circuit
+    ORCH-->>RT: DirectAssistantIntent or cards
+    RT->>TOOL: executeAssistantTool()
+    TOOL-->>RT: ToolResult + followUps
+    RT-->>API: SSE delta + done
+  else Model tool loop
+    RT->>RT: buildSystemInstructions()
+    RT->>OAI: responses.create(tools)
+    OAI-->>RT: tool_calls / text
+    RT->>TOOL: execute tools
+    TOOL-->>RT: results
+    RT->>OAI: continue with tool outputs
+    OAI-->>RT: final text
+  end
+  RT->>DB: persist conversation messages
+  API-->>UI: SSE events
+  UI-->>U: Executive reply + cards + follow-ups
+`
