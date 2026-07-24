@@ -1124,8 +1124,8 @@ svg {
 
 .workspace-hero-icon {
   display: inline-flex;
-  height: 3.75rem;
-  width: 3.75rem;
+  height: 3.25rem;
+  width: 3.25rem;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
@@ -1144,6 +1144,13 @@ svg {
 
 @media (min-width: 640px) {
   .workspace-hero-icon {
+    height: 3.75rem;
+    width: 3.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .workspace-hero-icon {
     height: 4rem;
     width: 4rem;
   }
@@ -1152,16 +1159,40 @@ svg {
 .workspace-feature-card {
   display: flex;
   align-items: flex-start;
-  gap: 0.85rem;
+  gap: 0.75rem;
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  padding: 0.95rem 1rem;
+  padding: 0.85rem 0.9rem;
   transition:
     transform 160ms ease-out,
     border-color 160ms ease-out,
     box-shadow 160ms ease-out,
     background 160ms ease-out;
+}
+
+@media (min-width: 640px) {
+  .workspace-feature-card {
+    gap: 0.85rem;
+    padding: 0.95rem 1rem;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .workspace-feature-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(var(--ws-accent-rgb, 125, 211, 252), 0.35);
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow:
+      0 14px 28px rgba(0, 0, 0, 0.22),
+      0 0 28px rgba(var(--ws-accent-rgb, 59, 130, 246), 0.12);
+  }
+
+  .workspace-feature-card:hover .workspace-feature-icon {
+    transform: translateY(-1px) scale(1.05);
+    border-color: rgba(var(--ws-accent-rgb, 125, 211, 252), 0.4);
+    box-shadow: 0 8px 18px rgba(var(--ws-accent-rgb, 59, 130, 246), 0.18);
+  }
 }
 
 .workspace-feature-icon {
@@ -1178,21 +1209,6 @@ svg {
     linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
     rgba(var(--ws-accent-rgb, 59, 130, 246), 0.1);
   transition: transform 160ms ease-out, box-shadow 160ms ease-out, border-color 160ms ease-out;
-}
-
-.workspace-feature-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(var(--ws-accent-rgb, 125, 211, 252), 0.35);
-  background: rgba(255, 255, 255, 0.045);
-  box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.22),
-    0 0 28px rgba(var(--ws-accent-rgb, 59, 130, 246), 0.12);
-}
-
-.workspace-feature-card:hover .workspace-feature-icon {
-  transform: translateY(-1px) scale(1.05);
-  border-color: rgba(var(--ws-accent-rgb, 125, 211, 252), 0.4);
-  box-shadow: 0 8px 18px rgba(var(--ws-accent-rgb, 59, 130, 246), 0.18);
 }
 
 .workspace-panel-bridge {

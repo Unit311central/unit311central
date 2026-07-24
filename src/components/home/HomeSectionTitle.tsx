@@ -7,7 +7,7 @@ type HomeSectionTitleProps = {
 };
 
 const titleBase =
-  "relative inline-block px-5 text-center font-semibold uppercase leading-snug text-[#3b82f6] sm:px-9 lg:px-12";
+  "relative inline-block max-w-full px-5 text-center font-semibold uppercase leading-snug text-[#3b82f6] sm:px-9 lg:px-12";
 
 export default function HomeSectionTitle({
   children,
@@ -19,8 +19,8 @@ export default function HomeSectionTitle({
       <p
         className={
           singleLine
-            ? `${titleBase} max-w-[min(calc(100vw-2rem),42rem)] text-[11px] tracking-[0.08em] sm:max-w-none sm:whitespace-nowrap sm:text-sm sm:tracking-[0.12em] md:text-base lg:text-[22px] lg:tracking-[0.18em]`
-            : `${titleBase} max-w-[min(calc(100vw-2rem),42rem)] text-sm tracking-[0.1em] sm:text-lg sm:tracking-[0.16em] lg:text-[22px] lg:tracking-[0.18em]`
+            ? `${titleBase} text-sm tracking-[0.1em] sm:whitespace-nowrap sm:text-base sm:tracking-[0.12em] md:text-lg lg:text-[22px] lg:tracking-[0.18em]`
+            : `${titleBase} text-sm tracking-[0.1em] sm:text-lg sm:tracking-[0.16em] lg:text-[22px] lg:tracking-[0.18em]`
         }
       >
         <span

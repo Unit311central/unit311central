@@ -120,8 +120,8 @@ export default function Navbar() {
   const loginButtonClassCompact =
     "inline-flex h-9 items-center rounded-md bg-white px-3 text-[13px] font-semibold text-[#0b2d63] transition-colors hover:bg-white/90 sm:h-[36px] sm:px-[16px] sm:text-[14px]";
   const mobileAuthLinkClass = isDarkNav
-    ? "text-[7.5px] font-semibold tracking-[0.01em] text-white/90 transition-colors hover:text-white sm:text-[8px]"
-    : "text-[7.5px] font-semibold tracking-[0.01em] text-muted transition-colors hover:text-foreground sm:text-[8px]";
+    ? "text-[13px] font-semibold tracking-[0.01em] text-white/90 transition-colors hover:text-white sm:text-[14px]"
+    : "text-[13px] font-semibold tracking-[0.01em] text-muted transition-colors hover:text-foreground sm:text-[14px]";
   const useHomeNavButtons = isHomePage || isMarketingPage;
 
   return (
@@ -222,7 +222,7 @@ export default function Navbar() {
                   <Link href="/signup" className={mobileAuthLinkClass}>
                     Sign up
                   </Link>
-                  <span className={`text-[7.5px] sm:text-[8px] ${isDarkNav ? "text-white/35" : "text-muted/50"}`} aria-hidden>
+                  <span className={`text-[13px] sm:text-[14px] ${isDarkNav ? "text-white/35" : "text-muted/50"}`} aria-hidden>
                     ·
                   </span>
                   <Link href="/login" className={mobileAuthLinkClass}>

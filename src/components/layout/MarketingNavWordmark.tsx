@@ -13,8 +13,8 @@ export default function MarketingNavWordmark({ compact = false }: MarketingNavWo
       aria-label="Unit311 Central home"
       className={`inline-flex shrink-0 ${
         compact
-          ? "max-w-[calc(100vw-9.5rem)] sm:max-w-none"
-          : "max-w-[calc(100vw-8.5rem)] sm:max-w-none"
+          ? "max-w-[min(100%,calc(100%-9.5rem))] sm:max-w-none"
+          : "max-w-[min(100%,calc(100%-8.5rem))] sm:max-w-none"
       }`}
     >
       <Unit311CentralWordmark

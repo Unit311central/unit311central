@@ -23,7 +23,7 @@ const VARIANTS: Record<
   nav: {
     root: "h-8 sm:h-12 lg:h-[5.625rem]",
     primary: "text-[0.9375rem] sm:text-[1.375rem] lg:text-[2.5rem]",
-    secondary: "text-[0.5rem] sm:text-[0.6875rem] lg:text-[0.8125rem]",
+    secondary: "text-[0.625rem] sm:text-[0.6875rem] lg:text-[0.8125rem]",
     line: "w-2.5 sm:w-4 lg:w-[2.125rem]",
   },
   menu: {
@@ -35,7 +35,7 @@ const VARIANTS: Record<
   sidebar: {
     root: "h-9 w-full max-w-[11.25rem]",
     primary: "text-[1.05rem] leading-none tracking-[-0.035em]",
-    secondary: "text-[0.5rem] leading-none",
+    secondary: "text-[0.625rem] leading-none",
     line: "w-2.5",
   },
 };

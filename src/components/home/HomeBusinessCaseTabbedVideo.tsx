@@ -90,7 +90,7 @@ export default function HomeBusinessCaseTabbedVideo() {
               aria-selected={isActive}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "rounded-lg px-2.5 py-2 text-[10px] font-semibold leading-tight transition-colors duration-300 sm:px-3 sm:py-2.5 sm:text-[11px] lg:text-xs",
+                "rounded-lg px-2.5 py-2.5 text-xs font-semibold leading-snug transition-colors duration-300 sm:px-3 sm:py-2.5 sm:text-[13px] lg:text-sm",
                 isActive
                   ? "bg-white text-[#0f172a] shadow-[0_4px_14px_rgba(255,255,255,0.12)]"
                   : "bg-[#1a2332]/90 text-white/45 hover:bg-[#243044]/90 hover:text-white/65",

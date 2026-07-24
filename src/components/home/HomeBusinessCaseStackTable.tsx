@@ -36,7 +36,7 @@ export default function HomeBusinessCaseStackTable() {
       </div>
 
       <div className="hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] md:block">
-        <table className="w-full table-fixed border-collapse text-left text-[9px] leading-snug lg:text-[10px]">
+        <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <colgroup>
             <col className="w-[32%]" />
             <col className="w-[38%]" />
@@ -77,7 +77,7 @@ export default function HomeBusinessCaseStackTable() {
             <tr className="border-t border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] via-[#1d4ed8]/[0.12] to-[#2563eb]/[0.06]">
               <td
                 colSpan={2}
-                className="px-2 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#bfdbfe] lg:px-2.5 lg:py-3 lg:text-[11px]"
+                className="px-2 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#bfdbfe] lg:px-2.5 lg:py-3 lg:text-[13px]"
               >
                 Illustrative Annual Software Spend
               </td>
@@ -99,7 +99,7 @@ export default function HomeBusinessCaseStackTable() {
               <p className="text-xs font-semibold text-white/80">{row.function}</p>
               <p className="shrink-0 text-xs font-medium tabular-nums text-white/70">{row.cost}</p>
             </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-white/45">{row.product}</p>
+            <p className="mt-1 text-xs leading-relaxed text-white/45">{row.product}</p>
           </article>
         ))}
         <article className="rounded-xl border border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] to-[#2563eb]/[0.06] px-3 py-3">
@@ -112,7 +112,7 @@ export default function HomeBusinessCaseStackTable() {
         </article>
       </div>
 
-      <p className="mt-3 text-[10px] leading-relaxed text-white/35 sm:mt-4 sm:text-[11px]">
+      <p className="mt-3 text-xs leading-relaxed text-white/35 sm:mt-4 sm:text-[13px]">
         Illustrative estimates based on typical vendor pricing for a business of approximately 10
         users. Actual costs vary by provider, plan tier, implementation scope and internal resourcing.
       </p>

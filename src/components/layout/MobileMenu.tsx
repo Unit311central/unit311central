@@ -109,7 +109,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
         <Link
           href="/signup"
           onClick={onClose}
-          className="mt-6 inline-flex items-center justify-center rounded-lg bg-[#15803d] px-3 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-[#166534]"
+          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-lg bg-[#15803d] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#166534]"
         >
           Sign up
         </Link>
@@ -117,7 +117,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
           <Link
             href="/login"
             onClick={onClose}
-            className="mt-2 inline-flex items-center justify-center rounded-lg border border-white/20 px-3 py-1.5 text-[10px] font-semibold text-white transition-colors hover:bg-white/10"
+            className="mt-2 inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
           >
             Log in
           </Link>
