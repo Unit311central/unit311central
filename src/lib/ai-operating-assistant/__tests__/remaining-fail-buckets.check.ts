@@ -90,9 +90,20 @@ async function main() {
     );
   }
 
-  // Unsupported writes must be honest, not silent/platform.
+  // CRM stage moves are registered — must not fall through to platform/silent.
+  const crmStage = await resolveOrchestrationRoute(
+    "Move the Riverside corridor deal to Hot.",
+    [],
+    business,
+  );
+  assert.ok(
+    crmStage.kind === "need_info" || crmStage.kind === "tool",
+    `expected CRM write route, got ${crmStage.kind}`,
+  );
+
+  // Unsupported treasury wires must be honest, not mapped onto CRM/client writes.
   const unsupported = await resolveOrchestrationRoute(
-    "Move the Riverside corridor deal to negotiation.",
+    "Wire £50,000 from our main account to a supplier in Dubai tonight.",
     [],
     business,
   );

@@ -82,6 +82,7 @@ function scoreAction(
     [/\b(merge|combine|dedupe)\b/i, /merge/i],
     [/\b(archive|close|deactivate)\b/i, /archive/i],
     [/\b(restore|reactivate|unarchive)\b/i, /restore/i],
+    [/\b(activate)\b/i, /activate/i],
     [/\b(update|change|set|edit)\b/i, /update|assign/i],
   ];
   for (const [goalRe, actionRe] of verbPairs) {

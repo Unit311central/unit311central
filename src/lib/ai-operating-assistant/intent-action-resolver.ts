@@ -68,6 +68,7 @@ const GENERIC_VERBS: Record<string, string[]> = {
   update: ["update", "change", "edit", "amend"],
   archive: ["archive", "deactivate", "retire"],
   restore: ["restore", "reactivate", "unarchive", "reopen"],
+  activate: ["activate", "go live", "go-live"],
   assign: ["assign", "appoint"],
   merge: ["merge", "combine", "dedupe"],
   remove: ["remove", "delete"],
@@ -119,7 +120,7 @@ export function hasExplicitWriteIntent(message: string): boolean {
     return false;
   }
 
-  return /\b(create|add|register|archive|restore|assign|appoint|merge|combine|update|change|edit|amend|delete|remove|onboard|set\s*up|setup|start|launch|signed|signing|we(?:'ve| have)?\s+(?:just\s+)?signed|just\s+signed|move|reschedule|mark|qualify|chase|approve|reject|cancel|book|reserve|switch|confirm|write\s*off|schedule|send|convert|close|tag|record|enrol|enroll|publish|retire|deactivate|revoke|connect)\b/i.test(
+  return /\b(create|add|register|archive|restore|activate|assign|appoint|merge|combine|update|change|edit|amend|delete|remove|onboard|set\s*up|setup|start|launch|signed|signing|we(?:'ve| have)?\s+(?:just\s+)?signed|just\s+signed|move|reschedule|mark|qualify|chase|approve|reject|cancel|book|reserve|switch|confirm|write\s*off|schedule|send|convert|close|tag|record|enrol|enroll|publish|retire|deactivate|revoke|connect|wire|remit|transfer\s+(?:funds|money|£|\$|€))\b/i.test(
     lower,
   );
 }
@@ -719,6 +720,16 @@ export async function resolveBusinessActionIntent(
   }
   if (isInterrogativeRead(text)) {
     return { kind: "none", reason: "read_question" };
+  }
+
+  // Payment / treasury wires are not mapped onto CRM/client/project actions.
+  // Until a treasury transfer action is registered, refuse rather than invent a plan.
+  if (
+    /\b(wire|remit|bank\s+transfer)\b/i.test(text) ||
+    /\btransfer\s+(?:funds|money|£|\$|€|\d)/i.test(text) ||
+    /\bsend\s+(?:£|\$|€)\s*\d/i.test(text)
+  ) {
+    return { kind: "none", reason: "unsupported_payment_transfer" };
   }
 
   // Pure read / report asks are not write intents.
