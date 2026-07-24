@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useId, useState, type CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
@@ -669,7 +669,7 @@ function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
   const featured = workspace.capabilities.slice(0, 6);
 
   return (
-    <div className="relative min-h-0 sm:min-h-[14rem] lg:min-h-[17rem]">
+    <div className="relative min-h-[22rem] sm:min-h-[24rem] lg:min-h-[22rem]">
       <div
         className="workspace-panel-atmosphere pointer-events-none absolute inset-y-0 right-0 hidden w-[42%] lg:block"
         aria-hidden
@@ -731,28 +731,27 @@ function ExpandedPanel({
   className = "",
 }: {
   panelId: string;
-  workspace: Workspace | null;
+  workspace: Workspace;
   className?: string;
 }) {
   return (
     <div
       id={panelId}
       role="tabpanel"
-      aria-labelledby={workspace ? `${panelId}-${workspace.id}` : undefined}
-      aria-hidden={!workspace}
+      aria-labelledby={`${panelId}-${workspace.id}`}
       className={[
         "workspace-panel is-detached relative overflow-hidden border px-4 pb-5 pt-4 sm:px-7 sm:pb-7 sm:pt-6 lg:px-8 lg:pb-8 lg:pt-6",
         "rounded-[20px] sm:rounded-[26px] lg:rounded-[28px]",
-        workspace ? "" : "pointer-events-none",
         className,
       ].join(" ")}
-      style={workspace ? accentStyle(workspace.accent) : undefined}
-      data-workspace={workspace?.id}
+      style={accentStyle(workspace.accent)}
+      data-workspace={workspace.id}
     >
       <div className="workspace-panel-glow" aria-hidden />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-transparent" aria-hidden />
-
-      {workspace ? <WorkspaceOverviewPanel workspace={workspace} /> : <div className="h-24" aria-hidden />}
+      <div key={workspace.id} className="workspace-panel-fade relative z-[1]">
+        <WorkspaceOverviewPanel workspace={workspace} />
+      </div>
     </div>
   );
 }
@@ -821,30 +820,20 @@ function WorkspaceTile({
 }
 
 export default function HomeWorkspaceExplorer() {
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string>(WORKSPACES[0].id);
   const panelId = useId();
-  const panelAnchorRef = useRef<HTMLDivElement | null>(null);
-  const openWorkspace = WORKSPACES.find((workspace) => workspace.id === openId) ?? null;
+  const openWorkspace = WORKSPACES.find((workspace) => workspace.id === openId) ?? WORKSPACES[0];
 
-  function toggleWorkspace(id: string) {
-    setOpenId((current) => (current === id ? null : id));
+  function selectWorkspace(id: string) {
+    setOpenId(id);
   }
-
-  useEffect(() => {
-    if (!openId || !panelAnchorRef.current) return;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    panelAnchorRef.current.scrollIntoView({
-      behavior: reduceMotion ? "auto" : "smooth",
-      block: "nearest",
-    });
-  }, [openId]);
 
   return (
     <div
       className="workspace-explorer relative mt-8 sm:mt-11 lg:mt-12"
       onKeyDown={(event) => {
-        if (event.key === "Escape" && openId) {
-          setOpenId(null);
+        if (event.key === "Escape") {
+          setOpenId(WORKSPACES[0].id);
         }
       }}
     >
@@ -860,29 +849,21 @@ export default function HomeWorkspaceExplorer() {
       <div
         role="tablist"
         aria-label="Unit311 Central workspaces"
-        className={[
-          "relative grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-3 lg:grid-cols-3 lg:gap-3 xl:grid-cols-5 xl:gap-2.5 2xl:grid-cols-9 2xl:gap-2.5",
-          openWorkspace ? "workspace-explorer-open" : "",
-        ].join(" ")}
+        className="workspace-explorer-open relative grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-3 lg:grid-cols-3 lg:gap-3 xl:grid-cols-5 xl:gap-2.5 2xl:grid-cols-9 2xl:gap-2.5"
       >
         {WORKSPACES.map((workspace) => (
-          <Fragment key={workspace.id}>
-            <WorkspaceTile
-              workspace={workspace}
-              isOpen={openId === workspace.id}
-              panelId={panelId}
-              onToggle={() => toggleWorkspace(workspace.id)}
-            />
-            {openId === workspace.id ? (
-              <div
-                ref={panelAnchorRef}
-                className="col-span-full mt-1 sm:mt-2 2xl:mt-3"
-              >
-                <ExpandedPanel panelId={panelId} workspace={openWorkspace} />
-              </div>
-            ) : null}
-          </Fragment>
+          <WorkspaceTile
+            key={workspace.id}
+            workspace={workspace}
+            isOpen={openId === workspace.id}
+            panelId={panelId}
+            onToggle={() => selectWorkspace(workspace.id)}
+          />
         ))}
+      </div>
+
+      <div className="mt-3 sm:mt-4">
+        <ExpandedPanel panelId={panelId} workspace={openWorkspace} />
       </div>
     </div>
   );

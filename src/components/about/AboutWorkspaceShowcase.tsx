@@ -505,6 +505,7 @@ const WORKSPACES: Workspace[] = [
 export default function AboutWorkspaceShowcase() {
   const [activeId, setActiveId] = useState(WORKSPACES[0].id);
   const labelId = useId();
+  const panelId = useId();
   const active = WORKSPACES.find((workspace) => workspace.id === activeId) ?? WORKSPACES[0];
   const ActiveIcon = active.icon;
 
@@ -527,7 +528,7 @@ export default function AboutWorkspaceShowcase() {
         <div
           role="tablist"
           aria-label="Unit311 Central workspaces"
-          className="grid grid-cols-3 gap-2 border-b border-white/10 p-3 md:grid-cols-5 lg:grid-cols-9 lg:gap-2 lg:p-3.5"
+          className="workspace-showcase-tabs flex gap-1.5 overflow-x-auto border-b border-white/10 p-2.5 sm:gap-2 sm:p-3 md:grid md:grid-cols-5 lg:grid-cols-9 lg:overflow-visible"
         >
           {WORKSPACES.map((workspace) => {
             const Icon = workspace.icon;
@@ -537,30 +538,34 @@ export default function AboutWorkspaceShowcase() {
                 key={workspace.id}
                 type="button"
                 role="tab"
+                id={`${panelId}-${workspace.id}`}
                 aria-selected={isActive}
+                aria-controls={panelId}
                 onClick={() => setActiveId(workspace.id)}
                 className={[
-                  "workspace-showcase-card relative flex min-h-[4.75rem] flex-col items-start gap-2 overflow-hidden rounded-2xl border px-2.5 py-2.5 text-left transition-[border-color,box-shadow,background,transform] duration-150 ease-out sm:min-h-[5.25rem] sm:px-3 sm:py-3",
-                  isActive ? "is-active" : "border-white/10 bg-white/[0.03] hover:border-white/18 hover:bg-white/[0.05]",
+                  "workspace-showcase-tab relative flex min-h-[3.75rem] min-w-[7.5rem] flex-1 flex-col items-start justify-center gap-1.5 overflow-hidden rounded-xl border px-2.5 py-2 text-left sm:min-h-[4.25rem] sm:min-w-0 sm:px-3",
+                  isActive ? "is-active" : "is-idle",
                 ].join(" ")}
                 style={{ "--ws-accent-rgb": workspace.accentRgb } as CSSProperties}
               >
                 <span className="workspace-showcase-card-accent" aria-hidden />
-                <span
-                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10"
-                  style={{
-                    color: `rgb(${workspace.accentRgb})`,
-                    background: `rgba(${workspace.accentRgb}, 0.14)`,
-                  }}
-                >
-                  <Icon className="h-4 w-4" strokeWidth={1.6} aria-hidden />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[11px] font-semibold leading-tight text-white sm:text-[12px]">
-                    {workspace.shortTitle}
+                <span className="flex items-center gap-2">
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10"
+                    style={{
+                      color: `rgb(${workspace.accentRgb})`,
+                      background: `rgba(${workspace.accentRgb}, ${isActive ? 0.18 : 0.1})`,
+                    }}
+                  >
+                    <Icon className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
                   </span>
-                  <span className="mt-0.5 block truncate text-[10px] text-white/40 sm:text-[11px]">
-                    {workspace.descriptor}
+                  <span className="min-w-0">
+                    <span className="block truncate text-[11px] font-semibold leading-tight text-white sm:text-[12px]">
+                      {workspace.shortTitle}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[10px] text-white/40">
+                      {workspace.descriptor}
+                    </span>
                   </span>
                 </span>
               </button>
@@ -568,34 +573,36 @@ export default function AboutWorkspaceShowcase() {
           })}
         </div>
 
-        <div className="workspace-showcase-stage border-t border-white/[0.04] p-4 sm:p-5 lg:p-6">
-          <div
-            key={active.id}
-            className="workspace-showcase-fade grid h-full grid-rows-[auto_minmax(0,1fr)] gap-4"
-            style={{ "--ws-accent-rgb": active.accentRgb } as CSSProperties}
-          >
+        <div
+          id={panelId}
+          role="tabpanel"
+          aria-labelledby={`${panelId}-${active.id}`}
+          className="workspace-showcase-stage px-4 pb-4 pt-3 sm:px-5 sm:pb-5 sm:pt-4 lg:px-6 lg:pb-6 lg:pt-4"
+          style={{ "--ws-accent-rgb": active.accentRgb } as CSSProperties}
+        >
+          <div key={active.id} className="workspace-showcase-fade grid h-full gap-3.5" style={{ gridTemplateRows: "auto minmax(0, 1fr)" }}>
             <div className="flex items-start gap-3 sm:gap-4">
               <span
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/12 sm:h-12 sm:w-12"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/12 sm:h-11 sm:w-11"
                 style={{
                   color: `rgb(${active.accentRgb})`,
                   background: `rgba(${active.accentRgb}, 0.14)`,
-                  boxShadow: `0 0 28px rgba(${active.accentRgb}, 0.22)`,
+                  boxShadow: `0 0 24px rgba(${active.accentRgb}, 0.2)`,
                 }}
               >
-                <ActiveIcon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={1.5} aria-hidden />
+                <ActiveIcon className="h-5 w-5" strokeWidth={1.5} aria-hidden />
               </span>
               <div className="min-w-0">
-                <h3 className="text-[1.2rem] font-semibold tracking-[-0.02em] text-white sm:text-[1.4rem]">
+                <h3 className="text-[1.15rem] font-semibold tracking-[-0.02em] text-white sm:text-[1.35rem]">
                   {active.title}
                 </h3>
-                <p className="mt-1 max-w-3xl text-[13.5px] leading-relaxed text-white/62 sm:text-[14.5px]">
+                <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-white/62 sm:text-[14px]">
                   {active.description}
                 </p>
               </div>
             </div>
 
-            <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-5">
+            <div className="grid min-h-0 gap-4 lg:grid-cols-2 lg:gap-5">
               <div className="workspace-showcase-shot mx-auto w-full max-w-[560px] lg:mx-0 lg:max-w-none">
                 {active.shot}
               </div>
