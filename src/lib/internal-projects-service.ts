@@ -218,6 +218,60 @@ export async function createProject(
   return mapInternalProject(data as DbProject);
 }
 
+export async function updateProject(
+  id: string,
+  patch: Partial<{
+    name: string;
+    clientId: string | null;
+    clientName: string;
+    site: string | null;
+    region: string | null;
+    operator: string | null;
+    phase: ProjectPhase;
+    startDate: string | null;
+    endDate: string | null;
+    progressPct: number;
+    notes: string | null;
+  }>,
+  scope?: ProjectsWorkspaceScope,
+): Promise<InternalProject> {
+  const workspaceId = await resolveProjectsWorkspaceId(scope);
+  const supabase = requireProjectsSupabase();
+  const existing = await getProject(id, { workspaceId });
+
+  const payload: Record<string, string | number | null> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (patch.name !== undefined) payload.name = patch.name.trim();
+  if (patch.clientId !== undefined) payload.client_id = patch.clientId;
+  if (patch.clientName !== undefined) payload.client_name = patch.clientName.trim();
+  if (patch.site !== undefined) payload.site = patch.site?.trim() || null;
+  if (patch.region !== undefined) payload.region = patch.region?.trim() || null;
+  if (patch.operator !== undefined) payload.operator = patch.operator?.trim() || null;
+  if (patch.phase !== undefined) payload.phase = patch.phase;
+  if (patch.startDate !== undefined) payload.start_date = patch.startDate;
+  if (patch.endDate !== undefined) payload.end_date = patch.endDate;
+  if (patch.progressPct !== undefined) payload.progress_pct = patch.progressPct;
+  if (patch.notes !== undefined) payload.notes = patch.notes?.trim() || null;
+
+  const { data, error } = await supabase
+    .from("internal_projects")
+    .update(payload)
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .select("*")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  const clientId = existing.clientId;
+  if (clientId) {
+    await syncClientActiveProjects(clientId, workspaceId).catch(() => undefined);
+  }
+
+  return mapInternalProject(data as DbProject);
+}
+
 export async function deleteProject(id: string, scope?: ProjectsWorkspaceScope) {
   await deleteProjects([id], scope);
 }

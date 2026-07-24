@@ -34,6 +34,7 @@
     "demo:verify": "node scripts/verify-demo-release.mjs",
     "test:executive-acceptance": "node scripts/executive-acceptance-suite.mjs",
     "test:executive-modules": "node scripts/executive-module-acceptance-suite.mjs",
+    "test:ceo-demo": "node scripts/ceo-demo-pack.mjs",
     "report:executive-modules-pdf": "node scripts/export-executive-module-acceptance-pdf.mjs",
     "test:executive-intents": "node --import tsx scripts/executive-acceptance-intents.mjs",
     "test:write-overfire": "node --import tsx src/lib/ai-operating-assistant/__tests__/write-overfire.check.ts",

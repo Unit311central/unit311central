@@ -1,4 +1,4 @@
-export type ProjectPhase = "live" | "upcoming";
+export type ProjectPhase = "live" | "upcoming" | "completed";
 
 export type InternalProject = {
   id: string;
@@ -37,6 +37,7 @@ type DbProject = {
 export const PROJECT_PHASE_OPTIONS: { value: ProjectPhase; label: string }[] = [
   { value: "live", label: "Live" },
   { value: "upcoming", label: "Upcoming" },
+  { value: "completed", label: "Completed" },
 ];
 
 export function mapInternalProject(row: DbProject): InternalProject {
@@ -60,13 +61,15 @@ export function mapInternalProject(row: DbProject): InternalProject {
 }
 
 export function projectPhaseLabel(phase: ProjectPhase) {
-  return phase === "live" ? "Live" : "Upcoming";
+  if (phase === "live") return "Live";
+  if (phase === "completed") return "Completed";
+  return "Upcoming";
 }
 
 export function projectPhaseClass(phase: ProjectPhase) {
-  return phase === "live"
-    ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
-    : "border-sky-400/40 bg-sky-500/15 text-sky-300";
+  if (phase === "live") return "border-emerald-400/40 bg-emerald-500/15 text-emerald-300";
+  if (phase === "completed") return "border-slate-400/40 bg-slate-500/15 text-slate-300";
+  return "border-sky-400/40 bg-sky-500/15 text-sky-300";
 }
 
 export function formatProjectDate(date: string | null) {

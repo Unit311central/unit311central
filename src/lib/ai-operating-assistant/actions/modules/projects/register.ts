@@ -1,7 +1,8 @@
 import { registerAssistantAction, upsertAssistantAction } from "../../registry";
+import { closeProjectAction } from "./close-project";
 import { createProjectAction } from "./create-project";
 
-const PROJECT_ACTIONS = [createProjectAction] as const;
+const PROJECT_ACTIONS = [createProjectAction, closeProjectAction] as const;
 
 let registered = false;
 

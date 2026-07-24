@@ -4,6 +4,7 @@
  */
 
 import { registerAssistantAction, upsertAssistantAction } from "../../registry";
+import { activateClientAction } from "./activate-client";
 import { archiveClientAction } from "./archive-client";
 import { assignAccountManagerAction } from "./assign-account-manager";
 import {
@@ -20,6 +21,7 @@ import { updateClientAction } from "./update-client";
 const CLIENT_ACTIONS = [
   createClientAction,
   updateClientAction,
+  activateClientAction,
   archiveClientAction,
   restoreClientAction,
   assignAccountManagerAction,

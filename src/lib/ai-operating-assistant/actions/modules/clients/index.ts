@@ -1,6 +1,7 @@
 export { registerClientsActions, listRegisteredClientActionIds } from "./register";
 export { createClientAction } from "./create-client";
 export { updateClientAction } from "./update-client";
+export { activateClientAction } from "./activate-client";
 export { archiveClientAction } from "./archive-client";
 export { restoreClientAction } from "./restore-client";
 export { assignAccountManagerAction } from "./assign-account-manager";

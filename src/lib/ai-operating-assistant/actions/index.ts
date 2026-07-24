@@ -14,6 +14,10 @@ import "./modules/clients/register";
 export * from "./modules/clients";
 import "./modules/projects/register";
 export * from "./modules/projects";
+import "./modules/crm/register";
+export * from "./modules/crm";
+import "./modules/calendar/register";
+export * from "./modules/calendar";
 
 // Planning Engine (additive orchestration layer).
 export * from "./planning";
