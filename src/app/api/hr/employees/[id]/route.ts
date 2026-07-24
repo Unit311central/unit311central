@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getHrEmployeeDetail,
   updateHrEmployee,
+  deleteHrEmployees,
   type UpdateHrEmployeePatch,
 } from "@/lib/hr-employees-service";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -63,12 +64,25 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 }
 
-export async function DELETE() {
-  return NextResponse.json(
-    {
-      error: "Employees cannot be deleted. Archive the employee instead.",
-      code: "EMPLOYEE_DELETE_FORBIDDEN",
-    },
-    { status: 405, headers: { Allow: "GET, PATCH" } },
-  );
+export async function DELETE(_request: NextRequest, context: RouteContext) {
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
+  }
+
+  try {
+    await requirePlatformSession();
+    const workspace = await requireCurrentWorkspace();
+    const { id } = await context.params;
+    const result = await deleteHrEmployees([id], { workspaceId: workspace.id });
+    return NextResponse.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete employee";
+    const status =
+      message.includes("Authentication required") || message.includes("Workspace context")
+        ? 401
+        : message.includes("Employee not found")
+          ? 404
+          : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
 }

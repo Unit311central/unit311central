@@ -685,9 +685,62 @@ export async function archiveHrEmployee(id: string, scope?: HrWorkspaceScope): P
   return updateHrEmployee(id, { employmentStatus: "archived" }, scope);
 }
 
-/** @deprecated Hard delete is forbidden — use archiveHrEmployee. */
-export async function deleteHrEmployee(_id: string, _scope?: HrWorkspaceScope): Promise<never> {
-  throw new Error("Employees cannot be deleted. Archive the employee instead.");
+export async function deleteHrEmployees(
+  ids: string[],
+  scope?: HrWorkspaceScope,
+): Promise<{ deletedIds: string[]; deletedCount: number }> {
+  const uniqueIds = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    throw new Error("At least one employee id is required.");
+  }
+
+  const workspaceId = await resolveHrWorkspaceId(scope);
+  await ensureHrEmployeesTable();
+
+  return withHrEmployeesTable(async () => {
+    const supabase = requireHrSupabase();
+
+    const { data: owned, error: ownedError } = await supabase
+      .from("hr_employees")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .in("id", uniqueIds);
+
+    if (ownedError) throw new Error(ownedError.message);
+
+    const deletedIds = (owned ?? []).map((row) => String((row as { id: string }).id));
+    if (deletedIds.length === 0) {
+      throw new Error("Employee not found.");
+    }
+
+    // Clear manager links that point at employees being removed.
+    await supabase
+      .from("hr_employees")
+      .update({ manager_employee_id: null })
+      .eq("workspace_id", workspaceId)
+      .in("manager_employee_id", deletedIds);
+
+    // Best-effort payroll cleanup (no FK to hr_employees).
+    await supabase
+      .from("payroll_employee_profiles")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .in("employee_id", deletedIds);
+
+    const { error: deleteError } = await supabase
+      .from("hr_employees")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .in("id", deletedIds);
+
+    if (deleteError) throw new Error(deleteError.message);
+
+    return { deletedIds, deletedCount: deletedIds.length };
+  });
+}
+
+export async function deleteHrEmployee(id: string, scope?: HrWorkspaceScope): Promise<void> {
+  await deleteHrEmployees([id], scope);
 }
 
 export async function listCompensationHistory(employeeId: string, scope?: HrWorkspaceScope) {

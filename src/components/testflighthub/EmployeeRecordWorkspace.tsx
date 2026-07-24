@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Archive, Loader2, Plus, Save, Search } from "lucide-react";
+import { Archive, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 
 import {
   createBlankEmployeeInput,
@@ -114,6 +114,8 @@ export default function EmployeeRecordWorkspace() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [newEmployee, setNewEmployee] = useState(createBlankEmployeeInput());
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
@@ -212,6 +214,10 @@ export default function EmployeeRecordWorkspace() {
     });
   }, [employees, query, statusFilter]);
 
+  const allFilteredSelected =
+    filtered.length > 0 && filtered.every((employee) => selectedIds.includes(employee.id));
+  const someFilteredSelected = filtered.some((employee) => selectedIds.includes(employee.id));
+
   const activeHeadcount = useMemo(
     () =>
       employees.filter((employee) =>
@@ -302,6 +308,71 @@ export default function EmployeeRecordWorkspace() {
       setError(saveError instanceof Error ? saveError.message : "Failed to save");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function toggleEmployeeSelected(id: string) {
+    setSelectedIds((current) =>
+      current.includes(id) ? current.filter((entry) => entry !== id) : [...current, id],
+    );
+  }
+
+  function toggleSelectAllFiltered() {
+    if (allFilteredSelected) {
+      const visible = new Set(filtered.map((employee) => employee.id));
+      setSelectedIds((current) => current.filter((id) => !visible.has(id)));
+      return;
+    }
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const employee of filtered) next.add(employee.id);
+      return [...next];
+    });
+  }
+
+  async function deleteSelectedEmployees() {
+    if (selectedIds.length === 0 || deleting) return;
+    const count = selectedIds.length;
+    if (
+      !window.confirm(
+        `Permanently delete ${count} employee${count === 1 ? "" : "s"}? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/hr/employees/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      const data = await readApiJson<{ deletedIds?: string[]; deletedCount?: number; error?: string }>(
+        response,
+      );
+      if (!response.ok) throw new Error(data.error ?? "Failed to delete employees");
+
+      const removed = new Set(data.deletedIds ?? selectedIds);
+      if (selectedId && removed.has(selectedId)) {
+        setSelectedId(null);
+        setDetail(null);
+        setDraft(null);
+        closeDetail();
+      }
+      setSelectedIds([]);
+      setMessage(
+        `Deleted ${data.deletedCount ?? removed.size} employee${
+          (data.deletedCount ?? removed.size) === 1 ? "" : "s"
+        }`,
+      );
+      await loadList();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete employees");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -472,14 +543,27 @@ export default function EmployeeRecordWorkspace() {
             {formatSalary(operationalPayroll)}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setAddOpen(true)}
-          className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-3 py-2 text-sm text-violet-100"
-        >
-          <Plus className="h-4 w-4" />
-          Add employee
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {selectedIds.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => void deleteSelectedEmployees()}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/15 px-3 py-2 text-sm text-rose-100 disabled:opacity-60"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Delete ({selectedIds.length})
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-500/15 px-3 py-2 text-sm text-violet-100"
+          >
+            <Plus className="h-4 w-4" />
+            Add employee
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -514,43 +598,77 @@ export default function EmployeeRecordWorkspace() {
         </label>
       </div>
 
+      {!loading && filtered.length > 0 ? (
+        <label className="inline-flex items-center gap-2 px-1 text-xs text-white/55">
+          <input
+            type="checkbox"
+            checked={allFilteredSelected}
+            ref={(el) => {
+              if (el) el.indeterminate = someFilteredSelected && !allFilteredSelected;
+            }}
+            onChange={toggleSelectAllFiltered}
+          />
+          {allFilteredSelected ? "Clear selection" : "Select all"}
+          {selectedIds.length > 0 ? (
+            <span className="text-white/35">· {selectedIds.length} selected</span>
+          ) : null}
+        </label>
+      ) : null}
+
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-white/50">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading…
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((employee) => (
-            <button
-              key={employee.id}
-              type="button"
-              onClick={() => selectEmployee(employee.id)}
-              className={cn(
-                "w-full rounded-2xl border px-3 py-3 text-left transition-colors",
-                selectedId === employee.id
-                  ? "border-violet-400/40 bg-violet-500/10"
-                  : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
-              )}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-mono text-[11px] text-sky-200/80">{employee.employeeNumber}</p>
-                  <p className="text-sm font-medium text-white">{employee.fullName}</p>
-                  <p className="text-xs text-white/45">
-                    {employee.role || "No role"} · {employee.department || "No department"}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    "rounded-full border px-2 py-0.5 text-[10px]",
-                    statusBadgeClass(employee.employmentStatus),
-                  )}
+          {filtered.map((employee) => {
+            const checked = selectedIds.includes(employee.id);
+            return (
+              <div
+                key={employee.id}
+                className={cn(
+                  "flex w-full items-start gap-2 rounded-2xl border px-3 py-3 transition-colors",
+                  selectedId === employee.id
+                    ? "border-violet-400/40 bg-violet-500/10"
+                    : checked
+                      ? "border-rose-400/25 bg-rose-500/5"
+                      : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={checked}
+                  onChange={() => toggleEmployeeSelected(employee.id)}
+                  onClick={(event) => event.stopPropagation()}
+                  aria-label={`Select ${employee.fullName}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => selectEmployee(employee.id)}
+                  className="min-w-0 flex-1 text-left"
                 >
-                  {HR_EMPLOYMENT_STATUS_LABELS[employee.employmentStatus]}
-                </span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-mono text-[11px] text-sky-200/80">{employee.employeeNumber}</p>
+                      <p className="text-sm font-medium text-white">{employee.fullName}</p>
+                      <p className="text-xs text-white/45">
+                        {employee.role || "No role"} · {employee.department || "No department"}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 text-[10px]",
+                        statusBadgeClass(employee.employmentStatus),
+                      )}
+                    >
+                      {HR_EMPLOYMENT_STATUS_LABELS[employee.employmentStatus]}
+                    </span>
+                  </div>
+                </button>
               </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
