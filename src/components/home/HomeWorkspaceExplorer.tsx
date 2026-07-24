@@ -3,34 +3,35 @@
 import { useId, useState, type CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  Banknote,
   Bot,
   Boxes,
   Briefcase,
   Building2,
   Cloud,
-  Code2,
   Cpu,
-  Database,
   FolderKanban,
   Gauge,
   GraduationCap,
   Handshake,
   HardDrive,
-  KeyRound,
   LayoutDashboard,
   Mail,
   MessageSquare,
   Package,
+  PieChart,
   Plug,
   Scale,
-  ShieldCheck,
   Target,
   Truck,
   Users,
   UsersRound,
+  Video,
   Wallet,
 } from "lucide-react";
+import {
+  MARKETING_WORKSPACE_COPY,
+  type MarketingIntegrationCategory,
+} from "@/lib/marketing-workspace-copy";
 
 type Capability = {
   label: string;
@@ -58,6 +59,14 @@ type WorkspaceAccent = {
   label: string;
 };
 
+type WorkspaceShell = {
+  id: string;
+  icon: LucideIcon;
+  visual: WorkspaceVisual;
+  accent: WorkspaceAccent;
+  featuredIcons: [LucideIcon, LucideIcon, LucideIcon, LucideIcon];
+};
+
 type Workspace = {
   id: string;
   title: string;
@@ -67,335 +76,109 @@ type Workspace = {
   visual: WorkspaceVisual;
   accent: WorkspaceAccent;
   featuredCapabilities: FeaturedCapabilities;
-  additionalCapabilityCount: number;
+  capabilities: string[];
+  integrationCategories?: MarketingIntegrationCategory[];
 };
 
-const WORKSPACES: Workspace[] = [
+const WORKSPACE_SHELLS: WorkspaceShell[] = [
   {
     id: "business-central",
-    title: "Business Central",
-    subtitle: "Executive oversight",
-    description:
-      "Executive oversight and enterprise-wide business management, including Quality Management (QMS).",
     icon: LayoutDashboard,
     visual: "central",
     accent: { rgb: "59, 130, 246", label: "blue" },
-    featuredCapabilities: [
-      {
-        label: "Executive Dashboard",
-        detail: "Live executive KPIs, operational insights and strategic reporting.",
-        icon: Gauge,
-      },
-      {
-        label: "Quality Management",
-        detail: "Embed QMS controls into day-to-day operating workflows.",
-        icon: ShieldCheck,
-      },
-      {
-        label: "Strategic Planning",
-        detail: "Keep priorities, ownership and delivery health in one view.",
-        icon: Target,
-      },
-      {
-        label: "Enterprise Oversight",
-        detail: "See the organisation as one connected operating picture.",
-        icon: LayoutDashboard,
-      },
-    ],
-    additionalCapabilityCount: 0,
+    featuredIcons: [Gauge, LayoutDashboard, Handshake, Target],
   },
   {
     id: "ai-executive-assistant",
-    title: "AI Executive Assistant",
-    subtitle: "AI insights",
-    description:
-      "AI assistant, executive insights and business intelligence across the operating platform.",
     icon: Bot,
     visual: "assistant",
     accent: { rgb: "244, 114, 182", label: "pink" },
-    featuredCapabilities: [
-      {
-        label: "AI Assistant",
-        detail: "Ask questions and take action across connected business data.",
-        icon: Bot,
-      },
-      {
-        label: "Executive Insights",
-        detail: "Surface what needs attention before it becomes friction.",
-        icon: Gauge,
-      },
-      {
-        label: "Business Intelligence",
-        detail: "Turn live workspace signals into clear decision support.",
-        icon: Target,
-      },
-      {
-        label: "Operating Briefings",
-        detail: "Keep leadership aligned with concise, current summaries.",
-        icon: MessageSquare,
-      },
-    ],
-    additionalCapabilityCount: 0,
+    featuredIcons: [MessageSquare, Bot, FolderKanban, Gauge],
   },
   {
     id: "clients-projects",
-    title: "Clients & Projects",
-    subtitle: "CRM, sales and delivery",
-    description: "CRM, sales, projects and delivery in one connected workspace.",
     icon: Briefcase,
     visual: "clients",
     accent: { rgb: "20, 184, 166", label: "teal" },
-    featuredCapabilities: [
-      {
-        label: "CRM",
-        detail: "Qualify demand and advance opportunities with clear ownership.",
-        icon: Handshake,
-      },
-      {
-        label: "Sales",
-        detail: "Move commercial work from pipeline through close.",
-        icon: Target,
-      },
-      {
-        label: "Projects",
-        detail: "Plan and track delivery across internal and external work.",
-        icon: FolderKanban,
-      },
-      {
-        label: "Delivery",
-        detail: "Keep account and delivery teams aligned through close-out.",
-        icon: Briefcase,
-      },
-    ],
-    additionalCapabilityCount: 0,
+    featuredIcons: [Handshake, Target, FolderKanban, Briefcase],
   },
   {
     id: "financials",
-    title: "Financials",
-    subtitle: "Finance and reporting",
-    description: "Finance, reporting and budgeting from a unified financial command centre.",
     icon: Wallet,
     visual: "finance",
     accent: { rgb: "16, 185, 129", label: "emerald" },
-    featuredCapabilities: [
-      {
-        label: "Finance",
-        detail: "Run day-to-day finance operations in one place.",
-        icon: Wallet,
-      },
-      {
-        label: "Reporting",
-        detail: "Produce board-ready financial reporting without spreadsheet sprawl.",
-        icon: Banknote,
-      },
-      {
-        label: "Budgeting",
-        detail: "Plan and track budgets against live operating signals.",
-        icon: Gauge,
-      },
-      {
-        label: "Cash Visibility",
-        detail: "Keep runway, receivables and payables in one picture.",
-        icon: Gauge,
-      },
-    ],
-    additionalCapabilityCount: 0,
+    featuredIcons: [Gauge, Wallet, PieChart, Cloud],
   },
   {
     id: "hr-people",
-    title: "HR & People",
-    subtitle: "Workforce management",
-    description: "HR, recruitment, training, performance and workforce operations.",
     icon: UsersRound,
     visual: "people",
     accent: { rgb: "168, 85, 247", label: "purple" },
-    featuredCapabilities: [
-      {
-        label: "HR",
-        detail: "Maintain employee records, roles and organisational structure.",
-        icon: Users,
-      },
-      {
-        label: "Recruitment",
-        detail: "Run hiring pipelines from requisition through offer.",
-        icon: UsersRound,
-      },
-      {
-        label: "Training",
-        detail: "Plan learning paths and keep workforce skills current.",
-        icon: GraduationCap,
-      },
-      {
-        label: "Performance",
-        detail: "Track goals, reviews and development conversations.",
-        icon: Target,
-      },
-    ],
-    additionalCapabilityCount: 1,
+    featuredIcons: [GraduationCap, Gauge, Users, Handshake],
   },
   {
     id: "technology-engineering",
-    title: "Technology & Engineering",
-    subtitle: "Technology estate and engineering",
-    description:
-      "Devices, software, telecommunications, infrastructure, cloud, networks, engineering, APIs, development and DevOps.",
     icon: Cpu,
     visual: "technology",
     accent: { rgb: "56, 189, 248", label: "sky" },
-    featuredCapabilities: [
-      {
-        label: "Devices and Software",
-        detail: "Track hardware, licences and the technology estate.",
-        icon: HardDrive,
-      },
-      {
-        label: "Infrastructure and Cloud",
-        detail: "Operate platforms, networks and cloud footprint.",
-        icon: Cloud,
-      },
-      {
-        label: "Engineering",
-        detail: "Coordinate engineering delivery inside the technology workspace.",
-        icon: Code2,
-      },
-      {
-        label: "APIs and DevOps",
-        detail: "Connect development, APIs and operating workflows.",
-        icon: KeyRound,
-      },
-    ],
-    additionalCapabilityCount: 6,
+    featuredIcons: [Gauge, FolderKanban, HardDrive, Target],
   },
   {
     id: "corporate",
-    title: "Corporate",
-    subtitle: "Governance and compliance",
-    description: "Governance, compliance, risk, legal and policies.",
     icon: Scale,
     visual: "corporate",
     accent: { rgb: "148, 163, 184", label: "slate" },
-    featuredCapabilities: [
-      {
-        label: "Governance",
-        detail: "Keep corporate structure and accountability clear.",
-        icon: Building2,
-      },
-      {
-        label: "Compliance",
-        detail: "Coordinate obligations and compliance evidence.",
-        icon: ShieldCheck,
-      },
-      {
-        label: "Risk",
-        detail: "Track risk ownership before issues become exposure.",
-        icon: Scale,
-      },
-      {
-        label: "Legal and Policies",
-        detail: "Store agreements, policies and controlled guidance.",
-        icon: Database,
-      },
-    ],
-    additionalCapabilityCount: 0,
+    featuredIcons: [PieChart, Gauge, Building2, Scale],
   },
   {
     id: "operations",
-    title: "Operations",
-    subtitle: "Assets and logistics",
-    description: "Assets, inventory, logistics and procurement.",
     icon: Package,
     visual: "operations",
     accent: { rgb: "6, 182, 212", label: "cyan" },
-    featuredCapabilities: [
-      {
-        label: "Assets",
-        detail: "Know what you own, where it sits and who is accountable.",
-        icon: Boxes,
-      },
-      {
-        label: "Inventory",
-        detail: "Monitor stock levels and movement across locations.",
-        icon: Package,
-      },
-      {
-        label: "Logistics",
-        detail: "Coordinate shipments, transfers and operational flow.",
-        icon: Truck,
-      },
-      {
-        label: "Procurement",
-        detail: "Run purchasing with visibility from request to receipt.",
-        icon: Handshake,
-      },
-    ],
-    additionalCapabilityCount: 0,
+    featuredIcons: [Boxes, Package, Truck, Target],
   },
   {
     id: "business-productivity",
-    title: "Business Productivity",
-    subtitle: "Communication and knowledge",
-    description: "Email, calendar, documents, knowledge, collaboration and communications.",
     icon: MessageSquare,
     visual: "productivity",
     accent: { rgb: "99, 102, 241", label: "indigo" },
-    featuredCapabilities: [
-      {
-        label: "Email and Calendar",
-        detail: "Operate shared inboxes and schedules in business context.",
-        icon: Mail,
-      },
-      {
-        label: "Documents and Knowledge",
-        detail: "Keep institutional knowledge searchable and structured.",
-        icon: Database,
-      },
-      {
-        label: "Collaboration",
-        detail: "Connect teams through organised channels and threads.",
-        icon: MessageSquare,
-      },
-      {
-        label: "Communications",
-        detail: "Coordinate live and asynchronous operating conversations.",
-        icon: Users,
-      },
-    ],
-    additionalCapabilityCount: 0,
+    featuredIcons: [Mail, FolderKanban, Video, MessageSquare],
   },
   {
     id: "business-app-integrations",
-    title: "Business App Integrations",
-    subtitle: "Connect your systems",
-    description:
-      "Microsoft 365, Google Workspace, finance systems, CRM systems, REST APIs and custom integrations.",
     icon: Plug,
     visual: "integrations",
     accent: { rgb: "100, 116, 139", label: "blue-grey" },
-    featuredCapabilities: [
-      {
-        label: "Microsoft 365",
-        detail: "Connect identity, documents and collaboration into the workspace.",
-        icon: Cloud,
-      },
-      {
-        label: "Google Workspace",
-        detail: "Bring Google productivity systems into the operating layer.",
-        icon: Mail,
-      },
-      {
-        label: "Finance and CRM Systems",
-        detail: "Sync accounting and commercial platforms without rip-and-replace.",
-        icon: Wallet,
-      },
-      {
-        label: "REST APIs and Custom",
-        detail: "Extend Unit311 Central through secure, composable interfaces.",
-        icon: Plug,
-      },
-    ],
-    additionalCapabilityCount: 0,
+    featuredIcons: [FolderKanban, Wallet, Handshake, MessageSquare],
   },
 ];
+
+const WORKSPACES: Workspace[] = MARKETING_WORKSPACE_COPY.map((copy) => {
+  const shell = WORKSPACE_SHELLS.find((item) => item.id === copy.id);
+  if (!shell) {
+    throw new Error(`Missing workspace shell for ${copy.id}`);
+  }
+
+  const featuredCapabilities: FeaturedCapabilities = [
+    { ...copy.featured[0], icon: shell.featuredIcons[0] },
+    { ...copy.featured[1], icon: shell.featuredIcons[1] },
+    { ...copy.featured[2], icon: shell.featuredIcons[2] },
+    { ...copy.featured[3], icon: shell.featuredIcons[3] },
+  ];
+
+  return {
+    id: copy.id,
+    title: copy.title,
+    subtitle: copy.subtitle,
+    description: copy.description,
+    icon: shell.icon,
+    visual: shell.visual,
+    accent: shell.accent,
+    featuredCapabilities,
+    capabilities: copy.capabilities,
+    integrationCategories: copy.integrationCategories,
+  };
+});
 
 function accentStyle(accent: WorkspaceAccent): CSSProperties {
   return {
@@ -642,9 +425,12 @@ function TileAtmosphere({ visual }: { visual: WorkspaceVisual }) {
 
 function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
   const Icon = workspace.icon;
+  const featuredLabels = new Set(workspace.featuredCapabilities.map((item) => item.label));
+  const remainingCapabilities = workspace.capabilities.filter((label) => !featuredLabels.has(label));
+  const isIntegrations = Boolean(workspace.integrationCategories?.length);
 
   return (
-    <div className="relative h-[22rem] sm:h-[23.5rem] lg:h-[22rem]">
+    <div className="relative h-[24rem] sm:h-[25.5rem] lg:h-[24rem]">
       <div
         className="workspace-panel-atmosphere pointer-events-none absolute inset-y-0 right-0 hidden w-[42%] lg:block"
         aria-hidden
@@ -652,12 +438,12 @@ function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
         <PanelAtmosphere visual={workspace.visual} />
       </div>
 
-      <div className="relative z-[1] flex h-full flex-col lg:max-w-[62%] xl:max-w-[58%]">
-        <div className="flex items-start gap-3.5 sm:gap-5">
+      <div className="relative z-[1] flex h-full min-h-0 flex-col overflow-hidden lg:max-w-[62%] xl:max-w-[58%]">
+        <div className="flex shrink-0 items-start gap-3.5 sm:gap-5">
           <span className="workspace-hero-icon shrink-0">
             <Icon className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" strokeWidth={1.45} aria-hidden />
           </span>
-          <div className="min-w-0 pt-0.5 sm:pt-1">
+          <div className="min-w-0 overflow-hidden pt-0.5 sm:pt-1">
             <h3 className="truncate text-[1.35rem] font-semibold tracking-[-0.035em] text-white sm:text-[1.65rem] lg:text-[2rem]">
               {workspace.title}
             </h3>
@@ -670,35 +456,85 @@ function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
           </div>
         </div>
 
-        <section className="mt-5 flex min-h-0 flex-1 flex-col sm:mt-6">
-          <h4 className="workspace-panel-section-label text-[11px] font-semibold uppercase tracking-[0.14em]">
-            Key capabilities
+        <section className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden sm:mt-5">
+          <h4 className="workspace-panel-section-label shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em]">
+            {isIntegrations ? "Integrations by function" : "Key capabilities"}
           </h4>
-          <ul className="mt-3 grid min-h-0 flex-1 grid-cols-2 gap-2.5 sm:mt-4 sm:gap-3" style={{ gridTemplateRows: "repeat(2, minmax(0, 1fr))" }}>
-            {workspace.featuredCapabilities.map((capability) => {
-              const CapIcon = capability.icon;
-              return (
-                <li key={capability.label} className="workspace-feature-card !items-start">
-                  <span className="workspace-feature-icon">
-                    <CapIcon className="h-4 w-4" strokeWidth={1.55} aria-hidden />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="line-clamp-1 block text-[13px] font-semibold leading-snug text-white/90 sm:text-[14px]">
-                      {capability.label}
+
+          {isIntegrations && workspace.integrationCategories ? (
+            <div className="mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 sm:mt-4">
+              <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                {workspace.integrationCategories.map((category) => (
+                  <li
+                    key={category.name}
+                    className="workspace-feature-card min-h-0 overflow-hidden !items-start"
+                  >
+                    <span className="min-w-0 overflow-hidden">
+                      <span className="line-clamp-1 block text-[13px] font-semibold leading-snug text-white/90 sm:text-[14px]">
+                        {category.name}
+                      </span>
+                      <span className="mt-1.5 flex flex-wrap gap-1.5">
+                        {category.tools.map((tool) => (
+                          <span
+                            key={tool}
+                            className="inline-flex max-w-full truncate rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-medium text-white/65"
+                          >
+                            {tool}
+                          </span>
+                        ))}
+                      </span>
                     </span>
-                    <span className="mt-1 line-clamp-2 block text-[12px] leading-relaxed text-white/48 sm:text-[13px]">
-                      {capability.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <>
+              <ul
+                className="mt-3 grid min-h-0 flex-1 grid-cols-2 gap-2.5 sm:mt-4 sm:gap-3"
+                style={{ gridTemplateRows: "repeat(2, minmax(0, 1fr))" }}
+              >
+                {workspace.featuredCapabilities.map((capability) => {
+                  const CapIcon = capability.icon;
+                  return (
+                    <li
+                      key={capability.label}
+                      className="workspace-feature-card min-h-0 overflow-hidden !items-start"
+                    >
+                      <span className="workspace-feature-icon">
+                        <CapIcon className="h-4 w-4" strokeWidth={1.55} aria-hidden />
+                      </span>
+                      <span className="min-w-0 overflow-hidden">
+                        <span className="line-clamp-1 block break-words text-[13px] font-semibold leading-snug text-white/90 sm:text-[14px]">
+                          {capability.label}
+                        </span>
+                        <span className="mt-1 line-clamp-2 block break-words text-[12px] leading-snug text-white/48 sm:text-[13px]">
+                          {capability.detail}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+              {remainingCapabilities.length > 0 ? (
+                <div className="mt-3 flex min-h-0 shrink-0 flex-wrap gap-1.5 overflow-hidden">
+                  {remainingCapabilities.map((label) => (
+                    <span
+                      key={label}
+                      className="inline-flex max-w-full truncate rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[11px] font-medium text-white/58"
+                      title={label}
+                    >
+                      {label}
                     </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          <p className="mt-3 h-4 text-[12px] leading-none text-white/42 sm:text-[13px]">
-            {workspace.additionalCapabilityCount > 0
-              ? `Plus ${workspace.additionalCapabilityCount} additional capabilities...`
-              : "\u00a0"}
-          </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 h-4 shrink-0 text-[12px] leading-none text-white/42 sm:text-[13px]">
+                  &nbsp;
+                </p>
+              )}
+            </>
+          )}
         </section>
       </div>
     </div>

@@ -44,8 +44,10 @@ export default function ContactPageContent() {
           <h1 className={`mt-4 ${marketingPageTitle}`}>Get in touch</h1>
 
           <p className={marketingPageIntro}>
-            Tell us about your business idea, launch timeline, and what you need from the Unit311
-            workspace. We&apos;ll come back with a clear next step.
+            Tell us about your business, your current challenges and what you&apos;re looking to
+            improve. Whether you&apos;re scaling a startup, modernising an established business or
+            replacing disconnected systems, we&apos;ll help you identify the best way to get started
+            with Unit311 Central.
           </p>
 
           <ul className="mt-8 space-y-4">

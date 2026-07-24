@@ -15,44 +15,49 @@ import { CONTACT } from "@/lib/site";
 
 const FAQ_ITEMS = [
   {
-    question: "What is Unit311 Central?",
-    answer:
-      "Unit311 Central is an enterprise business operating platform that brings CRM, projects, finance, files, messaging, email, reporting, and executive intelligence into one secure workspace for your organisation.",
-  },
-  {
     question: "Who is Unit311 Central designed for?",
     answer:
-      "We work with founders, operators, and leadership teams at SMEs and growing businesses that need a single source of truth across departments — without stitching together dozens of disconnected tools.",
+      "Unit311 Central is built for early-stage startups, growing startups, scaleups and SMEs that need one connected operating platform—especially teams replacing disconnected software, spreadsheets and point tools with a single source of truth.",
   },
   {
-    question: "How does pricing work?",
+    question: "Can I start with one workspace?",
     answer:
-      "Pricing is based on your organisation size, modules, and onboarding requirements. View indicative plans on the homepage or book a complimentary founder session for a tailored proposal.",
+      "Yes. Most organisations begin with the workspaces that create the most immediate value—such as Business Central, Clients & Projects, Financials or the AI Executive Assistant—then expand as teams adopt the platform.",
   },
   {
-    question: "How long does onboarding take?",
+    question: "Can I connect existing software?",
     answer:
-      "Most organisations begin with a structured discovery and setup phase. Timelines depend on data migration, user count, and module scope. We align milestones with your launch or operational priorities.",
+      "Yes. Business App Integrations connect common project management, accounting, CRM, communications and storage systems by business function, so you can keep specialist tools while Unit311 Central becomes the operating layer.",
   },
   {
-    question: "Can we migrate existing data?",
+    question: "How long does implementation take?",
     answer:
-      "Yes. We support structured imports from spreadsheets, legacy CRMs, and common business tools. Your onboarding plan includes a data review and migration approach suited to your current systems.",
+      "Timelines depend on how many workspaces you launch, data migration needs and how many teams go live first. Many organisations start with a focused pilot in weeks, then phase additional workspaces against clear milestones.",
   },
   {
-    question: "Is Unit311 Central secure?",
+    question: "Can external clients collaborate?",
     answer:
-      "Security is built into the platform architecture — role-based access, encrypted transport, audit-friendly workflows, and isolated client workspaces. Read more on our Platform Security page.",
+      "Yes. You can involve external clients and partners in the right places—such as project delivery, documents, meetings and support—while keeping internal finance, HR and corporate information appropriately controlled.",
   },
   {
-    question: "Do you offer demos or discovery calls?",
+    question: "Can the Executive Assistant perform business actions?",
     answer:
-      "Yes. Book a complimentary founder session to walk through the platform, discuss your use case, and outline a practical next step for your team.",
+      "Yes. Beyond answering questions, the AI Executive Assistant can search across the business, generate reports and board packs, recommend next steps and help execute workflows where your organisation has enabled them.",
   },
   {
-    question: "How do I get support?",
+    question: "Can workflows be customised?",
     answer:
-      "Active subscribers receive in-platform support and messaging. For sales, billing, or general enquiries, contact us by email and we respond within one business day.",
+      "Yes. Approval workflows and operating processes can be tailored to how your business actually works—across areas such as projects, finance, HR and operations—so the platform fits your controls rather than forcing a generic process.",
+  },
+  {
+    question: "How secure is my data?",
+    answer:
+      "Security is built into the platform: role-based access, encrypted transport, audit-friendly workflows and isolated organisation workspaces. Read more on our Platform Security page, or ask us about controls relevant to your industry.",
+  },
+  {
+    question: "Can I add workspaces later?",
+    answer:
+      "Yes. Unit311 Central is modular by design. Start with what you need now and add Financials, HR, Operations, Corporate, Productivity or Integrations when the business is ready—without rebuilding your operating model.",
   },
 ] as const;
 
@@ -75,7 +80,9 @@ function FaqItem({
         aria-expanded={open}
         className="flex w-full items-start justify-between gap-3 bg-white px-4 py-4 text-left transition-colors hover:bg-[#f8fafc] sm:gap-4 sm:px-6 sm:py-5"
       >
-        <span className="min-w-0 flex-1 break-words text-[15px] font-semibold text-[#0b2d63] sm:text-[17px]">{question}</span>
+        <span className="min-w-0 flex-1 break-words text-[15px] font-semibold text-[#0b2d63] sm:text-[17px]">
+          {question}
+        </span>
         <ChevronDown
           className={`mt-0.5 h-5 w-5 shrink-0 text-[#0b2d63] transition-transform duration-300 ${open ? "rotate-180" : ""}`}
           aria-hidden
@@ -104,8 +111,8 @@ export default function FaqPageContent() {
       <div className={`max-w-3xl ${marketingFadeIn}`}>
         <h1 className={marketingPageTitle}>Frequently asked questions</h1>
         <p className={marketingPageIntro}>
-          Answers to common questions about the platform, onboarding, pricing, and support. If you
-          need something specific, our team is happy to help.
+          Practical answers for teams evaluating Unit311 Central—who it&apos;s for, how you start,
+          what connects, and how the platform grows with your business.
         </p>
       </div>
 

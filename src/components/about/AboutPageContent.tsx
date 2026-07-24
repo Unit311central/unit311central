@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import AboutWorkspaceShowcase from "@/components/about/AboutWorkspaceShowcase";
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import {
   marketingBtnPrimary,
@@ -15,7 +14,6 @@ import {
   marketingSectionTitle,
   MARKETING_CONTENT_CLASS,
 } from "@/lib/marketing-ui";
-import { SITE_DESCRIPTION } from "@/lib/site";
 
 const TEAM_MEMBERS = [
   {
@@ -61,6 +59,33 @@ const TEAM_MEMBERS = [
   },
 ] as const;
 
+const STORY_SECTIONS = [
+  {
+    title: "Why Unit311 Central exists",
+    body: "Growing businesses eventually outgrow the patchwork of tools that got them started. Unit311 Central exists to give founders and operators one intelligent platform to run the company—without forcing a rip-and-replace of every specialist system they already rely on.",
+  },
+  {
+    title: "The problem with disconnected business software",
+    body: "When CRM, projects, finance, HR, documents and communications live in separate products, information fragments. Teams re-enter the same data, reports go stale, approvals stall, and leaders spend more time stitching context together than deciding what to do next.",
+  },
+  {
+    title: "How Unit311 Central solves it",
+    body: "Unit311 Central connects core business functions into a single operating layer. Shared data, role-based visibility, workflows and an AI Executive Assistant sit across workspaces—so the business runs as one system instead of a collection of apps.",
+  },
+  {
+    title: "Built for growing businesses",
+    body: "The platform is designed for early-stage startups, growing startups, scaleups and SMEs. Start with the workspaces that matter now, keep the specialist tools that still earn their place, and expand as the organisation matures.",
+  },
+  {
+    title: "One connected platform",
+    body: "Business Central, clients and projects, financials, people, technology, corporate information, operations, productivity and integrations share the same foundation. That is what turns day-to-day work into a coherent operating picture for every team.",
+  },
+  {
+    title: "Our philosophy",
+    body: "Software should reduce operational drag, not create another silo. We build for clarity, practical adoption and real business action—so teams get instant access to information, reports and insights without rebuilding their company around a rigid product suite.",
+  },
+] as const;
+
 export default function AboutPageContent() {
   return (
     <MarketingPageShell
@@ -69,14 +94,32 @@ export default function AboutPageContent() {
       <div className={`max-w-3xl ${marketingFadeIn}`}>
         <p className={marketingEyebrow}>Unit311 Central</p>
         <h1 className={`mt-4 ${marketingPageTitle}`}>About</h1>
-        <p className={marketingPageIntro}>{SITE_DESCRIPTION}</p>
-        <Link href="/signup" className={`mt-8 ${marketingBtnPrimary}`}>
-          Get started
-        </Link>
+        <p className={marketingPageIntro}>
+          Unit311 Central is the connected business operating platform for companies that have
+          outgrown disconnected software. This page explains why the platform exists—and who it is
+          built to serve.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/signup" className={marketingBtnPrimary}>
+            Get started
+          </Link>
+          <Link href="/#services" className={marketingBtnSecondary}>
+            Explore workspaces
+          </Link>
+        </div>
       </div>
 
-      <div className={marketingFadeIn} style={{ animationDelay: "60ms" }}>
-        <AboutWorkspaceShowcase />
+      <div className={`grid gap-5 lg:grid-cols-2 ${marketingFadeIn}`} style={{ animationDelay: "60ms" }}>
+        {STORY_SECTIONS.map((section) => (
+          <article key={section.title} className={`${marketingCard} p-6 sm:p-7`}>
+            <h2 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+              {section.title}
+            </h2>
+            <p className="mt-4 text-[15px] leading-relaxed text-white/70 sm:text-[16px]">
+              {section.body}
+            </p>
+          </article>
+        ))}
       </div>
 
       <div className={marketingFadeIn} style={{ animationDelay: "100ms" }}>
@@ -128,10 +171,10 @@ export default function AboutPageContent() {
         style={{ animationDelay: "140ms" }}
       >
         <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-          Ready to accelerate your business?
+          Ready to connect your business?
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-white/70 sm:text-[17px]">
-          Create your workspace or tell us about your launch timeline.
+          Create your workspace or tell us about the challenges you want to solve.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link href="/signup" className={marketingBtnPrimary}>
