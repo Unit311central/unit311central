@@ -6,9 +6,8 @@ import { WorkspaceDashboard } from "@/components/dashboard-framework";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import {
-  buildExecutiveHomeLiveKpis,
   executiveHomeDashboardConfig,
-  withExecutiveHomeLiveKpis,
+  withExecutiveHomeLiveData,
 } from "@/lib/executive-home-dashboard";
 import type { InternalProject } from "@/lib/projects-data";
 
@@ -47,10 +46,7 @@ export default function ExecutiveHomeDashboard() {
 
   const config = useMemo(() => {
     if (!bundle) return executiveHomeDashboardConfig;
-    return withExecutiveHomeLiveKpis(
-      executiveHomeDashboardConfig,
-      buildExecutiveHomeLiveKpis(bundle),
-    );
+    return withExecutiveHomeLiveData(executiveHomeDashboardConfig, bundle);
   }, [bundle]);
 
   return (

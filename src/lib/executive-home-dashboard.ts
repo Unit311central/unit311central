@@ -3,6 +3,8 @@ import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { normalizeKpiRow } from "@/lib/dashboard-framework";
 import type {
+  DashboardAnalyticsAnnotation,
+  DashboardAnalyticsSeries,
   DashboardKpiItem,
   WorkspaceDashboardConfig,
 } from "@/lib/dashboard-framework";
@@ -143,6 +145,176 @@ export function withExecutiveHomeLiveKpis(
       };
     }),
   };
+}
+
+function shortMonthLabel(monthKey: string) {
+  // Accept YYYY-MM or already-friendly labels
+  const match = /^(\d{4})-(\d{2})/.exec(monthKey);
+  if (!match) return monthKey.slice(0, 3);
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+  return date.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
+}
+
+function alignMonthlySeries(
+  revenue: Array<{ month: string; amount: number }>,
+  spend: Array<{ month: string; amount: number }>,
+  limit = 6,
+) {
+  const keys = Array.from(
+    new Set([...revenue.map((r) => r.month), ...spend.map((s) => s.month)]),
+  ).sort();
+  const slice = keys.slice(-limit);
+  const revenueMap = new Map(revenue.map((r) => [r.month, r.amount]));
+  const spendMap = new Map(spend.map((s) => [s.month, s.amount]));
+  return slice.map((month) => ({
+    month,
+    label: shortMonthLabel(month),
+    revenue: revenueMap.get(month) ?? 0,
+    spend: spendMap.get(month) ?? 0,
+  }));
+}
+
+/** Live Business Performance chart + annotations from ledger monthly series. */
+export function buildExecutiveHomeLiveAnalytics(input: {
+  financials: FinancialOverviewSnapshot | null;
+}): {
+  caption: string;
+  series: DashboardAnalyticsSeries[];
+  annotations: DashboardAnalyticsAnnotation[];
+  emptyMessage: string;
+} {
+  const currency = "GBP";
+  const points = alignMonthlySeries(
+    input.financials?.charts.monthlyRevenue ?? [],
+    input.financials?.charts.monthlyOutgoings ?? [],
+    6,
+  );
+
+  const latest = points[points.length - 1];
+  const prior = points[points.length - 2];
+  const latestRevenue = latest?.revenue ?? input.financials?.monthlyRevenue ?? 0;
+  const latestSpend = latest?.spend ?? input.financials?.monthlyExpenses ?? 0;
+  const net = latestRevenue - latestSpend;
+  const periodRevenue = points.reduce((sum, p) => sum + p.revenue, 0);
+  const periodSpend = points.reduce((sum, p) => sum + p.spend, 0);
+
+  let momLabel = "—";
+  let momTone: DashboardAnalyticsAnnotation["tone"] = "neutral";
+  if (prior && prior.revenue !== 0) {
+    const pct = ((latestRevenue - prior.revenue) / Math.abs(prior.revenue)) * 100;
+    momLabel = `${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}%`;
+    momTone = pct >= 0 ? "positive" : "warning";
+  } else if (latest && latestRevenue > 0) {
+    momLabel = "New";
+    momTone = "positive";
+  }
+
+  const periodLabel =
+    points.length > 0
+      ? `${points[0].label}–${points[points.length - 1].label}`
+      : "No months yet";
+
+  const labels = points.map((p) => p.label);
+  const revenueValues = points.map((p) => p.revenue);
+  const spendValues = points.map((p) => p.spend);
+
+  return {
+    caption: `Revenue vs operating spend · ${periodLabel} (ledger)`,
+    emptyMessage: "No revenue or spend posted in the general ledger for recent months.",
+    series: [
+      {
+        id: "revenue",
+        label: "Revenue",
+        values: revenueValues,
+        labels,
+        format: "currency",
+        currency,
+        latestLabel: formatCompactMoney(latestRevenue, currency),
+      },
+      {
+        id: "spend",
+        label: "Operating spend",
+        values: spendValues,
+        labels,
+        format: "currency",
+        currency,
+        latestLabel: formatCompactMoney(latestSpend, currency),
+      },
+    ],
+    annotations: [
+      {
+        id: "latest-revenue",
+        label: "Latest month revenue",
+        value: formatCompactMoney(latestRevenue, currency),
+        tone: "positive",
+        hint: latest ? latest.label : "Current month",
+      },
+      {
+        id: "latest-spend",
+        label: "Latest month spend",
+        value: formatCompactMoney(latestSpend, currency),
+        tone: "neutral",
+        hint: latest ? latest.label : "Current month",
+      },
+      {
+        id: "net",
+        label: "Month contribution",
+        value: formatCompactMoney(net, currency),
+        tone: net >= 0 ? "positive" : "warning",
+        hint: "Revenue − spend",
+      },
+      {
+        id: "mom",
+        label: "Revenue MoM",
+        value: momLabel,
+        tone: momTone,
+        hint:
+          points.length >= 2
+            ? `${formatCompactMoney(periodRevenue, currency)} in / ${formatCompactMoney(periodSpend, currency)} out · ${points.length} mo`
+            : "Need 2 months of history",
+      },
+    ],
+  };
+}
+
+export function withExecutiveHomeLiveAnalytics(
+  config: WorkspaceDashboardConfig,
+  analytics: ReturnType<typeof buildExecutiveHomeLiveAnalytics>,
+): WorkspaceDashboardConfig {
+  return {
+    ...config,
+    sections: config.sections.map((section) => {
+      if (section.slot !== "analytics-queue") return section;
+      return {
+        ...section,
+        widgets: section.widgets.map((widget) =>
+          widget.type === "analytics"
+            ? {
+                ...widget,
+                caption: analytics.caption,
+                series: analytics.series,
+                annotations: analytics.annotations,
+                emptyMessage: analytics.emptyMessage,
+              }
+            : widget,
+        ),
+      };
+    }),
+  };
+}
+
+export function withExecutiveHomeLiveData(
+  config: WorkspaceDashboardConfig,
+  input: {
+    financials: FinancialOverviewSnapshot | null;
+    projects: InternalProject[];
+    clients: ManagedClient[];
+  },
+): WorkspaceDashboardConfig {
+  return withExecutiveHomeLiveAnalytics(
+    withExecutiveHomeLiveKpis(config, buildExecutiveHomeLiveKpis(input)),
+    buildExecutiveHomeLiveAnalytics(input),
+  );
 }
 
 /**
@@ -315,10 +487,17 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
           id: "home-analytics",
           type: "analytics",
           title: "Business Performance",
-          caption: "Revenue vs operating spend · last 8 weeks",
+          caption: "Revenue vs operating spend · ledger",
+          emptyMessage: "Loading ledger performance…",
           series: [
-            { id: "revenue", label: "Revenue", values: [410, 390, 450, 420, 480, 460, 510, 495] },
-            { id: "spend", label: "Operating spend", values: [280, 275, 290, 285, 300, 295, 310, 287] },
+            { id: "revenue", label: "Revenue", values: [], format: "currency", currency: "GBP" },
+            {
+              id: "spend",
+              label: "Operating spend",
+              values: [],
+              format: "currency",
+              currency: "GBP",
+            },
           ],
         },
         {

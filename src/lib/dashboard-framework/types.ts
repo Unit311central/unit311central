@@ -80,6 +80,21 @@ export type DashboardAnalyticsSeries = {
   id: string;
   label: string;
   values: number[];
+  /** Period labels aligned with values (e.g. month short names). */
+  labels?: string[];
+  /** Display format for series totals / latest values. */
+  format?: "currency" | "number";
+  currency?: string;
+  /** Optional preformatted latest value shown in the series header. */
+  latestLabel?: string;
+};
+
+export type DashboardAnalyticsAnnotation = {
+  id: string;
+  label: string;
+  value: string;
+  tone?: DashboardKpiTone;
+  hint?: string;
 };
 
 export type DashboardWorkQueueItem = {
@@ -160,6 +175,10 @@ export type DashboardAnalyticsWidget = DashboardWidgetBase & {
   type: "analytics";
   series: readonly DashboardAnalyticsSeries[];
   caption?: string;
+  /** Summary chips above the chart (margin, MoM, period totals, etc.). */
+  annotations?: readonly DashboardAnalyticsAnnotation[];
+  /** Shown when every series is empty / zero. */
+  emptyMessage?: string;
 };
 
 export type DashboardWorkQueueWidget = DashboardWidgetBase & {

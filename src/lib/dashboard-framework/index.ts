@@ -4,6 +4,7 @@ export type {
   DashboardAiSummaryWidget,
   DashboardAlertItem,
   DashboardAlertsWidget,
+  DashboardAnalyticsAnnotation,
   DashboardAnalyticsSeries,
   DashboardAnalyticsWidget,
   DashboardAudience,
