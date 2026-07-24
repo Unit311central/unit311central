@@ -29,7 +29,6 @@ import ProjectsDashboardStrip from "./ProjectsDashboardStrip";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import {
   DEFAULT_PROJECTS_TILE_LAYOUT,
-  PROJECTS_DASHBOARD_TILES,
 } from "@/lib/view-dashboard-tile-catalogs";
 
 const operators = createInitialUsers();
