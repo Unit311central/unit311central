@@ -350,7 +350,7 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
         tools: [
           { name: "HubSpot", logo: "hubspot.svg" },
           { name: "Salesforce", logo: "salesforce.svg" },
-          { name: "Pipedrive", logo: "pipedrive.svg" },
+          { name: "Zoho SalesIQ", logo: "zoho-salesiq.svg" },
         ],
       },
       {
@@ -368,8 +368,17 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
         outcome: "Connect conversations and meetings.",
         tools: [
           { name: "Microsoft 365", logo: "microsoft365.svg" },
-          { name: "Teams", logo: "teams.svg" },
-          { name: "Zoom", logo: "zoom.svg" },
+          { name: "WhatsApp", logo: "whatsapp.svg" },
+          { name: "Microsoft Teams", logo: "teams.svg" },
+        ],
+      },
+      {
+        name: "HR & People",
+        outcome: "Connect workforce systems and people data.",
+        tools: [
+          { name: "PeopleHR", logo: "peoplehr.svg" },
+          { name: "PeopleSoft", logo: "peoplesoft.svg" },
+          { name: "Zoho People", logo: "zoho-people.svg" },
         ],
       },
       {
@@ -378,7 +387,7 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
         tools: [
           { name: "SharePoint", logo: "sharepoint.svg" },
           { name: "Google Drive", logo: "google-drive.svg" },
-          { name: "AWS", logo: "aws.svg" },
+          { name: "Amazon AWS", logo: "aws.svg" },
         ],
       },
     ],

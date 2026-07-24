@@ -390,42 +390,42 @@ function IntegrationLogoGrid({
   categories: MarketingIntegrationCategory[];
 }) {
   return (
-    <div className="mt-4 flex flex-col gap-6 sm:mt-5 sm:gap-7">
-      <div className="space-y-6 sm:space-y-7">
+    <div className="mt-3 flex flex-col gap-3 sm:mt-4 sm:gap-3.5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-3.5">
         {categories.map((category) => (
-          <div
+          <article
             key={category.name}
-            className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 sm:px-5 sm:py-5"
+            className="flex h-full flex-col rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] px-3.5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:px-4 sm:py-4"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45 sm:text-[11px]">
               {category.name}
             </p>
-            <ul className="mt-3 flex flex-wrap gap-3">
+            <ul className="mt-2.5 flex flex-1 flex-wrap content-start gap-2">
               {category.tools.map((tool) => (
                 <li
                   key={tool.name}
-                  className="flex min-w-[6.5rem] flex-col items-center justify-center gap-2 rounded-xl border border-white/10 bg-white px-3 py-3 shadow-[0_8px_20px_rgba(0,0,0,0.16)]"
+                  className="group/tool flex min-w-[4.75rem] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 transition-all duration-200 hover:border-[rgba(var(--ws-accent-rgb),0.45)] hover:bg-white/[0.06] hover:shadow-[0_0_24px_rgba(var(--ws-accent-rgb),0.18)]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`/images/integrations/${tool.logo}`}
                     alt=""
-                    className="h-8 w-8 object-contain sm:h-9 sm:w-9"
+                    className="h-5 w-5 object-contain opacity-90 transition-transform duration-200 group-hover/tool:scale-105 sm:h-6 sm:w-6"
                     loading="lazy"
                   />
-                  <span className="line-clamp-1 text-center text-[11px] font-semibold text-[#0f172a] sm:text-[12px]">
+                  <span className="line-clamp-1 text-center text-[10px] font-medium text-white/70 sm:text-[11px]">
                     {tool.name}
                   </span>
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-[13px] leading-relaxed text-white/62 sm:text-[14px]">
+            <p className="mt-2.5 text-[12px] leading-snug text-white/55 sm:text-[13px]">
               {category.outcome}
             </p>
-          </div>
+          </article>
         ))}
       </div>
-      <p className="text-center text-[13px] leading-relaxed text-white/50 sm:text-[14px]">
+      <p className="text-center text-[12px] leading-relaxed text-white/45 sm:text-[13px]">
         Examples of software that can be connected using Integration Wizards.
       </p>
     </div>
@@ -466,7 +466,7 @@ function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
             <p
               className={
                 isIntegrations
-                  ? "mt-3 text-[14px] leading-relaxed text-white/68 sm:mt-3.5 sm:text-[15px] lg:whitespace-nowrap lg:text-[15px] xl:text-[16px]"
+                  ? "mt-2 text-[13px] leading-relaxed text-white/68 sm:mt-2.5 sm:text-[14px] lg:whitespace-nowrap lg:text-[14px] xl:text-[15px]"
                   : "workspace-panel-kicker mt-2 text-[14px] font-medium leading-snug sm:mt-2.5 sm:text-[15px]"
               }
             >
