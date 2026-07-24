@@ -95,6 +95,14 @@ async function main() {
   }
 
   {
+    const typo =
+      "create me a pdf for the profit and loss for last 6 months, burn rate, payroll total, value of crm pipelin";
+    const scoped = parseScopedPdfRequest(typo);
+    assert.ok(scoped.metrics.includes("crm_pipeline_value"), "pipelin typo should map to CRM pipeline");
+    assert.equal(scoped.unknownTopics.length, 0, `unexpected unknowns: ${scoped.unknownTopics.join(", ")}`);
+  }
+
+  {
     const scoped = parseScopedPdfRequest("create a pdf for P&L and marketing CAC");
     assert.equal(scoped.useScopedPath, true);
     assert.ok(scoped.metrics.includes("pnl"));

@@ -58,7 +58,7 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
     id: "crm_pipeline_value",
     label: "CRM pipeline value",
     match:
-      /\b((value\s+of\s+(the\s+)?)?crm\s+pipeline|open\s+pipeline(\s+value)?|pipeline\s+value|sales\s+pipeline)\b/i,
+      /\b((value\s+of\s+(the\s+)?)?crm\s+pipelin\w*|open\s+pipelin\w*(\s+value)?|pipelin\w*\s+value|sales\s+pipelin\w*|value\s+of\s+(the\s+)?crm\s+pipelin\w*)\b/i,
     permission: "crm",
   },
   {
@@ -162,10 +162,11 @@ function detectUnknownTopics(message: string, metrics: ScopedPdfMetricId[]): str
   const protectedBody = afterFor
     .replace(/\bprofit\s*(and|&)\s*loss\b/gi, "profit_and_loss")
     .replace(/\bp\s*&\s*l\b/gi, "pnl_token")
-    .replace(/\bvalue\s+of\s+(the\s+)?crm\s+pipeline\b/gi, "crm_pipeline_value")
-    .replace(/\bcrm\s+pipeline\b/gi, "crm_pipeline_value")
-    .replace(/\bopen\s+pipeline(\s+value)?\b/gi, "crm_pipeline_value")
-    .replace(/\bpipeline\s+value\b/gi, "crm_pipeline_value")
+    .replace(/\bvalue\s+of\s+(the\s+)?crm\s+pipelin\w*\b/gi, "crm_pipeline_value")
+    .replace(/\bcrm\s+pipelin\w*\b/gi, "crm_pipeline_value")
+    .replace(/\bopen\s+pipelin\w*(\s+value)?\b/gi, "crm_pipeline_value")
+    .replace(/\bpipelin\w*\s+value\b/gi, "crm_pipeline_value")
+    .replace(/\bsales\s+pipelin\w*\b/gi, "crm_pipeline_value")
     .replace(/\bburn\s*rate\b/gi, "burn_rate")
     .replace(/\bmonthly\s+burn\b/gi, "burn_rate")
     .replace(/\bpayroll\s+(total|cost|obligation|amount|sum)\b/gi, "payroll_total")
