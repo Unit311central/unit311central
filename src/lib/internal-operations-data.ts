@@ -518,7 +518,6 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         label: "Financial Reports",
         icon: "ScrollText",
         view: "financial-reports" as const,
-        badge: "demo" as const,
       },
     ],
   },
