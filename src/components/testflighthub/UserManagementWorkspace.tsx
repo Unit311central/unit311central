@@ -19,9 +19,10 @@ import {
 } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
-import { KeyRound, Loader2, Plus, Save, Shield, Trash2 } from "lucide-react";
+import { KeyRound, Loader2, Plus, Save, Shield, Trash2, X } from "lucide-react";
 import AddUserAccessWizard from "./AddUserAccessWizard";
 import { setCachedJson, PLATFORM_CACHE_KEYS } from "@/lib/platform-fetch-cache";
+import { validatePlatformSignupPasswordConfirmation } from "@/lib/platform-password-validation";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -58,6 +59,8 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [savedSnapshot, setSavedSnapshot] = useState<ManagedUser | null>(null);
   const snapshottedIdRef = useRef<string | null>(null);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
@@ -124,6 +127,10 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
       if (user) {
         snapshottedIdRef.current = selectedUserId;
         setSavedSnapshot({ ...user });
+        setShowPasswordForm(false);
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordMessage(null);
       }
     });
   }, [selectedUserId, users]);
@@ -258,41 +265,26 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
     }
   }
 
-  async function handleResetPassword() {
+  function openPasswordForm() {
     if (!selectedUser) return;
-    if (!window.confirm(`Reset password for "${selectedUser.fullName}"?`)) return;
-
-    setBusy(true);
     setError(null);
     setPasswordMessage(null);
-
-    try {
-      const response = await fetch(`/api/users/${selectedUser.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reset-password" }),
-      });
-
-      const data = await readApiJson<{ temporaryPassword?: string; error?: string }>(response);
-      if (!response.ok || !data.temporaryPassword) {
-        throw new Error(data.error ?? "Failed to reset password");
-      }
-
-      setPasswordMessage(`New password: ${data.temporaryPassword}`);
-      setNewPassword("");
-    } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : "Failed to reset password");
-    } finally {
-      setBusy(false);
-    }
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowPasswordForm(true);
   }
 
   async function handleSetPassword() {
     if (!selectedUser) return;
 
     const passwordToSet = newPassword.trim();
-    if (passwordToSet.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const confirmation = confirmPassword.trim();
+    const validationError = validatePlatformSignupPasswordConfirmation(
+      passwordToSet,
+      confirmation,
+    );
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -319,8 +311,10 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
         throw new Error(data.error ?? "Failed to set password");
       }
 
-      setPasswordMessage(`Password set: ${data.password}`);
+      setPasswordMessage("Password updated successfully.");
       setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordForm(false);
     } catch (setPasswordError) {
       setError(setPasswordError instanceof Error ? setPasswordError.message : "Failed to set password");
     } finally {
@@ -491,7 +485,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                     </button>
                     <button
                       type="button"
-                      onClick={() => void handleResetPassword()}
+                      onClick={openPasswordForm}
                       disabled={busy}
                       className="inline-flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-500/20 disabled:opacity-60"
                     >
@@ -698,33 +692,66 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                       onChange={(event) => patchSelected({ notes: event.target.value })}
                     />
                   </div>
-                  <div className="sm:col-span-2">
-                    <FieldLabel>New password</FieldLabel>
-                    <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
-                      <input
-                        type="text"
-                        autoComplete="new-password"
-                        className={cn(inputClassName(), "mt-0 font-mono sm:flex-1")}
-                        value={newPassword}
-                        onChange={(event) => setNewPassword(event.target.value)}
-                        placeholder="Enter at least 8 characters"
-                        disabled={busy}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void handleSetPassword()}
-                        disabled={busy || newPassword.trim().length < 8}
-                        className="inline-flex h-[42px] shrink-0 items-center justify-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <KeyRound className="h-3.5 w-3.5" />
-                        Set password
-                      </button>
+                  {showPasswordForm ? (
+                    <div className="sm:col-span-2 rounded-xl border border-amber-400/20 bg-amber-500/[0.06] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <FieldLabel>Reset password</FieldLabel>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPasswordForm(false);
+                            setNewPassword("");
+                            setConfirmPassword("");
+                            setError(null);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[10px] text-white/50 hover:text-white"
+                        >
+                          <X className="h-3 w-3" />
+                          Cancel
+                        </button>
+                      </div>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <FieldLabel>New password</FieldLabel>
+                          <input
+                            type="password"
+                            autoComplete="new-password"
+                            className={cn(inputClassName(), "font-mono")}
+                            value={newPassword}
+                            onChange={(event) => setNewPassword(event.target.value)}
+                            placeholder="Min 6 chars, number + special"
+                            disabled={busy}
+                          />
+                        </div>
+                        <div>
+                          <FieldLabel>Confirm password</FieldLabel>
+                          <input
+                            type="password"
+                            autoComplete="new-password"
+                            className={cn(inputClassName(), "font-mono")}
+                            value={confirmPassword}
+                            onChange={(event) => setConfirmPassword(event.target.value)}
+                            placeholder="Re-enter password"
+                            disabled={busy}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleSetPassword()}
+                          disabled={busy || !newPassword.trim() || !confirmPassword.trim()}
+                          className="inline-flex h-[42px] items-center justify-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <KeyRound className="h-3.5 w-3.5" />
+                          Set password
+                        </button>
+                        <p className="text-[11px] leading-relaxed text-white/40">
+                          Min 6 characters, including at least one number and one special character.
+                        </p>
+                      </div>
                     </div>
-                    <p className="mt-2 text-[11px] leading-relaxed text-white/40">
-                      Sets the login password for @{selectedUser.username}. Use Reset password for a
-                      random value, or enter one here and click Set password.
-                    </p>
-                  </div>
+                  ) : null}
                 </div>
               </section>
             ) : null

@@ -25,6 +25,7 @@ import {
 } from "@/lib/platform-auth";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
+import { validatePlatformSignupPassword } from "@/lib/platform-password-validation";
 
 type DbOperator = Parameters<typeof mapInternalOperator>[0];
 
@@ -273,8 +274,11 @@ export async function setInternalOperatorPassword(
     }
 
     const newPassword = password?.trim() || generatePlatformPassword();
-    if (newPassword.length < 8) {
-      throw new Error("Password must be at least 8 characters");
+    if (password?.trim()) {
+      const validationError = validatePlatformSignupPassword(newPassword);
+      if (validationError) throw new Error(validationError);
+    } else if (newPassword.length < 6) {
+      throw new Error("Password must be at least 6 characters");
     }
 
     const username = normalizePlatformUsername(operator.username);

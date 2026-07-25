@@ -1,8 +1,13 @@
 const SPECIAL_CHARACTER_PATTERN = /[^A-Za-z0-9]/;
+const NUMBER_PATTERN = /\d/;
 
 export function validatePlatformSignupPassword(password: string): string | null {
   if (password.length < 6) {
     return "Password must be at least 6 characters.";
+  }
+
+  if (!NUMBER_PATTERN.test(password)) {
+    return "Password must include at least one number.";
   }
 
   if (!SPECIAL_CHARACTER_PATTERN.test(password)) {
