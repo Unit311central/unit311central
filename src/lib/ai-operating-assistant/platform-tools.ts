@@ -1,25 +1,9 @@
 import { getFinancialOverview } from "@/lib/accounting/overview-service";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import { listHrEmployees } from "@/lib/hr-employees-service";
-import {
-  HR_LEAVE_STATUS_LABELS,
-  HR_LEAVE_TYPE_LABELS,
-} from "@/lib/hr-leave-data";
-import {
-  HR_PERFORMANCE_RATING_LABELS,
-  HR_REVIEW_STATUS_LABELS,
-  HR_REVIEW_TYPE_LABELS,
-} from "@/lib/hr-performance-data";
-import {
-  listCandidates,
-  listLeaveRequests,
-  listPerformanceReviews,
-  listVacancies,
-} from "@/lib/hr-mock-store";
 import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { listLeads } from "@/lib/crm-leads-service";
-import { getInventoryMockSnapshot } from "@/lib/inventory-mock-store";
 import { calculateLivePayrollSnapshot } from "@/lib/payroll/payroll-service";
 import { isLiveInvoiceOverdue, loadLiveInvoices } from "./live-finance";
 import type { AssistantToolExecutionContext } from "./tool-result";
@@ -38,17 +22,8 @@ function nav(href: string, label: string): AssistantFollowUpAction {
   return { id: `nav_${href}`, label, kind: "navigate", href };
 }
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function coversToday(startDate: string, endDate: string) {
-  const today = todayIso();
-  return startDate <= today && endDate >= today;
-}
-
 export async function searchPerformanceReviews(
-  args: Record<string, unknown>,
+  _args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ): Promise<AssistantToolResult> {
   if (!ctx.business.permissions.canAccessHr) {
@@ -57,152 +32,25 @@ export async function searchPerformanceReviews(
       "Your current role cannot access HR performance data.",
     );
   }
-
-  try {
-    const query = asString(args.query);
-    const status = asString(args.status);
-    const employeeId = asString(args.employeeId);
-    const reviews = listPerformanceReviews();
-
-    const filtered = reviews.filter((review) => {
-      if (employeeId && review.employeeId !== employeeId) return false;
-      if (status && review.status !== status) return false;
-      const haystack = [
-        review.employeeName,
-        review.department,
-        review.role,
-        review.managerName,
-        review.reviewPeriod,
-        review.summary,
-        review.status,
-        review.reviewType ?? "",
-      ].join(" ");
-      return matchesQuery(haystack, query);
-    });
-
-    return toolOk(
-      "searchPerformanceReviews",
-      filtered.map((review) => ({
-        id: review.id,
-        employeeId: review.employeeId,
-        employeeName: review.employeeName,
-        department: review.department,
-        role: review.role,
-        managerName: review.managerName,
-        reviewPeriod: review.reviewPeriod,
-        reviewType: review.reviewType
-          ? HR_REVIEW_TYPE_LABELS[review.reviewType]
-          : "Review",
-        status: HR_REVIEW_STATUS_LABELS[review.status],
-        statusKey: review.status,
-        overallRating:
-          review.overallRating == null
-            ? null
-            : HR_PERFORMANCE_RATING_LABELS[review.overallRating],
-        nextReviewDate: review.nextReviewDate,
-        dueDate: review.dueDate ?? null,
-        summary: review.summary,
-      })),
-      {
-        source: ["hr-performance:reviews"],
-        pageSize: asNumber(args.pageSize, 100),
-        summary: {
-          matched: filtered.length,
-          totalOnFile: reviews.length,
-          message:
-            filtered.length === 0
-              ? "There are currently no performance reviews."
-              : `I found ${filtered.length} performance review${filtered.length === 1 ? "" : "s"}.`,
-        },
-        followUpActions: [nav("/?view=hr-performance", "Open Performance")],
-      },
-    );
-  } catch (error) {
-    return toolError(
-      "searchPerformanceReviews",
-      error instanceof Error ? error.message : "Failed to load performance reviews.",
-    );
-  }
+  return toolError(
+    "searchPerformanceReviews",
+    "Waiting for live business data — performance reviews are not connected to live storage yet. I will not invent review records.",
+    ["hr-performance:reviews"],
+  );
 }
 
 export async function searchLeave(
-  args: Record<string, unknown>,
+  _args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ): Promise<AssistantToolResult> {
   if (!ctx.business.permissions.canAccessHr) {
     return toolForbidden("searchLeave", "Your current role cannot access HR leave data.");
   }
-
-  try {
-    const query = asString(args.query);
-    const status = asString(args.status);
-    const currentlyOnLeave = Boolean(args.currentlyOnLeave ?? args.onLeave);
-    const pendingOnly = Boolean(args.pendingOnly);
-    const requests = listLeaveRequests();
-
-    const filtered = requests.filter((request) => {
-      if (currentlyOnLeave) {
-        if (request.status !== "approved") return false;
-        if (!coversToday(request.startDate, request.endDate)) return false;
-      }
-      if (pendingOnly && request.status !== "pending") return false;
-      if (status && request.status !== status) return false;
-      const haystack = [
-        request.employeeName,
-        request.department,
-        request.role,
-        request.managerName,
-        request.type,
-        request.status,
-      ].join(" ");
-      return matchesQuery(haystack, query);
-    });
-
-    const currentlyCount = requests.filter(
-      (request) =>
-        request.status === "approved" && coversToday(request.startDate, request.endDate),
-    ).length;
-
-    return toolOk(
-      "searchLeave",
-      filtered.map((request) => ({
-        id: request.id,
-        employeeId: request.employeeId,
-        employeeName: request.employeeName,
-        department: request.department,
-        role: request.role,
-        type: HR_LEAVE_TYPE_LABELS[request.type],
-        status: HR_LEAVE_STATUS_LABELS[request.status],
-        startDate: request.startDate,
-        endDate: request.endDate,
-        days: request.days,
-        managerName: request.managerName,
-      })),
-      {
-        source: ["hr-leave:requests"],
-        pageSize: asNumber(args.pageSize, 100),
-        summary: {
-          matched: filtered.length,
-          currentlyOnLeave: currentlyOnLeave ? filtered.length : currentlyCount,
-          pendingApprovals: requests.filter((request) => request.status === "pending").length,
-          message:
-            filtered.length === 0
-              ? currentlyOnLeave
-                ? "Nobody is currently on approved leave today."
-                : "There are currently no leave requests matching that request."
-              : currentlyOnLeave
-                ? `I found ${filtered.length} ${filtered.length === 1 ? "person" : "people"} currently on leave.`
-                : `I found ${filtered.length} leave request${filtered.length === 1 ? "" : "s"}.`,
-        },
-        followUpActions: [nav("/?view=hr-leave", "Open Leave")],
-      },
-    );
-  } catch (error) {
-    return toolError(
-      "searchLeave",
-      error instanceof Error ? error.message : "Failed to load leave requests.",
-    );
-  }
+  return toolError(
+    "searchLeave",
+    "Waiting for live business data — leave calendar is not connected to live storage yet. I will not invent who is on leave.",
+    ["hr-leave:requests"],
+  );
 }
 
 export async function searchInvoices(
@@ -467,56 +315,16 @@ export async function getMonthlyPayrollObligation(
 }
 
 export async function searchInventory(
-  args: Record<string, unknown>,
+  _args: Record<string, unknown>,
   _ctx: AssistantToolExecutionContext,
 ): Promise<AssistantToolResult> {
-  try {
-    const query = asString(args.query);
-    const assets = getInventoryMockSnapshot().assets.filter((asset) => !asset.archived);
-    const filtered = assets.filter((asset) => {
-      const haystack = [
-        asset.name,
-        asset.assetTag,
-        asset.category,
-        asset.location,
-        asset.department,
-        asset.assignedTo,
-        asset.status,
-      ].join(" ");
-      return matchesQuery(haystack, query);
-    });
-
-    return toolOk(
-      "searchInventory",
-      filtered.slice(0, 50).map((asset) => ({
-        id: asset.id,
-        name: asset.name,
-        assetTag: asset.assetTag,
-        category: asset.category,
-        location: asset.location,
-        status: asset.status,
-        assignedTo: asset.assignedTo,
-      })),
-      {
-        source: ["inventory"],
-        pageSize: asNumber(args.pageSize, 50),
-        summary: {
-          matched: filtered.length,
-          total: assets.length,
-          message:
-            filtered.length === 0
-              ? "There are currently no inventory assets matching that request."
-              : `I found ${filtered.length} inventory asset${filtered.length === 1 ? "" : "s"}.`,
-        },
-        followUpActions: [nav("/?view=inventory-management", "Open Inventory")],
-      },
-    );
-  } catch (error) {
-    return toolError(
-      "searchInventory",
-      error instanceof Error ? error.message : "Failed to load inventory.",
-    );
-  }
+  void _args;
+  void _ctx;
+  return toolError(
+    "searchInventory",
+    "Waiting for live business data — inventory is not connected to live storage yet. I will not invent stock or asset counts.",
+    ["inventory"],
+  );
 }
 
 export async function platformSearch(
@@ -541,10 +349,6 @@ export async function platformSearch(
         : Promise.resolve({ ok: true as const, invoices: [], overdue: [] }),
     ]);
 
-    const reviews = ctx.business.permissions.canAccessHr ? listPerformanceReviews() : [];
-    const leave = ctx.business.permissions.canAccessHr ? listLeaveRequests() : [];
-    const vacancies = ctx.business.permissions.canAccessHr ? listVacancies() : [];
-    const candidates = ctx.business.permissions.canAccessHr ? listCandidates() : [];
     const invoices = invoiceLoad.invoices;
 
     const hits: Array<Record<string, unknown>> = [];
@@ -562,30 +366,6 @@ export async function platformSearch(
           label: employee.fullName,
           detail: `${employee.role} · ${employee.department}`,
           href: "/?view=hr",
-        });
-      }
-    }
-
-    for (const review of reviews) {
-      if (matchesQuery([review.employeeName, review.department, review.summary].join(" "), query)) {
-        hits.push({
-          module: "Performance",
-          id: review.id,
-          label: `${review.employeeName} — ${review.reviewPeriod}`,
-          detail: HR_REVIEW_STATUS_LABELS[review.status],
-          href: "/?view=hr-performance",
-        });
-      }
-    }
-
-    for (const request of leave) {
-      if (matchesQuery([request.employeeName, request.department].join(" "), query)) {
-        hits.push({
-          module: "Leave",
-          id: request.id,
-          label: request.employeeName,
-          detail: `${HR_LEAVE_TYPE_LABELS[request.type]} · ${request.startDate} → ${request.endDate}`,
-          href: "/?view=hr-leave",
         });
       }
     }
@@ -638,30 +418,6 @@ export async function platformSearch(
           label: lead.contactName,
           detail: `${lead.companyName ?? "Lead"} · ${lead.status ?? ""}`,
           href: "/?view=crm",
-        });
-      }
-    }
-
-    for (const vacancy of vacancies) {
-      if (matchesQuery([vacancy.title, vacancy.department, vacancy.location].join(" "), query)) {
-        hits.push({
-          module: "Recruitment",
-          id: vacancy.id,
-          label: vacancy.title,
-          detail: `${vacancy.department} · ${vacancy.status}`,
-          href: "/?view=hr-recruitment",
-        });
-      }
-    }
-
-    for (const candidate of candidates) {
-      if (matchesQuery([candidate.name, candidate.email, candidate.role].join(" "), query)) {
-        hits.push({
-          module: "Recruitment",
-          id: candidate.id,
-          label: candidate.name,
-          detail: `${candidate.role} · ${candidate.stage}`,
-          href: "/?view=hr-recruitment",
         });
       }
     }

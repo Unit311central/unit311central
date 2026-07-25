@@ -4,16 +4,39 @@ import type { ExecutiveInsight, InsightCategory, WorkflowDefinition } from "./ex
 
 /**
  * Role awareness — tailor insights, briefs, and workflow recommendations.
+ * Go-live personas: CEO, CFO, COO, Head of Sales, Head of Engineering, CTO.
  */
 
-export type ExecutivePersona = "ceo" | "hr" | "project_manager" | "finance" | "operator";
+export type ExecutivePersona =
+  | "ceo"
+  | "cfo"
+  | "coo"
+  | "sales"
+  | "engineering"
+  | "cto"
+  | "hr"
+  /** @deprecated mapped to cfo */
+  | "finance"
+  /** @deprecated mapped to coo/engineering */
+  | "project_manager"
+  /** @deprecated mapped to sales */
+  | "operator";
 
 export type RoleFocusProfile = {
   persona: ExecutivePersona;
   label: string;
   focusCategories: InsightCategory[];
   priorityHint: string;
+  /** Golden question themes this persona expects live answers for. */
+  answerDomains: string[];
 };
+
+function normalizePersona(persona: ExecutivePersona): ExecutivePersona {
+  if (persona === "finance") return "cfo";
+  if (persona === "project_manager") return "coo";
+  if (persona === "operator") return "sales";
+  return persona;
+}
 
 export function resolveExecutivePersona(
   roleView: string | null | undefined,
@@ -21,64 +44,114 @@ export function resolveExecutivePersona(
   departments?: readonly string[] | null,
 ): ExecutivePersona {
   const depts = (departments ?? []).map((entry) => entry.toLowerCase());
-  if (depts.some((dept) => dept === "finance")) return "finance";
-  if (depts.some((dept) => dept === "hr")) return "hr";
-  if (
-    depts.some((dept) =>
-      ["engineering", "operations", "technology", "manager"].includes(dept),
-    )
-  ) {
-    return "project_manager";
-  }
-  if (depts.some((dept) => dept === "sales")) return "operator";
-
   const name = (displayName ?? "").toLowerCase();
-  if (name.includes("hr") || name.includes("people")) return "hr";
-  if (name.includes("finance") || name.includes("cfo")) return "finance";
-  if (name.includes("project") || name.includes("pm")) return "project_manager";
+
+  if (depts.some((dept) => dept === "finance") || name.includes("cfo") || name.includes("finance")) {
+    return "cfo";
+  }
+  if (depts.some((dept) => dept === "sales") || name.includes("sales") || name.includes("commercial")) {
+    return "sales";
+  }
+  if (
+    depts.some((dept) => dept === "engineering") ||
+    name.includes("head of engineering") ||
+    name.includes("vp engineering")
+  ) {
+    return "engineering";
+  }
+  if (
+    depts.some((dept) => dept === "technology") ||
+    name.includes("cto") ||
+    name.includes("chief technology")
+  ) {
+    return "cto";
+  }
+  if (
+    depts.some((dept) => dept === "operations") ||
+    name.includes("coo") ||
+    name.includes("chief operating")
+  ) {
+    return "coo";
+  }
+  if (depts.some((dept) => dept === "hr") || name.includes("hr") || name.includes("people")) {
+    return "hr";
+  }
+  if (name.includes("ceo") || name.includes("chief executive")) {
+    return "ceo";
+  }
 
   const role = (roleView ?? "c-suite") as InternalRoleView;
   if (role === "c-suite" || role === "admin") return "ceo";
-  if (role === "manager") return "project_manager";
-  return "operator";
+  if (role === "manager") return "coo";
+  return "sales";
 }
 
 export function getRoleFocusProfile(persona: ExecutivePersona): RoleFocusProfile {
-  switch (persona) {
+  const normalized = normalizePersona(persona);
+  switch (normalized) {
     case "ceo":
       return {
-        persona,
-        label: "CEO / Executive",
+        persona: "ceo",
+        label: "CEO",
         focusCategories: ["projects", "finance", "crm", "operations", "hr", "compliance"],
-        priorityHint: "Executive summary, risks, and financial overview first.",
+        priorityHint: "Decisions, risks, cash, and pipeline first.",
+        answerDomains: ["business_summary", "executive_risks", "cash", "pipeline", "projects_at_risk"],
+      };
+    case "cfo":
+      return {
+        persona: "cfo",
+        label: "CFO",
+        focusCategories: ["finance", "contracts", "clients", "operations"],
+        priorityHint: "AR, cash, expenses, and burn first.",
+        answerDomains: ["overdue_balances", "cash_position", "expenses", "outstanding_invoices"],
+      };
+    case "coo":
+      return {
+        persona: "coo",
+        label: "COO",
+        focusCategories: ["operations", "projects", "clients", "hr"],
+        priorityHint: "Delivery risk, overdue work, and capacity first.",
+        answerDomains: ["projects_at_risk", "business_summary", "operations"],
+      };
+    case "sales":
+      return {
+        persona: "sales",
+        label: "Head of Sales",
+        focusCategories: ["crm", "clients", "operations"],
+        priorityHint: "Pipeline, hot leads, and conversion first.",
+        answerDomains: ["sales_opportunities", "crm", "clients"],
+      };
+    case "engineering":
+      return {
+        persona: "engineering",
+        label: "Head of Engineering",
+        focusCategories: ["projects", "operations", "clients"],
+        priorityHint: "Delivery status, blockers, and slipping projects first.",
+        answerDomains: ["projects_at_risk", "projects", "deadlines"],
+      };
+    case "cto":
+      return {
+        persona: "cto",
+        label: "CTO",
+        focusCategories: ["projects", "operations", "compliance", "finance"],
+        priorityHint: "Platform/delivery health and technical blockers first.",
+        answerDomains: ["projects_at_risk", "business_health", "platform"],
       };
     case "hr":
       return {
-        persona,
-        label: "HR Manager",
+        persona: "hr",
+        label: "HR",
         focusCategories: ["hr", "recruitment", "compliance", "operations"],
-        priorityHint: "Employees, recruitment, leave, and training first.",
-      };
-    case "project_manager":
-      return {
-        persona,
-        label: "Project Manager",
-        focusCategories: ["projects", "operations", "clients", "crm"],
-        priorityHint: "Projects, capacity, and deadlines first.",
-      };
-    case "finance":
-      return {
-        persona,
-        label: "Finance",
-        focusCategories: ["finance", "contracts", "clients", "operations"],
-        priorityHint: "Invoices, payments, and expenses first.",
+        priorityHint: "Headcount and people risks first (live directory only).",
+        answerDomains: ["employees", "hr"],
       };
     default:
       return {
-        persona: "operator",
-        label: "Operator",
-        focusCategories: ["operations", "projects", "crm", "clients"],
-        priorityHint: "Day-to-day operational risks and tasks first.",
+        persona: "ceo",
+        label: "Executive",
+        focusCategories: ["projects", "finance", "crm", "operations"],
+        priorityHint: "Executive risks and operating status first.",
+        answerDomains: ["business_summary"],
       };
   }
 }
@@ -89,6 +162,26 @@ const SEVERITY_RANK: Record<string, number> = {
   medium: 2,
   low: 3,
 };
+
+function workflowRoleMatches(persona: ExecutivePersona, role: string): boolean {
+  const normalized = normalizePersona(persona);
+  if (role === "any") return true;
+  if (role === normalized) return true;
+  if (normalized === "cfo" && (role === "finance" || role === "cfo")) return true;
+  if (normalized === "coo" && (role === "project_manager" || role === "coo" || role === "operator")) {
+    return true;
+  }
+  if (normalized === "sales" && (role === "operator" || role === "sales")) return true;
+  if (
+    (normalized === "engineering" || normalized === "cto") &&
+    (role === "project_manager" || role === "engineering" || role === "cto")
+  ) {
+    return true;
+  }
+  if (normalized === "ceo" && role === "ceo") return true;
+  if (normalized === "hr" && role === "hr") return true;
+  return false;
+}
 
 export function filterInsightsForRole(
   insights: ExecutiveInsight[],
@@ -110,10 +203,7 @@ export function filterWorkflowsForRole(
   workflows: WorkflowDefinition[],
   persona: ExecutivePersona,
 ): WorkflowDefinition[] {
-  return workflows.filter(
-    (workflow) =>
-      workflow.roles.includes("any") ||
-      workflow.roles.includes(persona) ||
-      (persona === "ceo" && workflow.roles.includes("ceo")),
+  return workflows.filter((workflow) =>
+    workflow.roles.some((role) => workflowRoleMatches(persona, role)),
   );
 }

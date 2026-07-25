@@ -179,7 +179,7 @@ export function resolveDirectIntent(
   }
 
   if (
-    /\b(summarise|summarize)\s+(the\s+)?business\b|\bbusiness\s+summary\b|\bhow\s+is\s+(the\s+)?business\b|\bbusiness\s+health\b|\boperating\s+status\b/i.test(
+    /\b(summarise|summarize)\s+(the\s+)?business\b|\bbusiness\s+summary\b|\bhow\s+is\s+(the\s+)?business\b|\bbusiness\s+health\b|\boperating\s+status\b|\bwhat'?s\s+broken\b|\bwhat\s+needs\s+(my\s+)?decision\b|\bdecisions?\s+needed\b/i.test(
       lower,
     )
   ) {
@@ -191,14 +191,18 @@ export function resolveDirectIntent(
   }
 
   if (
-    /\b(biggest\s+opportunities|pipeline|hot\s+leads|crm\s+opportunities|sales\s+pipeline)\b/i.test(
+    /\b(biggest\s+opportunities|pipeline|hot\s+leads|crm\s+opportunities|sales\s+pipeline|deal\s+stage|which\s+leads|conversion|who\s+should\s+i\s+call)\b/i.test(
       lower,
     ) &&
     !/\b(pdf|export)\b/i.test(lower)
   ) {
     return {
       tool: "searchCRM",
-      args: { status: "Hot", pageSize: 50 },
+      args: {
+        status: /\bhot\b/i.test(lower) ? "Hot" : undefined,
+        pageSize: 50,
+        query: text,
+      },
       reason: "sales_opportunities",
     };
   }
@@ -243,15 +247,61 @@ export function resolveDirectIntent(
   }
 
   if (
-    /\b(how\s+much\s+cash|cash\s+(do\s+we\s+have|position|balance)|bank\s+balance|treasury)\b/i.test(
+    /\b(how\s+much\s+cash|cash\s+(do\s+we\s+have|position|balance)|bank\s+balance|treasury|runway|burn\s+rate|monthly\s+burn|p&l|profit\s+and\s+loss)\b/i.test(
+      lower,
+    ) &&
+    !/\b(pdf|export)\b/i.test(lower)
+  ) {
+    if (/\b(burn|runway|p&l|profit)\b/i.test(lower)) {
+      return {
+        tool: "queryBusiness",
+        args: { question: text, domain: "finance" },
+        reason: "finance_overview",
+      };
+    }
+    return {
+      tool: "getCashPosition",
+      args: {},
+      reason: "cash_position",
+    };
+  }
+
+  if (
+    /\b(platform\s+health|module\s+health|tech\s+risks?|technical\s+blockers?|what'?s\s+shipping)\b/i.test(
       lower,
     ) &&
     !/\b(pdf|export)\b/i.test(lower)
   ) {
     return {
-      tool: "getCashPosition",
+      tool: "getBusinessHealth",
       args: {},
-      reason: "cash_position",
+      reason: "platform_tech_health",
+    };
+  }
+
+  if (
+    /\b(live\s+projects?|which\s+projects?\s+are\s+live|delivery\s+status|project\s+status|slipping|delivery\s+blockers?|behind\s+on\s+delivery)\b/i.test(
+      lower,
+    ) &&
+    !/\b(pdf|export)\b/i.test(lower)
+  ) {
+    return {
+      tool: "searchProjects",
+      args: { phase: "live", pageSize: 50, query: text },
+      reason: "project_delivery_status",
+    };
+  }
+
+  if (
+    /\b(recent\s+expenses?|unpaid\s+expenses?|expense\s+claims?|what\s+did\s+we\s+spend)\b/i.test(
+      lower,
+    ) &&
+    !/\b(pdf|export|log|create|add|submit)\b/i.test(lower)
+  ) {
+    return {
+      tool: "searchExpenses",
+      args: { recentOnly: true, pageSize: 25 },
+      reason: "recent_expenses",
     };
   }
 

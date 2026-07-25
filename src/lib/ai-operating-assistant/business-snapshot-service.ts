@@ -11,8 +11,6 @@ import {
 } from "@/lib/accounting/overview-service";
 import { getWiseConnectionStatus, listWiseBalances } from "@/lib/wise-service";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
-import { createInitialAssetRegistry } from "@/lib/asset-management-data";
-import { getInventoryMockSnapshot } from "@/lib/inventory-mock-store";
 import { loadLiveInvoices } from "./live-finance";
 import { isOverdue } from "./tool-result";
 import type { AssistantBusinessContext } from "./types";
@@ -154,15 +152,12 @@ export async function buildBusinessSnapshot(
         })()
       : Promise.resolve(null),
     want("assets")
-      ? Promise.resolve().then(() => {
-          const registry = createInitialAssetRegistry();
-          const inventory = getInventoryMockSnapshot();
-          return {
-            physicalAssets: registry.assets,
-            categories: registry.categories,
-            locations: registry.locations,
-            inventoryItems: inventory.assets ?? [],
-          };
+      ? Promise.resolve({
+          physicalAssets: [] as unknown[],
+          categories: [] as unknown[],
+          locations: [] as unknown[],
+          inventoryItems: [] as unknown[],
+          liveUnavailable: true as const,
         })
       : Promise.resolve(null),
   ]);
@@ -174,6 +169,11 @@ export async function buildBusinessSnapshot(
   const unpaidExpenses = expenses.filter((expense) => !expense.paid);
 
   const dataGaps: string[] = [];
+  if (want("assets")) {
+    dataGaps.push(
+      "Waiting for live business data — Assets/inventory register is not connected for EA answers yet.",
+    );
+  }
   if (want("finance") && !context.permissions.canAccessFinancials) {
     dataGaps.push("Finance data hidden for current role.");
   }
@@ -192,8 +192,25 @@ export async function buildBusinessSnapshot(
       ? wiseCash.totalGbp
       : financialOverview?.cashPosition ?? wiseCash?.totalGbp ?? null;
 
-  const physicalAssets = assetBundle?.physicalAssets ?? [];
-  const inventoryItems = assetBundle?.inventoryItems ?? [];
+  const physicalAssets: Array<{
+    operationalStatus: string;
+    category: string;
+    location: string;
+    assetTag: string;
+    model: string;
+    serialNumber: string;
+    nextMaintenanceDue: string | null;
+    notes: string;
+  }> = [];
+  const inventoryItems: Array<{
+    assetTag: string;
+    name: string;
+    category: string;
+    location: string;
+    status: string;
+    currentValue: number;
+  }> = [];
+  void assetBundle;
 
   return {
     asOf: new Date().toISOString(),

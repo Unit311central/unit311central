@@ -138,7 +138,19 @@ export type WorkflowDefinition = {
   estimatedDurationMinutes: number;
   relatedModules: string[];
   intentPhrases: string[];
-  roles: Array<"ceo" | "hr" | "project_manager" | "finance" | "operator" | "any">;
+  roles: Array<
+    | "ceo"
+    | "cfo"
+    | "coo"
+    | "sales"
+    | "engineering"
+    | "cto"
+    | "hr"
+    | "project_manager"
+    | "finance"
+    | "operator"
+    | "any"
+  >;
 };
 
 export type WorkflowGuideSession = {

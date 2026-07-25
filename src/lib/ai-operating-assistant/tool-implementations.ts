@@ -2,7 +2,6 @@ import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { vacationDaysRemaining } from "@/lib/hr-data";
-import { listLeaveRequests } from "@/lib/hr-mock-store";
 import { listLeads } from "@/lib/crm-leads-service";
 import { browseFolder, getFileDownloadUrl } from "@/lib/internal-files-service";
 import { listExpenses } from "@/lib/financial-expenses-service";
@@ -316,18 +315,11 @@ export async function searchEmployees(
     });
 
     if (onLeave) {
-      const today = new Date().toISOString().slice(0, 10);
-      const onLeaveIds = new Set(
-        listLeaveRequests()
-          .filter(
-            (request) =>
-              request.status === "approved" &&
-              request.startDate <= today &&
-              request.endDate >= today,
-          )
-          .map((request) => request.employeeId),
+      return toolError(
+        "searchEmployees",
+        "Waiting for live business data — leave calendar is not connected to live storage yet. I will not invent who is on leave.",
+        ["hr-leave:requests"],
       );
-      filtered = filtered.filter((employee) => onLeaveIds.has(employee.id));
     }
 
     return toolOk(
@@ -351,7 +343,7 @@ export async function searchEmployees(
           : {}),
       })),
       {
-        source: ["supabase:hr_employees", "hr-leave:requests"],
+        source: ["supabase:hr_employees"],
         page: asNumber(args.page, 1),
         pageSize: asNumber(args.pageSize, 20),
         summary: {
@@ -361,9 +353,7 @@ export async function searchEmployees(
           openRoles: [] as string[],
           message:
             filtered.length === 0
-              ? onLeave
-                ? "Nobody is currently on approved leave."
-                : "There are currently no employees matching that request."
+              ? "There are currently no employees matching that request."
               : `I found ${filtered.length} employee${filtered.length === 1 ? "" : "s"}.`,
         },
         followUpActions: [
