@@ -358,14 +358,56 @@ export function normalizeInternalOperationsView(value: string | null): InternalO
     return "technology-software";
   }
   if (value === "technology") return "technology-dashboard";
+  // Stub Technology leaves removed from nav — keep deep links working.
+  if (
+    value === "technology-devices" ||
+    value === "technology-telecommunications" ||
+    value === "technology-infrastructure" ||
+    value === "technology-reports" ||
+    value === "technology-settings"
+  ) {
+    return "technology-dashboard";
+  }
   if (legacyCorporateViewToTab(value)) return "corporate-information";
   return isInternalOperationsView(value) ? value : "home";
 }
 
+/** Views that use non-durable mock/seed data — show Demo badge + banner. */
+export const DEMO_OPERATIONS_VIEWS: ReadonlySet<InternalOperationsView> = new Set([
+  "potential-clients",
+  "grants",
+  "hr-recruitment",
+  "hr-leave",
+  "hr-performance",
+  "hr-reports",
+  "corporate-cap-table",
+  "office-locations",
+  "corporate-bank-accounts",
+  "corporate-advisers",
+  "corporate-contracts",
+  "assets",
+  "inventory-management",
+  "procurement",
+  "social",
+  "training-dashboard",
+  "training",
+  "qms-training",
+  "quality-management",
+  "qms-document-control",
+  "qms-capa",
+  "qms-internal-audits",
+  "qms-management-review",
+  "qms-reports",
+  "external-client-access",
+  "website-management",
+  "financial-reports",
+]);
+
 /** Banner for nav leaves that reuse an existing module. */
 export function getNavImplementationNotice(
-  _view: InternalOperationsView,
-): "uses-current" | "coming-soon" | null {
+  view: InternalOperationsView,
+): "demo" | "uses-current" | "coming-soon" | null {
+  if (DEMO_OPERATIONS_VIEWS.has(view)) return "demo";
   return null;
 }
 
@@ -376,6 +418,8 @@ export type InternalNavChildItem = {
   readonly query?: Record<string, string>;
   /** Nested groups (e.g. Clients → Dashboard). */
   readonly children?: readonly InternalNavChildItem[];
+  /** Honest product surface: demo / non-durable data. */
+  readonly badge?: "demo";
 };
 
 export type InternalNavItem = {
@@ -385,6 +429,7 @@ export type InternalNavItem = {
   readonly href?: string;
   readonly indented?: boolean;
   readonly children?: readonly InternalNavChildItem[];
+  readonly badge?: "demo";
 };
 
 export type InternalNavSection = {
@@ -440,7 +485,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
           { label: "Pipeline", view: "crm" as const },
           { label: "Discovery & Demo", view: "crm-meetings" as const },
           { label: "Client Onboarding", view: "client-onboarding" as const },
-          { label: "Potential Clients", view: "potential-clients" as const },
+          { label: "Potential Clients", view: "potential-clients" as const, badge: "demo" as const },
         ],
       },
       {
@@ -450,7 +495,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
           { label: "Dashboard", view: "projects-dashboard" as const },
           { label: "Internal Projects", view: "projects-internal" as const },
           { label: "External Projects", view: "projects-external" as const },
-          { label: "Grants", view: "grants" as const },
+          { label: "Grants", view: "grants" as const, badge: "demo" as const },
         ],
       },
     ],
@@ -467,7 +512,12 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       { label: "Accounts Payable", icon: "ArrowUpRight", view: "accounts-payable" as const },
       { label: "Expenses", icon: "Receipt", view: "expenses" as const },
       { label: "Bank", icon: "Landmark", view: "wise" as const },
-      { label: "Financial Reports", icon: "ScrollText", view: "financial-reports" as const },
+      {
+        label: "Financial Reports",
+        icon: "ScrollText",
+        view: "financial-reports" as const,
+        badge: "demo" as const,
+      },
     ],
   },
   {
@@ -478,11 +528,31 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "hr-dashboard" as const },
       { label: "Employees", icon: "Users", view: "hr" as const },
-      { label: "Recruitment", icon: "ContactRound", view: "hr-recruitment" as const },
-      { label: "Time & Attendance", icon: "CalendarDays", view: "hr-leave" as const },
+      {
+        label: "Recruitment",
+        icon: "ContactRound",
+        view: "hr-recruitment" as const,
+        badge: "demo" as const,
+      },
+      {
+        label: "Time & Attendance",
+        icon: "CalendarDays",
+        view: "hr-leave" as const,
+        badge: "demo" as const,
+      },
       { label: "Payroll", icon: "Wallet", view: "hr-payroll" as const },
-      { label: "Performance", icon: "Target", view: "hr-performance" as const },
-      { label: "HR Reports", icon: "ScrollText", view: "hr-reports" as const },
+      {
+        label: "Performance",
+        icon: "Target",
+        view: "hr-performance" as const,
+        badge: "demo" as const,
+      },
+      {
+        label: "HR Reports",
+        icon: "ScrollText",
+        view: "hr-reports" as const,
+        badge: "demo" as const,
+      },
     ],
   },
   {
@@ -492,12 +562,37 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     color: "#F2A900",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "corporate-dashboard" as const },
-      { label: "Cap Table Management", icon: "Layers", view: "corporate-cap-table" as const },
+      {
+        label: "Cap Table Management",
+        icon: "Layers",
+        view: "corporate-cap-table" as const,
+        badge: "demo" as const,
+      },
       { label: "Company Details", icon: "Building2", view: "corporate-company-details" as const },
-      { label: "Office Locations", icon: "MapPin", view: "office-locations" as const },
-      { label: "Bank Accounts", icon: "Landmark", view: "corporate-bank-accounts" as const },
-      { label: "Professional Advisors", icon: "Handshake", view: "corporate-advisers" as const },
-      { label: "Contracts", icon: "ScrollText", view: "corporate-contracts" as const },
+      {
+        label: "Office Locations",
+        icon: "MapPin",
+        view: "office-locations" as const,
+        badge: "demo" as const,
+      },
+      {
+        label: "Bank Accounts",
+        icon: "Landmark",
+        view: "corporate-bank-accounts" as const,
+        badge: "demo" as const,
+      },
+      {
+        label: "Professional Advisors",
+        icon: "Handshake",
+        view: "corporate-advisers" as const,
+        badge: "demo" as const,
+      },
+      {
+        label: "Contracts",
+        icon: "ScrollText",
+        view: "corporate-contracts" as const,
+        badge: "demo" as const,
+      },
       {
         label: "Unit311 Details",
         icon: "ShieldCheck",
@@ -515,16 +610,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     color: "#38BDF8",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "technology-dashboard" as const },
-      { label: "Devices", icon: "Laptop", view: "technology-devices" as const },
       { label: "Software & SaaS", icon: "KeyRound", view: "technology-software" as const },
-      { label: "Telecommunications", icon: "Radio", view: "technology-telecommunications" as const },
-      { label: "Infrastructure & Cloud", icon: "Server", view: "technology-infrastructure" as const },
-      { label: "Networks & Domains", icon: "Globe", view: "technology-infrastructure" as const },
-      { label: "Certificates & Identity", icon: "ShieldCheck", view: "technology-infrastructure" as const },
-      { label: "Security", icon: "ShieldCheck", view: "technology-reports" as const },
-      { label: "Technology Assets", icon: "HardDrive", view: "technology-devices" as const },
-      { label: "Reports", icon: "ScrollText", view: "technology-reports" as const },
-      { label: "Settings", icon: "Settings", view: "technology-settings" as const },
     ],
   },
   {
@@ -547,7 +633,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       { label: "Calendar", icon: "CalendarDays", view: "calendar" as const },
       { label: "Messaging", icon: "MessageSquare", view: "messaging" as const },
       { label: "Communications", icon: "Video", view: "communications" as const },
-      { label: "Social", icon: "Share2", view: "social" as const },
+      { label: "Social", icon: "Share2", view: "social" as const, badge: "demo" as const },
       {
         label: "Support Desk",
         icon: "LifeBuoy",
@@ -564,9 +650,19 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     icon: "Package",
     color: "#00D4C7",
     items: [
-      { label: "Assets", icon: "Package", view: "assets" as const },
-      { label: "Inventory", icon: "Layers", view: "inventory-management" as const },
-      { label: "Procurement", icon: "Receipt", view: "procurement" as const },
+      { label: "Assets", icon: "Package", view: "assets" as const, badge: "demo" as const },
+      {
+        label: "Inventory",
+        icon: "Layers",
+        view: "inventory-management" as const,
+        badge: "demo" as const,
+      },
+      {
+        label: "Procurement",
+        icon: "Receipt",
+        view: "procurement" as const,
+        badge: "demo" as const,
+      },
       { label: "Logistics", icon: "Truck", view: "logistics" as const },
     ],
   },
@@ -576,13 +672,18 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     icon: "GraduationCap",
     color: "#F2994A",
     items: [
-      { label: "Dashboard", icon: "LayoutDashboard", view: "training-dashboard" as const },
+      {
+        label: "Dashboard",
+        icon: "LayoutDashboard",
+        view: "training-dashboard" as const,
+        badge: "demo" as const,
+      },
       {
         label: "Courses",
         icon: "GraduationCap",
         children: [
-          { label: "Staff Courses", view: "training" as const },
-          { label: "QMS Courses", view: "qms-training" as const },
+          { label: "Staff Courses", view: "training" as const, badge: "demo" as const },
+          { label: "QMS Courses", view: "qms-training" as const, badge: "demo" as const },
         ],
       },
     ],
@@ -593,12 +694,37 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     icon: "ShieldCheck",
     color: "#7ED321",
     items: [
-      { label: "Dashboard", icon: "LayoutDashboard", view: "quality-management" as const },
-      { label: "Document Control", icon: "ScrollText", view: "qms-document-control" as const },
-      { label: "CAPA", icon: "Target", view: "qms-capa" as const },
-      { label: "Internal Audits", icon: "ClipboardCheck", view: "qms-internal-audits" as const },
-      { label: "Management Review", icon: "Users", view: "qms-management-review" as const },
-      { label: "Reporting", icon: "ScrollText", view: "qms-reports" as const },
+      {
+        label: "Dashboard",
+        icon: "LayoutDashboard",
+        view: "quality-management" as const,
+        badge: "demo" as const,
+      },
+      {
+        label: "Document Control",
+        icon: "ScrollText",
+        view: "qms-document-control" as const,
+        badge: "demo" as const,
+      },
+      { label: "CAPA", icon: "Target", view: "qms-capa" as const, badge: "demo" as const },
+      {
+        label: "Internal Audits",
+        icon: "ClipboardCheck",
+        view: "qms-internal-audits" as const,
+        badge: "demo" as const,
+      },
+      {
+        label: "Management Review",
+        icon: "Users",
+        view: "qms-management-review" as const,
+        badge: "demo" as const,
+      },
+      {
+        label: "Reporting",
+        icon: "ScrollText",
+        view: "qms-reports" as const,
+        badge: "demo" as const,
+      },
     ],
   },
   {
@@ -607,7 +733,12 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     icon: "FlaskConical",
     color: "#6C63FF",
     items: [
-      { label: "Website Management", icon: "Globe", view: "website-management" as const },
+      {
+        label: "Website Management",
+        icon: "Globe",
+        view: "website-management" as const,
+        badge: "demo" as const,
+      },
       { label: "Integrations", icon: "Plug", view: "integrations" as const },
       { label: "Testing", icon: "FlaskConical", view: "testing" as const },
       { label: "Telemetry", icon: "Radio", view: "telemetry" as const },
@@ -620,7 +751,12 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     icon: "KeyRound",
     color: "#8B7CFF",
     items: [
-      { label: "Dashboard", icon: "LayoutDashboard", view: "external-client-access" as const },
+      {
+        label: "Dashboard",
+        icon: "LayoutDashboard",
+        view: "external-client-access" as const,
+        badge: "demo" as const,
+      },
       { label: "External Users", icon: "Users", view: "users-external" as const },
     ],
   },

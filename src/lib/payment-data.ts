@@ -1,7 +1,11 @@
 import { SITE_EMAIL_DOMAIN, SITE_NAME } from "@/lib/site";
+import {
+  PROFESSIONAL_QUARTERLY_PAYMENT_LABEL,
+  PROFESSIONAL_QUARTERLY_USD,
+} from "@/lib/platform-pricing";
 
-export const PAYMENT_AMOUNT = "US$2,997";
-export const PAYMENT_AMOUNT_NUMERIC = 2997;
+export const PAYMENT_AMOUNT = PROFESSIONAL_QUARTERLY_PAYMENT_LABEL;
+export const PAYMENT_AMOUNT_NUMERIC = PROFESSIONAL_QUARTERLY_USD;
 export const SUBSCRIPTION_INVOICE_DESCRIPTION = "Unit311 Central Quarterly Subscription";
 export const SUBSCRIPTION_INVOICE_QUANTITY = 1;
 export const PAYMENT_PERIOD = "3 months";

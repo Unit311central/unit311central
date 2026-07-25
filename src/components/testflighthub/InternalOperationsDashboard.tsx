@@ -148,9 +148,36 @@ const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
 ]);
 
 function NavImplementationNotice({ view }: { view: InternalOperationsView }) {
-  const notice = getNavImplementationNotice(view);
+  const searchParams = useSearchParams();
+  let notice = getNavImplementationNotice(view);
+  if (!notice && view === "corporate-information") {
+    const tab = searchParams.get("tab");
+    if (
+      tab === "cap-table" ||
+      tab === "office-locations" ||
+      tab === "bank-accounts" ||
+      tab === "professional-advisors" ||
+      tab === "contracts"
+    ) {
+      notice = "demo";
+    }
+  }
   if (!notice) return null;
   const meta = internalViewTitles[view];
+  if (notice === "demo") {
+    return (
+      <div
+        role="status"
+        className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100/90"
+      >
+        <span className="font-semibold text-amber-50">Demo data</span>
+        <span className="text-amber-100/70">
+          {" "}
+          — {meta.title} uses non-durable sample data and is not the live system of record yet.
+        </span>
+      </div>
+    );
+  }
   return (
     <div
       role="status"
@@ -506,8 +533,20 @@ export default function InternalOperationsDashboard({
   }, [activeView]);
 
   const handleViewChange = useCallback((view: InternalOperationsView) => {
-    prefetchViewOnIntent(view);
-    setActiveView(view);
+    const legacyTab = legacyCorporateViewToTab(view);
+    if (legacyTab) {
+      prefetchViewOnIntent("corporate-information");
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", "corporate-information");
+      url.searchParams.set("tab", legacyTab);
+      url.searchParams.delete("country");
+      window.history.replaceState({}, "", url.toString());
+      setActiveView("corporate-information");
+      return;
+    }
+    const normalized = normalizeInternalOperationsView(view);
+    prefetchViewOnIntent(normalized);
+    setActiveView(normalized);
   }, []);
 
   return (

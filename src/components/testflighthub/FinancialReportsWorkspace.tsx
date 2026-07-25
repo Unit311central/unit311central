@@ -37,6 +37,7 @@ import {
   type FinancialReportPeriodKind,
   type FinancialReportRecord,
 } from "@/lib/financial-reports-mock-data";
+import { downloadFinancialReportPdf } from "@/lib/financial-report-pdf";
 import { cn } from "@/lib/utils";
 
 type LibrarySortKey = "category" | "period" | "createdBy";
@@ -55,7 +56,7 @@ function inputClassName() {
 }
 
 function toastAction(label: string) {
-  return `${label} (demo — no file generated)`;
+  return label;
 }
 
 function newId(prefix: string) {
@@ -312,7 +313,16 @@ export default function FinancialReportsWorkspace() {
         }),
       );
       setSelectedId(editingId);
-      flash(mode === "generate" ? "Report updated and generated (demo)." : "Report template saved (demo).");
+      const updated = buildReportFromDraft(nextDraft, editingId);
+      flash(mode === "generate" ? "Report updated — downloading PDF." : "Report template saved.");
+      if (mode === "generate") {
+        downloadFinancialReportPdf({
+          ...updated,
+          status: "Ready",
+          lastGenerated: "Today",
+          maturity: "Final",
+        });
+      }
     } else {
       const id = newId("rpt");
       const created = buildReportFromDraft(nextDraft, id);
@@ -326,9 +336,12 @@ export default function FinancialReportsWorkspace() {
       setSelectedId(id);
       flash(
         mode === "generate"
-          ? "Report created and generated (demo)."
-          : "Report template saved to library (demo).",
+          ? "Report created — downloading PDF."
+          : "Report template saved to library.",
       );
+      if (mode === "generate") {
+        downloadFinancialReportPdf(created);
+      }
     }
 
     closeWizard();
@@ -336,30 +349,28 @@ export default function FinancialReportsWorkspace() {
 
   function generateReport(report: FinancialReportRecord) {
     const stamp = new Date().toISOString();
+    const nextReport: FinancialReportRecord = {
+      ...report,
+      status: "Ready",
+      lastGenerated: "Today",
+      maturity: "Final",
+      history: [
+        {
+          id: newId("gen"),
+          generatedAt: stamp,
+          generatedBy: "You",
+          format: "PDF",
+          status: "Ready",
+          note: "PDF download",
+        },
+        ...report.history,
+      ],
+    };
     setReports((current) =>
-      current.map((item) =>
-        item.id === report.id
-          ? {
-              ...item,
-              status: "Ready",
-              lastGenerated: "Today",
-              maturity: "Final",
-              history: [
-                {
-                  id: newId("gen"),
-                  generatedAt: stamp,
-                  generatedBy: "You",
-                  format: item.primaryFormat,
-                  status: "Ready",
-                  note: "Manual generate",
-                },
-                ...item.history,
-              ],
-            }
-          : item,
-      ),
+      current.map((item) => (item.id === report.id ? nextReport : item)),
     );
-    flash(toastAction(`Generated ${report.name}`));
+    downloadFinancialReportPdf(nextReport);
+    flash(`Downloaded PDF for “${report.name}”.`);
     setRowMenuId(null);
   }
 
@@ -599,15 +610,32 @@ export default function FinancialReportsWorkspace() {
                                   label: "Download PDF",
                                   icon: FileText,
                                   onClick: () => {
-                                    flash(toastAction("Download PDF"));
+                                    downloadFinancialReportPdf(report);
+                                    flash(`Downloaded PDF for “${report.name}”.`);
                                     setRowMenuId(null);
                                   },
                                 },
                                 {
-                                  label: "Download Excel",
+                                  label: "Export CSV",
                                   icon: FileSpreadsheet,
                                   onClick: () => {
-                                    flash(toastAction("Download Excel"));
+                                    const csv = [
+                                      "Field,Value",
+                                      `Name,"${report.name.replace(/"/g, '""')}"`,
+                                      `Type,${report.reportType}`,
+                                      `Period,${report.periodLabel}`,
+                                      `Status,${report.status}`,
+                                    ].join("\n");
+                                    const blob = new Blob([csv], {
+                                      type: "text/csv;charset=utf-8",
+                                    });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement("a");
+                                    a.href = url;
+                                    a.download = `${report.name.replace(/[^\w\-]+/g, "_").slice(0, 60)}.csv`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                    flash("CSV exported.");
                                     setRowMenuId(null);
                                   },
                                 },
@@ -776,16 +804,19 @@ export default function FinancialReportsWorkspace() {
                   Delete
                 </ActionButton>
                 <ActionButton
-                  onClick={() => flash(toastAction("Download PDF"))}
+                  onClick={() => {
+                    downloadFinancialReportPdf(selected);
+                    flash(`Downloaded PDF for “${selected.name}”.`);
+                  }}
                   icon={Download}
                 >
                   Download PDF
                 </ActionButton>
                 <ActionButton
-                  onClick={() => flash(toastAction("Download Excel"))}
+                  onClick={() => flash("Excel export is not available yet — use PDF or CSV from the row menu.")}
                   icon={FileSpreadsheet}
                 >
-                  Download Excel
+                  Excel (soon)
                 </ActionButton>
               </div>
             </section>

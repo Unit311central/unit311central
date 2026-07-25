@@ -1,9 +1,11 @@
+import { PROFESSIONAL_MONTHLY_USD } from "@/lib/platform-pricing";
+
 /**
  * Parse expected platform billing amounts from executive questions such as
  * "they should pay ($1,300 × 3) on signup for quarterly in advance".
  */
 
-export const MARKETING_PROFESSIONAL_MONTHLY_USD = 1300;
+export const MARKETING_PROFESSIONAL_MONTHLY_USD = PROFESSIONAL_MONTHLY_USD;
 
 export type ParsedBillingExpectation = {
   expectedMonthlyUsd: number | null;

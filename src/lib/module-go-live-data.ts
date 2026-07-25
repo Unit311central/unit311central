@@ -54,6 +54,7 @@ export const MODULE_GO_LIVE_CATALOG: readonly Omit<ModuleGoLiveEntry, "status">[
   { id: "MOD-110", module: "Calendar" },
   { id: "MOD-111", module: "Email" },
   { id: "MOD-112", module: "Communications" },
+  { id: "MOD-115", module: "Messaging" },
   { id: "MOD-113", module: "Social" },
   { id: "MOD-114", module: "Support Desk" },
   { id: "MOD-120", module: "Training Dashboard" },
@@ -87,34 +88,35 @@ export function isModuleGoLiveStatus(value: unknown): value is ModuleGoLiveStatu
 const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiveStatus>>> = {
   /** MOD-001 Command Centre v2. */
   "MOD-001": "Ready",
-  /** MOD-200 / MOD-201 — HR domain closed Ready (2026-07-21). Only backlog: HR-201. */
+  /** MOD-200 / MOD-201 — Employees live; Leave/Recruitment/Performance/Reports are Demo. */
   "MOD-070": "Ready",
   "MOD-071": "Ready",
-  "MOD-072": "Ready",
-  "MOD-073": "Ready",
-  "MOD-074": "Ready",
-  "MOD-201": "Ready",
-  /** MOD-400 — Corporate Information domain Ready (2026-07-21). */
+  "MOD-072": "Needs Work",
+  "MOD-073": "Needs Work",
+  "MOD-074": "Needs Work",
+  "MOD-201": "Needs Work",
+  /** Company Details live; other Corporate registers are Demo. */
   "MOD-080": "Ready",
   "MOD-081": "Ready",
-  "MOD-082": "Ready",
-  "MOD-083": "Ready",
-  "MOD-084": "Ready",
+  "MOD-082": "Needs Work",
+  "MOD-083": "Needs Work",
+  "MOD-084": "Needs Work",
   "MOD-085": "Ready",
-  "MOD-086": "Ready",
+  "MOD-086": "Needs Work",
   "MOD-087": "Ready",
-  /** MOD-500 — Inventory Management operational EAM Ready (2026-07-21). Asset Register (MOD-090) unchanged. */
-  "MOD-091": "Ready",
-  /** MOD-600 — Training & Quality Management domain Ready (2026-07-21). */
-  "MOD-120": "Ready",
-  "MOD-121": "Ready",
-  "MOD-122": "Ready",
-  "MOD-130": "Ready",
-  /** MOD-600/610/620 program wave — Technology Management, Website Management, External Client Access. */
-  "MOD-140": "Ready",
+  /** Inventory / Assets still Demo stores. */
+  "MOD-090": "Needs Work",
+  "MOD-091": "Needs Work",
+  /** Training & QMS still Demo (tqms-mock-store). */
+  "MOD-120": "Needs Work",
+  "MOD-121": "Needs Work",
+  "MOD-122": "Needs Work",
+  "MOD-130": "Needs Work",
+  /** Technology: Software live; broader estate not shipped. */
+  "MOD-140": "Needs Work",
   "MOD-141": "Ready",
-  "MOD-150": "Ready",
-  "MOD-160": "Ready",
+  "MOD-150": "Needs Work",
+  "MOD-160": "Needs Work",
   /** Profile bound to session / whoami (Wave 0). */
   "MOD-170": "Ready",
   /** Wave 1 — Client Directory lifecycle rewrite (FDR-MOD-011-LIFECYCLE). */
@@ -125,6 +127,11 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   "MOD-103": "Ready",
   /** Wave 1 — Clients Dashboard tiles aligned to lifecycle buckets. */
   "MOD-010": "Ready",
+  /** Messaging chat is live; Communications live calls are live; Social is Demo. */
+  "MOD-112": "Ready",
+  "MOD-115": "Ready",
+  "MOD-113": "Needs Work",
+  "MOD-066": "Needs Work",
 };
 
 export function buildDefaultModuleGoLiveRegister(): ModuleGoLiveEntry[] {

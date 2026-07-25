@@ -103,7 +103,6 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
   const [scheduleTime, setScheduleTime] = useState("");
   const [scheduleCallType, setScheduleCallType] = useState<"voice" | "video">("video");
   const [scheduling, setScheduling] = useState(false);
-  const [dialNumber, setDialNumber] = useState("");
   const [meetingChatDraft, setMeetingChatDraft] = useState("");
   const [meetingChat, setMeetingChat] = useState<string[]>([]);
   const [aiRecordMeeting, setAiRecordMeeting] = useState(false);
@@ -474,31 +473,14 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
 
           <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 backdrop-blur-xl">
             <div className="flex items-center gap-2">
-              <Smartphone className="h-4 w-4 text-emerald-300" />
-              <h2 className="text-sm font-semibold text-white">Dial mobile</h2>
+              <Smartphone className="h-4 w-4 text-white/45" />
+              <h2 className="text-sm font-semibold text-white">Mobile dialling</h2>
             </div>
-            <p className="mt-1 text-[11px] text-white/40">
-              Place an outbound mobile call from Communications.
+            <p className="mt-2 text-[11px] leading-relaxed text-white/45">
+              Outbound mobile (PSTN) dialling is not connected. Use{" "}
+              <span className="text-white/70">Create Instant Meeting</span> for a guest voice/video
+              link, or start Voice/Video for an internal call.
             </p>
-            <input
-              value={dialNumber}
-              onChange={(event) => setDialNumber(event.target.value)}
-              placeholder="+44…"
-              className={cn(inputClassName(), "mt-3")}
-            />
-            <button
-              type="button"
-              disabled={!dialNumber.trim()}
-              onClick={() =>
-                setError(
-                  "Mobile dialling is available in Communications. Connect a telephony provider to place live outbound calls.",
-                )
-              }
-              className="mt-2 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 text-sm font-semibold text-emerald-100 disabled:opacity-50"
-            >
-              <Phone className="h-3.5 w-3.5" />
-              Dial
-            </button>
           </section>
         </aside>
 

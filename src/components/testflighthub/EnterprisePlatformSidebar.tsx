@@ -231,6 +231,7 @@ export default function EnterprisePlatformSidebar({
       href?: string;
       icon?: string;
       depth: number;
+      badge?: "demo";
     },
   ) {
     const nested = opts.depth > 0;
@@ -257,6 +258,16 @@ export default function EnterprisePlatformSidebar({
           <Icon className={cn("h-3.5 w-3.5 shrink-0", SUBMENU_ICON)} strokeWidth={1.5} />
         ) : null}
         <span className="min-w-0 flex-1 whitespace-normal break-words">{label}</span>
+        {opts.badge === "demo" ? (
+          <span
+            className={cn(
+              "shrink-0 rounded px-1 py-px text-[9px] font-semibold uppercase tracking-wide",
+              active ? "bg-white/20 text-white" : "bg-amber-500/20 text-amber-200/90",
+            )}
+          >
+            Demo
+          </span>
+        ) : null}
       </>
     );
 
@@ -320,6 +331,7 @@ export default function EnterprisePlatformSidebar({
         href: item.href,
         icon: itemIcon,
         depth,
+        badge: item.badge,
       });
     }
 
@@ -499,6 +511,7 @@ export default function EnterprisePlatformSidebar({
                   href: item.href,
                   icon: item.icon,
                   depth: 0,
+                  badge: item.badge,
                 });
               })}
             </div>

@@ -2,9 +2,13 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
 import HomeSectionTitle from "./HomeSectionTitle";
+import {
+  PROFESSIONAL_MONTHLY_USD,
+  PROFESSIONAL_QUARTERLY_USD,
+} from "@/lib/platform-pricing";
 
-const MONTHLY_PRICE = 1300;
-const QUARTERLY_PRICE = MONTHLY_PRICE * 3;
+const MONTHLY_PRICE = PROFESSIONAL_MONTHLY_USD;
+const QUARTERLY_PRICE = PROFESSIONAL_QUARTERLY_USD;
 
 const PLAN_FEATURES = [
   "Many modules including Business Central, AI Executive Assistant, Clients & Projects, Financials, HR & People, Technology & Engineering, Corporate, Operations, Business Productivity and Business App Integrations",
