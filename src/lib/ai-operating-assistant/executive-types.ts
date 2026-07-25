@@ -49,6 +49,8 @@ export type DailyExecutiveBrief = {
   dateKey: string;
   greeting: string;
   headline: string;
+  /** Short operating narrative for the EA rail. */
+  narrative?: string;
   priorities: string[];
   sections: DailyBriefSection[];
   insights: ExecutiveInsight[];

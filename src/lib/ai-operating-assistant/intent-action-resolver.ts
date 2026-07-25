@@ -120,7 +120,7 @@ export function hasExplicitWriteIntent(message: string): boolean {
     return false;
   }
 
-  return /\b(create|add|register|archive|restore|activate|assign|appoint|merge|combine|update|change|edit|amend|delete|remove|onboard|set\s*up|setup|start|launch|signed|signing|we(?:'ve| have)?\s+(?:just\s+)?signed|just\s+signed|move|reschedule|mark|qualify|chase|approve|reject|cancel|book|reserve|switch|confirm|write\s*off|schedule|send|convert|close|tag|record|enrol|enroll|publish|retire|deactivate|revoke|connect|wire|remit|transfer\s+(?:funds|money|£|\$|€))\b/i.test(
+  return /\b(create|add|register|archive|restore|activate|assign|appoint|merge|combine|update|change|edit|amend|delete|remove|onboard|set\s*up|setup|start|launch|signed|signing|we(?:'ve| have)?\s+(?:just\s+)?signed|just\s+signed|move|reschedule|mark|qualify|chase|approve|reject|cancel|book|reserve|switch|confirm|write\s*off|schedule|send|convert|close|tag|record|log|enrol|enroll|publish|retire|deactivate|revoke|connect|wire|remit|transfer\s+(?:funds|money|£|\$|€))\b/i.test(
     lower,
   );
 }

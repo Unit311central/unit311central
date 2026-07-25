@@ -386,9 +386,29 @@ export async function analysePlatformInsights(
             dataSources: ["supabase:invoices"],
             relatedWorkflowId: "chase_overdue_invoice",
             recommendedActions: actions(
-              nav("/internaldashboard?view=financials", "Open Finance"),
-              nav("/internaldashboard?view=debtors", "Open Debtors"),
-              { id: "email_accounts", label: "Email Accounts Contact", kind: "email" },
+              {
+                id: `chase_${invoice.id}`,
+                label: `Chase ${invoice.invoiceNumber}`,
+                kind: "confirm_action",
+                actionId: "finance.chaseOverdueInvoice",
+                input: {
+                  invoiceId: invoice.id,
+                  invoiceNumber: invoice.invoiceNumber,
+                  clientName: invoice.clientName ?? undefined,
+                },
+                requiresConfirmation: true,
+              },
+              {
+                id: `meet_${invoice.id}`,
+                label: "Schedule payment follow-up",
+                kind: "generate",
+                actionId: "calendar.scheduleMeeting",
+                input: {
+                  clientName: invoice.clientName ?? undefined,
+                  title: `Payment follow-up · ${invoice.invoiceNumber}`,
+                },
+              },
+              nav("/internaldashboard?view=accounts-receivable", "Open AR"),
             ),
           }),
         );

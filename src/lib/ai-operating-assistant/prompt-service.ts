@@ -43,6 +43,7 @@ export function buildSystemInstructions(
     activeArtifact?: Record<string, unknown> | null;
     topicHint?: string;
     activeClient?: Record<string, unknown> | null;
+    operatorMemoryLine?: string | null;
   },
 ) {
   const selection = describeSelection(context.selection);
@@ -54,6 +55,9 @@ export function buildSystemInstructions(
     : "";
   const topicBlock = options?.topicHint
     ? `\nConversation topic hint: ${options.topicHint}`
+    : "";
+  const memoryBlock = options?.operatorMemoryLine
+    ? `\nOperator memory (recent approvals — do not re-ask unless they want a change):\n${options.operatorMemoryLine}`
     : "";
 
   return `${CORE_INSTRUCTIONS}
@@ -84,10 +88,11 @@ ${JSON.stringify(
     2,
   )}
 
-Active selection: ${selection || "none"}${topicBlock}${artifactBlock}${clientBlock}
+Active selection: ${selection || "none"}${topicBlock}${memoryBlock}${artifactBlock}${clientBlock}
 
 Platform: listPlatformModules / searchApplications.
 Capabilities: listBusinessActions / searchCapabilities / proposeBusinessActionPlan.
+Finance writes: finance.createExpense, finance.chaseOverdueInvoice (then calendar.scheduleMeeting for follow-up).
 Business facts: queryBusiness / getSmartInsights / search* tools. Prefer executing registered capabilities over describing screens when the user wants work done.`;
 }
 

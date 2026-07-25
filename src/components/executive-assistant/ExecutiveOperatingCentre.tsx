@@ -1,32 +1,43 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { ChevronRight, Loader2, Pin } from "lucide-react";
+import { ChevronRight, Loader2, Pin, Zap } from "lucide-react";
 
 import ExecutiveAssistantPanel from "@/components/executive-assistant/ExecutiveAssistantPanel";
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
+import type { AssistantFollowUpAction } from "@/lib/ai-operating-assistant/tool-result";
 import { cn } from "@/lib/utils";
 
 type ProactiveBundle = {
   brief?: {
     greeting?: string;
+    headline?: string;
     narrative?: string;
+    priorities?: string[];
+    followUpActions?: AssistantFollowUpAction[];
   } | null;
 };
 
 const QUICK_PROMPTS = [
+  "Chase overdue invoices",
+  "Log an expense of €85 for client lunch",
+  "Schedule a follow-up meeting tomorrow at 10am",
   "Review today's priorities",
-  "Summarise the business",
+  "Summarise cash and AR",
   "What changed overnight?",
-  "Review cashflow",
-  "Show project risks",
-  "Prepare for my next meeting",
-  "Generate board report",
 ] as const;
 
 const PINNED_CONVERSATIONS = [
-  { id: "board", title: "Board pack draft", prompt: "Continue our board pack draft — what decisions are still open?" },
-  { id: "cash", title: "Cash & AR review", prompt: "Continue our cash and AR review — what needs a decision today?" },
+  {
+    id: "ar",
+    title: "AR chase queue",
+    prompt: "Show overdue invoices and chase the highest-priority one.",
+  },
+  {
+    id: "cash",
+    title: "Cash & expenses",
+    prompt: "Review recent expenses and help me log any outstanding claims.",
+  },
 ] as const;
 
 function cardClass(className?: string) {
@@ -53,11 +64,35 @@ function resolveGreeting(raw?: string | null) {
   return "Good morning.";
 }
 
+function promptForAction(action: AssistantFollowUpAction): string {
+  if (action.actionId === "finance.chaseOverdueInvoice") {
+    const invoiceNumber =
+      typeof action.input?.invoiceNumber === "string" ? action.input.invoiceNumber : null;
+    const clientName =
+      typeof action.input?.clientName === "string" ? action.input.clientName : null;
+    if (invoiceNumber) return `Chase overdue invoice ${invoiceNumber}`;
+    if (clientName) return `Chase the overdue invoice for ${clientName}`;
+    return "Chase the highest-priority overdue invoice";
+  }
+  if (action.actionId === "finance.createExpense") {
+    return "Log an expense — ask me for amount and purpose if needed";
+  }
+  if (action.actionId === "calendar.scheduleMeeting") {
+    const clientName =
+      typeof action.input?.clientName === "string" ? action.input.clientName : null;
+    return clientName
+      ? `Schedule a follow-up meeting with ${clientName} next Tuesday at 10am`
+      : "Schedule a follow-up meeting next Tuesday at 10am";
+  }
+  return action.label;
+}
+
 /**
  * Conversation-first Executive Assistant — calm workspace for decisions, not a second dashboard.
  */
 export default function ExecutiveOperatingCentre() {
   const [seedPrompt, setSeedPrompt] = useState<string | null>(null);
+  const [seedAction, setSeedAction] = useState<AssistantFollowUpAction | null>(null);
   const [proactive, setProactive] = useState<ProactiveBundle | null>(null);
   const [proactiveLoading, setProactiveLoading] = useState(true);
   const { roleView } = useOperatorEntitlements();
@@ -86,17 +121,29 @@ export default function ExecutiveOperatingCentre() {
   }, []);
 
   const sendPrompt = useCallback((text: string) => {
+    setSeedAction(null);
     setSeedPrompt(text);
+  }, []);
+
+  const runDoIt = useCallback((action: AssistantFollowUpAction) => {
+    if (action.kind === "confirm_action" && action.actionId) {
+      setSeedPrompt(null);
+      setSeedAction(action);
+      return;
+    }
+    setSeedAction(null);
+    setSeedPrompt(promptForAction(action));
   }, []);
 
   const greeting = resolveGreeting(proactive?.brief?.greeting);
   const narrative =
     proactive?.brief?.narrative ||
+    proactive?.brief?.headline ||
     "A short brief of what matters today is ready when you need it.";
+  const doItCards = (proactive?.brief?.followUpActions ?? []).slice(0, 4);
 
   return (
     <div className="flex h-[calc(100dvh-7.5rem)] min-h-[36rem] w-full min-w-0 gap-3 xl:gap-4">
-      {/* LEFT RAIL — conversation starters only */}
       <aside className="hidden w-[15.5rem] shrink-0 flex-col gap-3 overflow-y-auto lg:flex xl:w-[16.5rem]">
         <section className={cardClass()}>
           <SectionLabel>Today&apos;s Brief</SectionLabel>
@@ -105,12 +152,38 @@ export default function ExecutiveOperatingCentre() {
           </p>
           <button
             type="button"
-            onClick={() => sendPrompt("Summarise today's business and tell me what to do next.")}
+            onClick={() =>
+              sendPrompt("Summarise today's business and tell me what to do next.")
+            }
             className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-[color:var(--platform-accent,#60a5fa)] hover:underline"
           >
             Discuss this brief
             <ChevronRight className="h-3 w-3" />
           </button>
+        </section>
+
+        <section className={cardClass()}>
+          <SectionLabel>Do it</SectionLabel>
+          {proactiveLoading ? (
+            <p className="text-[12px] text-white/45">Loading actions…</p>
+          ) : doItCards.length === 0 ? (
+            <p className="text-[12px] text-white/45">No actions queued.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {doItCards.map((action) => (
+                <li key={action.id}>
+                  <button
+                    type="button"
+                    onClick={() => runDoIt(action)}
+                    className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left text-[12px] text-white/75 transition-colors hover:bg-white/[0.04] hover:text-white"
+                  >
+                    <Zap className="h-3.5 w-3.5 shrink-0 text-[color:var(--platform-accent,#60a5fa)]" />
+                    <span className="truncate">{action.label}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className={cardClass()}>
@@ -153,8 +226,7 @@ export default function ExecutiveOperatingCentre() {
         </section>
       </aside>
 
-      {/* CENTRE — greeting + conversation (tight, no empty gap) */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="mb-1.5 shrink-0 px-0.5">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold tracking-tight text-white sm:text-xl">
@@ -175,7 +247,11 @@ export default function ExecutiveOperatingCentre() {
             hideSidebar
             embedded
             seedPrompt={seedPrompt}
-            onSeedConsumed={() => setSeedPrompt(null)}
+            seedAction={seedAction}
+            onSeedConsumed={() => {
+              setSeedPrompt(null);
+              setSeedAction(null);
+            }}
             className="h-full min-h-0 rounded-none border-0"
           />
         </div>

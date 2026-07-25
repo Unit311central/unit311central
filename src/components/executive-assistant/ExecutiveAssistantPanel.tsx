@@ -72,6 +72,8 @@ export type ExecutiveAssistantPanelProps = {
   embedded?: boolean;
   /** External prompt to send once (quick prompts / suggested actions). */
   seedPrompt?: string | null;
+  /** External Do-it action (propose plan / generate) consumed once. */
+  seedAction?: AssistantFollowUpAction | null;
   onSeedConsumed?: () => void;
 };
 
@@ -186,6 +188,7 @@ export default function ExecutiveAssistantPanel({
   hideSidebar = false,
   embedded = false,
   seedPrompt = null,
+  seedAction = null,
   onSeedConsumed,
 }: ExecutiveAssistantPanelProps) {
   const [message, setMessage] = useState("");
@@ -508,28 +511,68 @@ export default function ExecutiveAssistantPanel({
     }
 
     if (action.kind === "confirm_action" && action.actionId) {
-      // Single path only: load Action Framework plan into Plan Viewer.
-      // Never open a second Confirm UI; never call executeConfirmedAction.
-      if (!action.actionId.startsWith("plan_")) {
-        showNotice("Open the Plan Viewer and Approve to execute this action.");
+      // Load an existing plan, or propose one from a registered action id + input.
+      if (action.actionId.startsWith("plan_")) {
+        void (async () => {
+          try {
+            const response = await fetch(
+              `/api/executive-assistant/actions/plans/${action.actionId}`,
+              { cache: "no-store" },
+            );
+            if (!response.ok) throw new Error("Could not load action plan");
+            const data = (await response.json()) as {
+              confirmation?: ActionConfirmationView;
+            };
+            if (data.confirmation) {
+              setActionConfirmation(data.confirmation);
+              setPlanViewer(actionConfirmationToPlanViewer(data.confirmation));
+            }
+          } catch (error) {
+            showNotice(error instanceof Error ? error.message : "Could not load plan");
+          }
+        })();
         return;
       }
+
       void (async () => {
         try {
-          const response = await fetch(
-            `/api/executive-assistant/actions/plans/${action.actionId}`,
-            { cache: "no-store" },
-          );
-          if (!response.ok) throw new Error("Could not load action plan");
+          const response = await fetch("/api/executive-assistant/actions/plans", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: action.label,
+              request: action.label,
+              activeView,
+              roleView,
+              steps: [
+                {
+                  actionId: action.actionId,
+                  input: action.input ?? {},
+                },
+              ],
+            }),
+          });
+          if (!response.ok) {
+            const err = (await response.json().catch(() => null)) as {
+              error?: string;
+            } | null;
+            throw new Error(err?.error || "Could not propose action plan");
+          }
           const data = (await response.json()) as {
             confirmation?: ActionConfirmationView;
+            blocked?: boolean;
+            blockReason?: string | null;
           };
+          if (data.blocked) {
+            showNotice(data.blockReason || "That action is blocked for your role.");
+            return;
+          }
           if (data.confirmation) {
             setActionConfirmation(data.confirmation);
             setPlanViewer(actionConfirmationToPlanViewer(data.confirmation));
           }
         } catch (error) {
-          showNotice(error instanceof Error ? error.message : "Could not load plan");
+          showNotice(error instanceof Error ? error.message : "Could not propose plan");
         }
       })();
       return;
@@ -801,6 +844,15 @@ export default function ExecutiveAssistantPanel({
     onSeedConsumed?.();
     void handleSendRef.current(undefined, text);
   }, [seedPrompt, onSeedConsumed]);
+
+  useEffect(() => {
+    if (!seedAction) return;
+    const action = seedAction;
+    onSeedConsumed?.();
+    void runFollowUp(action);
+    // Intentionally only when seedAction identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedAction]);
 
   function renderArtifacts(artifacts: AssistantMessageArtifact[] | undefined) {
     if (!artifacts?.length) return null;

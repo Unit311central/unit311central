@@ -6,6 +6,7 @@
 import { registerCalendarActions } from "./modules/calendar/register";
 import { registerClientsActions } from "./modules/clients/register";
 import { registerCrmActions } from "./modules/crm/register";
+import { registerFinanceActions } from "./modules/finance/register";
 import { registerProjectsActions } from "./modules/projects/register";
 import { validateRegisteredActionCapabilities } from "./capability-validation";
 import { buildCapabilityGraph, invalidateCapabilityGraph } from "./capability-service";
@@ -17,6 +18,7 @@ export function registerAllActionModules() {
   registerProjectsActions();
   registerCrmActions();
   registerCalendarActions();
+  registerFinanceActions();
 
   if (!bootstrapped) {
     validateRegisteredActionCapabilities({

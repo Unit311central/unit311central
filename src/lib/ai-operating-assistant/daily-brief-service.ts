@@ -195,32 +195,73 @@ export async function buildDailyExecutiveBrief(
     .slice(0, 4)
     .map((workflow) => workflow.id);
 
+  const financeDoIts: DailyExecutiveBrief["followUpActions"] = [];
+  if (context.permissions.canAccessFinancials) {
+    const invoiceLoad = await loadLiveInvoices();
+    if (invoiceLoad.ok) {
+      for (const invoice of invoiceLoad.overdue.slice(0, 3)) {
+        financeDoIts.push({
+          id: `chase_${invoice.id}`,
+          label: `Chase ${invoice.invoiceNumber}`,
+          kind: "confirm_action",
+          actionId: "finance.chaseOverdueInvoice",
+          input: {
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            clientName: invoice.clientName ?? undefined,
+          },
+          requiresConfirmation: true,
+        });
+      }
+    }
+    financeDoIts.push({
+      id: "log_expense",
+      label: "Log an expense",
+      kind: "generate",
+      actionId: "finance.createExpense",
+    });
+    financeDoIts.push({
+      id: "schedule_followup",
+      label: "Schedule a follow-up meeting",
+      kind: "generate",
+      actionId: "calendar.scheduleMeeting",
+    });
+  }
+
   const firstName = context.user.displayName.trim().split(/\s+/)[0] || "there";
   const attentionCount = priorities.length + criticalInsights.length;
+  const overdueInvoiceCount = financeDoIts.filter((a) =>
+    a.actionId === "finance.chaseOverdueInvoice",
+  ).length;
 
   return {
     id: `brief_${briefDateKey()}_${context.user.id}`,
     dateKey: briefDateKey(),
-    greeting: firstName,
+    greeting: `Good morning, ${firstName}.`,
     headline:
       attentionCount > 0
         ? `Today’s operating picture · ${focus.label}`
         : `All clear for now · ${focus.label}`,
+    narrative:
+      overdueInvoiceCount > 0
+        ? `${overdueInvoiceCount} overdue invoice${overdueInvoiceCount === 1 ? "" : "s"} need chasing. Pick a Do-it card to act.`
+        : priorities[0]
+          ? `${priorities[0]} Start with a Do-it card or ask me to handle it.`
+          : `No critical finance blockers. Ask me to log an expense or schedule a follow-up.`,
     priorities,
     sections,
     insights: insights.slice(0, 12),
     recommendedWorkflows: workflows,
     followUpActions: [
-      {
-        id: "tour_home",
-        label: "Show Me Around",
-        kind: "navigate",
-        href: "guided://start_tour?view=home",
-      },
+      ...financeDoIts,
       ...insights
         .slice(0, 2)
-        .flatMap((entry) => entry.recommendedActions.slice(0, 1)),
-    ],
+        .flatMap((entry) => entry.recommendedActions.slice(0, 1))
+        .filter(
+          (action) =>
+            !financeDoIts.some((existing) => existing.id === action.id),
+        ),
+    ].slice(0, 6),
     dataGaps,
     generatedAt: new Date().toISOString(),
   };

@@ -1,3 +1,4 @@
+export * from "./operator-memory";
 export * from "./operator-entitlements";
 export * from "./types";
 export * from "./openai-client";
