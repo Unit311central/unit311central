@@ -6,6 +6,11 @@ import {
 import type { CalendarWorkspaceScope } from "@/lib/calendar-workspace";
 import type { AssistantActionDefinition } from "../../types";
 import type { AssistantBusinessContext } from "../../../types";
+import {
+  defaultMeetingTitle,
+  enrichScheduleMeetingInput,
+  parseNaturalWhen,
+} from "./natural-when";
 
 function asTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -16,11 +21,7 @@ function calendarScope(business: AssistantBusinessContext): CalendarWorkspaceSco
 }
 
 function parseWhen(raw: string): string | null {
-  const value = raw.trim();
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
+  return parseNaturalWhen(raw);
 }
 
 export const scheduleMeetingAction: AssistantActionDefinition = {
@@ -42,7 +43,7 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
       location: { type: "string" },
       notes: { type: "string" },
     },
-    required: ["title", "startsAt"],
+    required: ["startsAt"],
   },
   capability: {
     id: "calendar.scheduleMeeting",
@@ -51,6 +52,7 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
       "Schedule a demo for Peak Infrastructure next Tuesday",
       "Book a performance check-in with the ops lead",
       "Schedule a discovery meeting Friday at 10am",
+      "Schedule a meeting with Manpower next Tuesday at 10",
     ],
     semanticAliases: [
       "schedule",
@@ -63,10 +65,10 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
       "checkin",
     ],
     entityExtraction: {
-      primaryNameFields: ["title", "clientName"],
+      primaryNameFields: ["clientName"],
       fields: [
-        { field: "title", from: "named_entity" },
         { field: "clientName", from: "named_entity" },
+        { field: "location", from: "location" },
       ],
     },
     confirmationPolicy: "always",
@@ -87,13 +89,12 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
       if (!ctx.business.user.id) {
         return { ok: false, errors: ["Authentication required."], warnings: [] };
       }
-      const title = asTrimmedString(input.title);
-      const startsAt = parseWhen(asTrimmedString(input.startsAt));
-      if (!title) return { ok: false, errors: ["Meeting title is required."], warnings: [] };
+      const enriched = enrichScheduleMeetingInput("", input);
+      const startsAt = parseWhen(asTrimmedString(enriched.startsAt));
       if (!startsAt) {
         return {
           ok: false,
-          errors: ["Provide a valid start time (ISO datetime)."],
+          errors: ["Provide a start time (e.g. next Tuesday at 10am)."],
           warnings: [],
         };
       }
@@ -101,8 +102,15 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
     },
 
     async preview(input) {
-      const title = asTrimmedString(input.title) || "Meeting";
-      const startsAt = asTrimmedString(input.startsAt) || "(time TBC)";
+      const enriched = enrichScheduleMeetingInput("", input);
+      const title = defaultMeetingTitle(
+        asTrimmedString(enriched.clientName),
+        asTrimmedString(enriched.title),
+      );
+      const startsAt =
+        parseWhen(asTrimmedString(enriched.startsAt)) ||
+        asTrimmedString(enriched.startsAt) ||
+        "(time TBC)";
       return {
         summary: `Schedule “${title}” at ${startsAt}`,
         affectedRecords: [{ type: "calendar_event", id: "new", label: title, change: "Create" }],
@@ -112,12 +120,16 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
     },
 
     async execute(input, ctx) {
-      const title = asTrimmedString(input.title);
-      const startsAt = parseWhen(asTrimmedString(input.startsAt));
-      if (!title || !startsAt) {
-        return { ok: false, message: "Title and start time are required." };
+      const enriched = enrichScheduleMeetingInput("", input);
+      const title = defaultMeetingTitle(
+        asTrimmedString(enriched.clientName),
+        asTrimmedString(enriched.title),
+      );
+      const startsAt = parseWhen(asTrimmedString(enriched.startsAt));
+      if (!startsAt) {
+        return { ok: false, message: "A valid start time is required." };
       }
-      let endsAt = parseWhen(asTrimmedString(input.endsAt));
+      let endsAt = parseWhen(asTrimmedString(enriched.endsAt));
       if (!endsAt) {
         endsAt = new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
       }
@@ -126,9 +138,9 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
           title,
           startsAt,
           endsAt,
-          clientName: asTrimmedString(input.clientName) || undefined,
-          location: asTrimmedString(input.location) || undefined,
-          notes: asTrimmedString(input.notes) || undefined,
+          clientName: asTrimmedString(enriched.clientName) || undefined,
+          location: asTrimmedString(enriched.location) || undefined,
+          notes: asTrimmedString(enriched.notes) || undefined,
           eventType: "meeting",
         },
         calendarScope(ctx.business),

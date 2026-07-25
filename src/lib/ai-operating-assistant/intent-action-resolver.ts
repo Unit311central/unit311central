@@ -184,6 +184,17 @@ function extractNamedEntity(message: string): string | null {
   const quoted = extractQuoted(text);
   if (isUsableNamedEntity(quoted)) return quoted;
 
+  // "meeting with Manpower" / "demo for Peak Infrastructure"
+  const withFor = text.match(
+    /\b(?:with|for)\s+([A-Z][A-Za-z0-9&'.-]+(?:\s+[A-Z][A-Za-z0-9&'.-]+){0,5}(?:\s+(?:Ltd|Limited|LLC|Inc|PLC|LLP))?)/,
+  );
+  if (withFor?.[1]) {
+    const cleaned = stripLocationSuffix(
+      withFor[1].replace(/\s+(?:next|on|at|tomorrow|today)\b.*$/i, "").trim(),
+    );
+    if (isUsableNamedEntity(cleaned)) return cleaned;
+  }
+
   const patterns = [
     /(?:called|named|titled)\s+(.+?)(?:\s+in\s+[A-Za-z].*)?(?:\.|$)/i,
     /(?:signed|signing)\s+(.+?)(?:\s+in\s+[A-Za-z].*)?(?:\.|$)/i,
@@ -205,11 +216,12 @@ function extractNamedEntity(message: string): string | null {
     }
   }
 
-  const caps = text.match(
-    /\b([A-Z][A-Za-z0-9&'.-]+(?:\s+[A-Z][A-Za-z0-9&'.-]+){0,5}(?:\s+(?:Ltd|Limited|LLC|Inc|PLC|LLP))?)\b/,
-  );
-  if (caps?.[1] && isUsableNamedEntity(caps[1])) {
-    return stripLocationSuffix(caps[1]);
+  // Skip verb-like capitals ("Schedule", "Create") and take the first usable name.
+  const capsRe =
+    /\b([A-Z][A-Za-z0-9&'.-]+(?:\s+[A-Z][A-Za-z0-9&'.-]+){0,5}(?:\s+(?:Ltd|Limited|LLC|Inc|PLC|LLP))?)\b/g;
+  for (const caps of text.matchAll(capsRe)) {
+    const candidate = caps[1] ? stripLocationSuffix(caps[1]) : null;
+    if (isUsableNamedEntity(candidate)) return candidate;
   }
   return null;
 }
@@ -520,6 +532,10 @@ function valueForExtraction(
   }
 }
 
+function isBlankInputValue(value: unknown): boolean {
+  return value == null || (typeof value === "string" && !value.trim());
+}
+
 function buildInputForAction(
   message: string,
   actionId: string,
@@ -535,20 +551,25 @@ function buildInputForAction(
       ? ((schema as { properties?: Record<string, unknown> }).properties ?? {})
       : {};
 
+  // Treat empty strings from the model as unset so extraction can fill them.
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === "string" && !value.trim()) delete input[key];
+  }
+
   const extraction = definition.capability.entityExtraction;
   const primaryFields = extraction?.primaryNameFields ?? [];
   const named = extractNamedEntity(message);
 
   if (named) {
     for (const field of primaryFields) {
-      if (field in props && input[field] == null) {
+      if (field in props && isBlankInputValue(input[field])) {
         input[field] = named;
       }
     }
   }
 
   for (const rule of extraction?.fields ?? []) {
-    if (!(rule.field in props) || input[rule.field] != null) continue;
+    if (!(rule.field in props) || !isBlankInputValue(input[rule.field])) continue;
     const value = valueForExtraction(rule.from, message);
     if (value) input[rule.field] = value;
   }
@@ -565,21 +586,15 @@ function missingRequired(
   const required = requiredFieldsFromSchema(definition);
   return required.filter((field) => {
     const value = input[field];
-    if (value != null && !(typeof value === "string" && !value.trim())) return false;
+    if (!isBlankInputValue(value)) return false;
     // Accept alternate primary name fields from capability.
     const primaries = definition.capability.entityExtraction?.primaryNameFields ?? [];
     if (primaries.includes(field)) {
-      const filled = primaries.some((alt) => {
-        const altVal = input[alt];
-        return altVal != null && !(typeof altVal === "string" && !altVal.trim());
-      });
+      const filled = primaries.some((alt) => !isBlankInputValue(input[alt]));
       if (filled) {
         // Promote first filled primary into the required field.
-        if (input[field] == null) {
-          const donor = primaries.find((alt) => {
-            const altVal = input[alt];
-            return altVal != null && !(typeof altVal === "string" && !altVal.trim());
-          });
+        if (isBlankInputValue(input[field])) {
+          const donor = primaries.find((alt) => !isBlankInputValue(input[alt]));
           if (donor) input[field] = input[donor];
         }
         return false;
@@ -592,9 +607,15 @@ function missingRequired(
 function questionForMissing(actionId: string, missing: string[]): string {
   const definition = getAssistantAction(actionId);
   const name = definition?.name ?? actionId;
-  const object = definition?.capability.businessObject ?? "record";
+  if (missing.includes("startsAt") || missing.includes("endsAt")) {
+    return `I can ${name.toLowerCase()} — when should it be? (e.g. next Tuesday at 10am)`;
+  }
   const primary = definition?.capability.entityExtraction?.primaryNameFields?.[0];
   if (primary && missing.includes(primary)) {
+    if (actionId.startsWith("calendar.")) {
+      return `I can ${name.toLowerCase()} — who is it with?`;
+    }
+    const object = definition?.capability.businessObject ?? "record";
     return `I can ${name.toLowerCase()} — what is the ${object.toLowerCase()} name?`;
   }
   const labels = missing.map((field) =>
@@ -777,6 +798,24 @@ export async function resolveBusinessActionIntent(
 
   let input = buildInputForAction(text, chosen.actionId, chosen.input);
   input = applyConversationMemory(chosen.actionId, input, memory, text);
+
+  // Calendar schedule: resolve "with Manpower next Tuesday at 10a" → title/client/ISO times.
+  if (chosen.actionId === "calendar.scheduleMeeting") {
+    const { enrichScheduleMeetingInput } = await import(
+      "./actions/modules/calendar/natural-when"
+    );
+    input = enrichScheduleMeetingInput(text, input);
+  } else if (chosen.actionId === "calendar.rescheduleMeeting") {
+    const { extractWhenPhrase, parseNaturalWhen } = await import(
+      "./actions/modules/calendar/natural-when"
+    );
+    const whenPhrase =
+      (typeof input.startsAt === "string" && input.startsAt.trim()) ||
+      extractWhenPhrase(text) ||
+      "";
+    const parsed = parseNaturalWhen(whenPhrase);
+    if (parsed) input.startsAt = parsed;
+  }
 
   // Explicit clientId / companyName tokens from follow-up prompts.
   const idToken = text.match(/\bclientId\s+([0-9a-f-]{8,}|\w[\w-]{6,})\b/i);

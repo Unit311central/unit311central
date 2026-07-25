@@ -410,7 +410,7 @@ function detectUnknownTopics(message: string, metrics: ScopedPdfMetricId[]): str
 
   const segments = protectedBody
     .split(/\s*,\s*|\s+and\s+/i)
-    .map((s) => s.replace(/[?.!]+$/g, "").trim())
+    .map((s) => s.replace(/[?.!*]+$/g, "").trim())
     .filter(Boolean);
 
   const knownIds = new Set(SCOPED_PDF_METRICS.map((m) => m.id));
