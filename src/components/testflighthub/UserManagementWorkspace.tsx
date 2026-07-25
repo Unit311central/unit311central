@@ -620,14 +620,6 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <FieldLabel>License / Certification</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedUser.licenseId}
-                      onChange={(event) => patchSelected({ licenseId: event.target.value })}
-                    />
-                  </div>
                   <div className="sm:col-span-2">
                     <FieldLabel>Notes</FieldLabel>
                     <textarea
