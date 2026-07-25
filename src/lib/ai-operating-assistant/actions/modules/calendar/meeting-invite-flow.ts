@@ -14,7 +14,7 @@ import {
 } from "@/lib/internal-calendar-service";
 import type { CalendarWorkspaceScope } from "@/lib/calendar-workspace";
 import type { CalendarEvent } from "@/lib/calendar-data";
-import type { AssistantBusinessContext, AssistantChatMessage } from "../../types";
+import type { AssistantBusinessContext, AssistantChatMessage } from "../../../types";
 
 export const AWAITING_ATTENDEES_MARKER = "AWAITING_ATTENDEES";
 
