@@ -97,14 +97,14 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   "MOD-073": "Ready",
   "MOD-074": "Ready",
   "MOD-201": "Ready",
-  /** Company Details live; other Corporate registers are Demo. */
+  /** Corporate Information — full corporate nav treated as live for operators. */
   "MOD-080": "Ready",
   "MOD-081": "Ready",
-  "MOD-082": "Needs Work",
-  "MOD-083": "Needs Work",
-  "MOD-084": "Needs Work",
+  "MOD-082": "Ready",
+  "MOD-083": "Ready",
+  "MOD-084": "Ready",
   "MOD-085": "Ready",
-  "MOD-086": "Needs Work",
+  "MOD-086": "Ready",
   "MOD-087": "Ready",
   /** Inventory / Assets still Demo stores. */
   "MOD-090": "Needs Work",

@@ -374,15 +374,6 @@ export function normalizeInternalOperationsView(value: string | null): InternalO
 
 /** Views that use non-durable mock/seed data — show Demo badge + banner. */
 export const DEMO_OPERATIONS_VIEWS: ReadonlySet<InternalOperationsView> = new Set([
-  "hr-recruitment",
-  "hr-leave",
-  "hr-performance",
-  "hr-reports",
-  "corporate-cap-table",
-  "office-locations",
-  "corporate-bank-accounts",
-  "corporate-advisers",
-  "corporate-contracts",
   "assets",
   "inventory-management",
   "procurement",
@@ -563,32 +554,27 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         label: "Cap Table Management",
         icon: "Layers",
         view: "corporate-cap-table" as const,
-        badge: "demo" as const,
       },
       { label: "Company Details", icon: "Building2", view: "corporate-company-details" as const },
       {
         label: "Office Locations",
         icon: "MapPin",
         view: "office-locations" as const,
-        badge: "demo" as const,
       },
       {
         label: "Bank Accounts",
         icon: "Landmark",
         view: "corporate-bank-accounts" as const,
-        badge: "demo" as const,
       },
       {
         label: "Professional Advisors",
         icon: "Handshake",
         view: "corporate-advisers" as const,
-        badge: "demo" as const,
       },
       {
         label: "Contracts",
         icon: "ScrollText",
         view: "corporate-contracts" as const,
-        badge: "demo" as const,
       },
       {
         label: "Unit311 Details",
