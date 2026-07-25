@@ -21,6 +21,9 @@ export type ChatMessage = {
   attachmentMime: string | null;
   callLink: string | null;
   createdAt: string;
+  deletedAt: string | null;
+  archivedAt: string | null;
+  saved?: boolean;
 };
 
 export type MessagingParticipant = {
@@ -72,6 +75,8 @@ type DbMessage = {
   attachment_mime?: string | null;
   call_link?: string | null;
   created_at: string;
+  deleted_at?: string | null;
+  archived_at?: string | null;
 };
 
 type DbChannel = {
@@ -128,6 +133,8 @@ export function mapChatMessage(row: DbMessage): ChatMessage {
     attachmentMime: row.attachment_mime ?? null,
     callLink: row.call_link ?? null,
     createdAt: row.created_at,
+    deletedAt: row.deleted_at ?? null,
+    archivedAt: row.archived_at ?? null,
   };
 }
 

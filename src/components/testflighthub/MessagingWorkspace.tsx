@@ -33,6 +33,9 @@ import {
 import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import {
+  Archive,
+  Bookmark,
+  BookmarkCheck,
   CalendarClock,
   FolderOpen,
   Hash,
@@ -50,6 +53,8 @@ import {
   Video,
   X,
 } from "lucide-react";
+
+type MessageFeedView = "active" | "archived" | "saved";
 
 type MessagingWorkspaceProps = {
   users?: ManagedUser[];
@@ -293,6 +298,8 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
   const [scheduleCallType, setScheduleCallType] = useState<"voice" | "video">("video");
   const [scheduling, setScheduling] = useState(false);
   const [deletingChannelId, setDeletingChannelId] = useState<string | null>(null);
+  const [messageView, setMessageView] = useState<MessageFeedView>("active");
+  const [messageActionId, setMessageActionId] = useState<string | null>(null);
   const { showDetail: showChat, openDetail: openChat, closeDetail: closeChat } = useMobileDetailPanel();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -387,14 +394,80 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
     );
   }, []);
 
-  const loadMessages = useCallback(async (room: string) => {
-    const response = await fetch(`/api/messaging/messages?room=${encodeURIComponent(room)}`, {
-      cache: "no-store",
-    });
-    const data = await readApiJson<{ messages?: ChatMessage[]; error?: string }>(response);
-    if (!response.ok) throw new Error(data.error ?? "Failed to load messages");
-    setMessages(data.messages ?? []);
-  }, []);
+  const loadMessages = useCallback(
+    async (room: string, view: MessageFeedView = messageView, operatorId?: string | null) => {
+      const params = new URLSearchParams({ room, view });
+      const viewer = operatorId ?? joinedOperatorId;
+      if (viewer) params.set("operatorId", viewer);
+      const response = await fetch(`/api/messaging/messages?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const data = await readApiJson<{ messages?: ChatMessage[]; error?: string }>(response);
+      if (!response.ok) throw new Error(data.error ?? "Failed to load messages");
+      setMessages(data.messages ?? []);
+    },
+    [joinedOperatorId, messageView],
+  );
+
+  async function handleMessageAction(
+    message: ChatMessage,
+    action: "delete" | "archive" | "unarchive" | "save" | "unsave",
+  ) {
+    if (!joinedOperatorId && (action === "save" || action === "unsave")) {
+      setError("Join Messaging before saving messages.");
+      return;
+    }
+    setMessageActionId(message.id);
+    setError(null);
+    try {
+      const response = await fetch("/api/messaging/messages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          messageId: message.id,
+          operatorId: joinedOperatorId ?? undefined,
+        }),
+      });
+      const data = await readApiJson<{ error?: string }>(response);
+      if (!response.ok) throw new Error(data.error ?? "Failed to update message");
+
+      if (action === "delete") {
+        setMessages((current) => current.filter((item) => item.id !== message.id));
+      } else if (action === "archive" || action === "unarchive") {
+        if (messageView === "active" && action === "archive") {
+          setMessages((current) => current.filter((item) => item.id !== message.id));
+        } else if (messageView === "archived" && action === "unarchive") {
+          setMessages((current) => current.filter((item) => item.id !== message.id));
+        } else {
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === message.id
+                ? {
+                    ...item,
+                    archivedAt: action === "archive" ? new Date().toISOString() : null,
+                  }
+                : item,
+            ),
+          );
+        }
+      } else if (action === "save" || action === "unsave") {
+        if (messageView === "saved" && action === "unsave") {
+          setMessages((current) => current.filter((item) => item.id !== message.id));
+        } else {
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === message.id ? { ...item, saved: action === "save" } : item,
+            ),
+          );
+        }
+      }
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Failed to update message");
+    } finally {
+      setMessageActionId(null);
+    }
+  }
 
   const loadScheduledCalls = useCallback(async (room: string) => {
     const response = await fetch(
@@ -468,7 +541,6 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
       setError(null);
       try {
         await loadChannels(joinedOperatorId);
-        await loadMessages(activeRoom);
         await loadScheduledCalls(activeRoom);
         if (joinedOperatorId) {
           await markRead(activeRoom, joinedOperatorId);
@@ -488,7 +560,30 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
     return () => {
       cancelled = true;
     };
-  }, [activeRoom, joinedOperatorId, loadChannels, loadMessages, loadScheduledCalls, markRead]);
+  }, [activeRoom, joinedOperatorId, loadChannels, loadScheduledCalls, markRead]);
+
+  useEffect(() => {
+    setMessageView("active");
+  }, [activeRoom]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    startTransition(() => {
+      void loadMessages(activeRoom, messageView)
+        .catch((loadError) => {
+          if (!cancelled) {
+            setError(loadError instanceof Error ? loadError.message : "Failed to load messages");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRoom, loadMessages, messageView]);
 
   useEffect(() => {
     if (!joinedOperatorId) return;
@@ -582,6 +677,9 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
                     attachmentMime: row.attachment_mime ?? null,
                     callLink: row.call_link ?? null,
                     createdAt: row.created_at,
+                    deletedAt: null,
+                    archivedAt: null,
+                    saved: false,
                   },
                 ];
               });
@@ -1674,6 +1772,30 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
             </div>
           </div>
 
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(
+              [
+                { id: "active", label: "Messages" },
+                { id: "saved", label: "Saved" },
+                { id: "archived", label: "Archived" },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setMessageView(tab.id)}
+                className={cn(
+                  "inline-flex h-8 items-center rounded-lg px-3 text-xs font-semibold transition-colors",
+                  messageView === tab.id
+                    ? "bg-sky-500/20 text-sky-100"
+                    : "text-white/55 hover:bg-white/[0.06] hover:text-white/80",
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           {activeCallLink && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
               <div className="flex items-center gap-2">
@@ -1747,16 +1869,23 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
             <WorkspaceLoadingFallback variant="messages" label="Loading messages" />
           ) : messages.length === 0 ? (
             <div className="flex h-full min-h-[280px] items-center justify-center text-sm text-white/45">
-              No messages yet. Send the first message in this channel.
+              {messageView === "saved"
+                ? "No saved messages yet. Use Save on a message to bookmark it."
+                : messageView === "archived"
+                  ? "No archived messages in this channel."
+                  : "No messages yet. Send the first message in this channel."}
             </div>
           ) : (
             <div className="space-y-3">
               {messages.map((message) => {
                 const isSelf = message.operatorId === joinedOperatorId;
+                const busy = messageActionId === message.id;
+                const isArchived = Boolean(message.archivedAt);
+                const isSaved = Boolean(message.saved);
                 return (
                   <div
                     key={message.id}
-                    className={cn("flex", isSelf ? "justify-end" : "justify-start")}
+                    className={cn("group flex", isSelf ? "justify-end" : "justify-start")}
                   >
                     <div
                       className={cn(
@@ -1774,6 +1903,59 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
                         <p className="text-[10px] text-white/30">
                           {formatMessageTime(message.createdAt)}
                         </p>
+                        <div className="ml-auto flex items-center gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+                          <button
+                            type="button"
+                            disabled={busy || !joinedOperatorId}
+                            title={isSaved ? "Unsave" : "Save"}
+                            onClick={() =>
+                              void handleMessageAction(message, isSaved ? "unsave" : "save")
+                            }
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-white/55 transition-colors hover:bg-white/10 hover:text-amber-200 disabled:opacity-40"
+                          >
+                            {isSaved ? (
+                              <BookmarkCheck className="h-3.5 w-3.5 text-amber-300" />
+                            ) : (
+                              <Bookmark className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            title={isArchived ? "Unarchive" : "Archive"}
+                            onClick={() =>
+                              void handleMessageAction(
+                                message,
+                                isArchived ? "unarchive" : "archive",
+                              )
+                            }
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-white/55 transition-colors hover:bg-white/10 hover:text-sky-200 disabled:opacity-40"
+                          >
+                            <Archive className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            title="Delete"
+                            onClick={() => {
+                              if (
+                                !window.confirm(
+                                  "Delete this message? It will be removed from the channel for everyone.",
+                                )
+                              ) {
+                                return;
+                              }
+                              void handleMessageAction(message, "delete");
+                            }}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-white/55 transition-colors hover:bg-rose-500/20 hover:text-rose-200 disabled:opacity-40"
+                          >
+                            {busy ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <MessageBody
                         message={message}

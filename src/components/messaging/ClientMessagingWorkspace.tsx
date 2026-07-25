@@ -231,6 +231,9 @@ export default function ClientMessagingWorkspace({ onUnreadChange }: ClientMessa
                     attachmentMime: row.attachment_mime ?? null,
                     callLink: row.call_link ?? null,
                     createdAt: row.created_at,
+                    deletedAt: null,
+                    archivedAt: null,
+                    saved: false,
                   },
                 ];
               });

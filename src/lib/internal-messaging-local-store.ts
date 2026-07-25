@@ -33,6 +33,7 @@ function createDefaultChannel(): MessageChannel {
 const channels = new Map<string, MessageChannel>();
 const messagesByRoom = new Map<string, ChatMessage[]>();
 const readState = new Map<string, string>();
+const localSaves = new Set<string>();
 
 channels.set(INTERNAL_MESSAGING_ROOM, createDefaultChannel());
 messagesByRoom.set(INTERNAL_MESSAGING_ROOM, []);
@@ -183,11 +184,36 @@ export function localMarkChannelRead(viewerKey: string, room: string) {
   readState.set(`${viewerKey}:${room}`, nowIso());
 }
 
-export function localListMessages(options?: { room?: string; limit?: number }): ChatMessage[] {
+export function localListMessages(options?: {
+  room?: string;
+  limit?: number;
+  view?: "active" | "archived" | "saved";
+  operatorId?: string;
+}): ChatMessage[] {
   const room = options?.room ?? INTERNAL_MESSAGING_ROOM;
   const limit = Math.min(Math.max(options?.limit ?? 100, 1), 200);
-  const messages = messagesByRoom.get(room) ?? [];
-  return messages.slice(-limit);
+  const view = options?.view ?? "active";
+  const messages = (messagesByRoom.get(room) ?? []).filter((message) => !message.deletedAt);
+
+  if (view === "saved") {
+    const operatorId = options?.operatorId?.trim();
+    if (!operatorId) return [];
+    return messages
+      .filter((message) => localSaves.has(`${operatorId}:${message.id}`))
+      .map((message) => ({ ...message, saved: true }))
+      .slice(-limit);
+  }
+
+  const filtered =
+    view === "archived"
+      ? messages.filter((message) => Boolean(message.archivedAt))
+      : messages.filter((message) => !message.archivedAt);
+
+  const operatorId = options?.operatorId?.trim();
+  return filtered.slice(-limit).map((message) => ({
+    ...message,
+    saved: operatorId ? localSaves.has(`${operatorId}:${message.id}`) : Boolean(message.saved),
+  }));
 }
 
 export function localSendMessage(input: {
@@ -226,12 +252,56 @@ export function localSendMessage(input: {
     attachmentMime: input.attachmentMime ?? null,
     callLink: input.callLink ?? null,
     createdAt: nowIso(),
+    deletedAt: null,
+    archivedAt: null,
+    saved: false,
   };
 
   const roomMessages = messagesByRoom.get(room) ?? [];
   roomMessages.push(message);
   messagesByRoom.set(room, roomMessages);
   return message;
+}
+
+export function localSoftDeleteMessage(messageId: string): ChatMessage {
+  for (const [room, roomMessages] of messagesByRoom.entries()) {
+    const index = roomMessages.findIndex((message) => message.id === messageId);
+    if (index < 0) continue;
+    const updated = { ...roomMessages[index], deletedAt: nowIso() };
+    roomMessages[index] = updated;
+    messagesByRoom.set(room, roomMessages);
+    return updated;
+  }
+  throw new Error("Message not found.");
+}
+
+export function localSetMessageArchived(messageId: string, archived: boolean): ChatMessage {
+  for (const [room, roomMessages] of messagesByRoom.entries()) {
+    const index = roomMessages.findIndex((message) => message.id === messageId);
+    if (index < 0) continue;
+    const updated = {
+      ...roomMessages[index],
+      archivedAt: archived ? nowIso() : null,
+    };
+    roomMessages[index] = updated;
+    messagesByRoom.set(room, roomMessages);
+    return updated;
+  }
+  throw new Error("Message not found.");
+}
+
+export function localSetMessageSaved(input: {
+  messageId: string;
+  operatorId: string;
+  saved: boolean;
+}): { saved: boolean } {
+  const key = `${input.operatorId.trim()}:${input.messageId}`;
+  if (!input.saved) {
+    localSaves.delete(key);
+    return { saved: false };
+  }
+  localSaves.add(key);
+  return { saved: true };
 }
 
 export function localListScheduledCalls() {

@@ -34,6 +34,8 @@ export async function listMessages(
   options?: {
     room?: string;
     limit?: number;
+    view?: "active" | "archived" | "saved";
+    operatorId?: string;
   },
   scope?: MessagingWorkspaceScope,
 ): Promise<ChatMessage[]> {
@@ -41,17 +43,142 @@ export async function listMessages(
   const supabase = requireMessagingSupabase();
   const room = options?.room ?? INTERNAL_MESSAGING_ROOM;
   const limit = Math.min(Math.max(options?.limit ?? 100, 1), 200);
+  const view = options?.view ?? "active";
 
-  const { data, error } = await supabase
+  if (view === "saved") {
+    if (!options?.operatorId?.trim()) {
+      throw new Error("operatorId is required for saved messages.");
+    }
+    const { data: saves, error: savesError } = await supabase
+      .from("internal_message_saves")
+      .select("message_id")
+      .eq("workspace_id", workspaceId)
+      .eq("operator_id", options.operatorId.trim())
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (savesError) throw new Error(savesError.message);
+    const ids = (saves ?? []).map((row) => row.message_id as string).filter(Boolean);
+    if (ids.length === 0) return [];
+
+    const { data, error } = await supabase
+      .from("internal_messages")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("room", room)
+      .in("id", ids)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data as DbMessage[]).map((row) => ({ ...mapChatMessage(row), saved: true }));
+  }
+
+  let query = supabase
     .from("internal_messages")
     .select("*")
     .eq("workspace_id", workspaceId)
     .eq("room", room)
+    .is("deleted_at", null)
     .order("created_at", { ascending: true })
     .limit(limit);
 
+  if (view === "archived") {
+    query = query.not("archived_at", "is", null);
+  } else {
+    query = query.is("archived_at", null);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return (data as DbMessage[]).map(mapChatMessage);
+
+  const messages = (data as DbMessage[]).map(mapChatMessage);
+  if (!options?.operatorId?.trim() || messages.length === 0) return messages;
+
+  const { data: saves } = await supabase
+    .from("internal_message_saves")
+    .select("message_id")
+    .eq("workspace_id", workspaceId)
+    .eq("operator_id", options.operatorId.trim())
+    .in(
+      "message_id",
+      messages.map((message) => message.id),
+    );
+
+  const savedIds = new Set((saves ?? []).map((row) => row.message_id as string));
+  return messages.map((message) => ({
+    ...message,
+    saved: savedIds.has(message.id),
+  }));
+}
+
+export async function softDeleteMessage(
+  messageId: string,
+  scope?: MessagingWorkspaceScope,
+): Promise<ChatMessage> {
+  const workspaceId = await resolveMessagingWorkspaceId(scope);
+  const supabase = requireMessagingSupabase();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("internal_messages")
+    .update({ deleted_at: now })
+    .eq("workspace_id", workspaceId)
+    .eq("id", messageId)
+    .is("deleted_at", null)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapChatMessage(data as DbMessage);
+}
+
+export async function setMessageArchived(
+  messageId: string,
+  archived: boolean,
+  scope?: MessagingWorkspaceScope,
+): Promise<ChatMessage> {
+  const workspaceId = await resolveMessagingWorkspaceId(scope);
+  const supabase = requireMessagingSupabase();
+  const { data, error } = await supabase
+    .from("internal_messages")
+    .update({ archived_at: archived ? new Date().toISOString() : null })
+    .eq("workspace_id", workspaceId)
+    .eq("id", messageId)
+    .is("deleted_at", null)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapChatMessage(data as DbMessage);
+}
+
+export async function setMessageSaved(
+  input: { messageId: string; operatorId: string; saved: boolean },
+  scope?: MessagingWorkspaceScope,
+): Promise<{ saved: boolean }> {
+  const workspaceId = await resolveMessagingWorkspaceId(scope);
+  const supabase = requireMessagingSupabase();
+  const operatorId = input.operatorId.trim();
+  if (!operatorId) throw new Error("operatorId is required.");
+
+  if (!input.saved) {
+    const { error } = await supabase
+      .from("internal_message_saves")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .eq("message_id", input.messageId)
+      .eq("operator_id", operatorId);
+    if (error) throw new Error(error.message);
+    return { saved: false };
+  }
+
+  const { error } = await supabase.from("internal_message_saves").upsert(
+    {
+      workspace_id: workspaceId,
+      message_id: input.messageId,
+      operator_id: operatorId,
+      created_at: new Date().toISOString(),
+    },
+    { onConflict: "message_id,operator_id" },
+  );
+  if (error) throw new Error(error.message);
+  return { saved: true };
 }
 
 export async function sendMessage(
