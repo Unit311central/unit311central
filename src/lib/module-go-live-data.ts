@@ -134,7 +134,8 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   /** CRM + discovery live; Potential Clients still Demo. */
   "MOD-020": "Ready",
   "MOD-021": "Ready",
-  "MOD-022": "Needs Work",
+  "MOD-022": "Ready",
+  "MOD-050": "Ready",
   /** Financials GL / AR / AP / Expenses / Bank / Reports — live ledger. */
   "MOD-060": "Ready",
   "MOD-061": "Ready",

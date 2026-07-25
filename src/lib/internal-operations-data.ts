@@ -374,8 +374,6 @@ export function normalizeInternalOperationsView(value: string | null): InternalO
 
 /** Views that use non-durable mock/seed data — show Demo badge + banner. */
 export const DEMO_OPERATIONS_VIEWS: ReadonlySet<InternalOperationsView> = new Set([
-  "potential-clients",
-  "grants",
   "hr-recruitment",
   "hr-leave",
   "hr-performance",
@@ -484,8 +482,8 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
           { label: "Pipeline", view: "crm" as const },
           { label: "Discovery & Demo", view: "crm-meetings" as const },
           { label: "Client Onboarding", view: "client-onboarding" as const },
-          { label: "Potential Clients", view: "potential-clients" as const, badge: "demo" as const },
-        ],
+          { label: "Potential Clients", view: "potential-clients" as const },
+          ],
       },
       {
         label: "Projects",
@@ -494,7 +492,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
           { label: "Dashboard", view: "projects-dashboard" as const },
           { label: "Internal Projects", view: "projects-internal" as const },
           { label: "External Projects", view: "projects-external" as const },
-          { label: "Grants", view: "grants" as const, badge: "demo" as const },
+          { label: "Grants", view: "grants" as const },
         ],
       },
       {
