@@ -9,18 +9,12 @@ import { getPortfolioProject } from "@/lib/project-portfolios";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import type { InternalProject } from "@/lib/projects-data";
 import { cn } from "@/lib/utils";
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, Building2, CalendarClock, FolderKanban, Users } from "lucide-react";
 
 type ProjectsDashboardStripProps = {
   projects: InternalProject[];
   clients: ManagedClient[];
   scope?: ProjectPortfolioScope;
-};
-
-const PHASE_COLORS = {
-  live: "#34d399",
-  upcoming: "#38bdf8",
 };
 
 export default function ProjectsDashboardStrip({
@@ -30,18 +24,29 @@ export default function ProjectsDashboardStrip({
 }: ProjectsDashboardStripProps) {
   const basePath = useInternalOperationsBasePath();
   const isInternal = scope === "internal";
-  const liveCount = projects.filter((project) => project.phase === "live").length;
-  const upcomingCount = projects.filter((project) => project.phase === "upcoming").length;
-  const avgProgress = useMemo(() => {
-    const live = projects.filter((project) => project.phase === "live");
-    if (live.length === 0) return 0;
-    return live.reduce((sum, project) => sum + project.progressPct, 0) / live.length;
-  }, [projects]);
+  const liveProjects = useMemo(
+    () => projects.filter((project) => project.phase === "live"),
+    [projects],
+  );
+  const upcomingProjects = useMemo(
+    () => projects.filter((project) => project.phase === "upcoming"),
+    [projects],
+  );
+  const liveCount = liveProjects.length;
+  const upcomingCount = upcomingProjects.length;
+  const totalCount = liveCount + upcomingCount;
+  const liveShare = totalCount > 0 ? Math.round((liveCount / totalCount) * 100) : 0;
+  const upcomingShare = totalCount > 0 ? Math.round((upcomingCount / totalCount) * 100) : 0;
 
-  const phaseChartData = [
-    { name: "Live", value: liveCount, fill: PHASE_COLORS.live },
-    { name: "Upcoming", value: upcomingCount, fill: PHASE_COLORS.upcoming },
-  ];
+  const avgProgress = useMemo(() => {
+    if (liveProjects.length === 0) return 0;
+    return liveProjects.reduce((sum, project) => sum + project.progressPct, 0) / liveProjects.length;
+  }, [liveProjects]);
+
+  const behindPace = useMemo(
+    () => liveProjects.filter((project) => project.progressPct < 35).length,
+    [liveProjects],
+  );
 
   const groupChartData = useMemo(() => {
     const counts = new Map<string, { name: string; count: number; clientId?: string }>();
@@ -89,6 +94,27 @@ export default function ProjectsDashboardStrip({
   );
 
   const activeDepartments = groupChartData.length;
+
+  const phaseRows = [
+    {
+      id: "live",
+      label: "Live",
+      count: liveCount,
+      share: liveShare,
+      hint: behindPace > 0 ? `${behindPace} under 35% progress` : "In delivery",
+      barClass: "bg-gradient-to-r from-emerald-500 to-emerald-300",
+      chipClass: "border-emerald-400/25 bg-emerald-500/10 text-emerald-200",
+    },
+    {
+      id: "upcoming",
+      label: "Upcoming",
+      count: upcomingCount,
+      share: upcomingShare,
+      hint: "Mobilising soon",
+      barClass: "bg-gradient-to-r from-sky-500 to-cyan-300",
+      chipClass: "border-sky-400/25 bg-sky-500/10 text-sky-200",
+    },
+  ] as const;
 
   return (
     <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
@@ -153,31 +179,68 @@ export default function ProjectsDashboardStrip({
         </div>
 
         <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
-            By phase
-          </p>
-          <div className="mt-2 h-28">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={phaseChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                  contentStyle={{
-                    background: "#0b1524",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: 12,
-                    color: "#fff",
-                  }}
-                />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                  {phaseChartData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
+                By phase
+              </p>
+              <p className="mt-1 text-[11px] text-white/40">
+                {totalCount} project{totalCount === 1 ? "" : "s"} in portfolio
+              </p>
+            </div>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium text-white/55">
+              {liveShare}% live
+            </span>
           </div>
+
+          {totalCount === 0 ? (
+            <p className="mt-6 text-xs text-white/45">No projects to chart yet.</p>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {phaseRows.map((row) => (
+                <div key={row.id}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white/90">{row.label}</p>
+                      <p className="truncate text-[10px] text-white/40">{row.hint}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold tabular-nums",
+                        row.chipClass,
+                      )}
+                    >
+                      {row.count} · {row.share}%
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className={cn("h-full rounded-full transition-[width]", row.barClass)}
+                      style={{ width: `${Math.max(row.share, row.count > 0 ? 8 : 0)}%` }}
+                      title={`${row.label}: ${row.count} (${row.share}%)`}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2">
+                  <p className="text-[9px] uppercase tracking-wide text-white/35">Delivery mix</p>
+                  <p className="mt-0.5 text-xs font-semibold text-white/85">
+                    {liveCount}:{upcomingCount}
+                    <span className="ml-1 font-normal text-white/40">live:upcoming</span>
+                  </p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-2">
+                  <p className="text-[9px] uppercase tracking-wide text-white/35">Live avg</p>
+                  <p className="mt-0.5 text-xs font-semibold text-white/85">
+                    {avgProgress.toFixed(0)}%
+                    <span className="ml-1 font-normal text-white/40">progress</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 p-3">
@@ -227,23 +290,20 @@ export default function ProjectsDashboardStrip({
             Live workload
           </p>
           <div className="mt-3 space-y-2">
-            {projects
-              .filter((project) => project.phase === "live")
-              .slice(0, 4)
-              .map((project) => (
-                <div key={project.id}>
-                  <div className="flex items-center justify-between gap-2 text-[11px]">
-                    <span className="truncate text-white/80">{project.name}</span>
-                    <span className="font-mono text-white/50">{project.progressPct.toFixed(0)}%</span>
-                  </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className={cn("h-full rounded-full bg-gradient-to-r from-emerald-500 to-sky-500")}
-                      style={{ width: `${Math.min(100, project.progressPct)}%` }}
-                    />
-                  </div>
+            {liveProjects.slice(0, 4).map((project) => (
+              <div key={project.id}>
+                <div className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="truncate text-white/80">{project.name}</span>
+                  <span className="font-mono text-white/50">{project.progressPct.toFixed(0)}%</span>
                 </div>
-              ))}
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className={cn("h-full rounded-full bg-gradient-to-r from-emerald-500 to-sky-500")}
+                    style={{ width: `${Math.min(100, project.progressPct)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
             {liveCount === 0 && <p className="text-xs text-white/45">No live projects.</p>}
           </div>
         </div>
