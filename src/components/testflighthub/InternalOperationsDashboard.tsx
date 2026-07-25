@@ -35,6 +35,8 @@ import {
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import { InternalOperationsBasePathProvider } from "./InternalOperationsBasePathContext";
 import SurveyOperationsShell from "./SurveyOperationsShell";
+import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./OperatorEntitlementsProvider";
+import { isViewAllowedForGrants } from "@/lib/internal-role-views";
 import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
 import WorkspacePane from "./WorkspacePane";
 import WorkspaceErrorBoundary from "./WorkspaceErrorBoundary";
@@ -93,7 +95,6 @@ import {
   LeaveManagementWorkspace,
   LogisticsWorkspace,
   ManagementReviewWorkspace,
-  MediaExampleWorkspace,
   MeetingsWorkspace,
   CommunicationsWorkspace,
   MessagingWorkspace,
@@ -510,17 +511,19 @@ export default function InternalOperationsDashboard({
   }, []);
 
   return (
-    <InternalOperationsBasePathProvider basePath={basePath}>
-      <SurveyOperationsShell
-        mode="internal"
-        activeView={activeView}
-        onViewChange={(view) => {
-          if (isInternalOperationsView(view)) {
-            handleViewChange(view);
-          }
-        }}
-        basePath={basePath}
-      >
+    <OperatorEntitlementsProvider>
+      <InternalOperationsBasePathProvider basePath={basePath}>
+        <AccessViewGuard activeView={activeView} onRedirect={handleViewChange} />
+        <SurveyOperationsShell
+          mode="internal"
+          activeView={activeView}
+          onViewChange={(view) => {
+            if (isInternalOperationsView(view)) {
+              handleViewChange(view);
+            }
+          }}
+          basePath={basePath}
+        >
       <div
         className={
           activeView === "home" || activeView === "settings" || activeView === "billing"
@@ -809,8 +812,6 @@ export default function InternalOperationsDashboard({
 
           {activeView === "telemetry" && <TelemetryDashboard />}
 
-          {activeView === "media-example" && <MediaExampleWorkspace />}
-
           {activeView === "website-management" && <WebsiteManagementWorkspace />}
 
           {activeView === "integrations" && (
@@ -857,5 +858,25 @@ export default function InternalOperationsDashboard({
       <AdminPerformanceMode activeView={activeView} />
       </SurveyOperationsShell>
     </InternalOperationsBasePathProvider>
+    </OperatorEntitlementsProvider>
   );
+}
+
+function AccessViewGuard({
+  activeView,
+  onRedirect,
+}: {
+  activeView: InternalOperationsView;
+  onRedirect: (view: InternalOperationsView) => void;
+}) {
+  const { allowedViews, ready } = useOperatorEntitlements();
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!isViewAllowedForGrants(activeView, allowedViews)) {
+      onRedirect("home");
+    }
+  }, [activeView, allowedViews, onRedirect, ready]);
+
+  return null;
 }

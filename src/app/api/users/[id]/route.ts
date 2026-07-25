@@ -6,7 +6,14 @@ import {
   setInternalOperatorPassword,
   updateInternalOperator,
 } from "@/lib/internal-operators-service";
-import type { UserRegion, UserRole, UserStatus } from "@/lib/user-management-data";
+import type {
+  UserDashboardPrefs,
+  UserDepartment,
+  UserRegion,
+  UserRole,
+  UserStatus,
+} from "@/lib/user-management-data";
+import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -30,10 +37,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       email?: string;
       phone?: string;
       role?: UserRole;
+      department?: UserDepartment;
       status?: UserStatus;
       region?: UserRegion;
       licenseId?: string;
       notes?: string;
+      allowedViews?: InternalOperationsView[] | null;
+      dashboardPrefs?: UserDashboardPrefs | null;
     };
 
     const user = await updateInternalOperator(id, body);

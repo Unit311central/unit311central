@@ -1,8 +1,11 @@
 import {
   createBlankUserInput,
   mapInternalOperator,
+  normalizeUserDepartment,
   normalizeUserRole,
   type ManagedUser,
+  type UserDashboardPrefs,
+  type UserDepartment,
   type UserRegion,
   type UserRole,
   type UserStatus,
@@ -17,8 +20,12 @@ import {
   normalizePlatformUsername,
 } from "@/lib/platform-auth";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import type { InternalOperationsView } from "@/lib/internal-operations-data";
 
 type DbOperator = Parameters<typeof mapInternalOperator>[0];
+
+const OPERATOR_SELECT =
+  "id, operator_label, full_name, username, email, phone, role, status, region, license_id, notes, department, allowed_views, dashboard_prefs, created_at, updated_at";
 
 function requireOperatorsSupabase() {
   if (!isSupabaseConfigured()) {
@@ -28,7 +35,7 @@ function requireOperatorsSupabase() {
 }
 
 function buildOperatorPayload(input: Partial<ManagedUser>) {
-  const payload: Record<string, string | null> = {
+  const payload: Record<string, string | null | unknown> = {
     updated_at: new Date().toISOString(),
   };
 
@@ -38,10 +45,15 @@ function buildOperatorPayload(input: Partial<ManagedUser>) {
   if (input.email !== undefined) payload.email = input.email.trim() || null;
   if (input.phone !== undefined) payload.phone = input.phone.trim() || null;
   if (input.role !== undefined) payload.role = normalizeUserRole(input.role);
+  if (input.department !== undefined) {
+    payload.department = normalizeUserDepartment(input.department);
+  }
   if (input.status !== undefined) payload.status = input.status;
   if (input.region !== undefined) payload.region = input.region;
   if (input.licenseId !== undefined) payload.license_id = input.licenseId.trim() || null;
   if (input.notes !== undefined) payload.notes = input.notes.trim() || null;
+  if (input.allowedViews !== undefined) payload.allowed_views = input.allowedViews;
+  if (input.dashboardPrefs !== undefined) payload.dashboard_prefs = input.dashboardPrefs;
 
   return payload;
 }
@@ -52,9 +64,7 @@ export async function listInternalOperators(): Promise<ManagedUser[]> {
     const supabase = requireOperatorsSupabase();
     const { data, error } = await supabase
       .from("internal_operators")
-      .select(
-        "id, operator_label, full_name, username, email, phone, role, status, region, license_id, notes, created_at, updated_at",
-      )
+      .select(OPERATOR_SELECT)
       .order("full_name", { ascending: true });
 
     if (error) throw new Error(error.message);
@@ -73,7 +83,7 @@ export async function getInternalOperatorByUsername(
     const supabase = requireOperatorsSupabase();
     const { data, error } = await supabase
       .from("internal_operators")
-      .select("*")
+      .select(OPERATOR_SELECT)
       .eq("username", normalized)
       .maybeSingle();
 
@@ -99,6 +109,8 @@ export async function createInternalOperator(
     }
     const password = input.password?.trim() || generatePlatformPassword();
     const passwordHash = hashPlatformPasswordForUser(username, password);
+    const role = normalizeUserRole(input.role ?? blank.role);
+    const department = normalizeUserDepartment(input.department ?? blank.department);
 
     const { data, error } = await supabase
       .from("internal_operators")
@@ -109,13 +121,16 @@ export async function createInternalOperator(
         username,
         email: input.email?.trim() || null,
         phone: input.phone?.trim() || null,
-        role: normalizeUserRole(input.role ?? blank.role),
+        role,
+        department,
         status: input.status ?? blank.status,
         region: input.region ?? blank.region,
         license_id: input.licenseId?.trim() || null,
         notes: input.notes?.trim() || null,
+        allowed_views: input.allowedViews ?? blank.allowedViews,
+        dashboard_prefs: input.dashboardPrefs ?? blank.dashboardPrefs,
       })
-      .select("*")
+      .select(OPERATOR_SELECT)
       .single();
 
     if (error) throw new Error(error.message);
@@ -153,10 +168,13 @@ export async function updateInternalOperator(
     email: string;
     phone: string;
     role: UserRole;
+    department: UserDepartment;
     status: UserStatus;
     region: UserRegion;
     licenseId: string;
     notes: string;
+    allowedViews: InternalOperationsView[] | null;
+    dashboardPrefs: UserDashboardPrefs | null;
   }>,
 ): Promise<ManagedUser> {
   return withInternalOperatorsTable(async () => {
@@ -183,7 +201,7 @@ export async function updateInternalOperator(
       .from("internal_operators")
       .update(payload)
       .eq("id", id)
-      .select("*")
+      .select(OPERATOR_SELECT)
       .single();
 
     if (error) throw new Error(error.message);

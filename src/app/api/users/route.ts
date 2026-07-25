@@ -3,7 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireInternalAdministratorWorkspaceSession } from "@/lib/internal-admin-auth";
 import { createInternalOperator, listInternalOperators } from "@/lib/internal-operators-service";
 import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
-import type { UserRegion, UserRole, UserStatus } from "@/lib/user-management-data";
+import type {
+  UserDashboardPrefs,
+  UserDepartment,
+  UserRegion,
+  UserRole,
+  UserStatus,
+} from "@/lib/user-management-data";
+import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -42,15 +49,19 @@ export async function POST(request: NextRequest) {
       email?: string;
       phone?: string;
       role?: string;
+      department?: string;
       status?: string;
       region?: string;
       licenseId?: string;
       notes?: string;
+      allowedViews?: InternalOperationsView[] | null;
+      dashboardPrefs?: UserDashboardPrefs | null;
+      password?: string;
     };
 
-    if (!body.fullName?.trim() || !body.username?.trim()) {
+    if (!body.fullName?.trim() || !(body.username?.trim() || body.email?.trim())) {
       return NextResponse.json(
-        { error: "Full name and username are required" },
+        { error: "Full name and email/username are required" },
         { status: 400 },
       );
     }
@@ -59,15 +70,18 @@ export async function POST(request: NextRequest) {
     const result = await createInternalOperator({
       operatorLabel: body.operatorLabel,
       fullName: body.fullName,
-      username: body.username,
+      username: (body.username || body.email)!,
       email: body.email,
       phone: body.phone,
       role: body.role as UserRole | undefined,
+      department: body.department as UserDepartment | undefined,
       status: body.status as UserStatus | undefined,
       region: body.region as UserRegion | undefined,
       licenseId: body.licenseId,
       notes: body.notes,
-      password: (body as { password?: string }).password,
+      allowedViews: body.allowedViews,
+      dashboardPrefs: body.dashboardPrefs,
+      password: body.password,
     });
     return NextResponse.json({ user: result.user, temporaryPassword: result.temporaryPassword });
   } catch (error) {

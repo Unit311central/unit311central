@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -15,7 +15,9 @@ import {
   type InternalNavItem,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
+import { filterInternalNavSectionsByGrants } from "@/lib/internal-role-views";
 import { isInternalDomainHost } from "@/lib/app-domains";
+import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import {
   getSurveyNavHref,
   isSurveyNavItemActive,
@@ -189,7 +191,14 @@ export default function SurveyOperationsSidebar({
   const searchParams = useSearchParams();
   const resolvedActiveView = (activeView as InternalOperationsView | undefined) ?? "home";
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
-  const internalNavSections = internalSurveyNavSections;
+  const { allowedViews } = useOperatorEntitlements();
+  const internalNavSections = useMemo(
+    () =>
+      mode === "internal"
+        ? filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews)
+        : internalSurveyNavSections,
+    [allowedViews, mode],
+  );
   const internalBasePath = basePath;
   const [isInternalOpsHost] = useState(() => {
     if (mode !== "internal") return false;

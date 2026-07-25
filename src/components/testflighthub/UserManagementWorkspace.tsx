@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 
 import {
-  createBlankUserInput,
+  USER_DEPARTMENT_OPTIONS,
   USER_REGION_OPTIONS,
   USER_ROLE_OPTIONS,
   USER_STATUS_OPTIONS,
@@ -13,7 +13,9 @@ import {
 } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
-import { KeyRound, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { KeyRound, Loader2, Plus, Save, Shield, Trash2 } from "lucide-react";
+import AddUserAccessWizard from "./AddUserAccessWizard";
+import { setCachedJson, PLATFORM_CACHE_KEYS } from "@/lib/platform-fetch-cache";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -53,6 +55,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
   const [savedSnapshot, setSavedSnapshot] = useState<ManagedUser | null>(null);
   const snapshottedIdRef = useRef<string | null>(null);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
+  const [wizardOpen, setWizardOpen] = useState<"create" | "edit" | null>(null);
 
   const selectedUser = useMemo(
     () => users.find((user) => user.id === selectedUserId) ?? users[0] ?? null,
@@ -134,10 +137,13 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
           email: user.email,
           phone: user.phone,
           role: user.role,
+          department: user.department,
           status: user.status,
           region: user.region,
           licenseId: user.licenseId,
           notes: user.notes,
+          allowedViews: user.allowedViews,
+          dashboardPrefs: user.dashboardPrefs,
         }),
       });
 
@@ -148,6 +154,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
       snapshottedIdRef.current = data.user.id;
       setSavedSnapshot(data.user);
       setSaveMessage("User saved");
+      setCachedJson(PLATFORM_CACHE_KEYS.users, { users: users.map((item) => (item.id === data.user!.id ? data.user! : item)) });
       return data.user;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Failed to save user");
@@ -171,23 +178,50 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
   }
 
   async function handleAddUser() {
+    setWizardOpen("create");
+  }
+
+  async function handleWizardSubmit(payload: {
+    operatorLabel: string;
+    fullName: string;
+    username: string;
+    email: string;
+    phone: string;
+    role: ManagedUser["role"];
+    department: ManagedUser["department"];
+    status: ManagedUser["status"];
+    region: ManagedUser["region"];
+    licenseId: string;
+    notes: string;
+    password?: string;
+    allowedViews: NonNullable<ManagedUser["allowedViews"]>;
+    dashboardPrefs: NonNullable<ManagedUser["dashboardPrefs"]>;
+  }) {
     setBusy(true);
     setError(null);
     setPasswordMessage(null);
 
-    const blank = createBlankUserInput();
-    const username = `user${Date.now().toString(36)}`;
-
     try {
+      if (wizardOpen === "edit" && selectedUser) {
+        const response = await fetch(`/api/users/${selectedUser.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await readApiJson<{ user?: ManagedUser; error?: string }>(response);
+        if (!response.ok || !data.user) throw new Error(data.error ?? "Failed to save user");
+        syncUsers(users.map((item) => (item.id === data.user!.id ? data.user! : item)));
+        snapshottedIdRef.current = data.user.id;
+        setSavedSnapshot(data.user);
+        setSaveMessage("Access updated");
+        setWizardOpen(null);
+        return;
+      }
+
       const response = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...blank,
-          fullName: "New Operator",
-          username,
-          role: "Staff",
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await readApiJson<{
@@ -205,9 +239,10 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
       if (data.temporaryPassword) {
         setPasswordMessage(`Temporary password: ${data.temporaryPassword}`);
       }
+      setWizardOpen(null);
       openDetail();
-    } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Failed to create user");
+    } catch (submitError) {
+      throw submitError instanceof Error ? submitError : new Error("Failed to save user");
     } finally {
       setBusy(false);
     }
@@ -309,6 +344,16 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
 
   return (
     <div className="space-y-6">
+      {wizardOpen && (
+        <AddUserAccessWizard
+          mode={wizardOpen}
+          initial={wizardOpen === "edit" ? selectedUser : null}
+          busy={busy}
+          onClose={() => setWizardOpen(null)}
+          onSubmit={handleWizardSubmit}
+        />
+      )}
+
       {error && (
         <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
@@ -375,6 +420,9 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                               {user.operatorLabel}
                             </p>
                             <p className="mt-1 text-sm font-semibold text-white">{user.fullName}</p>
+                            <p className="mt-1 text-[11px] text-white/45">
+                              {user.role} · {user.department ?? "Corporate"}
+                            </p>
                             <p className="mt-1 font-mono text-xs text-white/45">@{user.username}</p>
                           </div>
                           <span
@@ -421,6 +469,15 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                     >
                       <Save className="h-3.5 w-3.5" />
                       Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWizardOpen("edit")}
+                      disabled={busy}
+                      className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/20 disabled:opacity-60"
+                    >
+                      <Shield className="h-3.5 w-3.5" />
+                      Access & dashboards
                     </button>
                     <button
                       type="button"
@@ -507,6 +564,24 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                       }
                     >
                       {USER_ROLE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <FieldLabel>Department</FieldLabel>
+                    <select
+                      className={inputClassName()}
+                      value={selectedUser.department ?? "Corporate"}
+                      onChange={(event) =>
+                        patchSelected({
+                          department: event.target.value as ManagedUser["department"],
+                        })
+                      }
+                    >
+                      {USER_DEPARTMENT_OPTIONS.map((option) => (
                         <option key={option} value={option}>
                           {option}
                         </option>

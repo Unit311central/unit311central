@@ -79,13 +79,22 @@ export function isViewAllowedForRole(
   return !STAFF_HIDDEN_VIEWS.has(view);
 }
 
+/** Per-user grants win when present; null/undefined = unrestricted. */
+export function isViewAllowedForGrants(
+  view: InternalOperationsView,
+  allowedViews: readonly InternalOperationsView[] | null | undefined,
+): boolean {
+  if (allowedViews == null) return true;
+  return allowedViews.includes(view);
+}
+
 export function shouldHideFinancialBankBalances(role: InternalRoleView) {
   return role === "manager";
 }
 
-export function filterInternalNavSections(
+function filterNavSectionsByViewCheck(
   sections: readonly InternalNavSection[],
-  role: InternalRoleView,
+  isAllowed: (view: InternalOperationsView) => boolean,
 ): InternalNavSection[] {
   return sections
     .map((section) => ({
@@ -93,19 +102,27 @@ export function filterInternalNavSections(
       items: section.items
         .map((item) => {
           if (item.children?.length) {
-            const children = item.children.filter((child) => {
-              if (!child.view) {
-                return true;
-              }
-              return isViewAllowedForRole(child.view, role);
-            });
+            const children = item.children
+              .map((child) => {
+                if (child.children?.length) {
+                  const nested = child.children.filter((nestedChild) => {
+                    if (!nestedChild.view) return true;
+                    return isAllowed(nestedChild.view);
+                  });
+                  if (nested.length === 0) return null;
+                  return { ...child, children: nested };
+                }
+                if (!child.view) return child;
+                return isAllowed(child.view) ? child : null;
+              })
+              .filter((child): child is NonNullable<typeof child> => child != null);
             if (children.length === 0) {
               return null;
             }
             return { ...item, children };
           }
 
-          if (item.view && !isViewAllowedForRole(item.view, role)) {
+          if (item.view && !isAllowed(item.view)) {
             return null;
           }
 
@@ -114,4 +131,21 @@ export function filterInternalNavSections(
         .filter((item): item is NonNullable<typeof item> => item != null),
     }))
     .filter((section) => section.items.length > 0);
+}
+
+export function filterInternalNavSections(
+  sections: readonly InternalNavSection[],
+  role: InternalRoleView,
+): InternalNavSection[] {
+  return filterNavSectionsByViewCheck(sections, (view) => isViewAllowedForRole(view, role));
+}
+
+export function filterInternalNavSectionsByGrants(
+  sections: readonly InternalNavSection[],
+  allowedViews: readonly InternalOperationsView[] | null | undefined,
+): InternalNavSection[] {
+  if (allowedViews == null) return [...sections];
+  return filterNavSectionsByViewCheck(sections, (view) =>
+    isViewAllowedForGrants(view, allowedViews),
+  );
 }

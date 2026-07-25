@@ -34,6 +34,7 @@ import {
   saveCommandCentreHomeLayout,
   type CommandCentreHomeTileId,
 } from "@/lib/command-centre-home-tiles";
+import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import type { CrmLead } from "@/lib/crm-data";
 import {
   buildBusinessHealthIssues,
@@ -463,6 +464,7 @@ function Tile({
  */
 export default function InternalDashboardHome(props?: { showCustomize?: boolean }) {
   const showCustomize = props?.showCustomize !== false;
+  const { homeTiles: assignedHomeTiles } = useOperatorEntitlements();
   const [bundle, setBundle] = useState<HomeBundle | null>(null);
   const [layout, setLayout] = useState<CommandCentreHomeTileId[]>([
     ...DEFAULT_COMMAND_CENTRE_HOME_LAYOUT,
@@ -471,14 +473,20 @@ export default function InternalDashboardHome(props?: { showCustomize?: boolean 
   const [layoutHydrated, setLayoutHydrated] = useState(false);
 
   useEffect(() => {
-    setLayout(loadCommandCentreHomeLayout());
+    if (assignedHomeTiles && assignedHomeTiles.length > 0) {
+      setLayout(assignedHomeTiles);
+    } else {
+      setLayout(loadCommandCentreHomeLayout());
+    }
     setLayoutHydrated(true);
-  }, []);
+  }, [assignedHomeTiles]);
 
   useEffect(() => {
     if (!layoutHydrated) return;
+    // Admin-assigned tiles take priority; don't overwrite local prefs when assigned.
+    if (assignedHomeTiles && assignedHomeTiles.length > 0) return;
     saveCommandCentreHomeLayout(layout);
-  }, [layout, layoutHydrated]);
+  }, [layout, layoutHydrated, assignedHomeTiles]);
 
   const load = useCallback(async () => {
     try {

@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useState, type CSSProperties } from "react";
+import { startTransition, useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -59,6 +59,7 @@ import {
   type InternalNavSection,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
+import { filterInternalNavSectionsByGrants } from "@/lib/internal-role-views";
 import { isInternalDomainHost } from "@/lib/app-domains";
 import {
   getSidebarTheme,
@@ -69,6 +70,7 @@ import {
 } from "@/lib/sidebar-chrome";
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import { cn } from "@/lib/utils";
+import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 
 const iconMap = {
   LayoutDashboard,
@@ -506,10 +508,14 @@ export default function EnterprisePlatformSidebar({
     );
   }
 
-  const pinSections = internalSurveyNavSections.filter((section) => section.kind === "pin");
-  const workspaceSections = internalSurveyNavSections.filter(
-    (section) => section.kind === "workspace",
+  const { allowedViews } = useOperatorEntitlements();
+  const navSections = useMemo(
+    () => filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
+    [allowedViews],
   );
+
+  const pinSections = navSections.filter((section) => section.kind === "pin");
+  const workspaceSections = navSections.filter((section) => section.kind === "workspace");
 
   return (
     <aside

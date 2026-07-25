@@ -19,6 +19,9 @@ export async function GET() {
 
   let email: string | null = null;
   let role: string | null = null;
+  let department: string | null = null;
+  let allowedViews: string[] | null = null;
+  let dashboardPrefs: { homeTiles: string[] } | null = null;
 
   if (session.userType === "internal" && isSupabaseConfigured()) {
     try {
@@ -26,6 +29,9 @@ export async function GET() {
       if (operator) {
         email = operator.email?.trim() || null;
         role = operator.role ?? null;
+        department = operator.department ?? null;
+        allowedViews = operator.allowedViews;
+        dashboardPrefs = operator.dashboardPrefs;
       }
     } catch {
       // Profile still returns session identity if operator lookup fails.
@@ -38,6 +44,9 @@ export async function GET() {
       username: session.username,
       email,
       role,
+      department,
+      allowedViews,
+      dashboardPrefs,
       userType: session.userType,
       userId: session.sub,
       workspaceId: workspace?.id ?? null,
