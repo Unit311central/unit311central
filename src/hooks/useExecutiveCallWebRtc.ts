@@ -10,6 +10,7 @@ const ICE_SERVERS: RTCIceServer[] = [
 ];
 
 const POLL_MS = 900;
+const STREAM_WAIT_MS = 120;
 
 type UseExecutiveCallWebRtcOptions = {
   slug: string;
@@ -51,6 +52,20 @@ async function postSignal(
   });
   const data = await readJson<{ error?: string }>(response);
   if (!response.ok) throw new Error(data.error ?? "Failed to post WebRTC signal");
+}
+
+function attachOrReplaceLocalTracks(pc: RTCPeerConnection, stream: MediaStream) {
+  const senders = pc.getSenders();
+  for (const track of stream.getTracks()) {
+    const existing = senders.find((sender) => sender.track?.kind === track.kind);
+    if (existing) {
+      if (existing.track !== track) {
+        void existing.replaceTrack(track);
+      }
+    } else {
+      pc.addTrack(track, stream);
+    }
+  }
 }
 
 export function useExecutiveCallWebRtc({
@@ -95,38 +110,37 @@ export function useExecutiveCallWebRtc({
     guestTokenRef.current = guestToken;
   }, [guestToken]);
 
+  /**
+   * Peer connection + signaling lifecycle.
+   * Intentionally does NOT depend on `localStream` — screen share swaps the stream
+   * via replaceTrack and must not hang up / recreate the PC.
+   */
   useEffect(() => {
-    if (!enabled || !localStream) {
+    if (!enabled) {
       return;
     }
 
     let cancelled = false;
     let pollTimer: number | undefined;
+    let waitTimer: number | undefined;
     const basePath = signalingBasePathRef.current;
-
-    const attachLocalTracks = (pc: RTCPeerConnection, stream: MediaStream) => {
-      const senders = pc.getSenders();
-      for (const track of stream.getTracks()) {
-        const existing = senders.find((sender) => sender.track?.kind === track.kind);
-        if (existing) {
-          void existing.replaceTrack(track);
-        } else {
-          pc.addTrack(track, stream);
-        }
-      }
-    };
 
     const ensurePeerConnection = () => {
       if (pcRef.current) return pcRef.current;
+
+      const stream = localStreamRef.current;
+      if (!stream) {
+        throw new Error("Local media is not ready");
+      }
 
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
       pcRef.current = pc;
 
       pc.ontrack = (event) => {
-        const [stream] = event.streams;
-        if (stream) {
+        const [streamFromEvent] = event.streams;
+        if (streamFromEvent) {
           hasRemoteStreamRef.current = true;
-          setRemoteStream(stream);
+          setRemoteStream(streamFromEvent);
           return;
         }
         setRemoteStream((current) => {
@@ -153,7 +167,7 @@ export function useExecutiveCallWebRtc({
         setConnectionState(pc.connectionState);
       };
 
-      attachLocalTracks(pc, localStream);
+      attachOrReplaceLocalTracks(pc, stream);
       return pc;
     };
 
@@ -280,7 +294,13 @@ export function useExecutiveCallWebRtc({
       }
     };
 
-    void (async () => {
+    const startSession = async () => {
+      if (cancelled) return;
+      if (!localStreamRef.current) {
+        waitTimer = window.setTimeout(() => void startSession(), STREAM_WAIT_MS);
+        return;
+      }
+
       try {
         ensurePeerConnection();
 
@@ -298,10 +318,13 @@ export function useExecutiveCallWebRtc({
           setSignalingError(error instanceof Error ? error.message : "Failed to start WebRTC");
         }
       }
-    })();
+    };
+
+    void startSession();
 
     const readyNudge = window.setInterval(() => {
       if (cancelled || hasRemoteStreamRef.current || hasRemoteDescriptionRef.current) return;
+      if (!localStreamRef.current) return;
       void postSignal(basePath, slug, role, "ready", {}, guestTokenRef.current).catch(
         () => undefined,
       );
@@ -315,6 +338,7 @@ export function useExecutiveCallWebRtc({
       cancelled = true;
       window.clearInterval(readyNudge);
       if (pollTimer) window.clearTimeout(pollTimer);
+      if (waitTimer) window.clearTimeout(waitTimer);
       void postSignal(basePath, slug, role, "hangup", {}, guestTokenRef.current).catch(
         () => undefined,
       );
@@ -330,18 +354,13 @@ export function useExecutiveCallWebRtc({
       setRemoteStream(null);
       setConnectionState("closed");
     };
-  }, [enabled, localStream, role, slug, signalingBasePath, receiveVideo, guestToken]);
+  }, [enabled, role, slug, signalingBasePath, receiveVideo, guestToken]);
 
-  // Keep senders in sync if local tracks are replaced while connected.
+  // Mid-call screen share / camera restore — replace tracks only, never recreate the PC.
   useEffect(() => {
     const pc = pcRef.current;
     if (!pc || !localStream || !enabled) return;
-    for (const track of localStream.getTracks()) {
-      const sender = pc.getSenders().find((item) => item.track?.kind === track.kind);
-      if (sender && sender.track !== track) {
-        void sender.replaceTrack(track);
-      }
-    }
+    attachOrReplaceLocalTracks(pc, localStream);
   }, [enabled, localStream]);
 
   return {
