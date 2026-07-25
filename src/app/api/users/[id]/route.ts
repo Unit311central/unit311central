@@ -39,6 +39,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       role?: UserRole;
       roles?: UserRole[];
       department?: UserDepartment;
+      departments?: UserDepartment[];
       status?: UserStatus;
       region?: UserRegion;
       licenseId?: string;

@@ -27,6 +27,7 @@ import {
   USER_ROLE_OPTIONS,
   USER_STATUS_OPTIONS,
   primaryUserRole,
+  primaryUserDepartment,
   type ManagedUser,
   type UserDepartment,
   type UserRegion,
@@ -52,6 +53,7 @@ type AddUserAccessWizardProps = {
     role: UserRole;
     roles: UserRole[];
     department: UserDepartment;
+    departments: UserDepartment[];
     status: UserStatus;
     region: UserRegion;
     licenseId: string;
@@ -97,19 +99,24 @@ export default function AddUserAccessWizard({
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
   const [roles, setRoles] = useState<UserRole[]>(
-    () => initial?.roles?.length ? initial.roles : [initial?.role ?? "Manager"],
+    () => (initial?.roles?.length ? initial.roles : [initial?.role ?? "Manager"]),
   );
   const role = primaryUserRole(roles);
-  const [department, setDepartment] = useState<UserDepartment>(
-    initial?.department ?? "Engineering",
+  const [departments, setDepartments] = useState<UserDepartment[]>(() =>
+    initial?.departments?.length
+      ? initial.departments
+      : [initial?.department ?? "Engineering"],
   );
+  const department = primaryUserDepartment(departments);
 
   const [allowedViews, setAllowedViews] = useState<InternalOperationsView[]>(
     () =>
       initial?.allowedViews ??
       defaultAllowedViewsForRoles(
         initial?.roles?.length ? initial.roles : [initial?.role ?? "Manager"],
-        initial?.department ?? "Engineering",
+        initial?.departments?.length
+          ? initial.departments
+          : [initial?.department ?? "Engineering"],
       ),
   );
   const [homeTiles, setHomeTiles] = useState<CommandCentreHomeTileId[]>(
@@ -117,7 +124,9 @@ export default function AddUserAccessWizard({
       initial?.dashboardPrefs?.homeTiles ??
       defaultHomeTilesForRoles(
         initial?.roles?.length ? initial.roles : [initial?.role ?? "Manager"],
-        initial?.department ?? "Engineering",
+        initial?.departments?.length
+          ? initial.departments
+          : [initial?.department ?? "Engineering"],
       ),
   );
 
@@ -144,9 +153,9 @@ export default function AddUserAccessWizard({
     return [...map.entries()];
   }, []);
 
-  function applyPreset(nextRoles: UserRole[], nextDepartment: UserDepartment) {
-    setAllowedViews(defaultAllowedViewsForRoles(nextRoles, nextDepartment));
-    setHomeTiles(defaultHomeTilesForRoles(nextRoles, nextDepartment));
+  function applyPreset(nextRoles: UserRole[], nextDepartments: UserDepartment[]) {
+    setAllowedViews(defaultAllowedViewsForRoles(nextRoles, nextDepartments));
+    setHomeTiles(defaultHomeTilesForRoles(nextRoles, nextDepartments));
   }
 
   async function handleFinish() {
@@ -174,6 +183,7 @@ export default function AddUserAccessWizard({
         role,
         roles,
         department,
+        departments,
         status,
         region,
         licenseId: licenseId.trim(),
@@ -355,7 +365,7 @@ export default function AddUserAccessWizard({
                               if (next.length === 0) next = [option];
                             }
                             setRoles(next);
-                            applyPreset(next, department);
+                            applyPreset(next, departments);
                           }}
                         />
                         {option}
@@ -367,29 +377,46 @@ export default function AddUserAccessWizard({
                   Primary privilege used for admin gates: {role}
                 </p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <FieldLabel>Department</FieldLabel>
-                  <select
-                    className={inputClassName()}
-                    value={department}
-                    onChange={(event) => {
-                      const next = event.target.value as UserDepartment;
-                      setDepartment(next);
-                      applyPreset(roles, next);
-                    }}
-                  >
-                    {USER_DEPARTMENT_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
+              <div>
+                <FieldLabel>Departments</FieldLabel>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {USER_DEPARTMENT_OPTIONS.map((option) => {
+                    const selected = departments.includes(option);
+                    return (
+                      <label
+                        key={option}
+                        className={cn(
+                          "inline-flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs transition-colors",
+                          selected
+                            ? "border-sky-400/40 bg-sky-500/15 text-sky-100"
+                            : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20",
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          className="accent-sky-400"
+                          checked={selected}
+                          onChange={(event) => {
+                            let next: UserDepartment[];
+                            if (event.target.checked) {
+                              next = [...new Set([...departments, option])];
+                            } else {
+                              next = departments.filter((entry) => entry !== option);
+                              if (next.length === 0) next = [option];
+                            }
+                            setDepartments(next);
+                            applyPreset(roles, next);
+                          }}
+                        />
                         {option}
-                      </option>
-                    ))}
-                  </select>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => applyPreset(roles, department)}
+                onClick={() => applyPreset(roles, departments)}
                 className="rounded-xl border border-white/15 px-3 py-2 text-xs font-medium text-white/70 hover:border-white/25 hover:text-white"
               >
                 Reset modules & dashboards to preset

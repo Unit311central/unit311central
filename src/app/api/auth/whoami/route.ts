@@ -21,6 +21,7 @@ export async function GET() {
   let role: string | null = null;
   let roles: string[] | null = null;
   let department: string | null = null;
+  let departments: string[] | null = null;
   let allowedViews: string[] | null = null;
   let dashboardPrefs: { homeTiles: string[] } | null = null;
 
@@ -32,6 +33,8 @@ export async function GET() {
         role = operator.role ?? null;
         roles = operator.roles ?? (operator.role ? [operator.role] : null);
         department = operator.department ?? null;
+        departments =
+          operator.departments ?? (operator.department ? [operator.department] : null);
         allowedViews = operator.allowedViews;
         dashboardPrefs = operator.dashboardPrefs;
       }
@@ -48,6 +51,7 @@ export async function GET() {
       role,
       roles,
       department,
+      departments,
       allowedViews,
       dashboardPrefs,
       userType: session.userType,

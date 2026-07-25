@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       role?: string;
       roles?: string[];
       department?: string;
+      departments?: string[];
       status?: string;
       region?: string;
       licenseId?: string;
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
       role: body.role as UserRole | undefined,
       roles: body.roles as UserRole[] | undefined,
       department: body.department as UserDepartment | undefined,
+      departments: body.departments as UserDepartment[] | undefined,
       status: body.status as UserStatus | undefined,
       region: body.region as UserRegion | undefined,
       licenseId: body.licenseId,

@@ -40,7 +40,10 @@ export type ManagedUser = {
   role: UserRole;
   /** All assigned access roles (multi-select). */
   roles: UserRole[];
+  /** Primary department — kept in sync with `departments`. */
   department: UserDepartment;
+  /** All assigned departments (multi-select). */
+  departments: UserDepartment[];
   status: UserStatus;
   region: UserRegion;
   licenseId: string;
@@ -101,6 +104,40 @@ export function formatUserRoles(user: Pick<ManagedUser, "role" | "roles">): stri
   return roles.join(" · ");
 }
 
+export function normalizeUserDepartments(
+  value: unknown,
+  fallbackDepartment?: string | null,
+): UserDepartment[] {
+  if (Array.isArray(value)) {
+    const departments = [
+      ...new Set(
+        value
+          .map((entry) => normalizeUserDepartment(String(entry)))
+          .filter((department): department is UserDepartment =>
+            USER_DEPARTMENT_OPTIONS.includes(department),
+          ),
+      ),
+    ];
+    if (departments.length > 0) return departments;
+  }
+  return [normalizeUserDepartment(fallbackDepartment ?? "Corporate")];
+}
+
+export function primaryUserDepartment(
+  departments: readonly UserDepartment[],
+): UserDepartment {
+  return departments[0] ?? "Corporate";
+}
+
+export function formatUserDepartments(
+  user: Pick<ManagedUser, "department" | "departments">,
+): string {
+  const departments = user.departments?.length
+    ? user.departments
+    : [user.department ?? "Corporate"];
+  return departments.join(" · ");
+}
+
 export const USER_DEPARTMENT_OPTIONS: UserDepartment[] = [
   "Board",
   "Exec",
@@ -157,14 +194,22 @@ export function getOwnerUserIdForRegion(region: string): string | null {
 }
 
 function withDefaultEntitlements(
-  user: Omit<ManagedUser, "allowedViews" | "dashboardPrefs" | "department" | "roles"> & {
+  user: Omit<
+    ManagedUser,
+    "allowedViews" | "dashboardPrefs" | "department" | "departments" | "roles"
+  > & {
     department?: UserDepartment;
+    departments?: UserDepartment[];
     roles?: UserRole[];
     allowedViews?: InternalOperationsView[] | null;
     dashboardPrefs?: UserDashboardPrefs | null;
   },
 ): ManagedUser {
-  const department = user.department ?? "Corporate";
+  const departments = normalizeUserDepartments(
+    user.departments ?? (user.department ? [user.department] : ["Corporate"]),
+    user.department,
+  );
+  const department = primaryUserDepartment(departments);
   const roles = normalizeUserRoles(user.roles ?? [user.role], user.role);
   const role = primaryUserRole(roles);
   return {
@@ -172,14 +217,15 @@ function withDefaultEntitlements(
     role,
     roles,
     department,
+    departments,
     allowedViews:
       user.allowedViews !== undefined
         ? user.allowedViews
-        : defaultAllowedViewsForRoles(roles, department),
+        : defaultAllowedViewsForRoles(roles, departments),
     dashboardPrefs:
       user.dashboardPrefs !== undefined
         ? user.dashboardPrefs
-        : { homeTiles: defaultHomeTilesForRoles(roles, department) },
+        : { homeTiles: defaultHomeTilesForRoles(roles, departments) },
   };
 }
 
@@ -261,6 +307,7 @@ type DbInternalOperator = {
   license_id: string | null;
   notes: string | null;
   department?: string | null;
+  departments?: unknown;
   allowed_views?: unknown;
   dashboard_prefs?: unknown;
   created_at: string;
@@ -270,7 +317,8 @@ type DbInternalOperator = {
 export function mapInternalOperator(row: DbInternalOperator): ManagedUser {
   const roles = normalizeUserRoles(row.roles, row.role);
   const role = primaryUserRole(roles);
-  const department = normalizeUserDepartment(row.department);
+  const departments = normalizeUserDepartments(row.departments, row.department);
+  const department = primaryUserDepartment(departments);
   const allowedViews = normalizeAllowedViews(row.allowed_views);
   const homeTiles = normalizeHomeTiles(
     row.dashboard_prefs &&
@@ -291,6 +339,7 @@ export function mapInternalOperator(row: DbInternalOperator): ManagedUser {
     role,
     roles,
     department,
+    departments,
     status: row.status as UserStatus,
     region: row.region as UserRegion,
     licenseId: row.license_id ?? "",
@@ -304,6 +353,7 @@ export function createBlankUserInput(): Omit<ManagedUser, "id"> {
   const role: UserRole = "Associate";
   const roles: UserRole[] = [role];
   const department: UserDepartment = "Corporate";
+  const departments: UserDepartment[] = [department];
   return {
     operatorLabel: "New Operator",
     fullName: "New Operator",
@@ -313,12 +363,13 @@ export function createBlankUserInput(): Omit<ManagedUser, "id"> {
     role,
     roles,
     department,
+    departments,
     status: "Active",
     region: "Barcelona",
     licenseId: "",
     notes: "",
-    allowedViews: defaultAllowedViewsForRoles(roles, department),
-    dashboardPrefs: { homeTiles: defaultHomeTilesForRoles(roles, department) },
+    allowedViews: defaultAllowedViewsForRoles(roles, departments),
+    dashboardPrefs: { homeTiles: defaultHomeTilesForRoles(roles, departments) },
   };
 }
 
@@ -332,6 +383,7 @@ export function userFieldsEqual(a: ManagedUser, b: ManagedUser) {
     a.role === b.role &&
     JSON.stringify(a.roles) === JSON.stringify(b.roles) &&
     a.department === b.department &&
+    JSON.stringify(a.departments) === JSON.stringify(b.departments) &&
     a.status === b.status &&
     a.region === b.region &&
     a.licenseId === b.licenseId &&

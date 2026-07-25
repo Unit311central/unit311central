@@ -412,31 +412,47 @@ export function defaultAllowedViews(
   return viewsForGroups(groupIds);
 }
 
-/** Union of presets when a user holds multiple roles. */
+/** Union of presets when a user holds multiple roles and/or departments. */
 export function defaultAllowedViewsForRoles(
   roles: readonly UserRole[],
-  department: UserDepartment,
+  department: UserDepartment | readonly UserDepartment[],
 ): InternalOperationsView[] {
   if (roles.includes("Admin") || roles.includes("Board") || roles.includes("Exec")) {
     return allModuleViews();
   }
+  const departments = Array.isArray(department)
+    ? department.length > 0
+      ? department
+      : (["Corporate"] as UserDepartment[])
+    : [department];
   const views = new Set<InternalOperationsView>();
   const list = roles.length > 0 ? roles : (["Associate"] as UserRole[]);
-  for (const role of list) {
-    for (const view of defaultAllowedViews(role, department)) views.add(view);
+  for (const dept of departments) {
+    for (const role of list) {
+      for (const view of defaultAllowedViews(role, dept)) views.add(view);
+    }
   }
   return [...views];
 }
 
 export function defaultHomeTilesForRoles(
   roles: readonly UserRole[],
-  department: UserDepartment,
+  department: UserDepartment | readonly UserDepartment[],
 ): CommandCentreHomeTileId[] {
   if (roles.includes("Admin") || roles.includes("Board") || roles.includes("Exec")) {
     return [...DEFAULT_COMMAND_CENTRE_HOME_LAYOUT];
   }
+  const departments = Array.isArray(department)
+    ? department.length > 0
+      ? department
+      : (["Corporate"] as UserDepartment[])
+    : [department];
+  const tiles = new Set<CommandCentreHomeTileId>();
   const primary = roles.includes("Manager") ? "Manager" : roles[0] ?? "Associate";
-  return defaultHomeTiles(primary, department);
+  for (const dept of departments) {
+    for (const tile of defaultHomeTiles(primary, dept)) tiles.add(tile);
+  }
+  return tiles.size > 0 ? [...tiles] : ["executive-brief"];
 }
 
 export function defaultHomeTiles(

@@ -31,6 +31,8 @@ export const INTERNAL_OPERATORS_ACCESS_ENTITLEMENTS_MIGRATION_PATH =
   "supabase/migrations/115_internal_operators_access_entitlements.sql";
 export const INTERNAL_OPERATORS_MULTI_ROLES_MIGRATION_PATH =
   "supabase/migrations/117_internal_operators_multi_roles.sql";
+export const INTERNAL_OPERATORS_MULTI_DEPARTMENTS_MIGRATION_PATH =
+  "supabase/migrations/118_internal_operators_multi_departments.sql";
 export const INTERNAL_PROJECT_TASKS_MIGRATION_PATH =
   "supabase/migrations/116_internal_project_tasks.sql";
 export const FINANCIAL_EXPENSES_MIGRATION_PATH =
@@ -1279,6 +1281,7 @@ export async function ensureInternalOperatorsTable(): Promise<boolean> {
     if (exists === true) {
       await applyMigrationViaManagementApi(INTERNAL_OPERATORS_ACCESS_ENTITLEMENTS_MIGRATION_PATH);
       await applyMigrationViaManagementApi(INTERNAL_OPERATORS_MULTI_ROLES_MIGRATION_PATH);
+      await applyMigrationViaManagementApi(INTERNAL_OPERATORS_MULTI_DEPARTMENTS_MIGRATION_PATH);
       await reloadPostgrestSchema();
       return true;
     }
@@ -1292,12 +1295,14 @@ export async function ensureInternalOperatorsTable(): Promise<boolean> {
         if (await tableExists(client, "internal_operators")) {
           await applyMigration(client, INTERNAL_OPERATORS_ACCESS_ENTITLEMENTS_MIGRATION_PATH);
           await applyMigration(client, INTERNAL_OPERATORS_MULTI_ROLES_MIGRATION_PATH);
+          await applyMigration(client, INTERNAL_OPERATORS_MULTI_DEPARTMENTS_MIGRATION_PATH);
           await reloadPostgrestSchema();
           return true;
         }
         await applyMigration(client, INTERNAL_OPERATORS_MIGRATION_PATH);
         await applyMigration(client, INTERNAL_OPERATORS_ACCESS_ENTITLEMENTS_MIGRATION_PATH);
         await applyMigration(client, INTERNAL_OPERATORS_MULTI_ROLES_MIGRATION_PATH);
+        await applyMigration(client, INTERNAL_OPERATORS_MULTI_DEPARTMENTS_MIGRATION_PATH);
         await reloadPostgrestSchema();
         return true;
       } finally {
@@ -1309,6 +1314,7 @@ export async function ensureInternalOperatorsTable(): Promise<boolean> {
       const applied = await applyMigrationViaManagementApi(INTERNAL_OPERATORS_MIGRATION_PATH);
       await applyMigrationViaManagementApi(INTERNAL_OPERATORS_ACCESS_ENTITLEMENTS_MIGRATION_PATH);
       await applyMigrationViaManagementApi(INTERNAL_OPERATORS_MULTI_ROLES_MIGRATION_PATH);
+      await applyMigrationViaManagementApi(INTERNAL_OPERATORS_MULTI_DEPARTMENTS_MIGRATION_PATH);
       if (applied) await reloadPostgrestSchema();
       return applied;
     }

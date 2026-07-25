@@ -2,8 +2,10 @@ import {
   createBlankUserInput,
   mapInternalOperator,
   normalizeUserDepartment,
+  normalizeUserDepartments,
   normalizeUserRole,
   normalizeUserRoles,
+  primaryUserDepartment,
   primaryUserRole,
   type ManagedUser,
   type UserDashboardPrefs,
@@ -27,7 +29,7 @@ import type { InternalOperationsView } from "@/lib/internal-operations-data";
 type DbOperator = Parameters<typeof mapInternalOperator>[0];
 
 const OPERATOR_SELECT =
-  "id, operator_label, full_name, username, email, phone, role, roles, status, region, license_id, notes, department, allowed_views, dashboard_prefs, created_at, updated_at";
+  "id, operator_label, full_name, username, email, phone, role, roles, status, region, license_id, notes, department, departments, allowed_views, dashboard_prefs, created_at, updated_at";
 
 function requireOperatorsSupabase() {
   if (!isSupabaseConfigured()) {
@@ -55,8 +57,14 @@ function buildOperatorPayload(input: Partial<ManagedUser>) {
     payload.roles = roles;
     payload.role = primaryUserRole(roles);
   }
-  if (input.department !== undefined) {
-    payload.department = normalizeUserDepartment(input.department);
+  if (input.departments !== undefined) {
+    const departments = normalizeUserDepartments(input.departments, input.department);
+    payload.departments = departments;
+    payload.department = primaryUserDepartment(departments);
+  } else if (input.department !== undefined) {
+    const departments = normalizeUserDepartments([input.department], input.department);
+    payload.departments = departments;
+    payload.department = primaryUserDepartment(departments);
   }
   if (input.status !== undefined) payload.status = input.status;
   if (input.region !== undefined) payload.region = input.region;
@@ -121,7 +129,11 @@ export async function createInternalOperator(
     const passwordHash = hashPlatformPasswordForUser(username, password);
     const roles = normalizeUserRoles(input.roles ?? [input.role ?? blank.role], input.role ?? blank.role);
     const role = primaryUserRole(roles);
-    const department = normalizeUserDepartment(input.department ?? blank.department);
+    const departments = normalizeUserDepartments(
+      input.departments ?? [input.department ?? blank.department],
+      input.department ?? blank.department,
+    );
+    const department = primaryUserDepartment(departments);
 
     const { data, error } = await supabase
       .from("internal_operators")
@@ -135,6 +147,7 @@ export async function createInternalOperator(
         role,
         roles,
         department,
+        departments,
         status: input.status ?? blank.status,
         region: input.region ?? blank.region,
         license_id: input.licenseId?.trim() || null,
@@ -182,6 +195,7 @@ export async function updateInternalOperator(
     role: UserRole;
     roles: UserRole[];
     department: UserDepartment;
+    departments: UserDepartment[];
     status: UserStatus;
     region: UserRegion;
     licenseId: string;

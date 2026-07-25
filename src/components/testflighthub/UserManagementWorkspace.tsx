@@ -7,11 +7,14 @@ import {
   USER_REGION_OPTIONS,
   USER_ROLE_OPTIONS,
   USER_STATUS_OPTIONS,
+  formatUserDepartments,
   formatUserRoles,
+  primaryUserDepartment,
   primaryUserRole,
   userFieldsEqual,
   userStatusClass,
   type ManagedUser,
+  type UserDepartment,
   type UserRole,
 } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
@@ -142,6 +145,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
           role: user.role,
           roles: user.roles,
           department: user.department,
+          departments: user.departments,
           status: user.status,
           region: user.region,
           licenseId: user.licenseId,
@@ -194,6 +198,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
     role: ManagedUser["role"];
     roles: ManagedUser["roles"];
     department: ManagedUser["department"];
+    departments: ManagedUser["departments"];
     status: ManagedUser["status"];
     region: ManagedUser["region"];
     licenseId: string;
@@ -426,7 +431,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                             </p>
                             <p className="mt-1 text-sm font-semibold text-white">{user.fullName}</p>
                             <p className="mt-1 text-[11px] text-white/45">
-                              {formatUserRoles(user)} · {user.department ?? "Corporate"}
+                              {formatUserRoles(user)} · {formatUserDepartments(user)}
                             </p>
                             <p className="mt-1 font-mono text-xs text-white/45">@{user.username}</p>
                           </div>
@@ -607,23 +612,50 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                       Select one or more. Primary privilege: {selectedUser.role}
                     </p>
                   </div>
-                  <div>
-                    <FieldLabel>Department</FieldLabel>
-                    <select
-                      className={inputClassName()}
-                      value={selectedUser.department ?? "Corporate"}
-                      onChange={(event) =>
-                        patchSelected({
-                          department: event.target.value as ManagedUser["department"],
-                        })
-                      }
-                    >
-                      {USER_DEPARTMENT_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="sm:col-span-2">
+                    <FieldLabel>Departments</FieldLabel>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {USER_DEPARTMENT_OPTIONS.map((option) => {
+                        const selected = (selectedUser.departments?.length
+                          ? selectedUser.departments
+                          : [selectedUser.department ?? "Corporate"]
+                        ).includes(option);
+                        return (
+                          <label
+                            key={option}
+                            className={cn(
+                              "inline-flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs transition-colors",
+                              selected
+                                ? "border-sky-400/40 bg-sky-500/15 text-sky-100"
+                                : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20",
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              className="accent-sky-400"
+                              checked={selected}
+                              onChange={(event) => {
+                                const current = selectedUser.departments?.length
+                                  ? selectedUser.departments
+                                  : [selectedUser.department ?? "Corporate"];
+                                let next: UserDepartment[];
+                                if (event.target.checked) {
+                                  next = [...new Set([...current, option])];
+                                } else {
+                                  next = current.filter((department) => department !== option);
+                                  if (next.length === 0) next = [option];
+                                }
+                                patchSelected({
+                                  departments: next,
+                                  department: primaryUserDepartment(next),
+                                });
+                              }}
+                            />
+                            {option}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                   <div>
                     <FieldLabel>Region</FieldLabel>
