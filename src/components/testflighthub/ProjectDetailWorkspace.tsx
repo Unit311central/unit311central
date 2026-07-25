@@ -1,14 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import type { ManagedClient } from "@/lib/client-management-data";
-import {
-  ganttBarStyle,
-  getProjectDetail,
-  type ProjectTask,
-} from "@/lib/project-detail-data";
+import { ganttBarStyle, type ProjectTask } from "@/lib/project-detail-data";
 import { getPortfolioProject } from "@/lib/project-portfolios";
 import { formatProjectDate, type InternalProject } from "@/lib/projects-data";
 import { cn } from "@/lib/utils";
@@ -16,7 +12,10 @@ import {
   ArrowLeft,
   Diamond,
   FolderOpen,
+  Loader2,
   Milestone,
+  Plus,
+  Trash2,
   Zap,
 } from "lucide-react";
 
@@ -28,6 +27,8 @@ type ProjectDetailWorkspaceProps = {
   clients?: ManagedClient[];
   /** When true, omit the back control (used inside master-detail layouts). */
   embedded?: boolean;
+  /** Fired when task changes update project.progressPct for KPI strips / lists. */
+  onProjectProgressChange?: (projectId: string, progressPct: number) => void;
 };
 
 function panelClassName() {
@@ -46,11 +47,8 @@ function taskStatusClass(progress: number) {
   return "border-white/15 bg-white/[0.04] text-white/55";
 }
 
-function formatShortDate(date: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${date}T12:00:00`));
+function inputClassName() {
+  return "w-full rounded-lg border border-white/10 bg-[#0b1524] px-2 py-1.5 text-xs text-white outline-none focus:border-sky-400/50";
 }
 
 export default function ProjectDetailWorkspace({
@@ -58,15 +56,16 @@ export default function ProjectDetailWorkspace({
   onBack,
   clients,
   embedded = false,
+  onProjectProgressChange,
 }: ProjectDetailWorkspaceProps) {
   const basePath = useInternalOperationsBasePath();
-  const detail = useMemo(() => getProjectDetail(project.id), [project.id]);
   const portfolio = useMemo(() => getPortfolioProject(project.id), [project.id]);
-  const [tasks, setTasks] = useState<ProjectTask[]>(() => detail.tasks.map((task) => ({ ...task })));
-
-  useEffect(() => {
-    setTasks(detail.tasks.map((task) => ({ ...task })));
-  }, [detail]);
+  const [tasks, setTasks] = useState<ProjectTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [displayProgress, setDisplayProgress] = useState(project.progressPct);
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const client = useMemo(
     () =>
@@ -79,7 +78,43 @@ export default function ProjectDetailWorkspace({
     [clients, portfolio?.kind, project.clientId, project.clientName],
   );
 
-  const folderId = detail.folderId ?? client?.filesFolderId ?? null;
+  const folderId = client?.filesFolderId ?? null;
+
+  const loadTasks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/projects/${project.id}/tasks`, { cache: "no-store" });
+      const data = (await response.json()) as {
+        tasks?: ProjectTask[];
+        progressPct?: number;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error ?? "Failed to load tasks");
+      setTasks(data.tasks ?? []);
+      if (typeof data.progressPct === "number") {
+        setDisplayProgress(data.progressPct);
+        onProjectProgressChange?.(project.id, data.progressPct);
+      }
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Failed to load tasks");
+      setTasks([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [onProjectProgressChange, project.id]);
+
+  useEffect(() => {
+    void loadTasks();
+    return () => {
+      Object.values(saveTimers.current).forEach((timer) => clearTimeout(timer));
+      saveTimers.current = {};
+    };
+  }, [loadTasks]);
+
+  useEffect(() => {
+    setDisplayProgress(project.progressPct);
+  }, [project.id, project.progressPct]);
 
   const ganttRange = useMemo(() => {
     if (tasks.length === 0) {
@@ -101,10 +136,98 @@ export default function ProjectDetailWorkspace({
 
   const milestones = useMemo(() => tasks.filter((task) => task.milestone), [tasks]);
 
-  function updateTask(id: string, patch: Partial<ProjectTask>) {
+  function applyProgress(progressPct: number) {
+    setDisplayProgress(progressPct);
+    onProjectProgressChange?.(project.id, progressPct);
+  }
+
+  async function persistTask(taskId: string, patch: Partial<ProjectTask>) {
+    setError(null);
+    try {
+      const response = await fetch(`/api/projects/${project.id}/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const data = (await response.json()) as {
+        tasks?: ProjectTask[];
+        progressPct?: number;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error ?? "Failed to save task");
+      if (data.tasks) setTasks(data.tasks);
+      if (typeof data.progressPct === "number") applyProgress(data.progressPct);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Failed to save task");
+      void loadTasks();
+    }
+  }
+
+  function updateTaskLocal(id: string, patch: Partial<ProjectTask>, persist = true) {
     setTasks((current) =>
       current.map((task) => (task.id === id ? { ...task, ...patch } : task)),
     );
+
+    if (!persist) return;
+
+    const existing = saveTimers.current[id];
+    if (existing) clearTimeout(existing);
+    saveTimers.current[id] = setTimeout(() => {
+      void persistTask(id, patch);
+    }, 350);
+  }
+
+  async function handleAddTask() {
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/projects/${project.id}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "New task",
+          resource: project.operator || "",
+          progress: 0,
+          milestone: false,
+          critical: false,
+        }),
+      });
+      const data = (await response.json()) as {
+        tasks?: ProjectTask[];
+        progressPct?: number;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error ?? "Failed to add task");
+      setTasks(data.tasks ?? []);
+      if (typeof data.progressPct === "number") applyProgress(data.progressPct);
+    } catch (addError) {
+      setError(addError instanceof Error ? addError.message : "Failed to add task");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDeleteTask(taskId: string) {
+    if (!window.confirm("Delete this task?")) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/projects/${project.id}/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+      const data = (await response.json()) as {
+        tasks?: ProjectTask[];
+        progressPct?: number;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error ?? "Failed to delete task");
+      setTasks(data.tasks ?? []);
+      if (typeof data.progressPct === "number") applyProgress(data.progressPct);
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete task");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -135,7 +258,7 @@ export default function ProjectDetailWorkspace({
             <p className="mt-1 text-xs text-white/40">
               Start {formatProjectDate(project.startDate)}
               {project.endDate ? ` · End ${formatProjectDate(project.endDate)}` : ""}
-              {(portfolio?.projectManager || project.operator)
+              {portfolio?.projectManager || project.operator
                 ? ` · PM ${portfolio?.projectManager ?? project.operator}`
                 : ""}
               {portfolio?.accountManager ? ` · AM ${portfolio.accountManager}` : ""}
@@ -158,6 +281,12 @@ export default function ProjectDetailWorkspace({
           </span>
         )}
       </header>
+
+      {error ? (
+        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+          {error}
+        </p>
+      ) : null}
 
       {portfolio ? (
         <section className={panelClassName()}>
@@ -200,172 +329,229 @@ export default function ProjectDetailWorkspace({
             <div>
               <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Progress</p>
               <p className="mt-1 text-sm font-semibold tabular-nums text-white">
-                {project.progressPct.toFixed(0)}%
+                {displayProgress.toFixed(0)}%
               </p>
             </div>
           </div>
-
-          {portfolio.kind === "external" && portfolio.customerContacts?.length ? (
-            <p className="mt-4 text-xs text-white/50">
-              Customer contacts · {portfolio.customerContacts.join(" · ")}
-            </p>
-          ) : null}
-
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            <div>
-              <h3 className="text-sm font-semibold text-white">Milestones</h3>
-              <ul className="mt-2 space-y-2">
-                {portfolio.milestones.map((milestone) => (
-                  <li
-                    key={milestone.id}
-                    className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-[#0b1524]/70 px-3 py-2 text-xs"
-                  >
-                    <span className="text-white/80">{milestone.name}</span>
-                    <span className="shrink-0 text-white/45">
-                      {formatProjectDate(milestone.dueDate)} · {milestone.status}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-white">Risks</h3>
-              <ul className="mt-2 space-y-2">
-                {portfolio.risks.map((risk) => (
-                  <li
-                    key={risk.id}
-                    className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-3 py-2 text-xs"
-                  >
-                    <p className="text-white/85">{risk.title}</p>
-                    <p className="mt-1 text-white/40">
-                      {risk.severity} · Owner {risk.owner}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
         </section>
-      ) : null}
+      ) : (
+        <section className={panelClassName()}>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Project progress</p>
+          <p className="mt-1 text-sm font-semibold tabular-nums text-white">
+            {displayProgress.toFixed(0)}% · averaged from tasks
+          </p>
+        </section>
+      )}
 
       <section className={panelClassName()}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-semibold text-white">Tasks</h3>
             <p className="mt-1 text-xs text-white/45">
-              {tasks.length} tasks · edit progress inline
+              {tasks.length} tasks · add, edit, or delete — updates Avg Progress on dashboards
             </p>
           </div>
-          <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.12em] text-white/40">
-            <span className="inline-flex items-center gap-1">
-              <Diamond className="h-3 w-3 text-amber-300" />
-              Milestone
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Zap className="h-3 w-3 text-rose-300" />
-              Critical path
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.12em] text-white/40">
+              <span className="inline-flex items-center gap-1">
+                <Diamond className="h-3 w-3 text-amber-300" />
+                Milestone
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Zap className="h-3 w-3 text-rose-300" />
+                Critical
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleAddTask()}
+              disabled={busy || loading}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-300 transition-colors hover:bg-sky-500/25 disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              Add task
+            </button>
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.08] text-[10px] font-medium uppercase tracking-[0.12em] text-white/35">
-                <th className="pb-2 pr-3 font-medium">Task</th>
-                <th className="pb-2 pr-3 font-medium">Start</th>
-                <th className="pb-2 pr-3 font-medium">Due</th>
-                <th className="pb-2 pr-3 font-medium">Progress</th>
-                <th className="pb-2 pr-3 font-medium">Status</th>
-                <th className="pb-2 pr-3 font-medium">Resource</th>
-                <th className="pb-2 pr-3 font-medium">Flags</th>
-                <th className="pb-2 font-medium">Timeline</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((task) => {
-                const bar = ganttBarStyle(
-                  task.startDate,
-                  task.dueDate,
-                  ganttRange.start,
-                  ganttRange.end,
-                );
+        {loading ? (
+          <div className="mt-6 flex items-center gap-2 text-sm text-white/45">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading tasks…
+          </div>
+        ) : tasks.length === 0 ? (
+          <div className="mt-6 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-10 text-center">
+            <p className="text-sm text-white/55">No tasks yet.</p>
+            <button
+              type="button"
+              onClick={() => void handleAddTask()}
+              disabled={busy}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 py-2 text-xs font-semibold text-sky-300"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add first task
+            </button>
+          </div>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[64rem] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/[0.08] text-[10px] font-medium uppercase tracking-[0.12em] text-white/35">
+                  <th className="pb-2 pr-3 font-medium">Task</th>
+                  <th className="pb-2 pr-3 font-medium">Start</th>
+                  <th className="pb-2 pr-3 font-medium">Due</th>
+                  <th className="pb-2 pr-3 font-medium">Progress</th>
+                  <th className="pb-2 pr-3 font-medium">Status</th>
+                  <th className="pb-2 pr-3 font-medium">Resource</th>
+                  <th className="pb-2 pr-3 font-medium">Flags</th>
+                  <th className="pb-2 pr-3 font-medium">Timeline</th>
+                  <th className="pb-2 font-medium"> </th>
+                </tr>
+              </thead>
+              <tbody>
+                {tasks.map((task) => {
+                  const bar = ganttBarStyle(
+                    task.startDate,
+                    task.dueDate,
+                    ganttRange.start,
+                    ganttRange.end,
+                  );
 
-                return (
-                  <tr key={task.id} className="border-b border-white/[0.05] last:border-0">
-                    <td className="py-3 pr-3 font-medium text-white/90">{task.name}</td>
-                    <td className="py-3 pr-3 text-white/55">{formatShortDate(task.startDate)}</td>
-                    <td className="py-3 pr-3 text-white/55">{formatShortDate(task.dueDate)}</td>
-                    <td className="py-3 pr-3">
-                      <div className="flex min-w-[8rem] items-center gap-2">
+                  return (
+                    <tr key={task.id} className="border-b border-white/[0.05] last:border-0">
+                      <td className="py-3 pr-3">
                         <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={task.progress}
+                          className={cn(inputClassName(), "min-w-[10rem] font-medium")}
+                          value={task.name}
                           onChange={(event) =>
-                            updateTask(task.id, { progress: Number(event.target.value) })
+                            updateTaskLocal(task.id, { name: event.target.value })
                           }
-                          className="h-1.5 w-full accent-sky-500"
-                          aria-label={`Progress for ${task.name}`}
+                          aria-label="Task name"
                         />
-                        <span className="w-8 shrink-0 font-mono text-xs text-white/70">
-                          {task.progress}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 pr-3">
-                      <select
-                        value={taskStatusLabel(task.progress)}
-                        onChange={(event) => {
-                          const label = event.target.value;
-                          const progress =
-                            label === "Complete" ? 100 : label === "Not started" ? 0 : 50;
-                          updateTask(task.id, { progress });
-                        }}
-                        className="rounded-lg border border-white/10 bg-[#0b1524] px-2 py-1 text-xs text-white outline-none focus:border-sky-400/50"
-                      >
-                        <option value="Not started">Not started</option>
-                        <option value="In progress">In progress</option>
-                        <option value="Complete">Complete</option>
-                      </select>
-                    </td>
-                    <td className="py-3 pr-3 text-white/60">{task.resource}</td>
-                    <td className="py-3 pr-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        {task.milestone && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-200">
-                            <Milestone className="h-3 w-3" />
+                      </td>
+                      <td className="py-3 pr-3">
+                        <input
+                          type="date"
+                          className={inputClassName()}
+                          value={task.startDate}
+                          onChange={(event) =>
+                            updateTaskLocal(task.id, { startDate: event.target.value })
+                          }
+                        />
+                      </td>
+                      <td className="py-3 pr-3">
+                        <input
+                          type="date"
+                          className={inputClassName()}
+                          value={task.dueDate}
+                          onChange={(event) =>
+                            updateTaskLocal(task.id, { dueDate: event.target.value })
+                          }
+                        />
+                      </td>
+                      <td className="py-3 pr-3">
+                        <div className="flex min-w-[8rem] items-center gap-2">
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={task.progress}
+                            onChange={(event) =>
+                              updateTaskLocal(task.id, {
+                                progress: Number(event.target.value),
+                              })
+                            }
+                            className="h-1.5 w-full accent-sky-500"
+                            aria-label={`Progress for ${task.name}`}
+                          />
+                          <span className="w-8 shrink-0 font-mono text-xs text-white/70">
+                            {task.progress}%
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 pr-3">
+                        <select
+                          value={taskStatusLabel(task.progress)}
+                          onChange={(event) => {
+                            const label = event.target.value;
+                            const progress =
+                              label === "Complete" ? 100 : label === "Not started" ? 0 : 50;
+                            updateTaskLocal(task.id, { progress });
+                          }}
+                          className={inputClassName()}
+                        >
+                          <option value="Not started">Not started</option>
+                          <option value="In progress">In progress</option>
+                          <option value="Complete">Complete</option>
+                        </select>
+                      </td>
+                      <td className="py-3 pr-3">
+                        <input
+                          className={cn(inputClassName(), "min-w-[7rem]")}
+                          value={task.resource}
+                          onChange={(event) =>
+                            updateTaskLocal(task.id, { resource: event.target.value })
+                          }
+                          aria-label="Resource"
+                        />
+                      </td>
+                      <td className="py-3 pr-3">
+                        <div className="flex flex-wrap gap-2">
+                          <label className="inline-flex items-center gap-1 text-[10px] text-amber-200">
+                            <input
+                              type="checkbox"
+                              checked={task.milestone}
+                              onChange={(event) =>
+                                updateTaskLocal(task.id, { milestone: event.target.checked })
+                              }
+                              className="accent-amber-400"
+                            />
                             Milestone
-                          </span>
-                        )}
-                        {task.critical && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/40 bg-rose-500/15 px-2 py-0.5 text-[10px] font-medium text-rose-200">
-                            <Zap className="h-3 w-3" />
+                          </label>
+                          <label className="inline-flex items-center gap-1 text-[10px] text-rose-200">
+                            <input
+                              type="checkbox"
+                              checked={task.critical}
+                              onChange={(event) =>
+                                updateTaskLocal(task.id, { critical: event.target.checked })
+                              }
+                              className="accent-rose-400"
+                            />
                             Critical
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <div className="relative h-5 w-36 min-w-[9rem] rounded-md bg-white/[0.06]">
-                        <div
-                          className={cn(
-                            "absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full",
-                            task.critical
-                              ? "bg-gradient-to-r from-rose-500 to-amber-400"
-                              : "bg-gradient-to-r from-sky-500 to-emerald-400",
-                          )}
-                          style={bar}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                          </label>
+                        </div>
+                      </td>
+                      <td className="py-3 pr-3">
+                        <div className="relative h-5 w-36 min-w-[9rem] rounded-md bg-white/[0.06]">
+                          <div
+                            className={cn(
+                              "absolute top-1/2 h-2.5 -translate-y-1/2 rounded-full",
+                              task.critical
+                                ? "bg-gradient-to-r from-rose-500 to-amber-400"
+                                : "bg-gradient-to-r from-sky-500 to-emerald-400",
+                            )}
+                            style={bar}
+                          />
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteTask(task.id)}
+                          disabled={busy}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-400/30 text-rose-300 transition-colors hover:bg-rose-500/15 disabled:opacity-50"
+                          aria-label={`Delete ${task.name}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className={panelClassName()}>
@@ -374,7 +560,7 @@ export default function ProjectDetailWorkspace({
           <h3 className="text-base font-semibold text-white">Milestones</h3>
         </div>
         <p className="mt-1 text-xs text-white/45">
-          Key delivery checkpoints on the critical path
+          Key delivery checkpoints flagged as milestones
         </p>
 
         {milestones.length === 0 ? (
@@ -398,7 +584,7 @@ export default function ProjectDetailWorkspace({
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-white/50">
-                  Due {formatProjectDate(task.dueDate)} · {task.resource}
+                  Due {formatProjectDate(task.dueDate)} · {task.resource || "Unassigned"}
                 </p>
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div

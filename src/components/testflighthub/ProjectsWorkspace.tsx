@@ -170,7 +170,8 @@ export default function ProjectsWorkspace({
   );
   // Internal programmes stay on the demo portfolio. External / dashboard use live API projects
   // so EA-created client work (e.g. Site Survey for Acme) is visible.
-  const usesPortfolio = scope === "internal";
+  const usesPortfolio = false;
+  const isPortfolioLayout = scope === "internal" || scope === "external";
 
   const [projects, setProjects] = useState<InternalProject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,14 +184,14 @@ export default function ProjectsWorkspace({
 
   const liveProjects = useMemo(() => {
     const live = projects.filter((project) => project.phase === "live");
-    if (usesPortfolio) return sortLatestFirst(live);
+    if (isPortfolioLayout) return sortLatestFirst(live);
     if (!filteredClient) return live;
     return live.filter(
       (project) =>
         project.clientId === filteredClient.id ||
         project.clientName === filteredClient.companyName,
     );
-  }, [filteredClient, projects, usesPortfolio]);
+  }, [filteredClient, projects, isPortfolioLayout]);
 
   const upcomingProjects = useMemo(() => {
     const upcoming = projects.filter((project) => project.phase === "upcoming");
@@ -235,8 +236,20 @@ export default function ProjectsWorkspace({
       const response = await fetch("/api/projects", { cache: "no-store" });
       const data = await readApiJson<{ projects?: InternalProject[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load projects");
-      setProjects(data.projects ?? []);
-      setSelectedProjectId(null);
+      const all = data.projects ?? [];
+      const next =
+        scope === "internal"
+          ? all.filter((project) => !project.clientId)
+          : scope === "external"
+            ? all.filter((project) => Boolean(project.clientId))
+            : all;
+      setProjects(next);
+      setSelectedIds((current) => current.filter((id) => next.some((project) => project.id === id)));
+      const live = sortLatestFirst(next.filter((project) => project.phase === "live"));
+      setSelectedProjectId((current) => {
+        if (current && next.some((project) => project.id === current)) return current;
+        return live[0]?.id ?? next[0]?.id ?? null;
+      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load projects");
       setProjects([]);
@@ -286,41 +299,16 @@ export default function ProjectsWorkspace({
     setError(null);
 
     try {
-      if (usesPortfolio) {
-        const now = new Date().toISOString();
-        const created: InternalProject = {
-          id: `${scope}-${crypto.randomUUID()}`,
-          name: draft.name.trim(),
-          clientId: scope === "internal" ? null : draft.clientId || null,
-          clientName:
-            scope === "internal"
-              ? draft.region.trim() || "Internal programme"
-              : draft.clientName.trim(),
-          site: draft.site.trim() || null,
-          region: draft.region.trim() || null,
-          operator: draft.operator.trim() || null,
-          phase: draft.phase,
-          startDate: draft.startDate || null,
-          endDate: draft.endDate || null,
-          progressPct: draft.phase === "live" ? 5 : 0,
-          notes: draft.notes.trim() || null,
-          createdAt: now,
-          updatedAt: now,
-        };
-        setProjects((current) => [created, ...current]);
-        if (created.phase === "live") setSelectedProjectId(created.id);
-        setDraft(createBlankProjectInput());
-        setShowForm(false);
-        return;
-      }
-
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: draft.name.trim(),
-          clientId: draft.clientId || undefined,
-          clientName: draft.clientName.trim(),
+          clientId: scope === "internal" ? undefined : draft.clientId || undefined,
+          clientName:
+            scope === "internal"
+              ? draft.region.trim() || draft.clientName.trim() || "Internal programme"
+              : draft.clientName.trim(),
           site: draft.site.trim() || undefined,
           region: draft.region.trim() || undefined,
           operator: draft.operator.trim() || undefined,
@@ -335,6 +323,7 @@ export default function ProjectsWorkspace({
       if (!response.ok || !data.project) throw new Error(data.error ?? "Failed to create project");
 
       setProjects((current) => [data.project!, ...current]);
+      if (data.project.phase === "live") setSelectedProjectId(data.project.id);
       setDraft(createBlankProjectInput());
       setShowForm(false);
     } catch (createError) {
@@ -431,7 +420,17 @@ export default function ProjectsWorkspace({
     await deleteProjectsByIds(selectedIds);
   }
 
-  if (usesPortfolio) {
+  const handleProjectProgressChange = useCallback((projectId: string, progressPct: number) => {
+    setProjects((current) =>
+      current.map((project) =>
+        project.id === projectId
+          ? { ...project, progressPct, updatedAt: new Date().toISOString() }
+          : project,
+      ),
+    );
+  }, []);
+
+  if (isPortfolioLayout) {
     return (
       <div className="space-y-5">
         <DashboardTopTilesBar
@@ -711,6 +710,7 @@ export default function ProjectsWorkspace({
                   project={selectedProject}
                   clients={clients}
                   embedded
+                  onProjectProgressChange={handleProjectProgressChange}
                 />
               ) : (
                 <div className="flex min-h-[20rem] items-center justify-center text-sm text-white/45">
@@ -893,6 +893,7 @@ export default function ProjectsWorkspace({
           project={selectedProject}
           clients={clients}
           onBack={() => setSelectedProjectId(null)}
+          onProjectProgressChange={handleProjectProgressChange}
         />
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">

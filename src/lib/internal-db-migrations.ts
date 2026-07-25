@@ -29,6 +29,8 @@ export const INTERNAL_OPERATORS_MIGRATION_PATH =
   "supabase/migrations/019_create_internal_operators.sql";
 export const INTERNAL_OPERATORS_ACCESS_ENTITLEMENTS_MIGRATION_PATH =
   "supabase/migrations/115_internal_operators_access_entitlements.sql";
+export const INTERNAL_PROJECT_TASKS_MIGRATION_PATH =
+  "supabase/migrations/116_internal_project_tasks.sql";
 export const FINANCIAL_EXPENSES_MIGRATION_PATH =
   "supabase/migrations/021_create_financial_expenses.sql";
 export const GENERAL_LEDGER_MIGRATION_PATH =
@@ -1323,6 +1325,55 @@ export async function withInternalOperatorsTable<T>(operation: () => Promise<T>)
   }
 
   throw new Error("Failed to access internal operators table.");
+}
+
+export async function ensureInternalProjectTasksTable(): Promise<boolean> {
+  return onceEnsured("table:internal_project_tasks", async () => {
+    const exists = await tableExistsViaManagementApi("internal_project_tasks");
+    if (exists === true) {
+      return true;
+    }
+
+    const dbUrl = getDatabaseUrl();
+    if (dbUrl) {
+      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+      try {
+        await client.connect();
+        if (await tableExists(client, "internal_project_tasks")) {
+          return true;
+        }
+        await applyMigration(client, INTERNAL_PROJECT_TASKS_MIGRATION_PATH);
+        await reloadPostgrestSchema();
+        return true;
+      } finally {
+        await client.end().catch(() => undefined);
+      }
+    }
+
+    if (exists === false) {
+      const applied = await applyMigrationViaManagementApi(INTERNAL_PROJECT_TASKS_MIGRATION_PATH);
+      if (applied) await reloadPostgrestSchema();
+      return applied;
+    }
+
+    return false;
+  });
+}
+
+export async function withInternalProjectTasksTable<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isMissingTableError(error, "internal_project_tasks")) throw error;
+      await ensureInternalProjectTasksTable();
+      await reloadPostgrestSchema();
+      if (attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+    }
+  }
+
+  throw new Error("Failed to access internal project tasks table.");
 }
 
 export async function ensureFinancialExpensesTable(): Promise<boolean> {
