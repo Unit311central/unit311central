@@ -15,7 +15,6 @@ import {
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
   computeTrainingDashboardKpis,
-  createCourse,
   createReport,
 } from "@/lib/tqms-mock-store";
 import { tqmsStatusClass } from "@/lib/tqms-data";
