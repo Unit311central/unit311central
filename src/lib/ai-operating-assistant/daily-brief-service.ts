@@ -228,7 +228,6 @@ export async function buildDailyExecutiveBrief(
     });
   }
 
-  const firstName = context.user.displayName.trim().split(/\s+/)[0] || "there";
   const attentionCount = priorities.length + criticalInsights.length;
   const overdueInvoiceCount = financeDoIts.filter((a) =>
     a.actionId === "finance.chaseOverdueInvoice",
