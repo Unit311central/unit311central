@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const EXEC_VIDEO_SRC = "/videos/MORNING.mp4";
+const EXEC_VIDEO_SRC = "/videos/FINAL.mp4";
 const VISIBLE_RATIO = 0.55;
 
 export default function HomeExecutiveDemoVideo() {
