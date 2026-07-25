@@ -88,7 +88,23 @@ Before a customer presentation:
 2. Confirm Demo Owner login on `https://demo.unit311central.com`.
 3. (Optional) refresh curated Demo sample content when a content script exists — never copy live Internal business data.
 
-Synthetic Demo data generation (year of fake records) is a **later phase** and must target workspace `demo` only.
+Synthetic Demo data generation targets workspace `demo` only.
+
+### Enterprise Demo seed (Meridian Atlas Group)
+
+```bash
+npm run demo:enterprise:seed
+# alias: npm run demo:refresh
+```
+
+- Wipes **Demo** business rows only (`workspace_id = demo`), never Internal.
+- Seeds ~100 employees, ~100 clients, projects, CRM, support, calendar, GL/invoices/expenses, payroll, software assets, messaging.
+- Writes [`src/lib/demo-enterprise/fixtures.generated.json`](../src/lib/demo-enterprise/fixtures.generated.json) for Demo-host mock modules + simulated Wise.
+- Framework: [`scripts/demo-enterprise/`](../scripts/demo-enterprise/).
+
+**Simulated Wise (Demo only):** Demo treasury uses an in-app simulator (`src/lib/treasury/providers/demo-wise-simulator.ts`). No Wise API keys or external calls. Internal continues to use live Wise when configured.
+
+**Deferred (do not implement now):** [Authentication hardening](./TECHNICAL_DEBT.md#authentication-hardening) — redirect unauthenticated visitors on `internal.*` / `demo.*` to login instead of serving the Ops shell. Current API-gated behaviour is accepted.
 
 ---
 

@@ -6,11 +6,46 @@ import {
 import { inferExpenseCategory, type FinancialExpense } from "@/lib/expenses-data";
 
 export const CRM_DASHBOARD_TILES: DashboardTileDefinition[] = [
-  { id: "open-leads", label: "Open leads", value: "24", hint: "Pipeline not closed" },
-  { id: "qualified", label: "Qualified", value: "11", hint: "Ready for proposal" },
-  { id: "pipeline-value", label: "Pipeline value", value: "€1.2M", hint: "Estimated total" },
-  { id: "due-this-week", label: "Due this week", value: "6", hint: "Next actions scheduled" },
+  { id: "open-leads", label: "Open leads", value: "0", hint: "Pipeline not closed" },
+  { id: "qualified", label: "Qualified", value: "0", hint: "Ready for proposal" },
+  { id: "pipeline-value", label: "Pipeline value", value: "£0", hint: "Estimated total" },
+  { id: "due-this-week", label: "Won this quarter", value: "0", hint: "Closed-won leads" },
 ];
+
+export function buildCrmDashboardCatalog(
+  leads: Array<{ status?: string | null; estimatedValue?: number | null }>,
+): DashboardTileDefinition[] {
+  const open = leads.filter((lead) => {
+    const status = (lead.status ?? "").toLowerCase();
+    return status && !["won", "lost", "closed"].includes(status);
+  });
+  const qualified = leads.filter((lead) => {
+    const status = (lead.status ?? "").toLowerCase();
+    return status === "qualified" || status === "proposal" || status === "hot" || status === "warm";
+  });
+  const pipelineValue = open.reduce((sum, lead) => sum + (Number(lead.estimatedValue) || 0), 0);
+  const won = leads.filter((lead) => (lead.status ?? "").toLowerCase() === "won");
+  const money = new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: 0,
+  }).format(pipelineValue);
+
+  return CRM_DASHBOARD_TILES.map((tile) => {
+    switch (tile.id) {
+      case "open-leads":
+        return { ...tile, value: String(open.length) };
+      case "qualified":
+        return { ...tile, value: String(qualified.length) };
+      case "pipeline-value":
+        return { ...tile, value: money };
+      case "due-this-week":
+        return { ...tile, value: String(won.length), hint: "Closed-won leads" };
+      default:
+        return tile;
+    }
+  });
+}
 
 export const CLIENTS_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "total-clients", label: "Total clients", value: "0", hint: "Excludes archived" },

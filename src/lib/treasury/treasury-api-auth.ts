@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { requirePlatformSession, getPlatformSession } from "@/lib/platform-session";
+import { isWiseTreasuryWorkspaceSlug } from "@/lib/treasury/bank-provider";
 import { getWiseConnectionStatus } from "@/lib/wise-service";
 import {
-  INTERNAL_WORKSPACE_SLUG,
   requireCurrentWorkspace,
   type CurrentWorkspace,
 } from "@/lib/workspace-context";
 
 export const WISE_INTERNAL_ONLY_MESSAGE = "Wise treasury is Internal-only.";
+export const WISE_WORKSPACE_DENIED_MESSAGE =
+  "Wise treasury is available on Internal and Demo workspaces only.";
 
 export async function requireTreasuryApiSession():
   Promise<
@@ -23,7 +25,8 @@ export async function requireTreasuryApiSession():
 }
 
 /**
- * Session + workspace required. Wise bank data is Internal (unit311) only.
+ * Session + workspace required.
+ * Internal uses live Wise; Demo uses the simulated Wise provider (no external API).
  */
 export async function requireInternalWiseWorkspace():
   Promise<
@@ -36,9 +39,9 @@ export async function requireInternalWiseWorkspace():
   try {
     const session = await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    if (workspace.slug !== INTERNAL_WORKSPACE_SLUG) {
+    if (!isWiseTreasuryWorkspaceSlug(workspace.slug)) {
       return {
-        error: NextResponse.json({ error: WISE_INTERNAL_ONLY_MESSAGE }, { status: 403 }),
+        error: NextResponse.json({ error: WISE_WORKSPACE_DENIED_MESSAGE }, { status: 403 }),
       };
     }
     return { session, workspace };

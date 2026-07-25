@@ -155,15 +155,83 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
         const data = await fetchCachedJson<{ users?: ManagedUser[] }>(
           PLATFORM_CACHE_KEYS.users,
           "/api/users",
-          { ttlMs: 60_000 },
+          { ttlMs: 60_000, timeoutMs: 15_000 },
         );
         if (cancelled) return;
-        const nextUsers = data.users ?? [];
+        let nextUsers = data.users ?? [];
+        if (
+          typeof window !== "undefined" &&
+          (window.location.hostname.startsWith("demo.") ||
+            window.location.hostname === "demo.localhost") &&
+          (nextUsers.length === 0 ||
+            nextUsers.some((user) => /unit311|fotheringham|paul@/i.test(`${user.email} ${user.username}`)))
+        ) {
+          try {
+            const { getDemoEnterpriseFixtures } =
+              await import("@/lib/demo-enterprise");
+            nextUsers = getDemoEnterpriseFixtures().directory.map((row) => ({
+              id: row.id,
+              operatorLabel: row.fullName.split(" ")[0] ?? row.fullName,
+              fullName: row.fullName,
+              username: row.email,
+              email: row.email,
+              phone: "",
+              role: "Admin" as const,
+              roles: ["Admin" as const],
+              department: "Corporate" as const,
+              departments: ["Corporate" as const],
+              status: "Active" as const,
+              region: "Multi-site" as const,
+              licenseId: "",
+              notes: row.department,
+              allowedViews: null,
+              dashboardPrefs: null,
+            }));
+          } catch {
+            // Keep API users if fixtures unavailable.
+          }
+        }
         setUsers(nextUsers);
         const firstActive = nextUsers.find((user) => user.status === "Active");
         setHostOperatorId((current) => current || firstActive?.id || "");
       } catch {
-        if (!cancelled) setError("Failed to load contacts.");
+        if (!cancelled) {
+          try {
+            if (
+              typeof window !== "undefined" &&
+              (window.location.hostname.startsWith("demo.") ||
+                window.location.hostname === "demo.localhost")
+            ) {
+              const { getDemoEnterpriseFixtures } =
+                await import("@/lib/demo-enterprise");
+              const nextUsers = getDemoEnterpriseFixtures().directory.map((row) => ({
+                id: row.id,
+                operatorLabel: row.fullName.split(" ")[0] ?? row.fullName,
+                fullName: row.fullName,
+                username: row.email,
+                email: row.email,
+                phone: "",
+                role: "Admin" as const,
+                roles: ["Admin" as const],
+                department: "Corporate" as const,
+                departments: ["Corporate" as const],
+                status: "Active" as const,
+                region: "Multi-site" as const,
+                licenseId: "",
+                notes: row.department,
+                allowedViews: null,
+                dashboardPrefs: null,
+              }));
+              setUsers(nextUsers);
+              setHostOperatorId(nextUsers[0]?.id || "");
+              setError(null);
+            } else {
+              setError("Failed to load contacts.");
+            }
+          } catch {
+            setError("Failed to load contacts.");
+          }
+        }
       } finally {
         if (!cancelled) setUsersLoading(false);
       }

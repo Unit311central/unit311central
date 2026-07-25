@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import { useEffect, useState } from "react";
 import { ChartTooltip } from "@/components/dashboard/ChartTooltip";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import {
@@ -11,14 +12,17 @@ import {
   formatLedgerDate,
   ledgerStatusClass,
   ledgerStatusLabel,
+  type LedgerAccountRow,
+  type LedgerAgingBucket,
   type LedgerKpi,
+  type LedgerMonthlyPoint,
 } from "@/lib/financials-ledger-mock-data";
+import { buildCreditorsLedger } from "@/lib/live-ledger-dashboard";
 import {
   CREDITORS_DASHBOARD_TILES,
   DEFAULT_CREDITORS_TILE_LAYOUT,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { cn } from "@/lib/utils";
-import { TrendingDown, TrendingUp } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -48,17 +52,57 @@ function KpiCard({ kpi }: { kpi: LedgerKpi }) {
 }
 
 export default function CreditorsWorkspace() {
+  const [kpis, setKpis] = useState<LedgerKpi[]>(CREDITORS_KPIS);
+  const [aging, setAging] = useState<LedgerAgingBucket[]>(CREDITORS_AGING_DATA);
+  const [accounts, setAccounts] = useState<LedgerAccountRow[]>(CREDITORS_ACCOUNTS);
+  const [monthly, setMonthly] = useState<LedgerMonthlyPoint[]>(CREDITORS_MONTHLY_TREND);
+  const [tiles, setTiles] = useState(CREDITORS_DASHBOARD_TILES);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/financials/expenses", { cache: "no-store" });
+        if (!response.ok) return;
+        const payload = (await response.json()) as {
+          expenses?: Array<{
+            id: string;
+            supplier?: string | null;
+            submitterName?: string | null;
+            amount: number;
+            currency?: string | null;
+            paid: boolean;
+            expenseDate?: string | null;
+            dateSubmitted?: string | null;
+          }>;
+        };
+        const ledger = buildCreditorsLedger(payload.expenses ?? []);
+        if (cancelled) return;
+        setKpis(ledger.kpis);
+        setAging(ledger.aging);
+        setAccounts(ledger.accounts);
+        setMonthly(ledger.monthly.length ? ledger.monthly : CREDITORS_MONTHLY_TREND);
+        setTiles(ledger.tiles);
+      } catch {
+        // Keep fallback mock if API unavailable.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="space-y-6">
       <DashboardTopTilesBar
         storageKey="unit311-creditors-dashboard-tiles"
-        catalog={CREDITORS_DASHBOARD_TILES}
+        catalog={tiles}
         defaultLayout={DEFAULT_CREDITORS_TILE_LAYOUT}
         title="Creditors key details"
         showCustomizeHint={false}
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {CREDITORS_KPIS.map((kpi) => (
+        {kpis.map((kpi) => (
           <KpiCard key={kpi.id} kpi={kpi} />
         ))}
       </div>
@@ -66,10 +110,10 @@ export default function CreditorsWorkspace() {
       <div className="grid gap-4 xl:grid-cols-2">
         <section className={panelClassName()}>
           <h3 className="text-sm font-semibold text-white">Outstanding by ageing</h3>
-          <p className="mt-1 text-xs text-white/45">Payables grouped by days until due (€k)</p>
+          <p className="mt-1 text-xs text-white/45">Payables grouped by days outstanding (€k)</p>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={CREDITORS_AGING_DATA} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+              <BarChart data={aging} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis dataKey="bucket" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
                 <YAxis
@@ -85,13 +129,13 @@ export default function CreditorsWorkspace() {
                       payload={payload?.map((entry) => ({
                         name: String(entry.name ?? "Outstanding"),
                         value: entry.value as number,
-                        color: String(entry.color ?? "#a78bfa"),
+                        color: String(entry.color ?? "#38bdf8"),
                       }))}
                     />
                   )}
                 />
                 <Bar dataKey="amount" name="Outstanding" radius={[6, 6, 0, 0]}>
-                  {CREDITORS_AGING_DATA.map((entry) => (
+                  {aging.map((entry) => (
                     <Cell key={entry.bucket} fill={entry.fill} />
                   ))}
                 </Bar>
@@ -101,12 +145,12 @@ export default function CreditorsWorkspace() {
         </section>
 
         <section className={panelClassName()}>
-          <h3 className="text-sm font-semibold text-white">Monthly payables trend</h3>
-          <p className="mt-1 text-xs text-white/45">Outstanding vs settled (€k)</p>
+          <h3 className="text-sm font-semibold text-white">Settlement trend</h3>
+          <p className="mt-1 text-xs text-white/45">Outstanding vs settled (000s)</p>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={CREDITORS_MONTHLY_TREND} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <LineChart data={monthly} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
                 <YAxis tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
                 <Tooltip
@@ -114,32 +158,17 @@ export default function CreditorsWorkspace() {
                     <ChartTooltip
                       active={active}
                       label={String(label ?? "")}
-                      suffix="k"
                       payload={payload?.map((entry) => ({
-                        name: String(entry.name ?? "Outstanding"),
+                        name: String(entry.name ?? ""),
                         value: entry.value as number,
-                        color: String(entry.color ?? "#a78bfa"),
+                        color: String(entry.color ?? "#38bdf8"),
                       }))}
                     />
                   )}
                 />
-                <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }} />
-                <Line
-                  type="monotone"
-                  dataKey="outstanding"
-                  name="Outstanding"
-                  stroke="#a78bfa"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="settled"
-                  name="Settled"
-                  stroke="#34d399"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                />
+                <Legend />
+                <Line type="monotone" dataKey="outstanding" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="settled" stroke="#34d399" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -147,50 +176,28 @@ export default function CreditorsWorkspace() {
       </div>
 
       <section className={panelClassName()}>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-white">Open creditor accounts</h3>
-            <p className="mt-1 text-xs text-white/45">Suppliers with outstanding balances</p>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-white/45">
-            <span className="inline-flex items-center gap-1">
-              <TrendingUp className="h-3.5 w-3.5 text-violet-300" />
-              Demo data
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <TrendingDown className="h-3.5 w-3.5 text-emerald-300" />
-              Settlement run due Friday
-            </span>
-          </div>
-        </div>
-
+        <h3 className="text-sm font-semibold text-white">Open payable accounts</h3>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-white/[0.08] text-[9px] font-medium uppercase tracking-[0.12em] text-white/35">
-                <th className="px-3 py-2.5">Supplier</th>
-                <th className="px-3 py-2.5">Reference</th>
-                <th className="px-3 py-2.5">Outstanding</th>
-                <th className="px-3 py-2.5">Due date</th>
-                <th className="px-3 py-2.5">Status</th>
+          <table className="min-w-full text-left text-sm">
+            <thead className="text-[10px] uppercase tracking-[0.12em] text-white/40">
+              <tr>
+                <th className="pb-2 pr-4 font-medium">Supplier</th>
+                <th className="pb-2 pr-4 font-medium">Reference</th>
+                <th className="pb-2 pr-4 font-medium">Outstanding</th>
+                <th className="pb-2 pr-4 font-medium">Due</th>
+                <th className="pb-2 font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
-              {CREDITORS_ACCOUNTS.map((account) => (
-                <tr key={account.id} className="border-b border-white/[0.05] last:border-0">
-                  <td className="px-3 py-2.5 font-medium text-white/90">{account.name}</td>
-                  <td className="px-3 py-2.5 font-mono text-xs text-white/55">{account.reference}</td>
-                  <td className="px-3 py-2.5 text-white/80">{formatLedgerCurrency(account.outstanding)}</td>
-                  <td className="px-3 py-2.5 text-white/65">{formatLedgerDate(account.dueDate)}</td>
-                  <td className="px-3 py-2.5">
-                    <span
-                      className={cn(
-                        "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
-                        ledgerStatusClass(account.status),
-                      )}
-                    >
-                      {ledgerStatusLabel(account.status)}
-                      {account.daysOverdue > 0 ? ` · ${account.daysOverdue}d` : ""}
+              {accounts.map((row) => (
+                <tr key={row.id} className="border-t border-white/5">
+                  <td className="py-3 pr-4 text-white">{row.name}</td>
+                  <td className="py-3 pr-4 text-white/70">{row.reference}</td>
+                  <td className="py-3 pr-4 text-white">{formatLedgerCurrency(row.outstanding)}</td>
+                  <td className="py-3 pr-4 text-white/70">{formatLedgerDate(row.dueDate)}</td>
+                  <td className="py-3">
+                    <span className={cn("rounded-full px-2 py-0.5 text-xs", ledgerStatusClass(row.status))}>
+                      {ledgerStatusLabel(row.status)}
                     </span>
                   </td>
                 </tr>

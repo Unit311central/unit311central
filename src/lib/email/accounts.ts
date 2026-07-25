@@ -39,7 +39,11 @@ export function listEmailAccountIds(): readonly EmailAccountId[] {
   return ALL_ACCOUNT_IDS;
 }
 
-export function getPublicEmailAccounts(): EmailAccount[] {
+export function getPublicEmailAccounts(options?: { demo?: boolean }): EmailAccount[] {
+  if (options?.demo) {
+    const { getDemoPublicEmailAccounts } = require("@/lib/email/demo-mailbox") as typeof import("@/lib/email/demo-mailbox");
+    return getDemoPublicEmailAccounts();
+  }
   return ACCOUNT_DEFINITIONS.map((account) => ({
     ...account,
     email: resolveAccountEmailFromEnv(account.id) ?? account.email,

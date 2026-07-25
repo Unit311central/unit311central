@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "demoWorkspaceId": "9f555e68-6430-4c9a-889b-b135f2acf8bf",
+  "demoSlug": "demo",
+  "counts": {
+    "clients": 100,
+    "employees": 100,
+    "projects": 55,
+    "invoices": 121,
+    "tickets": 80,
+    "expenses": 168,
+    "payrollRuns": 12
+  },
+  "internalUnchanged": true,
+  "fixturesPath": "C:\\Users\\Usuario\\Desktop\\unit311\\src\\lib\\demo-enterprise\\fixtures.generated.json",
+  "seededAt": "2026-07-25T20:03:14.715Z"
+}

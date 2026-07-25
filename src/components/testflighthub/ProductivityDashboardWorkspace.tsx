@@ -17,65 +17,100 @@ import {
   Video,
 } from "lucide-react";
 
+import { isBrowserDemoSurface, getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 import { cn } from "@/lib/utils";
 
-/** Placeholder operational snapshot — replace with live module feeds later. */
-const SUMMARY = {
-  attention: 7,
-  changed: 14,
-  nextUp: "Leadership sync · 10:30",
-  headline:
-    "Morning brief: 12 unread emails, 3 meetings remaining, 2 support tickets waiting on reply, and 1 file approval pending.",
+type ProductivitySnapshot = {
+  summary: {
+    attention: number;
+    changed: number;
+    nextUp: string;
+    headline: string;
+  };
+  emails: Array<{ from: string; subject: string; time: string; unread: boolean }>;
+  schedule: Array<{ time: string; title: string; meta: string }>;
+  messages: Array<{ channel: string; text: string; time: string }>;
+  files: Array<{ name: string; action: string; by: string; time: string }>;
+  support: {
+    open: number;
+    waiting: number;
+    resolvedToday: number;
+    critical: number;
+    items: Array<{ id: string; title: string; status: string }>;
+  };
+  social: Array<{ network: string; text: string; time: string }>;
+  approvals: Array<{ title: string; meta: string; due: string }>;
 };
 
-const EMAILS = [
-  { from: "Sarah Chen", subject: "Q3 board pack draft for review", time: "08:14", unread: true },
-  { from: "Ops Desk", subject: "Site access confirmation — Aberdeen", time: "07:52", unread: true },
-  { from: "Finance", subject: "Expense batch EA-284 approved", time: "Yesterday", unread: false },
-];
-
-const TODAY_SCHEDULE = [
-  { time: "09:00", title: "Stand-up — Delivery", meta: "Teams · 15 min" },
-  { time: "10:30", title: "Leadership sync", meta: "Boardroom · 45 min" },
-  { time: "14:00", title: "Client demo — Meridian Energy", meta: "Video · 60 min" },
-  { time: "16:30", title: "Support triage", meta: "Ops · 30 min" },
-];
-
-const MESSAGES = [
-  { channel: "#delivery", text: "Flight window confirmed for Thursday.", time: "12m" },
-  { channel: "#finance", text: "Invoice pack ready for sign-off.", time: "41m" },
-  { channel: "Paul F.", text: "Can you join the 10:30 briefly?", time: "1h" },
-];
-
-const FILES = [
-  { name: "Meridian_SOW_v3.pdf", action: "Uploaded", by: "A. Patel", time: "1h ago" },
-  { name: "Ops_Roster_Jul.xlsx", action: "Edited", by: "You", time: "3h ago" },
-  { name: "Board_Pack_Draft.pptx", action: "Shared", by: "S. Chen", time: "Yesterday" },
-];
-
-const SUPPORT = {
-  open: 8,
-  waiting: 2,
-  resolvedToday: 5,
-  critical: 1,
-  items: [
-    { id: "TK-1042", title: "Portal login failure — external user", status: "Critical" },
-    { id: "TK-1038", title: "WhatsApp webhook delay", status: "Waiting" },
-    { id: "TK-1031", title: "Calendar invite not syncing", status: "Open" },
+/** Placeholder Internal snapshot — Demo uses Meridian Atlas fixtures. */
+const INTERNAL_SNAPSHOT: ProductivitySnapshot = {
+  summary: {
+    attention: 7,
+    changed: 14,
+    nextUp: "Leadership sync · 10:30",
+    headline:
+      "Morning brief: 12 unread emails, 3 meetings remaining, 2 support tickets waiting on reply, and 1 file approval pending.",
+  },
+  emails: [
+    { from: "Sarah Chen", subject: "Q3 board pack draft for review", time: "08:14", unread: true },
+    { from: "Ops Desk", subject: "Site access confirmation — Aberdeen", time: "07:52", unread: true },
+    { from: "Finance", subject: "Expense batch EA-284 approved", time: "Yesterday", unread: false },
+  ],
+  schedule: [
+    { time: "09:00", title: "Stand-up — Delivery", meta: "Teams · 15 min" },
+    { time: "10:30", title: "Leadership sync", meta: "Boardroom · 45 min" },
+    { time: "14:00", title: "Client demo — Meridian Energy", meta: "Video · 60 min" },
+    { time: "16:30", title: "Support triage", meta: "Ops · 30 min" },
+  ],
+  messages: [
+    { channel: "#delivery", text: "Flight window confirmed for Thursday.", time: "12m" },
+    { channel: "#finance", text: "Invoice pack ready for sign-off.", time: "41m" },
+    { channel: "Paul F.", text: "Can you join the 10:30 briefly?", time: "1h" },
+  ],
+  files: [
+    { name: "Meridian_SOW_v3.pdf", action: "Uploaded", by: "A. Patel", time: "1h ago" },
+    { name: "Ops_Roster_Jul.xlsx", action: "Edited", by: "You", time: "3h ago" },
+    { name: "Board_Pack_Draft.pptx", action: "Shared", by: "S. Chen", time: "Yesterday" },
+  ],
+  support: {
+    open: 8,
+    waiting: 2,
+    resolvedToday: 5,
+    critical: 1,
+    items: [
+      { id: "TK-1042", title: "Portal login failure — external user", status: "Critical" },
+      { id: "TK-1038", title: "WhatsApp webhook delay", status: "Waiting" },
+      { id: "TK-1031", title: "Calendar invite not syncing", status: "Open" },
+    ],
+  },
+  social: [
+    { network: "LinkedIn", text: "Campaign post scheduled for 11:00.", time: "Today" },
+    { network: "X", text: "2 mentions require review.", time: "Today" },
+    { network: "LinkedIn", text: "Engagement +18% vs last week.", time: "Yesterday" },
+  ],
+  approvals: [
+    { title: "External file share — Client Explorer", meta: "Requested by A. Patel", due: "Due today" },
+    { title: "Support escalation — TK-1042", meta: "Ops Desk", due: "Due today" },
+    { title: "Meeting room booking override", meta: "Facilities", due: "Tomorrow" },
   ],
 };
 
-const SOCIAL = [
-  { network: "LinkedIn", text: "Campaign post scheduled for 11:00.", time: "Today" },
-  { network: "X", text: "2 mentions require review.", time: "Today" },
-  { network: "LinkedIn", text: "Engagement +18% vs last week.", time: "Yesterday" },
-];
-
-const APPROVALS = [
-  { title: "External file share — Client Explorer", meta: "Requested by A. Patel", due: "Due today" },
-  { title: "Support escalation — TK-1042", meta: "Ops Desk", due: "Due today" },
-  { title: "Meeting room booking override", meta: "Facilities", due: "Tomorrow" },
-];
+function resolveProductivitySnapshot(): ProductivitySnapshot {
+  if (typeof window !== "undefined" && isBrowserDemoSurface()) {
+    const fixtures = getDemoEnterpriseFixtures();
+    return {
+      summary: fixtures.productivity.summary,
+      emails: fixtures.productivity.emails,
+      schedule: fixtures.productivity.schedule,
+      messages: fixtures.productivity.messages,
+      files: fixtures.productivity.files,
+      support: fixtures.productivity.support,
+      social: fixtures.productivity.social,
+      approvals: fixtures.productivity.approvals,
+    };
+  }
+  return INTERNAL_SNAPSHOT;
+}
 
 const QUICK_ACTIONS = [
   { label: "Compose Email", icon: Mail },
@@ -115,6 +150,17 @@ function WidgetHeader({
 }
 
 export default function ProductivityDashboardWorkspace() {
+  const {
+    summary: SUMMARY,
+    emails: EMAILS,
+    schedule: TODAY_SCHEDULE,
+    messages: MESSAGES,
+    files: FILES,
+    support: SUPPORT,
+    social: SOCIAL,
+    approvals: APPROVALS,
+  } = resolveProductivitySnapshot();
+
   return (
     <div className="mx-auto max-w-6xl space-y-4 pb-4">
       {/* Top summary — what is happening today */}
@@ -151,7 +197,7 @@ export default function ProductivityDashboardWorkspace() {
             {[
               { label: "Needs attention", value: SUMMARY.attention },
               { label: "Changed today", value: SUMMARY.changed },
-              { label: "Meetings left", value: 3 },
+              { label: "Meetings left", value: TODAY_SCHEDULE.length },
             ].map((kpi) => (
               <div
                 key={kpi.label}

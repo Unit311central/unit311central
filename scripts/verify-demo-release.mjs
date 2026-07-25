@@ -54,5 +54,15 @@ assert.match(releaseDoc, /Unit311 Central Demo/);
 assert.match(releaseDoc, /demo@unit311central\.com/);
 assert.match(releaseDoc, /shared application/);
 assert.match(releaseDoc, /workspace_id/);
+assert.match(releaseDoc, /demo:enterprise:seed/);
+
+const fixtures = JSON.parse(read("src/lib/demo-enterprise/fixtures.generated.json"));
+assert.equal(fixtures.wise?.connected, true);
+assert.match(String(fixtures.company?.legalName ?? ""), /Meridian Atlas/);
+assert.ok(Array.isArray(fixtures.offices) && fixtures.offices.length >= 5);
+
+const bankProvider = read("src/lib/treasury/bank-provider.ts");
+assert.match(bankProvider, /shouldUseDemoWiseSimulator/);
+assert.match(read("src/lib/treasury/providers/demo-wise-simulator.ts"), /getDemoWiseConnectionStatus/);
 
 console.log("verify-demo-release: OK");

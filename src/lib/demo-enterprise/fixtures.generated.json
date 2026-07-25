@@ -1,0 +1,3672 @@
+{
+  "version": 2,
+  "company": {
+    "legalName": "Meridian Atlas Group Ltd",
+    "tradingName": "Meridian Atlas Group",
+    "companyNumber": "MAG-UK-884421",
+    "vatNumber": "GB884421001",
+    "website": "https://meridianatlas.demo",
+    "email": "hello@meridianatlas.demo",
+    "phone": "+44 20 7946 0100",
+    "country": "United Kingdom",
+    "sic": "62020 — Information technology consultancy activities",
+    "description": "Meridian Atlas Group is an international technology and management consulting firm helping enterprises modernise platforms, cloud estates, and operating models across EMEA and APAC.",
+    "registeredAddress": "120 Bishopsgate, London EC2N 4AG, United Kingdom",
+    "principalAddress": "120 Bishopsgate, London EC2N 4AG, United Kingdom",
+    "domain": "meridianatlas.demo"
+  },
+  "offices": [
+    {
+      "id": "mag-office-lon",
+      "city": "London",
+      "country": "United Kingdom",
+      "region": "EMEA",
+      "address": "120 Bishopsgate, London EC2N 4AG",
+      "timezone": "Europe/London",
+      "headcountTarget": 34
+    },
+    {
+      "id": "mag-office-nyc",
+      "city": "New York",
+      "country": "United States",
+      "region": "Americas",
+      "address": "200 Park Avenue, New York NY 10166",
+      "timezone": "America/New_York",
+      "headcountTarget": 22
+    },
+    {
+      "id": "mag-office-ber",
+      "city": "Berlin",
+      "country": "Germany",
+      "region": "EMEA",
+      "address": "Friedrichstraße 88, 10117 Berlin",
+      "timezone": "Europe/Berlin",
+      "headcountTarget": 16
+    },
+    {
+      "id": "mag-office-sin",
+      "city": "Singapore",
+      "country": "Singapore",
+      "region": "APAC",
+      "address": "1 Raffles Place, Singapore 048616",
+      "timezone": "Asia/Singapore",
+      "headcountTarget": 14
+    },
+    {
+      "id": "mag-office-syd",
+      "city": "Sydney",
+      "country": "Australia",
+      "region": "APAC",
+      "address": "1 Macquarie Place, Sydney NSW 2000",
+      "timezone": "Australia/Sydney",
+      "headcountTarget": 14
+    }
+  ],
+  "suppliers": [
+    {
+      "name": "Amazon Web Services",
+      "category": "Cloud"
+    },
+    {
+      "name": "Microsoft Azure",
+      "category": "Cloud"
+    },
+    {
+      "name": "Google Cloud",
+      "category": "Cloud"
+    },
+    {
+      "name": "Office Depot EU",
+      "category": "Office"
+    },
+    {
+      "name": "Robert Half",
+      "category": "Recruitment"
+    },
+    {
+      "name": "Clifford Chance LLP",
+      "category": "Legal"
+    },
+    {
+      "name": "Deloitte Advisory",
+      "category": "Accounting"
+    },
+    {
+      "name": "Hiscox Insurance",
+      "category": "Insurance"
+    },
+    {
+      "name": "Expedia Business Travel",
+      "category": "Travel"
+    },
+    {
+      "name": "BT Business",
+      "category": "Telecommunications"
+    },
+    {
+      "name": "Dell Technologies",
+      "category": "Hardware"
+    },
+    {
+      "name": "Atlassian",
+      "category": "Software"
+    },
+    {
+      "name": "PluralSight Business",
+      "category": "Training"
+    },
+    {
+      "name": "CBRE Facilities",
+      "category": "Facilities"
+    },
+    {
+      "name": "CleanCo International",
+      "category": "Cleaning"
+    }
+  ],
+  "tag": "[demo-enterprise]",
+  "generatedAt": "2026-07-25T20:06:39.507Z",
+  "directory": [
+    {
+      "id": "mag-dir-1",
+      "fullName": "Reese Sullivan",
+      "email": "reese.sullivan.1@meridianatlas.demo",
+      "role": "Chief Executive Officer",
+      "department": "Executive",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-2",
+      "fullName": "Riley Jenkins",
+      "email": "riley.jenkins.2@meridianatlas.demo",
+      "role": "Chief Operating Officer",
+      "department": "Executive",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-3",
+      "fullName": "Oliver Hayes",
+      "email": "oliver.hayes.3@meridianatlas.demo",
+      "role": "Chief Financial Officer",
+      "department": "Executive",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-4",
+      "fullName": "Benjamin Bailey",
+      "email": "benjamin.bailey.4@meridianatlas.demo",
+      "role": "Chief Technology Officer",
+      "department": "Executive",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-5",
+      "fullName": "Leo Fisher",
+      "email": "leo.fisher.5@meridianatlas.demo",
+      "role": "Chief People Officer",
+      "department": "Executive",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-6",
+      "fullName": "Quinn Ortiz",
+      "email": "quinn.ortiz.6@meridianatlas.demo",
+      "role": "Engineering Director",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-7",
+      "fullName": "Alex Morgan",
+      "email": "alex.morgan.7@meridianatlas.demo",
+      "role": "Engineering Manager",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-8",
+      "fullName": "Ethan Peterson",
+      "email": "ethan.peterson.8@meridianatlas.demo",
+      "role": "Senior Software Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-9",
+      "fullName": "Harper Washington",
+      "email": "harper.washington.9@meridianatlas.demo",
+      "role": "Software Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-10",
+      "fullName": "James Reynolds",
+      "email": "james.reynolds.10@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-11",
+      "fullName": "Skyler Hayes",
+      "email": "skyler.hayes.11@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-12",
+      "fullName": "Noah Jordan",
+      "email": "noah.jordan.12@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-13",
+      "fullName": "Jack Cole",
+      "email": "jack.cole.13@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-14",
+      "fullName": "Noah Powell",
+      "email": "noah.powell.14@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-15",
+      "fullName": "Jordan West",
+      "email": "jordan.west.15@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-16",
+      "fullName": "Amelia Morgan",
+      "email": "amelia.morgan.16@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-17",
+      "fullName": "Logan Ford",
+      "email": "logan.ford.17@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-18",
+      "fullName": "Finley Price",
+      "email": "finley.price.18@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-19",
+      "fullName": "Emily Bennett",
+      "email": "emily.bennett.19@meridianatlas.demo",
+      "role": "Graduate Engineer",
+      "department": "Engineering",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-20",
+      "fullName": "Chloe Jenkins",
+      "email": "chloe.jenkins.20@meridianatlas.demo",
+      "role": "Cloud Director",
+      "department": "Cloud",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-21",
+      "fullName": "Leo Brooks",
+      "email": "leo.brooks.21@meridianatlas.demo",
+      "role": "Cloud Architect",
+      "department": "Cloud",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-22",
+      "fullName": "Casey Gibson",
+      "email": "casey.gibson.22@meridianatlas.demo",
+      "role": "Cloud Engineer",
+      "department": "Cloud",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-23",
+      "fullName": "Sophia Mcdonald",
+      "email": "sophia.mcdonald.23@meridianatlas.demo",
+      "role": "DevOps Engineer",
+      "department": "Cloud",
+      "status": "Active"
+    },
+    {
+      "id": "mag-dir-24",
+      "fullName": "Thomas Gibson",
+      "email": "thomas.gibson.24@meridianatlas.demo",
+      "role": "DevOps Engineer",
+      "department": "Cloud",
+      "status": "Active"
+    }
+  ],
+  "advisors": [
+    {
+      "id": "mag-adv-1",
+      "company": "Ashford Lane LLP",
+      "contact": "Priya Shah (Partner)",
+      "category": "Lawyers",
+      "country": "United Kingdom",
+      "phone": "+44 20 7946 2201",
+      "email": "priya.shah@ashfordlane.demo",
+      "retainer": "£6,500 / month",
+      "status": "active",
+      "notes": "Corporate, commercial, and employment counsel for Meridian Atlas"
+    },
+    {
+      "id": "mag-adv-2",
+      "company": "Northbridge Advisory",
+      "contact": "James Okonkwo",
+      "category": "Accountants",
+      "country": "United Kingdom",
+      "phone": "+44 20 7946 2210",
+      "email": "j.okonkwo@northbridge.demo",
+      "retainer": "£4,200 / month",
+      "status": "active",
+      "notes": "Management accounts, VAT, and statutory filings"
+    },
+    {
+      "id": "mag-adv-3",
+      "company": "Helix Audit Partners",
+      "contact": "Elena Vogt",
+      "category": "Auditors",
+      "country": "Germany",
+      "phone": "+49 30 1200 4400",
+      "email": "elena.vogt@helixaudit.demo",
+      "retainer": "£22,000 annual audit fee",
+      "status": "active",
+      "notes": "Group statutory audit · FY fieldwork Q4"
+    },
+    {
+      "id": "mag-adv-4",
+      "company": "Summit Tax Group",
+      "contact": "Daniel Reeves",
+      "category": "Tax Advisors",
+      "country": "United Kingdom",
+      "phone": "+44 20 7946 2233",
+      "email": "d.reeves@summittax.demo",
+      "retainer": "£1,800 / quarter",
+      "status": "active",
+      "notes": "Cross-border transfer pricing and R&D credits"
+    },
+    {
+      "id": "mag-adv-5",
+      "company": "Aether Risk Brokers",
+      "contact": "Sofia Almeida",
+      "category": "Insurance Brokers",
+      "country": "Singapore",
+      "phone": "+65 6123 8800",
+      "email": "sofia.almeida@aetherrisk.demo",
+      "retainer": "Broker fee on placement",
+      "status": "active",
+      "notes": "D&O, cyber, and professional indemnity programmes"
+    },
+    {
+      "id": "mag-adv-6",
+      "company": "Cascade IP Counsel",
+      "contact": "Marcus Wei",
+      "category": "IP Lawyers",
+      "country": "United States",
+      "phone": "+1 212 555 0198",
+      "email": "marcus.wei@cascadeip.demo",
+      "retainer": "US$3,200 / month",
+      "status": "archived",
+      "notes": "Trademark portfolio — engagement paused pending renewal"
+    }
+  ],
+  "contracts": [
+    {
+      "id": "mag-con-1",
+      "name": "London HQ Office Lease",
+      "supplier": "Bishopsgate Estates Ltd",
+      "type": "Lease",
+      "owner": "COO",
+      "startDate": "2025-06-20",
+      "expiryDate": "2026-10-23",
+      "value": "£48,000 / month",
+      "status": "expiring",
+      "summary": "Floor 12 · 120 Bishopsgate · 90 desks",
+      "parties": "Meridian Atlas Group Ltd · Bishopsgate Estates Ltd",
+      "renewalNotes": "Landlord offered 5-year extension at +3.5%",
+      "documents": "MAG_London_Lease.pdf",
+      "notes": "Break clause at month 36 retained"
+    },
+    {
+      "id": "mag-con-2",
+      "name": "Microsoft 365 E5 Enterprise",
+      "supplier": "Microsoft Ireland",
+      "type": "Other",
+      "owner": "CTO",
+      "startDate": "2026-01-06",
+      "expiryDate": "2027-01-01",
+      "value": "£9,800 / month",
+      "status": "active",
+      "summary": "Enterprise productivity + security suite",
+      "parties": "Meridian Atlas Group Ltd · Microsoft",
+      "renewalNotes": "",
+      "documents": "M365_E5_Order.pdf",
+      "notes": "Covers all Meridian Atlas seats"
+    },
+    {
+      "id": "mag-con-3",
+      "name": "AWS Enterprise Discount Program",
+      "supplier": "Amazon Web Services",
+      "type": "Supplier",
+      "owner": "Cloud Practice Lead",
+      "startDate": "2025-09-28",
+      "expiryDate": "2026-09-08",
+      "value": "Committed spend US$1.2M / year",
+      "status": "expiring",
+      "summary": "EDP covering client delivery and internal platforms",
+      "parties": "Meridian Atlas Group Ltd · AWS",
+      "renewalNotes": "Renegotiate commit before Q4",
+      "documents": "AWS_EDP.pdf",
+      "notes": ""
+    },
+    {
+      "id": "mag-con-4",
+      "name": "Directors & Officers Liability",
+      "supplier": "Aether Risk Brokers",
+      "type": "Insurance",
+      "owner": "CFO",
+      "startDate": "2026-04-26",
+      "expiryDate": "2027-04-21",
+      "value": "£18,400 / year",
+      "status": "active",
+      "summary": "£5M D&O cover for board and senior leadership",
+      "parties": "Meridian Atlas Group Ltd · Aether Risk",
+      "renewalNotes": "",
+      "documents": "DO_Policy_2026.pdf",
+      "notes": ""
+    },
+    {
+      "id": "mag-con-5",
+      "name": "HubSpot Enterprise CRM",
+      "supplier": "HubSpot Ireland Ltd",
+      "type": "Other",
+      "owner": "CRO",
+      "startDate": "2026-02-25",
+      "expiryDate": "2027-02-20",
+      "value": "£3,400 / month",
+      "status": "active",
+      "summary": "CRM + marketing automation for Meridian Atlas",
+      "parties": "Meridian Atlas Group Ltd · HubSpot",
+      "renewalNotes": "",
+      "documents": "",
+      "notes": ""
+    }
+  ],
+  "licences": [
+    {
+      "id": "mag-lic-1",
+      "name": "Microsoft 365 E5",
+      "vendor": "Microsoft",
+      "seats": 110,
+      "renewalDate": "2026-08-22",
+      "status": "expiring",
+      "owner": "IT",
+      "cost": "£9,800 / month"
+    },
+    {
+      "id": "mag-lic-2",
+      "name": "GitHub Enterprise Cloud",
+      "vendor": "GitHub",
+      "seats": 85,
+      "renewalDate": "2026-09-18",
+      "status": "expiring",
+      "owner": "Engineering",
+      "cost": "US$2,100 / month"
+    },
+    {
+      "id": "mag-lic-3",
+      "name": "Figma Organization",
+      "vendor": "Figma",
+      "seats": 40,
+      "renewalDate": "2026-08-06",
+      "status": "expiring",
+      "owner": "Design",
+      "cost": "US$1,450 / month"
+    },
+    {
+      "id": "mag-lic-4",
+      "name": "Atlassian Cloud Premium",
+      "vendor": "Atlassian",
+      "seats": 100,
+      "renewalDate": "2027-01-21",
+      "status": "active",
+      "owner": "PMO",
+      "cost": "US$3,200 / month"
+    },
+    {
+      "id": "mag-lic-5",
+      "name": "Slack Business+",
+      "vendor": "Salesforce",
+      "seats": 100,
+      "renewalDate": "2027-02-10",
+      "status": "active",
+      "owner": "IT",
+      "cost": "US$1,100 / month"
+    },
+    {
+      "id": "mag-lic-6",
+      "name": "Notion Enterprise",
+      "vendor": "Notion",
+      "seats": 100,
+      "renewalDate": "2026-12-12",
+      "status": "active",
+      "owner": "Ops",
+      "cost": "US$1,600 / month"
+    }
+  ],
+  "shareholders": [
+    {
+      "id": "mag-sh-1",
+      "name": "Atlas Founders Trust",
+      "type": "Trust",
+      "shares": 3200000,
+      "percent": 50,
+      "class": "Ordinary"
+    },
+    {
+      "id": "mag-sh-2",
+      "name": "Meridian Growth Partners LP",
+      "type": "Fund",
+      "shares": 1920000,
+      "percent": 30,
+      "class": "Preferred A"
+    },
+    {
+      "id": "mag-sh-3",
+      "name": "Employee Option Pool",
+      "type": "Pool",
+      "shares": 1280000,
+      "percent": 20,
+      "class": "Options"
+    }
+  ],
+  "emails": {
+    "accounts": [
+      {
+        "id": "info",
+        "email": "hello@meridianatlas.demo",
+        "name": "Shared Inbox",
+        "configured": true
+      },
+      {
+        "id": "admin",
+        "email": "ops@meridianatlas.demo",
+        "name": "Operations",
+        "configured": true
+      },
+      {
+        "id": "paul",
+        "email": "finance@meridianatlas.demo",
+        "name": "Finance",
+        "configured": true
+      },
+      {
+        "id": "demo",
+        "email": "demo@unit311central.com",
+        "name": "Demo Owner",
+        "configured": true
+      }
+    ],
+    "threads": [
+      {
+        "id": "mag-mail-1",
+        "accountId": "info",
+        "folder": "inbox",
+        "subject": "Q3 board pack draft for review",
+        "fromName": "Alex Morgan",
+        "fromEmail": "alex.morgan@meridianatlas.demo",
+        "snippet": "Attached is the latest board pack for Friday's review.",
+        "body": "Hi team,\n\nAttached is the latest Meridian Atlas Q3 board pack for Friday's leadership review.\n\nPlease send comments by Thursday EOD.\n\nThanks,\nAlex",
+        "dateOffsetHours": -3,
+        "unread": true
+      },
+      {
+        "id": "mag-mail-2",
+        "accountId": "info",
+        "folder": "inbox",
+        "subject": "Client SOW countersign — Harbor Energy",
+        "fromName": "Harbor Energy Procurement",
+        "fromEmail": "procurement@harborenergy.demo",
+        "snippet": "We have countersigned MAG-SOW-441. Please return the final PDF.",
+        "body": "Hello Meridian Atlas,\n\nWe have countersigned SOW MAG-SOW-441. Kindly return the fully executed PDF for our records.\n\nRegards,\nHarbor Energy Procurement",
+        "dateOffsetHours": -8,
+        "unread": true
+      },
+      {
+        "id": "mag-mail-3",
+        "accountId": "info",
+        "folder": "inbox",
+        "subject": "Expense batch MAG-EA-284 approved",
+        "fromName": "Finance Desk",
+        "fromEmail": "finance@meridianatlas.demo",
+        "snippet": "Batch MAG-EA-284 (£42,180) approved for Wise payout.",
+        "body": "Expense batch MAG-EA-284 totalling £42,180 has been approved and queued for Wise GBP payout tomorrow.",
+        "dateOffsetHours": -26,
+        "unread": false
+      },
+      {
+        "id": "mag-mail-4",
+        "accountId": "info",
+        "folder": "inbox",
+        "subject": "Berlin office access cards — July intake",
+        "fromName": "Facilities Berlin",
+        "fromEmail": "facilities.berlin@meridianatlas.demo",
+        "snippet": "Please confirm the July starter list for access badges.",
+        "body": "Please confirm the July starter list so we can print Berlin HQ access badges.",
+        "dateOffsetHours": -30,
+        "unread": true
+      },
+      {
+        "id": "mag-mail-5",
+        "accountId": "paul",
+        "folder": "inbox",
+        "subject": "Overdue receivables — North Industries",
+        "fromName": "Collections",
+        "fromEmail": "collections@meridianatlas.demo",
+        "snippet": "MAG-DME overdue balance requires CFO chase this week.",
+        "body": "North Industries GmbH still has an overdue MAG invoice. Recommend CFO outreach before Friday.",
+        "dateOffsetHours": -5,
+        "unread": true
+      },
+      {
+        "id": "mag-mail-6",
+        "accountId": "admin",
+        "folder": "inbox",
+        "subject": "Support ticket MAG-SUP-080 escalated",
+        "fromName": "Support Desk",
+        "fromEmail": "support@meridianatlas.demo",
+        "snippet": "Portal login failure for external user — critical.",
+        "body": "Ticket MAG-SUP-080 escalated to critical. External user cannot access the client portal.",
+        "dateOffsetHours": -2,
+        "unread": true
+      },
+      {
+        "id": "mag-mail-7",
+        "accountId": "info",
+        "folder": "sent",
+        "subject": "Re: Harbor Energy SOW",
+        "fromName": "Meridian Atlas Shared Inbox",
+        "fromEmail": "hello@meridianatlas.demo",
+        "snippet": "Executed PDF attached — thank you.",
+        "body": "Thanks — executed SOW attached. Looking forward to kickoff next week.",
+        "dateOffsetHours": -6,
+        "unread": false
+      }
+    ]
+  },
+  "productivity": {
+    "summary": {
+      "attention": 9,
+      "changed": 18,
+      "nextUp": "Leadership sync · 10:30",
+      "headline": "Morning brief: 8 unread emails, 4 meetings remaining, 3 support tickets waiting on reply, and 2 file approvals pending."
+    },
+    "emails": [
+      {
+        "from": "Alex Morgan",
+        "subject": "Q3 board pack draft for review",
+        "time": "08:14",
+        "unread": true
+      },
+      {
+        "from": "Harbor Energy",
+        "subject": "SOW countersign — MAG-SOW-441",
+        "time": "07:52",
+        "unread": true
+      },
+      {
+        "from": "Finance Desk",
+        "subject": "Expense batch MAG-EA-284 approved",
+        "time": "Yesterday",
+        "unread": false
+      }
+    ],
+    "schedule": [
+      {
+        "time": "09:00",
+        "title": "Stand-up — Delivery",
+        "meta": "Teams · 15 min"
+      },
+      {
+        "time": "10:30",
+        "title": "Leadership sync",
+        "meta": "London HQ · 45 min"
+      },
+      {
+        "time": "14:00",
+        "title": "Client demo — Harbor Energy",
+        "meta": "Video · 60 min"
+      },
+      {
+        "time": "16:30",
+        "title": "Support triage",
+        "meta": "Ops · 30 min"
+      }
+    ],
+    "messages": [
+      {
+        "channel": "#delivery",
+        "text": "Berlin cutover window confirmed for Thursday.",
+        "time": "12m"
+      },
+      {
+        "channel": "#finance",
+        "text": "Invoice pack ready for CFO sign-off.",
+        "time": "41m"
+      },
+      {
+        "channel": "Alex Morgan",
+        "text": "Can you join the 10:30 briefly?",
+        "time": "1h"
+      }
+    ],
+    "files": [
+      {
+        "name": "MAG_SOW_Harbor_v3.pdf",
+        "action": "Uploaded",
+        "by": "A. Morgan",
+        "time": "1h ago"
+      },
+      {
+        "name": "Ops_Roster_Jul.xlsx",
+        "action": "Edited",
+        "by": "You",
+        "time": "3h ago"
+      },
+      {
+        "name": "Board_Pack_Q3.pptx",
+        "action": "Shared",
+        "by": "Finance",
+        "time": "Yesterday"
+      }
+    ],
+    "support": {
+      "open": 11,
+      "waiting": 3,
+      "resolvedToday": 6,
+      "critical": 1,
+      "items": [
+        {
+          "id": "MAG-SUP-080",
+          "title": "Portal login failure — external user",
+          "status": "Critical"
+        },
+        {
+          "id": "MAG-SUP-076",
+          "title": "Calendar invite not syncing",
+          "status": "Waiting"
+        },
+        {
+          "id": "MAG-SUP-071",
+          "title": "Invoice PDF render delay",
+          "status": "Open"
+        }
+      ]
+    },
+    "social": [
+      {
+        "network": "LinkedIn",
+        "text": "Thought-leadership post scheduled for 11:00.",
+        "time": "Today"
+      },
+      {
+        "network": "X",
+        "text": "3 mentions require review.",
+        "time": "Today"
+      },
+      {
+        "network": "LinkedIn",
+        "text": "Engagement +12% vs last week.",
+        "time": "Yesterday"
+      }
+    ],
+    "approvals": [
+      {
+        "title": "External file share — Client Explorer",
+        "meta": "Requested by A. Morgan",
+        "due": "Due today"
+      },
+      {
+        "title": "Support escalation — MAG-SUP-080",
+        "meta": "Ops Desk",
+        "due": "Due today"
+      },
+      {
+        "title": "London boardroom booking override",
+        "meta": "Facilities",
+        "due": "Tomorrow"
+      }
+    ]
+  },
+  "wise": {
+    "connected": true,
+    "configured": true,
+    "profileId": 3110001,
+    "profileName": "Meridian Atlas Group",
+    "profileType": "BUSINESS",
+    "lastSuccessfulSyncAt": "2026-07-25T20:06:39.507Z",
+    "syncHistory": [
+      {
+        "at": "2026-07-25T20:06:39.507Z",
+        "status": "success",
+        "message": "Simulator sync"
+      },
+      {
+        "at": "2026-07-24T20:06:39.507Z",
+        "status": "success",
+        "message": "Simulator sync"
+      }
+    ],
+    "balances": [
+      {
+        "id": 31101,
+        "currency": "GBP",
+        "type": "STANDARD",
+        "name": "Meridian Operating GBP",
+        "amount": 428500.42,
+        "reservedAmount": 12000,
+        "regionLabel": "United Kingdom",
+        "accountRef": "MAG-GBP-001",
+        "modificationTime": "2026-07-25T20:06:39.507Z"
+      },
+      {
+        "id": 31102,
+        "currency": "USD",
+        "type": "STANDARD",
+        "name": "Meridian Operating USD",
+        "amount": 312480.18,
+        "reservedAmount": 8000,
+        "regionLabel": "United States",
+        "accountRef": "MAG-USD-001",
+        "modificationTime": "2026-07-25T20:06:39.507Z"
+      },
+      {
+        "id": 31103,
+        "currency": "EUR",
+        "type": "STANDARD",
+        "name": "Meridian Operating EUR",
+        "amount": 198220.55,
+        "reservedAmount": 5000,
+        "regionLabel": "Belgium",
+        "accountRef": "MAG-EUR-001",
+        "modificationTime": "2026-07-25T20:06:39.507Z"
+      },
+      {
+        "id": 31104,
+        "currency": "GBP",
+        "type": "SAVINGS",
+        "name": "Meridian Reserves GBP",
+        "amount": 149975.15,
+        "reservedAmount": 0,
+        "regionLabel": "United Kingdom",
+        "accountRef": "MAG-GBP-RSV",
+        "modificationTime": "2026-07-25T20:06:39.507Z"
+      }
+    ],
+    "transactions": [
+      {
+        "id": "dme-wise-in-1",
+        "balanceId": 31103,
+        "amount": 60112.75,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000001",
+        "description": "Customer payment MAG-DME-00001",
+        "date": "2025-08-20",
+        "exchangeRate": 1.17,
+        "index": 0
+      },
+      {
+        "id": "dme-wise-in-2",
+        "balanceId": 31103,
+        "amount": 103587.24,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000002",
+        "description": "Customer payment MAG-DME-00002",
+        "date": "2025-08-08",
+        "exchangeRate": 1.17,
+        "index": 1
+      },
+      {
+        "id": "dme-wise-in-3",
+        "balanceId": 31103,
+        "amount": 107516.74,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000003",
+        "description": "Customer payment MAG-DME-00003",
+        "date": "2025-08-07",
+        "exchangeRate": 1.17,
+        "index": 2
+      },
+      {
+        "id": "dme-wise-in-4",
+        "balanceId": 31101,
+        "amount": 142662.5,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000004",
+        "description": "Customer payment MAG-DME-00004",
+        "date": "2025-08-11",
+        "exchangeRate": 1,
+        "index": 3
+      },
+      {
+        "id": "dme-wise-in-5",
+        "balanceId": 31103,
+        "amount": 31497.16,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000005",
+        "description": "Customer payment MAG-DME-00005",
+        "date": "2025-08-19",
+        "exchangeRate": 1.17,
+        "index": 4
+      },
+      {
+        "id": "dme-wise-in-6",
+        "balanceId": 31103,
+        "amount": 35601.8,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000006",
+        "description": "Customer payment MAG-DME-00006",
+        "date": "2025-08-07",
+        "exchangeRate": 1.17,
+        "index": 5
+      },
+      {
+        "id": "dme-wise-in-7",
+        "balanceId": 31101,
+        "amount": 63623.84,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000007",
+        "description": "Customer payment MAG-DME-00007",
+        "date": "2025-08-09",
+        "exchangeRate": 1,
+        "index": 6
+      },
+      {
+        "id": "dme-wise-in-8",
+        "balanceId": 31101,
+        "amount": 36178.09,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000008",
+        "description": "Customer payment MAG-DME-00008",
+        "date": "2025-08-03",
+        "exchangeRate": 1,
+        "index": 7
+      },
+      {
+        "id": "dme-wise-in-9",
+        "balanceId": 31102,
+        "amount": 76504.12,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000009",
+        "description": "Customer payment MAG-DME-00009",
+        "date": "2025-09-15",
+        "exchangeRate": 1.27,
+        "index": 8
+      },
+      {
+        "id": "dme-wise-in-10",
+        "balanceId": 31102,
+        "amount": 108481.87,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000010",
+        "description": "Customer payment MAG-DME-00010",
+        "date": "2025-09-14",
+        "exchangeRate": 1.27,
+        "index": 9
+      },
+      {
+        "id": "dme-wise-in-11",
+        "balanceId": 31102,
+        "amount": 166904.3,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000011",
+        "description": "Customer payment MAG-DME-00011",
+        "date": "2025-09-12",
+        "exchangeRate": 1.27,
+        "index": 10
+      },
+      {
+        "id": "dme-wise-in-12",
+        "balanceId": 31103,
+        "amount": 121535.82,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000012",
+        "description": "Customer payment MAG-DME-00012",
+        "date": "2025-09-17",
+        "exchangeRate": 1.17,
+        "index": 11
+      },
+      {
+        "id": "dme-wise-in-13",
+        "balanceId": 31103,
+        "amount": 95737.81,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000013",
+        "description": "Customer payment MAG-DME-00013",
+        "date": "2025-09-20",
+        "exchangeRate": 1.17,
+        "index": 12
+      },
+      {
+        "id": "dme-wise-in-14",
+        "balanceId": 31101,
+        "amount": 162326.4,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000014",
+        "description": "Customer payment MAG-DME-00014",
+        "date": "2025-09-06",
+        "exchangeRate": 1,
+        "index": 13
+      },
+      {
+        "id": "dme-wise-in-15",
+        "balanceId": 31102,
+        "amount": 164940.26,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000015",
+        "description": "Customer payment MAG-DME-00015",
+        "date": "2025-09-03",
+        "exchangeRate": 1.27,
+        "index": 14
+      },
+      {
+        "id": "dme-wise-in-16",
+        "balanceId": 31101,
+        "amount": 32367.41,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000016",
+        "description": "Customer payment MAG-DME-00016",
+        "date": "2025-09-07",
+        "exchangeRate": 1,
+        "index": 15
+      },
+      {
+        "id": "dme-wise-in-17",
+        "balanceId": 31102,
+        "amount": 135842.32,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000017",
+        "description": "Customer payment MAG-DME-00017",
+        "date": "2025-09-19",
+        "exchangeRate": 1.27,
+        "index": 16
+      },
+      {
+        "id": "dme-wise-in-18",
+        "balanceId": 31101,
+        "amount": 131133.75,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000018",
+        "description": "Customer payment MAG-DME-00018",
+        "date": "2025-09-20",
+        "exchangeRate": 1,
+        "index": 17
+      },
+      {
+        "id": "dme-wise-in-19",
+        "balanceId": 31102,
+        "amount": 26861.11,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000019",
+        "description": "Customer payment MAG-DME-00019",
+        "date": "2025-09-10",
+        "exchangeRate": 1.27,
+        "index": 18
+      },
+      {
+        "id": "dme-wise-in-20",
+        "balanceId": 31101,
+        "amount": 70894.83,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000020",
+        "description": "Customer payment MAG-DME-00020",
+        "date": "2025-09-12",
+        "exchangeRate": 1,
+        "index": 19
+      },
+      {
+        "id": "dme-wise-in-21",
+        "balanceId": 31101,
+        "amount": 39417.34,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000021",
+        "description": "Customer payment MAG-DME-00021",
+        "date": "2025-09-05",
+        "exchangeRate": 1,
+        "index": 20
+      },
+      {
+        "id": "dme-wise-in-22",
+        "balanceId": 31102,
+        "amount": 74788.86,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000022",
+        "description": "Customer payment MAG-DME-00022",
+        "date": "2025-09-04",
+        "exchangeRate": 1.27,
+        "index": 21
+      },
+      {
+        "id": "dme-wise-in-23",
+        "balanceId": 31101,
+        "amount": 121589.96,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000023",
+        "description": "Customer payment MAG-DME-00023",
+        "date": "2025-10-06",
+        "exchangeRate": 1,
+        "index": 22
+      },
+      {
+        "id": "dme-wise-in-24",
+        "balanceId": 31103,
+        "amount": 87806.09,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000024",
+        "description": "Customer payment MAG-DME-00024",
+        "date": "2025-10-10",
+        "exchangeRate": 1.17,
+        "index": 23
+      },
+      {
+        "id": "dme-wise-in-25",
+        "balanceId": 31102,
+        "amount": 147006.93,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000025",
+        "description": "Customer payment MAG-DME-00025",
+        "date": "2025-10-14",
+        "exchangeRate": 1.27,
+        "index": 24
+      },
+      {
+        "id": "dme-wise-in-26",
+        "balanceId": 31103,
+        "amount": 130028.66,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000026",
+        "description": "Customer payment MAG-DME-00026",
+        "date": "2025-10-17",
+        "exchangeRate": 1.17,
+        "index": 25
+      },
+      {
+        "id": "dme-wise-in-27",
+        "balanceId": 31101,
+        "amount": 76448.85,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000027",
+        "description": "Customer payment MAG-DME-00027",
+        "date": "2025-10-04",
+        "exchangeRate": 1,
+        "index": 26
+      },
+      {
+        "id": "dme-wise-in-28",
+        "balanceId": 31101,
+        "amount": 138549.94,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000028",
+        "description": "Customer payment MAG-DME-00028",
+        "date": "2025-10-15",
+        "exchangeRate": 1,
+        "index": 27
+      },
+      {
+        "id": "dme-wise-in-29",
+        "balanceId": 31102,
+        "amount": 155803.44,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000029",
+        "description": "Customer payment MAG-DME-00029",
+        "date": "2025-10-11",
+        "exchangeRate": 1.27,
+        "index": 28
+      },
+      {
+        "id": "dme-wise-in-30",
+        "balanceId": 31102,
+        "amount": 126910.3,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000030",
+        "description": "Customer payment MAG-DME-00030",
+        "date": "2025-10-11",
+        "exchangeRate": 1.27,
+        "index": 29
+      },
+      {
+        "id": "dme-wise-in-31",
+        "balanceId": 31101,
+        "amount": 47350.05,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000032",
+        "description": "Customer payment MAG-DME-00032",
+        "date": "2025-10-11",
+        "exchangeRate": 1,
+        "index": 30
+      },
+      {
+        "id": "dme-wise-in-32",
+        "balanceId": 31102,
+        "amount": 23704.43,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000033",
+        "description": "Customer payment MAG-DME-00033",
+        "date": "2025-10-09",
+        "exchangeRate": 1.27,
+        "index": 31
+      },
+      {
+        "id": "dme-wise-in-33",
+        "balanceId": 31101,
+        "amount": 172128.44,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000034",
+        "description": "Customer payment MAG-DME-00034",
+        "date": "2025-11-15",
+        "exchangeRate": 1,
+        "index": 32
+      },
+      {
+        "id": "dme-wise-in-34",
+        "balanceId": 31103,
+        "amount": 137109.4,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000035",
+        "description": "Customer payment MAG-DME-00035",
+        "date": "2025-11-03",
+        "exchangeRate": 1.17,
+        "index": 33
+      },
+      {
+        "id": "dme-wise-in-35",
+        "balanceId": 31101,
+        "amount": 34793.42,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000036",
+        "description": "Customer payment MAG-DME-00036",
+        "date": "2025-11-19",
+        "exchangeRate": 1,
+        "index": 34
+      },
+      {
+        "id": "dme-wise-in-36",
+        "balanceId": 31101,
+        "amount": 132834.03,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000037",
+        "description": "Customer payment MAG-DME-00037",
+        "date": "2025-11-06",
+        "exchangeRate": 1,
+        "index": 35
+      },
+      {
+        "id": "dme-wise-in-37",
+        "balanceId": 31101,
+        "amount": 70066.72,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000038",
+        "description": "Customer payment MAG-DME-00038",
+        "date": "2025-11-16",
+        "exchangeRate": 1,
+        "index": 36
+      },
+      {
+        "id": "dme-wise-in-38",
+        "balanceId": 31101,
+        "amount": 118942.39,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000039",
+        "description": "Customer payment MAG-DME-00039",
+        "date": "2025-11-08",
+        "exchangeRate": 1,
+        "index": 37
+      },
+      {
+        "id": "dme-wise-in-39",
+        "balanceId": 31102,
+        "amount": 126059.9,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000040",
+        "description": "Customer payment MAG-DME-00040",
+        "date": "2025-11-18",
+        "exchangeRate": 1.27,
+        "index": 38
+      },
+      {
+        "id": "dme-wise-in-40",
+        "balanceId": 31101,
+        "amount": 14309.5,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000041",
+        "description": "Customer payment MAG-DME-00041",
+        "date": "2025-11-11",
+        "exchangeRate": 1,
+        "index": 39
+      },
+      {
+        "id": "dme-wise-in-41",
+        "balanceId": 31103,
+        "amount": 177515.84,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000042",
+        "description": "Customer payment MAG-DME-00042",
+        "date": "2025-11-11",
+        "exchangeRate": 1.17,
+        "index": 40
+      },
+      {
+        "id": "dme-wise-in-42",
+        "balanceId": 31101,
+        "amount": 51329.95,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000043",
+        "description": "Customer payment MAG-DME-00043",
+        "date": "2025-12-20",
+        "exchangeRate": 1,
+        "index": 41
+      },
+      {
+        "id": "dme-wise-in-43",
+        "balanceId": 31102,
+        "amount": 120683.27,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000044",
+        "description": "Customer payment MAG-DME-00044",
+        "date": "2025-12-16",
+        "exchangeRate": 1.27,
+        "index": 42
+      },
+      {
+        "id": "dme-wise-in-44",
+        "balanceId": 31102,
+        "amount": 111651.57,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000045",
+        "description": "Customer payment MAG-DME-00045",
+        "date": "2025-12-15",
+        "exchangeRate": 1.27,
+        "index": 43
+      },
+      {
+        "id": "dme-wise-in-45",
+        "balanceId": 31101,
+        "amount": 110256.54,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000046",
+        "description": "Customer payment MAG-DME-00046",
+        "date": "2025-12-19",
+        "exchangeRate": 1,
+        "index": 44
+      },
+      {
+        "id": "dme-wise-in-46",
+        "balanceId": 31102,
+        "amount": 129268.63,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000047",
+        "description": "Customer payment MAG-DME-00047",
+        "date": "2025-12-12",
+        "exchangeRate": 1.27,
+        "index": 45
+      },
+      {
+        "id": "dme-wise-in-47",
+        "balanceId": 31103,
+        "amount": 81367.56,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000048",
+        "description": "Customer payment MAG-DME-00048",
+        "date": "2025-12-06",
+        "exchangeRate": 1.17,
+        "index": 46
+      },
+      {
+        "id": "dme-wise-in-48",
+        "balanceId": 31103,
+        "amount": 68748.54,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000049",
+        "description": "Customer payment MAG-DME-00049",
+        "date": "2025-12-09",
+        "exchangeRate": 1.17,
+        "index": 47
+      },
+      {
+        "id": "dme-wise-in-49",
+        "balanceId": 31102,
+        "amount": 70618.13,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000050",
+        "description": "Customer payment MAG-DME-00050",
+        "date": "2025-12-03",
+        "exchangeRate": 1.27,
+        "index": 48
+      },
+      {
+        "id": "dme-wise-in-50",
+        "balanceId": 31102,
+        "amount": 147483.4,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000051",
+        "description": "Customer payment MAG-DME-00051",
+        "date": "2025-12-10",
+        "exchangeRate": 1.27,
+        "index": 49
+      },
+      {
+        "id": "dme-wise-in-51",
+        "balanceId": 31103,
+        "amount": 26379.01,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000052",
+        "description": "Customer payment MAG-DME-00052",
+        "date": "2026-01-18",
+        "exchangeRate": 1.17,
+        "index": 50
+      },
+      {
+        "id": "dme-wise-in-52",
+        "balanceId": 31101,
+        "amount": 131843.81,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000053",
+        "description": "Customer payment MAG-DME-00053",
+        "date": "2026-01-06",
+        "exchangeRate": 1,
+        "index": 51
+      },
+      {
+        "id": "dme-wise-in-53",
+        "balanceId": 31102,
+        "amount": 80892.23,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000054",
+        "description": "Customer payment MAG-DME-00054",
+        "date": "2026-01-14",
+        "exchangeRate": 1.27,
+        "index": 52
+      },
+      {
+        "id": "dme-wise-in-54",
+        "balanceId": 31101,
+        "amount": 128642.93,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000055",
+        "description": "Customer payment MAG-DME-00055",
+        "date": "2026-01-07",
+        "exchangeRate": 1,
+        "index": 53
+      },
+      {
+        "id": "dme-wise-in-55",
+        "balanceId": 31102,
+        "amount": 37896.43,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000057",
+        "description": "Customer payment MAG-DME-00057",
+        "date": "2026-01-05",
+        "exchangeRate": 1.27,
+        "index": 54
+      },
+      {
+        "id": "dme-wise-in-56",
+        "balanceId": 31101,
+        "amount": 85553.53,
+        "currency": "GBP",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000058",
+        "description": "Customer payment MAG-DME-00058",
+        "date": "2026-01-08",
+        "exchangeRate": 1,
+        "index": 55
+      },
+      {
+        "id": "dme-wise-in-57",
+        "balanceId": 31102,
+        "amount": 91237.46,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000059",
+        "description": "Customer payment MAG-DME-00059",
+        "date": "2026-01-03",
+        "exchangeRate": 1.27,
+        "index": 56
+      },
+      {
+        "id": "dme-wise-in-58",
+        "balanceId": 31102,
+        "amount": 145294.13,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000060",
+        "description": "Customer payment MAG-DME-00060",
+        "date": "2026-01-10",
+        "exchangeRate": 1.27,
+        "index": 57
+      },
+      {
+        "id": "dme-wise-in-59",
+        "balanceId": 31102,
+        "amount": 53411.49,
+        "currency": "USD",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000061",
+        "description": "Customer payment MAG-DME-00061",
+        "date": "2026-01-13",
+        "exchangeRate": 1.27,
+        "index": 58
+      },
+      {
+        "id": "dme-wise-in-60",
+        "balanceId": 31103,
+        "amount": 20300.33,
+        "currency": "EUR",
+        "direction": "CREDIT",
+        "status": "completed",
+        "reference": "MAGPAY000062",
+        "description": "Customer payment MAG-DME-00062",
+        "date": "2026-02-20",
+        "exchangeRate": 1.17,
+        "index": 59
+      },
+      {
+        "id": "dme-wise-out-61",
+        "balanceId": 31101,
+        "amount": 12736.52,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-1800af15",
+        "description": "Training: PluralSight Business",
+        "date": "2025-08-14",
+        "exchangeRate": 1,
+        "index": 60
+      },
+      {
+        "id": "dme-wise-out-62",
+        "balanceId": 31101,
+        "amount": 16677.06,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "failed",
+        "reference": "SUP-1500aa5c",
+        "description": "Training: PluralSight Business",
+        "date": "2025-08-23",
+        "exchangeRate": 1,
+        "index": 61
+      },
+      {
+        "id": "dme-wise-out-63",
+        "balanceId": 31101,
+        "amount": 12511.22,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-1600abef",
+        "description": "Accounting: Deloitte Advisory",
+        "date": "2025-08-04",
+        "exchangeRate": 1,
+        "index": 62
+      },
+      {
+        "id": "dme-wise-out-64",
+        "balanceId": 31101,
+        "amount": 7411.3,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "pending",
+        "reference": "SUP-1300a736",
+        "description": "Software: Atlassian",
+        "date": "2025-08-12",
+        "exchangeRate": 1,
+        "index": 63
+      },
+      {
+        "id": "dme-wise-out-65",
+        "balanceId": 31101,
+        "amount": 14816.61,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-1400a8c9",
+        "description": "Cloud: Amazon Web Services",
+        "date": "2025-08-11",
+        "exchangeRate": 1,
+        "index": 64
+      },
+      {
+        "id": "dme-wise-out-66",
+        "balanceId": 31101,
+        "amount": 1081.56,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-1100a410",
+        "description": "Software: Atlassian",
+        "date": "2025-08-03",
+        "exchangeRate": 1,
+        "index": 65
+      },
+      {
+        "id": "dme-wise-out-67",
+        "balanceId": 31101,
+        "amount": 8546.79,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-1200a5a3",
+        "description": "Software: Atlassian",
+        "date": "2025-08-23",
+        "exchangeRate": 1,
+        "index": 66
+      },
+      {
+        "id": "dme-wise-out-68",
+        "balanceId": 31101,
+        "amount": 6365.55,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "pending",
+        "reference": "SUP-1f00ba1a",
+        "description": "Accounting: Deloitte Advisory",
+        "date": "2025-08-15",
+        "exchangeRate": 1,
+        "index": 67
+      },
+      {
+        "id": "dme-wise-out-69",
+        "balanceId": 31101,
+        "amount": 4559.06,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "pending",
+        "reference": "SUP-2000bbad",
+        "description": "Cloud: Amazon Web Services",
+        "date": "2025-08-24",
+        "exchangeRate": 1,
+        "index": 68
+      },
+      {
+        "id": "dme-wise-out-70",
+        "balanceId": 31101,
+        "amount": 4431.89,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "failed",
+        "reference": "SUP-ee13b73f",
+        "description": "Hardware: Dell Technologies",
+        "date": "2025-08-11",
+        "exchangeRate": 1,
+        "index": 69
+      },
+      {
+        "id": "dme-wise-out-71",
+        "balanceId": 31101,
+        "amount": 7780.7,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-ed13b5ac",
+        "description": "Accounting: Deloitte Advisory",
+        "date": "2025-08-11",
+        "exchangeRate": 1,
+        "index": 70
+      },
+      {
+        "id": "dme-wise-out-72",
+        "balanceId": 31101,
+        "amount": 14586.09,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "failed",
+        "reference": "SUP-f013ba65",
+        "description": "Travel: Expedia Business Travel",
+        "date": "2025-08-02",
+        "exchangeRate": 1,
+        "index": 71
+      },
+      {
+        "id": "dme-wise-out-73",
+        "balanceId": 31101,
+        "amount": 9345.86,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "failed",
+        "reference": "SUP-ef13b8d2",
+        "description": "Cloud: Microsoft Azure",
+        "date": "2025-08-14",
+        "exchangeRate": 1,
+        "index": 72
+      },
+      {
+        "id": "dme-wise-out-74",
+        "balanceId": 31101,
+        "amount": 16249.2,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-ea13b0f3",
+        "description": "Cleaning: CleanCo International",
+        "date": "2025-08-23",
+        "exchangeRate": 1,
+        "index": 73
+      },
+      {
+        "id": "dme-wise-out-75",
+        "balanceId": 31101,
+        "amount": 3653.8,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-e913af60",
+        "description": "Travel: Expedia Business Travel",
+        "date": "2025-09-12",
+        "exchangeRate": 1,
+        "index": 74
+      },
+      {
+        "id": "dme-wise-out-76",
+        "balanceId": 31101,
+        "amount": 7825.09,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "failed",
+        "reference": "SUP-ec13b419",
+        "description": "Insurance: Hiscox Insurance",
+        "date": "2025-09-22",
+        "exchangeRate": 1,
+        "index": 75
+      },
+      {
+        "id": "dme-wise-out-77",
+        "balanceId": 31101,
+        "amount": 3827.61,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-eb13b286",
+        "description": "Recruitment: Robert Half",
+        "date": "2025-09-15",
+        "exchangeRate": 1,
+        "index": 76
+      },
+      {
+        "id": "dme-wise-out-78",
+        "balanceId": 31101,
+        "amount": 11235.02,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-f613c3d7",
+        "description": "Telecommunications: BT Business",
+        "date": "2025-09-11",
+        "exchangeRate": 1,
+        "index": 77
+      },
+      {
+        "id": "dme-wise-out-79",
+        "balanceId": 31101,
+        "amount": 13424.81,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "pending",
+        "reference": "SUP-f513c244",
+        "description": "Office: Office Depot EU",
+        "date": "2025-09-26",
+        "exchangeRate": 1,
+        "index": 78
+      },
+      {
+        "id": "dme-wise-out-80",
+        "balanceId": 31101,
+        "amount": 4617.06,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "failed",
+        "reference": "SUP-7c0c4804",
+        "description": "Travel: Expedia Business Travel",
+        "date": "2025-09-16",
+        "exchangeRate": 1,
+        "index": 79
+      },
+      {
+        "id": "dme-wise-out-81",
+        "balanceId": 31101,
+        "amount": 11865.9,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-7d0c4997",
+        "description": "Facilities: CBRE Facilities",
+        "date": "2025-09-06",
+        "exchangeRate": 1,
+        "index": 80
+      },
+      {
+        "id": "dme-wise-out-82",
+        "balanceId": 31101,
+        "amount": 450.34,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-7e0c4b2a",
+        "description": "Cloud: Amazon Web Services",
+        "date": "2025-09-02",
+        "exchangeRate": 1,
+        "index": 81
+      },
+      {
+        "id": "dme-wise-out-83",
+        "balanceId": 31101,
+        "amount": 12461.55,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-7f0c4cbd",
+        "description": "Insurance: Hiscox Insurance",
+        "date": "2025-09-04",
+        "exchangeRate": 1,
+        "index": 82
+      },
+      {
+        "id": "dme-wise-out-84",
+        "balanceId": 31101,
+        "amount": 9977.18,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "failed",
+        "reference": "SUP-780c41b8",
+        "description": "Insurance: Hiscox Insurance",
+        "date": "2025-09-22",
+        "exchangeRate": 1,
+        "index": 83
+      },
+      {
+        "id": "dme-wise-out-85",
+        "balanceId": 31101,
+        "amount": 4270.06,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-790c434b",
+        "description": "Office: Office Depot EU",
+        "date": "2025-09-18",
+        "exchangeRate": 1,
+        "index": 84
+      },
+      {
+        "id": "dme-wise-out-86",
+        "balanceId": 31101,
+        "amount": 8407.97,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "failed",
+        "reference": "SUP-7a0c44de",
+        "description": "Training: PluralSight Business",
+        "date": "2025-09-26",
+        "exchangeRate": 1,
+        "index": 85
+      },
+      {
+        "id": "dme-wise-out-87",
+        "balanceId": 31101,
+        "amount": 5303.68,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-7b0c4671",
+        "description": "Facilities: CBRE Facilities",
+        "date": "2025-09-04",
+        "exchangeRate": 1,
+        "index": 86
+      },
+      {
+        "id": "dme-wise-out-88",
+        "balanceId": 31101,
+        "amount": 1931.27,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-740c3b6c",
+        "description": "Cloud: Amazon Web Services",
+        "date": "2025-09-09",
+        "exchangeRate": 1,
+        "index": 87
+      },
+      {
+        "id": "dme-wise-out-89",
+        "balanceId": 31101,
+        "amount": 7200.09,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "pending",
+        "reference": "SUP-750c3cff",
+        "description": "Travel: Expedia Business Travel",
+        "date": "2025-10-27",
+        "exchangeRate": 1,
+        "index": 88
+      },
+      {
+        "id": "dme-wise-out-90",
+        "balanceId": 31101,
+        "amount": 9882.5,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-820e900d",
+        "description": "Cloud: Microsoft Azure",
+        "date": "2025-10-15",
+        "exchangeRate": 1,
+        "index": 89
+      },
+      {
+        "id": "dme-wise-out-91",
+        "balanceId": 31101,
+        "amount": 15863.85,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-810e8e7a",
+        "description": "Office: Office Depot EU",
+        "date": "2025-10-23",
+        "exchangeRate": 1,
+        "index": 90
+      },
+      {
+        "id": "dme-wise-out-92",
+        "balanceId": 31101,
+        "amount": 14796.84,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-800e8ce7",
+        "description": "Legal: Clifford Chance LLP",
+        "date": "2025-10-14",
+        "exchangeRate": 1,
+        "index": 91
+      },
+      {
+        "id": "dme-wise-out-93",
+        "balanceId": 31101,
+        "amount": 217.76,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-7f0e8b54",
+        "description": "Recruitment: Robert Half",
+        "date": "2025-10-09",
+        "exchangeRate": 1,
+        "index": 92
+      },
+      {
+        "id": "dme-wise-out-94",
+        "balanceId": 31101,
+        "amount": 7752.21,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-7e0e89c1",
+        "description": "Cloud: Google Cloud",
+        "date": "2025-10-19",
+        "exchangeRate": 1,
+        "index": 93
+      },
+      {
+        "id": "dme-wise-out-95",
+        "balanceId": 31101,
+        "amount": 16044.08,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-7d0e882e",
+        "description": "Telecommunications: BT Business",
+        "date": "2025-10-09",
+        "exchangeRate": 1,
+        "index": 94
+      },
+      {
+        "id": "dme-wise-out-96",
+        "balanceId": 31101,
+        "amount": 2124.52,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "pending",
+        "reference": "SUP-7c0e869b",
+        "description": "Training: PluralSight Business",
+        "date": "2025-10-07",
+        "exchangeRate": 1,
+        "index": 95
+      },
+      {
+        "id": "dme-wise-out-97",
+        "balanceId": 31101,
+        "amount": 9917.56,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-7b0e8508",
+        "description": "Facilities: CBRE Facilities",
+        "date": "2025-10-26",
+        "exchangeRate": 1,
+        "index": 96
+      },
+      {
+        "id": "dme-wise-out-98",
+        "balanceId": 31101,
+        "amount": 8537.43,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-7a0e8375",
+        "description": "Recruitment: Robert Half",
+        "date": "2025-10-24",
+        "exchangeRate": 1,
+        "index": 97
+      },
+      {
+        "id": "dme-wise-out-99",
+        "balanceId": 31101,
+        "amount": 13194.36,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "SUP-790e81e2",
+        "description": "Recruitment: Robert Half",
+        "date": "2025-10-19",
+        "exchangeRate": 1,
+        "index": 98
+      },
+      {
+        "id": "dme-wise-out-100",
+        "balanceId": 31101,
+        "amount": 7039.35,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "pending",
+        "reference": "SUP-f006ee72",
+        "description": "Software: Atlassian",
+        "date": "2025-10-12",
+        "exchangeRate": 1,
+        "index": 99
+      },
+      {
+        "id": "dme-wise-pay-11",
+        "balanceId": 31101,
+        "amount": 420626.05,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2025-08",
+        "description": "Monthly payroll",
+        "date": "2025-08-28",
+        "exchangeRate": 1,
+        "index": 100
+      },
+      {
+        "id": "dme-wise-pay-10",
+        "balanceId": 31101,
+        "amount": 491725.44,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2025-09",
+        "description": "Monthly payroll",
+        "date": "2025-09-28",
+        "exchangeRate": 1,
+        "index": 101
+      },
+      {
+        "id": "dme-wise-pay-9",
+        "balanceId": 31101,
+        "amount": 455776.4,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2025-10",
+        "description": "Monthly payroll",
+        "date": "2025-10-28",
+        "exchangeRate": 1,
+        "index": 102
+      },
+      {
+        "id": "dme-wise-pay-8",
+        "balanceId": 31101,
+        "amount": 501486.74,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2025-11",
+        "description": "Monthly payroll",
+        "date": "2025-11-28",
+        "exchangeRate": 1,
+        "index": 103
+      },
+      {
+        "id": "dme-wise-pay-7",
+        "balanceId": 31101,
+        "amount": 498540.72,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2025-12",
+        "description": "Monthly payroll",
+        "date": "2025-12-28",
+        "exchangeRate": 1,
+        "index": 104
+      },
+      {
+        "id": "dme-wise-pay-6",
+        "balanceId": 31101,
+        "amount": 505028.97,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2026-01",
+        "description": "Monthly payroll",
+        "date": "2026-01-28",
+        "exchangeRate": 1,
+        "index": 105
+      },
+      {
+        "id": "dme-wise-pay-5",
+        "balanceId": 31101,
+        "amount": 462626.81,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2026-02",
+        "description": "Monthly payroll",
+        "date": "2026-02-28",
+        "exchangeRate": 1,
+        "index": 106
+      },
+      {
+        "id": "dme-wise-pay-4",
+        "balanceId": 31101,
+        "amount": 446039.68,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2026-03",
+        "description": "Monthly payroll",
+        "date": "2026-03-28",
+        "exchangeRate": 1,
+        "index": 107
+      },
+      {
+        "id": "dme-wise-pay-3",
+        "balanceId": 31101,
+        "amount": 499552.27,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2026-04",
+        "description": "Monthly payroll",
+        "date": "2026-04-28",
+        "exchangeRate": 1,
+        "index": 108
+      },
+      {
+        "id": "dme-wise-pay-2",
+        "balanceId": 31101,
+        "amount": 450234.69,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2026-05",
+        "description": "Monthly payroll",
+        "date": "2026-05-28",
+        "exchangeRate": 1,
+        "index": 109
+      },
+      {
+        "id": "dme-wise-pay-1",
+        "balanceId": 31101,
+        "amount": 454349.59,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2026-06",
+        "description": "Monthly payroll",
+        "date": "2026-06-28",
+        "exchangeRate": 1,
+        "index": 110
+      },
+      {
+        "id": "dme-wise-pay-0",
+        "balanceId": 31101,
+        "amount": 460062.87,
+        "currency": "GBP",
+        "direction": "DEBIT",
+        "status": "completed",
+        "reference": "PAYROLL-2026-07",
+        "description": "Monthly payroll",
+        "date": "2026-07-28",
+        "exchangeRate": 1,
+        "index": 111
+      }
+    ],
+    "pendingPayments": [
+      {
+        "id": "dme-wise-out-64",
+        "direction": "out",
+        "amount": 7411.3,
+        "currency": "GBP",
+        "reference": "SUP-1300a736",
+        "status": "pending",
+        "date": "2025-08-12",
+        "description": "Software: Atlassian"
+      },
+      {
+        "id": "dme-wise-out-68",
+        "direction": "out",
+        "amount": 6365.55,
+        "currency": "GBP",
+        "reference": "SUP-1f00ba1a",
+        "status": "pending",
+        "date": "2025-08-15",
+        "description": "Accounting: Deloitte Advisory"
+      },
+      {
+        "id": "dme-wise-out-69",
+        "direction": "out",
+        "amount": 4559.06,
+        "currency": "GBP",
+        "reference": "SUP-2000bbad",
+        "status": "pending",
+        "date": "2025-08-24",
+        "description": "Cloud: Amazon Web Services"
+      },
+      {
+        "id": "dme-wise-out-79",
+        "direction": "out",
+        "amount": 13424.81,
+        "currency": "GBP",
+        "reference": "SUP-f513c244",
+        "status": "pending",
+        "date": "2025-09-26",
+        "description": "Office: Office Depot EU"
+      },
+      {
+        "id": "dme-wise-out-89",
+        "direction": "out",
+        "amount": 7200.09,
+        "currency": "GBP",
+        "reference": "SUP-750c3cff",
+        "status": "pending",
+        "date": "2025-10-27",
+        "description": "Travel: Expedia Business Travel"
+      },
+      {
+        "id": "dme-wise-out-96",
+        "direction": "out",
+        "amount": 2124.52,
+        "currency": "GBP",
+        "reference": "SUP-7c0e869b",
+        "status": "pending",
+        "date": "2025-10-07",
+        "description": "Training: PluralSight Business"
+      },
+      {
+        "id": "dme-wise-out-100",
+        "direction": "out",
+        "amount": 7039.35,
+        "currency": "GBP",
+        "reference": "SUP-f006ee72",
+        "status": "pending",
+        "date": "2025-10-12",
+        "description": "Software: Atlassian"
+      }
+    ],
+    "failedPayments": [
+      {
+        "id": "dme-wise-out-62",
+        "direction": "out",
+        "amount": 16677.06,
+        "currency": "GBP",
+        "reference": "SUP-1500aa5c",
+        "status": "failed",
+        "date": "2025-08-23",
+        "description": "Training: PluralSight Business"
+      },
+      {
+        "id": "dme-wise-out-70",
+        "direction": "out",
+        "amount": 4431.89,
+        "currency": "GBP",
+        "reference": "SUP-ee13b73f",
+        "status": "failed",
+        "date": "2025-08-11",
+        "description": "Hardware: Dell Technologies"
+      },
+      {
+        "id": "dme-wise-out-72",
+        "direction": "out",
+        "amount": 14586.09,
+        "currency": "GBP",
+        "reference": "SUP-f013ba65",
+        "status": "failed",
+        "date": "2025-08-02",
+        "description": "Travel: Expedia Business Travel"
+      },
+      {
+        "id": "dme-wise-out-73",
+        "direction": "out",
+        "amount": 9345.86,
+        "currency": "GBP",
+        "reference": "SUP-ef13b8d2",
+        "status": "failed",
+        "date": "2025-08-14",
+        "description": "Cloud: Microsoft Azure"
+      },
+      {
+        "id": "dme-wise-out-76",
+        "direction": "out",
+        "amount": 7825.09,
+        "currency": "GBP",
+        "reference": "SUP-ec13b419",
+        "status": "failed",
+        "date": "2025-09-22",
+        "description": "Insurance: Hiscox Insurance"
+      }
+    ],
+    "scheduledPayments": [
+      {
+        "id": "dme-wise-sched-1",
+        "amount": 485000,
+        "currency": "GBP",
+        "description": "Next payroll",
+        "scheduledFor": "2026-08-01"
+      }
+    ]
+  },
+  "qms": {
+    "policies": [
+      {
+        "id": "qms-pol-1",
+        "title": "Information Security Policy",
+        "status": "Approved",
+        "owner": "Security Director"
+      },
+      {
+        "id": "qms-pol-2",
+        "title": "Quality Management Policy",
+        "status": "Approved",
+        "owner": "COO"
+      },
+      {
+        "id": "qms-pol-3",
+        "title": "Business Continuity Policy",
+        "status": "In review",
+        "owner": "Operations Director"
+      },
+      {
+        "id": "qms-pol-4",
+        "title": "Data Retention Policy",
+        "status": "Approved",
+        "owner": "Legal Counsel"
+      }
+    ],
+    "capas": [
+      {
+        "id": "capa-1",
+        "title": "Access review overdue",
+        "severity": "Medium",
+        "status": "Open"
+      },
+      {
+        "id": "capa-2",
+        "title": "Change CAB evidence gap",
+        "severity": "Low",
+        "status": "Closed"
+      },
+      {
+        "id": "capa-3",
+        "title": "Vendor SOC2 attestation lag",
+        "severity": "Medium",
+        "status": "Open"
+      }
+    ],
+    "audits": [
+      {
+        "id": "aud-1",
+        "title": "ISO 27001 internal audit",
+        "date": "2025-10-28",
+        "result": "Minor NCs"
+      },
+      {
+        "id": "aud-2",
+        "title": "ISO 9001 surveillance",
+        "date": "2026-01-28",
+        "result": "Pass"
+      }
+    ]
+  },
+  "leave": [
+    {
+      "id": "leave-0",
+      "employeeId": "dme-emp-001",
+      "employeeName": "Reese Sullivan",
+      "department": "Executive",
+      "location": "New York",
+      "role": "Chief Executive Officer",
+      "type": "Sick",
+      "days": 1,
+      "status": "Pending",
+      "startDate": "2026-07-27",
+      "endDate": "2026-07-28"
+    },
+    {
+      "id": "leave-1",
+      "employeeId": "dme-emp-002",
+      "employeeName": "Riley Jenkins",
+      "department": "Executive",
+      "location": "Berlin",
+      "role": "Chief Operating Officer",
+      "type": "Annual",
+      "days": 2,
+      "status": "Approved",
+      "startDate": "2026-07-28",
+      "endDate": "2026-07-30"
+    },
+    {
+      "id": "leave-2",
+      "employeeId": "dme-emp-003",
+      "employeeName": "Oliver Hayes",
+      "department": "Executive",
+      "location": "Singapore",
+      "role": "Chief Financial Officer",
+      "type": "Annual",
+      "days": 3,
+      "status": "Approved",
+      "startDate": "2026-07-29",
+      "endDate": "2026-08-01"
+    },
+    {
+      "id": "leave-3",
+      "employeeId": "dme-emp-004",
+      "employeeName": "Benjamin Bailey",
+      "department": "Executive",
+      "location": "Sydney",
+      "role": "Chief Technology Officer",
+      "type": "Annual",
+      "days": 4,
+      "status": "Approved",
+      "startDate": "2026-07-30",
+      "endDate": "2026-08-03"
+    },
+    {
+      "id": "leave-4",
+      "employeeId": "dme-emp-005",
+      "employeeName": "Leo Fisher",
+      "department": "Executive",
+      "location": "London",
+      "role": "Chief People Officer",
+      "type": "Annual",
+      "days": 5,
+      "status": "Approved",
+      "startDate": "2026-07-31",
+      "endDate": "2026-08-05"
+    },
+    {
+      "id": "leave-5",
+      "employeeId": "dme-emp-006",
+      "employeeName": "Quinn Ortiz",
+      "department": "Engineering",
+      "location": "New York",
+      "role": "Engineering Director",
+      "type": "Sick",
+      "days": 1,
+      "status": "Approved",
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-02"
+    },
+    {
+      "id": "leave-6",
+      "employeeId": "dme-emp-007",
+      "employeeName": "Alex Morgan",
+      "department": "Engineering",
+      "location": "Berlin",
+      "role": "Engineering Manager",
+      "type": "Annual",
+      "days": 2,
+      "status": "Approved",
+      "startDate": "2026-08-02",
+      "endDate": "2026-08-04"
+    },
+    {
+      "id": "leave-7",
+      "employeeId": "dme-emp-008",
+      "employeeName": "Ethan Peterson",
+      "department": "Engineering",
+      "location": "Singapore",
+      "role": "Senior Software Engineer",
+      "type": "Annual",
+      "days": 3,
+      "status": "Pending",
+      "startDate": "2026-08-03",
+      "endDate": "2026-08-06"
+    },
+    {
+      "id": "leave-8",
+      "employeeId": "dme-emp-009",
+      "employeeName": "Harper Washington",
+      "department": "Engineering",
+      "location": "Sydney",
+      "role": "Software Engineer",
+      "type": "Annual",
+      "days": 4,
+      "status": "Approved",
+      "startDate": "2026-08-04",
+      "endDate": "2026-08-08"
+    },
+    {
+      "id": "leave-9",
+      "employeeId": "dme-emp-010",
+      "employeeName": "James Reynolds",
+      "department": "Engineering",
+      "location": "London",
+      "role": "Graduate Engineer",
+      "type": "Annual",
+      "days": 5,
+      "status": "Approved",
+      "startDate": "2026-08-05",
+      "endDate": "2026-08-10"
+    },
+    {
+      "id": "leave-10",
+      "employeeId": "dme-emp-011",
+      "employeeName": "Skyler Hayes",
+      "department": "Engineering",
+      "location": "New York",
+      "role": "Graduate Engineer",
+      "type": "Sick",
+      "days": 1,
+      "status": "Approved",
+      "startDate": "2026-08-06",
+      "endDate": "2026-08-07"
+    },
+    {
+      "id": "leave-11",
+      "employeeId": "dme-emp-012",
+      "employeeName": "Noah Jordan",
+      "department": "Engineering",
+      "location": "Berlin",
+      "role": "Graduate Engineer",
+      "type": "Annual",
+      "days": 2,
+      "status": "Approved",
+      "startDate": "2026-08-07",
+      "endDate": "2026-08-09"
+    },
+    {
+      "id": "leave-12",
+      "employeeId": "dme-emp-013",
+      "employeeName": "Jack Cole",
+      "department": "Engineering",
+      "location": "Singapore",
+      "role": "Graduate Engineer",
+      "type": "Annual",
+      "days": 3,
+      "status": "Approved",
+      "startDate": "2026-08-08",
+      "endDate": "2026-08-11"
+    },
+    {
+      "id": "leave-13",
+      "employeeId": "dme-emp-014",
+      "employeeName": "Noah Powell",
+      "department": "Engineering",
+      "location": "Sydney",
+      "role": "Graduate Engineer",
+      "type": "Annual",
+      "days": 4,
+      "status": "Approved",
+      "startDate": "2026-08-09",
+      "endDate": "2026-08-13"
+    },
+    {
+      "id": "leave-14",
+      "employeeId": "dme-emp-015",
+      "employeeName": "Jordan West",
+      "department": "Engineering",
+      "location": "London",
+      "role": "Graduate Engineer",
+      "type": "Annual",
+      "days": 5,
+      "status": "Pending",
+      "startDate": "2026-08-10",
+      "endDate": "2026-08-15"
+    },
+    {
+      "id": "leave-15",
+      "employeeId": "dme-emp-016",
+      "employeeName": "Amelia Morgan",
+      "department": "Engineering",
+      "location": "New York",
+      "role": "Graduate Engineer",
+      "type": "Sick",
+      "days": 1,
+      "status": "Approved",
+      "startDate": "2026-08-11",
+      "endDate": "2026-08-12"
+    },
+    {
+      "id": "leave-16",
+      "employeeId": "dme-emp-017",
+      "employeeName": "Logan Ford",
+      "department": "Engineering",
+      "location": "Berlin",
+      "role": "Graduate Engineer",
+      "type": "Annual",
+      "days": 2,
+      "status": "Approved",
+      "startDate": "2026-08-12",
+      "endDate": "2026-08-14"
+    },
+    {
+      "id": "leave-17",
+      "employeeId": "dme-emp-018",
+      "employeeName": "Finley Price",
+      "department": "Engineering",
+      "location": "Singapore",
+      "role": "Graduate Engineer",
+      "type": "Annual",
+      "days": 3,
+      "status": "Approved",
+      "startDate": "2026-08-13",
+      "endDate": "2026-08-16"
+    },
+    {
+      "id": "leave-18",
+      "employeeId": "dme-emp-019",
+      "employeeName": "Emily Bennett",
+      "department": "Engineering",
+      "location": "Sydney",
+      "role": "Graduate Engineer",
+      "type": "Annual",
+      "days": 4,
+      "status": "Approved",
+      "startDate": "2026-08-14",
+      "endDate": "2026-08-18"
+    },
+    {
+      "id": "leave-19",
+      "employeeId": "dme-emp-020",
+      "employeeName": "Chloe Jenkins",
+      "department": "Cloud",
+      "location": "London",
+      "role": "Cloud Director",
+      "type": "Annual",
+      "days": 5,
+      "status": "Approved",
+      "startDate": "2026-08-15",
+      "endDate": "2026-08-20"
+    },
+    {
+      "id": "leave-20",
+      "employeeId": "dme-emp-021",
+      "employeeName": "Leo Brooks",
+      "department": "Cloud",
+      "location": "New York",
+      "role": "Cloud Architect",
+      "type": "Sick",
+      "days": 1,
+      "status": "Approved",
+      "startDate": "2026-07-27",
+      "endDate": "2026-07-28"
+    },
+    {
+      "id": "leave-21",
+      "employeeId": "dme-emp-022",
+      "employeeName": "Casey Gibson",
+      "department": "Cloud",
+      "location": "Berlin",
+      "role": "Cloud Engineer",
+      "type": "Annual",
+      "days": 2,
+      "status": "Pending",
+      "startDate": "2026-07-28",
+      "endDate": "2026-07-30"
+    },
+    {
+      "id": "leave-22",
+      "employeeId": "dme-emp-023",
+      "employeeName": "Sophia Mcdonald",
+      "department": "Cloud",
+      "location": "Singapore",
+      "role": "DevOps Engineer",
+      "type": "Annual",
+      "days": 3,
+      "status": "Approved",
+      "startDate": "2026-07-29",
+      "endDate": "2026-08-01"
+    },
+    {
+      "id": "leave-23",
+      "employeeId": "dme-emp-024",
+      "employeeName": "Thomas Gibson",
+      "department": "Cloud",
+      "location": "Sydney",
+      "role": "DevOps Engineer",
+      "type": "Annual",
+      "days": 4,
+      "status": "Approved",
+      "startDate": "2026-07-30",
+      "endDate": "2026-08-03"
+    },
+    {
+      "id": "leave-24",
+      "employeeId": "dme-emp-025",
+      "employeeName": "Benjamin Coleman",
+      "department": "Cloud",
+      "location": "London",
+      "role": "DevOps Engineer",
+      "type": "Annual",
+      "days": 5,
+      "status": "Approved",
+      "startDate": "2026-07-31",
+      "endDate": "2026-08-05"
+    },
+    {
+      "id": "leave-25",
+      "employeeId": "dme-emp-026",
+      "employeeName": "James West",
+      "department": "Cloud",
+      "location": "New York",
+      "role": "DevOps Engineer",
+      "type": "Sick",
+      "days": 1,
+      "status": "Approved",
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-02"
+    },
+    {
+      "id": "leave-26",
+      "employeeId": "dme-emp-027",
+      "employeeName": "Hayden Reed",
+      "department": "Cloud",
+      "location": "Berlin",
+      "role": "DevOps Engineer",
+      "type": "Annual",
+      "days": 2,
+      "status": "Approved",
+      "startDate": "2026-08-02",
+      "endDate": "2026-08-04"
+    },
+    {
+      "id": "leave-27",
+      "employeeId": "dme-emp-028",
+      "employeeName": "Parker Long",
+      "department": "Cloud",
+      "location": "Singapore",
+      "role": "DevOps Engineer",
+      "type": "Annual",
+      "days": 3,
+      "status": "Approved",
+      "startDate": "2026-08-03",
+      "endDate": "2026-08-06"
+    },
+    {
+      "id": "leave-28",
+      "employeeId": "dme-emp-029",
+      "employeeName": "Jack Kelly",
+      "department": "Cloud",
+      "location": "Sydney",
+      "role": "DevOps Engineer",
+      "type": "Annual",
+      "days": 4,
+      "status": "Pending",
+      "startDate": "2026-08-04",
+      "endDate": "2026-08-08"
+    },
+    {
+      "id": "leave-29",
+      "employeeId": "dme-emp-030",
+      "employeeName": "Daniel Myers",
+      "department": "Security",
+      "location": "London",
+      "role": "Security Director",
+      "type": "Annual",
+      "days": 5,
+      "status": "Approved",
+      "startDate": "2026-08-05",
+      "endDate": "2026-08-10"
+    },
+    {
+      "id": "leave-30",
+      "employeeId": "dme-emp-031",
+      "employeeName": "Sophia Simmons",
+      "department": "Security",
+      "location": "New York",
+      "role": "Security Engineer",
+      "type": "Sick",
+      "days": 1,
+      "status": "Approved",
+      "startDate": "2026-08-06",
+      "endDate": "2026-08-07"
+    },
+    {
+      "id": "leave-31",
+      "employeeId": "dme-emp-032",
+      "employeeName": "James Peterson",
+      "department": "Security",
+      "location": "Berlin",
+      "role": "SOC Analyst",
+      "type": "Annual",
+      "days": 2,
+      "status": "Approved",
+      "startDate": "2026-08-07",
+      "endDate": "2026-08-09"
+    },
+    {
+      "id": "leave-32",
+      "employeeId": "dme-emp-033",
+      "employeeName": "Charlotte Long",
+      "department": "Security",
+      "location": "Singapore",
+      "role": "SOC Analyst",
+      "type": "Annual",
+      "days": 3,
+      "status": "Approved",
+      "startDate": "2026-08-08",
+      "endDate": "2026-08-11"
+    },
+    {
+      "id": "leave-33",
+      "employeeId": "dme-emp-034",
+      "employeeName": "Oliver Harrison",
+      "department": "Security",
+      "location": "Sydney",
+      "role": "SOC Analyst",
+      "type": "Annual",
+      "days": 4,
+      "status": "Approved",
+      "startDate": "2026-08-09",
+      "endDate": "2026-08-13"
+    },
+    {
+      "id": "leave-34",
+      "employeeId": "dme-emp-035",
+      "employeeName": "Harry Gomez",
+      "department": "Security",
+      "location": "London",
+      "role": "SOC Analyst",
+      "type": "Annual",
+      "days": 5,
+      "status": "Approved",
+      "startDate": "2026-08-10",
+      "endDate": "2026-08-15"
+    },
+    {
+      "id": "leave-35",
+      "employeeId": "dme-emp-036",
+      "employeeName": "Benjamin Powell",
+      "department": "Consulting",
+      "location": "New York",
+      "role": "Consulting Director",
+      "type": "Sick",
+      "days": 1,
+      "status": "Pending",
+      "startDate": "2026-08-11",
+      "endDate": "2026-08-12"
+    },
+    {
+      "id": "leave-36",
+      "employeeId": "dme-emp-037",
+      "employeeName": "Rowan Hughes",
+      "department": "Consulting",
+      "location": "Berlin",
+      "role": "Principal Consultant",
+      "type": "Annual",
+      "days": 2,
+      "status": "Approved",
+      "startDate": "2026-08-12",
+      "endDate": "2026-08-14"
+    },
+    {
+      "id": "leave-37",
+      "employeeId": "dme-emp-038",
+      "employeeName": "Noah Kelly",
+      "department": "Consulting",
+      "location": "Singapore",
+      "role": "Senior Consultant",
+      "type": "Annual",
+      "days": 3,
+      "status": "Approved",
+      "startDate": "2026-08-13",
+      "endDate": "2026-08-16"
+    },
+    {
+      "id": "leave-38",
+      "employeeId": "dme-emp-039",
+      "employeeName": "Leo Ford",
+      "department": "Consulting",
+      "location": "Sydney",
+      "role": "Consultant",
+      "type": "Annual",
+      "days": 4,
+      "status": "Approved",
+      "startDate": "2026-08-14",
+      "endDate": "2026-08-18"
+    },
+    {
+      "id": "leave-39",
+      "employeeId": "dme-emp-040",
+      "employeeName": "Hannah Jenkins",
+      "department": "Consulting",
+      "location": "London",
+      "role": "Consultant",
+      "type": "Annual",
+      "days": 5,
+      "status": "Approved",
+      "startDate": "2026-08-15",
+      "endDate": "2026-08-20"
+    }
+  ],
+  "recruitment": [
+    {
+      "id": "req-1",
+      "role": "Senior Cloud Engineer",
+      "stage": "Interview",
+      "candidates": 6,
+      "location": "London"
+    },
+    {
+      "id": "req-2",
+      "role": "Customer Success Manager",
+      "stage": "Offer",
+      "candidates": 3,
+      "location": "New York"
+    },
+    {
+      "id": "req-3",
+      "role": "Graduate Consultant",
+      "stage": "Sourcing",
+      "candidates": 18,
+      "location": "Berlin"
+    },
+    {
+      "id": "req-4",
+      "role": "Security Architect",
+      "stage": "Screening",
+      "candidates": 9,
+      "location": "Singapore"
+    }
+  ],
+  "inventory": [
+    {
+      "id": "inv-1",
+      "sku": "LT-14-MBP",
+      "name": "MacBook Pro 14",
+      "qty": 42,
+      "location": "London"
+    },
+    {
+      "id": "inv-2",
+      "sku": "MON-27",
+      "name": "27in Monitor",
+      "qty": 80,
+      "location": "Berlin"
+    },
+    {
+      "id": "inv-3",
+      "sku": "PHN-SEC",
+      "name": "Secure handset",
+      "qty": 55,
+      "location": "New York"
+    },
+    {
+      "id": "inv-4",
+      "sku": "DK-DOCK",
+      "name": "Thunderbolt dock",
+      "qty": 60,
+      "location": "London"
+    },
+    {
+      "id": "inv-5",
+      "sku": "HD-NOI",
+      "name": "Noise-cancelling headset",
+      "qty": 70,
+      "location": "Sydney"
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset-0",
+      "name": "Laptop 1",
+      "assignedTo": "Reese Sullivan",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-1",
+      "name": "Laptop 2",
+      "assignedTo": "Riley Jenkins",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-2",
+      "name": "Laptop 3",
+      "assignedTo": "Oliver Hayes",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-3",
+      "name": "Laptop 4",
+      "assignedTo": "Benjamin Bailey",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-4",
+      "name": "Laptop 5",
+      "assignedTo": "Leo Fisher",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-5",
+      "name": "Laptop 6",
+      "assignedTo": "Quinn Ortiz",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-6",
+      "name": "Laptop 7",
+      "assignedTo": "Alex Morgan",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-7",
+      "name": "Laptop 8",
+      "assignedTo": "Ethan Peterson",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-8",
+      "name": "Laptop 9",
+      "assignedTo": "Harper Washington",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-9",
+      "name": "Laptop 10",
+      "assignedTo": "James Reynolds",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-10",
+      "name": "Laptop 11",
+      "assignedTo": "Skyler Hayes",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-11",
+      "name": "Laptop 12",
+      "assignedTo": "Noah Jordan",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-12",
+      "name": "Laptop 13",
+      "assignedTo": "Jack Cole",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-13",
+      "name": "Laptop 14",
+      "assignedTo": "Noah Powell",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-14",
+      "name": "Laptop 15",
+      "assignedTo": "Jordan West",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-15",
+      "name": "Laptop 16",
+      "assignedTo": "Amelia Morgan",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-16",
+      "name": "Laptop 17",
+      "assignedTo": "Logan Ford",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-17",
+      "name": "Laptop 18",
+      "assignedTo": "Finley Price",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-18",
+      "name": "Laptop 19",
+      "assignedTo": "Emily Bennett",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-19",
+      "name": "Laptop 20",
+      "assignedTo": "Chloe Jenkins",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-20",
+      "name": "Laptop 21",
+      "assignedTo": "Leo Brooks",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-21",
+      "name": "Laptop 22",
+      "assignedTo": "Casey Gibson",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-22",
+      "name": "Laptop 23",
+      "assignedTo": "Sophia Mcdonald",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-23",
+      "name": "Laptop 24",
+      "assignedTo": "Thomas Gibson",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-24",
+      "name": "Laptop 25",
+      "assignedTo": "Benjamin Coleman",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-25",
+      "name": "Laptop 26",
+      "assignedTo": "James West",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-26",
+      "name": "Laptop 27",
+      "assignedTo": "Hayden Reed",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-27",
+      "name": "Laptop 28",
+      "assignedTo": "Parker Long",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-28",
+      "name": "Laptop 29",
+      "assignedTo": "Jack Kelly",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-29",
+      "name": "Laptop 30",
+      "assignedTo": "Daniel Myers",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-30",
+      "name": "Laptop 31",
+      "assignedTo": "Sophia Simmons",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-31",
+      "name": "Laptop 32",
+      "assignedTo": "James Peterson",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-32",
+      "name": "Laptop 33",
+      "assignedTo": "Charlotte Long",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-33",
+      "name": "Laptop 34",
+      "assignedTo": "Oliver Harrison",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-34",
+      "name": "Laptop 35",
+      "assignedTo": "Harry Gomez",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-35",
+      "name": "Laptop 36",
+      "assignedTo": "Benjamin Powell",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-36",
+      "name": "Laptop 37",
+      "assignedTo": "Rowan Hughes",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-37",
+      "name": "Laptop 38",
+      "assignedTo": "Noah Kelly",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-38",
+      "name": "Laptop 39",
+      "assignedTo": "Leo Ford",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-39",
+      "name": "Laptop 40",
+      "assignedTo": "Hannah Jenkins",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-40",
+      "name": "Laptop 41",
+      "assignedTo": "Noah Cooper",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-41",
+      "name": "Laptop 42",
+      "assignedTo": "Alex Reed",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-42",
+      "name": "Laptop 43",
+      "assignedTo": "Eva Wallace",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-43",
+      "name": "Laptop 44",
+      "assignedTo": "Casey Foster",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-44",
+      "name": "Laptop 45",
+      "assignedTo": "Logan Reynolds",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-45",
+      "name": "Laptop 46",
+      "assignedTo": "Lily Owens",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-46",
+      "name": "Laptop 47",
+      "assignedTo": "Ella Washington",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-47",
+      "name": "Laptop 48",
+      "assignedTo": "Oliver Jenkins",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-48",
+      "name": "Laptop 49",
+      "assignedTo": "Jack Long",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-49",
+      "name": "Laptop 50",
+      "assignedTo": "Hayden Jenkins",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-50",
+      "name": "Laptop 51",
+      "assignedTo": "Sophie Jordan",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-51",
+      "name": "Laptop 52",
+      "assignedTo": "Daniel Gomez",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-52",
+      "name": "Laptop 53",
+      "assignedTo": "Taylor Sanders",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-53",
+      "name": "Laptop 54",
+      "assignedTo": "Mia Marshall",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-54",
+      "name": "Laptop 55",
+      "assignedTo": "Skyler Reynolds",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-55",
+      "name": "Laptop 56",
+      "assignedTo": "Reese Fisher",
+      "officeId": "mag-office-nyc",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-56",
+      "name": "Laptop 57",
+      "assignedTo": "Jamie Brooks",
+      "officeId": "mag-office-ber",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-57",
+      "name": "Laptop 58",
+      "assignedTo": "Isla Marshall",
+      "officeId": "mag-office-sin",
+      "status": "In use",
+      "sku": "LT-14-MBP"
+    },
+    {
+      "id": "asset-58",
+      "name": "Laptop 59",
+      "assignedTo": "Hannah Bailey",
+      "officeId": "mag-office-syd",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    },
+    {
+      "id": "asset-59",
+      "name": "Laptop 60",
+      "assignedTo": "Sam Sanders",
+      "officeId": "mag-office-lon",
+      "status": "In use",
+      "sku": "LT-16-MBP"
+    }
+  ],
+  "board": {
+    "meetings": [
+      {
+        "id": "board-1",
+        "title": "Q2 Board Meeting",
+        "date": "2025-11-28"
+      },
+      {
+        "id": "board-2",
+        "title": "Q3 Board Meeting",
+        "date": "2025-08-28"
+      }
+    ],
+    "risks": [
+      {
+        "id": "risk-1",
+        "title": "Key person dependency in Cloud practice",
+        "rating": "Medium"
+      },
+      {
+        "id": "risk-2",
+        "title": "FX exposure on USD receivables",
+        "rating": "Low"
+      },
+      {
+        "id": "risk-3",
+        "title": "AWS EDP renewal timing",
+        "rating": "Medium"
+      }
+    ]
+  },
+  "details": {
+    "categories": [
+      {
+        "id": "company-overview",
+        "label": "Company Overview",
+        "content": "Meridian Atlas Group (Meridian Atlas Group Ltd) is a technology and management consulting firm headquartered in London with offices across EMEA and APAC. Company no. MAG-UK-884421. VAT GB884421001."
+      },
+      {
+        "id": "operating-model",
+        "label": "Operating Model",
+        "content": "Practice-led delivery across Cloud, Security, and Consulting with shared PMO, Finance, and Customer Success functions. Demo workspace content only."
+      },
+      {
+        "id": "governance",
+        "label": "Governance",
+        "content": "Board meets quarterly. Audit and Remuneration committees active. Cap table held under Atlas Founders Trust and Meridian Growth Partners."
+      }
+    ]
+  },
+  "summary": {
+    "employees": 100,
+    "clients": 100,
+    "projects": 55,
+    "invoices": 121,
+    "tickets": 80
+  }
+}

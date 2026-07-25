@@ -42,14 +42,26 @@ export default function FinancialsWorkspace() {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20_000);
     try {
-      const response = await fetch("/api/financials/ledger/overview", { cache: "no-store" });
+      const response = await fetch("/api/financials/ledger/overview", {
+        cache: "no-store",
+        signal: controller.signal,
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Failed to load overview");
       setOverview(data.overview);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to load overview");
+      setError(
+        loadError instanceof Error
+          ? loadError.name === "AbortError"
+            ? "Financial overview timed out — refresh to retry."
+            : loadError.message
+          : "Failed to load overview",
+      );
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   }, []);

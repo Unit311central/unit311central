@@ -57,18 +57,29 @@ function emptyBurnRate(cashBalance = 0): FinancialOverviewSnapshot["burnRate"] {
  */
 export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
   try {
-    const status = await getWiseConnectionStatus();
-    if (!status.configured || !status.connected) {
-      return roundMoney(glWiseCash);
-    }
-    const balances = await listWiseBalances(status.profileId ?? undefined);
-    if (balances.length === 0) return roundMoney(glWiseCash);
-    return roundMoney(
-      balances.reduce(
-        (sum, balance) => sum + convertToGbp(Number(balance.amount) || 0, balance.currency),
-        0,
-      ),
-    );
+    const cashPromise = (async () => {
+      const status = await getWiseConnectionStatus();
+      if (!status.configured || !status.connected) {
+        return roundMoney(glWiseCash);
+      }
+      const balances = await listWiseBalances(status.profileId ?? undefined);
+      if (balances.length === 0) return roundMoney(glWiseCash);
+      return roundMoney(
+        balances.reduce(
+          (sum, balance) => sum + convertToGbp(Number(balance.amount) || 0, balance.currency),
+          0,
+        ),
+      );
+    })();
+
+    const timeoutMs = 8_000;
+    const timed = await Promise.race([
+      cashPromise,
+      new Promise<number>((resolve) => {
+        setTimeout(() => resolve(roundMoney(glWiseCash)), timeoutMs);
+      }),
+    ]);
+    return timed;
   } catch {
     return roundMoney(glWiseCash);
   }

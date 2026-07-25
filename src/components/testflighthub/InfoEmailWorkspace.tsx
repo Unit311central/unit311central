@@ -65,6 +65,26 @@ const DEFAULT_MAILBOXES: EmailAccountOption[] = [
   { id: "demo", email: "demo@unit311central.com", name: "Demo", configured: false },
 ];
 
+function defaultMailboxesForHost(): EmailAccountOption[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        return getDemoEnterpriseFixtures().emails.accounts.map((row) => ({
+          id: row.id as EmailAccountId,
+          email: row.email,
+          name: row.name,
+          configured: row.configured !== false,
+        }));
+      }
+    } catch {
+      // Fall through to Internal defaults.
+    }
+  }
+  return DEFAULT_MAILBOXES;
+}
+
 type EmailAccountOption = EmailAccount & { configured?: boolean };
 
 type WhatsAppStatus = {
@@ -240,7 +260,7 @@ export default function InfoEmailWorkspace() {
         setSelectedAccountId(merged[0].id);
       }
     } catch (loadError) {
-      setAccounts(DEFAULT_MAILBOXES);
+      setAccounts(defaultMailboxesForHost());
       setError(loadError instanceof Error ? loadError.message : "Failed to load mailboxes");
     } finally {
       setAccountsLoading(false);

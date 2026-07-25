@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { parseAccountId, parseMailboxFolder } from "@/lib/email/accounts";
 import { emailErrorResponse } from "@/lib/email/api-utils";
+import { listDemoMailboxMessages } from "@/lib/email/demo-mailbox";
 import { fetchMailboxMessages } from "@/lib/email/imap";
 import { processInfoMailboxWhatsAppNotifications } from "@/lib/email/whatsapp-notifications";
 import { requirePlatformSession } from "@/lib/platform-session";
+import { isDemoWiseWorkspaceSlug } from "@/lib/treasury/bank-provider";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const runtime = "nodejs";
@@ -29,6 +31,10 @@ export async function GET(request: NextRequest) {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
+
+    if (isDemoWiseWorkspaceSlug(workspace.slug)) {
+      return NextResponse.json(listDemoMailboxMessages(account, folder));
+    }
 
     const messages = await fetchMailboxMessages(account, undefined, folder);
     if (account === "info" && folder === "inbox") {

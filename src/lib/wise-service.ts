@@ -895,6 +895,14 @@ function mapWiseBalance(row: {
 }
 
 export async function listWiseBalances(profileId?: number): Promise<WiseBalance[]> {
+  const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+  if (await shouldUseDemoWiseSimulator()) {
+    const { listDemoWiseBalances } = await import(
+      "@/lib/treasury/providers/demo-wise-simulator"
+    );
+    return listDemoWiseBalances();
+  }
+
   const resolvedProfileId = profileId ?? readWiseProfileId();
   if (!resolvedProfileId) {
     throw new Error("WISE_PROFILE_ID is not configured.");
@@ -945,6 +953,14 @@ export async function listWiseBalances(profileId?: number): Promise<WiseBalance[
 }
 
 export async function getWiseConnectionStatus(): Promise<WiseConnectionStatus> {
+  const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+  if (await shouldUseDemoWiseSimulator()) {
+    const { getDemoWiseConnectionStatus } = await import(
+      "@/lib/treasury/providers/demo-wise-simulator"
+    );
+    return getDemoWiseConnectionStatus();
+  }
+
   const profileId = readWiseProfileId();
   const configured = Boolean(readWiseApiToken() && profileId);
 
@@ -1240,6 +1256,14 @@ export async function getWiseBalanceTransactions(input: {
   intervalEnd: string;
   profileId?: number;
 }) {
+  const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+  if (await shouldUseDemoWiseSimulator()) {
+    const { getDemoWiseBalanceTransactions } = await import(
+      "@/lib/treasury/providers/demo-wise-simulator"
+    );
+    return getDemoWiseBalanceTransactions(input);
+  }
+
   try {
     const statement = await getWiseBalanceStatement({ ...input, format: "json" });
     return {

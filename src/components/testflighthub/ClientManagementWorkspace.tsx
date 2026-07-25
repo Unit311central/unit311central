@@ -163,7 +163,7 @@ export default function ClientManagementWorkspace({
       const data = await fetchCachedJson<{ clients?: ManagedClient[] }>(
         PLATFORM_CACHE_KEYS.clients,
         "/api/clients",
-        { ttlMs: 120_000 },
+        { ttlMs: 120_000, timeoutMs: 25_000 },
       );
 
       const nextClients = data.clients ?? [];

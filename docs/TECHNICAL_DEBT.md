@@ -41,6 +41,20 @@ Snapshot prepared for long-term SaaS development of Unit311 Central (single repo
 | `workspace_users` empty / no auth binding | Medium | Planned later phase |
 | Wildcard DNS `*.unit311central.com` | Medium | App-ready; must be configured in Vercel/DNS |
 
+## Future technical backlog (deferred)
+
+Items below are **accepted for now** and must **not** be implemented in the current milestone. Track only.
+
+### Authentication hardening
+
+| Field | Value |
+| --- | --- |
+| Status | Deferred — not required for current milestone |
+| Intent | When an **unauthenticated** user visits `internal.unit311central.com` or `demo.unit311central.com`, **automatically redirect to the login page** instead of serving the Ops application shell and relying on API authentication (401s). |
+| Current behaviour (accepted) | Shared `dc_platform_session` cookie (`Domain=.unit311central.com`); Internal operators may open Demo without re-login; Demo/Internal middleware does not hard-redirect anonymous visitors (same pattern as today’s Internal host); protected data APIs still require a valid session. |
+| Out of scope now | Do not change the authentication flow until this backlog item is explicitly scheduled. |
+| Likely touchpoints (when scheduled) | `src/middleware.ts` Demo/Internal host branches (mirror customer-host session gate pattern); keep cookie domain and Internal→Demo seamless access unchanged unless product decides otherwise. |
+
 ## Engineering practice debt
 
 | Item | Severity | Notes |

@@ -59,6 +59,137 @@ function licenceStatusFromRenewal(renewalDate: string, current: CorporateLicence
 }
 
 function seedState(): CorporateMockState {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        const fixtures = getDemoEnterpriseFixtures();
+        const offices: CorporateOffice[] = fixtures.offices.map((office) => ({
+          id: office.id,
+          name: `${office.city} Office`,
+          country: office.country,
+          city: office.city,
+          address: office.address,
+          manager: "Leadership Team",
+          employees: office.headcountTarget,
+          status: "active",
+          phone: fixtures.company.phone,
+          timezone: office.timezone,
+        }));
+        const banks: CorporateBankAccount[] = fixtures.wise.balances.map((balance, index) => ({
+          id: `bank-${balance.currency.toLowerCase()}-${balance.id}`,
+          bank: "Wise Business (simulated)",
+          accountName: balance.name,
+          currency: balance.currency,
+          country: balance.regionLabel,
+          accountType: balance.type === "SAVINGS" ? "Savings" : "Current",
+          status: "active",
+          primary: index === 0,
+          iban: balance.accountRef,
+          swift: "TRWIGB2L",
+          routing: "",
+          branch: balance.regionLabel,
+          accountHolder: fixtures.company.legalName,
+          notes: "Demo simulated Meridian Atlas treasury balance",
+        }));
+        const advisors: CorporateAdvisor[] = (fixtures.advisors ?? []).map((row) => ({
+          id: row.id,
+          company: row.company,
+          contact: row.contact,
+          category: row.category as CorporateAdvisor["category"],
+          country: row.country,
+          phone: row.phone,
+          email: row.email,
+          retainer: row.retainer,
+          status: row.status as CorporateAdvisor["status"],
+          notes: row.notes,
+        }));
+        const contracts: CorporateContract[] = (fixtures.contracts ?? []).map((row) => ({
+          id: row.id,
+          name: row.name,
+          supplier: row.supplier,
+          type: row.type as CorporateContract["type"],
+          owner: row.owner,
+          startDate: row.startDate,
+          expiryDate: row.expiryDate,
+          value: row.value,
+          status: contractStatusFromExpiry(
+            row.expiryDate,
+            row.status as CorporateContract["status"],
+          ),
+          summary: row.summary,
+          parties: row.parties,
+          renewalNotes: row.renewalNotes,
+          documents: row.documents,
+          notes: row.notes,
+        })) as CorporateContract[];
+        const licences: CorporateLicence[] = (fixtures.licences ?? []).map((row) => ({
+          id: row.id,
+          software: row.name,
+          vendor: row.vendor,
+          licenceType: "Subscription",
+          seats: row.seats,
+          renewalDate: row.renewalDate,
+          cost: row.cost,
+          owner: row.owner,
+          status: licenceStatusFromRenewal(
+            row.renewalDate,
+            row.status as CorporateLicence["status"],
+          ),
+        }));
+        const shareholders: CorporateShareholder[] = (fixtures.shareholders ?? []).map((row) => ({
+          id: row.id,
+          company: fixtures.company.legalName,
+          shareholder: row.name,
+          shareClass: (row.class.includes("Preferred")
+            ? "Preference"
+            : row.class.includes("Option")
+              ? "Options"
+              : "Ordinary") as CorporateShareholder["shareClass"],
+          shares: row.shares,
+          price: "£1.00",
+          issueDate: isoDaysFromNow(-800),
+          notes: `${row.type} · ${row.percent}%`,
+        }));
+        return {
+          offices,
+          banks,
+          advisors,
+          contracts,
+          shareholders,
+          optionPool: {
+            authorised: 10_000_000,
+            issued: 6_400_000,
+            reserved: 1_200_000,
+            lastUpdated: new Date().toISOString().slice(0, 10),
+          },
+          capital: {
+            authorisedShareCapital: "10,000,000",
+            issuedShareCapital: "6,400,000",
+            currency: "GBP",
+          },
+          licences,
+          activity: [
+            {
+              id: "act-demo-1",
+              at: new Date().toISOString(),
+              label: "Demo company loaded",
+              detail: `${fixtures.company.tradingName} corporate profile (Demo workspace fixtures).`,
+            },
+            {
+              id: "act-demo-2",
+              at: isoDaysFromNow(-1),
+              label: "Bank account synced",
+              detail: "Wise simulated balances refreshed for Meridian Atlas treasury.",
+            },
+          ],
+        };
+      }
+    } catch {
+      // Fall through to Internal mock seed when Demo fixtures unavailable.
+    }
+  }
+
   const offices: CorporateOffice[] = [
     {
       id: "office-bcn-hq",
@@ -533,14 +664,40 @@ function seedState(): CorporateMockState {
   };
 }
 
-let state = seedState();
+let state: CorporateMockState = seedState();
+let seededHost: string | null = typeof window !== "undefined" ? window.location.hostname : "ssr";
 const listeners = new Set<Listener>();
+
+function currentHostKey() {
+  if (typeof window === "undefined") return "ssr";
+  return window.location.hostname || "browser";
+}
+
+function ensureState(): CorporateMockState {
+  const hostKey = currentHostKey();
+  if (typeof window !== "undefined" && seededHost !== hostKey) {
+    state = seedState();
+    seededHost = hostKey;
+  } else if (typeof window !== "undefined") {
+    // SSR can initialize Internal mock; reseed once we detect Demo host + Unit311 leakage.
+    const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    if (
+      isBrowserDemoSurface() &&
+      state.banks.some((bank) => /unit311|nakama/i.test(`${bank.accountName} ${bank.accountHolder}`))
+    ) {
+      state = seedState();
+      seededHost = hostKey;
+    }
+  }
+  return state;
+}
 
 function emit() {
   for (const listener of listeners) listener();
 }
 
 function pushActivity(label: string, detail: string) {
+  ensureState();
   state = {
     ...state,
     activity: [
@@ -556,16 +713,17 @@ export function subscribeCorporateMockStore(listener: Listener) {
 }
 
 export function getCorporateMockSnapshot(): CorporateMockState {
-  return state;
+  return ensureState();
 }
 
 export function resetCorporateMockStore() {
   state = seedState();
+  seededHost = currentHostKey();
   emit();
 }
 
 export function listCorporateActivity() {
-  return state.activity;
+  return ensureState().activity;
 }
 
 /* —— Offices —— */

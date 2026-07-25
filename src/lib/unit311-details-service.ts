@@ -621,6 +621,37 @@ export async function saveUnit311DetailTasks(
 }
 
 export async function getUnit311DetailsOverview(scope?: FilesWorkspaceScope) {
+  try {
+    const { getCurrentWorkspace } = await import("@/lib/workspace-context");
+    const { isDemoWiseWorkspaceSlug } = await import("@/lib/treasury/bank-provider");
+    const { getDemoEnterpriseFixtures } = await import("@/lib/demo-enterprise");
+    const workspace = await getCurrentWorkspace();
+    if (isDemoWiseWorkspaceSlug(workspace?.slug ?? null)) {
+      const fixtures = getDemoEnterpriseFixtures();
+      const categories = fixtures.details.categories.map((row) => ({
+        id: `custom-${row.id}` as const,
+        label: row.label,
+        folderName: row.label,
+        builtin: false as const,
+      }));
+      const contents: Record<string, string> = {};
+      const tasks: Record<string, Unit311DetailTask[]> = {};
+      for (const row of fixtures.details.categories) {
+        contents[`custom-${row.id}`] = row.content;
+        tasks[`custom-${row.id}`] = [];
+      }
+      return {
+        rootFolderId: "demo-mag-details-root",
+        folders: Object.fromEntries(categories.map((c) => [c.id, `demo-folder-${c.id}`])),
+        categories,
+        contents,
+        tasks,
+      };
+    }
+  } catch (error) {
+    console.warn("[unit311-details] Demo overview short-circuit failed", error);
+  }
+
   await ensureUnit311DetailsFolders(scope);
 
   // Ensure the Cyber Resilience Act section button/folder exists (no duplicate).

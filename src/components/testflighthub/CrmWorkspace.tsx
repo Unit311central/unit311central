@@ -23,8 +23,8 @@ import CrmLeadQuestionsPanel from "@/components/testflighthub/CrmLeadQuestionsPa
 import CrmLeadTimelinePanel from "@/components/testflighthub/CrmLeadTimelinePanel";
 import { isDiscoveryCallLead } from "@/lib/discovery-questions-data";
 import {
-  CRM_DASHBOARD_TILES,
   DEFAULT_CRM_TILE_LAYOUT,
+  buildCrmDashboardCatalog,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { CheckCircle2, ClipboardList, FileText, FileType, Loader2, Network, Plus, Presentation, Save, Trash2, UserPlus } from "lucide-react";
 
@@ -504,11 +504,13 @@ export default function CrmWorkspace({
     return counts;
   }, [leads]);
 
+  const crmTileCatalog = useMemo(() => buildCrmDashboardCatalog(leads), [leads]);
+
   return (
     <div className="space-y-6">
       <DashboardTopTilesBar
         storageKey="unit311-crm-dashboard-tiles"
-        catalog={CRM_DASHBOARD_TILES}
+        catalog={crmTileCatalog}
         defaultLayout={DEFAULT_CRM_TILE_LAYOUT}
         title="CRM key details"
         showCustomizeHint={false}

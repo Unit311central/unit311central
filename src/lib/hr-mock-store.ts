@@ -65,6 +65,121 @@ function uid(prefix: string) {
 }
 
 function seedState(): HrMockState {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        const fixtures = getDemoEnterpriseFixtures();
+        const leaveRequests: HrLeaveRequest[] = fixtures.leave.slice(0, 24).map((row, index) => ({
+          id: row.id,
+          employeeId: row.employeeId,
+          employeeName: row.employeeName,
+          department: row.department ?? "Corporate",
+          location: row.location ?? "London",
+          role: "role" in row && typeof row.role === "string" ? row.role : "Consultant",
+          managerName: "People Partner",
+          type: row.type.toLowerCase() === "sick" ? "sick" : "annual",
+          startDate: row.startDate ?? isoDaysFromNow(index + 1),
+          endDate: row.endDate ?? isoDaysFromNow(index + 1 + row.days),
+          days: row.days,
+          status: row.status.toLowerCase() === "pending" ? "pending" : "approved",
+          notes: `${fixtures.company.tradingName} leave request`,
+          requestedAt: isoDaysFromNow(-(index + 2)),
+          decidedAt: row.status.toLowerCase() === "pending" ? null : isoDaysFromNow(-(index + 1)),
+        }));
+        const vacancies: HrVacancy[] = fixtures.recruitment.map((row) => ({
+          id: row.id,
+          title: row.role,
+          department: "Consulting",
+          location: row.location ?? "London",
+          employmentType: "Full time",
+          hiringManager: "Practice Lead",
+          status: "open",
+          openedAt: isoDaysFromNow(-30),
+          targetStartDate: isoDaysFromNow(45),
+          closingDate: isoDaysFromNow(60),
+          headcount: Math.max(1, Math.ceil(row.candidates / 4)),
+          salaryBand: "Market competitive",
+          description: `${fixtures.tag} ${row.role} — stage: ${row.stage}`,
+          requirements: "Relevant consulting / technology delivery experience.",
+        }));
+        return {
+          leaveRequests,
+          leaveBalances: leaveRequests.slice(0, 12).map((row) => ({
+            employeeId: row.employeeId,
+            employeeName: row.employeeName,
+            department: row.department,
+            location: row.location,
+            annualAllocated: 25,
+            annualTaken: row.days,
+            sickTaken: 0,
+            trainingTaken: 0,
+          })),
+          publicHolidays: [
+            {
+              id: "hol-mag-1",
+              name: "UK Bank Holiday",
+              date: isoDaysFromNow(40),
+              calendar: "United Kingdom",
+            },
+          ],
+          vacancies,
+          candidates: fixtures.recruitment.flatMap((row, i) =>
+            Array.from({ length: Math.min(3, row.candidates) }, (_, j) => ({
+              id: `cand-${row.id}-${j}`,
+              name: `Candidate ${i + 1}${String.fromCharCode(65 + j)}`,
+              email: `candidate.${i}${j}@talent.meridianatlas.demo`,
+              phone: "+44 20 7946 0" + String(100 + i * 3 + j),
+              vacancyId: row.id,
+              role: row.role,
+              department: "Consulting",
+              location: row.location ?? "London",
+              stage: (row.stage.toLowerCase().includes("offer")
+                ? "offer"
+                : row.stage.toLowerCase().includes("interview")
+                  ? "interview"
+                  : "screening") as HrPipelineStage,
+              rating: 3 + ((i + j) % 3),
+              interviewer: "Hiring Panel",
+              recruiter: "Talent Team",
+              expectedSalary: "",
+              availability: "4 weeks",
+              source: "Agency",
+              appliedAt: isoDaysFromNow(-(10 + j)),
+              notes: `${fixtures.tag} pipeline`,
+              cvLabel: "CV.pdf",
+              rejected: false,
+              interviews: [emptyInterview()],
+              offer: emptyOfferDetails(),
+              timeline: [
+                {
+                  id: `tl-${row.id}-${j}`,
+                  at: isoDaysFromNow(-(10 + j)),
+                  label: "Applied",
+                  detail: "Application received",
+                },
+              ],
+            })),
+          ),
+          reviews: [],
+          goals: [],
+          reports: [],
+          activity: [
+            {
+              id: "hr-act-demo-1",
+              at: isoDaysFromNow(0),
+              label: "Demo HR loaded",
+              detail: `${fixtures.company.tradingName} leave + recruitment fixtures.`,
+            },
+          ],
+        };
+      }
+    } catch {
+      // Fall through to Internal mock seed.
+    }
+  }
+
   const leaveRequests: HrLeaveRequest[] = [
     {
       id: "leave-001",
@@ -1189,13 +1304,37 @@ function seedState(): HrMockState {
 }
 
 let state = seedState();
+let seededHost = typeof window !== "undefined" ? window.location.hostname : "ssr";
 const listeners = new Set<Listener>();
+
+function ensureHrState(): HrMockState {
+  if (typeof window !== "undefined" && seededHost !== window.location.hostname) {
+    state = seedState();
+    seededHost = window.location.hostname;
+  } else if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (
+        isBrowserDemoSurface() &&
+        state.leaveRequests.some((row) => /fotheringham|barcelona/i.test(`${row.managerName} ${row.location}`))
+      ) {
+        state = seedState();
+        seededHost = window.location.hostname;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return state;
+}
 
 function emit() {
   for (const listener of listeners) listener();
 }
 
 function pushActivity(label: string, detail: string) {
+  ensureHrState();
   state = {
     ...state,
     activity: [
@@ -1211,11 +1350,12 @@ export function subscribeHrMockStore(listener: Listener) {
 }
 
 export function getHrMockSnapshot(): HrMockState {
-  return state;
+  return ensureHrState();
 }
 
 export function resetHrMockStore() {
   state = seedState();
+  seededHost = typeof window !== "undefined" ? window.location.hostname : "ssr";
   emit();
 }
 

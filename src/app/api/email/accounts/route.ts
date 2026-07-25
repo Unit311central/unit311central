@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { getPublicEmailAccounts, isAccountConfigured } from "@/lib/email/accounts";
+import { isDemoEmailAccountConfigured } from "@/lib/email/demo-mailbox";
 import { requirePlatformSession } from "@/lib/platform-session";
+import { isDemoWiseWorkspaceSlug } from "@/lib/treasury/bank-provider";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const runtime = "nodejs";
@@ -16,12 +18,15 @@ function authErrorStatus(message: string) {
 export async function GET() {
   try {
     await requirePlatformSession();
-    await requireCurrentWorkspace();
+    const workspace = await requireCurrentWorkspace();
+    const demo = isDemoWiseWorkspaceSlug(workspace.slug);
 
     const accounts = await Promise.all(
-      getPublicEmailAccounts().map(async (account) => ({
+      getPublicEmailAccounts({ demo }).map(async (account) => ({
         ...account,
-        configured: await isAccountConfigured(account.id),
+        configured: demo
+          ? isDemoEmailAccountConfigured(account.id)
+          : await isAccountConfigured(account.id),
       })),
     );
 

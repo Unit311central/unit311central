@@ -55,10 +55,11 @@ export function invalidateCachedJson(key: string | RegExp): void {
 export async function fetchCachedJson<T>(
   key: string,
   input: RequestInfo | URL,
-  init?: RequestInit & { ttlMs?: number; force?: boolean },
+  init?: RequestInit & { ttlMs?: number; force?: boolean; timeoutMs?: number },
 ): Promise<T> {
   const ttlMs = init?.ttlMs ?? DEFAULT_TTL_MS;
   const force = init?.force ?? false;
+  const timeoutMs = init?.timeoutMs;
   const url =
     typeof input === "string"
       ? input
@@ -90,18 +91,28 @@ export async function fetchCachedJson<T>(
   }
 
   recordCacheMiss();
-  const { ttlMs: _ttl, force: _force, ...fetchInit } = init ?? {};
+  const { ttlMs: _ttl, force: _force, timeoutMs: _timeout, ...fetchInit } = init ?? {};
   const promise = (async () => {
-    const response = await fetch(input, {
-      ...fetchInit,
-      cache: fetchInit.cache ?? "no-store",
-    });
-    if (!response.ok) {
-      throw new Error(`Request failed (${response.status}) for ${key}`);
+    const controller = timeoutMs ? new AbortController() : null;
+    const timer =
+      controller && timeoutMs
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : null;
+    try {
+      const response = await fetch(input, {
+        ...fetchInit,
+        cache: fetchInit.cache ?? "no-store",
+        signal: fetchInit.signal ?? controller?.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status}) for ${key}`);
+      }
+      const data = (await response.json()) as T;
+      setCachedJson(key, data, ttlMs);
+      return data;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
-    const data = (await response.json()) as T;
-    setCachedJson(key, data, ttlMs);
-    return data;
   })();
 
   inflight.set(key, { promise });
