@@ -234,10 +234,14 @@ export async function buildDailyExecutiveBrief(
     a.actionId === "finance.chaseOverdueInvoice",
   ).length;
 
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning." : hour < 18 ? "Good afternoon." : "Good evening.";
+
   return {
     id: `brief_${briefDateKey()}_${context.user.id}`,
     dateKey: briefDateKey(),
-    greeting: `Good morning, ${firstName}.`,
+    greeting,
     headline:
       attentionCount > 0
         ? `Today’s operating picture · ${focus.label}`

@@ -57,11 +57,15 @@ function SectionLabel({ children }: { children: ReactNode }) {
 }
 
 function resolveGreeting(raw?: string | null) {
+  const hour = new Date().getHours();
+  const fallback =
+    hour < 12 ? "Good morning." : hour < 18 ? "Good afternoon." : "Good evening.";
   const trimmed = raw?.trim();
-  if (trimmed && /good\s+(morning|afternoon|evening)/i.test(trimmed)) {
-    return trimmed.endsWith(".") ? trimmed : `${trimmed}.`;
-  }
-  return "Good morning.";
+  if (!trimmed) return fallback;
+  const match = trimmed.match(/good\s+(morning|afternoon|evening)/i);
+  if (!match) return fallback;
+  const period = match[1].toLowerCase();
+  return `Good ${period}.`;
 }
 
 function promptForAction(action: AssistantFollowUpAction): string {
