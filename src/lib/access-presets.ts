@@ -250,7 +250,7 @@ export function defaultAllowedViews(
       groupIds = ["operations-assets", "projects", "training", "qms", "productivity"];
     } else if (department === "Technology") {
       groupIds = ["technology", "engineering", "projects", "productivity"];
-    } else if (department === "Board" || department === "Corporate") {
+    } else if (department === "Board" || department === "Exec" || department === "Manager" || department === "Corporate") {
       groupIds = ["strategy", "corporate", "clients", "projects", "productivity"];
     }
   } else {
@@ -281,7 +281,7 @@ export function defaultAllowedViews(
       groupIds = ["executive-assistant", ...OPS_GROUP_IDS, "productivity", "clients"];
     } else if (department === "Technology") {
       groupIds = ["executive-assistant", "technology", "engineering", "projects", "productivity"];
-    } else if (department === "Board" || department === "Corporate") {
+    } else if (department === "Board" || department === "Exec" || department === "Manager" || department === "Corporate") {
       groupIds = [
         "executive-assistant",
         "corporate",
@@ -322,8 +322,11 @@ export function defaultHomeTiles(
   if (department === "Technology") {
     return ["executive-brief", "projects", "operations", "risks"];
   }
-  if (department === "Board") {
+  if (department === "Board" || department === "Exec") {
     return ["executive-brief", "financial", "commercial", "risks"];
+  }
+  if (department === "Manager") {
+    return ["executive-brief", "projects", "operations", "commercial"];
   }
 
   return ["executive-brief", "projects", "operations", "commercial"];

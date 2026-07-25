@@ -11,6 +11,8 @@ export type UserRole = "Board" | "Exec" | "Manager" | "Associate" | "Admin";
 
 export type UserDepartment =
   | "Board"
+  | "Exec"
+  | "Manager"
   | "Engineering"
   | "Sales"
   | "Finance"
@@ -55,6 +57,8 @@ export const USER_ROLE_OPTIONS: UserRole[] = [
 
 export const USER_DEPARTMENT_OPTIONS: UserDepartment[] = [
   "Board",
+  "Exec",
+  "Manager",
   "Engineering",
   "Sales",
   "Finance",
