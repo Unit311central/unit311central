@@ -568,7 +568,6 @@ const PUBLIC_ONLY_PATH_PREFIXES = [
   "/faq",
   "/signup",
   "/payment",
-  "/payment_card",
   "/payment_transfer",
   "/questions",
   "/onboarding",

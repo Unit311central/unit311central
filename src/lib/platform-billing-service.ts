@@ -2,6 +2,10 @@ import {
   ensurePlatformCustomerSubscriptionsTable,
   withPlatformCustomerSubscriptionsTable,
 } from "@/lib/internal-db-migrations";
+import {
+  PROFESSIONAL_ANNUAL_USD,
+  PROFESSIONAL_MONTHLY_USD,
+} from "@/lib/platform-pricing";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type {
   PlatformBillingFrequency,
@@ -98,6 +102,80 @@ export async function getPlatformCustomerSubscription(
       .from("platform_customer_subscriptions")
       .select("*")
       .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    return data ? mapRow(data as PlatformCustomerSubscriptionRow) : null;
+  });
+}
+
+/** Heal legacy Professional seed rows still on $999 MRR. */
+export async function healProfessionalSubscriptionPricing(): Promise<number> {
+  await ensurePlatformCustomerSubscriptionsTable();
+  return (
+    (await withPlatformCustomerSubscriptionsTable(async () => {
+      const supabase = requireSupabase();
+      const { data: rows, error: listError } = await supabase
+        .from("platform_customer_subscriptions")
+        .select("id, company_name, plan_name, mrr_usd");
+      if (listError) throw new Error(listError.message);
+      const targets = (rows ?? []).filter((row) => {
+        const mrr = Number(row.mrr_usd);
+        const company = String(row.company_name ?? "").toLowerCase();
+        const plan = String(row.plan_name ?? "").toLowerCase();
+        return mrr === 999 && (company.includes("fotheringham") || plan.includes("professional"));
+      });
+      for (const row of targets) {
+        const { error } = await supabase
+          .from("platform_customer_subscriptions")
+          .update({
+            mrr_usd: PROFESSIONAL_MONTHLY_USD,
+            arr_usd: PROFESSIONAL_ANNUAL_USD,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id);
+        if (error) throw new Error(error.message);
+      }
+      return targets.length;
+    })) ?? 0
+  );
+}
+
+export async function updatePlatformCustomerSubscription(
+  id: string,
+  patch: Partial<{
+    mrrUsd: number;
+    arrUsd: number;
+    planName: string;
+    billingFrequency: PlatformBillingFrequency;
+    subscriptionStatus: PlatformSubscriptionStatus;
+    outstandingBalanceUsd: number;
+    nextInvoiceDate: string | null;
+    notes: string | null;
+  }>,
+): Promise<PlatformCustomerSubscription | null> {
+  await ensurePlatformCustomerSubscriptionsTable();
+  return withPlatformCustomerSubscriptionsTable(async () => {
+    const supabase = requireSupabase();
+    const payload: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (patch.mrrUsd != null) payload.mrr_usd = patch.mrrUsd;
+    if (patch.arrUsd != null) payload.arr_usd = patch.arrUsd;
+    if (patch.planName != null) payload.plan_name = patch.planName;
+    if (patch.billingFrequency != null) payload.billing_frequency = patch.billingFrequency;
+    if (patch.subscriptionStatus != null) payload.subscription_status = patch.subscriptionStatus;
+    if (patch.outstandingBalanceUsd != null) {
+      payload.outstanding_balance_usd = patch.outstandingBalanceUsd;
+    }
+    if (patch.nextInvoiceDate !== undefined) payload.next_invoice_date = patch.nextInvoiceDate;
+    if (patch.notes !== undefined) payload.notes = patch.notes;
+
+    const { data, error } = await supabase
+      .from("platform_customer_subscriptions")
+      .update(payload)
+      .eq("id", id)
+      .select("*")
       .maybeSingle();
 
     if (error) throw new Error(error.message);

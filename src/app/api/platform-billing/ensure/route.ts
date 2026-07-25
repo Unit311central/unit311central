@@ -6,7 +6,10 @@ import {
   ensurePlatformCustomerSubscriptionsTable,
   getMigrationReadiness,
 } from "@/lib/internal-db-migrations";
-import { listPlatformCustomerSubscriptions } from "@/lib/platform-billing-service";
+import {
+  healProfessionalSubscriptionPricing,
+  listPlatformCustomerSubscriptions,
+} from "@/lib/platform-billing-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 
 export const dynamic = "force-dynamic";
@@ -46,10 +49,12 @@ export async function POST() {
       );
     }
 
+    const healed = await healProfessionalSubscriptionPricing();
     const subscriptions = await listPlatformCustomerSubscriptions();
     return NextResponse.json({
       ok: true,
       ensured: true,
+      healedProfessionalPricing: healed,
       customers: subscriptions.length,
       subscriptions,
       readiness,

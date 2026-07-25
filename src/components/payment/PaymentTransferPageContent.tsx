@@ -109,7 +109,7 @@ export default function PaymentTransferPageContent() {
     <PaymentPageShell
       title="Pay by bank transfer"
       description={`Transfer ${PAYMENT_AMOUNT} for your ${PAYMENT_PLAN} subscription. Your invoice is already in the ledger — Wise matching is automatic.`}
-      backHref="/payment"
+      backHref="/"
       wide
     >
       {loading ? (

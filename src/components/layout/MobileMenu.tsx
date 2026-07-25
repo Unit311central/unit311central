@@ -41,7 +41,6 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
     pathname === "/security" ||
     pathname === "/book" ||
     pathname === "/payment" ||
-    pathname === "/payment-card" ||
     pathname === "/payment-transfer" ||
     pathname === "/login" ||
     pathname === "/signup";

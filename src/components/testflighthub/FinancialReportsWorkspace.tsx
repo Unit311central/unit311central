@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 
+import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import {
   buildReportFromDraft,
   createBlankReportDraft,
@@ -138,11 +139,42 @@ export default function FinancialReportsWorkspace() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterPeriod, setFilterPeriod] = useState("all");
   const [filterCreatedBy, setFilterCreatedBy] = useState("all");
+  const [overview, setOverview] = useState<FinancialOverviewSnapshot | null>(null);
+  const [overviewError, setOverviewError] = useState<string | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
   const [draft, setDraft] = useState<CreateReportDraft>(() => createBlankReportDraft());
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/financials/ledger/overview", { cache: "no-store" });
+        const payload = (await response.json()) as {
+          overview?: FinancialOverviewSnapshot;
+          error?: string;
+        };
+        if (cancelled) return;
+        if (!response.ok || !payload.overview) {
+          setOverviewError(payload.error || "Live ledger overview unavailable.");
+          return;
+        }
+        setOverview(payload.overview);
+        setOverviewError(null);
+      } catch (error) {
+        if (cancelled) return;
+        setOverviewError(
+          error instanceof Error ? error.message : "Live ledger overview unavailable.",
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selected = useMemo(
     () => reports.find((report) => report.id === selectedId) ?? null,
@@ -203,6 +235,22 @@ export default function FinancialReportsWorkspace() {
   function flash(message: string) {
     setActionMessage(message);
     window.setTimeout(() => setActionMessage(null), 2800);
+  }
+
+  async function exportLivePdf(report: FinancialReportRecord) {
+    setPdfBusy(true);
+    try {
+      await downloadFinancialReportPdf(report, overview);
+      flash(`Downloaded live PDF for “${report.name}”.`);
+    } catch (error) {
+      flash(
+        error instanceof Error
+          ? error.message
+          : "Could not download live financial PDF.",
+      );
+    } finally {
+      setPdfBusy(false);
+    }
   }
 
   function openCreate() {
@@ -274,7 +322,7 @@ export default function FinancialReportsWorkspace() {
     return true;
   }
 
-  function commitWizard(mode: "generate" | "template") {
+  async function commitWizard(mode: "generate" | "template") {
     if (!draft.reportType) return;
     const maturity = mode === "template" ? "Draft" : draft.maturity;
     const nextDraft = {
@@ -302,7 +350,7 @@ export default function FinancialReportsWorkspace() {
                       generatedBy: "You",
                       format: rebuilt.primaryFormat,
                       status: "Ready" as const,
-                      note: "Regenerated from wizard",
+                      note: "Regenerated from live GL overview",
                     },
                     ...report.history,
                   ]
@@ -314,14 +362,15 @@ export default function FinancialReportsWorkspace() {
       );
       setSelectedId(editingId);
       const updated = buildReportFromDraft(nextDraft, editingId);
-      flash(mode === "generate" ? "Report updated — downloading PDF." : "Report template saved.");
       if (mode === "generate") {
-        downloadFinancialReportPdf({
+        await exportLivePdf({
           ...updated,
           status: "Ready",
           lastGenerated: "Today",
           maturity: "Final",
         });
+      } else {
+        flash("Report template saved.");
       }
     } else {
       const id = newId("rpt");
@@ -331,23 +380,31 @@ export default function FinancialReportsWorkspace() {
         created.lastGenerated = null;
         created.history = [];
         created.maturity = "Draft";
+      } else {
+        created.history = [
+          {
+            id: newId("gen"),
+            generatedAt: new Date().toISOString(),
+            generatedBy: "You",
+            format: "PDF",
+            status: "Ready",
+            note: "Generated from live GL overview",
+          },
+        ];
       }
       setReports((current) => [created, ...current]);
       setSelectedId(id);
-      flash(
-        mode === "generate"
-          ? "Report created — downloading PDF."
-          : "Report template saved to library.",
-      );
       if (mode === "generate") {
-        downloadFinancialReportPdf(created);
+        await exportLivePdf(created);
+      } else {
+        flash("Report template saved to library.");
       }
     }
 
     closeWizard();
   }
 
-  function generateReport(report: FinancialReportRecord) {
+  async function generateReport(report: FinancialReportRecord) {
     const stamp = new Date().toISOString();
     const nextReport: FinancialReportRecord = {
       ...report,
@@ -361,7 +418,7 @@ export default function FinancialReportsWorkspace() {
           generatedBy: "You",
           format: "PDF",
           status: "Ready",
-          note: "PDF download",
+          note: "Live GL PDF download",
         },
         ...report.history,
       ],
@@ -369,8 +426,7 @@ export default function FinancialReportsWorkspace() {
     setReports((current) =>
       current.map((item) => (item.id === report.id ? nextReport : item)),
     );
-    downloadFinancialReportPdf(nextReport);
-    flash(`Downloaded PDF for “${report.name}”.`);
+    await exportLivePdf(nextReport);
     setRowMenuId(null);
   }
 
@@ -404,17 +460,44 @@ export default function FinancialReportsWorkspace() {
       <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <p className="max-w-2xl text-sm text-white/55">
-            Generate, manage and export financial reports across your organisation.
+            Generate and export financial reports from the live general ledger overview
+            (cash, P&amp;L, AR/AP). Template library metadata stays local to this session.
           </p>
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-200 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
+            disabled={pdfBusy}
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-200 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25 disabled:opacity-50"
           >
             <Plus className="h-3.5 w-3.5" />
             Create Report
           </button>
         </div>
+        {overview ? (
+          <p className="mt-3 text-xs text-white/45">
+            Live ledger loaded · cash {overview.cashPosition.toLocaleString("en-US", {
+              style: "currency",
+              currency: "USD",
+              maximumFractionDigits: 0,
+            })}{" "}
+            · AR {overview.accountsReceivable.toLocaleString("en-US", {
+              style: "currency",
+              currency: "USD",
+              maximumFractionDigits: 0,
+            })}{" "}
+            · net {overview.netProfit.toLocaleString("en-US", {
+              style: "currency",
+              currency: "USD",
+              maximumFractionDigits: 0,
+            })}
+          </p>
+        ) : overviewError ? (
+          <p className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+            {overviewError} PDF export will retry the live overview on download.
+          </p>
+        ) : (
+          <p className="mt-3 text-xs text-white/40">Loading live ledger overview…</p>
+        )}
         {actionMessage ? (
           <p className="mt-3 rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
             {actionMessage}
@@ -610,8 +693,7 @@ export default function FinancialReportsWorkspace() {
                                   label: "Download PDF",
                                   icon: FileText,
                                   onClick: () => {
-                                    downloadFinancialReportPdf(report);
-                                    flash(`Downloaded PDF for “${report.name}”.`);
+                                    void exportLivePdf(report);
                                     setRowMenuId(null);
                                   },
                                 },
@@ -805,8 +887,7 @@ export default function FinancialReportsWorkspace() {
                 </ActionButton>
                 <ActionButton
                   onClick={() => {
-                    downloadFinancialReportPdf(selected);
-                    flash(`Downloaded PDF for “${selected.name}”.`);
+                    void exportLivePdf(selected);
                   }}
                   icon={Download}
                 >

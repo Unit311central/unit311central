@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import PaymentCardPageContent from "@/components/payment/PaymentCardPageContent";
 import { createNoIndexMetadata } from "@/lib/metadata";
 
 export const metadata: Metadata = createNoIndexMetadata({
-  title: "Pay by card",
-  description: "Complete your Unit311 Central subscription payment by card.",
+  title: "Payment",
+  description: "Complete your Unit311 Central subscription payment by bank transfer.",
   path: "/payment-card",
 });
 
+/** Card checkout removed — bank transfer is the only payment path. */
 export default function PaymentCardPage() {
-  return <PaymentCardPageContent />;
+  redirect("/payment-transfer");
 }

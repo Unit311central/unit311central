@@ -400,7 +400,6 @@ export const DEMO_OPERATIONS_VIEWS: ReadonlySet<InternalOperationsView> = new Se
   "qms-reports",
   "external-client-access",
   "website-management",
-  "financial-reports",
 ]);
 
 /** Banner for nav leaves that reuse an existing module. */

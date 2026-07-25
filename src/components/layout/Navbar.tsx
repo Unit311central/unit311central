@@ -58,7 +58,6 @@ export default function Navbar() {
   const isBookPage = pathname === "/book";
   const isPaymentPage =
     pathname === "/payment" ||
-    pathname === "/payment-card" ||
     pathname === "/payment-transfer";
   const isClientCallPage = isClientCallRoute(pathname);
   const isDarkNav =

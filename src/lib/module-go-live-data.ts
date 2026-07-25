@@ -88,6 +88,8 @@ export function isModuleGoLiveStatus(value: unknown): value is ModuleGoLiveStatu
 const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiveStatus>>> = {
   /** MOD-001 Command Centre v2. */
   "MOD-001": "Ready",
+  /** Executive Assistant — live chat + tools. */
+  "MOD-002": "Ready",
   /** MOD-200 / MOD-201 — Employees live; Leave/Recruitment/Performance/Reports are Demo. */
   "MOD-070": "Ready",
   "MOD-071": "Ready",
@@ -119,6 +121,7 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   "MOD-160": "Needs Work",
   /** Profile bound to session / whoami (Wave 0). */
   "MOD-170": "Ready",
+  "MOD-172": "Ready",
   /** Wave 1 — Client Directory lifecycle rewrite (FDR-MOD-011-LIFECYCLE). */
   "MOD-011": "Ready",
   /** Wave 1 — External Users client_id FK (FDR-MOD-161). */
@@ -127,11 +130,23 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   "MOD-103": "Ready",
   /** Wave 1 — Clients Dashboard tiles aligned to lifecycle buckets. */
   "MOD-010": "Ready",
+  "MOD-012": "Ready",
+  /** CRM + discovery live; Potential Clients still Demo. */
+  "MOD-020": "Ready",
+  "MOD-021": "Ready",
+  "MOD-022": "Needs Work",
+  /** Financials GL / AR / AP / Expenses / Bank / Reports — live ledger. */
+  "MOD-060": "Ready",
+  "MOD-061": "Ready",
+  "MOD-062": "Ready",
+  "MOD-063": "Ready",
+  "MOD-064": "Ready",
+  "MOD-065": "Ready",
+  "MOD-066": "Ready",
   /** Messaging chat is live; Communications live calls are live; Social is Demo. */
   "MOD-112": "Ready",
   "MOD-115": "Ready",
   "MOD-113": "Needs Work",
-  "MOD-066": "Needs Work",
 };
 
 export function buildDefaultModuleGoLiveRegister(): ModuleGoLiveEntry[] {
@@ -146,8 +161,12 @@ export function mergeModuleGoLiveRegister(
   stored: unknown,
 ): ModuleGoLiveEntry[] {
   const byId = new Map<string, ModuleGoLiveStatus>();
+  let version = 0;
 
   if (stored && typeof stored === "object") {
+    if (!Array.isArray(stored)) {
+      version = Number((stored as { version?: unknown }).version) || 0;
+    }
     const rows = Array.isArray(stored)
       ? stored
       : Array.isArray((stored as { modules?: unknown }).modules)
@@ -169,12 +188,31 @@ export function mergeModuleGoLiveRegister(
   return MODULE_GO_LIVE_CATALOG.map((entry) => {
     const storedStatus = byId.get(entry.id);
     const defaultStatus = MODULE_GO_LIVE_DEFAULT_STATUS[entry.id];
-    // Explicit stored statuses always win — including intentional "Not Started".
-    // Catalogue defaults only fill gaps for modules missing from the stored register.
+    if (storedStatus == null) {
+      return {
+        id: entry.id,
+        module: entry.module,
+        status: defaultStatus ?? "Not Started",
+      };
+    }
+    // Pre-v2 registers often froze modules at "Not Started". Prefer catalogue Ready/Needs Work
+    // until an explicit v2+ save is written.
+    if (
+      version < 2 &&
+      storedStatus === "Not Started" &&
+      defaultStatus &&
+      defaultStatus !== "Not Started"
+    ) {
+      return {
+        id: entry.id,
+        module: entry.module,
+        status: defaultStatus,
+      };
+    }
     return {
       id: entry.id,
       module: entry.module,
-      status: storedStatus ?? defaultStatus ?? "Not Started",
+      status: storedStatus,
     };
   });
 }
@@ -182,7 +220,7 @@ export function mergeModuleGoLiveRegister(
 export function serializeModuleGoLiveRegister(entries: ModuleGoLiveEntry[]): string {
   return `${JSON.stringify(
     {
-      version: 1,
+      version: 2,
       updatedAt: new Date().toISOString(),
       modules: entries.map((entry) => ({
         id: entry.id,

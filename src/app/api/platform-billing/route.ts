@@ -11,7 +11,9 @@ import {
 } from "@/lib/internal-db-migrations";
 import {
   getPlatformCustomerSubscription,
+  healProfessionalSubscriptionPricing,
   listPlatformCustomerSubscriptions,
+  updatePlatformCustomerSubscription,
 } from "@/lib/platform-billing-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 
@@ -71,6 +73,7 @@ export async function GET(request: Request) {
     }
 
     try {
+      await healProfessionalSubscriptionPricing();
       const subscriptions = await listPlatformCustomerSubscriptions();
       const totals = summarizePlatformBilling(subscriptions);
       return NextResponse.json({
@@ -94,6 +97,52 @@ export async function GET(request: Request) {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load platform billing.";
+    const status = message === "Authentication required." ? 401 : 500;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const denied = await assertInternalPlatformBillingAccess();
+    if (denied) return denied;
+
+    const body = (await request.json()) as {
+      id?: string;
+      mrrUsd?: number;
+      arrUsd?: number;
+      planName?: string;
+      billingFrequency?: "monthly" | "quarterly" | "annual";
+      subscriptionStatus?: "active" | "past_due" | "trialing" | "canceled";
+      outstandingBalanceUsd?: number;
+      nextInvoiceDate?: string | null;
+      notes?: string | null;
+    };
+
+    const id = body.id?.trim();
+    if (!id) {
+      return NextResponse.json({ error: "id is required." }, { status: 400 });
+    }
+
+    await ensurePlatformCustomerSubscriptionsTable();
+    const subscription = await updatePlatformCustomerSubscription(id, {
+      mrrUsd: body.mrrUsd,
+      arrUsd: body.arrUsd,
+      planName: body.planName,
+      billingFrequency: body.billingFrequency,
+      subscriptionStatus: body.subscriptionStatus,
+      outstandingBalanceUsd: body.outstandingBalanceUsd,
+      nextInvoiceDate: body.nextInvoiceDate,
+      notes: body.notes,
+    });
+
+    if (!subscription) {
+      return NextResponse.json({ error: "Billing record not found." }, { status: 404 });
+    }
+
+    return NextResponse.json({ subscription, source: "database" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to update platform billing.";
     const status = message === "Authentication required." ? 401 : 500;
     return NextResponse.json({ error: message }, { status });
   }

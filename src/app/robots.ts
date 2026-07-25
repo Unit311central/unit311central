@@ -13,7 +13,6 @@ export default function robots(): MetadataRoute.Robots {
         "/resetpassword",
         "/resetpassowrd",
         "/payment",
-        "/payment-card",
         "/payment-transfer",
         "/app-download",
         "/ws/",

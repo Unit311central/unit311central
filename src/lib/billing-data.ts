@@ -22,9 +22,9 @@ export const BILLING_PLAN = {
 };
 
 export const BILLING_PAYMENT_METHOD = {
-  type: "Credit Card" as const,
-  last4: "4242",
-  masked: "************4242",
+  type: "Bank transfer" as const,
+  last4: "",
+  masked: "Wise · invoice reference matching",
 };
 
 export const BILLING_INVOICES: BillingInvoice[] = [
