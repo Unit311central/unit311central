@@ -89,18 +89,6 @@ export default function TrainingDashboardWorkspace() {
       label: "Create Course",
       href: getInternalNavHref("training", basePath),
       icon: Plus,
-      onClick: () => {
-        createCourse({
-          code: `TRN-${String(store.courses.length + 100).padStart(3, "0")}`,
-          title: "New Operations Course",
-          category: "Operations",
-          mandatory: false,
-          durationHours: 2,
-          status: "Published",
-          owner: "People Ops",
-        });
-        setNotice("Course created in the catalogue.");
-      },
     },
     {
       label: "Schedule Session",
