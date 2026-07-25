@@ -865,47 +865,43 @@ export async function* runAssistantTurn(input: {
           directIntent.tool === "planBusinessGoal") &&
         !extracted.errorText
       ) {
-        const steps = Array.isArray(directIntent.args.steps)
-          ? (directIntent.args.steps as Array<{ actionId?: string; input?: Record<string, unknown> }>)
-          : [];
-        const first = steps[0];
-        const actionId = typeof first?.actionId === "string" ? first.actionId : "";
-        const definition = actionId ? getAssistantAction(actionId) : null;
-        const primaryFields =
-          definition?.capability.entityExtraction?.primaryNameFields ?? [];
-        let entityLabel: string | null = null;
-        let detail: string | null = null;
-        if (first?.input) {
-          for (const field of primaryFields) {
-            const value = first.input[field];
-            if (typeof value === "string" && value.trim()) {
-              entityLabel = value.trim();
-              break;
-            }
-          }
-          for (const rule of definition?.capability.entityExtraction?.fields ?? []) {
-            if (rule.from === "location") {
-              const value = first.input[rule.field];
+        const summaryMessage =
+          typeof (result as { summary?: { message?: string; executed?: boolean } })?.summary
+            ?.message === "string"
+            ? (result as { summary: { message: string; executed?: boolean } }).summary.message
+            : null;
+        const executed =
+          (result as { summary?: { executed?: boolean } })?.summary?.executed === true;
+        if (executed && summaryMessage) {
+          assistantText = summaryMessage;
+        } else if (summaryMessage && !/approve/i.test(summaryMessage)) {
+          assistantText = summaryMessage;
+        } else {
+          const steps = Array.isArray(directIntent.args.steps)
+            ? (directIntent.args.steps as Array<{
+                actionId?: string;
+                input?: Record<string, unknown>;
+              }>)
+            : [];
+          const first = steps[0];
+          const actionId = typeof first?.actionId === "string" ? first.actionId : "";
+          const definition = actionId ? getAssistantAction(actionId) : null;
+          const primaryFields =
+            definition?.capability.entityExtraction?.primaryNameFields ?? [];
+          let entityLabel: string | null = null;
+          if (first?.input) {
+            for (const field of primaryFields) {
+              const value = first.input[field];
               if (typeof value === "string" && value.trim()) {
-                detail = value.trim();
+                entityLabel = value.trim();
                 break;
               }
             }
           }
+          assistantText = entityLabel
+            ? `Completed — ${entityLabel}.`
+            : summaryMessage || "Completed.";
         }
-        const actionName =
-          (typeof (result as { items?: Array<{ confirmation?: { title?: string } }> }).items?.[0]
-            ?.confirmation?.title === "string" &&
-            (result as { items: Array<{ confirmation: { title: string } }> }).items[0].confirmation
-              .title) ||
-          definition?.name ||
-          actionId ||
-          "complete that";
-        assistantText = formatPlanReadyMessage({
-          actionName,
-          entityLabel,
-          detail,
-        });
       } else {
         assistantText =
           extracted.errorText ??
@@ -1097,7 +1093,7 @@ export async function* runAssistantTurn(input: {
             (typeof (result as { summary?: { message?: string } })?.summary?.message ===
             "string"
               ? (result as { summary: { message: string } }).summary.message
-              : "Action plan ready for approval.");
+              : "Completed.");
           yield { type: "delta", text: assistantText };
 
           const assistantMessage: AssistantChatMessage = {

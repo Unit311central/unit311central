@@ -716,7 +716,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "proposeBusinessActionPlan",
     description:
-      "Build a multi-step Action Framework plan with permission checks and previews. Does NOT execute writes. Returns a planId for the Plan Viewer. After the user Approves, the client calls POST /api/executive-assistant/actions/plans/{id} → executeActionPlan. Use registered actionIds from listBusinessActions / searchCapabilities.",
+      "Build and immediately execute a multi-step Action Framework plan for a registered write. Returns a short completion message. Prefer registered actionIds from listBusinessActions / searchCapabilities.",
     parameters: {
       type: "object",
       properties: {

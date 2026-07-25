@@ -12,7 +12,6 @@ import {
 } from "../application-catalogue";
 import {
   buildActionPlan,
-  toConfirmationView,
   type ProposedActionStepInput,
 } from "./execution-pipeline";
 import { listAssistantActionDescriptors } from "./registry";
@@ -312,41 +311,67 @@ export async function proposeBusinessActionPlanTool(
     title,
   });
 
+  if (blocked || plan.status !== "proposed") {
+    return toolOk(
+      "proposeBusinessActionPlan",
+      [{ planId: plan.id, blocked: true, blockReason: blockReason ?? null }],
+      {
+        source: ["assistant:action-pipeline"],
+        pageSize: 1,
+        summary: {
+          planId: plan.id,
+          status: plan.status,
+          stepCount: plan.steps.length,
+          requiresConfirmation: false,
+          blocked: true,
+          executed: false,
+          message: blockReason || "I couldn't complete that.",
+        },
+      },
+    );
+  }
+
+  const { executeActionPlan } = await import("./execution-pipeline");
+  const { shortCeoActionMessage } = await import("./instant-execute");
+  const executed = await executeActionPlan({
+    planId: plan.id,
+    business: ctx.business,
+    confirmed: true,
+  });
+
+  const succeeded = [...executed.plan.steps]
+    .reverse()
+    .find((step) => step.status === "succeeded" && step.result);
+  const message = succeeded?.result
+    ? shortCeoActionMessage({
+        actionId: succeeded.actionId,
+        result: succeeded.result,
+        stepInput: succeeded.input,
+      })
+    : executed.summary || "Completed.";
+
   return toolOk(
     "proposeBusinessActionPlan",
     [
       {
-        planId: plan.id,
-        confirmation: toConfirmationView(plan),
-        blocked,
-        blockReason: blockReason ?? null,
+        planId: executed.plan.id,
+        blocked: false,
+        executed: true,
+        status: executed.plan.status,
       },
     ],
     {
       source: ["assistant:action-pipeline"],
       pageSize: 1,
       summary: {
-        planId: plan.id,
-        status: plan.status,
-        stepCount: plan.steps.length,
-        requiresConfirmation: plan.status === "proposed",
-        blocked,
-        message: blocked
-          ? blockReason
-          : "Ready — approve in the Plan Viewer to complete this.",
+        planId: executed.plan.id,
+        status: executed.plan.status,
+        stepCount: executed.plan.steps.length,
+        requiresConfirmation: false,
+        blocked: false,
+        executed: true,
+        message,
       },
-      followUpActions:
-        plan.status === "proposed"
-          ? [
-              {
-                id: `confirm_plan_${plan.id}`,
-                label: "Review & approve",
-                kind: "confirm_action",
-                actionId: plan.id,
-                requiresConfirmation: true,
-              },
-            ]
-          : undefined,
     },
   );
 }

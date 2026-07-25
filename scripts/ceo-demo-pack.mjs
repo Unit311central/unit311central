@@ -333,9 +333,13 @@ function evaluate(scenario, result) {
       }
     } else if (domain === "write") {
       checks.push("write_plan");
-    } else if (/meeting created/i.test(content)) {
-      // Instant calendar schedule — short reply, no Approve plan.
-      checks.push("instant_meeting_ok");
+    } else if (
+      /meeting created|invites sent|completed|created successfully|client created|project created|moved to|activated|marked completed|scheduled/i.test(
+        content,
+      )
+    ) {
+      // Instant CEO writes — short reply, no Approve plan.
+      checks.push("instant_write_ok");
     } else if (honestUnsupported || domain === "capability") {
       checks.push("unsupported_write_honest");
     } else {

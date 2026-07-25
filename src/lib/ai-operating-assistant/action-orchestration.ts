@@ -13,6 +13,7 @@ import type { DirectAssistantIntent } from "./intent-router";
 import { resolveDirectIntent } from "./intent-router";
 import { registerAllActionModules } from "./actions/register-all-modules";
 import { getAssistantAction } from "./actions/registry";
+import { executeRegisteredActionNow } from "./actions/instant-execute";
 import {
   answerCapabilityQuestion,
   isCapabilityQuestion,
@@ -23,7 +24,6 @@ import {
 } from "./intent-action-resolver";
 import { formatActionSuccess, formatPlanReadyMessage } from "./action-ui-messages";
 import {
-  buildNeedInfoCards,
   buildReadWorkflowCards,
   matchCapabilityWorkflow,
   primaryWorkflowActionId,
@@ -259,52 +259,36 @@ export async function resolveOrchestrationRoute(
 
     const businessIntent = await resolveBusinessActionIntent(message, business, history);
     if (businessIntent.kind === "need_info") {
-      const cards = buildNeedInfoCards({
-        actionId: businessIntent.actionId,
-        message: businessIntent.question,
-        missingFields: businessIntent.missingFields,
-        prefill: businessIntent.input,
-        workflow,
-        business,
-      });
       return {
         kind: "need_info",
-        message: shortCardLead(cards) || businessIntent.question,
+        message: businessIntent.question,
         actionId: businessIntent.actionId,
         missingFields: businessIntent.missingFields,
         input: businessIntent.input,
-        executionCards: cards,
+        executionCards: [],
       };
     }
 
     const actionId =
       businessIntent.kind === "propose" ? businessIntent.actionId : primaryActionId;
-    const input = businessIntent.kind === "propose" ? businessIntent.input : {};
-    const cards = buildNeedInfoCards({
-      actionId,
-      message: workflow.purpose,
-      missingFields: [],
-      prefill: input,
-      workflow,
-      business,
-    }).filter((card) => card.kind === "workflow");
+    const actionInput = businessIntent.kind === "propose" ? businessIntent.input : {};
+    if (actionId) {
+      const executed = await executeRegisteredActionNow({
+        actionId,
+        actionInput,
+        business,
+      });
+      return { kind: "capability_answer", message: executed.message };
+    }
 
     return {
-      kind: "tool",
-      intent: proposeSteps(
-        actionId,
-        input,
-        message,
-        businessIntent.kind === "propose"
-          ? `workflow:${workflow.id}|${businessIntent.reason}|confidence=${businessIntent.confidence}`
-          : `workflow:${workflow.id}`,
-      ),
-      executionCards: cards,
+      kind: "capability_answer",
+      message: workflow.purpose,
     };
   }
 
-  // WRITE — registry-driven propose / need_info.
-  // Business-domain reads must not fall into Approve plans.
+  // WRITE — registry-driven instant execute / need_info (no Approve UI).
+  // Business-domain reads must not fall into write plans.
   const mayWrite =
     domain.domain === "write" ||
     (domain.domain !== "platform" &&
@@ -313,58 +297,22 @@ export async function resolveOrchestrationRoute(
   if (mayWrite) {
     const businessIntent = await resolveBusinessActionIntent(message, business, history);
     if (businessIntent.kind === "need_info") {
-      const cards = buildNeedInfoCards({
-        actionId: businessIntent.actionId,
-        message: businessIntent.question,
-        missingFields: businessIntent.missingFields,
-        prefill: businessIntent.input,
-        business,
-      });
       return {
         kind: "need_info",
-        message: shortCardLead(cards) || businessIntent.question,
+        message: businessIntent.question,
         actionId: businessIntent.actionId,
         missingFields: businessIntent.missingFields,
         input: businessIntent.input,
-        executionCards: cards,
+        executionCards: [],
       };
     }
     if (businessIntent.kind === "propose") {
-      const definition = getAssistantAction(businessIntent.actionId);
-      // Instant CEO writes (e.g. schedule meeting): execute now, short reply, no Approve UI.
-      if (definition && definition.confirmationRequired === false) {
-        try {
-          const result = await definition.handler.execute(businessIntent.input, {
-            business,
-            planId: `auto_${Date.now()}`,
-            stepId: "1",
-            priorOutputs: {},
-          });
-          return {
-            kind: "capability_answer",
-            message:
-              result.message?.trim() ||
-              (result.ok ? "Done." : "I couldn't complete that."),
-          };
-        } catch (error) {
-          return {
-            kind: "capability_answer",
-            message:
-              error instanceof Error
-                ? error.message
-                : "I couldn't complete that just now.",
-          };
-        }
-      }
-      return {
-        kind: "tool",
-        intent: proposeSteps(
-          businessIntent.actionId,
-          businessIntent.input,
-          message,
-          `${businessIntent.reason}|confidence=${businessIntent.confidence}`,
-        ),
-      };
+      const executed = await executeRegisteredActionNow({
+        actionId: businessIntent.actionId,
+        actionInput: businessIntent.input,
+        business,
+      });
+      return { kind: "capability_answer", message: executed.message };
     }
 
     // Honest unsupported write — do not invent CRM/leave/invoice mutations.
@@ -380,7 +328,7 @@ export async function resolveOrchestrationRoute(
         "Registered executable writes today:",
         registered,
         "",
-        "I can still look up related live data, or you can approve one of the registered actions above.",
+        "I can still look up related live data, or you can ask one of the registered actions above.",
       ].join("\n"),
     };
   }

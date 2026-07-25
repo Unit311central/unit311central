@@ -90,16 +90,24 @@ async function main() {
     );
   }
 
-  // CRM stage moves are registered — must not fall through to platform/silent.
+  // CRM stage moves are registered — instant execute or ask for missing fields.
   const crmStage = await resolveOrchestrationRoute(
     "Move the Riverside corridor deal to Hot.",
     [],
     business,
   );
   assert.ok(
-    crmStage.kind === "need_info" || crmStage.kind === "tool",
+    crmStage.kind === "need_info" ||
+      crmStage.kind === "capability_answer" ||
+      crmStage.kind === "tool",
     `expected CRM write route, got ${crmStage.kind}`,
   );
+  if (crmStage.kind === "capability_answer") {
+    assert.ok(
+      !/approve/i.test(crmStage.message),
+      `CRM reply must not ask to approve: ${crmStage.message.slice(0, 160)}`,
+    );
+  }
 
   // Unsupported treasury wires must be honest, not mapped onto CRM/client writes.
   const unsupported = await resolveOrchestrationRoute(
