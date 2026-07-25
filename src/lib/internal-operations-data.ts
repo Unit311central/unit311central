@@ -497,6 +497,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
           { label: "Grants", view: "grants" as const, badge: "demo" as const },
         ],
       },
+      {
+        label: "Partners",
+        icon: "Handshake",
+        view: "representatives" as const,
+      },
     ],
   },
   {
