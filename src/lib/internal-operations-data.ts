@@ -372,24 +372,11 @@ export function normalizeInternalOperationsView(value: string | null): InternalO
   return isInternalOperationsView(value) ? value : "home";
 }
 
-/** Views that use non-durable mock/seed data — show Demo badge + banner. */
-export const DEMO_OPERATIONS_VIEWS: ReadonlySet<InternalOperationsView> = new Set([
-  "assets",
-  "inventory-management",
-  "procurement",
-  "social",
-  "training-dashboard",
-  "training",
-  "qms-training",
-  "quality-management",
-  "qms-document-control",
-  "qms-capa",
-  "qms-internal-audits",
-  "qms-management-review",
-  "qms-reports",
-  "external-client-access",
-  "website-management",
-]);
+/** Views that use non-durable mock/seed data — show Demo badge + banner.
+ * Cleared: operators asked to drop Demo labels from the product surface.
+ * Persistence honesty is tracked in Module Go-Live, not nav Demo pills.
+ */
+export const DEMO_OPERATIONS_VIEWS: ReadonlySet<InternalOperationsView> = new Set([]);
 
 /** Banner for nav leaves that reuse an existing module. */
 export function getNavImplementationNotice(
@@ -616,7 +603,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       { label: "Calendar", icon: "CalendarDays", view: "calendar" as const },
       { label: "Messaging", icon: "MessageSquare", view: "messaging" as const },
       { label: "Communications", icon: "Video", view: "communications" as const },
-      { label: "Social", icon: "Share2", view: "social" as const, badge: "demo" as const },
+      { label: "Social", icon: "Share2", view: "social" as const },
       {
         label: "Support Desk",
         icon: "LifeBuoy",
@@ -633,18 +620,16 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     icon: "Package",
     color: "#00D4C7",
     items: [
-      { label: "Assets", icon: "Package", view: "assets" as const, badge: "demo" as const },
+      { label: "Assets", icon: "Package", view: "assets" as const },
       {
         label: "Inventory",
         icon: "Layers",
         view: "inventory-management" as const,
-        badge: "demo" as const,
       },
       {
         label: "Procurement",
         icon: "Receipt",
         view: "procurement" as const,
-        badge: "demo" as const,
       },
       { label: "Logistics", icon: "Truck", view: "logistics" as const },
     ],
@@ -659,14 +644,13 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         label: "Dashboard",
         icon: "LayoutDashboard",
         view: "training-dashboard" as const,
-        badge: "demo" as const,
       },
       {
         label: "Courses",
         icon: "GraduationCap",
         children: [
-          { label: "Staff Courses", view: "training" as const, badge: "demo" as const },
-          { label: "QMS Courses", view: "qms-training" as const, badge: "demo" as const },
+          { label: "Staff Courses", view: "training" as const },
+          { label: "QMS Courses", view: "qms-training" as const },
         ],
       },
     ],
@@ -681,32 +665,27 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         label: "Dashboard",
         icon: "LayoutDashboard",
         view: "quality-management" as const,
-        badge: "demo" as const,
       },
       {
         label: "Document Control",
         icon: "ScrollText",
         view: "qms-document-control" as const,
-        badge: "demo" as const,
       },
-      { label: "CAPA", icon: "Target", view: "qms-capa" as const, badge: "demo" as const },
+      { label: "CAPA", icon: "Target", view: "qms-capa" as const },
       {
         label: "Internal Audits",
         icon: "ClipboardCheck",
         view: "qms-internal-audits" as const,
-        badge: "demo" as const,
       },
       {
         label: "Management Review",
         icon: "Users",
         view: "qms-management-review" as const,
-        badge: "demo" as const,
       },
       {
         label: "Reporting",
         icon: "ScrollText",
         view: "qms-reports" as const,
-        badge: "demo" as const,
       },
     ],
   },
@@ -720,7 +699,6 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         label: "Website Management",
         icon: "Globe",
         view: "website-management" as const,
-        badge: "demo" as const,
       },
       { label: "Integrations", icon: "Plug", view: "integrations" as const },
       { label: "Testing", icon: "FlaskConical", view: "testing" as const },
@@ -738,7 +716,6 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         label: "Dashboard",
         icon: "LayoutDashboard",
         view: "external-client-access" as const,
-        badge: "demo" as const,
       },
       { label: "External Users", icon: "Users", view: "users-external" as const },
     ],

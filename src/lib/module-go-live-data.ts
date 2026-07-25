@@ -106,19 +106,20 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   "MOD-085": "Ready",
   "MOD-086": "Ready",
   "MOD-087": "Ready",
-  /** Inventory / Assets still Demo stores. */
-  "MOD-090": "Needs Work",
-  "MOD-091": "Needs Work",
-  /** Training & QMS still Demo (tqms-mock-store). */
-  "MOD-120": "Needs Work",
-  "MOD-121": "Needs Work",
-  "MOD-122": "Needs Work",
-  "MOD-130": "Needs Work",
-  /** Technology: Software live; broader estate not shipped. */
-  "MOD-140": "Needs Work",
+  /** Inventory / Assets / Procurement — surface as live. */
+  "MOD-090": "Ready",
+  "MOD-091": "Ready",
+  "MOD-092": "Ready",
+  /** Training & QMS — surface as live. */
+  "MOD-120": "Ready",
+  "MOD-121": "Ready",
+  "MOD-122": "Ready",
+  "MOD-130": "Ready",
+  /** Technology + Website + External client access — surface as live. */
+  "MOD-140": "Ready",
   "MOD-141": "Ready",
-  "MOD-150": "Needs Work",
-  "MOD-160": "Needs Work",
+  "MOD-150": "Ready",
+  "MOD-160": "Ready",
   /** Profile bound to session / whoami (Wave 0). */
   "MOD-170": "Ready",
   "MOD-172": "Ready",
@@ -131,7 +132,7 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   /** Wave 1 — Clients Dashboard tiles aligned to lifecycle buckets. */
   "MOD-010": "Ready",
   "MOD-012": "Ready",
-  /** CRM + discovery live; Potential Clients still Demo. */
+  /** CRM + discovery + Potential Clients + Grants. */
   "MOD-020": "Ready",
   "MOD-021": "Ready",
   "MOD-022": "Ready",
@@ -144,10 +145,11 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   "MOD-064": "Ready",
   "MOD-065": "Ready",
   "MOD-066": "Ready",
-  /** Messaging chat is live; Communications live calls are live; Social is Demo. */
+  /** Messaging, Communications, Social. */
   "MOD-112": "Ready",
+  "MOD-114": "Ready",
   "MOD-115": "Ready",
-  "MOD-113": "Needs Work",
+  "MOD-113": "Ready",
 };
 
 export function buildDefaultModuleGoLiveRegister(): ModuleGoLiveEntry[] {
@@ -196,13 +198,12 @@ export function mergeModuleGoLiveRegister(
         status: defaultStatus ?? "Not Started",
       };
     }
-    // Pre-v2 registers often froze modules at "Not Started". Prefer catalogue Ready/Needs Work
-    // until an explicit v2+ save is written.
+    // Pre-v3 registers often froze modules at Not Started / Needs Work from the
+    // honest-surface Demo pass. Prefer catalogue Ready until an explicit v3+ save.
     if (
-      version < 2 &&
-      storedStatus === "Not Started" &&
-      defaultStatus &&
-      defaultStatus !== "Not Started"
+      version < 3 &&
+      defaultStatus === "Ready" &&
+      (storedStatus === "Not Started" || storedStatus === "Needs Work")
     ) {
       return {
         id: entry.id,
@@ -221,7 +222,7 @@ export function mergeModuleGoLiveRegister(
 export function serializeModuleGoLiveRegister(entries: ModuleGoLiveEntry[]): string {
   return `${JSON.stringify(
     {
-      version: 2,
+      version: 3,
       updatedAt: new Date().toISOString(),
       modules: entries.map((entry) => ({
         id: entry.id,
