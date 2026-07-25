@@ -3,6 +3,8 @@ import {
   mapInternalOperator,
   normalizeUserDepartment,
   normalizeUserRole,
+  normalizeUserRoles,
+  primaryUserRole,
   type ManagedUser,
   type UserDashboardPrefs,
   type UserDepartment,
@@ -25,7 +27,7 @@ import type { InternalOperationsView } from "@/lib/internal-operations-data";
 type DbOperator = Parameters<typeof mapInternalOperator>[0];
 
 const OPERATOR_SELECT =
-  "id, operator_label, full_name, username, email, phone, role, status, region, license_id, notes, department, allowed_views, dashboard_prefs, created_at, updated_at";
+  "id, operator_label, full_name, username, email, phone, role, roles, status, region, license_id, notes, department, allowed_views, dashboard_prefs, created_at, updated_at";
 
 function requireOperatorsSupabase() {
   if (!isSupabaseConfigured()) {
@@ -44,7 +46,15 @@ function buildOperatorPayload(input: Partial<ManagedUser>) {
   if (input.username !== undefined) payload.username = input.username.trim().toLowerCase();
   if (input.email !== undefined) payload.email = input.email.trim() || null;
   if (input.phone !== undefined) payload.phone = input.phone.trim() || null;
-  if (input.role !== undefined) payload.role = normalizeUserRole(input.role);
+  if (input.roles !== undefined) {
+    const roles = normalizeUserRoles(input.roles, input.role);
+    payload.roles = roles;
+    payload.role = primaryUserRole(roles);
+  } else if (input.role !== undefined) {
+    const roles = normalizeUserRoles([input.role], input.role);
+    payload.roles = roles;
+    payload.role = primaryUserRole(roles);
+  }
   if (input.department !== undefined) {
     payload.department = normalizeUserDepartment(input.department);
   }
@@ -109,7 +119,8 @@ export async function createInternalOperator(
     }
     const password = input.password?.trim() || generatePlatformPassword();
     const passwordHash = hashPlatformPasswordForUser(username, password);
-    const role = normalizeUserRole(input.role ?? blank.role);
+    const roles = normalizeUserRoles(input.roles ?? [input.role ?? blank.role], input.role ?? blank.role);
+    const role = primaryUserRole(roles);
     const department = normalizeUserDepartment(input.department ?? blank.department);
 
     const { data, error } = await supabase
@@ -122,6 +133,7 @@ export async function createInternalOperator(
         email: input.email?.trim() || null,
         phone: input.phone?.trim() || null,
         role,
+        roles,
         department,
         status: input.status ?? blank.status,
         region: input.region ?? blank.region,
@@ -168,6 +180,7 @@ export async function updateInternalOperator(
     email: string;
     phone: string;
     role: UserRole;
+    roles: UserRole[];
     department: UserDepartment;
     status: UserStatus;
     region: UserRegion;

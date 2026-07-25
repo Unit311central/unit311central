@@ -1,7 +1,7 @@
 import type { CommandCentreHomeTileId } from "@/lib/command-centre-home-tiles";
 import {
-  defaultAllowedViews,
-  defaultHomeTiles,
+  defaultAllowedViewsForRoles,
+  defaultHomeTilesForRoles,
   normalizeAllowedViews,
   normalizeHomeTiles,
 } from "@/lib/access-presets";
@@ -36,7 +36,10 @@ export type ManagedUser = {
   username: string;
   email: string;
   phone: string;
+  /** Highest-privilege role — kept in sync with `roles` for legacy checks. */
   role: UserRole;
+  /** All assigned access roles (multi-select). */
+  roles: UserRole[];
   department: UserDepartment;
   status: UserStatus;
   region: UserRegion;
@@ -54,6 +57,49 @@ export const USER_ROLE_OPTIONS: UserRole[] = [
   "Associate",
   "Admin",
 ];
+
+const ROLE_RANK: Record<UserRole, number> = {
+  Associate: 1,
+  Manager: 2,
+  Exec: 3,
+  Board: 4,
+  Admin: 5,
+};
+
+export function primaryUserRole(roles: readonly UserRole[]): UserRole {
+  if (roles.length === 0) return "Associate";
+  return roles.reduce((best, role) => (ROLE_RANK[role] > ROLE_RANK[best] ? role : best));
+}
+
+export function normalizeUserRoles(
+  value: unknown,
+  fallbackRole?: string | null,
+): UserRole[] {
+  if (Array.isArray(value)) {
+    const roles = [
+      ...new Set(
+        value
+          .map((entry) => normalizeUserRole(String(entry)))
+          .filter((role): role is UserRole => USER_ROLE_OPTIONS.includes(role)),
+      ),
+    ];
+    if (roles.length > 0) return roles;
+  }
+  return [normalizeUserRole(fallbackRole ?? "Associate")];
+}
+
+export function userHasRole(
+  user: Pick<ManagedUser, "role" | "roles">,
+  role: UserRole,
+): boolean {
+  const roles = user.roles?.length ? user.roles : [user.role];
+  return roles.includes(role);
+}
+
+export function formatUserRoles(user: Pick<ManagedUser, "role" | "roles">): string {
+  const roles = user.roles?.length ? user.roles : [user.role];
+  return roles.join(" · ");
+}
 
 export const USER_DEPARTMENT_OPTIONS: UserDepartment[] = [
   "Board",
@@ -111,24 +157,29 @@ export function getOwnerUserIdForRegion(region: string): string | null {
 }
 
 function withDefaultEntitlements(
-  user: Omit<ManagedUser, "allowedViews" | "dashboardPrefs" | "department"> & {
+  user: Omit<ManagedUser, "allowedViews" | "dashboardPrefs" | "department" | "roles"> & {
     department?: UserDepartment;
+    roles?: UserRole[];
     allowedViews?: InternalOperationsView[] | null;
     dashboardPrefs?: UserDashboardPrefs | null;
   },
 ): ManagedUser {
   const department = user.department ?? "Corporate";
+  const roles = normalizeUserRoles(user.roles ?? [user.role], user.role);
+  const role = primaryUserRole(roles);
   return {
     ...user,
+    role,
+    roles,
     department,
     allowedViews:
       user.allowedViews !== undefined
         ? user.allowedViews
-        : defaultAllowedViews(user.role, department),
+        : defaultAllowedViewsForRoles(roles, department),
     dashboardPrefs:
       user.dashboardPrefs !== undefined
         ? user.dashboardPrefs
-        : { homeTiles: defaultHomeTiles(user.role, department) },
+        : { homeTiles: defaultHomeTilesForRoles(roles, department) },
   };
 }
 
@@ -204,6 +255,7 @@ type DbInternalOperator = {
   email: string | null;
   phone: string | null;
   role: string;
+  roles?: unknown;
   status: string;
   region: string;
   license_id: string | null;
@@ -216,7 +268,8 @@ type DbInternalOperator = {
 };
 
 export function mapInternalOperator(row: DbInternalOperator): ManagedUser {
-  const role = normalizeUserRole(row.role);
+  const roles = normalizeUserRoles(row.roles, row.role);
+  const role = primaryUserRole(roles);
   const department = normalizeUserDepartment(row.department);
   const allowedViews = normalizeAllowedViews(row.allowed_views);
   const homeTiles = normalizeHomeTiles(
@@ -236,6 +289,7 @@ export function mapInternalOperator(row: DbInternalOperator): ManagedUser {
     email: row.email ?? "",
     phone: row.phone ?? "",
     role,
+    roles,
     department,
     status: row.status as UserStatus,
     region: row.region as UserRegion,
@@ -248,6 +302,7 @@ export function mapInternalOperator(row: DbInternalOperator): ManagedUser {
 
 export function createBlankUserInput(): Omit<ManagedUser, "id"> {
   const role: UserRole = "Associate";
+  const roles: UserRole[] = [role];
   const department: UserDepartment = "Corporate";
   return {
     operatorLabel: "New Operator",
@@ -256,13 +311,14 @@ export function createBlankUserInput(): Omit<ManagedUser, "id"> {
     email: "",
     phone: "",
     role,
+    roles,
     department,
     status: "Active",
     region: "Barcelona",
     licenseId: "",
     notes: "",
-    allowedViews: defaultAllowedViews(role, department),
-    dashboardPrefs: { homeTiles: defaultHomeTiles(role, department) },
+    allowedViews: defaultAllowedViewsForRoles(roles, department),
+    dashboardPrefs: { homeTiles: defaultHomeTilesForRoles(roles, department) },
   };
 }
 
@@ -274,6 +330,7 @@ export function userFieldsEqual(a: ManagedUser, b: ManagedUser) {
     a.email === b.email &&
     a.phone === b.phone &&
     a.role === b.role &&
+    JSON.stringify(a.roles) === JSON.stringify(b.roles) &&
     a.department === b.department &&
     a.status === b.status &&
     a.region === b.region &&

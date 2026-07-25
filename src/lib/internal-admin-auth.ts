@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
 import { getPlatformSession, type PlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
-import { normalizeUserRole } from "@/lib/user-management-data";
+import { userHasRole } from "@/lib/user-management-data";
 import {
   WorkspaceAccessError,
   requireCurrentWorkspace,
@@ -40,7 +40,7 @@ export async function requireInternalAdministratorSession(): Promise<
 
   try {
     const operator = await getInternalOperatorByUsername(session.username);
-    if (!operator || normalizeUserRole(operator.role) !== "Admin") {
+    if (!operator || !userHasRole(operator, "Admin")) {
       return {
         error: NextResponse.json({ error: INSUFFICIENT_PRIVILEGES }, { status: 403 }),
       };

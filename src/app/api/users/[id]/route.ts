@@ -37,6 +37,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       email?: string;
       phone?: string;
       role?: UserRole;
+      roles?: UserRole[];
       department?: UserDepartment;
       status?: UserStatus;
       region?: UserRegion;

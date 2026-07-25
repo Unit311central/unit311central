@@ -7,9 +7,12 @@ import {
   USER_REGION_OPTIONS,
   USER_ROLE_OPTIONS,
   USER_STATUS_OPTIONS,
+  formatUserRoles,
+  primaryUserRole,
   userFieldsEqual,
   userStatusClass,
   type ManagedUser,
+  type UserRole,
 } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
@@ -137,6 +140,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
           email: user.email,
           phone: user.phone,
           role: user.role,
+          roles: user.roles,
           department: user.department,
           status: user.status,
           region: user.region,
@@ -188,6 +192,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
     email: string;
     phone: string;
     role: ManagedUser["role"];
+    roles: ManagedUser["roles"];
     department: ManagedUser["department"];
     status: ManagedUser["status"];
     region: ManagedUser["region"];
@@ -421,7 +426,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                             </p>
                             <p className="mt-1 text-sm font-semibold text-white">{user.fullName}</p>
                             <p className="mt-1 text-[11px] text-white/45">
-                              {user.role} · {user.department ?? "Corporate"}
+                              {formatUserRoles(user)} · {user.department ?? "Corporate"}
                             </p>
                             <p className="mt-1 font-mono text-xs text-white/45">@{user.username}</p>
                           </div>
@@ -554,21 +559,53 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                       onChange={(event) => patchSelected({ phone: event.target.value })}
                     />
                   </div>
-                  <div>
-                    <FieldLabel>Access Role</FieldLabel>
-                    <select
-                      className={inputClassName()}
-                      value={selectedUser.role}
-                      onChange={(event) =>
-                        patchSelected({ role: event.target.value as ManagedUser["role"] })
-                      }
-                    >
-                      {USER_ROLE_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="sm:col-span-2">
+                    <FieldLabel>Access Roles</FieldLabel>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {USER_ROLE_OPTIONS.map((option) => {
+                        const selected = (selectedUser.roles?.length
+                          ? selectedUser.roles
+                          : [selectedUser.role]
+                        ).includes(option);
+                        return (
+                          <label
+                            key={option}
+                            className={cn(
+                              "inline-flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs transition-colors",
+                              selected
+                                ? "border-sky-400/40 bg-sky-500/15 text-sky-100"
+                                : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20",
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              className="accent-sky-400"
+                              checked={selected}
+                              onChange={(event) => {
+                                const current = selectedUser.roles?.length
+                                  ? selectedUser.roles
+                                  : [selectedUser.role];
+                                let next: UserRole[];
+                                if (event.target.checked) {
+                                  next = [...new Set([...current, option])];
+                                } else {
+                                  next = current.filter((role) => role !== option);
+                                  if (next.length === 0) next = [option];
+                                }
+                                patchSelected({
+                                  roles: next,
+                                  role: primaryUserRole(next),
+                                });
+                              }}
+                            />
+                            {option}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-white/40">
+                      Select one or more. Primary privilege: {selectedUser.role}
+                    </p>
                   </div>
                   <div>
                     <FieldLabel>Department</FieldLabel>

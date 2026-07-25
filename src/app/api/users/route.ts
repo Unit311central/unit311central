@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       email?: string;
       phone?: string;
       role?: string;
+      roles?: string[];
       department?: string;
       status?: string;
       region?: string;
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
       email: body.email,
       phone: body.phone,
       role: body.role as UserRole | undefined,
+      roles: body.roles as UserRole[] | undefined,
       department: body.department as UserDepartment | undefined,
       status: body.status as UserStatus | undefined,
       region: body.region as UserRegion | undefined,

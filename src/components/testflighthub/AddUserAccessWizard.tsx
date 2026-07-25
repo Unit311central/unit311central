@@ -8,8 +8,8 @@ import {
   type CommandCentreHomeTileId,
 } from "@/lib/command-centre-home-tiles";
 import {
-  defaultAllowedViews,
-  defaultHomeTiles,
+  defaultAllowedViewsForRoles,
+  defaultHomeTilesForRoles,
   isModuleGroupEnabled,
   isWorkspaceDashboardEnabled,
   MODULE_GRANT_GROUPS,
@@ -22,6 +22,7 @@ import {
   USER_REGION_OPTIONS,
   USER_ROLE_OPTIONS,
   USER_STATUS_OPTIONS,
+  primaryUserRole,
   type ManagedUser,
   type UserDepartment,
   type UserRegion,
@@ -45,6 +46,7 @@ type AddUserAccessWizardProps = {
     email: string;
     phone: string;
     role: UserRole;
+    roles: UserRole[];
     department: UserDepartment;
     status: UserStatus;
     region: UserRegion;
@@ -90,7 +92,10 @@ export default function AddUserAccessWizard({
   const [licenseId, setLicenseId] = useState(initial?.licenseId ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
-  const [role, setRole] = useState<UserRole>(initial?.role ?? "Manager");
+  const [roles, setRoles] = useState<UserRole[]>(
+    () => initial?.roles?.length ? initial.roles : [initial?.role ?? "Manager"],
+  );
+  const role = primaryUserRole(roles);
   const [department, setDepartment] = useState<UserDepartment>(
     initial?.department ?? "Engineering",
   );
@@ -98,12 +103,18 @@ export default function AddUserAccessWizard({
   const [allowedViews, setAllowedViews] = useState<InternalOperationsView[]>(
     () =>
       initial?.allowedViews ??
-      defaultAllowedViews(initial?.role ?? "Manager", initial?.department ?? "Engineering"),
+      defaultAllowedViewsForRoles(
+        initial?.roles?.length ? initial.roles : [initial?.role ?? "Manager"],
+        initial?.department ?? "Engineering",
+      ),
   );
   const [homeTiles, setHomeTiles] = useState<CommandCentreHomeTileId[]>(
     () =>
       initial?.dashboardPrefs?.homeTiles ??
-      defaultHomeTiles(initial?.role ?? "Manager", initial?.department ?? "Engineering"),
+      defaultHomeTilesForRoles(
+        initial?.roles?.length ? initial.roles : [initial?.role ?? "Manager"],
+        initial?.department ?? "Engineering",
+      ),
   );
 
   const groupedModules = useMemo(() => {
@@ -129,9 +140,9 @@ export default function AddUserAccessWizard({
     return [...map.entries()];
   }, []);
 
-  function applyPreset(nextRole: UserRole, nextDepartment: UserDepartment) {
-    setAllowedViews(defaultAllowedViews(nextRole, nextDepartment));
-    setHomeTiles(defaultHomeTiles(nextRole, nextDepartment));
+  function applyPreset(nextRoles: UserRole[], nextDepartment: UserDepartment) {
+    setAllowedViews(defaultAllowedViewsForRoles(nextRoles, nextDepartment));
+    setHomeTiles(defaultHomeTilesForRoles(nextRoles, nextDepartment));
   }
 
   async function handleFinish() {
@@ -157,6 +168,7 @@ export default function AddUserAccessWizard({
         email: trimmedEmail,
         phone: phone.trim(),
         role,
+        roles,
         department,
         status,
         region,
@@ -308,28 +320,50 @@ export default function AddUserAccessWizard({
           {step === 1 && (
             <div className="space-y-4">
               <p className="text-sm text-white/55">
-                Role and department set smart defaults for modules and dashboards. You can customise
-                them in the next steps.
+                Select one or more roles. Role and department set smart defaults for modules and
+                dashboards — customise them in the next steps.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <FieldLabel>Access role</FieldLabel>
-                  <select
-                    className={inputClassName()}
-                    value={role}
-                    onChange={(event) => {
-                      const next = event.target.value as UserRole;
-                      setRole(next);
-                      applyPreset(next, department);
-                    }}
-                  >
-                    {USER_ROLE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
+              <div>
+                <FieldLabel>Access roles</FieldLabel>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {USER_ROLE_OPTIONS.map((option) => {
+                    const selected = roles.includes(option);
+                    return (
+                      <label
+                        key={option}
+                        className={cn(
+                          "inline-flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs transition-colors",
+                          selected
+                            ? "border-sky-400/40 bg-sky-500/15 text-sky-100"
+                            : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20",
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          className="accent-sky-400"
+                          checked={selected}
+                          onChange={(event) => {
+                            let next: UserRole[];
+                            if (event.target.checked) {
+                              next = [...new Set([...roles, option])];
+                            } else {
+                              next = roles.filter((entry) => entry !== option);
+                              if (next.length === 0) next = [option];
+                            }
+                            setRoles(next);
+                            applyPreset(next, department);
+                          }}
+                        />
                         {option}
-                      </option>
-                    ))}
-                  </select>
+                      </label>
+                    );
+                  })}
                 </div>
+                <p className="mt-1.5 text-[11px] text-white/40">
+                  Primary privilege used for admin gates: {role}
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <FieldLabel>Department</FieldLabel>
                   <select
@@ -338,7 +372,7 @@ export default function AddUserAccessWizard({
                     onChange={(event) => {
                       const next = event.target.value as UserDepartment;
                       setDepartment(next);
-                      applyPreset(role, next);
+                      applyPreset(roles, next);
                     }}
                   >
                     {USER_DEPARTMENT_OPTIONS.map((option) => (
@@ -351,7 +385,7 @@ export default function AddUserAccessWizard({
               </div>
               <button
                 type="button"
-                onClick={() => applyPreset(role, department)}
+                onClick={() => applyPreset(roles, department)}
                 className="rounded-xl border border-white/15 px-3 py-2 text-xs font-medium text-white/70 hover:border-white/25 hover:text-white"
               >
                 Reset modules & dashboards to preset
