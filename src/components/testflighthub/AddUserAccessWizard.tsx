@@ -116,6 +116,19 @@ export default function AddUserAccessWizard({
     return [...map.entries()];
   }, []);
 
+  const groupedWorkspaceDashboards = useMemo(() => {
+    const map = new Map<
+      string,
+      Array<(typeof WORKSPACE_DASHBOARD_OPTIONS)[number]>
+    >();
+    for (const dashboard of WORKSPACE_DASHBOARD_OPTIONS) {
+      const list = map.get(dashboard.section) ?? [];
+      list.push(dashboard);
+      map.set(dashboard.section, list);
+    }
+    return [...map.entries()];
+  }, []);
+
   function applyPreset(nextRole: UserRole, nextDepartment: UserDepartment) {
     setAllowedViews(defaultAllowedViews(nextRole, nextDepartment));
     setHomeTiles(defaultHomeTiles(nextRole, nextDepartment));
@@ -440,14 +453,7 @@ export default function AddUserAccessWizard({
                     not open.
                   </p>
                 </div>
-                {(() => {
-                  const sections = new Map<string, typeof WORKSPACE_DASHBOARD_OPTIONS>();
-                  for (const dashboard of WORKSPACE_DASHBOARD_OPTIONS) {
-                    const list = sections.get(dashboard.section) ?? [];
-                    list.push(dashboard);
-                    sections.set(dashboard.section, list);
-                  }
-                  return [...sections.entries()].map(([section, dashboards]) => (
+                {groupedWorkspaceDashboards.map(([section, dashboards]) => (
                     <div key={section}>
                       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
                         {section}
@@ -494,8 +500,7 @@ export default function AddUserAccessWizard({
                         })}
                       </ul>
                     </div>
-                  ));
-                })()}
+                  ))}
               </div>
             </div>
           )}
