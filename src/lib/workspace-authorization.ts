@@ -122,12 +122,27 @@ export async function authorizeWorkspaceAccess(
 
     // Internal operators may access the canonical Internal workspace and the Demo workspace.
     // Customer hosts still require explicit membership (no universal cross-tenant access).
+    // Demo-primary users (e.g. demo@ Owner) must NOT auto-access Internal business data.
     if (userType === "internal") {
       const slug = workspace.slug.trim().toLowerCase();
+      const demoSlug = (demoWorkspaceSlug() || DEMO_WORKSPACE_SLUG).trim().toLowerCase();
+
       if (slug === INTERNAL_WORKSPACE_SLUG) {
+        // Resolve Demo workspace id when primary is bound to Demo.
+        let primaryIsDemo = false;
+        if (primaryWorkspaceId) {
+          const primaryWorkspace = await findWorkspaceById(primaryWorkspaceId);
+          primaryIsDemo =
+            primaryWorkspace?.slug.trim().toLowerCase() === demoSlug ||
+            primaryWorkspace?.slug.trim().toLowerCase() === DEMO_WORKSPACE_SLUG;
+        }
+        if (primaryIsDemo) {
+          return { allowed: false, reason: "not_a_member", userType };
+        }
         return { allowed: true, reason: "internal_unit311", userType };
       }
-      if (slug === demoWorkspaceSlug() || slug === DEMO_WORKSPACE_SLUG) {
+
+      if (slug === demoSlug || slug === DEMO_WORKSPACE_SLUG) {
         return { allowed: true, reason: "internal_demo", userType };
       }
     }

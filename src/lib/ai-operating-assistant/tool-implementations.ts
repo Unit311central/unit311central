@@ -483,7 +483,11 @@ export async function searchFiles(
     const mention = asString(args.mention) || query;
 
     if (fileId && analyze) {
-      const content = await readFileTextSnippet(fileId);
+      const workspaceId = ctx.business.workspace?.id;
+      if (!workspaceId) {
+        throw new Error("Workspace is required to read file content.");
+      }
+      const content = await readFileTextSnippet(fileId, workspaceId);
       const download = await getFileDownloadUrl(fileId).catch(() => null);
       return toolOk(
         "searchFiles",
@@ -912,7 +916,7 @@ export async function generateReport(
   }
 }
 
-async function readFileTextSnippet(fileId: string) {
+async function readFileTextSnippet(fileId: string, workspaceId: string) {
   if (!isSupabaseConfigured()) {
     return {
       excerpt: "",
@@ -927,6 +931,7 @@ async function readFileTextSnippet(fileId: string) {
     .from("file_objects")
     .select("id, name, storage_path, mime_type, extension")
     .eq("id", fileId)
+    .eq("workspace_id", workspaceId)
     .maybeSingle();
 
   if (error || !row) {

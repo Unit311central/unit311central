@@ -2,7 +2,6 @@ import { createBlankLeadInput, mapCrmLead, type CrmLead, type LeadStatus } from 
 import {
   extractClientReportPatch,
   mergeClientReportNotes,
-  parseClientReportFromNotes,
   stripClientReportDbColumns,
 } from "@/lib/crm-client-report-notes";
 import { isMissingCrmClientReportColumnError } from "@/lib/crm-client-report-schema";
@@ -110,13 +109,10 @@ export async function getLeadByReportChatToken(token: string): Promise<CrmLead |
 
   if (error) {
     if (isMissingCrmClientReportColumnError(error.message)) {
-      const { data: rows, error: listError } = await supabase.from("crm_leads").select("*");
-      if (listError) throw new Error(listError.message);
-      const match = (rows as DbLead[]).find((row) => {
-        const fallback = parseClientReportFromNotes(row.notes);
-        return fallback?.clientChatAccessToken === normalized;
-      });
-      return match ? mapCrmLead(match) : null;
+      // Fail closed — do not scan every tenant's leads into memory.
+      throw new Error(
+        "CRM client report columns are missing. Apply pending CRM migrations before using report chat tokens.",
+      );
     }
     throw new Error(error.message);
   }

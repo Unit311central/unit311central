@@ -1,6 +1,7 @@
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { clearWebrtcSignals } from "@/lib/executive-call-webrtc-service";
 import type { PlatformSession } from "@/lib/platform-session";
+import { authorizeUserForWorkspace } from "@/lib/workspace-authorization";
 
 export type MessagingCallType = "voice" | "video";
 
@@ -120,6 +121,9 @@ export async function createMessagingCallRoom(input: {
     .maybeSingle();
 
   if (existing && !(existing as RoomRow).ended_at) {
+    if (String((existing as RoomRow).workspace_id) !== input.workspaceId) {
+      throw new Error("Call session belongs to another workspace.");
+    }
     return mapRoom(existing as RoomRow);
   }
 
@@ -185,6 +189,11 @@ export async function getMessagingCallSession(
   const room = await getMessagingCallRoom(sessionId);
   if (!room || room.endedAt) return null;
 
+  const decision = await authorizeUserForWorkspace(session.sub, room.workspaceId, {
+    userTypeHint: session.userType,
+  });
+  if (!decision.allowed) return null;
+
   const operatorId = resolveOperatorId(session);
   const isHost =
     room.hostOperatorId === operatorId ||
@@ -247,6 +256,13 @@ export async function joinMessagingCallRoom(input: {
   const room = await getMessagingCallRoom(input.sessionId);
   if (!room) throw new Error("Call not found.");
   if (room.endedAt) throw new Error("This call has ended.");
+
+  const decision = await authorizeUserForWorkspace(input.session.sub, room.workspaceId, {
+    userTypeHint: input.session.userType,
+  });
+  if (!decision.allowed) {
+    throw new Error("You are not allowed to join this call for the current workspace.");
+  }
 
   const operatorId = resolveOperatorId(input.session);
   const displayName = resolveDisplayName(input.session);

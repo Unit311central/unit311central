@@ -1,8 +1,8 @@
 # Demo release model
 
-**Rule:** Demo is not a fork, not a second app, and not a place where development happens.
+**Rule:** Demo is not a fork and not a second application.
 
-Demo is the **latest stable release of Internal** — same Git commit, same Vercel deployment, same codebase. The only intentional differences are workspace content, configuration, and optional feature visibility.
+Demo is a **permanent second workspace** on the **same Git commit, same Vercel deployment, same codebase** as Internal. Application changes ship once and appear on both hosts. Business data is isolated by `workspace_id`.
 
 ---
 
@@ -13,15 +13,18 @@ Demo is the **latest stable release of Internal** — same Git commit, same Verc
 | Code | `Unit311central/unit311central` `main` | **Same** |
 | Deploy | Vercel project `unit311central` | **Same deployment** |
 | Host | `internal.unit311central.com` | `demo.unit311central.com` |
-| Workspace | slug `unit311` (live ops data) | slug `demo` (curated content) |
+| Workspace | slug `unit311` (live ops data) | slug `demo` — **Unit311 Central Demo** |
 | UI | Internal Operations | **Same Internal Operations UI** |
+| Login | Existing Internal operators | Internal operators **or** `demo@unit311central.com` (Demo Owner) |
 
 Host → surface → workspace is resolved in:
 
 - `src/lib/app-domains.ts` / `src/lib/runtime-surface.ts`
 - `src/middleware.ts`
-- `src/lib/workspace-context.ts`
-- `src/lib/workspace-authorization.ts` (internal operators may access Demo)
+- `src/lib/workspace-context.ts` (host-authoritative)
+- `src/lib/workspace-authorization.ts`
+  - Internal operators may access Demo (`internal_demo`)
+  - Demo-primary users (Demo Owner) cannot auto-access Internal
 
 Optional Demo-only visibility (not a code fork):
 
@@ -34,61 +37,64 @@ Unset `DEMO_VISIBLE_MODULES` ⇒ Demo shows the same modules as Internal.
 
 ---
 
-## Promotion workflow
+## Shared application vs isolated business data
 
-```
-Development (Internal only)
-    → Verification (on Internal / preview)
-    → Module Go-Live Ready
-    → Deploy (Git → main → Vercel)
-    → Demo updated (same build; refresh Demo content)
-```
-
-| Step | What you do |
+| Shared (one app) | Isolated (per workspace) |
 | --- | --- |
-| 1. Development | Build and fix only against Internal |
-| 2. Verification | Exercise the change on Internal (or a PR preview of the same app) |
-| 3. Module Go-Live | Mark capability Ready when Definition of Done is met |
-| 4. Deploy | Merge/push to `main` (canonical repo). One production build serves apex, Internal, and Demo |
-| 5. Demo updated | After deploy: refresh curated Demo data; open Demo host; walk the sales journey |
+| UI, modules, nav, APIs, schema | Customers, leads, projects, invoices |
+| Bug fixes and feature commits | Employees, messages, calendar, files |
+| One deploy to both hosts | Support tickets, financial transactions |
+
+There is **no** synchronisation process between Internal and Demo for application code — deploy once.
+
+Business records **never** synchronise between workspaces.
 
 ---
 
-## Before a customer call
+## Demo Owner
 
-1. **Deploy** the latest approved `main` (if not already live).
-2. **Refresh Demo content:**
+| Field | Value |
+| --- | --- |
+| Email / username | `demo@unit311central.com` |
+| Role | Owner (`workspace_users.is_owner` + Admin Ops entitlements) |
+| Primary workspace | `demo` only |
 
-   ```bash
-   SUPABASE_ACCESS_TOKEN=… npm run demo:refresh
-   ```
+Seeded by migration `119_dual_demo_workspace_tenancy.sql` (password stored as scrypt hash only).
 
-3. **Verify** the journey on `https://demo.unit311central.com` (login as an internal operator).
+---
 
-You must never recreate features in Demo. If Demo is missing behaviour, the build is behind — deploy Internal’s approved release.
+## Provisioning
+
+- `provision_workspace(company_name, slug)` clones **config only** from `unit311` (settings, modules, empty file folders).
+- Reserved slug `demo` is **idempotent** via `ensure_demo_workspace()` / `ensure_workspace_foundation()`.
+- Never copies clients, invoices, employees, messages, or other business rows.
+
+TS helper: `ensureDemoWorkspace()` in `src/lib/workspace-provisioning-service.ts`.
+
+---
+
+## Promotion / development workflow
+
+```
+Edit the shared application (while viewing Internal or Demo)
+    → Commit / push main
+    → One production deploy
+    → Both internal.* and demo.* receive the same build
+```
+
+Before a customer presentation:
+
+1. Deploy the latest approved `main` (if not already live).
+2. Confirm Demo Owner login on `https://demo.unit311central.com`.
+3. (Optional) refresh curated Demo sample content when a content script exists — never copy live Internal business data.
+
+Synthetic Demo data generation (year of fake records) is a **later phase** and must target workspace `demo` only.
 
 ---
 
 ## Ops checklist
 
 - [ ] DNS / Vercel domain: `demo.unit311central.com` → same project as Internal
-- [ ] Migration `097_demo_workspace.sql` applied
-- [ ] `npm run demo:verify` passes in CI/local
-- [ ] After each release that affects the demo journey: `npm run demo:refresh`
-
----
-
-## What is forbidden
-
-- Long-lived Demo branch or Demo-only app
-- Shipping unfinished work to Demo via a separate codebase
-- Pointing Demo at a different application build than Internal
-- Treating live Internal production data as the Demo tenant (use the Demo workspace)
-
----
-
-## Related
-
-- Module Go-Live: Internal → Unit311 Details / Module Go-Live
-- Deploy: [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md)
-- Hosts: [VERCEL_ARCHITECTURE.md](./VERCEL_ARCHITECTURE.md)
+- [ ] Migrations `097_demo_workspace.sql` and `119_dual_demo_workspace_tenancy.sql` applied
+- [ ] `npm run demo:verify` passes
+- [ ] Demo Owner can log in; Internal operators still work on Internal and Demo

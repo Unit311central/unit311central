@@ -4,6 +4,7 @@ import { findWorkspaceBySlug } from "@/lib/workspace-host";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 const WORKSPACE_PENDING_PAYMENT_STATUS = "Pending Payment";
+const DEMO_WORKSPACE_SLUG = "demo";
 
 function requireSupabase() {
   if (!isSupabaseConfigured()) {
@@ -74,6 +75,48 @@ export async function provisionCustomerWorkspace(input: {
   return { workspaceId, workspaceSlug };
 }
 
+/**
+ * Idempotent Demo workspace ensure (config only — no business data).
+ * Uses ensure_demo_workspace() when available; falls back to provision_workspace('demo').
+ */
+export async function ensureDemoWorkspace(): Promise<{
+  workspaceId: string;
+  workspaceSlug: string;
+}> {
+  const supabase = requireSupabase();
+
+  const { data, error } = await supabase.rpc("ensure_demo_workspace");
+  if (!error && data) {
+    return {
+      workspaceId: typeof data === "string" ? data : String(data),
+      workspaceSlug: DEMO_WORKSPACE_SLUG,
+    };
+  }
+
+  // Fallback for hosts that have not applied migration 119 yet.
+  const { data: provisioned, error: provisionError } = await supabase.rpc("provision_workspace", {
+    company_name: "Unit311 Central Demo",
+    workspace_slug: DEMO_WORKSPACE_SLUG,
+  });
+
+  if (provisionError) {
+    const existing = await findWorkspaceBySlug(DEMO_WORKSPACE_SLUG);
+    if (existing) {
+      return { workspaceId: existing.id, workspaceSlug: existing.slug };
+    }
+    throw new Error(
+      error?.message ||
+        provisionError.message ||
+        "Failed to ensure Demo workspace.",
+    );
+  }
+
+  return {
+    workspaceId: typeof provisioned === "string" ? provisioned : String(provisioned),
+    workspaceSlug: DEMO_WORKSPACE_SLUG,
+  };
+}
+
 export async function ensureWorkspaceOwnerMembership(input: {
   workspaceId: string;
   platformUserId: string;
@@ -115,4 +158,4 @@ export async function ensureWorkspaceOwnerMembership(input: {
   }
 }
 
-export { WORKSPACE_PENDING_PAYMENT_STATUS };
+export { WORKSPACE_PENDING_PAYMENT_STATUS, DEMO_WORKSPACE_SLUG };

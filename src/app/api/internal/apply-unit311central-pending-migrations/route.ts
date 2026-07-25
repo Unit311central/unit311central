@@ -79,6 +79,7 @@ const MIGRATIONS = [
   "supabase/migrations/114_payroll_bonus_pay_date.sql",
   "supabase/migrations/117_messaging_message_actions.sql",
   "supabase/migrations/118_platform_billing_professional_1300.sql",
+  "supabase/migrations/119_dual_demo_workspace_tenancy.sql",
 ];
 
 function isAuthorized(request: NextRequest) {

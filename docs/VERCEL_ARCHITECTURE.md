@@ -32,7 +32,7 @@ npm run diagram:vercel-architecture
 | `www.unit311central.com` | Alias / redirect to apex | Production |
 | `unit311central.com/login` | Shared login entry (apex path) | Production |
 | `internal.unit311central.com` | Unit311 Internal operations app | Production |
-| `demo.unit311central.com` | Demo surface — **same build** as Internal; Demo workspace content | Production (add domain) |
+| `demo.unit311central.com` | Permanent Demo workspace (**Unit311 Central Demo**) — **same build** as Internal; isolated `workspace_id` | Production |
 | `*.unit311central.com` | Wildcard for customer workspace hosts | Required in Vercel + DNS |
 | `{slug}.unit311central.com` | Future customer workspace host | Gateway ready; product UI later |
 
@@ -138,7 +138,7 @@ Request flags set by middleware: `x-unit311-central`, `x-unit311-internal`, `x-u
 | Hosting | Same Vercel project; no separate deployment per customer |
 | Domain pattern | `{workspace-slug}.unit311central.com` via wildcard |
 | Tenancy | Single Supabase project; `workspace_id` isolation |
-| Provisioning | `provision_workspace()` then activate workspace host UI |
+| Provisioning | `provision_workspace()` / `ensure_demo_workspace()` — config only; never business data |
 | Auth | Shared apex login + cookie on `.unit311central.com` |
 | Not yet | Full customer application shell, RLS, signup → payment → provision |
 

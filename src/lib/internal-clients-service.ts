@@ -416,7 +416,8 @@ export async function deleteInternalClient(id: string, scope?: ClientsWorkspaceS
     const { data: invoices, error: invoiceListError } = await supabase
       .from("invoices")
       .select("id, status, invoice_number")
-      .eq("client_id", id);
+      .eq("client_id", id)
+      .eq("workspace_id", workspaceId);
 
     if (invoiceListError) {
       // Invoices table may not exist in older environments — fall through to client delete.
@@ -448,7 +449,8 @@ export async function deleteInternalClient(id: string, scope?: ClientsWorkspaceS
         const { error: invoiceDeleteError } = await supabase
           .from("invoices")
           .delete()
-          .in("id", removableIds);
+          .in("id", removableIds)
+          .eq("workspace_id", workspaceId);
         if (invoiceDeleteError) throw new Error(invoiceDeleteError.message);
       }
     }
