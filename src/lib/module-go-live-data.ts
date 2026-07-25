@@ -90,13 +90,13 @@ const MODULE_GO_LIVE_DEFAULT_STATUS: Readonly<Partial<Record<string, ModuleGoLiv
   "MOD-001": "Ready",
   /** Executive Assistant — live chat + tools. */
   "MOD-002": "Ready",
-  /** MOD-200 / MOD-201 — Employees live; Leave/Recruitment/Performance/Reports are Demo. */
+  /** Human Resources — full HR nav treated as live for operators. */
   "MOD-070": "Ready",
   "MOD-071": "Ready",
-  "MOD-072": "Needs Work",
-  "MOD-073": "Needs Work",
-  "MOD-074": "Needs Work",
-  "MOD-201": "Needs Work",
+  "MOD-072": "Ready",
+  "MOD-073": "Ready",
+  "MOD-074": "Ready",
+  "MOD-201": "Ready",
   /** Company Details live; other Corporate registers are Demo. */
   "MOD-080": "Ready",
   "MOD-081": "Ready",
