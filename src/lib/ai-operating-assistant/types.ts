@@ -70,6 +70,12 @@ export type AssistantBusinessContext = {
     canAccessUsers: boolean;
     canAccessStrategy: boolean;
     canAccessHr: boolean;
+    /** Operator access tiers from Users admin (multi-select). */
+    roles?: string[];
+    /** Operator departments from Users admin (multi-select). */
+    departments?: string[];
+    /** Explicit module grants; null = unrestricted. */
+    allowedViews?: string[] | null;
   };
   generatedAt: string;
 };

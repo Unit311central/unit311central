@@ -3,19 +3,33 @@ import {
   buildStartTourAction,
 } from "./guided-learning";
 import { findPageTarget, getPageGuide, listRegisteredPageGuides } from "./page-registry";
+import { userCanAccessView } from "./actions/permissions";
 import type { AssistantToolExecutionContext } from "./tool-result";
-import { asString, toolError, toolOk } from "./tool-result";
+import { asString, toolError, toolForbidden, toolOk } from "./tool-result";
 
 /**
  * Guided learning tools — return structured client actions.
  * The browser executes highlight/tour; the model orchestrates explanations.
  */
 
+function denyIfViewBlocked(viewId: string, ctx: AssistantToolExecutionContext, tool: string) {
+  if (!userCanAccessView(ctx.business, viewId)) {
+    return toolForbidden(
+      tool,
+      `You do not have access to the “${viewId}” module. Ask for a page within your granted modules.`,
+    );
+  }
+  return null;
+}
+
 export async function getPageGuideTool(
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ) {
   const viewId = asString(args.viewId) || ctx.business.page.activeView || "home";
+  const denied = denyIfViewBlocked(viewId, ctx, "getPageGuide");
+  if (denied) return denied;
+
   const page = getPageGuide(viewId);
   return toolOk("getPageGuide", [page], {
     source: ["ai:page-registry"],
@@ -48,6 +62,9 @@ export async function startGuidedTour(
   ctx: AssistantToolExecutionContext,
 ) {
   const viewId = asString(args.viewId) || ctx.business.page.activeView || "home";
+  const denied = denyIfViewBlocked(viewId, ctx, "startGuidedTour");
+  if (denied) return denied;
+
   const action = buildStartTourAction(viewId);
   return toolOk("startGuidedTour", [action], {
     source: ["ai:guided-learning"],
@@ -76,6 +93,9 @@ export async function highlightUiTarget(
   ctx: AssistantToolExecutionContext,
 ) {
   const viewId = asString(args.viewId) || ctx.business.page.activeView || "home";
+  const denied = denyIfViewBlocked(viewId, ctx, "highlightUiTarget");
+  if (denied) return denied;
+
   const targetId = asString(args.targetId);
   if (!targetId) {
     return toolError("highlightUiTarget", "targetId is required");
@@ -128,14 +148,16 @@ export async function highlightUiTarget(
 
 export async function listPageGuidesTool(
   _args: Record<string, unknown>,
-  _ctx: AssistantToolExecutionContext,
+  ctx: AssistantToolExecutionContext,
 ) {
-  const guides = listRegisteredPageGuides().map((page) => ({
-    viewId: page.viewId,
-    pageName: page.pageName,
-    purpose: page.purpose,
-    targetCount: page.targets.length,
-  }));
+  const guides = listRegisteredPageGuides()
+    .filter((page) => userCanAccessView(ctx.business, page.viewId))
+    .map((page) => ({
+      viewId: page.viewId,
+      pageName: page.pageName,
+      purpose: page.purpose,
+      targetCount: page.targets.length,
+    }));
   return toolOk("listPageGuides", guides, {
     source: ["ai:page-registry"],
     page: 1,

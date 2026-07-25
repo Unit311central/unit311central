@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ChevronRight, Loader2, Pin } from "lucide-react";
 
 import ExecutiveAssistantPanel from "@/components/executive-assistant/ExecutiveAssistantPanel";
+import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 import { cn } from "@/lib/utils";
 
 type ProactiveBundle = {
@@ -59,6 +60,7 @@ export default function ExecutiveOperatingCentre() {
   const [seedPrompt, setSeedPrompt] = useState<string | null>(null);
   const [proactive, setProactive] = useState<ProactiveBundle | null>(null);
   const [proactiveLoading, setProactiveLoading] = useState(true);
+  const { roleView } = useOperatorEntitlements();
 
   useEffect(() => {
     let cancelled = false;
@@ -169,6 +171,7 @@ export default function ExecutiveOperatingCentre() {
             variant="page"
             activeView="executive-assistant"
             mode="internal"
+            roleView={roleView}
             hideSidebar
             embedded
             seedPrompt={seedPrompt}

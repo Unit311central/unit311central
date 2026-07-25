@@ -496,6 +496,7 @@ export async function analysePlatformInsights(
   const persona = resolveExecutivePersona(
     context.permissions.roleView,
     context.user.displayName,
+    context.permissions.departments,
   );
   const filtered = filterInsightsForRole(insights, persona, 40);
 

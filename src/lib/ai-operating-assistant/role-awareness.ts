@@ -18,7 +18,20 @@ export type RoleFocusProfile = {
 export function resolveExecutivePersona(
   roleView: string | null | undefined,
   displayName?: string | null,
+  departments?: readonly string[] | null,
 ): ExecutivePersona {
+  const depts = (departments ?? []).map((entry) => entry.toLowerCase());
+  if (depts.some((dept) => dept === "finance")) return "finance";
+  if (depts.some((dept) => dept === "hr")) return "hr";
+  if (
+    depts.some((dept) =>
+      ["engineering", "operations", "technology", "manager"].includes(dept),
+    )
+  ) {
+    return "project_manager";
+  }
+  if (depts.some((dept) => dept === "sales")) return "operator";
+
   const name = (displayName ?? "").toLowerCase();
   if (name.includes("hr") || name.includes("people")) return "hr";
   if (name.includes("finance") || name.includes("cfo")) return "finance";

@@ -30,6 +30,7 @@ export function matchWorkflowIntent(
   const persona = resolveExecutivePersona(
     context.permissions.roleView,
     context.user.displayName,
+    context.permissions.departments,
   );
   const candidates = filterWorkflowsForRole(
     workflowsForPermissions(context.permissions),
@@ -113,6 +114,7 @@ export function listIntentExamples(context: AssistantBusinessContext): string[] 
   const persona = resolveExecutivePersona(
     context.permissions.roleView,
     context.user.displayName,
+    context.permissions.departments,
   );
   return filterWorkflowsForRole(workflowsForPermissions(context.permissions), persona)
     .slice(0, 6)
@@ -124,6 +126,7 @@ export function searchWorkflows(query: string, context: AssistantBusinessContext
   const persona = resolveExecutivePersona(
     context.permissions.roleView,
     context.user.displayName,
+    context.permissions.departments,
   );
   const pool = filterWorkflowsForRole(workflowsForPermissions(context.permissions), persona);
   if (!text) return pool;

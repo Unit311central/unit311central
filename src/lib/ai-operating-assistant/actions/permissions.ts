@@ -2,8 +2,22 @@
  * Permission checks for Action Framework steps.
  */
 
+import type { InternalOperationsView } from "@/lib/internal-operations-data";
+import { isViewAllowedForGrants } from "@/lib/internal-role-views";
+
 import type { AssistantBusinessContext } from "../types";
 import type { AssistantActionPermission } from "./types";
+
+export function userCanAccessView(
+  business: AssistantBusinessContext,
+  viewId: string,
+): boolean {
+  if (viewId === "home" || viewId === "executive-assistant") return true;
+  return isViewAllowedForGrants(
+    viewId as InternalOperationsView,
+    business.permissions.allowedViews as InternalOperationsView[] | null | undefined,
+  );
+}
 
 export function userHasActionPermissions(
   business: AssistantBusinessContext,

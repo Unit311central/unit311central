@@ -13,7 +13,9 @@ import {
   type InternalNavChildItem,
   type InternalNavItem,
   type InternalNavSection,
+  type InternalOperationsView,
 } from "@/lib/internal-operations-data";
+import { isViewAllowedForGrants } from "@/lib/internal-role-views";
 
 export type ApplicationCataloguePage = {
   id: string;
@@ -223,6 +225,72 @@ export function listPlatformModules(): ApplicationCatalogueModule[] {
     .map(moduleFromSection)
     .filter((m): m is ApplicationCatalogueModule => Boolean(m));
   return cachedModules;
+}
+
+function viewAllowed(
+  viewId: string | undefined,
+  allowedViews: readonly InternalOperationsView[] | null | undefined,
+): boolean {
+  if (!viewId) return true;
+  return isViewAllowedForGrants(viewId as InternalOperationsView, allowedViews);
+}
+
+/** Filter catalogue modules/apps/pages to the operator's granted views. */
+export function listPlatformModulesForEntitlements(
+  allowedViews: readonly InternalOperationsView[] | null | undefined,
+): ApplicationCatalogueModule[] {
+  const modules = listPlatformModules();
+  if (allowedViews == null) return modules;
+
+  const filtered: ApplicationCatalogueModule[] = [];
+
+  for (const module of modules) {
+    const applications: ApplicationCatalogueApp[] = [];
+
+    for (const app of module.applications) {
+      const pages = app.pages.filter((page) => viewAllowed(page.viewId, allowedViews));
+      if (app.viewId && !viewAllowed(app.viewId, allowedViews) && pages.length === 0) {
+        continue;
+      }
+      if (!app.viewId && pages.length === 0 && app.pages.length > 0) {
+        continue;
+      }
+
+      const defaultView =
+        (app.viewId && viewAllowed(app.viewId, allowedViews) ? app.viewId : undefined) ??
+        pages.find((page) => page.viewId)?.viewId ??
+        pages[0]?.viewId;
+
+      const nextApp: ApplicationCatalogueApp = {
+        ...app,
+        pages: pages.length ? pages : app.pages.filter((page) => !page.viewId),
+        viewId: defaultView,
+        href: defaultView ? `/internaldashboard?view=${defaultView}` : app.href,
+      };
+
+      if (nextApp.pages.length > 0 || Boolean(nextApp.viewId)) {
+        applications.push(nextApp);
+      }
+    }
+
+    if (!applications.length) continue;
+
+    const defaultViewId =
+      applications.find((app) => app.viewId)?.viewId ?? applications[0]?.pages[0]?.viewId;
+
+    filtered.push({
+      ...module,
+      applications,
+      navigation: {
+        defaultViewId,
+        href: defaultViewId
+          ? `/internaldashboard?view=${defaultViewId}`
+          : "/internaldashboard",
+      },
+    });
+  }
+
+  return filtered;
 }
 
 export function getPlatformModule(idOrLabel: string): ApplicationCatalogueModule | null {

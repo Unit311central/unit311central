@@ -29,6 +29,7 @@ export async function buildDailyExecutiveBrief(
   const persona = resolveExecutivePersona(
     context.permissions.roleView,
     context.user.displayName,
+    context.permissions.departments,
   );
   const focus = getRoleFocusProfile(persona);
   const pack = precomputed ?? (await analysePlatformInsights(context));

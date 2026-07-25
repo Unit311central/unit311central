@@ -1,10 +1,16 @@
 import { resolveExecutiveAssistantContext } from "@/lib/executive-assistant-ui";
 import { getOrganisationForUser } from "@/lib/organisation-service";
 import type { PlatformSession } from "@/lib/platform-auth";
-import { STAFF_HIDDEN_VIEWS, type InternalRoleView } from "@/lib/internal-role-views";
+import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import type { InternalRoleView } from "@/lib/internal-role-views";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isInternalOperationsView } from "@/lib/internal-operations-data";
 
+import {
+  clampActiveViewToGrants,
+  entitlementsFromOperator,
+} from "./operator-entitlements";
 import type { AssistantBusinessContext, AssistantPageSelection } from "./types";
 
 function asRoleView(value: string | null | undefined): InternalRoleView {
@@ -12,17 +18,6 @@ function asRoleView(value: string | null | undefined): InternalRoleView {
     return value;
   }
   return "c-suite";
-}
-
-function permissionFlags(roleView: InternalRoleView) {
-  const hidden = roleView === "staff" ? STAFF_HIDDEN_VIEWS : null;
-  return {
-    roleView,
-    canAccessFinancials: !hidden?.has("financials"),
-    canAccessUsers: !hidden?.has("users"),
-    canAccessStrategy: !hidden?.has("strategy"),
-    canAccessHr: !hidden?.has("hr"),
-  };
 }
 
 export type BuildBusinessContextInput = {
@@ -38,14 +33,27 @@ export type BuildBusinessContextInput = {
 
 /**
  * Assembles authoritative runtime context for every assistant turn.
- * Context Service owns this — do not duplicate in route handlers.
+ * Operator entitlements (roles / departments / allowedViews) are resolved server-side.
  */
 export async function buildBusinessContext(
   input: BuildBusinessContextInput,
 ): Promise<AssistantBusinessContext> {
-  const activeView = input.activeView?.trim() || "home";
+  const requestedView = input.activeView?.trim() || "home";
+  const clientRoleView = asRoleView(input.roleView);
+
+  let entitlements = entitlementsFromOperator(null, clientRoleView);
+
+  if (input.session.userType === "internal" && isSupabaseConfigured()) {
+    try {
+      const operator = await getInternalOperatorByUsername(input.session.username);
+      entitlements = entitlementsFromOperator(operator, clientRoleView);
+    } catch {
+      // Fall back to client roleView / unrestricted when operator lookup fails.
+    }
+  }
+
+  const activeView = clampActiveViewToGrants(requestedView, entitlements.allowedViews);
   const pageMeta = resolveExecutiveAssistantContext(activeView, "internal");
-  const roleView = asRoleView(input.roleView);
 
   let organisationId: string | null = null;
   let organisationName: string | null = null;
@@ -98,7 +106,16 @@ export async function buildBusinessContext(
       fileId: input.selection?.fileId ?? null,
       fileName: input.selection?.fileName ?? null,
     },
-    permissions: permissionFlags(roleView),
+    permissions: {
+      roleView: entitlements.roleView,
+      canAccessFinancials: entitlements.canAccessFinancials,
+      canAccessUsers: entitlements.canAccessUsers,
+      canAccessStrategy: entitlements.canAccessStrategy,
+      canAccessHr: entitlements.canAccessHr,
+      roles: entitlements.roles,
+      departments: entitlements.departments,
+      allowedViews: entitlements.allowedViews,
+    },
     generatedAt: new Date().toISOString(),
   };
 

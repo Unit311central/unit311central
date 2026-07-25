@@ -462,6 +462,7 @@ export async function getRoleFocusTool(
   const persona = resolveExecutivePersona(
     ctx.business.permissions.roleView,
     ctx.business.user.displayName,
+    ctx.business.permissions.departments,
   );
   const profile = getRoleFocusProfile(persona);
   return toolOk("getRoleFocus", [profile], {

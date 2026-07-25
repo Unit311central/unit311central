@@ -4,10 +4,12 @@
  */
 
 import { asString, toolOk, type AssistantToolExecutionContext } from "../tool-result";
+import type { InternalOperationsView } from "@/lib/internal-operations-data";
+
 import {
   answerPlatformQuestion,
   getPlatformModule,
-  listPlatformModules,
+  listPlatformModulesForEntitlements,
   searchApplicationCatalogue,
 } from "../application-catalogue";
 import {
@@ -22,13 +24,26 @@ import {
   searchCapabilities,
 } from "./capability-service";
 
+function allowedViewsFromCtx(ctx: AssistantToolExecutionContext) {
+  return ctx.business.permissions.allowedViews as
+    | InternalOperationsView[]
+    | null
+    | undefined;
+}
+
+function moduleVisible(
+  moduleId: string,
+  allowed: InternalOperationsView[] | null | undefined,
+) {
+  return listPlatformModulesForEntitlements(allowed).some((m) => m.id === moduleId);
+}
+
 export async function listPlatformModulesTool(
   _args: Record<string, unknown>,
-  _ctx: AssistantToolExecutionContext,
+  ctx: AssistantToolExecutionContext,
 ) {
   void _args;
-  void _ctx;
-  const modules = listPlatformModules();
+  const modules = listPlatformModulesForEntitlements(allowedViewsFromCtx(ctx));
   return toolOk(
     "listPlatformModules",
     modules.map((m) => ({
@@ -45,7 +60,7 @@ export async function listPlatformModulesTool(
       summary: {
         kind: "platform_modules",
         answer: answerPlatformQuestion("What modules exist?")?.answer ?? null,
-        note: "Application Catalogue — platform structure, not Action Registry capabilities.",
+        note: "Application Catalogue — platform structure, not Action Registry capabilities. Filtered to operator grants.",
       },
     },
   );
@@ -53,20 +68,21 @@ export async function listPlatformModulesTool(
 
 export async function searchApplicationsTool(
   args: Record<string, unknown>,
-  _ctx: AssistantToolExecutionContext,
+  ctx: AssistantToolExecutionContext,
 ) {
-  void _ctx;
+  const allowed = allowedViewsFromCtx(ctx);
   const query =
     asString(args.query) || asString(args.question) || asString(args.module) || "";
   if (!query.trim()) {
-    return listPlatformModulesTool({}, _ctx);
+    return listPlatformModulesTool({}, ctx);
   }
 
   const answered = answerPlatformQuestion(query);
   if (answered) {
+    const modules = (answered.modules ?? []).filter((m) => moduleVisible(m.id, allowed));
     return toolOk(
       "searchApplications",
-      (answered.modules ?? []).map((m) => ({
+      modules.map((m) => ({
         id: m.id,
         label: m.displayName,
         description: m.description,
@@ -79,7 +95,7 @@ export async function searchApplicationsTool(
       })),
       {
         source: ["assistant:application-catalogue"],
-        pageSize: answered.modules?.length || 1,
+        pageSize: modules.length || 1,
         summary: {
           kind: answered.kind,
           answer: answered.answer,
@@ -100,20 +116,22 @@ export async function searchApplicationsTool(
   }
 
   const module = getPlatformModule(query);
-  if (module) {
+  if (module && moduleVisible(module.id, allowed)) {
+    const scoped = listPlatformModulesForEntitlements(allowed).find((m) => m.id === module.id);
+    const visible = scoped ?? module;
     return toolOk(
       "searchApplications",
       [
         {
-          id: module.id,
-          label: module.displayName,
-          description: module.description,
-          applications: module.applications.map((a) => ({
+          id: visible.id,
+          label: visible.displayName,
+          description: visible.description,
+          applications: visible.applications.map((a) => ({
             label: a.label,
             pages: a.pages.map((p) => p.label),
             href: a.href,
           })),
-          href: module.navigation.href,
+          href: visible.navigation.href,
         },
       ],
       {
@@ -121,13 +139,18 @@ export async function searchApplicationsTool(
         pageSize: 1,
         summary: {
           kind: "module_detail",
-          answer: answerPlatformQuestion(`What is under ${module.displayName}`)?.answer,
+          answer: answerPlatformQuestion(`What is under ${visible.displayName}`)?.answer,
         },
       },
     );
   }
 
-  const hits = searchApplicationCatalogue(query, 10);
+  const allowedIds = new Set(
+    listPlatformModulesForEntitlements(allowed).map((m) => m.id),
+  );
+  const hits = searchApplicationCatalogue(query, 10).filter((h) =>
+    allowedIds.has(h.entry.module.id),
+  );
   return toolOk(
     "searchApplications",
     hits.map((h) => {

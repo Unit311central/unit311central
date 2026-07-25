@@ -25,6 +25,7 @@ EXECUTION FIRST (capabilities):
 
 PLATFORM:
 - Modules / apps / pages / “where is …” → Application Catalogue only.
+- Respect permissions.moduleAccess: when restricted, only guide/navigate within granted modules. Never claim access to blocked financials/HR/users/strategy data.
 
 BUSINESS REASONING:
 - Always call live tools (queryBusiness / getSmartInsights / search*) before answering risk, overdue, workload, or “what changed” questions.
@@ -67,7 +68,16 @@ ${JSON.stringify(
       permissions: {
         canAccessHr: context.permissions.canAccessHr,
         canAccessFinancials: context.permissions.canAccessFinancials,
+        canAccessUsers: context.permissions.canAccessUsers,
+        canAccessStrategy: context.permissions.canAccessStrategy,
         roleView: context.permissions.roleView,
+        roles: context.permissions.roles ?? [],
+        departments: context.permissions.departments ?? [],
+        moduleAccess:
+          context.permissions.allowedViews == null
+            ? "unrestricted"
+            : "restricted_to_granted_modules",
+        grantedViewCount: context.permissions.allowedViews?.length ?? null,
       },
     },
     null,

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { PLATFORM_AI_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import type { SurveyOperationsView } from "@/lib/survey-operations-mock-data";
+import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 
 const ExecutiveAssistantPanel = dynamic(
   () => import("@/components/executive-assistant/ExecutiveAssistantPanel"),
@@ -31,6 +32,7 @@ export default function PlatformFloatingAiAssistant({
   mode = "internal",
 }: PlatformFloatingAiAssistantProps) {
   const [mounted, setMounted] = useState(false);
+  const { roleView } = useOperatorEntitlements();
 
   useEffect(() => {
     if (open) setMounted(true);
@@ -49,6 +51,7 @@ export default function PlatformFloatingAiAssistant({
       onClose={() => onOpenChange(false)}
       activeView={activeView ?? "home"}
       mode={mode}
+      roleView={roleView}
     />
   );
 }
