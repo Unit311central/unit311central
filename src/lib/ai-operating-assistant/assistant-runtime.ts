@@ -298,6 +298,63 @@ function formatExecutiveIntelligenceReply(
     return `${question.replace(/\?$/, "")}:\n\n${lines.map((l) => `• ${l}`).join("\n")}`;
   }
 
+  if (toolName === "searchPlatformSubscriptions") {
+    const expectedMonthly =
+      typeof summary?.expectedMonthlyUsd === "number" ? summary.expectedMonthlyUsd : null;
+    const expectedQuarterly =
+      typeof summary?.expectedQuarterlyUsd === "number" ? summary.expectedQuarterlyUsd : null;
+    const expectedFrequency =
+      typeof summary?.expectedFrequency === "string" ? summary.expectedFrequency : null;
+    const reflected = summary?.reflected;
+    const lead =
+      (typeof summary?.message === "string" && summary.message) ||
+      "Platform Billing subscriptions:";
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return lead;
+    }
+
+    const lines = items.map((item, index) => {
+      const expectedBit =
+        item.expectedChargeLabel != null
+          ? ` — expected ${String(item.expectedChargeLabel)} → ${
+              item.matchesExpected === true
+                ? "match"
+                : item.matchesExpected === false
+                  ? "mismatch"
+                  : "n/a"
+            }`
+          : "";
+      return `${index + 1}. ${String(item.companyName ?? "—")} — ${String(
+        item.planName ?? "—",
+      )} — ${String(item.billingFrequencyLabel ?? item.billingFrequency ?? "—")} — MRR ${String(
+        item.mrrLabel ?? item.mrrUsd ?? "—",
+      )} — period charge ${String(item.periodChargeLabel ?? item.periodChargeUsd ?? "—")} — ${String(
+        item.subscriptionStatusLabel ?? item.subscriptionStatus ?? "—",
+      )}${expectedBit}`;
+    });
+
+    const expectationLine =
+      expectedMonthly != null || expectedQuarterly != null
+        ? `\n\nExpected: ${
+            expectedMonthly != null ? `$${Number(expectedMonthly).toLocaleString("en-US")}/mo` : "—"
+          }${
+            expectedQuarterly != null
+              ? ` · $${Number(expectedQuarterly).toLocaleString("en-US")} quarterly in advance`
+              : ""
+          }${expectedFrequency ? ` · frequency ${expectedFrequency}` : ""}.`
+        : "";
+
+    const verdict =
+      reflected === false
+        ? "\n\nVerdict: Not reflected in current Billing details."
+        : reflected === true
+          ? "\n\nVerdict: Reflected in current Billing details."
+          : "";
+
+    return `${lead}\n\n${lines.join("\n")}${expectationLine}${verdict}`;
+  }
+
   if (toolName === "getBusinessHealth") {
     const health = items?.[0];
     if (!health) return "I could not score business health.";

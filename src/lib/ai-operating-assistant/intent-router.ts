@@ -6,6 +6,10 @@ import {
   type AssistantReportType,
 } from "./report-intent";
 import { parseScopedPdfRequest } from "./scoped-pdf-metrics";
+import {
+  isPlatformBillingQuery,
+  parseExpectedBillingFromQuestion,
+} from "./billing-query";
 
 export type DirectAssistantIntent = {
   tool:
@@ -19,6 +23,7 @@ export type DirectAssistantIntent = {
     | "searchPerformanceReviews"
     | "searchLeave"
     | "searchClients"
+    | "searchPlatformSubscriptions"
     | "searchProjects"
     | "searchInvoices"
     | "searchExpenses"
@@ -124,6 +129,29 @@ export function resolveDirectIntent(
   // —— Goal-oriented Planning Engine ——
   const goalIntent = resolveGoalPlanningIntent(text, lower);
   if (goalIntent) return goalIntent;
+
+  // —— Platform Billing / subscription amounts (before generic client/business reads) ——
+  if (isPlatformBillingQuery(text)) {
+    const expected = parseExpectedBillingFromQuestion(text);
+    return {
+      tool: "searchPlatformSubscriptions",
+      args: {
+        question: text,
+        status: /\b(all\s+subscriptions?|every\s+subscription)\b/i.test(lower)
+          ? "all"
+          : "active",
+        ...(expected.expectedMonthlyUsd != null
+          ? { expectedMonthlyUsd: expected.expectedMonthlyUsd }
+          : {}),
+        ...(expected.expectedQuarterlyUsd != null
+          ? { expectedQuarterlyUsd: expected.expectedQuarterlyUsd }
+          : {}),
+        ...(expected.expectedFrequency ? { expectedFrequency: expected.expectedFrequency } : {}),
+        pageSize: 50,
+      },
+      reason: "platform_billing_subscriptions",
+    };
+  }
 
   // —— Executive business reasoning (live data only) ——
   if (

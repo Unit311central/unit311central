@@ -7,6 +7,7 @@ import {
   searchCRM,
   searchEmployees,
   searchFiles,
+  searchPlatformSubscriptions,
   searchProjects,
   searchTasks,
 } from "./tool-implementations";
@@ -74,7 +75,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "queryBusiness",
     description:
-      "Answer ANY open business question with a live snapshot (clients, projects, finance, HR, CRM, overview). Call this first for questions like how the business is doing, risks, cash, headcount, pipeline, overdue work, or general operating status. Prefer this over refusing or guessing.",
+      "Answer open business overview questions with a live snapshot (clients, projects, finance, HR, CRM). Do NOT use for subscription plan prices, signup amounts, quarterly-in-advance billing, MRR/ARR, or whether Billing details match an expected price — use searchPlatformSubscriptions instead.",
     parameters: {
       type: "object",
       properties: {
@@ -96,7 +97,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "searchClients",
     description:
-      "Search live client directory. Use for active clients, top clients (topN), country/region filters (e.g. Germany), contract type, and client details.",
+      "Search live client directory. Use for active clients, top clients (topN), country/region filters (e.g. Germany), contract type, and client details. Do NOT use for plan price / quarterly signup / MRR — use searchPlatformSubscriptions.",
     parameters: {
       type: "object",
       properties: {
@@ -113,6 +114,38 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
           description: "Approximate inactive filter when last-activity is unavailable",
         },
         page: { type: "number" },
+        pageSize: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "searchPlatformSubscriptions",
+    description:
+      "Read live platform Billing subscriptions (plan, billing frequency, MRR, period charge). Use when the user asks whether clients pay a signup/quarterly amount (e.g. $1,300 × 3), if Billing details reflect expected pricing, or for subscription/MRR/ARR questions.",
+    parameters: {
+      type: "object",
+      properties: {
+        question: {
+          type: "string",
+          description: "Original user question (used to parse expected amounts)",
+        },
+        status: {
+          type: "string",
+          description: "Subscription status filter: active (default), all, pending_payment, suspended, cancelled, inactive",
+        },
+        expectedMonthlyUsd: {
+          type: "number",
+          description: "Expected monthly price, e.g. 1300",
+        },
+        expectedQuarterlyUsd: {
+          type: "number",
+          description: "Expected quarterly advance charge, e.g. 3900",
+        },
+        expectedFrequency: {
+          type: "string",
+          enum: ["monthly", "quarterly", "annual"],
+        },
         pageSize: { type: "number" },
       },
       additionalProperties: false,
@@ -765,6 +798,7 @@ type ContextualToolHandler = (
 const handlers: Record<string, ContextualToolHandler> = {
   queryBusiness: queryBusinessTool,
   searchClients,
+  searchPlatformSubscriptions,
   searchProjects,
   searchEmployees,
   searchPerformanceReviews,

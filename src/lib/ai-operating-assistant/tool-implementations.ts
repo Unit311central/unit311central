@@ -8,7 +8,18 @@ import { browseFolder, getFileDownloadUrl } from "@/lib/internal-files-service";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { INTERNAL_FILES_BUCKET } from "@/lib/internal-files-data";
+import {
+  formatBillingFrequency,
+  formatSubscriptionStatus,
+  formatUsd,
+  PLATFORM_BILLING_SEED_FALLBACK,
+} from "@/lib/platform-billing-data";
+import { listPlatformCustomerSubscriptions } from "@/lib/platform-billing-service";
 import { loadLiveInvoices } from "./live-finance";
+import {
+  chargeForFrequency,
+  parseExpectedBillingFromQuestion,
+} from "./billing-query";
 
 import { actionFollowUps } from "./action-service";
 import type { AssistantToolExecutionContext } from "./tool-result";
@@ -990,4 +1001,129 @@ function buildDocumentHints(excerpt: string, mention?: string) {
   if (lower.includes("expir")) hints.push("Expiry-related language detected in excerpt.");
   if (hints.length === 0) hints.push("Excerpt available — summarise only from provided text.");
   return hints;
+}
+
+export async function searchPlatformSubscriptions(
+  args: Record<string, unknown>,
+  ctx: AssistantToolExecutionContext,
+): Promise<AssistantToolResult> {
+  try {
+    const question = asString(args.question) || "";
+    const statusFilter = (asString(args.status) || "active").toLowerCase();
+    const parsed = parseExpectedBillingFromQuestion(question);
+    const expectedMonthlyUsd = Number.isFinite(asNumber(args.expectedMonthlyUsd, NaN))
+      ? asNumber(args.expectedMonthlyUsd, NaN)
+      : parsed.expectedMonthlyUsd;
+    const expectedQuarterlyUsd = Number.isFinite(asNumber(args.expectedQuarterlyUsd, NaN))
+      ? asNumber(args.expectedQuarterlyUsd, NaN)
+      : parsed.expectedQuarterlyUsd;
+    const expectedFrequency =
+      (asString(args.expectedFrequency) as "monthly" | "quarterly" | "annual" | null) ||
+      parsed.expectedFrequency;
+
+    let subscriptions = await listPlatformCustomerSubscriptions().catch(() => []);
+    if (subscriptions.length === 0) {
+      subscriptions = PLATFORM_BILLING_SEED_FALLBACK;
+    }
+
+    const filtered =
+      statusFilter === "all"
+        ? subscriptions
+        : subscriptions.filter((row) => row.subscriptionStatus.toLowerCase() === statusFilter);
+
+    const items = filtered.map((row) => {
+      const periodChargeUsd = chargeForFrequency(row.mrrUsd, row.billingFrequency);
+      const expectedChargeUsd =
+        row.billingFrequency === "quarterly"
+          ? expectedQuarterlyUsd
+          : row.billingFrequency === "annual"
+            ? expectedMonthlyUsd != null
+              ? expectedMonthlyUsd * 12
+              : null
+            : expectedMonthlyUsd;
+      const matchesExpected =
+        expectedChargeUsd == null
+          ? null
+          : Math.abs(periodChargeUsd - expectedChargeUsd) < 0.5 &&
+            (!expectedFrequency || expectedFrequency === row.billingFrequency);
+
+      return {
+        id: row.id,
+        companyName: row.companyName,
+        planName: row.planName,
+        billingFrequency: row.billingFrequency,
+        billingFrequencyLabel: formatBillingFrequency(row.billingFrequency),
+        subscriptionStatus: row.subscriptionStatus,
+        subscriptionStatusLabel: formatSubscriptionStatus(row.subscriptionStatus),
+        mrrUsd: row.mrrUsd,
+        arrUsd: row.arrUsd,
+        periodChargeUsd,
+        outstandingBalanceUsd: row.outstandingBalanceUsd,
+        currency: row.currency || "USD",
+        nextInvoiceDate: row.nextInvoiceDate,
+        matchesExpected,
+        expectedChargeUsd,
+        mrrLabel: formatUsd(row.mrrUsd),
+        periodChargeLabel: formatUsd(periodChargeUsd),
+        expectedChargeLabel:
+          expectedChargeUsd != null ? formatUsd(expectedChargeUsd) : null,
+      };
+    });
+
+    const matchCount = items.filter((item) => item.matchesExpected === true).length;
+    const mismatchCount = items.filter((item) => item.matchesExpected === false).length;
+    const hasExpectation =
+      expectedMonthlyUsd != null || expectedQuarterlyUsd != null || expectedFrequency != null;
+    const reflected = !hasExpectation
+      ? null
+      : items.length > 0 && mismatchCount === 0 && matchCount === items.length;
+
+    return toolOk("searchPlatformSubscriptions", items, {
+      source: ["supabase:platform_customer_subscriptions"],
+      page: 1,
+      pageSize: asNumber(args.pageSize, 50),
+      summary: {
+        matched: items.length,
+        activeSubscriptions: subscriptions.filter((row) => row.subscriptionStatus === "active")
+          .length,
+        totalSubscriptions: subscriptions.length,
+        expectedMonthlyUsd,
+        expectedQuarterlyUsd,
+        expectedFrequency,
+        matchCount,
+        mismatchCount,
+        reflected,
+        message:
+          items.length === 0
+            ? "There are currently no platform customer subscriptions matching that request."
+            : reflected === false
+              ? `No — current Billing details do not match the expected ${
+                  expectedFrequency ?? "billing"
+                } signup amount.`
+              : reflected === true
+                ? `Yes — active subscriptions match the expected ${
+                    expectedFrequency ?? "billing"
+                  } signup amount.`
+                : `I found ${items.length} platform subscription${items.length === 1 ? "" : "s"}.`,
+      },
+      followUpActions: [
+        nav("/internaldashboard?view=billing", "Open Billing"),
+        ...exportActions("billing"),
+      ],
+      citations: items.slice(0, 10).map((item) => ({
+        type: "client" as const,
+        id: String(item.id),
+        label: String(item.companyName),
+      })),
+      appliedContext: {
+        activeView: ctx.business.page.activeView,
+      },
+    });
+  } catch (error) {
+    return toolError(
+      "searchPlatformSubscriptions",
+      error instanceof Error ? error.message : "Failed to load platform subscriptions",
+      ["supabase:platform_customer_subscriptions"],
+    );
+  }
 }
