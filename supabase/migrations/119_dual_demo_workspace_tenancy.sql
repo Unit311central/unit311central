@@ -339,13 +339,29 @@ begin
     raise exception 'Demo workspace missing after ensure_demo_workspace()';
   end if;
 
-  -- Prefer existing user by email or username
+  -- Prefer exact username (email collisions exist from signup suffixes like demo@x#abcd).
   select id into v_user_id
   from public.platform_users
   where lower(username) = v_username
-     or lower(coalesce(email, '')) = v_username
   order by created_at asc
   limit 1;
+
+  if v_user_id is null then
+    select id into v_user_id
+    from public.platform_users
+    where lower(coalesce(email, '')) = v_username
+      and user_type = 'internal'
+    order by created_at asc
+    limit 1;
+  end if;
+
+  if v_user_id is null then
+    select id into v_user_id
+    from public.platform_users
+    where lower(coalesce(email, '')) = v_username
+    order by created_at asc
+    limit 1;
+  end if;
 
   if v_user_id is null then
     insert into public.platform_users (

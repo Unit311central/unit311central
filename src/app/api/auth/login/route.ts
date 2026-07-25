@@ -8,7 +8,10 @@ import {
 } from "@/lib/platform-auth";
 import { applyPlatformSessionCookie } from "@/lib/platform-session-cookie";
 import {
+  DEMO_WORKSPACE_SLUG,
   getRequestHost,
+  isDemoDomainHost,
+  isInternalDomainHost,
   parseClientPlatformSubdomainSafe,
   parseLoginReturnTo,
   parseSafePostLoginNext,
@@ -21,6 +24,7 @@ import { recordPlatformUserLogin } from "@/lib/external-platform-users-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
+  INTERNAL_WORKSPACE_SLUG,
   resolveWorkspaceBinding,
   withSessionWorkspace,
 } from "@/lib/workspace-context";
@@ -200,14 +204,23 @@ export async function POST(request: NextRequest) {
     const nextRaw = body.next?.trim() || nextFromReferer(request) || null;
 
     const loginReturn = parseLoginReturnTo(returnToRaw);
+    const requestHost = getRequestHost(request);
     const workspaceSlug =
-      loginReturn?.kind === "workspace"
-        ? parseClientPlatformSubdomainSafe(new URL(loginReturn.origin).host)
-        : parseClientPlatformSubdomainSafe(
-            parseValidWorkspaceReturnTo(returnToRaw)
-              ? new URL(parseValidWorkspaceReturnTo(returnToRaw)!).host
-              : null,
-          );
+      loginReturn?.kind === "demo"
+        ? DEMO_WORKSPACE_SLUG
+        : loginReturn?.kind === "internal"
+          ? INTERNAL_WORKSPACE_SLUG
+          : loginReturn?.kind === "workspace"
+            ? parseClientPlatformSubdomainSafe(new URL(loginReturn.origin).host)
+            : isDemoDomainHost(requestHost)
+              ? DEMO_WORKSPACE_SLUG
+              : isInternalDomainHost(requestHost)
+                ? INTERNAL_WORKSPACE_SLUG
+                : parseClientPlatformSubdomainSafe(
+                    parseValidWorkspaceReturnTo(returnToRaw)
+                      ? new URL(parseValidWorkspaceReturnTo(returnToRaw)!).host
+                      : null,
+                  );
 
     if (
       isDemoLoginEnabled() &&

@@ -257,22 +257,38 @@ export async function findPlatformUserByUsername(username: string) {
 export async function authenticatePlatformUser(username: string, password: string) {
   const normalized = normalizePlatformUsername(username);
 
-  if (normalized.includes("@")) {
-    const matches = await findPlatformUsersByEmail(normalized);
-    for (const user of matches) {
-      if (verifyPlatformPassword(password, user.password_hash)) {
-        return user;
-      }
-    }
+  // Exact username wins first. Emails can collide across signup-generated
+  // usernames (e.g. demo@x / demo@x#abcd); prefer the canonical account.
+  const byUsername = await findPlatformUserByUsername(normalized);
+  if (byUsername && verifyPlatformPassword(password, byUsername.password_hash)) {
+    return byUsername;
+  }
+
+  if (!normalized.includes("@")) {
     return null;
   }
 
-  const user = await findPlatformUserByUsername(normalized);
-  if (!user || !verifyPlatformPassword(password, user.password_hash)) {
+  const matches = await findPlatformUsersByEmail(normalized);
+  const passwordMatches = matches.filter((user) =>
+    verifyPlatformPassword(password, user.password_hash),
+  );
+  if (passwordMatches.length === 0) {
     return null;
   }
 
-  return user;
+  passwordMatches.sort((a, b) => {
+    const aExact = normalizePlatformUsername(a.username) === normalized ? 0 : 1;
+    const bExact = normalizePlatformUsername(b.username) === normalized ? 0 : 1;
+    if (aExact !== bExact) return aExact - bExact;
+
+    const aInternal = a.user_type === "internal" ? 0 : 1;
+    const bInternal = b.user_type === "internal" ? 0 : 1;
+    if (aInternal !== bInternal) return aInternal - bInternal;
+
+    return String(a.created_at).localeCompare(String(b.created_at));
+  });
+
+  return passwordMatches[0] ?? null;
 }
 
 export async function createSessionForUser(
