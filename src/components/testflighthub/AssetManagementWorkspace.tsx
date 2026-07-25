@@ -31,8 +31,8 @@ type AssetManagementWorkspaceProps = {
   selectedAssetId: string;
   onSelectAsset: (assetId: string) => void;
   onAssetsChange: (assets: ManagedAsset[]) => void;
-  onCategoriesChange: (categories: string[]) => void;
-  onLocationsChange: (locations: string[]) => void;
+  onCategoriesChange?: (categories: string[]) => void;
+  onLocationsChange?: (locations: string[]) => void;
 };
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -47,31 +47,6 @@ function inputClassName() {
   return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50";
 }
 
-function RegistryChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
-        active
-          ? "border-sky-400/50 bg-sky-500/15 text-sky-200"
-          : "border-white/10 bg-white/[0.03] text-white/55 hover:border-white/20 hover:text-white/75",
-      )}
-    >
-      {label}
-    </button>
-  );
-}
-
 export default function AssetManagementWorkspace({
   assets,
   categories,
@@ -81,15 +56,11 @@ export default function AssetManagementWorkspace({
   selectedAssetId,
   onSelectAsset,
   onAssetsChange,
-  onCategoriesChange,
-  onLocationsChange,
 }: AssetManagementWorkspaceProps) {
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
   const [assetSearchQuery, setAssetSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [locationFilter, setLocationFilter] = useState<string>("All");
-  const [newCategory, setNewCategory] = useState("");
-  const [newLocation, setNewLocation] = useState("");
   const [addCategory, setAddCategory] = useState(categories[0] ?? "Aircraft");
   const [addLocation, setAddLocation] = useState(locations[0] ?? "Oxford");
 
@@ -111,8 +82,6 @@ export default function AssetManagementWorkspace({
     });
   }, [assets, assetSearchQuery, categoryFilter, locationFilter]);
 
-  const hasAssetSearch = assetSearchQuery.trim().length > 0;
-
   const modelOptions = useMemo(
     () => (selectedAsset ? getModelsForCategory(selectedAsset.category) : []),
     [selectedAsset],
@@ -126,24 +95,7 @@ export default function AssetManagementWorkspace({
     const next = createBlankAsset(categories, locations, addCategory, addLocation);
     onAssetsChange([next, ...assets]);
     onSelectAsset(next.id);
-    setAssetSearchQuery(next.assetTag || next.id);
     openDetail();
-    setCategoryFilter(addCategory);
-    setLocationFilter(addLocation);
-  }
-
-  function handleAddCategory() {
-    const trimmed = newCategory.trim();
-    if (!trimmed || categories.includes(trimmed)) return;
-    onCategoriesChange([...categories, trimmed]);
-    setNewCategory("");
-  }
-
-  function handleAddLocation() {
-    const trimmed = newLocation.trim();
-    if (!trimmed || locations.includes(trimmed)) return;
-    onLocationsChange([...locations, trimmed]);
-    setNewLocation("");
   }
 
   function patchSelected(patch: Partial<ManagedAsset>) {
@@ -181,8 +133,8 @@ export default function AssetManagementWorkspace({
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+    <div className="flex min-h-0 flex-col gap-4">
+      <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:px-5 sm:py-4">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
           <input
@@ -194,86 +146,39 @@ export default function AssetManagementWorkspace({
           />
         </div>
 
-        <div className="mt-5 grid gap-6 lg:grid-cols-2">
-          <div>
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-white">Categories</h3>
-              <span className="text-xs text-white/40">{categories.length} types</span>
-            </div>
-            <div className="mt-3">
-              <FieldLabel>Filter by category</FieldLabel>
-              <select
-                className={inputClassName()}
-                value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
-              >
-                <option value="All">All categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <input
-                className={cn(inputClassName(), "mt-0")}
-                value={newCategory}
-                onChange={(event) => setNewCategory(event.target.value)}
-                placeholder="New category…"
-              />
-              <button
-                type="button"
-                onClick={handleAddCategory}
-                className="shrink-0 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white hover:bg-white/[0.08]"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-white">Locations</h3>
-              <span className="text-xs text-white/40">{locations.length} bases</span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {locations.map((location) => (
-                <RegistryChip
-                  key={location}
-                  label={location}
-                  active={locationFilter === location}
-                  onClick={() =>
-                    setLocationFilter((current) => (current === location ? "All" : location))
-                  }
-                />
-              ))}
-            </div>
-            <div className="mt-3 flex gap-2">
-              <input
-                className={cn(inputClassName(), "mt-0")}
-                value={newLocation}
-                onChange={(event) => setNewLocation(event.target.value)}
-                placeholder="New location…"
-              />
-              <button
-                type="button"
-                onClick={handleAddLocation}
-                className="shrink-0 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white hover:bg-white/[0.08]"
-              >
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-end gap-3 border-t border-white/10 pt-5">
-          <div className="min-w-[160px] flex-1">
-            <FieldLabel>Add asset category</FieldLabel>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <select
+            className={cn(inputClassName(), "mt-0 w-auto min-w-[140px] py-1.5 text-xs")}
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+            aria-label="Filter by category"
+          >
+            <option value="All">All categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+          <select
+            className={cn(inputClassName(), "mt-0 w-auto min-w-[130px] py-1.5 text-xs")}
+            value={locationFilter}
+            onChange={(event) => setLocationFilter(event.target.value)}
+            aria-label="Filter by location"
+          >
+            <option value="All">All locations</option>
+            {locations.map((location) => (
+              <option key={location} value={location}>
+                {location}
+              </option>
+            ))}
+          </select>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
             <select
-              className={inputClassName()}
+              className={cn(inputClassName(), "mt-0 w-auto min-w-[120px] py-1.5 text-xs")}
               value={addCategory}
               onChange={(event) => setAddCategory(event.target.value)}
+              aria-label="New asset category"
             >
               {categories.map((category) => (
                 <option key={category} value={category}>
@@ -281,13 +186,11 @@ export default function AssetManagementWorkspace({
                 </option>
               ))}
             </select>
-          </div>
-          <div className="min-w-[160px] flex-1">
-            <FieldLabel>Add asset location</FieldLabel>
             <select
-              className={inputClassName()}
+              className={cn(inputClassName(), "mt-0 w-auto min-w-[120px] py-1.5 text-xs")}
               value={addLocation}
               onChange={(event) => setAddLocation(event.target.value)}
+              aria-label="New asset location"
             >
               {locations.map((location) => (
                 <option key={location} value={location}>
@@ -295,14 +198,14 @@ export default function AssetManagementWorkspace({
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              onClick={handleAddAsset}
+              className="inline-flex h-[34px] items-center rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
+            >
+              Add Asset
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleAddAsset}
-            className="inline-flex h-[42px] items-center rounded-xl border border-sky-500/40 bg-sky-500/15 px-4 text-sm font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
-          >
-            Add Asset
-          </button>
         </div>
       </section>
 
@@ -310,83 +213,75 @@ export default function AssetManagementWorkspace({
         showDetail={showDetail && !!selectedAsset}
         onBack={closeDetail}
         backLabel="Back to assets"
+        columnsClassName="xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]"
         master={
-        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+        <section className="flex h-full min-h-[420px] flex-col rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-white">Asset List</h2>
+              <h2 className="text-lg font-semibold text-white">Assets</h2>
               <p className="mt-1 text-xs text-white/45">
-                {hasAssetSearch
-                  ? `${filteredAssets.length} match${filteredAssets.length === 1 ? "" : "es"}`
-                  : "Search above to find assets"}
+                {filteredAssets.length} asset{filteredAssets.length === 1 ? "" : "s"}
+                {assetSearchQuery.trim() ? " matching search" : ""}
               </p>
             </div>
           </div>
 
-          {!hasAssetSearch ? (
-            <div className="mt-8 flex flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-12 text-center">
-              <Search className="h-8 w-8 text-white/25" />
-              <p className="mt-3 text-sm text-white/50">Search above to find assets</p>
-              <p className="mt-1 text-xs text-white/35">
-                Enter a tag, model, serial number, or location to populate matches here.
-              </p>
-            </div>
-          ) : (
-            <ul className="mt-4 max-h-[520px] space-y-2 overflow-y-auto pr-1">
-              {filteredAssets.length === 0 ? (
-                <li className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-6 text-center text-sm text-white/45">
-                  No assets match your search.
-                </li>
-              ) : (
-                filteredAssets.map((asset) => {
-                  const selected = asset.id === selectedAsset?.id;
-                  const clientName =
-                    clients.find((client) => client.id === asset.assignedClientId)?.companyName ??
-                    "Unassigned";
-                  const assignedTo = ownerLabel(asset.assignedToUserId);
+          <ul className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+            {filteredAssets.length === 0 ? (
+              <li className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-10 text-center text-sm text-white/45">
+                {assets.length === 0
+                  ? "No assets yet. Use Add Asset to create one."
+                  : "No assets match your search."}
+              </li>
+            ) : (
+              filteredAssets.map((asset) => {
+                const selected = asset.id === selectedAsset?.id;
+                const clientName =
+                  clients.find((client) => client.id === asset.assignedClientId)?.companyName ??
+                  "Unassigned";
+                const assignedTo = ownerLabel(asset.assignedToUserId);
 
-                  return (
-                    <li key={asset.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onSelectAsset(asset.id);
-                          openDetail();
-                        }}
-                        className={cn(
-                          "w-full rounded-xl border px-4 py-3 text-left transition-colors",
-                          selected
-                            ? "border-sky-400/40 bg-sky-500/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
-                            : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-mono text-sm font-semibold text-white">{asset.assetTag}</p>
-                            <p className="mt-1 text-xs text-white/45">
-                              {asset.category} · {asset.location}
-                            </p>
-                            <p className="mt-0.5 text-[11px] text-white/35">
-                              {asset.model} · {clientName}
-                            </p>
-                            <p className="mt-0.5 text-[11px] text-white/35">Assigned to {assignedTo}</p>
-                          </div>
-                          <span
-                            className={cn(
-                              "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
-                              assetStatusClass(asset.operationalStatus),
-                            )}
-                          >
-                            {asset.operationalStatus}
-                          </span>
+                return (
+                  <li key={asset.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectAsset(asset.id);
+                        openDetail();
+                      }}
+                      className={cn(
+                        "w-full rounded-xl border px-4 py-3 text-left transition-colors",
+                        selected
+                          ? "border-sky-400/40 bg-sky-500/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
+                          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-mono text-sm font-semibold text-white">{asset.assetTag}</p>
+                          <p className="mt-1 text-xs text-white/45">
+                            {asset.category} · {asset.location}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-white/35">
+                            {asset.model} · {clientName}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-white/35">Assigned to {assignedTo}</p>
                         </div>
-                      </button>
-                    </li>
-                  );
-                })
-              )}
-            </ul>
-          )}
+                        <span
+                          className={cn(
+                            "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
+                            assetStatusClass(asset.operationalStatus),
+                          )}
+                        >
+                          {asset.operationalStatus}
+                        </span>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })
+            )}
+          </ul>
         </section>
         }
         detail={
