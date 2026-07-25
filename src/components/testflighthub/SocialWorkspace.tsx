@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import {
   ArrowDownRight,
+  ArrowLeft,
   ArrowUpRight,
   CalendarClock,
   Eye,
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 
 type PostMode = "create" | "schedule";
+type ComposerStep = "compose" | "preview";
 
 type PostStat = {
   label: string;
@@ -320,17 +322,202 @@ function LastPostCard({ platform }: { platform: PlatformConfig }) {
   );
 }
 
+function formatScheduleLabel(date: string, time: string) {
+  if (!date) return null;
+  try {
+    const iso = `${date}T${time || "09:00"}:00`;
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime())) return `${date} · ${time || "09:00"}`;
+    return parsed.toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return `${date} · ${time || "09:00"}`;
+  }
+}
+
+function PostPreviewCard({
+  platform,
+  text,
+  imageUrl,
+  imageName,
+  mode,
+  scheduleDate,
+  scheduleTime,
+}: {
+  platform: PlatformConfig;
+  text: string;
+  imageUrl: string | null;
+  imageName: string | null;
+  mode: PostMode;
+  scheduleDate: string;
+  scheduleTime: string;
+}) {
+  const scheduleLabel = mode === "schedule" ? formatScheduleLabel(scheduleDate, scheduleTime) : null;
+  const isLinkedIn = platform.id === "linkedin";
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+          Preview · how it will look
+        </p>
+        {scheduleLabel ? (
+          <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-100">
+            Scheduled · {scheduleLabel}
+          </span>
+        ) : (
+          <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-100">
+            Publishing now
+          </span>
+        )}
+      </div>
+
+      <div
+        className={cn(
+          "overflow-hidden border border-white/12 bg-[#0b1524]",
+          isLinkedIn ? "rounded-xl" : "rounded-2xl",
+        )}
+      >
+        <div className="flex items-center gap-3 border-b border-white/10 px-3.5 py-3">
+          <div
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center text-white",
+              isLinkedIn
+                ? "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold"
+                : "rounded-full bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold",
+            )}
+          >
+            {isLinkedIn ? "BC" : "IG"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white">
+              {isLinkedIn ? "BCN Drone" : platform.handle}
+            </p>
+            <p className="text-[11px] text-white/45">
+              {isLinkedIn ? `${platform.handle} · Just now` : "Just now"}
+            </p>
+          </div>
+          {platform.icon}
+        </div>
+
+        {!isLinkedIn && imageUrl ? (
+          <div className="aspect-square w-full bg-black/40">
+            <img src={imageUrl} alt={imageName ?? "Post image preview"} className="h-full w-full object-cover" />
+          </div>
+        ) : null}
+
+        <div className="px-3.5 py-3">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/85">
+            {text.trim() || "Your post text will appear here."}
+          </p>
+        </div>
+
+        {isLinkedIn && imageUrl ? (
+          <div className="border-t border-white/10 bg-black/30">
+            <img
+              src={imageUrl}
+              alt={imageName ?? "Post image preview"}
+              className="max-h-64 w-full object-cover"
+            />
+          </div>
+        ) : null}
+
+        {!imageUrl && imageName ? (
+          <div className="border-t border-white/10 px-3.5 py-2 text-[11px] text-white/40">
+            Image attached: {imageName}
+          </div>
+        ) : null}
+
+        <div className="flex items-center gap-4 border-t border-white/10 px-3.5 py-2.5 text-white/35">
+          {isLinkedIn ? (
+            <>
+              <span className="inline-flex items-center gap-1 text-[11px]">
+                <ThumbsUp className="h-3.5 w-3.5" /> Like
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px]">
+                <MessageCircle className="h-3.5 w-3.5" /> Comment
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px]">
+                <Repeat2 className="h-3.5 w-3.5" /> Repost
+              </span>
+            </>
+          ) : (
+            <>
+              <Heart className="h-4 w-4" />
+              <MessageCircle className="h-4 w-4" />
+              <Share2 className="h-4 w-4" />
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlatformColumn({ platform }: { platform: PlatformConfig }) {
   const [mode, setMode] = useState<PostMode>("create");
+  const [step, setStep] = useState<ComposerStep>("compose");
   const [text, setText] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("09:00");
   const [imageName, setImageName] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+    };
+  }, [imageUrl]);
+
+  function clearImage() {
+    if (imageUrl) URL.revokeObjectURL(imageUrl);
+    setImageUrl(null);
+    setImageName(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }
 
   function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    setImageName(file?.name ?? null);
+    if (imageUrl) URL.revokeObjectURL(imageUrl);
+    if (!file) {
+      setImageName(null);
+      setImageUrl(null);
+      return;
+    }
+    setImageName(file.name);
+    setImageUrl(URL.createObjectURL(file));
+  }
+
+  function switchMode(next: PostMode) {
+    setMode(next);
+    setStep("compose");
+    setStatusMessage(null);
+  }
+
+  function canPreview() {
+    if (!text.trim()) return false;
+    if (mode === "schedule" && !scheduleDate) return false;
+    return true;
+  }
+
+  function confirmPost() {
+    setStatusMessage(
+      mode === "create"
+        ? `Mock published to ${platform.name}.`
+        : `Mock scheduled on ${platform.name} for ${formatScheduleLabel(scheduleDate, scheduleTime)}.`,
+    );
+    setText("");
+    setScheduleDate("");
+    setScheduleTime("09:00");
+    clearImage();
+    setStep("compose");
   }
 
   return (
@@ -361,7 +548,7 @@ function PlatformColumn({ platform }: { platform: PlatformConfig }) {
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => setMode("create")}
+            onClick={() => switchMode("create")}
             className={cn(
               "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-colors sm:text-sm",
               mode === "create"
@@ -374,7 +561,7 @@ function PlatformColumn({ platform }: { platform: PlatformConfig }) {
           </button>
           <button
             type="button"
-            onClick={() => setMode("schedule")}
+            onClick={() => switchMode("schedule")}
             className={cn(
               "flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-colors sm:text-sm",
               mode === "schedule"
@@ -388,90 +575,151 @@ function PlatformColumn({ platform }: { platform: PlatformConfig }) {
         </div>
       </div>
 
-      <form
-        className="space-y-4 p-4 sm:p-5"
-        onSubmit={(event) => {
-          event.preventDefault();
-        }}
-      >
-        <div>
-          <FieldLabel>Post text</FieldLabel>
-          <textarea
-            rows={5}
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder={`What would you like to share on ${platform.name}?`}
-            className={cn(inputClassName(), "resize-none")}
-          />
-        </div>
-
-        <div>
-          <FieldLabel>Add image</FieldLabel>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageChange}
-          />
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="mt-1.5 flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-[#0b1524]/60 px-4 py-8 text-center transition-colors hover:border-sky-400/40 hover:bg-[#0b1524]"
-          >
-            <ImagePlus className="h-8 w-8 text-white/35" />
-            <span className="text-sm font-medium text-white/70">
-              {imageName ? imageName : "Click to upload an image"}
-            </span>
-            <span className="text-xs text-white/35">PNG, JPG up to 10 MB</span>
-          </button>
-        </div>
-
-        {mode === "schedule" ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <FieldLabel>Choose date</FieldLabel>
-              <input
-                type="date"
-                value={scheduleDate}
-                onChange={(event) => setScheduleDate(event.target.value)}
-                className={inputClassName()}
-              />
-            </div>
-            <div>
-              <FieldLabel>Choose time</FieldLabel>
-              <input
-                type="time"
-                value={scheduleTime}
-                onChange={(event) => setScheduleTime(event.target.value)}
-                className={inputClassName()}
-              />
-            </div>
-          </div>
-        ) : null}
-
-        <button
-          type="submit"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1d4ed8] disabled:opacity-50"
-          disabled={!text.trim()}
+      {step === "compose" ? (
+        <form
+          className="space-y-4 p-4 sm:p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!canPreview()) return;
+            setStatusMessage(null);
+            setStep("preview");
+          }}
         >
-          {mode === "create" ? (
-            <>
-              <Send className="h-4 w-4" />
-              Publish now
-            </>
-          ) : (
-            <>
-              <CalendarClock className="h-4 w-4" />
-              Schedule post
-            </>
-          )}
-        </button>
+          <div>
+            <FieldLabel>Post text</FieldLabel>
+            <textarea
+              rows={5}
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder={`What would you like to share on ${platform.name}?`}
+              className={cn(inputClassName(), "resize-none")}
+            />
+          </div>
 
-        <p className="text-center text-[11px] text-white/35">
-          Mockup only — posts are not published to {platform.name}.
-        </p>
-      </form>
+          <div>
+            <FieldLabel>Add image</FieldLabel>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageChange}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="mt-1.5 flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-[#0b1524]/60 px-4 py-8 text-center transition-colors hover:border-sky-400/40 hover:bg-[#0b1524]"
+            >
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={imageName ?? "Selected image"}
+                  className="h-28 w-full rounded-lg object-cover"
+                />
+              ) : (
+                <ImagePlus className="h-8 w-8 text-white/35" />
+              )}
+              <span className="text-sm font-medium text-white/70">
+                {imageName ? imageName : "Click to upload an image"}
+              </span>
+              <span className="text-xs text-white/35">PNG, JPG up to 10 MB</span>
+            </button>
+            {imageName ? (
+              <button
+                type="button"
+                onClick={clearImage}
+                className="mt-2 text-xs text-white/45 underline-offset-2 hover:text-white/70 hover:underline"
+              >
+                Remove image
+              </button>
+            ) : null}
+          </div>
+
+          {mode === "schedule" ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <FieldLabel>Choose date</FieldLabel>
+                <input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(event) => setScheduleDate(event.target.value)}
+                  className={inputClassName()}
+                />
+              </div>
+              <div>
+                <FieldLabel>Choose time</FieldLabel>
+                <input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(event) => setScheduleTime(event.target.value)}
+                  className={inputClassName()}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          <button
+            type="submit"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1d4ed8] disabled:opacity-50"
+            disabled={!canPreview()}
+          >
+            <Eye className="h-4 w-4" />
+            Preview post
+          </button>
+
+          {statusMessage ? (
+            <p className="text-center text-[12px] text-emerald-300/90">{statusMessage}</p>
+          ) : (
+            <p className="text-center text-[11px] text-white/35">
+              Preview your post before publishing to {platform.name}.
+            </p>
+          )}
+        </form>
+      ) : (
+        <div className="space-y-4 p-4 sm:p-5">
+          <PostPreviewCard
+            platform={platform}
+            text={text}
+            imageUrl={imageUrl}
+            imageName={imageName}
+            mode={mode}
+            scheduleDate={scheduleDate}
+            scheduleTime={scheduleTime}
+          />
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setStep("compose")}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:border-white/25 hover:bg-white/[0.07]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to edit
+            </button>
+            <button
+              type="button"
+              onClick={confirmPost}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#1d4ed8]"
+            >
+              {mode === "create" ? (
+                <>
+                  <Send className="h-4 w-4" />
+                  Publish now
+                </>
+              ) : (
+                <>
+                  <CalendarClock className="h-4 w-4" />
+                  Confirm schedule
+                </>
+              )}
+            </button>
+          </div>
+
+          <p className="text-center text-[11px] text-white/35">
+            Mockup only — posts are not published to {platform.name}.
+          </p>
+        </div>
+      )}
 
       <LastPostCard platform={platform} />
     </article>
