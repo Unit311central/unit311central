@@ -11,8 +11,11 @@ import {
   defaultAllowedViews,
   defaultHomeTiles,
   isModuleGroupEnabled,
+  isWorkspaceDashboardEnabled,
   MODULE_GRANT_GROUPS,
   toggleModuleGroup,
+  toggleWorkspaceDashboard,
+  WORKSPACE_DASHBOARD_OPTIONS,
 } from "@/lib/access-presets";
 import {
   USER_DEPARTMENT_OPTIONS,
@@ -382,41 +385,118 @@ export default function AddUserAccessWizard({
           )}
 
           {step === 3 && (
-            <div className="space-y-4">
-              <p className="text-sm text-white/55">
-                Choose which Home dashboard sections appear for this user.
-              </p>
-              <ul className="space-y-2">
-                {COMMAND_CENTRE_HOME_TILE_CATALOG.map((tile) => {
-                  const enabled = homeTiles.includes(tile.id);
-                  return (
-                    <li key={tile.id}>
-                      <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                        <span>
-                          <span className="block text-sm text-white">{tile.title}</span>
-                          <span className="mt-0.5 block text-xs text-white/45">{tile.description}</span>
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={enabled}
-                          onChange={(event) => {
-                            setHomeTiles((current) => {
-                              if (event.target.checked) {
-                                return current.includes(tile.id)
-                                  ? current
-                                  : [...current, tile.id];
-                              }
-                              const next = current.filter((id) => id !== tile.id);
-                              return next.length > 0 ? next : ["executive-brief"];
-                            });
-                          }}
-                          className="mt-1 h-4 w-4 accent-sky-400"
-                        />
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Home sections
+                  </p>
+                  <p className="mt-1 text-sm text-white/55">
+                    Choose which sections appear on the Home executive dashboard.
+                  </p>
+                </div>
+                <ul className="space-y-2">
+                  {COMMAND_CENTRE_HOME_TILE_CATALOG.map((tile) => {
+                    const enabled = homeTiles.includes(tile.id);
+                    return (
+                      <li key={tile.id}>
+                        <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                          <span>
+                            <span className="block text-sm text-white">{tile.title}</span>
+                            <span className="mt-0.5 block text-xs text-white/45">
+                              {tile.description}
+                            </span>
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={enabled}
+                            onChange={(event) => {
+                              setHomeTiles((current) => {
+                                if (event.target.checked) {
+                                  return current.includes(tile.id)
+                                    ? current
+                                    : [...current, tile.id];
+                                }
+                                const next = current.filter((id) => id !== tile.id);
+                                return next.length > 0 ? next : ["executive-brief"];
+                              });
+                            }}
+                            className="mt-1 h-4 w-4 accent-sky-400"
+                          />
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Workspace dashboards
+                  </p>
+                  <p className="mt-1 text-sm text-white/55">
+                    Grant access to each module dashboard. Turn off any dashboard this user should
+                    not open.
+                  </p>
+                </div>
+                {(() => {
+                  const sections = new Map<string, typeof WORKSPACE_DASHBOARD_OPTIONS>();
+                  for (const dashboard of WORKSPACE_DASHBOARD_OPTIONS) {
+                    const list = sections.get(dashboard.section) ?? [];
+                    list.push(dashboard);
+                    sections.set(dashboard.section, list);
+                  }
+                  return [...sections.entries()].map(([section, dashboards]) => (
+                    <div key={section}>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+                        {section}
+                      </p>
+                      <ul className="space-y-2">
+                        {dashboards.map((dashboard) => {
+                          const enabled = isWorkspaceDashboardEnabled(
+                            dashboard.id,
+                            allowedViews,
+                          );
+                          const locked = dashboard.id === "home";
+                          return (
+                            <li key={dashboard.id}>
+                              <label
+                                className={cn(
+                                  "flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3",
+                                  locked ? "cursor-default opacity-80" : "cursor-pointer",
+                                )}
+                              >
+                                <span>
+                                  <span className="block text-sm text-white">{dashboard.title}</span>
+                                  <span className="mt-0.5 block text-xs text-white/45">
+                                    {dashboard.description}
+                                  </span>
+                                </span>
+                                <input
+                                  type="checkbox"
+                                  checked={enabled}
+                                  disabled={locked}
+                                  onChange={(event) =>
+                                    setAllowedViews(
+                                      toggleWorkspaceDashboard(
+                                        dashboard.id,
+                                        allowedViews,
+                                        event.target.checked,
+                                      ),
+                                    )
+                                  }
+                                  className="mt-1 h-4 w-4 accent-sky-400 disabled:opacity-60"
+                                />
+                              </label>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ));
+                })()}
+              </div>
             </div>
           )}
         </div>

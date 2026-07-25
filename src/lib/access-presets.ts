@@ -225,6 +225,121 @@ function allModuleViews(): InternalOperationsView[] {
   return [...views];
 }
 
+/** Primary workspace dashboards — selectable on Add User → Dashboards. */
+export const WORKSPACE_DASHBOARD_OPTIONS: ReadonlyArray<{
+  id: InternalOperationsView;
+  title: string;
+  description: string;
+  section: string;
+}> = [
+  {
+    id: "home",
+    title: "Home",
+    description: "Executive operating centre.",
+    section: "Core",
+  },
+  {
+    id: "clients-dashboard",
+    title: "Clients Dashboard",
+    description: "Client portfolio overview.",
+    section: "Business Central",
+  },
+  {
+    id: "projects-dashboard",
+    title: "Projects Dashboard",
+    description: "Live and upcoming delivery.",
+    section: "Business Central",
+  },
+  {
+    id: "financials",
+    title: "Financials Dashboard",
+    description: "Revenue, cash, AR/AP overview.",
+    section: "Financials",
+  },
+  {
+    id: "board-pack",
+    title: "Board Pack",
+    description: "Board deck builder and review.",
+    section: "Financials",
+  },
+  {
+    id: "hr-dashboard",
+    title: "HR Dashboard",
+    description: "People, leave, and workforce KPIs.",
+    section: "Human Resources",
+  },
+  {
+    id: "corporate-dashboard",
+    title: "Corporate Dashboard",
+    description: "Company structure and corporate info.",
+    section: "Corporate Information",
+  },
+  {
+    id: "unit311-details",
+    title: "Unit311 Details Dashboard",
+    description: "Platform details and module go-live.",
+    section: "Corporate Information",
+  },
+  {
+    id: "technology-dashboard",
+    title: "Technology Dashboard",
+    description: "Devices, SaaS, and infrastructure.",
+    section: "Technology Management",
+  },
+  {
+    id: "engineering-dashboard",
+    title: "Engineering Dashboard",
+    description: "Engineering programmes and capacity.",
+    section: "Technology Management",
+  },
+  {
+    id: "productivity-dashboard",
+    title: "Productivity Dashboard",
+    description: "Calendar, files, and communications.",
+    section: "Business Productivity",
+  },
+  {
+    id: "training-dashboard",
+    title: "Training Dashboard",
+    description: "Courses and learning progress.",
+    section: "Training",
+  },
+  {
+    id: "quality-management",
+    title: "QMS Dashboard",
+    description: "Quality system overview.",
+    section: "QMS",
+  },
+  {
+    id: "external-client-access",
+    title: "External Client Access Dashboard",
+    description: "External users and portal access.",
+    section: "External Client Access",
+  },
+];
+
+export function isWorkspaceDashboardEnabled(
+  dashboardId: InternalOperationsView,
+  allowedViews: readonly InternalOperationsView[] | null | undefined,
+): boolean {
+  if (allowedViews == null) return true;
+  return allowedViews.includes(dashboardId);
+}
+
+export function toggleWorkspaceDashboard(
+  dashboardId: InternalOperationsView,
+  allowedViews: InternalOperationsView[],
+  enabled: boolean,
+): InternalOperationsView[] {
+  const next = new Set(allowedViews);
+  for (const view of ALWAYS_ALLOWED_VIEWS) next.add(view);
+  if (enabled) next.add(dashboardId);
+  else if (!(ALWAYS_ALLOWED_VIEWS as readonly string[]).includes(dashboardId)) {
+    next.delete(dashboardId);
+  }
+  return [...next];
+}
+
 /** Smart defaults from access tier + department. Admin can override in the wizard. */
 export function defaultAllowedViews(
   role: UserRole,
@@ -294,6 +409,33 @@ export function defaultAllowedViews(
   }
 
   return viewsForGroups(groupIds);
+}
+
+/** Union of presets when a user holds multiple roles. */
+export function defaultAllowedViewsForRoles(
+  roles: readonly UserRole[],
+  department: UserDepartment,
+): InternalOperationsView[] {
+  if (roles.includes("Admin") || roles.includes("Board") || roles.includes("Exec")) {
+    return allModuleViews();
+  }
+  const views = new Set<InternalOperationsView>();
+  const list = roles.length > 0 ? roles : (["Associate"] as UserRole[]);
+  for (const role of list) {
+    for (const view of defaultAllowedViews(role, department)) views.add(view);
+  }
+  return [...views];
+}
+
+export function defaultHomeTilesForRoles(
+  roles: readonly UserRole[],
+  department: UserDepartment,
+): CommandCentreHomeTileId[] {
+  if (roles.includes("Admin") || roles.includes("Board") || roles.includes("Exec")) {
+    return [...DEFAULT_COMMAND_CENTRE_HOME_LAYOUT];
+  }
+  const primary = roles.includes("Manager") ? "Manager" : roles[0] ?? "Associate";
+  return defaultHomeTiles(primary, department);
 }
 
 export function defaultHomeTiles(
