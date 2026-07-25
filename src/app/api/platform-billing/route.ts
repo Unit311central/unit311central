@@ -114,8 +114,8 @@ export async function PATCH(request: Request) {
       mrrUsd?: number;
       arrUsd?: number;
       planName?: string;
-      billingFrequency?: "monthly" | "quarterly" | "annual";
-      subscriptionStatus?: "active" | "past_due" | "trialing" | "canceled";
+      billingFrequency?: PlatformBillingFrequency;
+      subscriptionStatus?: PlatformSubscriptionStatus;
       outstandingBalanceUsd?: number;
       nextInvoiceDate?: string | null;
       notes?: string | null;
