@@ -187,7 +187,10 @@ export function issueCertificate(input: {
 export function createCourse(input: Omit<TqmsCourse, "id">) {
   const course: TqmsCourse = { ...input, id: `crs-${Date.now()}` };
   state = { ...state, courses: [course, ...state.courses] };
-  pushActivity("Course created", `${course.title} published to the catalogue`);
+  pushActivity(
+    course.status === "Published" ? "Course published" : "Course draft saved",
+    `${course.title} (${course.pages?.length ?? 0} pages, ${course.questions?.length ?? 0} questions)`,
+  );
   emit();
   return course;
 }

@@ -20,6 +20,7 @@ import {
   type TqmsMockState,
 } from "@/lib/tqms-mock-store";
 import { cn } from "@/lib/utils";
+import CreateCourseWizard from "./CreateCourseWizard";
 import { useTqmsMockStore } from "./useTqmsMockStore";
 import {
   TqmsEmpty,
@@ -117,6 +118,7 @@ export default function StaffTrainingWorkspace() {
   const [noteText, setNoteText] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showCreateCourse, setShowCreateCourse] = useState(false);
 
   const filterOptions = useMemo(
     () => ({
@@ -207,16 +209,7 @@ export default function StaffTrainingWorkspace() {
   }
 
   function handleCreateCourse() {
-    createCourse({
-      code: `TRN-${String(store.courses.length + 100).padStart(3, "0")}`,
-      title: "Staff Operations Course",
-      category: "Operations",
-      mandatory: false,
-      durationHours: 2,
-      status: "Published",
-      owner: "People Ops",
-    });
-    setNotice("Course published to the catalogue.");
+    setShowCreateCourse(true);
   }
 
   return (
@@ -330,6 +323,22 @@ export default function StaffTrainingWorkspace() {
           </table>
         </div>
       </TqmsSection>
+
+      {showCreateCourse ? (
+        <CreateCourseWizard
+          suggestedCode={`TRN-${String(store.courses.length + 100).padStart(3, "0")}`}
+          onClose={() => setShowCreateCourse(false)}
+          onSubmit={(course) => {
+            createCourse(course);
+            setShowCreateCourse(false);
+            setNotice(
+              course.status === "Published"
+                ? "Course published to the catalogue."
+                : "Course draft saved to the catalogue.",
+            );
+          }}
+        />
+      ) : null}
 
       {selected && selectedStats ? (
         <TqmsSlideOver

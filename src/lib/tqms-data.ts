@@ -59,6 +59,24 @@ export const TQMS_PANEL_TABS = [
 ] as const;
 export type TqmsPanelTab = (typeof TQMS_PANEL_TABS)[number];
 
+export type TqmsCoursePage = {
+  id: string;
+  title: string;
+  body: string;
+  imageName?: string | null;
+  /** Local preview data URL (mock upload — not persisted remotely). */
+  imageDataUrl?: string | null;
+};
+
+export type TqmsCourseQuestion = {
+  id: string;
+  prompt: string;
+  answers: string[];
+  correctIndex: number;
+  /** Optional link to a content page. */
+  pageId?: string | null;
+};
+
 export type TqmsCourse = {
   id: string;
   code: string;
@@ -68,6 +86,9 @@ export type TqmsCourse = {
   durationHours: number;
   status: TqmsCourseStatus;
   owner: string;
+  description?: string;
+  pages?: TqmsCoursePage[];
+  questions?: TqmsCourseQuestion[];
 };
 
 export type TqmsLearner = {
