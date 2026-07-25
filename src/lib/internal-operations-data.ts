@@ -73,7 +73,6 @@ export type InternalOperationsView =
   | "external-client-access"
   | "support"
   | "telemetry"
-  | "media-example"
   | "design-mockups"
   | "sector"
   | "training"
@@ -223,7 +222,6 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "external-client-access",
   "support",
   "telemetry",
-  "media-example",
   "design-mockups",
   "sector",
   "training",
@@ -611,7 +609,6 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     items: [
       { label: "Website Management", icon: "Globe", view: "website-management" as const },
       { label: "Integrations", icon: "Plug", view: "integrations" as const },
-      { label: "Media Library", icon: "Film", view: "media-example" as const },
       { label: "Testing", icon: "FlaskConical", view: "testing" as const },
       { label: "Telemetry", icon: "Radio", view: "telemetry" as const },
       { label: "Users", icon: "Users", view: "users" as const },
@@ -732,7 +729,6 @@ export const internalViewTitles: Record<
   },
   support: { title: "Support Desk", subtitle: "Business Productivity" },
   telemetry: { title: "Live Telemetry", subtitle: "Tools" },
-  "media-example": { title: "Media Library", subtitle: "Tools" },
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },
   sector: { title: "Sector Intelligence", subtitle: "Unit311" },
   training: { title: "Staff Courses", subtitle: "Training" },

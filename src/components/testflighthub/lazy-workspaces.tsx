@@ -68,7 +68,6 @@ export const InternalDesignMockups = lazyWorkspace(() => import("./InternalDesig
 export const SectorWorkspace = lazyWorkspace(() => import("./SectorWorkspace"));
 export const ProjectsWorkspace = lazyWorkspace(() => import("./ProjectsWorkspace"));
 export const LogisticsWorkspace = lazyWorkspace(() => import("./LogisticsWorkspace"));
-export const MediaExampleWorkspace = lazyWorkspace(() => import("./MediaExampleWorkspace"));
 export const CommunicationsWorkspace = lazyWorkspace(() => import("./CommunicationsWorkspace"));
 export const MessagingWorkspace = lazyWorkspace(() => import("./MessagingWorkspace"));
 export const SocialWorkspace = lazyWorkspace(() => import("./SocialWorkspace"));
