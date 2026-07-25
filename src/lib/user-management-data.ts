@@ -10,6 +10,7 @@ import type { InternalOperationsView } from "@/lib/internal-operations-data";
 export type UserRole = "Board" | "Exec" | "Manager" | "Associate" | "Admin";
 
 export type UserDepartment =
+  | "Board"
   | "Engineering"
   | "Sales"
   | "Finance"
@@ -53,6 +54,7 @@ export const USER_ROLE_OPTIONS: UserRole[] = [
 ];
 
 export const USER_DEPARTMENT_OPTIONS: UserDepartment[] = [
+  "Board",
   "Engineering",
   "Sales",
   "Finance",

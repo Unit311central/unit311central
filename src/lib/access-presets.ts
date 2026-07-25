@@ -250,6 +250,8 @@ export function defaultAllowedViews(
       groupIds = ["operations-assets", "projects", "training", "qms", "productivity"];
     } else if (department === "Technology") {
       groupIds = ["technology", "engineering", "projects", "productivity"];
+    } else if (department === "Board" || department === "Corporate") {
+      groupIds = ["strategy", "corporate", "clients", "projects", "productivity"];
     }
   } else {
     // Manager
@@ -279,7 +281,7 @@ export function defaultAllowedViews(
       groupIds = ["executive-assistant", ...OPS_GROUP_IDS, "productivity", "clients"];
     } else if (department === "Technology") {
       groupIds = ["executive-assistant", "technology", "engineering", "projects", "productivity"];
-    } else if (department === "Corporate") {
+    } else if (department === "Board" || department === "Corporate") {
       groupIds = [
         "executive-assistant",
         "corporate",
@@ -319,6 +321,9 @@ export function defaultHomeTiles(
   }
   if (department === "Technology") {
     return ["executive-brief", "projects", "operations", "risks"];
+  }
+  if (department === "Board") {
+    return ["executive-brief", "financial", "commercial", "risks"];
   }
 
   return ["executive-brief", "projects", "operations", "commercial"];
