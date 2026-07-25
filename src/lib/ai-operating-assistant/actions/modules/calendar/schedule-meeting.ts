@@ -11,6 +11,11 @@ import {
   enrichScheduleMeetingInput,
   parseNaturalWhen,
 } from "./natural-when";
+import {
+  meetingCreatedPrompt,
+  withAwaitingAttendeesMarker,
+} from "./meeting-invite-flow";
+import { buildCalendarMeetingUrl } from "@/lib/calendar-invite-email";
 
 function asTrimmedString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -30,7 +35,7 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
   description: "Create a calendar meeting/event from natural language.",
   module: "calendar",
   requiredPermissions: ["authenticated"],
-  confirmationRequired: true,
+  confirmationRequired: false,
   auditRequired: true,
   undoCapable: false,
   inputSchema: {
@@ -71,13 +76,11 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
         { field: "location", from: "location" },
       ],
     },
-    confirmationPolicy: "always",
+    confirmationPolicy: "never",
     successFormatter: {
-      template: "Meeting scheduled.\n\n{recordLabel}\nStarts {startsAt}",
-      fields: [
-        { token: "recordLabel", path: "result.recordLabel" },
-        { token: "startsAt", path: "result.startsAt" },
-      ],
+      template:
+        "Meeting created — please give me the email addresses of the {clientName} people you want to join the call.",
+      fields: [{ token: "clientName", path: "result.clientName" }],
     },
     suggestedFollowUps: [
       { label: "Reschedule meeting", actionId: "calendar.rescheduleMeeting" },
@@ -133,34 +136,49 @@ export const scheduleMeetingAction: AssistantActionDefinition = {
       if (!endsAt) {
         endsAt = new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
       }
+      const clientName = asTrimmedString(enriched.clientName) || undefined;
+      const scope = calendarScope(ctx.business);
       const event = await createCalendarEvent(
         {
           title,
           startsAt,
           endsAt,
-          clientName: asTrimmedString(enriched.clientName) || undefined,
+          clientName,
           location: asTrimmedString(enriched.location) || undefined,
-          notes: asTrimmedString(enriched.notes) || undefined,
+          notes: withAwaitingAttendeesMarker(asTrimmedString(enriched.notes) || null),
           eventType: "meeting",
         },
-        calendarScope(ctx.business),
+        scope,
+      );
+      const meetingUrl = buildCalendarMeetingUrl(event.id);
+      const finalEvent = await updateCalendarEvent(
+        event.id,
+        {
+          location: meetingUrl,
+          notes: event.notes || withAwaitingAttendeesMarker(null),
+        },
+        scope,
       );
       return {
         ok: true,
-        message: `Scheduled “${event.title}”.`,
-        recordId: event.id,
-        recordLabel: event.title,
+        message: meetingCreatedPrompt(clientName),
+        recordId: finalEvent.id,
+        recordLabel: finalEvent.title,
         beforeState: null,
         afterState: {
-          eventId: event.id,
-          title: event.title,
-          startsAt: event.startsAt,
-          endsAt: event.endsAt,
+          eventId: finalEvent.id,
+          title: finalEvent.title,
+          startsAt: finalEvent.startsAt,
+          endsAt: finalEvent.endsAt,
+          clientName: finalEvent.clientName,
+          meetingUrl,
         },
         output: {
-          eventId: event.id,
-          title: event.title,
-          startsAt: event.startsAt,
+          eventId: finalEvent.id,
+          title: finalEvent.title,
+          startsAt: finalEvent.startsAt,
+          clientName: finalEvent.clientName || clientName || "the client",
+          meetingUrl,
         },
       };
     },

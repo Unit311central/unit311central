@@ -120,6 +120,35 @@ export async function resolveOrchestrationRoute(
 ): Promise<OrchestrationRoute> {
   ensureActionModulesRegistered();
 
+  // Meeting invite follow-up: emails after "Meeting created — please give me…"
+  {
+    const {
+      looksLikeMeetingAttendeeReply,
+      extractEmailsFromMessage,
+      findPendingMeetingForInvite,
+      sendMeetingAttendeeInvites,
+    } = await import("./actions/modules/calendar/meeting-invite-flow");
+    if (looksLikeMeetingAttendeeReply(message, history)) {
+      const emails = extractEmailsFromMessage(message);
+      const scope = { workspaceId: business.workspace.id?.trim() || null };
+      const pending = await findPendingMeetingForInvite(scope, history);
+      if (!pending) {
+        return {
+          kind: "capability_answer",
+          message:
+            "I couldn't find a meeting waiting for invites. Schedule a meeting first, then send the emails.",
+        };
+      }
+      const result = await sendMeetingAttendeeInvites({
+        event: pending,
+        attendeeEmails: emails,
+        business,
+        scope,
+      });
+      return { kind: "capability_answer", message: result.message };
+    }
+  }
+
   const domain = classifyKnowledgeDomain(message);
   eaStage("Knowledge domain", {
     domain: domain.domain,
@@ -301,6 +330,32 @@ export async function resolveOrchestrationRoute(
       };
     }
     if (businessIntent.kind === "propose") {
+      const definition = getAssistantAction(businessIntent.actionId);
+      // Instant CEO writes (e.g. schedule meeting): execute now, short reply, no Approve UI.
+      if (definition && definition.confirmationRequired === false) {
+        try {
+          const result = await definition.handler.execute(businessIntent.input, {
+            business,
+            planId: `auto_${Date.now()}`,
+            stepId: "1",
+            priorOutputs: {},
+          });
+          return {
+            kind: "capability_answer",
+            message:
+              result.message?.trim() ||
+              (result.ok ? "Done." : "I couldn't complete that."),
+          };
+        } catch (error) {
+          return {
+            kind: "capability_answer",
+            message:
+              error instanceof Error
+                ? error.message
+                : "I couldn't complete that just now.",
+          };
+        }
+      }
       return {
         kind: "tool",
         intent: proposeSteps(

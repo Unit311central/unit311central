@@ -133,7 +133,7 @@ const SCENARIOS = [
     prompt:
       "Schedule a discovery meeting titled Peak Demo for Peak Infrastructure next Tuesday at 10:00.",
     domain: "write",
-    expect: [/schedule|meeting|calendar|confirm|approve|preview|demo/i],
+    expect: [/meeting created|email addresses|approve|schedule|confirm/i],
   },
   {
     id: "close-project",
@@ -333,6 +333,9 @@ function evaluate(scenario, result) {
       }
     } else if (domain === "write") {
       checks.push("write_plan");
+    } else if (/meeting created/i.test(content)) {
+      // Instant calendar schedule — short reply, no Approve plan.
+      checks.push("instant_meeting_ok");
     } else if (honestUnsupported || domain === "capability") {
       checks.push("unsupported_write_honest");
     } else {
