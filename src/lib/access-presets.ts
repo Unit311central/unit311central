@@ -5,6 +5,7 @@ import {
 } from "@/lib/command-centre-home-tiles";
 import {
   internalOperationsViews,
+  internalViewTitles,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import type { UserDepartment, UserRole } from "@/lib/user-management-data";
@@ -483,6 +484,33 @@ export function isModuleGroupEnabled(
   return group.views.every((view) => allowed.has(view));
 }
 
+export function isModuleGroupPartiallyEnabled(
+  group: ModuleGrantGroup,
+  allowedViews: readonly InternalOperationsView[] | null | undefined,
+): boolean {
+  if (allowedViews == null) return false;
+  const allowed = new Set(allowedViews);
+  const enabledCount = group.views.filter((view) => allowed.has(view)).length;
+  return enabledCount > 0 && enabledCount < group.views.length;
+}
+
+export function isModuleViewEnabled(
+  view: InternalOperationsView,
+  allowedViews: readonly InternalOperationsView[] | null | undefined,
+): boolean {
+  if (allowedViews == null) return true;
+  return allowedViews.includes(view);
+}
+
+export function moduleViewLabel(view: InternalOperationsView): string {
+  const meta = internalViewTitles[view];
+  if (!meta) return view;
+  if (meta.title === "Dashboard" || meta.title.toLowerCase().includes("dashboard")) {
+    return `${meta.subtitle} · ${meta.title}`;
+  }
+  return meta.title;
+}
+
 export function toggleModuleGroup(
   group: ModuleGrantGroup,
   allowedViews: InternalOperationsView[],
@@ -495,6 +523,18 @@ export function toggleModuleGroup(
   } else {
     for (const view of group.views) next.delete(view);
   }
+  return [...next];
+}
+
+export function toggleModuleView(
+  view: InternalOperationsView,
+  allowedViews: InternalOperationsView[],
+  enabled: boolean,
+): InternalOperationsView[] {
+  const next = new Set(allowedViews);
+  for (const always of ALWAYS_ALLOWED_VIEWS) next.add(always);
+  if (enabled) next.add(view);
+  else if (!(ALWAYS_ALLOWED_VIEWS as readonly string[]).includes(view)) next.delete(view);
   return [...next];
 }
 

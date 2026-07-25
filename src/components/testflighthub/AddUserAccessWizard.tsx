@@ -11,9 +11,13 @@ import {
   defaultAllowedViewsForRoles,
   defaultHomeTilesForRoles,
   isModuleGroupEnabled,
+  isModuleGroupPartiallyEnabled,
+  isModuleViewEnabled,
   isWorkspaceDashboardEnabled,
   MODULE_GRANT_GROUPS,
+  moduleViewLabel,
   toggleModuleGroup,
+  toggleModuleView,
   toggleWorkspaceDashboard,
   WORKSPACE_DASHBOARD_OPTIONS,
 } from "@/lib/access-presets";
@@ -396,24 +400,44 @@ export default function AddUserAccessWizard({
           {step === 2 && (
             <div className="space-y-5">
               <p className="text-sm text-white/55">
-                Toggle which platform modules this user can see. Example: Head of Engineering can
-                keep Financials off.
+                Toggle modules and their sub-pages. Use the module checkbox to select all, or pick
+                individual screens below each group.
               </p>
               {groupedModules.map(([section, groups]) => (
                 <div key={section}>
                   <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
                     {section}
                   </p>
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {groups.map((group) => {
                       const enabled = isModuleGroupEnabled(group, allowedViews);
+                      const partial = isModuleGroupPartiallyEnabled(group, allowedViews);
+                      const showSubs = group.views.length > 1;
                       return (
-                        <li key={group.id}>
-                          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                            <span className="text-sm text-white">{group.label}</span>
+                        <li
+                          key={group.id}
+                          className="rounded-xl border border-white/10 bg-white/[0.03]"
+                        >
+                          <label className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3">
+                            <span>
+                              <span className="block text-sm font-medium text-white">
+                                {group.label}
+                              </span>
+                              {showSubs ? (
+                                <span className="mt-0.5 block text-[11px] text-white/40">
+                                  {group.views.filter((view) =>
+                                    isModuleViewEnabled(view, allowedViews),
+                                  ).length}
+                                  /{group.views.length} sub-modules
+                                </span>
+                              ) : null}
+                            </span>
                             <input
                               type="checkbox"
                               checked={enabled}
+                              ref={(el) => {
+                                if (el) el.indeterminate = !enabled && partial;
+                              }}
                               onChange={(event) =>
                                 setAllowedViews(
                                   toggleModuleGroup(group, allowedViews, event.target.checked),
@@ -422,6 +446,36 @@ export default function AddUserAccessWizard({
                               className="h-4 w-4 accent-sky-400"
                             />
                           </label>
+                          {showSubs ? (
+                            <ul className="space-y-1 border-t border-white/10 px-3 py-2.5 sm:px-4">
+                              {group.views.map((view) => {
+                                const subEnabled = isModuleViewEnabled(view, allowedViews);
+                                return (
+                                  <li key={view}>
+                                    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-1.5 hover:bg-white/[0.04]">
+                                      <span className="text-[13px] text-white/75">
+                                        {moduleViewLabel(view)}
+                                      </span>
+                                      <input
+                                        type="checkbox"
+                                        checked={subEnabled}
+                                        onChange={(event) =>
+                                          setAllowedViews(
+                                            toggleModuleView(
+                                              view,
+                                              allowedViews,
+                                              event.target.checked,
+                                            ),
+                                          )
+                                        }
+                                        className="h-3.5 w-3.5 accent-sky-400"
+                                      />
+                                    </label>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          ) : null}
                         </li>
                       );
                     })}
