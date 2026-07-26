@@ -22,6 +22,7 @@ import {
   type SupplierInvoiceMatch,
   type SupplierRecord,
 } from "@/lib/procurement-data";
+import { tryGetDemoFixtures } from "@/lib/demo-enterprise/demo-mock-gate";
 
 type Listener = () => void;
 
@@ -70,6 +71,89 @@ function line(partial: Partial<ProcurementLineItem> & { item: string }): Procure
 }
 
 function seedState(): ProcurementMockState {
+  const fixtures = tryGetDemoFixtures();
+  if (fixtures) {
+    const suppliers: SupplierRecord[] = fixtures.suppliers.map((row, index) => ({
+      id: `mag-sup-${index + 1}`,
+      companyName: row.name,
+      contacts: [
+        {
+          name: "Account Manager",
+          email: `accounts@${row.name.toLowerCase().replace(/[^a-z0-9]+/g, "")}.demo`,
+          phone: fixtures.company.phone,
+          role: "Account Manager",
+        },
+      ],
+      addresses: [
+        {
+          label: "HQ",
+          line1: fixtures.company.registeredAddress,
+          city: "London",
+          country: "United Kingdom",
+          postcode: "EC2N 4AG",
+        },
+      ],
+      taxId: `GB${880000000 + index}`,
+      paymentTerms: "Net 30",
+      bankDetails: "GB29 NWBK 6016 1331 9268 19",
+      preferred: index < 4,
+      insuranceExpiry: isoDaysFromNow(120 + index * 10),
+      contractExpiry: isoDaysFromNow(200 + index * 15),
+      rating: 4.2 + (index % 5) * 0.1,
+      performanceScore: 88 + (index % 10),
+      onTimeDeliveryPct: 90 + (index % 8),
+      qualityScore: 91 + (index % 7),
+      priceCompetitiveness: 80 + (index % 12),
+      averageLeadTimeDays: 5 + (index % 10),
+      totalSpend: 40_000 + index * 12_500,
+      notes: `${fixtures.tag} ${row.category} supplier for ${fixtures.company.tradingName}.`,
+      documents: [],
+      category: row.category,
+      currency: "GBP",
+      status: "active" as const,
+    }));
+    return {
+      suppliers,
+      requisitions: [],
+      purchaseOrders: [],
+      goodsReceipts: [],
+      invoiceMatches: [],
+      approvalRules: [],
+      contracts: fixtures.contracts.slice(0, 4).map((row, index) => ({
+        id: row.id,
+        title: row.name,
+        supplierId: suppliers[index % Math.max(suppliers.length, 1)]?.id ?? "mag-sup-1",
+        supplierName: row.supplier,
+        contractValue: Number(String(row.value).replace(/[^0-9.]/g, "")) || 50_000,
+        currency: "GBP",
+        startDate: row.startDate,
+        renewalDate: row.expiryDate,
+        noticePeriodDays: 60,
+        owner: row.owner,
+        status: row.status === "expiring" ? "expiring_soon" : "active",
+        documents: [],
+        reminderSent: false,
+        notes: row.summary,
+      })),
+      aiInsights: [
+        {
+          id: "mag-ai-1",
+          kind: "cost_saving",
+          title: "Consolidate cloud spend",
+          detail: "AWS + Microsoft renewals land within 60 days — negotiate jointly for Meridian Atlas.",
+          confidence: 0.88,
+          actionLabel: "Open renewals",
+          relatedIds: [],
+          createdAt: isoDaysFromNow(0),
+        },
+      ],
+      integrations: [],
+      rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+      currentRole: "purchasing_officer",
+      monthlyBudget: 185_000,
+    };
+  }
+
   const suppliers: SupplierRecord[] = [
     {
       id: "sup-rs",
@@ -767,6 +851,13 @@ export function subscribeProcurementMockStore(listener: Listener) {
 }
 
 export function getProcurementMockSnapshot() {
+  if (
+    typeof window !== "undefined" &&
+    tryGetDemoFixtures() &&
+    !state.suppliers.some((supplier) => supplier.id.startsWith("mag-sup-"))
+  ) {
+    state = seedState();
+  }
   return state;
 }
 

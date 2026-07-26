@@ -233,10 +233,79 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
         "/api/users",
         { ttlMs: 120_000 },
       );
-      setInternalUsers(data.users ?? []);
+      let nextUsers = data.users ?? [];
+      if (
+        typeof window !== "undefined" &&
+        (window.location.hostname.startsWith("demo.") ||
+          window.location.hostname === "demo.localhost") &&
+        (nextUsers.length === 0 ||
+          nextUsers.some((user) =>
+            /unit311|fotheringham|paul@/i.test(`${user.email} ${user.username}`),
+          ))
+      ) {
+        try {
+          const { getDemoEnterpriseFixtures } = await import("@/lib/demo-enterprise");
+          nextUsers = getDemoEnterpriseFixtures().directory.map((row) => ({
+            id: row.id,
+            operatorLabel: row.fullName.split(" ")[0] ?? row.fullName,
+            fullName: row.fullName,
+            username: row.email,
+            email: row.email,
+            phone: "",
+            role: "Admin" as const,
+            roles: ["Admin" as const],
+            department: "Corporate" as const,
+            departments: ["Corporate" as const],
+            status: "Active" as const,
+            region: "Multi-site" as const,
+            licenseId: "",
+            notes: row.department,
+            allowedViews: null,
+            dashboardPrefs: null,
+          }));
+        } catch {
+          // Keep API users if fixtures unavailable.
+        }
+      }
+      setInternalUsers(nextUsers);
+      setError(null);
     } catch (loadError) {
-      setInternalUsers([]);
-      setError(loadError instanceof Error ? loadError.message : "Failed to load internal users");
+      try {
+        if (
+          typeof window !== "undefined" &&
+          (window.location.hostname.startsWith("demo.") ||
+            window.location.hostname === "demo.localhost")
+        ) {
+          const { getDemoEnterpriseFixtures } = await import("@/lib/demo-enterprise");
+          setInternalUsers(
+            getDemoEnterpriseFixtures().directory.map((row) => ({
+              id: row.id,
+              operatorLabel: row.fullName.split(" ")[0] ?? row.fullName,
+              fullName: row.fullName,
+              username: row.email,
+              email: row.email,
+              phone: "",
+              role: "Admin" as const,
+              roles: ["Admin" as const],
+              department: "Corporate" as const,
+              departments: ["Corporate" as const],
+              status: "Active" as const,
+              region: "Multi-site" as const,
+              licenseId: "",
+              notes: row.department,
+              allowedViews: null,
+              dashboardPrefs: null,
+            })),
+          );
+          setError(null);
+        } else {
+          setInternalUsers([]);
+          setError(loadError instanceof Error ? loadError.message : "Failed to load internal users");
+        }
+      } catch {
+        setInternalUsers([]);
+        setError(loadError instanceof Error ? loadError.message : "Failed to load internal users");
+      }
     } finally {
       setUsersLoading(false);
     }

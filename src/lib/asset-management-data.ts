@@ -160,6 +160,7 @@ function defaultStatusForCategory(category: string): AssetOperationalStatus {
 }
 
 type SeedAsset = {
+  id?: string;
   category: string;
   location: string;
   assetTag: string;
@@ -180,7 +181,7 @@ type SeedAsset = {
 function buildSeedAsset(seed: SeedAsset): ManagedAsset {
   assetCounter += 1;
   return {
-    id: `asset-${assetCounter}`,
+    id: seed.id ?? `asset-${assetCounter}`,
     assetTag: seed.assetTag,
     category: seed.category,
     location: seed.location,
@@ -320,6 +321,42 @@ function seedsForLocation(
 
 export function createInitialAssetRegistry(): AssetRegistryState {
   assetCounter = 0;
+
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        const fixtures = getDemoEnterpriseFixtures();
+        const locations = fixtures.offices.map((office) => office.city);
+        const assets = fixtures.assets.slice(0, 36).map((row, index) => {
+          const office =
+            fixtures.offices.find((item) => item.id === row.officeId) ?? fixtures.offices[0];
+          return buildSeedAsset({
+            id: row.id,
+            assetTag: `IT-${String(index + 1).padStart(4, "0")}`,
+            category: "IT Equipment",
+            location: office?.city ?? "London",
+            model: row.sku ?? "Laptop",
+            serialNumber: `MAG-${index + 1}`,
+            operationalStatus: "In Service",
+            purchaseDate: new Date().toISOString().slice(0, 10),
+            firmwareVersion: "N/A",
+            notes: `${fixtures.tag} Assigned to ${row.assignedTo}`,
+            assignedToUserId: null,
+            assignedClientId: null,
+          });
+        });
+        return {
+          assets,
+          categories: [...DEFAULT_ASSET_CATEGORIES, "IT Equipment"],
+          locations: locations.length ? locations : [...DEFAULT_ASSET_LOCATIONS],
+        };
+      }
+    } catch {
+      // Fall through to Internal registry.
+    }
+  }
 
   const assets = [
     ...seedsForLocation("Barcelona", "client-1", "234"),

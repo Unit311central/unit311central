@@ -13,6 +13,7 @@ import type {
   InventoryServiceRecord,
 } from "@/lib/inventory-data";
 import { emptyAssignment } from "@/lib/inventory-data";
+import { tryGetDemoFixtures } from "@/lib/demo-enterprise/demo-mock-gate";
 
 type Listener = () => void;
 
@@ -64,6 +65,114 @@ function seedAsset(
 }
 
 function seedState(): InventoryMockState {
+  const fixtures = tryGetDemoFixtures();
+  if (fixtures) {
+    const officeById = new Map(fixtures.offices.map((office) => [office.id, office]));
+    const stockAssets = fixtures.inventory.map((row, index) =>
+      seedAsset({
+        id: row.id,
+        assetTag: row.sku,
+        name: row.name,
+        category: "IT Equipment",
+        manufacturer: "Meridian Atlas",
+        model: row.sku,
+        serialNumber: `MAG-${row.sku}-${index + 1}`,
+        purchaseDate: isoDaysFromNow(-200 - index),
+        purchaseCost: "£1,200",
+        warrantyExpiry: isoDaysFromNow(200),
+        currentValue: "£900",
+        location: row.location,
+        status: "operational",
+        condition: "good",
+        department: "Operations",
+        assignedTo: "",
+        nextService: isoDaysFromNow(45 + index),
+        certificationExpiry: isoDaysFromNow(180),
+        assignment: emptyAssignment(),
+        services: [],
+        documents: [],
+        history: [
+          {
+            id: uid("hist"),
+            at: isoDaysFromNow(0),
+            label: "Stock counted",
+            detail: `${fixtures.tag} On hand: ${row.qty}`,
+          },
+        ],
+        notes: [
+          {
+            id: uid("note"),
+            at: isoDaysFromNow(0),
+            author: "Operations",
+            kind: "operational",
+            text: `${fixtures.tag} Stock on hand: ${row.qty}`,
+          },
+        ],
+      }),
+    );
+    const assignedAssets = fixtures.assets.slice(0, 40).map((row, index) => {
+      const office = officeById.get(row.officeId);
+      return seedAsset({
+        id: row.id,
+        assetTag: `LAP-${String(index + 1).padStart(4, "0")}`,
+        name: row.name,
+        category: "IT Equipment",
+        manufacturer: "Apple",
+        model: row.sku ?? "MacBook Pro",
+        serialNumber: `MAG-LT-${index + 1}`,
+        purchaseDate: isoDaysFromNow(-120 - index),
+        purchaseCost: "£2,400",
+        warrantyExpiry: isoDaysFromNow(400),
+        currentValue: "£1,800",
+        location: office?.city ?? "London",
+        status: "operational",
+        condition: "excellent",
+        department: "Consulting",
+        assignedTo: row.assignedTo,
+        nextService: isoDaysFromNow(60 + index),
+        certificationExpiry: isoDaysFromNow(365),
+        assignment: {
+          employee: row.assignedTo,
+          department: "Consulting",
+          office: office?.city ?? "London",
+          project: "Client delivery",
+          issueDate: isoDaysFromNow(-90),
+          expectedReturn: "",
+        },
+        services: [],
+        documents: [],
+        history: [
+          {
+            id: uid("hist"),
+            at: isoDaysFromNow(-90),
+            label: "Assigned",
+            detail: `Issued to ${row.assignedTo}`,
+          },
+        ],
+        notes: [
+          {
+            id: uid("note"),
+            at: isoDaysFromNow(-30),
+            author: "IT",
+            kind: "operational",
+            text: `${fixtures.tag} Endpoint for ${row.assignedTo}`,
+          },
+        ],
+      });
+    });
+    return {
+      assets: [...stockAssets, ...assignedAssets],
+      activity: [
+        {
+          id: "act-mag-inv-1",
+          at: isoDaysFromNow(0),
+          label: "Demo inventory loaded",
+          detail: `${fixtures.company.tradingName} IT and stock register.`,
+        },
+      ],
+    };
+  }
+
   const assets: InventoryAsset[] = [
     seedAsset({
       id: "inv-dji-m350-bcn",
@@ -884,6 +993,13 @@ export function subscribeInventoryMockStore(listener: Listener) {
 }
 
 export function getInventoryMockSnapshot(): InventoryMockState {
+  if (
+    typeof window !== "undefined" &&
+    tryGetDemoFixtures() &&
+    !state.activity.some((row) => row.id === "act-mag-inv-1")
+  ) {
+    state = seedState();
+  }
   return state;
 }
 

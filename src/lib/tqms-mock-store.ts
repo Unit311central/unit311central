@@ -33,6 +33,7 @@ import {
   type TqmsQmsSection,
   type TqmsReport,
 } from "@/lib/tqms-data";
+import { tryGetDemoFixtures } from "@/lib/demo-enterprise/demo-mock-gate";
 
 export type TqmsMockState = {
   courses: TqmsCourse[];
@@ -52,23 +53,104 @@ export type TqmsMockState = {
   qmsSections: TqmsQmsSection[];
 };
 
-let state: TqmsMockState = {
-  courses: createSeedTqmsCourses(),
-  learners: createSeedTqmsLearners(),
-  assignments: createSeedTqmsAssignments(),
-  certificates: createSeedTqmsCertificates(),
-  assessments: createSeedTqmsAssessments(),
-  learningPaths: createSeedTqmsLearningPaths(),
-  activity: createSeedTqmsActivity(),
-  events: createSeedTqmsEvents(),
-  documents: createSeedTqmsDocuments(),
-  capas: createSeedTqmsCapas(),
-  audits: createSeedTqmsAudits(),
-  managementReviews: createSeedTqmsManagementReviews(),
-  reports: createSeedTqmsReports(),
-  notes: createSeedTqmsNotes(),
-  qmsSections: createSeedTqmsQmsSections(),
-};
+let state: TqmsMockState = createInitialTqmsState();
+
+function createInitialTqmsState(): TqmsMockState {
+  const fixtures = tryGetDemoFixtures();
+  const base: TqmsMockState = {
+    courses: createSeedTqmsCourses(),
+    learners: createSeedTqmsLearners(),
+    assignments: createSeedTqmsAssignments(),
+    certificates: createSeedTqmsCertificates(),
+    assessments: createSeedTqmsAssessments(),
+    learningPaths: createSeedTqmsLearningPaths(),
+    activity: createSeedTqmsActivity(),
+    events: createSeedTqmsEvents(),
+    documents: createSeedTqmsDocuments(),
+    capas: createSeedTqmsCapas(),
+    audits: createSeedTqmsAudits(),
+    managementReviews: createSeedTqmsManagementReviews(),
+    reports: createSeedTqmsReports(),
+    notes: createSeedTqmsNotes(),
+    qmsSections: createSeedTqmsQmsSections(),
+  };
+  if (!fixtures) return base;
+
+  const company = fixtures.company.tradingName;
+  return {
+    ...base,
+    learners: fixtures.directory.slice(0, 16).map((row, index) => {
+      const template = base.learners[index % Math.max(base.learners.length, 1)]!;
+      return {
+        ...template,
+        id: row.id,
+        name: row.fullName,
+        department: row.department,
+        location: template.location,
+        role: row.role,
+        manager: template.manager,
+      };
+    }),
+    documents: fixtures.qms.policies.map((row, index) => {
+      const template = base.documents[index % Math.max(base.documents.length, 1)]!;
+      return {
+        ...template,
+        id: row.id,
+        number: `POL-MAG-${String(index + 1).padStart(3, "0")}`,
+        title: row.title,
+        owner: row.owner,
+        status: (row.status === "Approved" ? "Approved" : "In Review") as TqmsDocStatus,
+        approvalDate: row.status === "Approved" ? "2026-03-01" : null,
+      };
+    }),
+    capas: fixtures.qms.capas.map((row, index) => {
+      const template = base.capas[index % Math.max(base.capas.length, 1)]!;
+      const priority =
+        row.severity === "High" || row.severity === "Critical"
+          ? row.severity
+          : row.severity === "Low"
+            ? "Low"
+            : "Medium";
+      return {
+        ...template,
+        id: row.id,
+        reference: `CAPA-MAG-${String(index + 1).padStart(3, "0")}`,
+        issue: row.title,
+        owner: company,
+        priority,
+        status: (row.status === "Closed" ? "Closed" : "Open") as TqmsCapaStatus,
+      };
+    }),
+    audits: fixtures.qms.audits.map((row, index) => {
+      const template = base.audits[index % Math.max(base.audits.length, 1)]!;
+      return {
+        ...template,
+        id: row.id,
+        title: row.title,
+        scope: company,
+        scheduledFor: row.date ?? template.scheduledFor,
+        status: (row.result.toLowerCase().includes("pass")
+          ? "Completed"
+          : "Scheduled") as TqmsAudit["status"],
+        findings: row.result.toLowerCase().includes("pass") ? 0 : 2,
+      };
+    }),
+    activity: [
+      {
+        id: "mag-qms-act-1",
+        at: new Date().toISOString(),
+        label: "Demo QMS loaded",
+        detail: `${company} quality pack from Demo fixtures.`,
+      },
+      ...base.activity.slice(0, 8),
+    ],
+    courses: base.courses.map((course) => ({
+      ...course,
+      title: course.title.replace(/Unit311/gi, company),
+      description: (course.description ?? "").replace(/Unit311/gi, company),
+    })),
+  };
+}
 
 const listeners = new Set<() => void>();
 
@@ -97,6 +179,14 @@ export function subscribeTqmsMockStore(listener: () => void) {
 }
 
 export function getTqmsMockSnapshot(): TqmsMockState {
+  // Re-seed once on Demo if Internal Unit311 academy leaked in via SSR.
+  if (
+    typeof window !== "undefined" &&
+    tryGetDemoFixtures() &&
+    state.courses.some((course) => /unit311/i.test(course.title))
+  ) {
+    state = createInitialTqmsState();
+  }
   return state;
 }
 

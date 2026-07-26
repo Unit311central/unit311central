@@ -79,6 +79,82 @@ export function ecaStatusClass(status: string): string {
 }
 
 export function createSeedEcaPortals(): EcaPortalConfig[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        const fixtures = getDemoEnterpriseFixtures();
+        const company = fixtures.company.tradingName;
+        const domain = fixtures.company.domain;
+        return [
+          {
+            id: "portal-mag-1",
+            clientId: "dme-cli-001",
+            clientName: "Helix Capital Partners",
+            portalName: "Helix Client Portal",
+            logoLabel: "HC",
+            brandPrimary: "#0ea5e9",
+            brandAccent: "#0369a1",
+            modules: ["Projects", "Files", "Support", "Documents", "Reports", "Training"],
+            landingPage: "Projects",
+            supportContact: `support@${domain}`,
+            notificationsEnabled: true,
+            documentBranding: `${company} letterhead`,
+            users: 18,
+            activeSessions: 4,
+            pendingInvites: 2,
+            lockedAccounts: 0,
+            storageGb: 42.6,
+            lastLogin: "2026-07-20T21:14:00Z",
+          },
+          {
+            id: "portal-mag-2",
+            clientId: "dme-cli-002",
+            clientName: "Northbridge Retail Group",
+            portalName: "Northbridge Portal",
+            logoLabel: "NR",
+            brandPrimary: "#34d399",
+            brandAccent: "#059669",
+            modules: ["Projects", "Files", "Support", "Calendar", "Communications", "Assets"],
+            landingPage: "Files",
+            supportContact: `help@${domain}`,
+            notificationsEnabled: true,
+            documentBranding: "Northbridge branded PDF",
+            users: 9,
+            activeSessions: 1,
+            pendingInvites: 1,
+            lockedAccounts: 1,
+            storageGb: 18.2,
+            lastLogin: "2026-07-19T10:02:00Z",
+          },
+          {
+            id: "portal-mag-3",
+            clientId: "dme-cli-003",
+            clientName: "Cascade Health Systems",
+            portalName: "Cascade Portal",
+            logoLabel: "CH",
+            brandPrimary: "#a78bfa",
+            brandAccent: "#7c3aed",
+            modules: ["Projects", "Invoices", "Contracts", "Documents", "Reports"],
+            landingPage: "Documents",
+            supportContact: `portal@${domain}`,
+            notificationsEnabled: false,
+            documentBranding: "Cascade standard",
+            users: 12,
+            activeSessions: 2,
+            pendingInvites: 0,
+            lockedAccounts: 0,
+            storageGb: 27.4,
+            lastLogin: "2026-07-20T08:40:00Z",
+          },
+        ];
+      }
+    } catch {
+      // Fall through to Internal seed.
+    }
+  }
+
   return [
     {
       id: "portal-001",
@@ -144,6 +220,22 @@ export function createSeedEcaPortals(): EcaPortalConfig[] {
 }
 
 export function createSeedEcaAudit(): EcaAuditEvent[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        return [
+          { id: "aud-1", at: "2026-07-20T21:14:00Z", kind: "Successful Login", actor: "ops@helix.demo", detail: "Portal session started", clientName: "Helix Capital Partners" },
+          { id: "aud-2", at: "2026-07-20T16:05:00Z", kind: "Invitation", actor: "Operations", detail: "Invited leo@northbridge.demo as Contributor", clientName: "Northbridge Retail Group" },
+          { id: "aud-3", at: "2026-07-19T19:22:00Z", kind: "Failed Login", actor: "unknown@external.example", detail: "Invalid password (3rd attempt)", clientName: "Northbridge Retail Group" },
+          { id: "aud-4", at: "2026-07-19T12:10:00Z", kind: "Permission Change", actor: "Operations", detail: "Enabled Invoices module for Cascade", clientName: "Cascade Health Systems" },
+          { id: "aud-5", at: "2026-07-18T09:45:00Z", kind: "Password Reset", actor: "Operations", detail: "Reset issued for maria@helix.demo", clientName: "Helix Capital Partners" },
+        ];
+      }
+    } catch {
+      // Fall through.
+    }
+  }
   return [
     { id: "aud-1", at: "2026-07-20T21:14:00Z", kind: "Successful Login", actor: "carmen@aeroparts.example", detail: "Portal session started", clientName: "AeroParts Iberia" },
     { id: "aud-2", at: "2026-07-20T16:05:00Z", kind: "Invitation", actor: "Operations", detail: "Invited leo@skyline.example as Contributor", clientName: "Skyline Survey Co" },
@@ -154,6 +246,35 @@ export function createSeedEcaAudit(): EcaAuditEvent[] {
 }
 
 export function createSeedEcaInvitations(): EcaInvitation[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        return [
+          {
+            id: "inv-1",
+            email: "leo@northbridge.demo",
+            clientName: "Northbridge Retail Group",
+            role: "Contributor",
+            modules: ["Projects", "Files", "Support"],
+            status: "Sent",
+            createdAt: "2026-07-20",
+          },
+          {
+            id: "inv-2",
+            email: "ana@helix.demo",
+            clientName: "Helix Capital Partners",
+            role: "Viewer",
+            modules: ["Documents", "Reports"],
+            status: "Draft",
+            createdAt: "2026-07-19",
+          },
+        ];
+      }
+    } catch {
+      // Fall through.
+    }
+  }
   return [
     {
       id: "inv-1",

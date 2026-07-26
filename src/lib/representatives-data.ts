@@ -53,6 +53,64 @@ export function createRepresentativeId() {
 }
 
 export function createInitialRepresentatives(): Representative[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        const fixtures = getDemoEnterpriseFixtures();
+        return [
+          {
+            id: "rep-mag-1",
+            fullName: "Priya Shah",
+            companyName: "Ashford Lane LLP",
+            email: "priya.shah@ashfordlane.demo",
+            phone: "+44 20 7946 2201",
+            territory: "UK & Ireland",
+            repType: "Distributor",
+            status: "Active",
+            notes: `${fixtures.tag} Legal counsel network for ${fixtures.company.tradingName}.`,
+          },
+          {
+            id: "rep-mag-2",
+            fullName: "James Okonkwo",
+            companyName: "Northbridge Advisory",
+            email: "j.okonkwo@northbridge.demo",
+            phone: "+44 20 7946 2210",
+            territory: "Global",
+            repType: "Distributor",
+            status: "Active",
+            notes: "Accounting and statutory filings partner.",
+          },
+          {
+            id: "rep-mag-3",
+            fullName: "Sofia Almeida",
+            companyName: "Aether Risk Brokers",
+            email: "sofia.almeida@aetherrisk.demo",
+            phone: "+65 6123 8800",
+            territory: "Middle East",
+            repType: "Agent",
+            status: "Active",
+            notes: "Insurance brokerage for D&O and cyber programmes.",
+          },
+          {
+            id: "rep-mag-4",
+            fullName: "Marcus Wei",
+            companyName: "Cascade IP Counsel",
+            email: "marcus.wei@cascadeip.demo",
+            phone: "+1 212 555 0198",
+            territory: "Global",
+            repType: "Reseller",
+            status: "Onboarding",
+            notes: "IP counsel engagement for Meridian Atlas brand portfolio.",
+          },
+        ];
+      }
+    } catch {
+      // Fall through.
+    }
+  }
+
   return [
     {
       id: "rep-1",

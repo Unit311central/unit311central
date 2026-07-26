@@ -48,7 +48,7 @@ type PlatformConfig = {
   lastPost: LastPost;
 };
 
-const PLATFORMS: PlatformConfig[] = [
+const INTERNAL_PLATFORMS: PlatformConfig[] = [
   {
     id: "linkedin",
     name: "LinkedIn",
@@ -97,7 +97,67 @@ const PLATFORMS: PlatformConfig[] = [
   },
 ];
 
-const SEO_KEYWORDS = [
+const DEMO_PLATFORMS: PlatformConfig[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    handle: "@meridianatlas",
+    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
+    accentBorder: "border-[#0A66C2]/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
+        in
+      </span>
+    ),
+    lastPost: {
+      date: "18 Jul 2026 · 10:05",
+      preview:
+        "How Meridian Atlas helps global enterprises modernise cloud estates and operating models — new case study from our London practice.",
+      stats: [
+        { label: "Impressions", value: "9.1K", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Reactions", value: "214", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "31", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Reposts", value: "22", icon: <Repeat2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    handle: "@meridianatlas",
+    accent: "from-fuchsia-500/20 via-pink-500/15 to-amber-500/10",
+    accentBorder: "border-pink-400/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold text-white">
+        IG
+      </span>
+    ),
+    lastPost: {
+      date: "14 Jul 2026 · 16:20",
+      preview:
+        "Behind the scenes at Bishopsgate — strategy workshop with our APAC leadership cohort.",
+      stats: [
+        { label: "Reach", value: "5.4K", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Likes", value: "268", icon: <Heart className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "19", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Saves", value: "41", icon: <Share2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+];
+
+function resolveSocialPlatforms(): PlatformConfig[] {
+  if (typeof window === "undefined") return INTERNAL_PLATFORMS;
+  try {
+    const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    if (isBrowserDemoSurface()) return DEMO_PLATFORMS;
+  } catch {
+    // fall through
+  }
+  return INTERNAL_PLATFORMS;
+}
+
+const INTERNAL_SEO_KEYWORDS = [
   { keyword: "drone surveying barcelona", position: 4, change: 2, volume: "1.2K" },
   { keyword: "aerial inspection catalonia", position: 7, change: -1, volume: "880" },
   { keyword: "matrice 4t training spain", position: 11, change: 3, volume: "640" },
@@ -106,19 +166,43 @@ const SEO_KEYWORDS = [
   { keyword: "thermal drone inspection port", position: 19, change: 4, volume: "310" },
 ] as const;
 
-const PPC_CAMPAIGNS = [
+const DEMO_SEO_KEYWORDS = [
+  { keyword: "enterprise cloud consulting", position: 3, change: 1, volume: "2.4K" },
+  { keyword: "operating model transformation", position: 6, change: 2, volume: "1.1K" },
+  { keyword: "meridian atlas group", position: 1, change: 0, volume: "720" },
+  { keyword: "platform modernisation uk", position: 8, change: -1, volume: "980" },
+  { keyword: "sap s4 migration partner", position: 12, change: 3, volume: "640" },
+  { keyword: "board pack automation", position: 15, change: 1, volume: "410" },
+] as const;
+
+const INTERNAL_PPC_CAMPAIGNS = [
   { name: "Survey leads — ES", spend: "€842", clicks: 312, ctr: "3.8%", cpc: "€2.70", conversions: 14 },
   { name: "Training courses", spend: "€516", clicks: 198, ctr: "4.1%", cpc: "€2.61", conversions: 9 },
   { name: "Inspection — retarget", spend: "€284", clicks: 94, ctr: "2.2%", cpc: "€3.02", conversions: 5 },
 ] as const;
 
-const PPC_SUMMARY = {
+const DEMO_PPC_CAMPAIGNS = [
+  { name: "Cloud advisory — UK", spend: "£1,240", clicks: 418, ctr: "4.4%", cpc: "£2.97", conversions: 22 },
+  { name: "Transformation webinars", spend: "£680", clicks: 255, ctr: "3.9%", cpc: "£2.67", conversions: 14 },
+  { name: "Retarget — case studies", spend: "£390", clicks: 128, ctr: "2.8%", cpc: "£3.05", conversions: 8 },
+] as const;
+
+const INTERNAL_PPC_SUMMARY = {
   spend: "€1,642",
   impressions: "28.4K",
   clicks: 604,
   avgCpc: "€2.72",
   conversions: 28,
   roas: "4.2x",
+} as const;
+
+const DEMO_PPC_SUMMARY = {
+  spend: "£2,310",
+  impressions: "41.2K",
+  clicks: 801,
+  avgCpc: "£2.88",
+  conversions: 44,
+  roas: "5.1x",
 } as const;
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -137,7 +221,19 @@ function panelShellClassName() {
   return "overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl";
 }
 
+function isDemoSocialSurface() {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    return isBrowserDemoSurface();
+  } catch {
+    return false;
+  }
+}
+
 function SeoRankingsPanel() {
+  const isDemo = isDemoSocialSurface();
+  const keywords = isDemo ? DEMO_SEO_KEYWORDS : INTERNAL_SEO_KEYWORDS;
   return (
     <article className={panelShellClassName()}>
       <div className="border-b border-white/10 bg-gradient-to-r from-emerald-500/15 to-teal-500/5 px-4 py-4 sm:px-5">
@@ -147,7 +243,9 @@ function SeoRankingsPanel() {
           </div>
           <div>
             <h3 className="text-base font-semibold text-white sm:text-lg">SEO rankings</h3>
-            <p className="text-xs text-white/50">Google positions · unit311.com</p>
+            <p className="text-xs text-white/50">
+              Google positions · {isDemo ? "meridianatlas.demo" : "unit311.com"}
+            </p>
           </div>
         </div>
       </div>
@@ -155,17 +253,19 @@ function SeoRankingsPanel() {
       <div className="grid grid-cols-3 gap-2 border-b border-white/10 p-4 sm:p-5">
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Avg. position</p>
-          <p className="mt-1 text-lg font-semibold text-white">9.5</p>
+          <p className="mt-1 text-lg font-semibold text-white">{isDemo ? "7.5" : "9.5"}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Top 10</p>
-          <p className="mt-1 text-lg font-semibold text-emerald-300">3 keywords</p>
+          <p className="mt-1 text-lg font-semibold text-emerald-300">
+            {isDemo ? "4 keywords" : "3 keywords"}
+          </p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Visibility</p>
           <p className="mt-1 flex items-center gap-1 text-lg font-semibold text-white">
             <TrendingUp className="h-4 w-4 text-emerald-400" />
-            +12%
+            {isDemo ? "+18%" : "+12%"}
           </p>
         </div>
       </div>
@@ -175,7 +275,7 @@ function SeoRankingsPanel() {
           Tracked keywords
         </p>
         <ul className="mt-3 space-y-2">
-          {SEO_KEYWORDS.map((row) => {
+          {keywords.map((row) => {
             const improved = row.change > 0;
             const declined = row.change < 0;
 
@@ -221,6 +321,9 @@ function SeoRankingsPanel() {
 }
 
 function PpcStatsPanel() {
+  const isDemo = isDemoSocialSurface();
+  const summary = isDemo ? DEMO_PPC_SUMMARY : INTERNAL_PPC_SUMMARY;
+  const campaigns = isDemo ? DEMO_PPC_CAMPAIGNS : INTERNAL_PPC_CAMPAIGNS;
   return (
     <article className={panelShellClassName()}>
       <div className="border-b border-white/10 bg-gradient-to-r from-amber-500/15 to-orange-500/5 px-4 py-4 sm:px-5">
@@ -238,29 +341,29 @@ function PpcStatsPanel() {
       <div className="grid grid-cols-2 gap-2 border-b border-white/10 p-4 sm:grid-cols-3 sm:p-5">
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Spend</p>
-          <p className="mt-1 text-lg font-semibold text-white">{PPC_SUMMARY.spend}</p>
+          <p className="mt-1 text-lg font-semibold text-white">{summary.spend}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Clicks</p>
-          <p className="mt-1 text-lg font-semibold text-white">{PPC_SUMMARY.clicks}</p>
+          <p className="mt-1 text-lg font-semibold text-white">{summary.clicks}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Avg. CPC</p>
-          <p className="mt-1 text-lg font-semibold text-white">{PPC_SUMMARY.avgCpc}</p>
+          <p className="mt-1 text-lg font-semibold text-white">{summary.avgCpc}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Impressions</p>
-          <p className="mt-1 text-lg font-semibold text-white">{PPC_SUMMARY.impressions}</p>
+          <p className="mt-1 text-lg font-semibold text-white">{summary.impressions}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Conversions</p>
-          <p className="mt-1 text-lg font-semibold text-emerald-300">{PPC_SUMMARY.conversions}</p>
+          <p className="mt-1 text-lg font-semibold text-emerald-300">{summary.conversions}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">ROAS</p>
           <p className="mt-1 flex items-center gap-1 text-lg font-semibold text-white">
             <Target className="h-4 w-4 text-amber-300" />
-            {PPC_SUMMARY.roas}
+            {summary.roas}
           </p>
         </div>
       </div>
@@ -270,7 +373,7 @@ function PpcStatsPanel() {
           Active campaigns
         </p>
         <ul className="mt-3 space-y-2">
-          {PPC_CAMPAIGNS.map((campaign) => (
+          {campaigns.map((campaign) => (
             <li
               key={campaign.name}
               className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3"
@@ -727,10 +830,11 @@ function PlatformColumn({ platform }: { platform: PlatformConfig }) {
 }
 
 export default function SocialWorkspace() {
+  const platforms = resolveSocialPlatforms();
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
-        {PLATFORMS.map((platform) => (
+        {platforms.map((platform) => (
           <PlatformColumn key={platform.id} platform={platform} />
         ))}
       </div>
