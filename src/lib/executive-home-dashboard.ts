@@ -69,6 +69,32 @@ export function countProjectsAtRisk(projects: InternalProject[], now = Date.now(
   }).length;
 }
 
+function priorMonthKey(monthPrefix: string) {
+  const [year, month] = monthPrefix.split("-").map(Number);
+  if (!year || !month) return monthPrefix;
+  const date = new Date(Date.UTC(year, month - 2, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function burnPreviousMonthDelta(
+  burn: FinancialOverviewSnapshot["burnRate"] | undefined,
+): { label: string; tone: DashboardKpiItem["tone"] } {
+  const priorKey = priorMonthKey(new Date().toISOString().slice(0, 7));
+  const monthLabel = shortMonthLabel(priorKey);
+  if (!burn) {
+    return { label: `${monthLabel} · previous month`, tone: "neutral" };
+  }
+  const changePct = burn.changePct;
+  if (Math.abs(changePct) < 0.05) {
+    return { label: `${monthLabel} · flat vs prior`, tone: "neutral" };
+  }
+  const sign = changePct > 0 ? "+" : "−";
+  return {
+    label: `${monthLabel} · ${sign}${Math.abs(changePct).toFixed(1)}% vs prior`,
+    tone: burn.trend === "increasing" ? "warning" : burn.trend === "improving" ? "positive" : "neutral",
+  };
+}
+
 /** Live KPI values for the Executive Home row (same SSOT as Command Centre). */
 export function buildExecutiveHomeLiveKpis(input: {
   financials: FinancialOverviewSnapshot | null;
@@ -80,11 +106,13 @@ export function buildExecutiveHomeLiveKpis(input: {
   DashboardKpiItem,
   DashboardKpiItem,
 ] {
-  const currency = "GBP";
+  const currency = input.financials?.burnRate.currency || "GBP";
   const revenueYtd = input.financials?.revenueYtd ?? 0;
   const cash = input.financials?.cashPosition ?? 0;
-  const openProjects = countLiveProjects(input.projects);
-  const atRisk = countProjectsAtRisk(input.projects);
+  const burn = input.financials?.burnRate;
+  // Prefer closed prior-month burn (current month is usually partial).
+  const burnPrevious =
+    burn && burn.previousMonthly > 0 ? burn.previousMonthly : (burn?.monthly ?? 0);
   const activeClients = input.clients.filter((client) => client.accountStatus === "Active").length;
   const onboarding = input.clients.filter((client) =>
     ["Client Created", "Workspace Provisioned", "Onboarding"].includes(client.accountStatus),
@@ -92,6 +120,7 @@ export function buildExecutiveHomeLiveKpis(input: {
 
   const revenueDelta = revenuePctDelta(input.financials?.charts.monthlyRevenue);
   const cashDelta = monthDelta(input.financials?.charts.cashPosition);
+  const burnDelta = burnPreviousMonthDelta(burn);
 
   return normalizeKpiRow([
     {
@@ -111,12 +140,12 @@ export function buildExecutiveHomeLiveKpis(input: {
       hint: "Wise / treasury position",
     },
     {
-      id: "projects",
-      label: "Open Projects",
-      value: String(openProjects),
-      delta: atRisk > 0 ? `${atRisk} at risk` : "None at risk",
-      tone: atRisk > 0 ? "warning" : "positive",
-      hint: "Live projects",
+      id: "burn",
+      label: "Burn Rate",
+      value: `${formatCompactMoney(burnPrevious, currency)} / mo`,
+      delta: burnDelta.label,
+      tone: burnDelta.tone,
+      hint: "Previous month operating spend",
     },
     {
       id: "clients",
@@ -635,10 +664,10 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
               hint: "Wise / treasury position",
             },
             {
-              id: "projects",
-              label: "Open Projects",
+              id: "burn",
+              label: "Burn Rate",
               value: "—",
-              hint: "Live projects",
+              hint: "Previous month operating spend",
             },
             {
               id: "clients",

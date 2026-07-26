@@ -379,16 +379,20 @@ export async function getFinancialOverview(
     const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider-server");
     const isDemoTreasury = await shouldUseDemoWiseSimulator();
 
-    const vendorExpenseRunRate = (() => {
+    const vendorExpenseByMonth = (() => {
       const byMonth = new Map<string, number>();
       for (const expense of allExpenses) {
         const key = String(expense.expenseDate ?? expense.dateSubmitted ?? "").slice(0, 7);
         if (!/^\d{4}-\d{2}$/.test(key)) continue;
         byMonth.set(key, (byMonth.get(key) ?? 0) + (Number(expense.amount) || 0));
       }
-      const keys = [...byMonth.keys()].sort();
+      return byMonth;
+    })();
+
+    const vendorExpenseRunRate = (() => {
+      const keys = [...vendorExpenseByMonth.keys()].sort();
       if (keys.length === 0) return 0;
-      const recent = keys.slice(-3).map((key) => byMonth.get(key) ?? 0);
+      const recent = keys.slice(-3).map((key) => vendorExpenseByMonth.get(key) ?? 0);
       return recent.reduce((sum, value) => sum + value, 0) / recent.length;
     })();
 
@@ -411,6 +415,29 @@ export async function getFinancialOverview(
             payrollMonthly +
             softwareMonthly,
         );
+
+    const priorMonthPrefix = (() => {
+      const [year, month] = monthPrefix.split("-").map(Number);
+      const date = new Date(Date.UTC(year, month - 2, 1));
+      return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    })();
+    const priorVendor =
+      vendorExpenseByMonth.get(priorMonthPrefix) ?? vendorExpenseRunRate;
+    const previousMonthlyBurn = isDemoTreasury
+      ? roundMoney(payrollBurn + softwareMonthly + priorVendor)
+      : roundMoney(
+          burnRate.previousMonthly > 0
+            ? burnRate.previousMonthly
+            : (charts.monthlyOutgoings.find((point) => point.month === priorMonthPrefix)?.amount ??
+              monthlyBurn),
+        );
+    const burnChangePct =
+      previousMonthlyBurn <= 0
+        ? 0
+        : Math.round(((monthlyBurn - previousMonthlyBurn) / previousMonthlyBurn) * 1000) / 10;
+    const burnTrend: FinancialOverviewSnapshot["burnRate"]["trend"] =
+      burnChangePct <= -2 ? "improving" : burnChangePct >= 2 ? "increasing" : "stable";
+
     const forecastMonthly = isDemoTreasury
       ? monthlyBurn
       : roundMoney(
@@ -501,6 +528,9 @@ export async function getFinancialOverview(
         monthly: roundMoney(monthlyBurn),
         quarterly: roundMoney(monthlyBurn * 3),
         annual: roundMoney(monthlyBurn * 12),
+        previousMonthly: roundMoney(previousMonthlyBurn),
+        changePct: burnChangePct,
+        trend: burnTrend,
         forecastMonthly: roundMoney(forecastMonthly),
         cashBalance: cashPosition,
         currency: FINANCIAL_REPORTING_CURRENCY,
