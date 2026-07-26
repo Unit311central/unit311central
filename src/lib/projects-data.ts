@@ -41,7 +41,34 @@ export const PROJECT_PHASE_OPTIONS: { value: ProjectPhase; label: string }[] = [
 ];
 
 export function mapInternalProject(row: DbProject): InternalProject {
-  const phase = row.phase === "live" ? "live" : "upcoming";
+  const raw = (row.phase ?? "").trim().toLowerCase();
+  let phase: ProjectPhase = "upcoming";
+  if (
+    raw === "live" ||
+    raw === "delivery" ||
+    raw === "uat" ||
+    raw === "hypercare" ||
+    raw === "in progress" ||
+    raw === "active"
+  ) {
+    phase = "live";
+  } else if (
+    raw === "completed" ||
+    raw === "complete" ||
+    raw === "cancelled" ||
+    raw === "canceled" ||
+    raw === "closed"
+  ) {
+    phase = "completed";
+  } else if (
+    raw === "discovery" ||
+    raw === "upcoming" ||
+    raw === "on hold" ||
+    raw === "on_hold" ||
+    raw === "planned"
+  ) {
+    phase = "upcoming";
+  }
   return {
     id: row.id,
     name: row.name,

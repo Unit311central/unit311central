@@ -181,6 +181,11 @@ export function buildEnterpriseGraph(options = {}) {
 
   const projects = [];
   const phases = ["Discovery", "Delivery", "UAT", "Hypercare", "Completed", "On Hold", "Cancelled"];
+  const appPhaseFor = (phase) => {
+    if (phase === "Delivery" || phase === "UAT" || phase === "Hypercare") return "live";
+    if (phase === "Completed" || phase === "Cancelled") return "completed";
+    return "upcoming";
+  };
   for (let i = 1; i <= 55; i += 1) {
     const client = activeClients[i % activeClients.length];
     const phase = phases[i % phases.length];
@@ -193,7 +198,7 @@ export function buildEnterpriseGraph(options = {}) {
       name: `${client.companyName.split(" ")[0]} ${rng.pick(["Modernisation", "Cloud Migration", "Platform Build", "Security Uplift", "Data Platform", "ERP Advisory"])}`,
       clientId: client.id,
       clientName: client.companyName,
-      phase,
+      phase: appPhaseFor(phase),
       progressPct: progress,
       budget: rng.money(80000, 1200000, 0),
       owner: pm?.fullName ?? "PMO",

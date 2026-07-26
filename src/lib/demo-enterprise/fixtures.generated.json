@@ -125,7 +125,7 @@
     }
   ],
   "tag": "[demo-enterprise]",
-  "generatedAt": "2026-07-25T20:06:39.507Z",
+  "generatedAt": "2026-07-26T01:21:36.037Z",
   "directory": [
     {
       "id": "mag-dir-1",
@@ -401,8 +401,8 @@
       "supplier": "Bishopsgate Estates Ltd",
       "type": "Lease",
       "owner": "COO",
-      "startDate": "2025-06-20",
-      "expiryDate": "2026-10-23",
+      "startDate": "2025-06-21",
+      "expiryDate": "2026-10-24",
       "value": "£48,000 / month",
       "status": "expiring",
       "summary": "Floor 12 · 120 Bishopsgate · 90 desks",
@@ -417,8 +417,8 @@
       "supplier": "Microsoft Ireland",
       "type": "Other",
       "owner": "CTO",
-      "startDate": "2026-01-06",
-      "expiryDate": "2027-01-01",
+      "startDate": "2026-01-07",
+      "expiryDate": "2027-01-02",
       "value": "£9,800 / month",
       "status": "active",
       "summary": "Enterprise productivity + security suite",
@@ -433,8 +433,8 @@
       "supplier": "Amazon Web Services",
       "type": "Supplier",
       "owner": "Cloud Practice Lead",
-      "startDate": "2025-09-28",
-      "expiryDate": "2026-09-08",
+      "startDate": "2025-09-29",
+      "expiryDate": "2026-09-09",
       "value": "Committed spend US$1.2M / year",
       "status": "expiring",
       "summary": "EDP covering client delivery and internal platforms",
@@ -449,8 +449,8 @@
       "supplier": "Aether Risk Brokers",
       "type": "Insurance",
       "owner": "CFO",
-      "startDate": "2026-04-26",
-      "expiryDate": "2027-04-21",
+      "startDate": "2026-04-27",
+      "expiryDate": "2027-04-22",
       "value": "£18,400 / year",
       "status": "active",
       "summary": "£5M D&O cover for board and senior leadership",
@@ -465,8 +465,8 @@
       "supplier": "HubSpot Ireland Ltd",
       "type": "Other",
       "owner": "CRO",
-      "startDate": "2026-02-25",
-      "expiryDate": "2027-02-20",
+      "startDate": "2026-02-26",
+      "expiryDate": "2027-02-21",
       "value": "£3,400 / month",
       "status": "active",
       "summary": "CRM + marketing automation for Meridian Atlas",
@@ -482,7 +482,7 @@
       "name": "Microsoft 365 E5",
       "vendor": "Microsoft",
       "seats": 110,
-      "renewalDate": "2026-08-22",
+      "renewalDate": "2026-08-23",
       "status": "expiring",
       "owner": "IT",
       "cost": "£9,800 / month"
@@ -492,7 +492,7 @@
       "name": "GitHub Enterprise Cloud",
       "vendor": "GitHub",
       "seats": 85,
-      "renewalDate": "2026-09-18",
+      "renewalDate": "2026-09-19",
       "status": "expiring",
       "owner": "Engineering",
       "cost": "US$2,100 / month"
@@ -502,7 +502,7 @@
       "name": "Figma Organization",
       "vendor": "Figma",
       "seats": 40,
-      "renewalDate": "2026-08-06",
+      "renewalDate": "2026-08-07",
       "status": "expiring",
       "owner": "Design",
       "cost": "US$1,450 / month"
@@ -512,7 +512,7 @@
       "name": "Atlassian Cloud Premium",
       "vendor": "Atlassian",
       "seats": 100,
-      "renewalDate": "2027-01-21",
+      "renewalDate": "2027-01-22",
       "status": "active",
       "owner": "PMO",
       "cost": "US$3,200 / month"
@@ -522,7 +522,7 @@
       "name": "Slack Business+",
       "vendor": "Salesforce",
       "seats": 100,
-      "renewalDate": "2027-02-10",
+      "renewalDate": "2027-02-11",
       "status": "active",
       "owner": "IT",
       "cost": "US$1,100 / month"
@@ -532,7 +532,7 @@
       "name": "Notion Enterprise",
       "vendor": "Notion",
       "seats": 100,
-      "renewalDate": "2026-12-12",
+      "renewalDate": "2026-12-13",
       "status": "active",
       "owner": "Ops",
       "cost": "US$1,600 / month"
@@ -828,15 +828,15 @@
     "profileId": 3110001,
     "profileName": "Meridian Atlas Group",
     "profileType": "BUSINESS",
-    "lastSuccessfulSyncAt": "2026-07-25T20:06:39.507Z",
+    "lastSuccessfulSyncAt": "2026-07-26T01:21:36.038Z",
     "syncHistory": [
       {
-        "at": "2026-07-25T20:06:39.507Z",
+        "at": "2026-07-26T01:21:36.038Z",
         "status": "success",
         "message": "Simulator sync"
       },
       {
-        "at": "2026-07-24T20:06:39.507Z",
+        "at": "2026-07-25T01:21:36.038Z",
         "status": "success",
         "message": "Simulator sync"
       }
@@ -851,7 +851,7 @@
         "reservedAmount": 12000,
         "regionLabel": "United Kingdom",
         "accountRef": "MAG-GBP-001",
-        "modificationTime": "2026-07-25T20:06:39.507Z"
+        "modificationTime": "2026-07-26T01:21:36.038Z"
       },
       {
         "id": 31102,
@@ -862,7 +862,7 @@
         "reservedAmount": 8000,
         "regionLabel": "United States",
         "accountRef": "MAG-USD-001",
-        "modificationTime": "2026-07-25T20:06:39.507Z"
+        "modificationTime": "2026-07-26T01:21:36.038Z"
       },
       {
         "id": 31103,
@@ -873,7 +873,7 @@
         "reservedAmount": 5000,
         "regionLabel": "Belgium",
         "accountRef": "MAG-EUR-001",
-        "modificationTime": "2026-07-25T20:06:39.507Z"
+        "modificationTime": "2026-07-26T01:21:36.038Z"
       },
       {
         "id": 31104,
@@ -884,7 +884,7 @@
         "reservedAmount": 0,
         "regionLabel": "United Kingdom",
         "accountRef": "MAG-GBP-RSV",
-        "modificationTime": "2026-07-25T20:06:39.507Z"
+        "modificationTime": "2026-07-26T01:21:36.038Z"
       }
     ],
     "transactions": [
@@ -2475,7 +2475,7 @@
         "amount": 485000,
         "currency": "GBP",
         "description": "Next payroll",
-        "scheduledFor": "2026-08-01"
+        "scheduledFor": "2026-08-02"
       }
     ]
   },
@@ -2552,8 +2552,8 @@
       "type": "Sick",
       "days": 1,
       "status": "Pending",
-      "startDate": "2026-07-27",
-      "endDate": "2026-07-28"
+      "startDate": "2026-07-28",
+      "endDate": "2026-07-29"
     },
     {
       "id": "leave-1",
@@ -2565,8 +2565,8 @@
       "type": "Annual",
       "days": 2,
       "status": "Approved",
-      "startDate": "2026-07-28",
-      "endDate": "2026-07-30"
+      "startDate": "2026-07-29",
+      "endDate": "2026-07-31"
     },
     {
       "id": "leave-2",
@@ -2578,8 +2578,8 @@
       "type": "Annual",
       "days": 3,
       "status": "Approved",
-      "startDate": "2026-07-29",
-      "endDate": "2026-08-01"
+      "startDate": "2026-07-30",
+      "endDate": "2026-08-02"
     },
     {
       "id": "leave-3",
@@ -2591,8 +2591,8 @@
       "type": "Annual",
       "days": 4,
       "status": "Approved",
-      "startDate": "2026-07-30",
-      "endDate": "2026-08-03"
+      "startDate": "2026-07-31",
+      "endDate": "2026-08-04"
     },
     {
       "id": "leave-4",
@@ -2604,8 +2604,8 @@
       "type": "Annual",
       "days": 5,
       "status": "Approved",
-      "startDate": "2026-07-31",
-      "endDate": "2026-08-05"
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-06"
     },
     {
       "id": "leave-5",
@@ -2617,8 +2617,8 @@
       "type": "Sick",
       "days": 1,
       "status": "Approved",
-      "startDate": "2026-08-01",
-      "endDate": "2026-08-02"
+      "startDate": "2026-08-02",
+      "endDate": "2026-08-03"
     },
     {
       "id": "leave-6",
@@ -2630,8 +2630,8 @@
       "type": "Annual",
       "days": 2,
       "status": "Approved",
-      "startDate": "2026-08-02",
-      "endDate": "2026-08-04"
+      "startDate": "2026-08-03",
+      "endDate": "2026-08-05"
     },
     {
       "id": "leave-7",
@@ -2643,8 +2643,8 @@
       "type": "Annual",
       "days": 3,
       "status": "Pending",
-      "startDate": "2026-08-03",
-      "endDate": "2026-08-06"
+      "startDate": "2026-08-04",
+      "endDate": "2026-08-07"
     },
     {
       "id": "leave-8",
@@ -2656,8 +2656,8 @@
       "type": "Annual",
       "days": 4,
       "status": "Approved",
-      "startDate": "2026-08-04",
-      "endDate": "2026-08-08"
+      "startDate": "2026-08-05",
+      "endDate": "2026-08-09"
     },
     {
       "id": "leave-9",
@@ -2669,8 +2669,8 @@
       "type": "Annual",
       "days": 5,
       "status": "Approved",
-      "startDate": "2026-08-05",
-      "endDate": "2026-08-10"
+      "startDate": "2026-08-06",
+      "endDate": "2026-08-11"
     },
     {
       "id": "leave-10",
@@ -2682,8 +2682,8 @@
       "type": "Sick",
       "days": 1,
       "status": "Approved",
-      "startDate": "2026-08-06",
-      "endDate": "2026-08-07"
+      "startDate": "2026-08-07",
+      "endDate": "2026-08-08"
     },
     {
       "id": "leave-11",
@@ -2695,8 +2695,8 @@
       "type": "Annual",
       "days": 2,
       "status": "Approved",
-      "startDate": "2026-08-07",
-      "endDate": "2026-08-09"
+      "startDate": "2026-08-08",
+      "endDate": "2026-08-10"
     },
     {
       "id": "leave-12",
@@ -2708,8 +2708,8 @@
       "type": "Annual",
       "days": 3,
       "status": "Approved",
-      "startDate": "2026-08-08",
-      "endDate": "2026-08-11"
+      "startDate": "2026-08-09",
+      "endDate": "2026-08-12"
     },
     {
       "id": "leave-13",
@@ -2721,8 +2721,8 @@
       "type": "Annual",
       "days": 4,
       "status": "Approved",
-      "startDate": "2026-08-09",
-      "endDate": "2026-08-13"
+      "startDate": "2026-08-10",
+      "endDate": "2026-08-14"
     },
     {
       "id": "leave-14",
@@ -2734,8 +2734,8 @@
       "type": "Annual",
       "days": 5,
       "status": "Pending",
-      "startDate": "2026-08-10",
-      "endDate": "2026-08-15"
+      "startDate": "2026-08-11",
+      "endDate": "2026-08-16"
     },
     {
       "id": "leave-15",
@@ -2747,8 +2747,8 @@
       "type": "Sick",
       "days": 1,
       "status": "Approved",
-      "startDate": "2026-08-11",
-      "endDate": "2026-08-12"
+      "startDate": "2026-08-12",
+      "endDate": "2026-08-13"
     },
     {
       "id": "leave-16",
@@ -2760,8 +2760,8 @@
       "type": "Annual",
       "days": 2,
       "status": "Approved",
-      "startDate": "2026-08-12",
-      "endDate": "2026-08-14"
+      "startDate": "2026-08-13",
+      "endDate": "2026-08-15"
     },
     {
       "id": "leave-17",
@@ -2773,8 +2773,8 @@
       "type": "Annual",
       "days": 3,
       "status": "Approved",
-      "startDate": "2026-08-13",
-      "endDate": "2026-08-16"
+      "startDate": "2026-08-14",
+      "endDate": "2026-08-17"
     },
     {
       "id": "leave-18",
@@ -2786,8 +2786,8 @@
       "type": "Annual",
       "days": 4,
       "status": "Approved",
-      "startDate": "2026-08-14",
-      "endDate": "2026-08-18"
+      "startDate": "2026-08-15",
+      "endDate": "2026-08-19"
     },
     {
       "id": "leave-19",
@@ -2799,8 +2799,8 @@
       "type": "Annual",
       "days": 5,
       "status": "Approved",
-      "startDate": "2026-08-15",
-      "endDate": "2026-08-20"
+      "startDate": "2026-08-16",
+      "endDate": "2026-08-21"
     },
     {
       "id": "leave-20",
@@ -2812,8 +2812,8 @@
       "type": "Sick",
       "days": 1,
       "status": "Approved",
-      "startDate": "2026-07-27",
-      "endDate": "2026-07-28"
+      "startDate": "2026-07-28",
+      "endDate": "2026-07-29"
     },
     {
       "id": "leave-21",
@@ -2825,8 +2825,8 @@
       "type": "Annual",
       "days": 2,
       "status": "Pending",
-      "startDate": "2026-07-28",
-      "endDate": "2026-07-30"
+      "startDate": "2026-07-29",
+      "endDate": "2026-07-31"
     },
     {
       "id": "leave-22",
@@ -2838,8 +2838,8 @@
       "type": "Annual",
       "days": 3,
       "status": "Approved",
-      "startDate": "2026-07-29",
-      "endDate": "2026-08-01"
+      "startDate": "2026-07-30",
+      "endDate": "2026-08-02"
     },
     {
       "id": "leave-23",
@@ -2851,8 +2851,8 @@
       "type": "Annual",
       "days": 4,
       "status": "Approved",
-      "startDate": "2026-07-30",
-      "endDate": "2026-08-03"
+      "startDate": "2026-07-31",
+      "endDate": "2026-08-04"
     },
     {
       "id": "leave-24",
@@ -2864,8 +2864,8 @@
       "type": "Annual",
       "days": 5,
       "status": "Approved",
-      "startDate": "2026-07-31",
-      "endDate": "2026-08-05"
+      "startDate": "2026-08-01",
+      "endDate": "2026-08-06"
     },
     {
       "id": "leave-25",
@@ -2877,8 +2877,8 @@
       "type": "Sick",
       "days": 1,
       "status": "Approved",
-      "startDate": "2026-08-01",
-      "endDate": "2026-08-02"
+      "startDate": "2026-08-02",
+      "endDate": "2026-08-03"
     },
     {
       "id": "leave-26",
@@ -2890,8 +2890,8 @@
       "type": "Annual",
       "days": 2,
       "status": "Approved",
-      "startDate": "2026-08-02",
-      "endDate": "2026-08-04"
+      "startDate": "2026-08-03",
+      "endDate": "2026-08-05"
     },
     {
       "id": "leave-27",
@@ -2903,8 +2903,8 @@
       "type": "Annual",
       "days": 3,
       "status": "Approved",
-      "startDate": "2026-08-03",
-      "endDate": "2026-08-06"
+      "startDate": "2026-08-04",
+      "endDate": "2026-08-07"
     },
     {
       "id": "leave-28",
@@ -2916,8 +2916,8 @@
       "type": "Annual",
       "days": 4,
       "status": "Pending",
-      "startDate": "2026-08-04",
-      "endDate": "2026-08-08"
+      "startDate": "2026-08-05",
+      "endDate": "2026-08-09"
     },
     {
       "id": "leave-29",
@@ -2929,8 +2929,8 @@
       "type": "Annual",
       "days": 5,
       "status": "Approved",
-      "startDate": "2026-08-05",
-      "endDate": "2026-08-10"
+      "startDate": "2026-08-06",
+      "endDate": "2026-08-11"
     },
     {
       "id": "leave-30",
@@ -2942,8 +2942,8 @@
       "type": "Sick",
       "days": 1,
       "status": "Approved",
-      "startDate": "2026-08-06",
-      "endDate": "2026-08-07"
+      "startDate": "2026-08-07",
+      "endDate": "2026-08-08"
     },
     {
       "id": "leave-31",
@@ -2955,8 +2955,8 @@
       "type": "Annual",
       "days": 2,
       "status": "Approved",
-      "startDate": "2026-08-07",
-      "endDate": "2026-08-09"
+      "startDate": "2026-08-08",
+      "endDate": "2026-08-10"
     },
     {
       "id": "leave-32",
@@ -2968,8 +2968,8 @@
       "type": "Annual",
       "days": 3,
       "status": "Approved",
-      "startDate": "2026-08-08",
-      "endDate": "2026-08-11"
+      "startDate": "2026-08-09",
+      "endDate": "2026-08-12"
     },
     {
       "id": "leave-33",
@@ -2981,8 +2981,8 @@
       "type": "Annual",
       "days": 4,
       "status": "Approved",
-      "startDate": "2026-08-09",
-      "endDate": "2026-08-13"
+      "startDate": "2026-08-10",
+      "endDate": "2026-08-14"
     },
     {
       "id": "leave-34",
@@ -2994,8 +2994,8 @@
       "type": "Annual",
       "days": 5,
       "status": "Approved",
-      "startDate": "2026-08-10",
-      "endDate": "2026-08-15"
+      "startDate": "2026-08-11",
+      "endDate": "2026-08-16"
     },
     {
       "id": "leave-35",
@@ -3007,8 +3007,8 @@
       "type": "Sick",
       "days": 1,
       "status": "Pending",
-      "startDate": "2026-08-11",
-      "endDate": "2026-08-12"
+      "startDate": "2026-08-12",
+      "endDate": "2026-08-13"
     },
     {
       "id": "leave-36",
@@ -3020,8 +3020,8 @@
       "type": "Annual",
       "days": 2,
       "status": "Approved",
-      "startDate": "2026-08-12",
-      "endDate": "2026-08-14"
+      "startDate": "2026-08-13",
+      "endDate": "2026-08-15"
     },
     {
       "id": "leave-37",
@@ -3033,8 +3033,8 @@
       "type": "Annual",
       "days": 3,
       "status": "Approved",
-      "startDate": "2026-08-13",
-      "endDate": "2026-08-16"
+      "startDate": "2026-08-14",
+      "endDate": "2026-08-17"
     },
     {
       "id": "leave-38",
@@ -3046,8 +3046,8 @@
       "type": "Annual",
       "days": 4,
       "status": "Approved",
-      "startDate": "2026-08-14",
-      "endDate": "2026-08-18"
+      "startDate": "2026-08-15",
+      "endDate": "2026-08-19"
     },
     {
       "id": "leave-39",
@@ -3059,8 +3059,8 @@
       "type": "Annual",
       "days": 5,
       "status": "Approved",
-      "startDate": "2026-08-15",
-      "endDate": "2026-08-20"
+      "startDate": "2026-08-16",
+      "endDate": "2026-08-21"
     }
   ],
   "recruitment": [

@@ -303,6 +303,257 @@ export function withExecutiveHomeLiveAnalytics(
   };
 }
 
+function greetingForNow() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning.";
+  if (hour < 18) return "Good afternoon.";
+  return "Good evening.";
+}
+
+/** Build live narrative widgets so Home never shows Internal Philip/ABC mocks. */
+export function buildExecutiveHomeLiveNarrative(input: {
+  financials: FinancialOverviewSnapshot | null;
+  projects: InternalProject[];
+  clients: ManagedClient[];
+}) {
+  const currency = "GBP";
+  const cash = input.financials?.cashPosition ?? 0;
+  const overdue = input.financials?.ar.overdue ?? 0;
+  const overdueCount = input.financials?.outstandingInvoices ?? 0;
+  const openProjects = countLiveProjects(input.projects);
+  const atRisk = input.projects.filter(
+    (project) => project.phase === "live" && project.progressPct > 0 && project.progressPct < 40,
+  );
+  const activeClients = input.clients.filter((client) => client.accountStatus === "Active");
+  const onboarding = input.clients.filter((client) =>
+    ["Client Created", "Workspace Provisioned", "Onboarding"].includes(client.accountStatus),
+  );
+  const recentClients = [...input.clients]
+    .sort((a, b) =>
+      String(b.updatedAt ?? b.createdAt ?? "").localeCompare(String(a.updatedAt ?? a.createdAt ?? "")),
+    )
+    .slice(0, 3);
+  const liveProjects = input.projects.filter((project) => project.phase === "live").slice(0, 3);
+
+  let companyName = "Meridian Atlas Group";
+  try {
+    if (typeof window !== "undefined") {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        companyName = getDemoEnterpriseFixtures().company.tradingName;
+      }
+    }
+  } catch {
+    // keep default
+  }
+
+  const attention =
+    (overdue > 0 ? 1 : 0) + (atRisk.length > 0 ? 1 : 0) + (onboarding.length > 0 ? 1 : 0);
+
+  const summaryParts = [
+    `${activeClients.length} active clients across the portfolio.`,
+    `${openProjects} live projects in delivery.`,
+    cash > 0
+      ? `Cash position ${formatCompactMoney(cash, currency)}.`
+      : "Cash position needs treasury attention.",
+    overdue > 0
+      ? `${overdueCount} invoices overdue (${formatCompactMoney(overdue, currency)}).`
+      : "Receivables are current.",
+    atRisk.length > 0
+      ? `${atRisk.length} delivery engagement${atRisk.length === 1 ? "" : "s"} behind plan.`
+      : "No live projects currently flagged at risk.",
+  ];
+
+  const alerts: Array<{
+    id: string;
+    title: string;
+    detail: string;
+    severity: "critical" | "warning" | "info";
+    timeLabel: string;
+  }> = [];
+  if (overdue > 0) {
+    alerts.push({
+      id: "live-ar",
+      title: `${overdueCount} overdue invoice${overdueCount === 1 ? "" : "s"}`,
+      detail: `${formatCompactMoney(overdue, currency)} outstanding — chase sequence recommended.`,
+      severity: overdue > 100_000 ? "critical" : "warning",
+      timeLabel: "Finance",
+    });
+  }
+  if (atRisk[0]) {
+    alerts.push({
+      id: "live-risk",
+      title: `Project behind plan — ${atRisk[0].name}`,
+      detail: `${atRisk[0].clientName} · ${atRisk[0].progressPct}% complete. Recovery plan required.`,
+      severity: "warning",
+      timeLabel: "Delivery",
+    });
+  }
+  if (onboarding.length > 0) {
+    alerts.push({
+      id: "live-onboard",
+      title: `${onboarding.length} client${onboarding.length === 1 ? "" : "s"} in onboarding`,
+      detail: "Complete workspace provisioning and kickoff packs this week.",
+      severity: "info",
+      timeLabel: "Clients",
+    });
+  }
+  alerts.push({
+    id: "live-treasury",
+    title: `${companyName} treasury position`,
+    detail: `Wise simulated balances total ${formatCompactMoney(cash, currency)} across operating currencies.`,
+    severity: "info",
+    timeLabel: "Bank",
+  });
+
+  const activity: Array<{
+    id: string;
+    title: string;
+    meta: string;
+    timeLabel: string;
+    category: string;
+  }> = [];
+  for (const project of liveProjects) {
+    activity.push({
+      id: `proj-${project.id}`,
+      title: `Live engagement — ${project.name}`,
+      meta: `${project.clientName} · ${project.progressPct}%`,
+      timeLabel: "Projects",
+      category: "Delivery",
+    });
+  }
+  for (const client of recentClients.slice(0, 2)) {
+    activity.push({
+      id: `client-${client.id}`,
+      title: `Client record — ${client.companyName}`,
+      meta: `${client.accountStatus} · ${client.industry || "Consulting"}`,
+      timeLabel: "CRM",
+      category: "Clients",
+    });
+  }
+  if (overdueCount > 0) {
+    activity.push({
+      id: "fin-ar",
+      title: "Receivables ageing updated",
+      meta: `${formatCompactMoney(overdue, currency)} overdue · ${overdueCount} invoices`,
+      timeLabel: "Finance",
+      category: "Finance",
+    });
+  }
+
+  const queue: Array<{
+    id: string;
+    title: string;
+    meta: string;
+    status: string;
+    dueLabel: string;
+    priority: "high" | "medium" | "low";
+  }> = [];
+  if (overdue > 0) {
+    queue.push({
+      id: "q-ar",
+      title: "Authorise overdue invoice chase sequence",
+      meta: `Finance · ${formatCompactMoney(overdue, currency)} AR`,
+      status: "Decision",
+      dueLabel: "Today",
+      priority: "high",
+    });
+  }
+  if (atRisk[0]) {
+    queue.push({
+      id: "q-risk",
+      title: `Review recovery plan — ${atRisk[0].name}`,
+      meta: "Project · Delivery risk",
+      status: "Review",
+      dueLabel: "Today",
+      priority: "high",
+    });
+  }
+  if (onboarding[0]) {
+    queue.push({
+      id: "q-onboard",
+      title: `Complete onboarding — ${onboarding[0].companyName}`,
+      meta: "Clients · Workspace setup",
+      status: "Action",
+      dueLabel: "This week",
+      priority: "medium",
+    });
+  }
+  queue.push({
+    id: "q-cash",
+    title: "Confirm treasury balances for board pack",
+    meta: `Bank · ${formatCompactMoney(cash, currency)}`,
+    status: "Review",
+    dueLabel: "This week",
+    priority: "medium",
+  });
+
+  return {
+    ai: {
+      headline: greetingForNow(),
+      summary: summaryParts.join(" "),
+      nextUp:
+        queue[0]?.title ??
+        `Review ${companyName} operating dashboard before leadership sync.`,
+      metrics: [
+        { label: "Needs attention", value: String(Math.max(attention, queue.length)) },
+        { label: "Live projects", value: String(openProjects) },
+        { label: "Active clients", value: String(activeClients.length) },
+      ],
+    },
+    alerts: alerts.slice(0, 4),
+    activity: activity.slice(0, 5),
+    queue: queue.slice(0, 5),
+  };
+}
+
+export function withExecutiveHomeLiveNarrative(
+  config: WorkspaceDashboardConfig,
+  narrative: ReturnType<typeof buildExecutiveHomeLiveNarrative>,
+): WorkspaceDashboardConfig {
+  return {
+    ...config,
+    sections: config.sections.map((section) => {
+      if (section.slot === "ai-summary") {
+        return {
+          ...section,
+          widgets: section.widgets.map((widget) =>
+            widget.type === "ai-summary"
+              ? {
+                  ...widget,
+                  headline: narrative.ai.headline,
+                  summary: narrative.ai.summary,
+                  nextUp: narrative.ai.nextUp,
+                  metrics: narrative.ai.metrics,
+                }
+              : widget,
+          ),
+        };
+      }
+      if (section.slot === "alerts-activity") {
+        return {
+          ...section,
+          widgets: section.widgets.map((widget) => {
+            if (widget.type === "alerts") return { ...widget, items: narrative.alerts };
+            if (widget.type === "recent-activity") return { ...widget, items: narrative.activity };
+            return widget;
+          }),
+        };
+      }
+      if (section.slot === "analytics-queue") {
+        return {
+          ...section,
+          widgets: section.widgets.map((widget) =>
+            widget.type === "work-queue" ? { ...widget, items: narrative.queue } : widget,
+          ),
+        };
+      }
+      return section;
+    }),
+  };
+}
+
 export function withExecutiveHomeLiveData(
   config: WorkspaceDashboardConfig,
   input: {
@@ -311,9 +562,12 @@ export function withExecutiveHomeLiveData(
     clients: ManagedClient[];
   },
 ): WorkspaceDashboardConfig {
-  return withExecutiveHomeLiveAnalytics(
-    withExecutiveHomeLiveKpis(config, buildExecutiveHomeLiveKpis(input)),
-    buildExecutiveHomeLiveAnalytics(input),
+  return withExecutiveHomeLiveNarrative(
+    withExecutiveHomeLiveAnalytics(
+      withExecutiveHomeLiveKpis(config, buildExecutiveHomeLiveKpis(input)),
+      buildExecutiveHomeLiveAnalytics(input),
+    ),
+    buildExecutiveHomeLiveNarrative(input),
   );
 }
 
@@ -348,10 +602,10 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
           id: "home-ai",
           type: "ai-summary",
           title: "AI Executive Summary",
-          headline: "Good morning Philip.",
+          headline: "Loading executive summary…",
           summary:
-            "Sales pipeline increased 8% this week. Cash position remains healthy. Two contracts require approval. One project is behind schedule. Technology renewals need attention next Tuesday. Three invoices are overdue.",
-          nextUp: "Review the ABC Medical proposal before 2pm.",
+            "Live portfolio metrics will appear here once financials, projects, and clients have loaded.",
+          nextUp: "Open Financials or Clients to review operating priorities.",
           metrics: [
             { label: "Needs attention", value: "6" },
             { label: "Changed this week", value: "14" },
@@ -407,31 +661,10 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
           items: [
             {
               id: "ha1",
-              title: "Two contracts awaiting signature",
-              detail: "ABC Medical MSA and Harbor Logistics SOW are past internal review.",
-              severity: "critical",
-              timeLabel: "Due today",
-            },
-            {
-              id: "ha2",
-              title: "Project behind schedule — Coastal Survey",
-              detail: "Delivery slipped 9 days. Client notified; recovery plan required.",
-              severity: "warning",
-              timeLabel: "Updated 1h ago",
-            },
-            {
-              id: "ha3",
-              title: "Three invoices overdue beyond 45 days",
-              detail: "£184k outstanding. Finance recommends chase sequence today.",
-              severity: "warning",
-              timeLabel: "Finance",
-            },
-            {
-              id: "ha4",
-              title: "Technology renewals due Tuesday",
-              detail: "Three SaaS and certificate renewals land Tuesday. Review before committing spend.",
+              title: "Loading business alerts…",
+              detail: "Alerts are derived from receivables, delivery risk, and onboarding.",
               severity: "info",
-              timeLabel: "Next week",
+              timeLabel: "Live",
             },
           ],
         },
@@ -442,38 +675,10 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
           items: [
             {
               id: "act1",
-              title: "Pipeline stage change — Meridian Energy",
-              meta: "Discovery → Proposal · £420k",
-              timeLabel: "08:40",
-              category: "Sales",
-            },
-            {
-              id: "act2",
-              title: "Payment received — Apex Mining",
-              meta: "£32,500 cleared to operating account",
-              timeLabel: "09:15",
-              category: "Finance",
-            },
-            {
-              id: "act3",
-              title: "Board pack draft shared",
-              meta: "Q3 pack uploaded for director review",
-              timeLabel: "Yesterday",
-              category: "Corporate",
-            },
-            {
-              id: "act4",
-              title: "New client record — Harbor Logistics",
-              meta: "Created from inbound website enquiry",
-              timeLabel: "Yesterday",
-              category: "Clients",
-            },
-            {
-              id: "act5",
-              title: "Support ticket escalated — TK-1042",
-              meta: "External portal login failure",
-              timeLabel: "2h ago",
-              category: "Support",
+              title: "Loading activity…",
+              meta: "Projects and clients will appear here",
+              timeLabel: "—",
+              category: "System",
             },
           ],
         },
@@ -507,42 +712,10 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
           items: [
             {
               id: "tq1",
-              title: "Approve ABC Medical proposal",
-              meta: "Decision · Commercial",
-              status: "Approval",
-              dueLabel: "Before 2pm",
-              priority: "high",
-            },
-            {
-              id: "tq2",
-              title: "Sign Harbor Logistics SOW",
-              meta: "Contract · Legal review complete",
-              status: "Approval",
-              dueLabel: "Today",
-              priority: "high",
-            },
-            {
-              id: "tq3",
-              title: "Review Coastal Survey recovery plan",
-              meta: "Project · Delivery risk",
+              title: "Loading priorities…",
+              meta: "Derived from live operating data",
               status: "Review",
-              dueLabel: "Today",
-              priority: "high",
-            },
-            {
-              id: "tq4",
-              title: "Authorise overdue invoice chase sequence",
-              meta: "Finance · £184k AR",
-              status: "Decision",
-              dueLabel: "Tomorrow",
-              priority: "medium",
-            },
-            {
-              id: "tq5",
-              title: "Confirm Tuesday technology renewals",
-              meta: "Technology · 3 renewals due",
-              status: "Deadline",
-              dueLabel: "Monday",
+              dueLabel: "—",
               priority: "medium",
             },
           ],

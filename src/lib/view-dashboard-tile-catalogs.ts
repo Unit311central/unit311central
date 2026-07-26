@@ -138,6 +138,7 @@ export function buildFinancialsDashboardCatalog(
       trend: "improving" | "stable" | "increasing";
       trendLabel: string;
       currency: string;
+      forecastMonthly?: number;
     };
   } | null,
 ): DashboardTileDefinition[] {
@@ -210,7 +211,11 @@ export function buildFinancialsDashboardCatalog(
       case "gross-margin":
         return { ...tile, value: `${marginPct}%` };
       case "forecast":
-        return { ...tile, value: money(0), hint: "Forecast not configured" };
+        return {
+          ...tile,
+          value: money(overview.burnRate?.forecastMonthly ?? 0),
+          hint: "Projected monthly burn",
+        };
       default:
         return tile;
     }

@@ -5,6 +5,7 @@
 
 import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 import type { TreasuryTransaction } from "@/lib/treasury/treasury-types";
+import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import type { WiseBalance, WiseConnectionStatus } from "@/lib/wise-service";
 
 export function getDemoWiseConnectionStatus(): WiseConnectionStatus {
@@ -39,6 +40,18 @@ export function listDemoWiseBalances(): WiseBalance[] {
     accountRef: row.accountRef,
     modificationTime: row.modificationTime,
   }));
+}
+
+/** Total Meridian Atlas simulated treasury in GBP (same FX as live treasury). */
+export function getDemoTreasuryCashGbp(): number {
+  return (
+    Math.round(
+      listDemoWiseBalances().reduce(
+        (sum, balance) => sum + convertToGbp(Number(balance.amount) || 0, balance.currency),
+        0,
+      ) * 100,
+    ) / 100
+  );
 }
 
 export function getDemoWiseBalanceTransactions(input: {

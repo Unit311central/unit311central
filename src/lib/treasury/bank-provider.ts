@@ -22,12 +22,18 @@ export function isWiseTreasuryWorkspaceSlug(slug: string | null | undefined): bo
   return isDemoWiseWorkspaceSlug(slug) || isLiveWiseWorkspaceSlug(slug);
 }
 
-/** Demo host always uses the simulator — never fall through to live Wise. */
+/**
+ * Demo host / Demo workspace always uses the simulator — never fall through to live Wise.
+ * Also honors middleware `x-unit311-demo: 1` when Host forwarding is ambiguous.
+ */
 export async function shouldUseDemoWiseSimulator(): Promise<boolean> {
   try {
     const { headers } = await import("next/headers");
     const { getRequestHost } = await import("@/lib/app-domains");
     const requestHeaders = await headers();
+    if (requestHeaders.get("x-unit311-demo") === "1") {
+      return true;
+    }
     if (isDemoDomainHost(getRequestHost({ headers: requestHeaders }))) {
       return true;
     }

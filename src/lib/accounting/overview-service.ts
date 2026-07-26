@@ -54,9 +54,18 @@ function emptyBurnRate(cashBalance = 0): FinancialOverviewSnapshot["burnRate"] {
  * Live Wise treasury total in GBP — same calculation as Finance → Bank
  * (`computeTreasurySummary.totalTreasuryValueGbp`). Falls back to GL Wise
  * cash accounts when Wise is unavailable.
+ * Demo always uses Meridian simulated balances (never live Wise / empty GL).
  */
 export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
   try {
+    const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+    if (await shouldUseDemoWiseSimulator()) {
+      const { getDemoTreasuryCashGbp } = await import(
+        "@/lib/treasury/providers/demo-wise-simulator"
+      );
+      return getDemoTreasuryCashGbp();
+    }
+
     const cashPromise = (async () => {
       const status = await getWiseConnectionStatus();
       if (!status.configured || !status.connected) {
@@ -73,13 +82,12 @@ export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
     })();
 
     const timeoutMs = 8_000;
-    const timed = await Promise.race([
+    return await Promise.race([
       cashPromise,
       new Promise<number>((resolve) => {
         setTimeout(() => resolve(roundMoney(glWiseCash)), timeoutMs);
       }),
     ]);
-    return timed;
   } catch {
     return roundMoney(glWiseCash);
   }
@@ -282,6 +290,7 @@ export async function getFinancialOverview(
 
     const yearPrefix = todayIso.slice(0, 4);
     const monthlyExpensePoint = charts.monthlyOutgoings.find((point) => point.month === monthPrefix);
+    const monthlyRevenuePoint = charts.monthlyRevenue.find((point) => point.month === monthPrefix);
     const annualRevenue = roundMoney(
       charts.monthlyRevenue
         .filter((point) => point.month.startsWith(yearPrefix))
@@ -292,6 +301,7 @@ export async function getFinancialOverview(
         .filter((point) => point.month.startsWith(yearPrefix))
         .reduce((sum, point) => sum + point.amount, 0),
     );
+    const monthlyRevenue = roundMoney(monthlyRevenuePoint?.amount ?? 0);
 
     const burnRate =
       postedExpenses.length > 0 || charts.monthlyOutgoings.some((point) => point.amount > 0)
@@ -333,6 +343,8 @@ export async function getFinancialOverview(
     const glRevenue = totals.income;
     const glSpend = totals.expenses;
     const netProfit = roundMoney(glRevenue - glSpend);
+    // Calendar YTD from monthly series when available; else all-time income balance.
+    const revenueYtd = annualRevenue > 0 ? annualRevenue : roundMoney(glRevenue);
 
     const payrollPoint =
       burnRate.series.find((point) => point.month === monthPrefix) ??
@@ -444,13 +456,13 @@ export async function getFinancialOverview(
         : [];
 
     return {
-      revenueYtd: glRevenue,
+      revenueYtd,
       cashPosition,
       accountsReceivable: arOutstanding,
       accountsPayable: apOutstanding,
       netProfit,
       outstandingInvoices: unpaid.length,
-      monthlyRevenue: glRevenue,
+      monthlyRevenue,
       monthlyExpenses: roundMoney(glSpend + softwareMonthly + Math.max(0, payrollMonthly - glPayrollMonthly)),
       annualRevenue,
       annualExpenses: roundMoney(annualExpenses + softwareMonthly * 12),
