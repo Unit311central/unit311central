@@ -92,6 +92,12 @@ export const FINANCIAL_REPORT_ORGANISATIONS = [
   "All entities",
 ] as const;
 
+export const DEMO_FINANCIAL_REPORT_ORGANISATIONS = [
+  "Meridian Atlas Group",
+  "Meridian Atlas Holdings",
+  "All entities",
+] as const;
+
 export const FINANCIAL_REPORT_DEPARTMENTS = [
   "All departments",
   "Finance",
@@ -126,17 +132,17 @@ export type CreateReportDraft = {
   name: string;
 };
 
-export function createBlankReportDraft(): CreateReportDraft {
+export function createBlankReportDraft(demo = false): CreateReportDraft {
   return {
     reportType: null,
     periodKind: "Monthly",
     periodLabel: "June 2026",
     dateFrom: "2026-06-01",
     dateTo: "2026-06-30",
-    organisation: "Unit311 Central",
+    organisation: demo ? "Meridian Atlas Group" : "Unit311 Central",
     department: "Finance",
     project: "All projects",
-    currency: "EUR",
+    currency: demo ? "GBP" : "EUR",
     includeCharts: true,
     includeNotes: true,
     maturity: "Final",
@@ -590,6 +596,19 @@ export const SEED_FINANCIAL_REPORTS: FinancialReportRecord[] = [
     history: [],
   },
 ];
+
+export function getFinancialReportOrganisations(demo = false) {
+  return demo ? DEMO_FINANCIAL_REPORT_ORGANISATIONS : FINANCIAL_REPORT_ORGANISATIONS;
+}
+
+export function getSeedFinancialReports(demo = false): FinancialReportRecord[] {
+  if (!demo) return SEED_FINANCIAL_REPORTS;
+  return SEED_FINANCIAL_REPORTS.map((report) => ({
+    ...report,
+    organisation: "Meridian Atlas Group",
+    currency: "GBP",
+  }));
+}
 
 export function periodLabelForKind(kind: FinancialReportPeriodKind): string {
   switch (kind) {

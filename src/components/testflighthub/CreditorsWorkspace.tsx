@@ -110,7 +110,7 @@ export default function CreditorsWorkspace() {
       <div className="grid gap-4 xl:grid-cols-2">
         <section className={panelClassName()}>
           <h3 className="text-sm font-semibold text-white">Outstanding by ageing</h3>
-          <p className="mt-1 text-xs text-white/45">Payables grouped by days outstanding (€k)</p>
+          <p className="mt-1 text-xs text-white/45">Payables grouped by days outstanding (£k)</p>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={aging} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>

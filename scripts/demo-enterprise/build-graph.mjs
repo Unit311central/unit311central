@@ -37,13 +37,14 @@ const ROLE_BANDS = [
 ];
 
 function salaryFor(role, rng) {
+  // Calibrated so 100-headcount Demo burn fits ~4–5 months runway on £1.58m treasury.
   const r = role.toLowerCase();
-  if (r.includes("chief") || r.includes("vp ")) return rng.money(140000, 220000, 0);
-  if (r.includes("director")) return rng.money(110000, 150000, 0);
-  if (r.includes("principal") || r.includes("architect") || r.includes("controller")) return rng.money(95000, 125000, 0);
-  if (r.includes("senior") || r.includes("manager") || r.includes("lead")) return rng.money(75000, 105000, 0);
-  if (r.includes("graduate") || r.includes("intern") || r.includes("sdr")) return rng.money(32000, 48000, 0);
-  return rng.money(52000, 82000, 0);
+  if (r.includes("chief") || r.includes("vp ")) return rng.money(55000, 75000, 0);
+  if (r.includes("director")) return rng.money(45000, 58000, 0);
+  if (r.includes("principal") || r.includes("architect") || r.includes("controller")) return rng.money(38000, 48000, 0);
+  if (r.includes("senior") || r.includes("manager") || r.includes("lead")) return rng.money(30000, 40000, 0);
+  if (r.includes("graduate") || r.includes("intern") || r.includes("sdr")) return rng.money(22000, 28000, 0);
+  return rng.money(25000, 34000, 0);
 }
 
 export function buildEnterpriseGraph(options = {}) {
@@ -101,7 +102,7 @@ export function buildEnterpriseGraph(options = {}) {
       role: `${dept} Specialist`,
       officeId: office.id,
       location: `${office.city}, ${office.country}`,
-      salary: rng.money(45000, 85000, 0),
+      salary: rng.money(25000, 34000, 0),
       dateJoined: daysAgo(rng.int(40, 340)),
       employmentType: "Permanent",
       skills: ["Delivery"],
@@ -293,7 +294,7 @@ export function buildEnterpriseGraph(options = {}) {
         submitterName: emp.fullName,
         purpose: `${supplier.category}: ${supplier.name}`,
         supplier: supplier.name,
-        amount: rng.money(120, 18000, 2),
+        amount: rng.money(80, 4200, 2),
         currency: "GBP",
         dateSubmitted: monthsAgo(m, rng.int(2, 27)),
         paid: m > 0 || rng.bool(0.6),
@@ -346,14 +347,14 @@ export function buildEnterpriseGraph(options = {}) {
   }
 
   const software = [
-    { name: "Atlassian Cloud", vendor: "Atlassian", category: "Collaboration", monthly: 4200 },
-    { name: "Microsoft 365 E5", vendor: "Microsoft", category: "Productivity", monthly: 9800 },
-    { name: "Salesforce Enterprise", vendor: "Salesforce", category: "CRM", monthly: 7600 },
-    { name: "Datadog", vendor: "Datadog", category: "Observability", monthly: 3100 },
-    { name: "Okta Workforce", vendor: "Okta", category: "Identity", monthly: 2400 },
-    { name: "GitHub Enterprise", vendor: "GitHub", category: "DevTools", monthly: 2900 },
-    { name: "Notion Enterprise", vendor: "Notion", category: "Knowledge", monthly: 1100 },
-    { name: "Figma Organization", vendor: "Figma", category: "Design", monthly: 1600 },
+    { name: "Atlassian Cloud", vendor: "Atlassian", category: "Collaboration", monthly: 2100 },
+    { name: "Microsoft 365 E5", vendor: "Microsoft", category: "Productivity", monthly: 4800 },
+    { name: "Salesforce Enterprise", vendor: "Salesforce", category: "CRM", monthly: 3800 },
+    { name: "Datadog", vendor: "Datadog", category: "Observability", monthly: 1600 },
+    { name: "Okta Workforce", vendor: "Okta", category: "Identity", monthly: 1200 },
+    { name: "GitHub Enterprise", vendor: "GitHub", category: "DevTools", monthly: 1500 },
+    { name: "Notion Enterprise", vendor: "Notion", category: "Knowledge", monthly: 600 },
+    { name: "Figma Organization", vendor: "Figma", category: "Design", monthly: 800 },
   ].map((s, i) => ({
     id: sqlUuid(`dme-sw-${i}`),
     ...s,
@@ -362,22 +363,31 @@ export function buildEnterpriseGraph(options = {}) {
   }));
 
   // Monthly GL revenue/expense summaries for journals (amounts already mostly GBP).
+  // Include payroll + software so P&L matches Home burn narrative (not revenue-only profit).
   const monthlyFinance = [];
   const fxToGbp = { GBP: 1, USD: 0.79, EUR: 0.86 };
+  const payrollMonthlyEstimate =
+    employees.reduce((sum, emp) => sum + Number(emp.salary || 0), 0) / 12;
+  const employerTaxMonthly = payrollMonthlyEstimate * 0.138;
+  const softwareMonthly = software.reduce((sum, row) => sum + Number(row.monthly || 0), 0);
   for (let m = 11; m >= 0; m -= 1) {
     const monthInvoices = invoices.filter((inv) => inv.monthIndex === m && inv.status !== "cancelled");
     const revenue = monthInvoices.reduce(
       (s, inv) => s + inv.amount * (fxToGbp[inv.currency] ?? 1),
       0,
     );
-    // Light opex padding only — payroll is applied live in Financial Overview (do not inflate journals).
-    const monthExpenses = expenses.filter((e) => e.dateSubmitted.startsWith(monthsAgo(m, 1).slice(0, 7)));
-    const opex = monthExpenses.reduce((s, e) => s + e.amount, 0) + rng.money(35_000, 55_000, 2);
+    const monthKey = monthsAgo(m, 1).slice(0, 7);
+    const monthExpenses = expenses.filter((e) => e.dateSubmitted.startsWith(monthKey));
+    const vendorOpex = monthExpenses.reduce((s, e) => s + e.amount, 0);
+    const opex = vendorOpex + payrollMonthlyEstimate + employerTaxMonthly + softwareMonthly;
     monthlyFinance.push({
-      month: monthsAgo(m, 1).slice(0, 7),
+      month: monthKey,
       journalDate: monthsAgo(m, 28),
       revenue: Number(revenue.toFixed(2)),
       opex: Number(opex.toFixed(2)),
+      payroll: Number((payrollMonthlyEstimate + employerTaxMonthly).toFixed(2)),
+      software: Number(softwareMonthly.toFixed(2)),
+      vendor: Number(vendorOpex.toFixed(2)),
     });
   }
 
@@ -423,7 +433,7 @@ export function buildEnterpriseGraph(options = {}) {
     wiseTransactions.push({
       id: `dme-wise-pay-${m}`,
       direction: "out",
-      amount: rng.money(420000, 510000, 2),
+      amount: Number((payrollMonthlyEstimate + employerTaxMonthly + rng.money(-8000, 8000, 2)).toFixed(2)),
       currency: "GBP",
       reference: `PAYROLL-${monthsAgo(m, 1).slice(0, 7)}`,
       status: "completed",

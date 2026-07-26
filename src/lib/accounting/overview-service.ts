@@ -471,7 +471,8 @@ export async function getFinancialOverview(
     const apOutstanding = roundMoney(
       unpaidExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0) +
         softwareApUpcoming +
-        (payrollEmployees > 0 ? payrollLiability : 0),
+        // Demo: next payroll is an obligation, not already-booked AP outstanding.
+        (isDemoTreasury ? 0 : payrollEmployees > 0 ? payrollLiability : 0),
     );
 
     const softwareApRecent = obligations.software.upcoming.slice(0, 6).map((line) => ({
@@ -561,7 +562,7 @@ export async function getFinancialOverview(
         dueThisMonth: roundMoney(
           apDueThisMonth.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0) +
             softwareApUpcoming +
-            (payrollEmployees > 0 ? payrollLiability : 0),
+            (isDemoTreasury ? 0 : payrollEmployees > 0 ? payrollLiability : 0),
         ),
         overdue: roundMoney(
           apOverdue.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0),
@@ -574,7 +575,7 @@ export async function getFinancialOverview(
             )
             .reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0) +
             softwareApUpcoming +
-            (payrollEmployees > 0 ? payrollLiability : 0),
+            (isDemoTreasury ? 0 : payrollEmployees > 0 ? payrollLiability : 0),
         ),
         recent: [...payrollApRecent, ...softwareApRecent, ...unpaidExpenses.slice(0, 8).map((expense) => ({
           id: String(expense.id),
@@ -596,8 +597,19 @@ export async function getFinancialOverview(
       },
       charts: {
         ...charts,
-        cashPosition:
-          charts.cashPosition.length > 0
+        // Demo treasury is Wise SSOT at £1.58m — never show GL cash (often deeply negative)
+        // then patch only the final month (that produced the fake “+£3.55m vs prior month”).
+        cashPosition: isDemoTreasury
+          ? (charts.cashPosition.length > 0 ? charts.cashPosition : [{ month: monthPrefix, amount: cashPosition }]).map(
+              (point, index, arr) => {
+                const t = arr.length <= 1 ? 1 : index / (arr.length - 1);
+                return {
+                  ...point,
+                  amount: roundMoney(cashPosition * (0.9 + 0.1 * t)),
+                };
+              },
+            )
+          : charts.cashPosition.length > 0
             ? charts.cashPosition.map((point, index) =>
                 index === charts.cashPosition.length - 1
                   ? { ...point, amount: cashPosition }

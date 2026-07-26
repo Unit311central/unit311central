@@ -125,7 +125,7 @@
     }
   ],
   "tag": "[demo-enterprise]",
-  "generatedAt": "2026-07-26T02:35:53.442Z",
+  "generatedAt": "2026-07-26T03:00:11.996Z",
   "directory": [
     {
       "id": "mag-dir-1",
@@ -828,15 +828,15 @@
     "profileId": 3110001,
     "profileName": "Meridian Atlas Group",
     "profileType": "BUSINESS",
-    "lastSuccessfulSyncAt": "2026-07-26T02:35:53.442Z",
+    "lastSuccessfulSyncAt": "2026-07-26T03:00:11.996Z",
     "syncHistory": [
       {
-        "at": "2026-07-26T02:35:53.442Z",
+        "at": "2026-07-26T03:00:11.996Z",
         "status": "success",
         "message": "Simulator sync"
       },
       {
-        "at": "2026-07-25T02:35:53.442Z",
+        "at": "2026-07-25T03:00:11.996Z",
         "status": "success",
         "message": "Simulator sync"
       }
@@ -851,7 +851,7 @@
         "reservedAmount": 12000,
         "regionLabel": "United Kingdom",
         "accountRef": "MAG-GBP-001",
-        "modificationTime": "2026-07-26T02:35:53.442Z"
+        "modificationTime": "2026-07-26T03:00:11.996Z"
       },
       {
         "id": 31102,
@@ -862,7 +862,7 @@
         "reservedAmount": 8000,
         "regionLabel": "United States",
         "accountRef": "MAG-USD-001",
-        "modificationTime": "2026-07-26T02:35:53.442Z"
+        "modificationTime": "2026-07-26T03:00:11.996Z"
       },
       {
         "id": 31103,
@@ -873,7 +873,7 @@
         "reservedAmount": 5000,
         "regionLabel": "Belgium",
         "accountRef": "MAG-EUR-001",
-        "modificationTime": "2026-07-26T02:35:53.442Z"
+        "modificationTime": "2026-07-26T03:00:11.996Z"
       },
       {
         "id": 31104,
@@ -884,7 +884,7 @@
         "reservedAmount": 0,
         "regionLabel": "United Kingdom",
         "accountRef": "MAG-GBP-RSV",
-        "modificationTime": "2026-07-26T02:35:53.442Z"
+        "modificationTime": "2026-07-26T03:00:11.996Z"
       }
     ],
     "transactions": [
@@ -1671,10 +1671,10 @@
       {
         "id": "dme-wise-out-61",
         "balanceId": 31101,
-        "amount": 2461.25,
+        "amount": 619.48,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "pending",
+        "status": "failed",
         "reference": "SUP-1800af15",
         "description": "Telecommunications: BT Business",
         "date": "2025-08-02",
@@ -1684,10 +1684,10 @@
       {
         "id": "dme-wise-out-62",
         "balanceId": 31101,
-        "amount": 2875.67,
+        "amount": 714.98,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "failed",
         "reference": "SUP-1500aa5c",
         "description": "Cloud: Amazon Web Services",
         "date": "2025-08-15",
@@ -1697,10 +1697,10 @@
       {
         "id": "dme-wise-out-63",
         "balanceId": 31101,
-        "amount": 11147.98,
+        "amount": 2621.12,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "failed",
         "reference": "SUP-1600abef",
         "description": "Hardware: Dell Technologies",
         "date": "2025-08-15",
@@ -1710,10 +1710,10 @@
       {
         "id": "dme-wise-out-64",
         "balanceId": 31101,
-        "amount": 15057.97,
+        "amount": 3522.08,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "pending",
         "reference": "SUP-1300a736",
         "description": "Travel: Expedia Business Travel",
         "date": "2025-08-08",
@@ -1723,7 +1723,7 @@
       {
         "id": "dme-wise-out-65",
         "balanceId": 31101,
-        "amount": 13547.75,
+        "amount": 3174.09,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "pending",
@@ -1736,10 +1736,10 @@
       {
         "id": "dme-wise-out-66",
         "balanceId": 31101,
-        "amount": 7801.32,
+        "amount": 1849.97,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "pending",
+        "status": "failed",
         "reference": "SUP-1100a410",
         "description": "Accounting: Deloitte Advisory",
         "date": "2025-08-25",
@@ -1749,10 +1749,10 @@
       {
         "id": "dme-wise-out-67",
         "balanceId": 31101,
-        "amount": 15129.07,
+        "amount": 3538.47,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "failed",
         "reference": "SUP-1200a5a3",
         "description": "Recruitment: Robert Half",
         "date": "2025-08-03",
@@ -1762,7 +1762,7 @@
       {
         "id": "dme-wise-out-68",
         "balanceId": 31101,
-        "amount": 1268,
+        "amount": 344.53,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "pending",
@@ -1775,7 +1775,7 @@
       {
         "id": "dme-wise-out-69",
         "balanceId": 31101,
-        "amount": 9119.28,
+        "amount": 2153.66,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -1788,7 +1788,7 @@
       {
         "id": "dme-wise-out-70",
         "balanceId": 31101,
-        "amount": 16494.62,
+        "amount": 3853.12,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -1801,10 +1801,10 @@
       {
         "id": "dme-wise-out-71",
         "balanceId": 31101,
-        "amount": 14436.61,
+        "amount": 3378.91,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "failed",
+        "status": "completed",
         "reference": "SUP-ed13b5ac",
         "description": "Facilities: CBRE Facilities",
         "date": "2025-08-12",
@@ -1814,10 +1814,10 @@
       {
         "id": "dme-wise-out-72",
         "balanceId": 31101,
-        "amount": 8700.24,
+        "amount": 2057.1,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "failed",
+        "status": "completed",
         "reference": "SUP-f013ba65",
         "description": "Training: PluralSight Business",
         "date": "2025-08-09",
@@ -1827,7 +1827,7 @@
       {
         "id": "dme-wise-out-73",
         "balanceId": 31101,
-        "amount": 14357.03,
+        "amount": 3360.57,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "pending",
@@ -1840,10 +1840,10 @@
       {
         "id": "dme-wise-out-74",
         "balanceId": 31101,
-        "amount": 1193.65,
+        "amount": 327.4,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "pending",
+        "status": "completed",
         "reference": "SUP-ea13b0f3",
         "description": "Accounting: Deloitte Advisory",
         "date": "2025-08-19",
@@ -1853,7 +1853,7 @@
       {
         "id": "dme-wise-out-75",
         "balanceId": 31101,
-        "amount": 16606.9,
+        "amount": 3879,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -1866,10 +1866,10 @@
       {
         "id": "dme-wise-out-76",
         "balanceId": 31101,
-        "amount": 11130.17,
+        "amount": 2617.02,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "pending",
+        "status": "completed",
         "reference": "SUP-ec13b419",
         "description": "Cloud: Microsoft Azure",
         "date": "2025-09-26",
@@ -1879,10 +1879,10 @@
       {
         "id": "dme-wise-out-77",
         "balanceId": 31101,
-        "amount": 6075.51,
+        "amount": 1452.3,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "pending",
         "reference": "SUP-eb13b286",
         "description": "Travel: Expedia Business Travel",
         "date": "2025-09-09",
@@ -1892,10 +1892,10 @@
       {
         "id": "dme-wise-out-78",
         "balanceId": 31101,
-        "amount": 2275.39,
+        "amount": 576.66,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "failed",
+        "status": "pending",
         "reference": "SUP-f613c3d7",
         "description": "Insurance: Hiscox Insurance",
         "date": "2025-09-09",
@@ -1905,10 +1905,10 @@
       {
         "id": "dme-wise-out-79",
         "balanceId": 31101,
-        "amount": 11571.85,
+        "amount": 2718.79,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "pending",
+        "status": "completed",
         "reference": "SUP-f513c244",
         "description": "Hardware: Dell Technologies",
         "date": "2025-09-21",
@@ -1918,7 +1918,7 @@
       {
         "id": "dme-wise-out-80",
         "balanceId": 31101,
-        "amount": 6988.47,
+        "amount": 1662.67,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "pending",
@@ -1931,10 +1931,10 @@
       {
         "id": "dme-wise-out-81",
         "balanceId": 31101,
-        "amount": 17484.83,
+        "amount": 4081.29,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "pending",
+        "status": "completed",
         "reference": "SUP-7d0c4997",
         "description": "Recruitment: Robert Half",
         "date": "2025-09-15",
@@ -1944,10 +1944,10 @@
       {
         "id": "dme-wise-out-82",
         "balanceId": 31101,
-        "amount": 12569.4,
+        "amount": 2948.65,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "failed",
+        "status": "completed",
         "reference": "SUP-7e0c4b2a",
         "description": "Software: Atlassian",
         "date": "2025-09-16",
@@ -1957,10 +1957,10 @@
       {
         "id": "dme-wise-out-83",
         "balanceId": 31101,
-        "amount": 14583.44,
+        "amount": 3412.74,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "failed",
         "reference": "SUP-7f0c4cbd",
         "description": "Cloud: Google Cloud",
         "date": "2025-09-16",
@@ -1970,10 +1970,10 @@
       {
         "id": "dme-wise-out-84",
         "balanceId": 31101,
-        "amount": 17388.98,
+        "amount": 4059.2,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "pending",
+        "status": "failed",
         "reference": "SUP-780c41b8",
         "description": "Travel: Expedia Business Travel",
         "date": "2025-09-15",
@@ -1983,7 +1983,7 @@
       {
         "id": "dme-wise-out-85",
         "balanceId": 31101,
-        "amount": 10670.2,
+        "amount": 2511.03,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "pending",
@@ -1996,10 +1996,10 @@
       {
         "id": "dme-wise-out-86",
         "balanceId": 31101,
-        "amount": 1446.27,
+        "amount": 385.61,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "pending",
         "reference": "SUP-7a0c44de",
         "description": "Telecommunications: BT Business",
         "date": "2025-09-18",
@@ -2009,10 +2009,10 @@
       {
         "id": "dme-wise-out-87",
         "balanceId": 31101,
-        "amount": 2155,
+        "amount": 548.91,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "failed",
+        "status": "completed",
         "reference": "SUP-7b0c4671",
         "description": "Facilities: CBRE Facilities",
         "date": "2025-09-20",
@@ -2022,10 +2022,10 @@
       {
         "id": "dme-wise-out-88",
         "balanceId": 31101,
-        "amount": 4482.5,
+        "amount": 1085.23,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "failed",
+        "status": "pending",
         "reference": "SUP-740c3b6c",
         "description": "Insurance: Hiscox Insurance",
         "date": "2025-09-07",
@@ -2035,7 +2035,7 @@
       {
         "id": "dme-wise-out-89",
         "balanceId": 31101,
-        "amount": 9885.52,
+        "amount": 2330.22,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2048,10 +2048,10 @@
       {
         "id": "dme-wise-out-90",
         "balanceId": 31101,
-        "amount": 2970.26,
+        "amount": 736.77,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "pending",
+        "status": "failed",
         "reference": "SUP-820e900d",
         "description": "Telecommunications: BT Business",
         "date": "2025-10-18",
@@ -2061,10 +2061,10 @@
       {
         "id": "dme-wise-out-91",
         "balanceId": 31101,
-        "amount": 12851.16,
+        "amount": 3013.58,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "failed",
+        "status": "pending",
         "reference": "SUP-810e8e7a",
         "description": "Telecommunications: BT Business",
         "date": "2025-10-02",
@@ -2074,10 +2074,10 @@
       {
         "id": "dme-wise-out-92",
         "balanceId": 31101,
-        "amount": 12140.64,
+        "amount": 2849.86,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "pending",
         "reference": "SUP-800e8ce7",
         "description": "Telecommunications: BT Business",
         "date": "2025-10-27",
@@ -2087,10 +2087,10 @@
       {
         "id": "dme-wise-out-93",
         "balanceId": 31101,
-        "amount": 9827.73,
+        "amount": 2316.9,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "pending",
         "reference": "SUP-7f0e8b54",
         "description": "Travel: Expedia Business Travel",
         "date": "2025-10-05",
@@ -2100,7 +2100,7 @@
       {
         "id": "dme-wise-out-94",
         "balanceId": 31101,
-        "amount": 195.44,
+        "amount": 97.38,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "failed",
@@ -2113,7 +2113,7 @@
       {
         "id": "dme-wise-out-95",
         "balanceId": 31101,
-        "amount": 9788.49,
+        "amount": 2307.86,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2126,10 +2126,10 @@
       {
         "id": "dme-wise-out-96",
         "balanceId": 31101,
-        "amount": 12964.16,
+        "amount": 3039.62,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "failed",
+        "status": "pending",
         "reference": "SUP-7c0e869b",
         "description": "Hardware: Dell Technologies",
         "date": "2025-10-10",
@@ -2139,7 +2139,7 @@
       {
         "id": "dme-wise-out-97",
         "balanceId": 31101,
-        "amount": 17889.03,
+        "amount": 4174.43,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "pending",
@@ -2152,10 +2152,10 @@
       {
         "id": "dme-wise-out-98",
         "balanceId": 31101,
-        "amount": 3714.9,
+        "amount": 908.35,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "failed",
+        "status": "completed",
         "reference": "SUP-7a0e8375",
         "description": "Facilities: CBRE Facilities",
         "date": "2025-10-17",
@@ -2165,10 +2165,10 @@
       {
         "id": "dme-wise-out-99",
         "balanceId": 31101,
-        "amount": 178.48,
+        "amount": 93.47,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "completed",
+        "status": "failed",
         "reference": "SUP-790e81e2",
         "description": "Insurance: Hiscox Insurance",
         "date": "2025-10-05",
@@ -2178,10 +2178,10 @@
       {
         "id": "dme-wise-out-100",
         "balanceId": 31101,
-        "amount": 5000.18,
+        "amount": 1204.52,
         "currency": "GBP",
         "direction": "DEBIT",
-        "status": "pending",
+        "status": "failed",
         "reference": "SUP-f006ee72",
         "description": "Recruitment: Robert Half",
         "date": "2025-10-09",
@@ -2191,7 +2191,7 @@
       {
         "id": "dme-wise-pay-11",
         "balanceId": 31101,
-        "amount": 435782.83,
+        "amount": 329944.98,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2204,7 +2204,7 @@
       {
         "id": "dme-wise-pay-10",
         "balanceId": 31101,
-        "amount": 449685.47,
+        "amount": 332125.83,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2217,7 +2217,7 @@
       {
         "id": "dme-wise-pay-9",
         "balanceId": 31101,
-        "amount": 482440.24,
+        "amount": 335259.45,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2230,7 +2230,7 @@
       {
         "id": "dme-wise-pay-8",
         "balanceId": 31101,
-        "amount": 428226.94,
+        "amount": 328812.91,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2243,7 +2243,7 @@
       {
         "id": "dme-wise-pay-7",
         "balanceId": 31101,
-        "amount": 441639.9,
+        "amount": 324488.55,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2256,7 +2256,7 @@
       {
         "id": "dme-wise-pay-6",
         "balanceId": 31101,
-        "amount": 437181.56,
+        "amount": 335280.52,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2269,7 +2269,7 @@
       {
         "id": "dme-wise-pay-5",
         "balanceId": 31101,
-        "amount": 449136.97,
+        "amount": 330078.14,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2282,7 +2282,7 @@
       {
         "id": "dme-wise-pay-4",
         "balanceId": 31101,
-        "amount": 460612.95,
+        "amount": 337539.19,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2295,7 +2295,7 @@
       {
         "id": "dme-wise-pay-3",
         "balanceId": 31101,
-        "amount": 467106.25,
+        "amount": 332579.97,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2308,7 +2308,7 @@
       {
         "id": "dme-wise-pay-2",
         "balanceId": 31101,
-        "amount": 437137.54,
+        "amount": 337279.3,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2321,7 +2321,7 @@
       {
         "id": "dme-wise-pay-1",
         "balanceId": 31101,
-        "amount": 446799.73,
+        "amount": 323319.15,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2334,7 +2334,7 @@
       {
         "id": "dme-wise-pay-0",
         "balanceId": 31101,
-        "amount": 485088.07,
+        "amount": 331406.46,
         "currency": "GBP",
         "direction": "DEBIT",
         "status": "completed",
@@ -2347,19 +2347,19 @@
     ],
     "pendingPayments": [
       {
-        "id": "dme-wise-out-61",
+        "id": "dme-wise-out-64",
         "direction": "out",
-        "amount": 2461.25,
+        "amount": 3522.08,
         "currency": "GBP",
-        "reference": "SUP-1800af15",
+        "reference": "SUP-1300a736",
         "status": "pending",
-        "date": "2025-08-02",
-        "description": "Telecommunications: BT Business"
+        "date": "2025-08-08",
+        "description": "Travel: Expedia Business Travel"
       },
       {
         "id": "dme-wise-out-65",
         "direction": "out",
-        "amount": 13547.75,
+        "amount": 3174.09,
         "currency": "GBP",
         "reference": "SUP-1400a8c9",
         "status": "pending",
@@ -2367,19 +2367,9 @@
         "description": "Office: Office Depot EU"
       },
       {
-        "id": "dme-wise-out-66",
-        "direction": "out",
-        "amount": 7801.32,
-        "currency": "GBP",
-        "reference": "SUP-1100a410",
-        "status": "pending",
-        "date": "2025-08-25",
-        "description": "Accounting: Deloitte Advisory"
-      },
-      {
         "id": "dme-wise-out-68",
         "direction": "out",
-        "amount": 1268,
+        "amount": 344.53,
         "currency": "GBP",
         "reference": "SUP-1f00ba1a",
         "status": "pending",
@@ -2389,7 +2379,7 @@
       {
         "id": "dme-wise-out-73",
         "direction": "out",
-        "amount": 14357.03,
+        "amount": 3360.57,
         "currency": "GBP",
         "reference": "SUP-ef13b8d2",
         "status": "pending",
@@ -2397,86 +2387,96 @@
         "description": "Cloud: Amazon Web Services"
       },
       {
-        "id": "dme-wise-out-74",
+        "id": "dme-wise-out-77",
         "direction": "out",
-        "amount": 1193.65,
+        "amount": 1452.3,
         "currency": "GBP",
-        "reference": "SUP-ea13b0f3",
+        "reference": "SUP-eb13b286",
         "status": "pending",
-        "date": "2025-08-19",
-        "description": "Accounting: Deloitte Advisory"
-      },
-      {
-        "id": "dme-wise-out-76",
-        "direction": "out",
-        "amount": 11130.17,
-        "currency": "GBP",
-        "reference": "SUP-ec13b419",
-        "status": "pending",
-        "date": "2025-09-26",
-        "description": "Cloud: Microsoft Azure"
-      },
-      {
-        "id": "dme-wise-out-79",
-        "direction": "out",
-        "amount": 11571.85,
-        "currency": "GBP",
-        "reference": "SUP-f513c244",
-        "status": "pending",
-        "date": "2025-09-21",
-        "description": "Hardware: Dell Technologies"
-      }
-    ],
-    "failedPayments": [
-      {
-        "id": "dme-wise-out-71",
-        "direction": "out",
-        "amount": 14436.61,
-        "currency": "GBP",
-        "reference": "SUP-ed13b5ac",
-        "status": "failed",
-        "date": "2025-08-12",
-        "description": "Facilities: CBRE Facilities"
-      },
-      {
-        "id": "dme-wise-out-72",
-        "direction": "out",
-        "amount": 8700.24,
-        "currency": "GBP",
-        "reference": "SUP-f013ba65",
-        "status": "failed",
-        "date": "2025-08-09",
-        "description": "Training: PluralSight Business"
+        "date": "2025-09-09",
+        "description": "Travel: Expedia Business Travel"
       },
       {
         "id": "dme-wise-out-78",
         "direction": "out",
-        "amount": 2275.39,
+        "amount": 576.66,
         "currency": "GBP",
         "reference": "SUP-f613c3d7",
-        "status": "failed",
+        "status": "pending",
         "date": "2025-09-09",
         "description": "Insurance: Hiscox Insurance"
       },
       {
-        "id": "dme-wise-out-82",
+        "id": "dme-wise-out-80",
         "direction": "out",
-        "amount": 12569.4,
+        "amount": 1662.67,
         "currency": "GBP",
-        "reference": "SUP-7e0c4b2a",
-        "status": "failed",
-        "date": "2025-09-16",
-        "description": "Software: Atlassian"
+        "reference": "SUP-7c0c4804",
+        "status": "pending",
+        "date": "2025-09-22",
+        "description": "Legal: Clifford Chance LLP"
       },
       {
-        "id": "dme-wise-out-87",
+        "id": "dme-wise-out-85",
         "direction": "out",
-        "amount": 2155,
+        "amount": 2511.03,
         "currency": "GBP",
-        "reference": "SUP-7b0c4671",
+        "reference": "SUP-790c434b",
+        "status": "pending",
+        "date": "2025-09-14",
+        "description": "Legal: Clifford Chance LLP"
+      }
+    ],
+    "failedPayments": [
+      {
+        "id": "dme-wise-out-61",
+        "direction": "out",
+        "amount": 619.48,
+        "currency": "GBP",
+        "reference": "SUP-1800af15",
         "status": "failed",
-        "date": "2025-09-20",
-        "description": "Facilities: CBRE Facilities"
+        "date": "2025-08-02",
+        "description": "Telecommunications: BT Business"
+      },
+      {
+        "id": "dme-wise-out-62",
+        "direction": "out",
+        "amount": 714.98,
+        "currency": "GBP",
+        "reference": "SUP-1500aa5c",
+        "status": "failed",
+        "date": "2025-08-15",
+        "description": "Cloud: Amazon Web Services"
+      },
+      {
+        "id": "dme-wise-out-63",
+        "direction": "out",
+        "amount": 2621.12,
+        "currency": "GBP",
+        "reference": "SUP-1600abef",
+        "status": "failed",
+        "date": "2025-08-15",
+        "description": "Hardware: Dell Technologies"
+      },
+      {
+        "id": "dme-wise-out-66",
+        "direction": "out",
+        "amount": 1849.97,
+        "currency": "GBP",
+        "reference": "SUP-1100a410",
+        "status": "failed",
+        "date": "2025-08-25",
+        "description": "Accounting: Deloitte Advisory"
+      },
+      {
+        "id": "dme-wise-out-67",
+        "direction": "out",
+        "amount": 3538.47,
+        "currency": "GBP",
+        "reference": "SUP-1200a5a3",
+        "status": "failed",
+        "date": "2025-08-03",
+        "description": "Recruitment: Robert Half"
       }
     ],
     "scheduledPayments": [

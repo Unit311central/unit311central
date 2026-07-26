@@ -39,7 +39,7 @@ export default function AccountsPayableWorkspace() {
           supplier: String(expense.supplier ?? expense.submitterName ?? "Supplier"),
           description: String(expense.purposeDescription ?? ""),
           amount: Number(expense.amount) || 0,
-          currency: String(expense.currency ?? "USD"),
+          currency: String(expense.currency ?? "GBP"),
           expenseDate: String(expense.expenseDate ?? expense.dateSubmitted ?? ""),
           paid: Boolean(expense.paid),
           journalEntryId: expense.journalEntryId ? String(expense.journalEntryId) : null,

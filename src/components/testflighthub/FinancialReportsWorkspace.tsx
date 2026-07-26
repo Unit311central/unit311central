@@ -20,19 +20,20 @@ import {
 } from "lucide-react";
 
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise/surface";
 import {
   buildReportFromDraft,
   createBlankReportDraft,
   FINANCIAL_REPORT_CURRENCIES,
   FINANCIAL_REPORT_DEPARTMENTS,
-  FINANCIAL_REPORT_ORGANISATIONS,
   FINANCIAL_REPORT_PERIOD_KINDS,
   FINANCIAL_REPORT_PROJECTS,
   FINANCIAL_REPORT_TYPES,
   formatBadgeClass,
+  getFinancialReportOrganisations,
+  getSeedFinancialReports,
   periodLabelForKind,
   reportStatusClass,
-  SEED_FINANCIAL_REPORTS,
   type CreateReportDraft,
   type FinancialReportFormat,
   type FinancialReportPeriodKind,
@@ -130,7 +131,11 @@ const WIZARD_STEPS = [
 ] as const;
 
 export default function FinancialReportsWorkspace() {
-  const [reports, setReports] = useState<FinancialReportRecord[]>(() => [...SEED_FINANCIAL_REPORTS]);
+  const isDemo = isBrowserDemoSurface();
+  const reportOrganisations = getFinancialReportOrganisations(isDemo);
+  const [reports, setReports] = useState<FinancialReportRecord[]>(() => [
+    ...getSeedFinancialReports(isBrowserDemoSurface()),
+  ]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [rowMenuId, setRowMenuId] = useState<string | null>(null);
@@ -145,7 +150,9 @@ export default function FinancialReportsWorkspace() {
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
-  const [draft, setDraft] = useState<CreateReportDraft>(() => createBlankReportDraft());
+  const [draft, setDraft] = useState<CreateReportDraft>(() =>
+    createBlankReportDraft(isBrowserDemoSurface()),
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -255,7 +262,7 @@ export default function FinancialReportsWorkspace() {
 
   function openCreate() {
     setEditingId(null);
-    setDraft(createBlankReportDraft());
+    setDraft(createBlankReportDraft(isDemo));
     setWizardStep(0);
     setWizardOpen(true);
     setRowMenuId(null);
@@ -287,7 +294,7 @@ export default function FinancialReportsWorkspace() {
   function closeWizard() {
     setWizardOpen(false);
     setEditingId(null);
-    setDraft(createBlankReportDraft());
+    setDraft(createBlankReportDraft(isDemo));
     setWizardStep(0);
   }
 
@@ -1046,7 +1053,7 @@ export default function FinancialReportsWorkspace() {
                       value={draft.organisation}
                       onChange={(event) => patchDraft({ organisation: event.target.value })}
                     >
-                      {FINANCIAL_REPORT_ORGANISATIONS.map((value) => (
+                      {reportOrganisations.map((value) => (
                         <option key={value} value={value}>
                           {value}
                         </option>
