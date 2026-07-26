@@ -270,11 +270,12 @@ export async function getFinancialOverview(
     for (const invoice of unpaid) {
       const due = new Date(`${invoice.dueDate}T00:00:00.000Z`);
       const days = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-      if (days <= 0) ageing[0].amount = roundMoney(ageing[0].amount + invoice.amount);
-      else if (days <= 30) ageing[1].amount = roundMoney(ageing[1].amount + invoice.amount);
-      else if (days <= 60) ageing[2].amount = roundMoney(ageing[2].amount + invoice.amount);
-      else if (days <= 90) ageing[3].amount = roundMoney(ageing[3].amount + invoice.amount);
-      else ageing[4].amount = roundMoney(ageing[4].amount + invoice.amount);
+      const amountGbp = convertToGbp(invoice.amount, invoice.currency);
+      if (days <= 0) ageing[0].amount = roundMoney(ageing[0].amount + amountGbp);
+      else if (days <= 30) ageing[1].amount = roundMoney(ageing[1].amount + amountGbp);
+      else if (days <= 60) ageing[2].amount = roundMoney(ageing[2].amount + amountGbp);
+      else if (days <= 90) ageing[3].amount = roundMoney(ageing[3].amount + amountGbp);
+      else ageing[4].amount = roundMoney(ageing[4].amount + amountGbp);
     }
 
     const unpaidExpenses = allExpenses.filter((expense) => !expense.paid);
@@ -435,7 +436,7 @@ export async function getFinancialOverview(
 
     // Debtors / Creditors from the same AR / AP modules (invoices + expenses).
     const arOutstanding = roundMoney(
-      unpaid.reduce((sum, invoice) => sum + invoice.amount, 0),
+      unpaid.reduce((sum, invoice) => sum + convertToGbp(invoice.amount, invoice.currency), 0),
     );
     const softwareApUpcoming = roundMoney(
       obligations.software.upcoming.reduce((sum, line) => sum + line.monthlyCost, 0),
@@ -515,8 +516,12 @@ export async function getFinancialOverview(
       },
       ar: {
         outstanding: arOutstanding,
-        overdue: roundMoney(overdue.reduce((sum, invoice) => sum + invoice.amount, 0)),
-        dueSoon: roundMoney(dueSoon.reduce((sum, invoice) => sum + invoice.amount, 0)),
+        overdue: roundMoney(
+          overdue.reduce((sum, invoice) => sum + convertToGbp(invoice.amount, invoice.currency), 0),
+        ),
+        dueSoon: roundMoney(
+          dueSoon.reduce((sum, invoice) => sum + convertToGbp(invoice.amount, invoice.currency), 0),
+        ),
         collectionRate,
         ageing,
         recentUnpaid: unpaid.slice(0, 8),

@@ -6,12 +6,12 @@
     "clients": 100,
     "employees": 100,
     "projects": 55,
-    "invoices": 121,
+    "invoices": 114,
     "tickets": 80,
     "expenses": 168,
     "payrollRuns": 12
   },
   "internalUnchanged": true,
   "fixturesPath": "C:\\Users\\Usuario\\Desktop\\unit311\\src\\lib\\demo-enterprise\\fixtures.generated.json",
-  "seededAt": "2026-07-26T01:26:33.478Z"
+  "seededAt": "2026-07-26T02:40:40.252Z"
 }

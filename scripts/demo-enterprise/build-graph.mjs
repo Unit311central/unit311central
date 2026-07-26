@@ -234,28 +234,47 @@ export function buildEnterpriseGraph(options = {}) {
   let invSeq = 0;
   const todayIso = daysAgo(0);
   for (let m = 11; m >= 0; m -= 1) {
-    const monthClients = rng.shuffle(activeClients).slice(0, rng.int(8, 14));
+    // ~8–11 invoices/month at consulting scale so collections fit a £1.58M treasury.
+    const monthClients = rng.shuffle(activeClients).slice(0, rng.int(8, 11));
     for (const client of monthClients) {
       invSeq += 1;
-      const amount = rng.money(12000, 180000, 2);
+      const amount = rng.money(8_000, 42_000, 2);
       const issue = monthsAgo(m, rng.int(3, 20));
       const netDays = rng.pick([14, 30, 45]);
       const due = addDays(issue, netDays);
       const statusRoll = rng.next();
       let status = "paid";
-      if (m <= 1 && statusRoll > 0.55 && due < todayIso) status = "overdue";
-      else if (m <= 1 && statusRoll > 0.7) status = "issued";
-      if (statusRoll > 0.97) status = "cancelled";
+      // Keep a visible current AR book (~£200–400k outstanding after GBP conversion).
+      if (m === 0 && statusRoll > 0.28) status = due < todayIso ? "overdue" : "issued";
+      else if (m === 1 && statusRoll > 0.55) status = due < todayIso ? "overdue" : "issued";
+      else if (m === 2 && statusRoll > 0.82 && due < todayIso) status = "overdue";
+      if (statusRoll > 0.985) status = "cancelled";
+
+      // Slightly larger open invoices so outstanding lands near £200–350k.
+      const openAmount =
+        status === "issued" || status === "overdue"
+          ? rng.money(18_000, 48_000, 2)
+          : amount;
+
+      let paidAt = null;
+      if (status === "paid") {
+        const lag = rng.int(5, Math.min(netDays + 12, 40));
+        paidAt = addDays(issue, lag);
+        if (paidAt > todayIso) paidAt = todayIso;
+      }
+
       invoices.push({
         id: sqlUuid(`dme-inv-${invSeq}`),
         invoiceNumber: `MAG-DME-${String(invSeq).padStart(5, "0")}`,
         paymentReference: `MAGPAY${String(invSeq).padStart(6, "0")}`,
         clientId: client.id,
-        amount,
-        currency: rng.pick(["GBP", "USD", "EUR"]),
+        amount: openAmount,
+        // Prefer reporting currency so AR cards and rows stay coherent.
+        currency: rng.next() > 0.22 ? "GBP" : rng.pick(["USD", "EUR"]),
         status,
         issueDate: issue,
         dueDate: due,
+        paidAt,
         monthIndex: m,
       });
     }
@@ -342,11 +361,15 @@ export function buildEnterpriseGraph(options = {}) {
     licences: 100 + i * 5,
   }));
 
-  // Monthly GL revenue/expense summaries for journals
+  // Monthly GL revenue/expense summaries for journals (amounts already mostly GBP).
   const monthlyFinance = [];
+  const fxToGbp = { GBP: 1, USD: 0.79, EUR: 0.86 };
   for (let m = 11; m >= 0; m -= 1) {
     const monthInvoices = invoices.filter((inv) => inv.monthIndex === m && inv.status !== "cancelled");
-    const revenue = monthInvoices.reduce((s, inv) => s + inv.amount, 0);
+    const revenue = monthInvoices.reduce(
+      (s, inv) => s + inv.amount * (fxToGbp[inv.currency] ?? 1),
+      0,
+    );
     // Light opex padding only — payroll is applied live in Financial Overview (do not inflate journals).
     const monthExpenses = expenses.filter((e) => e.dateSubmitted.startsWith(monthsAgo(m, 1).slice(0, 7)));
     const opex = monthExpenses.reduce((s, e) => s + e.amount, 0) + rng.money(35_000, 55_000, 2);
@@ -376,7 +399,7 @@ export function buildEnterpriseGraph(options = {}) {
       currency: inv.currency,
       reference: inv.paymentReference,
       status: "completed",
-      date: inv.issueDate,
+      date: inv.paidAt ?? inv.issueDate,
       description: `Customer payment ${inv.invoiceNumber}`,
       invoiceId: inv.id,
     });

@@ -6,6 +6,7 @@ import { FileText, Loader2, RefreshCw, X } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import type { LedgerInvoice } from "@/lib/accounting/types";
+import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import { cn } from "@/lib/utils";
 
 function isUnpaid(status: LedgerInvoice["status"]) {
@@ -19,8 +20,13 @@ function daysBetween(fromIso: string, toIso: string) {
   return Math.max(0, Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+function invoiceAmountGbp(invoice: LedgerInvoice) {
+  return convertToGbp(invoice.amount, invoice.currency);
+}
+
+/** Only real payment timestamps count toward “Paid This Month”. */
 function paidAtMonth(invoice: LedgerInvoice, monthPrefix: string) {
-  const stamp = invoice.paidAt ?? invoice.updatedAt;
+  const stamp = invoice.paidAt;
   return Boolean(stamp && stamp.slice(0, 7) === monthPrefix);
 }
 
@@ -87,23 +93,24 @@ export default function AccountsReceivableWorkspace() {
     }
 
     const unpaid = invoices.filter((invoice) => isUnpaid(invoice.status));
-    const outstanding = unpaid.reduce((sum, invoice) => sum + invoice.amount, 0);
+    const outstanding = unpaid.reduce((sum, invoice) => sum + invoiceAmountGbp(invoice), 0);
     const overdue = unpaid
       .filter((invoice) => invoice.dueDate < todayIso)
-      .reduce((sum, invoice) => sum + invoice.amount, 0);
+      .reduce((sum, invoice) => sum + invoiceAmountGbp(invoice), 0);
     const paidThisMonth = invoices
       .filter((invoice) => invoice.status === "paid" && paidAtMonth(invoice, monthPrefix))
-      .reduce((sum, invoice) => sum + invoice.amount, 0);
+      .reduce((sum, invoice) => sum + invoiceAmountGbp(invoice), 0);
     const paidCount = invoices.filter((invoice) => invoice.status === "paid").length;
     const collectionRate = (paidCount / invoices.length) * 100;
 
-    const paidInvoices = invoices.filter((invoice) => invoice.status === "paid");
+    const paidInvoices = invoices.filter(
+      (invoice) => invoice.status === "paid" && Boolean(invoice.paidAt),
+    );
     const averageDaysToPayment =
       paidInvoices.length === 0
         ? 0
         : paidInvoices.reduce((sum, invoice) => {
-            const paidStamp = invoice.paidAt ?? invoice.updatedAt;
-            return sum + daysBetween(invoice.issueDate, paidStamp);
+            return sum + daysBetween(invoice.issueDate, invoice.paidAt!);
           }, 0) / paidInvoices.length;
 
     return {

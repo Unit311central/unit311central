@@ -238,6 +238,27 @@ ${values};
 `);
   }
 
+  // Stamp paid invoices with realistic payment timestamps (used as paidAt fallback).
+  const paidWithDates = graph.invoices.filter((inv) => inv.status === "paid" && inv.paidAt);
+  for (const group of chunk(paidWithDates, 40)) {
+    const cases = group
+      .map(
+        (inv) =>
+          `when id = ${sqlStr(inv.id)}::uuid then ${sqlStr(`${inv.paidAt}T12:00:00.000Z`)}::timestamptz`,
+      )
+      .join("\n  ");
+    const ids = group.map((inv) => `${sqlStr(inv.id)}::uuid`).join(", ");
+    batches.push(`
+update public.invoices
+set updated_at = case
+  ${cases}
+  else updated_at
+end
+where workspace_id = ${w}::uuid
+  and id in (${ids});
+`);
+  }
+
   // Expenses
   for (const group of chunk(graph.expenses, 30)) {
     const values = group
@@ -412,14 +433,14 @@ insert into public.internal_messages (
    'Wise GBP operating balance reconciled this morning.', 'text', ${w}::uuid);
 `);
 
-  // Wise payment matches for paid invoices (subset)
-  const paid = graph.invoices.filter((i) => i.status === "paid").slice(0, 50);
+  // Wise payment matches for paid invoices (subset) — matched_at = real paidAt, not seed now().
+  const paid = graph.invoices.filter((i) => i.status === "paid" && i.paidAt).slice(0, 50);
   if (paid.length) {
     const values = paid
       .map(
         (inv, i) =>
           `(${sqlStr(sqlUuid(`dme-wpm-${i}`))}::uuid, ${sqlStr(`dme-wise-in-${i + 1}`)},
-            ${sqlStr(inv.id)}::uuid, now(), ${w}::uuid)`,
+            ${sqlStr(inv.id)}::uuid, ${sqlStr(`${inv.paidAt}T12:00:00.000Z`)}::timestamptz, ${w}::uuid)`,
       )
       .join(",\n");
     batches.push(`
