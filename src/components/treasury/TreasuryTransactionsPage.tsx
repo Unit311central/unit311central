@@ -19,7 +19,7 @@ import type {
   TreasuryTransaction,
   TreasuryTransferDirection,
 } from "@/lib/treasury/treasury-types";
-import { isWiseStatementAccessError } from "@/lib/wise-service";
+import { isWiseStatementAccessError } from "@/lib/wise-errors";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,

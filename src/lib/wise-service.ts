@@ -201,16 +201,14 @@ export function formatWiseApiError(status: number, bodyText: string) {
   return parseWiseApiErrorMessage(status, bodyText);
 }
 
+import { isWiseStatementAccessError as isWiseStatementAccessErrorMessage } from "@/lib/wise-errors";
+
 export function isWiseStatementAccessError(error: unknown) {
   if (error instanceof WiseApiError) {
     return error.status === 403 && error.requestUrl.includes("balance-statements");
   }
 
-  const message = error instanceof Error ? error.message : String(error);
-  return (
-    (message.includes("(403)") || message.includes("403")) &&
-    message.toLowerCase().includes("balance-statement")
-  );
+  return isWiseStatementAccessErrorMessage(error);
 }
 
 export function wiseErrorToClientPayload(error: unknown) {
@@ -895,7 +893,7 @@ function mapWiseBalance(row: {
 }
 
 export async function listWiseBalances(profileId?: number): Promise<WiseBalance[]> {
-  const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+  const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider-server");
   if (await shouldUseDemoWiseSimulator()) {
     const { listDemoWiseBalances } = await import(
       "@/lib/treasury/providers/demo-wise-simulator"
@@ -953,7 +951,7 @@ export async function listWiseBalances(profileId?: number): Promise<WiseBalance[
 }
 
 export async function getWiseConnectionStatus(): Promise<WiseConnectionStatus> {
-  const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+  const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider-server");
   if (await shouldUseDemoWiseSimulator()) {
     const { getDemoWiseConnectionStatus } = await import(
       "@/lib/treasury/providers/demo-wise-simulator"
@@ -1256,7 +1254,7 @@ export async function getWiseBalanceTransactions(input: {
   intervalEnd: string;
   profileId?: number;
 }) {
-  const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+  const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider-server");
   if (await shouldUseDemoWiseSimulator()) {
     const { getDemoWiseBalanceTransactions } = await import(
       "@/lib/treasury/providers/demo-wise-simulator"

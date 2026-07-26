@@ -58,7 +58,7 @@ function emptyBurnRate(cashBalance = 0): FinancialOverviewSnapshot["burnRate"] {
  */
 export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
   try {
-    const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+    const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider-server");
     if (await shouldUseDemoWiseSimulator()) {
       const { getDemoTreasuryCashGbp } = await import(
         "@/lib/treasury/providers/demo-wise-simulator"
@@ -375,7 +375,7 @@ export async function getFinancialOverview(
     const softwareMonthly =
       obligations.software.count > 0 ? obligations.software.monthly : glSoftwareMonthly;
 
-    const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+    const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider-server");
     const isDemoTreasury = await shouldUseDemoWiseSimulator();
 
     const vendorExpenseRunRate = (() => {
