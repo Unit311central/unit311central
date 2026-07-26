@@ -17,7 +17,7 @@
  * tracking, POD, provider management).
  *
  * Accepted Phase 1 behaviours:
- * - "Use Unit311 Logistics" (not "Manual Logistics")
+ * - "Use ${logisticsBrand}" (not "Manual Logistics")
  * - Registry-driven provider cards
  * - "Not now" on every step
  * - Configuration summary (enabled / connected / deferred / next steps)
@@ -52,6 +52,7 @@ import {
   type ShippingProviderRegistryEntry,
   type ShippingRegionCode,
 } from "@/lib/shipping-provider-registry";
+import { getLogisticsBrandName } from "@/lib/logistics-data";
 import { cn } from "@/lib/utils";
 
 type SetupPath = "unit311" | "connect" | null;
@@ -246,7 +247,7 @@ function businessAccountGuidance({
   if (businessAccount === "unsure") {
     return {
       tone: "amber",
-      message: `A ${brand} business account is normally required before Unit311 can connect. If you are unsure whether you have one, check with your shipping team or visit ${brand} to confirm.`,
+      message: `A ${brand} business account is normally required before we can connect. If you are unsure whether you have one, check with your shipping team or visit ${brand} to confirm.`,
       showVisit: true,
     };
   }
@@ -286,7 +287,7 @@ function businessAccountGuidance({
   ) {
     return {
       tone: "sky",
-      message: `API credentials are issued from the ${brand} Developer Portal. You do not need to enter them on this screen — Unit311 will guide you when you are ready to connect.`,
+      message: `API credentials are issued from the ${brand} Developer Portal. You do not need to enter them on this screen — we will guide you when you are ready to connect.`,
       showVisit: false,
     };
   }
@@ -302,7 +303,7 @@ function businessAccountGuidance({
   if (businessAccount === "yes") {
     return {
       tone: "neutral",
-      message: `Answer the questions above so we can guide you. You can skip setup at any time and keep using Unit311 Logistics.`,
+      message: `Answer the questions above so we can guide you. You can skip setup at any time and keep using manual logistics.`,
       showVisit: false,
     };
   }
@@ -429,6 +430,7 @@ function ProviderSelectionCard({
 }
 
 export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetupWizardProps) {
+  const logisticsBrand = getLogisticsBrandName();
   const [step, setStep] = useState<WizardStep>("welcome");
   const [path, setPath] = useState<SetupPath>(null);
   const [region, setRegion] = useState<ShippingRegionCode | null>(null);
@@ -508,7 +510,7 @@ export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetup
   }
 
   const nextSteps = [
-    "Create shipments and record tracking numbers in Unit311 Logistics",
+    `Create shipments and record tracking numbers in ${logisticsBrand}`,
     connectedProviders.length === 0
       ? "Connect a shipping provider when you are ready"
       : "Add another shipping provider if needed",
@@ -529,12 +531,12 @@ export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetup
                 <Truck className="h-5 w-5 text-sky-200" aria-hidden />
               </span>
               <div>
-                <h2 className="text-xl font-semibold text-white">Welcome to Unit311 Logistics</h2>
+                <h2 className="text-xl font-semibold text-white">Welcome to {logisticsBrand}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-white/75">
                   This short setup will help you configure how your organisation manages shipments.
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-white/75">
-                  You can use Unit311 immediately with manual tracking, or connect one or more
+                  You can use the logistics workspace immediately with manual tracking, or connect one or more
                   shipping providers.
                 </p>
               </div>
@@ -552,7 +554,7 @@ export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetup
             <div className="space-y-3">
               <OptionCard
                 selected={path === "unit311"}
-                title="Use Unit311 Logistics"
+                title={`Use ${logisticsBrand}`}
                 description="Record shipments and tracking numbers manually. No courier account required."
                 onSelect={() => setPath("unit311")}
               />
@@ -582,7 +584,7 @@ export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetup
                 <Check className="h-5 w-5 text-emerald-200" aria-hidden />
               </span>
               <div>
-                <h2 className="text-lg font-semibold text-white">Unit311 Logistics is ready.</h2>
+                <h2 className="text-lg font-semibold text-white">{logisticsBrand} is ready.</h2>
                 <p className="mt-2 text-sm leading-relaxed text-white/75">
                   You can always connect shipping providers later from{" "}
                   <span className="font-medium text-white/90">{FUTURE_ACCESS_PATH}</span>.
@@ -651,7 +653,7 @@ export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetup
             </div>
             {providers.length === 0 ? (
               <p className="rounded-xl border border-white/10 bg-[#0b1524]/80 px-4 py-3 text-sm text-white/75">
-                No recommended providers for this region yet. You can continue with Unit311 Logistics.
+                No recommended providers for this region yet. You can continue with {logisticsBrand}.
               </p>
             ) : (
               <div className="grid gap-4 lg:grid-cols-2">
@@ -700,7 +702,7 @@ export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetup
 
               <div className="mt-4 border-t border-white/10 pt-4">
                 <p className="text-sm font-medium text-white/90">
-                  To connect {providerBrand} to Unit311 you will normally need:
+                  To connect {providerBrand} to the workspace you will normally need:
                 </p>
                 <ul className="mt-3 space-y-2 text-sm text-white/80">
                   <li className="flex items-start gap-2">
@@ -774,7 +776,7 @@ export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetup
                   </a>
                 ) : null}
                 <p className="mt-3 text-white/70">
-                  You can choose Not Now to defer provider setup and keep using Unit311 Logistics
+                  You can choose Not Now to defer provider setup and keep using {logisticsBrand}{" "}
                   immediately. Return later from {FUTURE_ACCESS_PATH}.
                 </p>
               </div>
@@ -809,7 +811,7 @@ export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetup
               <h2 className="text-lg font-semibold text-white">Configuration summary</h2>
               <p className="mt-2 text-sm text-white/75">
                 {leftEarly
-                  ? "Setup paused. Unit311 Logistics is available now."
+                  ? `Setup paused. ${logisticsBrand} is available now.`
                   : "Your Logistics workspace is ready."}
               </p>
             </div>
@@ -817,7 +819,7 @@ export default function LogisticsSetupWizard({ onOpenLogistics }: LogisticsSetup
             <div className="space-y-3">
               <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-200/90">
-                  Unit311 Logistics
+                  {logisticsBrand}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-white">Enabled</p>
                 <p className="mt-1 text-xs text-white/70">

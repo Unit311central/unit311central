@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 
 import { ChartTooltip } from "@/components/dashboard/ChartTooltip";
 import {
-  GRANT_APPLICATIONS,
-  GRANTS_BY_PROGRAMME,
   GRANTS_BY_STATUS,
   GRANTS_KPIS,
+  getGrantApplications,
+  getGrantsByProgramme,
   GRANTS_MONTHLY_SUBMISSIONS,
   formatGrantAmount,
   grantStatusClass,
@@ -174,7 +174,8 @@ function GrantCard({ grant }: { grant: GrantApplication }) {
 }
 
 export default function GrantsWorkspace() {
-  const [grants, setGrants] = useState<GrantApplication[]>(() => [...GRANT_APPLICATIONS]);
+  const [grants, setGrants] = useState<GrantApplication[]>(() => [...getGrantApplications()]);
+  const programmeBreakdown = useMemo(() => getGrantsByProgramme(), []);
   const [statusFilter, setStatusFilter] = useState<GrantStatus | "All">("All");
   const [showNewGrantModal, setShowNewGrantModal] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
@@ -325,7 +326,7 @@ export default function GrantsWorkspace() {
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <PieChart>
                 <Pie
-                  data={GRANTS_BY_PROGRAMME}
+                  data={programmeBreakdown}
                   dataKey="amount"
                   nameKey="programme"
                   cx="50%"
@@ -334,7 +335,7 @@ export default function GrantsWorkspace() {
                   outerRadius="72%"
                   paddingAngle={2}
                 >
-                  {GRANTS_BY_PROGRAMME.map((_, index) => (
+                  {programmeBreakdown.map((_, index) => (
                     <Cell key={index} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                   ))}
                 </Pie>

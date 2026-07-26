@@ -2,7 +2,18 @@ import type { BrowseEntry, BreadcrumbSegment, FileFolder, FileObject } from "@/l
 
 const now = new Date().toISOString();
 
-const EXTERNAL_FOLDERS: FileFolder[] = [
+function isDemoFilesSurface() {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserDemoSurface } =
+      require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    return isBrowserDemoSurface();
+  } catch {
+    return false;
+  }
+}
+
+const INTERNAL_EXTERNAL_FOLDERS: FileFolder[] = [
   {
     id: "ext-root-clients",
     name: "Client Deliverables",
@@ -37,7 +48,42 @@ const EXTERNAL_FOLDERS: FileFolder[] = [
   },
 ];
 
-const EXTERNAL_FILES: FileObject[] = [
+const DEMO_EXTERNAL_FOLDERS: FileFolder[] = [
+  {
+    id: "ext-root-clients",
+    name: "Client Deliverables",
+    parentId: null,
+    categoryId: null,
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "ext-root-partners",
+    name: "Partner Exchanges",
+    parentId: null,
+    categoryId: null,
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "ext-harbor",
+    name: "Harbor Energy",
+    parentId: "ext-root-clients",
+    categoryId: null,
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "ext-cascade",
+    name: "Cascade Health Systems",
+    parentId: "ext-root-clients",
+    categoryId: null,
+    createdAt: now,
+    updatedAt: now,
+  },
+];
+
+const INTERNAL_EXTERNAL_FILES: FileObject[] = [
   {
     id: "ext-file-1",
     name: "Q2 Site Report.pdf",
@@ -76,11 +122,59 @@ const EXTERNAL_FILES: FileObject[] = [
   },
 ];
 
+const DEMO_EXTERNAL_FILES: FileObject[] = [
+  {
+    id: "ext-file-1",
+    name: "MAG_SOW_Harbor_v3.pdf",
+    folderId: "ext-harbor",
+    categoryId: null,
+    storagePath: "external/mag-sow-harbor.pdf",
+    mimeType: "application/pdf",
+    extension: "pdf",
+    sizeBytes: 1_850_000,
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "ext-file-2",
+    name: "Cascade_Cutover_Runbook.docx",
+    folderId: "ext-cascade",
+    categoryId: null,
+    storagePath: "external/cascade-runbook.docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    extension: "docx",
+    sizeBytes: 420_000,
+    createdAt: now,
+    updatedAt: now,
+  },
+  {
+    id: "ext-file-3",
+    name: "Q3_Board_Pack_Draft.pdf",
+    folderId: "ext-root-partners",
+    categoryId: null,
+    storagePath: "external/q3-board-pack.pdf",
+    mimeType: "application/pdf",
+    extension: "pdf",
+    sizeBytes: 3_100_000,
+    createdAt: now,
+    updatedAt: now,
+  },
+];
+
+function getFolders() {
+  return isDemoFilesSurface() ? DEMO_EXTERNAL_FOLDERS : INTERNAL_EXTERNAL_FOLDERS;
+}
+
+function getFiles() {
+  return isDemoFilesSurface() ? DEMO_EXTERNAL_FILES : INTERNAL_EXTERNAL_FILES;
+}
+
 function buildBreadcrumb(folderId: string | null): BreadcrumbSegment[] {
   const segments: BreadcrumbSegment[] = [{ id: null, name: "External Files" }];
   if (!folderId) return segments;
 
-  const byId = new Map(EXTERNAL_FOLDERS.map((folder) => [folder.id, folder]));
+  const folders = getFolders();
+  const byId = new Map(folders.map((folder) => [folder.id, folder]));
   const chain: FileFolder[] = [];
   let current = byId.get(folderId);
 
@@ -102,9 +196,11 @@ export function browseExternalFiles(options: {
 }): { entries: BrowseEntry[]; breadcrumb: BreadcrumbSegment[] } {
   const query = options.query?.trim().toLowerCase() ?? "";
   const folderId = options.folderId;
+  const folders = getFolders();
+  const files = getFiles();
 
-  const childFolders = EXTERNAL_FOLDERS.filter((folder) => folder.parentId === folderId);
-  const childFiles = EXTERNAL_FILES.filter((file) => file.folderId === folderId);
+  const childFolders = folders.filter((folder) => folder.parentId === folderId);
+  const childFiles = files.filter((file) => file.folderId === folderId);
 
   let entries: BrowseEntry[] = [
     ...childFolders.map((item) => ({ kind: "folder" as const, item })),

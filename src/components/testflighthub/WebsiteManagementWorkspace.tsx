@@ -186,16 +186,16 @@ function demoRowsForTab(tab: ContentTab, website: ManagedWebsite): DemoRow[] {
     case "Tags":
       return [
         {
-          id: `${prefix}-tag-drone`,
-          title: "drone-operations",
+          id: `${prefix}-tag-cloud`,
+          title: "cloud-modernisation",
           status: "Published",
           updatedAt: "2026-07-12",
           author: "SEO",
           meta: "11 uses",
         },
         {
-          id: `${prefix}-tag-survey`,
-          title: "survey-mapping",
+          id: `${prefix}-tag-ops`,
+          title: "operating-model",
           status: "Published",
           updatedAt: "2026-07-05",
           author: "SEO",

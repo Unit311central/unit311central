@@ -64,6 +64,65 @@ export function websiteStatusClass(status: string): string {
 }
 
 export function createSeedWebsites(): ManagedWebsite[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        const fixtures = getDemoEnterpriseFixtures();
+        const domain = fixtures.company.domain;
+        return [
+          {
+            id: "web-mag-001",
+            name: `${fixtures.company.tradingName} Marketing`,
+            cms: "WordPress",
+            url: `https://www.${domain}`,
+            restApiUrl: `https://www.${domain}/wp-json`,
+            environment: "Production",
+            domain,
+            sslStatus: "Valid",
+            lastDeployment: "2026-07-19T16:20:00Z",
+            lastSync: "2026-07-20T22:10:00Z",
+            pages: 34,
+            posts: 58,
+            media: 246,
+            pluginUpdates: 2,
+            themeUpdates: 0,
+            backups: 16,
+            analyticsVisitors: 22140,
+            connectionStatus: "connected",
+            providerCode: "cms.wordpress",
+            clientName: fixtures.company.tradingName,
+          },
+          {
+            id: "web-mag-002",
+            name: "Harbor Energy Microsite",
+            cms: "WordPress",
+            url: "https://transform.harborenergy.demo",
+            restApiUrl: "https://transform.harborenergy.demo/wp-json",
+            environment: "Staging",
+            domain: "transform.harborenergy.demo",
+            sslStatus: "Valid",
+            lastDeployment: "2026-07-17T11:00:00Z",
+            lastSync: "2026-07-18T08:40:00Z",
+            pages: 12,
+            posts: 8,
+            media: 64,
+            pluginUpdates: 1,
+            themeUpdates: 0,
+            backups: 6,
+            analyticsVisitors: 3180,
+            connectionStatus: "connected",
+            providerCode: "cms.wordpress",
+            clientName: "Harbor Energy",
+          },
+        ];
+      }
+    } catch {
+      // Fall through.
+    }
+  }
+
   return [
     {
       id: "web-001",
@@ -113,14 +172,31 @@ export function createSeedWebsites(): ManagedWebsite[] {
 }
 
 export function createSeedWebsiteContent(websiteId: string): WebsiteContentItem[] {
+  const isDemo = websiteId.startsWith("web-mag-");
   return [
     { id: `${websiteId}-p1`, websiteId, kind: "Page", title: "Home", status: "Published", updatedAt: "2026-07-18", author: "Marketing" },
     { id: `${websiteId}-p2`, websiteId, kind: "Page", title: "Solutions", status: "Published", updatedAt: "2026-07-16", author: "Marketing" },
     { id: `${websiteId}-po1`, websiteId, kind: "Post", title: "Platform release notes", status: "Published", updatedAt: "2026-07-15", author: "Product" },
     { id: `${websiteId}-po2`, websiteId, kind: "Post", title: "Customer story draft", status: "Draft", updatedAt: "2026-07-19", author: "Marketing" },
-    { id: `${websiteId}-m1`, websiteId, kind: "Media", title: "hero-drone.jpg", status: "Published", updatedAt: "2026-07-10", author: "Design" },
+    {
+      id: `${websiteId}-m1`,
+      websiteId,
+      kind: "Media",
+      title: isDemo ? "hero-consulting.jpg" : "hero-drone.jpg",
+      status: "Published",
+      updatedAt: "2026-07-10",
+      author: "Design",
+    },
     { id: `${websiteId}-pl1`, websiteId, kind: "Plugin", title: "SEO Toolkit", status: "Published", updatedAt: "2026-07-01", author: "Ops" },
-    { id: `${websiteId}-t1`, websiteId, kind: "Theme", title: "Unit311 Theme", status: "Published", updatedAt: "2026-06-20", author: "Design" },
+    {
+      id: `${websiteId}-t1`,
+      websiteId,
+      kind: "Theme",
+      title: isDemo ? "Meridian Theme" : "Unit311 Theme",
+      status: "Published",
+      updatedAt: "2026-06-20",
+      author: "Design",
+    },
   ];
 }
 

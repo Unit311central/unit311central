@@ -4,11 +4,11 @@ import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 
 import {
-  FEATURED_BARCELONA_LONDON_ROUTE,
-  LOGISTICS_MOCK_SHIPMENTS,
   formatLogisticsDate,
+  getFeaturedLogisticsRoute,
   getFeaturedShipment,
   getInboundShipments,
+  getLogisticsMockShipments,
   getOutboundShipments,
   logisticsStatusClass,
   type LogisticsShipment,
@@ -36,7 +36,7 @@ const LogisticsRouteMap = dynamic(() => import("./LogisticsRouteMap"), {
   ),
 });
 
-const CARRIER_OPTIONS = ["FedEx", "DHL", "UPS", "Unit311 Courier", "Royal Mail"] as const;
+const CARRIER_OPTIONS = ["FedEx", "DHL", "UPS", "Meridian Courier", "Unit311 Courier", "Royal Mail"] as const;
 
 type NewPackageForm = {
   id: string;
@@ -108,11 +108,12 @@ function ShipmentCard({
 
 /** Mounted only after Setup Wizard completes — never behind the wizard. */
 export default function LogisticsDashboard({ onManageProviders }: LogisticsDashboardProps) {
-  const [shipments, setShipments] = useState(LOGISTICS_MOCK_SHIPMENTS);
+  const [shipments, setShipments] = useState(() => getLogisticsMockShipments());
+  const featuredRoute = useMemo(() => getFeaturedLogisticsRoute(), []);
   const inbound = useMemo(() => getInboundShipments(shipments), [shipments]);
   const outbound = useMemo(() => getOutboundShipments(shipments), [shipments]);
   const featured = useMemo(() => getFeaturedShipment(shipments), [shipments]);
-  const [selectedId, setSelectedId] = useState(featured.id);
+  const [selectedId, setSelectedId] = useState(featured?.id ?? shipments[0]?.id ?? "");
   const [packageSearchQuery, setPackageSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [newPackage, setNewPackage] = useState<NewPackageForm>({
@@ -123,11 +124,11 @@ export default function LogisticsDashboard({ onManageProviders }: LogisticsDashb
   });
 
   const selectedShipment =
-    shipments.find((shipment) => shipment.id === selectedId) ?? featured;
+    shipments.find((shipment) => shipment.id === selectedId) ?? featured ?? shipments[0];
 
   const routeSnapshot =
-    selectedShipment.id === FEATURED_BARCELONA_LONDON_ROUTE.shipmentId
-      ? FEATURED_BARCELONA_LONDON_ROUTE
+    selectedShipment?.id === featuredRoute.shipmentId
+      ? featuredRoute
       : null;
 
   function handlePackageSearch(query: string) {
@@ -163,7 +164,7 @@ export default function LogisticsDashboard({ onManageProviders }: LogisticsDashb
       origin,
       destination,
       recipient: "TBD",
-      sender: "Unit311 — Logistics",
+      sender: "Logistics",
       sentBy: "Manual entry",
       contents: "New package",
       weightKg: 1,

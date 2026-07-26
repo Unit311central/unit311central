@@ -15,7 +15,7 @@ import {
   type InternalNavItem,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
-import { filterInternalNavSectionsByGrants } from "@/lib/internal-role-views";
+import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import {
@@ -193,10 +193,13 @@ export default function SurveyOperationsSidebar({
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
   const { allowedViews } = useOperatorEntitlements();
   const internalNavSections = useMemo(
-    () =>
-      mode === "internal"
-        ? filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews)
-        : internalSurveyNavSections,
+    () => {
+      const base =
+        mode === "internal"
+          ? filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews)
+          : internalSurveyNavSections;
+      return mode === "internal" ? filterInternalNavSectionsForDemoSurface(base) : base;
+    },
     [allowedViews, mode],
   );
   const internalBasePath = basePath;

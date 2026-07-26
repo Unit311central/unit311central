@@ -85,6 +85,19 @@ function defaultMailboxesForHost(): EmailAccountOption[] {
   return DEFAULT_MAILBOXES;
 }
 
+function emailSignatureCompany() {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) return getDemoEnterpriseFixtures().company.tradingName;
+    } catch {
+      // fall through
+    }
+  }
+  return "Unit311";
+}
+
 type EmailAccountOption = EmailAccount & { configured?: boolean };
 
 type WhatsAppStatus = {
@@ -524,7 +537,7 @@ export default function InfoEmailWorkspace() {
       });
       const data = await readApiJson<{ ok?: boolean; error?: string; response?: string }>(response);
       if (!response.ok || !data.ok) throw new Error(data.error ?? "WhatsApp test failed");
-      setSuccessMessage("Test WhatsApp alert sent to +34 657 106 176");
+      setSuccessMessage("Test WhatsApp alert sent successfully");
     } catch (testError) {
       setError(testError instanceof Error ? testError.message : "WhatsApp test failed");
     } finally {
@@ -555,7 +568,7 @@ export default function InfoEmailWorkspace() {
     setError(null);
     setSuccessMessage(null);
 
-    const signature = `\n\n— ${replyAsUser.fullName}\nUnit311`;
+    const signature = `\n\n— ${replyAsUser.fullName}\n${emailSignatureCompany()}`;
     const html = `<p>${replyBody.trim().replace(/\n/g, "<br/>")}</p><p>${signature.replace(/\n/g, "<br/>")}</p>`;
 
     try {
@@ -608,7 +621,7 @@ export default function InfoEmailWorkspace() {
     setError(null);
     setSuccessMessage(null);
 
-    const signature = `\n\n— ${replyAsUser.fullName}\nUnit311`;
+    const signature = `\n\n— ${replyAsUser.fullName}\n${emailSignatureCompany()}`;
     const html = `<p>${composeBody.trim().replace(/\n/g, "<br/>")}</p><p>${signature.replace(/\n/g, "<br/>")}</p>`;
 
     try {
@@ -670,12 +683,11 @@ export default function InfoEmailWorkspace() {
                   )}
                 >
                   {accounts.length === 0 ? (
-                    <>
-                      <option value="info">info@unit311central.com</option>
-                      <option value="paul">paul@unit311central.com</option>
-                      <option value="admin">admin@unit311central.com</option>
-                      <option value="demo">demo@unit311central.com</option>
-                    </>
+                    defaultMailboxesForHost().map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.email}
+                      </option>
+                    ))
                   ) : (
                     accounts.map((account) => (
                       <option key={account.id} value={account.id}>

@@ -101,7 +101,7 @@ function WizardModal({
         </div>
 
         <p className="text-sm leading-relaxed text-white/70">
-          This Integration Wizard will guide you through connecting Unit311 Central with{" "}
+          This Integration Wizard will guide you through connecting your workspace with{" "}
           <span className="font-medium text-white">{integration.name}</span>.
         </p>
         <p className="mt-3 text-sm leading-relaxed text-white/55">
@@ -212,7 +212,7 @@ export default function IntegrationsWorkspace() {
           </p>
           <h2 className="mt-1 text-2xl font-semibold tracking-tight text-white">Integrations</h2>
           <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/55">
-            Connect Unit311 Central to your existing business software using guided Integration
+            Connect your workspace to existing business software using guided Integration
             Wizards.
           </p>
         </div>

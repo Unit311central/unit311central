@@ -14,9 +14,19 @@ import { cn } from "@/lib/utils";
 
 export default function AppearanceSettingsWorkspace() {
   const [themeId, setThemeId] = useState<PlatformThemeId>(DEFAULT_PLATFORM_THEME_ID);
+  const [productName, setProductName] = useState("Unit311 Central");
 
   useEffect(() => {
     setThemeId(readPlatformThemeId());
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        setProductName(getDemoEnterpriseFixtures().company.tradingName);
+      }
+    } catch {
+      // Keep default product name.
+    }
   }, []);
 
   function selectTheme(id: PlatformThemeId) {
@@ -29,7 +39,7 @@ export default function AppearanceSettingsWorkspace() {
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
         <p className="text-sm leading-relaxed text-white/55">
-          Choose one of five professionally designed themes for Unit311 Central.
+          Choose one of five professionally designed themes for {productName}.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-white/45">
           Themes update the appearance of the entire platform — including backgrounds, panels,

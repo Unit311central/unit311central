@@ -131,7 +131,72 @@ export default function ClientOnboardingWorkspace() {
       if (!response.ok) {
         throw new Error(data.error ?? "Failed to load onboarding records.");
       }
-      setRecords(data.records ?? []);
+      let next = data.records ?? [];
+      if (
+        next.length === 0 &&
+        typeof window !== "undefined" &&
+        (window.location.hostname.startsWith("demo.") ||
+          window.location.hostname === "demo.localhost")
+      ) {
+        next = [
+          {
+            id: "mag-onb-1",
+            companyName: "Harbor Energy",
+            contactName: "Alex Morgan",
+            contactEmail: "alex.morgan@harborenergy.demo",
+            signupDate: "2026-07-02",
+            currentStage: "questionnaire_complete",
+            progressPercent: 50,
+            currentStatus: "In Progress",
+            signedUpAt: "2026-07-02T09:00:00Z",
+            paymentReceivedAt: "2026-07-03T11:20:00Z",
+            questionnaireCompleteAt: "2026-07-08T16:40:00Z",
+          },
+          {
+            id: "mag-onb-2",
+            companyName: "Cascade Health Systems",
+            contactName: "Priya Shah",
+            contactEmail: "priya.shah@cascadehealth.demo",
+            signupDate: "2026-06-18",
+            currentStage: "platform_clone_complete",
+            progressPercent: 70,
+            currentStatus: "In Progress",
+            signedUpAt: "2026-06-18T10:00:00Z",
+            paymentReceivedAt: "2026-06-19T08:15:00Z",
+            questionnaireCompleteAt: "2026-06-24T14:00:00Z",
+            platformCloneCompleteAt: "2026-07-10T12:30:00Z",
+          },
+          {
+            id: "mag-onb-3",
+            companyName: "Northbridge Retail Group",
+            contactName: "James Okonkwo",
+            contactEmail: "j.okonkwo@northbridge.demo",
+            signupDate: "2026-05-04",
+            currentStage: "platform_live",
+            progressPercent: 100,
+            currentStatus: "Platform Live",
+            signedUpAt: "2026-05-04T09:30:00Z",
+            paymentReceivedAt: "2026-05-05T10:00:00Z",
+            questionnaireCompleteAt: "2026-05-12T11:00:00Z",
+            platformCloneCompleteAt: "2026-05-28T15:00:00Z",
+            reviewCompleteAt: "2026-06-02T09:00:00Z",
+            platformLiveAt: "2026-06-05T08:00:00Z",
+          },
+          {
+            id: "mag-onb-4",
+            companyName: "Helix Capital Partners",
+            contactName: "Sofia Almeida",
+            contactEmail: "sofia.almeida@helix.demo",
+            signupDate: "2026-07-18",
+            currentStage: "payment_received",
+            progressPercent: 30,
+            currentStatus: "In Progress",
+            signedUpAt: "2026-07-18T13:00:00Z",
+            paymentReceivedAt: "2026-07-19T09:45:00Z",
+          },
+        ];
+      }
+      setRecords(next);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load onboarding records.");
     } finally {

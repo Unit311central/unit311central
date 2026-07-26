@@ -149,3 +149,45 @@ export function filterInternalNavSectionsByGrants(
     isViewAllowedForGrants(view, allowedViews),
   );
 }
+
+const DEMO_HIDDEN_VIEWS = new Set<InternalOperationsView>(["testing", "telemetry"]);
+
+export function filterInternalNavSectionsForDemoSurface(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  if (typeof window === "undefined") return [...sections];
+  try {
+    const { isBrowserDemoSurface } =
+      require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    if (!isBrowserDemoSurface()) return [...sections];
+  } catch {
+    return [...sections];
+  }
+
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items
+        .map((item) => {
+          if (item.view && DEMO_HIDDEN_VIEWS.has(item.view)) return null;
+          if (item.children?.length) {
+            const children = item.children.filter(
+              (child) => !(child.view && DEMO_HIDDEN_VIEWS.has(child.view)),
+            );
+            if (children.length === 0 && !item.view && !item.href) return null;
+            const label =
+              item.label === "Unit311 Details" ? "Company Details" : item.label;
+            return { ...item, label, children };
+          }
+          if (item.label === "Unit311 Details") {
+            return { ...item, label: "Company Details" };
+          }
+          if (item.href?.includes("/whatsapp/support-flow")) {
+            return { ...item, label: "Support Messaging" };
+          }
+          return item;
+        })
+        .filter((item): item is NonNullable<typeof item> => item != null),
+    }))
+    .filter((section) => section.items.length > 0);
+}

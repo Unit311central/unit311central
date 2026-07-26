@@ -116,6 +116,33 @@ const PLATFORMS: PlatformCredentials[] = [
         in
       </span>
     ),
+    urlPlaceholder: "https://www.linkedin.com/company/meridianatlas",
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    accent: "from-fuchsia-500/20 via-pink-500/15 to-amber-500/10",
+    accentBorder: "border-pink-400/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold text-white">
+        IG
+      </span>
+    ),
+    urlPlaceholder: "https://www.instagram.com/meridianatlas",
+  },
+];
+
+const INTERNAL_PLATFORMS: PlatformCredentials[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
+    accentBorder: "border-[#0A66C2]/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
+        in
+      </span>
+    ),
     urlPlaceholder: "https://www.linkedin.com/company/bcndrone",
   },
   {
@@ -131,6 +158,18 @@ const PLATFORMS: PlatformCredentials[] = [
     urlPlaceholder: "https://www.instagram.com/bcndrone",
   },
 ];
+
+function resolveSettingsPlatforms(): PlatformCredentials[] {
+  if (typeof window === "undefined") return INTERNAL_PLATFORMS;
+  try {
+    const { isBrowserDemoSurface } =
+      require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    if (isBrowserDemoSurface()) return PLATFORMS;
+  } catch {
+    // fall through
+  }
+  return INTERNAL_PLATFORMS;
+}
 
 const NOTIFICATION_FUNCTIONS = ["Projects", "Support", "Finance"] as const;
 const NOTIFICATION_FREQUENCIES = ["Immediate", "Hourly digest", "Daily digest", "Weekly summary"] as const;
@@ -936,7 +975,7 @@ export default function SettingsWorkspace() {
           accentClass="border-pink-400/20"
         >
           <div className="space-y-3">
-            {PLATFORMS.map((platform) => (
+            {resolveSettingsPlatforms().map((platform) => (
               <PlatformCredentialsCard key={platform.id} platform={platform} />
             ))}
             <p className="text-[10px] leading-relaxed text-white/35">

@@ -302,7 +302,7 @@ export function writeDemoFixtures(repoRoot, graph) {
         },
         {
           id: "demo",
-          email: "demo@unit311central.com",
+          email: "demo@meridianatlas.demo",
           name: "Demo Owner",
           configured: true,
         },

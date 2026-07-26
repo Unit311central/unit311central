@@ -66,7 +66,71 @@ export default function MeetingsWorkspace() {
       const response = await fetch("/api/crm/meetings", { cache: "no-store" });
       const data = await readApiJson<{ meetings?: MeetingRow[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load meetings");
-      setMeetings(data.meetings ?? []);
+      let next = data.meetings ?? [];
+      if (
+        next.length === 0 &&
+        typeof window !== "undefined" &&
+        (window.location.hostname.startsWith("demo.") ||
+          window.location.hostname === "demo.localhost")
+      ) {
+        next = [
+          {
+            id: "mag-meet-1",
+            name: "Alex Morgan",
+            organization: "Harbor Energy",
+            role: "VP Transformation",
+            email: "alex.morgan@harborenergy.demo",
+            formattedWhenGmt: "Tue 28 Jul 2026 · 14:00 GMT",
+            formattedWhenClient: "Tue 28 Jul 2026 · 09:00 EDT",
+            clientTimezone: "America/New_York",
+            status: "scheduled",
+            statusLabel: "Scheduled",
+            meetingLink: "https://meet.meridianatlas.demo/demo-harbor",
+            startReminderSentAt: null,
+            transcriptSavedAt: null,
+            transcriptFileId: null,
+            focusOverviewPdfFileId: null,
+            focusSelectionsSubmittedAt: null,
+          },
+          {
+            id: "mag-meet-2",
+            name: "Priya Shah",
+            organization: "Cascade Health Systems",
+            role: "CIO",
+            email: "priya.shah@cascadehealth.demo",
+            formattedWhenGmt: "Thu 30 Jul 2026 · 10:30 GMT",
+            formattedWhenClient: "Thu 30 Jul 2026 · 10:30 GMT",
+            clientTimezone: "Europe/London",
+            status: "scheduled",
+            statusLabel: "Scheduled",
+            meetingLink: "https://meet.meridianatlas.demo/demo-cascade",
+            startReminderSentAt: null,
+            transcriptSavedAt: null,
+            transcriptFileId: null,
+            focusOverviewPdfFileId: null,
+            focusSelectionsSubmittedAt: null,
+          },
+          {
+            id: "mag-meet-3",
+            name: "James Okonkwo",
+            organization: "Northbridge Retail Group",
+            role: "COO",
+            email: "j.okonkwo@northbridge.demo",
+            formattedWhenGmt: "Mon 20 Jul 2026 · 15:00 GMT",
+            formattedWhenClient: null,
+            clientTimezone: "Europe/London",
+            status: "completed",
+            statusLabel: "Completed",
+            meetingLink: "https://meet.meridianatlas.demo/demo-northbridge",
+            startReminderSentAt: "2026-07-20T14:00:00Z",
+            transcriptSavedAt: "2026-07-20T16:10:00Z",
+            transcriptFileId: null,
+            focusOverviewPdfFileId: null,
+            focusSelectionsSubmittedAt: "2026-07-19T12:00:00Z",
+          },
+        ];
+      }
+      setMeetings(next);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load meetings");
     } finally {

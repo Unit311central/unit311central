@@ -162,6 +162,111 @@ export const GRANT_APPLICATIONS: GrantApplication[] = [
   },
 ];
 
+const DEMO_GRANT_APPLICATIONS: GrantApplication[] = [
+  {
+    id: "grant-mag-1",
+    programme: "Innovate UK",
+    funder: "UKRI",
+    title: "Enterprise cloud modernisation accelerator",
+    amountEur: 320000,
+    status: "Under Review",
+    owner: "Riley Jenkins",
+    submittedAt: "2026-04-12",
+    deadline: "2026-06-30",
+    region: "UK",
+    coFundingPct: 30,
+  },
+  {
+    id: "grant-mag-2",
+    programme: "Horizon Europe",
+    funder: "European Commission",
+    title: "Digital operating model for mid-market manufacturers",
+    amountEur: 410000,
+    status: "Approved",
+    owner: "Oliver Hayes",
+    submittedAt: "2026-02-18",
+    deadline: "2026-05-15",
+    region: "EU",
+    coFundingPct: 25,
+  },
+  {
+    id: "grant-mag-3",
+    programme: "ERDF Regional",
+    funder: "ERDF",
+    title: "Workforce digital upskilling programme",
+    amountEur: 145000,
+    status: "Submitted",
+    owner: "Reese Sullivan",
+    submittedAt: "2026-05-28",
+    deadline: "2026-07-10",
+    region: "UK",
+    coFundingPct: 20,
+  },
+  {
+    id: "grant-mag-4",
+    programme: "Innovate UK",
+    funder: "UKRI",
+    title: "Board reporting automation feasibility",
+    amountEur: 98000,
+    status: "Draft",
+    owner: "Benjamin Bailey",
+    submittedAt: null,
+    deadline: "2026-08-01",
+    region: "UK",
+    coFundingPct: 35,
+  },
+  {
+    id: "grant-mag-5",
+    programme: "Horizon Europe",
+    funder: "European Commission",
+    title: "Secure multi-cloud governance toolkit",
+    amountEur: 275000,
+    status: "Disbursed",
+    owner: "Riley Jenkins",
+    submittedAt: "2025-11-04",
+    deadline: "2026-01-20",
+    region: "EU",
+    coFundingPct: 15,
+  },
+  {
+    id: "grant-mag-6",
+    programme: "ERDF Regional",
+    funder: "ERDF",
+    title: "SME digital transformation pilot — London",
+    amountEur: 180000,
+    status: "Under Review",
+    owner: "Oliver Hayes",
+    submittedAt: "2026-03-22",
+    deadline: "2026-06-18",
+    region: "UK",
+    coFundingPct: 30,
+  },
+];
+
+const DEMO_GRANTS_BY_PROGRAMME = [
+  { programme: "Horizon Europe", amount: 685000 },
+  { programme: "Innovate UK", amount: 418000 },
+  { programme: "ERDF Regional", amount: 325000 },
+];
+
+function isDemoGrantsSurface() {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    return isBrowserDemoSurface();
+  } catch {
+    return false;
+  }
+}
+
+export function getGrantApplications(): GrantApplication[] {
+  return isDemoGrantsSurface() ? DEMO_GRANT_APPLICATIONS : GRANT_APPLICATIONS;
+}
+
+export function getGrantsByProgramme() {
+  return isDemoGrantsSurface() ? DEMO_GRANTS_BY_PROGRAMME : GRANTS_BY_PROGRAMME;
+}
+
 export const STATUS_COLORS: Record<GrantStatus, string> = {
   Draft: "#94a3b8",
   Submitted: "#38bdf8",

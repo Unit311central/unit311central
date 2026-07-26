@@ -59,7 +59,7 @@ import {
   type InternalNavSection,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
-import { filterInternalNavSectionsByGrants } from "@/lib/internal-role-views";
+import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
 import { isInternalDomainHost } from "@/lib/app-domains";
 import {
   getSidebarTheme,
@@ -523,7 +523,10 @@ export default function EnterprisePlatformSidebar({
 
   const { allowedViews } = useOperatorEntitlements();
   const navSections = useMemo(
-    () => filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
+    () =>
+      filterInternalNavSectionsForDemoSurface(
+        filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
+      ),
     [allowedViews],
   );
 

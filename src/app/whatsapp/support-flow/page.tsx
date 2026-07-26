@@ -21,6 +21,29 @@ import SupportTicketClientActions from "@/components/testflighthub/SupportTicket
 import { internalAppPath, internalAppUrl } from "@/lib/app-domains";
 import { cn } from "@/lib/utils";
 
+function supportFlowBrand() {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        return {
+          supportTitle: `${getDemoEnterpriseFixtures().company.tradingName} Support`,
+          infoTitle: "Operator Info Messages",
+          badge: "MAG",
+        };
+      }
+    } catch {
+      // Fall through.
+    }
+  }
+  return {
+    supportTitle: "Unit311 Support",
+    infoTitle: "Unit311 Info Messages",
+    badge: "BCN",
+  };
+}
+
 type ChatLine = {
   id: string;
   role: "you" | "them" | "error" | "notify";
@@ -244,6 +267,7 @@ function PanelShell({
 }
 
 export default function WhatsAppSupportFlowPage() {
+  const brand = supportFlowBrand();
   const [lines, setLines] = useState<ChatLine[]>([]);
   const [notifyLines, setNotifyLines] = useState<ChatLine[]>([]);
   const [draft, setDraft] = useState("");
@@ -608,9 +632,9 @@ export default function WhatsAppSupportFlowPage() {
             style={{ width: columnWidth }}
           >
             <PanelShell
-              title="Unit311 Support"
+              title={brand.supportTitle}
               subtitle="Customer WhatsApp"
-              badge="BCN"
+              badge={brand.badge}
               badgeClassName="bg-emerald-700 text-xs"
               className="border-r"
               onClear={clearClientPanel}
@@ -683,7 +707,7 @@ export default function WhatsAppSupportFlowPage() {
               style={{ width: columnWidth }}
             >
               <PanelShell
-                title="Unit311 Info Messages"
+                title={brand.infoTitle}
                 subtitle="CallMeBot alerts"
                 badge="DC"
                 badgeClassName="bg-sky-700"

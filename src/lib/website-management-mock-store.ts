@@ -34,6 +34,25 @@ export function subscribeWebsiteMockStore(listener: () => void) {
 }
 
 export function getWebsiteMockSnapshot() {
+  if (
+    typeof window !== "undefined" &&
+    state.websites.some((site) => /unit311|aeroparts|iberia/i.test(`${site.name} ${site.domain}`))
+  ) {
+    try {
+      const { isBrowserDemoSurface } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        const seedWebsites = createSeedWebsites();
+        state = {
+          websites: seedWebsites,
+          content: seedWebsites.flatMap((site) => createSeedWebsiteContent(site.id)),
+          deployments: seedWebsites.flatMap((site) => createSeedDeployments(site.id)),
+        };
+      }
+    } catch {
+      // Keep current state.
+    }
+  }
   return state;
 }
 

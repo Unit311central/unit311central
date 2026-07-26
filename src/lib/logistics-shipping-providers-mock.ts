@@ -130,9 +130,22 @@ function defaultStateForRegistry(
 }
 
 export function buildInitialLogisticsProviderRows(): LogisticsProviderRow[] {
+  let manualName = "Unit311 Logistics";
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        manualName = `${getDemoEnterpriseFixtures().company.tradingName} Logistics`;
+      }
+    } catch {
+      // Keep Unit311 label on Internal.
+    }
+  }
+
   const manualRow: LogisticsProviderRow = {
     ...UNIT311_MANUAL,
-    registry: { code: "unit311_manual", name: "Unit311 Logistics" },
+    registry: { code: "unit311_manual", name: manualName },
   };
 
   const registryRows: LogisticsProviderRow[] = SHIPPING_PROVIDER_REGISTRY.map((entry) => ({
