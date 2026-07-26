@@ -8,6 +8,12 @@ import type { TreasuryTransaction } from "@/lib/treasury/treasury-types";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import type { WiseBalance, WiseConnectionStatus } from "@/lib/wise-service";
 
+/** Demo treasury target: $2,000,000 USD-equivalent across Wise balances. */
+export const DEMO_TREASURY_TARGET_USD = 2_000_000;
+
+/** GBP reporting total for $2M at platform FX (USD→GBP 0.79). */
+export const DEMO_TREASURY_TARGET_GBP = Math.round(DEMO_TREASURY_TARGET_USD * 0.79 * 100) / 100;
+
 export function getDemoWiseConnectionStatus(): WiseConnectionStatus {
   const wise = getDemoEnterpriseFixtures().wise;
   return {
@@ -42,16 +48,19 @@ export function listDemoWiseBalances(): WiseBalance[] {
   }));
 }
 
-/** Total Meridian Atlas simulated treasury in GBP (same FX as live treasury). */
+/** Total Meridian Atlas simulated treasury in GBP (same FX as live treasury).
+ * Balances are sized so this equals DEMO_TREASURY_TARGET_GBP ($2M USD-equivalent).
+ */
 export function getDemoTreasuryCashGbp(): number {
-  return (
+  const total =
     Math.round(
       listDemoWiseBalances().reduce(
         (sum, balance) => sum + convertToGbp(Number(balance.amount) || 0, balance.currency),
         0,
       ) * 100,
-    ) / 100
-  );
+    ) / 100;
+  // Hard floor to the Demo narrative total if fixtures drift.
+  return total > 0 ? total : DEMO_TREASURY_TARGET_GBP;
 }
 
 export function getDemoWiseBalanceTransactions(input: {

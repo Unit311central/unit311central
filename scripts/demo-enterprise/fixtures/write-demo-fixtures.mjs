@@ -526,7 +526,9 @@ export function writeDemoFixtures(repoRoot, graph) {
           currency: "GBP",
           type: "SAVINGS",
           name: "Meridian Reserves GBP",
-          amount: Math.round(graph.wiseBalances.GBP * 0.35 * 100) / 100,
+          amount:
+            graph.wiseBalances.GBP_RESERVE ??
+            Math.round(graph.wiseBalances.GBP * 0.35 * 100) / 100,
           reservedAmount: 0,
           regionLabel: "United Kingdom",
           accountRef: "MAG-GBP-RSV",

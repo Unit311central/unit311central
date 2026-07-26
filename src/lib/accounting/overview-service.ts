@@ -559,7 +559,17 @@ export async function getFinancialOverview(
         monthly: payrollMonthly,
         trend: payrollTrend,
       },
-      charts,
+      charts: {
+        ...charts,
+        cashPosition:
+          charts.cashPosition.length > 0
+            ? charts.cashPosition.map((point, index) =>
+                index === charts.cashPosition.length - 1
+                  ? { ...point, amount: cashPosition }
+                  : point,
+              )
+            : [{ month: monthPrefix, amount: cashPosition }],
+      },
       activity,
     };
   } catch {

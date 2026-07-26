@@ -358,10 +358,12 @@ export function buildEnterpriseGraph(options = {}) {
     });
   }
 
+  // Demo treasury totals $2,000,000 USD-equivalent (≈ £1,580,000 at platform FX).
   const wiseBalances = {
-    GBP: 428500.42,
-    USD: 312480.18,
-    EUR: 198220.55,
+    GBP: 500_000,
+    USD: 800_000,
+    EUR: 250_000,
+    GBP_RESERVE: 233_000,
   };
   const wiseTransactions = [];
   let tx = 0;
