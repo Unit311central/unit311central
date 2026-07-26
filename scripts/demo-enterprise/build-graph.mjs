@@ -347,8 +347,9 @@ export function buildEnterpriseGraph(options = {}) {
   for (let m = 11; m >= 0; m -= 1) {
     const monthInvoices = invoices.filter((inv) => inv.monthIndex === m && inv.status !== "cancelled");
     const revenue = monthInvoices.reduce((s, inv) => s + inv.amount, 0);
+    // Light opex padding only — payroll is applied live in Financial Overview (do not inflate journals).
     const monthExpenses = expenses.filter((e) => e.dateSubmitted.startsWith(monthsAgo(m, 1).slice(0, 7)));
-    const opex = monthExpenses.reduce((s, e) => s + e.amount, 0) + rng.money(180000, 260000, 2);
+    const opex = monthExpenses.reduce((s, e) => s + e.amount, 0) + rng.money(35_000, 55_000, 2);
     monthlyFinance.push({
       month: monthsAgo(m, 1).slice(0, 7),
       journalDate: monthsAgo(m, 28),

@@ -375,21 +375,50 @@ export async function getFinancialOverview(
     const softwareMonthly =
       obligations.software.count > 0 ? obligations.software.monthly : glSoftwareMonthly;
 
+    const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider");
+    const isDemoTreasury = await shouldUseDemoWiseSimulator();
+
+    const vendorExpenseRunRate = (() => {
+      const byMonth = new Map<string, number>();
+      for (const expense of allExpenses) {
+        const key = String(expense.expenseDate ?? expense.dateSubmitted ?? "").slice(0, 7);
+        if (!/^\d{4}-\d{2}$/.test(key)) continue;
+        byMonth.set(key, (byMonth.get(key) ?? 0) + (Number(expense.amount) || 0));
+      }
+      const keys = [...byMonth.keys()].sort();
+      if (keys.length === 0) return 0;
+      const recent = keys.slice(-3).map((key) => byMonth.get(key) ?? 0);
+      return recent.reduce((sum, value) => sum + value, 0) / recent.length;
+    })();
+
+    // Demo: never add padded GL opex journals on top of live payroll (was ~£1m+/mo nonsense).
+    // Burn = payroll employment cost + software register + vendor expense run-rate.
+    const payrollBurn =
+      payrollLive && payrollLive.employeeCount > 0
+        ? toReporting(
+            payrollLive.monthlyGross + payrollLive.employerTax,
+            payrollLive.currency,
+          )
+        : payrollMonthly;
+
     const glBurnBase =
       burnRate.lines.length > 0 ? burnRate.monthly : (monthlyExpensePoint?.amount ?? 0);
-    // Replace overlapping GL payroll/software categories with live register totals (no double count).
-    const monthlyBurn = roundMoney(
-      Math.max(0, glBurnBase - glPayrollMonthly - glSoftwareMonthly) +
-        payrollMonthly +
-        softwareMonthly,
-    );
-    const forecastMonthly = roundMoney(
-      burnRate.lines.length > 0
-        ? Math.max(0, burnRate.forecastMonthly - glPayrollMonthly - glSoftwareMonthly) +
+    const monthlyBurn = isDemoTreasury
+      ? roundMoney(payrollBurn + softwareMonthly + vendorExpenseRunRate)
+      : roundMoney(
+          Math.max(0, glBurnBase - glPayrollMonthly - glSoftwareMonthly) +
             payrollMonthly +
-            softwareMonthly
-        : monthlyBurn,
-    );
+            softwareMonthly,
+        );
+    const forecastMonthly = isDemoTreasury
+      ? monthlyBurn
+      : roundMoney(
+          burnRate.lines.length > 0
+            ? Math.max(0, burnRate.forecastMonthly - glPayrollMonthly - glSoftwareMonthly) +
+                payrollMonthly +
+                softwareMonthly
+            : monthlyBurn,
+        );
 
     const payrollTrend =
       burnRate.series.length > 0
@@ -474,7 +503,11 @@ export async function getFinancialOverview(
         forecastMonthly: roundMoney(forecastMonthly),
         cashBalance: cashPosition,
         currency: FINANCIAL_REPORTING_CURRENCY,
-        trendLabel: burnRate.lines.length > 0 ? burnRate.trendLabel : "Operating registers",
+        trendLabel: isDemoTreasury
+          ? "Payroll + software + vendor opex"
+          : burnRate.lines.length > 0
+            ? burnRate.trendLabel
+            : "Operating registers",
         runwayMonths:
           cashPosition > 0 && monthlyBurn > 0
             ? Math.round((cashPosition / monthlyBurn) * 10) / 10
