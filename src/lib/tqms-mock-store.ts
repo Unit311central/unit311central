@@ -57,7 +57,7 @@ let state: TqmsMockState = createInitialTqmsState();
 
 function createInitialTqmsState(): TqmsMockState {
   const fixtures = tryGetDemoFixtures();
-  const base: TqmsMockState = {
+  let base: TqmsMockState = {
     courses: createSeedTqmsCourses(),
     learners: createSeedTqmsLearners(),
     assignments: createSeedTqmsAssignments(),
@@ -74,6 +74,33 @@ function createInitialTqmsState(): TqmsMockState {
     notes: createSeedTqmsNotes(),
     qmsSections: createSeedTqmsQmsSections(),
   };
+
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      if (isBrowserCorpCentreSurface()) {
+        const { applyCorpCentreTqmsSeed } =
+          require("@/lib/corpcentre-tqms-training") as typeof import("@/lib/corpcentre-tqms-training");
+        base = applyCorpCentreTqmsSeed(base);
+        return {
+          ...base,
+          activity: [
+            {
+              id: "cc-trn-act-1",
+              at: new Date().toISOString(),
+              label: "CorpCentre training loaded",
+              detail: "Staff courses seeded for current CorpCentre employees.",
+            },
+            ...base.activity.slice(0, 8),
+          ],
+        };
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
   if (!fixtures) return base;
 
   const company = fixtures.company.tradingName;
@@ -186,6 +213,20 @@ export function getTqmsMockSnapshot(): TqmsMockState {
     state.courses.some((course) => /unit311/i.test(course.title))
   ) {
     state = createInitialTqmsState();
+  }
+  // Re-seed CorpCentre if aviation demo learners leaked in via SSR.
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      const { isAviationTrainingLeak } =
+        require("@/lib/corpcentre-tqms-training") as typeof import("@/lib/corpcentre-tqms-training");
+      if (isBrowserCorpCentreSurface() && isAviationTrainingLeak(state.learners)) {
+        state = createInitialTqmsState();
+      }
+    } catch {
+      /* ignore */
+    }
   }
   return state;
 }
