@@ -256,14 +256,20 @@ export function computeSoftwareAssetsSummary(
 }
 
 export function formatSoftwareMoney(amount: number, currency: string) {
+  const code = String(currency || "GBP").toUpperCase();
   try {
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: currency || "GBP",
-      maximumFractionDigits: 0,
-    }).format(amount);
+    const { withPreferredCurrencySymbol } =
+      require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
+    return withPreferredCurrencySymbol(
+      new Intl.NumberFormat("en-GB", {
+        style: "currency",
+        currency: code,
+        maximumFractionDigits: 0,
+      }).format(amount),
+      code,
+    );
   } catch {
-    return `${currency} ${amount.toFixed(0)}`;
+    return `${code} ${amount.toFixed(0)}`;
   }
 }
 

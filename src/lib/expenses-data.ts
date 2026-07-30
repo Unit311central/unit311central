@@ -1,4 +1,5 @@
 import { createInitialUsers } from "@/lib/user-management-data";
+import { withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
 
 export type ExpenseCurrency = "EUR" | "GBP" | "USD" | "AUD" | "CHF";
 
@@ -135,11 +136,15 @@ export function expenseFieldsEqual(a: FinancialExpense, b: FinancialExpense) {
 }
 
 export function formatExpenseAmount(amount: number, currency: ExpenseCurrency) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
+  const code = String(currency || "GBP").toUpperCase();
+  return withPreferredCurrencySymbol(
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: code,
+      minimumFractionDigits: 2,
+    }).format(amount),
+    code,
+  );
 }
 
 export function getInternalUserById(userId: string) {

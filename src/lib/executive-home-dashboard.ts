@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib/accounting/chart-of-accounts";
+import { formatMoney, withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { normalizeKpiRow } from "@/lib/dashboard-framework";
@@ -12,16 +12,20 @@ import { countLiveProjects } from "@/lib/home-executive-dashboard";
 import type { InternalProject } from "@/lib/projects-data";
 
 function formatCompactMoney(amount: number, currency = "GBP") {
+  const code = String(currency || "GBP").toUpperCase();
   const abs = Math.abs(amount);
   if (abs >= 1_000_000 || abs >= 10_000) {
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency,
-      notation: "compact",
-      maximumFractionDigits: 2,
-    }).format(amount);
+    return withPreferredCurrencySymbol(
+      new Intl.NumberFormat("en-GB", {
+        style: "currency",
+        currency: code,
+        notation: "compact",
+        maximumFractionDigits: 2,
+      }).format(amount),
+      code,
+    );
   }
-  return formatMoney(amount, currency);
+  return formatMoney(amount, code);
 }
 
 function monthDelta(

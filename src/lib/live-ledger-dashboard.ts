@@ -33,14 +33,20 @@ type ExpenseLike = {
   dateSubmitted?: string | null;
 };
 
+import { withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
+
 const REPORTING_CURRENCY = "GBP";
 
 function money(amount: number, currency = REPORTING_CURRENCY) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  const code = String(currency || REPORTING_CURRENCY).toUpperCase();
+  return withPreferredCurrencySymbol(
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+    }).format(amount),
+    code,
+  );
 }
 
 function invoiceGbp(invoice: InvoiceLike) {

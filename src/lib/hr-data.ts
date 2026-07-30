@@ -104,7 +104,7 @@ export const HR_DOCUMENT_TYPE_LABELS: Record<HrDocumentType, string> = {
   other: "Other",
 };
 
-export const HR_LOCATIONS = ["Barcelona", "Madrid", "Remote", "Hybrid"] as const;
+export const HR_LOCATIONS = ["Sydney", "Barcelona", "Madrid", "Remote", "Hybrid"] as const;
 export const HR_DEPARTMENTS = [
   "Executive",
   "Operations",
@@ -212,6 +212,7 @@ export type HrEmployee = {
   email: string;
   phone: string;
   address: string;
+  suburb: string;
   emergencyContactName: string;
   emergencyContactPhone: string;
   emergencyContactRelationship: string;
@@ -296,6 +297,7 @@ type DbEmployee = {
   email: string;
   phone: string;
   address?: string | null;
+  suburb?: string | null;
   emergency_contact_name?: string | null;
   emergency_contact_phone?: string | null;
   emergency_contact_relationship?: string | null;
@@ -352,6 +354,7 @@ export function mapHrEmployee(row: DbEmployee): HrEmployee {
     email: row.email,
     phone: row.phone,
     address: row.address ?? "",
+    suburb: row.suburb ?? "",
     emergencyContactName: row.emergency_contact_name ?? "",
     emergencyContactPhone: row.emergency_contact_phone ?? "",
     emergencyContactRelationship: row.emergency_contact_relationship ?? "",
@@ -415,6 +418,7 @@ export function createBlankEmployeeInput(): Omit<HrEmployee, "id" | "employeeNum
     email: "",
     phone: "",
     address: "",
+    suburb: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
     emergencyContactRelationship: "",
@@ -422,7 +426,7 @@ export function createBlankEmployeeInput(): Omit<HrEmployee, "id" | "employeeNum
     employmentStatus: "active",
     employmentType: "full_time",
     dateJoined: today,
-    location: "Barcelona",
+    location: "Sydney",
     officeId: null,
     role: "",
     department: "",
@@ -446,15 +450,34 @@ export function createBlankEmployeeInput(): Omit<HrEmployee, "id" | "employeeNum
 }
 
 export function formatSalary(amount: number, currency = "EUR") {
+  const code = String(currency || "EUR").toUpperCase();
   try {
-    return new Intl.NumberFormat("es-ES", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
+    const { withPreferredCurrencySymbol } =
+      require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
+    return withPreferredCurrencySymbol(
+      new Intl.NumberFormat("es-ES", {
+        style: "currency",
+        currency: code,
+        maximumFractionDigits: 0,
+      }).format(amount),
+      code,
+    );
   } catch {
-    return `${amount} ${currency}`;
+    return `${amount} ${code}`;
   }
+}
+
+/** Currencies selectable on employee Compensation / Payroll. */
+export const HR_CURRENCY_OPTIONS = ["AUD", "EUR", "GBP", "USD", "CAD", "NZD", "CHF"] as const;
+export type HrCurrencyOption = (typeof HR_CURRENCY_OPTIONS)[number];
+
+export function normalizeHrCurrency(value: string | null | undefined, fallback = "EUR"): string {
+  const code = String(value ?? "")
+    .trim()
+    .toUpperCase();
+  if (!code) return fallback;
+  if ((HR_CURRENCY_OPTIONS as readonly string[]).includes(code)) return code;
+  return code;
 }
 
 export function formatHrDate(iso: string | null) {

@@ -339,19 +339,31 @@ export type ProcurementReportingSnapshot = {
 };
 
 export function money(n: number, currency = "EUR") {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(n);
+  const { withPreferredCurrencySymbol } =
+    require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
+  const code = String(currency || "EUR").toUpperCase();
+  return withPreferredCurrencySymbol(
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+    }).format(n),
+    code,
+  );
 }
 
 export function moneyExact(n: number, currency = "EUR") {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(n);
+  const { withPreferredCurrencySymbol } =
+    require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
+  const code = String(currency || "EUR").toUpperCase();
+  return withPreferredCurrencySymbol(
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 2,
+    }).format(n),
+    code,
+  );
 }
 
 export function lineTotal(line: Pick<ProcurementLineItem, "quantity" | "unitPrice" | "taxPct" | "discountPct">) {

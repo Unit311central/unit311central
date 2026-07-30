@@ -5,6 +5,7 @@ import type {
   DashboardAnalyticsSeries,
   DashboardAnalyticsWidget,
 } from "@/lib/dashboard-framework";
+import { withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
 import { cn } from "@/lib/utils";
 import { WidgetTitle, widgetShellClass } from "./widget-shell";
 
@@ -19,21 +20,22 @@ const TONE_CLASS: Record<NonNullable<DashboardAnalyticsAnnotation["tone"]>, stri
 
 function formatSeriesValue(series: DashboardAnalyticsSeries, value: number) {
   if (series.format === "currency") {
-    const currency = series.currency ?? "GBP";
+    const currency = String(series.currency ?? "GBP").toUpperCase();
     const abs = Math.abs(value);
-    if (abs >= 10_000) {
-      return new Intl.NumberFormat("en-GB", {
-        style: "currency",
-        currency,
-        notation: "compact",
-        maximumFractionDigits: 1,
-      }).format(value);
-    }
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(value);
+    const formatted =
+      abs >= 10_000
+        ? new Intl.NumberFormat("en-GB", {
+            style: "currency",
+            currency,
+            notation: "compact",
+            maximumFractionDigits: 1,
+          }).format(value)
+        : new Intl.NumberFormat("en-GB", {
+            style: "currency",
+            currency,
+            maximumFractionDigits: 0,
+          }).format(value);
+    return withPreferredCurrencySymbol(formatted, currency);
   }
   return new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 }).format(value);
 }

@@ -3,7 +3,7 @@
  * Prefer live GL expense postings; fall back to GL-derived demo ledger when sparse.
  */
 
-import { ACCOUNT_CODES } from "@/lib/accounting/chart-of-accounts";
+import { ACCOUNT_CODES, withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
 
 export const BURN_CATEGORIES = [
   "payroll",
@@ -583,9 +583,13 @@ export function defaultBurnFilters(lines: BurnLedgerLine[]): BurnRateFilters {
 }
 
 export function formatBurnMoney(amount: number, currency = "EUR") {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  const code = String(currency || "EUR").toUpperCase();
+  return withPreferredCurrencySymbol(
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+    }).format(amount),
+    code,
+  );
 }

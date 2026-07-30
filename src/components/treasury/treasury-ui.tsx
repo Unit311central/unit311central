@@ -80,11 +80,17 @@ export function TreasuryStatusBadge({ status }: { status: string }) {
 }
 
 export function formatTreasuryMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
+  const { withPreferredCurrencySymbol } =
+    require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
+  const code = String(currency || "GBP").toUpperCase();
+  return withPreferredCurrencySymbol(
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: code,
+      minimumFractionDigits: 2,
+    }).format(amount),
+    code,
+  );
 }
 
 export function formatTreasuryDateTime(value: string) {

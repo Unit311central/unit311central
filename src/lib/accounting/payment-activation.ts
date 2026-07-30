@@ -18,10 +18,16 @@ export type PaymentActivationContext = {
 
 function formatMoney(amount: number, currency: string) {
   try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "USD",
-    }).format(amount);
+    const { withPreferredCurrencySymbol } =
+      require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
+    const code = String(currency || "USD").toUpperCase();
+    return withPreferredCurrencySymbol(
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: code,
+      }).format(amount),
+      code,
+    );
   } catch {
     return `${currency} ${amount.toFixed(2)}`;
   }

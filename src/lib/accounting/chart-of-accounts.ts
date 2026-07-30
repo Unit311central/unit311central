@@ -69,10 +69,28 @@ export function wiseAccountCodeForCurrency(currency: string) {
 }
 
 export function formatMoney(amount: number, currency = "GBP") {
-  return new Intl.NumberFormat("en-GB", {
+  const code = String(currency || "GBP").toUpperCase();
+  const formatted = new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency,
+    currency: code,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
+  return withPreferredCurrencySymbol(formatted, code);
+}
+
+/**
+ * Intl often renders AUD as "A$" (en-GB) or "$" (en-AU). Prefer the clearer "AU$".
+ */
+export function withPreferredCurrencySymbol(
+  formatted: string,
+  currency?: string | null,
+): string {
+  const code = String(currency ?? "").trim().toUpperCase();
+  if (code && code !== "AUD") return formatted;
+  let out = formatted.replace(/(^|[^A-Z])A\$/g, "$1AU$");
+  if (code === "AUD" && !out.includes("AU$") && /^\s*\$/.test(out)) {
+    out = out.replace(/^(\s*)\$/, "$1AU$");
+  }
+  return out;
 }

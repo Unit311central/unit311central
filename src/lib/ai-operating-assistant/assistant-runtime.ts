@@ -188,11 +188,17 @@ function formatListedToolReply(
 function money(value: unknown, currency = "GBP"): string {
   const amount = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(amount)) return "—";
-  return amount.toLocaleString("en-GB", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  });
+  const code = String(currency || "GBP").toUpperCase();
+  const { withPreferredCurrencySymbol } =
+    require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
+  return withPreferredCurrencySymbol(
+    amount.toLocaleString("en-GB", {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits: 0,
+    }),
+    code,
+  );
 }
 
 /** Chief-of-Staff prose for executive intelligence tools (never reply “Done.”). */
@@ -282,20 +288,47 @@ function formatExecutiveIntelligenceReply(
     const snapshot = items?.[0] as { overview?: Record<string, unknown> } | undefined;
     const overview = snapshot?.overview ?? summary ?? {};
     const currency = String(overview.reportingCurrency ?? "GBP");
+    const question =
+      (typeof summary?.question === "string" && summary.question) || "Business summary";
+    const asksBurn = /\bburn\b|runway|monthly\s+spend/i.test(question);
+
+    if (asksBurn && overview.monthlyBurn != null) {
+      const burnLines = [
+        `Monthly burn: ${money(overview.monthlyBurn, currency)}`,
+        overview.previousMonthlyBurn != null
+          ? `Previous month burn: ${money(overview.previousMonthlyBurn, currency)}`
+          : null,
+        overview.runwayMonths != null ? `Cash runway: ${overview.runwayMonths} months` : null,
+        overview.cashPosition != null
+          ? `Cash position: ${money(overview.cashPosition, currency)}`
+          : null,
+        overview.monthlyPayroll != null
+          ? `Payroll (monthly): ${money(overview.monthlyPayroll, currency)}`
+          : null,
+        overview.headcount != null ? `Headcount: ${overview.headcount}` : null,
+        overview.burnTrendLabel != null ? `Composition: ${overview.burnTrendLabel}` : null,
+      ].filter(Boolean);
+      return `${question.replace(/\?$/, "")}:\n\n${burnLines.map((l) => `• ${l}`).join("\n")}`;
+    }
+
     const lines = [
       `Active clients: ${overview.activeClients ?? "—"}`,
       `Live projects: ${overview.liveProjects ?? "—"}`,
       `Headcount: ${overview.headcount ?? "—"}`,
       `Cash position: ${money(overview.cashPosition, currency)}`,
     ];
+    if (overview.monthlyBurn != null) {
+      lines.push(`Monthly burn: ${money(overview.monthlyBurn, currency)}`);
+    }
+    if (overview.runwayMonths != null) {
+      lines.push(`Cash runway: ${overview.runwayMonths} months`);
+    }
     if (overview.overdueInvoices != null) {
       lines.push(`Overdue invoices: ${overview.overdueInvoices}`);
     }
     if (overview.hotLeads != null) {
       lines.push(`Hot CRM leads: ${overview.hotLeads}`);
     }
-    const question =
-      (typeof summary?.question === "string" && summary.question) || "Business summary";
     return `${question.replace(/\?$/, "")}:\n\n${lines.map((l) => `• ${l}`).join("\n")}`;
   }
 

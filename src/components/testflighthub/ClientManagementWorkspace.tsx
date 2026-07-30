@@ -29,11 +29,17 @@ import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadin
 import { ExternalLink, FolderOpen, FolderPlus, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 
 function formatFinanceMoney(amount: number, currency = "EUR") {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
+  const { withPreferredCurrencySymbol } =
+    require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
+  const code = String(currency || "EUR").toUpperCase();
+  return withPreferredCurrencySymbol(
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: code,
+      minimumFractionDigits: 2,
+    }).format(amount),
+    code,
+  );
 }
 
 async function readApiJson<T>(response: Response): Promise<T> {

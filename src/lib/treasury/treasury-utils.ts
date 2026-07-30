@@ -2,6 +2,7 @@ import type {
   TreasuryTransaction,
   TreasuryTransactionFilters,
 } from "@/lib/treasury/treasury-types";
+import { withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
 
 const FX_TO_GBP: Record<string, number> = {
   GBP: 1,
@@ -22,11 +23,15 @@ export function maskAccountNumber(value: string | null | undefined) {
 }
 
 export function formatTreasuryMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
+  const code = String(currency || "GBP").toUpperCase();
+  return withPreferredCurrencySymbol(
+    new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency: code,
+      minimumFractionDigits: 2,
+    }).format(amount),
+    code,
+  );
 }
 
 export function formatTreasuryDateTime(value: string) {
