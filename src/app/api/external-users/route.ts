@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireInternalAdministratorWorkspaceSession } from "@/lib/internal-admin-auth";
+import { requireUsersModuleAdministratorSession } from "@/lib/internal-admin-auth";
 import {
   createExternalUser,
   listExternalUsers,
@@ -10,7 +10,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const auth = await requireInternalAdministratorWorkspaceSession();
+  // Customer tenants (e.g. CorpCentre) use workspace owner/admin — not global Admin.
+  const auth = await requireUsersModuleAdministratorSession();
   if ("error" in auth) return auth.error;
 
   if (!isSupabaseConfigured()) {
@@ -28,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireInternalAdministratorWorkspaceSession();
+  const auth = await requireUsersModuleAdministratorSession();
   if ("error" in auth) return auth.error;
 
   if (!isSupabaseConfigured()) {

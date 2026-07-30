@@ -63,11 +63,13 @@ async function resolveClientForWrite(clientId: string): Promise<{
 export async function listExternalUsers(): Promise<ExternalUser[]> {
   await ensurePlatformUsersLastLoginColumn();
   return withPlatformUsersLastLoginColumn(async () => {
+    const workspace = await requireCurrentWorkspace();
     const supabase = requirePlatformSupabase();
     let { data, error } = await supabase
       .from("platform_users")
       .select(PLATFORM_USER_COLUMNS)
       .eq("user_type", "external")
+      .eq("workspace_id", workspace.id)
       .order("display_name", { ascending: true });
 
     if (error && error.message.includes("email")) {
@@ -77,6 +79,7 @@ export async function listExternalUsers(): Promise<ExternalUser[]> {
           "id, username, display_name, user_type, redirect_path, client_name, client_id, is_active, last_login_at, created_at, updated_at",
         )
         .eq("user_type", "external")
+        .eq("workspace_id", workspace.id)
         .order("display_name", { ascending: true });
       data = retry.data as typeof data;
       error = retry.error;
@@ -114,6 +117,7 @@ export async function createExternalUser(input: {
 
   await ensurePlatformUsersLastLoginColumn();
   return withPlatformUsersLastLoginColumn(async () => {
+    const workspace = await requireCurrentWorkspace();
     const supabase = requirePlatformSupabase();
     const blank = createBlankExternalUserInput();
     const username = normalizePlatformUsername(input.username);
@@ -126,6 +130,7 @@ export async function createExternalUser(input: {
       display_name: input.name.trim() || "New Client User",
       password_hash: passwordHash,
       user_type: "external",
+      workspace_id: workspace.id,
       redirect_path: input.redirectPath?.trim() || blank.redirectPath,
       client_id: client.id,
       client_name: client.companyName,
@@ -183,6 +188,7 @@ export async function updateExternalUser(
 ): Promise<ExternalUser> {
   await ensurePlatformUsersLastLoginColumn();
   return withPlatformUsersLastLoginColumn(async () => {
+    const workspace = await requireCurrentWorkspace();
     const supabase = requirePlatformSupabase();
     const payload: Record<string, string | boolean | null> = {
       updated_at: new Date().toISOString(),
@@ -214,6 +220,7 @@ export async function updateExternalUser(
       .update(payload)
       .eq("id", id)
       .eq("user_type", "external")
+      .eq("workspace_id", workspace.id)
       .select(PLATFORM_USER_COLUMNS)
       .single();
 
@@ -224,6 +231,7 @@ export async function updateExternalUser(
         .update(payload)
         .eq("id", id)
         .eq("user_type", "external")
+        .eq("workspace_id", workspace.id)
         .select(
           "id, username, display_name, user_type, redirect_path, client_name, client_id, is_active, last_login_at, created_at, updated_at",
         )
@@ -252,12 +260,14 @@ export async function updateExternalUser(
 }
 
 export async function resetExternalUserPassword(id: string): Promise<{ temporaryPassword: string }> {
+  const workspace = await requireCurrentWorkspace();
   const supabase = requirePlatformSupabase();
   const { data: existing, error: loadError } = await supabase
     .from("platform_users")
     .select("username")
     .eq("id", id)
     .eq("user_type", "external")
+    .eq("workspace_id", workspace.id)
     .single();
 
   if (loadError || !existing) throw new Error(loadError?.message ?? "User not found");
@@ -272,19 +282,22 @@ export async function resetExternalUserPassword(id: string): Promise<{ temporary
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .eq("user_type", "external");
+    .eq("user_type", "external")
+    .eq("workspace_id", workspace.id);
 
   if (error) throw new Error(error.message);
   return { temporaryPassword: password };
 }
 
 export async function deleteExternalUser(id: string) {
+  const workspace = await requireCurrentWorkspace();
   const supabase = requirePlatformSupabase();
   const { error } = await supabase
     .from("platform_users")
     .delete()
     .eq("id", id)
-    .eq("user_type", "external");
+    .eq("user_type", "external")
+    .eq("workspace_id", workspace.id);
 
   if (error) throw new Error(error.message);
 }
