@@ -20,6 +20,7 @@ import {
   topPortfolioRisk,
   type ProjectPortfolioScope,
 } from "@/lib/project-portfolios";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import { FolderKanban, Loader2, Plus, Trash2, X } from "lucide-react";
@@ -168,9 +169,9 @@ export default function ProjectsWorkspace({
     () => clients.find((client) => client.id === clientFilterId) ?? null,
     [clients, clientFilterId],
   );
-  // Internal programmes stay on the demo portfolio. External / dashboard use live API projects
-  // so EA-created client work (e.g. Site Survey for Acme) is visible.
-  const usesPortfolio = false;
+  // CorpCentre Internal Projects use the AU/AUD portfolio fixtures (20 programmes).
+  // External / dashboard keep live API projects so client delivery work stays visible.
+  const usesPortfolio = scope === "internal" && isBrowserCorpCentreSurface();
   const isPortfolioLayout = scope === "internal" || scope === "external";
 
   const [projects, setProjects] = useState<InternalProject[]>([]);

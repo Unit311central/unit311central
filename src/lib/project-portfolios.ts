@@ -1,4 +1,6 @@
 import type { InternalProject, ProjectPhase } from "@/lib/projects-data";
+import { CORPCENTRE_INTERNAL_PROJECT_PORTFOLIO } from "@/lib/corpcentre-project-portfolios";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 
 export type ProjectPortfolioScope = "internal" | "external" | "all";
 
@@ -887,18 +889,32 @@ export const EXTERNAL_PROJECT_PORTFOLIO: PortfolioProject[] = [
 ];
 
 const BY_ID = new Map<string, PortfolioProject>(
-  [...INTERNAL_PROJECT_PORTFOLIO, ...EXTERNAL_PROJECT_PORTFOLIO].map((entry) => [
-    entry.id,
-    entry,
-  ]),
+  [
+    ...INTERNAL_PROJECT_PORTFOLIO,
+    ...EXTERNAL_PROJECT_PORTFOLIO,
+    ...CORPCENTRE_INTERNAL_PROJECT_PORTFOLIO,
+  ].map((entry) => [entry.id, entry]),
 );
 
 export function getPortfolioProject(id: string): PortfolioProject | null {
   return BY_ID.get(id) ?? null;
 }
 
+function isCorpCentrePortfolioSurface(): boolean {
+  try {
+    return typeof window !== "undefined" && isBrowserCorpCentreSurface();
+  } catch {
+    return false;
+  }
+}
+
 export function getProjectsForScope(scope: ProjectPortfolioScope): PortfolioProject[] {
-  if (scope === "internal") return INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+  if (scope === "internal") {
+    if (isCorpCentrePortfolioSurface()) {
+      return CORPCENTRE_INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+    }
+    return INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+  }
   if (scope === "external") return EXTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
   return [...INTERNAL_PROJECT_PORTFOLIO, ...EXTERNAL_PROJECT_PORTFOLIO].map((entry) => ({
     ...entry,
