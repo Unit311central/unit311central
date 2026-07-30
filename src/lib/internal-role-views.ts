@@ -172,6 +172,7 @@ export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "representatives",
   "connections",
   "corporate-bank-accounts",
+  "wise",
 ]);
 
 export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
@@ -189,6 +190,7 @@ export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
   "Partners",
   "Connections",
   "Bank Accounts",
+  "Bank",
 ]);
 
 /** Server-safe CorpCentre nav filter (no window). */
