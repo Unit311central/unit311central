@@ -570,7 +570,32 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     color: "#38BDF8",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "technology-dashboard" as const },
+      { label: "Devices", icon: "Laptop", view: "technology-devices" as const },
       { label: "Software & SaaS", icon: "KeyRound", view: "technology-software" as const },
+      {
+        label: "Telecommunications",
+        icon: "Radio",
+        view: "technology-telecommunications" as const,
+      },
+      {
+        label: "Infrastructure & Cloud",
+        icon: "Server",
+        view: "technology-infrastructure" as const,
+      },
+      {
+        label: "Networks & Domains",
+        icon: "Globe",
+        view: "technology-infrastructure" as const,
+      },
+      {
+        label: "Certificates & Identity",
+        icon: "ShieldCheck",
+        view: "technology-infrastructure" as const,
+      },
+      { label: "Security", icon: "ShieldCheck", view: "technology-reports" as const },
+      { label: "Technology Assets", icon: "HardDrive", view: "technology-devices" as const },
+      { label: "Reports", icon: "ScrollText", view: "technology-reports" as const },
+      { label: "Settings", icon: "Settings", view: "technology-settings" as const },
     ],
   },
   {
