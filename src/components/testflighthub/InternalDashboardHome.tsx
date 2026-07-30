@@ -1074,7 +1074,9 @@ export default function InternalDashboardHome(props?: { showCustomize?: boolean 
                               borderRadius: 8,
                               fontSize: 11,
                             }}
-                            formatter={(value) => formatMoney(Number(value ?? 0))}
+                            formatter={(value) =>
+                              formatMoney(Number(value ?? 0), financial?.burnRate?.currency || "GBP")
+                            }
                           />
                           <Area
                             type="monotone"

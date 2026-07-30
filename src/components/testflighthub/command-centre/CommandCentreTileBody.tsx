@@ -452,6 +452,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
   }, [data.files, pinnedIds]);
 
   const burnMonthly = data.financialOverview?.burnRate?.monthly ?? null;
+  const reportingCurrency = data.financialOverview?.burnRate?.currency || "GBP";
   const revenueYtd = data.financialOverview?.revenueYtd;
   const cashPosition = data.financialOverview?.cashPosition ?? null;
   const openTicketCount = countOpenTickets(data.tickets);
@@ -489,7 +490,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
 
   const moneyOrZero = (value: number | null | undefined, loading: boolean) => {
     if (loading) return "…";
-    return formatMoney(value ?? 0);
+    return formatMoney(value ?? 0, reportingCurrency);
   };
 
   const upcomingEvents = useMemo(() => {
@@ -778,7 +779,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
       return (
         <MetricCard
           label="Revenue"
-          value={formatMoney(revenueYtd ?? 0)}
+          value={formatMoney(revenueYtd ?? 0, reportingCurrency)}
           href={hrefs.financials}
           loading={data.loading.financials}
           hint="YTD from ledger"
@@ -789,7 +790,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
       return (
         <MetricCard
           label="Cash Flow"
-          value={formatMoney(cashPosition ?? 0)}
+          value={formatMoney(cashPosition ?? 0, reportingCurrency)}
           href={hrefs.financials}
           loading={data.loading.financials}
           hint="Wise treasury"
@@ -800,7 +801,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
       return (
         <MetricCard
           label="Burn Rate"
-          value={formatMoney(burnMonthly ?? 0)}
+          value={formatMoney(burnMonthly ?? 0, reportingCurrency)}
           href={hrefs.financials}
           loading={data.loading.financials}
           hint="Monthly operating burn"

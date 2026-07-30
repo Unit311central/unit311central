@@ -69,7 +69,8 @@ export default function BusinessSnapshotRibbon() {
     const moneyOrDash = (value: number | null | undefined, loading: boolean) => {
       if (loading) return "…";
       if (value == null || value === 0) return "—";
-      return formatMoney(value, "EUR").replace(/\.00$/, "");
+      const currency = data.financialOverview?.burnRate?.currency || "GBP";
+      return formatMoney(value, currency).replace(/\.00$/, "");
     };
 
     return [
