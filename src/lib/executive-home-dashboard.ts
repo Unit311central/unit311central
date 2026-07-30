@@ -345,7 +345,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
   projects: InternalProject[];
   clients: ManagedClient[];
 }) {
-  const currency = "GBP";
+  const currency = input.financials?.burnRate?.currency || "GBP";
   const cash = input.financials?.cashPosition ?? 0;
   const overdue = input.financials?.ar.overdue ?? 0;
   const overdueCount = input.financials?.outstandingInvoices ?? 0;
@@ -364,13 +364,19 @@ export function buildExecutiveHomeLiveNarrative(input: {
     .slice(0, 3);
   const liveProjects = input.projects.filter((project) => project.phase === "live").slice(0, 3);
 
-  let companyName = "Meridian Atlas Group";
+  let companyName = "Unit311";
   try {
     if (typeof window !== "undefined") {
-      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
-        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
-      if (isBrowserDemoSurface()) {
-        companyName = getDemoEnterpriseFixtures().company.tradingName;
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      if (isBrowserCorpCentreSurface()) {
+        companyName = "CorpCentre";
+      } else {
+        const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+          require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+        if (isBrowserDemoSurface()) {
+          companyName = getDemoEnterpriseFixtures().company.tradingName;
+        }
       }
     }
   } catch {

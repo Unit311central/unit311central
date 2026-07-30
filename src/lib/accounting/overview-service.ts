@@ -30,13 +30,29 @@ const FX_TO_AUD: Record<string, number> = {
 
 async function resolveReportingCurrency(workspaceId: string): Promise<string> {
   try {
-    const supabase = createSupabaseServerClient();
-    const { data } = await supabase
-      .from("workspace_settings")
-      .select("currency")
-      .eq("workspace_id", workspaceId)
-      .maybeSingle();
-    const currency = String(data?.currency ?? "")
+    const { createSupabaseServiceRoleClient, isSupabaseServiceRoleConfigured } =
+      await import("@/lib/supabase/server");
+    const supabase = isSupabaseServiceRoleConfigured()
+      ? createSupabaseServiceRoleClient()
+      : createSupabaseServerClient();
+
+    const [{ data: settings }, { data: workspace }] = await Promise.all([
+      supabase
+        .from("workspace_settings")
+        .select("currency")
+        .eq("workspace_id", workspaceId)
+        .maybeSingle(),
+      supabase.from("workspaces").select("slug").eq("id", workspaceId).maybeSingle(),
+    ]);
+
+    const slug = String(workspace?.slug ?? "")
+      .trim()
+      .toLowerCase();
+    if (slug === "corpcentre" || slug === "corporatecentre") {
+      return "AUD";
+    }
+
+    const currency = String(settings?.currency ?? "")
       .trim()
       .toUpperCase();
     if (currency === "AUD" || currency === "GBP" || currency === "USD" || currency === "EUR") {
@@ -277,7 +293,11 @@ export async function getFinancialOverview(
     const allExpenses = expensesResult.ok ? expensesResult.value : [];
 
     // Resolve after GL so we can fall back to Wise GL accounts if Wise API is down.
-    const cashPosition = await resolveTreasuryCash(totals.cashPosition);
+    // resolveTreasuryCash is GBP-normalized; convert into workspace reporting currency.
+    let cashPosition = await resolveTreasuryCash(totals.cashPosition);
+    if (reportingCurrency !== "GBP") {
+      cashPosition = convertToReportingCurrency(cashPosition, "GBP", reportingCurrency);
+    }
 
     if (
       !totalsResult.ok &&
