@@ -101,7 +101,11 @@ export default function AccountsPayableWorkspace() {
     };
   }, [rows, monthPrefix, todayIso]);
 
-  const currency = isBrowserCorpCentreSurface() ? "AUD" : "GBP";
+  const currency = isBrowserCorpCentreSurface()
+    ? "AUD"
+    : rows.some((row) => String(row.currency || "").toUpperCase() === "AUD")
+      ? "AUD"
+      : "GBP";
   const money = (amount: number) => formatMoney(amount, currency);
 
   const cards = [

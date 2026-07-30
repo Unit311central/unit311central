@@ -21,13 +21,21 @@ function daysBetween(fromIso: string, toIso: string) {
   return Math.max(0, Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-function reportingCurrency() {
-  return isBrowserCorpCentreSurface() ? "AUD" : "GBP";
+function reportingCurrency(invoices: LedgerInvoice[] = []) {
+  if (isBrowserCorpCentreSurface()) return "AUD";
+  if (invoices.some((invoice) => String(invoice.currency || "").toUpperCase() === "AUD")) {
+    return "AUD";
+  }
+  // CorpCentre seeded invoices use CC###### numbers.
+  if (invoices.some((invoice) => /^CC\d+/i.test(String(invoice.invoiceNumber || "")))) {
+    return "AUD";
+  }
+  return "GBP";
 }
 
 /** Sum invoices in the workspace reporting currency (AUD for CorpCentre). */
-function invoiceAmountReporting(invoice: LedgerInvoice) {
-  if (isBrowserCorpCentreSurface()) {
+function invoiceAmountReporting(invoice: LedgerInvoice, currency: string) {
+  if (currency === "AUD") {
     return Number(invoice.amount) || 0;
   }
   return convertToGbp(invoice.amount, invoice.currency);
@@ -90,6 +98,9 @@ export default function AccountsReceivableWorkspace() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const monthPrefix = todayIso.slice(0, 7);
 
+  const currency = reportingCurrency(invoices);
+  const money = (amount: number) => formatMoney(amount, currency);
+
   const kpis = useMemo(() => {
     if (invoices.length === 0) {
       return {
@@ -102,13 +113,16 @@ export default function AccountsReceivableWorkspace() {
     }
 
     const unpaid = invoices.filter((invoice) => isUnpaid(invoice.status));
-    const outstanding = unpaid.reduce((sum, invoice) => sum + invoiceAmountReporting(invoice), 0);
+    const outstanding = unpaid.reduce(
+      (sum, invoice) => sum + invoiceAmountReporting(invoice, currency),
+      0,
+    );
     const overdue = unpaid
       .filter((invoice) => invoice.dueDate < todayIso)
-      .reduce((sum, invoice) => sum + invoiceAmountReporting(invoice), 0);
+      .reduce((sum, invoice) => sum + invoiceAmountReporting(invoice, currency), 0);
     const paidThisMonth = invoices
       .filter((invoice) => invoice.status === "paid" && paidAtMonth(invoice, monthPrefix))
-      .reduce((sum, invoice) => sum + invoiceAmountReporting(invoice), 0);
+      .reduce((sum, invoice) => sum + invoiceAmountReporting(invoice, currency), 0);
     const paidCount = invoices.filter((invoice) => invoice.status === "paid").length;
     const collectionRate = (paidCount / invoices.length) * 100;
 
@@ -129,14 +143,11 @@ export default function AccountsReceivableWorkspace() {
       collectionRate,
       averageDaysToPayment,
     };
-  }, [invoices, monthPrefix, todayIso]);
+  }, [currency, invoices, monthPrefix, todayIso]);
 
   const selected = selectedId
     ? invoices.find((invoice) => invoice.id === selectedId) ?? null
     : null;
-
-  const currency = reportingCurrency();
-  const money = (amount: number) => formatMoney(amount, currency);
 
   const cards = [
     { label: "Outstanding", value: money(kpis.outstanding) },
