@@ -67,6 +67,70 @@ function uid(prefix: string) {
 function seedState(): HrMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      if (isBrowserCorpCentreSurface()) {
+        const {
+          buildCorpCentrePerformanceReviews,
+          buildCorpCentrePerformanceGoals,
+        } = require("@/lib/corpcentre-hr-performance") as typeof import("@/lib/corpcentre-hr-performance");
+        const reviews = buildCorpCentrePerformanceReviews();
+        const goals = buildCorpCentrePerformanceGoals();
+        return {
+          leaveRequests: [],
+          leaveBalances: [],
+          publicHolidays: [
+            {
+              id: "hol-cc-1",
+              name: "Australia Day",
+              date: "2026-01-26",
+              calendar: "Australia (NSW)",
+            },
+            {
+              id: "hol-cc-2",
+              name: "ANZAC Day",
+              date: "2026-04-25",
+              calendar: "Australia (NSW)",
+            },
+          ],
+          vacancies: [],
+          candidates: [],
+          reviews,
+          goals,
+          reports: [],
+          activity: [
+            {
+              id: "act-cc-1",
+              at: isoDaysFromNow(0),
+              label: "Performance review submitted",
+              detail: "Daniel Sazdanoff — H1 2026",
+            },
+            {
+              id: "act-cc-2",
+              at: isoDaysFromNow(-2),
+              label: "Review awaiting manager",
+              detail: "Elias Bahbah — Q3 cycle",
+            },
+            {
+              id: "act-cc-3",
+              at: isoDaysFromNow(-3),
+              label: "Performance review completed",
+              detail: "Mick Lenton — FY 2025",
+            },
+            {
+              id: "act-cc-4",
+              at: isoDaysFromNow(-4),
+              label: "Goal updated",
+              detail: "IT change success ≥ 97%",
+            },
+          ],
+        };
+      }
+    } catch {
+      // fall through
+    }
+
+    try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
@@ -1411,6 +1475,23 @@ function ensureHrState(): HrMockState {
     state = seedState();
     seededHost = window.location.hostname;
   } else if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      if (
+        isBrowserCorpCentreSurface() &&
+        state.reviews.some((row) =>
+          /mar[ií]a garc[ií]a|carlos mendoza|pablo serrano|paul fotheringham|hannes weber|barcelona/i.test(
+            `${row.employeeName} ${row.managerName} ${row.department}`,
+          ),
+        )
+      ) {
+        state = seedState();
+        seededHost = window.location.hostname;
+      }
+    } catch {
+      // ignore
+    }
     try {
       const { isBrowserDemoSurface } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
