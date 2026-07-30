@@ -12,6 +12,9 @@ type SoftwareAssetRow = {
   id?: string;
   status?: string | null;
   nextRenewalDate?: string | null;
+  currency?: string | null;
+  annualCost?: number | null;
+  monthlyCost?: number | null;
 };
 
 function daysUntil(iso: string | null | undefined) {
@@ -29,6 +32,12 @@ export default function TechnologyDashboardWorkspace() {
   const router = useRouter();
   const basePath = useInternalOperationsBasePath();
   const [assets, setAssets] = useState<SoftwareAssetRow[]>([]);
+  const [summary, setSummary] = useState<{
+    annualSpend?: number;
+    monthlySpend?: number;
+    currency?: string;
+    renewalsDueIn30Days?: number;
+  } | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -39,12 +48,23 @@ export default function TechnologyDashboardWorkspace() {
         if (!response.ok) throw new Error("Failed to load software assets");
         const data = (await response.json()) as {
           assets?: SoftwareAssetRow[];
-          summary?: { renewalsDueIn30Days?: number };
+          summary?: {
+            annualSpend?: number;
+            monthlySpend?: number;
+            currency?: string;
+            renewalsDueIn30Days?: number;
+          };
         };
         const rows = data.assets ?? [];
-        if (!cancelled) setAssets(Array.isArray(rows) ? rows : []);
+        if (!cancelled) {
+          setAssets(Array.isArray(rows) ? rows : []);
+          setSummary(data.summary ?? null);
+        }
       } catch {
-        if (!cancelled) setAssets([]);
+        if (!cancelled) {
+          setAssets([]);
+          setSummary(null);
+        }
       } finally {
         if (!cancelled) setLoaded(true);
       }
@@ -59,16 +79,21 @@ export default function TechnologyDashboardWorkspace() {
       const status = String(row.status ?? "").toLowerCase();
       return status === "active" || status === "trial" || !status;
     }).length;
-    const renewingSoonCount = assets.filter((row) => {
-      const days = daysUntil(row.nextRenewalDate);
-      return days != null && days >= 0 && days <= 60;
-    }).length;
+    const renewingSoonCount =
+      summary?.renewalsDueIn30Days ??
+      assets.filter((row) => {
+        const days = daysUntil(row.nextRenewalDate);
+        return days != null && days >= 0 && days <= 60;
+      }).length;
     return buildTechnologyManagementDashboardConfig({
       softwareCount: assets.length,
       activeCount,
       renewingSoonCount,
+      annualSpend: summary?.annualSpend,
+      monthlySpend: summary?.monthlySpend,
+      currency: summary?.currency,
     });
-  }, [assets]);
+  }, [assets, summary]);
 
   return (
     <div className="space-y-3">
