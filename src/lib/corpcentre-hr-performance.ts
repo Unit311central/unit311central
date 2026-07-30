@@ -7,6 +7,7 @@ import {
   type HrPerformanceObjective,
   type HrPerformanceReview,
 } from "@/lib/hr-performance-data";
+import type { HrVacancy } from "@/lib/hr-recruitment-data";
 
 function isoDaysFromNow(offset: number) {
   const date = new Date();
@@ -530,6 +531,98 @@ export function buildCorpCentrePerformanceGoals(): HrPerformanceObjective[] {
       department: "IT",
       employeeId: MICK.id,
       employeeName: MICK.name,
+    },
+  ];
+}
+
+/** CorpCentre-only open recruitment roles (managed Telco & IT). */
+export function buildCorpCentreRecruitmentVacancies(): HrVacancy[] {
+  return [
+    {
+      id: "cc-vac-1",
+      title: "Senior Network Engineer",
+      department: "IT",
+      location: "Sydney",
+      employmentType: "Full time",
+      hiringManager: "Daniel Sazdanoff",
+      status: "open",
+      openedAt: isoDaysFromNow(-28),
+      targetStartDate: isoDaysFromNow(35),
+      closingDate: isoDaysFromNow(18),
+      headcount: 1,
+      salaryBand: "AU$120–145k",
+      description:
+        "Design and support managed WAN / LAN for CorpCentre enterprise clients across NSW and QLD.",
+      requirements:
+        "CCNP or equivalent · fortigate / cisco experience · client-facing delivery · AU residency",
+    },
+    {
+      id: "cc-vac-2",
+      title: "Managed Services Desk Technician",
+      department: "IT",
+      location: "Sydney",
+      employmentType: "Full time",
+      hiringManager: "John Amoroso",
+      status: "open",
+      openedAt: isoDaysFromNow(-14),
+      targetStartDate: isoDaysFromNow(21),
+      closingDate: isoDaysFromNow(21),
+      headcount: 2,
+      salaryBand: "AU$75–90k",
+      description:
+        "First-line support for managed Telco & IT clients — tickets, escalations, and on-site visits.",
+      requirements: "Helpdesk / MSP background · Microsoft 365 · clear phone manner · NSW drivers licence",
+    },
+    {
+      id: "cc-vac-3",
+      title: "Cybersecurity Analyst",
+      department: "IT Security",
+      location: "Sydney / Hybrid",
+      employmentType: "Full time",
+      hiringManager: "Mick Lenton",
+      status: "open",
+      openedAt: isoDaysFromNow(-40),
+      targetStartDate: isoDaysFromNow(45),
+      closingDate: isoDaysFromNow(12),
+      headcount: 1,
+      salaryBand: "AU$110–130k",
+      description:
+        "Monitor SOC alerts, harden client environments, and drive vulnerability remediation.",
+      requirements: "SOC / MDR experience · SIEM tooling · IR playbooks · security certifications preferred",
+    },
+    {
+      id: "cc-vac-4",
+      title: "Client Success Manager — Managed IT",
+      department: "Business Central",
+      location: "Sydney",
+      employmentType: "Full time",
+      hiringManager: "Daniel Sazdanoff",
+      status: "open",
+      openedAt: isoDaysFromNow(-21),
+      targetStartDate: isoDaysFromNow(28),
+      closingDate: isoDaysFromNow(25),
+      headcount: 1,
+      salaryBand: "AU$95–115k",
+      description:
+        "Own renewal, QBRs, and expansion for a portfolio of managed service clients.",
+      requirements: "B2B account management · Telco or MSP experience · CRM fluency · commercial acumen",
+    },
+    {
+      id: "cc-vac-5",
+      title: "Project Coordinator — Delivery",
+      department: "Operations",
+      location: "Sydney",
+      employmentType: "Full time",
+      hiringManager: "Peter Durning",
+      status: "open",
+      openedAt: isoDaysFromNow(-10),
+      targetStartDate: isoDaysFromNow(30),
+      closingDate: isoDaysFromNow(30),
+      headcount: 1,
+      salaryBand: "AU$80–95k",
+      description:
+        "Coordinate managed IT project timelines, vendor schedules, and client communications.",
+      requirements: "PMO or delivery coordination · MS Project / Planner · strong written English",
     },
   ];
 }

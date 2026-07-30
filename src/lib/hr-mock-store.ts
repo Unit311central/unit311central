@@ -73,9 +73,11 @@ function seedState(): HrMockState {
         const {
           buildCorpCentrePerformanceReviews,
           buildCorpCentrePerformanceGoals,
+          buildCorpCentreRecruitmentVacancies,
         } = require("@/lib/corpcentre-hr-performance") as typeof import("@/lib/corpcentre-hr-performance");
         const reviews = buildCorpCentrePerformanceReviews();
         const goals = buildCorpCentrePerformanceGoals();
+        const vacancies = buildCorpCentreRecruitmentVacancies();
         return {
           leaveRequests: [],
           leaveBalances: [],
@@ -93,7 +95,7 @@ function seedState(): HrMockState {
               calendar: "Australia (NSW)",
             },
           ],
-          vacancies: [],
+          vacancies,
           candidates: [],
           reviews,
           goals,
@@ -114,14 +116,14 @@ function seedState(): HrMockState {
             {
               id: "act-cc-3",
               at: isoDaysFromNow(-3),
-              label: "Performance review completed",
-              detail: "Mick Lenton — FY 2025",
+              label: "Recruitment role opened",
+              detail: "Senior Network Engineer — Sydney",
             },
             {
               id: "act-cc-4",
-              at: isoDaysFromNow(-4),
-              label: "Goal updated",
-              detail: "IT change success ≥ 97%",
+              at: isoDaysFromNow(-5),
+              label: "Recruitment role opened",
+              detail: "Managed Services Desk Technician — Sydney (2 headcount)",
             },
           ],
         };
@@ -1480,11 +1482,12 @@ function ensureHrState(): HrMockState {
         require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
       if (
         isBrowserCorpCentreSurface() &&
-        state.reviews.some((row) =>
-          /mar[ií]a garc[ií]a|carlos mendoza|pablo serrano|paul fotheringham|hannes weber|barcelona/i.test(
-            `${row.employeeName} ${row.managerName} ${row.department}`,
-          ),
-        )
+        (state.vacancies.length === 0 ||
+          state.reviews.some((row) =>
+            /mar[ií]a garc[ií]a|carlos mendoza|pablo serrano|paul fotheringham|hannes weber|barcelona/i.test(
+              `${row.employeeName} ${row.managerName} ${row.department}`,
+            ),
+          ))
       ) {
         state = seedState();
         seededHost = window.location.hostname;
