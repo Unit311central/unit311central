@@ -463,7 +463,7 @@ export async function listWorkspaceTenantUsers(workspaceId: string): Promise<Man
         region: "Multi-site",
         licenseId: "",
         notes: user.client_name ? `Workspace member · ${user.client_name}` : "Workspace member",
-        allowedViews: defaultAllowedViewsForRoles(roles),
+        allowedViews: defaultAllowedViewsForRoles(roles, ["Operations"]),
         dashboardPrefs: null,
       } satisfies ManagedUser;
     })

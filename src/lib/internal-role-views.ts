@@ -224,7 +224,11 @@ export function filterInternalNavSectionsForDemoSurface(
 
   return sections
     .map((section) => {
-      if (corpcentre && CORPCENTRE_HIDDEN_SECTION_LABELS.has(section.label)) {
+      if (
+        corpcentre &&
+        section.label &&
+        CORPCENTRE_HIDDEN_SECTION_LABELS.has(section.label)
+      ) {
         return { ...section, items: [] as typeof section.items };
       }
       return {
