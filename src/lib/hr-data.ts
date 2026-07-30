@@ -412,6 +412,22 @@ export function vacationDaysRemaining(
 
 export function createBlankEmployeeInput(): Omit<HrEmployee, "id" | "employeeNumber"> {
   const today = new Date().toISOString().slice(0, 10);
+  let defaultCurrency = "EUR";
+  let defaultPayFrequency = "annual";
+  let defaultLocation = "Barcelona";
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      if (isBrowserCorpCentreSurface()) {
+        defaultCurrency = "AUD";
+        defaultPayFrequency = "monthly";
+        defaultLocation = "Sydney";
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   return {
     fullName: "",
     preferredName: "",
@@ -426,7 +442,7 @@ export function createBlankEmployeeInput(): Omit<HrEmployee, "id" | "employeeNum
     employmentStatus: "active",
     employmentType: "full_time",
     dateJoined: today,
-    location: "Sydney",
+    location: defaultLocation,
     officeId: null,
     role: "",
     department: "",
@@ -434,15 +450,15 @@ export function createBlankEmployeeInput(): Omit<HrEmployee, "id" | "employeeNum
     managerEmployeeId: null,
     probationEndDate: null,
     endDate: null,
-    currency: "EUR",
-    payFrequency: "annual",
-    salaryCurrent: 32000,
-    salaryPrevious: 32000,
+    currency: defaultCurrency,
+    payFrequency: defaultPayFrequency,
+    salaryCurrent: defaultCurrency === "AUD" ? 100000 : 32000,
+    salaryPrevious: defaultCurrency === "AUD" ? 100000 : 32000,
     salaryIncreaseDate: null,
     salaryIncreaseAmount: 0,
     bonus: 0,
-    holidayCalendar: "Spain (Catalonia)",
-    vacationDaysPerYear: 22,
+    holidayCalendar: defaultCurrency === "AUD" ? "Australia (NSW)" : "Spain (Catalonia)",
+    vacationDaysPerYear: defaultCurrency === "AUD" ? 20 : 22,
     vacationDaysTaken: 0,
     offboarding: emptyOffboarding(),
     archivedAt: null,
@@ -454,8 +470,9 @@ export function formatSalary(amount: number, currency = "EUR") {
   try {
     const { withPreferredCurrencySymbol } =
       require("@/lib/accounting/chart-of-accounts") as typeof import("@/lib/accounting/chart-of-accounts");
+    const locale = code === "AUD" ? "en-AU" : code === "EUR" ? "es-ES" : "en-GB";
     return withPreferredCurrencySymbol(
-      new Intl.NumberFormat("es-ES", {
+      new Intl.NumberFormat(locale, {
         style: "currency",
         currency: code,
         maximumFractionDigits: 0,

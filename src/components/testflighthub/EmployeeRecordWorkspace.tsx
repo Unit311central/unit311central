@@ -12,6 +12,7 @@ import {
   HR_ACTIVE_HEADCOUNT_STATUSES,
   HR_COMPENSATION_CATEGORIES,
   HR_COMPENSATION_CATEGORY_LABELS,
+  HR_CURRENCY_OPTIONS,
   HR_DEPARTMENTS,
   HR_DOCUMENT_TYPE_LABELS,
   HR_DOCUMENT_TYPES,
@@ -238,6 +239,22 @@ export default function EmployeeRecordWorkspace() {
     [employees],
   );
 
+  const operationalPayrollCurrency = useMemo(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const { isBrowserCorpCentreSurface } =
+          require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+        if (isBrowserCorpCentreSurface()) return "AUD";
+      } catch {
+        /* ignore */
+      }
+    }
+    const currencies = employees
+      .map((employee) => String(employee.currency || "").toUpperCase())
+      .filter(Boolean);
+    return currencies[0] || "AUD";
+  }, [employees]);
+
   function selectEmployee(id: string) {
     const listed = employees.find((employee) => employee.id === id) ?? null;
     setSelectedId(id);
@@ -278,6 +295,7 @@ export default function EmployeeRecordWorkspace() {
           email: draft.email,
           phone: draft.phone,
           address: draft.address,
+          suburb: draft.suburb,
           emergencyContactName: draft.emergencyContactName,
           emergencyContactPhone: draft.emergencyContactPhone,
           emergencyContactRelationship: draft.emergencyContactRelationship,
@@ -548,7 +566,7 @@ export default function EmployeeRecordWorkspace() {
           <h2 className="text-xl font-semibold text-white">Employees</h2>
           <p className="mt-1 text-sm text-white/50">
             Active headcount {activeHeadcount} · Operational payroll{" "}
-            {formatSalary(operationalPayroll)}
+            {formatSalary(operationalPayroll, operationalPayrollCurrency)}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -788,6 +806,15 @@ export default function EmployeeRecordWorkspace() {
               />
             </div>
             <div>
+              <FieldLabel>Suburb</FieldLabel>
+              <input
+                className={inputClass()}
+                value={draft.suburb ?? ""}
+                onChange={(event) => setDraft({ ...draft, suburb: event.target.value })}
+                placeholder="e.g. Alexandria"
+              />
+            </div>
+            <div>
               <FieldLabel>Nationality</FieldLabel>
               <input
                 className={inputClass()}
@@ -892,9 +919,17 @@ export default function EmployeeRecordWorkspace() {
                 <FieldLabel>Location</FieldLabel>
                 <select
                   className={inputClass()}
-                  value={draft.location}
+                  value={
+                    (HR_LOCATIONS as readonly string[]).includes(draft.location)
+                      ? draft.location
+                      : draft.location || "Sydney"
+                  }
                   onChange={(event) => setDraft({ ...draft, location: event.target.value })}
                 >
+                  {!(HR_LOCATIONS as readonly string[]).includes(draft.location) &&
+                  draft.location ? (
+                    <option value={draft.location}>{draft.location}</option>
+                  ) : null}
                   {HR_LOCATIONS.map((location) => (
                     <option key={location} value={location}>
                       {location}
@@ -1007,15 +1042,29 @@ export default function EmployeeRecordWorkspace() {
               </div>
               <div>
                 <FieldLabel>Currency</FieldLabel>
-                <input
+                <select
                   className={inputClass()}
-                  value={draft.currency}
+                  value={
+                    (HR_CURRENCY_OPTIONS as readonly string[]).includes(draft.currency)
+                      ? draft.currency
+                      : draft.currency || "EUR"
+                  }
                   onChange={(event) => {
                     const currency = event.target.value.toUpperCase();
                     setDraft({ ...draft, currency });
                     setCompForm((current) => ({ ...current, currency }));
                   }}
-                />
+                >
+                  {!(HR_CURRENCY_OPTIONS as readonly string[]).includes(draft.currency) &&
+                  draft.currency ? (
+                    <option value={draft.currency}>{draft.currency}</option>
+                  ) : null}
+                  {HR_CURRENCY_OPTIONS.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <FieldLabel>Pay frequency</FieldLabel>
@@ -1081,11 +1130,27 @@ export default function EmployeeRecordWorkspace() {
               </div>
               <div>
                 <FieldLabel>Currency</FieldLabel>
-                <input
+                <select
                   className={inputClass()}
-                  value={compForm.currency}
-                  onChange={(event) => setCompForm({ ...compForm, currency: event.target.value })}
-                />
+                  value={
+                    (HR_CURRENCY_OPTIONS as readonly string[]).includes(compForm.currency)
+                      ? compForm.currency
+                      : compForm.currency || "EUR"
+                  }
+                  onChange={(event) =>
+                    setCompForm({ ...compForm, currency: event.target.value.toUpperCase() })
+                  }
+                >
+                  {!(HR_CURRENCY_OPTIONS as readonly string[]).includes(compForm.currency) &&
+                  compForm.currency ? (
+                    <option value={compForm.currency}>{compForm.currency}</option>
+                  ) : null}
+                  {HR_CURRENCY_OPTIONS.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <FieldLabel>Reason</FieldLabel>
