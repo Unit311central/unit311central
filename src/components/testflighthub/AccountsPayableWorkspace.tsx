@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Loader2, RefreshCw, Receipt } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { cn } from "@/lib/utils";
 
 type PayableRow = {
@@ -100,11 +101,14 @@ export default function AccountsPayableWorkspace() {
     };
   }, [rows, monthPrefix, todayIso]);
 
+  const currency = isBrowserCorpCentreSurface() ? "AUD" : "GBP";
+  const money = (amount: number) => formatMoney(amount, currency);
+
   const cards = [
-    { label: "Outstanding", value: formatMoney(kpis.outstanding) },
-    { label: "Due This Month", value: formatMoney(kpis.dueThisMonth) },
-    { label: "Overdue", value: formatMoney(kpis.overdue) },
-    { label: "Paid This Month", value: formatMoney(kpis.paidThisMonth) },
+    { label: "Outstanding", value: money(kpis.outstanding) },
+    { label: "Due This Month", value: money(kpis.dueThisMonth) },
+    { label: "Overdue", value: money(kpis.overdue) },
+    { label: "Paid This Month", value: money(kpis.paidThisMonth) },
     { label: "Open Expenses", value: String(kpis.openExpenses) },
   ];
 
@@ -182,7 +186,7 @@ export default function AccountsPayableWorkspace() {
                         {row.description || "—"}
                       </td>
                       <td className="px-4 py-2 text-right font-mono text-white/85">
-                        {formatMoney(row.amount, row.currency)}
+                        {money(row.amount)}
                       </td>
                       <td className="px-4 py-2 text-white/55">{row.expenseDate || "—"}</td>
                       <td className="px-4 py-2 text-white/75">

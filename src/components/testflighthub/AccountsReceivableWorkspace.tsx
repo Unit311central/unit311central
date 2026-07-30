@@ -6,6 +6,7 @@ import { FileText, Loader2, RefreshCw, X } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import type { LedgerInvoice } from "@/lib/accounting/types";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +21,15 @@ function daysBetween(fromIso: string, toIso: string) {
   return Math.max(0, Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-function invoiceAmountGbp(invoice: LedgerInvoice) {
+function reportingCurrency() {
+  return isBrowserCorpCentreSurface() ? "AUD" : "GBP";
+}
+
+/** Sum invoices in the workspace reporting currency (AUD for CorpCentre). */
+function invoiceAmountReporting(invoice: LedgerInvoice) {
+  if (isBrowserCorpCentreSurface()) {
+    return Number(invoice.amount) || 0;
+  }
   return convertToGbp(invoice.amount, invoice.currency);
 }
 
@@ -93,13 +102,13 @@ export default function AccountsReceivableWorkspace() {
     }
 
     const unpaid = invoices.filter((invoice) => isUnpaid(invoice.status));
-    const outstanding = unpaid.reduce((sum, invoice) => sum + invoiceAmountGbp(invoice), 0);
+    const outstanding = unpaid.reduce((sum, invoice) => sum + invoiceAmountReporting(invoice), 0);
     const overdue = unpaid
       .filter((invoice) => invoice.dueDate < todayIso)
-      .reduce((sum, invoice) => sum + invoiceAmountGbp(invoice), 0);
+      .reduce((sum, invoice) => sum + invoiceAmountReporting(invoice), 0);
     const paidThisMonth = invoices
       .filter((invoice) => invoice.status === "paid" && paidAtMonth(invoice, monthPrefix))
-      .reduce((sum, invoice) => sum + invoiceAmountGbp(invoice), 0);
+      .reduce((sum, invoice) => sum + invoiceAmountReporting(invoice), 0);
     const paidCount = invoices.filter((invoice) => invoice.status === "paid").length;
     const collectionRate = (paidCount / invoices.length) * 100;
 
@@ -126,10 +135,13 @@ export default function AccountsReceivableWorkspace() {
     ? invoices.find((invoice) => invoice.id === selectedId) ?? null
     : null;
 
+  const currency = reportingCurrency();
+  const money = (amount: number) => formatMoney(amount, currency);
+
   const cards = [
-    { label: "Outstanding", value: formatMoney(kpis.outstanding) },
-    { label: "Overdue", value: formatMoney(kpis.overdue) },
-    { label: "Paid This Month", value: formatMoney(kpis.paidThisMonth) },
+    { label: "Outstanding", value: money(kpis.outstanding) },
+    { label: "Overdue", value: money(kpis.overdue) },
+    { label: "Paid This Month", value: money(kpis.paidThisMonth) },
     { label: "Collection Rate", value: `${kpis.collectionRate.toFixed(1)}%` },
     {
       label: "Average Days To Payment",
@@ -236,7 +248,7 @@ export default function AccountsReceivableWorkspace() {
                         <td className="px-4 py-2 text-white/60">{invoice.issueDate}</td>
                         <td className="px-4 py-2 text-white/60">{invoice.dueDate}</td>
                         <td className="px-4 py-2 text-right font-mono text-white/85">
-                          {formatMoney(outstandingAmount, invoice.currency)}
+                          {money(outstandingAmount)}
                         </td>
                         <td className="px-4 py-2 capitalize text-white/75">{invoice.status}</td>
                         <td className="px-4 py-2 capitalize text-white/65">
@@ -329,10 +341,7 @@ export default function AccountsReceivableWorkspace() {
                   Outstanding
                 </dt>
                 <dd className="mt-1 tabular-nums text-white/85">
-                  {formatMoney(
-                    isUnpaid(selected.status) ? selected.amount : 0,
-                    selected.currency,
-                  )}
+                  {money(isUnpaid(selected.status) ? selected.amount : 0)}
                 </dd>
               </div>
             </dl>
