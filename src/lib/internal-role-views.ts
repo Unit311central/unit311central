@@ -167,6 +167,7 @@ const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "users-external",
   "website-management",
   "billing",
+  "potential-clients",
 ]);
 
 const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
@@ -179,6 +180,7 @@ const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
   "Website Management",
   "Billing",
   "QMS Courses",
+  "Potential Clients",
 ]);
 
 function shouldHideDroneToolNavViews(): boolean {
