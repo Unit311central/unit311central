@@ -160,10 +160,13 @@ export async function requireUsersModuleAdministratorSession(): Promise<
   try {
     const supabase = createSupabaseServerClient();
     const username = session.username.trim().toLowerCase();
+    // Quote values so emails with @ work in PostgREST `.or(...)` filters.
+    const escaped = username.replace(/"/g, '\\"');
     const { data: platformUser } = await supabase
       .from("platform_users")
       .select("id, is_active, workspace_id")
-      .or(`username.eq.${username},email.eq.${username}`)
+      .eq("workspace_id", workspace.id)
+      .or(`username.eq."${escaped}",email.eq."${escaped}"`)
       .maybeSingle();
 
     if (!platformUser?.id || platformUser.is_active === false) {

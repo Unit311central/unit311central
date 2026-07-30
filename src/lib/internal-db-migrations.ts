@@ -1112,7 +1112,6 @@ export async function withWhiteboardTable<T>(operation: () => Promise<T>): Promi
 export async function ensureSupportTicketsTable(): Promise<boolean> {
   const exists = await tableExistsViaManagementApi("support_tickets");
   if (exists === true) {
-    await reloadPostgrestSchema();
     return true;
   }
 
@@ -1123,7 +1122,6 @@ export async function ensureSupportTicketsTable(): Promise<boolean> {
     try {
       await client.connect();
       if (await tableExists(client, "support_tickets")) {
-        await reloadPostgrestSchema();
         return true;
       }
       await applyMigration(client, SUPPORT_TICKETS_MIGRATION_PATH);
@@ -1936,7 +1934,6 @@ export async function withInternalClientsSignupProfileColumns<T>(
 export async function ensurePlatformUsersLastLoginColumn(): Promise<boolean> {
   const exists = await columnExistsViaManagementApi("platform_users", "last_login_at");
   if (exists === true) {
-    await reloadPostgrestSchema();
     return true;
   }
 
@@ -1947,7 +1944,6 @@ export async function ensurePlatformUsersLastLoginColumn(): Promise<boolean> {
     try {
       await client.connect();
       if (await columnExists(client, "platform_users", "last_login_at")) {
-        await reloadPostgrestSchema();
         return true;
       }
       await applyMigration(client, PLATFORM_USERS_LAST_LOGIN_MIGRATION_PATH);
