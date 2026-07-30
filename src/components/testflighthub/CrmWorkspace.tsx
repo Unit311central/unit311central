@@ -25,6 +25,7 @@ import { isDiscoveryCallLead } from "@/lib/discovery-questions-data";
 import {
   DEFAULT_CRM_TILE_LAYOUT,
   buildCrmDashboardCatalog,
+  crmEstimatedValueCurrencyLabel,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { CheckCircle2, ClipboardList, FileText, FileType, Loader2, Network, Plus, Presentation, Save, Trash2, UserPlus } from "lucide-react";
 
@@ -880,7 +881,9 @@ export default function CrmWorkspace({
                 </select>
               </div>
               <div>
-                <FieldLabel>Estimated value (EUR)</FieldLabel>
+                <FieldLabel>
+                  Estimated value ({crmEstimatedValueCurrencyLabel()})
+                </FieldLabel>
                 <input
                   type="number"
                   min={0}

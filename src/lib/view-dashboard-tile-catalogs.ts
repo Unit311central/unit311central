@@ -3,8 +3,22 @@ import {
   isClientPreActiveStatus,
   type ManagedClient,
 } from "@/lib/client-management-data";
-import { formatMoney } from "@/lib/accounting/chart-of-accounts";
+import { formatMoney, withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { inferExpenseCategory, type FinancialExpense } from "@/lib/expenses-data";
+
+function crmReportingCurrency(): "AUD" | "GBP" {
+  try {
+    if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) return "AUD";
+  } catch {
+    // SSR / non-browser — keep platform default
+  }
+  return "GBP";
+}
+
+export function crmEstimatedValueCurrencyLabel(): string {
+  return crmReportingCurrency();
+}
 
 export const CRM_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "open-leads", label: "Open leads", value: "0", hint: "Pipeline not closed" },
@@ -26,11 +40,15 @@ export function buildCrmDashboardCatalog(
   });
   const pipelineValue = open.reduce((sum, lead) => sum + (Number(lead.estimatedValue) || 0), 0);
   const won = leads.filter((lead) => (lead.status ?? "").toLowerCase() === "won");
-  const money = new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 0,
-  }).format(pipelineValue);
+  const currency = crmReportingCurrency();
+  const money = withPreferredCurrencySymbol(
+    new Intl.NumberFormat(currency === "AUD" ? "en-AU" : "en-GB", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(pipelineValue),
+    currency,
+  );
 
   return CRM_DASHBOARD_TILES.map((tile) => {
     switch (tile.id) {
