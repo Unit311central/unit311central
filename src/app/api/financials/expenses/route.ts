@@ -17,7 +17,6 @@ export async function GET() {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    await ensureFinancialExpensesTable();
     const expenses = await listExpenses({ workspaceId: workspace.id });
     return NextResponse.json({ expenses });
   } catch (error) {

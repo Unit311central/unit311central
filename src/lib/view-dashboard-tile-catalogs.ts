@@ -275,12 +275,12 @@ export function buildExpensesDashboardCatalog(
 
   const postedCount = expenses.filter((expense) => Boolean(expense.journalEntryId)).length;
 
-  const money = (value: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(value);
+  const currency =
+    (typeof window !== "undefined" && isBrowserCorpCentreSurface()) ||
+    expenses.some((expense) => String(expense.currency || "").toUpperCase() === "AUD")
+      ? "AUD"
+      : "USD";
+  const money = (value: number) => formatMoney(value, currency);
 
   return EXPENSES_DASHBOARD_TILES.map((tile) => {
     switch (tile.id) {

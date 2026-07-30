@@ -100,12 +100,20 @@ export function createBlankExpenseInput(): Omit<
   "id" | "createdAt" | "updatedAt"
 > {
   const defaultUser = INTERNAL_EXPENSE_USERS[0];
+  let currency: ExpenseCurrency = "EUR";
+  try {
+    const { isBrowserCorpCentreSurface } =
+      require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+    if (isBrowserCorpCentreSurface()) currency = "AUD";
+  } catch {
+    // non-browser
+  }
   return {
     submitterUserId: defaultUser?.id ?? "",
     submitterName: defaultUser?.fullName ?? "",
     purposeDescription: "",
     amount: 0,
-    currency: "EUR",
+    currency,
     dateSubmitted: new Date().toISOString().slice(0, 10),
     paid: false,
     supplier: null,
@@ -137,11 +145,13 @@ export function expenseFieldsEqual(a: FinancialExpense, b: FinancialExpense) {
 
 export function formatExpenseAmount(amount: number, currency: ExpenseCurrency) {
   const code = String(currency || "GBP").toUpperCase();
+  const fractionDigits = code === "AUD" ? 0 : 2;
   return withPreferredCurrencySymbol(
-    new Intl.NumberFormat("en-GB", {
+    new Intl.NumberFormat(code === "AUD" ? "en-AU" : "en-GB", {
       style: "currency",
       currency: code,
-      minimumFractionDigits: 2,
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
     }).format(amount),
     code,
   );

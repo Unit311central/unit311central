@@ -1391,7 +1391,6 @@ export async function withInternalProjectTasksTable<T>(operation: () => Promise<
 export async function ensureFinancialExpensesTable(): Promise<boolean> {
   const exists = await tableExistsViaManagementApi("financial_expenses");
   if (exists === true) {
-    await reloadPostgrestSchema();
     return true;
   }
 
