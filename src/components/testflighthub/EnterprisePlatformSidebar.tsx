@@ -28,6 +28,7 @@ import {
   Layers,
   LayoutDashboard,
   LifeBuoy,
+  LogOut,
   Mail,
   MapPin,
   MessageSquare,
@@ -564,12 +565,45 @@ export default function EnterprisePlatformSidebar({
         </button>
       </div>
 
-      <nav className="sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-5 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <nav className="sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-5">
         <div className="flex flex-col" style={{ gap: CARD_GAP }}>
           {pinSections.map((section) => section.items.map((item) => renderPinItem(item)))}
           {workspaceSections.map((section) => renderWorkspace(section))}
         </div>
       </nav>
+
+      <div
+        className="shrink-0 border-t px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        style={{ borderColor: theme.border }}
+      >
+        <button
+          type="button"
+          className="flex w-full touch-manipulation items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-white/70 transition-colors duration-75 hover:bg-white/[0.06] hover:text-white"
+          onClick={() => {
+            void (async () => {
+              try {
+                const response = await fetch("/api/auth/logout", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    returnTo:
+                      typeof window !== "undefined" ? window.location.origin : undefined,
+                  }),
+                });
+                const data = (await response.json().catch(() => null)) as {
+                  loginUrl?: string;
+                } | null;
+                window.location.assign(data?.loginUrl || "/login");
+              } catch {
+                window.location.assign("/login");
+              }
+            })();
+          }}
+        >
+          <LogOut className="h-4 w-4 shrink-0 opacity-80" strokeWidth={1.75} />
+          Log out
+        </button>
+      </div>
     </aside>
   );
 }

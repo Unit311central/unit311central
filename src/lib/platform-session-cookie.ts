@@ -39,3 +39,15 @@ export function applyPlatformSessionCookie(
     getPlatformSessionCookieOptions(request),
   );
 }
+
+/** Clear the shared platform session cookie (logout). */
+export function clearPlatformSessionCookie(
+  response: NextResponse,
+  request?: NextRequest | Request,
+) {
+  const options = getPlatformSessionCookieOptions(request);
+  response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
+    ...options,
+    maxAge: 0,
+  });
+}
