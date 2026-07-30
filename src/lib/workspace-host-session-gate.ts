@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
-  CENTRAL_SITE_URL,
   getRequestHost,
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
@@ -78,9 +77,8 @@ export async function evaluateCustomerHostSessionGate(
 export function customerHostLoginRedirect(
   workspaceOrigin: string,
 ): NextResponse {
-  const loginUrl = new URL(`${CENTRAL_SITE_URL}/login`);
-  loginUrl.searchParams.set("return_to", workspaceOrigin);
-  return NextResponse.redirect(loginUrl, 307);
+  // Keep auth on the customer host so tenants see their own login branding.
+  return NextResponse.redirect(`${workspaceOrigin}/login`, 307);
 }
 
 /**

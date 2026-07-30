@@ -9,6 +9,7 @@ import {
 import { applyPlatformSessionCookie } from "@/lib/platform-session-cookie";
 import {
   DEMO_WORKSPACE_SLUG,
+  customerWorkspaceOrigin,
   getRequestHost,
   isDemoDomainHost,
   isInternalDomainHost,
@@ -198,13 +199,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Username and password are required." }, { status: 400 });
     }
 
+    const requestHost = getRequestHost(request);
+    const hostWorkspaceSlug = parseClientPlatformSubdomainSafe(requestHost);
+    const hostWorkspaceOrigin = hostWorkspaceSlug
+      ? customerWorkspaceOrigin(hostWorkspaceSlug)
+      : null;
+
     const returnToRaw =
       body.returnTo?.trim() ||
-      returnToFromReferer(request);
+      returnToFromReferer(request) ||
+      hostWorkspaceOrigin;
     const nextRaw = body.next?.trim() || nextFromReferer(request) || null;
 
     const loginReturn = parseLoginReturnTo(returnToRaw);
-    const requestHost = getRequestHost(request);
     const workspaceSlug =
       loginReturn?.kind === "demo"
         ? DEMO_WORKSPACE_SLUG
@@ -216,7 +223,8 @@ export async function POST(request: NextRequest) {
               ? DEMO_WORKSPACE_SLUG
               : isInternalDomainHost(requestHost)
                 ? INTERNAL_WORKSPACE_SLUG
-                : parseClientPlatformSubdomainSafe(
+                : hostWorkspaceSlug ??
+                  parseClientPlatformSubdomainSafe(
                     parseValidWorkspaceReturnTo(returnToRaw)
                       ? new URL(parseValidWorkspaceReturnTo(returnToRaw)!).host
                       : null,

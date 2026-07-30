@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
+import CorpCentreLogoMark, { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import Logo from "@/components/layout/Logo";
-import { CENTRAL_SITE_URL, centralLoginUrl, customerWorkspaceOrigin } from "@/lib/app-domains";
+import { CENTRAL_SITE_URL } from "@/lib/app-domains";
 import {
   findWorkspaceBySlug,
   formatWorkspaceDisplayStatus,
@@ -42,7 +43,13 @@ export default async function CustomerWorkspaceHostPage({ params }: PageProps) {
       >
         <div className={`w-full max-w-xl ${marketingFadeIn}`}>
           <div className="mb-8 flex justify-center">
-            <Logo href={CENTRAL_SITE_URL} height={52} />
+            {isCorpCentreSlug(slug) ? (
+              <a href={CENTRAL_SITE_URL} aria-label="Corp.Centre">
+                <CorpCentreLogoMark height={52} />
+              </a>
+            ) : (
+              <Logo href={CENTRAL_SITE_URL} height={52} />
+            )}
           </div>
 
           <div className={`${marketingCardLarge} px-6 py-8 text-center sm:px-10 sm:py-10`}>
@@ -80,7 +87,13 @@ export default async function CustomerWorkspaceHostPage({ params }: PageProps) {
     >
       <div className={`w-full max-w-xl ${marketingFadeIn}`}>
         <div className="mb-8 flex justify-center">
-          <Logo href={CENTRAL_SITE_URL} height={52} />
+          {isCorpCentreSlug(slug) ? (
+            <a href={CENTRAL_SITE_URL} aria-label="Corp.Centre">
+              <CorpCentreLogoMark height={52} />
+            </a>
+          ) : (
+            <Logo href={CENTRAL_SITE_URL} height={52} />
+          )}
         </div>
 
         <div className={`${marketingCardLarge} px-6 py-8 text-center sm:px-10 sm:py-10`}>
@@ -116,7 +129,7 @@ export default async function CustomerWorkspaceHostPage({ params }: PageProps) {
               </p>
               <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
                 <a
-                  href={centralLoginUrl(customerWorkspaceOrigin(workspace.slug)) ?? undefined}
+                  href="/login"
                   className={marketingBtnGreen}
                 >
                   Sign in

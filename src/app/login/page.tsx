@@ -5,19 +5,29 @@ import Unit311LoginPage from "@/components/auth/Unit311LoginPage";
 import {
   getRequestHost,
   isCentralDomainHost,
+  parseClientPlatformSubdomainSafe,
   parseLoginReturnTo,
   parseSafePostLoginNext,
+  customerWorkspaceOrigin,
 } from "@/lib/app-domains";
+import { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 
 export async function generateMetadata(): Promise<Metadata> {
   const host = getRequestHost({ headers: await headers() });
+  const workspaceSlug = parseClientPlatformSubdomainSafe(host);
   const isCentral = isCentralDomainHost(host);
+
+  if (isCorpCentreSlug(workspaceSlug)) {
+    return {
+      title: "Login | Corp.Centre",
+      description: "Secure access to your Corp.Centre workspace.",
+      robots: { index: false, follow: false },
+    };
+  }
 
   return {
     title: isCentral ? "Workspace Login | Unit311 Central" : "Workspace Login | Unit311",
-    description: isCentral
-      ? "Secure Access to your Workspace."
-      : "Secure Access to your Workspace.",
+    description: "Secure Access to your Workspace.",
     robots: { index: false, follow: false },
   };
 }
@@ -29,13 +39,22 @@ type PageProps = {
 export default async function LoginPage({ searchParams }: PageProps) {
   const host = getRequestHost({ headers: await headers() });
   const isCentral = isCentralDomainHost(host);
+  const workspaceSlug = parseClientPlatformSubdomainSafe(host);
   const params = await searchParams;
-  const returnTo = parseLoginReturnTo(params.return_to)?.origin ?? null;
+  const returnTo =
+    parseLoginReturnTo(params.return_to)?.origin ??
+    (workspaceSlug ? customerWorkspaceOrigin(workspaceSlug) : null);
   const nextPath = parseSafePostLoginNext(params.next);
+  const brand = isCorpCentreSlug(workspaceSlug)
+    ? "corpcentre"
+    : isCentral
+      ? "central"
+      : "default";
 
   return (
     <Unit311LoginPage
-      variant={isCentral ? "central" : "default"}
+      variant={brand === "corpcentre" ? "central" : brand === "central" ? "central" : "default"}
+      brand={brand}
       returnTo={returnTo}
       nextPath={nextPath}
     />

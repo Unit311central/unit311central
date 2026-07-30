@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { centralLoginUrl, parseValidWorkspaceReturnTo } from "@/lib/app-domains";
+import { workspaceLoginUrl, parseValidWorkspaceReturnTo } from "@/lib/app-domains";
 import { clearPlatformSessionCookie } from "@/lib/platform-session-cookie";
 import { getPlatformSession } from "@/lib/platform-session";
 
@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 /**
  * End the platform session and return where the browser should navigate next.
- * Customer hosts (e.g. corpcentre) include return_to so login can send them back.
+ * Customer hosts (e.g. corpcentre) return to that host's `/login`.
  */
 export async function POST(request: NextRequest) {
   const session = await getPlatformSession();
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const loginUrl = centralLoginUrl(returnTo);
+  const loginUrl = workspaceLoginUrl(returnTo);
   const response = NextResponse.json({
     ok: true,
     loginUrl,

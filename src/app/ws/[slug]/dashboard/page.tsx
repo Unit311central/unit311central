@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
+import CorpCentreLogoMark, { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import Logo from "@/components/layout/Logo";
 import { CENTRAL_SITE_URL, customerWorkspaceOrigin } from "@/lib/app-domains";
 import {
@@ -42,7 +43,13 @@ export default async function CustomerWorkspaceDashboardPage({ params }: PagePro
     >
       <div className={`w-full max-w-xl ${marketingFadeIn}`}>
         <div className="mb-8 flex justify-center">
-          <Logo href={origin ?? CENTRAL_SITE_URL} height={52} />
+          {isCorpCentreSlug(slug) ? (
+            <a href={origin ?? CENTRAL_SITE_URL} aria-label="Corp.Centre">
+              <CorpCentreLogoMark height={52} />
+            </a>
+          ) : (
+            <Logo href={origin ?? CENTRAL_SITE_URL} height={52} />
+          )}
         </div>
 
         <div className={`${marketingCardLarge} px-6 py-8 text-center sm:px-10 sm:py-10`}>

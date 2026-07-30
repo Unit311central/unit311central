@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
+import CorpCentreLogoMark from "@/components/layout/CorpCentreLogoMark";
 import {
   parseLoginReturnTo,
   parseSafePostLoginNext,
@@ -108,17 +109,21 @@ async function readApiJson<T>(response: Response): Promise<T> {
 
 export default function Unit311LoginPage({
   variant = "default",
+  brand = "default",
   returnTo = null,
   nextPath = null,
 }: {
   variant?: "default" | "central";
+  /** Tenant login branding. CorpCentre uses corplogo.jpg. */
+  brand?: "default" | "central" | "corpcentre";
   /** Validated return origin (`return_to`) for workspace / demo / internal. */
   returnTo?: string | null;
   /** Canonical deep-link path (`next`), e.g. `/?view=clients`. */
   nextPath?: string | null;
 }) {
   const router = useRouter();
-  const isCentral = variant === "central";
+  const isCentral = variant === "central" || brand === "corpcentre";
+  const isCorpCentre = brand === "corpcentre";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -187,27 +192,33 @@ export default function Unit311LoginPage({
       <div className={`flex w-full max-w-[480px] flex-col items-center ${marketingFadeIn}`}>
         {/* Fixed aspect logo slot — compact mark above the card */}
         <div className="flex w-full items-center justify-center px-2">
-          <div
-            className="relative w-full max-w-[min(100%,240px)] sm:max-w-[280px]"
-            style={{ aspectRatio: `${LOGIN_LOGO_WIDTH} / ${LOGIN_LOGO_HEIGHT}` }}
-          >
-            <Image
-              src={LOGIN_LOGO}
-              alt={SITE_NAME}
-              fill
-              priority
-              sizes="(max-width: 640px) 240px, 280px"
-              className="object-contain object-center drop-shadow-[0_8px_28px_rgba(0,0,0,0.45)]"
-            />
-          </div>
+          {isCorpCentre ? (
+            <CorpCentreLogoMark height={56} className="rounded-2xl px-4 py-3" />
+          ) : (
+            <div
+              className="relative w-full max-w-[min(100%,240px)] sm:max-w-[280px]"
+              style={{ aspectRatio: `${LOGIN_LOGO_WIDTH} / ${LOGIN_LOGO_HEIGHT}` }}
+            >
+              <Image
+                src={LOGIN_LOGO}
+                alt={SITE_NAME}
+                fill
+                priority
+                sizes="(max-width: 640px) 240px, 280px"
+                className="object-contain object-center drop-shadow-[0_8px_28px_rgba(0,0,0,0.45)]"
+              />
+            </div>
+          )}
         </div>
 
         <div className="mt-10 w-full text-center sm:mt-12">
           <h1 className="text-[1.75rem] font-semibold tracking-[-0.035em] text-white sm:text-[2.125rem]">
-            Workspace Login
+            {isCorpCentre ? "Corp.Centre Login" : "Workspace Login"}
           </h1>
           <p className="mx-auto mt-3 max-w-[20rem] text-[14px] leading-relaxed text-white/55 sm:mt-3.5 sm:max-w-none sm:text-[15px]">
-            Secure Access to your Workspace
+            {isCorpCentre
+              ? "Secure access to your Corp.Centre workspace"
+              : "Secure Access to your Workspace"}
           </p>
         </div>
 
@@ -229,7 +240,13 @@ export default function Unit311LoginPage({
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 className="w-full rounded-xl border border-white/12 bg-white/[0.05] px-4 py-3.5 text-[15px] text-white placeholder:text-white/30 focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] disabled:opacity-60"
-                placeholder={isCentral ? "you@unit311central.com" : "Enter username"}
+                placeholder={
+                  isCorpCentre
+                    ? "you@corpcentre.com.au"
+                    : isCentral
+                      ? "you@unit311central.com"
+                      : "Enter username"
+                }
               />
             </div>
 

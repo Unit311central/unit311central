@@ -19,7 +19,6 @@ import {
   mapLegacyInternalPathToInternalHostPath,
   normalizeHost,
   parseClientPlatformSubdomainSafe,
-  parseValidWorkspaceReturnTo,
 } from "@/lib/app-domains";
 import {
   applyCustomerHostRebindIfNeeded,
@@ -134,13 +133,19 @@ export async function middleware(request: NextRequest) {
       "x-unit311-workspace-slug": workspaceSlug,
     };
 
+    // Customer-host login stays on this origin (tenant branding).
     if (pathname === "/login" || pathname.startsWith("/login/")) {
-      const loginUrl = new URL(`${CENTRAL_SITE_URL}/login`);
-      loginUrl.search = search;
-      const validatedReturnTo =
-        parseValidWorkspaceReturnTo(loginUrl.searchParams.get("return_to")) ?? workspaceOrigin;
-      loginUrl.searchParams.set("return_to", validatedReturnTo);
-      return redirectExternal(loginUrl.toString());
+      const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+      if (gate.status === "ok") {
+        const redirect = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
+        return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
+      }
+      const response = NextResponse.next({ request: { headers } });
+      for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
+        response.headers.set(key, value);
+      }
+      response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
+      return response;
     }
 
     if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
@@ -162,8 +167,8 @@ export async function middleware(request: NextRequest) {
     const requiresAuthenticatedApp =
       pathname === "/dashboard" ||
       pathname.startsWith("/dashboard/") ||
-      ((pathname === "/" || pathname === "") &&
-        Boolean(request.cookies.get("dc_platform_session")?.value));
+      pathname === "/" ||
+      pathname === "";
 
     if (requiresAuthenticatedApp) {
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);

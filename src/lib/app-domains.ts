@@ -292,6 +292,16 @@ export function centralLoginUrl(returnTo?: string | null) {
   return url.toString();
 }
 
+/**
+ * Prefer on-host login for customer workspaces (`https://{slug}.…/login`).
+ * Falls back to apex `/login?return_to=` when no validated workspace origin.
+ */
+export function workspaceLoginUrl(returnTo?: string | null) {
+  const validated = parseValidWorkspaceReturnTo(returnTo);
+  if (validated) return `${validated}${centralLoginPath()}`;
+  return centralLoginUrl(returnTo);
+}
+
 /** Post-login destination on a validated workspace origin. */
 export function workspacePostLoginUrl(
   returnToOrigin: string,
