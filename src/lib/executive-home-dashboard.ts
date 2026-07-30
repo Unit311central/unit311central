@@ -14,13 +14,14 @@ import type { InternalProject } from "@/lib/projects-data";
 function formatCompactMoney(amount: number, currency = "GBP") {
   const code = String(currency || "GBP").toUpperCase();
   const abs = Math.abs(amount);
+  const fractionDigits = code === "AUD" ? 0 : 2;
   if (abs >= 1_000_000 || abs >= 10_000) {
     return withPreferredCurrencySymbol(
-      new Intl.NumberFormat("en-GB", {
+      new Intl.NumberFormat(code === "AUD" ? "en-AU" : "en-GB", {
         style: "currency",
         currency: code,
         notation: "compact",
-        maximumFractionDigits: 2,
+        maximumFractionDigits: fractionDigits,
       }).format(amount),
       code,
     );

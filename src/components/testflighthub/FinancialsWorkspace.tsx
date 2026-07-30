@@ -39,6 +39,9 @@ export default function FinancialsWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [burnDrillOpen, setBurnDrillOpen] = useState(false);
 
+  const reportingCurrency = overview?.burnRate?.currency || "GBP";
+  const money = (amount: number, currency = reportingCurrency) => formatMoney(amount, currency);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -134,15 +137,15 @@ export default function FinancialsWorkspace() {
               <dl className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Outstanding invoices</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.ar.outstanding)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.ar.outstanding)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Overdue invoices</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.ar.overdue)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.ar.overdue)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Invoices due</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.ar.dueSoon)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.ar.dueSoon)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Collection rate</dt>
@@ -180,7 +183,7 @@ export default function FinancialsWorkspace() {
                         {invoice.invoiceNumber} · {invoice.clientName ?? "Client"}
                       </span>
                       <span className="tabular-nums">
-                        {formatMoney(invoice.amount, invoice.currency)}
+                        {money(invoice.amount, invoice.currency)}
                       </span>
                     </div>
                   ))
@@ -193,19 +196,19 @@ export default function FinancialsWorkspace() {
               <dl className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Outstanding supplier invoices</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.ap.outstanding)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.ap.outstanding)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Due this month</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.ap.dueThisMonth)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.ap.dueThisMonth)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Overdue</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.ap.overdue)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.ap.overdue)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Upcoming payments</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.ap.upcoming)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.ap.upcoming)}</dd>
                 </div>
               </dl>
               <div className="mt-4 space-y-2">
@@ -224,7 +227,7 @@ export default function FinancialsWorkspace() {
                         {row.supplier} · {row.description}
                       </span>
                       <span className="tabular-nums">
-                        {formatMoney(row.amount, row.currency)}
+                        {money(row.amount, row.currency)}
                       </span>
                     </div>
                   ))
@@ -237,11 +240,11 @@ export default function FinancialsWorkspace() {
               <dl className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Current payroll</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.payroll.current)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.payroll.current)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Next payroll</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.payroll.next)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.payroll.next)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Employees</dt>
@@ -249,11 +252,11 @@ export default function FinancialsWorkspace() {
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Annual payroll</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.payroll.annual)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.payroll.annual)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Monthly payroll</dt>
-                  <dd className="tabular-nums text-white">{formatMoney(overview.payroll.monthly)}</dd>
+                  <dd className="tabular-nums text-white">{money(overview.payroll.monthly)}</dd>
                 </div>
               </dl>
               <div className="mt-4">

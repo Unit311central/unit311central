@@ -70,11 +70,14 @@ export function wiseAccountCodeForCurrency(currency: string) {
 
 export function formatMoney(amount: number, currency = "GBP") {
   const code = String(currency || "GBP").toUpperCase();
-  const formatted = new Intl.NumberFormat("en-GB", {
+  // AUD dashboards use whole dollars (AU$2,000,000 not AU$2,000,000.00).
+  const fractionDigits = code === "AUD" ? 0 : 2;
+  const locale = code === "AUD" ? "en-AU" : "en-GB";
+  const formatted = new Intl.NumberFormat(locale, {
     style: "currency",
     currency: code,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(amount);
   return withPreferredCurrencySymbol(formatted, code);
 }
