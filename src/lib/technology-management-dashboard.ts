@@ -1,5 +1,6 @@
 import { normalizeKpiRow } from "@/lib/dashboard-framework";
 import type { WorkspaceDashboardConfig } from "@/lib/dashboard-framework";
+import { formatSoftwareMoney } from "@/lib/software-assets-data";
 
 /**
  * Technology Management dashboard — live Software & SaaS register only.
@@ -9,8 +10,22 @@ export function buildTechnologyManagementDashboardConfig(input: {
   softwareCount: number;
   activeCount: number;
   renewingSoonCount: number;
+  annualSpend?: number;
+  monthlySpend?: number;
+  currency?: string;
 }): WorkspaceDashboardConfig {
-  const { softwareCount, activeCount, renewingSoonCount } = input;
+  const {
+    softwareCount,
+    activeCount,
+    renewingSoonCount,
+    annualSpend = 0,
+    monthlySpend = 0,
+    currency = "USD",
+  } = input;
+  const hasSpend = annualSpend > 0 || monthlySpend > 0;
+  const annualLabel = hasSpend ? formatSoftwareMoney(annualSpend, currency) : "—";
+  const monthlyLabel = hasSpend ? formatSoftwareMoney(monthlySpend, currency) : "—";
+
   return {
     id: "technology-management-dashboard",
     workspaceId: "technology",
@@ -45,12 +60,15 @@ export function buildTechnologyManagementDashboardConfig(input: {
             summary:
               renewingSoonCount > 0
                 ? `${renewingSoonCount} item${renewingSoonCount === 1 ? "" : "s"} need renewal attention soon. Open Software & SaaS to manage contracts and licences.`
-                : "Open Software & SaaS to add vendors, licences, and renewals. Other technology domains are not available in the sidebar until they are live.",
+                : hasSpend
+                  ? `Active estate spend is about ${annualLabel}/year (${monthlyLabel}/month, ${currency}). Open Software & SaaS to manage vendors and renewals.`
+                  : "Open Software & SaaS to add vendors, licences, and renewals. Other technology domains are not available in the sidebar until they are live.",
             nextUp: "Open Software & SaaS",
             metrics: [
               { label: "Software assets", value: String(softwareCount) },
               { label: "Active", value: String(activeCount) },
               { label: "Renewing soon", value: String(renewingSoonCount) },
+              { label: `Annual spend (${currency})`, value: annualLabel },
             ],
           },
         ],
@@ -72,6 +90,14 @@ export function buildTechnologyManagementDashboardConfig(input: {
                 hint: "Live Software & SaaS register",
               },
               {
+                id: "annual-spend",
+                label: `Annual spend (${currency})`,
+                value: annualLabel,
+                delta: hasSpend ? `${monthlyLabel}/mo` : "No spend logged",
+                tone: "neutral",
+                hint: "From live register costs",
+              },
+              {
                 id: "renewals",
                 label: "Renewals soon",
                 value: String(renewingSoonCount),
@@ -86,14 +112,6 @@ export function buildTechnologyManagementDashboardConfig(input: {
                 delta: "Software & SaaS",
                 tone: "neutral",
                 hint: "Devices/telecom/infra not shipped yet",
-              },
-              {
-                id: "coming-later",
-                label: "Coming later",
-                value: "—",
-                delta: "Devices · Telecom · Infra",
-                tone: "neutral",
-                hint: "Removed from nav until durable",
               },
             ]),
           },
