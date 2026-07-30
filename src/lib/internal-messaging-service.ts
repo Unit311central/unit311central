@@ -349,11 +349,10 @@ export async function listChannelsForViewer(
             channel.channelType === "client" &&
             channel.memberClientUsernames.includes(input.clientKey ?? ""),
         )
-      : all.filter(
-          (channel) =>
-            channel.channelType === "internal" ||
-            (channel.channelType === "client" &&
-              (!input.operatorId || channel.memberOperatorIds.includes(input.operatorId))),
+      : // Internal staff see every workspace channel (internal + client/partner).
+        // Membership still drives participant lists and send permissions in the UI.
+        all.filter(
+          (channel) => channel.channelType === "internal" || channel.channelType === "client",
         );
 
   return attachUnreadCounts(filtered, input.viewerKey, workspaceId);

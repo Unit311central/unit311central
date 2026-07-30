@@ -81,10 +81,7 @@ export function localListChannelsForViewer(input: {
             channel.memberClientUsernames.includes(input.clientKey ?? ""),
         )
       : all.filter(
-          (channel) =>
-            channel.channelType === "internal" ||
-            (channel.channelType === "client" &&
-              (!input.operatorId || channel.memberOperatorIds.includes(input.operatorId))),
+          (channel) => channel.channelType === "internal" || channel.channelType === "client",
         );
 
   return attachUnreadCounts(filtered, input.viewerKey);
