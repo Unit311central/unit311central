@@ -358,16 +358,6 @@ export function normalizeInternalOperationsView(value: string | null): InternalO
     return "technology-software";
   }
   if (value === "technology") return "technology-dashboard";
-  // Stub Technology leaves removed from nav — keep deep links working.
-  if (
-    value === "technology-devices" ||
-    value === "technology-telecommunications" ||
-    value === "technology-infrastructure" ||
-    value === "technology-reports" ||
-    value === "technology-settings"
-  ) {
-    return "technology-dashboard";
-  }
   if (legacyCorporateViewToTab(value)) return "corporate-information";
   return isInternalOperationsView(value) ? value : "home";
 }
