@@ -32,6 +32,7 @@ import {
 
 import type { IntegrationConnectionPublic } from "@/lib/integration-framework-data";
 import { useWebsiteMockStore } from "./useWebsiteMockStore";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 
 const NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 const MOCK_USERS = createInitialUsers();
@@ -451,6 +452,11 @@ export default function SettingsWorkspace() {
   const defaultNavItems = useMemo(() => buildDefaultNavItems(), []);
   const [navCustom, setNavCustom] = useState<NavCustomStorage>(() => loadNavCustomState());
   const [customNavLabel, setCustomNavLabel] = useState("");
+  const [hideWebsiteCms, setHideWebsiteCms] = useState(false);
+
+  useEffect(() => {
+    setHideWebsiteCms(isBrowserCorpCentreSurface());
+  }, []);
 
   const [financeProvider, setFinanceProvider] = useState<FinanceProvider | "">("");
   const [logisticsProvider, setLogisticsProvider] = useState<LogisticsProvider | "">("");
@@ -649,11 +655,16 @@ export default function SettingsWorkspace() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 xl:items-stretch">
         <SettingsColumn
           title="Integrations"
-          description="Finance, logistics, email, and website CMS connections."
+          description={
+            hideWebsiteCms
+              ? "Finance, logistics, and email connections."
+              : "Finance, logistics, email, and website CMS connections."
+          }
           icon={<Link2 className="h-4 w-4" />}
           accentClass="border-emerald-400/20"
         >
           <div className="space-y-3">
+            {!hideWebsiteCms ? (
             <div className="rounded-xl border border-white/10 bg-[#0b1524]/60 p-3">
               <div className="mb-2 flex items-center gap-2 text-sky-300">
                 <Globe className="h-4 w-4" />
@@ -707,6 +718,7 @@ export default function SettingsWorkspace() {
                 </p>
               ) : null}
             </div>
+            ) : null}
 
             <ProviderIntegrationSection
               title="Finance"
@@ -775,7 +787,9 @@ export default function SettingsWorkspace() {
 
             <p className="text-[10px] leading-relaxed text-white/35">
               Finance, logistics, and email credentials remain local until those connectors ship.
-              Website CMS connections use the Integration Framework.
+              {hideWebsiteCms
+                ? ""
+                : " Website CMS connections use the Integration Framework."}
             </p>
           </div>
         </SettingsColumn>

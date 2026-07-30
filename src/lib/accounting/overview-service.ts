@@ -14,12 +14,55 @@ import {
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
 import { calculateLivePayrollSnapshot } from "@/lib/payroll/payroll-service";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured, createSupabaseServerClient } from "@/lib/supabase/server";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import { getWiseConnectionStatus, listWiseBalances } from "@/lib/wise-service";
 
-/** Platform reporting currency — matches Wise Bank treasury totals. */
+/** Platform reporting currency — matches Wise Bank treasury totals (Internal default). */
 export const FINANCIAL_REPORTING_CURRENCY = "GBP";
+
+const FX_TO_AUD: Record<string, number> = {
+  AUD: 1,
+  GBP: 1.95,
+  USD: 1.52,
+  EUR: 1.65,
+};
+
+async function resolveReportingCurrency(workspaceId: string): Promise<string> {
+  try {
+    const supabase = createSupabaseServerClient();
+    const { data } = await supabase
+      .from("workspace_settings")
+      .select("currency")
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
+    const currency = String(data?.currency ?? "")
+      .trim()
+      .toUpperCase();
+    if (currency === "AUD" || currency === "GBP" || currency === "USD" || currency === "EUR") {
+      return currency;
+    }
+  } catch {
+    /* fall through */
+  }
+  return FINANCIAL_REPORTING_CURRENCY;
+}
+
+function convertToReportingCurrency(amount: number, fromCurrency: string, reporting: string) {
+  const from = fromCurrency.toUpperCase();
+  const to = reporting.toUpperCase();
+  if (from === to) return roundMoney(amount);
+  if (to === "GBP") return convertToGbp(amount, from);
+  if (to === "AUD") {
+    const rate = FX_TO_AUD[from] ?? 1;
+    return roundMoney(amount * rate);
+  }
+  // Other reporting currencies: convert via GBP pivot.
+  const gbp = convertToGbp(amount, from);
+  if (to === "USD") return roundMoney(gbp / 0.79);
+  if (to === "EUR") return roundMoney(gbp / 0.86);
+  return roundMoney(amount);
+}
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
@@ -160,6 +203,7 @@ export async function getFinancialOverview(
   try {
     const workspaceId = await resolveFinancialsWorkspaceId(scope);
     const workspaceScope: FinancialsWorkspaceScope = { workspaceId };
+    const reportingCurrency = await resolveReportingCurrency(workspaceId);
 
     const [
       totalsResult,
@@ -270,7 +314,11 @@ export async function getFinancialOverview(
     for (const invoice of unpaid) {
       const due = new Date(`${invoice.dueDate}T00:00:00.000Z`);
       const days = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-      const amountGbp = convertToGbp(invoice.amount, invoice.currency);
+      const amountGbp = convertToReportingCurrency(
+        invoice.amount,
+        invoice.currency,
+        reportingCurrency,
+      );
       if (days <= 0) ageing[0].amount = roundMoney(ageing[0].amount + amountGbp);
       else if (days <= 30) ageing[1].amount = roundMoney(ageing[1].amount + amountGbp);
       else if (days <= 60) ageing[2].amount = roundMoney(ageing[2].amount + amountGbp);
@@ -310,7 +358,7 @@ export async function getFinancialOverview(
             cashBalance: cashPosition,
             monthlyOutgoings: charts.monthlyOutgoings,
             postedExpenses,
-            currency: FINANCIAL_REPORTING_CURRENCY,
+            currency: reportingCurrency,
             allowDemo: false,
           })
         : emptyBurnRate(cashPosition);
@@ -324,13 +372,13 @@ export async function getFinancialOverview(
             employees: 0,
             nextPayrollDate: todayIso,
             liability: 0,
-            currency: FINANCIAL_REPORTING_CURRENCY,
+            currency: reportingCurrency,
           },
           software: {
             monthly: 0,
             annual: 0,
             count: 0,
-            currency: FINANCIAL_REPORTING_CURRENCY,
+            currency: reportingCurrency,
             lines: [],
             upcoming: [],
           },
@@ -339,7 +387,7 @@ export async function getFinancialOverview(
 
     const payrollLive = payrollLiveResult.ok ? payrollLiveResult.value : null;
     const toReporting = (amount: number, currency: string) =>
-      currency.toUpperCase() === "GBP" ? roundMoney(amount) : convertToGbp(amount, currency);
+      convertToReportingCurrency(amount, currency, reportingCurrency);
 
     const glRevenue = totals.income;
     const glSpend = totals.expenses;
@@ -463,7 +511,11 @@ export async function getFinancialOverview(
 
     // Debtors / Creditors from the same AR / AP modules (invoices + expenses).
     const arOutstanding = roundMoney(
-      unpaid.reduce((sum, invoice) => sum + convertToGbp(invoice.amount, invoice.currency), 0),
+      unpaid.reduce(
+        (sum, invoice) =>
+          sum + convertToReportingCurrency(invoice.amount, invoice.currency, reportingCurrency),
+        0,
+      ),
     );
     const softwareApUpcoming = roundMoney(
       obligations.software.upcoming.reduce((sum, line) => sum + line.monthlyCost, 0),
@@ -493,7 +545,7 @@ export async function getFinancialOverview(
               supplier: "Payroll",
               description: `Monthly payroll · ${payrollEmployees} employees`,
               amount: payrollLiability,
-              currency: FINANCIAL_REPORTING_CURRENCY,
+              currency: reportingCurrency,
               dueDate: payrollNextDate,
               paid: false,
             },
@@ -504,7 +556,7 @@ export async function getFinancialOverview(
                     supplier: "Employer payroll tax",
                     description: "Estimated employer payroll tax",
                     amount: toReporting(payrollLive.employerTax, payrollLive.currency),
-                    currency: FINANCIAL_REPORTING_CURRENCY,
+                    currency: reportingCurrency,
                     dueDate: payrollNextDate,
                     paid: false,
                   },
@@ -534,7 +586,7 @@ export async function getFinancialOverview(
         trend: burnTrend,
         forecastMonthly: roundMoney(forecastMonthly),
         cashBalance: cashPosition,
-        currency: FINANCIAL_REPORTING_CURRENCY,
+        currency: reportingCurrency,
         trendLabel: isDemoTreasury
           ? "Payroll + software + vendor opex"
           : burnRate.lines.length > 0
@@ -548,10 +600,18 @@ export async function getFinancialOverview(
       ar: {
         outstanding: arOutstanding,
         overdue: roundMoney(
-          overdue.reduce((sum, invoice) => sum + convertToGbp(invoice.amount, invoice.currency), 0),
+          overdue.reduce(
+            (sum, invoice) =>
+              sum + convertToReportingCurrency(invoice.amount, invoice.currency, reportingCurrency),
+            0,
+          ),
         ),
         dueSoon: roundMoney(
-          dueSoon.reduce((sum, invoice) => sum + convertToGbp(invoice.amount, invoice.currency), 0),
+          dueSoon.reduce(
+            (sum, invoice) =>
+              sum + convertToReportingCurrency(invoice.amount, invoice.currency, reportingCurrency),
+            0,
+          ),
         ),
         collectionRate,
         ageing,

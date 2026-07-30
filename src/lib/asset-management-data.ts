@@ -324,6 +324,145 @@ export function createInitialAssetRegistry(): AssetRegistryState {
 
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      if (isBrowserCorpCentreSurface()) {
+        const categories = [
+          "Laptop",
+          "Desktop",
+          "Monitor",
+          "Network Switch",
+          "Firewall",
+          "Server",
+          "Mobile Phone",
+          "Access Point",
+          "Software Licence",
+          "Peripheral",
+        ];
+        const locations = ["Alexandria", "Melbourne", "Brisbane"];
+        const seeds: SeedAsset[] = [
+          {
+            assetTag: "CC-LT-001",
+            category: "Laptop",
+            location: "Alexandria",
+            model: "Dell Latitude 5540",
+            serialNumber: "DL5540-AU-1001",
+            purchaseDate: "2025-03-12",
+            operationalStatus: "In Service",
+            firmwareVersion: "N/A",
+            notes: "Assigned · Peter Durning",
+          },
+          {
+            assetTag: "CC-LT-002",
+            category: "Laptop",
+            location: "Alexandria",
+            model: "Lenovo ThinkPad T14",
+            serialNumber: "LT-T14-AU-1002",
+            purchaseDate: "2025-05-02",
+            operationalStatus: "In Service",
+            firmwareVersion: "N/A",
+            notes: "Assigned · Daniel Sazdanoff",
+          },
+          {
+            assetTag: "CC-SRV-001",
+            category: "Server",
+            location: "Alexandria",
+            model: "Dell PowerEdge R760",
+            serialNumber: "PE-R760-AU-2201",
+            purchaseDate: "2024-11-18",
+            operationalStatus: "In Service",
+            firmwareVersion: "2.4.1",
+            notes: "Primary virtualisation host · Alexandria rack A2",
+          },
+          {
+            assetTag: "CC-FW-001",
+            category: "Firewall",
+            location: "Alexandria",
+            model: "Fortinet FortiGate 100F",
+            serialNumber: "FG100F-AU-3301",
+            purchaseDate: "2024-09-01",
+            operationalStatus: "In Service",
+            firmwareVersion: "7.4.3",
+            notes: "Edge firewall · Sydney internet handoff",
+          },
+          {
+            assetTag: "CC-SW-001",
+            category: "Network Switch",
+            location: "Alexandria",
+            model: "Cisco Catalyst 9200",
+            serialNumber: "C9200-AU-4401",
+            purchaseDate: "2024-09-01",
+            operationalStatus: "In Service",
+            firmwareVersion: "17.12.1",
+            notes: "Core switch · Alexandria floor 3",
+          },
+          {
+            assetTag: "CC-AP-001",
+            category: "Access Point",
+            location: "Melbourne",
+            model: "Ubiquiti UniFi 6 Pro",
+            serialNumber: "U6P-AU-5501",
+            purchaseDate: "2025-01-20",
+            operationalStatus: "In Service",
+            firmwareVersion: "6.6.77",
+            notes: "Melbourne office Wi-Fi",
+          },
+          {
+            assetTag: "CC-MON-001",
+            category: "Monitor",
+            location: "Alexandria",
+            model: "Dell UltraSharp U2723QE",
+            serialNumber: "U2723-AU-6601",
+            purchaseDate: "2025-03-12",
+            operationalStatus: "In Service",
+            firmwareVersion: "N/A",
+            notes: "Dual monitor kit · ops desk",
+          },
+          {
+            assetTag: "CC-PH-001",
+            category: "Mobile Phone",
+            location: "Brisbane",
+            model: "iPhone 15 Pro",
+            serialNumber: "IP15P-AU-7701",
+            purchaseDate: "2025-06-08",
+            operationalStatus: "In Service",
+            firmwareVersion: "iOS 18.5",
+            notes: "Field technician handset · John Amoroso",
+          },
+          {
+            assetTag: "CC-LIC-001",
+            category: "Software Licence",
+            location: "Alexandria",
+            model: "Microsoft 365 Business Premium",
+            serialNumber: "M365-CC-45SEATS",
+            purchaseDate: "2025-07-01",
+            operationalStatus: "Active Licence",
+            firmwareVersion: "N/A",
+            notes: "45 seats · AUD billing",
+          },
+          {
+            assetTag: "CC-DSK-001",
+            category: "Desktop",
+            location: "Alexandria",
+            model: "HP EliteDesk 800 G9",
+            serialNumber: "ED800-AU-8801",
+            purchaseDate: "2024-08-14",
+            operationalStatus: "Maintenance",
+            firmwareVersion: "N/A",
+            notes: "Spare bench PC · awaiting SSD swap",
+          },
+        ];
+        return {
+          assets: seeds.map(buildSeedAsset),
+          categories,
+          locations,
+        };
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {

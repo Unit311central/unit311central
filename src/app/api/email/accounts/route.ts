@@ -22,7 +22,7 @@ export async function GET() {
     const demo = isDemoWiseWorkspaceSlug(workspace.slug);
 
     const accounts = await Promise.all(
-      getPublicEmailAccounts({ demo }).map(async (account) => ({
+      getPublicEmailAccounts({ demo, workspaceSlug: workspace.slug }).map(async (account) => ({
         ...account,
         configured: demo
           ? isDemoEmailAccountConfigured(account.id)

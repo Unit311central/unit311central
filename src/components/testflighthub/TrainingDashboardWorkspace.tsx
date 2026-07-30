@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Award,
   BookOpen,
@@ -12,6 +12,7 @@ import {
   UserPlus,
 } from "lucide-react";
 
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
   computeTrainingDashboardKpis,
@@ -34,6 +35,11 @@ export default function TrainingDashboardWorkspace() {
   const store = useTqmsMockStore();
   const kpis = useMemo(() => computeTrainingDashboardKpis(store), [store]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [hideQms, setHideQms] = useState(false);
+
+  useEffect(() => {
+    setHideQms(isBrowserCorpCentreSurface());
+  }, []);
 
   const overdueMandatory = store.assignments.filter(
     (row) => row.mandatory && row.status === "Overdue",
@@ -197,10 +203,12 @@ export default function TrainingDashboardWorkspace() {
           title="Quick Actions"
           subtitle="Common training operations."
           actions={
+            hideQms ? undefined : (
             <Link href={getInternalNavHref("qms-training", basePath)} className={tqmsSecondaryButtonClass()}>
               <BookOpen className="h-3.5 w-3.5" />
               QMS Training
             </Link>
+            )
           }
         >
           <div className="grid gap-2 sm:grid-cols-2">
@@ -226,6 +234,7 @@ export default function TrainingDashboardWorkspace() {
                 </Link>
               );
             })}
+            {!hideQms ? (
             <Link
               href={getInternalNavHref("quality-management", basePath)}
               className={tqmsSecondaryButtonClass()}
@@ -233,6 +242,7 @@ export default function TrainingDashboardWorkspace() {
               <ClipboardList className="h-3.5 w-3.5" />
               Open QMS
             </Link>
+            ) : null}
           </div>
         </TqmsSection>
       </div>

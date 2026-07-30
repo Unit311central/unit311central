@@ -156,6 +156,29 @@ const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "telemetry",
   "unit311-details",
   "module-go-live",
+  "quality-management",
+  "qms-training",
+  "qms-document-control",
+  "qms-capa",
+  "qms-internal-audits",
+  "qms-management-review",
+  "qms-reports",
+  "external-client-access",
+  "users-external",
+  "website-management",
+  "billing",
+]);
+
+const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
+  "QMS",
+  "External Client Access",
+]);
+
+const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
+  "Unit311 Details",
+  "Website Management",
+  "Billing",
+  "QMS Courses",
 ]);
 
 function shouldHideDroneToolNavViews(): boolean {
@@ -197,34 +220,43 @@ export function filterInternalNavSectionsForDemoSurface(
 
   const hideViews = isCorpCentreNavSurface() ? CORPCENTRE_HIDDEN_VIEWS : DEMO_HIDDEN_VIEWS;
   const hideUnit311Details = isCorpCentreNavSurface();
+  const corpcentre = isCorpCentreNavSurface();
 
   return sections
-    .map((section) => ({
-      ...section,
-      items: section.items
-        .map((item) => {
-          if (item.view && hideViews.has(item.view)) return null;
-          if (hideUnit311Details && item.label === "Unit311 Details") return null;
-          if (item.children?.length) {
-            const children = item.children.filter(
-              (child) => !(child.view && hideViews.has(child.view)),
-            );
-            if (children.length === 0 && !item.view && !item.href) return null;
-            const label =
-              !hideUnit311Details && item.label === "Unit311 Details"
-                ? "Company Details"
-                : item.label;
-            return { ...item, label, children };
-          }
-          if (!hideUnit311Details && item.label === "Unit311 Details") {
-            return { ...item, label: "Company Details" };
-          }
-          if (item.href?.includes("/whatsapp/support-flow")) {
-            return { ...item, label: "Support Messaging" };
-          }
-          return item;
-        })
-        .filter((item): item is NonNullable<typeof item> => item != null),
-    }))
+    .map((section) => {
+      if (corpcentre && CORPCENTRE_HIDDEN_SECTION_LABELS.has(section.label)) {
+        return { ...section, items: [] as typeof section.items };
+      }
+      return {
+        ...section,
+        items: section.items
+          .map((item) => {
+            if (item.view && hideViews.has(item.view)) return null;
+            if (corpcentre && CORPCENTRE_HIDDEN_ITEM_LABELS.has(item.label)) return null;
+            if (hideUnit311Details && item.label === "Unit311 Details") return null;
+            if (item.children?.length) {
+              const children = item.children.filter((child) => {
+                if (child.view && hideViews.has(child.view)) return false;
+                if (corpcentre && CORPCENTRE_HIDDEN_ITEM_LABELS.has(child.label)) return false;
+                return true;
+              });
+              if (children.length === 0 && !item.view && !item.href) return null;
+              const label =
+                !hideUnit311Details && item.label === "Unit311 Details"
+                  ? "Company Details"
+                  : item.label;
+              return { ...item, label, children };
+            }
+            if (!hideUnit311Details && item.label === "Unit311 Details") {
+              return { ...item, label: "Company Details" };
+            }
+            if (item.href?.includes("/whatsapp/support-flow")) {
+              return { ...item, label: "Support Messaging" };
+            }
+            return item;
+          })
+          .filter((item): item is NonNullable<typeof item> => item != null),
+      };
+    })
     .filter((section) => section.items.length > 0);
 }

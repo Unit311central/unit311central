@@ -8,14 +8,18 @@ export type LogisticsStatus =
   | "Customs hold"
   | "Scheduled";
 
-export type LogisticsCarrier =
-  | "FedEx"
-  | "DHL"
-  | "UPS"
-  | "Unit311 Courier"
-  | "Meridian Courier"
-  | "Royal Mail";
+export const LOGISTICS_CARRIERS = [
+  "FedEx",
+  "DHL",
+  "UPS",
+  "Unit311 Courier",
+  "Meridian Courier",
+  "Royal Mail",
+  "Australia Post",
+  "Toll",
+] as const;
 
+export type LogisticsCarrier = (typeof LOGISTICS_CARRIERS)[number];
 export type LogisticsShipment = {
   id: string;
   trackingNumber: string;
@@ -319,7 +323,125 @@ function isDemoLogisticsSurface() {
   }
 }
 
+function isCorpCentreLogisticsSurface() {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserCorpCentreSurface } =
+      require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+    return isBrowserCorpCentreSurface();
+  } catch {
+    return false;
+  }
+}
+
+const CORPCENTRE_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
+  {
+    id: "cc-shp-in-1",
+    trackingNumber: "AP334455668AU",
+    direction: "inbound",
+    status: "In transit",
+    carrier: "Australia Post",
+    carrierTrackingUrl: "https://auspost.com.au/mypost/track/",
+    sentAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+    eta: new Date(Date.now() + 1 * 86400000).toISOString(),
+    origin: "Cisco Distribution Centre, Eastern Creek NSW",
+    destination: "CorpCentre HQ, Alexandria NSW 2015",
+    recipient: "Receiving · Alexandria",
+    sender: "Cisco Australia",
+    sentBy: "Daniel Sazdanoff",
+    contents: "Catalyst switch spares + SFP kits",
+    weightKg: 18.4,
+    featured: true,
+  },
+  {
+    id: "cc-shp-in-2",
+    trackingNumber: "TOLL77881234",
+    direction: "inbound",
+    status: "Out for delivery",
+    carrier: "Toll",
+    carrierTrackingUrl: "https://www.tollgroup.com/track",
+    sentAt: new Date(Date.now() - 1 * 86400000).toISOString(),
+    eta: new Date(Date.now() + 0.5 * 86400000).toISOString(),
+    origin: "Dell Warehouse, Derrimut VIC",
+    destination: "CorpCentre HQ, Alexandria NSW 2015",
+    recipient: "IT Stores · Alexandria",
+    sender: "Dell Technologies Australia",
+    sentBy: "Peter Durning",
+    contents: "3 × Latitude 5540 laptops",
+    weightKg: 9.2,
+  },
+  {
+    id: "cc-shp-in-3",
+    trackingNumber: "AP990011223AU",
+    direction: "inbound",
+    status: "Delivered",
+    carrier: "Australia Post",
+    carrierTrackingUrl: "https://auspost.com.au/mypost/track/",
+    sentAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+    eta: new Date(Date.now() - 1 * 86400000).toISOString(),
+    origin: "Fortinet AU, North Ryde NSW",
+    destination: "CorpCentre HQ, Alexandria NSW 2015",
+    recipient: "Elias Bahbah",
+    sender: "Fortinet Australia",
+    sentBy: "Mick Lenton",
+    contents: "FortiGate licence dongle + rack kit",
+    weightKg: 4.1,
+  },
+  {
+    id: "cc-shp-out-1",
+    trackingNumber: "AP112233445AU",
+    direction: "outbound",
+    status: "In transit",
+    carrier: "Australia Post",
+    carrierTrackingUrl: "https://auspost.com.au/mypost/track/",
+    sentAt: new Date(Date.now() - 1 * 86400000).toISOString(),
+    eta: new Date(Date.now() + 2 * 86400000).toISOString(),
+    origin: "CorpCentre HQ, Alexandria NSW 2015",
+    destination: "Harbourline Fibre Pty Ltd, 120 Clarence St, Sydney NSW 2000",
+    recipient: "Sophie Nguyen",
+    sender: "CorpCentre",
+    sentBy: "John Amoroso",
+    contents: "Access points + patch leads for site install",
+    weightKg: 7.5,
+  },
+  {
+    id: "cc-shp-out-2",
+    trackingNumber: "TOLL44556677",
+    direction: "outbound",
+    status: "Scheduled",
+    carrier: "Toll",
+    carrierTrackingUrl: "https://www.tollgroup.com/track",
+    sentAt: new Date(Date.now()).toISOString(),
+    eta: new Date(Date.now() + 3 * 86400000).toISOString(),
+    origin: "CorpCentre HQ, Alexandria NSW 2015",
+    destination: "Yarra Digital Services, 222 Collins St, Melbourne VIC 3000",
+    recipient: "Priya Raman",
+    sender: "CorpCentre",
+    sentBy: "Daniel Sazdanoff",
+    contents: "Firewall appliance + mounting kit",
+    weightKg: 12.0,
+  },
+  {
+    id: "cc-shp-out-3",
+    trackingNumber: "AP556677889AU",
+    direction: "outbound",
+    status: "Out for delivery",
+    carrier: "Australia Post",
+    carrierTrackingUrl: "https://auspost.com.au/mypost/track/",
+    sentAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+    eta: new Date(Date.now() + 0.2 * 86400000).toISOString(),
+    origin: "CorpCentre HQ, Alexandria NSW 2015",
+    destination: "Cairns Regional Estates, 65 Abbott St, Cairns QLD 4870",
+    recipient: "Mitch Andrews",
+    sender: "CorpCentre",
+    sentBy: "Mick Lenton",
+    contents: "Starlink Mini + outdoor mount for site survey",
+    weightKg: 5.6,
+  },
+];
+
 export function getLogisticsMockShipments(): LogisticsShipment[] {
+  if (isCorpCentreLogisticsSurface()) return CORPCENTRE_LOGISTICS_SHIPMENTS;
   return isDemoLogisticsSurface() ? DEMO_LOGISTICS_SHIPMENTS : LOGISTICS_MOCK_SHIPMENTS;
 }
 

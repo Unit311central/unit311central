@@ -753,8 +753,9 @@ export default function InternalDashboardHome(props?: { showCustomize?: boolean 
   const payrollSpark = liveSpark(payrollLive);
   const burnSpark = liveSpark(spendLive);
 
-  /** Always show a GBP amount — finance empty state is £0.00, never em dash. */
-  const money = (value: number | null | undefined) => formatMoney(value ?? 0, "GBP");
+  /** Always show a reporting-currency amount — finance empty state is 0.00, never em dash. */
+  const money = (value: number | null | undefined) =>
+    formatMoney(value ?? 0, financial?.burnRate?.currency || "GBP");
 
   const burnPerMonth = (value: number | null | undefined) => {
     const formatted = money(value);

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { requireInternalAdministratorWorkspaceSession } from "@/lib/internal-admin-auth";
+import {
+  requireInternalAdministratorWorkspaceSession,
+  requireUsersModuleAdministratorSession,
+} from "@/lib/internal-admin-auth";
 import { createInternalOperator, listInternalOperators } from "@/lib/internal-operators-service";
+import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
 import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
 import type {
   UserDashboardPrefs,
@@ -15,8 +19,18 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+function isCustomerWorkspaceSlug(slug: string) {
+  const normalized = slug.trim().toLowerCase();
+  return (
+    normalized.length > 0 &&
+    normalized !== "unit311" &&
+    normalized !== "internal" &&
+    normalized !== "demo"
+  );
+}
+
 export async function GET() {
-  const auth = await requireInternalAdministratorWorkspaceSession();
+  const auth = await requireUsersModuleAdministratorSession();
   if ("error" in auth) return auth.error;
 
   if (!isSupabaseConfigured()) {
@@ -24,6 +38,11 @@ export async function GET() {
   }
 
   try {
+    if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
+      const users = await listWorkspaceTenantUsers(auth.workspace.id);
+      return NextResponse.json({ users });
+    }
+
     await ensureInternalOperatorsTable();
     const users = await listInternalOperators();
     return NextResponse.json({ users });
@@ -39,6 +58,13 @@ export async function POST(request: NextRequest) {
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
+  }
+
+  if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
+    return NextResponse.json(
+      { error: "Creating users from this screen is not available for this workspace yet." },
+      { status: 501 },
+    );
   }
 
   try {

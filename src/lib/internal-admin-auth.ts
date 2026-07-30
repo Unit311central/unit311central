@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
 import { getPlatformSession, type PlatformSession } from "@/lib/platform-session";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { userHasRole } from "@/lib/user-management-data";
 import {
   WorkspaceAccessError,
@@ -104,4 +104,95 @@ export async function requireInternalAdministratorWorkspaceSession(): Promise<
   if ("error" in adminAuth) return adminAuth;
 
   return { session: adminAuth.session, workspace: workspaceAuth.workspace };
+}
+
+function isCustomerWorkspaceSlug(slug: string) {
+  const normalized = slug.trim().toLowerCase();
+  return (
+    normalized.length > 0 &&
+    normalized !== "unit311" &&
+    normalized !== "internal" &&
+    normalized !== "demo"
+  );
+}
+
+/**
+ * Users module gate:
+ * - Unit311 / Demo: require global Admin operator (unchanged).
+ * - Customer workspaces (e.g. corpcentre): allow workspace owner/admin members,
+ *   including platform users marked internal for that tenant.
+ */
+export async function requireUsersModuleAdministratorSession(): Promise<
+  { error: NextResponse } | { session: PlatformSession; workspace: CurrentWorkspace }
+> {
+  const session = await getPlatformSession();
+  if (!session) {
+    return { error: NextResponse.json({ error: AUTH_REQUIRED }, { status: 401 }) };
+  }
+
+  if (!isSupabaseConfigured()) {
+    return {
+      error: NextResponse.json({ error: "Supabase is not configured." }, { status: 503 }),
+    };
+  }
+
+  let workspace: CurrentWorkspace;
+  try {
+    workspace = await requireCurrentWorkspace();
+  } catch (error) {
+    if (error instanceof WorkspaceAccessError) {
+      return {
+        error: NextResponse.json(
+          { error: error.message || WORKSPACE_ACCESS_DENIED },
+          { status: error.status },
+        ),
+      };
+    }
+    const message = error instanceof Error ? error.message : AUTH_REQUIRED;
+    return { error: NextResponse.json({ error: message }, { status: 401 }) };
+  }
+
+  if (!isCustomerWorkspaceSlug(workspace.slug)) {
+    return requireInternalAdministratorWorkspaceSession();
+  }
+
+  // Customer tenant: session user must be an active workspace owner/admin.
+  try {
+    const supabase = createSupabaseServerClient();
+    const username = session.username.trim().toLowerCase();
+    const { data: platformUser } = await supabase
+      .from("platform_users")
+      .select("id, is_active, workspace_id")
+      .or(`username.eq.${username},email.eq.${username}`)
+      .maybeSingle();
+
+    if (!platformUser?.id || platformUser.is_active === false) {
+      return {
+        error: NextResponse.json({ error: INSUFFICIENT_PRIVILEGES }, { status: 403 }),
+      };
+    }
+
+    const { data: membership } = await supabase
+      .from("workspace_users")
+      .select("role, is_owner")
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", platformUser.id)
+      .maybeSingle();
+
+    const role = String(membership?.role ?? "").toLowerCase();
+    const allowed =
+      Boolean(membership?.is_owner) || role === "owner" || role === "admin";
+
+    if (!allowed) {
+      return {
+        error: NextResponse.json({ error: INSUFFICIENT_PRIVILEGES }, { status: 403 }),
+      };
+    }
+
+    return { session, workspace };
+  } catch {
+    return {
+      error: NextResponse.json({ error: INSUFFICIENT_PRIVILEGES }, { status: 403 }),
+    };
+  }
 }

@@ -39,12 +39,22 @@ export function listEmailAccountIds(): readonly EmailAccountId[] {
   return ALL_ACCOUNT_IDS;
 }
 
-export function getPublicEmailAccounts(options?: { demo?: boolean }): EmailAccount[] {
+export function getPublicEmailAccounts(options?: {
+  demo?: boolean;
+  workspaceSlug?: string | null;
+}): EmailAccount[] {
   if (options?.demo) {
     const { getDemoPublicEmailAccounts } = require("@/lib/email/demo-mailbox") as typeof import("@/lib/email/demo-mailbox");
     return getDemoPublicEmailAccounts();
   }
-  return ACCOUNT_DEFINITIONS.map((account) => ({
+  const slug = String(options?.workspaceSlug ?? "")
+    .trim()
+    .toLowerCase();
+  const accounts =
+    slug === "corpcentre" || slug === "corporatecentre"
+      ? ACCOUNT_DEFINITIONS.filter((account) => account.id === "demo")
+      : ACCOUNT_DEFINITIONS;
+  return accounts.map((account) => ({
     ...account,
     email: resolveAccountEmailFromEnv(account.id) ?? account.email,
   }));

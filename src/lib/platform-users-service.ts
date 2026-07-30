@@ -10,6 +10,8 @@ import { canonicalizeStoredRedirectPath } from "@/lib/app-domains";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { resolveWorkspaceOnboardingRedirectForUser } from "@/lib/workspace-customer-onboarding-service";
 import { formatWorkspaceDisplayStatus } from "@/lib/workspace-host";
+import type { ManagedUser, UserRole } from "@/lib/user-management-data";
+import { defaultAllowedViewsForRoles, primaryUserRole } from "@/lib/user-management-data";
 
 function requirePlatformUsersSupabase() {
   if (!isSupabaseConfigured()) {
@@ -390,6 +392,81 @@ export async function loginPlatformUser(
   }
 
   return session;
+}
+
+function mapWorkspaceRoleToUserRole(role: string | null | undefined, isOwner: boolean): UserRole {
+  if (isOwner) return "Admin";
+  const normalized = String(role ?? "").toLowerCase();
+  if (normalized === "owner" || normalized === "admin") return "Admin";
+  if (normalized === "manager") return "Manager";
+  if (normalized === "exec") return "Exec";
+  return "Associate";
+}
+
+/**
+ * Customer-workspace internal users list (platform_users ∩ workspace_users).
+ * Used by Tools → Users on corpcentre and other customer tenants — not the global
+ * Unit311 `internal_operators` catalogue.
+ */
+export async function listWorkspaceTenantUsers(workspaceId: string): Promise<ManagedUser[]> {
+  if (!isSupabaseConfigured()) {
+    throw new Error("Supabase is not configured");
+  }
+  const supabase = createSupabaseServerClient();
+
+  const { data: memberships, error: membershipError } = await supabase
+    .from("workspace_users")
+    .select("user_id, role, is_owner")
+    .eq("workspace_id", workspaceId);
+  if (membershipError) throw new Error(membershipError.message);
+
+  const userIds = (memberships ?? [])
+    .map((row) => String(row.user_id ?? ""))
+    .filter(Boolean);
+  if (userIds.length === 0) return [];
+
+  const { data: users, error: usersError } = await supabase
+    .from("platform_users")
+    .select("id, username, display_name, email, is_active, user_type, client_name")
+    .in("id", userIds)
+    .eq("workspace_id", workspaceId);
+  if (usersError) throw new Error(usersError.message);
+
+  const membershipByUser = new Map(
+    (memberships ?? []).map((row) => [String(row.user_id), row] as const),
+  );
+
+  return (users ?? [])
+    .filter((user) => user.user_type === "internal" || user.user_type === "external")
+    .map((user) => {
+      const membership = membershipByUser.get(String(user.id));
+      const role = mapWorkspaceRoleToUserRole(
+        membership?.role as string | undefined,
+        Boolean(membership?.is_owner),
+      );
+      const roles = [role];
+      const fullName = String(user.display_name || user.username || "").trim() || "User";
+      const email = String(user.email || user.username || "");
+      return {
+        id: String(user.id),
+        operatorLabel: fullName.split(/\s+/)[0] || "User",
+        fullName,
+        username: String(user.username || email),
+        email,
+        phone: "",
+        role: primaryUserRole(roles),
+        roles,
+        department: "Operations",
+        departments: ["Operations"],
+        status: user.is_active === false ? "Inactive" : "Active",
+        region: "Multi-site",
+        licenseId: "",
+        notes: user.client_name ? `Workspace member · ${user.client_name}` : "Workspace member",
+        allowedViews: defaultAllowedViewsForRoles(roles),
+        dashboardPrefs: null,
+      } satisfies ManagedUser;
+    })
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
 }
 
 export type { PlatformSession, PlatformUserRecord };
