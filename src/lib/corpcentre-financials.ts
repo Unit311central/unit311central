@@ -8,6 +8,10 @@ export const CORPCENTRE_WORKSPACE_SLUGS = new Set(["corpcentre", "corporatecentr
 /** Canonical current cash on hand for CorpCentre (AUD). */
 export const CORPCENTRE_CASH_BALANCE_AUD = 2_000_000;
 
+/** Canonical calendar-year professional services revenue seed for CorpCentre (AUD). */
+export const CORPCENTRE_REVENUE_YEAR = 2025;
+export const CORPCENTRE_REVENUE_AUD = 2_000_000;
+
 /**
  * Split across Sydney bank accounts (Corporate → Banks).
  * Totals must equal {@link CORPCENTRE_CASH_BALANCE_AUD}.
