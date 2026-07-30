@@ -11,7 +11,8 @@ import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase
 import { resolveWorkspaceOnboardingRedirectForUser } from "@/lib/workspace-customer-onboarding-service";
 import { formatWorkspaceDisplayStatus } from "@/lib/workspace-host";
 import type { ManagedUser, UserRole } from "@/lib/user-management-data";
-import { defaultAllowedViewsForRoles, primaryUserRole } from "@/lib/user-management-data";
+import { primaryUserRole } from "@/lib/user-management-data";
+import { defaultAllowedViewsForRoles } from "@/lib/access-presets";
 
 function requirePlatformUsersSupabase() {
   if (!isSupabaseConfigured()) {
