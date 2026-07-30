@@ -14,6 +14,7 @@ import {
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import type { JournalEntry, LedgerAccount, TrialBalanceRow } from "@/lib/accounting/types";
 import { centralLoginUrl } from "@/lib/app-domains";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { cn } from "@/lib/utils";
 
 type Totals = {
@@ -71,6 +72,10 @@ export default function GeneralLedgerWorkspace() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [selectedJournalId, setSelectedJournalId] = useState<string | null>(null);
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+
+  const reportingCurrency = isBrowserCorpCentreSurface() ? "AUD" : "GBP";
+  const money = (amount: number, _currency?: string | null) =>
+    formatMoney(amount, reportingCurrency);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -297,7 +302,7 @@ export default function GeneralLedgerWorkspace() {
                 {card.label}
               </p>
               <p className="mt-1 text-lg font-semibold tabular-nums text-white">
-                {formatMoney(card.value)}
+                {money(card.value)}
               </p>
             </div>
           ))}
@@ -497,7 +502,7 @@ export default function GeneralLedgerWorkspace() {
                                 {journal.description || "—"}
                               </span>
                               <span className="text-xs tabular-nums text-white/80">
-                                {formatMoney(journal.debitTotal)}
+                                {money(journal.debitTotal)}
                               </span>
                               <span className="text-xs font-semibold uppercase text-emerald-200/90">
                                 {journal.status}
@@ -532,8 +537,8 @@ export default function GeneralLedgerWorkspace() {
                               <p>
                                 Totals:{" "}
                                 <span className="tabular-nums text-white/80">
-                                  Dr {formatMoney(journal.debitTotal)} / Cr{" "}
-                                  {formatMoney(journal.creditTotal)}
+                                  Dr {money(journal.debitTotal)} / Cr{" "}
+                                  {money(journal.creditTotal)}
                                 </span>
                               </p>
                             </div>
@@ -552,10 +557,10 @@ export default function GeneralLedgerWorkspace() {
                                     ) : null}
                                   </span>
                                   <span className="text-right tabular-nums">
-                                    {line.debit ? formatMoney(line.debit) : "—"}
+                                    {line.debit ? money(line.debit) : "—"}
                                   </span>
                                   <span className="text-right tabular-nums">
-                                    {line.credit ? formatMoney(line.credit) : "—"}
+                                    {line.credit ? money(line.credit) : "—"}
                                   </span>
                                 </div>
                               ))
@@ -666,10 +671,10 @@ export default function GeneralLedgerWorkspace() {
                                 ) : null}
                               </td>
                               <td className="px-3 py-2 text-right tabular-nums text-white/80">
-                                {line.debit ? formatMoney(line.debit) : "—"}
+                                {line.debit ? money(line.debit) : "—"}
                               </td>
                               <td className="px-3 py-2 text-right tabular-nums text-white/80">
-                                {line.credit ? formatMoney(line.credit) : "—"}
+                                {line.credit ? money(line.credit) : "—"}
                               </td>
                             </tr>
                           ))
@@ -684,7 +689,7 @@ export default function GeneralLedgerWorkspace() {
                         Debit Total
                       </p>
                       <p className="mt-1 text-base font-semibold tabular-nums text-white">
-                        {formatMoney(selectedJournal.debitTotal)}
+                        {money(selectedJournal.debitTotal)}
                       </p>
                     </div>
                     <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-3 py-3">
@@ -692,7 +697,7 @@ export default function GeneralLedgerWorkspace() {
                         Credit Total
                       </p>
                       <p className="mt-1 text-base font-semibold tabular-nums text-white">
-                        {formatMoney(selectedJournal.creditTotal)}
+                        {money(selectedJournal.creditTotal)}
                       </p>
                     </div>
                   </div>
@@ -725,7 +730,7 @@ export default function GeneralLedgerWorkspace() {
                     {selectedAccount.code} · {selectedAccount.name}
                   </h3>
                   <p className="mt-0.5 text-xs text-white/50">
-                    Balance {formatMoney(selectedAccount.balance, selectedAccount.currency ?? "USD")}
+                    Balance {money(selectedAccount.balance, selectedAccount.currency)}
                     {" · "}
                     {selectedAccount.transactionCount} transaction
                     {selectedAccount.transactionCount === 1 ? "" : "s"}
@@ -773,10 +778,10 @@ export default function GeneralLedgerWorkspace() {
                             {sourceLabel(tx.sourceType)}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-white/85">
-                            {tx.debit ? formatMoney(tx.debit) : "—"}
+                            {tx.debit ? money(tx.debit) : "—"}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-white/85">
-                            {tx.credit ? formatMoney(tx.credit) : "—"}
+                            {tx.credit ? money(tx.credit) : "—"}
                           </td>
                           <td className="px-4 py-2">
                             <button
@@ -824,7 +829,7 @@ export default function GeneralLedgerWorkspace() {
                       <td className="px-4 py-2 text-white">{account.name}</td>
                       <td className="px-4 py-2 capitalize text-white/55">{account.type}</td>
                       <td className="px-4 py-2 text-right font-mono text-white/85">
-                        {formatMoney(account.balance, account.currency ?? "USD")}
+                        {money(account.balance, account.currency)}
                       </td>
                       <td className="px-4 py-2 text-right tabular-nums text-white/70">
                         {account.transactionCount}
@@ -855,7 +860,7 @@ export default function GeneralLedgerWorkspace() {
                 difference === 0 ? "text-emerald-300" : "text-rose-300",
               )}
             >
-              {formatMoney(difference)}
+              {money(difference)}
             </span>
           </div>
           {trialRows.length === 0 ? (
@@ -880,13 +885,13 @@ export default function GeneralLedgerWorkspace() {
                         {row.code} · {row.name}
                       </td>
                       <td className="px-4 py-2 text-right font-mono text-white/80">
-                        {row.debit ? formatMoney(row.debit) : "—"}
+                        {row.debit ? money(row.debit) : "—"}
                       </td>
                       <td className="px-4 py-2 text-right font-mono text-white/80">
-                        {row.credit ? formatMoney(row.credit) : "—"}
+                        {row.credit ? money(row.credit) : "—"}
                       </td>
                       <td className="px-4 py-2 text-right font-mono text-white/80">
-                        {formatMoney(row.runningBalance)}
+                        {money(row.runningBalance)}
                       </td>
                     </tr>
                   ))}
@@ -895,10 +900,10 @@ export default function GeneralLedgerWorkspace() {
                   <tr className="border-t border-white/10 bg-black/20 text-sm font-semibold text-white">
                     <td className="px-4 py-3">Totals</td>
                     <td className="px-4 py-3 text-right font-mono">
-                      {formatMoney(trialDebitTotal)}
+                      {money(trialDebitTotal)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
-                      {formatMoney(trialCreditTotal)}
+                      {money(trialCreditTotal)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-white/50">—</td>
                   </tr>
