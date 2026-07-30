@@ -237,7 +237,7 @@ export function buildCorpCentrePerformanceReviews(): HrPerformanceReview[] {
       role: ELIAS.role,
       managerName: DANIEL.name,
       reviewPeriod: "H1 2026",
-      status: "awaiting_manager",
+      status: "submitted",
       overallRating: 4,
       strengths: "Reliable endpoint support and client-facing calm under pressure.",
       areasForImprovement: "Document runbooks for recurring incidents.",
