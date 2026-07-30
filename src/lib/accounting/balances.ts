@@ -2,6 +2,10 @@ import { ACCOUNT_CODES } from "@/lib/accounting/chart-of-accounts";
 import { listAccounts } from "@/lib/accounting/journal-service";
 import type { TrialBalanceRow } from "@/lib/accounting/types";
 import {
+  CORPCENTRE_CASH_BALANCE_AUD,
+  isCorpCentreWorkspaceSlug,
+} from "@/lib/corpcentre-financials";
+import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
@@ -119,14 +123,31 @@ export async function getTypeTotals(scope?: FinancialsWorkspaceScope) {
     accounts.filter((a) => a.type === "equity").reduce((sum, a) => sum + a.balance, 0),
   );
 
+  const glCash = roundMoney(
+    (await getAccountBalanceByCode(ACCOUNT_CODES.wiseUsd, workspaceScope)) +
+      (await getAccountBalanceByCode(ACCOUNT_CODES.wiseGbp, workspaceScope)) +
+      (await getAccountBalanceByCode(ACCOUNT_CODES.wiseEur, workspaceScope)),
+  );
+
+  let cashPosition = glCash;
+  try {
+    const supabase = requireSupabase();
+    const { data: workspace } = await supabase
+      .from("workspaces")
+      .select("slug")
+      .eq("id", workspaceScope.workspaceId)
+      .maybeSingle();
+    if (isCorpCentreWorkspaceSlug(String(workspace?.slug ?? ""))) {
+      cashPosition = CORPCENTRE_CASH_BALANCE_AUD;
+    }
+  } catch {
+    /* keep GL cash */
+  }
+
   return {
     ...totals,
     netProfit: roundMoney(totals.income - totals.expenses),
-    cashPosition: roundMoney(
-      (await getAccountBalanceByCode(ACCOUNT_CODES.wiseUsd, workspaceScope)) +
-        (await getAccountBalanceByCode(ACCOUNT_CODES.wiseGbp, workspaceScope)) +
-        (await getAccountBalanceByCode(ACCOUNT_CODES.wiseEur, workspaceScope)),
-    ),
+    cashPosition,
     accountsReceivable: await getAccountBalanceByCode(
       ACCOUNT_CODES.accountsReceivable,
       workspaceScope,

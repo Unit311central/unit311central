@@ -15,6 +15,7 @@ import type {
   CorporateShareholder,
 } from "@/lib/corporate-data";
 import { daysUntil, isWithinDays } from "@/lib/corporate-data";
+import { CORPCENTRE_BANK_BALANCES_AUD } from "@/lib/corpcentre-financials";
 
 type Listener = () => void;
 
@@ -108,12 +109,13 @@ function seedCorpCentreState(): CorporateMockState {
       accountType: "Current",
       status: "active",
       primary: true,
+      balance: CORPCENTRE_BANK_BALANCES_AUD.cbaOperating,
       iban: "",
       swift: "CTBAAU2S",
       routing: "062-000",
       branch: "Sydney Martin Place",
       accountHolder: "CorpCentre Pty Ltd",
-      notes: "Primary operating account · Sydney CBD · BSB 062-000 · Acc 10234589",
+      notes: "Primary operating account · Sydney CBD · BSB 062-000 · Acc 10234589 · AU$1.20M",
     },
     {
       id: "cc-bank-westpac",
@@ -124,12 +126,13 @@ function seedCorpCentreState(): CorporateMockState {
       accountType: "Current",
       status: "active",
       primary: false,
+      balance: CORPCENTRE_BANK_BALANCES_AUD.westpacReceipts,
       iban: "",
       swift: "WPACAU2S",
       routing: "032-000",
       branch: "Sydney George Street",
       accountHolder: "CorpCentre Pty Ltd",
-      notes: "Client invoicing · Sydney · BSB 032-000 · Acc 44812203",
+      notes: "Client invoicing · Sydney · BSB 032-000 · Acc 44812203 · AU$450k",
     },
     {
       id: "cc-bank-anz",
@@ -140,12 +143,13 @@ function seedCorpCentreState(): CorporateMockState {
       accountType: "Savings",
       status: "active",
       primary: false,
+      balance: CORPCENTRE_BANK_BALANCES_AUD.anzTreasury,
       iban: "",
       swift: "ANZBAU3M",
       routing: "012-003",
       branch: "Sydney Pitt Street",
       accountHolder: "CorpCentre Pty Ltd",
-      notes: "Cash reserve · Sydney · BSB 012-003 · Acc 77301194",
+      notes: "Cash reserve · Sydney · BSB 012-003 · Acc 77301194 · AU$350k",
     },
   ];
 
@@ -1030,7 +1034,8 @@ function ensureState(): CorporateMockState {
         require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
       if (
         isBrowserCorpCentreSurface() &&
-        state.banks.some((bank) => /unit311|nakama/i.test(`${bank.accountName} ${bank.accountHolder}`))
+        (state.banks.some((bank) => /unit311|nakama/i.test(`${bank.accountName} ${bank.accountHolder}`)) ||
+          state.banks.every((bank) => bank.balance == null))
       ) {
         state = seedState();
         seededHost = hostKey;
@@ -1154,6 +1159,7 @@ export function upsertBankAccount(input: Partial<CorporateBankAccount> & { id?: 
     branch: input.branch ?? existing?.branch ?? "",
     accountHolder: input.accountHolder ?? existing?.accountHolder ?? "Nakama Ventures SL",
     notes: input.notes ?? existing?.notes ?? "",
+    balance: input.balance !== undefined ? input.balance : (existing?.balance ?? null),
   };
   state = {
     ...state,

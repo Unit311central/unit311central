@@ -3,6 +3,7 @@ import {
   isClientPreActiveStatus,
   type ManagedClient,
 } from "@/lib/client-management-data";
+import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import { inferExpenseCategory, type FinancialExpense } from "@/lib/expenses-data";
 
 export const CRM_DASHBOARD_TILES: DashboardTileDefinition[] = [
@@ -142,21 +143,9 @@ export function buildFinancialsDashboardCatalog(
     };
   } | null,
 ): DashboardTileDefinition[] {
-  const money = (value: number) =>
-    new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: "GBP",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
-
-  const burnMoney = (value: number, currency = "GBP") =>
-    new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
+  const currency = overview?.burnRate?.currency || "GBP";
+  const money = (value: number) => formatMoney(value, currency);
+  const burnMoney = (value: number, code = currency) => formatMoney(value, code);
 
   if (!overview) return FINANCIALS_DASHBOARD_TILES;
 

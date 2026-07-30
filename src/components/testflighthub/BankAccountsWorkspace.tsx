@@ -16,6 +16,7 @@ import {
   markPrimaryBankAccount,
   upsertBankAccount,
 } from "@/lib/corporate-mock-store";
+import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import { useCorporateMockStore } from "./useCorporateMockStore";
 import {
   CorporateFieldLabel,
@@ -27,7 +28,7 @@ import {
   corporateSecondaryButtonClass,
 } from "./corporate-ui";
 
-const CURRENCIES = ["EUR", "GBP", "USD", "CHF", "SEK", "NOK", "DKK"] as const;
+const CURRENCIES = ["AUD", "EUR", "GBP", "USD", "CHF", "SEK", "NOK", "DKK"] as const;
 
 type BankFormState = {
   id?: string;
@@ -169,6 +170,14 @@ function BankDetailPanel({
             <Info label="Branch" value={account.branch} />
             <Info label="Country" value={account.country} />
             <Info label="Account type" value={account.accountType} />
+            <Info
+              label="Balance"
+              value={
+                account.balance != null
+                  ? formatMoney(Number(account.balance) || 0, account.currency)
+                  : "—"
+              }
+            />
             <div className="sm:col-span-2">
               <Info label="Notes" value={account.notes || "No notes recorded."} />
             </div>
@@ -238,9 +247,13 @@ export default function BankAccountsWorkspace() {
   }, [store.banks, search, statusFilter, currencyFilter, countryFilter]);
 
   const activeCount = store.banks.filter((b) => b.status === "active").length;
-  const currencyCount = new Set(store.banks.map((b) => b.currency)).size;
   const primaryAccount = store.banks.find((b) => b.primary);
   const reviewCount = store.banks.filter((b) => b.status === "review").length;
+  const cashOnHand = store.banks.reduce((sum, bank) => sum + (Number(bank.balance) || 0), 0);
+  const cashCurrency =
+    store.banks.find((bank) => bank.balance != null)?.currency ||
+    primaryAccount?.currency ||
+    "AUD";
 
   const selected = store.banks.find((b) => b.id === selectedId) ?? null;
 
@@ -296,7 +309,11 @@ export default function BankAccountsWorkspace() {
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <CorporateKpiTile label="Bank Accounts" value={store.banks.length} />
         <CorporateKpiTile label="Active" value={activeCount} />
-        <CorporateKpiTile label="Currencies" value={currencyCount} hint="Multi-currency register" />
+        <CorporateKpiTile
+          label="Cash on hand"
+          value={cashOnHand > 0 ? formatMoney(cashOnHand, cashCurrency) : "—"}
+          hint="Sum of account balances"
+        />
         <CorporateKpiTile
           label="Primary Account"
           value={primaryAccount?.currency ?? "—"}
@@ -394,6 +411,7 @@ export default function BankAccountsWorkspace() {
               <tr className="border-b border-white/10 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
                 <th className="px-4 py-3">Bank</th>
                 <th className="px-4 py-3">Account Name</th>
+                <th className="px-4 py-3">Balance</th>
                 <th className="px-4 py-3">Currency</th>
                 <th className="px-4 py-3">Country</th>
                 <th className="px-4 py-3">Account Type</th>
@@ -405,7 +423,7 @@ export default function BankAccountsWorkspace() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-white/45">
+                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-white/45">
                     No bank accounts match this filter.
                   </td>
                 </tr>
@@ -414,6 +432,11 @@ export default function BankAccountsWorkspace() {
                   <tr key={account.id} className="border-b border-white/8 text-white/85">
                     <td className="px-4 py-3 font-medium text-white">{account.bank}</td>
                     <td className="px-4 py-3">{account.accountName}</td>
+                    <td className="px-4 py-3 tabular-nums text-white">
+                      {account.balance != null
+                        ? formatMoney(Number(account.balance) || 0, account.currency)
+                        : "—"}
+                    </td>
                     <td className="px-4 py-3 tabular-nums">{account.currency}</td>
                     <td className="px-4 py-3">{account.country}</td>
                     <td className="px-4 py-3">{account.accountType}</td>

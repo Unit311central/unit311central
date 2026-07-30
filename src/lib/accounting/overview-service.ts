@@ -8,6 +8,10 @@ import { buildBurnRateSnapshot } from "@/lib/accounting/burn-rate";
 import { getOperatingObligations } from "@/lib/accounting/operating-obligations";
 import { listInvoices } from "@/lib/accounting/invoices-service";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
+import {
+  CORPCENTRE_CASH_BALANCE_AUD,
+  isCorpCentreWorkspaceSlug,
+} from "@/lib/corpcentre-financials";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import {
   resolveFinancialsWorkspaceId,
@@ -48,7 +52,7 @@ async function resolveReportingCurrency(workspaceId: string): Promise<string> {
     const slug = String(workspace?.slug ?? "")
       .trim()
       .toLowerCase();
-    if (slug === "corpcentre" || slug === "corporatecentre") {
+    if (isCorpCentreWorkspaceSlug(slug)) {
       return "AUD";
     }
 
@@ -62,6 +66,26 @@ async function resolveReportingCurrency(workspaceId: string): Promise<string> {
     /* fall through */
   }
   return FINANCIAL_REPORTING_CURRENCY;
+}
+
+async function resolveWorkspaceSlug(workspaceId: string): Promise<string> {
+  try {
+    const { createSupabaseServiceRoleClient, isSupabaseServiceRoleConfigured } =
+      await import("@/lib/supabase/server");
+    const supabase = isSupabaseServiceRoleConfigured()
+      ? createSupabaseServiceRoleClient()
+      : createSupabaseServerClient();
+    const { data } = await supabase
+      .from("workspaces")
+      .select("slug")
+      .eq("id", workspaceId)
+      .maybeSingle();
+    return String(data?.slug ?? "")
+      .trim()
+      .toLowerCase();
+  } catch {
+    return "";
+  }
 }
 
 function convertToReportingCurrency(amount: number, fromCurrency: string, reporting: string) {
@@ -293,10 +317,16 @@ export async function getFinancialOverview(
     const allExpenses = expensesResult.ok ? expensesResult.value : [];
 
     // Resolve after GL so we can fall back to Wise GL accounts if Wise API is down.
-    // resolveTreasuryCash is GBP-normalized; convert into workspace reporting currency.
-    let cashPosition = await resolveTreasuryCash(totals.cashPosition);
-    if (reportingCurrency !== "GBP") {
-      cashPosition = convertToReportingCurrency(cashPosition, "GBP", reportingCurrency);
+    // CorpCentre uses a fixed AUD cash position (not platform Wise / GBP conversion).
+    const workspaceSlug = await resolveWorkspaceSlug(workspaceId);
+    let cashPosition: number;
+    if (isCorpCentreWorkspaceSlug(workspaceSlug)) {
+      cashPosition = CORPCENTRE_CASH_BALANCE_AUD;
+    } else {
+      cashPosition = await resolveTreasuryCash(totals.cashPosition);
+      if (reportingCurrency !== "GBP") {
+        cashPosition = convertToReportingCurrency(cashPosition, "GBP", reportingCurrency);
+      }
     }
 
     if (

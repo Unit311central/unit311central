@@ -188,9 +188,11 @@ export async function buildBusinessSnapshot(
   }
 
   const cashPosition =
-    wiseCash?.ok && wiseCash.totalGbp > 0
-      ? wiseCash.totalGbp
-      : financialOverview?.cashPosition ?? wiseCash?.totalGbp ?? null;
+    financialOverview?.cashPosition != null
+      ? financialOverview.cashPosition
+      : wiseCash?.ok && wiseCash.totalGbp > 0
+        ? wiseCash.totalGbp
+        : wiseCash?.totalGbp ?? null;
 
   const physicalAssets: Array<{
     operationalStatus: string;
@@ -246,12 +248,17 @@ export async function buildBusinessSnapshot(
               ? unpaidExpenses.length
               : null,
             cashPosition,
-            reportingCurrency: FINANCIAL_REPORTING_CURRENCY,
+            reportingCurrency:
+              financialOverview?.burnRate?.currency || FINANCIAL_REPORTING_CURRENCY,
             wiseBalances: wiseCash?.balances ?? null,
             wiseConnected: wiseCash?.connected ?? null,
             revenueYtd: financialOverview?.revenueYtd ?? null,
             netProfit: financialOverview?.netProfit ?? null,
             monthlyBurn: financialOverview?.burnRate.monthly ?? null,
+            previousMonthlyBurn: financialOverview?.burnRate.previousMonthly ?? null,
+            runwayMonths: financialOverview?.burnRate.runwayMonths ?? null,
+            burnTrendLabel: financialOverview?.burnRate.trendLabel ?? null,
+            monthlyPayroll: financialOverview?.payroll.monthly ?? null,
             physicalAssetCount: want("assets") ? physicalAssets.length : null,
           },
     assets: want("assets")

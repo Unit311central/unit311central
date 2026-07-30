@@ -19,6 +19,8 @@ export type CorporateBankAccount = {
   accountType: (typeof CORPORATE_BANK_ACCOUNT_TYPES)[number];
   status: CorporateBankStatus;
   primary: boolean;
+  /** Optional ledger balance in account currency (CorpCentre cash fixtures). */
+  balance?: number | null;
   iban: string;
   swift: string;
   routing: string;
