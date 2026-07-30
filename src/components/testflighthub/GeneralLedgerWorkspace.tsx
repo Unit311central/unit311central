@@ -225,14 +225,23 @@ export default function GeneralLedgerWorkspace() {
       ? journals.find((journal) => journal.id === selectedJournalId) ?? null
       : null;
 
-  const cards = [
-    { label: "Assets", value: totals?.assets ?? 0 },
-    { label: "Liabilities", value: totals?.liabilities ?? 0 },
-    { label: "Equity", value: totals?.equity ?? 0 },
-    { label: "Income", value: totals?.income ?? 0 },
-    { label: "Expenses", value: totals?.expenses ?? 0 },
-    { label: "Net Profit", value: totals?.netProfit ?? 0 },
-  ];
+  const isCorpCentre = isBrowserCorpCentreSurface();
+  const cards = (
+    isCorpCentre
+      ? [
+          { label: "Income", value: totals?.income ?? 0 },
+          { label: "Expenses", value: totals?.expenses ?? 0 },
+          { label: "Net Profit", value: totals?.netProfit ?? 0 },
+        ]
+      : [
+          { label: "Assets", value: totals?.assets ?? 0 },
+          { label: "Liabilities", value: totals?.liabilities ?? 0 },
+          { label: "Equity", value: totals?.equity ?? 0 },
+          { label: "Income", value: totals?.income ?? 0 },
+          { label: "Expenses", value: totals?.expenses ?? 0 },
+          { label: "Net Profit", value: totals?.netProfit ?? 0 },
+        ]
+  );
 
   const trialDebitTotal = trialRows.reduce((sum, row) => sum + row.debit, 0);
   const trialCreditTotal = trialRows.reduce((sum, row) => sum + row.credit, 0);
@@ -292,7 +301,12 @@ export default function GeneralLedgerWorkspace() {
           </button>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <div
+          className={cn(
+            "mt-4 grid gap-3 sm:grid-cols-2",
+            cards.length <= 3 ? "xl:grid-cols-3" : "xl:grid-cols-6",
+          )}
+        >
           {cards.map((card) => (
             <div
               key={card.label}
