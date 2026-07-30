@@ -28,10 +28,11 @@ import type { PlanViewerModel } from "@/lib/ai-operating-assistant/actions/plann
 import type { ActionConfirmationView } from "@/components/executive-assistant/ActionConfirmationCard";
 import { requestShowMeAround } from "@/components/executive-assistant/GuidedLearningProvider";
 import {
-  HOME_SUGGESTED_ACTIONS,
+  getHomeSuggestedActions,
   resolveExecutiveAssistantContext,
   type ExecutiveAssistantVariant,
 } from "@/lib/executive-assistant-ui";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { cn } from "@/lib/utils";
 import {
   fetchCachedJson,
@@ -191,6 +192,22 @@ export default function ExecutiveAssistantPanel({
   seedAction = null,
   onSeedConsumed,
 }: ExecutiveAssistantPanelProps) {
+  const [isCorpCentreMobileSheet, setIsCorpCentreMobileSheet] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!isBrowserCorpCentreSurface()) {
+      setIsCorpCentreMobileSheet(false);
+      return;
+    }
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setIsCorpCentreMobileSheet(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const effectiveHideSidebar = hideSidebar || isCorpCentreMobileSheet;
+
   const [message, setMessage] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -232,7 +249,7 @@ export default function ExecutiveAssistantPanel({
     [activeView, mode],
   );
   const isPage = variant === "page" || variant === "home";
-  const suggested = isPage ? HOME_SUGGESTED_ACTIONS : context.suggestedPrompts;
+  const suggested = isPage ? getHomeSuggestedActions() : context.suggestedPrompts;
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -1006,7 +1023,7 @@ export default function ExecutiveAssistantPanel({
         className,
       )}
     >
-      {hideSidebar ? null : sidebar}
+      {effectiveHideSidebar ? null : sidebar}
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div
@@ -1535,7 +1552,8 @@ export default function ExecutiveAssistantPanel({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[60] flex justify-end",
+        "fixed inset-0 z-[60] flex",
+        isCorpCentreMobileSheet ? "items-end justify-center" : "justify-end",
         open ? "pointer-events-auto" : "pointer-events-none",
       )}
       aria-hidden={!open}
@@ -1552,13 +1570,26 @@ export default function ExecutiveAssistantPanel({
       />
       <aside
         className={cn(
-          "relative flex h-full w-full max-w-[720px] border-l border-white/10 transition-transform duration-300 ease-out",
-          open ? "translate-x-0" : "translate-x-full",
+          "relative flex w-full border-white/10 transition-transform duration-300 ease-out",
+          isCorpCentreMobileSheet
+            ? cn(
+                "h-[min(90dvh,720px)] max-w-none flex-col rounded-t-2xl border-t border-x safe-area-pb",
+                open ? "translate-y-0" : "translate-y-full",
+              )
+            : cn(
+                "h-full max-w-[720px] border-l",
+                open ? "translate-x-0" : "translate-x-full",
+              ),
         )}
         role="dialog"
         aria-modal="true"
         aria-label="Executive Assistant"
       >
+        {isCorpCentreMobileSheet ? (
+          <div className="flex shrink-0 justify-center pb-1 pt-2" aria-hidden>
+            <span className="h-1 w-10 rounded-full bg-white/25" />
+          </div>
+        ) : null}
         {panelBody}
       </aside>
     </div>

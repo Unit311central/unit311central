@@ -15,7 +15,11 @@ import {
   type InternalNavSection,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
-import { isViewAllowedForGrants } from "@/lib/internal-role-views";
+import {
+  filterInternalNavSectionsForCorpCentreWorkspace,
+  isViewAllowedForGrants,
+} from "@/lib/internal-role-views";
+import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
 
 export type ApplicationCataloguePage = {
   id: string;
@@ -217,9 +221,35 @@ function moduleFromSection(section: InternalNavSection): ApplicationCatalogueMod
 }
 
 let cachedModules: ApplicationCatalogueModule[] | null = null;
+let cachedCorpCentreModules: ApplicationCatalogueModule[] | null = null;
+
+export type ApplicationCatalogueOptions = {
+  workspaceSlug?: string | null;
+};
+
+function navSectionsForSurface(workspaceSlug?: string | null): readonly InternalNavSection[] {
+  if (isCorpCentreWorkspaceSlug(workspaceSlug)) {
+    return filterInternalNavSectionsForCorpCentreWorkspace(internalSurveyNavSections);
+  }
+  return internalSurveyNavSections;
+}
 
 /** Build / return the live Application Catalogue from platform navigation. */
-export function listPlatformModules(): ApplicationCatalogueModule[] {
+export function listPlatformModules(
+  options?: ApplicationCatalogueOptions,
+): ApplicationCatalogueModule[] {
+  const corp = isCorpCentreWorkspaceSlug(options?.workspaceSlug);
+  if (corp) {
+    if (cachedCorpCentreModules) return cachedCorpCentreModules;
+    cachedCorpCentreModules = navSectionsForSurface(options?.workspaceSlug)
+      .map(moduleFromSection)
+      .filter((m): m is ApplicationCatalogueModule => Boolean(m))
+      .map((module) => ({
+        ...module,
+        description: module.description.replace(/Unit311 Central/gi, "CorpCentre"),
+      }));
+    return cachedCorpCentreModules;
+  }
   if (cachedModules) return cachedModules;
   cachedModules = internalSurveyNavSections
     .map(moduleFromSection)
@@ -238,8 +268,9 @@ function viewAllowed(
 /** Filter catalogue modules/apps/pages to the operator's granted views. */
 export function listPlatformModulesForEntitlements(
   allowedViews: readonly InternalOperationsView[] | null | undefined,
+  options?: ApplicationCatalogueOptions,
 ): ApplicationCatalogueModule[] {
-  const modules = listPlatformModules();
+  const modules = listPlatformModules(options);
   if (allowedViews == null) return modules;
 
   const filtered: ApplicationCatalogueModule[] = [];
@@ -293,11 +324,14 @@ export function listPlatformModulesForEntitlements(
   return filtered;
 }
 
-export function getPlatformModule(idOrLabel: string): ApplicationCatalogueModule | null {
+export function getPlatformModule(
+  idOrLabel: string,
+  options?: ApplicationCatalogueOptions,
+): ApplicationCatalogueModule | null {
   const key = idOrLabel.trim().toLowerCase();
   if (!key) return null;
   return (
-    listPlatformModules().find(
+    listPlatformModules(options).find(
       (m) =>
         m.id === key ||
         m.label.toLowerCase() === key ||
@@ -322,6 +356,7 @@ function scoreText(haystack: string, needle: string): number {
 export function searchApplicationCatalogue(
   query: string,
   limit = 12,
+  options?: ApplicationCatalogueOptions,
 ): Array<{ score: number; entry: ApplicationCatalogueEntry }> {
   const tokens = query
     .toLowerCase()
@@ -333,7 +368,7 @@ export function searchApplicationCatalogue(
 
   const hits: Array<{ score: number; entry: ApplicationCatalogueEntry }> = [];
 
-  for (const module of listPlatformModules()) {
+  for (const module of listPlatformModules(options)) {
     let moduleScore = 0;
     for (const token of tokens) {
       moduleScore += scoreText(module.label, token);
@@ -421,7 +456,10 @@ function formatModuleDetail(module: ApplicationCatalogueModule): string {
  * Answer platform / application-structure questions from the Application Catalogue only.
  * Never uses the Action Registry.
  */
-export function answerPlatformQuestion(message: string): PlatformQuestionAnswer | null {
+export function answerPlatformQuestion(
+  message: string,
+  options?: ApplicationCatalogueOptions,
+): PlatformQuestionAnswer | null {
   const text = message.trim();
   if (!text) return null;
   const lower = text.toLowerCase();
@@ -488,7 +526,7 @@ export function answerPlatformQuestion(message: string): PlatformQuestionAnswer 
     /\bwhat\s+is\s+in\s+(unit\s*311|the\s+platform|unit311central)\b/i.test(lower);
 
   if (isModulesList) {
-    const modules = listPlatformModules();
+    const modules = listPlatformModules(options);
     return {
       kind: "modules",
       answer: formatModuleList(modules),
@@ -507,7 +545,9 @@ export function answerPlatformQuestion(message: string): PlatformQuestionAnswer 
       .replace(/\b(module|workspace|section|area)\b/gi, "")
       .replace(/\b(unit\s*311(?:central)?|the\s+platform)\b/gi, "")
       .trim();
-    const module = getPlatformModule(raw) ?? searchApplicationCatalogue(raw, 1)[0]?.entry.module;
+    const module =
+      getPlatformModule(raw, options) ??
+      searchApplicationCatalogue(raw, 1, options)[0]?.entry.module;
     if (module) {
       return {
         kind: "module_detail",
@@ -524,7 +564,7 @@ export function answerPlatformQuestion(message: string): PlatformQuestionAnswer 
   );
   if (openMatch?.[1]) {
     const raw = openMatch[1].replace(/\b(module|workspace|page|app|application)\b/gi, "").trim();
-    const hit = searchApplicationCatalogue(raw, 1)[0];
+    const hit = searchApplicationCatalogue(raw, 1, options)[0];
     if (hit) {
       const href =
         hit.entry.kind === "module"
@@ -560,7 +600,7 @@ export function answerPlatformQuestion(message: string): PlatformQuestionAnswer 
       lower,
     );
   if (whereMatch || (locationTopic && /\b(manage|find|locate|open)\b/i.test(lower))) {
-    const hits = searchApplicationCatalogue(text, 5);
+    const hits = searchApplicationCatalogue(text, 5, options);
     if (hits.length) {
       const lines = hits.map((h) => {
         if (h.entry.kind === "module") {
@@ -593,7 +633,7 @@ export function answerPlatformQuestion(message: string): PlatformQuestionAnswer 
   }
 
   // Soft: "financials applications" / "hr apps"
-  const softModule = listPlatformModules().find((m) => {
+  const softModule = listPlatformModules(options).find((m) => {
     const names = [m.label, m.displayName, m.id, ...(MODULE_ALIASES[m.id] ?? [])];
     return names.some((n) => lower.includes(n.toLowerCase())) &&
       /\b(app|apps|application|applications|pages|views|under|inside)\b/i.test(lower);

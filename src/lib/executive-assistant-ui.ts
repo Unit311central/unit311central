@@ -2,6 +2,7 @@ import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { internalViewTitles, isInternalOperationsView } from "@/lib/internal-operations-data";
 import type { SurveyOperationsView } from "@/lib/survey-operations-mock-data";
 import { surveyViewTitles } from "@/lib/survey-operations-mock-data";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 
 export type ExecutiveAssistantVariant = "home" | "drawer" | "page";
 
@@ -16,6 +17,30 @@ const DEFAULT_PROMPTS = [
   "What needs attention?",
   "Draft an executive update",
   "Find related records",
+] as const;
+
+const CORPCENTRE_DEFAULT_PROMPTS = [
+  "Summarise this page",
+  "What needs attention today?",
+  "Draft an AU executive update",
+  "Find related client records",
+] as const;
+
+const CORPCENTRE_HOME_PROMPTS = [
+  "Review today's priorities",
+  "Summarise CRM pipeline in AUD",
+  "Explain cash position",
+  "Show open support tickets",
+  "Find client",
+  "Draft proposal",
+  "Generate project report",
+] as const;
+
+const CORPCENTRE_FINANCE_PROMPTS = [
+  "Explain cash position in AUD",
+  "Summarise expenses",
+  "Outstanding invoices",
+  "Generate finance report",
 ] as const;
 
 const CONTEXT_BY_VIEW: Partial<Record<string, ExecutiveAssistantPageContext>> = {
@@ -198,6 +223,50 @@ export const HOME_SUGGESTED_ACTIONS = [
   "Generate project report",
 ] as const;
 
+export function getHomeSuggestedActions(): readonly string[] {
+  if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) {
+    return CORPCENTRE_HOME_PROMPTS;
+  }
+  return HOME_SUGGESTED_ACTIONS;
+}
+
+function withCorpCentrePrompts(
+  context: ExecutiveAssistantPageContext,
+  activeView: string,
+): ExecutiveAssistantPageContext {
+  if (typeof window === "undefined" || !isBrowserCorpCentreSurface()) return context;
+
+  if (activeView === "home" || activeView === "executive-assistant") {
+    return { ...context, suggestedPrompts: [...CORPCENTRE_HOME_PROMPTS] };
+  }
+  if (
+    activeView === "financials" ||
+    activeView === "general-ledger" ||
+    activeView === "accounts-receivable" ||
+    activeView === "accounts-payable" ||
+    activeView === "expenses" ||
+    activeView === "financial-reports" ||
+    activeView === "bank"
+  ) {
+    return { ...context, suggestedPrompts: [...CORPCENTRE_FINANCE_PROMPTS] };
+  }
+  if (context.suggestedPrompts.some((p) => /Board Pack|€|Unit311/i.test(p))) {
+    return {
+      ...context,
+      suggestedPrompts: context.suggestedPrompts
+        .map((p) =>
+          p
+            .replace(/Create Board Pack/gi, "Explain cash position")
+            .replace(/Board pack numbers/gi, "AUD cash position")
+            .replace(/Analyse cashflow/gi, "Explain cash position in AUD")
+            .replace(/€/g, "AU$"),
+        )
+        .filter((p, index, all) => all.indexOf(p) === index),
+    };
+  }
+  return context;
+}
+
 export const GENERATE_ACTIONS = [
   "PowerPoint Report",
   "PDF Report",
@@ -220,29 +289,46 @@ export function resolveExecutiveAssistantContext(
   mode: "survey" | "internal" = "internal",
 ): ExecutiveAssistantPageContext {
   if (!activeView) {
-    return { label: "Workspace", suggestedPrompts: [...DEFAULT_PROMPTS] };
+    const defaults =
+      typeof window !== "undefined" && isBrowserCorpCentreSurface()
+        ? CORPCENTRE_DEFAULT_PROMPTS
+        : DEFAULT_PROMPTS;
+    return { label: "Workspace", suggestedPrompts: [...defaults] };
   }
 
   const mapped = CONTEXT_BY_VIEW[activeView];
-  if (mapped) return mapped;
+  if (mapped) return withCorpCentrePrompts(mapped, activeView);
 
   if (mode === "internal" && isInternalOperationsView(activeView)) {
     const meta = internalViewTitles[activeView as InternalOperationsView];
-    return {
-      label: meta.subtitle || meta.title,
-      suggestedPrompts: [...DEFAULT_PROMPTS],
-    };
+    return withCorpCentrePrompts(
+      {
+        label: meta.subtitle || meta.title,
+        suggestedPrompts: [
+          ...(typeof window !== "undefined" && isBrowserCorpCentreSurface()
+            ? CORPCENTRE_DEFAULT_PROMPTS
+            : DEFAULT_PROMPTS),
+        ],
+      },
+      activeView,
+    );
   }
 
   const surveyMeta = surveyViewTitles[activeView as SurveyOperationsView];
   if (surveyMeta) {
-    return {
-      label: surveyMeta.subtitle || surveyMeta.title,
-      suggestedPrompts: [...DEFAULT_PROMPTS],
-    };
+    return withCorpCentrePrompts(
+      {
+        label: surveyMeta.subtitle || surveyMeta.title,
+        suggestedPrompts: [...DEFAULT_PROMPTS],
+      },
+      activeView,
+    );
   }
 
-  return { label: "Workspace", suggestedPrompts: [...DEFAULT_PROMPTS] };
+  return withCorpCentrePrompts(
+    { label: "Workspace", suggestedPrompts: [...DEFAULT_PROMPTS] },
+    activeView,
+  );
 }
 
 export function greetingForNow(name: string) {

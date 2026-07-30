@@ -20,7 +20,9 @@ import {
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import { isDemoDomainHost, isInternalDomainHost } from "@/lib/app-domains";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { PLATFORM_AI_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
+import { cn } from "@/lib/utils";
 import {
   surveyViewTitles,
   type SurveyOperationsBasePath,
@@ -68,6 +70,10 @@ export default function SurveyOperationsShell({
   const [isDemoHost] = useState(() => {
     if (typeof window === "undefined") return false;
     return isDemoDomainHost(window.location.hostname);
+  });
+  const [isCorpCentre] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return isBrowserCorpCentreSurface();
   });
 
   useEffect(() => {
@@ -222,7 +228,11 @@ export default function SurveyOperationsShell({
                     aria-label="Open AI Executive Assistant"
                     aria-expanded={assistantOpen}
                     onClick={() => setAssistantOpen(true)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border px-2.5 text-[11px] font-semibold transition-colors"
+                    className={cn(
+                      "inline-flex h-9 items-center gap-1.5 rounded-xl border text-[11px] font-semibold transition-colors",
+                      isCorpCentre ? "px-2.5 lg:px-2.5" : "px-2.5",
+                      isCorpCentre && "h-10 w-10 justify-center px-0 lg:h-9 lg:w-auto lg:justify-start lg:px-2.5",
+                    )}
                     style={{
                       borderColor: "color-mix(in srgb, var(--platform-accent, #2F80ED) 40%, transparent)",
                       background: "color-mix(in srgb, var(--platform-accent, #2F80ED) 14%, transparent)",
@@ -230,14 +240,17 @@ export default function SurveyOperationsShell({
                     }}
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Assistant
+                    <span className={cn(isCorpCentre && "hidden lg:inline")}>Assistant</span>
                   </button>
                   <button
                     type="button"
                     aria-label="Tutorial"
                     aria-expanded={tutorialOpen}
                     onClick={() => setTutorialOpen(true)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 px-2.5 text-[11px] font-semibold text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white"
+                    className={cn(
+                      "inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 px-2.5 text-[11px] font-semibold text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white",
+                      isCorpCentre && "hidden lg:inline-flex",
+                    )}
                   >
                     <BookOpen className="h-3.5 w-3.5" />
                     Tutorial

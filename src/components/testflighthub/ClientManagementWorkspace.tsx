@@ -26,6 +26,10 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
+import {
+  useMobileDetailPanel,
+} from "@/components/ui/ResponsiveMasterDetail";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { ExternalLink, FolderOpen, FolderPlus, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 
 function formatFinanceMoney(amount: number, currency = "EUR") {
@@ -78,6 +82,9 @@ function inputClassName() {
 const CLIENT_EXPLORER_ROW_GRID =
   "grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_7.25rem_9.5rem] sm:items-center sm:gap-x-4 sm:gap-y-0";
 
+const CLIENT_EXPLORER_ROW_GRID_CORPCENTRE =
+  "grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_7.25rem_9.5rem] lg:items-center lg:gap-x-4 lg:gap-y-0";
+
 export default function ClientManagementWorkspace({
   onClientsChange,
 }: ClientManagementWorkspaceProps) {
@@ -102,6 +109,10 @@ export default function ClientManagementWorkspace({
   const snapshottedIdRef = useRef<string | null>(null);
   const detailSectionRef = useRef<HTMLElement>(null);
   const deepLinkedClientRef = useRef<string | null>(null);
+  const isCorpCentre =
+    typeof window !== "undefined" ? isBrowserCorpCentreSurface() : false;
+  const rowGrid = isCorpCentre ? CLIENT_EXPLORER_ROW_GRID_CORPCENTRE : CLIENT_EXPLORER_ROW_GRID;
+  const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
   const selectedClient = useMemo(
     () => clients.find((client) => client.id === selectedClientId) ?? null,
@@ -148,6 +159,10 @@ export default function ClientManagementWorkspace({
   function openClient(clientId: string) {
     setSelectedClientId(clientId);
     setDetailClientId(clientId);
+    if (isCorpCentre) {
+      openDetail();
+      return;
+    }
     window.requestAnimationFrame(() => {
       detailSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -452,7 +467,12 @@ export default function ClientManagementWorkspace({
           <WorkspaceLoadingFallback variant="list" label="Loading clients" />
         ) : (
         <div className="space-y-4">
-          <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+          <section
+            className={cn(
+              "rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6",
+              isCorpCentre && showDetail && detailClientId ? "hidden xl:block" : null,
+            )}
+          >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <p className="text-xs text-white/45">{clients.length} accounts</p>
               <button
@@ -549,8 +569,9 @@ export default function ClientManagementWorkspace({
               <div className="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-[#0b1524]/40">
                 <div
                   className={cn(
-                    CLIENT_EXPLORER_ROW_GRID,
+                    rowGrid,
                     "hidden border-b border-white/10 px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 sm:grid",
+                    isCorpCentre && "sm:hidden lg:grid",
                   )}
                 >
                   <span className="min-w-0">Client name</span>
@@ -568,7 +589,7 @@ export default function ClientManagementWorkspace({
                     <li
                       key={client.id}
                       className={cn(
-                        CLIENT_EXPLORER_ROW_GRID,
+                        rowGrid,
                         "px-4 py-3 transition-colors [content-visibility:auto] [contain-intrinsic-size:0_3.5rem]",
                         selected && "bg-sky-500/[0.06]",
                       )}
@@ -627,6 +648,18 @@ export default function ClientManagementWorkspace({
               ref={detailSectionRef}
               className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6"
             >
+                {isCorpCentre && showDetail ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeDetail();
+                      setDetailClientId(null);
+                    }}
+                    className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-white/55 transition-colors hover:text-white/80 xl:hidden"
+                  >
+                    ← Back to clients
+                  </button>
+                ) : null}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">

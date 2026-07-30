@@ -31,11 +31,18 @@ function allowedViewsFromCtx(ctx: AssistantToolExecutionContext) {
     | undefined;
 }
 
+function catalogueOptionsFromCtx(ctx: AssistantToolExecutionContext) {
+  return { workspaceSlug: ctx.business.workspace.slug };
+}
+
 function moduleVisible(
   moduleId: string,
   allowed: InternalOperationsView[] | null | undefined,
+  ctx: AssistantToolExecutionContext,
 ) {
-  return listPlatformModulesForEntitlements(allowed).some((m) => m.id === moduleId);
+  return listPlatformModulesForEntitlements(allowed, catalogueOptionsFromCtx(ctx)).some(
+    (m) => m.id === moduleId,
+  );
 }
 
 export async function listPlatformModulesTool(
@@ -43,7 +50,10 @@ export async function listPlatformModulesTool(
   ctx: AssistantToolExecutionContext,
 ) {
   void _args;
-  const modules = listPlatformModulesForEntitlements(allowedViewsFromCtx(ctx));
+  const modules = listPlatformModulesForEntitlements(
+    allowedViewsFromCtx(ctx),
+    catalogueOptionsFromCtx(ctx),
+  );
   return toolOk(
     "listPlatformModules",
     modules.map((m) => ({
@@ -59,7 +69,10 @@ export async function listPlatformModulesTool(
       pageSize: modules.length || 1,
       summary: {
         kind: "platform_modules",
-        answer: answerPlatformQuestion("What modules exist?")?.answer ?? null,
+        answer: answerPlatformQuestion(
+          "What modules exist?",
+          catalogueOptionsFromCtx(ctx),
+        )?.answer ?? null,
         note: "Application Catalogue — platform structure, not Action Registry capabilities. Filtered to operator grants.",
       },
     },
@@ -77,9 +90,9 @@ export async function searchApplicationsTool(
     return listPlatformModulesTool({}, ctx);
   }
 
-  const answered = answerPlatformQuestion(query);
+  const answered = answerPlatformQuestion(query, catalogueOptionsFromCtx(ctx));
   if (answered) {
-    const modules = (answered.modules ?? []).filter((m) => moduleVisible(m.id, allowed));
+    const modules = (answered.modules ?? []).filter((m) => moduleVisible(m.id, allowed, ctx));
     return toolOk(
       "searchApplications",
       modules.map((m) => ({
@@ -115,9 +128,12 @@ export async function searchApplicationsTool(
     );
   }
 
-  const module = getPlatformModule(query);
-  if (module && moduleVisible(module.id, allowed)) {
-    const scoped = listPlatformModulesForEntitlements(allowed).find((m) => m.id === module.id);
+  const module = getPlatformModule(query, catalogueOptionsFromCtx(ctx));
+  if (module && moduleVisible(module.id, allowed, ctx)) {
+    const scoped = listPlatformModulesForEntitlements(
+      allowed,
+      catalogueOptionsFromCtx(ctx),
+    ).find((m) => m.id === module.id);
     const visible = scoped ?? module;
     return toolOk(
       "searchApplications",
@@ -139,16 +155,19 @@ export async function searchApplicationsTool(
         pageSize: 1,
         summary: {
           kind: "module_detail",
-          answer: answerPlatformQuestion(`What is under ${visible.displayName}`)?.answer,
+          answer: answerPlatformQuestion(
+            `What is under ${visible.displayName}`,
+            catalogueOptionsFromCtx(ctx),
+          )?.answer,
         },
       },
     );
   }
 
   const allowedIds = new Set(
-    listPlatformModulesForEntitlements(allowed).map((m) => m.id),
+    listPlatformModulesForEntitlements(allowed, catalogueOptionsFromCtx(ctx)).map((m) => m.id),
   );
-  const hits = searchApplicationCatalogue(query, 10).filter((h) =>
+  const hits = searchApplicationCatalogue(query, 10, catalogueOptionsFromCtx(ctx)).filter((h) =>
     allowedIds.has(h.entry.module.id),
   );
   return toolOk(

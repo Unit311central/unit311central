@@ -6,6 +6,7 @@ import { ChevronRight, Loader2, Pin, Zap } from "lucide-react";
 import ExecutiveAssistantPanel from "@/components/executive-assistant/ExecutiveAssistantPanel";
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 import type { AssistantFollowUpAction } from "@/lib/ai-operating-assistant/tool-result";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { cn } from "@/lib/utils";
 
 type ProactiveBundle = {
@@ -25,6 +26,15 @@ const QUICK_PROMPTS = [
   "Review today's priorities",
   "Summarise cash and AR",
   "What changed overnight?",
+] as const;
+
+const CORPCENTRE_QUICK_PROMPTS = [
+  "Chase overdue invoices",
+  "Log an expense of AU$85 for client lunch",
+  "Schedule a follow-up meeting tomorrow at 10am",
+  "Review today's priorities",
+  "Explain cash position in AUD",
+  "What needs attention today?",
 ] as const;
 
 const PINNED_CONVERSATIONS = [
@@ -211,7 +221,10 @@ export default function ExecutiveOperatingCentre() {
         <section className={cardClass("flex min-h-0 flex-1 flex-col")}>
           <SectionLabel>Quick Prompts</SectionLabel>
           <div className="flex flex-wrap gap-1.5">
-            {QUICK_PROMPTS.map((prompt) => (
+            {(typeof window !== "undefined" && isBrowserCorpCentreSurface()
+              ? CORPCENTRE_QUICK_PROMPTS
+              : QUICK_PROMPTS
+            ).map((prompt) => (
               <button
                 key={prompt}
                 type="button"

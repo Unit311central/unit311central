@@ -151,7 +151,7 @@ export function filterInternalNavSectionsByGrants(
 }
 
 const DEMO_HIDDEN_VIEWS = new Set<InternalOperationsView>(["testing", "telemetry"]);
-const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
+export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "testing",
   "telemetry",
   "unit311-details",
@@ -174,12 +174,12 @@ const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "corporate-bank-accounts",
 ]);
 
-const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
+export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
   "QMS",
   "External Client Access",
 ]);
 
-const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
+export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
   "Unit311 Details",
   "Website Management",
   "Billing",
@@ -190,6 +190,38 @@ const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
   "Connections",
   "Bank Accounts",
 ]);
+
+/** Server-safe CorpCentre nav filter (no window). */
+export function filterInternalNavSectionsForCorpCentreWorkspace(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  return sections
+    .map((section) => {
+      if (section.label && CORPCENTRE_HIDDEN_SECTION_LABELS.has(section.label)) {
+        return { ...section, items: [] as typeof section.items };
+      }
+      return {
+        ...section,
+        items: section.items
+          .map((item) => {
+            if (item.view && CORPCENTRE_HIDDEN_VIEWS.has(item.view)) return null;
+            if (CORPCENTRE_HIDDEN_ITEM_LABELS.has(item.label)) return null;
+            if (item.children?.length) {
+              const children = item.children.filter((child) => {
+                if (child.view && CORPCENTRE_HIDDEN_VIEWS.has(child.view)) return false;
+                if (CORPCENTRE_HIDDEN_ITEM_LABELS.has(child.label)) return false;
+                return true;
+              });
+              if (children.length === 0 && !item.view && !item.href) return null;
+              return { ...item, children };
+            }
+            return item;
+          })
+          .filter((item): item is NonNullable<typeof item> => item != null),
+      };
+    })
+    .filter((section) => section.items.length > 0);
+}
 
 function shouldHideDroneToolNavViews(): boolean {
   if (typeof window === "undefined") return false;

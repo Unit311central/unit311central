@@ -24,6 +24,7 @@ import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import { FolderKanban, Loader2, Plus, Trash2, X } from "lucide-react";
+import { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 
 import ProjectDetailWorkspace from "./ProjectDetailWorkspace";
 import ProjectsDashboardStrip from "./ProjectsDashboardStrip";
@@ -173,6 +174,8 @@ export default function ProjectsWorkspace({
   // External / dashboard keep live API projects so client delivery work stays visible.
   const usesPortfolio = scope === "internal" && isBrowserCorpCentreSurface();
   const isPortfolioLayout = scope === "internal" || scope === "external";
+  const isCorpCentre = isBrowserCorpCentreSurface();
+  const { showDetail, openDetail, closeDetail } = useMobileDetailPanel(false);
 
   const [projects, setProjects] = useState<InternalProject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -600,7 +603,12 @@ export default function ProjectsWorkspace({
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
-            <aside className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
+            <aside
+              className={cn(
+                "rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4",
+                isCorpCentre && showDetail && selectedProjectId ? "hidden lg:block" : null,
+              )}
+            >
               <div className="mb-3 flex items-center justify-between gap-2 px-1">
                 <div className="flex items-center gap-2">
                   <FolderKanban className="h-4 w-4 text-emerald-300" />
@@ -669,7 +677,10 @@ export default function ProjectsWorkspace({
                         />
                         <button
                           type="button"
-                          onClick={() => setSelectedProjectId(project.id)}
+                          onClick={() => {
+                            setSelectedProjectId(project.id);
+                            if (isCorpCentre) openDetail();
+                          }}
                           className="min-w-0 flex-1 text-left"
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -704,7 +715,23 @@ export default function ProjectsWorkspace({
               </div>
             </aside>
 
-            <section className="min-w-0 rounded-2xl border border-white/15 bg-white/[0.03] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
+            <section
+              className={cn(
+                "min-w-0 rounded-2xl border border-white/15 bg-white/[0.03] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5",
+                isCorpCentre && !showDetail ? "hidden lg:block" : null,
+              )}
+            >
+              {isCorpCentre && showDetail && selectedProject ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeDetail();
+                  }}
+                  className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-white/55 transition-colors hover:text-white/80 lg:hidden"
+                >
+                  ← Back to projects
+                </button>
+              ) : null}
               {selectedProject ? (
                 <ProjectDetailWorkspace
                   key={selectedProject.id}
