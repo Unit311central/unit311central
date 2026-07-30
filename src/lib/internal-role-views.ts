@@ -151,35 +151,72 @@ export function filterInternalNavSectionsByGrants(
 }
 
 const DEMO_HIDDEN_VIEWS = new Set<InternalOperationsView>(["testing", "telemetry"]);
+const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
+  "testing",
+  "telemetry",
+  "unit311-details",
+  "module-go-live",
+]);
+
+function shouldHideDroneToolNavViews(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserDemoSurface } =
+      require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    if (isBrowserDemoSurface()) return true;
+  } catch {
+    /* fall through to host checks */
+  }
+
+  try {
+    const { isBrowserCorpCentreSurface } =
+      require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+    if (isBrowserCorpCentreSurface()) return true;
+  } catch {
+    /* fall through */
+  }
+
+  return false;
+}
+
+function isCorpCentreNavSurface(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserCorpCentreSurface } =
+      require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+    return isBrowserCorpCentreSurface();
+  } catch {
+    return false;
+  }
+}
 
 export function filterInternalNavSectionsForDemoSurface(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
-  if (typeof window === "undefined") return [...sections];
-  try {
-    const { isBrowserDemoSurface } =
-      require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
-    if (!isBrowserDemoSurface()) return [...sections];
-  } catch {
-    return [...sections];
-  }
+  if (!shouldHideDroneToolNavViews()) return [...sections];
+
+  const hideViews = isCorpCentreNavSurface() ? CORPCENTRE_HIDDEN_VIEWS : DEMO_HIDDEN_VIEWS;
+  const hideUnit311Details = isCorpCentreNavSurface();
 
   return sections
     .map((section) => ({
       ...section,
       items: section.items
         .map((item) => {
-          if (item.view && DEMO_HIDDEN_VIEWS.has(item.view)) return null;
+          if (item.view && hideViews.has(item.view)) return null;
+          if (hideUnit311Details && item.label === "Unit311 Details") return null;
           if (item.children?.length) {
             const children = item.children.filter(
-              (child) => !(child.view && DEMO_HIDDEN_VIEWS.has(child.view)),
+              (child) => !(child.view && hideViews.has(child.view)),
             );
             if (children.length === 0 && !item.view && !item.href) return null;
             const label =
-              item.label === "Unit311 Details" ? "Company Details" : item.label;
+              !hideUnit311Details && item.label === "Unit311 Details"
+                ? "Company Details"
+                : item.label;
             return { ...item, label, children };
           }
-          if (item.label === "Unit311 Details") {
+          if (!hideUnit311Details && item.label === "Unit311 Details") {
             return { ...item, label: "Company Details" };
           }
           if (item.href?.includes("/whatsapp/support-flow")) {

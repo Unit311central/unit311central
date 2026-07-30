@@ -112,6 +112,19 @@ export type SoftwareAssetsSummary = {
 export const SOFTWARE_DEFAULT_LAST_PAYMENT = "2026-07-01";
 export const SOFTWARE_DEFAULT_NEXT_PAYMENT = "2026-08-01";
 export const SOFTWARE_DEFAULT_CURRENCY = "USD";
+export const SOFTWARE_CURRENCY_OPTIONS = ["AUD", "USD", "GBP", "EUR", "AED", "ZAR"] as const;
+
+export function defaultSoftwareCurrencyForSurface(): string {
+  if (typeof window === "undefined") return SOFTWARE_DEFAULT_CURRENCY;
+  try {
+    const { isBrowserCorpCentreSurface } =
+      require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+    if (isBrowserCorpCentreSurface()) return "AUD";
+  } catch {
+    /* ignore */
+  }
+  return SOFTWARE_DEFAULT_CURRENCY;
+}
 
 export function normalizeSoftwareAssetFinance<T extends SoftwareAsset>(asset: T): T {
   const monthlyCost = Number(asset.monthlyCost || 0);
@@ -151,7 +164,7 @@ export function createBlankSoftwareAsset(workspaceId = ""): SoftwareAsset {
     licenceType: "Named",
     monthlyCost: 0,
     annualCost: 0,
-    currency: "USD",
+    currency: defaultSoftwareCurrencyForSurface(),
     lastPaymentAmount: null,
     lastPaymentDate: "2026-07-01",
     nextRenewalDate: "2026-08-01",

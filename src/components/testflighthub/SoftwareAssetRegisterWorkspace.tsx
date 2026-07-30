@@ -19,9 +19,11 @@ import {
   availableLicences,
   computeSoftwareAssetsSummary,
   createBlankSoftwareAsset,
+  defaultSoftwareCurrencyForSurface,
   formatSoftwareMoney,
   LICENCE_TYPES,
   RENEWAL_FREQUENCIES,
+  SOFTWARE_CURRENCY_OPTIONS,
   SOFTWARE_STATUSES,
   softwareAssetToCsvRow,
   type SoftwareAsset,
@@ -820,10 +822,10 @@ export default function SoftwareAssetRegisterWorkspace() {
                       <FieldLabel>Currency</FieldLabel>
                       <select
                         className={inputClassName()}
-                        value={selected.currency || "USD"}
+                        value={selected.currency || defaultSoftwareCurrencyForSurface()}
                         onChange={(event) => patchSelected({ currency: event.target.value })}
                       >
-                        {["USD", "GBP", "EUR", "AED", "ZAR"].map((code) => (
+                        {SOFTWARE_CURRENCY_OPTIONS.map((code) => (
                           <option key={code} value={code}>
                             {code}
                           </option>

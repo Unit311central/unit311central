@@ -120,6 +120,13 @@ export async function middleware(request: NextRequest) {
   // --- Customer workspace hosts: route into the app (existence checked in /ws/[slug]) ---
   const workspaceSlug = parseClientPlatformSubdomainSafe(host);
   if (workspaceSlug) {
+    // Canonical CorpCentre host is corpcentre.*; keep old corporatecentre.* working.
+    if (workspaceSlug === "corporatecentre") {
+      return redirectExternal(
+        `https://corpcentre.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
+      );
+    }
+
     const headers = withHostHeaders(request, { workspaceSlug });
     const workspaceOrigin = `https://${workspaceSlug}.${UNIT311_SITE_HOST}`;
     const workspaceResponseHeaders = {

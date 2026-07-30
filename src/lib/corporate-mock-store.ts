@@ -58,8 +58,353 @@ function licenceStatusFromRenewal(renewalDate: string, current: CorporateLicence
   return "active";
 }
 
+function seedCorpCentreState(): CorporateMockState {
+  const offices: CorporateOffice[] = [
+    {
+      id: "cc-office-alexandria",
+      name: "Alexandria HQ",
+      country: "Australia",
+      city: "Alexandria",
+      address: "42 Bourke Road, Alexandria NSW 2015",
+      manager: "Peter",
+      employees: 28,
+      status: "active",
+      phone: "+61 2 8399 3100",
+      timezone: "Australia/Sydney",
+    },
+    {
+      id: "cc-office-melbourne",
+      name: "Melbourne Office",
+      country: "Australia",
+      city: "Melbourne",
+      address: "120 Collins Street, Melbourne VIC 3000",
+      manager: "Daniel",
+      employees: 12,
+      status: "active",
+      phone: "+61 3 9650 1800",
+      timezone: "Australia/Melbourne",
+    },
+    {
+      id: "cc-office-brisbane",
+      name: "Brisbane Office",
+      country: "Australia",
+      city: "Brisbane",
+      address: "200 Mary Street, Brisbane QLD 4000",
+      manager: "John",
+      employees: 8,
+      status: "active",
+      phone: "+61 7 3003 4100",
+      timezone: "Australia/Brisbane",
+    },
+  ];
+
+  const banks: CorporateBankAccount[] = [
+    {
+      id: "cc-bank-cba",
+      bank: "Commonwealth Bank of Australia",
+      accountName: "CorpCentre Operating AUD",
+      currency: "AUD",
+      country: "Australia",
+      accountType: "Current",
+      status: "active",
+      primary: true,
+      iban: "",
+      swift: "CTBAAU2S",
+      routing: "062-000",
+      branch: "Sydney Martin Place",
+      accountHolder: "CorpCentre Pty Ltd",
+      notes: "Primary operating account · Sydney CBD · BSB 062-000 · Acc 10234589",
+    },
+    {
+      id: "cc-bank-westpac",
+      bank: "Westpac Banking Corporation",
+      accountName: "CorpCentre Client Receipts AUD",
+      currency: "AUD",
+      country: "Australia",
+      accountType: "Current",
+      status: "active",
+      primary: false,
+      iban: "",
+      swift: "WPACAU2S",
+      routing: "032-000",
+      branch: "Sydney George Street",
+      accountHolder: "CorpCentre Pty Ltd",
+      notes: "Client invoicing · Sydney · BSB 032-000 · Acc 44812203",
+    },
+    {
+      id: "cc-bank-anz",
+      bank: "ANZ Banking Group",
+      accountName: "CorpCentre Treasury AUD",
+      currency: "AUD",
+      country: "Australia",
+      accountType: "Savings",
+      status: "active",
+      primary: false,
+      iban: "",
+      swift: "ANZBAU3M",
+      routing: "012-003",
+      branch: "Sydney Pitt Street",
+      accountHolder: "CorpCentre Pty Ltd",
+      notes: "Cash reserve · Sydney · BSB 012-003 · Acc 77301194",
+    },
+  ];
+
+  const advisors: CorporateAdvisor[] = [
+    {
+      id: "cc-adv-allens",
+      company: "Allens",
+      contact: "Rebecca Walsh (Partner)",
+      category: "Lawyers",
+      country: "Australia",
+      phone: "+61 2 9230 4000",
+      email: "rebecca.walsh@allens.com.au",
+      retainer: "A$6,500 / month",
+      status: "active",
+      notes: "Corporate, commercial, and employment counsel · Sydney",
+    },
+    {
+      id: "cc-adv-pwc",
+      company: "PwC Australia",
+      contact: "Michael Chen",
+      category: "Accountants",
+      country: "Australia",
+      phone: "+61 2 8266 0000",
+      email: "michael.chen@pwc.com.au",
+      retainer: "A$4,200 / month",
+      status: "active",
+      notes: "Management accounts, BAS, and payroll tax · Sydney",
+    },
+    {
+      id: "cc-adv-kpmg",
+      company: "KPMG Australia",
+      contact: "Sophie Grant",
+      category: "Auditors",
+      country: "Australia",
+      phone: "+61 2 9335 7000",
+      email: "sophie.grant@kpmg.com.au",
+      retainer: "Annual audit fee A$28,000",
+      status: "active",
+      notes: "Statutory audit · Sydney engagement team",
+    },
+  ];
+
+  const contracts: CorporateContract[] = [
+    {
+      id: "cc-contract-aws",
+      name: "AWS Australia Enterprise Agreement",
+      supplier: "Amazon Web Services Australia Pty Ltd",
+      type: "MSA",
+      owner: "Daniel",
+      startDate: isoDaysFromNow(-400),
+      expiryDate: isoDaysFromNow(95),
+      value: "A$96,000 / year",
+      status: "active",
+      summary: "Cloud hosting for CorpCentre customer platforms across Sydney region.",
+      parties: "CorpCentre Pty Ltd · Amazon Web Services Australia Pty Ltd",
+      renewalNotes: "Review committed spend before FY renewal.",
+      documents: "AWS_AU_EA_2025.pdf",
+      notes: "Billing currency AUD",
+    },
+    {
+      id: "cc-contract-lease",
+      name: "Alexandria HQ Office Lease",
+      supplier: "Bourke Road Property Trust",
+      type: "Lease",
+      owner: "Peter",
+      startDate: isoDaysFromNow(-600),
+      expiryDate: isoDaysFromNow(40),
+      value: "A$210,000 / year",
+      status: "expiring",
+      summary: "Level 3 · 42 Bourke Road, Alexandria NSW 2015.",
+      parties: "CorpCentre Pty Ltd · Bourke Road Property Trust",
+      renewalNotes: "Landlord offered 3-year extension at CPI +2%.",
+      documents: "Alexandria_Lease_2024.pdf",
+      notes: "Break clause at month 36",
+    },
+    {
+      id: "cc-contract-do",
+      name: "Directors & Officers Liability (AU)",
+      supplier: "QBE Insurance (Australia)",
+      type: "Insurance",
+      owner: "Peter",
+      startDate: isoDaysFromNow(-90),
+      expiryDate: isoDaysFromNow(275),
+      value: "A$18,500 / year",
+      status: "active",
+      summary: "A$5M D&O cover for directors and officers.",
+      parties: "CorpCentre Pty Ltd · QBE Insurance (Australia) Limited",
+      renewalNotes: "",
+      documents: "QBE_DO_2026.pdf",
+      notes: "Broker: Marsh Australia",
+    },
+    {
+      id: "cc-contract-telstra",
+      name: "Telstra Enterprise Connectivity",
+      supplier: "Telstra Corporation Limited",
+      type: "Supplier",
+      owner: "Mick",
+      startDate: isoDaysFromNow(-200),
+      expiryDate: isoDaysFromNow(165),
+      value: "A$48,000 / year",
+      status: "active",
+      summary: "NBN enterprise fibre and SD-WAN for Australian offices.",
+      parties: "CorpCentre Pty Ltd · Telstra Corporation Limited",
+      renewalNotes: "",
+      documents: "Telstra_Enterprise_2025.pdf",
+      notes: "",
+    },
+    {
+      id: "cc-contract-nda",
+      name: "NSW Government Supplier NDA",
+      supplier: "NSW Department of Customer Service",
+      type: "NDA",
+      owner: "Daniel",
+      startDate: isoDaysFromNow(-120),
+      expiryDate: isoDaysFromNow(245),
+      value: "—",
+      status: "active",
+      summary: "Mutual NDA for digital services procurement discussions.",
+      parties: "CorpCentre Pty Ltd · NSW Department of Customer Service",
+      renewalNotes: "",
+      documents: "NSW_NDA_2026.pdf",
+      notes: "",
+    },
+  ];
+
+  const shareholders: CorporateShareholder[] = [
+    {
+      id: "cc-sh-peter",
+      company: "CorpCentre Pty Ltd",
+      shareholder: "Peter",
+      shareClass: "Ordinary",
+      shares: 500_000,
+      price: "A$1.00",
+      issueDate: isoDaysFromNow(-900),
+      notes: "Founder · 50% shareholding",
+    },
+    {
+      id: "cc-sh-daniel",
+      company: "CorpCentre Pty Ltd",
+      shareholder: "Daniel",
+      shareClass: "Ordinary",
+      shares: 500_000,
+      price: "A$1.00",
+      issueDate: isoDaysFromNow(-900),
+      notes: "Founder · 50% shareholding",
+    },
+  ];
+
+  const licences: CorporateLicence[] = [
+    {
+      id: "cc-lic-m365",
+      software: "Microsoft 365 Business Premium",
+      vendor: "Microsoft",
+      licenceType: "Per user",
+      seats: 45,
+      renewalDate: isoDaysFromNow(52),
+      cost: "A$11,880 / year",
+      owner: "Peter",
+      status: "active",
+    },
+    {
+      id: "cc-lic-atlassian",
+      software: "Atlassian Cloud Premium",
+      vendor: "Atlassian",
+      licenceType: "Named",
+      seats: 30,
+      renewalDate: isoDaysFromNow(7),
+      cost: "A$5,040 / year",
+      owner: "Daniel",
+      status: "expiring",
+    },
+    {
+      id: "cc-lic-salesforce",
+      software: "Salesforce Sales Cloud",
+      vendor: "Salesforce",
+      licenceType: "Named",
+      seats: 18,
+      renewalDate: isoDaysFromNow(128),
+      cost: "A$19,440 / year",
+      owner: "Peter",
+      status: "active",
+    },
+    {
+      id: "cc-lic-aws",
+      software: "AWS Business Support",
+      vendor: "Amazon Web Services",
+      licenceType: "Unlimited",
+      seats: 1,
+      renewalDate: isoDaysFromNow(6),
+      cost: "A$25,200 / year",
+      owner: "Daniel",
+      status: "expiring",
+    },
+    {
+      id: "cc-lic-xero",
+      software: "Xero Organisations",
+      vendor: "Xero",
+      licenceType: "Named",
+      seats: 5,
+      renewalDate: isoDaysFromNow(68),
+      cost: "A$2,100 / year",
+      owner: "Peter",
+      status: "active",
+    },
+  ];
+
+  return {
+    offices,
+    banks,
+    advisors,
+    contracts,
+    shareholders,
+    optionPool: {
+      authorised: 0,
+      issued: 0,
+      reserved: 0,
+      lastUpdated: isoDaysFromNow(-30),
+    },
+    capital: {
+      authorisedShareCapital: "A$1,000,000",
+      issuedShareCapital: "A$1,000,000",
+      currency: "AUD",
+    },
+    licences,
+    activity: [
+      {
+        id: "cc-act-1",
+        at: isoDaysFromNow(0),
+        label: "CorpCentre profile loaded",
+        detail: "Australian corporate fixtures · Alexandria HQ",
+      },
+      {
+        id: "cc-act-2",
+        at: isoDaysFromNow(-1),
+        label: "Cap table updated",
+        detail: "Peter and Daniel · 50/50 ordinary shares",
+      },
+      {
+        id: "cc-act-3",
+        at: isoDaysFromNow(-2),
+        label: "Bank accounts refreshed",
+        detail: "CBA, Westpac, and ANZ · Sydney branches",
+      },
+    ],
+  };
+}
+
 function seedState(): CorporateMockState {
   if (typeof window !== "undefined") {
+    try {
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      if (isBrowserCorpCentreSurface()) {
+        return seedCorpCentreState();
+      }
+    } catch {
+      // Fall through.
+    }
+
     try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
@@ -679,14 +1024,32 @@ function ensureState(): CorporateMockState {
     state = seedState();
     seededHost = hostKey;
   } else if (typeof window !== "undefined") {
-    // SSR can initialize Internal mock; reseed once we detect Demo host + Unit311 leakage.
-    const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
-    if (
-      isBrowserDemoSurface() &&
-      state.banks.some((bank) => /unit311|nakama/i.test(`${bank.accountName} ${bank.accountHolder}`))
-    ) {
-      state = seedState();
-      seededHost = hostKey;
+    // SSR can initialize Internal mock; reseed once we detect Demo/CorpCentre host + Unit311 leakage.
+    try {
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      if (
+        isBrowserCorpCentreSurface() &&
+        state.banks.some((bank) => /unit311|nakama/i.test(`${bank.accountName} ${bank.accountHolder}`))
+      ) {
+        state = seedState();
+        seededHost = hostKey;
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      const { isBrowserDemoSurface } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (
+        isBrowserDemoSurface() &&
+        state.banks.some((bank) => /unit311|nakama/i.test(`${bank.accountName} ${bank.accountHolder}`))
+      ) {
+        state = seedState();
+        seededHost = hostKey;
+      }
+    } catch {
+      /* ignore */
     }
   }
   return state;

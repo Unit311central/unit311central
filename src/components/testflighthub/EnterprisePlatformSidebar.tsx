@@ -49,7 +49,7 @@ import {
   X,
 } from "lucide-react";
 
-import Unit311CentralWordmark from "@/components/layout/Unit311CentralWordmark";
+import WorkspaceSidebarBrand from "@/components/layout/WorkspaceSidebarBrand";
 import {
   internalSurveyNavSections,
   isInternalNavChildActive,
@@ -552,13 +552,7 @@ export default function EnterprisePlatformSidebar({
         className="relative flex shrink-0 items-center justify-center px-5 pt-5"
         style={{ paddingBottom: 20 }}
       >
-        <Link
-          href={basePath}
-          aria-label="Unit311 Central home"
-          className="inline-flex shrink-0 transition-opacity duration-100 hover:opacity-90"
-        >
-          <Unit311CentralWordmark variant="sidebar" />
-        </Link>
+        <WorkspaceSidebarBrand href={basePath} />
         <button
           type="button"
           className="absolute top-1/2 right-5 flex h-8 w-8 -translate-y-1/2 shrink-0 touch-manipulation items-center justify-center rounded-[7px] border text-white/55 transition-colors duration-75 hover:text-white lg:hidden"

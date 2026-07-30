@@ -38,7 +38,22 @@ export type ClientRegion =
   | "Western Australia"
   | "Iberia"
   | "United Kingdom"
-  | "Europe-wide";
+  | "Europe-wide"
+  | "Sydney, NSW"
+  | "Melbourne, VIC"
+  | "Brisbane, QLD"
+  | "Perth, WA"
+  | "Adelaide, SA"
+  | "Canberra, ACT"
+  | "Hobart, TAS"
+  | "Darwin, NT"
+  | "Newcastle, NSW"
+  | "Gold Coast, QLD"
+  | "Sunshine Coast, QLD"
+  | "Wollongong, NSW"
+  | "Geelong, VIC"
+  | "Cairns, QLD"
+  | "Broken Hill, NSW";
 
 export type ClientSubscriptionStatus =
   | "inactive"
@@ -198,6 +213,21 @@ export const CLIENT_REGION_OPTIONS: ClientRegion[] = [
   "Iberia",
   "United Kingdom",
   "Europe-wide",
+  "Sydney, NSW",
+  "Melbourne, VIC",
+  "Brisbane, QLD",
+  "Perth, WA",
+  "Adelaide, SA",
+  "Canberra, ACT",
+  "Hobart, TAS",
+  "Darwin, NT",
+  "Newcastle, NSW",
+  "Gold Coast, QLD",
+  "Sunshine Coast, QLD",
+  "Wollongong, NSW",
+  "Geelong, VIC",
+  "Cairns, QLD",
+  "Broken Hill, NSW",
 ];
 
 let clientCounter = 6;
