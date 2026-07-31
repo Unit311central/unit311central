@@ -44,6 +44,7 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "inventory-management": () => import("@/components/testflighthub/InventoryManagementWorkspace"),
   procurement: () => import("@/components/testflighthub/ProcurementWorkspace"),
   support: () => import("@/components/testflighthub/SupportWorkspace"),
+  "support-mine": () => import("@/components/testflighthub/SupportWorkspace"),
   logistics: () => import("@/components/testflighthub/LogisticsWorkspace"),
   technology: () => import("@/components/testflighthub/TechnologyDashboardWorkspace"),
   "technology-dashboard": () =>
@@ -86,7 +87,7 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
   "accounts-payable": ["financials", "accounts-receivable"],
   expenses: ["financials"],
   calendar: ["crm-meetings", "communications", "messaging", "projects"],
-  messaging: ["communications", "calendar", "info-email", "support"],
+  messaging: ["communications", "calendar", "info-email", "support", "support-mine"],
   communications: ["messaging", "calendar", "crm-meetings"],
   "info-email": ["messaging", "crm", "productivity-dashboard"],
   "productivity-dashboard": [

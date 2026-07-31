@@ -17,6 +17,7 @@ export const ALWAYS_ALLOWED_VIEWS: readonly InternalOperationsView[] = [
   "appearance",
   "settings",
   "support",
+  "support-mine",
 ];
 
 export type ModuleGrantGroup = {
@@ -155,6 +156,8 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "files-client",
       "productivity-dashboard",
       "social",
+      "support",
+      "support-mine",
     ],
   },
   {

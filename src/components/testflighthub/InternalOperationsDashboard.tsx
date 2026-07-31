@@ -847,6 +847,8 @@ export default function InternalOperationsDashboard({
 
           {activeView === "support" && <SupportWorkspace />}
 
+          {activeView === "support-mine" && <SupportWorkspace scope="mine" />}
+
           {activeView === "users" && <UserManagementWorkspace onUsersChange={setUsers} />}
 
           {activeView === "users-external" && <ExternalUsersWorkspace />}

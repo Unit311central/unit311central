@@ -68,6 +68,52 @@ function assigneeKey(value: string | null | undefined) {
   return trimmed ? trimmed : "Unassigned";
 }
 
+const DEMO_SUPPORT_ASSIGNEES = ["Admin", "Info", "Paul"] as const;
+
+function normalizeAssigneeToken(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+/** Map logged-in demo user → ticket assignee label (Admin / Info / Paul / display name). */
+function resolveMyAssigneeLabel(input: {
+  displayName?: string | null;
+  username?: string | null;
+  email?: string | null;
+}) {
+  const rawTokens = [
+    input.displayName,
+    input.username,
+    input.email?.split("@")[0],
+    input.displayName?.split(/\s+/)[0],
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .map((value) => value.trim());
+
+  const known: Record<string, string> = {
+    admin: "Admin",
+    administrator: "Admin",
+    info: "Info",
+    paul: "Paul",
+    paulfotheringham: "Paul",
+  };
+
+  for (const token of rawTokens) {
+    const normalized = normalizeAssigneeToken(token);
+    if (known[normalized]) return known[normalized];
+    const exact = DEMO_SUPPORT_ASSIGNEES.find(
+      (name) => normalizeAssigneeToken(name) === normalized,
+    );
+    if (exact) return exact;
+  }
+
+  // Prefer a clean display name when it already looks like an assignee label.
+  const display = input.displayName?.trim();
+  if (display && display.length <= 40) return display;
+  const username = input.username?.trim();
+  if (username) return username;
+  return "Admin";
+}
+
 function StatBar({
   label,
   count,
@@ -122,8 +168,13 @@ function inputClassName() {
   return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50";
 }
 
-export default function SupportWorkspace() {
+export default function SupportWorkspace({
+  scope = "all",
+}: {
+  scope?: "all" | "mine";
+}) {
   const searchParams = useSearchParams();
+  const mineMode = scope === "mine";
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -134,14 +185,45 @@ export default function SupportWorkspace() {
   const [savedSnapshot, setSavedSnapshot] = useState<SupportTicket | null>(null);
   const [search, setSearch] = useState("");
   const [clientFilter, setClientFilter] = useState("all");
-  const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [assigneeFilter, setAssigneeFilter] = useState(mineMode ? "" : "all");
+  const [myAssignee, setMyAssignee] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "closed" | "outstanding" | "in_queue">(
-    "all",
+    mineMode ? "open" : "all",
   );
   const [statsPeriod, setStatsPeriod] = useState<SupportStatsPeriod>("month");
   const snapshottedIdRef = useRef<string | null>(null);
   const deepLinkAppliedRef = useRef<string | null>(null);
   const [analyticsNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!mineMode) return;
+    let cancelled = false;
+    void fetch("/api/auth/whoami", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return readApiJson<{
+          displayName?: string | null;
+          username?: string | null;
+          email?: string | null;
+        }>(response);
+      })
+      .then((whoami) => {
+        if (cancelled || !whoami) return;
+        const label = resolveMyAssigneeLabel(whoami);
+        setMyAssignee(label);
+        setAssigneeFilter(label);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [mineMode]);
+
+  useEffect(() => {
+    if (mineMode && myAssignee) {
+      setAssigneeFilter(myAssignee);
+    }
+  }, [mineMode, myAssignee]);
 
   const visibleTickets = useMemo(() => {
     const base = showArchived ? tickets : tickets.filter((ticket) => !ticket.archived);
@@ -181,9 +263,16 @@ export default function SupportWorkspace() {
   }
 
   function matchesAssigneeFilter(ticket: SupportTicket) {
+    if (mineMode && !assigneeFilter) return false;
     if (assigneeFilter === "all") return true;
     if (assigneeFilter === "unassigned") return !ticket.userAssigned?.trim();
-    return (ticket.userAssigned?.trim() || "") === assigneeFilter;
+    const assigned = (ticket.userAssigned?.trim() || "").toLowerCase();
+    const wanted = assigneeFilter.trim().toLowerCase();
+    if (assigned === wanted) return true;
+    // Demo aliases: "Paul Fotheringham" ↔ "Paul"
+    if (wanted && assigned.startsWith(wanted)) return true;
+    if (assigned && wanted.startsWith(assigned)) return true;
+    return false;
   }
 
   const filteredTickets = useMemo(() => {
@@ -568,28 +657,51 @@ export default function SupportWorkspace() {
 
   return (
     <div className="space-y-6">
+      {mineMode ? (
+        <section className="rounded-2xl border border-sky-400/25 bg-sky-500/10 px-4 py-4 sm:px-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
+            My support tickets
+          </p>
+          <h2 className="mt-1 text-xl font-semibold text-white">
+            {myAssignee ? `Assigned to ${myAssignee}` : "Your assigned tickets"}
+          </h2>
+          <p className="mt-1 text-sm text-white/55">
+            Only tickets assigned to you as a Demo support user. Use Open / Closed filters below.
+            Send client updates from a selected ticket.
+          </p>
+        </section>
+      ) : null}
+
       {!loading && (
         <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-sky-300" />
-              <h3 className="text-sm font-semibold text-white">Support analytics</h3>
+              <h3 className="text-sm font-semibold text-white">
+                {mineMode ? "My ticket analytics" : "Support analytics"}
+              </h3>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <select
-                value={assigneeFilter}
-                onChange={(event) => setAssigneeFilter(event.target.value)}
-                className={cn(inputClassName(), "mt-0 h-8 min-w-[10rem] py-1 text-xs")}
-                aria-label="Filter analytics by support user"
-              >
-                <option value="all">All support users</option>
-                <option value="unassigned">Unassigned</option>
-                {assigneeOptions.map((assignee) => (
-                  <option key={`analytics-user-${assignee}`} value={assignee}>
-                    {assignee}
-                  </option>
-                ))}
-              </select>
+              {mineMode ? (
+                <span className="inline-flex h-8 items-center rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 text-sky-100">
+                  {myAssignee || "…"}
+                </span>
+              ) : (
+                <select
+                  value={assigneeFilter}
+                  onChange={(event) => setAssigneeFilter(event.target.value)}
+                  className={cn(inputClassName(), "mt-0 h-8 min-w-[10rem] py-1 text-xs")}
+                  aria-label="Filter analytics by support user"
+                >
+                  <option value="all">All support users</option>
+                  <option value="unassigned">Unassigned</option>
+                  {assigneeOptions.map((assignee) => (
+                    <option key={`analytics-user-${assignee}`} value={assignee}>
+                      {assignee}
+                    </option>
+                  ))}
+                </select>
+              )}
               <select
                 value={statusFilter}
                 onChange={(event) =>
@@ -886,20 +998,32 @@ export default function SupportWorkspace() {
                   </option>
                 ))}
               </select>
-              <select
-                value={assigneeFilter}
-                onChange={(event) => setAssigneeFilter(event.target.value)}
-                className={cn(inputClassName(), "mt-0")}
-                aria-label="Filter by support user"
-              >
-                <option value="all">All support users</option>
-                <option value="unassigned">Unassigned</option>
-                {assigneeOptions.map((assignee) => (
-                  <option key={assignee} value={assignee}>
-                    {assignee}
-                  </option>
-                ))}
-              </select>
+              {mineMode ? (
+                <div
+                  className={cn(
+                    inputClassName(),
+                    "mt-0 flex items-center border-sky-400/30 bg-sky-500/10 text-sky-100",
+                  )}
+                  aria-label="Assigned to you"
+                >
+                  {myAssignee || "Loading…"}
+                </div>
+              ) : (
+                <select
+                  value={assigneeFilter}
+                  onChange={(event) => setAssigneeFilter(event.target.value)}
+                  className={cn(inputClassName(), "mt-0")}
+                  aria-label="Filter by support user"
+                >
+                  <option value="all">All support users</option>
+                  <option value="unassigned">Unassigned</option>
+                  {assigneeOptions.map((assignee) => (
+                    <option key={assignee} value={assignee}>
+                      {assignee}
+                    </option>
+                  ))}
+                </select>
+              )}
               <select
                 value={statusFilter}
                 onChange={(event) =>

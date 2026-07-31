@@ -72,6 +72,7 @@ export type InternalOperationsView =
   | "users-external"
   | "external-client-access"
   | "support"
+  | "support-mine"
   | "telemetry"
   | "design-mockups"
   | "sector"
@@ -221,6 +222,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "users-external",
   "external-client-access",
   "support",
+  "support-mine",
   "telemetry",
   "design-mockups",
   "sector",
@@ -624,6 +626,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         icon: "LifeBuoy",
         children: [
           { label: "Tickets", view: "support" as const },
+          { label: "My support tickets", view: "support-mine" as const },
           { label: "WhatsApp Integration", href: "/whatsapp/support-flow" },
         ],
       },
@@ -839,6 +842,7 @@ export const internalViewTitles: Record<
     subtitle: "External Client Access",
   },
   support: { title: "Support Desk", subtitle: "Business Productivity" },
+  "support-mine": { title: "My support tickets", subtitle: "Support Desk" },
   telemetry: { title: "Live Telemetry", subtitle: "Tools" },
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },
   sector: { title: "Sector Intelligence", subtitle: "Unit311" },
