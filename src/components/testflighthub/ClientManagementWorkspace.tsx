@@ -738,6 +738,21 @@ export default function ClientManagementWorkspace({
                         Open Intelligence Platform
                       </Link>
                     )}
+                    {selectedClient.supportLoungeUrl ? (
+                      <div className="w-full rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-2 sm:col-span-full">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200/80">
+                          Support Lounge URL
+                        </p>
+                        <a
+                          href={selectedClient.supportLoungeUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 block break-all text-xs text-emerald-100 underline-offset-2 hover:underline"
+                        >
+                          {selectedClient.supportLoungeUrl}
+                        </a>
+                      </div>
+                    ) : null}
                     <button
                       type="button"
                       disabled={busy}

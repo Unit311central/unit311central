@@ -1,3 +1,5 @@
+import { DEMO_SITE_URL } from "@/lib/app-domains";
+
 export type ClientIndustry =
   | "Construction"
   | "Mining & Resources"
@@ -94,6 +96,11 @@ export type ManagedClient = {
   /** Optional link to a client-facing intelligence platform demo. */
   platformUrl?: string;
   platformOrganisationId?: string | null;
+  /** Support Lounge public token (path segment under /s/{token}). */
+  supportLoungeToken?: string | null;
+  /** Absolute Support Lounge entry URL for this client. */
+  supportLoungeUrl?: string | null;
+  supportLoungeEnabled?: boolean | null;
   subscriptionStatus?: ClientSubscriptionStatus | null;
   billingFrequency?: string | null;
   renewalDate?: string | null;
@@ -431,11 +438,14 @@ type DbInternalClient = {
   payment_matched_at?: string | null;
   last_paid_invoice_number?: string | null;
   last_wise_transaction_id?: string | null;
+  support_lounge_token?: string | null;
+  support_lounge_enabled?: boolean | null;
   created_at: string;
   updated_at: string;
 };
 
 export function mapInternalClient(row: DbInternalClient): ManagedClient {
+  const loungeToken = row.support_lounge_token?.trim() || null;
   return {
     id: row.id,
     companyName: row.company_name,
@@ -464,6 +474,11 @@ export function mapInternalClient(row: DbInternalClient): ManagedClient {
     filesFolderName: row.files_folder_name ?? undefined,
     platformUrl: row.platform_url ?? undefined,
     platformOrganisationId: row.platform_organisation_id ?? undefined,
+    supportLoungeToken: loungeToken,
+    supportLoungeUrl: loungeToken
+      ? `${DEMO_SITE_URL.replace(/\/$/, "")}/s/${encodeURIComponent(loungeToken)}`
+      : null,
+    supportLoungeEnabled: row.support_lounge_enabled ?? null,
     subscriptionStatus: (row.subscription_status as ClientSubscriptionStatus | null) ?? null,
     billingFrequency: row.billing_frequency ?? null,
     renewalDate: row.renewal_date ?? null,

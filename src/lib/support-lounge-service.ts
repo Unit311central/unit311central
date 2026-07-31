@@ -479,6 +479,8 @@ export async function sendLoungeTicketSummaryEmail(input: {
       .join(" ")
       .trim() || input.ticket.name;
 
+    const caseUrl = input.ticket.ticketPublicUrl || input.resumeUrl;
+
     await sendMailboxEmail({
       account: "demo",
       workspaceId: input.lounge.workspaceId,
@@ -497,7 +499,7 @@ export async function sendLoungeTicketSummaryEmail(input: {
         input.ticket.description,
         "",
         "Track updates and add more information anytime using this private link:",
-        input.ticket.ticketPublicUrl || input.resumeUrl,
+        caseUrl,
         "",
         "Our Demo support team has been notified and will begin working on the case.",
         "",
@@ -507,6 +509,51 @@ export async function sendLoungeTicketSummaryEmail(input: {
     return true;
   } catch (error) {
     console.warn("[support-lounge] summary email failed:", error);
+    return false;
+  }
+}
+
+/** Desk inbox for new lounge tickets. Prefer support@ when that mailbox exists. */
+export const SUPPORT_DESK_NOTIFY_EMAIL = "info@unit311central.com";
+
+export async function sendLoungeTicketDeskNotifyEmail(input: {
+  lounge: SupportLoungeClient;
+  ticket: SupportTicket;
+  resumeUrl: string;
+}): Promise<boolean> {
+  try {
+    const { sendMailboxEmail } = await import("@/lib/email/smtp");
+    const caseUrl = input.ticket.ticketPublicUrl || input.resumeUrl;
+    const supportHref = `/?view=support&ticketId=${encodeURIComponent(input.ticket.id)}`;
+
+    await sendMailboxEmail({
+      account: "demo",
+      workspaceId: input.lounge.workspaceId,
+      to: SUPPORT_DESK_NOTIFY_EMAIL,
+      subject: `New support ticket ${input.ticket.id} — ${input.lounge.companyName}`,
+      text: [
+        `A new Support Lounge ticket was opened for ${input.lounge.companyName}.`,
+        "",
+        `Ticket: ${input.ticket.id}`,
+        `Requester: ${input.ticket.name}`,
+        `Email: ${input.ticket.requesterEmail || "—"}`,
+        `Priority: ${input.ticket.priority}`,
+        `Status: ${input.ticket.status || "open"}`,
+        "",
+        "Summary:",
+        input.ticket.description,
+        "",
+        `Open in Support: ${supportHref}`,
+        `Client case link: ${caseUrl}`,
+        "",
+        "Assign an owner in Messaging (Support - {client} channel) or on the Support ticket.",
+        "",
+        "— Demo Support Lounge",
+      ].join("\n"),
+    });
+    return true;
+  } catch (error) {
+    console.warn("[support-lounge] desk notify email failed:", error);
     return false;
   }
 }

@@ -11,6 +11,7 @@ import {
   escalateLoungeTicket,
   getLoungeTicketByPublicToken,
   listLoungeTicketsForRequester,
+  sendLoungeTicketDeskNotifyEmail,
   sendLoungeTicketSummaryEmail,
   type SupportLoungeClient,
 } from "@/lib/support-lounge-service";
@@ -196,6 +197,11 @@ Rules:
         ticket: created.ticket,
         resumeUrl,
       });
+      const deskEmailed = await sendLoungeTicketDeskNotifyEmail({
+        lounge: input.lounge,
+        ticket: created.ticket,
+        resumeUrl,
+      });
 
       reply = [
         `Ticket ${created.ticket.id} is open.`,
@@ -203,10 +209,15 @@ Rules:
         emailed
           ? `I've emailed a summary to ${email}.`
           : `I couldn't send the email just now — please keep your case link.`,
+        deskEmailed
+          ? "I've also notified the Demo support inbox."
+          : null,
         "",
         "Track updates and add more information anytime here:",
         resumeUrl,
-      ].join("\n");
+      ]
+        .filter((line) => line !== null)
+        .join("\n");
     }
   } else if (action === "list_tickets") {
     const tickets = await listLoungeTicketsForRequester({

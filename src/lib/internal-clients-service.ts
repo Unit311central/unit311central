@@ -182,6 +182,8 @@ export async function listInternalClients(
             "payment_matched_at",
             "last_paid_invoice_number",
             "last_wise_transaction_id",
+            "support_lounge_token",
+            "support_lounge_enabled",
             "created_at",
             "updated_at",
           ].join(","),
