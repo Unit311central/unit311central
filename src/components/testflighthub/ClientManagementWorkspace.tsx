@@ -30,7 +30,7 @@ import {
   useMobileDetailPanel,
 } from "@/components/ui/ResponsiveMasterDetail";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
-import { ExternalLink, FolderOpen, FolderPlus, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
+import { ExternalLink, FolderOpen, FolderPlus, Link2, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 
 function formatFinanceMoney(amount: number, currency = "EUR") {
   const { withPreferredCurrencySymbol } =
@@ -357,6 +357,31 @@ export default function ClientManagementWorkspace({
     } catch (resetError) {
       setError(
         resetError instanceof Error ? resetError.message : "Failed to reset workspace onboarding.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCopySupportLoungeLink() {
+    if (!selectedClient) return;
+    setBusy(true);
+    setError(null);
+    setSaveMessage(null);
+
+    try {
+      const response = await fetch(`/api/clients/${selectedClient.id}/support-lounge`, {
+        method: "POST",
+      });
+      const data = await readApiJson<{ url?: string; error?: string }>(response);
+      if (!response.ok || !data.url) {
+        throw new Error(data.error ?? "Failed to create support lounge link.");
+      }
+      await navigator.clipboard.writeText(data.url);
+      setSaveMessage(`Support Lounge link copied: ${data.url}`);
+    } catch (loungeError) {
+      setError(
+        loungeError instanceof Error ? loungeError.message : "Failed to copy support lounge link.",
       );
     } finally {
       setBusy(false);
@@ -713,6 +738,15 @@ export default function ClientManagementWorkspace({
                         Open Intelligence Platform
                       </Link>
                     )}
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void handleCopySupportLoungeLink()}
+                      className="inline-flex h-9 items-center gap-2 rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/20 disabled:opacity-60"
+                    >
+                      <Link2 className="h-3.5 w-3.5" />
+                      Copy Support Lounge link
+                    </button>
                     {/fotheringham/i.test(selectedClient.companyName) && (
                       <button
                         type="button"

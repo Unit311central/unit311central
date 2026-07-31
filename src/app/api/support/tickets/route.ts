@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createSupportTicket, listSupportTickets } from "@/lib/support-tickets-service";
 import type { SupportTicketPriority } from "@/lib/support-data";
-import { ensureSupportTicketsTable, withSupportTicketsTable } from "@/lib/internal-db-migrations";
+import { ensureSupportLoungeSchema, ensureSupportTicketsTable, withSupportTicketsTable } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const scope = { workspaceId: workspace.id };
 
     await ensureSupportTicketsTable();
+    await ensureSupportLoungeSchema();
     const includeArchived = request.nextUrl.searchParams.get("includeArchived") !== "false";
     const tickets = await withSupportTicketsTable(() => listSupportTickets(includeArchived, scope));
     return NextResponse.json({ tickets });
@@ -45,6 +46,8 @@ export async function POST(request: NextRequest) {
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
 
+    await ensureSupportTicketsTable();
+    await ensureSupportLoungeSchema();
     const body = (await request.json()) as {
       name?: string;
       organisation?: string;

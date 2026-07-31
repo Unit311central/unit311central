@@ -64,7 +64,7 @@ ${accountValues};
           'Buyer', ${sqlStr(c.address)}, ${sqlStr(c.email)},
           ${sqlStr(c.contactFirst)}, ${sqlStr(c.contactLast)}, ${sqlStr(c.city)}, ${sqlStr(c.postcode)},
           ${sqlStr(c.country)}, true, ${sqlStr(c.subscriptionStatus)}, ${sqlStr(c.billingFrequency)},
-          ${sqlStr(c.renewalDate)}::date)`;
+          ${sqlStr(c.renewalDate)}::date, ${c.supportLoungeToken ? sqlStr(c.supportLoungeToken) : "null"}, true)`;
       })
       .join(",\n");
     batches.push(`
@@ -73,7 +73,7 @@ insert into public.internal_clients (
   account_status, contract_type, tax_id, billing_address, active_projects, notes,
   job_title, company_address, invoice_email, primary_contact_first_name, primary_contact_surname,
   company_city, company_postcode, company_country, billing_same_as_company,
-  subscription_status, billing_frequency, renewal_date
+  subscription_status, billing_frequency, renewal_date, support_lounge_token, support_lounge_enabled
 ) values
 ${values};
 `);

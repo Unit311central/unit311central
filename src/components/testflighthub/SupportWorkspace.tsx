@@ -659,6 +659,16 @@ export default function SupportWorkspace() {
                         >
                           {SUPPORT_PRIORITY_LABELS[ticket.priority]}
                         </span>
+                        {ticket.source === "lounge" && (
+                          <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-violet-200">
+                            Lounge
+                          </span>
+                        )}
+                        {ticket.escalated && (
+                          <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-amber-200">
+                            Human
+                          </span>
+                        )}
                         <span className="text-[10px] text-white/40">{formatSupportDate(ticket.updatedAt)}</span>
                       </div>
                     </button>

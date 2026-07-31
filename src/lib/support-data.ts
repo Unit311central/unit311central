@@ -1,6 +1,32 @@
 export type SupportTicketPriority = "low" | "medium" | "high" | "urgent";
 
+export type SupportTicketStatus =
+  | "intake"
+  | "open"
+  | "in_progress"
+  | "waiting_on_client"
+  | "resolved"
+  | "closed";
+
 export const SUPPORT_CHANNEL_ROOM = "support-desk";
+
+export const SUPPORT_TICKET_STATUSES: SupportTicketStatus[] = [
+  "intake",
+  "open",
+  "in_progress",
+  "waiting_on_client",
+  "resolved",
+  "closed",
+];
+
+export const SUPPORT_TICKET_STATUS_LABELS: Record<SupportTicketStatus, string> = {
+  intake: "Intake",
+  open: "Open",
+  in_progress: "In progress",
+  waiting_on_client: "Waiting on client",
+  resolved: "Resolved",
+  closed: "Closed",
+};
 
 export type SupportTicket = {
   id: string;
@@ -15,6 +41,13 @@ export type SupportTicket = {
   closed: boolean;
   createdAt: string;
   updatedAt: string;
+  clientId?: string | null;
+  requesterAnonId?: string | null;
+  requesterEmail?: string | null;
+  ticketPublicToken?: string | null;
+  status?: SupportTicketStatus;
+  escalated?: boolean;
+  source?: string | null;
 };
 
 export const SUPPORT_PRIORITIES: SupportTicketPriority[] = ["low", "medium", "high", "urgent"];
@@ -39,9 +72,32 @@ type DbSupportTicket = {
   closed: boolean;
   created_at: string;
   updated_at: string;
+  client_id?: string | null;
+  requester_anon_id?: string | null;
+  requester_email?: string | null;
+  ticket_public_token?: string | null;
+  status?: string | null;
+  escalated?: boolean | null;
+  source?: string | null;
 };
 
+function normalizeStatus(row: DbSupportTicket): SupportTicketStatus {
+  const raw = (row.status || "").trim().toLowerCase();
+  if (
+    raw === "intake" ||
+    raw === "open" ||
+    raw === "in_progress" ||
+    raw === "waiting_on_client" ||
+    raw === "resolved" ||
+    raw === "closed"
+  ) {
+    return raw;
+  }
+  return row.closed ? "closed" : "open";
+}
+
 export function mapSupportTicket(row: DbSupportTicket): SupportTicket {
+  const status = normalizeStatus(row);
   return {
     id: row.id,
     name: row.name,
@@ -52,9 +108,16 @@ export function mapSupportTicket(row: DbSupportTicket): SupportTicket {
     clientPhone: row.client_phone,
     clientPriorityLabel: row.client_priority_label,
     archived: row.archived,
-    closed: row.closed ?? false,
+    closed: row.closed ?? status === "closed",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    clientId: row.client_id ?? null,
+    requesterAnonId: row.requester_anon_id ?? null,
+    requesterEmail: row.requester_email ?? null,
+    ticketPublicToken: row.ticket_public_token ?? null,
+    status,
+    escalated: row.escalated ?? false,
+    source: row.source ?? null,
   };
 }
 
@@ -69,6 +132,13 @@ export function createBlankTicketInput(): Omit<SupportTicket, "id" | "createdAt"
     clientPriorityLabel: null,
     archived: false,
     closed: false,
+    clientId: null,
+    requesterAnonId: null,
+    requesterEmail: null,
+    ticketPublicToken: null,
+    status: "open",
+    escalated: false,
+    source: "manual",
   };
 }
 

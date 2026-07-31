@@ -14,6 +14,9 @@ type DbSupportTicket = Parameters<typeof mapSupportTicket>[0];
 
 export type { SupportWorkspaceScope };
 
+const SUPPORT_TICKET_SELECT =
+  "id,name,organisation,priority,description,user_assigned,client_phone,client_priority_label,archived,closed,created_at,updated_at,client_id,requester_anon_id,requester_email,ticket_public_token,status,escalated,source";
+
 function requireSupportSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
@@ -41,6 +44,24 @@ function buildTicketPayload(input: Partial<SupportTicket>) {
   }
   if (input.archived !== undefined) payload.archived = input.archived;
   if (input.closed !== undefined) payload.closed = input.closed;
+  if (input.clientId !== undefined) payload.client_id = input.clientId?.trim() || null;
+  if (input.requesterAnonId !== undefined) {
+    payload.requester_anon_id = input.requesterAnonId?.trim() || null;
+  }
+  if (input.requesterEmail !== undefined) {
+    payload.requester_email = input.requesterEmail?.trim() || null;
+  }
+  if (input.ticketPublicToken !== undefined) {
+    payload.ticket_public_token = input.ticketPublicToken?.trim() || null;
+  }
+  if (input.status !== undefined) {
+    payload.status = input.status;
+    if (input.closed === undefined) {
+      payload.closed = input.status === "closed" || input.status === "resolved";
+    }
+  }
+  if (input.escalated !== undefined) payload.escalated = input.escalated;
+  if (input.source !== undefined) payload.source = input.source?.trim() || null;
 
   return payload;
 }
@@ -70,9 +91,7 @@ export async function listSupportTickets(
   const supabase = requireSupportSupabase();
   let query = supabase
     .from("support_tickets")
-    .select(
-      "id,name,organisation,priority,description,user_assigned,client_phone,client_priority_label,archived,closed,created_at,updated_at",
-    )
+    .select(SUPPORT_TICKET_SELECT)
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false });
 
@@ -94,6 +113,7 @@ export async function createSupportTicket(
   const blank = createBlankTicketInput();
   const id = await nextTicketId();
 
+  const status = input.status ?? (input.closed ? "closed" : "open");
   const { data, error } = await supabase
     .from("support_tickets")
     .insert({
@@ -107,7 +127,14 @@ export async function createSupportTicket(
       client_phone: input.clientPhone?.trim() || null,
       client_priority_label: input.clientPriorityLabel?.trim() || null,
       archived: input.archived ?? false,
-      closed: input.closed ?? false,
+      closed: input.closed ?? status === "closed",
+      client_id: input.clientId?.trim() || null,
+      requester_anon_id: input.requesterAnonId?.trim() || null,
+      requester_email: input.requesterEmail?.trim() || null,
+      ticket_public_token: input.ticketPublicToken?.trim() || null,
+      status,
+      escalated: input.escalated ?? false,
+      source: input.source?.trim() || "manual",
     })
     .select("*")
     .single();

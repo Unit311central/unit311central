@@ -49,7 +49,7 @@ function salaryFor(role, rng) {
 
 export function buildEnterpriseGraph(options = {}) {
   const rng = createRng(options.seed ?? 3112025);
-  const employeeTarget = options.employees ?? 100;
+  const employeeTarget = options.employees ?? 45;
   const clientTarget = options.clients ?? 100;
 
   const employees = [];
@@ -128,17 +128,29 @@ export function buildEnterpriseGraph(options = {}) {
   const usedNames = new Set();
   for (let i = 1; i <= clientTarget; i += 1) {
     let companyName;
-    do {
-      companyName = `${rng.pick(CLIENT_PREFIXES)} ${rng.pick(CLIENT_SUFFIXES)} ${rng.pick(["Ltd", "Inc", "GmbH", "Pte Ltd", "PLC"])}`;
-    } while (usedNames.has(companyName));
+    if (i === 1) {
+      companyName = "Rapid Labs Inc";
+    } else {
+      do {
+        companyName = `${rng.pick(CLIENT_PREFIXES)} ${rng.pick(CLIENT_SUFFIXES)} ${rng.pick(["Ltd", "Inc", "GmbH", "Pte Ltd", "PLC"])}`;
+      } while (usedNames.has(companyName));
+    }
     usedNames.add(companyName);
-    const industry = CLIENT_INDUSTRIES[i % CLIENT_INDUSTRIES.length];
+    const industry = i === 1 ? "Enterprise Technology" : CLIENT_INDUSTRIES[i % CLIENT_INDUSTRIES.length];
     const office = OFFICES[i % OFFICES.length];
-    const contactFirst = rng.pick(FIRST_NAMES);
-    const contactLast = rng.pick(LAST_NAMES);
+    const contactFirst = i === 1 ? "Alex" : rng.pick(FIRST_NAMES);
+    const contactLast = i === 1 ? "Chen" : rng.pick(LAST_NAMES);
     const statusRoll = rng.next();
     const accountStatus =
-      statusRoll > 0.92 ? "Archived" : statusRoll > 0.84 ? "Dormant" : statusRoll > 0.74 ? "Onboarding" : "Active";
+      i === 1
+        ? "Active"
+        : statusRoll > 0.92
+          ? "Archived"
+          : statusRoll > 0.84
+            ? "Dormant"
+            : statusRoll > 0.74
+              ? "Onboarding"
+              : "Active";
     const id = `dme-cli-${String(i).padStart(3, "0")}`;
     clients.push({
       id,
@@ -152,15 +164,23 @@ export function buildEnterpriseGraph(options = {}) {
       contractType: rng.pick(["Subscription", "Statement of Work", "Framework Agreement", "Retainer"]),
       contactFirst,
       contactLast,
-      email: `${contactFirst}.${contactLast}@${companyName.toLowerCase().replace(/[^a-z0-9]+/g, "")}.example`.slice(0, 80),
+      email:
+        i === 1
+          ? "alex.chen@rapidlabs.example"
+          : `${contactFirst}.${contactLast}@${companyName.toLowerCase().replace(/[^a-z0-9]+/g, "")}.example`.slice(0, 80),
       phone: `+1 555 ${String(1000000 + i).slice(-7)}`,
       taxId: `TAX-DME-${i}`,
       address: `${10 + (i % 80)} Commerce Street, ${office.city}`,
-      notes: `${DEMO_ENTERPRISE_TAG} Active Meridian Atlas customer.`,
+      notes:
+        i === 1
+          ? `${DEMO_ENTERPRISE_TAG} Flagship Support Lounge demo client.`
+          : `${DEMO_ENTERPRISE_TAG} Active Meridian Atlas customer.`,
       subscriptionStatus: accountStatus === "Active" ? "active" : accountStatus === "Onboarding" ? "pending_payment" : "inactive",
       billingFrequency: rng.pick(["monthly", "quarterly", "annual"]),
       renewalDate: daysAgo(-rng.int(20, 180)),
       createdDaysAgo: rng.int(20, 350),
+      // Stable demo lounge token for Rapid Labs (Workflow 2).
+      supportLoungeToken: i === 1 ? "demo-rapid-labs-lounge" : null,
     });
   }
 

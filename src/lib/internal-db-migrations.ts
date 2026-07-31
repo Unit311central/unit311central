@@ -17,6 +17,8 @@ export const COMPETITORS_SAAS_MARKETS_MIGRATION_PATH =
   "supabase/migrations/105_competitors_saas_markets.sql";
 export const SUPPORT_TICKETS_MIGRATION_PATH =
   "supabase/migrations/026_create_support_tickets.sql";
+export const SUPPORT_LOUNGE_MIGRATION_PATH =
+  "supabase/migrations/121_support_lounge.sql";
 export const CRM_CONNECTIONS_MIGRATION_PATH =
   "supabase/migrations/020_create_crm_connections.sql";
 export const HR_EMPLOYEES_MIGRATION_PATH =
@@ -1155,6 +1157,58 @@ export async function withSupportTicketsTable<T>(operation: () => Promise<T>): P
   }
 
   throw new Error("Failed to access support tickets table.");
+}
+
+export async function ensureSupportLoungeSchema(): Promise<boolean> {
+  const exists = await columnExistsViaManagementApi("support_tickets", "ticket_public_token");
+  if (exists === true) {
+    await reloadPostgrestSchema();
+    return true;
+  }
+
+  const appliedViaDb = await withResolvedDatabaseClient(async (client) => {
+    if (await columnExists(client, "support_tickets", "ticket_public_token")) {
+      return true;
+    }
+    await applyMigration(client, SUPPORT_LOUNGE_MIGRATION_PATH);
+    return true;
+  });
+
+  if (appliedViaDb) {
+    await reloadPostgrestSchema();
+    return true;
+  }
+
+  const applied = await applyMigrationViaManagementApi(SUPPORT_LOUNGE_MIGRATION_PATH);
+  if (applied) {
+    await reloadPostgrestSchema();
+    return true;
+  }
+
+  const viaRest = await columnExistsViaRestApi("support_tickets", "ticket_public_token");
+  return viaRest === true;
+}
+
+export async function withSupportLoungeSchema<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (
+        !isMissingColumnError(error, "ticket_public_token") &&
+        !isMissingColumnError(error, "support_lounge_token") &&
+        !isMissingTableError(error, "support_lounge_messages")
+      ) {
+        throw error;
+      }
+      await ensureSupportLoungeSchema();
+      await reloadPostgrestSchema();
+      if (attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+    }
+  }
+
+  throw new Error("Failed to access support lounge schema.");
 }
 
 export async function ensureCrmConnectionsTable(): Promise<boolean> {
