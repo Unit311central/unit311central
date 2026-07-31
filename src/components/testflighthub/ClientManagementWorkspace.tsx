@@ -181,10 +181,14 @@ export default function ClientManagementWorkspace({
     setError(null);
 
     try {
+      // Ensure every client has a unique Support Lounge URL before listing.
+      await fetch("/api/clients/support-lounge/ensure-all", { method: "POST" }).catch(() => null);
+      invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
+
       const data = await fetchCachedJson<{ clients?: ManagedClient[] }>(
         PLATFORM_CACHE_KEYS.clients,
         "/api/clients",
-        { ttlMs: 120_000, timeoutMs: 25_000 },
+        { ttlMs: 30_000, timeoutMs: 25_000 },
       );
 
       const nextClients = data.clients ?? [];
@@ -378,6 +382,11 @@ export default function ClientManagementWorkspace({
         throw new Error(data.error ?? "Failed to create support lounge link.");
       }
       await navigator.clipboard.writeText(data.url);
+      setClients((current) =>
+        current.map((client) =>
+          client.id === selectedClient.id ? { ...client, supportLoungeUrl: data.url } : client,
+        ),
+      );
       setSaveMessage(`Support Lounge link copied: ${data.url}`);
     } catch (loungeError) {
       setError(

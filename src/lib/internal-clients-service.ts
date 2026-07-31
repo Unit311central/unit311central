@@ -288,11 +288,21 @@ export async function createInternalClient(
       const id = `client-${crypto.randomUUID().slice(0, 8)}`;
       const accountsPayableEmail =
         input.accountsPayableEmail?.trim() || input.invoiceEmail?.trim() || "";
+      const companyName = input.companyName?.trim() || blank.companyName || "New Client";
+      const { createLoungeToken } = await import("@/lib/support-lounge-service");
+      const companySlug = companyName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 24);
+      const loungeToken = companySlug
+        ? `${companySlug}-${createLoungeToken()}`
+        : createLoungeToken();
 
       const baseRow = {
         id,
         workspace_id: workspaceId,
-        company_name: input.companyName?.trim() || blank.companyName || "New Client",
+        company_name: companyName,
         industry: input.industry ?? blank.industry,
         primary_contact: input.primaryContact?.trim() ?? blank.primaryContact,
         email: input.email?.trim() ?? blank.email,
@@ -308,6 +318,8 @@ export async function createInternalClient(
         notes: sanitizeClientNotes(input.notes ?? blank.notes),
         platform_url: input.platformUrl?.trim() || null,
         platform_organisation_id: input.platformOrganisationId?.trim() || null,
+        support_lounge_token: loungeToken,
+        support_lounge_enabled: true,
       };
 
       const attempts: Array<Record<string, string | number | boolean | null>> = [

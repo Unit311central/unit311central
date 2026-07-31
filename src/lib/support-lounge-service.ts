@@ -127,9 +127,23 @@ export async function ensureClientLoungeToken(input: {
   if (!existing) throw new Error("Client not found.");
 
   const mapped = mapLoungeClient(existing as DbLoungeClient);
-  if (mapped.loungeToken) return mapped;
+  if (mapped.loungeToken) {
+    if (existing.support_lounge_enabled === false) {
+      await supabase
+        .from("internal_clients")
+        .update({ support_lounge_enabled: true, updated_at: new Date().toISOString() })
+        .eq("id", input.clientId)
+        .eq("workspace_id", input.workspaceId);
+    }
+    return { ...mapped, enabled: true };
+  }
 
-  const token = createLoungeToken();
+  const companySlug = (mapped.companyName || "client")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 24);
+  const token = companySlug ? `${companySlug}-${createLoungeToken()}` : createLoungeToken();
   const { data, error } = await supabase
     .from("internal_clients")
     .update({
@@ -144,6 +158,43 @@ export async function ensureClientLoungeToken(input: {
 
   if (error) throw new Error(error.message);
   return mapLoungeClient(data as DbLoungeClient);
+}
+
+/** Mint a unique Support Lounge token for every client in the workspace that is missing one. */
+export async function ensureAllWorkspaceLoungeTokens(input: {
+  workspaceId: string;
+}): Promise<Array<{ clientId: string; companyName: string; loungeToken: string; created: boolean }>> {
+  const supabase = requireLoungeSupabase();
+  const { data, error } = await supabase
+    .from("internal_clients")
+    .select("id,workspace_id,company_name,support_lounge_token,support_lounge_enabled")
+    .eq("workspace_id", input.workspaceId)
+    .order("company_name", { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  const results: Array<{
+    clientId: string;
+    companyName: string;
+    loungeToken: string;
+    created: boolean;
+  }> = [];
+
+  for (const row of data || []) {
+    const had = Boolean((row.support_lounge_token as string | null)?.trim());
+    const lounge = await ensureClientLoungeToken({
+      clientId: row.id as string,
+      workspaceId: input.workspaceId,
+    });
+    results.push({
+      clientId: lounge.id,
+      companyName: lounge.companyName,
+      loungeToken: lounge.loungeToken,
+      created: !had,
+    });
+  }
+
+  return results;
 }
 
 export async function listLoungeTicketsForRequester(input: {
