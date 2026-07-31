@@ -43,10 +43,10 @@ export function getPublicEmailAccounts(options?: {
   demo?: boolean;
   workspaceSlug?: string | null;
 }): EmailAccount[] {
-  if (options?.demo) {
-    const { getDemoPublicEmailAccounts } = require("@/lib/email/demo-mailbox") as typeof import("@/lib/email/demo-mailbox");
-    return getDemoPublicEmailAccounts();
-  }
+  // Demo and Internal share the real Unit311 Zoho mailboxes
+  // (info@ / paul@ / admin@ / demo@unit311central.com). Never substitute
+  // Meridian Atlas fictional addresses into the Email UI.
+  void options?.demo;
   const slug = String(options?.workspaceSlug ?? "")
     .trim()
     .toLowerCase();

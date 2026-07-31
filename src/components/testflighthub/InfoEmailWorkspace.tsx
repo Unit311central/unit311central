@@ -66,22 +66,7 @@ const DEFAULT_MAILBOXES: EmailAccountOption[] = [
 ];
 
 function defaultMailboxesForHost(): EmailAccountOption[] {
-  if (typeof window !== "undefined") {
-    try {
-      const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
-        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
-      if (isBrowserDemoSurface()) {
-        return getDemoEnterpriseFixtures().emails.accounts.map((row) => ({
-          id: row.id as EmailAccountId,
-          email: row.email,
-          name: row.name,
-          configured: row.configured !== false,
-        }));
-      }
-    } catch {
-      // Fall through to Internal defaults.
-    }
-  }
+  // Demo and Internal both show the live Unit311 Zoho mailboxes.
   return DEFAULT_MAILBOXES;
 }
 

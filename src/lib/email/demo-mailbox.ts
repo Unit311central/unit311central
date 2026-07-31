@@ -1,22 +1,25 @@
 /**
- * Demo-only synthetic mailbox — never calls Zoho/IMAP.
+ * Demo-only helpers. Mailbox *accounts* are the real Unit311 Zoho inboxes
+ * (see accounts.ts). Synthetic Meridian threads remain available only if a
+ * caller explicitly wants fixture messages — production Email APIs use Zoho.
  */
 
 import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 import type { EmailAccount, EmailAccountId, EmailMailboxFolder, EmailMessage } from "@/lib/email/types";
 
+const UNIT311_ACCOUNTS: readonly EmailAccount[] = [
+  { id: "info", email: "info@unit311central.com", name: "Shared Inbox" },
+  { id: "paul", email: "paul@unit311central.com", name: "Paul" },
+  { id: "admin", email: "admin@unit311central.com", name: "Admin" },
+  { id: "demo", email: "demo@unit311central.com", name: "Demo" },
+];
+
 export function getDemoPublicEmailAccounts(): EmailAccount[] {
-  return getDemoEnterpriseFixtures().emails.accounts.map((row) => ({
-    id: row.id as EmailAccountId,
-    email: row.email,
-    name: row.name,
-  }));
+  return UNIT311_ACCOUNTS.map((account) => ({ ...account }));
 }
 
 export function isDemoEmailAccountConfigured(id: EmailAccountId): boolean {
-  return getDemoEnterpriseFixtures().emails.accounts.some(
-    (row) => row.id === id && row.configured !== false,
-  );
+  return UNIT311_ACCOUNTS.some((row) => row.id === id);
 }
 
 export function listDemoMailboxMessages(
@@ -24,8 +27,8 @@ export function listDemoMailboxMessages(
   folder: EmailMailboxFolder = "inbox",
 ): EmailMessage[] {
   const fixtures = getDemoEnterpriseFixtures();
-  const account = fixtures.emails.accounts.find((row) => row.id === accountId);
-  const mailbox = account?.email ?? `hello@${fixtures.company.domain}`;
+  const account = UNIT311_ACCOUNTS.find((row) => row.id === accountId);
+  const mailbox = account?.email ?? "info@unit311central.com";
 
   return fixtures.emails.threads
     .filter((thread) => thread.accountId === accountId && thread.folder === folder)
@@ -48,7 +51,7 @@ export function listDemoMailboxMessages(
         html: `<pre style="font-family:inherit;white-space:pre-wrap">${body.replace(/</g, "&lt;")}</pre>`,
         unread: thread.unread,
         attachments: [],
-        messageId: `<${thread.id}@meridianatlas.demo>`,
+        messageId: `<${thread.id}@unit311central.com>`,
         inReplyTo: null,
         references: [],
         direction: folder === "sent" ? ("outbound" as const) : ("inbound" as const),

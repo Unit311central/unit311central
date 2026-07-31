@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { parseAccountId, parseMailboxFolder } from "@/lib/email/accounts";
 import { emailErrorResponse } from "@/lib/email/api-utils";
-import { listDemoMailboxMessages } from "@/lib/email/demo-mailbox";
 import { fetchMailboxMessages } from "@/lib/email/imap";
 import { processInfoMailboxWhatsAppNotifications } from "@/lib/email/whatsapp-notifications";
 import { requirePlatformSession } from "@/lib/platform-session";
-import { isDemoWiseWorkspaceSlug } from "@/lib/treasury/bank-provider";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const runtime = "nodejs";
@@ -32,10 +30,7 @@ export async function GET(request: NextRequest) {
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
 
-    if (isDemoWiseWorkspaceSlug(workspace.slug)) {
-      return NextResponse.json(listDemoMailboxMessages(account, folder));
-    }
-
+    // Demo uses the same live Zoho mailboxes as Internal (info@/paul@/admin@/demo@).
     const messages = await fetchMailboxMessages(account, undefined, folder);
     if (account === "info" && folder === "inbox") {
       void processInfoMailboxWhatsAppNotifications(messages, scope).catch((error) => {
