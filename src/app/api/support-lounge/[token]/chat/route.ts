@@ -54,6 +54,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         history,
         userMessage: message,
         activeTicketPublicToken: body.activeTicketPublicToken,
+        origin: request.nextUrl.origin,
       }),
     );
 

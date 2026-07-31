@@ -21,6 +21,8 @@ export const SUPPORT_LOUNGE_MIGRATION_PATH =
   "supabase/migrations/121_support_lounge.sql";
 export const SUPPORT_LOUNGE_INTAKE_FIELDS_MIGRATION_PATH =
   "supabase/migrations/122_support_lounge_intake_fields.sql";
+export const SUPPORT_LOUNGE_ATTACHMENTS_MIGRATION_PATH =
+  "supabase/migrations/123_support_lounge_attachments.sql";
 export const CRM_CONNECTIONS_MIGRATION_PATH =
   "supabase/migrations/020_create_crm_connections.sql";
 export const HR_EMPLOYEES_MIGRATION_PATH =
@@ -1167,7 +1169,8 @@ export async function ensureSupportLoungeSchema(): Promise<boolean> {
     "support_tickets",
     "requester_first_name",
   );
-  if (exists === true && intakeExists === true) {
+  const attachmentsExists = await tableExistsViaManagementApi("support_lounge_attachments");
+  if (exists === true && intakeExists === true && attachmentsExists === true) {
     await reloadPostgrestSchema();
     return true;
   }
@@ -1178,6 +1181,9 @@ export async function ensureSupportLoungeSchema(): Promise<boolean> {
     }
     if (!(await columnExists(client, "support_tickets", "requester_first_name"))) {
       await applyMigration(client, SUPPORT_LOUNGE_INTAKE_FIELDS_MIGRATION_PATH);
+    }
+    if (!(await tableExists(client, "support_lounge_attachments"))) {
+      await applyMigration(client, SUPPORT_LOUNGE_ATTACHMENTS_MIGRATION_PATH);
     }
     return true;
   });
@@ -1192,6 +1198,9 @@ export async function ensureSupportLoungeSchema(): Promise<boolean> {
   }
   if (intakeExists !== true) {
     await applyMigrationViaManagementApi(SUPPORT_LOUNGE_INTAKE_FIELDS_MIGRATION_PATH);
+  }
+  if (attachmentsExists !== true) {
+    await applyMigrationViaManagementApi(SUPPORT_LOUNGE_ATTACHMENTS_MIGRATION_PATH);
   }
   await reloadPostgrestSchema();
 
@@ -1210,7 +1219,9 @@ export async function withSupportLoungeSchema<T>(operation: () => Promise<T>): P
         !isMissingColumnError(error, "ticket_public_token") &&
         !isMissingColumnError(error, "support_lounge_token") &&
         !isMissingColumnError(error, "requester_first_name") &&
-        !isMissingTableError(error, "support_lounge_messages")
+        !isMissingTableError(error, "support_lounge_messages") &&
+        !isMissingTableError(error, "support_lounge_attachments") &&
+        !isMissingColumnError(error, "attachment_url")
       ) {
         throw error;
       }

@@ -3,6 +3,7 @@ import {
   formatOpenAIError,
   getAssistantModel,
 } from "@/lib/ai-operating-assistant/openai-client";
+import { DEMO_SITE_URL } from "@/lib/app-domains";
 import type { SupportTicketPriority } from "@/lib/support-data";
 import {
   appendLoungeMessage,
@@ -10,6 +11,7 @@ import {
   escalateLoungeTicket,
   getLoungeTicketByPublicToken,
   listLoungeTicketsForRequester,
+  sendLoungeTicketSummaryEmail,
   type SupportLoungeClient,
 } from "@/lib/support-lounge-service";
 
@@ -23,6 +25,7 @@ export type LoungeChatResult = {
   ticketId?: string;
   ticketPublicToken?: string;
   resumePath?: string;
+  resumeUrl?: string;
   escalated?: boolean;
 };
 
@@ -35,6 +38,7 @@ type ModelDecision = {
   requester_name?: string;
   first_name?: string;
   last_name?: string;
+  email?: string;
   department?: string;
   role?: string;
   ticket_kind?: "new" | "existing";
@@ -53,24 +57,30 @@ function parseDecision(raw: string): ModelDecision {
   }
 }
 
+function looksLikeEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 export async function runSupportLoungeChat(input: {
   lounge: SupportLoungeClient;
   requesterAnonId: string;
   history: LoungeChatMessage[];
   userMessage: string;
   activeTicketPublicToken?: string | null;
+  origin?: string | null;
 }): Promise<LoungeChatResult> {
   const system = `You are the Demo Support Lounge assistant helping people from "${input.lounge.companyName}" raise tickets with Demo operations.
-Be concise, professional, and warm. Never require email or login.
+Be concise, professional, and warm.
 Collect intake ONE question at a time, in this exact order, before creating a ticket:
 1) First and last name
-2) Department
-3) Role / job title
-4) Is this a new ticket or an existing ticket?
-5) Problem description (or update for an existing ticket)
+2) Company email address
+3) Department
+4) Role / job title
+5) Is this a new ticket or an existing ticket?
+6) Problem description (or update for an existing ticket)
 
 Do not skip ahead. Do not ask multiple questions in one reply unless the visitor already volunteered several answers.
-When all five are known, use create_ticket.
+When all six are known, use create_ticket.
 
 Respond ONLY with JSON:
 {
@@ -81,6 +91,7 @@ Respond ONLY with JSON:
   "priority": "low"|"medium"|"high"|"urgent",
   "first_name": "",
   "last_name": "",
+  "email": "",
   "department": "",
   "role": "",
   "ticket_kind": "new"|"existing",
@@ -88,7 +99,7 @@ Respond ONLY with JSON:
   "note": "optional escalation note"
 }
 Rules:
-- create_ticket only after name, department, role, ticket_kind, and problem description are known.
+- create_ticket only after name, email, department, role, ticket_kind, and problem description are known.
 - Prefer list_tickets / request_human when asked.
 - Keep replies short.`;
 
@@ -117,6 +128,7 @@ Rules:
   let ticketId: string | undefined;
   let ticketPublicToken: string | undefined;
   let resumePath: string | undefined;
+  let resumeUrl: string | undefined;
   let escalated = false;
   let reply = decision.reply.trim();
 
@@ -125,6 +137,7 @@ Rules:
     const description = (decision.description || "").trim() || input.userMessage.trim();
     const firstName = (decision.first_name || "").trim();
     const lastName = (decision.last_name || "").trim();
+    const email = (decision.email || "").trim();
     const department = (decision.department || "").trim();
     const role = (decision.role || "").trim();
     const ticketKind =
@@ -133,6 +146,7 @@ Rules:
         : "new";
     const missing = [
       !firstName && !decision.requester_name ? "name" : null,
+      !email || !looksLikeEmail(email) ? "company email" : null,
       !department ? "department" : null,
       !role ? "role" : null,
       !description ? "problem description" : null,
@@ -143,6 +157,7 @@ Rules:
     } else {
       const profileLines = [
         firstName || lastName ? `Name: ${[firstName, lastName].filter(Boolean).join(" ")}` : null,
+        `Email: ${email}`,
         department ? `Department: ${department}` : null,
         role ? `Role: ${role}` : null,
         `Ticket type: ${ticketKind}`,
@@ -156,6 +171,7 @@ Rules:
           ? decision.priority
           : "medium",
         requesterName: decision.requester_name?.trim() || undefined,
+        requesterEmail: email,
         requesterFirstName: firstName || null,
         requesterLastName: lastName || null,
         requesterDepartment: department || null,
@@ -165,15 +181,32 @@ Rules:
       ticketId = created.ticket.id;
       ticketPublicToken = created.ticket.ticketPublicToken || undefined;
       resumePath = created.resumePath;
+      const origin = (input.origin || DEMO_SITE_URL).replace(/\/$/, "");
+      resumeUrl = `${origin}${created.resumePath}`;
+
       await appendLoungeMessage({
         workspaceId: input.lounge.workspaceId,
         ticketId: created.ticket.id,
         role: "user",
         content: input.userMessage,
       });
-      if (!/SUP-\d+/i.test(reply)) {
-        reply = `${reply}\n\nTicket ${created.ticket.id} is open. Our Demo team has been notified.`.trim();
-      }
+
+      const emailed = await sendLoungeTicketSummaryEmail({
+        lounge: input.lounge,
+        ticket: created.ticket,
+        resumeUrl,
+      });
+
+      reply = [
+        `Ticket ${created.ticket.id} is open.`,
+        "Our Demo support team has been notified and will begin working on the case.",
+        emailed
+          ? `I've emailed a summary to ${email}.`
+          : `I couldn't send the email just now — please keep your case link.`,
+        "",
+        "Track updates and add more information anytime here:",
+        resumeUrl,
+      ].join("\n");
     }
   } else if (action === "list_tickets") {
     const tickets = await listLoungeTicketsForRequester({
@@ -246,6 +279,7 @@ Rules:
     ticketId,
     ticketPublicToken,
     resumePath,
+    resumeUrl,
     escalated,
   };
 }

@@ -28,6 +28,19 @@ export type SupportLoungeMessage = {
   role: "user" | "assistant" | "operator" | "system";
   content: string;
   createdAt: string;
+  attachmentName?: string | null;
+  attachmentUrl?: string | null;
+  attachmentMime?: string | null;
+};
+
+export type SupportLoungeAttachment = {
+  id: string;
+  ticketId: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  createdAt: string;
 };
 
 type DbLoungeClient = {
@@ -294,6 +307,9 @@ export async function appendLoungeMessage(input: {
   ticketId: string;
   role: SupportLoungeMessage["role"];
   content: string;
+  attachmentName?: string | null;
+  attachmentUrl?: string | null;
+  attachmentMime?: string | null;
 }): Promise<SupportLoungeMessage> {
   const supabase = requireLoungeSupabase();
   const { data, error } = await supabase
@@ -303,8 +319,11 @@ export async function appendLoungeMessage(input: {
       ticket_id: input.ticketId,
       role: input.role,
       content: input.content.trim(),
+      attachment_name: input.attachmentName?.trim() || null,
+      attachment_url: input.attachmentUrl?.trim() || null,
+      attachment_mime: input.attachmentMime?.trim() || null,
     })
-    .select("id,ticket_id,role,content,created_at")
+    .select("id,ticket_id,role,content,created_at,attachment_name,attachment_url,attachment_mime")
     .single();
 
   if (error) throw new Error(error.message);
@@ -314,6 +333,9 @@ export async function appendLoungeMessage(input: {
     role: data.role as SupportLoungeMessage["role"],
     content: data.content as string,
     createdAt: data.created_at as string,
+    attachmentName: (data.attachment_name as string | null) ?? null,
+    attachmentUrl: (data.attachment_url as string | null) ?? null,
+    attachmentMime: (data.attachment_mime as string | null) ?? null,
   };
 }
 
@@ -324,7 +346,7 @@ export async function listLoungeMessages(input: {
   const supabase = requireLoungeSupabase();
   const { data, error } = await supabase
     .from("support_lounge_messages")
-    .select("id,ticket_id,role,content,created_at")
+    .select("id,ticket_id,role,content,created_at,attachment_name,attachment_url,attachment_mime")
     .eq("workspace_id", input.workspaceId)
     .eq("ticket_id", input.ticketId)
     .order("created_at", { ascending: true });
@@ -336,7 +358,147 @@ export async function listLoungeMessages(input: {
     role: row.role as SupportLoungeMessage["role"],
     content: row.content as string,
     createdAt: row.created_at as string,
+    attachmentName: (row.attachment_name as string | null) ?? null,
+    attachmentUrl: (row.attachment_url as string | null) ?? null,
+    attachmentMime: (row.attachment_mime as string | null) ?? null,
   }));
+}
+
+export async function listLoungeAttachments(input: {
+  workspaceId: string;
+  ticketId: string;
+}): Promise<SupportLoungeAttachment[]> {
+  const supabase = requireLoungeSupabase();
+  const { data, error } = await supabase
+    .from("support_lounge_attachments")
+    .select("id,ticket_id,file_name,file_url,mime_type,size_bytes,created_at")
+    .eq("workspace_id", input.workspaceId)
+    .eq("ticket_id", input.ticketId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data || []).map((row) => ({
+    id: row.id as string,
+    ticketId: row.ticket_id as string,
+    fileName: row.file_name as string,
+    fileUrl: row.file_url as string,
+    mimeType: (row.mime_type as string | null) ?? null,
+    sizeBytes: (row.size_bytes as number | null) ?? null,
+    createdAt: row.created_at as string,
+  }));
+}
+
+export async function uploadLoungeAttachment(input: {
+  workspaceId: string;
+  ticketId: string;
+  file: File;
+}): Promise<SupportLoungeAttachment> {
+  if (input.file.size > 10 * 1024 * 1024) {
+    throw new Error("Attachments must be 10 MB or smaller.");
+  }
+
+  const { INTERNAL_FILES_BUCKET } = await import("@/lib/internal-files-data");
+  const supabase = requireLoungeSupabase();
+  const safeName = input.file.name.replace(/[^\w.\-() ]+/g, "_");
+  const storagePath = `support-lounge/${input.workspaceId}/${input.ticketId}/${Date.now()}-${safeName}`;
+  const buffer = Buffer.from(await input.file.arrayBuffer());
+
+  const { error: uploadError } = await supabase.storage
+    .from(INTERNAL_FILES_BUCKET)
+    .upload(storagePath, buffer, {
+      contentType: input.file.type || "application/octet-stream",
+      upsert: false,
+    });
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data: publicData } = supabase.storage
+    .from(INTERNAL_FILES_BUCKET)
+    .getPublicUrl(storagePath);
+
+  const { data, error } = await supabase
+    .from("support_lounge_attachments")
+    .insert({
+      workspace_id: input.workspaceId,
+      ticket_id: input.ticketId,
+      file_name: input.file.name,
+      file_url: publicData.publicUrl,
+      mime_type: input.file.type || "application/octet-stream",
+      size_bytes: input.file.size,
+    })
+    .select("id,ticket_id,file_name,file_url,mime_type,size_bytes,created_at")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  await appendLoungeMessage({
+    workspaceId: input.workspaceId,
+    ticketId: input.ticketId,
+    role: "user",
+    content: `Uploaded file: ${input.file.name}`,
+    attachmentName: input.file.name,
+    attachmentUrl: publicData.publicUrl,
+    attachmentMime: input.file.type || "application/octet-stream",
+  });
+
+  return {
+    id: data.id as string,
+    ticketId: data.ticket_id as string,
+    fileName: data.file_name as string,
+    fileUrl: data.file_url as string,
+    mimeType: (data.mime_type as string | null) ?? null,
+    sizeBytes: (data.size_bytes as number | null) ?? null,
+    createdAt: data.created_at as string,
+  };
+}
+
+export async function sendLoungeTicketSummaryEmail(input: {
+  lounge: SupportLoungeClient;
+  ticket: SupportTicket;
+  resumeUrl: string;
+}): Promise<boolean> {
+  const to = input.ticket.requesterEmail?.trim();
+  if (!to || !to.includes("@")) return false;
+
+  try {
+    const { sendMailboxEmail } = await import("@/lib/email/smtp");
+    const name = [
+      input.ticket.requesterFirstName,
+      input.ticket.requesterLastName,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || input.ticket.name;
+
+    await sendMailboxEmail({
+      account: "demo",
+      workspaceId: input.lounge.workspaceId,
+      to,
+      subject: `Support ticket ${input.ticket.id} received — Demo Support Lounge`,
+      text: [
+        `Hi ${name || "there"},`,
+        "",
+        `Your support ticket ${input.ticket.id} has been created with Demo Support Lounge.`,
+        "",
+        `Organisation: ${input.ticket.organisation}`,
+        `Status: ${input.ticket.status || "open"}`,
+        `Priority: ${input.ticket.priority}`,
+        "",
+        "Summary:",
+        input.ticket.description,
+        "",
+        "Track updates and add more information anytime using this private link:",
+        input.resumeUrl,
+        "",
+        "Our Demo support team has been notified and will begin working on the case.",
+        "",
+        "— Demo Support Lounge",
+      ].join("\n"),
+    });
+    return true;
+  } catch (error) {
+    console.warn("[support-lounge] summary email failed:", error);
+    return false;
+  }
 }
 
 export async function setLoungeTicketStatus(input: {
