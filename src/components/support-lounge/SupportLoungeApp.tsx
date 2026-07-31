@@ -217,7 +217,7 @@ export default function SupportLoungeApp({
         }}
       />
 
-      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 sm:px-6">
+      <div className="relative mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/80">
@@ -297,8 +297,8 @@ export default function SupportLoungeApp({
             )}
           </div>
         ) : (
-          <>
-            <div className="flex-1 space-y-3 overflow-y-auto pb-4">
+          <div className="mx-auto w-full max-w-2xl">
+            <div className="space-y-3">
               {history.map((message, index) => (
                 <div
                   key={`${message.role}-${index}`}
@@ -315,13 +315,14 @@ export default function SupportLoungeApp({
               <div ref={endRef} />
             </div>
 
-            <form onSubmit={handleSend} className="sticky bottom-0 border-t border-white/10 bg-[#0b1220]/90 pt-4 backdrop-blur">
+            <form onSubmit={handleSend} className="mt-4 border-t border-white/10 pt-4">
               <div className="flex gap-2">
                 <input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder="Type your reply…"
                   disabled={sending}
+                  autoFocus
                   className="h-12 flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-sky-400/40"
                 />
                 <button
@@ -336,7 +337,7 @@ export default function SupportLoungeApp({
                 Same browser remembers your tickets. Ask anytime to speak with a person.
               </p>
             </form>
-          </>
+          </div>
         )}
       </div>
     </div>
