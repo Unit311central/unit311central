@@ -223,6 +223,7 @@ function MessageBody({
         <div className="rounded-xl border border-white/10 bg-black/20 p-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
             Assign {assignTicketId}
+            {assigningTicketId === assignTicketId ? " · saving…" : ""}
           </p>
           <select
             defaultValue=""
@@ -235,7 +236,9 @@ function MessageBody({
             }}
             className="mt-2 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/50 disabled:opacity-50"
           >
-            <option value="">Choose support user…</option>
+            <option value="">
+              {assignOptions.length === 0 ? "No support users available" : "Choose support user…"}
+            </option>
             {assignOptions.map((option) => (
               <option key={option.id} value={option.label}>
                 {option.label}
@@ -382,17 +385,39 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
     } satisfies MessageChannel);
 
   const supportAssignOptions = useMemo(() => {
+    const defaults = [
+      { id: "user-admin", label: "Admin" },
+      { id: "user-info", label: "Info" },
+      { id: "user-paul", label: "Paul" },
+    ];
     const memberIds =
       activeChannel.memberOperatorIds.length > 0
         ? activeChannel.memberOperatorIds
-        : ["user-admin", "user-info", "user-paul"];
-    return memberIds
-      .map((id) => operatorsById.get(id))
-      .filter((operator): operator is ManagedUser => Boolean(operator))
-      .map((operator) => ({
-        id: operator.id,
-        label: operator.fullName || operator.operatorLabel || operator.email || operator.username,
-      }));
+        : defaults.map((item) => item.id);
+    const fromMembers = memberIds
+      .map((id) => {
+        const operator = operatorsById.get(id);
+        if (operator) {
+          return {
+            id: operator.id,
+            label:
+              operator.fullName ||
+              operator.operatorLabel ||
+              operator.email ||
+              operator.username ||
+              id,
+          };
+        }
+        const fallback = defaults.find((item) => item.id === id);
+        return fallback || null;
+      })
+      .filter((item): item is { id: string; label: string } => Boolean(item));
+
+    const byLabel = new Map<string, { id: string; label: string }>();
+    for (const option of [...defaults, ...fromMembers]) {
+      byLabel.set(option.label.toLowerCase(), option);
+    }
+    return Array.from(byLabel.values());
   }, [activeChannel.memberOperatorIds, operatorsById]);
 
   const internalChannels = useMemo(
@@ -896,22 +921,26 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
   }
 
   async function handleAssignSupportTicket(ticketId: string, assignee: string) {
-    if (!joinedOperator || !assignee.trim()) return;
+    if (!assignee.trim()) return;
     setAssigningTicketId(ticketId);
     setError(null);
     try {
-      const response = await fetch(`/api/support/tickets/${encodeURIComponent(ticketId)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userAssigned: assignee.trim() }),
-      });
+      const response = await fetch(
+        `/api/support/tickets/${encodeURIComponent(ticketId)}/assign`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            assignee: assignee.trim(),
+            room: activeRoom,
+          }),
+        },
+      );
       const data = await readApiJson<{ ticket?: { id: string }; error?: string }>(response);
       if (!response.ok) throw new Error(data.error || "Failed to assign ticket");
 
-      await postMessage({
-        content: `Assigned ${assignee.trim()} to ${ticketId}.`,
-        messageType: "system",
-      });
+      await loadMessages(activeRoom).catch(() => undefined);
+      setError(null);
     } catch (assignError) {
       setError(assignError instanceof Error ? assignError.message : "Failed to assign ticket");
     } finally {
@@ -2222,9 +2251,7 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
                         isSelf={isSelf}
                         onJoinCall={openCallInCommunications}
                         assignOptions={supportAssignOptions}
-                        onAssignTicket={
-                          joinedOperator ? handleAssignSupportTicket : undefined
-                        }
+                        onAssignTicket={handleAssignSupportTicket}
                         assigningTicketId={assigningTicketId}
                       />
                     </div>

@@ -1,6 +1,14 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState, startTransition } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  startTransition,
+} from "react";
 import {
   FileUp,
   Loader2,
@@ -8,6 +16,7 @@ import {
   Paperclip,
   Send,
   Ticket,
+  X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -18,7 +27,6 @@ type ChatMessage = {
   createdAt?: string;
   attachmentName?: string | null;
   attachmentUrl?: string | null;
-  attachmentMime?: string | null;
 };
 
 type LoungeTicket = {
@@ -35,11 +43,13 @@ type LoungeTicket = {
   requesterRole?: string | null;
   ticketKind?: string | null;
   ticketPublicToken?: string | null;
+  ticketPublicUrl?: string | null;
   resumePath?: string | null;
   escalated?: boolean;
   closed?: boolean;
   updatedAt: string;
   createdAt?: string;
+  userAssigned?: string | null;
 };
 
 type LoungeAttachment = {
@@ -50,6 +60,17 @@ type LoungeAttachment = {
   sizeBytes: number | null;
   createdAt: string;
 };
+
+type IntakeStep =
+  | "name"
+  | "email"
+  | "department"
+  | "role"
+  | "kind"
+  | "existing"
+  | "description"
+  | "upload"
+  | "done";
 
 async function readJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -81,6 +102,18 @@ function displayName(ticket: LoungeTicket) {
   return composed || ticket.name || "—";
 }
 
+function parseProblemDescription(description: string) {
+  const lines = description.split("\n").map((line) => line.trim()).filter(Boolean);
+  const meta: Record<string, string> = {};
+  const body: string[] = [];
+  for (const line of lines) {
+    const match = line.match(/^(Name|Email|Department|Role|Ticket type):\s*(.+)$/i);
+    if (match) meta[match[1].toLowerCase()] = match[2];
+    else body.push(line);
+  }
+  return { meta, body: body.join("\n") || description };
+}
+
 export default function SupportLoungeApp({
   loungeToken,
   activeTicketPublicToken = null,
@@ -92,10 +125,13 @@ export default function SupportLoungeApp({
   const [loungeTitle, setLoungeTitle] = useState("Demo Support Lounge");
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [tickets, setTickets] = useState<LoungeTicket[]>([]);
+  const [openTickets, setOpenTickets] = useState<LoungeTicket[]>([]);
+  const [existingIdDraft, setExistingIdDraft] = useState("");
   const [caseTicket, setCaseTicket] = useState<LoungeTicket | null>(null);
   const [attachments, setAttachments] = useState<LoungeAttachment[]>([]);
   const [draft, setDraft] = useState("");
   const [extraInfo, setExtraInfo] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -106,10 +142,23 @@ export default function SupportLoungeApp({
   );
   const [panel, setPanel] = useState<"chat" | "tickets">("chat");
   const [origin, setOrigin] = useState("");
+  const [intakeStep, setIntakeStep] = useState<IntakeStep>("name");
+  const [intake, setIntake] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    department: "",
+    role: "",
+    ticketKind: "new" as "new" | "existing",
+    existingTicketId: "",
+    description: "",
+  });
   const endRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const intakeFileRef = useRef<HTMLInputElement>(null);
 
   const caseMode = Boolean(activeTicketToken && caseTicket);
+  const intakeMode = !activeTicketPublicToken && !caseMode && intakeStep !== "done";
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -136,13 +185,12 @@ export default function SupportLoungeApp({
             m.role === "operator" ||
             m.role === "system",
         );
-        if (msgs.length > 0) {
-          setHistory(msgs);
-        } else if (payload.ticket) {
+        if (msgs.length > 0) setHistory(msgs);
+        else if (payload.ticket) {
           setHistory([
             {
               role: "assistant",
-              content: `You're viewing ${payload.ticket.id} (${payload.ticket.status || "open"}). Add more information on the right, upload a file below, or ask for a human here.`,
+              content: `You're viewing ${payload.ticket.id}. Add information on the right, upload a file, or ask for a human here.`,
             },
           ]);
         }
@@ -167,8 +215,15 @@ export default function SupportLoungeApp({
       `/api/support-lounge/${encodeURIComponent(loungeToken)}/tickets`,
       { cache: "no-store" },
     );
-    const ticketsData = await readJson<{ tickets?: LoungeTicket[]; error?: string }>(ticketsRes);
-    if (ticketsRes.ok) setTickets(ticketsData.tickets || []);
+    const ticketsData = await readJson<{
+      tickets?: LoungeTicket[];
+      openTickets?: LoungeTicket[];
+      error?: string;
+    }>(ticketsRes);
+    if (ticketsRes.ok) {
+      setTickets(ticketsData.tickets || []);
+      setOpenTickets(ticketsData.openTickets || ticketsData.tickets || []);
+    }
 
     if (activeTicketPublicToken) {
       const ticketRes = await fetch(
@@ -183,9 +238,11 @@ export default function SupportLoungeApp({
       }>(ticketRes);
       if (!ticketRes.ok) throw new Error(ticketData.error || "Ticket not found");
       applyTicketPayload(ticketData);
+      setIntakeStep("done");
     } else {
       setCaseTicket(null);
       setAttachments([]);
+      setIntakeStep("name");
       setHistory([
         {
           role: "assistant",
@@ -216,7 +273,22 @@ export default function SupportLoungeApp({
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history, panel]);
+  }, [history, panel, intakeStep]);
+
+  // Poll case updates so operator messages appear for the client.
+  useEffect(() => {
+    if (!activeTicketToken || !caseMode) return;
+    const timer = window.setInterval(() => {
+      void fetch(
+        `/api/support-lounge/${encodeURIComponent(loungeToken)}/tickets/${encodeURIComponent(activeTicketToken)}`,
+        { cache: "no-store" },
+      )
+        .then((res) => readJson<{ ticket?: LoungeTicket; messages?: ChatMessage[]; attachments?: LoungeAttachment[] }>(res))
+        .then((data) => applyTicketPayload(data))
+        .catch(() => undefined);
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [activeTicketToken, applyTicketPayload, caseMode, loungeToken]);
 
   async function refreshTickets() {
     const ticketsRes = await fetch(
@@ -224,8 +296,11 @@ export default function SupportLoungeApp({
       { cache: "no-store" },
     );
     if (ticketsRes.ok) {
-      const ticketsData = await readJson<{ tickets?: LoungeTicket[] }>(ticketsRes);
+      const ticketsData = await readJson<{ tickets?: LoungeTicket[]; openTickets?: LoungeTicket[] }>(
+        ticketsRes,
+      );
       setTickets(ticketsData.tickets || []);
+      setOpenTickets(ticketsData.openTickets || ticketsData.tickets || []);
     }
   }
 
@@ -244,17 +319,139 @@ export default function SupportLoungeApp({
     applyTicketPayload(ticketData);
   }
 
-  async function handleSend(event: FormEvent) {
+  function pushAssistant(content: string) {
+    setHistory((prev) => [...prev, { role: "assistant", content }]);
+  }
+
+  function pushUser(content: string) {
+    setHistory((prev) => [...prev, { role: "user", content }]);
+  }
+
+  async function submitIntakeCreate() {
+    setSending(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.set("firstName", intake.firstName);
+      form.set("lastName", intake.lastName);
+      form.set("email", intake.email);
+      form.set("department", intake.department);
+      form.set("role", intake.role);
+      form.set("ticketKind", intake.ticketKind);
+      form.set("existingTicketId", intake.existingTicketId);
+      form.set("description", intake.description);
+      form.set("summary", intake.description.split("\n")[0]?.slice(0, 80) || "Support request");
+      for (const file of pendingFiles) form.append("files", file);
+
+      const response = await fetch(
+        `/api/support-lounge/${encodeURIComponent(loungeToken)}/tickets`,
+        { method: "POST", body: form },
+      );
+      const data = await readJson<{
+        reply?: string;
+        ticketPublicToken?: string;
+        resumePath?: string;
+        error?: string;
+      }>(response);
+      if (!response.ok) throw new Error(data.error || "Failed to create ticket");
+
+      pushAssistant(data.reply || "Ticket created.");
+      setPendingFiles([]);
+      setIntakeStep("done");
+      if (data.ticketPublicToken) {
+        setActiveTicketToken(data.ticketPublicToken);
+        if (data.resumePath) window.history.replaceState(null, "", data.resumePath);
+        await reloadActiveCase(data.ticketPublicToken);
+      }
+      await refreshTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create ticket");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function advanceIntake(userText: string) {
+    const text = userText.trim();
+    if (!text || sending) return;
+    pushUser(text);
+    setDraft("");
+
+    if (intakeStep === "name") {
+      const parts = text.split(/\s+/).filter(Boolean);
+      const firstName = parts[0] || "";
+      const lastName = parts.slice(1).join(" ");
+      setIntake((prev) => ({ ...prev, firstName, lastName }));
+      setIntakeStep("email");
+      pushAssistant(`Thank you${firstName ? `, ${firstName}` : ""}. What is your company email address?`);
+      return;
+    }
+    if (intakeStep === "email") {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
+        pushAssistant("Please enter a valid company email address.");
+        return;
+      }
+      setIntake((prev) => ({ ...prev, email: text }));
+      setIntakeStep("department");
+      pushAssistant("Thank you. What is your department?");
+      return;
+    }
+    if (intakeStep === "department") {
+      setIntake((prev) => ({ ...prev, department: text }));
+      setIntakeStep("role");
+      pushAssistant("Thank you. What is your role or job title?");
+      return;
+    }
+    if (intakeStep === "role") {
+      setIntake((prev) => ({ ...prev, role: text }));
+      setIntakeStep("kind");
+      pushAssistant("Is this a new ticket or an existing ticket? Choose below.");
+      return;
+    }
+    if (intakeStep === "description") {
+      setIntake((prev) => ({ ...prev, description: text }));
+      setIntakeStep("upload");
+      pushAssistant(
+        "Thanks. Optionally upload an image, document, or file below, then tap Create ticket.",
+      );
+      return;
+    }
+  }
+
+  function chooseTicketKind(kind: "new" | "existing") {
+    setIntake((prev) => ({ ...prev, ticketKind: kind }));
+    pushUser(kind === "new" ? "New ticket" : "Existing ticket");
+    if (kind === "existing") {
+      setIntakeStep("existing");
+      setExistingIdDraft("");
+      pushAssistant(
+        openTickets.length > 0
+          ? "Select the existing ticket from the dropdown, or type a ticket ID (e.g. SUP-023)."
+          : "No open tickets found yet for this company. Type a ticket ID if you have one, or go back and choose New ticket.",
+      );
+      return;
+    }
+    setIntakeStep("description");
+    pushAssistant("Please provide a description of the problem you are experiencing.");
+  }
+
+  function chooseExistingTicket(ticketId: string) {
+    const id = ticketId.trim().toUpperCase();
+    if (!id) return;
+    setIntake((prev) => ({ ...prev, existingTicketId: id, ticketKind: "existing" }));
+    pushUser(id);
+    setIntakeStep("description");
+    pushAssistant("What update or additional detail should we add to that case?");
+  }
+
+  async function handleCaseChat(event: FormEvent) {
     event.preventDefault();
     const message = draft.trim();
-    if (!message || sending) return;
-
-    const nextHistory = [...history, { role: "user" as const, content: message }];
-    setHistory(nextHistory);
+    if (!message || sending || !activeTicketToken) return;
+    pushUser(message);
     setDraft("");
     setSending(true);
     setError(null);
-
     try {
       const response = await fetch(
         `/api/support-lounge/${encodeURIComponent(loungeToken)}/chat`,
@@ -265,32 +462,15 @@ export default function SupportLoungeApp({
             message,
             history: history
               .filter((m) => m.role === "user" || m.role === "assistant")
-              .slice(-16),
+              .slice(-8),
             activeTicketPublicToken: activeTicketToken,
           }),
         },
       );
-      const data = await readJson<{
-        reply?: string;
-        ticketPublicToken?: string;
-        resumePath?: string;
-        error?: string;
-      }>(response);
+      const data = await readJson<{ reply?: string; error?: string }>(response);
       if (!response.ok) throw new Error(data.error || "Chat failed");
-
-      setHistory((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply || "Understood." },
-      ]);
-      if (data.ticketPublicToken) {
-        setActiveTicketToken(data.ticketPublicToken);
-        if (data.resumePath && typeof window !== "undefined") {
-          window.history.replaceState(null, "", data.resumePath);
-        }
-        await reloadActiveCase(data.ticketPublicToken);
-      }
-
-      await refreshTickets();
+      pushAssistant(data.reply || "Thanks — update recorded.");
+      await reloadActiveCase(activeTicketToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send");
       setHistory((prev) => prev.slice(0, -1));
@@ -311,15 +491,8 @@ export default function SupportLoungeApp({
         `/api/support-lounge/${encodeURIComponent(loungeToken)}/tickets/${encodeURIComponent(activeTicketToken)}`,
         { method: "POST", body: form },
       );
-      const data = await readJson<{
-        messages?: ChatMessage[];
-        attachments?: LoungeAttachment[];
-        ticket?: LoungeTicket;
-        error?: string;
-      }>(response);
+      const data = await readJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(data.error || "Upload failed");
-      if (data.messages) setHistory(data.messages);
-      if (data.ticket) setCaseTicket(data.ticket);
       await reloadActiveCase(activeTicketToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -344,14 +517,8 @@ export default function SupportLoungeApp({
           body: JSON.stringify({ note }),
         },
       );
-      const data = await readJson<{
-        messages?: ChatMessage[];
-        ticket?: LoungeTicket;
-        error?: string;
-      }>(response);
+      const data = await readJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(data.error || "Could not add information");
-      if (data.messages) setHistory(data.messages);
-      if (data.ticket) setCaseTicket(data.ticket);
       setExtraInfo("");
       await reloadActiveCase(activeTicketToken);
     } catch (err) {
@@ -360,6 +527,11 @@ export default function SupportLoungeApp({
       setSavingNote(false);
     }
   }
+
+  const problem = useMemo(
+    () => (caseTicket ? parseProblemDescription(caseTicket.description) : null),
+    [caseTicket],
+  );
 
   if (loading) {
     return (
@@ -380,10 +552,6 @@ export default function SupportLoungeApp({
     );
   }
 
-  const updates = history.filter(
-    (m) => m.role === "user" || m.role === "assistant" || m.role === "operator" || m.role === "system",
-  );
-
   return (
     <div className="min-h-screen bg-[#0b1220] text-white">
       <div
@@ -396,16 +564,16 @@ export default function SupportLoungeApp({
 
       <div
         className={cn(
-          "relative mx-auto w-full px-4 py-6 sm:px-6",
+          "relative mx-auto w-full px-3 py-4 sm:px-6 sm:py-6",
           caseMode ? "max-w-6xl" : "max-w-5xl",
         )}
       >
-        <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
-          <div>
+        <header className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-4 sm:mb-6 sm:pb-5">
+          <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/80">
               Support Lounge
             </p>
-            <h1 className="mt-1 font-serif text-3xl tracking-tight text-white sm:text-4xl">
+            <h1 className="mt-1 font-serif text-2xl tracking-tight text-white sm:text-4xl">
               {loungeTitle}
             </h1>
             <p className="mt-2 max-w-xl text-sm text-white/55">
@@ -422,7 +590,7 @@ export default function SupportLoungeApp({
                 "inline-flex h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors",
                 panel === "chat"
                   ? "border-sky-400/40 bg-sky-500/15 text-sky-100"
-                  : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]",
+                  : "border-white/10 bg-white/[0.03] text-white/60",
               )}
             >
               <MessageSquare className="h-3.5 w-3.5" />
@@ -435,7 +603,7 @@ export default function SupportLoungeApp({
                 "inline-flex h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors",
                 panel === "tickets"
                   ? "border-sky-400/40 bg-sky-500/15 text-sky-100"
-                  : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.06]",
+                  : "border-white/10 bg-white/[0.03] text-white/60",
               )}
             >
               <Ticket className="h-3.5 w-3.5" />
@@ -451,39 +619,57 @@ export default function SupportLoungeApp({
         )}
 
         {panel === "tickets" ? (
-          <div className="flex-1 space-y-3">
-            {tickets.length === 0 ? (
-              <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/50">
-                No tickets from this browser yet. Start a chat to open one.
-              </p>
-            ) : (
-              tickets.map((ticket) => (
-                <button
-                  key={ticket.id}
-                  type="button"
-                  onClick={() => {
-                    if (ticket.resumePath) {
-                      window.location.href = ticket.resumePath;
-                    }
-                  }}
-                  className="block w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-left transition-colors hover:border-sky-400/30 hover:bg-sky-500/5"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-white">{ticket.id}</p>
-                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-white/55">
-                      {ticket.status || (ticket.closed ? "closed" : "open")}
-                    </span>
-                  </div>
-                  <p className="mt-2 line-clamp-2 text-sm text-white/55">{ticket.description}</p>
-                </button>
-              ))
-            )}
+          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03]">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-white/10 text-[11px] uppercase tracking-wider text-white/45">
+                <tr>
+                  <th className="px-3 py-3">ID</th>
+                  <th className="px-3 py-3">Status</th>
+                  <th className="px-3 py-3">Created</th>
+                  <th className="px-3 py-3">Updated</th>
+                  <th className="px-3 py-3">Name</th>
+                  <th className="px-3 py-3">Email</th>
+                  <th className="px-3 py-3">Summary</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tickets.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-3 py-8 text-center text-white/45">
+                      No tickets from this browser yet.
+                    </td>
+                  </tr>
+                ) : (
+                  tickets.map((ticket) => (
+                    <tr
+                      key={ticket.id}
+                      className="cursor-pointer border-b border-white/5 hover:bg-sky-500/5"
+                      onClick={() => {
+                        if (ticket.resumePath) window.location.href = ticket.resumePath;
+                      }}
+                    >
+                      <td className="px-3 py-3 font-mono text-xs text-sky-300">{ticket.id}</td>
+                      <td className="px-3 py-3 capitalize text-white/80">
+                        {(ticket.status || (ticket.closed ? "closed" : "open")).replaceAll("_", " ")}
+                      </td>
+                      <td className="px-3 py-3 text-white/60">{formatWhen(ticket.createdAt)}</td>
+                      <td className="px-3 py-3 text-white/60">{formatWhen(ticket.updatedAt)}</td>
+                      <td className="px-3 py-3 text-white/80">{displayName(ticket)}</td>
+                      <td className="px-3 py-3 text-white/60">{ticket.requesterEmail || "—"}</td>
+                      <td className="max-w-[16rem] truncate px-3 py-3 text-white/55">
+                        {ticket.description}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div
             className={cn(
-              "grid gap-6",
-              caseMode ? "lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]" : "",
+              "grid gap-4 sm:gap-6",
+              caseMode ? "lg:grid-cols-[minmax(0,1.1fr)_minmax(260px,0.9fr)]" : "",
             )}
           >
             <div className={cn(!caseMode && "mx-auto w-full max-w-2xl")}>
@@ -492,7 +678,7 @@ export default function SupportLoungeApp({
                   <div
                     key={`${message.role}-${index}-${message.createdAt || ""}`}
                     className={cn(
-                      "max-w-[90%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                      "max-w-[92%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed",
                       message.role === "user"
                         ? "ml-auto bg-sky-500/20 text-sky-50"
                         : message.role === "system"
@@ -506,7 +692,7 @@ export default function SupportLoungeApp({
                         href={message.attachmentUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-2 flex items-center gap-2 text-xs text-sky-300 underline-offset-2 hover:underline"
+                        className="mt-2 flex items-center gap-2 text-xs text-sky-300 hover:underline"
                       >
                         <Paperclip className="h-3.5 w-3.5" />
                         {message.attachmentName || "Attachment"}
@@ -517,208 +703,307 @@ export default function SupportLoungeApp({
                 <div ref={endRef} />
               </div>
 
-              <form onSubmit={handleSend} className="mt-4 border-t border-white/10 pt-4">
-                <div className="flex gap-2">
-                  {activeTicketToken ? (
-                    <>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.zip"
-                        onChange={(e) => void handleUpload(e.target.files?.[0] || null)}
-                      />
-                      <button
-                        type="button"
-                        disabled={uploading}
-                        onClick={() => fileInputRef.current?.click()}
-                        title="Upload image, document, or file"
-                        className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/70 transition-colors hover:bg-white/[0.08] disabled:opacity-50"
-                      >
-                        {uploading ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <FileUp className="h-4 w-4" />
-                        )}
-                      </button>
-                    </>
-                  ) : null}
-                  <input
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    placeholder="Type your reply…"
-                    disabled={sending}
-                    autoFocus
-                    className="h-12 flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-sky-400/40"
-                  />
+              {intakeMode && intakeStep === "kind" ? (
+                <div className="mt-4 flex flex-wrap gap-2">
                   <button
-                    type="submit"
-                    disabled={sending || !draft.trim()}
-                    className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-400/40 bg-sky-500/20 text-sky-100 transition-colors hover:bg-sky-500/30 disabled:opacity-50"
+                    type="button"
+                    onClick={() => chooseTicketKind("new")}
+                    className="rounded-xl border border-sky-400/40 bg-sky-500/20 px-4 py-2.5 text-sm font-semibold text-sky-100"
                   >
-                    {sending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
+                    New ticket
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => chooseTicketKind("existing")}
+                    className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white/80"
+                  >
+                    Existing ticket
                   </button>
                 </div>
-                <p className="mt-2 text-[11px] text-white/35">
-                  {activeTicketToken
-                    ? "Upload images or documents anytime. Ask to speak with a person if you need human help."
-                    : "Same browser remembers your tickets. Ask anytime to speak with a person."}
-                </p>
-              </form>
-            </div>
+              ) : null}
 
-            {caseMode && caseTicket ? (
-              <aside className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 lg:sticky lg:top-6 lg:self-start">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
-                  Case summary
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">
-                  {caseTicket.id}
-                </h2>
-                <p className="mt-1 text-sm text-white/50">{caseTicket.organisation || companyName}</p>
-
-                <dl className="mt-5 space-y-3 text-sm">
-                  <div className="flex justify-between gap-4 border-b border-white/8 pb-2">
-                    <dt className="text-white/45">Status</dt>
-                    <dd className="text-right font-medium capitalize text-white/90">
-                      {(caseTicket.status || "open").replaceAll("_", " ")}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4 border-b border-white/8 pb-2">
-                    <dt className="text-white/45">Created</dt>
-                    <dd className="text-right text-white/90">{formatWhen(caseTicket.createdAt)}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4 border-b border-white/8 pb-2">
-                    <dt className="text-white/45">Updated</dt>
-                    <dd className="text-right text-white/90">{formatWhen(caseTicket.updatedAt)}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4 border-b border-white/8 pb-2">
-                    <dt className="text-white/45">Name</dt>
-                    <dd className="text-right text-white/90">{displayName(caseTicket)}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4 border-b border-white/8 pb-2">
-                    <dt className="text-white/45">Email</dt>
-                    <dd className="break-all text-right text-white/90">
-                      {caseTicket.requesterEmail || "—"}
-                    </dd>
-                  </div>
-                  {caseTicket.requesterDepartment ? (
-                    <div className="flex justify-between gap-4 border-b border-white/8 pb-2">
-                      <dt className="text-white/45">Department</dt>
-                      <dd className="text-right text-white/90">{caseTicket.requesterDepartment}</dd>
-                    </div>
-                  ) : null}
-                  {caseTicket.requesterRole ? (
-                    <div className="flex justify-between gap-4 border-b border-white/8 pb-2">
-                      <dt className="text-white/45">Role</dt>
-                      <dd className="text-right text-white/90">{caseTicket.requesterRole}</dd>
-                    </div>
-                  ) : null}
-                  <div className="flex justify-between gap-4 border-b border-white/8 pb-2">
-                    <dt className="text-white/45">Priority</dt>
-                    <dd className="text-right capitalize text-white/90">
-                      {caseTicket.priority || "medium"}
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="mt-5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white/40">
-                    Problem
-                  </p>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-white/75">
-                    {caseTicket.description}
-                  </p>
-                </div>
-
-                <div className="mt-5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white/40">
-                    Get updates
-                  </p>
-                  <p className="mt-2 text-sm text-white/60">
-                    Use this private case link anytime (also emailed to you):
-                  </p>
-                  {caseTicket.resumePath ? (
-                    <a
-                      href={caseTicket.resumePath}
-                      className="mt-2 block break-all text-sm text-sky-300 underline-offset-2 hover:underline"
+              {intakeMode && intakeStep === "existing" ? (
+                <div className="mt-4 space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-white/45">
+                    Existing ticket
+                    <select
+                      className="mt-2 h-12 w-full rounded-2xl border border-white/10 bg-[#0b1524] px-4 text-sm text-white outline-none focus:border-sky-400/40"
+                      defaultValue=""
+                      onChange={(event) => {
+                        if (event.target.value) chooseExistingTicket(event.target.value);
+                      }}
                     >
-                      {origin
-                        ? `${origin}${caseTicket.resumePath}`
-                        : caseTicket.resumePath}
-                    </a>
-                  ) : null}
+                      <option value="">Select from open tickets…</option>
+                      {openTickets.map((ticket) => (
+                        <option key={ticket.id} value={ticket.id}>
+                          {ticket.id} — {(ticket.status || "open").replaceAll("_", " ")} —{" "}
+                          {ticket.description.replace(/\n/g, " ").slice(0, 48)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      value={existingIdDraft}
+                      onChange={(event) => setExistingIdDraft(event.target.value)}
+                      placeholder="Or type ticket ID (SUP-023)"
+                      className="h-12 flex-1 rounded-2xl border border-white/10 bg-[#0b1524] px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-sky-400/40"
+                    />
+                    <button
+                      type="button"
+                      disabled={!existingIdDraft.trim()}
+                      onClick={() => chooseExistingTicket(existingIdDraft)}
+                      className="inline-flex h-12 items-center rounded-2xl border border-sky-400/40 bg-sky-500/20 px-4 text-sm font-semibold text-sky-100 disabled:opacity-50"
+                    >
+                      Continue
+                    </button>
+                  </div>
                 </div>
+              ) : null}
 
-                {attachments.length > 0 ? (
-                  <div className="mt-5">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-white/40">
-                      Files
-                    </p>
-                    <ul className="mt-2 space-y-2">
-                      {attachments.map((file) => (
-                        <li key={file.id}>
-                          <a
-                            href={file.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 text-sm text-sky-300 hover:underline"
+              {intakeMode && intakeStep === "upload" ? (
+                <div className="mt-4 space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <input
+                    ref={intakeFileRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.zip"
+                    onChange={(event) => {
+                      const files = Array.from(event.target.files || []);
+                      if (files.length) setPendingFiles((prev) => [...prev, ...files]);
+                      event.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => intakeFileRef.current?.click()}
+                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 text-sm text-white/80"
+                  >
+                    <FileUp className="h-4 w-4" />
+                    Upload image, document or file
+                  </button>
+                  {pendingFiles.length > 0 ? (
+                    <ul className="space-y-1 text-xs text-white/60">
+                      {pendingFiles.map((file) => (
+                        <li key={`${file.name}-${file.size}`} className="flex items-center justify-between gap-2">
+                          <span className="truncate">{file.name}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPendingFiles((prev) => prev.filter((item) => item !== file))
+                            }
+                            className="text-white/40 hover:text-white"
                           >
-                            <Paperclip className="h-3.5 w-3.5" />
-                            {file.fileName}
-                          </a>
+                            <X className="h-3.5 w-3.5" />
+                          </button>
                         </li>
                       ))}
                     </ul>
-                  </div>
-                ) : null}
+                  ) : (
+                    <p className="text-xs text-white/40">Optional — you can skip and create the ticket now.</p>
+                  )}
+                  <button
+                    type="button"
+                    disabled={sending}
+                    onClick={() => void submitIntakeCreate()}
+                    className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-sky-400/40 bg-sky-500/20 text-sm font-semibold text-sky-100 disabled:opacity-50"
+                  >
+                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create ticket"}
+                  </button>
+                </div>
+              ) : null}
 
-                <div className="mt-5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white/40">
-                    Recent updates
-                  </p>
-                  <ul className="mt-2 max-h-40 space-y-2 overflow-y-auto">
-                    {updates
-                      .slice(-8)
-                      .reverse()
-                      .map((item, index) => (
-                        <li
-                          key={`update-${index}`}
-                          className="rounded-xl border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/65"
+              {(!intakeMode ||
+                (intakeStep !== "kind" &&
+                  intakeStep !== "existing" &&
+                  intakeStep !== "upload")) && (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (intakeMode) advanceIntake(draft);
+                    else void handleCaseChat(event);
+                  }}
+                  className="mt-4 border-t border-white/10 pt-4"
+                >
+                  <div className="flex gap-2">
+                    {activeTicketToken ? (
+                      <>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="hidden"
+                          accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.zip"
+                          onChange={(e) => void handleUpload(e.target.files?.[0] || null)}
+                        />
+                        <button
+                          type="button"
+                          disabled={uploading}
+                          onClick={() => fileInputRef.current?.click()}
+                          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/70"
                         >
-                          <span className="font-medium capitalize text-white/85">{item.role}</span>
-                          {item.createdAt ? (
-                            <span className="text-white/35"> · {formatWhen(item.createdAt)}</span>
-                          ) : null}
-                          <p className="mt-1 line-clamp-3 whitespace-pre-wrap">{item.content}</p>
-                        </li>
-                      ))}
-                  </ul>
+                          {uploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <FileUp className="h-4 w-4" />
+                          )}
+                        </button>
+                      </>
+                    ) : null}
+                    <input
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      placeholder="Type your reply…"
+                      disabled={sending}
+                      autoFocus
+                      className="h-12 flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-sky-400/40"
+                    />
+                    <button
+                      type="submit"
+                      disabled={sending || !draft.trim()}
+                      className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-sky-400/40 bg-sky-500/20 text-sky-100 disabled:opacity-50"
+                    >
+                      {sending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[11px] text-white/35">
+                    {intakeMode
+                      ? "Answers are instant — no waiting between steps."
+                      : "Upload files anytime. Ask to speak with a person if you need human help."}
+                  </p>
+                </form>
+              )}
+            </div>
+
+            {caseMode && caseTicket ? (
+              <aside className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] lg:sticky lg:top-4 lg:self-start">
+                <div className="border-b border-white/10 px-4 py-4 sm:px-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
+                    Case summary
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <h2 className="font-mono text-2xl font-semibold tracking-tight text-white">
+                      {caseTicket.id}
+                    </h2>
+                    <span
+                      className={cn(
+                        "rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                        caseTicket.closed
+                          ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                          : "border-sky-400/30 bg-sky-500/10 text-sky-100",
+                      )}
+                    >
+                      {(caseTicket.status || (caseTicket.closed ? "closed" : "open")).replaceAll(
+                        "_",
+                        " ",
+                      )}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-white/50">{caseTicket.organisation || companyName}</p>
                 </div>
 
-                <form onSubmit={handleAddInfo} className="mt-6 border-t border-white/10 pt-4">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-white/40">
-                    Add information
-                  </label>
-                  <textarea
-                    value={extraInfo}
-                    onChange={(e) => setExtraInfo(e.target.value)}
-                    rows={3}
-                    placeholder="Add more detail for the support team…"
-                    className="mt-2 w-full resize-y rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-sky-400/40"
-                  />
-                  <button
-                    type="submit"
-                    disabled={savingNote || !extraInfo.trim()}
-                    className="mt-2 inline-flex h-10 items-center justify-center rounded-xl border border-sky-400/40 bg-sky-500/20 px-4 text-xs font-semibold text-sky-100 transition-colors hover:bg-sky-500/30 disabled:opacity-50"
-                  >
-                    {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add to case"}
-                  </button>
-                </form>
+                <div className="space-y-5 px-4 py-4 sm:px-5">
+                  <dl className="grid grid-cols-2 gap-3">
+                    {[
+                      ["Created", formatWhen(caseTicket.createdAt)],
+                      ["Updated", formatWhen(caseTicket.updatedAt)],
+                      ["Name", displayName(caseTicket)],
+                      ["Email", caseTicket.requesterEmail || "—"],
+                      [
+                        "Department",
+                        caseTicket.requesterDepartment || problem?.meta.department || "—",
+                      ],
+                      ["Role", caseTicket.requesterRole || problem?.meta.role || "—"],
+                      ["Priority", caseTicket.priority || "medium"],
+                      ["Assigned", caseTicket.userAssigned || "Unassigned"],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="rounded-xl border border-white/8 bg-black/20 px-3 py-2.5"
+                      >
+                        <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                          {label}
+                        </dt>
+                        <dd className="mt-1 break-words text-sm text-white/90">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                      Problem
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-white/80">
+                      {problem?.body || caseTicket.description}
+                    </p>
+                  </div>
+
+                  {(caseTicket.ticketPublicUrl || caseTicket.resumePath) && (
+                    <div className="rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-200/70">
+                        Bookmark for updates
+                      </p>
+                      <a
+                        href={caseTicket.ticketPublicUrl || caseTicket.resumePath || "#"}
+                        className="mt-2 block break-all text-sm text-sky-200 hover:underline"
+                      >
+                        {caseTicket.ticketPublicUrl ||
+                          (origin ? `${origin}${caseTicket.resumePath}` : caseTicket.resumePath)}
+                      </a>
+                    </div>
+                  )}
+
+                  {attachments.length > 0 ? (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                        Files
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {attachments.map((file) => (
+                          <li key={file.id}>
+                            <a
+                              href={file.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-sky-300 hover:bg-white/[0.04]"
+                            >
+                              <Paperclip className="h-3.5 w-3.5" />
+                              {file.fileName}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  <form onSubmit={handleAddInfo} className="border-t border-white/10 pt-4">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                      Send an update
+                    </label>
+                    <textarea
+                      value={extraInfo}
+                      onChange={(e) => setExtraInfo(e.target.value)}
+                      rows={3}
+                      placeholder="Add more detail for the support team…"
+                      className="mt-2 w-full resize-y rounded-2xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+                    />
+                    <button
+                      type="submit"
+                      disabled={savingNote || !extraInfo.trim() || caseTicket.closed}
+                      className="mt-2 inline-flex h-10 w-full items-center justify-center rounded-xl border border-sky-400/40 bg-sky-500/20 px-4 text-xs font-semibold text-sky-100 disabled:opacity-50"
+                    >
+                      {savingNote ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Send update to support"
+                      )}
+                    </button>
+                  </form>
+                </div>
               </aside>
             ) : null}
           </div>

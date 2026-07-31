@@ -43,6 +43,7 @@ export default function SupportTicketClientActions({
   onError,
 }: SupportTicketClientActionsProps) {
   const [updateDraft, setUpdateDraft] = useState("");
+  const [closeNotes, setCloseNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -62,6 +63,7 @@ export default function SupportTicketClientActions({
       const data = await readApiJson<{
         ticket?: SupportTicket;
         clientMessage?: string;
+        emailed?: boolean;
         whatsappSent?: boolean;
         error?: string;
       }>(response);
@@ -73,11 +75,14 @@ export default function SupportTicketClientActions({
       if (data.ticket) onTicketChange?.(data.ticket);
 
       setUpdateDraft("");
+      const channels = [
+        data.emailed ? "email" : null,
+        data.whatsappSent ? "WhatsApp" : null,
+        "lounge case view",
+      ].filter(Boolean);
       const successText = preview
         ? "Update sent to client preview"
-        : data.whatsappSent
-          ? "Update sent to client on WhatsApp"
-          : "Update recorded (WhatsApp not configured)";
+        : `Update sent (${channels.join(" + ")})`;
       setFeedback(successText);
       onSuccess?.(successText);
     } catch (updateError) {
@@ -92,7 +97,16 @@ export default function SupportTicketClientActions({
 
   async function closeTicket() {
     if (busy || ticket.closed) return;
-    if (!preview && !window.confirm(`Close ticket ${ticket.id} and notify the client on WhatsApp?`)) {
+    const notes = closeNotes.trim();
+    if (!preview && notes.length < 3) {
+      setFeedback("Add closing notes before closing the ticket.");
+      onError?.("Add closing notes before closing the ticket.");
+      return;
+    }
+    if (
+      !preview &&
+      !window.confirm(`Close ticket ${ticket.id}? The client will be emailed and the case archived.`)
+    ) {
       return;
     }
 
@@ -103,11 +117,12 @@ export default function SupportTicketClientActions({
       const response = await fetch(`/api/support/tickets/${ticket.id}/close`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preview }),
+        body: JSON.stringify({ preview, notes }),
       });
       const data = await readApiJson<{
         ticket?: SupportTicket;
         clientMessage?: string;
+        emailed?: boolean;
         whatsappSent?: boolean;
         error?: string;
       }>(response);
@@ -119,11 +134,12 @@ export default function SupportTicketClientActions({
 
       const successText = preview
         ? "Ticket closed in demo"
-        : data.whatsappSent
-          ? "Ticket closed — client notified on WhatsApp"
-          : "Ticket closed (WhatsApp not configured)";
+        : data.emailed
+          ? "Ticket closed — client emailed and case archived"
+          : "Ticket closed and archived";
       setFeedback(successText);
       onSuccess?.(successText);
+      setCloseNotes("");
     } catch (closeError) {
       const errorText = closeError instanceof Error ? closeError.message : "Failed to close ticket";
       setFeedback(errorText);
@@ -143,7 +159,7 @@ export default function SupportTicketClientActions({
       <div className="flex items-center gap-2">
         <MessageSquare className={cn("text-sky-300", compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
         <h3 className={cn("font-semibold text-white", compact ? "text-xs" : "text-sm")}>
-          Client WhatsApp updates
+          Client updates
         </h3>
         {ticket.closed && (
           <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-200">
@@ -153,7 +169,8 @@ export default function SupportTicketClientActions({
       </div>
 
       <p className={cn("mt-2 text-white/45", compact ? "text-[10px]" : "text-xs")}>
-        Send a status update to the client&apos;s WhatsApp thread, or close the ticket when resolved.
+        Send an update to the client (email + lounge case view). Closing requires notes and archives
+        the ticket under this client.
       </p>
 
       <label className={cn("mt-3 block text-white/45", compact ? "text-[10px]" : "text-xs")}>
@@ -177,22 +194,31 @@ export default function SupportTicketClientActions({
           type="button"
           disabled={busy || ticket.closed || !updateDraft.trim()}
           onClick={() => void sendClientUpdate()}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 font-semibold text-sky-100 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50",
-            compact ? "px-3 py-2 text-[11px]" : "px-3 py-2 text-xs",
-          )}
+          className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/20 disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-          Send update to client
+          Send update
         </button>
+      </div>
+
+      <label className={cn("mt-4 block text-white/45", compact ? "text-[10px]" : "text-xs")}>
+        Closing notes (required)
+        <textarea
+          rows={compact ? 2 : 3}
+          value={closeNotes}
+          onChange={(event) => setCloseNotes(event.target.value)}
+          disabled={busy || ticket.closed}
+          placeholder="Summarise resolution before closing…"
+          className={cn(fieldClassName(compact), "mt-1.5 resize-y")}
+        />
+      </label>
+
+      <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={busy || ticket.closed}
+          disabled={busy || ticket.closed || closeNotes.trim().length < 3}
           onClick={() => void closeTicket()}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 font-semibold text-red-200 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50",
-            compact ? "px-3 py-2 text-[11px]" : "px-3 py-2 text-xs",
-          )}
+          className="inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
           Close ticket
@@ -200,17 +226,7 @@ export default function SupportTicketClientActions({
       </div>
 
       {feedback && (
-        <p
-          className={cn(
-            "mt-3 rounded-lg border px-3 py-2",
-            feedback.toLowerCase().includes("fail") || feedback.includes("not found")
-              ? "border-red-400/25 bg-red-500/10 text-red-200"
-              : "border-emerald-400/25 bg-emerald-500/10 text-emerald-200",
-            compact ? "text-[10px]" : "text-xs",
-          )}
-        >
-          {feedback}
-        </p>
+        <p className={cn("mt-3 text-white/55", compact ? "text-[10px]" : "text-xs")}>{feedback}</p>
       )}
     </div>
   );

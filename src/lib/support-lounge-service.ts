@@ -165,6 +165,26 @@ export async function listLoungeTicketsForRequester(input: {
   return (data || []).map((row) => mapSupportTicket(row as Parameters<typeof mapSupportTicket>[0]));
 }
 
+/** Open tickets for this lounge client (any requester) — used for Existing ticket dropdown. */
+export async function listLoungeOpenTicketsForClient(input: {
+  workspaceId: string;
+  clientId: string;
+}): Promise<SupportTicket[]> {
+  const supabase = requireLoungeSupabase();
+  const { data, error } = await supabase
+    .from("support_tickets")
+    .select("*")
+    .eq("workspace_id", input.workspaceId)
+    .eq("client_id", input.clientId)
+    .eq("archived", false)
+    .eq("closed", false)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw new Error(error.message);
+  return (data || []).map((row) => mapSupportTicket(row as Parameters<typeof mapSupportTicket>[0]));
+}
+
 export async function getLoungeTicketByPublicToken(input: {
   workspaceId: string;
   clientId: string;

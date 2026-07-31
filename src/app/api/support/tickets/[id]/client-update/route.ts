@@ -42,15 +42,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
       if (existing.closed) throw new Error("This ticket is closed.");
 
       if (preview) {
-        return { ticket: existing, clientMessage: message, whatsappSent: false };
+        return { ticket: existing, clientMessage: message, emailed: false, whatsappSent: false };
       }
 
-      const whatsappReply = await notifyClientTicketUpdate(existing, message);
+      const notify = await notifyClientTicketUpdate(existing, message, scope);
 
       return {
         ticket: existing,
         clientMessage: message,
-        whatsappSent: Boolean(whatsappReply?.ok),
+        emailed: Boolean(notify?.emailed),
+        whatsappSent: Boolean(notify?.whatsappSent ?? notify?.ok),
       };
     });
 

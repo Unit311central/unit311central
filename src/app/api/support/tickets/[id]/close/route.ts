@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { formatSupportTicketClosedMessage } from "@/lib/whatsapp/client";
 import { getSupportTicket, updateSupportTicket } from "@/lib/support-tickets-service";
 import { notifyClientTicketClosed } from "@/lib/support-client-notify";
 import { withSupportTicketsTable } from "@/lib/internal-db-migrations";
@@ -29,28 +28,46 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const scope = { workspaceId: workspace.id };
 
     const { id } = await context.params;
-    const body = (await request.json().catch(() => ({}))) as { preview?: boolean };
+    const body = (await request.json().catch(() => ({}))) as {
+      preview?: boolean;
+      notes?: string;
+    };
     const preview = body.preview === true;
+    const notes = body.notes?.trim() || "";
+
+    if (!preview && notes.length < 3) {
+      return NextResponse.json(
+        { error: "Closing notes are required before closing a ticket." },
+        { status: 400 },
+      );
+    }
 
     const result = await withSupportTicketsTable(async () => {
       const existing = await getSupportTicket(id, scope);
       if (!existing) throw new Error("Support ticket not found.");
       if (existing.closed) throw new Error("This ticket is already closed.");
 
-      const clientMessage = formatSupportTicketClosedMessage(id);
-
       if (preview) {
-        const ticket = await updateSupportTicket(id, { closed: true }, scope);
-        return { ticket, clientMessage, whatsappSent: false };
+        const ticket = await updateSupportTicket(
+          id,
+          { closed: true, archived: true, status: "closed" },
+          scope,
+        );
+        return { ticket, clientMessage: notes || "Closed", emailed: false, whatsappSent: false };
       }
 
-      const whatsappReply = await notifyClientTicketClosed(existing);
-      const ticket = await updateSupportTicket(id, { closed: true }, scope);
+      const notify = await notifyClientTicketClosed(existing, notes, scope);
+      const ticket = await updateSupportTicket(
+        id,
+        { closed: true, archived: true, status: "closed" },
+        scope,
+      );
 
       return {
         ticket,
-        clientMessage,
-        whatsappSent: Boolean(whatsappReply?.ok),
+        clientMessage: notes,
+        emailed: Boolean(notify?.emailed),
+        whatsappSent: Boolean(notify?.whatsappSent ?? notify?.ok),
       };
     });
 

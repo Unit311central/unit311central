@@ -187,6 +187,29 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }),
     );
 
+    try {
+      const { ensureClientSupportChannel } = await import("@/lib/support-channel");
+      const { sendMessage } = await import("@/lib/internal-messaging-service");
+      const channel = await ensureClientSupportChannel({
+        companyName: lounge.companyName,
+        clientId: lounge.id,
+        scope: { workspaceId: lounge.workspaceId },
+      });
+      await sendMessage(
+        {
+          operatorId: "lounge:update",
+          operatorName: "Support Lounge",
+          username: "lounge",
+          content: [`Client update on ${ticket.id}`, note].join("\n"),
+          room: channel.room,
+          messageType: "text",
+        },
+        { workspaceId: lounge.workspaceId },
+      );
+    } catch (notifyError) {
+      console.warn("[support-lounge] update channel notify failed:", notifyError);
+    }
+
     const messages = await withSupportLoungeSchema(() =>
       listLoungeMessages({
         workspaceId: lounge.workspaceId,

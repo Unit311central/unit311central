@@ -1,8 +1,3 @@
-import {
-  createOpenAIClient,
-  formatOpenAIError,
-  getAssistantModel,
-} from "@/lib/ai-operating-assistant/openai-client";
 import { DEMO_SITE_URL } from "@/lib/app-domains";
 import type { SupportTicketPriority } from "@/lib/support-data";
 import {
@@ -10,15 +5,30 @@ import {
   createLoungeTicket,
   escalateLoungeTicket,
   getLoungeTicketByPublicToken,
+  listLoungeOpenTicketsForClient,
   listLoungeTicketsForRequester,
   sendLoungeTicketDeskNotifyEmail,
   sendLoungeTicketSummaryEmail,
+  uploadLoungeAttachment,
   type SupportLoungeClient,
 } from "@/lib/support-lounge-service";
 
 export type LoungeChatMessage = {
   role: "user" | "assistant";
   content: string;
+};
+
+export type LoungeIntakePayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  department: string;
+  role: string;
+  ticketKind: "new" | "existing";
+  existingTicketId?: string | null;
+  summary?: string;
+  description: string;
+  priority?: SupportTicketPriority;
 };
 
 export type LoungeChatResult = {
@@ -30,38 +40,203 @@ export type LoungeChatResult = {
   escalated?: boolean;
 };
 
-type ModelDecision = {
-  reply: string;
-  action?: "none" | "create_ticket" | "list_tickets" | "request_human" | null;
-  summary?: string;
-  description?: string;
-  priority?: SupportTicketPriority;
-  requester_name?: string;
-  first_name?: string;
-  last_name?: string;
-  email?: string;
-  department?: string;
-  role?: string;
-  ticket_kind?: "new" | "existing";
-  note?: string;
-};
-
-function parseDecision(raw: string): ModelDecision {
-  try {
-    const parsed = JSON.parse(raw) as ModelDecision;
-    if (!parsed.reply?.trim()) {
-      return { reply: "What is your first and last name?", action: "none" };
-    }
-    return parsed;
-  } catch {
-    return { reply: raw.trim() || "What is your first and last name?", action: "none" };
-  }
-}
-
 function looksLikeEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+function parseName(raw: string) {
+  const parts = raw.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+}
+
+/** Fast deterministic intake — no LLM. Used for guided lounge create. */
+export async function createLoungeTicketFromIntake(input: {
+  lounge: SupportLoungeClient;
+  requesterAnonId: string;
+  intake: LoungeIntakePayload;
+  files?: File[];
+  origin?: string | null;
+}): Promise<LoungeChatResult> {
+  const firstName = input.intake.firstName.trim();
+  const lastName = input.intake.lastName.trim();
+  const email = input.intake.email.trim();
+  const department = input.intake.department.trim();
+  const role = input.intake.role.trim();
+  const description = input.intake.description.trim();
+  const ticketKind = input.intake.ticketKind === "existing" ? "existing" : "new";
+
+  const missing = [
+    !firstName ? "first name" : null,
+    !email || !looksLikeEmail(email) ? "company email" : null,
+    !department ? "department" : null,
+    !role ? "role" : null,
+    !description ? "problem description" : null,
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    return { reply: `Before I open the ticket I still need your ${missing.join(", ")}.` };
+  }
+
+  if (ticketKind === "existing" && input.intake.existingTicketId?.trim()) {
+    const wantedId = input.intake.existingTicketId.trim().toUpperCase();
+    const openForClient = await listLoungeOpenTicketsForClient({
+      workspaceId: input.lounge.workspaceId,
+      clientId: input.lounge.id,
+    });
+    const existing =
+      openForClient.find((t) => t.id.toUpperCase() === wantedId) ||
+      (
+        await listLoungeTicketsForRequester({
+          workspaceId: input.lounge.workspaceId,
+          clientId: input.lounge.id,
+          requesterAnonId: input.requesterAnonId,
+        })
+      ).find((t) => t.id.toUpperCase() === wantedId);
+
+    if (existing?.ticketPublicToken) {
+      await appendLoungeMessage({
+        workspaceId: input.lounge.workspaceId,
+        ticketId: existing.id,
+        role: "user",
+        content: description,
+      });
+      await appendLoungeMessage({
+        workspaceId: input.lounge.workspaceId,
+        ticketId: existing.id,
+        role: "assistant",
+        content:
+          "Thanks — I've added that update to your existing case. Our Demo support team can see it.",
+      });
+
+      try {
+        const { ensureClientSupportChannel } = await import("@/lib/support-channel");
+        const { sendMessage } = await import("@/lib/internal-messaging-service");
+        const channel = await ensureClientSupportChannel({
+          companyName: input.lounge.companyName,
+          clientId: input.lounge.id,
+          scope: { workspaceId: input.lounge.workspaceId },
+        });
+        await sendMessage(
+          {
+            operatorId: "lounge:update",
+            operatorName: "Support Lounge",
+            username: "lounge",
+            content: [
+              `Client update on ${existing.id}`,
+              `${input.lounge.companyName} · ${[firstName, lastName].filter(Boolean).join(" ")}`,
+              description,
+            ].join("\n"),
+            room: channel.room,
+            messageType: "text",
+          },
+          { workspaceId: input.lounge.workspaceId },
+        );
+      } catch {
+        // non-fatal
+      }
+
+      const origin = (input.origin || DEMO_SITE_URL).replace(/\/$/, "");
+      const resumePath = `/s/${encodeURIComponent(input.lounge.loungeToken)}/t/${encodeURIComponent(existing.ticketPublicToken)}`;
+      return {
+        reply: [
+          `I've added your update to ${existing.id}.`,
+          "",
+          "Track the case here:",
+          `${origin}${resumePath}`,
+        ].join("\n"),
+        ticketId: existing.id,
+        ticketPublicToken: existing.ticketPublicToken,
+        resumePath,
+        resumeUrl: `${origin}${resumePath}`,
+      };
+    }
+  }
+
+  const profileLines = [
+    `Name: ${[firstName, lastName].filter(Boolean).join(" ")}`,
+    `Email: ${email}`,
+    `Department: ${department}`,
+    `Role: ${role}`,
+    `Ticket type: ${ticketKind}`,
+  ];
+
+  const created = await createLoungeTicket({
+    lounge: input.lounge,
+    requesterAnonId: input.requesterAnonId,
+    summary: (input.intake.summary || description).slice(0, 80),
+    description: `${profileLines.join("\n")}\n\n${description}`,
+    priority: ["low", "medium", "high", "urgent"].includes(String(input.intake.priority))
+      ? input.intake.priority
+      : "medium",
+    requesterName: [firstName, lastName].filter(Boolean).join(" "),
+    requesterEmail: email,
+    requesterFirstName: firstName,
+    requesterLastName: lastName || null,
+    requesterDepartment: department,
+    requesterRole: role,
+    ticketKind,
+  });
+
+  for (const file of input.files || []) {
+    try {
+      await uploadLoungeAttachment({
+        workspaceId: input.lounge.workspaceId,
+        ticketId: created.ticket.id,
+        file,
+      });
+    } catch (error) {
+      console.warn("[support-lounge] attachment upload failed:", error);
+    }
+  }
+
+  const origin = (input.origin || DEMO_SITE_URL).replace(/\/$/, "");
+  const resumeUrl = `${origin}${created.resumePath}`;
+
+  const emailed = await sendLoungeTicketSummaryEmail({
+    lounge: input.lounge,
+    ticket: created.ticket,
+    resumeUrl,
+  });
+  const deskEmailed = await sendLoungeTicketDeskNotifyEmail({
+    lounge: input.lounge,
+    ticket: created.ticket,
+    resumeUrl,
+  });
+
+  const reply = [
+    `Ticket ${created.ticket.id} is open.`,
+    "Our Demo support team has been notified and will begin working on the case.",
+    emailed ? `I've emailed a summary to ${email}.` : null,
+    deskEmailed ? "I've also notified the Demo support inbox." : null,
+    "",
+    "Track updates and add more information anytime here:",
+    resumeUrl,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+
+  await appendLoungeMessage({
+    workspaceId: input.lounge.workspaceId,
+    ticketId: created.ticket.id,
+    role: "assistant",
+    content: reply,
+  });
+
+  return {
+    reply,
+    ticketId: created.ticket.id,
+    ticketPublicToken: created.ticket.ticketPublicToken || undefined,
+    resumePath: created.resumePath,
+    resumeUrl,
+  };
+}
+
+/**
+ * Lightweight chat after a ticket exists (human request / freeform).
+ * Intake create should use createLoungeTicketFromIntake (no OpenAI).
+ */
 export async function runSupportLoungeChat(input: {
   lounge: SupportLoungeClient;
   requesterAnonId: string;
@@ -70,227 +245,101 @@ export async function runSupportLoungeChat(input: {
   activeTicketPublicToken?: string | null;
   origin?: string | null;
 }): Promise<LoungeChatResult> {
-  const system = `You are the Demo Support Lounge assistant helping people from "${input.lounge.companyName}" raise tickets with Demo operations.
-Be concise, professional, and warm.
-Collect intake ONE question at a time, in this exact order, before creating a ticket:
-1) First and last name
-2) Company email address
-3) Department
-4) Role / job title
-5) Is this a new ticket or an existing ticket?
-6) Problem description (or update for an existing ticket)
+  const text = input.userMessage.trim();
+  const lower = text.toLowerCase();
 
-Do not skip ahead. Do not ask multiple questions in one reply unless the visitor already volunteered several answers.
-When all six are known, use create_ticket.
-
-Respond ONLY with JSON:
-{
-  "reply": "message shown to the visitor",
-  "action": "none" | "create_ticket" | "list_tickets" | "request_human",
-  "summary": "short title when creating",
-  "description": "full problem details when creating",
-  "priority": "low"|"medium"|"high"|"urgent",
-  "first_name": "",
-  "last_name": "",
-  "email": "",
-  "department": "",
-  "role": "",
-  "ticket_kind": "new"|"existing",
-  "requester_name": "optional full name",
-  "note": "optional escalation note"
-}
-Rules:
-- create_ticket only after name, email, department, role, ticket_kind, and problem description are known.
-- Prefer list_tickets / request_human when asked.
-- Keep replies short.`;
-
-  const client = createOpenAIClient();
-  let decision: ModelDecision;
-  try {
-    const completion = await client.chat.completions.create({
-      model: getAssistantModel(),
-      response_format: { type: "json_object" },
-      temperature: 0.3,
-      messages: [
-        { role: "system", content: system },
-        ...input.history.slice(-16).map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
-        { role: "user", content: input.userMessage },
-      ],
-    });
-    decision = parseDecision(completion.choices[0]?.message?.content || "");
-  } catch (error) {
-    throw new Error(formatOpenAIError(error));
-  }
-
-  const action = decision.action || "none";
-  let ticketId: string | undefined;
-  let ticketPublicToken: string | undefined;
-  let resumePath: string | undefined;
-  let resumeUrl: string | undefined;
-  let escalated = false;
-  let reply = decision.reply.trim();
-
-  if (action === "create_ticket") {
-    const summary = (decision.summary || "").trim();
-    const description = (decision.description || "").trim() || input.userMessage.trim();
-    const firstName = (decision.first_name || "").trim();
-    const lastName = (decision.last_name || "").trim();
-    const email = (decision.email || "").trim();
-    const department = (decision.department || "").trim();
-    const role = (decision.role || "").trim();
-    const ticketKind =
-      decision.ticket_kind === "existing" || decision.ticket_kind === "new"
-        ? decision.ticket_kind
-        : "new";
-    const missing = [
-      !firstName && !decision.requester_name ? "name" : null,
-      !email || !looksLikeEmail(email) ? "company email" : null,
-      !department ? "department" : null,
-      !role ? "role" : null,
-      !description ? "problem description" : null,
-    ].filter(Boolean);
-
-    if (missing.length > 0) {
-      reply = `Before I open the ticket I still need your ${missing.join(", ")}.`;
-    } else {
-      const profileLines = [
-        firstName || lastName ? `Name: ${[firstName, lastName].filter(Boolean).join(" ")}` : null,
-        `Email: ${email}`,
-        department ? `Department: ${department}` : null,
-        role ? `Role: ${role}` : null,
-        `Ticket type: ${ticketKind}`,
-      ].filter(Boolean);
-      const created = await createLoungeTicket({
-        lounge: input.lounge,
-        requesterAnonId: input.requesterAnonId,
-        summary: summary || description.slice(0, 80),
-        description: `${profileLines.join("\n")}\n\n${summary ? `${summary}\n\n` : ""}${description}`,
-        priority: ["low", "medium", "high", "urgent"].includes(String(decision.priority))
-          ? decision.priority
-          : "medium",
-        requesterName: decision.requester_name?.trim() || undefined,
-        requesterEmail: email,
-        requesterFirstName: firstName || null,
-        requesterLastName: lastName || null,
-        requesterDepartment: department || null,
-        requesterRole: role || null,
-        ticketKind,
-      });
-      ticketId = created.ticket.id;
-      ticketPublicToken = created.ticket.ticketPublicToken || undefined;
-      resumePath = created.resumePath;
-      const origin = (input.origin || DEMO_SITE_URL).replace(/\/$/, "");
-      resumeUrl = `${origin}${created.resumePath}`;
-
-      await appendLoungeMessage({
-        workspaceId: input.lounge.workspaceId,
-        ticketId: created.ticket.id,
-        role: "user",
-        content: input.userMessage,
-      });
-
-      const emailed = await sendLoungeTicketSummaryEmail({
-        lounge: input.lounge,
-        ticket: created.ticket,
-        resumeUrl,
-      });
-      const deskEmailed = await sendLoungeTicketDeskNotifyEmail({
-        lounge: input.lounge,
-        ticket: created.ticket,
-        resumeUrl,
-      });
-
-      reply = [
-        `Ticket ${created.ticket.id} is open.`,
-        "Our Demo support team has been notified and will begin working on the case.",
-        emailed
-          ? `I've emailed a summary to ${email}.`
-          : `I couldn't send the email just now — please keep your case link.`,
-        deskEmailed
-          ? "I've also notified the Demo support inbox."
-          : null,
-        "",
-        "Track updates and add more information anytime here:",
-        resumeUrl,
-      ]
-        .filter((line) => line !== null)
-        .join("\n");
-    }
-  } else if (action === "list_tickets") {
-    const tickets = await listLoungeTicketsForRequester({
+  // Deterministic short-path for human help / updates — avoid OpenAI latency.
+  if (
+    /\b(human|person|agent|operator|speak to|talk to)\b/i.test(lower) &&
+    input.activeTicketPublicToken
+  ) {
+    const ticket = await getLoungeTicketByPublicToken({
       workspaceId: input.lounge.workspaceId,
       clientId: input.lounge.id,
-      requesterAnonId: input.requesterAnonId,
+      ticketPublicToken: input.activeTicketPublicToken,
     });
-    if (tickets.length === 0) {
-      reply = `${reply}\n\nI don't see any tickets from this browser yet.`.trim();
-    } else {
-      const lines = tickets
-        .slice(0, 8)
-        .map(
-          (t) =>
-            `• ${t.id} — ${t.status || (t.closed ? "closed" : "open")} — ${t.description.slice(0, 90)}`,
-        )
-        .join("\n");
-      reply = `${reply}\n\n${lines}`.trim();
-    }
-  } else if (action === "request_human") {
-    const token =
-      input.activeTicketPublicToken?.trim() ||
-      ticketPublicToken ||
-      (
-        await listLoungeTicketsForRequester({
-          workspaceId: input.lounge.workspaceId,
-          clientId: input.lounge.id,
-          requesterAnonId: input.requesterAnonId,
-        })
-      ).find((t) => !t.closed)?.ticketPublicToken ||
-      "";
-
-    if (!token) {
-      reply = `${reply}\n\nI can connect you to a person as soon as we open a ticket — let's finish the intake first.`.trim();
-    } else {
-      const ticket = await getLoungeTicketByPublicToken({
-        workspaceId: input.lounge.workspaceId,
-        clientId: input.lounge.id,
-        ticketPublicToken: token,
+    if (ticket) {
+      const updated = await escalateLoungeTicket({
+        lounge: input.lounge,
+        ticket,
+        note: text,
       });
-      if (ticket) {
-        const updated = await escalateLoungeTicket({
-          lounge: input.lounge,
-          ticket,
-          note: decision.note?.trim() || input.userMessage,
-        });
-        ticketId = updated.id;
-        ticketPublicToken = updated.ticketPublicToken || token;
-        escalated = true;
-        reply = `${reply}\n\nI've flagged ${updated.id} for a human operator. They'll continue from here.`.trim();
-      }
-    }
-  }
-
-  if (ticketId) {
-    try {
+      const reply = `I've flagged ${updated.id} for a human operator. They'll continue from here.`;
       await appendLoungeMessage({
         workspaceId: input.lounge.workspaceId,
-        ticketId,
+        ticketId: updated.id,
         role: "assistant",
         content: reply,
       });
-    } catch {
-      // non-fatal
+      return {
+        reply,
+        ticketId: updated.id,
+        ticketPublicToken: updated.ticketPublicToken || input.activeTicketPublicToken,
+        escalated: true,
+      };
     }
   }
 
+  if (input.activeTicketPublicToken) {
+    const ticket = await getLoungeTicketByPublicToken({
+      workspaceId: input.lounge.workspaceId,
+      clientId: input.lounge.id,
+      ticketPublicToken: input.activeTicketPublicToken,
+    });
+    if (ticket) {
+      await appendLoungeMessage({
+        workspaceId: input.lounge.workspaceId,
+        ticketId: ticket.id,
+        role: "user",
+        content: text,
+      });
+
+      try {
+        const { ensureClientSupportChannel } = await import("@/lib/support-channel");
+        const { sendMessage } = await import("@/lib/internal-messaging-service");
+        const channel = await ensureClientSupportChannel({
+          companyName: input.lounge.companyName,
+          clientId: input.lounge.id,
+          scope: { workspaceId: input.lounge.workspaceId },
+        });
+        await sendMessage(
+          {
+            operatorId: "lounge:update",
+            operatorName: "Support Lounge",
+            username: "lounge",
+            content: [`Client message on ${ticket.id}`, text].join("\n"),
+            room: channel.room,
+            messageType: "text",
+          },
+          { workspaceId: input.lounge.workspaceId },
+        );
+      } catch {
+        // non-fatal
+      }
+
+      const reply =
+        "Thanks — I've added that to the case and notified the Demo support team.";
+      await appendLoungeMessage({
+        workspaceId: input.lounge.workspaceId,
+        ticketId: ticket.id,
+        role: "assistant",
+        content: reply,
+      });
+      return {
+        reply,
+        ticketId: ticket.id,
+        ticketPublicToken: ticket.ticketPublicToken || input.activeTicketPublicToken,
+      };
+    }
+  }
+
+  // Fallback: guide back to structured intake (instant, no LLM).
+  const { firstName } = parseName(text);
+  if (!firstName) {
+    return { reply: "What is your first and last name?" };
+  }
   return {
-    reply,
-    ticketId,
-    ticketPublicToken,
-    resumePath,
-    resumeUrl,
-    escalated,
+    reply:
+      "Thanks. Please use the guided steps on this page (or refresh) to finish opening your ticket — it's quicker than freeform chat.",
   };
 }
