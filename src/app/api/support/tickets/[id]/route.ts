@@ -58,6 +58,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       description?: string;
       userAssigned?: string | null;
       archived?: boolean;
+      requesterFirstName?: string | null;
+      requesterLastName?: string | null;
+      requesterDepartment?: string | null;
+      requesterRole?: string | null;
+      ticketKind?: "new" | "existing" | null;
     };
 
     const ticket = await withSupportTicketsTable(async () => {

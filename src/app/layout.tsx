@@ -6,7 +6,7 @@ import Navbar from "@/components/layout/Navbar";
 import JsonLd from "@/components/JsonLd";
 import {
   getRequestHost,
-  isInternalDomainHost,
+  isInternalOpsShellHost,
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
 import { homeMetadata } from "@/lib/metadata";
@@ -46,10 +46,10 @@ export default async function RootLayout({
 }>) {
   const requestHeaders = await headers();
   const host = getRequestHost({ headers: requestHeaders });
-  // Customer workspace + internal app hosts must not show marketing chrome
+  // Customer workspace + Internal/Demo app hosts must not show marketing chrome
   // (bare /login links would drop return_to before hydrate hides the nav).
   const hideMarketingChrome =
-    Boolean(parseClientPlatformSubdomainSafe(host)) || isInternalDomainHost(host);
+    Boolean(parseClientPlatformSubdomainSafe(host)) || isInternalOpsShellHost(host);
 
   return (
     <html lang="en" className={`${inter.variable} h-full`}>

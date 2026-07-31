@@ -33,6 +33,11 @@ type ModelDecision = {
   description?: string;
   priority?: SupportTicketPriority;
   requester_name?: string;
+  first_name?: string;
+  last_name?: string;
+  department?: string;
+  role?: string;
+  ticket_kind?: "new" | "existing";
   note?: string;
 };
 
@@ -40,11 +45,11 @@ function parseDecision(raw: string): ModelDecision {
   try {
     const parsed = JSON.parse(raw) as ModelDecision;
     if (!parsed.reply?.trim()) {
-      return { reply: "How can I help with your support request?", action: "none" };
+      return { reply: "What is your first and last name?", action: "none" };
     }
     return parsed;
   } catch {
-    return { reply: raw.trim() || "How can I help with your support request?", action: "none" };
+    return { reply: raw.trim() || "What is your first and last name?", action: "none" };
   }
 }
 
@@ -55,24 +60,37 @@ export async function runSupportLoungeChat(input: {
   userMessage: string;
   activeTicketPublicToken?: string | null;
 }): Promise<LoungeChatResult> {
-  const system = `You are the Support Lounge assistant for "${input.lounge.companyName}".
-Help their employees raise and track support tickets with their service provider.
+  const system = `You are the Demo Support Lounge assistant helping people from "${input.lounge.companyName}" raise tickets with Demo operations.
 Be concise, professional, and warm. Never require email or login.
+Collect intake ONE question at a time, in this exact order, before creating a ticket:
+1) First and last name
+2) Department
+3) Role / job title
+4) Is this a new ticket or an existing ticket?
+5) Problem description (or update for an existing ticket)
+
+Do not skip ahead. Do not ask multiple questions in one reply unless the visitor already volunteered several answers.
+When all five are known, use create_ticket.
+
 Respond ONLY with JSON:
 {
   "reply": "message shown to the visitor",
   "action": "none" | "create_ticket" | "list_tickets" | "request_human",
   "summary": "short title when creating",
-  "description": "full details when creating",
+  "description": "full problem details when creating",
   "priority": "low"|"medium"|"high"|"urgent",
-  "requester_name": "optional",
+  "first_name": "",
+  "last_name": "",
+  "department": "",
+  "role": "",
+  "ticket_kind": "new"|"existing",
+  "requester_name": "optional full name",
   "note": "optional escalation note"
 }
 Rules:
-- Use create_ticket only when you have a clear issue (what broke / what they need).
-- Prefer asking one clarifying question before create_ticket if details are thin.
-- Use list_tickets when they ask about past/open tickets.
-- Use request_human when they ask for a person.`;
+- create_ticket only after name, department, role, ticket_kind, and problem description are known.
+- Prefer list_tickets / request_human when asked.
+- Keep replies short.`;
 
   const client = createOpenAIClient();
   let decision: ModelDecision;
@@ -80,7 +98,7 @@ Rules:
     const completion = await client.chat.completions.create({
       model: getAssistantModel(),
       response_format: { type: "json_object" },
-      temperature: 0.4,
+      temperature: 0.3,
       messages: [
         { role: "system", content: system },
         ...input.history.slice(-16).map((m) => ({
@@ -105,16 +123,44 @@ Rules:
   if (action === "create_ticket") {
     const summary = (decision.summary || "").trim();
     const description = (decision.description || "").trim() || input.userMessage.trim();
-    if (summary || description) {
+    const firstName = (decision.first_name || "").trim();
+    const lastName = (decision.last_name || "").trim();
+    const department = (decision.department || "").trim();
+    const role = (decision.role || "").trim();
+    const ticketKind =
+      decision.ticket_kind === "existing" || decision.ticket_kind === "new"
+        ? decision.ticket_kind
+        : "new";
+    const missing = [
+      !firstName && !decision.requester_name ? "name" : null,
+      !department ? "department" : null,
+      !role ? "role" : null,
+      !description ? "problem description" : null,
+    ].filter(Boolean);
+
+    if (missing.length > 0) {
+      reply = `Before I open the ticket I still need your ${missing.join(", ")}.`;
+    } else {
+      const profileLines = [
+        firstName || lastName ? `Name: ${[firstName, lastName].filter(Boolean).join(" ")}` : null,
+        department ? `Department: ${department}` : null,
+        role ? `Role: ${role}` : null,
+        `Ticket type: ${ticketKind}`,
+      ].filter(Boolean);
       const created = await createLoungeTicket({
         lounge: input.lounge,
         requesterAnonId: input.requesterAnonId,
         summary: summary || description.slice(0, 80),
-        description: summary ? `${summary}\n\n${description}` : description,
+        description: `${profileLines.join("\n")}\n\n${summary ? `${summary}\n\n` : ""}${description}`,
         priority: ["low", "medium", "high", "urgent"].includes(String(decision.priority))
           ? decision.priority
           : "medium",
         requesterName: decision.requester_name?.trim() || undefined,
+        requesterFirstName: firstName || null,
+        requesterLastName: lastName || null,
+        requesterDepartment: department || null,
+        requesterRole: role || null,
+        ticketKind,
       });
       ticketId = created.ticket.id;
       ticketPublicToken = created.ticket.ticketPublicToken || undefined;
@@ -126,7 +172,7 @@ Rules:
         content: input.userMessage,
       });
       if (!/SUP-\d+/i.test(reply)) {
-        reply = `${reply}\n\nTicket ${created.ticket.id} is open. Our team has been notified.`.trim();
+        reply = `${reply}\n\nTicket ${created.ticket.id} is open. Our Demo team has been notified.`.trim();
       }
     }
   } else if (action === "list_tickets") {
@@ -140,7 +186,10 @@ Rules:
     } else {
       const lines = tickets
         .slice(0, 8)
-        .map((t) => `• ${t.id} — ${t.status || (t.closed ? "closed" : "open")} — ${t.description.slice(0, 90)}`)
+        .map(
+          (t) =>
+            `• ${t.id} — ${t.status || (t.closed ? "closed" : "open")} — ${t.description.slice(0, 90)}`,
+        )
         .join("\n");
       reply = `${reply}\n\n${lines}`.trim();
     }
@@ -158,7 +207,7 @@ Rules:
       "";
 
     if (!token) {
-      reply = `${reply}\n\nI can connect you to a person as soon as we open a ticket — tell me what's going wrong.`.trim();
+      reply = `${reply}\n\nI can connect you to a person as soon as we open a ticket — let's finish the intake first.`.trim();
     } else {
       const ticket = await getLoungeTicketByPublicToken({
         workspaceId: input.lounge.workspaceId,

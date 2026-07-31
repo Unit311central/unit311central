@@ -37,6 +37,7 @@ export default function SupportLoungeApp({
   activeTicketPublicToken?: string | null;
 }) {
   const [companyName, setCompanyName] = useState("Support");
+  const [loungeTitle, setLoungeTitle] = useState("Demo Support Lounge");
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [tickets, setTickets] = useState<LoungeTicket[]>([]);
   const [draft, setDraft] = useState("");
@@ -54,11 +55,12 @@ export default function SupportLoungeApp({
       cache: "no-store",
     });
     const loungeData = await readJson<{
-      lounge?: { companyName: string };
+      lounge?: { companyName: string; title?: string };
       error?: string;
     }>(loungeRes);
     if (!loungeRes.ok) throw new Error(loungeData.error || "Lounge not found");
     setCompanyName(loungeData.lounge?.companyName || "Support");
+    setLoungeTitle(loungeData.lounge?.title || "Demo Support Lounge");
 
     const ticketsRes = await fetch(
       `/api/support-lounge/${encodeURIComponent(loungeToken)}/tickets`,
@@ -97,7 +99,8 @@ export default function SupportLoungeApp({
       setHistory([
         {
           role: "assistant",
-          content: `Welcome to ${loungeData.lounge?.companyName || "your"} Support Lounge. Describe the issue and I'll open a ticket with the support team — no login needed.`,
+          content:
+            "Welcome to Demo Support Lounge. I'll help you open a support ticket — no login needed.\n\nWhat is your first and last name?",
         },
       ]);
     }
@@ -221,10 +224,11 @@ export default function SupportLoungeApp({
               Support Lounge
             </p>
             <h1 className="mt-1 font-serif text-3xl tracking-tight text-white sm:text-4xl">
-              {companyName}
+              {loungeTitle}
             </h1>
             <p className="mt-2 max-w-xl text-sm text-white/55">
-              Chat with support AI. Tickets go straight to the operations team — no account required.
+              Chat with support AI for {companyName}. Tickets go straight to the Demo operations
+              team — no account required.
             </p>
           </div>
           <div className="flex gap-2">
@@ -299,7 +303,7 @@ export default function SupportLoungeApp({
                 <div
                   key={`${message.role}-${index}`}
                   className={cn(
-                    "max-w-[90%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                    "max-w-[90%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed",
                     message.role === "user"
                       ? "ml-auto bg-sky-500/20 text-sky-50"
                       : "border border-white/10 bg-white/[0.04] text-white/85",
@@ -316,7 +320,7 @@ export default function SupportLoungeApp({
                 <input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  placeholder="Describe your issue…"
+                  placeholder="Type your reply…"
                   disabled={sending}
                   className="h-12 flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-white/35 focus:border-sky-400/40"
                 />

@@ -36,6 +36,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
         lounge: {
           companyName: lounge.companyName,
           token: lounge.loungeToken,
+          title: "Demo Support Lounge",
         },
         requesterAnonId: session.requesterAnonId,
       },

@@ -15,7 +15,7 @@ type DbSupportTicket = Parameters<typeof mapSupportTicket>[0];
 export type { SupportWorkspaceScope };
 
 const SUPPORT_TICKET_SELECT =
-  "id,name,organisation,priority,description,user_assigned,client_phone,client_priority_label,archived,closed,created_at,updated_at,client_id,requester_anon_id,requester_email,ticket_public_token,status,escalated,source";
+  "id,name,organisation,priority,description,user_assigned,client_phone,client_priority_label,archived,closed,created_at,updated_at,client_id,requester_anon_id,requester_email,requester_first_name,requester_last_name,requester_department,requester_role,ticket_kind,ticket_public_token,status,escalated,source";
 
 function requireSupportSupabase() {
   if (!isSupabaseConfigured()) {
@@ -50,6 +50,21 @@ function buildTicketPayload(input: Partial<SupportTicket>) {
   }
   if (input.requesterEmail !== undefined) {
     payload.requester_email = input.requesterEmail?.trim() || null;
+  }
+  if (input.requesterFirstName !== undefined) {
+    payload.requester_first_name = input.requesterFirstName?.trim() || null;
+  }
+  if (input.requesterLastName !== undefined) {
+    payload.requester_last_name = input.requesterLastName?.trim() || null;
+  }
+  if (input.requesterDepartment !== undefined) {
+    payload.requester_department = input.requesterDepartment?.trim() || null;
+  }
+  if (input.requesterRole !== undefined) {
+    payload.requester_role = input.requesterRole?.trim() || null;
+  }
+  if (input.ticketKind !== undefined) {
+    payload.ticket_kind = input.ticketKind?.trim() || null;
   }
   if (input.ticketPublicToken !== undefined) {
     payload.ticket_public_token = input.ticketPublicToken?.trim() || null;
@@ -131,6 +146,11 @@ export async function createSupportTicket(
       client_id: input.clientId?.trim() || null,
       requester_anon_id: input.requesterAnonId?.trim() || null,
       requester_email: input.requesterEmail?.trim() || null,
+      requester_first_name: input.requesterFirstName?.trim() || null,
+      requester_last_name: input.requesterLastName?.trim() || null,
+      requester_department: input.requesterDepartment?.trim() || null,
+      requester_role: input.requesterRole?.trim() || null,
+      ticket_kind: input.ticketKind?.trim() || null,
       ticket_public_token: input.ticketPublicToken?.trim() || null,
       status,
       escalated: input.escalated ?? false,

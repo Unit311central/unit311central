@@ -19,6 +19,8 @@ export const SUPPORT_TICKETS_MIGRATION_PATH =
   "supabase/migrations/026_create_support_tickets.sql";
 export const SUPPORT_LOUNGE_MIGRATION_PATH =
   "supabase/migrations/121_support_lounge.sql";
+export const SUPPORT_LOUNGE_INTAKE_FIELDS_MIGRATION_PATH =
+  "supabase/migrations/122_support_lounge_intake_fields.sql";
 export const CRM_CONNECTIONS_MIGRATION_PATH =
   "supabase/migrations/020_create_crm_connections.sql";
 export const HR_EMPLOYEES_MIGRATION_PATH =
@@ -1161,16 +1163,22 @@ export async function withSupportTicketsTable<T>(operation: () => Promise<T>): P
 
 export async function ensureSupportLoungeSchema(): Promise<boolean> {
   const exists = await columnExistsViaManagementApi("support_tickets", "ticket_public_token");
-  if (exists === true) {
+  const intakeExists = await columnExistsViaManagementApi(
+    "support_tickets",
+    "requester_first_name",
+  );
+  if (exists === true && intakeExists === true) {
     await reloadPostgrestSchema();
     return true;
   }
 
   const appliedViaDb = await withResolvedDatabaseClient(async (client) => {
-    if (await columnExists(client, "support_tickets", "ticket_public_token")) {
-      return true;
+    if (!(await columnExists(client, "support_tickets", "ticket_public_token"))) {
+      await applyMigration(client, SUPPORT_LOUNGE_MIGRATION_PATH);
     }
-    await applyMigration(client, SUPPORT_LOUNGE_MIGRATION_PATH);
+    if (!(await columnExists(client, "support_tickets", "requester_first_name"))) {
+      await applyMigration(client, SUPPORT_LOUNGE_INTAKE_FIELDS_MIGRATION_PATH);
+    }
     return true;
   });
 
@@ -1179,14 +1187,18 @@ export async function ensureSupportLoungeSchema(): Promise<boolean> {
     return true;
   }
 
-  const applied = await applyMigrationViaManagementApi(SUPPORT_LOUNGE_MIGRATION_PATH);
-  if (applied) {
-    await reloadPostgrestSchema();
-    return true;
+  if (exists !== true) {
+    await applyMigrationViaManagementApi(SUPPORT_LOUNGE_MIGRATION_PATH);
   }
+  if (intakeExists !== true) {
+    await applyMigrationViaManagementApi(SUPPORT_LOUNGE_INTAKE_FIELDS_MIGRATION_PATH);
+  }
+  await reloadPostgrestSchema();
 
-  const viaRest = await columnExistsViaRestApi("support_tickets", "ticket_public_token");
-  return viaRest === true;
+  const viaRest =
+    (await columnExistsViaRestApi("support_tickets", "ticket_public_token")) === true &&
+    (await columnExistsViaRestApi("support_tickets", "requester_first_name")) === true;
+  return viaRest;
 }
 
 export async function withSupportLoungeSchema<T>(operation: () => Promise<T>): Promise<T> {
@@ -1197,6 +1209,7 @@ export async function withSupportLoungeSchema<T>(operation: () => Promise<T>): P
       if (
         !isMissingColumnError(error, "ticket_public_token") &&
         !isMissingColumnError(error, "support_lounge_token") &&
+        !isMissingColumnError(error, "requester_first_name") &&
         !isMissingTableError(error, "support_lounge_messages")
       ) {
         throw error;

@@ -306,6 +306,11 @@ export default function SupportWorkspace() {
           description: ticket.description,
           userAssigned: ticket.userAssigned,
           archived: ticket.archived,
+          requesterFirstName: ticket.requesterFirstName,
+          requesterLastName: ticket.requesterLastName,
+          requesterDepartment: ticket.requesterDepartment,
+          requesterRole: ticket.requesterRole,
+          ticketKind: ticket.ticketKind,
         }),
       });
 
@@ -752,6 +757,64 @@ export default function SupportWorkspace() {
                       value={selectedTicket.organisation}
                       onChange={(event) => patchSelected({ organisation: event.target.value })}
                     />
+                  </div>
+                  <div>
+                    <FieldLabel>First name</FieldLabel>
+                    <input
+                      className={inputClassName()}
+                      value={selectedTicket.requesterFirstName ?? ""}
+                      onChange={(event) =>
+                        patchSelected({ requesterFirstName: event.target.value.trim() || null })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Last name</FieldLabel>
+                    <input
+                      className={inputClassName()}
+                      value={selectedTicket.requesterLastName ?? ""}
+                      onChange={(event) =>
+                        patchSelected({ requesterLastName: event.target.value.trim() || null })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Department</FieldLabel>
+                    <input
+                      className={inputClassName()}
+                      value={selectedTicket.requesterDepartment ?? ""}
+                      onChange={(event) =>
+                        patchSelected({ requesterDepartment: event.target.value.trim() || null })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Role</FieldLabel>
+                    <input
+                      className={inputClassName()}
+                      value={selectedTicket.requesterRole ?? ""}
+                      onChange={(event) =>
+                        patchSelected({ requesterRole: event.target.value.trim() || null })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Ticket kind</FieldLabel>
+                    <select
+                      className={inputClassName()}
+                      value={selectedTicket.ticketKind ?? ""}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        patchSelected({
+                          ticketKind:
+                            value === "new" || value === "existing" ? value : null,
+                        });
+                      }}
+                    >
+                      <option value="">—</option>
+                      <option value="new">New</option>
+                      <option value="existing">Existing</option>
+                    </select>
                   </div>
                   <div>
                     <FieldLabel>Priority</FieldLabel>

@@ -179,9 +179,21 @@ export async function createLoungeTicket(input: {
   priority?: SupportTicketPriority;
   requesterName?: string;
   requesterEmail?: string | null;
+  requesterFirstName?: string | null;
+  requesterLastName?: string | null;
+  requesterDepartment?: string | null;
+  requesterRole?: string | null;
+  ticketKind?: "new" | "existing" | null;
 }): Promise<{ ticket: SupportTicket; resumePath: string }> {
   const publicToken = createTicketPublicToken();
-  const name = (input.requesterName || "Support guest").trim() || "Support guest";
+  const composedName = [input.requesterFirstName, input.requesterLastName]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ");
+  const name =
+    composedName ||
+    (input.requesterName || "Support guest").trim() ||
+    "Support guest";
   const ticket = await createSupportTicket(
     {
       name,
@@ -191,6 +203,11 @@ export async function createLoungeTicket(input: {
       clientId: input.lounge.id,
       requesterAnonId: input.requesterAnonId,
       requesterEmail: input.requesterEmail?.trim() || null,
+      requesterFirstName: input.requesterFirstName?.trim() || null,
+      requesterLastName: input.requesterLastName?.trim() || null,
+      requesterDepartment: input.requesterDepartment?.trim() || null,
+      requesterRole: input.requesterRole?.trim() || null,
+      ticketKind: input.ticketKind || "new",
       ticketPublicToken: publicToken,
       status: "open",
       escalated: false,

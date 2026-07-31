@@ -44,6 +44,11 @@ export type SupportTicket = {
   clientId?: string | null;
   requesterAnonId?: string | null;
   requesterEmail?: string | null;
+  requesterFirstName?: string | null;
+  requesterLastName?: string | null;
+  requesterDepartment?: string | null;
+  requesterRole?: string | null;
+  ticketKind?: "new" | "existing" | null;
   ticketPublicToken?: string | null;
   status?: SupportTicketStatus;
   escalated?: boolean;
@@ -75,6 +80,11 @@ type DbSupportTicket = {
   client_id?: string | null;
   requester_anon_id?: string | null;
   requester_email?: string | null;
+  requester_first_name?: string | null;
+  requester_last_name?: string | null;
+  requester_department?: string | null;
+  requester_role?: string | null;
+  ticket_kind?: string | null;
   ticket_public_token?: string | null;
   status?: string | null;
   escalated?: boolean | null;
@@ -114,6 +124,12 @@ export function mapSupportTicket(row: DbSupportTicket): SupportTicket {
     clientId: row.client_id ?? null,
     requesterAnonId: row.requester_anon_id ?? null,
     requesterEmail: row.requester_email ?? null,
+    requesterFirstName: row.requester_first_name ?? null,
+    requesterLastName: row.requester_last_name ?? null,
+    requesterDepartment: row.requester_department ?? null,
+    requesterRole: row.requester_role ?? null,
+    ticketKind:
+      row.ticket_kind === "new" || row.ticket_kind === "existing" ? row.ticket_kind : null,
     ticketPublicToken: row.ticket_public_token ?? null,
     status,
     escalated: row.escalated ?? false,
@@ -135,6 +151,11 @@ export function createBlankTicketInput(): Omit<SupportTicket, "id" | "createdAt"
     clientId: null,
     requesterAnonId: null,
     requesterEmail: null,
+    requesterFirstName: null,
+    requesterLastName: null,
+    requesterDepartment: null,
+    requesterRole: null,
+    ticketKind: null,
     ticketPublicToken: null,
     status: "open",
     escalated: false,
