@@ -135,6 +135,9 @@ export default function SupportWorkspace() {
   const [search, setSearch] = useState("");
   const [clientFilter, setClientFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "closed" | "outstanding" | "in_queue">(
+    "all",
+  );
   const [statsPeriod, setStatsPeriod] = useState<SupportStatsPeriod>("month");
   const snapshottedIdRef = useRef<string | null>(null);
   const deepLinkAppliedRef = useRef<string | null>(null);
@@ -156,7 +159,7 @@ export default function SupportWorkspace() {
   );
 
   const assigneeOptions = useMemo(() => {
-    const names = new Set<string>();
+    const names = new Set<string>(["Admin", "Info", "Paul"]);
     for (const ticket of tickets) {
       const assigned = ticket.userAssigned?.trim();
       if (assigned) names.add(assigned);
@@ -164,19 +167,32 @@ export default function SupportWorkspace() {
     return [...names].sort((a, b) => a.localeCompare(b));
   }, [tickets]);
 
+  function matchesStatusFilter(ticket: SupportTicket) {
+    if (statusFilter === "all") return true;
+    if (statusFilter === "open") return !ticket.closed && !ticket.archived;
+    if (statusFilter === "closed") return ticket.closed && !ticket.archived;
+    if (statusFilter === "outstanding") {
+      return !ticket.archived && !ticket.closed && Boolean(ticket.userAssigned?.trim());
+    }
+    if (statusFilter === "in_queue") {
+      return !ticket.archived && !ticket.closed && !ticket.userAssigned?.trim();
+    }
+    return true;
+  }
+
+  function matchesAssigneeFilter(ticket: SupportTicket) {
+    if (assigneeFilter === "all") return true;
+    if (assigneeFilter === "unassigned") return !ticket.userAssigned?.trim();
+    return (ticket.userAssigned?.trim() || "") === assigneeFilter;
+  }
+
   const filteredTickets = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return visibleTickets.filter((ticket) => {
       if (clientFilter !== "all" && ticket.organisation !== clientFilter) return false;
-      if (assigneeFilter === "unassigned" && ticket.userAssigned?.trim()) return false;
-      if (
-        assigneeFilter !== "all" &&
-        assigneeFilter !== "unassigned" &&
-        (ticket.userAssigned?.trim() || "") !== assigneeFilter
-      ) {
-        return false;
-      }
+      if (!matchesAssigneeFilter(ticket)) return false;
+      if (!matchesStatusFilter(ticket)) return false;
       if (!query) return true;
 
       const haystack = [
@@ -192,11 +208,21 @@ export default function SupportWorkspace() {
 
       return haystack.includes(query);
     });
-  }, [assigneeFilter, clientFilter, search, visibleTickets]);
+  }, [assigneeFilter, clientFilter, search, statusFilter, visibleTickets]);
 
   const periodTickets = useMemo(
-    () => tickets.filter((ticket) => ticketInPeriod(ticket, statsPeriod)),
-    [statsPeriod, tickets],
+    () =>
+      tickets.filter((ticket) => {
+        if (!ticketInPeriod(ticket, statsPeriod)) return false;
+        if (clientFilter !== "all" && ticket.organisation !== clientFilter) return false;
+        if (!matchesAssigneeFilter(ticket)) return false;
+        if (statusFilter === "closed") return ticket.closed;
+        if (statusFilter === "open" || statusFilter === "outstanding" || statusFilter === "in_queue") {
+          return matchesStatusFilter(ticket);
+        }
+        return true;
+      }),
+    [assigneeFilter, clientFilter, statsPeriod, statusFilter, tickets],
   );
 
   const inQueueCount = useMemo(
@@ -380,6 +406,7 @@ export default function SupportWorkspace() {
     setShowArchived(true);
     setAssigneeFilter("all");
     setClientFilter("all");
+    setStatusFilter("all");
     setSearch(ticketId);
   }, [searchParams, tickets]);
 
@@ -548,7 +575,37 @@ export default function SupportWorkspace() {
               <BarChart3 className="h-4 w-4 text-sky-300" />
               <h3 className="text-sm font-semibold text-white">Support analytics</h3>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <select
+                value={assigneeFilter}
+                onChange={(event) => setAssigneeFilter(event.target.value)}
+                className={cn(inputClassName(), "mt-0 h-8 min-w-[10rem] py-1 text-xs")}
+                aria-label="Filter analytics by support user"
+              >
+                <option value="all">All support users</option>
+                <option value="unassigned">Unassigned</option>
+                {assigneeOptions.map((assignee) => (
+                  <option key={`analytics-user-${assignee}`} value={assignee}>
+                    {assignee}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value as "all" | "open" | "closed" | "outstanding" | "in_queue",
+                  )
+                }
+                className={cn(inputClassName(), "mt-0 h-8 min-w-[9rem] py-1 text-xs")}
+                aria-label="Filter analytics by status"
+              >
+                <option value="all">All statuses</option>
+                <option value="open">Open</option>
+                <option value="outstanding">Outstanding</option>
+                <option value="in_queue">In queue</option>
+                <option value="closed">Closed</option>
+              </select>
               <span className="rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-sky-200">
                 {openTicketsNow} open now
               </span>
@@ -806,7 +863,7 @@ export default function SupportWorkspace() {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_11rem]">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
                 <input
@@ -820,6 +877,7 @@ export default function SupportWorkspace() {
                 value={clientFilter}
                 onChange={(event) => setClientFilter(event.target.value)}
                 className={cn(inputClassName(), "mt-0")}
+                aria-label="Filter by client"
               >
                 <option value="all">All clients</option>
                 {clientOptions.map((organisation) => (
@@ -832,6 +890,7 @@ export default function SupportWorkspace() {
                 value={assigneeFilter}
                 onChange={(event) => setAssigneeFilter(event.target.value)}
                 className={cn(inputClassName(), "mt-0")}
+                aria-label="Filter by support user"
               >
                 <option value="all">All support users</option>
                 <option value="unassigned">Unassigned</option>
@@ -840,6 +899,22 @@ export default function SupportWorkspace() {
                     {assignee}
                   </option>
                 ))}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value as "all" | "open" | "closed" | "outstanding" | "in_queue",
+                  )
+                }
+                className={cn(inputClassName(), "mt-0")}
+                aria-label="Filter by status"
+              >
+                <option value="all">All statuses</option>
+                <option value="open">Open</option>
+                <option value="outstanding">Outstanding</option>
+                <option value="in_queue">In queue</option>
+                <option value="closed">Closed</option>
               </select>
             </div>
 
