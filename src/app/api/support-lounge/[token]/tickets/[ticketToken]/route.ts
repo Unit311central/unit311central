@@ -37,6 +37,7 @@ function ticketPayload(
     requesterRole: ticket.requesterRole,
     ticketKind: ticket.ticketKind,
     ticketPublicToken: ticket.ticketPublicToken,
+    ticketPublicUrl: ticket.ticketPublicUrl,
     resumePath: ticket.ticketPublicToken
       ? `/s/${encodeURIComponent(loungeToken)}/t/${encodeURIComponent(ticket.ticketPublicToken)}`
       : null,
