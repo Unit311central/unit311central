@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createSupportTicket, listSupportTickets } from "@/lib/support-tickets-service";
 import type { SupportTicketPriority } from "@/lib/support-data";
-import { ensureSupportLoungeSchema, ensureSupportTicketsTable, withSupportTicketsTable } from "@/lib/internal-db-migrations";
+import {
+  ensureSupportLoungeSchema,
+  ensureSupportTicketsTable,
+  withSupportTicketsTable,
+} from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -15,6 +19,11 @@ function authErrorStatus(message: string) {
     : 500;
 }
 
+function isSchemaWarmupError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /could not find|does not exist|schema cache|column .* not found/i.test(message);
+}
+
 export async function GET(request: NextRequest) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
@@ -24,12 +33,20 @@ export async function GET(request: NextRequest) {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
-
-    await ensureSupportTicketsTable();
-    await ensureSupportLoungeSchema();
     const includeArchived = request.nextUrl.searchParams.get("includeArchived") !== "false";
-    const tickets = await withSupportTicketsTable(() => listSupportTickets(includeArchived, scope));
-    return NextResponse.json({ tickets });
+
+    // Fast path: list immediately. Schema ensure only on cold miss / missing columns.
+    try {
+      const tickets = await listSupportTickets(includeArchived, scope);
+      return NextResponse.json({ tickets });
+    } catch (listError) {
+      if (!isSchemaWarmupError(listError)) throw listError;
+      await Promise.all([ensureSupportTicketsTable(), ensureSupportLoungeSchema()]);
+      const tickets = await withSupportTicketsTable(() =>
+        listSupportTickets(includeArchived, scope),
+      );
+      return NextResponse.json({ tickets });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load support tickets";
     return NextResponse.json({ error: message }, { status: authErrorStatus(message) });
@@ -46,8 +63,6 @@ export async function POST(request: NextRequest) {
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
 
-    await ensureSupportTicketsTable();
-    await ensureSupportLoungeSchema();
     const body = (await request.json()) as {
       name?: string;
       organisation?: string;
@@ -61,16 +76,29 @@ export async function POST(request: NextRequest) {
     }
 
     const name = body.name.trim();
-    const ticket = await withSupportTicketsTable(() =>
-      createSupportTicket(
+    try {
+      const ticket = await createSupportTicket(
         {
           ...body,
           name,
         },
         scope,
-      ),
-    );
-    return NextResponse.json({ ticket });
+      );
+      return NextResponse.json({ ticket });
+    } catch (createError) {
+      if (!isSchemaWarmupError(createError)) throw createError;
+      await Promise.all([ensureSupportTicketsTable(), ensureSupportLoungeSchema()]);
+      const ticket = await withSupportTicketsTable(() =>
+        createSupportTicket(
+          {
+            ...body,
+            name,
+          },
+          scope,
+        ),
+      );
+      return NextResponse.json({ ticket });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create support ticket";
     return NextResponse.json({ error: message }, { status: authErrorStatus(message) });

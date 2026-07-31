@@ -1118,8 +1118,12 @@ export async function withWhiteboardTable<T>(operation: () => Promise<T>): Promi
 }
 
 export async function ensureSupportTicketsTable(): Promise<boolean> {
+  const cache = globalThis as { __unit311SupportTicketsReady?: boolean };
+  if (cache.__unit311SupportTicketsReady) return true;
+
   const exists = await tableExistsViaManagementApi("support_tickets");
   if (exists === true) {
+    cache.__unit311SupportTicketsReady = true;
     return true;
   }
 
@@ -1130,10 +1134,12 @@ export async function ensureSupportTicketsTable(): Promise<boolean> {
     try {
       await client.connect();
       if (await tableExists(client, "support_tickets")) {
+        cache.__unit311SupportTicketsReady = true;
         return true;
       }
       await applyMigration(client, SUPPORT_TICKETS_MIGRATION_PATH);
       await reloadPostgrestSchema();
+      cache.__unit311SupportTicketsReady = true;
       return true;
     } finally {
       await client.end().catch(() => undefined);
@@ -1143,6 +1149,7 @@ export async function ensureSupportTicketsTable(): Promise<boolean> {
   if (exists === false) {
     const applied = await applyMigrationViaManagementApi(SUPPORT_TICKETS_MIGRATION_PATH);
     if (applied) await reloadPostgrestSchema();
+    if (applied) cache.__unit311SupportTicketsReady = true;
     return applied;
   }
 
@@ -1155,6 +1162,8 @@ export async function withSupportTicketsTable<T>(operation: () => Promise<T>): P
       return await operation();
     } catch (error) {
       if (!isMissingTableError(error, "support_tickets")) throw error;
+      const cache = globalThis as { __unit311SupportTicketsReady?: boolean };
+      cache.__unit311SupportTicketsReady = false;
       await ensureSupportTicketsTable();
       await reloadPostgrestSchema();
       if (attempt === 4) throw error;
@@ -1166,23 +1175,23 @@ export async function withSupportTicketsTable<T>(operation: () => Promise<T>): P
 }
 
 export async function ensureSupportLoungeSchema(): Promise<boolean> {
-  const exists = await columnExistsViaManagementApi("support_tickets", "ticket_public_token");
-  const intakeExists = await columnExistsViaManagementApi(
-    "support_tickets",
-    "requester_first_name",
-  );
-  const attachmentsExists = await tableExistsViaManagementApi("support_lounge_attachments");
-  const publicUrlExists = await columnExistsViaManagementApi(
-    "support_tickets",
-    "ticket_public_url",
-  );
+  const cache = globalThis as { __unit311SupportLoungeReady?: boolean };
+  if (cache.__unit311SupportLoungeReady) return true;
+
+  const [exists, intakeExists, attachmentsExists, publicUrlExists] = await Promise.all([
+    columnExistsViaManagementApi("support_tickets", "ticket_public_token"),
+    columnExistsViaManagementApi("support_tickets", "requester_first_name"),
+    tableExistsViaManagementApi("support_lounge_attachments"),
+    columnExistsViaManagementApi("support_tickets", "ticket_public_url"),
+  ]);
   if (
     exists === true &&
     intakeExists === true &&
     attachmentsExists === true &&
     publicUrlExists === true
   ) {
-    await reloadPostgrestSchema();
+    // Schema already applied — do not reload PostgREST on every request (was making Support Desk very slow).
+    cache.__unit311SupportLoungeReady = true;
     return true;
   }
 
@@ -1204,6 +1213,7 @@ export async function ensureSupportLoungeSchema(): Promise<boolean> {
 
   if (appliedViaDb) {
     await reloadPostgrestSchema();
+    cache.__unit311SupportLoungeReady = true;
     return true;
   }
 
@@ -1225,6 +1235,7 @@ export async function ensureSupportLoungeSchema(): Promise<boolean> {
     (await columnExistsViaRestApi("support_tickets", "ticket_public_token")) === true &&
     (await columnExistsViaRestApi("support_tickets", "requester_first_name")) === true &&
     (await columnExistsViaRestApi("support_tickets", "ticket_public_url")) === true;
+  if (viaRest) cache.__unit311SupportLoungeReady = true;
   return viaRest;
 }
 
@@ -1244,6 +1255,8 @@ export async function withSupportLoungeSchema<T>(operation: () => Promise<T>): P
       ) {
         throw error;
       }
+      const cache = globalThis as { __unit311SupportLoungeReady?: boolean };
+      cache.__unit311SupportLoungeReady = false;
       await ensureSupportLoungeSchema();
       await reloadPostgrestSchema();
       if (attempt === 4) throw error;
