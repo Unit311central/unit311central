@@ -126,10 +126,16 @@ function MessageBody({
   message,
   isSelf,
   onJoinCall,
+  assignOptions = [],
+  onAssignTicket,
+  assigningTicketId = null,
 }: {
   message: ChatMessage;
   isSelf: boolean;
   onJoinCall?: (callLink: string) => void;
+  assignOptions?: Array<{ id: string; label: string }>;
+  onAssignTicket?: (ticketId: string, assignee: string) => void;
+  assigningTicketId?: string | null;
 }) {
   if (message.messageType === "call" && message.callLink) {
     return (
@@ -176,8 +182,16 @@ function MessageBody({
   const lines = message.content.split("\n");
   const actionLines: Array<{ label: string; href: string }> = [];
   const bodyLines: string[] = [];
+  let assignTicketId: string | null = null;
   for (const line of lines) {
-    const match = line.match(/^(Open CRM Lead|Reply|Open email):\s+(\S.+)$/i);
+    const assignMatch = line.match(/^Assign support ticket:\s*(\S.+)$/i);
+    if (assignMatch) {
+      assignTicketId = assignMatch[1].trim().toUpperCase();
+      continue;
+    }
+    const match = line.match(
+      /^(Open CRM Lead|Reply|Open email|Open support request|Client case link):\s+(\S.+)$/i,
+    );
     if (match) {
       actionLines.push({ label: match[1], href: match[2].trim() });
     } else {
@@ -196,11 +210,38 @@ function MessageBody({
             <a
               key={`${action.label}-${action.href}`}
               href={action.href}
+              target={action.href.startsWith("http") ? "_blank" : undefined}
+              rel={action.href.startsWith("http") ? "noreferrer" : undefined}
               className="inline-flex items-center rounded-lg border border-sky-400/35 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-100 transition-colors hover:bg-sky-500/25"
             >
               {action.label}
             </a>
           ))}
+        </div>
+      ) : null}
+      {assignTicketId && onAssignTicket ? (
+        <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">
+            Assign {assignTicketId}
+          </p>
+          <select
+            defaultValue=""
+            disabled={assigningTicketId === assignTicketId || assignOptions.length === 0}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (!value || !assignTicketId) return;
+              onAssignTicket(assignTicketId, value);
+              event.target.value = "";
+            }}
+            className="mt-2 w-full rounded-lg border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/50 disabled:opacity-50"
+          >
+            <option value="">Choose support user…</option>
+            {assignOptions.map((option) => (
+              <option key={option.id} value={option.label}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       ) : null}
     </div>
@@ -318,6 +359,7 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
   const [deletingChannelId, setDeletingChannelId] = useState<string | null>(null);
   const [messageView, setMessageView] = useState<MessageFeedView>("active");
   const [messageActionId, setMessageActionId] = useState<string | null>(null);
+  const [assigningTicketId, setAssigningTicketId] = useState<string | null>(null);
   const { showDetail: showChat, openDetail: openChat, closeDetail: closeChat } = useMobileDetailPanel();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -338,6 +380,20 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
       memberClientUsernames: [],
       createdAt: new Date().toISOString(),
     } satisfies MessageChannel);
+
+  const supportAssignOptions = useMemo(() => {
+    const memberIds =
+      activeChannel.memberOperatorIds.length > 0
+        ? activeChannel.memberOperatorIds
+        : ["user-admin", "user-info", "user-paul"];
+    return memberIds
+      .map((id) => operatorsById.get(id))
+      .filter((operator): operator is ManagedUser => Boolean(operator))
+      .map((operator) => ({
+        id: operator.id,
+        label: operator.fullName || operator.operatorLabel || operator.email || operator.username,
+      }));
+  }, [activeChannel.memberOperatorIds, operatorsById]);
 
   const internalChannels = useMemo(
     () => channels.filter((channel) => channel.channelType === "internal"),
@@ -836,6 +892,30 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
       setError(sendError instanceof Error ? sendError.message : "Failed to send message");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function handleAssignSupportTicket(ticketId: string, assignee: string) {
+    if (!joinedOperator || !assignee.trim()) return;
+    setAssigningTicketId(ticketId);
+    setError(null);
+    try {
+      const response = await fetch(`/api/support/tickets/${encodeURIComponent(ticketId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userAssigned: assignee.trim() }),
+      });
+      const data = await readApiJson<{ ticket?: { id: string }; error?: string }>(response);
+      if (!response.ok) throw new Error(data.error || "Failed to assign ticket");
+
+      await postMessage({
+        content: `Assigned ${assignee.trim()} to ${ticketId}.`,
+        messageType: "system",
+      });
+    } catch (assignError) {
+      setError(assignError instanceof Error ? assignError.message : "Failed to assign ticket");
+    } finally {
+      setAssigningTicketId(null);
     }
   }
 
@@ -2141,6 +2221,11 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
                         message={message}
                         isSelf={isSelf}
                         onJoinCall={openCallInCommunications}
+                        assignOptions={supportAssignOptions}
+                        onAssignTicket={
+                          joinedOperator ? handleAssignSupportTicket : undefined
+                        }
+                        assigningTicketId={assigningTicketId}
                       />
                     </div>
                   </div>

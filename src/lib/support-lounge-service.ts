@@ -7,7 +7,6 @@ import {
   type SupportTicketStatus,
 } from "@/lib/support-data";
 import {
-  postAssignmentPromptToSupportChannel,
   postTicketToSupportChannel,
 } from "@/lib/support-channel";
 import { createSupportTicket, updateSupportTicket } from "@/lib/support-tickets-service";
@@ -238,18 +237,22 @@ export async function createLoungeTicket(input: {
     content: `Ticket ${ticket.id} opened via Support Lounge for ${input.lounge.companyName}.`,
   });
 
+  const resumePath = `/s/${encodeURIComponent(input.lounge.loungeToken)}/t/${encodeURIComponent(publicToken)}`;
+  const resumeUrl = `${DEMO_SITE_URL.replace(/\/$/, "")}${resumePath}`;
+
   try {
-    await postTicketToSupportChannel(ticket, { workspaceId: input.lounge.workspaceId });
-    await postAssignmentPromptToSupportChannel(ticket.id, {
-      workspaceId: input.lounge.workspaceId,
-    });
+    await postTicketToSupportChannel(
+      ticket,
+      { workspaceId: input.lounge.workspaceId },
+      { resumeUrl },
+    );
   } catch (error) {
     console.warn("[support-lounge] desk notify failed:", error);
   }
 
   return {
     ticket,
-    resumePath: `/s/${encodeURIComponent(input.lounge.loungeToken)}/t/${encodeURIComponent(publicToken)}`,
+    resumePath,
   };
 }
 
@@ -279,7 +282,13 @@ export async function escalateLoungeTicket(input: {
   });
 
   try {
+    const { ensureClientSupportChannel } = await import("@/lib/support-channel");
     const { sendMessage } = await import("@/lib/internal-messaging-service");
+    const channel = await ensureClientSupportChannel({
+      companyName: input.lounge.companyName,
+      clientId: input.lounge.id,
+      scope: { workspaceId: input.lounge.workspaceId },
+    });
     await sendMessage(
       {
         operatorId: "lounge:escalation",
@@ -289,8 +298,9 @@ export async function escalateLoungeTicket(input: {
           `Human help requested on ${input.ticket.id}`,
           `${input.lounge.companyName} · ${input.ticket.name}`,
           note || input.ticket.description,
+          `Assign support ticket: ${input.ticket.id}`,
         ].join("\n"),
-        room: "support-desk",
+        room: channel.room,
         messageType: "text",
       },
       { workspaceId: input.lounge.workspaceId },

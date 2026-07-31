@@ -92,7 +92,10 @@ async function completeTicketIntake(
 ) {
   ticket = await attachClientPhone(ticket, phone, scope);
   const channelMessage = await postTicketToSupportChannel(ticket, scope);
-  const assignmentPrompt = await postAssignmentPromptToSupportChannel(ticket.id, scope);
+  const assignmentPrompt = await postAssignmentPromptToSupportChannel(ticket.id, scope, {
+    companyName: ticket.organisation,
+    clientId: ticket.clientId,
+  });
   await clearWhatsAppSupportSession(phone, scope);
   const reply = CLIENT_INTAKE_PROMPTS.received;
   const whatsappAck = await maybeSendClientReply(reply, ticket.clientPhone ?? phone, suppressWhatsApp);

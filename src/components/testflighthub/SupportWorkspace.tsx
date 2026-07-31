@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
+import { useSearchParams } from "next/navigation";
 
 import {
   createBlankTicketInput,
@@ -19,6 +20,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -46,6 +48,24 @@ function periodStart(period: SupportStatsPeriod): Date {
 function ticketInPeriod(ticket: SupportTicket, period: SupportStatsPeriod) {
   const start = periodStart(period);
   return new Date(ticket.updatedAt).getTime() >= start.getTime();
+}
+
+function hoursBetween(startIso: string, endMs = Date.now()) {
+  const start = new Date(startIso).getTime();
+  if (Number.isNaN(start)) return 0;
+  return Math.max(0, (endMs - start) / (60 * 60 * 1000));
+}
+
+function formatLapsedHours(hours: number) {
+  if (hours < 24) return `${Math.round(hours)}h`;
+  const days = hours / 24;
+  if (days < 10) return `${days.toFixed(1)}d`;
+  return `${Math.round(days)}d`;
+}
+
+function assigneeKey(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : "Unassigned";
 }
 
 function StatBar({
@@ -103,6 +123,7 @@ function inputClassName() {
 }
 
 export default function SupportWorkspace() {
+  const searchParams = useSearchParams();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -113,8 +134,11 @@ export default function SupportWorkspace() {
   const [savedSnapshot, setSavedSnapshot] = useState<SupportTicket | null>(null);
   const [search, setSearch] = useState("");
   const [clientFilter, setClientFilter] = useState("all");
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [statsPeriod, setStatsPeriod] = useState<SupportStatsPeriod>("month");
   const snapshottedIdRef = useRef<string | null>(null);
+  const deepLinkAppliedRef = useRef<string | null>(null);
+  const [analyticsNowMs] = useState(() => Date.now());
 
   const visibleTickets = useMemo(() => {
     const base = showArchived ? tickets : tickets.filter((ticket) => !ticket.archived);
@@ -131,11 +155,28 @@ export default function SupportWorkspace() {
     [tickets],
   );
 
+  const assigneeOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const ticket of tickets) {
+      const assigned = ticket.userAssigned?.trim();
+      if (assigned) names.add(assigned);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [tickets]);
+
   const filteredTickets = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return visibleTickets.filter((ticket) => {
       if (clientFilter !== "all" && ticket.organisation !== clientFilter) return false;
+      if (assigneeFilter === "unassigned" && ticket.userAssigned?.trim()) return false;
+      if (
+        assigneeFilter !== "all" &&
+        assigneeFilter !== "unassigned" &&
+        (ticket.userAssigned?.trim() || "") !== assigneeFilter
+      ) {
+        return false;
+      }
       if (!query) return true;
 
       const haystack = [
@@ -144,13 +185,14 @@ export default function SupportWorkspace() {
         ticket.id,
         ticket.organisation,
         ticket.description,
+        ticket.requesterEmail ?? "",
       ]
         .join(" ")
         .toLowerCase();
 
       return haystack.includes(query);
     });
-  }, [clientFilter, search, visibleTickets]);
+  }, [assigneeFilter, clientFilter, search, visibleTickets]);
 
   const periodTickets = useMemo(
     () => tickets.filter((ticket) => ticketInPeriod(ticket, statsPeriod)),
@@ -222,6 +264,59 @@ export default function SupportWorkspace() {
     return buckets;
   }, [historicChartNowMs, tickets]);
 
+  const assignedPerUserChartData = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ticket of periodTickets) {
+      if (ticket.archived) continue;
+      const key = assigneeKey(ticket.userAssigned);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([label, count]) => ({
+        label,
+        count,
+        fill: label === "Unassigned" ? "#94a3b8" : "#38bdf8",
+      }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+      .slice(0, 8);
+  }, [periodTickets]);
+
+  const lapsedTimeChartData = useMemo(() => {
+    const openTickets = tickets.filter((ticket) => !ticket.archived && !ticket.closed);
+    const buckets = [
+      { label: "< 1d", count: 0, fill: "#34d399" },
+      { label: "1–3d", count: 0, fill: "#38bdf8" },
+      { label: "3–7d", count: 0, fill: "#fbbf24" },
+      { label: "7d+", count: 0, fill: "#f87171" },
+    ];
+    for (const ticket of openTickets) {
+      const hours = hoursBetween(ticket.createdAt, analyticsNowMs);
+      if (hours < 24) buckets[0].count += 1;
+      else if (hours < 72) buckets[1].count += 1;
+      else if (hours < 168) buckets[2].count += 1;
+      else buckets[3].count += 1;
+    }
+    return buckets;
+  }, [analyticsNowMs, tickets]);
+
+  const avgLapsedByAssignee = useMemo(() => {
+    const groups = new Map<string, number[]>();
+    for (const ticket of tickets) {
+      if (ticket.archived || ticket.closed) continue;
+      const key = assigneeKey(ticket.userAssigned);
+      const list = groups.get(key) || [];
+      list.push(hoursBetween(ticket.createdAt, analyticsNowMs));
+      groups.set(key, list);
+    }
+    return [...groups.entries()]
+      .map(([label, hours]) => {
+        const avg = hours.reduce((sum, value) => sum + value, 0) / hours.length;
+        return { label, display: formatLapsedHours(avg), hours: avg };
+      })
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 8);
+  }, [analyticsNowMs, tickets]);
+
   const openTicketsNow = useMemo(
     () => tickets.filter((ticket) => !ticket.archived && !ticket.closed).length,
     [tickets],
@@ -274,6 +369,19 @@ export default function SupportWorkspace() {
       void loadTickets();
     });
   }, [loadTickets]);
+
+  useEffect(() => {
+    const ticketId = searchParams.get("ticketId")?.trim().toUpperCase();
+    if (!ticketId || tickets.length === 0) return;
+    if (deepLinkAppliedRef.current === ticketId) return;
+    if (!tickets.some((ticket) => ticket.id.toUpperCase() === ticketId)) return;
+    deepLinkAppliedRef.current = ticketId;
+    setSelectedTicketId(ticketId);
+    setShowArchived(true);
+    setAssigneeFilter("all");
+    setClientFilter("all");
+    setSearch(ticketId);
+  }, [searchParams, tickets]);
 
   useEffect(() => {
     startTransition(() => {
@@ -527,10 +635,113 @@ export default function SupportWorkspace() {
                         color: "#f8fafc",
                       }}
                     />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      {currentStateChartData.map((entry) => (
+                        <Cell key={entry.label} fill={entry.fill} />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Assigned per support user ({STATS_PERIOD_LABELS[statsPeriod]})
+              </p>
+              <div className="mt-3 h-52">
+                {assignedPerUserChartData.length === 0 ? (
+                  <p className="pt-16 text-center text-sm text-white/40">No tickets in this period.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <BarChart
+                      data={assignedPerUserChartData}
+                      margin={{ top: 8, right: 8, left: -16, bottom: 8 }}
+                    >
+                      <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        interval={0}
+                        angle={-15}
+                        textAnchor="end"
+                        height={48}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#0b1524",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          borderRadius: 12,
+                          color: "#f8fafc",
+                        }}
+                      />
+                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                        {assignedPerUserChartData.map((entry) => (
+                          <Cell key={entry.label} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Open ticket age (lapsed time)
+              </p>
+              <div className="mt-3 h-52">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <BarChart data={lapsedTimeChartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#0b1524",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 12,
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      {lapsedTimeChartData.map((entry) => (
+                        <Cell key={entry.label} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {avgLapsedByAssignee.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {avgLapsedByAssignee.map((row) => (
+                    <span
+                      key={row.label}
+                      className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-white/65"
+                    >
+                      {row.label}: avg {row.display}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -595,7 +806,7 @@ export default function SupportWorkspace() {
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+            <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_11rem_11rem]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
                 <input
@@ -608,12 +819,25 @@ export default function SupportWorkspace() {
               <select
                 value={clientFilter}
                 onChange={(event) => setClientFilter(event.target.value)}
-                className={inputClassName()}
+                className={cn(inputClassName(), "mt-0")}
               >
                 <option value="all">All clients</option>
                 {clientOptions.map((organisation) => (
                   <option key={organisation} value={organisation}>
                     {organisation}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={assigneeFilter}
+                onChange={(event) => setAssigneeFilter(event.target.value)}
+                className={cn(inputClassName(), "mt-0")}
+              >
+                <option value="all">All support users</option>
+                <option value="unassigned">Unassigned</option>
+                {assigneeOptions.map((assignee) => (
+                  <option key={assignee} value={assignee}>
+                    {assignee}
                   </option>
                 ))}
               </select>
@@ -653,7 +877,10 @@ export default function SupportWorkspace() {
                       <p className="mt-1 text-sm font-semibold text-white">{ticket.name || "Unnamed"}</p>
                       <p className="mt-1 text-xs text-white/45">
                         {ticket.organisation || "No organisation"}
-                        {ticket.userAssigned ? ` · assigned ${ticket.userAssigned}` : ""}
+                        {ticket.userAssigned ? ` · assigned ${ticket.userAssigned}` : " · unassigned"}
+                        {!ticket.closed
+                          ? ` · open ${formatLapsedHours(hoursBetween(ticket.createdAt, analyticsNowMs))}`
+                          : ""}
                       </p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span
@@ -834,14 +1061,27 @@ export default function SupportWorkspace() {
                   </div>
                   <div>
                     <FieldLabel>User assigned</FieldLabel>
-                    <input
+                    <select
                       className={inputClassName()}
                       value={selectedTicket.userAssigned ?? ""}
-                      placeholder="e.g. fortp0"
                       onChange={(event) =>
                         patchSelected({ userAssigned: event.target.value.trim() || null })
                       }
-                    />
+                    >
+                      <option value="">Unassigned</option>
+                      {[
+                        "Admin",
+                        "Info",
+                        "Paul",
+                        ...assigneeOptions.filter(
+                          (name) => !["Admin", "Info", "Paul"].includes(name),
+                        ),
+                      ].map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="sm:col-span-2">
                     <FieldLabel>Description</FieldLabel>
@@ -872,6 +1112,12 @@ export default function SupportWorkspace() {
                 <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/45">
                   <p>Created {formatSupportDate(selectedTicket.createdAt)}</p>
                   <p className="mt-1">Updated {formatSupportDate(selectedTicket.updatedAt)}</p>
+                  {!selectedTicket.closed ? (
+                    <p className="mt-1">
+                      Open for{" "}
+                      {formatLapsedHours(hoursBetween(selectedTicket.createdAt, analyticsNowMs))}
+                    </p>
+                  ) : null}
                 </div>
               </section>
           ) : (
