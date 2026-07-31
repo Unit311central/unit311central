@@ -18,6 +18,7 @@ import {
 } from "@/lib/client-management-data";
 import { isCrmLinkedClientNotes } from "@/lib/crm-lead-client-data";
 import { centralLoginUrl } from "@/lib/app-domains";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import { cn } from "@/lib/utils";
 import {
@@ -374,23 +375,35 @@ export default function ClientManagementWorkspace({
     setSaveMessage(null);
 
     try {
-      const response = await fetch(`/api/clients/${selectedClient.id}/support-lounge`, {
-        method: "POST",
-      });
-      const data = await readApiJson<{ url?: string; error?: string }>(response);
-      if (!response.ok || !data.url) {
-        throw new Error(data.error ?? "Failed to create support lounge link.");
+      let url = selectedClient.supportLoungeUrl?.trim() || "";
+
+      // Prefer the already-minted URL so clipboard can run in the same user gesture.
+      if (!url) {
+        const response = await fetch(`/api/clients/${selectedClient.id}/support-lounge`, {
+          method: "POST",
+        });
+        const data = await readApiJson<{ url?: string; error?: string }>(response);
+        if (!response.ok || !data.url) {
+          throw new Error(data.error ?? "Failed to create support lounge link.");
+        }
+        url = data.url;
       }
-      await navigator.clipboard.writeText(data.url);
+
       setClients((current) =>
         current.map((client) =>
-          client.id === selectedClient.id ? { ...client, supportLoungeUrl: data.url } : client,
+          client.id === selectedClient.id ? { ...client, supportLoungeUrl: url } : client,
         ),
       );
-      setSaveMessage(`Support Lounge link copied: ${data.url}`);
+
+      const copied = await copyTextToClipboard(url);
+      setSaveMessage(
+        copied
+          ? `Support Lounge link copied: ${url}`
+          : `Support Lounge link ready — copy from the URL below: ${url}`,
+      );
     } catch (loungeError) {
       setError(
-        loungeError instanceof Error ? loungeError.message : "Failed to copy support lounge link.",
+        loungeError instanceof Error ? loungeError.message : "Failed to create support lounge link.",
       );
     } finally {
       setBusy(false);
