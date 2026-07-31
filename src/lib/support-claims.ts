@@ -1,5 +1,5 @@
 import type { ChatMessage } from "@/lib/internal-messaging-data";
-import { isClientSupportChannelRoom } from "@/lib/support-channel";
+import { isClientSupportChannelRoom } from "@/lib/support-channel-shared";
 import { listSupportTickets, updateSupportTicket } from "@/lib/support-tickets-service";
 import { sendMessage } from "@/lib/internal-messaging-service";
 import type { MessagingWorkspaceScope } from "@/lib/messaging-workspace";

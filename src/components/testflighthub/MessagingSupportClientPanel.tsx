@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Mail, Phone, Video } from "lucide-react";
 
 import type { SupportTicket } from "@/lib/support-data";
-import { isClientSupportChannelRoom } from "@/lib/support-channel";
+import { isClientSupportChannelRoom } from "@/lib/support-channel-shared";
 import { cn } from "@/lib/utils";
 
 type MessagingSupportClientPanelProps = {
