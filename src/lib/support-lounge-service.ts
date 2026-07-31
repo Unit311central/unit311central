@@ -198,6 +198,8 @@ export async function createLoungeTicket(input: {
   ticketKind?: "new" | "existing" | null;
 }): Promise<{ ticket: SupportTicket; resumePath: string }> {
   const publicToken = createTicketPublicToken();
+  const resumePath = `/s/${encodeURIComponent(input.lounge.loungeToken)}/t/${encodeURIComponent(publicToken)}`;
+  const resumeUrl = `${DEMO_SITE_URL.replace(/\/$/, "")}${resumePath}`;
   const composedName = [input.requesterFirstName, input.requesterLastName]
     .map((part) => part?.trim())
     .filter(Boolean)
@@ -221,6 +223,7 @@ export async function createLoungeTicket(input: {
       requesterRole: input.requesterRole?.trim() || null,
       ticketKind: input.ticketKind || "new",
       ticketPublicToken: publicToken,
+      ticketPublicUrl: resumeUrl,
       status: "open",
       escalated: false,
       source: "lounge",
@@ -237,14 +240,11 @@ export async function createLoungeTicket(input: {
     content: `Ticket ${ticket.id} opened via Support Lounge for ${input.lounge.companyName}.`,
   });
 
-  const resumePath = `/s/${encodeURIComponent(input.lounge.loungeToken)}/t/${encodeURIComponent(publicToken)}`;
-  const resumeUrl = `${DEMO_SITE_URL.replace(/\/$/, "")}${resumePath}`;
-
   try {
     await postTicketToSupportChannel(
       ticket,
       { workspaceId: input.lounge.workspaceId },
-      { resumeUrl },
+      { resumeUrl: ticket.ticketPublicUrl || resumeUrl },
     );
   } catch (error) {
     console.warn("[support-lounge] desk notify failed:", error);
@@ -497,7 +497,7 @@ export async function sendLoungeTicketSummaryEmail(input: {
         input.ticket.description,
         "",
         "Track updates and add more information anytime using this private link:",
-        input.resumeUrl,
+        input.ticket.ticketPublicUrl || input.resumeUrl,
         "",
         "Our Demo support team has been notified and will begin working on the case.",
         "",

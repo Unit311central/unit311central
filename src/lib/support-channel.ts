@@ -150,19 +150,21 @@ export function formatSupportChannelTicketMessage(
   const priorityLabel =
     ticket.clientPriorityLabel?.trim() || SUPPORT_PRIORITY_LABELS[ticket.priority];
   const supportHref = `${internalAppPath("support")}&ticketId=${encodeURIComponent(ticket.id)}`;
+  const caseUrl = options?.resumeUrl?.trim() || ticket.ticketPublicUrl?.trim() || "";
   const lines = [
     `New support ticket ${ticket.id}`,
     `${ticket.organisation || "Client"} · ${ticket.name}`,
     `Priority: ${priorityLabel}`,
     ticket.requesterEmail ? `Email: ${ticket.requesterEmail}` : null,
+    caseUrl ? `Unique URL: ${caseUrl}` : null,
     "",
     ticket.description,
     "",
     `Open support request: ${supportHref}`,
   ];
 
-  if (options?.resumeUrl?.trim()) {
-    lines.push(`Client case link: ${options.resumeUrl.trim()}`);
+  if (caseUrl) {
+    lines.push(`Client case link: ${caseUrl}`);
   }
 
   lines.push(`Assign support ticket: ${ticket.id}`);

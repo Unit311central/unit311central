@@ -50,6 +50,7 @@ export type SupportTicket = {
   requesterRole?: string | null;
   ticketKind?: "new" | "existing" | null;
   ticketPublicToken?: string | null;
+  ticketPublicUrl?: string | null;
   status?: SupportTicketStatus;
   escalated?: boolean;
   source?: string | null;
@@ -86,6 +87,7 @@ type DbSupportTicket = {
   requester_role?: string | null;
   ticket_kind?: string | null;
   ticket_public_token?: string | null;
+  ticket_public_url?: string | null;
   status?: string | null;
   escalated?: boolean | null;
   source?: string | null;
@@ -131,6 +133,7 @@ export function mapSupportTicket(row: DbSupportTicket): SupportTicket {
     ticketKind:
       row.ticket_kind === "new" || row.ticket_kind === "existing" ? row.ticket_kind : null,
     ticketPublicToken: row.ticket_public_token ?? null,
+    ticketPublicUrl: row.ticket_public_url ?? null,
     status,
     escalated: row.escalated ?? false,
     source: row.source ?? null,
@@ -157,6 +160,7 @@ export function createBlankTicketInput(): Omit<SupportTicket, "id" | "createdAt"
     requesterRole: null,
     ticketKind: null,
     ticketPublicToken: null,
+    ticketPublicUrl: null,
     status: "open",
     escalated: false,
     source: "manual",

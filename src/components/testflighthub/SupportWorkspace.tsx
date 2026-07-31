@@ -1084,6 +1084,23 @@ export default function SupportWorkspace() {
                     </select>
                   </div>
                   <div className="sm:col-span-2">
+                    <FieldLabel>Unique client URL</FieldLabel>
+                    {selectedTicket.ticketPublicUrl ? (
+                      <a
+                        href={selectedTicket.ticketPublicUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1.5 block break-all rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-sky-300 underline-offset-2 hover:underline"
+                      >
+                        {selectedTicket.ticketPublicUrl}
+                      </a>
+                    ) : (
+                      <p className="mt-1.5 rounded-xl border border-dashed border-white/10 px-3 py-2 text-sm text-white/40">
+                        No lounge URL on this ticket
+                      </p>
+                    )}
+                  </div>
+                  <div className="sm:col-span-2">
                     <FieldLabel>Description</FieldLabel>
                     <textarea
                       rows={5}
@@ -1116,6 +1133,19 @@ export default function SupportWorkspace() {
                     <p className="mt-1">
                       Open for{" "}
                       {formatLapsedHours(hoursBetween(selectedTicket.createdAt, analyticsNowMs))}
+                    </p>
+                  ) : null}
+                  {selectedTicket.ticketPublicUrl ? (
+                    <p className="mt-3 break-all">
+                      <span className="text-white/40">Unique URL · </span>
+                      <a
+                        href={selectedTicket.ticketPublicUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sky-300 underline-offset-2 hover:underline"
+                      >
+                        {selectedTicket.ticketPublicUrl}
+                      </a>
                     </p>
                   ) : null}
                 </div>

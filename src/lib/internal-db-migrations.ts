@@ -23,6 +23,8 @@ export const SUPPORT_LOUNGE_INTAKE_FIELDS_MIGRATION_PATH =
   "supabase/migrations/122_support_lounge_intake_fields.sql";
 export const SUPPORT_LOUNGE_ATTACHMENTS_MIGRATION_PATH =
   "supabase/migrations/123_support_lounge_attachments.sql";
+export const SUPPORT_TICKET_PUBLIC_URL_MIGRATION_PATH =
+  "supabase/migrations/124_support_ticket_public_url.sql";
 export const CRM_CONNECTIONS_MIGRATION_PATH =
   "supabase/migrations/020_create_crm_connections.sql";
 export const HR_EMPLOYEES_MIGRATION_PATH =
@@ -1170,7 +1172,16 @@ export async function ensureSupportLoungeSchema(): Promise<boolean> {
     "requester_first_name",
   );
   const attachmentsExists = await tableExistsViaManagementApi("support_lounge_attachments");
-  if (exists === true && intakeExists === true && attachmentsExists === true) {
+  const publicUrlExists = await columnExistsViaManagementApi(
+    "support_tickets",
+    "ticket_public_url",
+  );
+  if (
+    exists === true &&
+    intakeExists === true &&
+    attachmentsExists === true &&
+    publicUrlExists === true
+  ) {
     await reloadPostgrestSchema();
     return true;
   }
@@ -1184,6 +1195,9 @@ export async function ensureSupportLoungeSchema(): Promise<boolean> {
     }
     if (!(await tableExists(client, "support_lounge_attachments"))) {
       await applyMigration(client, SUPPORT_LOUNGE_ATTACHMENTS_MIGRATION_PATH);
+    }
+    if (!(await columnExists(client, "support_tickets", "ticket_public_url"))) {
+      await applyMigration(client, SUPPORT_TICKET_PUBLIC_URL_MIGRATION_PATH);
     }
     return true;
   });
@@ -1202,11 +1216,15 @@ export async function ensureSupportLoungeSchema(): Promise<boolean> {
   if (attachmentsExists !== true) {
     await applyMigrationViaManagementApi(SUPPORT_LOUNGE_ATTACHMENTS_MIGRATION_PATH);
   }
+  if (publicUrlExists !== true) {
+    await applyMigrationViaManagementApi(SUPPORT_TICKET_PUBLIC_URL_MIGRATION_PATH);
+  }
   await reloadPostgrestSchema();
 
   const viaRest =
     (await columnExistsViaRestApi("support_tickets", "ticket_public_token")) === true &&
-    (await columnExistsViaRestApi("support_tickets", "requester_first_name")) === true;
+    (await columnExistsViaRestApi("support_tickets", "requester_first_name")) === true &&
+    (await columnExistsViaRestApi("support_tickets", "ticket_public_url")) === true;
   return viaRest;
 }
 
@@ -1219,6 +1237,7 @@ export async function withSupportLoungeSchema<T>(operation: () => Promise<T>): P
         !isMissingColumnError(error, "ticket_public_token") &&
         !isMissingColumnError(error, "support_lounge_token") &&
         !isMissingColumnError(error, "requester_first_name") &&
+        !isMissingColumnError(error, "ticket_public_url") &&
         !isMissingTableError(error, "support_lounge_messages") &&
         !isMissingTableError(error, "support_lounge_attachments") &&
         !isMissingColumnError(error, "attachment_url")
