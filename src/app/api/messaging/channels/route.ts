@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   createChannel,
+  deleteChannel,
+  ensureInternalOperationsChannel,
   listChannelsForViewer,
   markChannelRead,
   updateChannelMembers,
 } from "@/lib/internal-messaging-service";
 import {
   localCreateChannel,
+  localDeleteChannel,
   localListChannelsForViewer,
   localMarkChannelRead,
   localUpdateChannelMembers,
@@ -74,6 +77,12 @@ export async function GET(request: NextRequest) {
 
     if (viewerType === "internal") {
       const resolvedOperatorId = operatorId ?? "user-1";
+      if (isSupabaseConfigured()) {
+        await ensureInternalOperationsChannel(scope, {
+          createdByOperatorId: resolvedOperatorId,
+          createdByOperatorName: "Operator",
+        }).catch(() => undefined);
+      }
       const channels = await listChannelsForViewer(
         {
           viewerType: "internal",
@@ -85,6 +94,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ channels });
     }
 
+    if (isSupabaseConfigured()) {
+      await ensureInternalOperationsChannel(scope).catch(() => undefined);
+    }
     const channels = await listChannelsForViewer(
       {
         viewerType: "internal",
@@ -189,6 +201,29 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ channel });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update channel";
+    return NextResponse.json({ error: message }, { status: authErrorStatus(message) });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await requirePlatformSession();
+    const workspace = await requireCurrentWorkspace();
+    const scope = { workspaceId: workspace.id };
+    const channelId = request.nextUrl.searchParams.get("channelId")?.trim();
+
+    if (!channelId) {
+      return NextResponse.json({ error: "Channel ID is required." }, { status: 400 });
+    }
+
+    if (isSupabaseConfigured()) {
+      await deleteChannel(channelId, scope);
+    } else {
+      localDeleteChannel(channelId);
+    }
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete channel";
     return NextResponse.json({ error: message }, { status: authErrorStatus(message) });
   }
 }

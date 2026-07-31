@@ -23,7 +23,7 @@ import {
   getInternalNavHref,
   resolveInternalOperationsBasePath,
 } from "@/lib/internal-operations-data";
-import { type ManagedUser } from "@/lib/user-management-data";
+import { type ManagedUser, createInitialUsers } from "@/lib/user-management-data";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import {
@@ -228,84 +228,33 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
   const loadInternalUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const data = await fetchCachedJson<{ users?: ManagedUser[] }>(
-        PLATFORM_CACHE_KEYS.users,
-        "/api/users",
-        { ttlMs: 120_000 },
-      );
-      let nextUsers = data.users ?? [];
-      if (
-        typeof window !== "undefined" &&
-        (window.location.hostname.startsWith("demo.") ||
-          window.location.hostname === "demo.localhost") &&
-        (nextUsers.length === 0 ||
-          nextUsers.some((user) =>
-            /unit311|fotheringham|paul@/i.test(`${user.email} ${user.username}`),
-          ))
-      ) {
-        try {
-          const { getDemoEnterpriseFixtures } = await import("@/lib/demo-enterprise");
-          nextUsers = getDemoEnterpriseFixtures().directory.map((row) => ({
-            id: row.id,
-            operatorLabel: row.fullName.split(" ")[0] ?? row.fullName,
-            fullName: row.fullName,
-            username: row.email,
-            email: row.email,
-            phone: "",
-            role: "Admin" as const,
-            roles: ["Admin" as const],
-            department: "Corporate" as const,
-            departments: ["Corporate" as const],
-            status: "Active" as const,
-            region: "Multi-site" as const,
-            licenseId: "",
-            notes: row.department,
-            allowedViews: null,
-            dashboardPrefs: null,
-          }));
-        } catch {
-          // Keep API users if fixtures unavailable.
-        }
+      // Prefer messaging operators endpoint (any authenticated staff) over /api/users (admin-gated).
+      let nextUsers: ManagedUser[] = [];
+      try {
+        const messagingUsers = await fetchCachedJson<{ users?: ManagedUser[] }>(
+          "messaging-operators",
+          "/api/messaging/operators",
+          { ttlMs: 60_000 },
+        );
+        nextUsers = messagingUsers.users ?? [];
+      } catch {
+        const data = await fetchCachedJson<{ users?: ManagedUser[] }>(
+          PLATFORM_CACHE_KEYS.users,
+          "/api/users",
+          { ttlMs: 120_000 },
+        );
+        nextUsers = data.users ?? [];
       }
+
+      if (nextUsers.length === 0) {
+        nextUsers = createInitialUsers().filter((user) => user.status === "Active");
+      }
+
       setInternalUsers(nextUsers);
       setError(null);
     } catch (loadError) {
-      try {
-        if (
-          typeof window !== "undefined" &&
-          (window.location.hostname.startsWith("demo.") ||
-            window.location.hostname === "demo.localhost")
-        ) {
-          const { getDemoEnterpriseFixtures } = await import("@/lib/demo-enterprise");
-          setInternalUsers(
-            getDemoEnterpriseFixtures().directory.map((row) => ({
-              id: row.id,
-              operatorLabel: row.fullName.split(" ")[0] ?? row.fullName,
-              fullName: row.fullName,
-              username: row.email,
-              email: row.email,
-              phone: "",
-              role: "Admin" as const,
-              roles: ["Admin" as const],
-              department: "Corporate" as const,
-              departments: ["Corporate" as const],
-              status: "Active" as const,
-              region: "Multi-site" as const,
-              licenseId: "",
-              notes: row.department,
-              allowedViews: null,
-              dashboardPrefs: null,
-            })),
-          );
-          setError(null);
-        } else {
-          setInternalUsers([]);
-          setError(loadError instanceof Error ? loadError.message : "Failed to load internal users");
-        }
-      } catch {
-        setInternalUsers([]);
-        setError(loadError instanceof Error ? loadError.message : "Failed to load internal users");
-      }
+      setInternalUsers(createInitialUsers().filter((user) => user.status === "Active"));
+      setError(loadError instanceof Error ? loadError.message : "Failed to load internal users");
     } finally {
       setUsersLoading(false);
     }
@@ -384,7 +333,8 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
       clientKey: null,
       createdByOperatorId: activeOperators[0]?.id ?? "",
       createdByOperatorName: activeOperators[0]?.fullName ?? "Operator",
-      memberOperatorIds: activeOperators.map((operator) => operator.id),
+      // Never invent the full operator directory as members — that flooded Demo.
+      memberOperatorIds: [],
       memberClientUsernames: [],
       createdAt: new Date().toISOString(),
     } satisfies MessageChannel);
@@ -978,11 +928,98 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
   }
 
   async function handleSaveMembers() {
-    if (!activeChannel.id || activeChannel.id === "default") return;
+    if (!joinedOperator) {
+      setError("Join messaging before changing participants.");
+      return;
+    }
+
+    let channelId = activeChannel.id;
+    if (!channelId || channelId === "default") {
+      // Ensure a real Internal Operations channel exists, then save members onto it.
+      try {
+        const ensureResponse = await fetch(
+          `/api/messaging/channels?${new URLSearchParams({
+            viewerType: "internal",
+            operatorId: joinedOperator.id,
+            viewerKey: joinedOperator.id,
+          }).toString()}`,
+          { cache: "no-store" },
+        );
+        const ensureData = await readApiJson<{ channels?: MessageChannel[]; error?: string }>(
+          ensureResponse,
+        );
+        if (!ensureResponse.ok) {
+          throw new Error(ensureData.error ?? "Failed to ensure Internal Operations channel.");
+        }
+        const ensured =
+          ensureData.channels?.find((channel) => channel.room === INTERNAL_MESSAGING_ROOM) ?? null;
+        if (!ensured) {
+          throw new Error("Internal Operations channel is not available yet.");
+        }
+        channelId = ensured.id;
+        setChannels((current) => {
+          const without = current.filter((channel) => channel.room !== INTERNAL_MESSAGING_ROOM);
+          return [...without, ensured].sort((a, b) => a.name.localeCompare(b.name));
+        });
+      } catch (ensureError) {
+        setError(
+          ensureError instanceof Error
+            ? ensureError.message
+            : "Failed to prepare Internal Operations channel.",
+        );
+        return;
+      }
+    }
 
     const nextMembers = filterActiveOperatorIds(memberDraft);
     if (nextMembers.length === 0) {
       setError("Select at least one internal user.");
+      return;
+    }
+
+    setSending(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/messaging/channels", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId,
+          memberOperatorIds: nextMembers,
+        }),
+      });
+      const data = await readApiJson<{ channel?: MessageChannel; error?: string }>(response);
+      if (!response.ok || !data.channel) throw new Error(data.error ?? "Failed to update members");
+
+      setChannels((current) =>
+        current.map((channel) => (channel.id === data.channel!.id ? data.channel! : channel)),
+      );
+      setShowAddMembers(false);
+      await loadChannels(joinedOperator.id).catch(() => undefined);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Failed to update members");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleRemoveMember(operatorId: string) {
+    if (!joinedOperator) {
+      setError("Join messaging before removing participants.");
+      return;
+    }
+    if (!activeChannel.id || activeChannel.id === "default") {
+      setMemberDraft((current) => current.filter((id) => id !== operatorId));
+      setShowAddMembers(true);
+      setError("Open Add participant and Save to apply removals on this channel.");
+      return;
+    }
+
+    const nextMembers = filterActiveOperatorIds(
+      activeChannel.memberOperatorIds.filter((id) => id !== operatorId),
+    );
+    if (nextMembers.length === 0) {
+      setError("A channel needs at least one participant.");
       return;
     }
 
@@ -998,14 +1035,53 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
         }),
       });
       const data = await readApiJson<{ channel?: MessageChannel; error?: string }>(response);
-      if (!response.ok || !data.channel) throw new Error(data.error ?? "Failed to update members");
-
+      if (!response.ok || !data.channel) throw new Error(data.error ?? "Failed to remove participant");
       setChannels((current) =>
         current.map((channel) => (channel.id === data.channel!.id ? data.channel! : channel)),
       );
-      setShowAddMembers(false);
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Failed to update members");
+    } catch (removeError) {
+      setError(removeError instanceof Error ? removeError.message : "Failed to remove participant");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleClearAllMembers() {
+    if (!joinedOperator) {
+      setError("Join messaging before clearing participants.");
+      return;
+    }
+    if (!activeChannel.id || activeChannel.id === "default") {
+      setError("Join and open Add participant first so the channel can be saved.");
+      return;
+    }
+    if (
+      !window.confirm(
+        "Remove all participants except you from this channel? You can add people again afterwards.",
+      )
+    ) {
+      return;
+    }
+
+    setMemberDraft([joinedOperator.id]);
+    setSending(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/messaging/channels", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId: activeChannel.id,
+          memberOperatorIds: [joinedOperator.id],
+        }),
+      });
+      const data = await readApiJson<{ channel?: MessageChannel; error?: string }>(response);
+      if (!response.ok || !data.channel) throw new Error(data.error ?? "Failed to clear participants");
+      setChannels((current) =>
+        current.map((channel) => (channel.id === data.channel!.id ? data.channel! : channel)),
+      );
+    } catch (clearError) {
+      setError(clearError instanceof Error ? clearError.message : "Failed to clear participants");
     } finally {
       setSending(false);
     }
@@ -1766,17 +1842,40 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-white">{activeChannel.name}</h2>
-                <p className="text-xs text-white/45">
-                  {activeChannel.channelType === "client"
-                    ? [
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {activeChannel.channelType === "client" ? (
+                    <p className="text-xs text-white/45">
+                      {[
                         ...channelMembers.map((member) => member.fullName),
                         CLIENT_MESSAGING_OPTIONS.find(
                           (client) => client.key === activeChannel.clientKey,
                         )?.label ?? "Client",
-                      ].join(" · ")
-                    : channelMembers.map((member) => formatOperatorLabel(member)).join(" · ") ||
-                      "No members"}
-                </p>
+                      ].join(" · ") || "No members"}
+                    </p>
+                  ) : channelMembers.length === 0 ? (
+                    <p className="text-xs text-white/45">No members</p>
+                  ) : (
+                    channelMembers.map((member) => (
+                      <span
+                        key={member.id}
+                        className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-white/70"
+                      >
+                        {formatOperatorLabel(member)}
+                        {joinedOperator ? (
+                          <button
+                            type="button"
+                            disabled={sending}
+                            title={`Remove ${formatOperatorLabel(member)}`}
+                            onClick={() => void handleRemoveMember(member.id)}
+                            className="rounded-full p-0.5 text-white/45 transition-colors hover:bg-white/10 hover:text-red-200 disabled:opacity-50"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        ) : null}
+                      </span>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1801,6 +1900,18 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
                 <UserPlus className="h-3.5 w-3.5" />
                 Add participant
               </button>
+              {joinedOperator &&
+              activeChannel.channelType === "internal" &&
+              channelMembers.length > 1 ? (
+                <button
+                  type="button"
+                  disabled={sending}
+                  onClick={() => void handleClearAllMembers()}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-400/25 bg-red-500/10 px-3 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                >
+                  Clear participants
+                </button>
+              ) : null}
               <button
                 type="button"
                 disabled={!joinedOperator || sending}

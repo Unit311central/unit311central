@@ -278,6 +278,66 @@ export async function listChannels(scope?: MessagingWorkspaceScope): Promise<Mes
   return (data as DbChannel[]).map(mapMessageChannel);
 }
 
+/**
+ * Ensure the default Internal Operations room exists for the workspace.
+ * Does not invent membership from HR fixtures — starts empty (or keeps existing members).
+ */
+export async function ensureInternalOperationsChannel(
+  scope?: MessagingWorkspaceScope,
+  options?: {
+    createdByOperatorId?: string;
+    createdByOperatorName?: string;
+    /** When true, replace member list with only these ids (e.g. clear flood). */
+    resetMembersTo?: string[];
+  },
+): Promise<MessageChannel> {
+  const workspaceId = await resolveMessagingWorkspaceId(scope);
+  const supabase = requireMessagingSupabase();
+  const { data: existing, error: readError } = await supabase
+    .from("internal_message_channels")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .eq("room", INTERNAL_MESSAGING_ROOM)
+    .maybeSingle();
+
+  if (readError) throw new Error(readError.message);
+
+  if (existing) {
+    const channel = mapMessageChannel(existing as DbChannel);
+    if (options?.resetMembersTo) {
+      return updateChannelMembers(channel.id, options.resetMembersTo, { workspaceId });
+    }
+    return channel;
+  }
+
+  const creatorId = options?.createdByOperatorId?.trim() || "system";
+  const creatorName = options?.createdByOperatorName?.trim() || "System";
+  const members = Array.from(
+    new Set(
+      (options?.resetMembersTo ?? (creatorId !== "system" ? [creatorId] : [])).filter(Boolean),
+    ),
+  );
+
+  const { data, error } = await supabase
+    .from("internal_message_channels")
+    .insert({
+      workspace_id: workspaceId,
+      room: INTERNAL_MESSAGING_ROOM,
+      name: "Internal Operations Room",
+      channel_type: "internal",
+      client_key: null,
+      created_by_operator_id: creatorId,
+      created_by_operator_name: creatorName,
+      member_operator_ids: members,
+      member_client_usernames: [],
+    })
+    .select("*")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return mapMessageChannel(data as DbChannel);
+}
+
 async function attachUnreadCounts(
   channels: MessageChannel[],
   viewerKey: string,
