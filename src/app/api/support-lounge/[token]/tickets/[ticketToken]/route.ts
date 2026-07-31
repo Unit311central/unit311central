@@ -43,6 +43,7 @@ function ticketPayload(
       : null,
     escalated: ticket.escalated,
     closed: ticket.closed,
+    userAssigned: ticket.userAssigned,
     updatedAt: ticket.updatedAt,
     createdAt: ticket.createdAt,
   };
