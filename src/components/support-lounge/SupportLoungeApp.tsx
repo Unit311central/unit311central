@@ -395,10 +395,7 @@ export default function SupportLoungeApp({
       return;
     }
     if (intakeStep === "email") {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
-        pushAssistant("Please enter a valid company email address.");
-        return;
-      }
+      // No format gate — email is for updates only, never blocks intake.
       setIntake((prev) => ({ ...prev, email: text }));
       setIntakeStep("department");
       pushAssistant("Thank you. What is your department?");
