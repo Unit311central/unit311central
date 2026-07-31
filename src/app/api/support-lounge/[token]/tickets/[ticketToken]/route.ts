@@ -161,13 +161,76 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ attachment, messages, ticket: ticketPayload(ticket, lounge.loungeToken) }, { headers });
     }
 
-    const body = (await request.json()) as { note?: string };
+    const body = (await request.json()) as {
+      note?: string;
+      action?: string;
+      reason?: string;
+    };
+
+    if (body.action === "cancel") {
+      if (ticket.closed) {
+        return NextResponse.json({ error: "This ticket is already closed." }, { status: 400 });
+      }
+      const reason = body.reason?.trim() || body.note?.trim() || "";
+      const { updateSupportTicket } = await import("@/lib/support-tickets-service");
+      const { notifyClientTicketCancelled } = await import("@/lib/support-client-notify");
+      await notifyClientTicketCancelled(ticket, reason || undefined, {
+        workspaceId: lounge.workspaceId,
+      });
+      const updated = await updateSupportTicket(
+        ticket.id,
+        { closed: true, archived: true, status: "closed" },
+        { workspaceId: lounge.workspaceId },
+      );
+      try {
+        const { ensureClientSupportChannel } = await import("@/lib/support-channel");
+        const { sendMessage } = await import("@/lib/internal-messaging-service");
+        const channel = await ensureClientSupportChannel({
+          companyName: lounge.companyName,
+          clientId: lounge.id,
+          scope: { workspaceId: lounge.workspaceId },
+        });
+        await sendMessage(
+          {
+            operatorId: "lounge:cancel",
+            operatorName: "Support Lounge",
+            username: "lounge",
+            content: [
+              `Client cancelled ${ticket.id}`,
+              reason ? `Reason: ${reason}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            room: channel.room,
+            messageType: "system",
+          },
+          { workspaceId: lounge.workspaceId },
+        );
+      } catch (notifyError) {
+        console.warn("[support-lounge] cancel channel notify failed:", notifyError);
+      }
+      const messages = await withSupportLoungeSchema(() =>
+        listLoungeMessages({
+          workspaceId: lounge.workspaceId,
+          ticketId: ticket.id,
+        }),
+      );
+      return NextResponse.json(
+        { ok: true, cancelled: true, messages, ticket: ticketPayload(updated, lounge.loungeToken) },
+        { headers },
+      );
+    }
+
     const note = body.note?.trim();
     if (!note) {
       return NextResponse.json({ error: "Note is required." }, { status: 400 });
     }
     if (note.length > 4000) {
       return NextResponse.json({ error: "Note is too long." }, { status: 400 });
+    }
+
+    if (ticket.closed) {
+      return NextResponse.json({ error: "This ticket is closed." }, { status: 400 });
     }
 
     await withSupportLoungeSchema(() =>

@@ -1045,6 +1045,84 @@ export default function SupportWorkspace({
             <div className="mt-4 max-h-[28rem] space-y-2 overflow-y-auto pr-1">
               {filteredTickets.length === 0 ? (
                 <p className="text-sm text-white/45">No tickets match your filters.</p>
+              ) : mineMode ? (
+                <div className="overflow-x-auto rounded-xl border border-white/10">
+                  <table className="min-w-full text-left text-xs">
+                    <thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/45">
+                      <tr>
+                        <th className="px-3 py-2">ID</th>
+                        <th className="px-3 py-2">Status</th>
+                        <th className="px-3 py-2">Client</th>
+                        <th className="px-3 py-2">Created</th>
+                        <th className="px-3 py-2">Updated</th>
+                        <th className="px-3 py-2">Assigned</th>
+                        <th className="px-3 py-2">Summary</th>
+                        <th className="px-3 py-2">Links</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTickets.map((ticket) => {
+                        const selected = ticket.id === selectedTicket?.id;
+                        return (
+                          <tr
+                            key={ticket.id}
+                            onClick={() => setSelectedTicketId(ticket.id)}
+                            className={cn(
+                              "cursor-pointer border-b border-white/5 hover:bg-sky-500/5",
+                              selected && "bg-sky-500/10",
+                            )}
+                          >
+                            <td className="px-3 py-2 font-mono text-sky-300">{ticket.id}</td>
+                            <td className="px-3 py-2 capitalize text-white/80">
+                              {(ticket.status || (ticket.closed ? "closed" : "open")).replaceAll(
+                                "_",
+                                " ",
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-white/70">{ticket.organisation || "—"}</td>
+                            <td className="px-3 py-2 text-white/55">
+                              {formatSupportDate(ticket.createdAt)}
+                            </td>
+                            <td className="px-3 py-2 text-white/55">
+                              {formatSupportDate(ticket.updatedAt)}
+                            </td>
+                            <td className="px-3 py-2 text-white/70">
+                              {ticket.userAssigned || "Unassigned"}
+                            </td>
+                            <td className="max-w-[12rem] truncate px-3 py-2 text-white/55">
+                              {ticket.description.replace(/\n/g, " ")}
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  className="text-sky-300 hover:underline"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setSelectedTicketId(ticket.id);
+                                  }}
+                                >
+                                  Open
+                                </button>
+                                {ticket.ticketPublicUrl ? (
+                                  <a
+                                    href={ticket.ticketPublicUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-sky-300 hover:underline"
+                                    onClick={(event) => event.stopPropagation()}
+                                  >
+                                    Case
+                                  </a>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 filteredTickets.map((ticket) => {
                   const selected = ticket.id === selectedTicket?.id;

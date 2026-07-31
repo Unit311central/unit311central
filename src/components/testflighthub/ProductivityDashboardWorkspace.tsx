@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { isBrowserDemoSurface, getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
+import type { SupportTicket } from "@/lib/support-data";
 import { cn } from "@/lib/utils";
 
 type ProductivitySnapshot = {
@@ -156,10 +157,53 @@ export default function ProductivityDashboardWorkspace() {
     schedule: TODAY_SCHEDULE,
     messages: MESSAGES,
     files: FILES,
-    support: SUPPORT,
+    support: SUPPORT_FIXTURE,
     social: SOCIAL,
     approvals: APPROVALS,
   } = resolveProductivitySnapshot();
+
+  const [SUPPORT, setSupport] = useState(SUPPORT_FIXTURE);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/support/tickets?includeArchived=false", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { tickets?: SupportTicket[] };
+      })
+      .then((data) => {
+        if (cancelled || !data?.tickets) return;
+        const tickets = data.tickets;
+        const open = tickets.filter((t) => !t.closed && !t.archived);
+        const waiting = open.filter((t) => !t.userAssigned?.trim());
+        const critical = open.filter((t) => t.priority === "urgent" || t.priority === "high");
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const resolvedToday = tickets.filter(
+          (t) => t.closed && new Date(t.updatedAt).getTime() >= startOfDay.getTime(),
+        );
+        setSupport({
+          open: open.length,
+          waiting: waiting.length,
+          resolvedToday: resolvedToday.length,
+          critical: critical.length,
+          items: open.slice(0, 5).map((t) => ({
+            id: t.id,
+            title: (t.description || t.name || "Support ticket").replace(/\n/g, " ").slice(0, 64),
+            status:
+              t.priority === "urgent" || t.priority === "high"
+                ? "Critical"
+                : !t.userAssigned
+                  ? "Waiting"
+                  : "Open",
+          })),
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 pb-4">

@@ -177,3 +177,52 @@ export async function notifyClientTicketClosed(
     return { ok: emailed, emailed, whatsappSent: false };
   }
 }
+
+export async function notifyClientTicketCancelled(
+  ticket: SupportTicket,
+  reason?: string,
+  scope?: { workspaceId?: string | null },
+) {
+  const caseUrl = ticket.ticketPublicUrl?.trim() || "";
+  const note = reason?.trim();
+  const emailed = await emailTicketRequester({
+    ticket,
+    workspaceId: scope?.workspaceId,
+    subject: `Ticket ${ticket.id} cancelled — Demo Support`,
+    text: [
+      `Your support ticket ${ticket.id} has been cancelled.`,
+      note ? "" : null,
+      note ? `Reason: ${note}` : null,
+      "",
+      caseUrl ? `Case history: ${caseUrl}` : null,
+      "",
+      "— Demo Support",
+    ]
+      .filter((line) => line !== null)
+      .join("\n"),
+  });
+
+  if (scope?.workspaceId) {
+    try {
+      const { appendLoungeMessage } = await import("@/lib/support-lounge-service");
+      await appendLoungeMessage({
+        workspaceId: scope.workspaceId,
+        ticketId: ticket.id,
+        role: "user",
+        content: note
+          ? `Ticket cancelled by requester.\n\n${note}`
+          : "Ticket cancelled by requester.",
+      });
+      await appendLoungeMessage({
+        workspaceId: scope.workspaceId,
+        ticketId: ticket.id,
+        role: "assistant",
+        content: "This ticket is cancelled and archived. Contact Demo Support if you need a new case.",
+      });
+    } catch (error) {
+      console.warn("[support/notify] lounge cancel message failed:", error);
+    }
+  }
+
+  return { ok: true, emailed, whatsappSent: false };
+}

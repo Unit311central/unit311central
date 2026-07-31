@@ -31,6 +31,7 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
+import MessagingSupportClientPanel from "@/components/testflighthub/MessagingSupportClientPanel";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import {
   Archive,
@@ -1903,6 +1904,22 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
               </button>
             </div>
           </form>
+
+          <MessagingSupportClientPanel
+            room={activeChannel.room}
+            channelName={activeChannel.name}
+            clientKey={activeChannel.clientKey}
+            onStartCall={(mode) => void handleStartCall(mode)}
+            onFocusSchedule={() => {
+              document.getElementById("messaging-schedule")?.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+              });
+            }}
+            onAfterClientMessage={() => {
+              void loadMessages(activeRoom).catch(() => undefined);
+            }}
+          />
 
           {scheduledCalls.length > 0 && (
             <div className="mt-4 space-y-2">

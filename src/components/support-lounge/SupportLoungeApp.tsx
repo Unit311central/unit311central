@@ -13,12 +13,15 @@ import {
   FileUp,
   Loader2,
   MessageSquare,
+  Mic,
   Paperclip,
   Send,
+  Square,
   Ticket,
   X,
 } from "lucide-react";
 
+import { LOUNGE_ATTACHMENT_ACCEPT, isAllowedLoungeAttachment } from "@/lib/support-lounge-attachments";
 import { cn } from "@/lib/utils";
 
 type ChatMessage = {
@@ -136,6 +139,8 @@ export default function SupportLoungeApp({
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTicketToken, setActiveTicketToken] = useState<string | null>(
     activeTicketPublicToken,
@@ -156,6 +161,9 @@ export default function SupportLoungeApp({
   const endRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const intakeFileRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   const caseMode = Boolean(activeTicketToken && caseTicket);
   const intakeMode = !activeTicketPublicToken && !caseMode && intakeStep !== "done";
@@ -482,6 +490,11 @@ export default function SupportLoungeApp({
 
   async function handleUpload(file: File | null) {
     if (!file || !activeTicketToken || uploading) return;
+    const check = isAllowedLoungeAttachment(file);
+    if (!check.ok) {
+      setError(check.error);
+      return;
+    }
     setUploading(true);
     setError(null);
     try {
@@ -526,6 +539,95 @@ export default function SupportLoungeApp({
     } finally {
       setSavingNote(false);
     }
+  }
+
+  async function handleCancelTicket() {
+    if (!activeTicketToken || cancelling || caseTicket?.closed) return;
+    if (!window.confirm("Cancel this support ticket? Demo Support will be notified.")) return;
+    setCancelling(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/support-lounge/${encodeURIComponent(loungeToken)}/tickets/${encodeURIComponent(activeTicketToken)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "cancel",
+            reason: extraInfo.trim() || "Cancelled by requester",
+          }),
+        },
+      );
+      const data = await readJson<{ error?: string }>(response);
+      if (!response.ok) throw new Error(data.error || "Could not cancel ticket");
+      setExtraInfo("");
+      await reloadActiveCase(activeTicketToken);
+      await refreshTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not cancel ticket");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
+  function addPendingFile(file: File | null) {
+    if (!file) return;
+    const check = isAllowedLoungeAttachment(file);
+    if (!check.ok) {
+      setError(check.error);
+      return;
+    }
+    setPendingFiles((prev) => [...prev, file]);
+  }
+
+  async function startVoiceNote() {
+    if (recording) return;
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      mediaChunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "";
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) mediaChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(mediaChunksRef.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+        const file = new File([blob], `voice-note-${Date.now()}.webm`, {
+          type: blob.type || "audio/webm",
+        });
+        mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        mediaRecorderRef.current = null;
+        if (intakeMode && intakeStep === "upload") {
+          addPendingFile(file);
+        } else if (activeTicketToken) {
+          void handleUpload(file);
+        } else {
+          addPendingFile(file);
+        }
+      };
+      recorder.start();
+      setRecording(true);
+    } catch {
+      setError("Microphone access is required to record a voice note.");
+    }
+  }
+
+  function stopVoiceNote() {
+    if (!recording) return;
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
   }
 
   const problem = useMemo(
@@ -768,21 +870,39 @@ export default function SupportLoungeApp({
                     type="file"
                     multiple
                     className="hidden"
-                    accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.zip"
+                    accept={LOUNGE_ATTACHMENT_ACCEPT}
                     onChange={(event) => {
                       const files = Array.from(event.target.files || []);
-                      if (files.length) setPendingFiles((prev) => [...prev, ...files]);
+                      for (const file of files) addPendingFile(file);
                       event.target.value = "";
                     }}
                   />
-                  <button
-                    type="button"
-                    onClick={() => intakeFileRef.current?.click()}
-                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 text-sm text-white/80"
-                  >
-                    <FileUp className="h-4 w-4" />
-                    Upload image, document or file
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => intakeFileRef.current?.click()}
+                      className="inline-flex h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-4 text-sm text-white/80"
+                    >
+                      <FileUp className="h-4 w-4" />
+                      Upload file
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => (recording ? stopVoiceNote() : void startVoiceNote())}
+                      className={cn(
+                        "inline-flex h-11 items-center gap-2 rounded-xl border px-4 text-sm",
+                        recording
+                          ? "border-rose-400/40 bg-rose-500/15 text-rose-100"
+                          : "border-white/15 bg-white/[0.04] text-white/80",
+                      )}
+                    >
+                      {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                      {recording ? "Stop voice note" : "Record voice note"}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-white/40">
+                    PDF, Office, images, audio, video, zip — max 100 MB each.
+                  </p>
                   {pendingFiles.length > 0 ? (
                     <ul className="space-y-1 text-xs text-white/60">
                       {pendingFiles.map((file) => (
@@ -833,7 +953,7 @@ export default function SupportLoungeApp({
                           ref={fileInputRef}
                           type="file"
                           className="hidden"
-                          accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx,.zip"
+                          accept={LOUNGE_ATTACHMENT_ACCEPT}
                           onChange={(e) => void handleUpload(e.target.files?.[0] || null)}
                         />
                         <button
@@ -841,12 +961,27 @@ export default function SupportLoungeApp({
                           disabled={uploading}
                           onClick={() => fileInputRef.current?.click()}
                           className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/70"
+                          title="Upload file"
                         >
                           {uploading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <FileUp className="h-4 w-4" />
                           )}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={uploading}
+                          onClick={() => (recording ? stopVoiceNote() : void startVoiceNote())}
+                          className={cn(
+                            "inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border bg-white/[0.04]",
+                            recording
+                              ? "border-rose-400/40 text-rose-200"
+                              : "border-white/10 text-white/70",
+                          )}
+                          title={recording ? "Stop voice note" : "Record voice note"}
+                        >
+                          {recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                         </button>
                       </>
                     ) : null}
@@ -988,8 +1123,13 @@ export default function SupportLoungeApp({
                       value={extraInfo}
                       onChange={(e) => setExtraInfo(e.target.value)}
                       rows={3}
-                      placeholder="Add more detail for the support team…"
-                      className="mt-2 w-full resize-y rounded-2xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+                      disabled={caseTicket.closed}
+                      placeholder={
+                        caseTicket.closed
+                          ? "This ticket is closed"
+                          : "Add more detail for the support team…"
+                      }
+                      className="mt-2 w-full resize-y rounded-2xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40 disabled:opacity-50"
                     />
                     <button
                       type="submit"
@@ -1002,6 +1142,20 @@ export default function SupportLoungeApp({
                         "Send update to support"
                       )}
                     </button>
+                    {!caseTicket.closed ? (
+                      <button
+                        type="button"
+                        disabled={cancelling}
+                        onClick={() => void handleCancelTicket()}
+                        className="mt-2 inline-flex h-10 w-full items-center justify-center rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 text-xs font-semibold text-rose-100 disabled:opacity-50"
+                      >
+                        {cancelling ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Cancel this ticket"
+                        )}
+                      </button>
+                    ) : null}
                   </form>
                 </div>
               </aside>

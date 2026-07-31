@@ -423,8 +423,15 @@ export async function uploadLoungeAttachment(input: {
   ticketId: string;
   file: File;
 }): Promise<SupportLoungeAttachment> {
-  if (input.file.size > 10 * 1024 * 1024) {
-    throw new Error("Attachments must be 10 MB or smaller.");
+  const { isAllowedLoungeAttachment, LOUNGE_MAX_ATTACHMENT_BYTES } = await import(
+    "@/lib/support-lounge-attachments"
+  );
+  const check = isAllowedLoungeAttachment(input.file);
+  if (!check.ok) {
+    throw new Error(check.error);
+  }
+  if (input.file.size > LOUNGE_MAX_ATTACHMENT_BYTES) {
+    throw new Error("Attachments must be 100 MB or smaller.");
   }
 
   const { INTERNAL_FILES_BUCKET } = await import("@/lib/internal-files-data");
