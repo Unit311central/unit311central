@@ -150,7 +150,7 @@ function buildRevenuePeriodOptions(input: {
     "month",
   );
   const quarterDelta =
-    prior3.length > 0
+    prior3Amount > 0 || last3Amount > 0
       ? pctChangeLabel(last3Amount, prior3Amount, "3 months")
       : { label: "Last 3 months · ledger", tone: "neutral" as const };
 
