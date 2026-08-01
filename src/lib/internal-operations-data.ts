@@ -128,6 +128,7 @@ export type InternalOperationsView =
   | "portfolio-quarterly-reporting"
   | "marketing-newsletter"
   | "marketing-events"
+  | "marketing-abhi-events"
   | "marketing-working-groups"
   | "marketing-us-accelerator"
   | "marketing-me-accelerator"
@@ -307,6 +308,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "portfolio-quarterly-reporting",
   "marketing-newsletter",
   "marketing-events",
+  "marketing-abhi-events",
   "marketing-working-groups",
   "marketing-us-accelerator",
   "marketing-me-accelerator",
@@ -1001,6 +1003,7 @@ export const internalViewTitles: Record<
   },
   "marketing-newsletter": { title: "Digital Newsletter", subtitle: "Marketing & Events" },
   "marketing-events": { title: "External Events", subtitle: "Marketing & Events" },
+  "marketing-abhi-events": { title: "ABHI Events", subtitle: "Marketing & Events" },
   "marketing-working-groups": { title: "ABHI Working Groups", subtitle: "Marketing & Events" },
   "marketing-us-accelerator": { title: "ABHI US Accelerator", subtitle: "Marketing & Events" },
   "marketing-me-accelerator": {

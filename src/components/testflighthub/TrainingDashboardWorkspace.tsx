@@ -217,7 +217,10 @@ export default function TrainingDashboardWorkspace() {
           </ul>
         </TqmsSection>
 
-        <TqmsSection title="Upcoming Events" subtitle="Sessions, deadlines, and renewals.">
+        <TqmsSection
+          title={isAbhi ? "External Events" : "Upcoming Events"}
+          subtitle="Sessions, deadlines, and renewals."
+        >
           {store.events.length === 0 ? (
             <TqmsEmpty message="No upcoming training events." />
           ) : (

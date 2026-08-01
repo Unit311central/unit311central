@@ -4,6 +4,7 @@ import type { InternalNavSection, InternalOperationsView } from "@/lib/internal-
 export const ABHI_MARKETING_VIEWS = [
   "marketing-newsletter",
   "marketing-events",
+  "marketing-abhi-events",
   "marketing-working-groups",
   "marketing-us-accelerator",
   "marketing-me-accelerator",
@@ -32,7 +33,10 @@ export const ABHI_MARKETING_NAV_SECTION: InternalNavSection = {
     {
       label: "External Events",
       icon: "CalendarDays",
-      view: "marketing-events",
+      children: [
+        { label: "Overview", view: "marketing-events" },
+        { label: "ABHI Events", view: "marketing-abhi-events" },
+      ],
     },
     {
       label: "ABHI Working Groups",

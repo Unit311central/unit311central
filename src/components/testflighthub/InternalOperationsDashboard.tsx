@@ -62,6 +62,7 @@ const TalantonPortfolioWorkspace = dynamic(
   },
 );
 import {
+  AbhiCalendarEventsWorkspace,
   AbhiEventsWorkspace,
   AbhiMailingListWorkspace,
   AbhiNewsletterWorkspace,
@@ -798,6 +799,8 @@ export default function InternalOperationsDashboard({
           {activeView === "marketing-newsletter" && <AbhiNewsletterWorkspace />}
 
           {activeView === "marketing-events" && <AbhiEventsWorkspace />}
+
+          {activeView === "marketing-abhi-events" && <AbhiCalendarEventsWorkspace />}
 
           {activeView === "marketing-working-groups" && (
             <AbhiProgrammesWorkspace mode="working-groups" />

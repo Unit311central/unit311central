@@ -92,6 +92,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     views: [
       "marketing-newsletter",
       "marketing-events",
+      "marketing-abhi-events",
       "marketing-working-groups",
       "marketing-us-accelerator",
       "marketing-me-accelerator",
