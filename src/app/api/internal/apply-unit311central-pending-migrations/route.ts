@@ -89,6 +89,8 @@ const MIGRATIONS = [
   "supabase/migrations/126_partner_jobs.sql",
   "supabase/migrations/127_internal_project_tasks_description.sql",
   "supabase/migrations/128_unit311_lms.sql",
+  "supabase/migrations/129_board_directors.sql",
+  "supabase/migrations/130_portfolio_companies.sql",
 ];
 
 function isAuthorized(request: NextRequest) {

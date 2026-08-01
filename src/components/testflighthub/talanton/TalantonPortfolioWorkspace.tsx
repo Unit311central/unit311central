@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
@@ -8,7 +8,12 @@ import {
   Building2,
   CheckCircle2,
   ClipboardList,
+  Loader2,
+  Pencil,
+  Plus,
   ShieldCheck,
+  Trash2,
+  X,
 } from "lucide-react";
 
 import {
@@ -170,7 +175,264 @@ function CompanyLink({ company }: { company: PortfolioCompany }) {
   );
 }
 
-function CompanyDetailPanel({ company }: { company: PortfolioCompany }) {
+type CompanyFormState = {
+  name: string;
+  country: string;
+  city: string;
+  sector: string;
+  region: string;
+  primaryContact: string;
+  email: string;
+  phone: string;
+  overview: string;
+  investmentAmountUsd: string;
+  ownershipPct: string;
+  annualRevenueUsd: string;
+  revenueGrowthPct: string;
+  burnRateUsdMonthly: string;
+  employeeCount: string;
+  compliancePct: string;
+  riskRating: RiskRating;
+  roiMoic: string;
+};
+
+const EMPTY_FORM: CompanyFormState = {
+  name: "",
+  country: "",
+  city: "",
+  sector: "",
+  region: "",
+  primaryContact: "",
+  email: "",
+  phone: "",
+  overview: "",
+  investmentAmountUsd: "",
+  ownershipPct: "",
+  annualRevenueUsd: "",
+  revenueGrowthPct: "",
+  burnRateUsdMonthly: "",
+  employeeCount: "",
+  compliancePct: "0",
+  riskRating: "Medium",
+  roiMoic: "1",
+};
+
+function companyToForm(company: PortfolioCompany): CompanyFormState {
+  return {
+    name: company.name,
+    country: company.country,
+    city: company.city,
+    sector: company.sector,
+    region: company.region,
+    primaryContact: company.primaryContact,
+    email: company.email,
+    phone: company.phone,
+    overview: company.overview,
+    investmentAmountUsd: String(company.investmentAmountUsd || ""),
+    ownershipPct: String(company.ownershipPct || ""),
+    annualRevenueUsd: String(company.annualRevenueUsd || ""),
+    revenueGrowthPct: String(company.revenueGrowthPct || ""),
+    burnRateUsdMonthly: String(company.burnRateUsdMonthly || ""),
+    employeeCount: String(company.employeeCount || ""),
+    compliancePct: String(company.compliancePct || 0),
+    riskRating: company.riskRating,
+    roiMoic: String(company.roiMoic || 1),
+  };
+}
+
+function formToPayload(form: CompanyFormState) {
+  return {
+    name: form.name.trim(),
+    country: form.country.trim(),
+    city: form.city.trim(),
+    sector: form.sector.trim(),
+    region: form.region.trim(),
+    primaryContact: form.primaryContact.trim(),
+    email: form.email.trim(),
+    phone: form.phone.trim(),
+    overview: form.overview.trim(),
+    investmentAmountUsd: Number(form.investmentAmountUsd) || 0,
+    ownershipPct: Number(form.ownershipPct) || 0,
+    annualRevenueUsd: Number(form.annualRevenueUsd) || 0,
+    revenueGrowthPct: Number(form.revenueGrowthPct) || 0,
+    burnRateUsdMonthly: Number(form.burnRateUsdMonthly) || 0,
+    employeeCount: Number(form.employeeCount) || 0,
+    compliancePct: Number(form.compliancePct) || 0,
+    riskRating: form.riskRating,
+    roiMoic: Number(form.roiMoic) || 1,
+  };
+}
+
+const fieldClass =
+  "w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/25";
+
+function CompanyFormModal({
+  title,
+  initial,
+  busy,
+  error,
+  onClose,
+  onSave,
+}: {
+  title: string;
+  initial: CompanyFormState;
+  busy: boolean;
+  error: string | null;
+  onClose: () => void;
+  onSave: (form: CompanyFormState) => void;
+}) {
+  const [form, setForm] = useState(initial);
+
+  useEffect(() => {
+    setForm(initial);
+  }, [initial]);
+
+  function set<K extends keyof CompanyFormState>(key: K, value: CompanyFormState[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 pt-16">
+      <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0f172a] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <h3 className="text-base font-semibold text-white">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
+          <label className="sm:col-span-2 text-xs text-white/50">
+            Company name
+            <input className={`${fieldClass} mt-1`} value={form.name} onChange={(e) => set("name", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Country
+            <input className={`${fieldClass} mt-1`} value={form.country} onChange={(e) => set("country", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            City
+            <input className={`${fieldClass} mt-1`} value={form.city} onChange={(e) => set("city", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Sector
+            <input className={`${fieldClass} mt-1`} value={form.sector} onChange={(e) => set("sector", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Region
+            <input className={`${fieldClass} mt-1`} value={form.region} onChange={(e) => set("region", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Primary contact
+            <input className={`${fieldClass} mt-1`} value={form.primaryContact} onChange={(e) => set("primaryContact", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Email
+            <input className={`${fieldClass} mt-1`} value={form.email} onChange={(e) => set("email", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Phone
+            <input className={`${fieldClass} mt-1`} value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Employees
+            <input className={`${fieldClass} mt-1`} type="number" value={form.employeeCount} onChange={(e) => set("employeeCount", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Investment (USD)
+            <input className={`${fieldClass} mt-1`} type="number" value={form.investmentAmountUsd} onChange={(e) => set("investmentAmountUsd", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Ownership %
+            <input className={`${fieldClass} mt-1`} type="number" value={form.ownershipPct} onChange={(e) => set("ownershipPct", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Annual revenue (USD)
+            <input className={`${fieldClass} mt-1`} type="number" value={form.annualRevenueUsd} onChange={(e) => set("annualRevenueUsd", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Growth %
+            <input className={`${fieldClass} mt-1`} type="number" value={form.revenueGrowthPct} onChange={(e) => set("revenueGrowthPct", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Burn / month (USD)
+            <input className={`${fieldClass} mt-1`} type="number" value={form.burnRateUsdMonthly} onChange={(e) => set("burnRateUsdMonthly", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Compliance %
+            <input className={`${fieldClass} mt-1`} type="number" value={form.compliancePct} onChange={(e) => set("compliancePct", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            ROI / MOIC
+            <input className={`${fieldClass} mt-1`} type="number" step="0.1" value={form.roiMoic} onChange={(e) => set("roiMoic", e.target.value)} />
+          </label>
+          <label className="text-xs text-white/50">
+            Risk
+            <select
+              className={`${fieldClass} mt-1`}
+              value={form.riskRating}
+              onChange={(e) => set("riskRating", e.target.value as RiskRating)}
+            >
+              {(["Low", "Medium", "High", "Critical"] as RiskRating[]).map((r) => (
+                <option key={r} value={r} className="bg-[#0f172a]">
+                  {r}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="sm:col-span-2 text-xs text-white/50">
+            Overview
+            <textarea
+              className={`${fieldClass} mt-1 min-h-[88px]`}
+              value={form.overview}
+              onChange={(e) => set("overview", e.target.value)}
+            />
+          </label>
+          {error ? (
+            <p className="sm:col-span-2 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+              {error}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70 hover:bg-white/5"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={busy || !form.name.trim()}
+            onClick={() => onSave(form)}
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-500/90 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CompanyDetailPanel({
+  company,
+  onEdit,
+  onDelete,
+  deleting,
+}: {
+  company: PortfolioCompany;
+  onEdit: () => void;
+  onDelete: () => void;
+  deleting: boolean;
+}) {
   const contacts = companyContacts(company);
   const docs = companyDocuments(company);
   const training = companyTrainingDetail(company);
@@ -191,11 +453,32 @@ function CompanyDetailPanel({ company }: { company: PortfolioCompany }) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold text-white">{company.name}</h2>
-        <p className="text-sm text-white/50">
-          {company.sector} · {company.city}, {company.country}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold text-white">{company.name}</h2>
+          <p className="text-sm text-white/50">
+            {company.sector} · {company.city}, {company.country}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-1.5 text-sm text-white/80 hover:bg-white/[0.08]"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-sm text-rose-100 hover:bg-rose-500/20 disabled:opacity-50"
+          >
+            {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+            Remove
+          </button>
+        </div>
       </div>
       <KpiRow
         items={[
@@ -345,41 +628,150 @@ function PortfolioDashboardView() {
 
 function DirectoryView() {
   const searchParams = useSearchParams();
-  const initialId =
-    searchParams.get("companyId") ?? TALANTON_PORTFOLIO_COMPANIES[0]?.id ?? "";
+  const initialId = searchParams.get("companyId") ?? "";
+  const [companies, setCompanies] = useState<PortfolioCompany[]>(TALANTON_PORTFOLIO_COMPANIES);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState(initialId);
   const [q, setQ] = useState("");
+  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
+  const [formBusy, setFormBusy] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/portfolio-companies", { credentials: "include" });
+      const data = (await res.json()) as { companies?: PortfolioCompany[]; error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to load portfolio companies.");
+      setCompanies(data.companies ?? []);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Failed to load portfolio companies.");
+      setCompanies(TALANTON_PORTFOLIO_COMPANIES);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (initialId) setSelectedId(initialId);
+  }, [initialId]);
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return TALANTON_PORTFOLIO_COMPANIES;
-    return TALANTON_PORTFOLIO_COMPANIES.filter(
+    if (!needle) return companies;
+    return companies.filter(
       (c) =>
         c.name.toLowerCase().includes(needle) ||
         c.country.toLowerCase().includes(needle) ||
         c.sector.toLowerCase().includes(needle),
     );
-  }, [q]);
+  }, [companies, q]);
 
-  const selected = companyById(selectedId) ?? rows[0] ?? TALANTON_PORTFOLIO_COMPANIES[0];
+  useEffect(() => {
+    if (!selectedId && rows[0]?.id) {
+      setSelectedId(rows[0].id);
+      return;
+    }
+    if (selectedId && !companies.some((c) => c.id === selectedId) && rows[0]?.id) {
+      setSelectedId(rows[0].id);
+    }
+  }, [companies, rows, selectedId]);
+
+  const selected = companies.find((c) => c.id === selectedId) ?? rows[0] ?? null;
+
+  async function saveForm(form: CompanyFormState) {
+    setFormBusy(true);
+    setFormError(null);
+    try {
+      const payload = formToPayload(form);
+      const editing = modalMode === "edit" && selected;
+      const res = await fetch(
+        editing ? `/api/portfolio-companies/${encodeURIComponent(selected.id)}` : "/api/portfolio-companies",
+        {
+          method: editing ? "PATCH" : "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = (await res.json()) as { company?: PortfolioCompany; error?: string };
+      if (!res.ok) throw new Error(data.error || "Save failed.");
+      await refresh();
+      if (data.company?.id) setSelectedId(data.company.id);
+      setModalMode(null);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Save failed.");
+    } finally {
+      setFormBusy(false);
+    }
+  }
+
+  async function removeSelected() {
+    if (!selected) return;
+    if (!window.confirm(`Remove ${selected.name} from the portfolio?`)) return;
+    setDeleting(true);
+    setLoadError(null);
+    try {
+      const res = await fetch(`/api/portfolio-companies/${encodeURIComponent(selected.id)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Delete failed.");
+      setSelectedId("");
+      await refresh();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <Panel
       title="Portfolio Companies Directory"
       subtitle="Select a company to view portal access, training, compliance and reporting."
     >
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search company, country or sector…"
           className="w-full max-w-md rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/25"
         />
+        <button
+          type="button"
+          onClick={() => {
+            setFormError(null);
+            setModalMode("create");
+          }}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+        >
+          <Plus className="h-4 w-4" />
+          Add company
+        </button>
+        {loading ? (
+          <span className="inline-flex items-center gap-1.5 text-xs text-white/45">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+          </span>
+        ) : null}
       </div>
+      {loadError ? (
+        <p className="mb-4 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+          {loadError}
+        </p>
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <aside className="max-h-[640px] overflow-y-auto rounded-xl border border-white/10 bg-white/[0.02]">
           <div className="sticky top-0 border-b border-white/10 bg-[#0b1220]/95 px-3 py-2 text-xs font-medium uppercase tracking-wide text-white/45">
-            Portfolio companies
+            Portfolio companies ({rows.length})
           </div>
           <ul>
             {rows.map((c) => (
@@ -399,16 +791,40 @@ function DirectoryView() {
                 </button>
               </li>
             ))}
+            {rows.length === 0 ? (
+              <li className="px-3 py-6 text-center text-sm text-white/45">No companies found.</li>
+            ) : null}
           </ul>
         </aside>
         <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
           {selected ? (
-            <CompanyDetailPanel company={selected} />
+            <CompanyDetailPanel
+              company={selected}
+              onEdit={() => {
+                setFormError(null);
+                setModalMode("edit");
+              }}
+              onDelete={() => void removeSelected()}
+              deleting={deleting}
+            />
           ) : (
             <p className="text-sm text-white/50">Select a portfolio company.</p>
           )}
         </section>
       </div>
+
+      {modalMode ? (
+        <CompanyFormModal
+          title={modalMode === "create" ? "Add portfolio company" : "Edit portfolio company"}
+          initial={modalMode === "edit" && selected ? companyToForm(selected) : EMPTY_FORM}
+          busy={formBusy}
+          error={formError}
+          onClose={() => {
+            if (!formBusy) setModalMode(null);
+          }}
+          onSave={(form) => void saveForm(form)}
+        />
+      ) : null}
     </Panel>
   );
 }
