@@ -38,7 +38,7 @@ export default function PartnerPortalApp({ token }: { token: string }) {
     {
       role: "assistant",
       content:
-        "Hello. I can help with your partner profile, invoice submission, or payment questions. How can I help?",
+        "Hello. Ask me about your invoices, payment status, bank details, or how to submit a new invoice — I’ll answer from your live partner record.",
     },
   ]);
 
@@ -172,19 +172,35 @@ export default function PartnerPortalApp({ token }: { token: string }) {
     }
   }
 
-  function sendChat() {
+  async function sendChat() {
     const text = chatDraft.trim();
-    if (!text) return;
-    setChatLog((prev) => [
-      ...prev,
-      { role: "user", content: text },
-      {
-        role: "assistant",
-        content:
-          "Thanks — for profile edits use the Details tab, and for payments use Upload invoice with your job reference. A Unit311 partner manager will follow up if needed.",
-      },
-    ]);
+    if (!text || busy) return;
+    setBusy(true);
+    setChatLog((prev) => [...prev, { role: "user", content: text }]);
     setChatDraft("");
+    try {
+      const res = await fetch(`/api/partners/portal/${encodeURIComponent(token)}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await readJson<{ reply?: string; error?: string }>(res);
+      if (!res.ok) throw new Error(data.error || "Chat failed");
+      setChatLog((prev) => [
+        ...prev,
+        { role: "assistant", content: data.reply || "I could not answer that just now." },
+      ]);
+    } catch (err) {
+      setChatLog((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: err instanceof Error ? err.message : "Chat is temporarily unavailable.",
+        },
+      ]);
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (loading) {
@@ -459,7 +475,7 @@ export default function PartnerPortalApp({ token }: { token: string }) {
                 className="flex gap-2"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  sendChat();
+                  void sendChat();
                 }}
               >
                 <input

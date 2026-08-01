@@ -23,6 +23,8 @@ import {
   DEFAULT_EXPENSES_TILE_LAYOUT,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { cn } from "@/lib/utils";
+import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
   ArrowLeft,
   ChevronDown,
@@ -76,6 +78,24 @@ function sanitizeExpenseAmountInput(value: string) {
     }
   }
   return value.replace(/[^\d.]/g, "");
+}
+
+function reportingExpenseCurrency(expenses: FinancialExpense[]): ExpenseCurrency {
+  if (isBrowserCorpCentreSurface()) return "AUD";
+  if (isBrowserDemoSurface()) return "USD";
+  const codes = expenses.map((expense) => String(expense.currency || "").toUpperCase());
+  const usdCount = codes.filter((code) => code === "USD").length;
+  const gbpCount = codes.filter((code) => code === "GBP").length;
+  const eurCount = codes.filter((code) => code === "EUR").length;
+  const audCount = codes.filter((code) => code === "AUD").length;
+  const ranked = [
+    { code: "USD" as const, count: usdCount },
+    { code: "GBP" as const, count: gbpCount },
+    { code: "EUR" as const, count: eurCount },
+    { code: "AUD" as const, count: audCount },
+  ].sort((a, b) => b.count - a.count);
+  if (ranked[0] && ranked[0].count > 0) return ranked[0].code;
+  return "GBP";
 }
 
 function parseExpenseAmount(value: string) {
@@ -181,6 +201,8 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
   );
 
   const totalOutstanding = useMemo(() => sumOutstandingExpenses(expenses), [expenses]);
+
+  const reportCurrency = useMemo(() => reportingExpenseCurrency(expenses), [expenses]);
 
   const reportData = useMemo(
     () => buildExpenseReport(expenses, reportMode),
@@ -524,13 +546,13 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
                     <td className="px-3 py-2.5 font-medium text-white/90">{row.label}</td>
                     <td className="px-3 py-2.5 text-right text-white/55">{row.count}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-white/80">
-                      {formatExpenseAmount(row.total, "EUR")}
+                      {formatExpenseAmount(row.total, reportCurrency)}
                     </td>
                     <td className="px-3 py-2.5 text-right font-mono text-emerald-300/90">
-                      {formatExpenseAmount(row.paid, "EUR")}
+                      {formatExpenseAmount(row.paid, reportCurrency)}
                     </td>
                     <td className="px-3 py-2.5 text-right font-mono text-amber-200/90">
-                      {formatExpenseAmount(row.unpaid, "EUR")}
+                      {formatExpenseAmount(row.unpaid, reportCurrency)}
                     </td>
                   </tr>
                 ))}
@@ -988,7 +1010,7 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
               <h3 className="text-sm font-semibold text-white">Outstanding by payable date</h3>
               <p className="mt-1 text-xs text-white/45">
                 Unpaid expenses grouped by NET 30 payable date · total outstanding{" "}
-                {formatExpenseAmount(totalOutstanding, "EUR")}
+                {formatExpenseAmount(totalOutstanding, reportCurrency)}
               </p>
             </div>
             <p className="text-xs text-white/35">
