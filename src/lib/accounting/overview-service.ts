@@ -15,6 +15,7 @@ import {
 import {
   ABHI_CASH_BALANCE_GBP,
   ABHI_REVENUE_YTD_GBP,
+  getAbhiMonthlyCashSeries,
   getAbhiMonthlyRevenueSeries,
   getAbhiRevenueForMonth,
   isAbhiWorkspaceSlug,
