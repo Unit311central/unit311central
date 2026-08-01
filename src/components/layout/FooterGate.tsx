@@ -42,7 +42,8 @@ export default function FooterGate() {
     pathname?.startsWith("/projects") ||
     pathname?.startsWith("/calendar") ||
     pathname?.startsWith("/info-email") ||
-    pathname?.startsWith("/whatsapp/")
+    pathname?.startsWith("/whatsapp/") ||
+    pathname?.startsWith("/partners")
   ) {
     return null;
   }

@@ -48,8 +48,11 @@ export default async function RootLayout({
   const host = getRequestHost({ headers: requestHeaders });
   // Customer workspace + Internal/Demo app hosts must not show marketing chrome
   // (bare /login links would drop return_to before hydrate hides the nav).
+  // Partners signup/portal is also a bare surface (see middleware x-unit311-bare-chrome).
   const hideMarketingChrome =
-    Boolean(parseClientPlatformSubdomainSafe(host)) || isInternalOpsShellHost(host);
+    Boolean(parseClientPlatformSubdomainSafe(host)) ||
+    isInternalOpsShellHost(host) ||
+    requestHeaders.get("x-unit311-bare-chrome") === "1";
 
   return (
     <html lang="en" className={`${inter.variable} h-full`}>

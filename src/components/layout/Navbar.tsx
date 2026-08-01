@@ -68,6 +68,7 @@ export default function Navbar() {
     isLoginPage ||
     isClientCallPage;
   const isWorkspaceHostRoute = Boolean(pathname?.startsWith("/ws/"));
+  const isPartnersPage = Boolean(pathname?.startsWith("/partners"));
   const isDashboard =
     isInternalAppHost ||
     isWorkspaceHostRoute ||
@@ -103,7 +104,7 @@ export default function Navbar() {
     return () => window.removeEventListener(BOOK_SUBMITTED_EVENT, handleBookSubmitted);
   }, [pathname]);
 
-  if (isDashboard || isClientCallPage || isLoginPage) {
+  if (isDashboard || isClientCallPage || isLoginPage || isPartnersPage) {
     return null;
   }
 

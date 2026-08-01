@@ -39,6 +39,7 @@ export default function PartnersSignupChat() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void (async () => {
@@ -63,8 +64,13 @@ export default function PartnersSignupChat() {
   }, []);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, busy]);
+
+  useEffect(() => {
+    if (inputType === "none" || inputType === "country" || inputType === "phoneCode") return;
+    inputRef.current?.focus();
+  }, [inputType, messages.length]);
 
   async function send(value?: string) {
     const text = (value ?? draft).trim();
@@ -99,7 +105,7 @@ export default function PartnersSignupChat() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#050816] text-white">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -107,24 +113,28 @@ export default function PartnersSignupChat() {
             "radial-gradient(ellipse 70% 50% at 20% 0%, rgba(14,165,233,0.18), transparent 55%), radial-gradient(ellipse 50% 40% at 90% 10%, rgba(16,185,129,0.12), transparent 50%)",
         }}
       />
-      <div className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-8 sm:px-6">
-        <header className="mb-6 flex flex-col items-start gap-4 border-b border-white/10 pb-5">
-          <Logo height={56} href="/" />
-          <div>
+      <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 pt-6 sm:px-6">
+        <header className="mb-4 shrink-0 border-b border-white/10 pb-4">
+          <Logo height={48} href={null} />
+          <div className="mt-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
               Partners
             </p>
-            <h1 className="mt-1 font-serif text-3xl tracking-tight text-white sm:text-4xl">
+            <h1 className="mt-1 font-serif text-2xl tracking-tight text-white sm:text-3xl">
               Distributor & representative signup
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/55">
-              This is the signup page for distributors and representatives. Chat with our assistant
-              to verify your email and create your partner record.
+              Chat with our assistant to verify your email and create your partner record.
             </p>
           </div>
         </header>
 
-        <div className="flex-1 space-y-3 overflow-y-auto pb-4">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pb-3">
+          {messages.length === 0 && !error ? (
+            <p className="inline-flex items-center gap-2 text-xs text-white/45">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Starting chat…
+            </p>
+          ) : null}
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
@@ -147,17 +157,17 @@ export default function PartnersSignupChat() {
         </div>
 
         {error ? (
-          <p className="mb-3 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+          <p className="mb-3 shrink-0 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">
             {error}
           </p>
         ) : null}
 
-        {inputType === "none" ? (
-          <p className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-            Signup complete. Check your email for your unique Partners portal link.
-          </p>
-        ) : inputType === "country" || inputType === "phoneCode" ? (
-          <div className="space-y-2">
+        <div className="shrink-0 border-t border-white/10 bg-[#050816]/95 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+          {inputType === "none" ? (
+            <p className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+              Signup complete. Check your email for your unique Partners portal link.
+            </p>
+          ) : inputType === "country" || inputType === "phoneCode" ? (
             <select
               value=""
               onChange={(event) => {
@@ -175,39 +185,43 @@ export default function PartnersSignupChat() {
                 </option>
               ))}
             </select>
-          </div>
-        ) : (
-          <form
-            className="flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void send();
-            }}
-          >
-            <input
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              disabled={busy}
-              type={inputType === "email" ? "email" : "text"}
-              inputMode={inputType === "otp" ? "numeric" : undefined}
-              placeholder={
-                inputType === "otp"
-                  ? "Enter 6-digit code"
-                  : inputType === "email"
-                    ? "name@company.com"
-                    : "Type your answer…"
-              }
-              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#0b1524] px-3 py-3 text-sm text-white outline-none focus:border-sky-400/50"
-            />
-            <button
-              type="submit"
-              disabled={busy || !draft.trim()}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-500/15 text-sky-100 hover:bg-sky-500/25 disabled:opacity-50"
+          ) : (
+            <form
+              className="flex gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void send();
+              }}
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </button>
-          </form>
-        )}
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                disabled={busy}
+                type={inputType === "email" ? "email" : "text"}
+                inputMode={inputType === "otp" ? "numeric" : undefined}
+                autoComplete="off"
+                autoFocus
+                placeholder={
+                  inputType === "otp"
+                    ? "Enter 6-digit code"
+                    : inputType === "email"
+                      ? "name@company.com"
+                      : "Type your answer…"
+                }
+                className="min-w-0 flex-1 rounded-xl border border-white/15 bg-[#0b1524] px-3 py-3 text-sm text-white outline-none ring-sky-400/30 placeholder:text-white/35 focus:border-sky-400/50 focus:ring-2"
+              />
+              <button
+                type="submit"
+                disabled={busy || !draft.trim()}
+                aria-label="Send"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-sky-400/30 bg-sky-500/15 text-sky-100 hover:bg-sky-500/25 disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -313,6 +313,10 @@ export async function middleware(request: NextRequest) {
   // --- Public apex / www ---
   if (isPublicSiteHost(host)) {
     const headers = withHostHeaders(request, { public: true });
+    // Partners signup/portal is a standalone surface — no marketing nav/footer.
+    if (pathname === "/partners" || pathname.startsWith("/partners/")) {
+      headers.set("x-unit311-bare-chrome", "1");
+    }
 
     const viewMap = legacyViewRedirects();
     if (viewMap[pathname]) {
@@ -334,6 +338,11 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isLocalDevHost(host)) {
+    if (pathname === "/partners" || pathname.startsWith("/partners/")) {
+      const headers = new Headers(request.headers);
+      headers.set("x-unit311-bare-chrome", "1");
+      return NextResponse.next({ request: { headers } });
+    }
     return NextResponse.next();
   }
 
