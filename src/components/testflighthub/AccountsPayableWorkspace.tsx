@@ -101,13 +101,21 @@ export default function AccountsPayableWorkspace() {
     };
   }, [rows, monthPrefix, todayIso]);
 
-  const currency =
-    (typeof window !== "undefined" &&
-      /corpcentre|corporatecentre/i.test(window.location.hostname)) ||
-    isBrowserCorpCentreSurface() ||
-    rows.some((row) => String(row.currency || "").toUpperCase() === "AUD")
-      ? "AUD"
-      : "GBP";
+  const currency = (() => {
+    if (
+      (typeof window !== "undefined" &&
+        /corpcentre|corporatecentre/i.test(window.location.hostname)) ||
+      isBrowserCorpCentreSurface() ||
+      rows.some((row) => String(row.currency || "").toUpperCase() === "AUD")
+    ) {
+      return "AUD";
+    }
+    const codes = rows.map((row) => String(row.currency || "").toUpperCase());
+    const usdCount = codes.filter((code) => code === "USD").length;
+    const gbpCount = codes.filter((code) => code === "GBP").length;
+    if (usdCount > 0 && usdCount >= gbpCount) return "USD";
+    return "GBP";
+  })();
   const money = (amount: number) => formatMoney(amount, currency);
 
   const cards = [

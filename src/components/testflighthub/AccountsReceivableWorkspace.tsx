@@ -30,15 +30,25 @@ function reportingCurrency(invoices: LedgerInvoice[] = []) {
   if (invoices.some((invoice) => /^CC\d+/i.test(String(invoice.invoiceNumber || "")))) {
     return "AUD";
   }
+  const codes = invoices.map((invoice) => String(invoice.currency || "").toUpperCase());
+  const usdCount = codes.filter((code) => code === "USD").length;
+  const gbpCount = codes.filter((code) => code === "GBP").length;
+  // Demo (and other USD workspaces): prefer USD when it is the majority invoice currency.
+  if (usdCount > 0 && usdCount >= gbpCount) return "USD";
   return "GBP";
 }
 
-/** Sum invoices in the workspace reporting currency (AUD for CorpCentre). */
+/** Sum invoices in the workspace reporting currency. */
 function invoiceAmountReporting(invoice: LedgerInvoice, currency: string) {
-  if (currency === "AUD") {
-    return Number(invoice.amount) || 0;
-  }
-  return convertToGbp(invoice.amount, invoice.currency);
+  const from = String(invoice.currency || currency).toUpperCase();
+  const amount = Number(invoice.amount) || 0;
+  if (from === currency) return amount;
+  if (currency === "GBP") return convertToGbp(amount, from);
+  // Convert via GBP pivot (same approach as financial overview).
+  const gbp = convertToGbp(amount, from);
+  if (currency === "USD") return Math.round((gbp / 0.79) * 100) / 100;
+  if (currency === "AUD") return Math.round(gbp * 1.95 * 100) / 100;
+  return amount;
 }
 
 /** Only real payment timestamps count toward “Paid This Month”. */
