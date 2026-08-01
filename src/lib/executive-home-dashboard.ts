@@ -71,24 +71,6 @@ function monthDelta(
   };
 }
 
-function revenuePctDelta(
-  series: Array<{ amount: number }> | undefined,
-): { label: string; tone: DashboardKpiItem["tone"] } | null {
-  if (!series || series.length < 2) return null;
-  const current = series[series.length - 1]?.amount ?? 0;
-  const prior = series[series.length - 2]?.amount ?? 0;
-  if (prior === 0) {
-    if (current === 0) return { label: "No prior-month revenue", tone: "neutral" };
-    return { label: "New vs prior month", tone: "positive" };
-  }
-  const pct = ((current - prior) / Math.abs(prior)) * 100;
-  const sign = pct >= 0 ? "+" : "−";
-  return {
-    label: `${sign}${Math.abs(pct).toFixed(1)}% vs prior month`,
-    tone: pct >= 0 ? "positive" : "warning",
-  };
-}
-
 function sumSeries(points: Array<{ amount: number }>) {
   return points.reduce((sum, point) => sum + (point.amount || 0), 0);
 }
@@ -133,26 +115,40 @@ function buildRevenuePeriodOptions(input: {
     series.filter((point) => priorYtdKeys.has(point.month.slice(0, 7))),
   );
   const revenueYtd = input.financials?.revenueYtd ?? ytdFromSeries;
-  const thisMonthAmount = input.financials?.monthlyRevenue ?? series[series.length - 1]?.amount ?? 0;
-  const lastMonthAmount = series.length >= 2 ? (series[series.length - 2]?.amount ?? 0) : 0;
-  const last3 = series.slice(-3);
-  const prior3 = series.slice(-6, -3);
-  const last3Amount = sumSeries(last3);
-  const prior3Amount = sumSeries(prior3);
+  const thisMonthKey = `${year}-${String(month).padStart(2, "0")}`;
+  const lastMonthDate = new Date(Date.UTC(year, month - 2, 1));
+  const lastMonthKey = `${lastMonthDate.getUTCFullYear()}-${String(lastMonthDate.getUTCMonth() + 1).padStart(2, "0")}`;
+  const priorLastMonthDate = new Date(Date.UTC(year, month - 3, 1));
+  const priorLastMonthKey = `${priorLastMonthDate.getUTCFullYear()}-${String(priorLastMonthDate.getUTCMonth() + 1).padStart(2, "0")}`;
+  const amountForMonth = (key: string) =>
+    series.find((point) => point.month.slice(0, 7) === key)?.amount ?? 0;
+  const thisMonthAmount =
+    input.financials?.monthlyRevenue ?? amountForMonth(thisMonthKey);
+  const lastMonthAmount = amountForMonth(lastMonthKey);
+  const last3Keys = [0, 1, 2].map((offset) => {
+    const date = new Date(Date.UTC(year, month - 1 - offset, 1));
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+  const prior3Keys = [3, 4, 5].map((offset) => {
+    const date = new Date(Date.UTC(year, month - 1 - offset, 1));
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+  const last3Amount = sumSeries(series.filter((point) => last3Keys.includes(point.month.slice(0, 7))));
+  const prior3Amount = sumSeries(
+    series.filter((point) => prior3Keys.includes(point.month.slice(0, 7))),
+  );
   const annualAmount = input.financials?.annualRevenue ?? revenueYtd;
 
   const ytdDelta =
     priorYtdFromSeries > 0 || revenueYtd > 0
       ? pctChangeLabel(revenueYtd, priorYtdFromSeries, "year YTD")
       : { label: "Year to date · ledger", tone: "neutral" as const };
-  const monthDeltaValue = revenuePctDelta(series) ?? {
-    label: "Current calendar month",
-    tone: "neutral" as const,
-  };
-  const lastMonthDelta =
-    series.length >= 3
-      ? pctChangeLabel(lastMonthAmount, series[series.length - 3]?.amount ?? 0, "month")
-      : { label: "Prior calendar month", tone: "neutral" as const };
+  const monthDeltaValue = pctChangeLabel(thisMonthAmount, lastMonthAmount, "month");
+  const lastMonthDelta = pctChangeLabel(
+    lastMonthAmount,
+    amountForMonth(priorLastMonthKey),
+    "month",
+  );
   const quarterDelta =
     prior3.length > 0
       ? pctChangeLabel(last3Amount, prior3Amount, "3 months")
@@ -360,10 +356,11 @@ export function buildExecutiveHomeLiveAnalytics(input: {
   emptyMessage: string;
 } {
   const currency = "GBP";
+  const revenueSeries = input.financials?.charts.monthlyRevenue ?? [];
   const points = alignMonthlySeries(
-    input.financials?.charts.monthlyRevenue ?? [],
+    revenueSeries,
     input.financials?.charts.monthlyOutgoings ?? [],
-    6,
+    Math.max(6, Math.min(7, revenueSeries.length || 6)),
   );
 
   const latest = points[points.length - 1];

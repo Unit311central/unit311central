@@ -15,6 +15,8 @@ import {
 import {
   ABHI_CASH_BALANCE_GBP,
   ABHI_REVENUE_YTD_GBP,
+  getAbhiMonthlyRevenueSeries,
+  getAbhiRevenueForMonth,
   isAbhiWorkspaceSlug,
 } from "@/lib/abhi-financials";
 import { listExpenses } from "@/lib/financial-expenses-service";
@@ -321,7 +323,7 @@ export async function getFinancialOverview(
           accountsReceivable: 0,
           accountsPayable: 0,
         };
-    const charts = chartsResult.ok
+    let charts = chartsResult.ok
       ? chartsResult.value
       : {
           monthlyRevenue: [],
@@ -337,6 +339,22 @@ export async function getFinancialOverview(
     // Resolve after GL so we can fall back to Wise GL accounts if Wise API is down.
     // CorpCentre / ABHI use fixed cash fixtures (not platform Wise).
     const workspaceSlug = await resolveWorkspaceSlug(workspaceId);
+    if (isAbhiWorkspaceSlug(workspaceSlug)) {
+      const abhiRevenue = getAbhiMonthlyRevenueSeries();
+      charts = {
+        ...charts,
+        monthlyRevenue: abhiRevenue,
+        monthlyProfitLoss: abhiRevenue.map((point) => {
+          const spend =
+            charts.monthlyOutgoings.find((row) => row.month === point.month)?.amount ?? 0;
+          return {
+            month: point.month,
+            profit: Math.max(0, roundMoney(point.amount - spend)),
+            loss: Math.max(0, roundMoney(spend - point.amount)),
+          };
+        }),
+      };
+    }
     let cashPosition: number;
     if (isCorpCentreWorkspaceSlug(workspaceSlug)) {
       cashPosition = CORPCENTRE_CASH_BALANCE_AUD;
@@ -434,7 +452,9 @@ export async function getFinancialOverview(
         .filter((point) => point.month.startsWith(yearPrefix))
         .reduce((sum, point) => sum + point.amount, 0),
     );
-    const monthlyRevenue = roundMoney(monthlyRevenuePoint?.amount ?? 0);
+    const monthlyRevenue = isAbhiWorkspaceSlug(workspaceSlug)
+      ? getAbhiRevenueForMonth(monthPrefix)
+      : roundMoney(monthlyRevenuePoint?.amount ?? 0);
 
     const burnRate =
       postedExpenses.length > 0 || charts.monthlyOutgoings.some((point) => point.amount > 0)

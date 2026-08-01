@@ -152,8 +152,9 @@ async function postSimpleJournal({
   amount,
   debitDesc,
   creditDesc,
+  wipeSource = true,
 }) {
-  await wipeJournalSource(workspaceId, sourceType);
+  if (wipeSource) await wipeJournalSource(workspaceId, sourceType);
   const entryId = randomUUID();
   const { error: entryErr } = await admin.from("journal_entries").insert({
     id: entryId,
@@ -190,6 +191,17 @@ async function postSimpleJournal({
   if (linesErr) throw new Error(`journal lines ${reference}: ${linesErr.message}`);
   return entryId;
 }
+
+/** Canonical Jan–Jul 2026 membership income split (£2m). */
+const MONTHLY_REVENUE = [
+  { month: "2026-01", day: "31", amount: 260_000 },
+  { month: "2026-02", day: "28", amount: 270_000 },
+  { month: "2026-03", day: "31", amount: 290_000 },
+  { month: "2026-04", day: "30", amount: 285_000 },
+  { month: "2026-05", day: "31", amount: 300_000 },
+  { month: "2026-06", day: "30", amount: 295_000 },
+  { month: "2026-07", day: "31", amount: 300_000 },
+];
 
 async function main() {
   if (FORBIDDEN.has(SLUG)) throw new Error(`Refusing forbidden slug ${SLUG}`);
@@ -542,18 +554,36 @@ async function main() {
     await wipeJournalSource(WS, AR_SOURCE);
   }
 
+  // Nine AR invoices dated across Jan–Jul (plus two extras in Jun/Jul) — BS debtors.
+  const arIssueDates = [
+    "2026-01-15",
+    "2026-02-12",
+    "2026-03-18",
+    "2026-04-14",
+    "2026-05-20",
+    "2026-06-10",
+    "2026-07-08",
+    "2026-06-25",
+    "2026-07-22",
+  ];
   const arWeights = [0.18, 0.15, 0.14, 0.12, 0.11, 0.1, 0.08, 0.07, 0.05];
   let allocated = 0;
   const arPlan = arWeights.map((w, i) => {
     const isLast = i === arWeights.length - 1;
     const amount = isLast ? round2(DEBTORS - allocated) : round2(DEBTORS * w);
     allocated = round2(allocated + amount);
+    const issueDate = arIssueDates[i] || "2026-07-15";
+    const issue = new Date(`${issueDate}T12:00:00.000Z`);
+    const due = new Date(issue);
+    due.setUTCDate(due.getUTCDate() + (i < 2 ? 20 : 30));
+    const dueDate = due.toISOString().slice(0, 10);
+    const overdue = dueDate < "2026-08-01";
     return {
       amount,
       client: clients[i % clients.length],
-      overdue: i < 2,
-      issueOffset: 40 + i * 7,
-      dueOffset: i < 2 ? -(10 + i * 5) : 10 + i * 4,
+      overdue: overdue && i < 3,
+      issueDate,
+      dueDate,
     };
   });
   const arDrift = round2(DEBTORS - arPlan.reduce((s, p) => s + p.amount, 0));
@@ -565,7 +595,7 @@ async function main() {
     sourceId: "abhi-ar-3988245",
     reference: "ABHI-AR-OPEN",
     description: "ABHI debtors opening balance £3,988,245 (BS only — not income)",
-    journalDate: "2026-06-30",
+    journalDate: "2026-01-31",
     debitAccountId: arAcct.id,
     creditAccountId: equity.id,
     amount: DEBTORS,
@@ -573,47 +603,48 @@ async function main() {
     creditDesc: "Opening equity for debtors",
   });
 
-  // Separate YTD revenue fixture (£2m) — does not inflate cash or debtors.
-  await postSimpleJournal({
-    workspaceId: WS,
-    sourceType: REVENUE_SOURCE,
-    sourceId: "abhi-revenue-2m",
-    reference: "ABHI-REV-YTD-2M",
-    description: "ABHI YTD revenue fixture £2,000,000",
-    journalDate: "2026-06-30",
-    debitAccountId: equity.id,
-    creditAccountId: revenue.id,
-    amount: REVENUE_YTD,
-    debitDesc: "Equity reclass for YTD revenue fixture",
-    creditDesc: "Membership & services income YTD",
-  });
-
-  const today = new Date();
-  function isoOffset(days) {
-    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-    d.setUTCDate(d.getUTCDate() + days);
-    return d.toISOString().slice(0, 10);
+  // YTD revenue £2m split across Jan–Jul (does not inflate cash or debtors).
+  const revTotal = MONTHLY_REVENUE.reduce((s, row) => s + row.amount, 0);
+  if (revTotal !== REVENUE_YTD) {
+    throw new Error(`MONTHLY_REVENUE sums to ${revTotal}, expected ${REVENUE_YTD}`);
   }
+  await wipeJournalSource(WS, REVENUE_SOURCE);
+  for (const row of MONTHLY_REVENUE) {
+    const journalDate = `${row.month}-${row.day}`;
+    await postSimpleJournal({
+      workspaceId: WS,
+      sourceType: REVENUE_SOURCE,
+      sourceId: `abhi-revenue-${row.month}`,
+      reference: `ABHI-REV-${row.month.replace("-", "")}`,
+      description: `ABHI ${row.month} membership & services income £${row.amount.toLocaleString("en-GB")}`,
+      journalDate,
+      debitAccountId: equity.id,
+      creditAccountId: revenue.id,
+      amount: row.amount,
+      debitDesc: "Equity reclass for monthly revenue fixture",
+      creditDesc: `Membership & services income ${row.month}`,
+      wipeSource: false,
+    });
+  }
+  console.log(`Posted ${MONTHLY_REVENUE.length} monthly revenue journals totalling £${REVENUE_YTD}`);
 
   const invoiceRows = arPlan.map((item, index) => {
     const num = `${INV_PREFIX}-${String(index + 1).padStart(3, "0")}`;
-    const issueDate = isoOffset(-item.issueOffset);
-    const dueDate = isoOffset(item.dueOffset);
     return {
       id: deterministicUuid(`abhi-invoice:${num}`),
       invoice_number: num,
       client_id: item.client.id,
       workspace_id: WS,
-      issue_date: issueDate,
-      due_date: dueDate,
+      issue_date: item.issueDate,
+      due_date: item.dueDate,
       currency: "GBP",
       amount: item.amount,
       status: item.overdue ? "overdue" : "issued",
       payment_reference: `${INV_PREFIX}-${num}`,
       journal_entry_id: arJournalId,
       payment_journal_entry_id: null,
-      created_at: `${issueDate}T10:00:00.000Z`,
-      updated_at: `${issueDate}T10:00:00.000Z`,
+      created_at: `${item.issueDate}T10:00:00.000Z`,
+      updated_at: `${item.issueDate}T10:00:00.000Z`,
     };
   });
   const { error: invErr } = await admin.from("invoices").insert(invoiceRows);
@@ -642,6 +673,13 @@ async function main() {
     { supplier: "Softcat plc", purpose: "Endpoint security licences", code: "5010", w: 0.06 },
     { supplier: "Design Agency Co", purpose: "Brand & campaign creative", code: "5090", w: 0.05 },
   ];
+  const today = new Date();
+  function isoOffset(days) {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
   let expAlloc = 0;
   const expenseRows = suppliers.map((item, index) => {
     const isLast = index === suppliers.length - 1;
