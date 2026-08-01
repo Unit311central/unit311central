@@ -27,10 +27,7 @@ import {
 } from "@/lib/workspace-host-session-gate";
 import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
-import {
-  clearPlatformSessionCookie,
-  PLATFORM_SESSION_COOKIE,
-} from "@/lib/platform-session-cookie";
+import { clearPlatformSessionCookie } from "@/lib/platform-session-cookie";
 
 function canonicalizePortalRedirect(redirectPath: string | null | undefined): string | null {
   if (!redirectPath) return null;
