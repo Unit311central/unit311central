@@ -138,7 +138,13 @@ function seedState(): HrMockState {
       if (isBrowserAbhiSurface()) {
         const { buildAbhiRecruitmentVacancies } =
           require("@/lib/abhi-hr-recruitment") as typeof import("@/lib/abhi-hr-recruitment");
+        const {
+          buildAbhiPerformanceReviews,
+          buildAbhiPerformanceGoals,
+        } = require("@/lib/abhi-hr-performance") as typeof import("@/lib/abhi-hr-performance");
         const vacancies = buildAbhiRecruitmentVacancies();
+        const reviews = buildAbhiPerformanceReviews();
+        const goals = buildAbhiPerformanceGoals();
         const leaveRequests: HrLeaveRequest[] = [
           {
             id: "leave-abhi-1",
@@ -303,19 +309,31 @@ function seedState(): HrMockState {
           ],
           vacancies,
           candidates: [],
-          reviews: [],
-          goals: [],
+          reviews,
+          goals,
           reports: [],
           activity: [
             {
-              id: "act-abhi-1",
+              id: "act-abhi-perf-1",
               at: isoDaysFromNow(0),
+              label: "Performance review submitted",
+              detail: "Jane Lewis — H1 2026",
+            },
+            {
+              id: "act-abhi-perf-2",
+              at: isoDaysFromNow(-1),
+              label: "Review awaiting manager",
+              detail: "Sophie Green — Q3 2026 US Accelerator",
+            },
+            {
+              id: "act-abhi-1",
+              at: isoDaysFromNow(-1),
               label: "Leave approved",
               detail: "Judith Mellis — Annual leave",
             },
             {
               id: "act-abhi-2",
-              at: isoDaysFromNow(-1),
+              at: isoDaysFromNow(-2),
               label: "Leave approved",
               detail: "Owain Prescott — Sick leave",
             },
