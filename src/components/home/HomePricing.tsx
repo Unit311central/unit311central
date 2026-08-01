@@ -28,6 +28,7 @@ const IMPLEMENTATION_INCLUDES = [
   "Existing system integrations",
   "Team training",
   "Go-live assistance",
+  "If you are interested in more advanced AI functionality to automate your Support Desk, please contact us",
 ] as const;
 
 function PricingCardShell({ children }: { children: ReactNode }) {
@@ -126,7 +127,7 @@ export default function HomePricing() {
               </p>
               <p className="mt-5 text-sm font-medium text-white/70">Typical implementation investment:</p>
               <p className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-[1.75rem]">
-                US$1,000–2,500
+                USD $1,000 to $5,000
               </p>
               <p className="mt-1 text-sm text-white/45">Depending on complexity.</p>
               <p className="mt-5 text-sm font-medium text-white/70">Implementation may include:</p>
@@ -139,11 +140,7 @@ export default function HomePricing() {
                 ))}
               </ul>
               <p className="mt-6 text-sm leading-relaxed text-white/50">
-                No hourly billing.
-                <br />
-                No hidden costs.
-                <br />
-                Every customer receives a fixed implementation proposal before work begins.
+                No hourly billing. No hidden costs.
               </p>
               <PricingCardAction href="/contact">Contact us</PricingCardAction>
             </PricingCardBody>
