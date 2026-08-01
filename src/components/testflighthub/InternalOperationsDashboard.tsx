@@ -260,7 +260,7 @@ function readInitialView(
     return "home";
   }
   if (fromQuery && ABHI_HIDDEN_VIEWS.has(fromQuery) && isBrowserAbhiSurface()) {
-    return "corporate-dashboard";
+    return fromQuery === "corporate-cap-table" ? "corporate-dashboard" : "home";
   }
   return fromQuery;
 }
@@ -477,7 +477,7 @@ export default function InternalOperationsDashboard({
 
   useEffect(() => {
     if (isBrowserAbhiSurface() && ABHI_HIDDEN_VIEWS.has(activeView)) {
-      setActiveView("corporate-dashboard");
+      setActiveView(activeView === "corporate-cap-table" ? "corporate-dashboard" : "home");
     }
   }, [activeView]);
 
@@ -818,7 +818,9 @@ export default function InternalOperationsDashboard({
           {activeView === "corporate-dashboard" && <CorporateDashboardWorkspace />}
 
           {activeView === "corporate-information" && <CorporateInformationWorkspace />}
-          {activeView === "corporate-cap-table" && <CapTableWorkspace />}
+          {activeView === "corporate-cap-table" && !isBrowserAbhiSurface() && (
+            <CapTableWorkspace />
+          )}
 
           {activeView === "external-client-access" && <ExternalClientAccessWorkspace />}
 
