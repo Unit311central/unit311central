@@ -24,6 +24,7 @@ import {
   listUpcomingBirthdays,
   type HrAttentionItem,
 } from "@/lib/hr-dashboard-data";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import type { HrEmployee } from "@/lib/hr-data";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import { listHrActivity } from "@/lib/hr-mock-store";
@@ -76,6 +77,7 @@ function AttentionList({
 
 export default function HrDashboardWorkspace({ employees }: HrDashboardWorkspaceProps) {
   const basePath = useInternalOperationsBasePath();
+  const isAbhi = isBrowserAbhiSurface();
   const store = useHrMockStore();
   const kpis = useMemo(() => computeHrDashboardKpis(employees), [employees, store]);
   const overview = useMemo(() => computePeopleOverview(employees), [employees]);
@@ -110,6 +112,24 @@ export default function HrDashboardWorkspace({ employees }: HrDashboardWorkspace
 
   return (
     <div className="space-y-5">
+      {isAbhi ? (
+        <section className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-0.5">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link
+                key={action.label}
+                href={action.href}
+                className={`${hrPrimaryButtonClass()} shrink-0`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {action.label}
+              </Link>
+            );
+          })}
+        </section>
+      ) : null}
+
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <HrKpiTile label="Total Employees" value={kpis.totalEmployees} />
         <HrKpiTile label="Active Employees" value={kpis.activeEmployees} />
@@ -226,7 +246,7 @@ export default function HrDashboardWorkspace({ employees }: HrDashboardWorkspace
         </HrSection>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className={`grid gap-5 ${isAbhi ? "" : "xl:grid-cols-2"}`}>
         <HrSection title="Recent Activity" subtitle="People operations trail.">
           <ul className="space-y-2">
             {activity.length === 0 ? (
@@ -245,25 +265,27 @@ export default function HrDashboardWorkspace({ employees }: HrDashboardWorkspace
           </ul>
         </HrSection>
 
-        <HrSection
-          title="Quick Actions"
-          subtitle="Jump into the common HR workflows."
-          actions={
-            <Link href={getInternalNavHref("hr", basePath)} className={hrSecondaryButtonClass()}>
-              <Users className="h-3.5 w-3.5" />
-              Employees
-            </Link>
-          }
-        >
-          <div className="flex flex-col gap-2">
-            {quickActions.map((action) => (
-              <Link key={action.label} href={action.href} className={hrPrimaryButtonClass()}>
-                <action.icon className="h-3.5 w-3.5" />
-                {action.label}
+        {!isAbhi ? (
+          <HrSection
+            title="Quick Actions"
+            subtitle="Jump into the common HR workflows."
+            actions={
+              <Link href={getInternalNavHref("hr", basePath)} className={hrSecondaryButtonClass()}>
+                <Users className="h-3.5 w-3.5" />
+                Employees
               </Link>
-            ))}
-          </div>
-        </HrSection>
+            }
+          >
+            <div className="flex flex-col gap-2">
+              {quickActions.map((action) => (
+                <Link key={action.label} href={action.href} className={hrPrimaryButtonClass()}>
+                  <action.icon className="h-3.5 w-3.5" />
+                  {action.label}
+                </Link>
+              ))}
+            </div>
+          </HrSection>
+        ) : null}
       </div>
     </div>
   );
