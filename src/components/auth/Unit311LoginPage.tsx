@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import CorpCentreLogoMark from "@/components/layout/CorpCentreLogoMark";
+import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
 import {
   parseLoginReturnTo,
@@ -161,8 +162,8 @@ export default function Unit311LoginPage({
   nextPath = null,
 }: {
   variant?: "default" | "central";
-  /** Tenant login branding. CorpCentre / Talanton use workspace logos. */
-  brand?: "default" | "central" | "corpcentre" | "talanton";
+  /** Tenant login branding. CorpCentre / Talanton / ABHI use workspace logos. */
+  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi";
   /** Validated return origin (`return_to`) for workspace / demo / internal. */
   returnTo?: string | null;
   /** Canonical deep-link path (`next`), e.g. `/?view=clients`. */
@@ -170,9 +171,13 @@ export default function Unit311LoginPage({
 }) {
   const router = useRouter();
   const isCentral =
-    variant === "central" || brand === "corpcentre" || brand === "talanton";
+    variant === "central" ||
+    brand === "corpcentre" ||
+    brand === "talanton" ||
+    brand === "abhi";
   const isCorpCentre = brand === "corpcentre";
   const isTalanton = brand === "talanton";
+  const isAbhi = brand === "abhi";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -275,6 +280,8 @@ export default function Unit311LoginPage({
             <CorpCentreLogoMark height={56} className="rounded-2xl px-4 py-3" />
           ) : isTalanton ? (
             <TalantonLogoMark height={56} className="rounded-2xl px-4 py-3" />
+          ) : isAbhi ? (
+            <AbhiLogoMark height={56} className="rounded-2xl px-4 py-3" />
           ) : (
             <div
               className="relative w-full max-w-[min(100%,240px)] sm:max-w-[280px]"
@@ -298,14 +305,18 @@ export default function Unit311LoginPage({
               ? "Corp.Centre Login"
               : isTalanton
                 ? "Talanton Impact"
-                : "Workspace Login"}
+                : isAbhi
+                  ? "ABHI Login"
+                  : "Workspace Login"}
           </h1>
           <p className="mx-auto mt-3 max-w-[22rem] text-[14px] leading-relaxed text-white/55 sm:mt-3.5 sm:max-w-md sm:text-[15px]">
             {isCorpCentre
               ? "Secure access to your Corp.Centre workspace"
               : isTalanton
                 ? "Portfolio Governance Platform — secure access for impact investing, portfolio oversight and compliance."
-                : "Secure Access to your Workspace"}
+                : isAbhi
+                  ? "Secure access to your ABHI workspace"
+                  : "Secure Access to your Workspace"}
           </p>
           {isTalanton ? (
             <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-white/40">

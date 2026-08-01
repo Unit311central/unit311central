@@ -5,6 +5,7 @@ import { useLayoutEffect, useState } from "react";
 import CorpCentreLogoMark, {
   isCorpCentreSlug,
 } from "@/components/layout/CorpCentreLogoMark";
+import AbhiLogoMark, { isAbhiSlug } from "@/components/layout/AbhiLogoMark";
 import TalantonLogoMark, {
   isTalantonImpactSlug,
 } from "@/components/layout/TalantonLogoMark";
@@ -26,7 +27,7 @@ function hostWorkspaceSlug(): string | null {
   return slug;
 }
 
-type BrandKind = "unit311" | "corpcentre" | "talanton";
+type BrandKind = "unit311" | "corpcentre" | "talanton" | "abhi";
 
 function resolveBrand(): BrandKind {
   const hostSlug = hostWorkspaceSlug();
@@ -40,12 +41,13 @@ function resolveBrand(): BrandKind {
   }
   if (isCorpCentreSlug(hostSlug)) return "corpcentre";
   if (isTalantonImpactSlug(hostSlug)) return "talanton";
+  if (isAbhiSlug(hostSlug)) return "abhi";
   return "unit311";
 }
 
 /**
  * Sidebar brand — tenant logos only on their hosts.
- * Resolved on the client after mount so SSR never locks Unit311 branding on Talanton.
+ * Resolved on the client after mount so SSR never locks Unit311 branding on tenants.
  */
 export default function WorkspaceSidebarBrand({
   className,
@@ -62,6 +64,8 @@ export default function WorkspaceSidebarBrand({
       <CorpCentreLogoMark className={className} height={32} />
     ) : brand === "talanton" ? (
       <TalantonLogoMark height={36} />
+    ) : brand === "abhi" ? (
+      <AbhiLogoMark height={36} />
     ) : (
       <Unit311CentralWordmark variant="sidebar" className={className} />
     );
@@ -71,7 +75,9 @@ export default function WorkspaceSidebarBrand({
       ? "Corp.Centre home"
       : brand === "talanton"
         ? "Talanton Impact home"
-        : "Unit311 Central home";
+        : brand === "abhi"
+          ? "ABHI home"
+          : "Unit311 Central home";
 
   return (
     <a

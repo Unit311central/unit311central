@@ -11,6 +11,7 @@ import {
   customerWorkspaceOrigin,
 } from "@/lib/app-domains";
 import { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -31,6 +32,14 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "Login | Talanton Impact — Portfolio Governance Platform",
       description:
         "Secure access to the Talanton Impact Portfolio Governance Platform for impact investing and portfolio oversight.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  if (isAbhiSlug(workspaceSlug)) {
+    return {
+      title: "Login | ABHI",
+      description: "Secure access to your ABHI workspace.",
       robots: { index: false, follow: false },
     };
   }
@@ -59,14 +68,19 @@ export default async function LoginPage({ searchParams }: PageProps) {
     ? "corpcentre"
     : isTalantonImpactSlug(workspaceSlug)
       ? "talanton"
-      : isCentral
-        ? "central"
-        : "default";
+      : isAbhiSlug(workspaceSlug)
+        ? "abhi"
+        : isCentral
+          ? "central"
+          : "default";
 
   return (
     <Unit311LoginPage
       variant={
-        brand === "corpcentre" || brand === "talanton" || brand === "central"
+        brand === "corpcentre" ||
+        brand === "talanton" ||
+        brand === "abhi" ||
+        brand === "central"
           ? "central"
           : "default"
       }

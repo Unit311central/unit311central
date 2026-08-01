@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
+import AbhiLogoMark, { isAbhiSlug } from "@/components/layout/AbhiLogoMark";
 import CorpCentreLogoMark, { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import Logo from "@/components/layout/Logo";
 import { CENTRAL_SITE_URL } from "@/lib/app-domains";
@@ -47,6 +48,10 @@ export default async function CustomerWorkspaceHostPage({ params }: PageProps) {
               <a href={CENTRAL_SITE_URL} aria-label="Corp.Centre">
                 <CorpCentreLogoMark height={52} />
               </a>
+            ) : isAbhiSlug(slug) ? (
+              <a href={CENTRAL_SITE_URL} aria-label="ABHI">
+                <AbhiLogoMark height={52} />
+              </a>
             ) : (
               <Logo href={CENTRAL_SITE_URL} height={52} />
             )}
@@ -90,6 +95,10 @@ export default async function CustomerWorkspaceHostPage({ params }: PageProps) {
           {isCorpCentreSlug(slug) ? (
             <a href={CENTRAL_SITE_URL} aria-label="Corp.Centre">
               <CorpCentreLogoMark height={52} />
+            </a>
+          ) : isAbhiSlug(slug) ? (
+            <a href={CENTRAL_SITE_URL} aria-label="ABHI">
+              <AbhiLogoMark height={52} />
             </a>
           ) : (
             <Logo href={CENTRAL_SITE_URL} height={52} />
