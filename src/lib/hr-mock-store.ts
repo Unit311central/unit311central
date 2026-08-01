@@ -133,6 +133,209 @@ function seedState(): HrMockState {
     }
 
     try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        const leaveRequests: HrLeaveRequest[] = [
+          {
+            id: "leave-abhi-1",
+            employeeId: "abhi-emp-judith-mellis",
+            employeeName: "Judith Mellis",
+            department: "UK Market Affairs",
+            location: "London",
+            role: "Senior Manager, UK Market Affairs",
+            managerName: "Peter Ellingworth",
+            type: "annual",
+            startDate: isoDaysFromNow(-2),
+            endDate: isoDaysFromNow(3),
+            days: 5,
+            status: "approved",
+            notes: "Summer leave",
+            requestedAt: isoDaysFromNow(-21),
+            decidedAt: isoDaysFromNow(-18),
+          },
+          {
+            id: "leave-abhi-2",
+            employeeId: "abhi-emp-owain-prescott",
+            employeeName: "Owain Prescott",
+            department: "Market Access",
+            location: "London",
+            role: "Market Access Executive",
+            managerName: "Luella Trickett",
+            type: "sick",
+            startDate: isoDaysFromNow(-1),
+            endDate: isoDaysFromNow(2),
+            days: 3,
+            status: "approved",
+            notes: "Medical recovery",
+            requestedAt: isoDaysFromNow(-1),
+            decidedAt: isoDaysFromNow(-1),
+          },
+          {
+            id: "leave-abhi-3",
+            employeeId: "abhi-emp-charlotte-hart",
+            employeeName: "Charlotte Hart",
+            department: "Communications",
+            location: "London",
+            role: "Communications and Events Executive",
+            managerName: "Jonathan Evans",
+            type: "annual",
+            startDate: isoDaysFromNow(5),
+            endDate: isoDaysFromNow(9),
+            days: 5,
+            status: "approved",
+            notes: "Family holiday",
+            requestedAt: isoDaysFromNow(-10),
+            decidedAt: isoDaysFromNow(-8),
+          },
+          {
+            id: "leave-abhi-4",
+            employeeId: "abhi-emp-addie-macgregor",
+            employeeName: "Addie Macgregor",
+            department: "Sustainability",
+            location: "London",
+            role: "Sustainability & Ethics Manager",
+            managerName: "Jane Lewis",
+            type: "annual",
+            startDate: isoDaysFromNow(18),
+            endDate: isoDaysFromNow(22),
+            days: 5,
+            status: "approved",
+            notes: "Annual leave",
+            requestedAt: isoDaysFromNow(-7),
+            decidedAt: isoDaysFromNow(-5),
+          },
+          {
+            id: "leave-abhi-5",
+            employeeId: "abhi-emp-sophie-green",
+            employeeName: "Sophie Green",
+            department: "International",
+            location: "London",
+            role: "International Accelerator Manager",
+            managerName: "Paul Benton",
+            type: "training",
+            startDate: isoDaysFromNow(12),
+            endDate: isoDaysFromNow(13),
+            days: 2,
+            status: "pending",
+            notes: "Market access workshop",
+            requestedAt: isoDaysFromNow(-2),
+            decidedAt: null,
+          },
+          {
+            id: "leave-abhi-6",
+            employeeId: "abhi-emp-rebecca-parkin",
+            employeeName: "Rebecca Parkin",
+            department: "Digital Health",
+            location: "London",
+            role: "Associate Director, Digital Health",
+            managerName: "Andrew Davies",
+            type: "annual",
+            startDate: isoDaysFromNow(25),
+            endDate: isoDaysFromNow(29),
+            days: 5,
+            status: "approved",
+            notes: "Late August break",
+            requestedAt: isoDaysFromNow(-4),
+            decidedAt: isoDaysFromNow(-3),
+          },
+        ];
+        return {
+          leaveRequests,
+          leaveBalances: [
+            {
+              employeeId: "abhi-emp-judith-mellis",
+              employeeName: "Judith Mellis",
+              department: "UK Market Affairs",
+              location: "London",
+              annualAllocated: 25,
+              annualTaken: 5,
+              sickTaken: 0,
+              trainingTaken: 0,
+            },
+            {
+              employeeId: "abhi-emp-owain-prescott",
+              employeeName: "Owain Prescott",
+              department: "Market Access",
+              location: "London",
+              annualAllocated: 25,
+              annualTaken: 8,
+              sickTaken: 3,
+              trainingTaken: 0,
+            },
+            {
+              employeeId: "abhi-emp-charlotte-hart",
+              employeeName: "Charlotte Hart",
+              department: "Communications",
+              location: "London",
+              annualAllocated: 25,
+              annualTaken: 5,
+              sickTaken: 1,
+              trainingTaken: 0,
+            },
+            {
+              employeeId: "abhi-emp-addie-macgregor",
+              employeeName: "Addie Macgregor",
+              department: "Sustainability",
+              location: "London",
+              annualAllocated: 25,
+              annualTaken: 10,
+              sickTaken: 0,
+              trainingTaken: 1,
+            },
+          ],
+          publicHolidays: [
+            {
+              id: "hol-abhi-1",
+              name: "Summer Bank Holiday",
+              date: "2026-08-31",
+              calendar: "England & Wales",
+            },
+            {
+              id: "hol-abhi-2",
+              name: "Christmas Day",
+              date: "2026-12-25",
+              calendar: "England & Wales",
+            },
+          ],
+          vacancies: [],
+          candidates: [],
+          reviews: [],
+          goals: [],
+          reports: [],
+          activity: [
+            {
+              id: "act-abhi-1",
+              at: isoDaysFromNow(0),
+              label: "Leave approved",
+              detail: "Judith Mellis — Annual leave",
+            },
+            {
+              id: "act-abhi-2",
+              at: isoDaysFromNow(-1),
+              label: "Leave approved",
+              detail: "Owain Prescott — Sick leave",
+            },
+            {
+              id: "act-abhi-3",
+              at: isoDaysFromNow(-3),
+              label: "Leave approved",
+              detail: "Charlotte Hart — Annual leave",
+            },
+            {
+              id: "act-abhi-4",
+              at: isoDaysFromNow(-5),
+              label: "Leave requested",
+              detail: "Sophie Green — Training (pending)",
+            },
+          ],
+        };
+      }
+    } catch {
+      // fall through
+    }
+
+    try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
@@ -1501,6 +1704,23 @@ function ensureHrState(): HrMockState {
       if (
         isBrowserDemoSurface() &&
         state.leaveRequests.some((row) => /fotheringham|barcelona/i.test(`${row.managerName} ${row.location}`))
+      ) {
+        state = seedState();
+        seededHost = window.location.hostname;
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (
+        isBrowserAbhiSurface() &&
+        state.leaveRequests.some((row) =>
+          /elena ruiz|pablo serrano|mar[ií]a garc[ií]a|carlos mendoza|barcelona|madrid/i.test(
+            `${row.employeeName} ${row.location} ${row.managerName}`,
+          ),
+        )
       ) {
         state = seedState();
         seededHost = window.location.hostname;
