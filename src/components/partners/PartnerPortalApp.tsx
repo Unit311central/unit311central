@@ -26,7 +26,7 @@ function statusLabel(status: string) {
 }
 
 export default function PartnerPortalApp({ token }: { token: string }) {
-  const [tab, setTab] = useState<"details" | "invoices" | "chat">("details");
+  const [tab, setTab] = useState<"details" | "invoices" | "chat">("invoices");
   const [partner, setPartner] = useState<PartnerRecord | null>(null);
   const [invoices, setInvoices] = useState<PartnerInvoice[]>([]);
   const [loading, setLoading] = useState(true);
