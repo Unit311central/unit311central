@@ -1,5 +1,6 @@
 import type {
   DashboardAudience,
+  DashboardKpiItem,
   DashboardRole,
   DashboardSectionConfig,
   DashboardWidgetConfig,
@@ -88,15 +89,10 @@ export function resolveWorkspaceDashboard(
 
 /** Convenience: ensure KPI row has exactly four items (pad / trim for safety). */
 export function normalizeKpiRow(
-  kpis: readonly { id: string; label: string; value: string; delta?: string; tone?: "neutral" | "positive" | "warning" | "critical"; hint?: string }[],
-): [
-  { id: string; label: string; value: string; delta?: string; tone?: "neutral" | "positive" | "warning" | "critical"; hint?: string },
-  { id: string; label: string; value: string; delta?: string; tone?: "neutral" | "positive" | "warning" | "critical"; hint?: string },
-  { id: string; label: string; value: string; delta?: string; tone?: "neutral" | "positive" | "warning" | "critical"; hint?: string },
-  { id: string; label: string; value: string; delta?: string; tone?: "neutral" | "positive" | "warning" | "critical"; hint?: string },
-] {
-  const fallback = { id: "kpi-placeholder", label: "—", value: "—" };
-  const list = [...kpis];
+  kpis: readonly DashboardKpiItem[],
+): [DashboardKpiItem, DashboardKpiItem, DashboardKpiItem, DashboardKpiItem] {
+  const fallback: DashboardKpiItem = { id: "kpi-placeholder", label: "—", value: "—" };
+  const list: DashboardKpiItem[] = [...kpis];
   while (list.length < 4) list.push({ ...fallback, id: `${fallback.id}-${list.length}` });
   return [list[0], list[1], list[2], list[3]];
 }

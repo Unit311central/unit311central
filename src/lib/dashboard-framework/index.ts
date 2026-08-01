@@ -11,6 +11,7 @@ export type {
   DashboardEmptyWidget,
   DashboardHeaderWidget,
   DashboardKpiItem,
+  DashboardKpiPeriodOption,
   DashboardKpiRowWidget,
   DashboardKpiTone,
   DashboardKpiWidget,

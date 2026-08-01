@@ -64,6 +64,119 @@ function revenuePctDelta(
   };
 }
 
+function sumSeries(points: Array<{ amount: number }>) {
+  return points.reduce((sum, point) => sum + (point.amount || 0), 0);
+}
+
+function pctChangeLabel(
+  current: number,
+  prior: number,
+  priorLabel: string,
+): { label: string; tone: DashboardKpiItem["tone"] } {
+  if (prior === 0) {
+    if (current === 0) return { label: `No prior ${priorLabel}`, tone: "neutral" };
+    return { label: `New vs prior ${priorLabel}`, tone: "positive" };
+  }
+  const pct = ((current - prior) / Math.abs(prior)) * 100;
+  const sign = pct >= 0 ? "+" : "−";
+  return {
+    label: `${sign}${Math.abs(pct).toFixed(1)}% vs prior ${priorLabel}`,
+    tone: pct >= 0 ? "positive" : "warning",
+  };
+}
+
+function buildRevenuePeriodOptions(input: {
+  financials: FinancialOverviewSnapshot | null;
+  currency: string;
+}): NonNullable<DashboardKpiItem["periods"]> {
+  const currency = input.currency;
+  const series = [...(input.financials?.charts.monthlyRevenue ?? [])].sort((a, b) =>
+    a.month.localeCompare(b.month),
+  );
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth() + 1;
+  const ytdKeys = new Set(
+    Array.from({ length: month }, (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`),
+  );
+  const priorYtdKeys = new Set(
+    Array.from({ length: month }, (_, index) => `${year - 1}-${String(index + 1).padStart(2, "0")}`),
+  );
+
+  const ytdFromSeries = sumSeries(series.filter((point) => ytdKeys.has(point.month.slice(0, 7))));
+  const priorYtdFromSeries = sumSeries(
+    series.filter((point) => priorYtdKeys.has(point.month.slice(0, 7))),
+  );
+  const revenueYtd = input.financials?.revenueYtd ?? ytdFromSeries;
+  const thisMonthAmount = input.financials?.monthlyRevenue ?? series[series.length - 1]?.amount ?? 0;
+  const lastMonthAmount = series.length >= 2 ? (series[series.length - 2]?.amount ?? 0) : 0;
+  const last3 = series.slice(-3);
+  const prior3 = series.slice(-6, -3);
+  const last3Amount = sumSeries(last3);
+  const prior3Amount = sumSeries(prior3);
+  const annualAmount = input.financials?.annualRevenue ?? revenueYtd;
+
+  const ytdDelta =
+    priorYtdFromSeries > 0 || revenueYtd > 0
+      ? pctChangeLabel(revenueYtd, priorYtdFromSeries, "year YTD")
+      : { label: "Year to date · ledger", tone: "neutral" as const };
+  const monthDeltaValue = revenuePctDelta(series) ?? {
+    label: "Current calendar month",
+    tone: "neutral" as const,
+  };
+  const lastMonthDelta =
+    series.length >= 3
+      ? pctChangeLabel(lastMonthAmount, series[series.length - 3]?.amount ?? 0, "month")
+      : { label: "Prior calendar month", tone: "neutral" as const };
+  const quarterDelta =
+    prior3.length > 0
+      ? pctChangeLabel(last3Amount, prior3Amount, "3 months")
+      : { label: "Last 3 months · ledger", tone: "neutral" as const };
+
+  return [
+    {
+      id: "ytd",
+      label: "YTD",
+      value: formatCompactMoney(revenueYtd, currency),
+      delta: ytdDelta.label,
+      tone: ytdDelta.tone,
+      hint: "Year to date · general ledger",
+    },
+    {
+      id: "this-month",
+      label: "This month",
+      value: formatCompactMoney(thisMonthAmount, currency),
+      delta: monthDeltaValue.label,
+      tone: monthDeltaValue.tone,
+      hint: "Current calendar month",
+    },
+    {
+      id: "last-month",
+      label: "Last month",
+      value: formatCompactMoney(lastMonthAmount, currency),
+      delta: lastMonthDelta.label,
+      tone: lastMonthDelta.tone,
+      hint: "Prior calendar month",
+    },
+    {
+      id: "last-3-months",
+      label: "Last 3 months",
+      value: formatCompactMoney(last3Amount, currency),
+      delta: quarterDelta.label,
+      tone: quarterDelta.tone,
+      hint: "Trailing 3 months · ledger",
+    },
+    {
+      id: "full-year",
+      label: "Full year",
+      value: formatCompactMoney(annualAmount, currency),
+      delta: "Calendar year · ledger",
+      tone: "neutral",
+      hint: "Calendar year to date / annual",
+    },
+  ];
+}
+
 export function countProjectsAtRisk(projects: InternalProject[], now = Date.now()) {
   return projects.filter((project) => {
     if (project.phase !== "live") return false;
@@ -112,6 +225,7 @@ export function buildExecutiveHomeLiveKpis(input: {
   DashboardKpiItem,
 ] {
   const currency = input.financials?.burnRate.currency || "GBP";
+  const revenuePeriods = buildRevenuePeriodOptions({ financials: input.financials, currency });
   const revenueYtd = input.financials?.revenueYtd ?? 0;
   const cash = input.financials?.cashPosition ?? 0;
   const burn = input.financials?.burnRate;
@@ -123,18 +237,20 @@ export function buildExecutiveHomeLiveKpis(input: {
     ["Client Created", "Workspace Provisioned", "Onboarding"].includes(client.accountStatus),
   ).length;
 
-  const revenueDelta = revenuePctDelta(input.financials?.charts.monthlyRevenue);
   const cashDelta = monthDelta(input.financials?.charts.cashPosition);
   const burnDelta = burnPreviousMonthDelta(burn);
+  const ytdPeriod = revenuePeriods.find((period) => period.id === "ytd") ?? revenuePeriods[0];
 
   return normalizeKpiRow([
     {
       id: "revenue",
       label: "Revenue",
-      value: formatCompactMoney(revenueYtd, currency),
-      delta: revenueDelta?.label ?? "YTD from ledger",
-      tone: revenueDelta?.tone ?? "neutral",
-      hint: "YTD · general ledger",
+      value: ytdPeriod?.value ?? formatCompactMoney(revenueYtd, currency),
+      delta: ytdPeriod?.delta ?? "YTD from ledger",
+      tone: ytdPeriod?.tone ?? "neutral",
+      hint: ytdPeriod?.hint ?? "YTD · general ledger",
+      defaultPeriodId: "ytd",
+      periods: revenuePeriods,
     },
     {
       id: "cash",

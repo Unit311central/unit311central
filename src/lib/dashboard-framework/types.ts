@@ -51,6 +51,16 @@ export type DashboardSectionSlot =
 
 export type DashboardKpiTone = "neutral" | "positive" | "warning" | "critical";
 
+export type DashboardKpiPeriodOption = {
+  id: string;
+  /** Short label shown in the period dropdown (e.g. YTD). */
+  label: string;
+  value: string;
+  delta?: string;
+  tone?: DashboardKpiTone;
+  hint?: string;
+};
+
 export type DashboardKpiItem = {
   id: string;
   label: string;
@@ -58,6 +68,9 @@ export type DashboardKpiItem = {
   delta?: string;
   tone?: DashboardKpiTone;
   hint?: string;
+  /** When set, the tile shows a period dropdown (defaults to the first option). */
+  periods?: readonly DashboardKpiPeriodOption[];
+  defaultPeriodId?: string;
 };
 
 export type DashboardAlertItem = {
