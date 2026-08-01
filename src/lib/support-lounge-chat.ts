@@ -250,7 +250,9 @@ export async function runSupportLoungeChat(input: {
 
   // Deterministic short-path for human help / updates — avoid OpenAI latency.
   if (
-    /\b(human|person|agent|operator|speak to|talk to)\b/i.test(lower) &&
+    /\b(human|person|agent|operator|advisor|speak to|talk to|speak to an advisor)\b/i.test(
+      lower,
+    ) &&
     input.activeTicketPublicToken
   ) {
     const ticket = await getLoungeTicketByPublicToken({

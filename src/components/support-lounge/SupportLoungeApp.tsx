@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 
+import Logo from "@/components/layout/Logo";
 import { LOUNGE_ATTACHMENT_ACCEPT, isAllowedLoungeAttachment } from "@/lib/support-lounge-attachments";
 import { cn } from "@/lib/utils";
 
@@ -257,7 +258,7 @@ export default function SupportLoungeApp({
         {
           role: "assistant",
           content:
-            "Welcome to Demo Support Lounge. I'll help you open a support ticket — no login needed.\n\nWhat is your first and last name?",
+            "Welcome to Demo Support Lounge. I'll help you open a support ticket.\n\nWhat is your first and last name?",
         },
       ]);
     }
@@ -670,27 +671,30 @@ export default function SupportLoungeApp({
         )}
       >
         <header className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-4 sm:mb-6 sm:pb-5">
-          <div className="flex min-w-0 items-start gap-4">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- remote Dicebear logo per client
-              <img
-                src={logoUrl}
-                alt={`${companyName} logo`}
-                className="h-16 w-16 shrink-0 rounded-2xl border border-white/10 bg-white/90 object-cover sm:h-20 sm:w-20"
-              />
-            ) : null}
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/80">
-                Support Lounge
-              </p>
-              <h1 className="mt-1 font-serif text-3xl tracking-tight text-white sm:text-5xl">
-                {loungeTitle || companyName}
-              </h1>
-              <p className="mt-2 max-w-xl text-sm text-white/55">
-                {caseMode
-                  ? `Case ${caseTicket?.id}. Bookmark this page for updates.`
-                  : `Chat with support for ${companyName}. Tickets go straight to the Demo operations team — no account required.`}
-              </p>
+          <div className="min-w-0 flex-1 space-y-3">
+            <Logo href="https://unit311central.com" height={44} />
+            <div className="flex min-w-0 items-start gap-4">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- remote Dicebear logo per client
+                <img
+                  src={logoUrl}
+                  alt={`${companyName} logo`}
+                  className="h-14 w-14 shrink-0 rounded-2xl border border-white/10 bg-white/90 object-cover sm:h-16 sm:w-16"
+                />
+              ) : null}
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/80">
+                  Support Lounge
+                </p>
+                <h1 className="mt-1 font-serif text-3xl tracking-tight text-white sm:text-5xl">
+                  {loungeTitle || companyName}
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
+                  {caseMode
+                    ? `Case ${caseTicket?.id}. Bookmark this page for updates, enter new information, and chat with your support advisor. For any problems you can always email support@unit311central.com.`
+                    : "Create a new support request to Demo. After your request is submitted, you will be emailed with updates and the web address to visit to get updates, enter new information and chat with your support advisor. For any problems you can always email support@unit311central.com"}
+                </p>
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
@@ -1027,10 +1031,10 @@ export default function SupportLoungeApp({
                       )}
                     </button>
                   </div>
-                  <p className="mt-2 text-[11px] text-white/35">
-                    {intakeMode
-                      ? "Answers are instant — no waiting between steps."
-                      : "Upload files anytime. Ask to speak with a person if you need human help."}
+                  <p className="mt-2 text-[11px] leading-relaxed text-white/35">
+                    At any time simply type in &quot;speak to an advisor&quot; and we&apos;ll connect
+                    you with your assigned support engineer. Please note responses may not always be
+                    immediate.
                   </p>
                 </form>
               )}
