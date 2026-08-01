@@ -403,6 +403,7 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "module-go-live",
   "testing",
   "telemetry",
+  "potential-clients",
 ]);
 
 const ABHI_HIDDEN_ITEM_LABELS = new Set([
@@ -411,6 +412,7 @@ const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Infrastructure & Cloud",
   "Testing",
   "Telemetry",
+  "Potential Clients",
 ]);
 
 function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
