@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 import CorpCentreLogoMark, {
   isCorpCentreSlug,
@@ -45,13 +45,17 @@ function resolveBrand(): BrandKind {
 
 /**
  * Sidebar brand — tenant logos only on their hosts.
- * Internal / demo / all other hosts keep the Unit311 Central wordmark unchanged.
+ * Resolved on the client after mount so SSR never locks Unit311 branding on Talanton.
  */
 export default function WorkspaceSidebarBrand({
   className,
   href = "/",
 }: WorkspaceSidebarBrandProps) {
-  const [brand] = useState<BrandKind>(() => resolveBrand());
+  const [brand, setBrand] = useState<BrandKind>("unit311");
+
+  useLayoutEffect(() => {
+    setBrand(resolveBrand());
+  }, []);
 
   const content =
     brand === "corpcentre" ? (
