@@ -13,8 +13,8 @@ export async function GET() {
   }
   try {
     await requirePlatformSession();
-    await requireCurrentWorkspace();
-    const partners = await listPartners();
+    const workspace = await requireCurrentWorkspace();
+    const partners = await listPartners(workspace.id);
     return NextResponse.json({ partners });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to list partners";

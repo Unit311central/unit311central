@@ -66,6 +66,41 @@ export function createInitialRepresentatives(): Representative[] {
     }
 
     try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        return [
+          {
+            id: "rep-abhi-1",
+            fullName: "Helen Cartwright",
+            companyName: "Cartwright Membership Partners",
+            email: "helen.cartwright@cmpartners.co.uk",
+            phone: "+44 20 7946 3101",
+            territory: "UK & Ireland",
+            repType: "Agent",
+            status: "Active",
+            notes:
+              "Membership acquisition agent — onboard new HealthTech companies into ABHI membership across England & Wales.",
+          },
+          {
+            id: "rep-abhi-2",
+            fullName: "James Okafor",
+            companyName: "Northbridge Introducers Ltd",
+            email: "james.okafor@northbridgeintroducers.co.uk",
+            phone: "+44 161 555 0188",
+            territory: "UK & Ireland",
+            repType: "Agent",
+            status: "Active",
+            notes:
+              "Membership acquisition agent — source and introduce prospective ABHI members across the North & Scotland.",
+          },
+        ];
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {

@@ -90,6 +90,7 @@ export default function RepresentativesWorkspace({
             phoneNumber?: string | null;
             status?: string;
             portalUrl?: string | null;
+            notes?: string | null;
           }>;
         }) => {
           if (cancelled || !Array.isArray(data.partners)) return;
@@ -98,19 +99,27 @@ export default function RepresentativesWorkspace({
           );
           const mapped: Representative[] = data.partners
             .filter((partner) => !existingEmails.has(partner.email.trim().toLowerCase()))
-            .map((partner) => ({
-              id: partner.id,
-              fullName: `${partner.firstName} ${partner.lastName}`.trim(),
-              companyName: partner.companyName,
-              email: partner.email,
-              phone: `${partner.phoneCountryCode || ""} ${partner.phoneNumber || ""}`.trim(),
-              territory: "Global",
-              repType: "Distributor",
-              status: partner.status === "active" ? "Active" : "Onboarding",
-              notes: partner.portalUrl
-                ? `Signup portal: ${partner.portalUrl}`
-                : "Signed up via /partners",
-            }));
+            .map((partner) => {
+              const notes = partner.notes || "";
+              const isAgent = /agent|membership|member onboard/i.test(
+                `${notes} ${partner.companyName}`,
+              );
+              return {
+                id: partner.id,
+                fullName: `${partner.firstName} ${partner.lastName}`.trim(),
+                companyName: partner.companyName,
+                email: partner.email,
+                phone: `${partner.phoneCountryCode || ""} ${partner.phoneNumber || ""}`.trim(),
+                territory: "UK & Ireland" as const,
+                repType: isAgent ? ("Agent" as const) : ("Distributor" as const),
+                status: partner.status === "active" ? ("Active" as const) : ("Onboarding" as const),
+                notes: notes
+                  ? notes
+                  : partner.portalUrl
+                    ? `Signup portal: ${partner.portalUrl}`
+                    : "Signed up via /partners",
+              };
+            });
           setLivePartnerNotes(
             data.partners
               .slice(0, 8)

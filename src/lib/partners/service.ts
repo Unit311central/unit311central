@@ -334,12 +334,13 @@ export async function getPartnerById(id: string): Promise<PartnerRecord | null> 
   return data ? mapPartner(data as DbPartner) : null;
 }
 
-export async function listPartners(): Promise<PartnerRecord[]> {
+export async function listPartners(workspaceId?: string | null): Promise<PartnerRecord[]> {
   const supabase = requirePartnersSupabase();
-  const { data, error } = await supabase
-    .from("partners")
-    .select("*")
-    .order("created_at", { ascending: false });
+  let query = supabase.from("partners").select("*").order("created_at", { ascending: false });
+  if (workspaceId) {
+    query = query.eq("workspace_id", workspaceId);
+  }
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return (data || []).map((row) => mapPartner(row as DbPartner));
 }
