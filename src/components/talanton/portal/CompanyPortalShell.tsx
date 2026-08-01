@@ -46,7 +46,7 @@ export function CompanyPortalShell({
     } catch {
       /* continue */
     }
-    window.location.href = "/login";
+    window.location.href = `/${companyPath}`;
   }
 
   return (
