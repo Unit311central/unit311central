@@ -48,7 +48,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
   const [timeSpent, setTimeSpent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCeremony, setShowCeremony] = useState(false);
   const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
@@ -73,11 +73,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
 
   const lessons = useMemo(() => (course ? flattenLessons(course) : []), [course]);
   const currentLesson = lessons[lessonIndex] ?? null;
-  const immersiveLesson =
-    currentLesson?.lessonType === "assessment" ||
-    currentLesson?.lessonType === "quiz" ||
-    currentLesson?.lessonType === "scenario" ||
-    currentLesson?.lessonType === "knowledge_check";
+  const immersiveLesson = Boolean(currentLesson);
   const progressPct =
     lessons.length === 0 ? 0 : Math.round((completedIds.size / lessons.length) * 100);
 

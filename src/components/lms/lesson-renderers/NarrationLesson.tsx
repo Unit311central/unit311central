@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play, Volume2 } from "lucide-react";
 
+import ImmersiveLessonShell from "@/components/lms/ImmersiveLessonShell";
 import type { LessonContent, LmsLesson } from "@/lib/lms/types";
 
 type NarrationContent = Extract<LessonContent, { type: "narration" }>;
@@ -43,20 +44,15 @@ export default function NarrationLesson({ lesson, content, onComplete }: Props) 
     }) ?? null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 py-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/70">
-          Narration
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">
-          {content.title || lesson.title}
-        </h2>
-        {content.voiceHint ? (
-          <p className="mt-2 text-xs text-white/45">Voice: {content.voiceHint}</p>
-        ) : null}
-      </header>
-
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#0d1b2e] to-[#07111f] p-5">
+    <ImmersiveLessonShell
+      eyebrow="Narration"
+      title={content.title || lesson.title}
+      subtitle={content.voiceHint ? `Voice: ${content.voiceHint}` : undefined}
+      sceneText={`${lesson.title} ${content.script}`}
+      onPrimary={onComplete}
+      primaryLabel="Next"
+    >
+      <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-200">
             <Volume2 className="h-5 w-5" />
@@ -65,9 +61,7 @@ export default function NarrationLesson({ lesson, content, onComplete }: Props) 
             <p className="text-sm font-semibold text-white">
               {hasAudio ? "Voice-over ready" : "Script mode (audio pending)"}
             </p>
-            <p className="text-xs text-white/45">
-              Follow along with the narration script below.
-            </p>
+            <p className="text-xs text-white/45">Follow along with the narration below.</p>
           </div>
           {hasAudio ? (
             <button
@@ -91,25 +85,15 @@ export default function NarrationLesson({ lesson, content, onComplete }: Props) 
           />
         ) : null}
 
-        <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-          <p className="whitespace-pre-wrap text-base leading-relaxed text-white/80">
-            {content.script}
+        <p className="whitespace-pre-wrap text-base leading-relaxed text-white/85">
+          {content.script}
+        </p>
+        {activeHighlight ? (
+          <p className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
+            {activeHighlight.text}
           </p>
-          {activeHighlight ? (
-            <p className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
-              {activeHighlight.text}
-            </p>
-          ) : null}
-        </div>
+        ) : null}
       </div>
-
-      <button
-        type="button"
-        onClick={onComplete}
-        className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400"
-      >
-        Continue
-      </button>
-    </div>
+    </ImmersiveLessonShell>
   );
 }

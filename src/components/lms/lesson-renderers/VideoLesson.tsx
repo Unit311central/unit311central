@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import ImmersiveLessonShell from "@/components/lms/ImmersiveLessonShell";
 import type { LessonContent, LmsLesson } from "@/lib/lms/types";
 
 type VideoContent = Extract<LessonContent, { type: "video" }>;
@@ -50,18 +51,19 @@ export default function VideoLesson({ lesson, content, onComplete }: Props) {
   }, [content.src, provider]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 py-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/70">
-          Video
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">{lesson.title}</h2>
-        {content.caption ? (
-          <p className="mt-2 text-sm text-white/60">{content.caption}</p>
-        ) : null}
-      </header>
-
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-xl shadow-black/40">
+    <ImmersiveLessonShell
+      eyebrow="Video"
+      title={lesson.title}
+      subtitle={content.caption}
+      imageUrl={content.poster}
+      sceneText={`${lesson.title} ${content.caption ?? ""}`}
+      primaryLabel="Next"
+      primaryDisabled={!watched}
+      onPrimary={onComplete}
+      footer={!watched ? "Start the video to unlock Next" : "Ready to continue"}
+      wide
+    >
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
         {embedUrl ? (
           <iframe
             title={lesson.title}
@@ -84,29 +86,15 @@ export default function VideoLesson({ lesson, content, onComplete }: Props) {
           </video>
         )}
       </div>
-
-      <div className="flex flex-wrap items-center gap-3">
+      {embedUrl ? (
         <button
           type="button"
-          onClick={onComplete}
-          disabled={!watched}
-          className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={() => setWatched(true)}
+          className="mt-3 text-xs text-emerald-300/80 underline-offset-2 hover:underline"
         >
-          Continue
+          I finished watching
         </button>
-        {!watched ? (
-          <p className="text-xs text-white/45">Start the video to unlock continue.</p>
-        ) : null}
-        {embedUrl ? (
-          <button
-            type="button"
-            onClick={() => setWatched(true)}
-            className="text-xs text-emerald-300/80 underline-offset-2 hover:underline"
-          >
-            I finished watching
-          </button>
-        ) : null}
-      </div>
-    </div>
+      ) : null}
+    </ImmersiveLessonShell>
   );
 }

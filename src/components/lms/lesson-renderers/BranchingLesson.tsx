@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
+import ImmersiveLessonShell from "@/components/lms/ImmersiveLessonShell";
 import type { LessonContent, LmsLesson } from "@/lib/lms/types";
 
 type BranchingContent = Extract<LessonContent, { type: "branching" }>;
@@ -19,17 +20,14 @@ export default function BranchingLesson({ lesson, content, onComplete }: Props) 
 
   if (!node) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4 py-8 text-center">
-        <h2 className="text-2xl font-semibold text-white">{lesson.title}</h2>
+      <ImmersiveLessonShell
+        eyebrow="Branching path"
+        title={lesson.title}
+        onPrimary={onComplete}
+        primaryLabel="Next"
+      >
         <p className="text-sm text-white/55">Branching path is incomplete.</p>
-        <button
-          type="button"
-          onClick={onComplete}
-          className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white"
-        >
-          Continue
-        </button>
-      </div>
+      </ImmersiveLessonShell>
     );
   }
 
@@ -41,18 +39,31 @@ export default function BranchingLesson({ lesson, content, onComplete }: Props) 
         : "border-white/10 bg-white/[0.03] text-white/80";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 py-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/70">
-          Branching path
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">{lesson.title}</h2>
-      </header>
-
+    <ImmersiveLessonShell
+      eyebrow="Branching path"
+      title={lesson.title}
+      sceneText={`${lesson.title} ${node.text} speak up report`}
+      primaryLabel={node.end ? "Next" : "Choose a path"}
+      primaryDisabled={!node.end}
+      onPrimary={node.end ? onComplete : undefined}
+      footer={
+        node.end ? (
+          <button
+            type="button"
+            onClick={() => setNodeId(content.startId)}
+            className="text-xs text-white/55 underline-offset-2 hover:underline"
+          >
+            Restart path
+          </button>
+        ) : (
+          "Select an option to continue the story"
+        )
+      }
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={nodeId}
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 28 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           className={`rounded-2xl border p-5 ${outcomeClass}`}
@@ -62,36 +73,25 @@ export default function BranchingLesson({ lesson, content, onComplete }: Props) 
       </AnimatePresence>
 
       {!node.end && node.choices?.length ? (
-        <div className="space-y-2">
-          {node.choices.map((choice) => (
-            <button
+        <div className="mt-4 space-y-2">
+          {node.choices.map((choice, i) => (
+            <motion.button
               key={`${choice.to}-${choice.label}`}
               type="button"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 * i }}
               onClick={() => setNodeId(choice.to)}
               className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left text-sm text-white/80 transition hover:border-emerald-400/40 hover:bg-white/[0.05]"
             >
+              <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/15 text-[11px] font-semibold text-white/50">
+                {String.fromCharCode(65 + i)}
+              </span>
               {choice.label}
-            </button>
+            </motion.button>
           ))}
         </div>
-      ) : (
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setNodeId(content.startId)}
-            className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/[0.05]"
-          >
-            Restart path
-          </button>
-          <button
-            type="button"
-            onClick={onComplete}
-            className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400"
-          >
-            Continue
-          </button>
-        </div>
-      )}
-    </div>
+      ) : null}
+    </ImmersiveLessonShell>
   );
 }

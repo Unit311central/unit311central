@@ -1,7 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
+import ImmersiveLessonShell from "@/components/lms/ImmersiveLessonShell";
 import type { LessonContent, LmsLesson } from "@/lib/lms/types";
 
 type InfographicContent = Extract<LessonContent, { type: "infographic" }>;
@@ -13,44 +15,66 @@ type Props = {
 };
 
 export default function InfographicLesson({ lesson, content, onComplete }: Props) {
-  return (
-    <div className="mx-auto max-w-4xl space-y-6 py-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/70">
-          Infographic
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">
-          {content.title || lesson.title}
-        </h2>
-      </header>
+  const [index, setIndex] = useState(0);
+  const item = content.items[index];
+  const isLast = index >= content.items.length - 1;
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {content.items.map((item, index) => (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08 }}
-            className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-4"
-          >
-            <div className="mb-3 flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-sm font-semibold text-emerald-200">
-                {item.icon || String(index + 1).padStart(2, "0")}
-              </span>
-              <h3 className="text-base font-semibold text-white">{item.label}</h3>
-            </div>
-            <p className="text-sm leading-relaxed text-white/65">{item.body}</p>
-          </motion.div>
+  if (!item) {
+    return (
+      <ImmersiveLessonShell
+        eyebrow="Infographic"
+        title={content.title || lesson.title}
+        onPrimary={onComplete}
+      >
+        <p className="text-sm text-white/55">No items.</p>
+      </ImmersiveLessonShell>
+    );
+  }
+
+  return (
+    <ImmersiveLessonShell
+      eyebrow="Infographic"
+      title={content.title || lesson.title}
+      sceneText={`${lesson.title} ${item.label} ${item.body}`}
+      footer={`Panel ${index + 1} of ${content.items.length}`}
+      primaryLabel={isLast ? "Next" : "Next panel"}
+      onPrimary={() => {
+        if (isLast) onComplete();
+        else setIndex((i) => i + 1);
+      }}
+    >
+      <div className="mb-4 flex gap-1.5">
+        {content.items.map((entry, i) => (
+          <button
+            key={entry.id}
+            type="button"
+            aria-label={`Panel ${i + 1}`}
+            onClick={() => setIndex(i)}
+            className={`h-2.5 w-2.5 rounded-full ${
+              i === index ? "bg-emerald-400" : i < index ? "bg-emerald-500/50" : "bg-white/20"
+            }`}
+          />
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={onComplete}
-        className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400"
-      >
-        Continue
-      </button>
-    </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={item.id}
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -30 }}
+          transition={{ type: "spring", stiffness: 260, damping: 28 }}
+          className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-6"
+        >
+          <div className="mb-4 flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/15 text-sm font-semibold text-emerald-200">
+              {item.icon || String(index + 1).padStart(2, "0")}
+            </span>
+            <h3 className="text-xl font-semibold text-white">{item.label}</h3>
+          </div>
+          <p className="text-base leading-relaxed text-white/75">{item.body}</p>
+        </motion.div>
+      </AnimatePresence>
+    </ImmersiveLessonShell>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import ImmersiveLessonShell from "@/components/lms/ImmersiveLessonShell";
 import type { LessonContent, LmsLesson } from "@/lib/lms/types";
 
 type RichTextContent = Extract<LessonContent, { type: "rich_text" }>;
@@ -17,17 +18,22 @@ function CalloutTone({ tone }: { tone?: "info" | "warning" | "success" }) {
 }
 
 export default function RichTextLesson({ lesson, content, onComplete }: Props) {
-  return (
-    <div className="mx-auto max-w-3xl space-y-6 py-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/70">
-          Reading
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">
-          {content.title || lesson.title}
-        </h2>
-      </header>
+  const sceneText = [
+    lesson.title,
+    content.title,
+    ...content.blocks.map((b) =>
+      b.kind === "bullet_list" ? b.items.join(" ") : "text" in b ? b.text : "",
+    ),
+  ].join(" ");
 
+  return (
+    <ImmersiveLessonShell
+      eyebrow="Reading"
+      title={content.title || lesson.title}
+      sceneText={sceneText}
+      onPrimary={onComplete}
+      primaryLabel="Next"
+    >
       <div className="space-y-4">
         {content.blocks.map((block, i) => {
           if (block.kind === "heading") {
@@ -49,14 +55,14 @@ export default function RichTextLesson({ lesson, content, onComplete }: Props) {
           }
           if (block.kind === "paragraph") {
             return (
-              <p key={i} className="text-base leading-relaxed text-white/75">
+              <p key={i} className="text-base leading-relaxed text-white/80">
                 {block.text}
               </p>
             );
           }
           if (block.kind === "bullet_list") {
             return (
-              <ul key={i} className="list-disc space-y-2 pl-5 text-white/75">
+              <ul key={i} className="list-disc space-y-2 pl-5 text-white/80">
                 {block.items.map((item, j) => (
                   <li key={j}>{item}</li>
                 ))}
@@ -76,14 +82,6 @@ export default function RichTextLesson({ lesson, content, onComplete }: Props) {
           );
         })}
       </div>
-
-      <button
-        type="button"
-        onClick={onComplete}
-        className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400"
-      >
-        Continue
-      </button>
-    </div>
+    </ImmersiveLessonShell>
   );
 }

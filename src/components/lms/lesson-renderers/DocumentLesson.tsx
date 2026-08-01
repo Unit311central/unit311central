@@ -2,6 +2,7 @@
 
 import { Download, FileText } from "lucide-react";
 
+import ImmersiveLessonShell from "@/components/lms/ImmersiveLessonShell";
 import type { LessonContent, LmsLesson } from "@/lib/lms/types";
 
 type DocContent = Extract<LessonContent, { type: "document" }>;
@@ -14,17 +15,14 @@ type Props = {
 
 export default function DocumentLesson({ lesson, content, onComplete }: Props) {
   return (
-    <div className="mx-auto max-w-2xl space-y-6 py-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/70">
-          Documents
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">{lesson.title}</h2>
-        {content.intro ? (
-          <p className="mt-2 text-sm leading-relaxed text-white/60">{content.intro}</p>
-        ) : null}
-      </header>
-
+    <ImmersiveLessonShell
+      eyebrow="Documents"
+      title={lesson.title}
+      subtitle={content.intro}
+      sceneText={`${lesson.title} ${content.intro ?? ""} policy document pack`}
+      onPrimary={onComplete}
+      primaryLabel="Next"
+    >
       <ul className="space-y-2">
         {content.files.map((file) => (
           <li
@@ -54,14 +52,6 @@ export default function DocumentLesson({ lesson, content, onComplete }: Props) {
           </li>
         ))}
       </ul>
-
-      <button
-        type="button"
-        onClick={onComplete}
-        className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400"
-      >
-        Continue
-      </button>
-    </div>
+    </ImmersiveLessonShell>
   );
 }

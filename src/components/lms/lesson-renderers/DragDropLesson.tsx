@@ -14,6 +14,7 @@ import {
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 
+import ImmersiveLessonShell from "@/components/lms/ImmersiveLessonShell";
 import type { LessonContent, LmsLesson } from "@/lib/lms/types";
 
 type DragContent = Extract<LessonContent, { type: "drag_drop" }>;
@@ -76,7 +77,7 @@ function DropZone({
   return (
     <div
       ref={setNodeRef}
-      className={`min-h-[140px] rounded-2xl border-2 border-dashed p-3 transition ${styleClass} ${
+      className={`min-h-[120px] rounded-2xl border-2 border-dashed p-3 transition ${styleClass} ${
         isOver ? "ring-2 ring-white/30" : ""
       }`}
     >
@@ -96,45 +97,49 @@ export default function DragDropLesson({ lesson, content, onComplete }: Props) {
   const unplaced = content.items.filter((item) => !placements[item.id]);
   const allPlaced = content.items.every((item) => placements[item.id]);
   const allCorrect =
-    checked &&
-    content.items.every((item) => placements[item.id] === item.correctZoneId);
+    checked && content.items.every((item) => placements[item.id] === item.correctZoneId);
 
   const activeItem = useMemo(
     () => content.items.find((i) => i.id === activeId) ?? null,
     [activeId, content.items],
   );
 
-  function onDragStart(event: DragStartEvent) {
-    setActiveId(String(event.active.id));
-  }
-
-  function onDragEnd(event: DragEndEvent) {
-    setActiveId(null);
-    const itemId = String(event.active.id);
-    const overId = event.over ? String(event.over.id) : null;
-    if (!overId) return;
-    if (content.zones.some((z) => z.id === overId)) {
-      setPlacements((prev) => ({ ...prev, [itemId]: overId }));
-      setChecked(false);
-    }
-  }
-
-  function checkAnswers() {
-    setChecked(true);
-  }
-
   return (
-    <div className="mx-auto max-w-4xl space-y-6 py-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/70">
-          Drag & drop
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">{lesson.title}</h2>
-        <p className="mt-2 text-sm text-white/65">{content.prompt}</p>
-      </header>
-
-      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+    <ImmersiveLessonShell
+      eyebrow="Drag & drop"
+      title={lesson.title}
+      subtitle={content.prompt}
+      sceneText={`${lesson.title} ${content.prompt} gifts hospitality zones`}
+      primaryLabel={allCorrect ? "Next" : "Check then continue"}
+      primaryDisabled={!allCorrect}
+      onPrimary={onComplete}
+      wide
+      footer={
+        <button
+          type="button"
+          onClick={() => setChecked(true)}
+          disabled={!allPlaced}
+          className="rounded-lg border border-white/15 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/[0.08] disabled:opacity-40"
+        >
+          Check placement
+        </button>
+      }
+    >
+      <DndContext
+        sensors={sensors}
+        onDragStart={(event: DragStartEvent) => setActiveId(String(event.active.id))}
+        onDragEnd={(event: DragEndEvent) => {
+          setActiveId(null);
+          const itemId = String(event.active.id);
+          const overId = event.over ? String(event.over.id) : null;
+          if (!overId) return;
+          if (content.zones.some((z) => z.id === overId)) {
+            setPlacements((prev) => ({ ...prev, [itemId]: overId }));
+            setChecked(false);
+          }
+        }}
+      >
+        <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-white/40">
             Items
           </p>
@@ -160,10 +165,8 @@ export default function DragDropLesson({ lesson, content, onComplete }: Props) {
               {content.items
                 .filter((item) => placements[item.id] === zone.id)
                 .map((item) => {
-                  const wrong =
-                    checked && placements[item.id] !== item.correctZoneId;
-                  const right =
-                    checked && placements[item.id] === item.correctZoneId;
+                  const wrong = checked && placements[item.id] !== item.correctZoneId;
+                  const right = checked && placements[item.id] === item.correctZoneId;
                   return (
                     <div
                       key={item.id}
@@ -192,29 +195,11 @@ export default function DragDropLesson({ lesson, content, onComplete }: Props) {
         </DragOverlay>
       </DndContext>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={checkAnswers}
-          disabled={!allPlaced}
-          className="rounded-lg border border-white/15 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/[0.08] disabled:opacity-40"
-        >
-          Check placement
-        </button>
-        <button
-          type="button"
-          onClick={onComplete}
-          disabled={!allCorrect}
-          className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Continue
-        </button>
-        {checked && !allCorrect ? (
-          <p className="self-center text-xs text-amber-200/80">
-            Some items are in the wrong zone — try again.
-          </p>
-        ) : null}
-      </div>
-    </div>
+      {checked && !allCorrect ? (
+        <p className="mt-3 text-xs text-amber-200/80">
+          Some items are in the wrong zone — try again.
+        </p>
+      ) : null}
+    </ImmersiveLessonShell>
   );
 }
