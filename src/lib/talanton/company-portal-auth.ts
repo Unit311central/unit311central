@@ -14,7 +14,14 @@ export type CompanyPortalSession = {
   userType: string;
   redirectPath: string;
   clientId: string | null;
+  /** Talanton staff preview — still portal chrome only, never admin nav. */
+  isStaffPreview: boolean;
 };
+
+function loginRedirectForPortal(path: string) {
+  const encoded = encodeURIComponent(`/${path}`);
+  return `/login?return_to=${encoded}&next=${encoded}`;
+}
 
 export async function requireCompanyPortalAccess(
   companyPath: string,
@@ -27,32 +34,51 @@ export async function requireCompanyPortalAccess(
   const jar = await cookies();
   const token = jar.get(PLATFORM_SESSION_COOKIE)?.value;
   if (!token) {
-    redirect(`/login?next=/${route.path}`);
+    redirect(loginRedirectForPortal(route.path));
   }
 
   const session = await readPlatformSessionToken(token);
   if (!session) {
-    redirect(`/login?next=/${route.path}`);
+    redirect(loginRedirectForPortal(route.path));
   }
 
-  if (session.userType !== "external") {
-    redirect("/dashboard");
+  // External users: only their assigned company portal.
+  if (session.userType === "external") {
+    const allowed = getCompanyPortalByPath(session.redirectPath);
+    if (!allowed || allowed.path !== route.path) {
+      redirect(allowed ? `/${allowed.path}` : loginRedirectForPortal(route.path));
+    }
+
+    return {
+      route,
+      session: {
+        userId: session.sub,
+        username: session.username,
+        displayName: session.displayName,
+        userType: session.userType,
+        redirectPath: session.redirectPath,
+        clientId: allowed.clientId,
+        isStaffPreview: false,
+      },
+    };
   }
 
-  const allowed = getCompanyPortalByPath(session.redirectPath);
-  if (!allowed || allowed.path !== route.path) {
-    redirect(allowed ? `/${allowed.path}` : "/login");
+  // Internal Talanton staff (host membership already enforced by middleware) may
+  // preview company portals. These URLs always render portal chrome — never admin nav.
+  if (session.userType === "internal") {
+    return {
+      route,
+      session: {
+        userId: session.sub,
+        username: session.username,
+        displayName: session.displayName,
+        userType: session.userType,
+        redirectPath: `/${route.path}`,
+        clientId: route.clientId,
+        isStaffPreview: true,
+      },
+    };
   }
 
-  return {
-    route,
-    session: {
-      userId: session.sub,
-      username: session.username,
-      displayName: session.displayName,
-      userType: session.userType,
-      redirectPath: session.redirectPath,
-      clientId: allowed.clientId,
-    },
-  };
+  redirect(loginRedirectForPortal(route.path));
 }

@@ -514,6 +514,7 @@ export function resolveBrowserRedirectPathForHost(
   }
 
   const opsOrigin = resolveOpsShellOrigin(requestHost, absoluteHost, options?.opsOrigin);
+  const customerHostSlug = parseClientPlatformSubdomainSafe(requestHost);
 
   // Absolute URL to ops or customer host: keep origin, canonicalize path.
   if (absoluteHost) {
@@ -525,6 +526,12 @@ export function resolveBrowserRedirectPathForHost(
     }
     // Other absolute URLs (e.g. already-canonicalized external) — return as-is.
     return normalized;
+  }
+
+  // Customer workspace host (e.g. talantonimpact): keep the user on that origin.
+  // Critical for company-portal paths — do not bounce externals to internal.*.
+  if (customerHostSlug) {
+    return joinOriginAndPath(`https://${normalizeHost(requestHost)}`, canonicalPath);
   }
 
   // External users stay on apex for non-ops destinations (/payment, etc.).

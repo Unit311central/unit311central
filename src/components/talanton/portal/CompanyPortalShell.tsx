@@ -17,6 +17,7 @@ type Props = {
   companyPath: string;
   companyName: string;
   displayName: string;
+  isStaffPreview?: boolean;
   children: React.ReactNode;
 };
 
@@ -31,6 +32,7 @@ export function CompanyPortalShell({
   companyPath,
   companyName,
   displayName,
+  isStaffPreview = false,
   children,
 }: Props) {
   const pathname = usePathname() || "";
@@ -99,9 +101,14 @@ export function CompanyPortalShell({
       </aside>
 
       <main className="min-w-0 flex-1 overflow-auto px-6 py-6 sm:px-8">
-        <div className="mb-6 flex items-center gap-2 text-xs text-white/40">
+        <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-white/40">
           <BookOpen className="h-3.5 w-3.5" />
           Talanton Impact · Company Portal
+          {isStaffPreview ? (
+            <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-amber-200">
+              Staff preview
+            </span>
+          ) : null}
         </div>
         {children}
       </main>

@@ -23,6 +23,7 @@ import {
 import { loginPlatformUser } from "@/lib/platform-users-service";
 import { recordPlatformUserLogin } from "@/lib/external-platform-users-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { resolveTalantonCompanyPortalPostLoginUrl } from "@/lib/talanton/company-portal-login";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
   INTERNAL_WORKSPACE_SLUG,
@@ -76,7 +77,8 @@ function nextFromReferer(request: NextRequest): string | null {
 
 /**
  * Resolve post-login navigation.
- * Priority: workspace return_to → demo/internal return_to (+ optional next) →
+ * Priority for Talanton company-portal externals: assigned portal URL (never admin dashboard).
+ * Otherwise: workspace return_to → demo/internal return_to (+ optional next) →
  * deep-link next → stored redirect_path (canonicalized).
  */
 async function resolvePostLoginRedirect(options: {
@@ -89,6 +91,17 @@ async function resolvePostLoginRedirect(options: {
   const { redirectPath, requestHost, returnToRaw, nextRaw, userType } = options;
   const loginReturn = parseLoginReturnTo(returnToRaw);
   const nextPath = parseSafePostLoginNext(nextRaw);
+
+  // Company portal externals must never land in the Talanton admin shell.
+  if (userType === "external") {
+    const portalUrl = resolveTalantonCompanyPortalPostLoginUrl({
+      redirectPath,
+      nextRaw: nextPath ?? nextRaw,
+      returnToRaw,
+      requestHost,
+    });
+    if (portalUrl) return portalUrl;
+  }
 
   if (loginReturn?.kind === "workspace") {
     const slug = parseClientPlatformSubdomainSafe(new URL(loginReturn.origin).host);

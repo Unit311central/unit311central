@@ -16,6 +16,7 @@ export default async function CompanyPortalLayout({
       companyPath={route.path}
       companyName={route.displayName}
       displayName={session.displayName || session.username}
+      isStaffPreview={session.isStaffPreview}
     >
       {children}
     </CompanyPortalShell>

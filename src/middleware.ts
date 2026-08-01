@@ -142,13 +142,17 @@ export async function middleware(request: NextRequest) {
     };
 
     // Talanton route-based company portals: /{company}/... on talantonimpact host only.
+    // These URLs must NEVER fall through to the admin /internaldashboard shell.
     if (workspaceSlug === TALANTON_IMPACT_SLUG) {
       const portalMatch = matchTalantonCompanyPortalPathname(pathname);
       if (portalMatch) {
         const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
         if (gate.status === "anonymous" || gate.status === "invalid" || gate.status === "forbidden") {
-          const next = encodeURIComponent(`${pathname}${search}`);
-          return redirectExternal(`${workspaceOrigin}/login?next=${next}`);
+          const portalPath = `/${portalMatch.route.path}${portalMatch.rest || ""}`;
+          const encoded = encodeURIComponent(portalPath);
+          return redirectExternal(
+            `${workspaceOrigin}/login?return_to=${encoded}&next=${encoded}`,
+          );
         }
         if (gate.status === "workspace_missing") {
           return redirectExternal(`${workspaceOrigin}/login`);
@@ -169,16 +173,39 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    // Talanton externals may only use login/api/static + their assigned company portal.
+    if (workspaceSlug === TALANTON_IMPACT_SLUG) {
+      const externalGate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+      if (externalGate.status === "ok" && externalGate.session.userType === "external") {
+        const portalHome = canonicalizePortalRedirect(externalGate.session.redirectPath);
+        const isPortalPath = matchTalantonCompanyPortalPathname(pathname) != null;
+        const isAllowedUtility =
+          pathname === "/login" ||
+          pathname.startsWith("/login/") ||
+          pathname.startsWith("/api/") ||
+          pathname.startsWith("/_next/");
+        if (!isPortalPath && !isAllowedUtility) {
+          const bounce = redirectExternal(`${workspaceOrigin}${portalHome || "/login"}`);
+          return applyCustomerHostRebindIfNeeded({
+            request,
+            response: bounce,
+            gate: externalGate,
+          });
+        }
+      }
+    }
+
     // Customer-host login stays on this origin (tenant branding).
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (gate.status === "ok") {
-        const destination =
-          gate.session.userType === "external" &&
-          workspaceSlug === TALANTON_IMPACT_SLUG &&
-          canonicalizePortalRedirect(gate.session.redirectPath)
-            ? `${workspaceOrigin}${canonicalizePortalRedirect(gate.session.redirectPath)}`
-            : `${workspaceOrigin}/dashboard${search}`;
+        const portalHome =
+          gate.session.userType === "external" && workspaceSlug === TALANTON_IMPACT_SLUG
+            ? canonicalizePortalRedirect(gate.session.redirectPath)
+            : null;
+        const destination = portalHome
+          ? `${workspaceOrigin}${portalHome}`
+          : `${workspaceOrigin}/dashboard${search}`;
         const redirect = redirectExternal(destination);
         return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
       }

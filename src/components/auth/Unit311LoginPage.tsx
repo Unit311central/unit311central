@@ -68,9 +68,20 @@ function readReturnToFromLocation(): string | null {
   return parseLoginReturnTo(raw)?.origin ?? null;
 }
 
+/** Relative company-portal paths may arrive as return_to=/{company}. */
+function readPortalReturnPathFromLocation(): string | null {
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get("return_to");
+  if (!raw?.startsWith("/") || raw.startsWith("//")) return null;
+  return parseSafePostLoginNext(raw);
+}
+
 function readNextFromLocation(): string | null {
   if (typeof window === "undefined") return null;
-  return parseSafePostLoginNext(new URLSearchParams(window.location.search).get("next"));
+  const params = new URLSearchParams(window.location.search);
+  return (
+    parseSafePostLoginNext(params.get("next")) ?? readPortalReturnPathFromLocation()
+  );
 }
 
 function readPersistedReturnTo(): string | null {
@@ -208,7 +219,11 @@ export default function Unit311LoginPage({
         }),
       });
 
-      const data = await readApiJson<{ redirectPath?: string; error?: string }>(response);
+      const data = await readApiJson<{
+        redirectPath?: string;
+        error?: string;
+        userType?: string;
+      }>(response);
       if (!response.ok || !data.redirectPath) {
         throw new Error(data.error ?? "Invalid username or password.");
       }
@@ -222,6 +237,13 @@ export default function Unit311LoginPage({
       }
 
       persistNext(null);
+
+      // External company-portal redirects from the API are authoritative — never
+      // collapse them back to workspace /dashboard via return_to handling.
+      if (data.userType === "external") {
+        window.location.assign(data.redirectPath);
+        return;
+      }
 
       if (workspaceReturnTo) {
         window.location.assign(
