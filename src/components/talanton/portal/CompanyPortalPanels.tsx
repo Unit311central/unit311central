@@ -64,8 +64,7 @@ function Table({
   );
 }
 
-type CatalogItem = {
-  course: LmsCourse;
+type CatalogItem = LmsCourse & {
   enrolment: LmsEnrolment | null;
 };
 
@@ -82,11 +81,10 @@ function useLmsCatalog() {
         const res = await fetch("/api/lms/catalog", { credentials: "include" });
         const data = (await res.json()) as {
           courses?: CatalogItem[];
-          items?: CatalogItem[];
           error?: string;
         };
         if (!res.ok) throw new Error(data.error || "Failed to load catalog.");
-        if (!cancelled) setItems(data.courses ?? data.items ?? []);
+        if (!cancelled) setItems(data.courses ?? []);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load catalog.");
@@ -181,13 +179,13 @@ export function CompanyPortalAssignedCourses({ companyPath }: { companyPath: str
   const rows = useMemo(() => {
     if (items.length > 0) {
       return items.map((item) => {
-        const slug = item.course.slug;
+        const slug = item.slug;
         const status = item.enrolment?.status ?? "assigned";
         const pct = item.enrolment?.progressPct ?? 0;
         return [
-          item.course.title,
-          item.course.category,
-          `${item.course.durationMinutes} min`,
+          item.title,
+          item.category,
+          `${item.durationMinutes} min`,
           status.replaceAll("_", " "),
           `${pct}%`,
           <Link
@@ -250,12 +248,12 @@ export function CompanyPortalTrainingInProgress({ companyPath }: { companyPath: 
         rows={
           filtered.length
             ? filtered.map((item) => [
-                item.course.title,
+                item.title,
                 `${item.enrolment?.progressPct ?? 0}%`,
                 `${Math.round((item.enrolment?.timeSpentSeconds ?? 0) / 60)} min`,
                 <Link
-                  key={item.course.id}
-                  href={`/${companyPath}/training/course/${item.course.slug}`}
+                  key={item.id}
+                  href={`/${companyPath}/training/course/${item.slug}`}
                   className="inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400"
                 >
                   Resume
@@ -284,12 +282,12 @@ export function CompanyPortalTrainingCompleted({ companyPath }: { companyPath: s
         rows={
           filtered.length
             ? filtered.map((item) => [
-                item.course.title,
+                item.title,
                 item.enrolment?.score == null ? "—" : `${item.enrolment.score}%`,
                 item.enrolment?.completedAt?.slice(0, 10) ?? "—",
                 <Link
-                  key={item.course.id}
-                  href={`/${companyPath}/training/course/${item.course.slug}`}
+                  key={item.id}
+                  href={`/${companyPath}/training/course/${item.slug}`}
                   className="text-xs font-semibold text-emerald-300 hover:underline"
                 >
                   Review

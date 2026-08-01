@@ -26,8 +26,7 @@ type ReportingPayload = {
   }[];
 };
 
-type CatalogItem = {
-  course: LmsCourse;
+type CatalogItem = LmsCourse & {
   enrolment: LmsEnrolment | null;
 };
 
@@ -63,8 +62,7 @@ export default function LmsReportingDashboard() {
         ]);
         const rep = (await repRes.json()) as ReportingPayload & { error?: string };
         const cat = (await catRes.json()) as {
-          courses?: Array<LmsCourse & { enrolment?: LmsEnrolment | null }>;
-          items?: CatalogItem[];
+          courses?: CatalogItem[];
           error?: string;
         };
         const cert = (await certRes.json()) as {
@@ -74,13 +72,7 @@ export default function LmsReportingDashboard() {
         if (!repRes.ok) throw new Error(rep.error || "Reporting failed.");
         if (cancelled) return;
         setReporting(rep);
-        const normalizedCatalog: CatalogItem[] =
-          cat.items ??
-          (cat.courses ?? []).map((row) => ({
-            course: row,
-            enrolment: row.enrolment ?? null,
-          }));
-        setCatalog(normalizedCatalog);
+        setCatalog(cat.courses ?? []);
         setCertificates(cert.certificates ?? []);
       } catch (err) {
         if (!cancelled) {
@@ -256,12 +248,12 @@ export default function LmsReportingDashboard() {
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {catalog.map((item) => (
               <li
-                key={item.course.id}
+                key={item.id}
                 className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/75"
               >
-                <span className="font-medium text-white">{item.course.title}</span>
+                <span className="font-medium text-white">{item.title}</span>
                 <span className="mt-0.5 block text-xs text-white/45">
-                  {item.course.category} · {item.course.durationMinutes} min ·{" "}
+                  {item.category} · {item.durationMinutes} min ·{" "}
                   {item.enrolment?.status ?? "unassigned"}
                 </span>
               </li>
