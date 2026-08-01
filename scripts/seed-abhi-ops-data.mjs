@@ -53,6 +53,7 @@ const CASH = 4_242_957;
 const DEBTORS = 3_988_245;
 const CREDITORS = 7_605_083;
 const FIXED_ASSETS = 2_449; // so net assets = 628,568
+const REVENUE_YTD = 2_000_000;
 const EXTERNAL_PROJECT_VALUE = 500_000;
 
 /** Effective UK 2025/26 rates for ~£100k salary (flat-% payroll engine). */
@@ -63,6 +64,7 @@ const UK_EMPLOYER_NI_PCT = 14.25; // employer_payroll_pct → Employer NI
 const CASH_SOURCE = "abhi_ops_opening_cash";
 const FA_SOURCE = "abhi_ops_opening_fa";
 const AR_SOURCE = "abhi_ops_ar";
+const REVENUE_SOURCE = "abhi_ops_revenue";
 const AP_TAG = "ABHI AP seed";
 const INV_PREFIX = "ABHI-AR";
 const AP_REF_PREFIX = "ABHI-AP-";
@@ -562,13 +564,28 @@ async function main() {
     sourceType: AR_SOURCE,
     sourceId: "abhi-ar-3988245",
     reference: "ABHI-AR-OPEN",
-    description: "ABHI debtors outstanding £3,988,245",
+    description: "ABHI debtors opening balance £3,988,245 (BS only — not income)",
     journalDate: "2026-06-30",
     debitAccountId: arAcct.id,
-    creditAccountId: revenue.id,
+    creditAccountId: equity.id,
     amount: DEBTORS,
-    debitDesc: "Accounts receivable",
-    creditDesc: "Membership & services income",
+    debitDesc: "Accounts receivable opening",
+    creditDesc: "Opening equity for debtors",
+  });
+
+  // Separate YTD revenue fixture (£2m) — does not inflate cash or debtors.
+  await postSimpleJournal({
+    workspaceId: WS,
+    sourceType: REVENUE_SOURCE,
+    sourceId: "abhi-revenue-2m",
+    reference: "ABHI-REV-YTD-2M",
+    description: "ABHI YTD revenue fixture £2,000,000",
+    journalDate: "2026-06-30",
+    debitAccountId: equity.id,
+    creditAccountId: revenue.id,
+    amount: REVENUE_YTD,
+    debitDesc: "Equity reclass for YTD revenue fixture",
+    creditDesc: "Membership & services income YTD",
   });
 
   const today = new Date();
@@ -656,21 +673,9 @@ async function main() {
     if (error) throw new Error(`AP expenses: ${error.message}`);
   }
 
-  // Optional matching AP accrual journal (does not drive dashboard AP — expenses do)
+  // Do not post a P&L expense accrual for AP — unpaid financial_expenses drive creditors,
+  // and a one-shot opex journal was incorrectly inflating monthly burn to ~£8m.
   await wipeJournalSource(WS, "abhi_ops_ap");
-  await postSimpleJournal({
-    workspaceId: WS,
-    sourceType: "abhi_ops_ap",
-    sourceId: "abhi-ap-accrual",
-    reference: "ABHI-AP-ACCRUAL",
-    description: `ABHI creditors accrual £${expenseTarget}`,
-    journalDate: "2026-06-30",
-    debitAccountId: opex.id,
-    creditAccountId: apAcct.id,
-    amount: expenseTarget,
-    debitDesc: "Operating expenses accrual",
-    creditDesc: "Accounts payable",
-  });
 
   // ——— Verify ———
   const { count: clientActive } = await admin

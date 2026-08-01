@@ -12,6 +12,11 @@ import {
   CORPCENTRE_CASH_BALANCE_AUD,
   isCorpCentreWorkspaceSlug,
 } from "@/lib/corpcentre-financials";
+import {
+  ABHI_CASH_BALANCE_GBP,
+  ABHI_REVENUE_YTD_GBP,
+  isAbhiWorkspaceSlug,
+} from "@/lib/abhi-financials";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import {
   resolveFinancialsWorkspaceId,
@@ -317,11 +322,13 @@ export async function getFinancialOverview(
     const allExpenses = expensesResult.ok ? expensesResult.value : [];
 
     // Resolve after GL so we can fall back to Wise GL accounts if Wise API is down.
-    // CorpCentre uses a fixed AUD cash position (not platform Wise / GBP conversion).
+    // CorpCentre / ABHI use fixed cash fixtures (not platform Wise).
     const workspaceSlug = await resolveWorkspaceSlug(workspaceId);
     let cashPosition: number;
     if (isCorpCentreWorkspaceSlug(workspaceSlug)) {
       cashPosition = CORPCENTRE_CASH_BALANCE_AUD;
+    } else if (isAbhiWorkspaceSlug(workspaceSlug)) {
+      cashPosition = ABHI_CASH_BALANCE_GBP;
     } else {
       cashPosition = await resolveTreasuryCash(totals.cashPosition);
       if (reportingCurrency !== "GBP") {
@@ -406,6 +413,9 @@ export async function getFinancialOverview(
       annualRevenue =
         seededYearRevenue > 0 ? seededYearRevenue : roundMoney(totals.income);
     }
+    if (isAbhiWorkspaceSlug(workspaceSlug)) {
+      annualRevenue = ABHI_REVENUE_YTD_GBP;
+    }
     const annualExpenses = roundMoney(
       charts.monthlyOutgoings
         .filter((point) => point.month.startsWith(yearPrefix))
@@ -454,7 +464,11 @@ export async function getFinancialOverview(
     const glSpend = totals.expenses;
     const netProfit = roundMoney(glRevenue - glSpend);
     // Calendar YTD from monthly series when available; else all-time income balance.
-    const revenueYtd = annualRevenue > 0 ? annualRevenue : roundMoney(glRevenue);
+    const revenueYtd = isAbhiWorkspaceSlug(workspaceSlug)
+      ? ABHI_REVENUE_YTD_GBP
+      : annualRevenue > 0
+        ? annualRevenue
+        : roundMoney(glRevenue);
 
     const payrollPoint =
       burnRate.series.find((point) => point.month === monthPrefix) ??
@@ -517,13 +531,16 @@ export async function getFinancialOverview(
 
     const glBurnBase =
       burnRate.lines.length > 0 ? burnRate.monthly : (monthlyExpensePoint?.amount ?? 0);
-    const monthlyBurn = isDemoTreasury
-      ? roundMoney(payrollBurn + softwareMonthly + vendorExpenseRunRate)
-      : roundMoney(
-          Math.max(0, glBurnBase - glPayrollMonthly - glSoftwareMonthly) +
-            payrollMonthly +
-            softwareMonthly,
-        );
+    // ABHI: burn is staff payroll employment cost only for now (ignore one-shot GL accruals).
+    const monthlyBurn = isAbhiWorkspaceSlug(workspaceSlug)
+      ? roundMoney(payrollBurn)
+      : isDemoTreasury
+        ? roundMoney(payrollBurn + softwareMonthly + vendorExpenseRunRate)
+        : roundMoney(
+            Math.max(0, glBurnBase - glPayrollMonthly - glSoftwareMonthly) +
+              payrollMonthly +
+              softwareMonthly,
+          );
 
     const priorMonthPrefix = (() => {
       const [year, month] = monthPrefix.split("-").map(Number);
@@ -532,14 +549,16 @@ export async function getFinancialOverview(
     })();
     const priorVendor =
       vendorExpenseByMonth.get(priorMonthPrefix) ?? vendorExpenseRunRate;
-    const previousMonthlyBurn = isDemoTreasury
-      ? roundMoney(payrollBurn + softwareMonthly + priorVendor)
-      : roundMoney(
-          burnRate.previousMonthly > 0
-            ? burnRate.previousMonthly
-            : (charts.monthlyOutgoings.find((point) => point.month === priorMonthPrefix)?.amount ??
-              monthlyBurn),
-        );
+    const previousMonthlyBurn = isAbhiWorkspaceSlug(workspaceSlug)
+      ? roundMoney(payrollBurn)
+      : isDemoTreasury
+        ? roundMoney(payrollBurn + softwareMonthly + priorVendor)
+        : roundMoney(
+            burnRate.previousMonthly > 0
+              ? burnRate.previousMonthly
+              : (charts.monthlyOutgoings.find((point) => point.month === priorMonthPrefix)?.amount ??
+                monthlyBurn),
+          );
     const burnChangePct =
       previousMonthlyBurn <= 0
         ? 0
@@ -547,15 +566,17 @@ export async function getFinancialOverview(
     const burnTrend: FinancialOverviewSnapshot["burnRate"]["trend"] =
       burnChangePct <= -2 ? "improving" : burnChangePct >= 2 ? "increasing" : "stable";
 
-    const forecastMonthly = isDemoTreasury
+    const forecastMonthly = isAbhiWorkspaceSlug(workspaceSlug)
       ? monthlyBurn
-      : roundMoney(
-          burnRate.lines.length > 0
-            ? Math.max(0, burnRate.forecastMonthly - glPayrollMonthly - glSoftwareMonthly) +
-                payrollMonthly +
-                softwareMonthly
-            : monthlyBurn,
-        );
+      : isDemoTreasury
+        ? monthlyBurn
+        : roundMoney(
+            burnRate.lines.length > 0
+              ? Math.max(0, burnRate.forecastMonthly - glPayrollMonthly - glSoftwareMonthly) +
+                  payrollMonthly +
+                  softwareMonthly
+              : monthlyBurn,
+          );
 
     const payrollTrend =
       burnRate.series.length > 0
@@ -648,11 +669,13 @@ export async function getFinancialOverview(
         forecastMonthly: roundMoney(forecastMonthly),
         cashBalance: cashPosition,
         currency: reportingCurrency,
-        trendLabel: isDemoTreasury
-          ? "Payroll + software + vendor opex"
-          : burnRate.lines.length > 0
-            ? burnRate.trendLabel
-            : "Operating registers",
+        trendLabel: isAbhiWorkspaceSlug(workspaceSlug)
+          ? "Staff payroll"
+          : isDemoTreasury
+            ? "Payroll + software + vendor opex"
+            : burnRate.lines.length > 0
+              ? burnRate.trendLabel
+              : "Operating registers",
         runwayMonths:
           cashPosition > 0 && monthlyBurn > 0
             ? Math.round((cashPosition / monthlyBurn) * 10) / 10

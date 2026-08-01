@@ -6,6 +6,10 @@ import {
   isCorpCentreWorkspaceSlug,
 } from "@/lib/corpcentre-financials";
 import {
+  ABHI_CASH_BALANCE_GBP,
+  isAbhiWorkspaceSlug,
+} from "@/lib/abhi-financials";
+import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
@@ -139,6 +143,8 @@ export async function getTypeTotals(scope?: FinancialsWorkspaceScope) {
       .maybeSingle();
     if (isCorpCentreWorkspaceSlug(String(workspace?.slug ?? ""))) {
       cashPosition = CORPCENTRE_CASH_BALANCE_AUD;
+    } else if (isAbhiWorkspaceSlug(String(workspace?.slug ?? ""))) {
+      cashPosition = ABHI_CASH_BALANCE_GBP;
     }
   } catch {
     /* keep GL cash */
