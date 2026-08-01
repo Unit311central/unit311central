@@ -403,7 +403,11 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "module-go-live",
 ]);
 
-const ABHI_HIDDEN_ITEM_LABELS = new Set(["Cap Table Management", "Unit311 Details"]);
+const ABHI_HIDDEN_ITEM_LABELS = new Set([
+  "Cap Table Management",
+  "Unit311 Details",
+  "Infrastructure & Cloud",
+]);
 
 function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Training") return section;
