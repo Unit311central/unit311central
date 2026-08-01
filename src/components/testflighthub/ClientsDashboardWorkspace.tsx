@@ -19,18 +19,12 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { ABHI_MEMBER_SIGNUP_GROWTH, isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
-import {
-  clientStatusClass,
-  type ManagedClient,
-} from "@/lib/client-management-data";
+import { type ManagedClient } from "@/lib/client-management-data";
 import {
   buildClientsDashboardActivity,
   buildClientsDashboardKpis,
   buildClientsExecutiveTileCatalog,
   buildClientsOperationalInsights,
-  clientLastActivityAt,
-  countLiveProjectsForClient,
-  countOpenTicketsForClient,
   DEFAULT_CLIENTS_EXECUTIVE_TILE_LAYOUT,
   formatClientsDashboardWhen,
   type ClientsDashboardActivityKind,
@@ -251,18 +245,6 @@ export default function ClientsDashboardWorkspace({
     [clients, projects, users, kpis],
   );
 
-  const tableRows = useMemo(() => {
-    return [...clients]
-      .filter((client) => client.accountStatus !== "Archived")
-      .sort((a, b) => a.companyName.localeCompare(b.companyName))
-      .map((client) => ({
-        client,
-        projects: countLiveProjectsForClient(client, projects ?? []),
-        support: tickets == null ? null : countOpenTicketsForClient(client, tickets),
-        lastActivity: clientLastActivityAt(client, projects ?? [], tickets ?? [], users ?? []),
-      }));
-  }, [clients, projects, tickets, users]);
-
   function clientDirectoryHref(clientId?: string | null) {
     if (!clientId) return directoryHref;
     const params = new URLSearchParams({ view: "clients", clientId });
@@ -358,86 +340,6 @@ export default function ClientsDashboardWorkspace({
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-4">
         <div className="space-y-3 sm:space-y-4">
-          <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
-                  Directory
-                </p>
-                <h3 className="mt-0.5 text-base font-semibold text-white">Client list</h3>
-              </div>
-              <Link
-                href={directoryHref}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-sky-300 hover:text-sky-200"
-              >
-                Full directory
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-
-            {tableRows.length === 0 ? (
-              <p className="mt-3 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-6 text-center text-sm text-white/45">
-                No clients in this workspace yet. Use Add Client or Convert CRM Lead to get started.
-              </p>
-            ) : (
-              <div className="mt-3 overflow-x-auto rounded-xl border border-white/10 bg-[#0b1524]/40">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="border-b border-white/10 text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Client</th>
-                      <th className="px-3 py-2 font-medium">Status</th>
-                      <th className="px-3 py-2 font-medium">Projects</th>
-                      <th className="px-3 py-2 font-medium">Support</th>
-                      <th className="hidden px-3 py-2 font-medium md:table-cell">Last activity</th>
-                      <th className="hidden px-3 py-2 font-medium lg:table-cell">Owner</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/10">
-                    {tableRows.map((row) => (
-                      <tr key={row.client.id} className="hover:bg-white/[0.03]">
-                        <td className="px-3 py-2">
-                          <Link
-                            href={clientDirectoryHref(row.client.id)}
-                            className="font-semibold text-white hover:text-sky-200"
-                          >
-                            {row.client.companyName}
-                          </Link>
-                        </td>
-                        <td className="px-3 py-2">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
-                              clientStatusClass(row.client.accountStatus),
-                            )}
-                          >
-                            {row.client.accountStatus}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-white/70">
-                          {projects == null ? "—" : row.projects}
-                        </td>
-                        <td className="px-3 py-2 text-white/70">
-                          {row.support == null ? "—" : row.support}
-                        </td>
-                        <td className="hidden px-3 py-2 text-xs text-white/55 md:table-cell">
-                          {formatClientsDashboardWhen(row.lastActivity)}
-                        </td>
-                        <td className="hidden px-3 py-2 lg:table-cell">
-                          <span
-                            className="text-xs text-white/35"
-                            title="Owner is not stored on Client Directory records yet"
-                          >
-                            —
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-
           <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div>
