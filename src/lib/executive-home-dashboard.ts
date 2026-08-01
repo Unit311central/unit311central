@@ -11,9 +11,33 @@ import type {
 import { countLiveProjects } from "@/lib/home-executive-dashboard";
 import type { InternalProject } from "@/lib/projects-data";
 
+function isBrowserAbhiHome(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserAbhiSurface } =
+      require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+    return isBrowserAbhiSurface();
+  } catch {
+    return false;
+  }
+}
+
 function formatCompactMoney(amount: number, currency = "GBP") {
   const code = String(currency || "GBP").toUpperCase();
   const abs = Math.abs(amount);
+  // Millions keep one decimal so ABHI £4.24M does not collapse to £4M.
+  if (abs >= 1_000_000) {
+    return withPreferredCurrencySymbol(
+      new Intl.NumberFormat(code === "AUD" ? "en-AU" : "en-GB", {
+        style: "currency",
+        currency: code,
+        notation: "compact",
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 0,
+      }).format(amount),
+      code,
+    );
+  }
   // Home KPI tiles should read as whole compact units (e.g. $156k), not $156.06k.
   if (abs >= 10_000) {
     return withPreferredCurrencySymbol(
@@ -241,6 +265,7 @@ export function buildExecutiveHomeLiveKpis(input: {
   const cashDelta = monthDelta(input.financials?.charts.cashPosition);
   const burnDelta = burnPreviousMonthDelta(burn);
   const ytdPeriod = revenuePeriods.find((period) => period.id === "ytd") ?? revenuePeriods[0];
+  const abhiHome = isBrowserAbhiHome();
 
   return normalizeKpiRow([
     {
@@ -257,9 +282,9 @@ export function buildExecutiveHomeLiveKpis(input: {
       id: "cash",
       label: "Cash Available",
       value: formatCompactMoney(cash, currency),
-      delta: cashDelta?.label ?? "Operating + treasury",
+      delta: cashDelta?.label ?? (abhiHome ? "Cash at bank" : "Operating + treasury"),
       tone: cashDelta?.tone ?? "neutral",
-      hint: "Wise / treasury position",
+      hint: abhiHome ? "ABHI operating cash (GBP)" : "Wise / treasury position",
     },
     {
       id: "burn",
@@ -487,17 +512,25 @@ export function buildExecutiveHomeLiveNarrative(input: {
   const liveProjects = input.projects.filter((project) => project.phase === "live").slice(0, 3);
 
   let companyName = "Unit311";
+  let abhiHome = false;
   try {
     if (typeof window !== "undefined") {
-      const { isBrowserCorpCentreSurface } =
-        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
-      if (isBrowserCorpCentreSurface()) {
-        companyName = "CorpCentre";
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        companyName = "ABHI";
+        abhiHome = true;
       } else {
-        const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
-          require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
-        if (isBrowserDemoSurface()) {
-          companyName = getDemoEnterpriseFixtures().company.tradingName;
+        const { isBrowserCorpCentreSurface } =
+          require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+        if (isBrowserCorpCentreSurface()) {
+          companyName = "CorpCentre";
+        } else {
+          const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
+            require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+          if (isBrowserDemoSurface()) {
+            companyName = getDemoEnterpriseFixtures().company.tradingName;
+          }
         }
       }
     }
@@ -558,8 +591,10 @@ export function buildExecutiveHomeLiveNarrative(input: {
   }
   alerts.push({
     id: "live-treasury",
-    title: `${companyName} treasury position`,
-    detail: `Wise simulated balances total ${formatCompactMoney(cash, currency)} across operating currencies.`,
+    title: abhiHome ? "ABHI cash at bank" : `${companyName} treasury position`,
+    detail: abhiHome
+      ? `Operating cash ${formatCompactMoney(cash, currency)} (GBP).`
+      : `Wise simulated balances total ${formatCompactMoney(cash, currency)} across operating currencies.`,
     severity: "info",
     timeLabel: "Bank",
   });

@@ -146,6 +146,19 @@ function emptyBurnRate(cashBalance = 0): FinancialOverviewSnapshot["burnRate"] {
  */
 export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
   try {
+    // Customer fixtures must never fall through to platform Wise leftovers (~£1.58).
+    try {
+      const { getCurrentWorkspace } = await import("@/lib/workspace-context");
+      const workspace = await getCurrentWorkspace();
+      const slug = String(workspace?.slug ?? "")
+        .trim()
+        .toLowerCase();
+      if (isAbhiWorkspaceSlug(slug)) return ABHI_CASH_BALANCE_GBP;
+      if (isCorpCentreWorkspaceSlug(slug)) return CORPCENTRE_CASH_BALANCE_AUD;
+    } catch {
+      /* fall through */
+    }
+
     const { shouldUseDemoWiseSimulator } = await import("@/lib/treasury/bank-provider-server");
     if (await shouldUseDemoWiseSimulator()) {
       const { getDemoTreasuryCashGbp } = await import(
