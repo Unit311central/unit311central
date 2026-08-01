@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
+import PartnerJobsPanel from "@/components/testflighthub/PartnerJobsPanel";
 import {
   DEFAULT_REPRESENTATIVES_TILE_LAYOUT,
   REPRESENTATIVES_DASHBOARD_TILES,
@@ -544,6 +545,10 @@ export default function RepresentativesWorkspace({
                   </div>
                 </div>
               </section>
+
+              {/^[0-9a-f-]{36}$/i.test(selectedRepresentative.id) ? (
+                <PartnerJobsPanel partnerId={selectedRepresentative.id} />
+              ) : null}
 
               <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
                 <div>
