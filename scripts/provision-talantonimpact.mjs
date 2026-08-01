@@ -70,10 +70,11 @@ const SLUG = "talantonimpact";
 const COMPANY = "Talanton Impact";
 const WEBSITE = "https://talantonimpact.com/";
 const LOGO_PUBLIC_PATH = "/images/workspaces/talantonimpact-logo.jpg";
-const OWNER_EMAIL = "info@talantonimpact.com";
-const OWNER_USERNAME = "info@talantonimpact.com";
+const OWNER_EMAIL = "demo@talantonimpact.com";
+const OWNER_USERNAME = "demo@talantonimpact.com";
 const OWNER_DISPLAY = "Talanton Impact Owner";
-const OWNER_PASSWORD = "Talanton2026!";
+/** Login credential only — not used for outbound mail / invites / resets by this script. */
+const OWNER_PASSWORD = "Africa1999$";
 const FORBIDDEN_TARGET_SLUGS = new Set([
   "demo",
   "unit311",

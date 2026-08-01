@@ -309,7 +309,7 @@ export default function Unit311LoginPage({
                   isCorpCentre
                     ? "you@corpcentre.com.au"
                     : isTalanton
-                      ? "info@talantonimpact.com"
+                      ? "demo@talantonimpact.com"
                       : isCentral
                         ? "you@unit311central.com"
                         : "Enter username"
