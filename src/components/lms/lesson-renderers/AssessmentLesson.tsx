@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import QuestionCarousel from "@/components/lms/QuestionCarousel";
 import type { LmsLesson } from "@/lib/lms/types";
+import { sceneForQuestion } from "@/lib/lms/question-scenes";
 
 type DrawnQuestion = {
   id: string;
@@ -10,6 +12,8 @@ type DrawnQuestion = {
   stem: string;
   choices: { id: string; label: string }[];
   difficulty?: string;
+  imageUrl?: string | null;
+  sceneLabel?: string | null;
 };
 
 type Props = {
@@ -48,23 +52,17 @@ export default function AssessmentLesson({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<DrawnQuestion[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [apiPassMark, setApiPassMark] = useState(contentPass);
   const [result, setResult] = useState<{ score: number; passed: boolean } | null>(
     null,
   );
-
-  const answeredCount = useMemo(
-    () => questions.filter((q) => answers[q.id]).length,
-    [answers, questions],
-  );
+  const [carouselKey, setCarouselKey] = useState(0);
 
   const loadQuestions = useCallback(async () => {
     setLoading(true);
     setError(null);
     setResult(null);
-    setAnswers({});
     try {
       const res = await fetch("/api/lms/assessment/draw", {
         method: "POST",
@@ -74,8 +72,22 @@ export default function AssessmentLesson({
       });
       const data = (await res.json()) as DrawResponse;
       if (!res.ok) throw new Error(data.error || "Failed to draw assessment.");
-      setQuestions(data.questions ?? []);
+      const drawn = (data.questions ?? []).map((q) => {
+        const scene = sceneForQuestion({
+          stem: q.stem,
+          id: q.id,
+          imageUrl: q.imageUrl,
+          sceneLabel: q.sceneLabel,
+        });
+        return {
+          ...q,
+          imageUrl: scene.imageUrl,
+          sceneLabel: scene.label,
+        };
+      });
+      setQuestions(drawn);
       if (typeof data.passMark === "number") setApiPassMark(data.passMark);
+      setCarouselKey((k) => k + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load assessment.");
     } finally {
@@ -87,7 +99,7 @@ export default function AssessmentLesson({
     void loadQuestions();
   }, [loadQuestions]);
 
-  async function submit() {
+  async function submit(answers: Record<string, string>) {
     setSubmitting(true);
     setError(null);
     try {
@@ -116,128 +128,79 @@ export default function AssessmentLesson({
     }
   }
 
-  const allAnswered = questions.length > 0 && questions.every((q) => answers[q.id]);
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center text-sm text-white/55">
+        Preparing your assessment…
+      </div>
+    );
+  }
+
+  if (error && questions.length === 0) {
+    return (
+      <div className="mx-auto max-w-lg space-y-3 py-10 text-center">
+        <p className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+          {error}
+        </p>
+        <button
+          type="button"
+          onClick={() => void loadQuestions()}
+          className="rounded-lg border border-white/15 px-4 py-2 text-sm text-white"
+        >
+          Retry draw
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 py-6">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/70">
-          Final assessment
+    <div className="h-full">
+      {error ? (
+        <p className="mb-3 rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-2 text-sm text-rose-100">
+          {error}
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">{lesson.title}</h2>
-        <p className="mt-2 text-sm text-white/55">
-          Pass mark {apiPassMark}% · Answered {answeredCount}/{questions.length}
-        </p>
-      </header>
-
-      {loading ? (
-        <p className="text-sm text-white/55">Drawing questions…</p>
-      ) : error ? (
-        <div className="space-y-3">
-          <p className="rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-            {error}
-          </p>
-          <button
-            type="button"
-            onClick={() => void loadQuestions()}
-            className="rounded-lg border border-white/15 px-4 py-2 text-sm text-white"
-          >
-            Retry draw
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="sticky top-0 z-10 mb-2 flex items-center justify-between rounded-xl border border-emerald-400/20 bg-[#07111f]/95 px-4 py-2 backdrop-blur">
-            <span className="text-xs uppercase tracking-wide text-white/45">Progress</span>
-            <span className="text-lg font-semibold tabular-nums text-emerald-300">
-              {answeredCount}/{questions.length}
-            </span>
-          </div>
-
-          {result ? (
+      ) : null}
+      <QuestionCarousel
+        key={carouselKey}
+        eyebrow="Final assessment"
+        title={lesson.title}
+        subtitle={`One question at a time · Pass mark ${apiPassMark}%`}
+        questions={questions}
+        locked={Boolean(result?.passed)}
+        submitting={submitting}
+        submitLabel="Submit assessment"
+        onSubmit={(answers) => void submit(answers)}
+        onRetry={
+          result && !result.passed
+            ? () => {
+                void loadQuestions();
+              }
+            : undefined
+        }
+        resultBanner={
+          result ? (
             <div
-              className={`rounded-xl border px-4 py-3 text-sm ${
+              className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
                 result.passed
                   ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-100"
                   : "border-amber-400/40 bg-amber-500/10 text-amber-100"
               }`}
             >
-              Live score: <strong>{result.score}%</strong> —{" "}
+              Score: <strong>{result.score}%</strong> —{" "}
               {result.passed ? "Passed" : `Need ${apiPassMark}% to pass`}
+              {result.passed ? (
+                <button
+                  type="button"
+                  onClick={() => onComplete(result)}
+                  className="ml-3 underline underline-offset-2"
+                >
+                  Finish course
+                </button>
+              ) : null}
             </div>
-          ) : null}
-
-          <div className="space-y-4">
-            {questions.map((q, index) => (
-              <fieldset
-                key={q.id}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
-              >
-                <legend className="px-1 text-sm font-semibold text-white">
-                  {index + 1}. {q.stem}
-                </legend>
-                <div className="mt-3 space-y-2">
-                  {q.choices.map((choice) => {
-                    const selected = answers[q.id] === choice.id;
-                    return (
-                      <label
-                        key={choice.id}
-                        className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
-                          selected
-                            ? "border-emerald-400/40 bg-emerald-500/10 text-white"
-                            : "border-white/10 bg-black/20 text-white/75"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          className="mt-1"
-                          name={q.id}
-                          disabled={Boolean(result?.passed)}
-                          checked={selected}
-                          onChange={() =>
-                            setAnswers((prev) => ({ ...prev, [q.id]: choice.id }))
-                          }
-                        />
-                        <span>{choice.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </fieldset>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            {!result?.passed ? (
-              <button
-                type="button"
-                disabled={!allAnswered || submitting}
-                onClick={() => void submit()}
-                className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-400 disabled:opacity-40"
-              >
-                {submitting ? "Submitting…" : "Submit assessment"}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => onComplete(result)}
-                className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white"
-              >
-                Finish course
-              </button>
-            )}
-            {result && !result.passed ? (
-              <button
-                type="button"
-                onClick={() => void loadQuestions()}
-                className="rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-white"
-              >
-                New draw
-              </button>
-            ) : null}
-          </div>
-        </>
-      )}
+          ) : null
+        }
+      />
     </div>
   );
 }

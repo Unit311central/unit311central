@@ -92,6 +92,14 @@ const IMG = {
     "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1600&q=80",
   city:
     "https://images.unsplash.com/photo-1611348524140-53c9a25263d6?auto=format&fit=crop&w=1600&q=80",
+  port:
+    "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1600&q=80",
+  licensing:
+    "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1600&q=80",
+  hospitality:
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80",
+  procurement:
+    "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1600&q=80",
 };
 
 function choice(id, label) {
@@ -990,7 +998,7 @@ async function main() {
         character: {
           name: "Amina",
           role: "Operations Lead",
-          imageUrl: IMG.team,
+          imageUrl: IMG.port,
         },
         choices: [
           {
@@ -1025,7 +1033,11 @@ async function main() {
         type: "scenario",
         story:
           "A licensing clerk says the published queue is eight weeks, but 'express stickers' sold only in cash at their desk can cut it to three days while your plant expansion waits.",
-        character: { name: "Kwame", role: "Plant Manager" },
+        character: {
+          name: "Kwame",
+          role: "Plant Manager",
+          imageUrl: IMG.licensing,
+        },
         choices: [
           {
             id: "official",
@@ -1058,7 +1070,11 @@ async function main() {
         type: "scenario",
         story:
           "While your operating licence renewal is pending, a ministry contact invites your MD to an all-expenses weekend at a luxury resort 'to deepen the relationship'.",
-        character: { name: "Nthabiseng", role: "Managing Director" },
+        character: {
+          name: "Nthabiseng",
+          role: "Managing Director",
+          imageUrl: IMG.hospitality,
+        },
         choices: [
           {
             id: "decline",
@@ -1091,7 +1107,11 @@ async function main() {
         type: "scenario",
         story:
           "Your cousin's logistics firm is bidding for a multi-year contract. You sit on the evaluation panel and feel pressure to 'look after family'.",
-        character: { name: "Joseph", role: "Procurement Manager" },
+        character: {
+          name: "Joseph",
+          role: "Procurement Manager",
+          imageUrl: IMG.procurement,
+        },
         choices: [
           {
             id: "disclose",

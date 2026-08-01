@@ -73,6 +73,11 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
 
   const lessons = useMemo(() => (course ? flattenLessons(course) : []), [course]);
   const currentLesson = lessons[lessonIndex] ?? null;
+  const immersiveLesson =
+    currentLesson?.lessonType === "assessment" ||
+    currentLesson?.lessonType === "quiz" ||
+    currentLesson?.lessonType === "scenario" ||
+    currentLesson?.lessonType === "knowledge_check";
   const progressPct =
     lessons.length === 0 ? 0 : Math.round((completedIds.size / lessons.length) * 100);
 
@@ -346,8 +351,9 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
         <aside
           className={cn(
             "shrink-0 overflow-y-auto border-r border-white/10 bg-[#0a1628] transition-all",
-            sidebarOpen ? "w-72" : "w-0 overflow-hidden border-0",
+            sidebarOpen && !immersiveLesson ? "w-72" : "w-0 overflow-hidden border-0",
             "absolute inset-y-14 left-0 z-20 lg:static lg:inset-auto",
+            immersiveLesson && "lg:hidden",
           )}
         >
           <div className="p-3">
@@ -393,7 +399,12 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
           </div>
         </aside>
 
-        <main className="relative min-w-0 flex-1 overflow-y-auto px-4 py-4 sm:px-8">
+        <main
+          className={cn(
+            "relative min-w-0 flex-1 px-4 py-4 sm:px-8",
+            immersiveLesson ? "overflow-hidden" : "overflow-y-auto",
+          )}
+        >
           {loading ? (
             <div className="flex h-full items-center justify-center gap-2 text-white/55">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -414,10 +425,11 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentLesson.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
+                initial={{ opacity: 0, x: 28 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ type: "spring", stiffness: 260, damping: 28 }}
+                className={cn(immersiveLesson && "h-full")}
               >
                 <LessonRenderer
                   lesson={currentLesson}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireLmsWorkspaceSession, resolveLmsClientId } from "@/lib/lms/auth";
+import { sceneForQuestion } from "@/lib/lms/question-scenes";
 import {
   drawAssessmentQuestions,
   ensureEnrolment,
@@ -56,13 +57,18 @@ export async function POST(request: NextRequest) {
       enrolmentId: enrolment.id,
       drawCount,
       passMark,
-      questions: questions.map((q) => ({
-        id: q.id,
-        questionType: q.questionType,
-        stem: q.stem,
-        choices: q.choices,
-        difficulty: q.difficulty,
-      })),
+      questions: questions.map((q) => {
+        const scene = sceneForQuestion({ stem: q.stem, id: q.id });
+        return {
+          id: q.id,
+          questionType: q.questionType,
+          stem: q.stem,
+          choices: q.choices,
+          difficulty: q.difficulty,
+          imageUrl: scene.imageUrl,
+          sceneLabel: scene.label,
+        };
+      }),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to draw assessment.";
