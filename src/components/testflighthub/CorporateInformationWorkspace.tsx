@@ -10,6 +10,7 @@ import {
 } from "@/lib/internal-operations-data";
 
 import BankAccountsWorkspace from "./BankAccountsWorkspace";
+import BoardDirectorsWorkspace from "./BoardDirectorsWorkspace";
 import CapTableWorkspace from "./CapTableWorkspace";
 import CompanyDetailsWorkspace from "./CompanyDetailsWorkspace";
 import ContractsWorkspace from "./ContractsWorkspace";
@@ -42,6 +43,7 @@ export default function CorporateInformationWorkspace() {
       {tab === "cap-table" ? <CapTableWorkspace /> : null}
       {tab === "office-locations" ? <OfficeLocationsWorkspace /> : null}
       {tab === "bank-accounts" ? <BankAccountsWorkspace /> : null}
+      {tab === "board-directors" ? <BoardDirectorsWorkspace /> : null}
       {tab === "professional-advisors" ? <ProfessionalAdvisorsWorkspace /> : null}
       {tab === "contracts" ? <ContractsWorkspace /> : null}
     </div>

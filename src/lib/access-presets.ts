@@ -96,6 +96,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "corporate-company-details",
       "office-locations",
       "corporate-bank-accounts",
+      "corporate-board-directors",
       "corporate-advisers",
       "corporate-insurance",
       "corporate-software",

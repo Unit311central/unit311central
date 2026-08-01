@@ -17,6 +17,7 @@ export type InternalOperationsView =
   | "corporate-cap-table"
   | "corporate-bank-accounts"
   | "corporate-advisers"
+  | "corporate-board-directors"
   | "corporate-insurance"
   | "corporate-software"
   | "corporate-contracts"
@@ -188,6 +189,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "corporate-cap-table",
   "corporate-bank-accounts",
   "corporate-advisers",
+  "corporate-board-directors",
   "corporate-insurance",
   "corporate-software",
   "corporate-contracts",
@@ -357,6 +359,7 @@ export const CORPORATE_INFORMATION_TABS = [
   { key: "cap-table", label: "Cap Table" },
   { key: "office-locations", label: "Office Locations" },
   { key: "bank-accounts", label: "Bank Accounts" },
+  { key: "board-directors", label: "Board of Directors" },
   { key: "professional-advisors", label: "Professional Advisors" },
   { key: "contracts", label: "Contracts" },
 ] as const;
@@ -380,6 +383,8 @@ export function legacyCorporateViewToTab(
       return "bank-accounts";
     case "corporate-advisers":
       return "professional-advisors";
+    case "corporate-board-directors":
+      return "board-directors";
     case "corporate-contracts":
       return "contracts";
     default:
@@ -587,6 +592,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         label: "Bank Accounts",
         icon: "Landmark",
         view: "corporate-bank-accounts" as const,
+      },
+      {
+        label: "Board of Directors",
+        icon: "Users",
+        view: "corporate-board-directors" as const,
       },
       {
         label: "Professional Advisors",
@@ -823,6 +833,7 @@ export const internalViewTitles: Record<
   "corporate-company-details": { title: "Company Details", subtitle: "Corporate Information" },
   "corporate-cap-table": { title: "Cap Table Management", subtitle: "Corporate Information" },
   "corporate-bank-accounts": { title: "Bank Accounts", subtitle: "Corporate Information" },
+  "corporate-board-directors": { title: "Board of Directors", subtitle: "Corporate Information" },
   "corporate-advisers": { title: "Professional Advisors", subtitle: "Corporate Information" },
   "corporate-insurance": { title: "Insurance", subtitle: "Corporate Information" },
   "corporate-software": { title: "Software", subtitle: "Technology Management" },
