@@ -23,14 +23,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    await requirePlatformSession();
+    const session = await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
 
     const { id } = await context.params;
-    const body = (await request.json()) as { message?: string; preview?: boolean };
+    const body = (await request.json()) as {
+      message?: string;
+      preview?: boolean;
+      operatorName?: string;
+      mode?: "external" | "internal";
+    };
     const message = body.message?.trim() ?? "";
     const preview = body.preview === true;
+    const mode = body.mode === "internal" ? "internal" : "external";
+    const operatorName =
+      body.operatorName?.trim() ||
+      session.displayName?.trim() ||
+      session.username?.trim() ||
+      "Demo Support";
 
     if (!message) {
       return NextResponse.json({ error: "Update message is required." }, { status: 400 });
@@ -45,13 +56,45 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return { ticket: existing, clientMessage: message, emailed: false, whatsappSent: false };
       }
 
-      const notify = await notifyClientTicketUpdate(existing, message, scope);
+      if (mode === "internal") {
+        const { ensureClientSupportChannel } = await import("@/lib/support-channel");
+        const { sendMessage } = await import("@/lib/internal-messaging-service");
+        const channel = await ensureClientSupportChannel({
+          companyName: existing.organisation || "Client",
+          clientId: existing.clientId,
+          scope,
+        });
+        await sendMessage(
+          {
+            operatorId: session.sub || "support-internal",
+            operatorName,
+            username: session.username || "support",
+            content: [`[Internal · ${existing.id}]`, message].join("\n"),
+            room: channel.room,
+            messageType: "text",
+          },
+          scope,
+        );
+        return {
+          ticket: existing,
+          clientMessage: message,
+          emailed: false,
+          whatsappSent: false,
+          mode: "internal",
+        };
+      }
+
+      const notify = await notifyClientTicketUpdate(existing, message, {
+        ...scope,
+        operatorName,
+      });
 
       return {
         ticket: existing,
         clientMessage: message,
         emailed: Boolean(notify?.emailed),
         whatsappSent: Boolean(notify?.whatsappSent ?? notify?.ok),
+        mode: "external",
       };
     });
 

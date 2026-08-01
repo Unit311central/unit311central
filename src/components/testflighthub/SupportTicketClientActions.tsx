@@ -1,10 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, Loader2, MessageSquare, XCircle } from "lucide-react";
 
 import type { SupportTicket } from "@/lib/support-data";
 import { cn } from "@/lib/utils";
+
+type LoungeHistoryMessage = {
+  id: string;
+  role: string;
+  content: string;
+  createdAt: string;
+};
+
+type LoungeAttachment = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType?: string | null;
+};
 
 type SupportTicketClientActionsProps = {
   ticket: SupportTicket;
@@ -46,6 +60,32 @@ export default function SupportTicketClientActions({
   const [closeNotes, setCloseNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [history, setHistory] = useState<LoungeHistoryMessage[]>([]);
+  const [attachments, setAttachments] = useState<LoungeAttachment[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(`/api/support/tickets/${encodeURIComponent(ticket.id)}/lounge-messages`, {
+      cache: "no-store",
+    })
+      .then((res) =>
+        readApiJson<{ messages?: LoungeHistoryMessage[]; attachments?: LoungeAttachment[] }>(res),
+      )
+      .then((data) => {
+        if (cancelled) return;
+        setHistory(data.messages || []);
+        setAttachments(data.attachments || []);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHistory([]);
+          setAttachments([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ticket.id, feedback]);
 
   async function sendClientUpdate() {
     const message = updateDraft.trim();
@@ -169,9 +209,44 @@ export default function SupportTicketClientActions({
       </div>
 
       <p className={cn("mt-2 text-white/45", compact ? "text-[10px]" : "text-xs")}>
-        Send an update to the client (email + lounge case view). Closing requires notes and archives
-        the ticket under this client.
+        Send an update to the client (email + lounge + messaging channel + info@). Closing requires
+        notes and archives the ticket under this client.
       </p>
+
+      {history.length > 0 ? (
+        <div
+          className={cn(
+            "mt-3 max-h-36 space-y-2 overflow-y-auto rounded-xl border border-white/10 bg-black/20 p-2",
+          )}
+        >
+          {history.slice(-10).map((item) => (
+            <div key={item.id} className="rounded-lg bg-white/[0.03] px-2 py-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                {item.role} · {new Date(item.createdAt).toLocaleString()}
+              </p>
+              <p className="mt-0.5 whitespace-pre-wrap text-[11px] text-white/75">{item.content}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {attachments.length > 0 ? (
+        <div className="mt-3 space-y-1">
+          <p className={cn("text-white/45", compact ? "text-[10px]" : "text-xs")}>Files / voice</p>
+          {attachments.map((file) => (
+            <a
+              key={file.id}
+              href={file.fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="block truncate text-xs text-sky-300 hover:underline"
+            >
+              {file.fileName}
+              {file.mimeType?.startsWith("audio/") ? " (voice)" : ""}
+            </a>
+          ))}
+        </div>
+      ) : null}
 
       <label className={cn("mt-3 block text-white/45", compact ? "text-[10px]" : "text-xs")}>
         Update for client

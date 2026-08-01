@@ -9,6 +9,12 @@ import {
 import {
   postTicketToSupportChannel,
 } from "@/lib/support-channel";
+import {
+  SUPPORT_DESK_NOTIFY_EMAIL,
+  buildSupportEmail,
+  clientLogoUrl,
+} from "@/lib/support-email-html";
+
 import { createSupportTicket, updateSupportTicket } from "@/lib/support-tickets-service";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { DEMO_SITE_URL } from "@/lib/app-domains";
@@ -19,6 +25,7 @@ export type SupportLoungeClient = {
   companyName: string;
   loungeToken: string;
   enabled: boolean;
+  logoUrl: string;
 };
 
 export type SupportLoungeMessage = {
@@ -89,7 +96,41 @@ function mapLoungeClient(row: DbLoungeClient): SupportLoungeClient {
     companyName: row.company_name,
     loungeToken: row.support_lounge_token || "",
     enabled: row.support_lounge_enabled !== false,
+    logoUrl: clientLogoUrl(row.company_name, row.id),
   };
+}
+
+function extractLoungeStoragePath(fileUrl: string): string | null {
+  const value = fileUrl.trim();
+  if (!value) return null;
+  if (value.startsWith("support-lounge/")) return value;
+  const publicMarker = "/object/public/internal-files/";
+  const publicIdx = value.indexOf(publicMarker);
+  if (publicIdx >= 0) {
+    return decodeURIComponent(value.slice(publicIdx + publicMarker.length).split("?")[0] || "");
+  }
+  const signMarker = "/object/sign/internal-files/";
+  const signIdx = value.indexOf(signMarker);
+  if (signIdx >= 0) {
+    return decodeURIComponent(value.slice(signIdx + signMarker.length).split("?")[0] || "");
+  }
+  return null;
+}
+
+async function signLoungeFileUrl(fileUrl: string): Promise<string> {
+  const path = extractLoungeStoragePath(fileUrl);
+  if (!path) return fileUrl;
+  try {
+    const { INTERNAL_FILES_BUCKET } = await import("@/lib/internal-files-data");
+    const supabase = requireLoungeSupabase();
+    const { data, error } = await supabase.storage
+      .from(INTERNAL_FILES_BUCKET)
+      .createSignedUrl(path, 60 * 60 * 24 * 7);
+    if (error || !data?.signedUrl) return fileUrl;
+    return data.signedUrl;
+  } catch {
+    return fileUrl;
+  }
 }
 
 export async function getLoungeClientByToken(
@@ -433,16 +474,20 @@ export async function listLoungeMessages(input: {
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data || []).map((row) => ({
-    id: row.id as string,
-    ticketId: row.ticket_id as string,
-    role: row.role as SupportLoungeMessage["role"],
-    content: row.content as string,
-    createdAt: row.created_at as string,
-    attachmentName: (row.attachment_name as string | null) ?? null,
-    attachmentUrl: (row.attachment_url as string | null) ?? null,
-    attachmentMime: (row.attachment_mime as string | null) ?? null,
-  }));
+  return Promise.all(
+    (data || []).map(async (row) => ({
+      id: row.id as string,
+      ticketId: row.ticket_id as string,
+      role: row.role as SupportLoungeMessage["role"],
+      content: row.content as string,
+      createdAt: row.created_at as string,
+      attachmentName: (row.attachment_name as string | null) ?? null,
+      attachmentUrl: row.attachment_url
+        ? await signLoungeFileUrl(row.attachment_url as string)
+        : null,
+      attachmentMime: (row.attachment_mime as string | null) ?? null,
+    })),
+  );
 }
 
 export async function listLoungeAttachments(input: {
@@ -458,15 +503,17 @@ export async function listLoungeAttachments(input: {
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data || []).map((row) => ({
-    id: row.id as string,
-    ticketId: row.ticket_id as string,
-    fileName: row.file_name as string,
-    fileUrl: row.file_url as string,
-    mimeType: (row.mime_type as string | null) ?? null,
-    sizeBytes: (row.size_bytes as number | null) ?? null,
-    createdAt: row.created_at as string,
-  }));
+  return Promise.all(
+    (data || []).map(async (row) => ({
+      id: row.id as string,
+      ticketId: row.ticket_id as string,
+      fileName: row.file_name as string,
+      fileUrl: await signLoungeFileUrl(row.file_url as string),
+      mimeType: (row.mime_type as string | null) ?? null,
+      sizeBytes: (row.size_bytes as number | null) ?? null,
+      createdAt: row.created_at as string,
+    })),
+  );
 }
 
 export async function uploadLoungeAttachment(input: {
@@ -499,9 +546,7 @@ export async function uploadLoungeAttachment(input: {
     });
   if (uploadError) throw new Error(uploadError.message);
 
-  const { data: publicData } = supabase.storage
-    .from(INTERNAL_FILES_BUCKET)
-    .getPublicUrl(storagePath);
+  const signedUrl = await signLoungeFileUrl(storagePath);
 
   const { data, error } = await supabase
     .from("support_lounge_attachments")
@@ -509,7 +554,7 @@ export async function uploadLoungeAttachment(input: {
       workspace_id: input.workspaceId,
       ticket_id: input.ticketId,
       file_name: input.file.name,
-      file_url: publicData.publicUrl,
+      file_url: storagePath,
       mime_type: input.file.type || "application/octet-stream",
       size_bytes: input.file.size,
     })
@@ -524,7 +569,7 @@ export async function uploadLoungeAttachment(input: {
     role: "user",
     content: `Uploaded file: ${input.file.name}`,
     attachmentName: input.file.name,
-    attachmentUrl: publicData.publicUrl,
+    attachmentUrl: storagePath,
     attachmentMime: input.file.type || "application/octet-stream",
   });
 
@@ -532,7 +577,7 @@ export async function uploadLoungeAttachment(input: {
     id: data.id as string,
     ticketId: data.ticket_id as string,
     fileName: data.file_name as string,
-    fileUrl: data.file_url as string,
+    fileUrl: signedUrl,
     mimeType: (data.mime_type as string | null) ?? null,
     sizeBytes: (data.size_bytes as number | null) ?? null,
     createdAt: data.created_at as string,
@@ -558,31 +603,28 @@ export async function sendLoungeTicketSummaryEmail(input: {
       .trim() || input.ticket.name;
 
     const caseUrl = input.ticket.ticketPublicUrl || input.resumeUrl;
+    const email = buildSupportEmail({
+      preheader: `Ticket ${input.ticket.id} received`,
+      title: `Ticket ${input.ticket.id} received`,
+      intro: `Hi ${name || "there"},\n\nYour support request for ${input.lounge.companyName} is with Demo Support.`,
+      rows: [
+        { label: "Organisation", value: input.ticket.organisation || input.lounge.companyName },
+        { label: "Status", value: input.ticket.status || "open" },
+        { label: "Priority", value: input.ticket.priority },
+      ],
+      body: input.ticket.description,
+      ctaLabel: "Open your case",
+      ctaUrl: caseUrl,
+      footer: "— Demo Support Lounge",
+    });
 
     await sendMailboxEmail({
       account: "demo",
       workspaceId: input.lounge.workspaceId,
       to,
-      subject: `Support ticket ${input.ticket.id} received — Demo Support Lounge`,
-      text: [
-        `Hi ${name || "there"},`,
-        "",
-        `Your support ticket ${input.ticket.id} has been created with Demo Support Lounge.`,
-        "",
-        `Organisation: ${input.ticket.organisation}`,
-        `Status: ${input.ticket.status || "open"}`,
-        `Priority: ${input.ticket.priority}`,
-        "",
-        "Summary:",
-        input.ticket.description,
-        "",
-        "Track updates and add more information anytime using this private link:",
-        caseUrl,
-        "",
-        "Our Demo support team has been notified and will begin working on the case.",
-        "",
-        "— Demo Support Lounge",
-      ].join("\n"),
+      subject: `Support ticket ${input.ticket.id} received — ${input.lounge.companyName}`,
+      text: email.text,
+      html: email.html,
     });
     return true;
   } catch (error) {
@@ -591,8 +633,7 @@ export async function sendLoungeTicketSummaryEmail(input: {
   }
 }
 
-/** Desk inbox for new lounge tickets. Prefer support@ when that mailbox exists. */
-export const SUPPORT_DESK_NOTIFY_EMAIL = "info@unit311central.com";
+export { SUPPORT_DESK_NOTIFY_EMAIL };
 
 export async function sendLoungeTicketDeskNotifyEmail(input: {
   lounge: SupportLoungeClient;
@@ -602,32 +643,30 @@ export async function sendLoungeTicketDeskNotifyEmail(input: {
   try {
     const { sendMailboxEmail } = await import("@/lib/email/smtp");
     const caseUrl = input.ticket.ticketPublicUrl || input.resumeUrl;
-    const supportHref = `/?view=support&ticketId=${encodeURIComponent(input.ticket.id)}`;
+    const supportHref = `https://demo.unit311central.com/?view=support&ticketId=${encodeURIComponent(input.ticket.id)}`;
+    const email = buildSupportEmail({
+      preheader: `New ticket ${input.ticket.id} for ${input.lounge.companyName}`,
+      title: `New ticket ${input.ticket.id}`,
+      intro: `A new Support Lounge ticket was opened for ${input.lounge.companyName}.`,
+      rows: [
+        { label: "Requester", value: input.ticket.name },
+        { label: "Email", value: input.ticket.requesterEmail || "—" },
+        { label: "Priority", value: input.ticket.priority },
+        { label: "Status", value: input.ticket.status || "open" },
+      ],
+      body: input.ticket.description,
+      ctaLabel: "Open in Support Desk",
+      ctaUrl: supportHref,
+      footer: `Client case: ${caseUrl}\n— Demo Support Lounge`,
+    });
 
     await sendMailboxEmail({
       account: "demo",
       workspaceId: input.lounge.workspaceId,
       to: SUPPORT_DESK_NOTIFY_EMAIL,
       subject: `New support ticket ${input.ticket.id} — ${input.lounge.companyName}`,
-      text: [
-        `A new Support Lounge ticket was opened for ${input.lounge.companyName}.`,
-        "",
-        `Ticket: ${input.ticket.id}`,
-        `Requester: ${input.ticket.name}`,
-        `Email: ${input.ticket.requesterEmail || "—"}`,
-        `Priority: ${input.ticket.priority}`,
-        `Status: ${input.ticket.status || "open"}`,
-        "",
-        "Summary:",
-        input.ticket.description,
-        "",
-        `Open in Support: ${supportHref}`,
-        `Client case link: ${caseUrl}`,
-        "",
-        "Assign an owner in Messaging (Support - {client} channel) or on the Support ticket.",
-        "",
-        "— Demo Support Lounge",
-      ].join("\n"),
+      text: email.text,
+      html: email.html,
     });
     return true;
   } catch (error) {

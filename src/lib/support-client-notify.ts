@@ -1,4 +1,5 @@
 import type { SupportTicket } from "@/lib/support-data";
+import { SUPPORT_DESK_NOTIFY_EMAIL, buildSupportEmail } from "@/lib/support-email-html";
 import {
   formatSupportTicketClientAssignedMessage,
   formatSupportTicketClosedMessage,
@@ -20,6 +21,7 @@ async function emailTicketRequester(input: {
   ticket: SupportTicket;
   subject: string;
   text: string;
+  html?: string;
   workspaceId?: string | null;
 }) {
   const to = input.ticket.requesterEmail?.trim();
@@ -32,6 +34,7 @@ async function emailTicketRequester(input: {
       to,
       subject: input.subject,
       text: input.text,
+      html: input.html,
     });
     return true;
   } catch (error) {
@@ -40,21 +43,76 @@ async function emailTicketRequester(input: {
   }
 }
 
+async function emailDeskCopy(input: {
+  ticket: SupportTicket;
+  subject: string;
+  text: string;
+  html?: string;
+  workspaceId?: string | null;
+}) {
+  try {
+    const { sendMailboxEmail } = await import("@/lib/email/smtp");
+    await sendMailboxEmail({
+      account: "demo",
+      workspaceId: input.workspaceId || undefined,
+      to: SUPPORT_DESK_NOTIFY_EMAIL,
+      subject: input.subject,
+      text: input.text,
+      html: input.html,
+    });
+    return true;
+  } catch (error) {
+    console.warn("[support/notify] desk email failed:", error);
+    return false;
+  }
+}
+
+async function echoUpdateToSupportChannel(
+  ticket: SupportTicket,
+  message: string,
+  scope?: { workspaceId?: string | null },
+  operatorName?: string | null,
+) {
+  if (!scope?.workspaceId) return;
+  try {
+    const { ensureClientSupportChannel } = await import("@/lib/support-channel");
+    const { sendMessage } = await import("@/lib/internal-messaging-service");
+    const channel = await ensureClientSupportChannel({
+      companyName: ticket.organisation || "Client",
+      clientId: ticket.clientId,
+      scope: { workspaceId: scope.workspaceId },
+    });
+    const who = operatorName?.trim() || "Demo Support";
+    await sendMessage(
+      {
+        operatorId: "support:client-update",
+        operatorName: who,
+        username: "support",
+        content: [`[${ticket.id}] Update sent to client`, "", message].join("\n"),
+        room: channel.room,
+        messageType: "text",
+      },
+      { workspaceId: scope.workspaceId },
+    );
+  } catch (error) {
+    console.warn("[support/notify] channel echo failed:", error);
+  }
+}
+
 export async function notifyClientTicketAssigned(ticket: SupportTicket, assignee: string) {
   const label = formatAssigneeForClient(assignee);
   const caseUrl = ticket.ticketPublicUrl?.trim() || "";
+  const email = buildSupportEmail({
+    title: `Ticket ${ticket.id} assigned`,
+    intro: `Your support ticket ${ticket.id} has been assigned to ${label}.`,
+    ctaLabel: "Track your case",
+    ctaUrl: caseUrl || undefined,
+  });
   const emailed = await emailTicketRequester({
     ticket,
     subject: `Ticket ${ticket.id} assigned — Demo Support`,
-    text: [
-      `Your support ticket ${ticket.id} has been assigned to ${label}.`,
-      "",
-      caseUrl ? `Track updates here: ${caseUrl}` : null,
-      "",
-      "— Demo Support",
-    ]
-      .filter((line) => line !== null)
-      .join("\n"),
+    text: email.text,
+    html: email.html,
   });
 
   if (!isWhatsAppConfigured()) return emailed ? { ok: true, emailed: true } : null;
@@ -75,27 +133,37 @@ export async function notifyClientTicketAssigned(ticket: SupportTicket, assignee
 export async function notifyClientTicketUpdate(
   ticket: SupportTicket,
   message: string,
-  scope?: { workspaceId?: string | null },
+  scope?: { workspaceId?: string | null; operatorName?: string | null },
 ) {
   const trimmed = message.trim();
   if (!trimmed) return null;
 
   const caseUrl = ticket.ticketPublicUrl?.trim() || "";
+  const who = scope?.operatorName?.trim() || "Demo Support";
+  const loungeContent = `Hi, my name is ${who} and I am a real person from Demo Support.\n\n${trimmed}`;
+  const email = buildSupportEmail({
+    preheader: `Update on ${ticket.id}`,
+    title: `Update on ticket ${ticket.id}`,
+    intro: `${who} sent an update on your support case.`,
+    body: trimmed,
+    ctaLabel: "Open your case",
+    ctaUrl: caseUrl || undefined,
+  });
+
   const emailed = await emailTicketRequester({
     ticket,
     workspaceId: scope?.workspaceId,
     subject: `Update on ticket ${ticket.id} — Demo Support`,
-    text: [
-      `Update on your support ticket ${ticket.id}:`,
-      "",
-      trimmed,
-      "",
-      caseUrl ? `View your case: ${caseUrl}` : null,
-      "",
-      "— Demo Support",
-    ]
-      .filter((line) => line !== null)
-      .join("\n"),
+    text: email.text,
+    html: email.html,
+  });
+
+  await emailDeskCopy({
+    ticket,
+    workspaceId: scope?.workspaceId,
+    subject: `Client update on ${ticket.id} — ${ticket.organisation || "Client"}`,
+    text: email.text,
+    html: email.html,
   });
 
   if (ticket.id && scope?.workspaceId) {
@@ -105,12 +173,14 @@ export async function notifyClientTicketUpdate(
         workspaceId: scope.workspaceId,
         ticketId: ticket.id,
         role: "operator",
-        content: trimmed,
+        content: loungeContent,
       });
     } catch (error) {
       console.warn("[support/notify] lounge message append failed:", error);
     }
   }
+
+  await echoUpdateToSupportChannel(ticket, trimmed, scope, who);
 
   if (!isWhatsAppConfigured()) {
     return { ok: true, emailed, whatsappSent: false };
@@ -133,21 +203,27 @@ export async function notifyClientTicketClosed(
 ) {
   const caseUrl = ticket.ticketPublicUrl?.trim() || "";
   const note = notes?.trim();
+  const email = buildSupportEmail({
+    title: `Ticket ${ticket.id} closed`,
+    intro: `Your support ticket ${ticket.id} has been closed.`,
+    body: note ? `Closing notes:\n${note}` : undefined,
+    ctaLabel: "View case history",
+    ctaUrl: caseUrl || undefined,
+  });
   const emailed = await emailTicketRequester({
     ticket,
     workspaceId: scope?.workspaceId,
     subject: `Ticket ${ticket.id} closed — Demo Support`,
-    text: [
-      `Your support ticket ${ticket.id} has been closed.`,
-      note ? "" : null,
-      note ? `Closing notes: ${note}` : null,
-      "",
-      caseUrl ? `Case history: ${caseUrl}` : null,
-      "",
-      "— Demo Support",
-    ]
-      .filter((line) => line !== null)
-      .join("\n"),
+    text: email.text,
+    html: email.html,
+  });
+
+  await emailDeskCopy({
+    ticket,
+    workspaceId: scope?.workspaceId,
+    subject: `Ticket closed ${ticket.id} — ${ticket.organisation || "Client"}`,
+    text: email.text,
+    html: email.html,
   });
 
   if (scope?.workspaceId) {
@@ -173,7 +249,7 @@ export async function notifyClientTicketClosed(
     const whatsapp = await sendWhatsAppMessage(formatSupportTicketClosedMessage(ticket.id), phone);
     return { ok: Boolean(whatsapp?.ok), emailed, whatsappSent: Boolean(whatsapp?.ok) };
   } catch (error) {
-    console.error("[support/notify] client close WhatsApp failed", error);
+    console.error("[support/notify] client closed WhatsApp failed", error);
     return { ok: emailed, emailed, whatsappSent: false };
   }
 }
@@ -185,21 +261,27 @@ export async function notifyClientTicketCancelled(
 ) {
   const caseUrl = ticket.ticketPublicUrl?.trim() || "";
   const note = reason?.trim();
+  const email = buildSupportEmail({
+    title: `Ticket ${ticket.id} cancelled`,
+    intro: `Your support ticket ${ticket.id} has been cancelled.`,
+    body: note ? `Reason:\n${note}` : undefined,
+    ctaLabel: "View case history",
+    ctaUrl: caseUrl || undefined,
+  });
   const emailed = await emailTicketRequester({
     ticket,
     workspaceId: scope?.workspaceId,
     subject: `Ticket ${ticket.id} cancelled — Demo Support`,
-    text: [
-      `Your support ticket ${ticket.id} has been cancelled.`,
-      note ? "" : null,
-      note ? `Reason: ${note}` : null,
-      "",
-      caseUrl ? `Case history: ${caseUrl}` : null,
-      "",
-      "— Demo Support",
-    ]
-      .filter((line) => line !== null)
-      .join("\n"),
+    text: email.text,
+    html: email.html,
+  });
+
+  await emailDeskCopy({
+    ticket,
+    workspaceId: scope?.workspaceId,
+    subject: `Ticket cancelled ${ticket.id} — ${ticket.organisation || "Client"}`,
+    text: email.text,
+    html: email.html,
   });
 
   if (scope?.workspaceId) {
@@ -217,7 +299,8 @@ export async function notifyClientTicketCancelled(
         workspaceId: scope.workspaceId,
         ticketId: ticket.id,
         role: "assistant",
-        content: "This ticket is cancelled and archived. Contact Demo Support if you need a new case.",
+        content:
+          "This ticket is cancelled and archived. Contact Demo Support if you need a new case.",
       });
     } catch (error) {
       console.warn("[support/notify] lounge cancel message failed:", error);

@@ -19,6 +19,7 @@ import {
 import { isCrmLinkedClientNotes } from "@/lib/crm-lead-client-data";
 import { centralLoginUrl } from "@/lib/app-domains";
 import { copyTextToClipboard } from "@/lib/clipboard";
+import { clientLogoUrl } from "@/lib/support-email-html";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import { cn } from "@/lib/utils";
 import {
@@ -182,8 +183,7 @@ export default function ClientManagementWorkspace({
     setError(null);
 
     try {
-      // Ensure every client has a unique Support Lounge URL before listing.
-      await fetch("/api/clients/support-lounge/ensure-all", { method: "POST" }).catch(() => null);
+      // Lounge tokens are minted on create / copy — do not block the directory load.
       invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
 
       const data = await fetchCachedJson<{ clients?: ManagedClient[] }>(
@@ -641,9 +641,17 @@ export default function ClientManagementWorkspace({
                         selected && "bg-sky-500/[0.06]",
                       )}
                     >
-                      <p className="min-w-0 truncate text-sm font-semibold text-white">
-                        {client.companyName}
-                      </p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={clientLogoUrl(client.companyName, client.id)}
+                          alt=""
+                          className="h-7 w-7 shrink-0 rounded-lg border border-white/10 bg-white/90 object-cover"
+                        />
+                        <p className="min-w-0 truncate text-sm font-semibold text-white">
+                          {client.companyName}
+                        </p>
+                      </div>
                       <p className="min-w-0 truncate text-xs text-white/50">{client.primaryContact}</p>
                       <p className="min-w-0 truncate text-xs text-white/45">{client.region}</p>
                       <p className="min-w-0 truncate text-xs text-white/45">{client.industry}</p>
@@ -713,6 +721,12 @@ export default function ClientManagementWorkspace({
                       Client Record
                     </p>
                     <h2 className="mt-1 text-lg font-semibold text-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={clientLogoUrl(selectedClient.companyName, selectedClient.id)}
+                        alt=""
+                        className="mr-2 inline-block h-8 w-8 rounded-lg border border-white/10 bg-white/90 object-cover align-middle"
+                      />
                       {selectedClient.companyName || "New Client"}
                     </h2>
                     <p className="mt-1 text-sm text-white/50">{selectedClient.region}</p>

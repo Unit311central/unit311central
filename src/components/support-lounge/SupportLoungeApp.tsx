@@ -125,7 +125,8 @@ export default function SupportLoungeApp({
   activeTicketPublicToken?: string | null;
 }) {
   const [companyName, setCompanyName] = useState("Support");
-  const [loungeTitle, setLoungeTitle] = useState("Demo Support Lounge");
+  const [loungeTitle, setLoungeTitle] = useState("Support Lounge");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [tickets, setTickets] = useState<LoungeTicket[]>([]);
   const [openTickets, setOpenTickets] = useState<LoungeTicket[]>([]);
@@ -212,12 +213,13 @@ export default function SupportLoungeApp({
       cache: "no-store",
     });
     const loungeData = await readJson<{
-      lounge?: { companyName: string; title?: string };
+      lounge?: { companyName: string; title?: string; logoUrl?: string };
       error?: string;
     }>(loungeRes);
     if (!loungeRes.ok) throw new Error(loungeData.error || "Lounge not found");
     setCompanyName(loungeData.lounge?.companyName || "Support");
-    setLoungeTitle(loungeData.lounge?.title || "Demo Support Lounge");
+    setLoungeTitle(loungeData.lounge?.title || loungeData.lounge?.companyName || "Support Lounge");
+    setLogoUrl(loungeData.lounge?.logoUrl || null);
 
     const ticketsRes = await fetch(
       `/api/support-lounge/${encodeURIComponent(loungeToken)}/tickets`,
@@ -668,18 +670,28 @@ export default function SupportLoungeApp({
         )}
       >
         <header className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-4 sm:mb-6 sm:pb-5">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/80">
-              Support Lounge
-            </p>
-            <h1 className="mt-1 font-serif text-2xl tracking-tight text-white sm:text-4xl">
-              {loungeTitle}
-            </h1>
-            <p className="mt-2 max-w-xl text-sm text-white/55">
-              {caseMode
-                ? `Case ${caseTicket?.id} for ${companyName}. Bookmark this page for updates.`
-                : `Chat with support AI for ${companyName}. Tickets go straight to the Demo operations team — no account required.`}
-            </p>
+          <div className="flex min-w-0 items-start gap-4">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- remote Dicebear logo per client
+              <img
+                src={logoUrl}
+                alt={`${companyName} logo`}
+                className="h-16 w-16 shrink-0 rounded-2xl border border-white/10 bg-white/90 object-cover sm:h-20 sm:w-20"
+              />
+            ) : null}
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-300/80">
+                Support Lounge
+              </p>
+              <h1 className="mt-1 font-serif text-3xl tracking-tight text-white sm:text-5xl">
+                {loungeTitle || companyName}
+              </h1>
+              <p className="mt-2 max-w-xl text-sm text-white/55">
+                {caseMode
+                  ? `Case ${caseTicket?.id}. Bookmark this page for updates.`
+                  : `Chat with support for ${companyName}. Tickets go straight to the Demo operations team — no account required.`}
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
@@ -780,12 +792,25 @@ export default function SupportLoungeApp({
                       "max-w-[92%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed",
                       message.role === "user"
                         ? "ml-auto bg-sky-500/20 text-sky-50"
-                        : message.role === "system"
-                          ? "border border-amber-400/20 bg-amber-500/10 text-amber-50/90"
-                          : "border border-white/10 bg-white/[0.04] text-white/85",
+                        : message.role === "operator"
+                          ? "border-2 border-emerald-400/50 bg-emerald-500/15 text-emerald-50 shadow-[0_0_0_1px_rgba(52,211,153,0.25)]"
+                          : message.role === "system"
+                            ? "border border-amber-400/20 bg-amber-500/10 text-amber-50/90"
+                            : "border border-white/10 bg-white/[0.04] text-white/85",
                     )}
                   >
-                    {message.content}
+                    {message.role === "operator" ? (
+                      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-200">
+                        Demo Support · Live update
+                      </p>
+                    ) : null}
+                    <div
+                      className={cn(
+                        message.role === "operator" && "text-[15px] font-semibold leading-relaxed",
+                      )}
+                    >
+                      {message.content}
+                    </div>
                     {message.attachmentUrl ? (
                       <a
                         href={message.attachmentUrl}
