@@ -928,7 +928,11 @@ export default function InternalOperationsDashboard({
 
           {activeView === "website-management" && <WebsiteManagementWorkspace />}
 
-          {activeView === "website-uk-pavilion" && <AbhiUkPavilionWorkspace />}
+          {activeView === "website-uk-pavilion" && (
+            <WorkspaceErrorBoundary title="UK Healthcare Pavilion">
+              <AbhiUkPavilionWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
 
           {activeView === "integrations" && (
             <WorkspaceErrorBoundary title="Integrations">

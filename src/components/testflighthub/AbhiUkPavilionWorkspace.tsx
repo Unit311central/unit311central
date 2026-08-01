@@ -126,7 +126,7 @@ export default function AbhiUkPavilionWorkspace() {
     setFormOpen(true);
   }
 
-  function handleSave(event: React.FormEvent) {
+  function handleSave(event: { preventDefault: () => void }) {
     event.preventDefault();
     if (!form.companyName.trim() || !form.contactEmail.trim()) return;
     const saved = upsertUkPavilionMember({

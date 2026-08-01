@@ -39,7 +39,10 @@ function nowIso() {
 }
 
 function newId() {
-  return `abhi-pav-${crypto.randomUUID().slice(0, 10)}`;
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `abhi-pav-${crypto.randomUUID().slice(0, 10)}`;
+  }
+  return `abhi-pav-${Date.now().toString(36)}`;
 }
 
 function seedMembers(): UkPavilionMember[] {
@@ -99,50 +102,79 @@ function defaultState(): UkPavilionState {
   return { members: seedMembers() };
 }
 
-function readState(): UkPavilionState {
-  if (typeof window === "undefined") return defaultState();
+function normalizeState(raw: unknown): UkPavilionState | null {
+  if (!raw || typeof raw !== "object") return null;
+  const parsed = raw as UkPavilionState;
+  if (!Array.isArray(parsed.members)) return null;
+  return {
+    members: parsed.members.map((row) => ({
+      ...row,
+      amountGbp: Number(row.amountGbp) || UK_PAVILION_FEE_GBP,
+      status: row.status ?? "active",
+      notes: row.notes ?? "",
+    })),
+  };
+}
+
+function readPersistedState(): UkPavilionState | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      const seeded = defaultState();
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-      return seeded;
-    }
-    const parsed = JSON.parse(raw) as UkPavilionState;
-    if (!Array.isArray(parsed.members)) return defaultState();
-    return {
-      members: parsed.members.map((row) => ({
-        ...row,
-        amountGbp: Number(row.amountGbp) || UK_PAVILION_FEE_GBP,
-        status: row.status ?? "active",
-        notes: row.notes ?? "",
-      })),
-    };
+    if (!raw) return null;
+    return normalizeState(JSON.parse(raw));
   } catch {
-    return defaultState();
+    return null;
+  }
+}
+
+function persistState(next: UkPavilionState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore quota / private mode */
   }
 }
 
 let state: UkPavilionState = defaultState();
+let hydrated = false;
+
+/** Frozen SSR/hydration snapshot — never touch localStorage. */
+const serverSnapshot: UkPavilionState = defaultState();
+
+function ensureHydrated() {
+  if (hydrated || typeof window === "undefined") return;
+  hydrated = true;
+  const persisted = readPersistedState();
+  if (persisted) {
+    state = persisted;
+  } else {
+    persistState(state);
+  }
+}
 
 function writeState(next: UkPavilionState) {
+  ensureHydrated();
   state = next;
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }
+  persistState(next);
   listeners.forEach((listener) => listener());
 }
 
+/** Stable client snapshot for useSyncExternalStore — must not allocate a new object each call. */
 export function getUkPavilionState(): UkPavilionState {
-  if (typeof window !== "undefined") {
-    state = readState();
-  }
+  ensureHydrated();
   return state;
+}
+
+export function getUkPavilionServerSnapshot(): UkPavilionState {
+  return serverSnapshot;
 }
 
 export function subscribeUkPavilion(listener: Listener) {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 export function upsertUkPavilionMember(
@@ -163,7 +195,9 @@ export function upsertUkPavilionMember(
     contactName: (input.contactName ?? existing?.contactName ?? "").trim(),
     contactEmail: input.contactEmail.trim(),
     signedUpAt: (input.signedUpAt ?? existing?.signedUpAt ?? todayIso()).slice(0, 10),
-    amountGbp: Number(input.amountGbp ?? existing?.amountGbp ?? UK_PAVILION_FEE_GBP) || UK_PAVILION_FEE_GBP,
+    amountGbp:
+      Number(input.amountGbp ?? existing?.amountGbp ?? UK_PAVILION_FEE_GBP) ||
+      UK_PAVILION_FEE_GBP,
     status: input.status ?? existing?.status ?? "pending",
     notes: (input.notes ?? existing?.notes ?? "").trim(),
     createdAt: existing?.createdAt ?? now,
