@@ -111,6 +111,8 @@ export default function ClientManagementWorkspace({
   const [financeError, setFinanceError] = useState<string | null>(null);
   const snapshottedIdRef = useRef<string | null>(null);
   const detailSectionRef = useRef<HTMLElement>(null);
+  const detailTopRef = useRef<HTMLDivElement>(null);
+  const pinDetailTopRef = useRef(false);
   const deepLinkedClientRef = useRef<string | null>(null);
   const isCorpCentre =
     typeof window !== "undefined" ? isBrowserCorpCentreSurface() : false;
@@ -159,15 +161,27 @@ export default function ClientManagementWorkspace({
     });
   }, [clients, filterContract, filterIndustry, filterRegion, filterStatus, search]);
 
+  function pinClientRecordTop() {
+    const target = detailTopRef.current ?? detailSectionRef.current;
+    if (!target) return;
+    target.scrollIntoView({ behavior: "auto", block: "start", inline: "nearest" });
+  }
+
   function openClient(clientId: string) {
     setSelectedClientId(clientId);
     setDetailClientId(clientId);
+    pinDetailTopRef.current = true;
     if (isCorpCentre) {
       openDetail();
       return;
     }
+    // Pin after paint; finance panel height changes must not drag the viewport down.
     window.requestAnimationFrame(() => {
-      detailSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      pinClientRecordTop();
+      window.setTimeout(() => {
+        if (pinDetailTopRef.current) pinClientRecordTop();
+        pinDetailTopRef.current = false;
+      }, 120);
     });
   }
 
@@ -295,7 +309,13 @@ export default function ClientManagementWorkspace({
           );
         }
       } finally {
-        if (!cancelled) setFinanceLoading(false);
+        if (!cancelled) {
+          setFinanceLoading(false);
+          // Finance block mount can scroll-anchor the page downward after Open.
+          if (pinDetailTopRef.current && !isCorpCentre) {
+            window.requestAnimationFrame(() => pinClientRecordTop());
+          }
+        }
       }
     }
 
@@ -305,7 +325,7 @@ export default function ClientManagementWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [selectedClient?.id]);
+  }, [selectedClient?.id, isCorpCentre]);
 
   function patchSelected(patch: Partial<ManagedClient>) {
     if (!selectedClient) return;
@@ -716,8 +736,9 @@ export default function ClientManagementWorkspace({
           {detailClient && selectedClient ? (
             <section
               ref={detailSectionRef}
-              className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6"
+              className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl [overflow-anchor:none] sm:p-6"
             >
+                <div ref={detailTopRef} tabIndex={-1} className="h-0 outline-none" aria-hidden />
                 {isCorpCentre && showDetail ? (
                   <button
                     type="button"
