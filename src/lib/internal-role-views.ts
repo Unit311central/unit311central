@@ -401,12 +401,16 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "corporate-cap-table",
   "unit311-details",
   "module-go-live",
+  "testing",
+  "telemetry",
 ]);
 
 const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Cap Table Management",
   "Unit311 Details",
   "Infrastructure & Cloud",
+  "Testing",
+  "Telemetry",
 ]);
 
 function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
