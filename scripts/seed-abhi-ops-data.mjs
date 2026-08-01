@@ -55,6 +55,11 @@ const CREDITORS = 7_605_083;
 const FIXED_ASSETS = 2_449; // so net assets = 628,568
 const EXTERNAL_PROJECT_VALUE = 500_000;
 
+/** Effective UK 2025/26 rates for ~£100k salary (flat-% payroll engine). */
+const UK_PAYE_PCT = 27.4; // federal_tax_pct → PAYE
+const UK_EMPLOYEE_NI_PCT = 4.0; // social_security_pct → Employee NI
+const UK_EMPLOYER_NI_PCT = 14.25; // employer_payroll_pct → Employer NI
+
 const CASH_SOURCE = "abhi_ops_opening_cash";
 const FA_SOURCE = "abhi_ops_opening_fa";
 const AR_SOURCE = "abhi_ops_ar";
@@ -217,12 +222,13 @@ async function main() {
       bonus_pay_month: 12,
       bonus_pay_day: 31,
       country_code: "GB",
-      default_tax_state: "",
-      federal_tax_pct: 0,
+      default_tax_state: "ENG",
+      // UK mapping on US-shaped columns: PAYE / Employee NI / Employer NI.
+      federal_tax_pct: UK_PAYE_PCT,
       state_tax_pct: 0,
-      social_security_pct: 0,
+      social_security_pct: UK_EMPLOYEE_NI_PCT,
       medicare_pct: 0,
-      employer_payroll_pct: 0,
+      employer_payroll_pct: UK_EMPLOYER_NI_PCT,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "workspace_id" },
@@ -231,7 +237,13 @@ async function main() {
   await admin.from("hr_employee_compensation_history").delete().eq("workspace_id", WS);
 
   const monthly = round2(SALARY / 12);
-  const payrollLiability = round2(monthly * employees.length);
+  // Dashboard AP payroll liability = gross + employer NI (net + PAYE/NI + employer NI).
+  const employerNiMonthly = round2(monthly * (UK_EMPLOYER_NI_PCT / 100));
+  const employeeTaxMonthly = round2(
+    monthly * ((UK_PAYE_PCT + UK_EMPLOYEE_NI_PCT) / 100),
+  );
+  const netMonthly = round2(monthly - employeeTaxMonthly);
+  const payrollLiability = round2((monthly + employerNiMonthly) * employees.length);
 
   for (const employee of employees) {
     const { error } = await admin
@@ -259,7 +271,7 @@ async function main() {
         amount: SALARY,
         currency: "GBP",
         effective_date: EFFECTIVE,
-        reason: `Annual salary · paid monthly (£${monthly.toLocaleString("en-GB")}/mo)`,
+        reason: `Annual salary · paid monthly (£${monthly.toLocaleString("en-GB")}/mo) · UK PAYE/NI applied`,
         created_at: new Date().toISOString(),
       },
       {
@@ -270,7 +282,7 @@ async function main() {
         amount: BONUS,
         currency: "GBP",
         effective_date: EFFECTIVE,
-        reason: "Annual bonus · paid end of year (December)",
+        reason: "Annual bonus · paid end of year (December) · subject to UK PAYE/NI",
         created_at: new Date().toISOString(),
       },
     ]);
@@ -294,7 +306,13 @@ async function main() {
         commission: 0,
         payroll_frequency: "monthly",
         currency: "GBP",
-        tax_state: "",
+        tax_state: "ENG",
+        // Inherit workspace UK rates (null = use payroll_settings).
+        federal_tax_pct: null,
+        state_tax_pct: null,
+        social_security_pct: null,
+        medicare_pct: null,
+        employer_payroll_pct: null,
         payroll_status: "active",
         bank_account: "",
         routing_number: "",
@@ -311,7 +329,9 @@ async function main() {
     );
     if (profileErr) throw new Error(`payroll profile ${employee.full_name}: ${profileErr.message}`);
   }
-  console.log(`Salaries set for ${employees.length} employees (payroll liability ~£${payrollLiability})`);
+  console.log(
+    `Salaries set for ${employees.length} employees (monthly gross £${monthly}; PAYE+NI £${employeeTaxMonthly}; employer NI £${employerNiMonthly}; net £${netMonthly}; payroll liability ~£${payrollLiability})`,
+  );
 
   // ——— 2) Clients → Active ———
   console.log("Setting clients Active…");
@@ -695,6 +715,14 @@ async function main() {
         salary: SALARY,
         bonus: BONUS,
         monthly,
+        ukTaxes: {
+          payePct: UK_PAYE_PCT,
+          employeeNiPct: UK_EMPLOYEE_NI_PCT,
+          employerNiPct: UK_EMPLOYER_NI_PCT,
+          employeeTaxMonthly,
+          employerNiMonthly,
+          netMonthly,
+        },
         payrollLiability,
         clientsActive: clientActive,
         projects,
