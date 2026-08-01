@@ -928,11 +928,11 @@ export const internalViewTitles: Record<
   "portfolio-dashboard": { title: "Portfolio Dashboard", subtitle: "Portfolio Companies" },
   "portfolio-directory": { title: "Directory", subtitle: "Portfolio Companies" },
   "portfolio-company": { title: "Company Profile", subtitle: "Portfolio Companies" },
-  "portfolio-courses": { title: "Portfolio Courses", subtitle: "Portfolio Training" },
+  "portfolio-courses": { title: "Portfolio Courses", subtitle: "Training" },
   "portfolio-my-training": { title: "My Training", subtitle: "Portfolio Training" },
   "portfolio-compliance-dashboard": {
     title: "Compliance Dashboard",
-    subtitle: "Portfolio Training",
+    subtitle: "Training",
   },
   "portfolio-policies": { title: "Policies", subtitle: "Governance" },
   "portfolio-risk-register": { title: "Risk Register", subtitle: "Governance" },

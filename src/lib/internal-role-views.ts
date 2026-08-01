@@ -175,7 +175,7 @@ export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "wise",
 ]);
 
-/** Talanton Impact — hide QMS / Website / staff QMS training only on that host. */
+/** Talanton Impact — hide QMS / Website Management only on that host. Training stays. */
 export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "testing",
   "telemetry",
@@ -189,8 +189,6 @@ export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "qms-management-review",
   "qms-reports",
   "website-management",
-  "training",
-  "training-dashboard",
 ]);
 
 export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
@@ -200,7 +198,6 @@ export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
 
 export const TALANTON_HIDDEN_SECTION_LABELS = new Set([
   "QMS",
-  "Training",
 ]);
 
 export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
@@ -220,10 +217,8 @@ export const TALANTON_HIDDEN_ITEM_LABELS = new Set([
   "Unit311 Details",
   "Website Management",
   "QMS Courses",
-  "Staff Courses",
   "Module Go-Live",
 ]);
-
 /** Server-safe CorpCentre nav filter (no window). */
 export function filterInternalNavSectionsForCorpCentreWorkspace(
   sections: readonly InternalNavSection[],
@@ -313,13 +308,42 @@ function appendTalantonNavSections(sections: InternalNavSection[]): InternalNavS
   }
 }
 
+function reshapeTalantonTrainingSection(section: InternalNavSection): InternalNavSection {
+  if (section.label !== "Training") return section;
+  return {
+    ...section,
+    items: [
+      {
+        label: "Dashboard",
+        icon: "LayoutDashboard",
+        view: "training-dashboard",
+      },
+      {
+        label: "Staff Courses",
+        icon: "GraduationCap",
+        view: "training",
+      },
+      {
+        label: "Portfolio Courses",
+        icon: "GraduationCap",
+        view: "portfolio-courses",
+      },
+      {
+        label: "Compliance Dashboard",
+        icon: "ShieldCheck",
+        view: "portfolio-compliance-dashboard",
+      },
+    ],
+  };
+}
+
 function filterTalantonBaseNav(sections: readonly InternalNavSection[]): InternalNavSection[] {
   return sections
     .map((section) => {
       if (section.label && TALANTON_HIDDEN_SECTION_LABELS.has(section.label)) {
         return { ...section, items: [] as typeof section.items };
       }
-      return {
+      const filtered: InternalNavSection = {
         ...section,
         items: section.items
           .map((item) => {
@@ -338,6 +362,7 @@ function filterTalantonBaseNav(sections: readonly InternalNavSection[]): Interna
           })
           .filter((item): item is NonNullable<typeof item> => item != null),
       };
+      return reshapeTalantonTrainingSection(filtered);
     })
     .filter((section) => section.items.length > 0);
 }
@@ -345,7 +370,7 @@ function filterTalantonBaseNav(sections: readonly InternalNavSection[]): Interna
 export function filterInternalNavSectionsForDemoSurface(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
-  // Talanton customer host: strip QMS/Website/staff training, append portfolio platform nav.
+  // Talanton customer host: strip QMS/Website, restore Training, prepend Portfolio Companies.
   if (isTalantonNavSurface()) {
     return appendTalantonNavSections(filterTalantonBaseNav(sections));
   }

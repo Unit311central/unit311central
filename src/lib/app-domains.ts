@@ -547,7 +547,7 @@ export function resolveBrowserRedirectPathForHost(
 
 /** Paths that belong to the internal app (legacy + new layout). */
 export function isInternalAppPath(pathname: string): boolean {
-  return (
+  if (
     pathname === "/" ||
     pathname === "/internaldashboard" ||
     pathname.startsWith("/internaldashboard/") ||
@@ -567,8 +567,22 @@ export function isInternalAppPath(pathname: string): boolean {
     pathname === "/projects" ||
     pathname === "/files" ||
     pathname === "/users" ||
-    pathname === "/telemetry"
-  );
+    pathname === "/telemetry" ||
+    pathname === "/dashboard" ||
+    pathname.startsWith("/dashboard/") ||
+    pathname === "/portfolio-portal" ||
+    pathname.startsWith("/portfolio-portal/")
+  ) {
+    return true;
+  }
+
+  try {
+    const { matchTalantonCompanyPortalPathname } =
+      require("@/lib/talanton/company-portal-routes") as typeof import("@/lib/talanton/company-portal-routes");
+    return matchTalantonCompanyPortalPathname(pathname) != null;
+  } catch {
+    return false;
+  }
 }
 
 const PUBLIC_ONLY_PATH_PREFIXES = [

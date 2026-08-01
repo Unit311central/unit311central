@@ -25,6 +25,14 @@ import {
   customerHostLoginRedirect,
   evaluateCustomerHostSessionGate,
 } from "@/lib/workspace-host-session-gate";
+import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
+import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+
+function canonicalizePortalRedirect(redirectPath: string | null | undefined): string | null {
+  if (!redirectPath) return null;
+  const match = matchTalantonCompanyPortalPathname(redirectPath);
+  return match ? `/${match.route.path}` : null;
+}
 
 function withHostHeaders(
   request: NextRequest,
@@ -133,11 +141,45 @@ export async function middleware(request: NextRequest) {
       "x-unit311-workspace-slug": workspaceSlug,
     };
 
+    // Talanton route-based company portals: /{company}/... on talantonimpact host only.
+    if (workspaceSlug === TALANTON_IMPACT_SLUG) {
+      const portalMatch = matchTalantonCompanyPortalPathname(pathname);
+      if (portalMatch) {
+        const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+        if (gate.status === "anonymous" || gate.status === "invalid" || gate.status === "forbidden") {
+          const next = encodeURIComponent(`${pathname}${search}`);
+          return redirectExternal(`${workspaceOrigin}/login?next=${next}`);
+        }
+        if (gate.status === "workspace_missing") {
+          return redirectExternal(`${workspaceOrigin}/login`);
+        }
+        if (gate.session.userType === "external") {
+          const allowed = canonicalizePortalRedirect(gate.session.redirectPath);
+          if (allowed && allowed !== `/${portalMatch.route.path}` && !pathname.startsWith(allowed)) {
+            const bounce = redirectExternal(`${workspaceOrigin}${allowed}`);
+            return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
+          }
+        }
+        const internalPath = `/portfolio-portal/${portalMatch.route.path}${portalMatch.rest}`;
+        const response = rewriteTo(request, internalPath, headers, {
+          ...workspaceResponseHeaders,
+          "x-unit311-company-portal": portalMatch.route.path,
+        });
+        return applyCustomerHostRebindIfNeeded({ request, response, gate });
+      }
+    }
+
     // Customer-host login stays on this origin (tenant branding).
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (gate.status === "ok") {
-        const redirect = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
+        const destination =
+          gate.session.userType === "external" &&
+          workspaceSlug === TALANTON_IMPACT_SLUG &&
+          canonicalizePortalRedirect(gate.session.redirectPath)
+            ? `${workspaceOrigin}${canonicalizePortalRedirect(gate.session.redirectPath)}`
+            : `${workspaceOrigin}/dashboard${search}`;
+        const redirect = redirectExternal(destination);
         return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
       }
       const response = NextResponse.next({ request: { headers } });
@@ -188,8 +230,28 @@ export async function middleware(request: NextRequest) {
 
       // Signed-in users hitting the splash go straight into the workspace app.
       if (pathname === "/" || pathname === "") {
-        const redirect = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
+        const portalHome =
+          gate.session.userType === "external" &&
+          workspaceSlug === TALANTON_IMPACT_SLUG
+            ? canonicalizePortalRedirect(gate.session.redirectPath)
+            : null;
+        const redirect = redirectExternal(
+          `${workspaceOrigin}${portalHome || "/dashboard"}${search}`,
+        );
         return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
+      }
+
+      // Talanton company portal externals must not enter the admin shell.
+      if (
+        workspaceSlug === TALANTON_IMPACT_SLUG &&
+        gate.session.userType === "external" &&
+        (pathname === "/dashboard" || pathname.startsWith("/dashboard/"))
+      ) {
+        const portalHome = canonicalizePortalRedirect(gate.session.redirectPath);
+        if (portalHome) {
+          const redirect = redirectExternal(`${workspaceOrigin}${portalHome}`);
+          return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
+        }
       }
 
       let response: NextResponse;
