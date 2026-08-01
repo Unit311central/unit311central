@@ -175,7 +175,7 @@ export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "wise",
 ]);
 
-/** Talanton Impact — hide QMS / Website Management only on that host. Training stays. */
+/** Talanton Impact — hide QMS / Website Management / client CRM; Training stays. */
 export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "testing",
   "telemetry",
@@ -189,6 +189,15 @@ export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "qms-management-review",
   "qms-reports",
   "website-management",
+  // Portfolio companies are investments — not Business Central clients.
+  "clients",
+  "clients-dashboard",
+  "crm",
+  "crm-meetings",
+  "client-onboarding",
+  "potential-clients",
+  "representatives",
+  "portfolio-company",
 ]);
 
 export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
@@ -218,6 +227,15 @@ export const TALANTON_HIDDEN_ITEM_LABELS = new Set([
   "Website Management",
   "QMS Courses",
   "Module Go-Live",
+  "Clients",
+  "Client Directory",
+  "Customer Management",
+  "Pipeline",
+  "Discovery & Demo",
+  "Client Onboarding",
+  "Potential Clients",
+  "Partners",
+  "Company Profile",
 ]);
 /** Server-safe CorpCentre nav filter (no window). */
 export function filterInternalNavSectionsForCorpCentreWorkspace(

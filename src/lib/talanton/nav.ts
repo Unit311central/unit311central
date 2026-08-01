@@ -34,11 +34,6 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
         icon: "Building2",
         view: "portfolio-directory",
       },
-      {
-        label: "Company Profile",
-        icon: "Building2",
-        view: "portfolio-company",
-      },
     ],
   },
 ];

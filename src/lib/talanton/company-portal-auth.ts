@@ -19,8 +19,8 @@ export type CompanyPortalSession = {
 };
 
 function loginRedirectForPortal(path: string) {
-  const encoded = encodeURIComponent(`/${path}`);
-  return `/login?return_to=${encoded}&next=${encoded}`;
+  // Stay on the company portal URL so the branded portal login is shown.
+  return `/${path}`;
 }
 
 export async function requireCompanyPortalAccess(

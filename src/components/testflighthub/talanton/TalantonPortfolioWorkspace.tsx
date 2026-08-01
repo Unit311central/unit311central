@@ -159,13 +159,136 @@ function Pill({ className, children }: { className?: string; children: ReactNode
 
 function CompanyLink({ company }: { company: PortfolioCompany }) {
   const basePath = useInternalOperationsBasePath();
-  const href = getInternalNavHref("portfolio-company", basePath, {
+  const href = getInternalNavHref("portfolio-directory", basePath, {
     companyId: company.id,
   });
   return (
     <a href={href} className="font-medium text-sky-300 hover:text-sky-200 hover:underline">
       {company.name}
     </a>
+  );
+}
+
+function CompanyDetailPanel({ company }: { company: PortfolioCompany }) {
+  const contacts = companyContacts(company);
+  const docs = companyDocuments(company);
+  const training = companyTrainingDetail(company);
+  const reports = TALANTON_QUARTERLY_REPORTS.filter((r) => r.companyId === company.id);
+  const portal = getCompanyPortalByCompanyId(company.id);
+  const portalUrl = portal ? companyPortalAbsoluteUrl(portal) : "—";
+  const portalLogin = portal?.username ?? "—";
+  const reportingStatus =
+    reports.some((r) => r.status === "Overdue")
+      ? "Overdue"
+      : reports.some((r) => r.status === "Due Soon")
+        ? "Due Soon"
+        : reports.some((r) => r.status === "Submitted")
+          ? "Submitted"
+          : reports.length > 0
+            ? "Not Started"
+            : "No reports";
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-xl font-semibold text-white">{company.name}</h2>
+        <p className="text-sm text-white/50">
+          {company.sector} · {company.city}, {company.country}
+        </p>
+      </div>
+      <KpiRow
+        items={[
+          { label: "Investment", value: formatUsd(company.investmentAmountUsd) },
+          { label: "Ownership", value: `${company.ownershipPct}%` },
+          { label: "Revenue", value: formatUsd(company.annualRevenueUsd) },
+          { label: "Compliance", value: `${company.compliancePct}%` },
+        ]}
+      />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h3 className="text-sm font-medium text-white/70">Company details</h3>
+          <p className="mt-2 text-sm leading-relaxed text-white/80">{company.overview}</p>
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div><dt className="text-white/45">Country</dt><dd className="text-white">{company.country}</dd></div>
+            <div><dt className="text-white/45">Sector</dt><dd className="text-white">{company.sector}</dd></div>
+            <div><dt className="text-white/45">Growth</dt><dd className="tabular-nums text-white">{company.revenueGrowthPct}%</dd></div>
+            <div><dt className="text-white/45">Risk</dt><dd><Pill className={riskClass(company.riskRating)}>{company.riskRating}</Pill></dd></div>
+          </dl>
+        </section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h3 className="mb-2 text-sm font-medium text-white/70">Portal access</h3>
+          <dl className="space-y-2 text-sm">
+            <div>
+              <dt className="text-white/45">Portal URL</dt>
+              <dd className="break-all text-sky-300">{portalUrl}</dd>
+            </div>
+            <div>
+              <dt className="text-white/45">Portal login email</dt>
+              <dd className="text-white">{portalLogin}</dd>
+            </div>
+            <div>
+              <dt className="text-white/45">Assigned external user</dt>
+              <dd className="text-white">{portalLogin}</dd>
+            </div>
+          </dl>
+        </section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h3 className="mb-2 text-sm font-medium text-white/70">Compliance status</h3>
+          <p className="text-sm text-white/80">
+            <Pill className={statusClass(training.status)}>{training.status}</Pill>
+            <span className="ml-2">{company.compliancePct}% complete · {company.outstandingTraining} outstanding modules</span>
+          </p>
+        </section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h3 className="mb-2 text-sm font-medium text-white/70">Training status</h3>
+          <dl className="grid grid-cols-2 gap-2 text-sm">
+            <div><dt className="text-white/45">Assigned courses</dt><dd className="tabular-nums text-white">{training.assignedCourses}</dd></div>
+            <div><dt className="text-white/45">Completed courses</dt><dd className="tabular-nums text-white">{training.completedCourses}</dd></div>
+            <div><dt className="text-white/45">Outstanding courses</dt><dd className="tabular-nums text-white">{training.outstandingCourses}</dd></div>
+            <div><dt className="text-white/45">Users enrolled</dt><dd className="tabular-nums text-white">{training.assignedUsers}</dd></div>
+            <div><dt className="text-white/45">Completed users</dt><dd className="tabular-nums text-white">{training.completedUsers}</dd></div>
+            <div><dt className="text-white/45">Outstanding users</dt><dd className="tabular-nums text-white">{training.outstandingUsers}</dd></div>
+            <div className="col-span-2"><dt className="text-white/45">Last training activity</dt><dd className="text-white">{training.lastTrainingActivity}</dd></div>
+          </dl>
+        </section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h3 className="mb-2 text-sm font-medium text-white/70">Reporting status</h3>
+          <div className="mb-2"><Pill className={statusClass(reportingStatus)}>{reportingStatus}</Pill></div>
+          {reports.length === 0 ? (
+            <p className="text-sm text-white/45">No reports.</p>
+          ) : (
+            reports.map((r) => (
+              <div key={r.id} className="mb-2 flex items-center justify-between text-sm">
+                <span>{r.period}</span>
+                <Pill className={statusClass(r.status)}>{r.status}</Pill>
+              </div>
+            ))
+          )}
+        </section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h3 className="mb-2 text-sm font-medium text-white/70">Document summary</h3>
+          <p className="mb-2 text-sm text-white/60">{docs.length} documents on file</p>
+          <ul className="space-y-1 text-sm text-white/80">
+            {docs.map((d) => (
+              <li key={d.name}>
+                {d.name} <span className="text-white/40">· {d.kind} · {d.updatedAt}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4 lg:col-span-2">
+          <h3 className="mb-2 text-sm font-medium text-white/70">Contacts</h3>
+          <ul className="grid gap-2 text-sm sm:grid-cols-2">
+            {contacts.map((c) => (
+              <li key={c.email} className="text-white/80">
+                <span className="font-medium text-white">{c.name}</span> · {c.role}
+                <div className="text-white/45">{c.email}</div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </div>
   );
 }
 
@@ -220,7 +343,12 @@ function PortfolioDashboardView() {
 }
 
 function DirectoryView() {
+  const searchParams = useSearchParams();
+  const initialId =
+    searchParams.get("companyId") ?? TALANTON_PORTFOLIO_COMPANIES[0]?.id ?? "";
+  const [selectedId, setSelectedId] = useState(initialId);
   const [q, setQ] = useState("");
+
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return TALANTON_PORTFOLIO_COMPANIES;
@@ -232,10 +360,12 @@ function DirectoryView() {
     );
   }, [q]);
 
+  const selected = companyById(selectedId) ?? rows[0] ?? TALANTON_PORTFOLIO_COMPANIES[0];
+
   return (
     <Panel
       title="Portfolio Companies Directory"
-      subtitle="Nineteen impact companies — open a company for the full investment profile."
+      subtitle="Select a company to view portal access, training, compliance and reporting."
     >
       <div className="mb-4">
         <input
@@ -245,134 +375,37 @@ function DirectoryView() {
           className="w-full max-w-md rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-white/25"
         />
       </div>
-      <TableShell headers={["Company", "Country", "Sector", "Investment", "Ownership", "Compliance", "Risk"]}>
-        {rows.map((c) => (
-          <tr key={c.id} className="hover:bg-white/[0.03]">
-            <td className="px-3 py-2.5"><CompanyLink company={c} /></td>
-            <td className="px-3 py-2.5">{c.country}</td>
-            <td className="px-3 py-2.5">{c.sector}</td>
-            <td className="px-3 py-2.5 tabular-nums">{formatUsd(c.investmentAmountUsd)}</td>
-            <td className="px-3 py-2.5 tabular-nums">{c.ownershipPct}%</td>
-            <td className="px-3 py-2.5 tabular-nums">{c.compliancePct}%</td>
-            <td className="px-3 py-2.5"><Pill className={riskClass(c.riskRating)}>{c.riskRating}</Pill></td>
-          </tr>
-        ))}
-      </TableShell>
-    </Panel>
-  );
-}
-
-function CompanyProfileView() {
-  const searchParams = useSearchParams();
-  const companyId = searchParams.get("companyId") ?? TALANTON_PORTFOLIO_COMPANIES[0]?.id ?? "";
-  const company = companyById(companyId) ?? TALANTON_PORTFOLIO_COMPANIES[0];
-  if (!company) {
-    return <Panel title="Company Profile" subtitle="No portfolio company selected."><p className="text-sm text-white/50">Select a company from the directory.</p></Panel>;
-  }
-  const contacts = companyContacts(company);
-  const docs = companyDocuments(company);
-  const training = companyTrainingDetail(company);
-  const reports = TALANTON_QUARTERLY_REPORTS.filter((r) => r.companyId === company.id);
-  const portal = getCompanyPortalByCompanyId(company.id);
-  const portalUrl = portal ? companyPortalAbsoluteUrl(portal) : "—";
-  const portalLogin = portal?.username ?? "—";
-  const reportingStatus =
-    reports.some((r) => r.status === "Overdue")
-      ? "Overdue"
-      : reports.some((r) => r.status === "Due Soon")
-        ? "Due Soon"
-        : reports.some((r) => r.status === "Submitted")
-          ? "Submitted"
-          : reports.length > 0
-            ? "Not Started"
-            : "No reports";
-
-  return (
-    <Panel title={company.name} subtitle={`${company.sector} · ${company.city}, ${company.country}`}>
-      <KpiRow
-        items={[
-          { label: "Investment", value: formatUsd(company.investmentAmountUsd) },
-          { label: "Ownership", value: `${company.ownershipPct}%` },
-          { label: "Revenue", value: formatUsd(company.annualRevenueUsd) },
-          { label: "Compliance", value: `${company.compliancePct}%` },
-        ]}
-      />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="text-sm font-medium text-white/70">Company information</h2>
-          <p className="mt-2 text-sm leading-relaxed text-white/80">{company.overview}</p>
-          <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-            <div><dt className="text-white/45">Country</dt><dd className="text-white">{company.country}</dd></div>
-            <div><dt className="text-white/45">Sector</dt><dd className="text-white">{company.sector}</dd></div>
-            <div><dt className="text-white/45">Growth</dt><dd className="tabular-nums text-white">{company.revenueGrowthPct}%</dd></div>
-            <div><dt className="text-white/45">Risk</dt><dd><Pill className={riskClass(company.riskRating)}>{company.riskRating}</Pill></dd></div>
-          </dl>
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Portal access</h2>
-          <dl className="space-y-2 text-sm">
-            <div>
-              <dt className="text-white/45">Portal URL</dt>
-              <dd className="break-all text-sky-300">{portalUrl}</dd>
-            </div>
-            <div>
-              <dt className="text-white/45">Portal login email</dt>
-              <dd className="text-white">{portalLogin}</dd>
-            </div>
-            <div>
-              <dt className="text-white/45">Assigned external user</dt>
-              <dd className="text-white">{portalLogin}</dd>
-            </div>
-          </dl>
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Compliance status</h2>
-          <p className="text-sm text-white/80">
-            <Pill className={statusClass(training.status)}>{training.status}</Pill>
-            <span className="ml-2">{company.compliancePct}% complete · {company.outstandingTraining} outstanding modules</span>
-          </p>
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Training status</h2>
-          <dl className="grid grid-cols-2 gap-2 text-sm">
-            <div><dt className="text-white/45">Assigned courses</dt><dd className="tabular-nums text-white">{training.assignedCourses}</dd></div>
-            <div><dt className="text-white/45">Completed courses</dt><dd className="tabular-nums text-white">{training.completedCourses}</dd></div>
-            <div><dt className="text-white/45">Outstanding courses</dt><dd className="tabular-nums text-white">{training.outstandingCourses}</dd></div>
-            <div><dt className="text-white/45">Users enrolled</dt><dd className="tabular-nums text-white">{training.assignedUsers}</dd></div>
-            <div><dt className="text-white/45">Completed users</dt><dd className="tabular-nums text-white">{training.completedUsers}</dd></div>
-            <div><dt className="text-white/45">Outstanding users</dt><dd className="tabular-nums text-white">{training.outstandingUsers}</dd></div>
-            <div className="col-span-2"><dt className="text-white/45">Last training activity</dt><dd className="text-white">{training.lastTrainingActivity}</dd></div>
-          </dl>
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Reporting status</h2>
-          <div className="mb-2"><Pill className={statusClass(reportingStatus)}>{reportingStatus}</Pill></div>
-          {reports.length === 0 ? <p className="text-sm text-white/45">No reports.</p> : reports.map((r) => (
-            <div key={r.id} className="mb-2 flex items-center justify-between text-sm">
-              <span>{r.period}</span>
-              <Pill className={statusClass(r.status)}>{r.status}</Pill>
-            </div>
-          ))}
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Document summary</h2>
-          <p className="mb-2 text-sm text-white/60">{docs.length} documents on file</p>
-          <ul className="space-y-1 text-sm text-white/80">
-            {docs.map((d) => (
-              <li key={d.name}>{d.name} <span className="text-white/40">· {d.kind} · {d.updatedAt}</span></li>
-            ))}
-          </ul>
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4 lg:col-span-2">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Contacts</h2>
-          <ul className="grid gap-2 sm:grid-cols-2 text-sm">
-            {contacts.map((c) => (
-              <li key={c.email} className="text-white/80">
-                <span className="font-medium text-white">{c.name}</span> · {c.role}
-                <div className="text-white/45">{c.email}</div>
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <aside className="max-h-[640px] overflow-y-auto rounded-xl border border-white/10 bg-white/[0.02]">
+          <div className="sticky top-0 border-b border-white/10 bg-[#0b1220]/95 px-3 py-2 text-xs font-medium uppercase tracking-wide text-white/45">
+            Portfolio companies
+          </div>
+          <ul>
+            {rows.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(c.id)}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm transition",
+                    selected?.id === c.id
+                      ? "bg-emerald-500/15 text-white"
+                      : "text-white/75 hover:bg-white/[0.04]",
+                  )}
+                >
+                  <span className="truncate">{c.name}</span>
+                  <span className="tabular-nums text-xs text-white/50">{c.compliancePct}%</span>
+                </button>
               </li>
             ))}
           </ul>
+        </aside>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          {selected ? (
+            <CompanyDetailPanel company={selected} />
+          ) : (
+            <p className="text-sm text-white/50">Select a portfolio company.</p>
+          )}
         </section>
       </div>
     </Panel>
@@ -940,9 +973,9 @@ export default function TalantonPortfolioWorkspace({ view }: Props) {
     case "portfolio-dashboard":
       return <PortfolioDashboardView />;
     case "portfolio-directory":
-      return <DirectoryView />;
     case "portfolio-company":
-      return <CompanyProfileView />;
+    case "portfolio-report-company":
+      return <DirectoryView />;
     case "portfolio-courses":
       return <CoursesView />;
     case "portfolio-course-management":
@@ -972,8 +1005,6 @@ export default function TalantonPortfolioWorkspace({ view }: Props) {
       return <QuarterlyReportingView />;
     case "portfolio-report-training":
       return <ReportTrainingView />;
-    case "portfolio-report-company":
-      return <CompanyProfileView />;
     default:
       return (
         <Panel title="Talanton Impact" subtitle="Select a portfolio module from the sidebar.">

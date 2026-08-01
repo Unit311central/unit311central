@@ -148,15 +148,32 @@ export async function middleware(request: NextRequest) {
       const portalMatch = matchTalantonCompanyPortalPathname(pathname);
       if (portalMatch) {
         const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+        const isLoginRest =
+          portalMatch.rest === "/login" || portalMatch.rest.startsWith("/login/");
+
+        // Anonymous / invalid: company-branded portal login (URL stays /{company}).
         if (gate.status === "anonymous" || gate.status === "invalid" || gate.status === "forbidden") {
-          const portalPath = `/${portalMatch.route.path}${portalMatch.rest || ""}`;
-          const encoded = encodeURIComponent(portalPath);
-          return redirectExternal(
-            `${workspaceOrigin}/login?return_to=${encoded}&next=${encoded}`,
+          const response = rewriteTo(
+            request,
+            `/portfolio-portal/${portalMatch.route.path}/login`,
+            headers,
+            {
+              ...workspaceResponseHeaders,
+              "x-unit311-company-portal": portalMatch.route.path,
+            },
           );
+          return response;
         }
         if (gate.status === "workspace_missing") {
-          return redirectExternal(`${workspaceOrigin}/login`);
+          return rewriteTo(
+            request,
+            `/portfolio-portal/${portalMatch.route.path}/login`,
+            headers,
+            {
+              ...workspaceResponseHeaders,
+              "x-unit311-company-portal": portalMatch.route.path,
+            },
+          );
         }
         if (gate.session.userType === "external") {
           const allowed = canonicalizePortalRedirect(gate.session.redirectPath);
@@ -164,6 +181,11 @@ export async function middleware(request: NextRequest) {
             const bounce = redirectExternal(`${workspaceOrigin}${allowed}`);
             return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
           }
+        }
+        // Signed-in users hitting /{company}/login go to the portal home.
+        if (isLoginRest) {
+          const bounce = redirectExternal(`${workspaceOrigin}/${portalMatch.route.path}`);
+          return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
         }
         const internalPath = `/portfolio-portal/${portalMatch.route.path}${portalMatch.rest}`;
         const response = rewriteTo(request, internalPath, headers, {
