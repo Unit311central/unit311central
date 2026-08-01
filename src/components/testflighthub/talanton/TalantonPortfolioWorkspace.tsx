@@ -16,13 +16,25 @@ import {
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import {
+  companyPortalAbsoluteUrl,
+  getCompanyPortalByCompanyId,
+} from "@/lib/talanton/company-portal-routes";
+import {
+  createBlankCourse,
+  listManagedCourses,
+  saveManagedCourses,
+  type ManagedCourse,
+} from "@/lib/talanton/course-management-store";
+import {
   companyById,
   companyContacts,
   companyDocuments,
   companyNameById,
+  companyTrainingDetail,
   courseTitleById,
   formatUsd,
   portfolioComplianceSummary,
+  portfolioTrainingDashboardSummary,
   TALANTON_ACTIONS,
   TALANTON_COMPLIANCE_COURSES,
   TALANTON_MY_TRAINING,
@@ -96,7 +108,7 @@ function KpiRow({
   items: Array<{ label: string; value: string | number; icon?: ReactNode }>;
 }) {
   return (
-    <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map((item) => (
         <div
           key={item.label}
@@ -259,10 +271,21 @@ function CompanyProfileView() {
   }
   const contacts = companyContacts(company);
   const docs = companyDocuments(company);
-  const risks = TALANTON_RISKS.filter((r) => r.companyId === company.id);
-  const actions = TALANTON_ACTIONS.filter((a) => a.companyId === company.id);
-  const training = TALANTON_MY_TRAINING.filter((t) => t.companyId === company.id);
+  const training = companyTrainingDetail(company);
   const reports = TALANTON_QUARTERLY_REPORTS.filter((r) => r.companyId === company.id);
+  const portal = getCompanyPortalByCompanyId(company.id);
+  const portalUrl = portal ? companyPortalAbsoluteUrl(portal) : "—";
+  const portalLogin = portal?.username ?? "—";
+  const reportingStatus =
+    reports.some((r) => r.status === "Overdue")
+      ? "Overdue"
+      : reports.some((r) => r.status === "Due Soon")
+        ? "Due Soon"
+        : reports.some((r) => r.status === "Submitted")
+          ? "Submitted"
+          : reports.length > 0
+            ? "Not Started"
+            : "No reports";
 
   return (
     <Panel title={company.name} subtitle={`${company.sector} · ${company.city}, ${company.country}`}>
@@ -276,20 +299,54 @@ function CompanyProfileView() {
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="text-sm font-medium text-white/70">Overview</h2>
+          <h2 className="text-sm font-medium text-white/70">Company information</h2>
           <p className="mt-2 text-sm leading-relaxed text-white/80">{company.overview}</p>
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="text-sm font-medium text-white/70">Financial summary</h2>
-          <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div><dt className="text-white/45">Country</dt><dd className="text-white">{company.country}</dd></div>
+            <div><dt className="text-white/45">Sector</dt><dd className="text-white">{company.sector}</dd></div>
             <div><dt className="text-white/45">Growth</dt><dd className="tabular-nums text-white">{company.revenueGrowthPct}%</dd></div>
-            <div><dt className="text-white/45">Burn / mo</dt><dd className="tabular-nums text-white">{formatUsd(company.burnRateUsdMonthly)}</dd></div>
-            <div><dt className="text-white/45">ROI / MOIC</dt><dd className="tabular-nums text-white">{company.roiMoic}x</dd></div>
             <div><dt className="text-white/45">Risk</dt><dd><Pill className={riskClass(company.riskRating)}>{company.riskRating}</Pill></dd></div>
           </dl>
         </section>
         <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Quarterly reports</h2>
+          <h2 className="mb-2 text-sm font-medium text-white/70">Portal access</h2>
+          <dl className="space-y-2 text-sm">
+            <div>
+              <dt className="text-white/45">Portal URL</dt>
+              <dd className="break-all text-sky-300">{portalUrl}</dd>
+            </div>
+            <div>
+              <dt className="text-white/45">Portal login email</dt>
+              <dd className="text-white">{portalLogin}</dd>
+            </div>
+            <div>
+              <dt className="text-white/45">Assigned external user</dt>
+              <dd className="text-white">{portalLogin}</dd>
+            </div>
+          </dl>
+        </section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h2 className="mb-2 text-sm font-medium text-white/70">Compliance status</h2>
+          <p className="text-sm text-white/80">
+            <Pill className={statusClass(training.status)}>{training.status}</Pill>
+            <span className="ml-2">{company.compliancePct}% complete · {company.outstandingTraining} outstanding modules</span>
+          </p>
+        </section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h2 className="mb-2 text-sm font-medium text-white/70">Training status</h2>
+          <dl className="grid grid-cols-2 gap-2 text-sm">
+            <div><dt className="text-white/45">Assigned courses</dt><dd className="tabular-nums text-white">{training.assignedCourses}</dd></div>
+            <div><dt className="text-white/45">Completed courses</dt><dd className="tabular-nums text-white">{training.completedCourses}</dd></div>
+            <div><dt className="text-white/45">Outstanding courses</dt><dd className="tabular-nums text-white">{training.outstandingCourses}</dd></div>
+            <div><dt className="text-white/45">Users enrolled</dt><dd className="tabular-nums text-white">{training.assignedUsers}</dd></div>
+            <div><dt className="text-white/45">Completed users</dt><dd className="tabular-nums text-white">{training.completedUsers}</dd></div>
+            <div><dt className="text-white/45">Outstanding users</dt><dd className="tabular-nums text-white">{training.outstandingUsers}</dd></div>
+            <div className="col-span-2"><dt className="text-white/45">Last training activity</dt><dd className="text-white">{training.lastTrainingActivity}</dd></div>
+          </dl>
+        </section>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h2 className="mb-2 text-sm font-medium text-white/70">Reporting status</h2>
+          <div className="mb-2"><Pill className={statusClass(reportingStatus)}>{reportingStatus}</Pill></div>
           {reports.length === 0 ? <p className="text-sm text-white/45">No reports.</p> : reports.map((r) => (
             <div key={r.id} className="mb-2 flex items-center justify-between text-sm">
               <span>{r.period}</span>
@@ -298,39 +355,17 @@ function CompanyProfileView() {
           ))}
         </section>
         <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Compliance status</h2>
-          <p className="text-sm text-white/80">{company.compliancePct}% complete · {company.outstandingTraining} outstanding modules · {company.usersEnrolled} users enrolled</p>
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Training completion</h2>
-          {training.length === 0 ? <p className="text-sm text-white/45">No sample assignments for this company.</p> : training.map((t) => (
-            <div key={t.id} className="mb-2 flex items-center justify-between gap-2 text-sm">
-              <span className="truncate">{courseTitleById(t.courseId)}</span>
-              <Pill className={statusClass(t.status)}>{t.status}</Pill>
-            </div>
-          ))}
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Governance actions</h2>
-          {actions.length === 0 && risks.length === 0 ? <p className="text-sm text-white/45">No open actions.</p> : null}
-          {actions.map((a) => (
-            <div key={a.id} className="mb-2 text-sm text-white/80">{a.title} · <Pill className={statusClass(a.status)}>{a.status}</Pill></div>
-          ))}
-          {risks.map((r) => (
-            <div key={r.id} className="mb-2 text-sm text-white/80">{r.title} · <Pill className={riskClass(r.rating)}>{r.rating}</Pill></div>
-          ))}
-        </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <h2 className="mb-2 text-sm font-medium text-white/70">Documents</h2>
+          <h2 className="mb-2 text-sm font-medium text-white/70">Document summary</h2>
+          <p className="mb-2 text-sm text-white/60">{docs.length} documents on file</p>
           <ul className="space-y-1 text-sm text-white/80">
             {docs.map((d) => (
               <li key={d.name}>{d.name} <span className="text-white/40">· {d.kind} · {d.updatedAt}</span></li>
             ))}
           </ul>
         </section>
-        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4 lg:col-span-2">
           <h2 className="mb-2 text-sm font-medium text-white/70">Contacts</h2>
-          <ul className="space-y-2 text-sm">
+          <ul className="grid gap-2 sm:grid-cols-2 text-sm">
             {contacts.map((c) => (
               <li key={c.email} className="text-white/80">
                 <span className="font-medium text-white">{c.name}</span> · {c.role}
@@ -345,21 +380,284 @@ function CompanyProfileView() {
 }
 
 function CoursesView() {
+  const summary = portfolioTrainingDashboardSummary();
+  const [selectedId, setSelectedId] = useState(TALANTON_PORTFOLIO_COMPANIES[1]?.id ?? TALANTON_PORTFOLIO_COMPANIES[0]?.id ?? "");
+  const selected = companyById(selectedId) ?? TALANTON_PORTFOLIO_COMPANIES[0];
+  const detail = selected ? companyTrainingDetail(selected) : null;
+  const portal = selected ? getCompanyPortalByCompanyId(selected.id) : null;
+
   return (
-    <Panel title="Portfolio Courses" subtitle="Mandatory compliance catalogue assigned across all portfolio companies. No QMS / ISO content.">
-      <TableShell headers={["Course", "Category", "Duration", "Mandatory", "Companies", "Completion", "Renewal"]}>
-        {TALANTON_COMPLIANCE_COURSES.map((c) => (
-          <tr key={c.id} className="hover:bg-white/[0.03]">
-            <td className="px-3 py-2.5 font-medium text-white">{c.title}</td>
-            <td className="px-3 py-2.5">{c.category}</td>
-            <td className="px-3 py-2.5 tabular-nums">{c.durationMinutes} min</td>
-            <td className="px-3 py-2.5">{c.mandatory ? "Yes" : "No"}</td>
-            <td className="px-3 py-2.5 tabular-nums">{c.assignedCompanies}</td>
-            <td className="px-3 py-2.5 tabular-nums">{c.completionPct}%</td>
-            <td className="px-3 py-2.5">{c.renewEveryMonths} mo</td>
-          </tr>
-        ))}
-      </TableShell>
+    <Panel title="Portfolio Courses" subtitle="Portfolio company training compliance management.">
+      <KpiRow
+        items={[
+          { label: "Total portfolio companies", value: summary.companyCount },
+          { label: "Average completion %", value: `${summary.avgCompletion}%` },
+          { label: "Companies above 90%", value: summary.above90 },
+          { label: "Companies 70%–90%", value: summary.between70And90 },
+          { label: "Companies below 70%", value: summary.below70 },
+          { label: "Outstanding training items", value: summary.outstandingItems },
+          { label: "Outstanding users", value: summary.outstandingUsers },
+        ]}
+      />
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <aside className="max-h-[560px] overflow-y-auto rounded-xl border border-white/10 bg-white/[0.02]">
+          <div className="sticky top-0 border-b border-white/10 bg-[#0b1220]/95 px-3 py-2 text-xs font-medium uppercase tracking-wide text-white/45">
+            Portfolio companies
+          </div>
+          <ul>
+            {TALANTON_PORTFOLIO_COMPANIES.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(c.id)}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm transition",
+                    selectedId === c.id ? "bg-emerald-500/15 text-white" : "text-white/75 hover:bg-white/[0.04]",
+                  )}
+                >
+                  <span className="truncate">{c.name}</span>
+                  <span className="tabular-nums text-xs text-white/50">{c.compliancePct}%</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
+        <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          {!selected || !detail ? (
+            <p className="text-sm text-white/50">Select a portfolio company.</p>
+          ) : (
+            <>
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">{selected.name}</h2>
+                  <p className="text-sm text-white/50">{selected.city}, {selected.country}</p>
+                </div>
+                <Pill className={statusClass(detail.status)}>{detail.status}</Pill>
+              </div>
+              <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+                <div><dt className="text-white/45">Overall completion %</dt><dd className="text-xl font-semibold tabular-nums text-white">{selected.compliancePct}%</dd></div>
+                <div><dt className="text-white/45">Compliance status</dt><dd className="text-white">{detail.status}</dd></div>
+                <div><dt className="text-white/45">Last training activity</dt><dd className="text-white">{detail.lastTrainingActivity}</dd></div>
+                <div><dt className="text-white/45">Assigned courses</dt><dd className="tabular-nums text-white">{detail.assignedCourses}</dd></div>
+                <div><dt className="text-white/45">Completed courses</dt><dd className="tabular-nums text-white">{detail.completedCourses}</dd></div>
+                <div><dt className="text-white/45">Outstanding courses</dt><dd className="tabular-nums text-white">{detail.outstandingCourses}</dd></div>
+                <div><dt className="text-white/45">Assigned users</dt><dd className="tabular-nums text-white">{detail.assignedUsers}</dd></div>
+                <div><dt className="text-white/45">Completed users</dt><dd className="tabular-nums text-white">{detail.completedUsers}</dd></div>
+                <div><dt className="text-white/45">Outstanding users</dt><dd className="tabular-nums text-white">{detail.outstandingUsers}</dd></div>
+                <div className="sm:col-span-2">
+                  <dt className="text-white/45">Portal URL</dt>
+                  <dd className="break-all text-sky-300">{portal ? companyPortalAbsoluteUrl(portal) : "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-white/45">Portal login email</dt>
+                  <dd className="text-white">{portal?.username ?? "—"}</dd>
+                </div>
+              </dl>
+              <div className="mt-5">
+                <h3 className="mb-2 text-sm font-medium text-white/70">Assigned course catalogue</h3>
+                <TableShell headers={["Course", "Category", "Duration", "Mandatory", "Companies", "Completion"]}>
+                  {TALANTON_COMPLIANCE_COURSES.map((c) => (
+                    <tr key={c.id} className="hover:bg-white/[0.03]">
+                      <td className="px-3 py-2.5 font-medium text-white">{c.title}</td>
+                      <td className="px-3 py-2.5">{c.category}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{c.durationMinutes} min</td>
+                      <td className="px-3 py-2.5">{c.mandatory ? "Yes" : "No"}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{c.assignedCompanies}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{c.completionPct}%</td>
+                    </tr>
+                  ))}
+                </TableShell>
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+    </Panel>
+  );
+}
+
+function CourseManagementView() {
+  const [courses, setCourses] = useState<ManagedCourse[]>(() => listManagedCourses());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = courses.find((c) => c.id === editingId) ?? null;
+
+  const persist = (next: ManagedCourse[]) => {
+    setCourses(next);
+    saveManagedCourses(next);
+  };
+
+  const upsert = (course: ManagedCourse) => {
+    const exists = courses.some((c) => c.id === course.id);
+    const next = exists ? courses.map((c) => (c.id === course.id ? course : c)) : [course, ...courses];
+    persist(next);
+    setEditingId(course.id);
+  };
+
+  const remove = (id: string) => {
+    persist(courses.filter((c) => c.id !== id));
+    if (editingId === id) setEditingId(null);
+  };
+
+  const archive = (id: string) => {
+    persist(courses.map((c) => (c.id === id ? { ...c, archived: !c.archived } : c)));
+  };
+
+  const active = courses.filter((c) => !c.archived);
+  const archived = courses.filter((c) => c.archived);
+  const avgEnrolment = courses.length
+    ? Math.round(courses.reduce((s, c) => s + c.enrolmentCount, 0) / courses.length)
+    : 0;
+  const avgCompletion = courses.length
+    ? Math.round(courses.reduce((s, c) => s + c.completionPct, 0) / courses.length)
+    : 0;
+
+  return (
+    <Panel title="Course Management" subtitle="Master administration for Talanton training content.">
+      <KpiRow
+        items={[
+          { label: "Active courses", value: active.length },
+          { label: "Archived", value: archived.length },
+          { label: "Avg enrolment", value: avgEnrolment },
+          { label: "Avg completion", value: `${avgCompletion}%` },
+        ]}
+      />
+      <div className="mb-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            const blank = createBlankCourse();
+            upsert(blank);
+          }}
+          className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+        >
+          Create course
+        </button>
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
+        <TableShell headers={["Course", "Category", "Duration", "Mandatory", "Companies", "Enrolment", "Completion", "Status", "Actions"]}>
+          {courses.map((c) => (
+            <tr key={c.id} className="hover:bg-white/[0.03]">
+              <td className="px-3 py-2.5 font-medium text-white">{c.title}</td>
+              <td className="px-3 py-2.5">{c.category}</td>
+              <td className="px-3 py-2.5 tabular-nums">{c.durationMinutes} min</td>
+              <td className="px-3 py-2.5">{c.mandatory ? "Yes" : "No"}</td>
+              <td className="px-3 py-2.5 tabular-nums">{c.assignedCompanyIds.length || c.assignedCompanies}</td>
+              <td className="px-3 py-2.5 tabular-nums">{c.enrolmentCount}</td>
+              <td className="px-3 py-2.5 tabular-nums">{c.completionPct}%</td>
+              <td className="px-3 py-2.5"><Pill className={c.archived ? "bg-white/10 text-white/50" : "bg-emerald-500/15 text-emerald-300"}>{c.archived ? "Archived" : "Active"}</Pill></td>
+              <td className="px-3 py-2.5">
+                <div className="flex flex-wrap gap-1">
+                  <button type="button" className="rounded px-2 py-1 text-xs text-sky-300 hover:bg-white/5" onClick={() => setEditingId(c.id)}>Edit</button>
+                  <button type="button" className="rounded px-2 py-1 text-xs text-amber-300 hover:bg-white/5" onClick={() => archive(c.id)}>{c.archived ? "Restore" : "Archive"}</button>
+                  <button type="button" className="rounded px-2 py-1 text-xs text-rose-300 hover:bg-white/5" onClick={() => remove(c.id)}>Delete</button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </TableShell>
+        <aside className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <h2 className="text-sm font-medium text-white/70">{editing ? "Edit course" : "Select a course to edit"}</h2>
+          {editing ? (
+            <form
+              className="mt-3 space-y-3 text-sm"
+              onSubmit={(e) => {
+                e.preventDefault();
+                upsert(editing);
+              }}
+            >
+              <label className="block">
+                <span className="text-white/45">Title</span>
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
+                  value={editing.title}
+                  onChange={(e) => upsert({ ...editing, title: e.target.value })}
+                />
+              </label>
+              <label className="block">
+                <span className="text-white/45">Category</span>
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
+                  value={editing.category}
+                  onChange={(e) => upsert({ ...editing, category: e.target.value })}
+                />
+              </label>
+              <label className="block">
+                <span className="text-white/45">Duration (minutes)</span>
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
+                  value={editing.durationMinutes}
+                  onChange={(e) => upsert({ ...editing, durationMinutes: Number(e.target.value) || 0 })}
+                />
+              </label>
+              <label className="flex items-center gap-2 text-white/80">
+                <input
+                  type="checkbox"
+                  checked={editing.mandatory}
+                  onChange={(e) => upsert({ ...editing, mandatory: e.target.checked })}
+                />
+                Mandatory
+              </label>
+              <label className="block">
+                <span className="text-white/45">Assign to portfolio companies</span>
+                <select
+                  multiple
+                  className="mt-1 h-36 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-white"
+                  value={editing.assignedCompanyIds}
+                  onChange={(e) => {
+                    const ids = Array.from(e.target.selectedOptions).map((o) => o.value);
+                    upsert({
+                      ...editing,
+                      assignedCompanyIds: ids,
+                      assignedCompanies: ids.length || editing.assignedCompanies,
+                    });
+                  }}
+                >
+                  {TALANTON_PORTFOLIO_COMPANIES.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-white/45">Assign to users (comma-separated emails)</span>
+                <textarea
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
+                  rows={2}
+                  value={editing.assignedUserLabels.join(", ")}
+                  onChange={(e) =>
+                    upsert({
+                      ...editing,
+                      assignedUserLabels: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    })
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="text-white/45">Upload course materials (filenames)</span>
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-white"
+                  placeholder="policy.pdf, slides.pptx"
+                  value={editing.materials.join(", ")}
+                  onChange={(e) =>
+                    upsert({
+                      ...editing,
+                      materials: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                    })
+                  }
+                />
+              </label>
+              <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-xs text-white/60">
+                <div>Enrolment statistics: <span className="text-white">{editing.enrolmentCount}</span></div>
+                <div>Completion statistics: <span className="text-white">{editing.completionPct}%</span></div>
+                <div>Assigned users: <span className="text-white">{editing.assignedUserLabels.length}</span></div>
+                <div>Materials: <span className="text-white">{editing.materials.length || "none"}</span></div>
+              </div>
+            </form>
+          ) : (
+            <p className="mt-3 text-sm text-white/45">Choose Edit on a course, or create a new one.</p>
+          )}
+        </aside>
+      </div>
     </Panel>
   );
 }
@@ -592,14 +890,15 @@ function ReportTrainingView() {
           { label: "Learner samples", value: TALANTON_MY_TRAINING.length },
         ]}
       />
-      <TableShell headers={["Course", "Category", "Completion", "Companies", "Renewal"]}>
+      <TableShell headers={["Course", "Category", "Duration", "Mandatory", "Companies", "Completion"]}>
         {[...TALANTON_COMPLIANCE_COURSES].sort((a, b) => a.completionPct - b.completionPct).map((c) => (
           <tr key={c.id} className="hover:bg-white/[0.03]">
             <td className="px-3 py-2.5 font-medium text-white">{c.title}</td>
             <td className="px-3 py-2.5">{c.category}</td>
-            <td className="px-3 py-2.5 tabular-nums">{c.completionPct}%</td>
+            <td className="px-3 py-2.5 tabular-nums">{c.durationMinutes} min</td>
+            <td className="px-3 py-2.5">{c.mandatory ? "Yes" : "No"}</td>
             <td className="px-3 py-2.5 tabular-nums">{c.assignedCompanies}</td>
-            <td className="px-3 py-2.5">{c.renewEveryMonths} months</td>
+            <td className="px-3 py-2.5 tabular-nums">{c.completionPct}%</td>
           </tr>
         ))}
       </TableShell>
@@ -646,6 +945,8 @@ export default function TalantonPortfolioWorkspace({ view }: Props) {
       return <CompanyProfileView />;
     case "portfolio-courses":
       return <CoursesView />;
+    case "portfolio-course-management":
+      return <CourseManagementView />;
     case "portfolio-my-training":
       return <MyTrainingView />;
     case "portfolio-compliance-dashboard":

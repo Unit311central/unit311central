@@ -329,9 +329,9 @@ function reshapeTalantonTrainingSection(section: InternalNavSection): InternalNa
         view: "portfolio-courses",
       },
       {
-        label: "Compliance Dashboard",
-        icon: "ShieldCheck",
-        view: "portfolio-compliance-dashboard",
+        label: "Course Management",
+        icon: "GraduationCap",
+        view: "portfolio-course-management",
       },
     ],
   };

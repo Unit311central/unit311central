@@ -109,6 +109,7 @@ export type InternalOperationsView =
   | "portfolio-directory"
   | "portfolio-company"
   | "portfolio-courses"
+  | "portfolio-course-management"
   | "portfolio-my-training"
   | "portfolio-compliance-dashboard"
   | "portfolio-policies"
@@ -279,6 +280,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "portfolio-directory",
   "portfolio-company",
   "portfolio-courses",
+  "portfolio-course-management",
   "portfolio-my-training",
   "portfolio-compliance-dashboard",
   "portfolio-policies",
@@ -929,6 +931,10 @@ export const internalViewTitles: Record<
   "portfolio-directory": { title: "Directory", subtitle: "Portfolio Companies" },
   "portfolio-company": { title: "Company Profile", subtitle: "Portfolio Companies" },
   "portfolio-courses": { title: "Portfolio Courses", subtitle: "Training" },
+  "portfolio-course-management": {
+    title: "Course Management",
+    subtitle: "Training",
+  },
   "portfolio-my-training": { title: "My Training", subtitle: "Portfolio Training" },
   "portfolio-compliance-dashboard": {
     title: "Compliance Dashboard",

@@ -1,7 +1,7 @@
 /**
  * Unified Talanton Impact portfolio company entity.
- * Same 19 companies power Portfolio, Client Directory (via provision),
- * Quarterly Reporting, Governance, Compliance, Training, and Analytics.
+ * Same 19 companies power Portfolio Companies, Training, and company portals.
+ * They are investments — not Business Central clients (Client Directory hides ti-cli-* rows).
  */
 
 export type RiskRating = "Low" | "Medium" | "High" | "Critical";
@@ -317,6 +317,48 @@ export function portfolioComplianceSummary() {
     courseCount: TALANTON_COMPLIANCE_COURSES.length,
     totalInvested,
     avgMoic,
+  };
+}
+
+export function portfolioTrainingDashboardSummary() {
+  const companies = TALANTON_PORTFOLIO_COMPANIES;
+  const avgCompletion = Math.round(
+    companies.reduce((sum, c) => sum + c.compliancePct, 0) / companies.length,
+  );
+  const outstandingItems = companies.reduce((sum, c) => sum + c.outstandingTraining, 0);
+  const outstandingUsers = companies.reduce(
+    (sum, c) => sum + Math.max(0, Math.round((c.usersEnrolled * (100 - c.compliancePct)) / 100)),
+    0,
+  );
+  return {
+    companyCount: companies.length,
+    avgCompletion,
+    above90: companies.filter((c) => c.compliancePct >= 90).length,
+    between70And90: companies.filter((c) => c.compliancePct >= 70 && c.compliancePct < 90).length,
+    below70: companies.filter((c) => c.compliancePct < 70).length,
+    outstandingItems,
+    outstandingUsers,
+  };
+}
+
+export function companyTrainingDetail(company: PortfolioCompany) {
+  const assignedCourses = TALANTON_COMPLIANCE_COURSES.length;
+  const completedCourses = Math.round((assignedCourses * company.compliancePct) / 100);
+  const outstandingCourses = Math.max(0, assignedCourses - completedCourses);
+  const assignedUsers = company.usersEnrolled;
+  const completedUsers = Math.round((assignedUsers * company.compliancePct) / 100);
+  const outstandingUsers = Math.max(0, assignedUsers - completedUsers);
+  const status =
+    company.compliancePct >= 90 ? "On track" : company.compliancePct >= 70 ? "Watch" : "At risk";
+  return {
+    assignedCourses,
+    completedCourses,
+    outstandingCourses,
+    assignedUsers,
+    completedUsers,
+    outstandingUsers,
+    status,
+    lastTrainingActivity: company.lastReview,
   };
 }
 

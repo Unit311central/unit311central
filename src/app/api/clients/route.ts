@@ -24,8 +24,13 @@ export async function GET() {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const clients = await listInternalClients({ workspaceId: workspace.id });
+    // Talanton portfolio companies are investments (Portfolio Companies), not BC clients.
+    const visibleClients =
+      workspace.slug === "talantonimpact"
+        ? clients.filter((c) => !String(c.id).startsWith("ti-cli-"))
+        : clients;
     return NextResponse.json({
-      clients,
+      clients: visibleClients,
       workspace: { id: workspace.id, slug: workspace.slug, name: workspace.name },
     });
   } catch (error) {

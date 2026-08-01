@@ -909,6 +909,7 @@ export default function InternalOperationsDashboard({
             activeView === "portfolio-directory" ||
             activeView === "portfolio-company" ||
             activeView === "portfolio-courses" ||
+            activeView === "portfolio-course-management" ||
             activeView === "portfolio-my-training" ||
             activeView === "portfolio-compliance-dashboard" ||
             activeView === "portfolio-policies" ||

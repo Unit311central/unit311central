@@ -7,7 +7,7 @@ export const TALANTON_IMPACT_VIEWS = [
   "portfolio-company",
   "portfolio-companies",
   "portfolio-courses",
-  "portfolio-compliance-dashboard",
+  "portfolio-course-management",
 ] as const satisfies readonly InternalOperationsView[];
 
 export type TalantonImpactView = (typeof TALANTON_IMPACT_VIEWS)[number];

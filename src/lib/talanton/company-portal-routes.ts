@@ -170,6 +170,8 @@ export const TALANTON_COMPANY_PORTAL_ROUTES: readonly TalantonCompanyPortalRoute
 ] as const;
 
 const BY_PATH = new Map(TALANTON_COMPANY_PORTAL_ROUTES.map((r) => [r.path, r]));
+const BY_COMPANY_ID = new Map(TALANTON_COMPANY_PORTAL_ROUTES.map((r) => [r.companyId, r]));
+const BY_CLIENT_ID = new Map(TALANTON_COMPANY_PORTAL_ROUTES.map((r) => [r.clientId, r]));
 
 export function getCompanyPortalByPath(
   path: string | null | undefined,
@@ -181,6 +183,17 @@ export function getCompanyPortalByPath(
     .split("/")[0];
   if (!key) return null;
   return BY_PATH.get(key) ?? null;
+}
+
+export function getCompanyPortalByCompanyId(
+  companyId: string | null | undefined,
+): TalantonCompanyPortalRoute | null {
+  if (!companyId) return null;
+  return BY_COMPANY_ID.get(companyId) ?? BY_CLIENT_ID.get(companyId) ?? null;
+}
+
+export function companyPortalAbsoluteUrl(route: TalantonCompanyPortalRoute): string {
+  return `https://talantonimpact.unit311central.com${route.redirectPath}`;
 }
 
 export function isTalantonCompanyPortalPath(pathname: string | null | undefined): boolean {
