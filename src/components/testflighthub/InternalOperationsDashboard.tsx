@@ -905,6 +905,9 @@ export default function InternalOperationsDashboard({
           )}
 
           {(activeView === "portfolio-companies" ||
+            activeView === "portfolio-dashboard" ||
+            activeView === "portfolio-directory" ||
+            activeView === "portfolio-company" ||
             activeView === "portfolio-courses" ||
             activeView === "portfolio-my-training" ||
             activeView === "portfolio-compliance-dashboard" ||
@@ -913,7 +916,14 @@ export default function InternalOperationsDashboard({
             activeView === "portfolio-action-tracking" ||
             activeView === "portfolio-report-compliance" ||
             activeView === "portfolio-report-company" ||
-            activeView === "portfolio-report-training") && (
+            activeView === "portfolio-report-training" ||
+            activeView === "portfolio-analytics-performance" ||
+            activeView === "portfolio-analytics-revenue" ||
+            activeView === "portfolio-analytics-compliance" ||
+            activeView === "portfolio-analytics-risk" ||
+            activeView === "portfolio-analytics-geo" ||
+            activeView === "portfolio-analytics-quarterly" ||
+            activeView === "portfolio-quarterly-reporting") && (
             <WorkspaceErrorBoundary title="Talanton Impact">
               <TalantonPortfolioWorkspace view={activeView} />
             </WorkspaceErrorBoundary>

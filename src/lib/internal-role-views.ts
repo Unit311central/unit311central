@@ -175,9 +175,32 @@ export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "wise",
 ]);
 
+/** Talanton Impact — hide QMS / Website / staff QMS training only on that host. */
+export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
+  "testing",
+  "telemetry",
+  "unit311-details",
+  "module-go-live",
+  "quality-management",
+  "qms-training",
+  "qms-document-control",
+  "qms-capa",
+  "qms-internal-audits",
+  "qms-management-review",
+  "qms-reports",
+  "website-management",
+  "training",
+  "training-dashboard",
+]);
+
 export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
   "QMS",
   "External Client Access",
+]);
+
+export const TALANTON_HIDDEN_SECTION_LABELS = new Set([
+  "QMS",
+  "Training",
 ]);
 
 export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
@@ -191,6 +214,14 @@ export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
   "Connections",
   "Bank Accounts",
   "Bank",
+]);
+
+export const TALANTON_HIDDEN_ITEM_LABELS = new Set([
+  "Unit311 Details",
+  "Website Management",
+  "QMS Courses",
+  "Staff Courses",
+  "Module Go-Live",
 ]);
 
 /** Server-safe CorpCentre nav filter (no window). */
@@ -273,17 +304,54 @@ function appendTalantonNavSections(sections: InternalNavSection[]): InternalNavS
   try {
     const { TALANTON_IMPACT_NAV_SECTIONS } =
       require("@/lib/talanton/nav") as typeof import("@/lib/talanton/nav");
-    return [...sections, ...TALANTON_IMPACT_NAV_SECTIONS];
+    // Portfolio platform sections lead the workspace nav (after pin items like Home).
+    const pins = sections.filter((section) => section.kind === "pin");
+    const rest = sections.filter((section) => section.kind !== "pin");
+    return [...pins, ...TALANTON_IMPACT_NAV_SECTIONS, ...rest];
   } catch {
     return sections;
   }
 }
 
+function filterTalantonBaseNav(sections: readonly InternalNavSection[]): InternalNavSection[] {
+  return sections
+    .map((section) => {
+      if (section.label && TALANTON_HIDDEN_SECTION_LABELS.has(section.label)) {
+        return { ...section, items: [] as typeof section.items };
+      }
+      return {
+        ...section,
+        items: section.items
+          .map((item) => {
+            if (item.view && TALANTON_HIDDEN_VIEWS.has(item.view)) return null;
+            if (TALANTON_HIDDEN_ITEM_LABELS.has(item.label)) return null;
+            if (item.children?.length) {
+              const children = item.children.filter((child) => {
+                if (child.view && TALANTON_HIDDEN_VIEWS.has(child.view)) return false;
+                if (TALANTON_HIDDEN_ITEM_LABELS.has(child.label)) return false;
+                return true;
+              });
+              if (children.length === 0 && !item.view && !item.href) return null;
+              return { ...item, children };
+            }
+            return item;
+          })
+          .filter((item): item is NonNullable<typeof item> => item != null),
+      };
+    })
+    .filter((section) => section.items.length > 0);
+}
+
 export function filterInternalNavSectionsForDemoSurface(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
+  // Talanton customer host: strip QMS/Website/staff training, append portfolio platform nav.
+  if (isTalantonNavSurface()) {
+    return appendTalantonNavSections(filterTalantonBaseNav(sections));
+  }
+
   if (!shouldHideDroneToolNavViews()) {
-    return appendTalantonNavSections([...sections]);
+    return [...sections];
   }
 
   const hideViews = isCorpCentreNavSurface() ? CORPCENTRE_HIDDEN_VIEWS : DEMO_HIDDEN_VIEWS;
@@ -332,5 +400,5 @@ export function filterInternalNavSectionsForDemoSurface(
     })
     .filter((section) => section.items.length > 0);
 
-  return appendTalantonNavSections(filtered);
+  return filtered;
 }

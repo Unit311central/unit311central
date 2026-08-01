@@ -55,6 +55,17 @@ export function createRepresentativeId() {
 export function createInitialRepresentatives(): Representative[] {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        // No Demo/Meridian partners on Talanton — start empty.
+        return [];
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {

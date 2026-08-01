@@ -28,8 +28,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (isTalantonImpactSlug(workspaceSlug)) {
     return {
-      title: "Login | Talanton Impact",
-      description: "Secure access to your Talanton Impact workspace.",
+      title: "Login | Talanton Impact — Portfolio Governance Platform",
+      description:
+        "Secure access to the Talanton Impact Portfolio Governance Platform for impact investing and portfolio oversight.",
       robots: { index: false, follow: false },
     };
   }

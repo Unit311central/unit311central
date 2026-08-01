@@ -400,6 +400,68 @@ function seedCorpCentreState(): CorporateMockState {
 function seedState(): CorporateMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        return {
+          offices: [
+            {
+              id: "ti-office-hq",
+              name: "Talanton Impact HQ",
+              country: "United States",
+              city: "Newtown Square",
+              address: "Newtown Square, PA",
+              manager: "David Simms",
+              employees: 15,
+              status: "active",
+              phone: "",
+              timezone: "America/New_York",
+            },
+            {
+              id: "ti-office-nairobi",
+              name: "East Africa Office",
+              country: "Kenya",
+              city: "Nairobi",
+              address: "Nairobi, Kenya",
+              manager: "Kenneth Muchina",
+              employees: 8,
+              status: "active",
+              phone: "",
+              timezone: "Africa/Nairobi",
+            },
+          ],
+          banks: [],
+          advisors: [],
+          contracts: [],
+          // No inherited Demo/Meridian cap table — start empty.
+          shareholders: [],
+          optionPool: {
+            authorised: 0,
+            issued: 0,
+            reserved: 0,
+            lastUpdated: new Date().toISOString().slice(0, 10),
+          },
+          capital: {
+            authorisedShareCapital: "0",
+            issuedShareCapital: "0",
+            currency: "USD",
+          },
+          licences: [],
+          activity: [
+            {
+              id: "ti-act-1",
+              at: new Date().toISOString(),
+              label: "Talanton workspace ready",
+              detail: "Cap table cleared — no Demo/Meridian shareholders inherited.",
+            },
+          ],
+        };
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserCorpCentreSurface } =
         require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
       if (isBrowserCorpCentreSurface()) {

@@ -105,6 +105,9 @@ export type InternalOperationsView =
   | "technology-reports"
   | "technology-settings"
   | "portfolio-companies"
+  | "portfolio-dashboard"
+  | "portfolio-directory"
+  | "portfolio-company"
   | "portfolio-courses"
   | "portfolio-my-training"
   | "portfolio-compliance-dashboard"
@@ -113,7 +116,14 @@ export type InternalOperationsView =
   | "portfolio-action-tracking"
   | "portfolio-report-compliance"
   | "portfolio-report-company"
-  | "portfolio-report-training";
+  | "portfolio-report-training"
+  | "portfolio-analytics-performance"
+  | "portfolio-analytics-revenue"
+  | "portfolio-analytics-compliance"
+  | "portfolio-analytics-risk"
+  | "portfolio-analytics-geo"
+  | "portfolio-analytics-quarterly"
+  | "portfolio-quarterly-reporting";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -265,6 +275,9 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "technology-reports",
   "technology-settings",
   "portfolio-companies",
+  "portfolio-dashboard",
+  "portfolio-directory",
+  "portfolio-company",
   "portfolio-courses",
   "portfolio-my-training",
   "portfolio-compliance-dashboard",
@@ -274,6 +287,13 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "portfolio-report-compliance",
   "portfolio-report-company",
   "portfolio-report-training",
+  "portfolio-analytics-performance",
+  "portfolio-analytics-revenue",
+  "portfolio-analytics-compliance",
+  "portfolio-analytics-risk",
+  "portfolio-analytics-geo",
+  "portfolio-analytics-quarterly",
+  "portfolio-quarterly-reporting",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -380,6 +400,7 @@ export function normalizeInternalOperationsView(value: string | null): InternalO
     return "technology-software";
   }
   if (value === "technology") return "technology-dashboard";
+  if (value === "portfolio-companies") return "portfolio-dashboard";
   if (legacyCorporateViewToTab(value)) return "corporate-information";
   return isInternalOperationsView(value) ? value : "home";
 }
@@ -903,12 +924,15 @@ export const internalViewTitles: Record<
   },
   "technology-reports": { title: "Reports", subtitle: "Technology Management" },
   "technology-settings": { title: "Settings", subtitle: "Technology Management" },
-  "portfolio-companies": { title: "Portfolio Companies", subtitle: "Portfolio" },
-  "portfolio-courses": { title: "Portfolio Courses", subtitle: "Impact Training" },
-  "portfolio-my-training": { title: "My Training", subtitle: "Impact Training" },
+  "portfolio-companies": { title: "Portfolio Companies", subtitle: "Portfolio Companies" },
+  "portfolio-dashboard": { title: "Portfolio Dashboard", subtitle: "Portfolio Companies" },
+  "portfolio-directory": { title: "Directory", subtitle: "Portfolio Companies" },
+  "portfolio-company": { title: "Company Profile", subtitle: "Portfolio Companies" },
+  "portfolio-courses": { title: "Portfolio Courses", subtitle: "Portfolio Training" },
+  "portfolio-my-training": { title: "My Training", subtitle: "Portfolio Training" },
   "portfolio-compliance-dashboard": {
     title: "Compliance Dashboard",
-    subtitle: "Impact Training",
+    subtitle: "Portfolio Training",
   },
   "portfolio-policies": { title: "Policies", subtitle: "Governance" },
   "portfolio-risk-register": { title: "Risk Register", subtitle: "Governance" },
@@ -924,6 +948,25 @@ export const internalViewTitles: Record<
   "portfolio-report-training": {
     title: "Training Completion",
     subtitle: "Impact Reports",
+  },
+  "portfolio-analytics-performance": {
+    title: "Portfolio Performance",
+    subtitle: "Analytics",
+  },
+  "portfolio-analytics-revenue": { title: "Revenue Trends", subtitle: "Analytics" },
+  "portfolio-analytics-compliance": {
+    title: "Compliance Dashboard",
+    subtitle: "Analytics",
+  },
+  "portfolio-analytics-risk": { title: "Risk Dashboard", subtitle: "Analytics" },
+  "portfolio-analytics-geo": { title: "Geographic Portfolio", subtitle: "Analytics" },
+  "portfolio-analytics-quarterly": {
+    title: "Quarterly Reporting Dashboard",
+    subtitle: "Analytics",
+  },
+  "portfolio-quarterly-reporting": {
+    title: "Reporting Hub",
+    subtitle: "Quarterly Reporting",
   },
 };
 
