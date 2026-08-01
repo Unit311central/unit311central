@@ -137,6 +137,14 @@ export const FINANCIALS_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "forecast", label: "Forecast", value: "£0.00", hint: "Not configured yet" },
 ];
 
+function momFromSeries(series: Array<{ amount: number }> | undefined) {
+  if (!series || series.length < 2) return null;
+  const curr = series[series.length - 1]!.amount;
+  const prev = series[series.length - 2]!.amount;
+  if (prev === 0) return curr === 0 ? 0 : 100;
+  return Math.round(((curr - prev) / Math.abs(prev)) * 1000) / 10;
+}
+
 export function buildFinancialsDashboardCatalog(
   overview: {
     revenueYtd: number;
@@ -159,6 +167,11 @@ export function buildFinancialsDashboardCatalog(
       currency: string;
       forecastMonthly?: number;
     };
+    charts?: {
+      monthlyRevenue?: Array<{ amount: number }>;
+      cashPosition?: Array<{ amount: number }>;
+      monthlyOutgoings?: Array<{ amount: number }>;
+    };
   } | null,
 ): DashboardTileDefinition[] {
   const currency = overview?.burnRate?.currency || "GBP";
@@ -173,13 +186,30 @@ export function buildFinancialsDashboardCatalog(
     overview.revenueYtd <= 0
       ? 0
       : Math.round(((overview.revenueYtd - marginBaseExpenses) / overview.revenueYtd) * 1000) / 10;
+  const cashMom = momFromSeries(overview.charts?.cashPosition);
+  const revMom = momFromSeries(overview.charts?.monthlyRevenue);
+  const spendMom = momFromSeries(overview.charts?.monthlyOutgoings);
 
   return FINANCIALS_DASHBOARD_TILES.map((tile) => {
     switch (tile.id) {
       case "revenue-ytd":
-        return { ...tile, value: money(overview.revenueYtd) };
+        return {
+          ...tile,
+          value: money(overview.revenueYtd),
+          trend:
+            revMom == null ? undefined : `${revMom > 0 ? "▲" : revMom < 0 ? "▼" : "●"} ${revMom > 0 ? "+" : ""}${revMom}% MoM`,
+          accent: revMom == null ? undefined : revMom >= 0 ? "improving" : "increasing",
+        };
       case "cash-position":
-        return { ...tile, value: money(overview.cashPosition) };
+        return {
+          ...tile,
+          value: money(overview.cashPosition),
+          trend:
+            cashMom == null
+              ? undefined
+              : `${cashMom > 0 ? "▲" : cashMom < 0 ? "▼" : "●"} ${cashMom > 0 ? "+" : ""}${cashMom}% MoM`,
+          accent: cashMom == null ? undefined : cashMom >= 0 ? "improving" : "increasing",
+        };
       case "burn-rate": {
         const burn = overview.burnRate;
         if (!burn) return tile;
@@ -208,9 +238,25 @@ export function buildFinancialsDashboardCatalog(
       case "outstanding-invoices":
         return { ...tile, value: String(overview.outstandingInvoices) };
       case "monthly-revenue":
-        return { ...tile, value: money(overview.monthlyRevenue) };
+        return {
+          ...tile,
+          value: money(overview.monthlyRevenue),
+          trend:
+            revMom == null
+              ? undefined
+              : `${revMom > 0 ? "▲" : revMom < 0 ? "▼" : "●"} ${revMom > 0 ? "+" : ""}${revMom}% MoM`,
+          accent: revMom == null ? undefined : revMom >= 0 ? "improving" : "increasing",
+        };
       case "monthly-expenses":
-        return { ...tile, value: money(overview.monthlyExpenses) };
+        return {
+          ...tile,
+          value: money(overview.monthlyExpenses),
+          trend:
+            spendMom == null
+              ? undefined
+              : `${spendMom > 0 ? "▲" : spendMom < 0 ? "▼" : "●"} ${spendMom > 0 ? "+" : ""}${spendMom}% MoM`,
+          accent: spendMom == null ? undefined : spendMom <= 0 ? "improving" : "increasing",
+        };
       case "annual-revenue":
         return { ...tile, value: money(overview.annualRevenue) };
       case "annual-expenses":
@@ -309,7 +355,17 @@ export const DEFAULT_CRM_TILE_LAYOUT = CRM_DASHBOARD_TILES.map((tile) => tile.id
 export const DEFAULT_CLIENTS_TILE_LAYOUT = CLIENTS_DASHBOARD_TILES.map((tile) => tile.id);
 export const DEFAULT_REPRESENTATIVES_TILE_LAYOUT = REPRESENTATIVES_DASHBOARD_TILES.map((tile) => tile.id);
 export const DEFAULT_PROJECTS_TILE_LAYOUT = PROJECTS_DASHBOARD_TILES.map((tile) => tile.id);
-export const DEFAULT_FINANCIALS_TILE_LAYOUT = FINANCIALS_DASHBOARD_TILES.map((tile) => tile.id);
+/** Cleaner default KPI strip — full catalogue remains available via Customize. */
+export const DEFAULT_FINANCIALS_TILE_LAYOUT = [
+  "revenue-ytd",
+  "cash-position",
+  "burn-rate",
+  "accounts-receivable",
+  "accounts-payable",
+  "net-profit",
+  "gross-margin",
+  "monthly-revenue",
+];
 export const DEFAULT_DEBTORS_TILE_LAYOUT = DEBTORS_DASHBOARD_TILES.map((tile) => tile.id);
 export const DEFAULT_CREDITORS_TILE_LAYOUT = CREDITORS_DASHBOARD_TILES.map((tile) => tile.id);
 export const DEFAULT_EXPENSES_TILE_LAYOUT = EXPENSES_DASHBOARD_TILES.map((tile) => tile.id);
