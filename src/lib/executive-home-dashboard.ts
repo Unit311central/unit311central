@@ -260,18 +260,22 @@ export function buildExecutiveHomeLiveKpis(input: {
 
   const cashDelta = monthDelta(input.financials?.charts.cashPosition);
   const burnDelta = burnPreviousMonthDelta(burn);
-  const ytdPeriod = revenuePeriods.find((period) => period.id === "ytd") ?? revenuePeriods[0];
   const abhiHome = isBrowserAbhiHome();
+  const defaultRevenuePeriodId = abhiHome ? "last-month" : "ytd";
+  const defaultRevenuePeriod =
+    revenuePeriods.find((period) => period.id === defaultRevenuePeriodId) ??
+    revenuePeriods.find((period) => period.id === "ytd") ??
+    revenuePeriods[0];
 
   return normalizeKpiRow([
     {
       id: "revenue",
       label: "Revenue",
-      value: ytdPeriod?.value ?? formatCompactMoney(revenueYtd, currency),
-      delta: ytdPeriod?.delta ?? "YTD from ledger",
-      tone: ytdPeriod?.tone ?? "neutral",
-      hint: ytdPeriod?.hint ?? "YTD · general ledger",
-      defaultPeriodId: "ytd",
+      value: defaultRevenuePeriod?.value ?? formatCompactMoney(revenueYtd, currency),
+      delta: defaultRevenuePeriod?.delta ?? "YTD from ledger",
+      tone: defaultRevenuePeriod?.tone ?? "neutral",
+      hint: defaultRevenuePeriod?.hint ?? "YTD · general ledger",
+      defaultPeriodId: defaultRevenuePeriodId,
       periods: revenuePeriods,
     },
     {
