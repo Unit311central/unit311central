@@ -171,7 +171,7 @@ export default function AbhiEventsWorkspace() {
       </div>
 
       <TqmsSection
-        title="Events"
+        title="External Events"
         subtitle="International trade shows, congresses, and delegations ABHI is coordinating."
         actions={
           <button type="button" onClick={openCreate} className={tqmsPrimaryButtonClass()}>
