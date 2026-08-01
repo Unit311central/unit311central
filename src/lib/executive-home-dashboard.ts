@@ -596,15 +596,16 @@ export function buildExecutiveHomeLiveNarrative(input: {
       timeLabel: "Clients",
     });
   }
-  alerts.push({
-    id: "live-treasury",
-    title: abhiHome ? "ABHI cash at bank" : `${companyName} treasury position`,
-    detail: abhiHome
-      ? `Operating cash ${formatCompactMoney(cash, currency)} (GBP).`
-      : `Wise simulated balances total ${formatCompactMoney(cash, currency)} across operating currencies.`,
-    severity: "info",
-    timeLabel: "Bank",
-  });
+  // Cash is already on the KPI row — skip the redundant bank info chip on ABHI Home.
+  if (!abhiHome) {
+    alerts.push({
+      id: "live-treasury",
+      title: `${companyName} treasury position`,
+      detail: `Wise simulated balances total ${formatCompactMoney(cash, currency)} across operating currencies.`,
+      severity: "info",
+      timeLabel: "Bank",
+    });
+  }
 
   const activity: Array<{
     id: string;
