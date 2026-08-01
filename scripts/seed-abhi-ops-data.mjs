@@ -192,15 +192,16 @@ async function postSimpleJournal({
   return entryId;
 }
 
-/** Canonical Jan–Jul 2026 membership income split (£2m). */
+/** Canonical Jan–Aug 2026 membership income split (£2m) — revenue in every month through July plus open August. */
 const MONTHLY_REVENUE = [
-  { month: "2026-01", day: "31", amount: 260_000 },
-  { month: "2026-02", day: "28", amount: 270_000 },
-  { month: "2026-03", day: "31", amount: 290_000 },
-  { month: "2026-04", day: "30", amount: 285_000 },
-  { month: "2026-05", day: "31", amount: 300_000 },
-  { month: "2026-06", day: "30", amount: 295_000 },
-  { month: "2026-07", day: "31", amount: 300_000 },
+  { month: "2026-01", day: "31", amount: 240_000 },
+  { month: "2026-02", day: "28", amount: 250_000 },
+  { month: "2026-03", day: "31", amount: 270_000 },
+  { month: "2026-04", day: "30", amount: 265_000 },
+  { month: "2026-05", day: "31", amount: 280_000 },
+  { month: "2026-06", day: "30", amount: 275_000 },
+  { month: "2026-07", day: "31", amount: 280_000 },
+  { month: "2026-08", day: "01", amount: 140_000 },
 ];
 
 async function main() {

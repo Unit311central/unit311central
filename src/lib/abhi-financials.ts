@@ -11,17 +11,18 @@ export const ABHI_CASH_BALANCE_GBP = 4_242_957;
 export const ABHI_REVENUE_YTD_GBP = 2_000_000;
 
 /**
- * Membership & services income recognised across Jan–Jul 2026.
- * Sums to {@link ABHI_REVENUE_YTD_GBP}.
+ * Membership & services income recognised monthly through the current operating year.
+ * Jan–Jul carry the bulk of YTD; August is the open month. Sums to {@link ABHI_REVENUE_YTD_GBP}.
  */
 export const ABHI_MONTHLY_REVENUE_GBP: ReadonlyArray<{ month: string; amount: number }> = [
-  { month: "2026-01", amount: 260_000 },
-  { month: "2026-02", amount: 270_000 },
-  { month: "2026-03", amount: 290_000 },
-  { month: "2026-04", amount: 285_000 },
-  { month: "2026-05", amount: 300_000 },
-  { month: "2026-06", amount: 295_000 },
-  { month: "2026-07", amount: 300_000 },
+  { month: "2026-01", amount: 240_000 },
+  { month: "2026-02", amount: 250_000 },
+  { month: "2026-03", amount: 270_000 },
+  { month: "2026-04", amount: 265_000 },
+  { month: "2026-05", amount: 280_000 },
+  { month: "2026-06", amount: 275_000 },
+  { month: "2026-07", amount: 280_000 },
+  { month: "2026-08", amount: 140_000 },
 ];
 
 export function isAbhiWorkspaceSlug(slug: string | null | undefined): boolean {
