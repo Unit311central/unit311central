@@ -27,6 +27,7 @@ import {
 } from "@/lib/workspace-host-session-gate";
 import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import { PLATFORM_SESSION_COOKIE } from "@/lib/platform-session-token";
 
 function canonicalizePortalRedirect(redirectPath: string | null | undefined): string | null {
   if (!redirectPath) return null;
@@ -173,6 +174,16 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    // Never expose the App Router implementation path on customer hosts.
+    if (pathname === "/internaldashboard" || pathname.startsWith("/internaldashboard/")) {
+      const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+      const view = params.get("view");
+      const dest = view
+        ? `${workspaceOrigin}/dashboard?view=${encodeURIComponent(view)}`
+        : `${workspaceOrigin}/dashboard`;
+      return redirectExternal(dest);
+    }
+
     // Talanton externals may only use login/api/static + their assigned company portal.
     if (workspaceSlug === TALANTON_IMPACT_SLUG) {
       const externalGate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
@@ -184,8 +195,22 @@ export async function middleware(request: NextRequest) {
           pathname.startsWith("/login/") ||
           pathname.startsWith("/api/") ||
           pathname.startsWith("/_next/");
+
+        // Broken external sessions (no portal redirect_path) must not loop login↔dashboard.
+        if (!portalHome) {
+          const clear = redirectExternal(`${workspaceOrigin}/login`);
+          clear.cookies.set(PLATFORM_SESSION_COOKIE, "", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "lax",
+            path: "/",
+            maxAge: 0,
+          });
+          return clear;
+        }
+
         if (!isPortalPath && !isAllowedUtility) {
-          const bounce = redirectExternal(`${workspaceOrigin}${portalHome || "/login"}`);
+          const bounce = redirectExternal(`${workspaceOrigin}${portalHome}`);
           return applyCustomerHostRebindIfNeeded({
             request,
             response: bounce,
@@ -199,14 +224,31 @@ export async function middleware(request: NextRequest) {
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (gate.status === "ok") {
-        const portalHome =
-          gate.session.userType === "external" && workspaceSlug === TALANTON_IMPACT_SLUG
-            ? canonicalizePortalRedirect(gate.session.redirectPath)
-            : null;
-        const destination = portalHome
-          ? `${workspaceOrigin}${portalHome}`
-          : `${workspaceOrigin}/dashboard${search}`;
-        const redirect = redirectExternal(destination);
+        if (gate.session.userType === "external" && workspaceSlug === TALANTON_IMPACT_SLUG) {
+          const portalHome = canonicalizePortalRedirect(gate.session.redirectPath);
+          if (!portalHome) {
+            // Avoid redirect loop: clear broken session and show login once.
+            const response = NextResponse.next({ request: { headers } });
+            response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
+              httpOnly: true,
+              secure: true,
+              sameSite: "lax",
+              path: "/",
+              maxAge: 0,
+            });
+            for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
+              response.headers.set(key, value);
+            }
+            response.headers.set(
+              "Cache-Control",
+              "private, no-cache, no-store, max-age=0, must-revalidate",
+            );
+            return response;
+          }
+          const redirect = redirectExternal(`${workspaceOrigin}${portalHome}`);
+          return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
+        }
+        const redirect = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
         return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
       }
       const response = NextResponse.next({ request: { headers } });

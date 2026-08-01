@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
 import { getPlatformSession, type PlatformSession } from "@/lib/platform-session";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+  isSupabaseConfigured,
+  isSupabaseServiceRoleConfigured,
+} from "@/lib/supabase/server";
 import { userHasRole } from "@/lib/user-management-data";
 import {
   WorkspaceAccessError,
@@ -67,15 +72,39 @@ export async function requireInternalWorkspaceSession(): Promise<
     return { error: NextResponse.json({ error: AUTH_REQUIRED }, { status: 401 }) };
   }
 
-  if (session.userType !== "internal") {
+  try {
+    const workspace = await requireCurrentWorkspace();
+
+    if (session.userType === "internal") {
+      return { session, workspace };
+    }
+
+    // Stale session.userType after repairs: trust live platform_users.user_type
+    // for customer workspace members so External Users / module APIs do not 403.
+    if (isCustomerWorkspaceSlug(workspace.slug) && isSupabaseConfigured()) {
+      const supabase = isSupabaseServiceRoleConfigured()
+        ? createSupabaseServiceRoleClient()
+        : createSupabaseServerClient();
+      const { data: platformUser } = await supabase
+        .from("platform_users")
+        .select("user_type, is_active")
+        .eq("id", session.sub)
+        .maybeSingle();
+
+      if (
+        platformUser?.user_type === "internal" &&
+        platformUser.is_active !== false
+      ) {
+        return {
+          session: { ...session, userType: "internal" },
+          workspace,
+        };
+      }
+    }
+
     return {
       error: NextResponse.json({ error: INSUFFICIENT_PRIVILEGES }, { status: 403 }),
     };
-  }
-
-  try {
-    const workspace = await requireCurrentWorkspace();
-    return { session, workspace };
   } catch (error) {
     if (error instanceof WorkspaceAccessError) {
       return {

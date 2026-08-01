@@ -7,8 +7,10 @@ import {
 import {
   createExternalUser,
   listExternalUsers,
+  listTalantonLinkableCompanies,
 } from "@/lib/external-platform-users-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +25,11 @@ export async function GET() {
 
   try {
     const users = await listExternalUsers();
-    return NextResponse.json({ users });
+    const linkableCompanies =
+      auth.workspace.slug === TALANTON_IMPACT_SLUG
+        ? await listTalantonLinkableCompanies()
+        : [];
+    return NextResponse.json({ users, linkableCompanies });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load external users";
     const status = message.includes("migration 095") ? 503 : 500;

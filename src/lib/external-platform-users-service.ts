@@ -13,8 +13,15 @@ import {
   hashPlatformPasswordForUser,
   normalizePlatformUsername,
 } from "@/lib/platform-auth";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+  isSupabaseConfigured,
+  isSupabaseServiceRoleConfigured,
+} from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import type { ManagedClient } from "@/lib/client-management-data";
 
 type DbPlatformUser = Parameters<typeof mapExternalUser>[0];
 
@@ -25,7 +32,24 @@ function requirePlatformSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
   }
+  // Prefer service role so External Users listing is not blocked by anon RLS.
+  if (isSupabaseServiceRoleConfigured()) {
+    return createSupabaseServiceRoleClient();
+  }
   return createSupabaseServerClient();
+}
+
+/** Portfolio company rows used for External Users linkage on Talanton (not Client Directory). */
+export async function listTalantonLinkableCompanies(): Promise<
+  Array<Pick<ManagedClient, "id" | "companyName">>
+> {
+  const workspace = await requireCurrentWorkspace();
+  if (workspace.slug !== TALANTON_IMPACT_SLUG) return [];
+  const clients = await listInternalClients({ workspaceId: workspace.id });
+  return clients
+    .filter((c) => String(c.id).startsWith("ti-cli-"))
+    .map((c) => ({ id: c.id, companyName: c.companyName }))
+    .sort((a, b) => a.companyName.localeCompare(b.companyName));
 }
 
 async function companyNamesByClientId(clientIds: string[]): Promise<Map<string, string>> {

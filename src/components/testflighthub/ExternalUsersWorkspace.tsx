@@ -199,12 +199,28 @@ export default function ExternalUsersWorkspace() {
         fetch("/api/external-users", { cache: "no-store" }),
         fetch("/api/clients", { cache: "no-store" }),
       ]);
-      const usersData = await readApiJson<{ users?: ExternalUser[]; error?: string }>(usersRes);
+      const usersData = await readApiJson<{
+        users?: ExternalUser[];
+        linkableCompanies?: Array<{ id: string; companyName: string }>;
+        error?: string;
+      }>(usersRes);
       if (!usersRes.ok) throw new Error(usersData.error ?? "Failed to load external users");
       const nextUsers = usersData.users ?? [];
       setUsers(nextUsers);
 
-      if (clientsRes.ok) {
+      // Talanton: portfolio companies for linkage come from External Users API
+      // (Client Directory intentionally hides ti-cli-* investment rows).
+      if (usersData.linkableCompanies && usersData.linkableCompanies.length > 0) {
+        setClients(
+          usersData.linkableCompanies.map(
+            (c) =>
+              ({
+                id: c.id,
+                companyName: c.companyName,
+              }) as ManagedClient,
+          ),
+        );
+      } else if (clientsRes.ok) {
         const clientsData = await readApiJson<{ clients?: ManagedClient[] }>(clientsRes);
         setClients(clientsData.clients ?? []);
       } else {
