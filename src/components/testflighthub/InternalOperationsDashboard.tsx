@@ -318,14 +318,13 @@ export default function InternalOperationsDashboard({
     setExcludedProfileIds,
     setSimulatorEnabled,
   } = useSurveyOperationsSimulator();
-  const [assetRegistry] = useState(() => createInitialAssetRegistry());
   const [assets, setAssets] = useState<ManagedAsset[]>([]);
   const [assetCategories, setAssetCategories] = useState<string[]>([]);
   const [assetLocations, setAssetLocations] = useState<string[]>([]);
   const [clients, setClients] = useState<ManagedClient[]>([]);
   const [representatives, setRepresentatives] = useState<Representative[]>([]);
   const [selectedRepresentativeId, setSelectedRepresentativeId] = useState("rep-1");
-  const [selectedAssetId, setSelectedAssetId] = useState("asset-1");
+  const [selectedAssetId, setSelectedAssetId] = useState("");
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const testingSandboxHostRef = useRef<HTMLDivElement>(null);
   const mockSeededRef = useRef(false);
@@ -335,6 +334,7 @@ export default function InternalOperationsDashboard({
   useInfoEmailWhatsAppPoller(true);
 
   // Seed mock registries only when a module that needs them is first opened.
+  // Resolve the registry in-effect so host-specific seeds (ABHI / CorpCentre) see `window`.
   useEffect(() => {
     const needsAssets =
       activeView === "assets" ||
@@ -345,15 +345,17 @@ export default function InternalOperationsDashboard({
     if (mockSeededRef.current && assets.length > 0 && representatives.length > 0) return;
 
     if (needsAssets && assets.length === 0) {
-      setAssets(assetRegistry.assets);
-      setAssetCategories(assetRegistry.categories);
-      setAssetLocations(assetRegistry.locations);
+      const registry = createInitialAssetRegistry();
+      setAssets(registry.assets);
+      setAssetCategories(registry.categories);
+      setAssetLocations(registry.locations);
+      if (registry.assets[0]) setSelectedAssetId(registry.assets[0].id);
       mockSeededRef.current = true;
     }
     if (needsReps && representatives.length === 0) {
       setRepresentatives(createInitialRepresentatives());
     }
-  }, [activeView, assetRegistry, assets.length, representatives.length]);
+  }, [activeView, assets.length, representatives.length]);
 
   useEffect(() => {
     const needsUsers =

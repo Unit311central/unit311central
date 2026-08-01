@@ -74,6 +74,21 @@ export const MODELS_BY_CATEGORY: Record<string, string[]> = {
   ],
   "4G Connectivity": ["DJI Cellular Dongle 2", "DJI eSIM Dongle"],
   "Software Licence": ["FlightHub 2 Organisation", "DJI Terra Advanced", "DJI Modify"],
+  Laptop: ["MacBook Pro 14\" M3", "Dell Latitude 5450", "Lenovo ThinkPad X1 Carbon"],
+  "Mobile Phone": ["iPhone 15", "iPhone 15 Pro", "Samsung Galaxy S24"],
+  Tablet: ["iPad Pro 11\"", "iPad 10th Gen"],
+  Camera: ["Sony A7 IV", "Canon EOS R6 Mark II", "GoPro Hero 12"],
+  "AV / Audio": ["Rode Wireless Pro", "Shure MV7+", "DJIMIC Mini"],
+  "Exhibition Equipment": [
+    "3×3 Shell Scheme Kit",
+    "Pop-up Banner Stand",
+    "LED Exhibition Lighting Rig",
+    "Counter / Reception Desk",
+  ],
+  "Display / Screen": ["Samsung 55\" QLED", "Epson EB-L210SW Projector", "Portable LED Wall Panel"],
+  Monitor: ["Dell UltraSharp U2723QE", "LG UltraFine 27"],
+  Peripheral: ["CalDigit TS4 Dock", "Logitech MX Keys Combo", "Brother HL-L8260CDW"],
+  "Flight Case": ["Peli 1650 Exhibition Case", "Peli Air 1535"],
 };
 
 export const ASSET_STATUS_OPTIONS: AssetOperationalStatus[] = [
@@ -122,6 +137,12 @@ function locationCode(location: string) {
       return "PRT";
     case "Oxford":
       return "OXF";
+    case "London":
+      return "LDN";
+    case "Cambridge":
+      return "CAM";
+    case "Manchester":
+      return "MAN";
     default:
       return location.slice(0, 3).toUpperCase();
   }
@@ -147,6 +168,26 @@ function categoryPrefix(category: string) {
       return "4G";
     case "Software Licence":
       return "LIC";
+    case "Laptop":
+      return "LT";
+    case "Mobile Phone":
+      return "PH";
+    case "Tablet":
+      return "TAB";
+    case "Camera":
+      return "CAM";
+    case "AV / Audio":
+      return "AV";
+    case "Exhibition Equipment":
+      return "EXH";
+    case "Display / Screen":
+      return "DSP";
+    case "Monitor":
+      return "MON";
+    case "Peripheral":
+      return "PER";
+    case "Flight Case":
+      return "CASE";
     default:
       return "AST";
   }
@@ -155,7 +196,20 @@ function categoryPrefix(category: string) {
 function defaultStatusForCategory(category: string): AssetOperationalStatus {
   if (category === "Software Licence") return "Active Licence";
   if (category === "Charging Hub") return "In Service";
-  if (category === "Transport Case") return "In Hangar";
+  if (category === "Transport Case" || category === "Flight Case") return "In Hangar";
+  if (
+    category === "Laptop" ||
+    category === "Mobile Phone" ||
+    category === "Tablet" ||
+    category === "Camera" ||
+    category === "AV / Audio" ||
+    category === "Exhibition Equipment" ||
+    category === "Display / Screen" ||
+    category === "Monitor" ||
+    category === "Peripheral"
+  ) {
+    return "In Service";
+  }
   return "Standby";
 }
 
@@ -319,10 +373,460 @@ function seedsForLocation(
   ];
 }
 
+function createAbhiAssetRegistry(): AssetRegistryState {
+  const categories = [
+    "Laptop",
+    "Mobile Phone",
+    "Tablet",
+    "Camera",
+    "AV / Audio",
+    "Exhibition Equipment",
+    "Display / Screen",
+    "Monitor",
+    "Peripheral",
+    "Flight Case",
+    "Software Licence",
+  ];
+  const locations = ["London", "Cambridge", "Manchester"];
+  const seeds: SeedAsset[] = [
+    // Laptops — London HQ
+    {
+      assetTag: "ABHI-LT-001",
+      category: "Laptop",
+      location: "London",
+      model: "MacBook Pro 14\" M3",
+      serialNumber: "C02YK1ABHI001",
+      purchaseDate: "2024-09-12",
+      operationalStatus: "In Service",
+      firmwareVersion: "macOS 15.5",
+      notes: "CEO · London HQ",
+    },
+    {
+      assetTag: "ABHI-LT-002",
+      category: "Laptop",
+      location: "London",
+      model: "MacBook Pro 14\" M3",
+      serialNumber: "C02YK1ABHI002",
+      purchaseDate: "2024-09-12",
+      operationalStatus: "In Service",
+      firmwareVersion: "macOS 15.5",
+      notes: "Membership Director · Jane Lewis",
+    },
+    {
+      assetTag: "ABHI-LT-003",
+      category: "Laptop",
+      location: "London",
+      model: "Dell Latitude 5450",
+      serialNumber: "DL5450-UK-1003",
+      purchaseDate: "2025-01-20",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Finance · London Victoria",
+    },
+    {
+      assetTag: "ABHI-LT-004",
+      category: "Laptop",
+      location: "London",
+      model: "Dell Latitude 5450",
+      serialNumber: "DL5450-UK-1004",
+      purchaseDate: "2025-01-20",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Events team · WHX programme lead",
+    },
+    {
+      assetTag: "ABHI-LT-005",
+      category: "Laptop",
+      location: "Cambridge",
+      model: "Lenovo ThinkPad X1 Carbon",
+      serialNumber: "X1C-UK-1005",
+      purchaseDate: "2025-03-04",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Policy & regulatory · Cambridge office",
+    },
+    {
+      assetTag: "ABHI-LT-006",
+      category: "Laptop",
+      location: "Manchester",
+      model: "Dell Latitude 5450",
+      serialNumber: "DL5450-UK-1006",
+      purchaseDate: "2025-04-15",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "North membership engagement",
+    },
+    {
+      assetTag: "ABHI-LT-007",
+      category: "Laptop",
+      location: "London",
+      model: "Lenovo ThinkPad X1 Carbon",
+      serialNumber: "X1C-UK-1007",
+      purchaseDate: "2024-11-08",
+      operationalStatus: "Maintenance",
+      firmwareVersion: "N/A",
+      notes: "Spare pool · keyboard replacement",
+    },
+    {
+      assetTag: "ABHI-LT-008",
+      category: "Laptop",
+      location: "London",
+      model: "MacBook Pro 14\" M3",
+      serialNumber: "C02YK1ABHI008",
+      purchaseDate: "2025-06-02",
+      operationalStatus: "In Service",
+      firmwareVersion: "macOS 15.5",
+      notes: "Communications & content",
+    },
+    // Phones
+    {
+      assetTag: "ABHI-PH-001",
+      category: "Mobile Phone",
+      location: "London",
+      model: "iPhone 15 Pro",
+      serialNumber: "IP15P-UK-2001",
+      purchaseDate: "2024-10-01",
+      operationalStatus: "In Service",
+      firmwareVersion: "iOS 18.5",
+      notes: "CEO handset",
+    },
+    {
+      assetTag: "ABHI-PH-002",
+      category: "Mobile Phone",
+      location: "London",
+      model: "iPhone 15",
+      serialNumber: "IP15-UK-2002",
+      purchaseDate: "2024-10-01",
+      operationalStatus: "In Service",
+      firmwareVersion: "iOS 18.5",
+      notes: "Membership Director",
+    },
+    {
+      assetTag: "ABHI-PH-003",
+      category: "Mobile Phone",
+      location: "London",
+      model: "iPhone 15",
+      serialNumber: "IP15-UK-2003",
+      purchaseDate: "2025-02-14",
+      operationalStatus: "In Service",
+      firmwareVersion: "iOS 18.5",
+      notes: "Events field phone · international travel SIM",
+    },
+    {
+      assetTag: "ABHI-PH-004",
+      category: "Mobile Phone",
+      location: "Cambridge",
+      model: "Samsung Galaxy S24",
+      serialNumber: "SGS24-UK-2004",
+      purchaseDate: "2025-03-18",
+      operationalStatus: "In Service",
+      firmwareVersion: "Android 15",
+      notes: "Policy team on-call",
+    },
+    {
+      assetTag: "ABHI-PH-005",
+      category: "Mobile Phone",
+      location: "Manchester",
+      model: "iPhone 15",
+      serialNumber: "IP15-UK-2005",
+      purchaseDate: "2025-04-22",
+      operationalStatus: "In Service",
+      firmwareVersion: "iOS 18.5",
+      notes: "North region lead",
+    },
+    {
+      assetTag: "ABHI-PH-006",
+      category: "Mobile Phone",
+      location: "London",
+      model: "iPhone 15",
+      serialNumber: "IP15-UK-2006",
+      purchaseDate: "2024-08-30",
+      operationalStatus: "Standby",
+      firmwareVersion: "iOS 18.5",
+      notes: "Hot desk / visitor pool",
+    },
+    // Tablets — registration & pavilion
+    {
+      assetTag: "ABHI-TAB-001",
+      category: "Tablet",
+      location: "London",
+      model: "iPad Pro 11\"",
+      serialNumber: "IPADP-UK-3001",
+      purchaseDate: "2025-01-10",
+      operationalStatus: "In Service",
+      firmwareVersion: "iPadOS 18.5",
+      notes: "Member registration · events kit",
+    },
+    {
+      assetTag: "ABHI-TAB-002",
+      category: "Tablet",
+      location: "London",
+      model: "iPad 10th Gen",
+      serialNumber: "IPAD10-UK-3002",
+      purchaseDate: "2025-01-10",
+      operationalStatus: "In Service",
+      firmwareVersion: "iPadOS 18.5",
+      notes: "Pavilion visitor capture",
+    },
+    {
+      assetTag: "ABHI-TAB-003",
+      category: "Tablet",
+      location: "Manchester",
+      model: "iPad 10th Gen",
+      serialNumber: "IPAD10-UK-3003",
+      purchaseDate: "2025-05-06",
+      operationalStatus: "In Service",
+      firmwareVersion: "iPadOS 18.5",
+      notes: "Regional roadshow check-in",
+    },
+    // Cameras & AV
+    {
+      assetTag: "ABHI-CAM-001",
+      category: "Camera",
+      location: "London",
+      model: "Sony A7 IV",
+      serialNumber: "ILCE7M4-UK-4001",
+      purchaseDate: "2024-06-18",
+      operationalStatus: "In Service",
+      firmwareVersion: "v3.01",
+      notes: "Primary events / press photography",
+    },
+    {
+      assetTag: "ABHI-CAM-002",
+      category: "Camera",
+      location: "London",
+      model: "Canon EOS R6 Mark II",
+      serialNumber: "R6M2-UK-4002",
+      purchaseDate: "2025-02-03",
+      operationalStatus: "In Service",
+      firmwareVersion: "v1.5.0",
+      notes: "Secondary body · working group coverage",
+    },
+    {
+      assetTag: "ABHI-CAM-003",
+      category: "Camera",
+      location: "London",
+      model: "GoPro Hero 12",
+      serialNumber: "GP12-UK-4003",
+      purchaseDate: "2024-11-22",
+      operationalStatus: "In Service",
+      firmwareVersion: "v2.20",
+      notes: "Pavilion / exhibition B-roll",
+    },
+    {
+      assetTag: "ABHI-AV-001",
+      category: "AV / Audio",
+      location: "London",
+      model: "Rode Wireless Pro",
+      serialNumber: "RODEWP-UK-4101",
+      purchaseDate: "2024-07-09",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Interview lav kit · dual TX",
+    },
+    {
+      assetTag: "ABHI-AV-002",
+      category: "AV / Audio",
+      location: "London",
+      model: "Shure MV7+",
+      serialNumber: "MV7P-UK-4102",
+      purchaseDate: "2025-03-11",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Podcast / hybrid meeting mic · HQ studio",
+    },
+    // Exhibition equipment
+    {
+      assetTag: "ABHI-EXH-001",
+      category: "Exhibition Equipment",
+      location: "London",
+      model: "3×3 Shell Scheme Kit",
+      serialNumber: "SHELL-UK-5001",
+      purchaseDate: "2023-09-01",
+      operationalStatus: "In Hangar",
+      firmwareVersion: "N/A",
+      notes: "UK pavilion modular walls · WHX / Hospitalar",
+    },
+    {
+      assetTag: "ABHI-EXH-002",
+      category: "Exhibition Equipment",
+      location: "London",
+      model: "Pop-up Banner Stand",
+      serialNumber: "BANNER-UK-5002",
+      purchaseDate: "2024-04-16",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Set of 8 retractable banners · brand refresh 2025 artwork",
+    },
+    {
+      assetTag: "ABHI-EXH-003",
+      category: "Exhibition Equipment",
+      location: "London",
+      model: "LED Exhibition Lighting Rig",
+      serialNumber: "LEDRIG-UK-5003",
+      purchaseDate: "2024-08-21",
+      operationalStatus: "In Hangar",
+      firmwareVersion: "N/A",
+      notes: "Pavilion lighting · flight-cased",
+    },
+    {
+      assetTag: "ABHI-EXH-004",
+      category: "Exhibition Equipment",
+      location: "London",
+      model: "Counter / Reception Desk",
+      serialNumber: "DESK-UK-5004",
+      purchaseDate: "2023-10-12",
+      operationalStatus: "In Hangar",
+      firmwareVersion: "N/A",
+      notes: "Branded membership desk · UK pavilion",
+    },
+    {
+      assetTag: "ABHI-EXH-005",
+      category: "Exhibition Equipment",
+      location: "Manchester",
+      model: "Pop-up Banner Stand",
+      serialNumber: "BANNER-UK-5005",
+      purchaseDate: "2025-05-28",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Regional roadshow pack · 4 stands",
+    },
+    // Displays
+    {
+      assetTag: "ABHI-DSP-001",
+      category: "Display / Screen",
+      location: "London",
+      model: "Samsung 55\" QLED",
+      serialNumber: "QN55-UK-6001",
+      purchaseDate: "2024-05-14",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "HQ boardroom presentation display",
+    },
+    {
+      assetTag: "ABHI-DSP-002",
+      category: "Display / Screen",
+      location: "London",
+      model: "Epson EB-L210SW Projector",
+      serialNumber: "EBL210-UK-6002",
+      purchaseDate: "2024-02-27",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Working group / seminar kit",
+    },
+    {
+      assetTag: "ABHI-DSP-003",
+      category: "Display / Screen",
+      location: "London",
+      model: "Portable LED Wall Panel",
+      serialNumber: "LEDWALL-UK-6003",
+      purchaseDate: "2025-01-30",
+      operationalStatus: "In Hangar",
+      firmwareVersion: "N/A",
+      notes: "2×2m pavilion media wall",
+    },
+    // Monitors & peripherals
+    {
+      assetTag: "ABHI-MON-001",
+      category: "Monitor",
+      location: "London",
+      model: "Dell UltraSharp U2723QE",
+      serialNumber: "U2723-UK-7001",
+      purchaseDate: "2024-09-12",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Dual desk kit · membership ops",
+    },
+    {
+      assetTag: "ABHI-MON-002",
+      category: "Monitor",
+      location: "Cambridge",
+      model: "LG UltraFine 27",
+      serialNumber: "LGUF27-UK-7002",
+      purchaseDate: "2025-03-04",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Cambridge hot-desk monitors (pair)",
+    },
+    {
+      assetTag: "ABHI-PER-001",
+      category: "Peripheral",
+      location: "London",
+      model: "CalDigit TS4 Dock",
+      serialNumber: "TS4-UK-7101",
+      purchaseDate: "2024-09-12",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Thunderbolt dock pool · HQ (×6)",
+    },
+    {
+      assetTag: "ABHI-PER-002",
+      category: "Peripheral",
+      location: "London",
+      model: "Brother HL-L8260CDW",
+      serialNumber: "BR8260-UK-7102",
+      purchaseDate: "2023-11-05",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Colour laser · London admin floor",
+    },
+    // Flight cases
+    {
+      assetTag: "ABHI-CASE-001",
+      category: "Flight Case",
+      location: "London",
+      model: "Peli 1650 Exhibition Case",
+      serialNumber: "PELI1650-UK-8001",
+      purchaseDate: "2023-09-01",
+      operationalStatus: "In Hangar",
+      firmwareVersion: "N/A",
+      notes: "Shell scheme hardware transit",
+    },
+    {
+      assetTag: "ABHI-CASE-002",
+      category: "Flight Case",
+      location: "London",
+      model: "Peli Air 1535",
+      serialNumber: "PELI1535-UK-8002",
+      purchaseDate: "2024-06-18",
+      operationalStatus: "In Hangar",
+      firmwareVersion: "N/A",
+      notes: "Camera + AV carry-on kit",
+    },
+    {
+      assetTag: "ABHI-LIC-001",
+      category: "Software Licence",
+      location: "London",
+      model: "Microsoft 365 Business Premium",
+      serialNumber: "M365-ABHI-60SEATS",
+      purchaseDate: "2025-07-01",
+      operationalStatus: "Active Licence",
+      firmwareVersion: "N/A",
+      notes: "60 seats · GBP annual billing",
+    },
+  ];
+
+  return {
+    assets: seeds.map(buildSeedAsset),
+    categories,
+    locations,
+  };
+}
+
 export function createInitialAssetRegistry(): AssetRegistryState {
   assetCounter = 0;
 
   if (typeof window !== "undefined") {
+    try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        return createAbhiAssetRegistry();
+      }
+    } catch {
+      // Fall through.
+    }
+
     try {
       const { isBrowserCorpCentreSurface } =
         require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
