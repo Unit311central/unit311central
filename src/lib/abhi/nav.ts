@@ -37,7 +37,7 @@ export const ABHI_MARKETING_NAV_SECTION: InternalNavSection = {
     },
     {
       label: "ABHI Events",
-      icon: "CalendarCheck2",
+      icon: "CalendarDays",
       view: "marketing-abhi-events",
     },
     {
