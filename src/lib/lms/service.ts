@@ -272,6 +272,250 @@ export async function ensureEnrolment(options: {
   return mapEnrolment(data as Record<string, unknown>);
 }
 
+export type LmsStaffAssignee = {
+  employeeId: string;
+  fullName: string;
+  email: string;
+  role: string;
+  department: string;
+  userId: string | null;
+  alreadyAssigned: boolean;
+};
+
+async function resolveStaffUserIds(
+  workspaceId: string,
+  employeeIds: string[] | null,
+): Promise<
+  Array<{
+    employeeId: string;
+    fullName: string;
+    email: string;
+    role: string;
+    department: string;
+    userId: string;
+  }>
+> {
+  let query = db()
+    .from("hr_employees")
+    .select("id, full_name, email, role, department, platform_user_id, employment_status")
+    .eq("workspace_id", workspaceId)
+    .neq("employment_status", "archived")
+    .neq("employment_status", "former_employee");
+
+  if (employeeIds?.length) {
+    query = query.in("id", employeeIds);
+  }
+
+  const { data: employees, error } = await query;
+  if (error) throw new Error(error.message);
+
+  const rows = (employees ?? []) as Array<{
+    id: string;
+    full_name: string;
+    email: string;
+    role: string;
+    department: string;
+    platform_user_id: string | null;
+  }>;
+
+  const needsEmailLookup = rows.some((row) => !row.platform_user_id && row.email);
+  const emailToUserId = new Map<string, string>();
+  if (needsEmailLookup) {
+    const { data: users } = await db()
+      .from("platform_users")
+      .select("id, email")
+      .eq("workspace_id", workspaceId);
+    for (const user of users ?? []) {
+      const email = String((user as { email?: string }).email ?? "")
+        .trim()
+        .toLowerCase();
+      const id = String((user as { id?: string }).id ?? "");
+      if (email && id) emailToUserId.set(email, id);
+    }
+  }
+
+  const resolved: Array<{
+    employeeId: string;
+    fullName: string;
+    email: string;
+    role: string;
+    department: string;
+    userId: string;
+  }> = [];
+
+  for (const row of rows) {
+    const fromEmail = row.email
+      ? emailToUserId.get(row.email.trim().toLowerCase())
+      : undefined;
+    const userId = row.platform_user_id || fromEmail || null;
+    if (!userId) continue;
+    resolved.push({
+      employeeId: row.id,
+      fullName: row.full_name,
+      email: row.email ?? "",
+      role: row.role ?? "",
+      department: row.department ?? "",
+      userId,
+    });
+  }
+
+  return resolved;
+}
+
+export async function listAssignableStaffForCourse(options: {
+  workspaceId: string;
+  courseSlug: string;
+}): Promise<{ course: LmsCourse; staff: LmsStaffAssignee[] }> {
+  const course = await getCourseBySlug(options.workspaceId, options.courseSlug);
+  if (!course) throw new Error("Course not found.");
+
+  const { data: employees, error } = await db()
+    .from("hr_employees")
+    .select("id, full_name, email, role, department, platform_user_id, employment_status")
+    .eq("workspace_id", options.workspaceId)
+    .neq("employment_status", "archived")
+    .neq("employment_status", "former_employee")
+    .order("full_name", { ascending: true });
+  if (error) throw new Error(error.message);
+
+  const resolved = await resolveStaffUserIds(options.workspaceId, null);
+  const byEmployee = new Map(resolved.map((row) => [row.employeeId, row.userId]));
+
+  const { data: assignments } = await db()
+    .from("lms_assignments")
+    .select("user_id")
+    .eq("workspace_id", options.workspaceId)
+    .eq("course_id", course.id);
+
+  const assignedUsers = new Set(
+    (assignments ?? [])
+      .map((row) => String((row as { user_id?: string | null }).user_id ?? ""))
+      .filter(Boolean),
+  );
+
+  const { data: enrolments } = await db()
+    .from("lms_enrolments")
+    .select("user_id")
+    .eq("workspace_id", options.workspaceId)
+    .eq("course_id", course.id);
+
+  for (const row of enrolments ?? []) {
+    const userId = String((row as { user_id?: string }).user_id ?? "");
+    if (userId) assignedUsers.add(userId);
+  }
+
+  const staff: LmsStaffAssignee[] = ((employees ?? []) as Array<{
+    id: string;
+    full_name: string;
+    email: string;
+    role: string;
+    department: string;
+    platform_user_id: string | null;
+  }>).map((row) => {
+    const userId = byEmployee.get(row.id) ?? row.platform_user_id ?? null;
+    return {
+      employeeId: row.id,
+      fullName: row.full_name,
+      email: row.email ?? "",
+      role: row.role ?? "",
+      department: row.department ?? "",
+      userId,
+      alreadyAssigned: userId ? assignedUsers.has(userId) : false,
+    };
+  });
+
+  return { course, staff };
+}
+
+export async function assignCourseToStaff(options: {
+  workspaceId: string;
+  courseSlug: string;
+  employeeIds?: string[];
+  assignAllActive?: boolean;
+  mandatory?: boolean;
+  dueAt?: string | null;
+}): Promise<{
+  courseTitle: string;
+  courseSlug: string;
+  assigned: number;
+  skipped: number;
+  missingAccounts: number;
+}> {
+  const course = await getCourseBySlug(options.workspaceId, options.courseSlug);
+  if (!course || course.status !== "published") {
+    throw new Error("Published course not found.");
+  }
+
+  const employeeIds =
+    options.assignAllActive || !options.employeeIds?.length ? null : options.employeeIds;
+  const staff = await resolveStaffUserIds(options.workspaceId, employeeIds);
+
+  const { data: existingAssignments } = await db()
+    .from("lms_assignments")
+    .select("user_id")
+    .eq("workspace_id", options.workspaceId)
+    .eq("course_id", course.id);
+  const already = new Set(
+    (existingAssignments ?? [])
+      .map((row) => String((row as { user_id?: string | null }).user_id ?? ""))
+      .filter(Boolean),
+  );
+
+  let assigned = 0;
+  let skipped = 0;
+
+  for (const person of staff) {
+    if (already.has(person.userId)) {
+      skipped += 1;
+      await ensureEnrolment({
+        workspaceId: options.workspaceId,
+        courseId: course.id,
+        userId: person.userId,
+      });
+      continue;
+    }
+
+    const { error } = await db().from("lms_assignments").insert({
+      workspace_id: options.workspaceId,
+      course_id: course.id,
+      user_id: person.userId,
+      client_id: null,
+      mandatory: options.mandatory ?? true,
+      due_at: options.dueAt ?? null,
+    });
+    if (error) throw new Error(error.message);
+
+    await ensureEnrolment({
+      workspaceId: options.workspaceId,
+      courseId: course.id,
+      userId: person.userId,
+    });
+    already.add(person.userId);
+    assigned += 1;
+  }
+
+  let requestedCount = staff.length;
+  if (employeeIds?.length) {
+    requestedCount = employeeIds.length;
+  } else if (options.assignAllActive) {
+    const { count } = await db()
+      .from("hr_employees")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", options.workspaceId)
+      .neq("employment_status", "archived")
+      .neq("employment_status", "former_employee");
+    requestedCount = count ?? staff.length;
+  }
+
+  return {
+    courseTitle: course.title,
+    courseSlug: course.slug,
+    assigned,
+    skipped,
+    missingAccounts: Math.max(0, requestedCount - staff.length),
+  };
+}
+
 export async function saveEnrolmentProgress(options: {
   workspaceId: string;
   enrolmentId: string;
