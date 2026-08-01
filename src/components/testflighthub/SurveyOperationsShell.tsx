@@ -15,8 +15,8 @@ import {
 } from "@/lib/ai-operating-assistant/guided-learning";
 import {
   getInternalNavBreadcrumb,
-  internalViewTitles,
   isInternalOperationsView,
+  resolveInternalViewTitles,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import { isDemoDomainHost, isInternalDomainHost } from "@/lib/app-domains";
@@ -114,7 +114,7 @@ export default function SurveyOperationsShell({
       ? mode === "internal" && isInternalOperationsView(activeView)
         ? activeView === "billing" && !isInternalHost
           ? "Billing"
-          : internalViewTitles[activeView].title
+          : resolveInternalViewTitles(activeView).title
         : surveyViewTitles[activeView as SurveyOperationsView].title
       : title;
   const resolvedSubtitle =
@@ -122,7 +122,7 @@ export default function SurveyOperationsShell({
       ? mode === "internal" && isInternalOperationsView(activeView)
         ? activeView === "billing" && !isInternalHost
           ? "Your subscription"
-          : internalViewTitles[activeView].subtitle
+          : resolveInternalViewTitles(activeView).subtitle
         : surveyViewTitles[activeView as SurveyOperationsView].subtitle
       : subtitle;
 

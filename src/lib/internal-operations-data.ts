@@ -627,6 +627,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         view: "corporate-contracts" as const,
       },
       {
+        label: "Board deck",
+        icon: "ScrollText",
+        view: "board-pack" as const,
+      },
+      {
         label: "Unit311 Details",
         icon: "ShieldCheck",
         children: [
@@ -701,6 +706,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
           { label: "WhatsApp Integration", href: "/whatsapp/support-flow" },
         ],
       },
+      { label: "Whiteboard", icon: "PenLine", view: "whiteboard" as const },
     ],
   },
   {
@@ -863,7 +869,7 @@ export const internalViewTitles: Record<
   "financial-reports": { title: "Financial Reports", subtitle: "Financials" },
   opex: { title: "Opex", subtitle: "Financials" },
   wise: { title: "Bank", subtitle: "Financials" },
-  "board-pack": { title: "Board deck", subtitle: "Strategy" },
+  "board-pack": { title: "Board deck", subtitle: "Corporate Information" },
   debtors: { title: "Accounts Receivable", subtitle: "Financials" },
   creditors: { title: "Accounts Payable", subtitle: "Financials" },
   expenses: { title: "Expenses", subtitle: "Financials" },
@@ -876,7 +882,7 @@ export const internalViewTitles: Record<
   "hr-payroll": { title: "Payroll", subtitle: "Human Resources" },
   strategy: { title: "Strategy", subtitle: "Strategy" },
   "potential-clients": { title: "Potential Clients", subtitle: "CRM" },
-  whiteboard: { title: "Whiteboard", subtitle: "Strategy" },
+  whiteboard: { title: "Whiteboard", subtitle: "Business Productivity" },
   competitors: { title: "Competitors", subtitle: "Strategy" },
   assets: { title: "Assets", subtitle: "Operations" },
   "inventory-management": { title: "Inventory", subtitle: "Operations" },
@@ -1026,9 +1032,18 @@ export const internalViewTitles: Record<
 export function getInternalNavBreadcrumb(
   activeView: InternalOperationsView,
 ): readonly string[] {
-  const titles = internalViewTitles[activeView];
+  const titles = resolveInternalViewTitles(activeView);
 
-  const sectionLists: Array<readonly InternalNavSection[]> = [internalSurveyNavSections];
+  let navSections: readonly InternalNavSection[] = internalSurveyNavSections;
+  try {
+    const { filterInternalNavSectionsForDemoSurface } =
+      require("@/lib/internal-role-views") as typeof import("@/lib/internal-role-views");
+    navSections = filterInternalNavSectionsForDemoSurface(internalSurveyNavSections);
+  } catch {
+    /* role-view filter optional at build edges */
+  }
+
+  const sectionLists: Array<readonly InternalNavSection[]> = [navSections];
   try {
     const { TALANTON_IMPACT_NAV_SECTIONS } =
       require("@/lib/talanton/nav") as typeof import("@/lib/talanton/nav");
@@ -1050,6 +1065,37 @@ export function getInternalNavBreadcrumb(
 
   const pageTitle = titles?.title ?? activeView;
   return titles?.subtitle ? [titles.subtitle, pageTitle] : [pageTitle];
+}
+
+/** View chrome titles — ABHI renames Clients → Members in the UI shell. */
+export function resolveInternalViewTitles(activeView: InternalOperationsView): {
+  title: string;
+  subtitle: string;
+} {
+  const base = internalViewTitles[activeView];
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        if (activeView === "clients") {
+          return { title: "Member Directory", subtitle: "Members" };
+        }
+        if (activeView === "clients-dashboard") {
+          return { title: "Dashboard", subtitle: "Members" };
+        }
+        if (activeView === "client-onboarding") {
+          return { title: "Member Onboarding", subtitle: "Customer Management" };
+        }
+        if (activeView === "files-client") {
+          return { title: "Member Explorer", subtitle: "File Explorer" };
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return base;
 }
 
 function findNavTrailLabels(

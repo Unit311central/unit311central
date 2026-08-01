@@ -334,14 +334,14 @@ export default function ClientsDashboardWorkspace({
             className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-200 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
           >
             <Plus className="h-3.5 w-3.5" />
-            Add Client
+            {isBrowserAbhiSurface() ? "Add Member" : "Add Client"}
           </Link>
           <Link
             href={directoryHref}
             className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white/75 transition-colors hover:border-white/25 hover:bg-white/[0.08]"
           >
             <Building2 className="h-3.5 w-3.5" />
-            Open Client Directory
+            {isBrowserAbhiSurface() ? "Open Member Directory" : "Open Client Directory"}
           </Link>
           <Link
             href={crmHref}

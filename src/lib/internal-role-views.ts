@@ -406,18 +406,85 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "potential-clients",
   "qms-training",
   "marketing-training",
+  // Technology Management: Settings only (do not hide top-level Settings section).
+  "technology-settings",
 ]);
 
 const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Cap Table Management",
   "Unit311 Details",
   "Infrastructure & Cloud",
+  "Networks & Domains",
+  "Certificates & Identity",
+  "Security",
   "Testing",
   "Telemetry",
   "Potential Clients",
   "QMS Courses",
   "Internal Training",
 ]);
+
+/** ABHI Business Central: Clients → Members (labels only; views unchanged). */
+const ABHI_CLIENT_LABEL_RENAMES: Record<string, string> = {
+  Clients: "Members",
+  "Client Directory": "Member Directory",
+  "Client Onboarding": "Member Onboarding",
+  "Client Explorer": "Member Explorer",
+  "Potential Clients": "Potential Members",
+};
+
+function renameAbhiClientNavLabels(section: InternalNavSection): InternalNavSection {
+  const rename = (label: string) => ABHI_CLIENT_LABEL_RENAMES[label] ?? label;
+  return {
+    ...section,
+    items: section.items.map((item) => {
+      const nextLabel = rename(item.label);
+      if (!item.children?.length) {
+        return nextLabel === item.label ? item : { ...item, label: nextLabel };
+      }
+      return {
+        ...item,
+        label: nextLabel,
+        children: item.children.map((child) => {
+          const childLabel = rename(child.label);
+          return childLabel === child.label ? child : { ...child, label: childLabel };
+        }),
+      };
+    }),
+  };
+}
+
+function reshapeAbhiCorporateSection(section: InternalNavSection): InternalNavSection {
+  if (section.label !== "Corporate Information") return section;
+  if (section.items.some((item) => item.view === "board-pack")) return section;
+  return {
+    ...section,
+    items: [
+      ...section.items,
+      {
+        label: "Board deck",
+        icon: "ScrollText",
+        view: "board-pack" as const,
+      },
+    ],
+  };
+}
+
+function reshapeAbhiProductivitySection(section: InternalNavSection): InternalNavSection {
+  if (section.label !== "Business Productivity") return section;
+  if (section.items.some((item) => item.view === "whiteboard")) return section;
+  return {
+    ...section,
+    items: [
+      ...section.items,
+      {
+        label: "Whiteboard",
+        icon: "PenLine",
+        view: "whiteboard" as const,
+      },
+    ],
+  };
+}
 
 function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Training") return section;
@@ -459,6 +526,16 @@ function filterAbhiHiddenNavItems(section: InternalNavSection): InternalNavSecti
   };
 }
 
+function reshapeAbhiNavSection(section: InternalNavSection): InternalNavSection {
+  return renameAbhiClientNavLabels(
+    filterAbhiHiddenNavItems(
+      reshapeAbhiProductivitySection(
+        reshapeAbhiCorporateSection(reshapeAbhiTrainingSection(section)),
+      ),
+    ),
+  );
+}
+
 function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
   try {
     const { ABHI_MARKETING_NAV_SECTION } =
@@ -466,7 +543,7 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
     const out: InternalNavSection[] = [];
     let inserted = false;
     for (const section of sections) {
-      const next = filterAbhiHiddenNavItems(reshapeAbhiTrainingSection(section));
+      const next = reshapeAbhiNavSection(section);
       out.push(next);
       if (section.label === "Human Resources") {
         out.push(ABHI_MARKETING_NAV_SECTION);
@@ -476,9 +553,7 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
     if (!inserted) out.push(ABHI_MARKETING_NAV_SECTION);
     return out.filter((section) => section.items.length > 0);
   } catch {
-    return sections.map((section) =>
-      filterAbhiHiddenNavItems(reshapeAbhiTrainingSection(section)),
-    );
+    return sections.map((section) => reshapeAbhiNavSection(section));
   }
 }
 
