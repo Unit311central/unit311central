@@ -6,6 +6,7 @@ import {
   type ProjectsWorkspaceScope,
 } from "@/lib/internal-projects-service";
 import {
+  ensureInternalProjectTasksDescriptionColumn,
   ensureInternalProjectTasksTable,
   withInternalProjectTasksTable,
 } from "@/lib/internal-db-migrations";
@@ -16,6 +17,7 @@ type DbTask = {
   project_id: string;
   workspace_id: string;
   name: string;
+  description?: string | null;
   start_date: string;
   due_date: string;
   progress: number | string;
@@ -38,6 +40,7 @@ export function mapProjectTask(row: DbTask): ProjectTask {
   return {
     id: row.id,
     name: row.name,
+    description: row.description ?? "",
     startDate: row.start_date,
     dueDate: row.due_date,
     progress: Math.max(0, Math.min(100, Number(row.progress) || 0)),
@@ -102,6 +105,7 @@ export async function createProjectTask(
   scope?: ProjectsWorkspaceScope,
 ): Promise<{ task: ProjectTask; tasks: ProjectTask[]; progressPct: number }> {
   await ensureInternalProjectTasksTable();
+  await ensureInternalProjectTasksDescriptionColumn().catch(() => false);
   return withInternalProjectTasksTable(async () => {
     const workspaceId = await resolveProjectsWorkspaceId(scope);
     // Prefer workspace ownership when the project exists in internal_projects.
@@ -131,6 +135,7 @@ export async function createProjectTask(
         project_id: projectId,
         workspace_id: workspaceId,
         name: input.name.trim(),
+        description: input.description?.trim() || "",
         start_date: input.startDate || today,
         due_date: input.dueDate || inTwoWeeks,
         progress: Math.max(0, Math.min(100, input.progress ?? 0)),
@@ -166,6 +171,9 @@ export async function updateProjectTask(
   scope?: ProjectsWorkspaceScope,
 ): Promise<{ task: ProjectTask; tasks: ProjectTask[]; progressPct: number }> {
   await ensureInternalProjectTasksTable();
+  if (patch.description !== undefined) {
+    await ensureInternalProjectTasksDescriptionColumn().catch(() => false);
+  }
   return withInternalProjectTasksTable(async () => {
     const workspaceId = await resolveProjectsWorkspaceId(scope);
     // Prefer workspace ownership when the project exists in internal_projects.
@@ -180,6 +188,7 @@ export async function updateProjectTask(
       updated_at: new Date().toISOString(),
     };
     if (patch.name !== undefined) payload.name = patch.name.trim();
+    if (patch.description !== undefined) payload.description = patch.description.trim();
     if (patch.startDate !== undefined) payload.start_date = patch.startDate;
     if (patch.dueDate !== undefined) payload.due_date = patch.dueDate;
     if (patch.progress !== undefined) {

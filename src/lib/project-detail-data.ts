@@ -1,6 +1,7 @@
 export type ProjectTask = {
   id: string;
   name: string;
+  description: string;
   startDate: string;
   dueDate: string;
   progress: number;
@@ -17,7 +18,7 @@ export type ProjectDetail = {
 
 function tasks(
   projectId: string,
-  items: Array<Omit<ProjectTask, "id"> & { id?: string }>,
+  items: Array<Omit<ProjectTask, "id" | "description"> & { id?: string; description?: string }>,
 ): ProjectDetail {
   return {
     projectId,
@@ -25,6 +26,7 @@ function tasks(
     tasks: items.map((item, index) => ({
       id: item.id ?? `${projectId}-t${index + 1}`,
       name: item.name,
+      description: item.description ?? "",
       startDate: item.startDate,
       dueDate: item.dueDate,
       progress: item.progress,

@@ -43,6 +43,8 @@ export const INTERNAL_OPERATORS_MULTI_DEPARTMENTS_MIGRATION_PATH =
   "supabase/migrations/118_internal_operators_multi_departments.sql";
 export const INTERNAL_PROJECT_TASKS_MIGRATION_PATH =
   "supabase/migrations/116_internal_project_tasks.sql";
+export const INTERNAL_PROJECT_TASKS_DESCRIPTION_MIGRATION_PATH =
+  "supabase/migrations/127_internal_project_tasks_description.sql";
 export const FINANCIAL_EXPENSES_MIGRATION_PATH =
   "supabase/migrations/021_create_financial_expenses.sql";
 export const GENERAL_LEDGER_MIGRATION_PATH =
@@ -1480,13 +1482,52 @@ export async function ensureInternalProjectTasksTable(): Promise<boolean> {
   });
 }
 
+export async function ensureInternalProjectTasksDescriptionColumn(): Promise<boolean> {
+  return onceEnsured("columns:internal_project_tasks.description", async () => {
+    const viaRest = await columnExistsViaRestApi("internal_project_tasks", "description");
+    if (viaRest === true) return true;
+
+    const exists = await columnExistsViaManagementApi("internal_project_tasks", "description");
+    if (exists === true) return true;
+
+    const dbUrl = getDatabaseUrl();
+    if (dbUrl) {
+      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+      try {
+        await client.connect();
+        if (await columnExists(client, "internal_project_tasks", "description")) {
+          return true;
+        }
+        await applyMigration(client, INTERNAL_PROJECT_TASKS_DESCRIPTION_MIGRATION_PATH);
+        await reloadPostgrestSchema();
+        return true;
+      } finally {
+        await client.end().catch(() => undefined);
+      }
+    }
+
+    if (exists === false) {
+      const applied = await applyMigrationViaManagementApi(
+        INTERNAL_PROJECT_TASKS_DESCRIPTION_MIGRATION_PATH,
+      );
+      if (applied) await reloadPostgrestSchema();
+      return applied;
+    }
+
+    return false;
+  });
+}
+
 export async function withInternalProjectTasksTable<T>(operation: () => Promise<T>): Promise<T> {
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       return await operation();
     } catch (error) {
-      if (!isMissingTableError(error, "internal_project_tasks")) throw error;
-      await ensureInternalProjectTasksTable();
+      const missingTable = isMissingTableError(error, "internal_project_tasks");
+      const missingDescription = isMissingColumnError(error, "description");
+      if (!missingTable && !missingDescription) throw error;
+      if (missingTable) await ensureInternalProjectTasksTable();
+      if (missingDescription) await ensureInternalProjectTasksDescriptionColumn();
       await reloadPostgrestSchema();
       if (attempt === 4) throw error;
       await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));

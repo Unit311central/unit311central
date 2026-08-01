@@ -7,6 +7,8 @@ import type { ManagedClient } from "@/lib/client-management-data";
 import { ganttBarStyle, type ProjectTask } from "@/lib/project-detail-data";
 import { getPortfolioProject } from "@/lib/project-portfolios";
 import { formatProjectDate, type InternalProject } from "@/lib/projects-data";
+import { fetchCachedJson, PLATFORM_CACHE_KEYS } from "@/lib/platform-fetch-cache";
+import { createInitialUsers, type ManagedUser } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -16,6 +18,7 @@ import {
   Milestone,
   Plus,
   Trash2,
+  X,
   Zap,
 } from "lucide-react";
 
@@ -30,6 +33,8 @@ type ProjectDetailWorkspaceProps = {
   /** Fired when task changes update project.progressPct for KPI strips / lists. */
   onProjectProgressChange?: (projectId: string, progressPct: number) => void;
 };
+
+const RESOURCE_MANUAL = "__manual__";
 
 function panelClassName() {
   return "rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6";
@@ -51,6 +56,67 @@ function inputClassName() {
   return "w-full rounded-lg border border-white/10 bg-[#0b1524] px-2 py-1.5 text-xs text-white outline-none focus:border-sky-400/50";
 }
 
+function TaskResourceField({
+  value,
+  users,
+  onChange,
+  className,
+}: {
+  value: string;
+  users: ManagedUser[];
+  onChange: (resource: string) => void;
+  className?: string;
+}) {
+  const userNames = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          users
+            .map((user) => user.fullName.trim())
+            .filter(Boolean),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [users],
+  );
+  const matchedUser = userNames.includes(value.trim());
+  const selectValue = matchedUser ? value.trim() : value.trim() ? RESOURCE_MANUAL : "";
+
+  return (
+    <div className={cn("flex min-w-[9rem] flex-col gap-1.5", className)}>
+      <select
+        value={selectValue}
+        onChange={(event) => {
+          const next = event.target.value;
+          if (next === RESOURCE_MANUAL) {
+            onChange(matchedUser ? "" : value);
+            return;
+          }
+          onChange(next);
+        }}
+        className={inputClassName()}
+        aria-label="Resource"
+      >
+        <option value="">Unassigned</option>
+        {userNames.map((name) => (
+          <option key={name} value={name}>
+            {name}
+          </option>
+        ))}
+        <option value={RESOURCE_MANUAL}>Manual entry…</option>
+      </select>
+      {selectValue === RESOURCE_MANUAL ? (
+        <input
+          className={inputClassName()}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Type resource name"
+          aria-label="Manual resource"
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export default function ProjectDetailWorkspace({
   project,
   onBack,
@@ -65,6 +131,13 @@ export default function ProjectDetailWorkspace({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [displayProgress, setDisplayProgress] = useState(project.progressPct);
+  const [resourceUsers, setResourceUsers] = useState<ManagedUser[]>(() =>
+    createInitialUsers().filter((user) => user.status === "Active"),
+  );
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [draftName, setDraftName] = useState("New task");
+  const [draftDescription, setDraftDescription] = useState("");
+  const [draftResource, setDraftResource] = useState(project.operator || "");
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const client = useMemo(
@@ -116,6 +189,41 @@ export default function ProjectDetailWorkspace({
     setDisplayProgress(project.progressPct);
   }, [project.id, project.progressPct]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        let nextUsers: ManagedUser[] = [];
+        try {
+          const messagingUsers = await fetchCachedJson<{ users?: ManagedUser[] }>(
+            "messaging-operators",
+            "/api/messaging/operators",
+            { ttlMs: 60_000 },
+          );
+          nextUsers = messagingUsers.users ?? [];
+        } catch {
+          const data = await fetchCachedJson<{ users?: ManagedUser[] }>(
+            PLATFORM_CACHE_KEYS.users,
+            "/api/users",
+            { ttlMs: 120_000 },
+          );
+          nextUsers = data.users ?? [];
+        }
+        if (nextUsers.length === 0) {
+          nextUsers = createInitialUsers().filter((user) => user.status === "Active");
+        }
+        if (!cancelled) setResourceUsers(nextUsers.filter((user) => user.status === "Active"));
+      } catch {
+        if (!cancelled) {
+          setResourceUsers(createInitialUsers().filter((user) => user.status === "Active"));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const ganttRange = useMemo(() => {
     if (tasks.length === 0) {
       const start = project.startDate ? new Date(`${project.startDate}T12:00:00`) : new Date();
@@ -139,6 +247,14 @@ export default function ProjectDetailWorkspace({
   function applyProgress(progressPct: number) {
     setDisplayProgress(progressPct);
     onProjectProgressChange?.(project.id, progressPct);
+  }
+
+  function openAddForm() {
+    setDraftName("New task");
+    setDraftDescription("");
+    setDraftResource(project.operator || "");
+    setShowAddForm(true);
+    setError(null);
   }
 
   async function persistTask(taskId: string, patch: Partial<ProjectTask>) {
@@ -178,6 +294,12 @@ export default function ProjectDetailWorkspace({
   }
 
   async function handleAddTask() {
+    const name = draftName.trim();
+    if (!name) {
+      setError("Task name is required");
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
@@ -185,8 +307,9 @@ export default function ProjectDetailWorkspace({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "New task",
-          resource: project.operator || "",
+          name,
+          description: draftDescription.trim(),
+          resource: draftResource.trim(),
           progress: 0,
           milestone: false,
           critical: false,
@@ -200,6 +323,10 @@ export default function ProjectDetailWorkspace({
       if (!response.ok) throw new Error(data.error ?? "Failed to add task");
       setTasks(data.tasks ?? []);
       if (typeof data.progressPct === "number") applyProgress(data.progressPct);
+      setShowAddForm(false);
+      setDraftName("New task");
+      setDraftDescription("");
+      setDraftResource(project.operator || "");
     } catch (addError) {
       setError(addError instanceof Error ? addError.message : "Failed to add task");
     } finally {
@@ -364,27 +491,104 @@ export default function ProjectDetailWorkspace({
             </div>
             <button
               type="button"
-              onClick={() => void handleAddTask()}
+              onClick={openAddForm}
               disabled={busy || loading}
               className="inline-flex items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-300 transition-colors hover:bg-sky-500/25 disabled:opacity-60"
             >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              <Plus className="h-3.5 w-3.5" />
               Add task
             </button>
           </div>
         </div>
+
+        {showAddForm ? (
+          <div className="mt-4 rounded-xl border border-sky-500/25 bg-sky-500/[0.06] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">New task</p>
+                <p className="mt-0.5 text-xs text-white/45">
+                  Name, description, and resource before saving
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/50 hover:text-white"
+                aria-label="Close add task form"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+                  Task name
+                </span>
+                <input
+                  className={cn(inputClassName(), "mt-1.5")}
+                  value={draftName}
+                  onChange={(event) => setDraftName(event.target.value)}
+                  placeholder="Task name"
+                  autoFocus
+                />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+                  Description
+                </span>
+                <textarea
+                  className={cn(inputClassName(), "mt-1.5 min-h-[4.5rem] resize-y")}
+                  value={draftDescription}
+                  onChange={(event) => setDraftDescription(event.target.value)}
+                  placeholder="What needs to be done…"
+                />
+              </label>
+              <div className="block sm:col-span-2">
+                <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+                  Resource
+                </span>
+                <div className="mt-1.5">
+                  <TaskResourceField
+                    value={draftResource}
+                    users={resourceUsers}
+                    onChange={setDraftResource}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                disabled={busy}
+                className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-white/60 hover:text-white disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleAddTask()}
+                disabled={busy || !draftName.trim()}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 py-1.5 text-xs font-semibold text-sky-300 hover:bg-sky-500/25 disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Save task
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {loading ? (
           <div className="mt-6 flex items-center gap-2 text-sm text-white/45">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading tasks…
           </div>
-        ) : tasks.length === 0 ? (
+        ) : tasks.length === 0 && !showAddForm ? (
           <div className="mt-6 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-10 text-center">
             <p className="text-sm text-white/55">No tasks yet.</p>
             <button
               type="button"
-              onClick={() => void handleAddTask()}
+              onClick={openAddForm}
               disabled={busy}
               className="mt-3 inline-flex items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 py-2 text-xs font-semibold text-sky-300"
             >
@@ -392,9 +596,9 @@ export default function ProjectDetailWorkspace({
               Add first task
             </button>
           </div>
-        ) : (
+        ) : tasks.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[64rem] border-collapse text-left text-sm">
+            <table className="w-full min-w-[72rem] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-white/[0.08] text-[10px] font-medium uppercase tracking-[0.12em] text-white/35">
                   <th className="pb-2 pr-3 font-medium">Task</th>
@@ -419,17 +623,26 @@ export default function ProjectDetailWorkspace({
 
                   return (
                     <tr key={task.id} className="border-b border-white/[0.05] last:border-0">
-                      <td className="py-3 pr-3">
+                      <td className="py-3 pr-3 align-top">
                         <input
-                          className={cn(inputClassName(), "min-w-[10rem] font-medium")}
+                          className={cn(inputClassName(), "min-w-[12rem] font-medium")}
                           value={task.name}
                           onChange={(event) =>
                             updateTaskLocal(task.id, { name: event.target.value })
                           }
                           aria-label="Task name"
                         />
+                        <textarea
+                          className={cn(inputClassName(), "mt-1.5 min-h-[3.25rem] min-w-[12rem] resize-y text-white/70")}
+                          value={task.description ?? ""}
+                          onChange={(event) =>
+                            updateTaskLocal(task.id, { description: event.target.value })
+                          }
+                          placeholder="Description"
+                          aria-label="Task description"
+                        />
                       </td>
-                      <td className="py-3 pr-3">
+                      <td className="py-3 pr-3 align-top">
                         <input
                           type="date"
                           className={inputClassName()}
@@ -439,7 +652,7 @@ export default function ProjectDetailWorkspace({
                           }
                         />
                       </td>
-                      <td className="py-3 pr-3">
+                      <td className="py-3 pr-3 align-top">
                         <input
                           type="date"
                           className={inputClassName()}
@@ -449,7 +662,7 @@ export default function ProjectDetailWorkspace({
                           }
                         />
                       </td>
-                      <td className="py-3 pr-3">
+                      <td className="py-3 pr-3 align-top">
                         <div className="flex min-w-[8rem] items-center gap-2">
                           <input
                             type="range"
@@ -469,7 +682,7 @@ export default function ProjectDetailWorkspace({
                           </span>
                         </div>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td className="py-3 pr-3 align-top">
                         <select
                           value={taskStatusLabel(task.progress)}
                           onChange={(event) => {
@@ -485,17 +698,14 @@ export default function ProjectDetailWorkspace({
                           <option value="Complete">Complete</option>
                         </select>
                       </td>
-                      <td className="py-3 pr-3">
-                        <input
-                          className={cn(inputClassName(), "min-w-[7rem]")}
+                      <td className="py-3 pr-3 align-top">
+                        <TaskResourceField
                           value={task.resource}
-                          onChange={(event) =>
-                            updateTaskLocal(task.id, { resource: event.target.value })
-                          }
-                          aria-label="Resource"
+                          users={resourceUsers}
+                          onChange={(resource) => updateTaskLocal(task.id, { resource })}
                         />
                       </td>
-                      <td className="py-3 pr-3">
+                      <td className="py-3 pr-3 align-top">
                         <div className="flex flex-wrap gap-2">
                           <label className="inline-flex items-center gap-1 text-[10px] text-amber-200">
                             <input
@@ -521,7 +731,7 @@ export default function ProjectDetailWorkspace({
                           </label>
                         </div>
                       </td>
-                      <td className="py-3 pr-3">
+                      <td className="py-3 pr-3 align-top">
                         <div className="relative h-5 w-36 min-w-[9rem] rounded-md bg-white/[0.06]">
                           <div
                             className={cn(
@@ -534,7 +744,7 @@ export default function ProjectDetailWorkspace({
                           />
                         </div>
                       </td>
-                      <td className="py-3">
+                      <td className="py-3 align-top">
                         <button
                           type="button"
                           onClick={() => void handleDeleteTask(task.id)}
@@ -551,7 +761,7 @@ export default function ProjectDetailWorkspace({
               </tbody>
             </table>
           </div>
-        )}
+        ) : null}
       </section>
 
       <section className={panelClassName()}>
@@ -583,6 +793,9 @@ export default function ProjectDetailWorkspace({
                     {taskStatusLabel(task.progress)}
                   </span>
                 </div>
+                {task.description ? (
+                  <p className="mt-2 line-clamp-3 text-xs text-white/55">{task.description}</p>
+                ) : null}
                 <p className="mt-2 text-xs text-white/50">
                   Due {formatProjectDate(task.dueDate)} · {task.resource || "Unassigned"}
                 </p>

@@ -45,6 +45,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const body = (await request.json()) as {
       name?: string;
+      description?: string;
       startDate?: string;
       dueDate?: string;
       progress?: number;
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       id,
       {
         name: body.name,
+        description: body.description,
         startDate: body.startDate,
         dueDate: body.dueDate,
         progress: body.progress,

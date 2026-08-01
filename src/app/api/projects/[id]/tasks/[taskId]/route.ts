@@ -23,6 +23,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id, taskId } = await context.params;
     const body = (await request.json()) as {
       name?: string;
+      description?: string;
       startDate?: string;
       dueDate?: string;
       progress?: number;
