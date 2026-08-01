@@ -50,9 +50,11 @@ const SALARY = 100_000;
 const BONUS = 5_000;
 const EFFECTIVE = "2026-01-01";
 const CASH = 4_242_957;
-const DEBTORS = 3_988_245;
+/** Membership fees £3,000 × unpaid invoices (see AR plan below). */
+const MEMBERSHIP_FEE = 3_000;
+const WEBSITE_LISTING_FEE = 1_000;
 const CREDITORS = 7_605_083;
-const FIXED_ASSETS = 2_449; // so net assets = 628,568
+const FIXED_ASSETS = 2_449;
 const REVENUE_YTD = 2_000_000;
 const EXTERNAL_PROJECT_VALUE = 500_000;
 
@@ -362,9 +364,9 @@ async function main() {
     .select("id, company_name, region")
     .eq("workspace_id", WS)
     .eq("account_status", "Active")
-    .order("company_name")
-    .limit(20);
+    .order("company_name");
   if (!clients?.length) throw new Error("No active ABHI clients after update");
+  console.log(`Active clients for AR/projects: ${clients.length}`);
 
   // ——— 3) Projects ———
   console.log("Seeding projects…");
@@ -373,6 +375,9 @@ async function main() {
   const externalValues = [120_000, 110_000, 95_000, 90_000, 85_000]; // = 500,000
   if (externalValues.reduce((s, n) => s + n, 0) !== EXTERNAL_PROJECT_VALUE) {
     throw new Error("External project values must sum to 500000");
+  }
+  if (clients.length < 5) {
+    throw new Error("Need at least 5 active clients to seed external projects");
   }
 
   const projectRows = [
@@ -538,58 +543,92 @@ async function main() {
     creditDesc: "Opening equity for fixed assets",
   });
 
-  // ——— 5) Debtors (AR invoices unpaid = 3,988,245) ———
-  console.log("Seeding debtors (AR)…");
+  // ——— 5) Debtors — membership fees £3,000 (+ website listing £1,000) ———
+  // One invoice per active member. Status mix: overdue (~£1m), pending, paid.
+  console.log("Seeding debtors (AR membership fees)…");
   {
     const { data: oldInvoices } = await admin
       .from("invoices")
       .select("id")
-      .eq("workspace_id", WS)
-      .like("payment_reference", `${INV_PREFIX}%`);
+      .eq("workspace_id", WS);
     if (oldInvoices?.length) {
-      await admin.from("invoices").delete().in(
-        "id",
-        oldInvoices.map((r) => r.id),
-      );
+      for (const batch of chunk(oldInvoices.map((r) => r.id), 100)) {
+        const { error: delErr } = await admin.from("invoices").delete().in("id", batch);
+        if (delErr) throw new Error(`delete invoices: ${delErr.message}`);
+      }
     }
     await wipeJournalSource(WS, AR_SOURCE);
   }
 
-  // Nine AR invoices — ~£1m overdue (first 3), remainder current / due soon.
-  const OVERDUE_TARGET = 1_000_000;
-  const arPlanSpec = [
-    { amount: 420_000, issueDate: "2026-05-10", dueDate: "2026-06-09", overdue: true },
-    { amount: 330_000, issueDate: "2026-05-22", dueDate: "2026-06-21", overdue: true },
-    { amount: 250_000, issueDate: "2026-06-05", dueDate: "2026-07-05", overdue: true },
-    { amount: 480_000, issueDate: "2026-07-08", dueDate: "2026-08-22", overdue: false },
-    { amount: 450_000, issueDate: "2026-07-12", dueDate: "2026-08-26", overdue: false },
-    { amount: 420_000, issueDate: "2026-07-15", dueDate: "2026-09-01", overdue: false },
-    { amount: 380_000, issueDate: "2026-07-18", dueDate: "2026-09-05", overdue: false },
-    { amount: 350_000, issueDate: "2026-07-22", dueDate: "2026-09-12", overdue: false },
-    // Remainder so debtors still total DEBTORS.
-    { amount: 0, issueDate: "2026-07-28", dueDate: "2026-09-20", overdue: false },
-  ];
-  const fixedSum = arPlanSpec.slice(0, -1).reduce((s, row) => s + row.amount, 0);
-  arPlanSpec[arPlanSpec.length - 1].amount = round2(DEBTORS - fixedSum);
-  const overdueSum = arPlanSpec.filter((row) => row.overdue).reduce((s, row) => s + row.amount, 0);
-  if (Math.abs(overdueSum - OVERDUE_TARGET) > 0.01) {
-    throw new Error(`ABHI overdue invoices sum £${overdueSum}, expected £${OVERDUE_TARGET}`);
-  }
-  const arPlan = arPlanSpec.map((item, i) => ({
-    ...item,
-    client: clients[i % clients.length],
-  }));
+  const memberClients = clients.slice().sort((a, b) =>
+    String(a.company_name || "").localeCompare(String(b.company_name || ""), "en-GB"),
+  );
+  if (memberClients.length === 0) throw new Error("No ABHI clients for AR seed");
+
+  // ~£1m overdue at £3,000/member, with pending + paid for status mix.
+  const OVERDUE_COUNT = Math.min(333, memberClients.length);
+  const remaining = Math.max(0, memberClients.length - OVERDUE_COUNT);
+  const PENDING_COUNT = Math.min(30, remaining);
+  const PAID_COUNT = Math.max(0, remaining - PENDING_COUNT);
+
+  const arPlan = memberClients.map((client, index) => {
+    let status = "paid";
+    let issueDate = "2026-01-15";
+    let dueDate = "2026-02-14";
+    let paidAt = "2026-02-10T14:00:00.000Z";
+    if (index < OVERDUE_COUNT) {
+      status = "overdue";
+      issueDate = "2026-05-01";
+      dueDate = "2026-05-31";
+      paidAt = null;
+    } else if (index < OVERDUE_COUNT + PENDING_COUNT) {
+      status = "issued"; // Pending
+      issueDate = "2026-07-01";
+      dueDate = "2026-08-31";
+      paidAt = null;
+    }
+    return {
+      client,
+      amount: MEMBERSHIP_FEE,
+      status,
+      issueDate,
+      dueDate,
+      paidAt,
+      kind: "membership",
+    };
+  });
+
+  // Website listing — £1,000 / year, pending.
+  arPlan.push({
+    client: memberClients[0],
+    amount: WEBSITE_LISTING_FEE,
+    status: "issued",
+    issueDate: "2026-04-01",
+    dueDate: "2026-04-30",
+    paidAt: null,
+    kind: "website",
+  });
+
+  const unpaidTotal = arPlan
+    .filter((row) => row.status === "overdue" || row.status === "issued")
+    .reduce((sum, row) => sum + row.amount, 0);
+  const overdueTotal = arPlan
+    .filter((row) => row.status === "overdue")
+    .reduce((sum, row) => sum + row.amount, 0);
+  console.log(
+    `AR plan: ${OVERDUE_COUNT} overdue (£${overdueTotal}), ${PENDING_COUNT + 1} pending, ${PAID_COUNT} paid · unpaid £${unpaidTotal}`,
+  );
 
   const arJournalId = await postSimpleJournal({
     workspaceId: WS,
     sourceType: AR_SOURCE,
-    sourceId: "abhi-ar-3988245",
+    sourceId: `abhi-ar-membership-${unpaidTotal}`,
     reference: "ABHI-AR-OPEN",
-    description: "ABHI debtors opening balance £3,988,245 (BS only — not income)",
+    description: `ABHI membership debtors £${unpaidTotal.toLocaleString("en-GB")} (BS only — not income)`,
     journalDate: "2026-01-31",
     debitAccountId: arAcct.id,
     creditAccountId: equity.id,
-    amount: DEBTORS,
+    amount: unpaidTotal,
     debitDesc: "Accounts receivable opening",
     creditDesc: "Opening equity for debtors",
   });
@@ -620,7 +659,10 @@ async function main() {
   console.log(`Posted ${MONTHLY_REVENUE.length} monthly revenue journals totalling £${REVENUE_YTD}`);
 
   const invoiceRows = arPlan.map((item, index) => {
-    const num = `${INV_PREFIX}-${String(index + 1).padStart(3, "0")}`;
+    const num =
+      item.kind === "website"
+        ? `${INV_PREFIX}-WEB-001`
+        : `${INV_PREFIX}-${String(index + 1).padStart(3, "0")}`;
     return {
       id: deterministicUuid(`abhi-invoice:${num}`),
       invoice_number: num,
@@ -630,16 +672,18 @@ async function main() {
       due_date: item.dueDate,
       currency: "GBP",
       amount: item.amount,
-      status: item.overdue ? "overdue" : "issued",
-      payment_reference: `${INV_PREFIX}-${num}`,
+      status: item.status,
+      payment_reference: num,
       journal_entry_id: arJournalId,
       payment_journal_entry_id: null,
       created_at: `${item.issueDate}T10:00:00.000Z`,
-      updated_at: `${item.issueDate}T10:00:00.000Z`,
+      updated_at: item.paidAt || `${item.issueDate}T10:00:00.000Z`,
     };
   });
-  const { error: invErr } = await admin.from("invoices").insert(invoiceRows);
-  if (invErr) throw new Error(`invoices: ${invErr.message}`);
+  for (const batch of chunk(invoiceRows, 100)) {
+    const { error: invErr } = await admin.from("invoices").insert(batch);
+    if (invErr) throw new Error(`invoices: ${invErr.message}`);
+  }
 
   // ——— 6) Creditors (AP expenses) ———
   // Dashboard AP = unpaid expenses + next payroll liability.
@@ -764,7 +808,9 @@ async function main() {
         apExpenses: apExpSum,
         apWithPayroll: round2(apExpSum + payrollLiability),
         cash: CASH,
-        targets: { DEBTORS, CREDITORS, CASH },
+        membershipFee: MEMBERSHIP_FEE,
+        websiteListingFee: WEBSITE_LISTING_FEE,
+        targets: { CREDITORS, CASH, membershipFee: MEMBERSHIP_FEE },
       },
       null,
       2,

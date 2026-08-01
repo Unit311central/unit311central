@@ -14,6 +14,32 @@ function isUnpaid(status: LedgerInvoice["status"]) {
   return status === "issued" || status === "overdue";
 }
 
+function invoiceStatusLabel(status: LedgerInvoice["status"]) {
+  switch (status) {
+    case "paid":
+      return "Paid";
+    case "overdue":
+      return "Overdue";
+    case "issued":
+      return "Pending";
+    default:
+      return status;
+  }
+}
+
+function invoiceStatusClass(status: LedgerInvoice["status"]) {
+  switch (status) {
+    case "paid":
+      return "border-emerald-400/35 bg-emerald-500/15 text-emerald-200";
+    case "overdue":
+      return "border-rose-400/35 bg-rose-500/15 text-rose-200";
+    case "issued":
+      return "border-amber-400/35 bg-amber-500/15 text-amber-200";
+    default:
+      return "border-white/15 bg-white/5 text-white/60";
+  }
+}
+
 function daysBetween(fromIso: string, toIso: string) {
   const from = new Date(fromIso.includes("T") ? fromIso : `${fromIso}T00:00:00.000Z`);
   const to = new Date(toIso.includes("T") ? toIso : `${toIso}T00:00:00.000Z`);
@@ -271,7 +297,16 @@ export default function AccountsReceivableWorkspace() {
                         <td className="px-4 py-2 text-right font-mono text-white/85">
                           {money(outstandingAmount)}
                         </td>
-                        <td className="px-4 py-2 capitalize text-white/75">{invoice.status}</td>
+                        <td className="px-4 py-2">
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
+                              invoiceStatusClass(invoice.status),
+                            )}
+                          >
+                            {invoiceStatusLabel(invoice.status)}
+                          </span>
+                        </td>
                         <td className="px-4 py-2 capitalize text-white/65">
                           {invoice.paymentMethod ?? "—"}
                         </td>
@@ -337,7 +372,16 @@ export default function AccountsReceivableWorkspace() {
                 <dt className="text-[10px] uppercase tracking-[0.12em] text-white/40">
                   Payment Status
                 </dt>
-                <dd className="mt-1 capitalize text-white/85">{selected.status}</dd>
+                <dd className="mt-1">
+                  <span
+                    className={cn(
+                      "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
+                      invoiceStatusClass(selected.status),
+                    )}
+                  >
+                    {invoiceStatusLabel(selected.status)}
+                  </span>
+                </dd>
               </div>
               <div>
                 <dt className="text-[10px] uppercase tracking-[0.12em] text-white/40">
