@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import PortalCourseLaunch from "@/components/lms/PortalCourseLaunch";
 import {
   CompanyPortalAssignedCourses,
   CompanyPortalCourseCompletion,
@@ -13,7 +14,10 @@ import {
   CompanyPortalSubmitReport,
   CompanyPortalSubmittedReports,
   CompanyPortalTemplates,
+  CompanyPortalTrainingCertificates,
+  CompanyPortalTrainingCompleted,
   CompanyPortalTrainingHub,
+  CompanyPortalTrainingInProgress,
 } from "@/components/talanton/portal/CompanyPortalPanels";
 import { getCompanyPortalByPath } from "@/lib/talanton/company-portal-routes";
 
@@ -39,6 +43,13 @@ function SubLinks({
   );
 }
 
+const TRAINING_SUBLINKS = [
+  { href: "/training/assigned", label: "Assigned" },
+  { href: "/training/in-progress", label: "In Progress" },
+  { href: "/training/completed", label: "Completed" },
+  { href: "/training/certificates", label: "Certificates" },
+] as const;
+
 export default async function CompanyPortalPage({
   params,
 }: {
@@ -55,23 +66,51 @@ export default async function CompanyPortalPage({
     return <CompanyPortalHome companyId={route.companyId} />;
   }
 
+  if (section[0] === "training" && section[1] === "course" && section[2]) {
+    return (
+      <PortalCourseLaunch courseSlug={section[2]} companyPath={route.path} />
+    );
+  }
+
   if (key === "training") {
     return (
       <div>
-        <SubLinks
-          base={base}
-          items={[
-            { href: "/training/assigned", label: "Assigned Courses" },
-            { href: "/training/my-training", label: "My Training" },
-            { href: "/training/completion", label: "Course Completion" },
-          ]}
-        />
+        <SubLinks base={base} items={[...TRAINING_SUBLINKS]} />
         <CompanyPortalTrainingHub />
       </div>
     );
   }
   if (key === "training/assigned") {
-    return <CompanyPortalAssignedCourses />;
+    return (
+      <div>
+        <SubLinks base={base} items={[...TRAINING_SUBLINKS]} />
+        <CompanyPortalAssignedCourses companyPath={route.path} />
+      </div>
+    );
+  }
+  if (key === "training/in-progress") {
+    return (
+      <div>
+        <SubLinks base={base} items={[...TRAINING_SUBLINKS]} />
+        <CompanyPortalTrainingInProgress companyPath={route.path} />
+      </div>
+    );
+  }
+  if (key === "training/completed") {
+    return (
+      <div>
+        <SubLinks base={base} items={[...TRAINING_SUBLINKS]} />
+        <CompanyPortalTrainingCompleted companyPath={route.path} />
+      </div>
+    );
+  }
+  if (key === "training/certificates") {
+    return (
+      <div>
+        <SubLinks base={base} items={[...TRAINING_SUBLINKS]} />
+        <CompanyPortalTrainingCertificates />
+      </div>
+    );
   }
   if (key === "training/my-training") {
     return <CompanyPortalMyTraining companyId={route.companyId} />;

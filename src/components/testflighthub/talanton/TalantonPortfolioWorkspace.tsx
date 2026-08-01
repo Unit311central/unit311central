@@ -46,6 +46,7 @@ import {
   type RiskRating,
 } from "@/lib/talanton/portfolio-data";
 import { cn } from "@/lib/utils";
+import LmsReportingDashboard from "@/components/lms/LmsReportingDashboard";
 import { useInternalOperationsBasePath } from "../InternalOperationsBasePathContext";
 
 type Props = {
@@ -977,7 +978,12 @@ export default function TalantonPortfolioWorkspace({ view }: Props) {
     case "portfolio-report-company":
       return <DirectoryView />;
     case "portfolio-courses":
-      return <CoursesView />;
+      return (
+        <div className="space-y-6">
+          <LmsReportingDashboard />
+          <CoursesView />
+        </div>
+      );
     case "portfolio-course-management":
       return <CourseManagementView />;
     case "portfolio-my-training":

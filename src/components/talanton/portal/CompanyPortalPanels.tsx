@@ -1,3 +1,9 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
+
 import {
   TALANTON_COMPLIANCE_COURSES,
   TALANTON_MY_TRAINING,
@@ -6,6 +12,7 @@ import {
   TALANTON_QUARTERLY_REPORTS,
   companyById,
 } from "@/lib/talanton/portfolio-data";
+import type { LmsCertificate, LmsCourse, LmsEnrolment } from "@/lib/lms/types";
 
 function Panel({
   title,
@@ -57,6 +64,72 @@ function Table({
   );
 }
 
+type CatalogItem = {
+  course: LmsCourse;
+  enrolment: LmsEnrolment | null;
+};
+
+function useLmsCatalog() {
+  const [items, setItems] = useState<CatalogItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/lms/catalog", { credentials: "include" });
+        const data = (await res.json()) as {
+          courses?: CatalogItem[];
+          items?: CatalogItem[];
+          error?: string;
+        };
+        if (!res.ok) throw new Error(data.error || "Failed to load catalog.");
+        if (!cancelled) setItems(data.courses ?? data.items ?? []);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load catalog.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { items, loading, error };
+}
+
+function useLmsCertificates() {
+  const [certificates, setCertificates] = useState<LmsCertificate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/lms/certificates", { credentials: "include" });
+        const data = (await res.json()) as { certificates?: LmsCertificate[] };
+        if (!cancelled) setCertificates(data.certificates ?? []);
+      } catch {
+        if (!cancelled) setCertificates([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { certificates, loading };
+}
+
 export function CompanyPortalHome({ companyId }: { companyId: string }) {
   const company = companyById(companyId) ?? TALANTON_PORTFOLIO_COMPANIES[0];
   return (
@@ -90,29 +163,176 @@ export function CompanyPortalTrainingHub() {
   return (
     <Panel title="Training">
       <p className="text-sm text-white/60">
-        Use Assigned Courses, My Training, and Course Completion to manage compliance learning.
+        Use Assigned, In Progress, Completed, and Certificates to manage compliance learning.
       </p>
       <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-emerald-200/90">
         <li>Assigned Courses</li>
-        <li>My Training</li>
-        <li>Course Completion</li>
+        <li>In Progress</li>
+        <li>Completed</li>
+        <li>Certificates</li>
       </ul>
     </Panel>
   );
 }
 
-export function CompanyPortalAssignedCourses() {
+export function CompanyPortalAssignedCourses({ companyPath }: { companyPath: string }) {
+  const { items, loading, error } = useLmsCatalog();
+
+  const rows = useMemo(() => {
+    if (items.length > 0) {
+      return items.map((item) => {
+        const slug = item.course.slug;
+        const status = item.enrolment?.status ?? "assigned";
+        const pct = item.enrolment?.progressPct ?? 0;
+        return [
+          item.course.title,
+          item.course.category,
+          `${item.course.durationMinutes} min`,
+          status.replaceAll("_", " "),
+          `${pct}%`,
+          <Link
+            key={`launch-${slug}`}
+            href={`/${companyPath}/training/course/${slug}`}
+            className="inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400"
+          >
+            Launch
+          </Link>,
+        ];
+      });
+    }
+    return TALANTON_COMPLIANCE_COURSES.map((c) => [
+      c.title,
+      c.category,
+      `${c.durationMinutes} min`,
+      c.mandatory ? "Mandatory" : "Optional",
+      `${c.completionPct}%`,
+      <Link
+        key={`launch-fallback-${c.id}`}
+        href={`/${companyPath}/training/course/anti-bribery`}
+        className="inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400"
+      >
+        Launch
+      </Link>,
+    ]);
+  }, [companyPath, items]);
+
   return (
     <Panel title="Assigned Courses">
+      {loading ? (
+        <p className="mb-3 flex items-center gap-2 text-sm text-white/50">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading catalog…
+        </p>
+      ) : null}
+      {error ? <p className="mb-3 text-sm text-amber-200/80">{error}</p> : null}
       <Table
-        headers={["Course", "Category", "Duration", "Mandatory", "Completion"]}
-        rows={TALANTON_COMPLIANCE_COURSES.map((c) => [
-          c.title,
-          c.category,
-          `${c.durationMinutes} min`,
-          c.mandatory ? "Yes" : "No",
-          `${c.completionPct}%`,
-        ])}
+        headers={["Course", "Category", "Duration", "Status", "Progress", "Action"]}
+        rows={rows}
+      />
+    </Panel>
+  );
+}
+
+export function CompanyPortalTrainingInProgress({ companyPath }: { companyPath: string }) {
+  const { items, loading } = useLmsCatalog();
+  const filtered = items.filter(
+    (i) => i.enrolment?.status === "in_progress" || (i.enrolment?.progressPct ?? 0) > 0,
+  );
+
+  return (
+    <Panel title="In Progress">
+      {loading ? (
+        <p className="mb-3 flex items-center gap-2 text-sm text-white/50">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        </p>
+      ) : null}
+      <Table
+        headers={["Course", "Progress", "Time spent", "Action"]}
+        rows={
+          filtered.length
+            ? filtered.map((item) => [
+                item.course.title,
+                `${item.enrolment?.progressPct ?? 0}%`,
+                `${Math.round((item.enrolment?.timeSpentSeconds ?? 0) / 60)} min`,
+                <Link
+                  key={item.course.id}
+                  href={`/${companyPath}/training/course/${item.course.slug}`}
+                  className="inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400"
+                >
+                  Resume
+                </Link>,
+              ])
+            : [["No courses in progress", "—", "—", "—"]]
+        }
+      />
+    </Panel>
+  );
+}
+
+export function CompanyPortalTrainingCompleted({ companyPath }: { companyPath: string }) {
+  const { items, loading } = useLmsCatalog();
+  const filtered = items.filter((i) => i.enrolment?.status === "completed");
+
+  return (
+    <Panel title="Completed">
+      {loading ? (
+        <p className="mb-3 flex items-center gap-2 text-sm text-white/50">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        </p>
+      ) : null}
+      <Table
+        headers={["Course", "Score", "Completed", "Action"]}
+        rows={
+          filtered.length
+            ? filtered.map((item) => [
+                item.course.title,
+                item.enrolment?.score == null ? "—" : `${item.enrolment.score}%`,
+                item.enrolment?.completedAt?.slice(0, 10) ?? "—",
+                <Link
+                  key={item.course.id}
+                  href={`/${companyPath}/training/course/${item.course.slug}`}
+                  className="text-xs font-semibold text-emerald-300 hover:underline"
+                >
+                  Review
+                </Link>,
+              ])
+            : [["No completed courses yet", "—", "—", "—"]]
+        }
+      />
+    </Panel>
+  );
+}
+
+export function CompanyPortalTrainingCertificates() {
+  const { certificates, loading } = useLmsCertificates();
+
+  return (
+    <Panel title="Certificates">
+      {loading ? (
+        <p className="mb-3 flex items-center gap-2 text-sm text-white/50">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading certificates…
+        </p>
+      ) : null}
+      <Table
+        headers={["Course", "Certificate #", "Score", "Issued", "Download"]}
+        rows={
+          certificates.length
+            ? certificates.map((c) => [
+                c.courseTitle,
+                c.certificateNumber,
+                `${c.score}%`,
+                c.issuedAt.slice(0, 10),
+                <a
+                  key={c.id}
+                  href={`/api/lms/certificates/${encodeURIComponent(c.certificateNumber)}/pdf`}
+                  className="text-xs font-semibold text-emerald-300 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  PDF
+                </a>,
+              ])
+            : [["No certificates yet", "—", "—", "—", "—"]]
+        }
       />
     </Panel>
   );
@@ -120,7 +340,8 @@ export function CompanyPortalAssignedCourses() {
 
 export function CompanyPortalMyTraining({ companyId }: { companyId: string }) {
   const rows = TALANTON_MY_TRAINING.filter((r) => r.companyId === companyId);
-  const courseTitle = (id: string) => TALANTON_COMPLIANCE_COURSES.find((c) => c.id === id)?.title ?? id;
+  const courseTitle = (id: string) =>
+    TALANTON_COMPLIANCE_COURSES.find((c) => c.id === id)?.title ?? id;
   return (
     <Panel title="My Training">
       <Table
