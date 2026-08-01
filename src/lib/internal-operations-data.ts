@@ -1000,7 +1000,7 @@ export const internalViewTitles: Record<
     subtitle: "Quarterly Reporting",
   },
   "marketing-newsletter": { title: "Digital Newsletter", subtitle: "Marketing & Events" },
-  "marketing-events": { title: "Events", subtitle: "Marketing & Events" },
+  "marketing-events": { title: "External Events", subtitle: "Marketing & Events" },
   "marketing-working-groups": { title: "ABHI Working Groups", subtitle: "Marketing & Events" },
   "marketing-us-accelerator": { title: "ABHI US Accelerator", subtitle: "Marketing & Events" },
   "marketing-me-accelerator": {

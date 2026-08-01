@@ -334,6 +334,124 @@ function isCorpCentreLogisticsSurface() {
   }
 }
 
+function isAbhiLogisticsSurface() {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserAbhiSurface } =
+      require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+    return isBrowserAbhiSurface();
+  } catch {
+    return false;
+  }
+}
+
+const ABHI_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
+  {
+    id: "abhi-shp-out-1",
+    trackingNumber: "RM123456789GB",
+    direction: "outbound",
+    status: "In transit",
+    carrier: "Royal Mail",
+    carrierTrackingUrl: "https://www.royalmail.com/track-your-item",
+    sentAt: new Date(Date.now() - 1 * 86400000).toISOString(),
+    eta: new Date(Date.now() + 1 * 86400000).toISOString(),
+    origin: "ABHI HQ, London Victoria",
+    destination: "ABHI Cambridge Office, CB2",
+    recipient: "Policy team · Cambridge",
+    sender: "ABHI Logistics",
+    sentBy: "Events Ops",
+    contents: "Membership welcome packs + brochure cartons (×4)",
+    weightKg: 14.2,
+    featured: true,
+  },
+  {
+    id: "abhi-shp-out-2",
+    trackingNumber: "JD0146000987654321",
+    direction: "outbound",
+    status: "Out for delivery",
+    carrier: "DHL",
+    carrierTrackingUrl: "https://www.dhl.com/gb-en/home/tracking.html",
+    sentAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+    eta: new Date(Date.now() + 0.3 * 86400000).toISOString(),
+    origin: "ABHI HQ, London Victoria",
+    destination: "ABHI Manchester Office, M1",
+    recipient: "North membership engagement",
+    sender: "ABHI Logistics",
+    sentBy: "Membership Ops",
+    contents: "Badge printers + lanyard stock for regional roadshow",
+    weightKg: 9.6,
+  },
+  {
+    id: "abhi-shp-out-3",
+    trackingNumber: "1Z999AA10123456790",
+    direction: "outbound",
+    status: "Scheduled",
+    carrier: "UPS",
+    carrierTrackingUrl: "https://www.ups.com/track",
+    sentAt: new Date(Date.now()).toISOString(),
+    eta: new Date(Date.now() + 2 * 86400000).toISOString(),
+    origin: "ABHI HQ, London Victoria",
+    destination: "Scottish Enterprise events venue, Edinburgh EH3",
+    recipient: "Venue receiving · Edinburgh",
+    sender: "ABHI Logistics",
+    sentBy: "Events Ops",
+    contents: "Pop-up banners + reception desk kit",
+    weightKg: 22.5,
+  },
+  {
+    id: "abhi-shp-out-4",
+    trackingNumber: "794612345690",
+    direction: "outbound",
+    status: "In transit",
+    carrier: "FedEx",
+    carrierTrackingUrl: "https://www.fedex.com/fedextrack/",
+    sentAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+    eta: new Date(Date.now() + 1 * 86400000).toISOString(),
+    origin: "ABHI HQ, London Victoria",
+    destination: "NEC Birmingham, B40",
+    recipient: "UK pavilion build contractor",
+    sender: "ABHI Logistics",
+    sentBy: "Events Ops",
+    contents: "Shell scheme hardware + LED lighting cases",
+    weightKg: 48.0,
+  },
+  {
+    id: "abhi-shp-out-5",
+    trackingNumber: "RM987654321GB",
+    direction: "outbound",
+    status: "Delivered",
+    carrier: "Royal Mail",
+    carrierTrackingUrl: "https://www.royalmail.com/track-your-item",
+    sentAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+    eta: new Date(Date.now() - 2 * 86400000).toISOString(),
+    origin: "ABHI HQ, London Victoria",
+    destination: "ABHI member visit · Bristol BS1",
+    recipient: "Member engagement · Bristol",
+    sender: "ABHI Logistics",
+    sentBy: "Membership Ops",
+    contents: "Member handbooks + name badges (boxed)",
+    weightKg: 6.8,
+  },
+];
+
+const FEATURED_LONDON_CAMBRIDGE_ROUTE: FeaturedRouteSnapshot = {
+  shipmentId: "abhi-shp-out-1",
+  label: "London → Cambridge",
+  currentLeg: "ground",
+  progressPct: 55,
+  currentLocationLabel: "A1(M) near Stevenage — in transit",
+  origin: { name: "London HQ", lat: 51.4975, lng: -0.1357 },
+  destination: { name: "Cambridge", lat: 52.2053, lng: 0.1218 },
+  route: [
+    { lat: 51.4975, lng: -0.1357 },
+    { lat: 51.75, lng: -0.1 },
+    { lat: 51.9, lng: -0.05 },
+    { lat: 52.05, lng: 0.05 },
+    { lat: 52.2053, lng: 0.1218 },
+  ],
+  currentPosition: { lat: 51.9, lng: -0.05 },
+};
+
 const CORPCENTRE_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
   {
     id: "cc-shp-in-1",
@@ -441,15 +559,18 @@ const CORPCENTRE_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
 ];
 
 export function getLogisticsMockShipments(): LogisticsShipment[] {
+  if (isAbhiLogisticsSurface()) return ABHI_LOGISTICS_SHIPMENTS;
   if (isCorpCentreLogisticsSurface()) return CORPCENTRE_LOGISTICS_SHIPMENTS;
   return isDemoLogisticsSurface() ? DEMO_LOGISTICS_SHIPMENTS : LOGISTICS_MOCK_SHIPMENTS;
 }
 
 export function getFeaturedLogisticsRoute(): FeaturedRouteSnapshot {
+  if (isAbhiLogisticsSurface()) return FEATURED_LONDON_CAMBRIDGE_ROUTE;
   return isDemoLogisticsSurface() ? FEATURED_LONDON_NEW_YORK_ROUTE : FEATURED_BARCELONA_LONDON_ROUTE;
 }
 
 export function getLogisticsBrandName() {
+  if (isAbhiLogisticsSurface()) return "ABHI Logistics";
   if (isDemoLogisticsSurface()) {
     try {
       const { getDemoEnterpriseFixtures } =

@@ -30,7 +30,7 @@ export const ABHI_MARKETING_NAV_SECTION: InternalNavSection = {
       view: "marketing-newsletter",
     },
     {
-      label: "Events",
+      label: "External Events",
       icon: "CalendarDays",
       view: "marketing-events",
     },

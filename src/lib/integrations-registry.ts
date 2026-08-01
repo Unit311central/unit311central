@@ -58,7 +58,7 @@ export function integrationStatusLabel(status: IntegrationCatalogStatus): string
       return "Coming Soon";
     case "work_in_progress":
     default:
-      return "Work in Progress";
+      return "Not Started";
   }
 }
 

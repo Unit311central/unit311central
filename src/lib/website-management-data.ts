@@ -66,6 +66,39 @@ export function websiteStatusClass(status: string): string {
 export function createSeedWebsites(): ManagedWebsite[] {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        return [
+          {
+            id: "web-abhi-001",
+            name: "ABHI Public Website",
+            cms: "WordPress",
+            url: "https://www.abhi.org.uk/",
+            restApiUrl: "https://www.abhi.org.uk/wp-json",
+            environment: "Production",
+            domain: "www.abhi.org.uk",
+            sslStatus: "Valid",
+            lastDeployment: "2026-07-19T16:20:00Z",
+            lastSync: "2026-07-20T22:10:00Z",
+            pages: 44,
+            posts: 86,
+            media: 410,
+            pluginUpdates: 8,
+            themeUpdates: 1,
+            backups: 22,
+            analyticsVisitors: 22630,
+            connectionStatus: "connected",
+            providerCode: "cms.wordpress",
+            clientName: "ABHI",
+          },
+        ];
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
@@ -173,16 +206,41 @@ export function createSeedWebsites(): ManagedWebsite[] {
 
 export function createSeedWebsiteContent(websiteId: string): WebsiteContentItem[] {
   const isDemo = websiteId.startsWith("web-mag-");
+  const isAbhi = websiteId.startsWith("web-abhi-");
   return [
     { id: `${websiteId}-p1`, websiteId, kind: "Page", title: "Home", status: "Published", updatedAt: "2026-07-18", author: "Marketing" },
-    { id: `${websiteId}-p2`, websiteId, kind: "Page", title: "Solutions", status: "Published", updatedAt: "2026-07-16", author: "Marketing" },
-    { id: `${websiteId}-po1`, websiteId, kind: "Post", title: "Platform release notes", status: "Published", updatedAt: "2026-07-15", author: "Product" },
-    { id: `${websiteId}-po2`, websiteId, kind: "Post", title: "Customer story draft", status: "Draft", updatedAt: "2026-07-19", author: "Marketing" },
+    {
+      id: `${websiteId}-p2`,
+      websiteId,
+      kind: "Page",
+      title: isAbhi ? "Membership" : "Solutions",
+      status: "Published",
+      updatedAt: "2026-07-16",
+      author: "Marketing",
+    },
+    {
+      id: `${websiteId}-po1`,
+      websiteId,
+      kind: "Post",
+      title: isAbhi ? "UK HealthTech policy update" : "Platform release notes",
+      status: "Published",
+      updatedAt: "2026-07-15",
+      author: isAbhi ? "Policy" : "Product",
+    },
+    {
+      id: `${websiteId}-po2`,
+      websiteId,
+      kind: "Post",
+      title: isAbhi ? "WHX pavilion call for exhibitors" : "Customer story draft",
+      status: isAbhi ? "Published" : "Draft",
+      updatedAt: "2026-07-19",
+      author: "Marketing",
+    },
     {
       id: `${websiteId}-m1`,
       websiteId,
       kind: "Media",
-      title: isDemo ? "hero-consulting.jpg" : "hero-drone.jpg",
+      title: isAbhi ? "abhi-hero.jpg" : isDemo ? "hero-consulting.jpg" : "hero-drone.jpg",
       status: "Published",
       updatedAt: "2026-07-10",
       author: "Design",
@@ -192,7 +250,7 @@ export function createSeedWebsiteContent(websiteId: string): WebsiteContentItem[
       id: `${websiteId}-t1`,
       websiteId,
       kind: "Theme",
-      title: isDemo ? "Meridian Theme" : "Unit311 Theme",
+      title: isAbhi ? "ABHI Theme" : isDemo ? "Meridian Theme" : "Unit311 Theme",
       status: "Published",
       updatedAt: "2026-06-20",
       author: "Design",

@@ -517,6 +517,7 @@ export function computeTrainingDashboardKpis(snapshot: TqmsMockState = state) {
   const employeesAssigned = new Set(snapshot.assignments.map((a) => a.learnerId)).size;
   const completed = snapshot.assignments.filter((a) => a.status === "Completed").length;
   const inProgress = snapshot.assignments.filter((a) => a.status === "In Progress").length;
+  const notStarted = snapshot.assignments.filter((a) => a.status === "Not Started").length;
   const overdue = snapshot.assignments.filter((a) => a.status === "Overdue").length;
   const now = Date.now();
   const soon = now + 1000 * 60 * 60 * 24 * 60;
@@ -541,6 +542,7 @@ export function computeTrainingDashboardKpis(snapshot: TqmsMockState = state) {
     employeesAssigned,
     completed,
     inProgress,
+    notStarted,
     overdue,
     expiring,
     complianceScore,

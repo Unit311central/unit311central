@@ -12,6 +12,7 @@ import {
   UserPlus,
 } from "lucide-react";
 
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
@@ -36,9 +37,11 @@ export default function TrainingDashboardWorkspace() {
   const kpis = useMemo(() => computeTrainingDashboardKpis(store), [store]);
   const [notice, setNotice] = useState<string | null>(null);
   const [hideQms, setHideQms] = useState(false);
+  const [isAbhi, setIsAbhi] = useState(false);
 
   useEffect(() => {
-    setHideQms(isBrowserCorpCentreSurface());
+    setHideQms(isBrowserCorpCentreSurface() || isBrowserAbhiSurface());
+    setIsAbhi(isBrowserAbhiSurface());
   }, []);
 
   const overdueMandatory = store.assignments.filter(
@@ -84,6 +87,40 @@ export default function TrainingDashboardWorkspace() {
     },
   ];
 
+  const generateReport = () => {
+    createReport({
+      name: `Training Compliance — ${new Date().toLocaleDateString("en-GB")}`,
+      kind: "Training",
+      format: "PDF",
+      createdBy: "Operations",
+    });
+    setNotice("Training report saved to history.");
+  };
+
+  const pinnedQuickActions = [
+    {
+      label: "Create Course",
+      href: getInternalNavHref("training", basePath),
+      icon: Plus,
+    },
+    {
+      label: "Assign Training",
+      href: getInternalNavHref("training", basePath),
+      icon: UserPlus,
+    },
+    {
+      label: "Generate Training Report",
+      href: getInternalNavHref("qms-reports", basePath),
+      icon: FileText,
+      onClick: generateReport,
+    },
+    {
+      label: "Add Certification",
+      href: getInternalNavHref("training", basePath),
+      icon: Award,
+    },
+  ];
+
   const quickActions = [
     {
       label: "Assign Training",
@@ -104,15 +141,7 @@ export default function TrainingDashboardWorkspace() {
       label: "Generate Training Report",
       href: getInternalNavHref("qms-reports", basePath),
       icon: FileText,
-      onClick: () => {
-        createReport({
-          name: `Training Compliance — ${new Date().toLocaleDateString("en-GB")}`,
-          kind: "Training",
-          format: "PDF",
-          createdBy: "Operations",
-        });
-        setNotice("Training report saved to history.");
-      },
+      onClick: generateReport,
     },
     {
       label: "Add Certification",
@@ -129,11 +158,41 @@ export default function TrainingDashboardWorkspace() {
         </p>
       ) : null}
 
+      {isAbhi ? (
+        <section className="flex flex-wrap items-center gap-2">
+          {pinnedQuickActions.map((action) => {
+            const Icon = action.icon;
+            if (action.onClick) {
+              return (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={action.onClick}
+                  className={tqmsPrimaryButtonClass()}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {action.label}
+                </button>
+              );
+            }
+            return (
+              <Link key={action.label} href={action.href} className={tqmsPrimaryButtonClass()}>
+                <Icon className="h-3.5 w-3.5" />
+                {action.label}
+              </Link>
+            );
+          })}
+        </section>
+      ) : null}
+
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <TqmsKpiTile label="Total Courses" value={kpis.totalCourses} />
         <TqmsKpiTile label="Employees Assigned" value={kpis.employeesAssigned} />
         <TqmsKpiTile label="Training Completed" value={kpis.completed} />
-        <TqmsKpiTile label="Training In Progress" value={kpis.inProgress} />
+        <TqmsKpiTile
+          label={isAbhi ? "Not Started" : "Training In Progress"}
+          value={isAbhi ? kpis.notStarted : kpis.inProgress}
+        />
         <TqmsKpiTile label="Overdue Training" value={kpis.overdue} />
         <TqmsKpiTile label="Certifications Expiring" value={kpis.expiring} />
         <TqmsKpiTile label="Compliance Score" value={`${kpis.complianceScore}%`} />
@@ -184,7 +243,7 @@ export default function TrainingDashboardWorkspace() {
         </TqmsSection>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className={`grid gap-5 ${isAbhi ? "" : "xl:grid-cols-2"}`}>
         <TqmsSection title="Recent Activity" subtitle="Latest learning activity across the organisation.">
           <ul className="space-y-2">
             {store.activity.slice(0, 8).map((item) => (
@@ -199,52 +258,57 @@ export default function TrainingDashboardWorkspace() {
           </ul>
         </TqmsSection>
 
-        <TqmsSection
-          title="Quick Actions"
-          subtitle="Common training operations."
-          actions={
-            hideQms ? undefined : (
-            <Link href={getInternalNavHref("qms-training", basePath)} className={tqmsSecondaryButtonClass()}>
-              <BookOpen className="h-3.5 w-3.5" />
-              QMS Training
-            </Link>
-            )
-          }
-        >
-          <div className="grid gap-2 sm:grid-cols-2">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              if (action.onClick) {
+        {!isAbhi ? (
+          <TqmsSection
+            title="Quick Actions"
+            subtitle="Common training operations."
+            actions={
+              hideQms ? undefined : (
+                <Link
+                  href={getInternalNavHref("qms-training", basePath)}
+                  className={tqmsSecondaryButtonClass()}
+                >
+                  <BookOpen className="h-3.5 w-3.5" />
+                  QMS Training
+                </Link>
+              )
+            }
+          >
+            <div className="grid gap-2 sm:grid-cols-2">
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                if (action.onClick) {
+                  return (
+                    <button
+                      key={action.label}
+                      type="button"
+                      onClick={action.onClick}
+                      className={tqmsPrimaryButtonClass()}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {action.label}
+                    </button>
+                  );
+                }
                 return (
-                  <button
-                    key={action.label}
-                    type="button"
-                    onClick={action.onClick}
-                    className={tqmsPrimaryButtonClass()}
-                  >
+                  <Link key={action.label} href={action.href} className={tqmsPrimaryButtonClass()}>
                     <Icon className="h-3.5 w-3.5" />
                     {action.label}
-                  </button>
+                  </Link>
                 );
-              }
-              return (
-                <Link key={action.label} href={action.href} className={tqmsPrimaryButtonClass()}>
-                  <Icon className="h-3.5 w-3.5" />
-                  {action.label}
+              })}
+              {!hideQms ? (
+                <Link
+                  href={getInternalNavHref("quality-management", basePath)}
+                  className={tqmsSecondaryButtonClass()}
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  Open QMS
                 </Link>
-              );
-            })}
-            {!hideQms ? (
-            <Link
-              href={getInternalNavHref("quality-management", basePath)}
-              className={tqmsSecondaryButtonClass()}
-            >
-              <ClipboardList className="h-3.5 w-3.5" />
-              Open QMS
-            </Link>
-            ) : null}
-          </div>
-        </TqmsSection>
+              ) : null}
+            </div>
+          </TqmsSection>
+        ) : null}
       </div>
     </div>
   );
