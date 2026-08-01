@@ -170,6 +170,12 @@ export default function SupportLoungeApp({
   const caseMode = Boolean(activeTicketToken && caseTicket);
   const intakeMode = !activeTicketPublicToken && !caseMode && intakeStep !== "done";
 
+  const displayTickets = useMemo(() => {
+    if (!caseTicket) return tickets;
+    if (tickets.some((ticket) => ticket.id === caseTicket.id)) return tickets;
+    return [caseTicket, ...tickets];
+  }, [caseTicket, tickets]);
+
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
@@ -187,7 +193,13 @@ export default function SupportLoungeApp({
         }
       }
       if (payload.attachments) setAttachments(payload.attachments);
-      if (payload.messages) {
+
+      const fallbackFor = (ticket: LoungeTicket): ChatMessage => ({
+        role: "assistant",
+        content: `You're viewing ${ticket.id}. Add information on the right, upload a file, or ask for a human here.`,
+      });
+
+      if (Array.isArray(payload.messages)) {
         const msgs = payload.messages.filter(
           (m) =>
             m.role === "user" ||
@@ -195,15 +207,18 @@ export default function SupportLoungeApp({
             m.role === "operator" ||
             m.role === "system",
         );
-        if (msgs.length > 0) setHistory(msgs);
-        else if (payload.ticket) {
-          setHistory([
-            {
-              role: "assistant",
-              content: `You're viewing ${payload.ticket.id}. Add information on the right, upload a file, or ask for a human here.`,
-            },
-          ]);
+        if (msgs.length > 0) {
+          setHistory(msgs);
+        } else {
+          // Never wipe an existing conversation with an empty poll/API result.
+          setHistory((prev) => {
+            if (prev.length > 0) return prev;
+            if (payload.ticket) return [fallbackFor(payload.ticket)];
+            return prev;
+          });
         }
+      } else if (payload.ticket) {
+        setHistory((prev) => (prev.length > 0 ? prev : [fallbackFor(payload.ticket!)]));
       }
     },
     [],
@@ -250,10 +265,12 @@ export default function SupportLoungeApp({
       if (!ticketRes.ok) throw new Error(ticketData.error || "Ticket not found");
       applyTicketPayload(ticketData);
       setIntakeStep("done");
+      setPanel("chat");
     } else {
       setCaseTicket(null);
       setAttachments([]);
       setIntakeStep("name");
+      setPanel("chat");
       setHistory([
         {
           role: "assistant",
@@ -281,6 +298,11 @@ export default function SupportLoungeApp({
       cancelled = true;
     };
   }, [loadBootstrap]);
+
+  // Case deep-links must open on Chat, never the empty tickets table.
+  useEffect(() => {
+    if (activeTicketPublicToken) setPanel("chat");
+  }, [activeTicketPublicToken]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -740,7 +762,17 @@ export default function SupportLoungeApp({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setPanel("chat")}
+              onClick={() => {
+                setPanel("chat");
+                if (caseTicket && history.length === 0) {
+                  setHistory([
+                    {
+                      role: "assistant",
+                      content: `You're viewing ${caseTicket.id}. Add information on the right, upload a file, or ask for a human here.`,
+                    },
+                  ]);
+                }
+              }}
               className={cn(
                 "inline-flex h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors",
                 panel === "chat"
@@ -762,7 +794,7 @@ export default function SupportLoungeApp({
               )}
             >
               <Ticket className="h-3.5 w-3.5" />
-              My tickets ({tickets.length})
+              My tickets ({displayTickets.length})
             </button>
           </div>
         </header>
@@ -788,34 +820,46 @@ export default function SupportLoungeApp({
                 </tr>
               </thead>
               <tbody>
-                {tickets.length === 0 ? (
+                {displayTickets.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-3 py-8 text-center text-white/45">
-                      No tickets from this browser yet.
+                      No tickets yet. Open Chat to create one.
                     </td>
                   </tr>
                 ) : (
-                  tickets.map((ticket) => (
-                    <tr
-                      key={ticket.id}
-                      className="cursor-pointer border-b border-white/5 hover:bg-sky-500/5"
-                      onClick={() => {
-                        if (ticket.resumePath) window.location.href = ticket.resumePath;
-                      }}
-                    >
-                      <td className="px-3 py-3 font-mono text-xs text-sky-300">{ticket.id}</td>
-                      <td className="px-3 py-3 capitalize text-white/80">
-                        {(ticket.status || (ticket.closed ? "closed" : "open")).replaceAll("_", " ")}
-                      </td>
-                      <td className="px-3 py-3 text-white/60">{formatWhen(ticket.createdAt)}</td>
-                      <td className="px-3 py-3 text-white/60">{formatWhen(ticket.updatedAt)}</td>
-                      <td className="px-3 py-3 text-white/80">{displayName(ticket)}</td>
-                      <td className="px-3 py-3 text-white/60">{ticket.requesterEmail || "—"}</td>
-                      <td className="max-w-[16rem] truncate px-3 py-3 text-white/55">
-                        {ticket.description}
-                      </td>
-                    </tr>
-                  ))
+                  displayTickets.map((ticket) => {
+                    const isCurrent = caseTicket?.id === ticket.id;
+                    return (
+                      <tr
+                        key={ticket.id}
+                        className={cn(
+                          "cursor-pointer border-b border-white/5 hover:bg-sky-500/5",
+                          isCurrent && "bg-sky-500/10",
+                        )}
+                        onClick={() => {
+                          if (isCurrent || ticket.ticketPublicToken === activeTicketToken) {
+                            setPanel("chat");
+                            return;
+                          }
+                          if (ticket.resumePath) {
+                            window.location.href = ticket.resumePath;
+                          }
+                        }}
+                      >
+                        <td className="px-3 py-3 font-mono text-xs text-sky-300">{ticket.id}</td>
+                        <td className="px-3 py-3 capitalize text-white/80">
+                          {(ticket.status || (ticket.closed ? "closed" : "open")).replaceAll("_", " ")}
+                        </td>
+                        <td className="px-3 py-3 text-white/60">{formatWhen(ticket.createdAt)}</td>
+                        <td className="px-3 py-3 text-white/60">{formatWhen(ticket.updatedAt)}</td>
+                        <td className="px-3 py-3 text-white/80">{displayName(ticket)}</td>
+                        <td className="px-3 py-3 text-white/60">{ticket.requesterEmail || "—"}</td>
+                        <td className="max-w-[16rem] truncate px-3 py-3 text-white/55">
+                          {ticket.description}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -827,8 +871,19 @@ export default function SupportLoungeApp({
               caseMode ? "lg:grid-cols-[minmax(0,1.1fr)_minmax(260px,0.9fr)]" : "",
             )}
           >
-            <div className={cn(!caseMode && "mx-auto w-full max-w-2xl")}>
-              <div className="space-y-3">
+            <div
+              className={cn(
+                "flex min-h-[28rem] flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5",
+                !caseMode && "mx-auto w-full max-w-2xl",
+              )}
+            >
+              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pb-3">
+                {history.length === 0 ? (
+                  <p className="inline-flex items-center gap-2 text-sm text-white/45">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading conversation…
+                  </p>
+                ) : null}
                 {history.map((message, index) => (
                   <div
                     key={`${message.role}-${index}-${message.createdAt || ""}`}
