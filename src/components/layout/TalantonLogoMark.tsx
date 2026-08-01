@@ -3,7 +3,7 @@ import Image from "next/image";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { cn } from "@/lib/utils";
 
-export const TALANTON_LOGO_SRC = "/images/workspaces/talantonimpact-logo.jpg";
+export const TALANTON_LOGO_SRC = "/images/workspaces/talantonimpact-t.jpg";
 
 export { isTalantonImpactSlug };
 
