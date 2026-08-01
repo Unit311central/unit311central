@@ -396,8 +396,14 @@ function isAbhiNavSurface(): boolean {
   }
 }
 
-/** ABHI — trade association; no equity cap table. */
-export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>(["corporate-cap-table"]);
+/** ABHI — hide platform-internal / non-member equity surfaces. */
+export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
+  "corporate-cap-table",
+  "unit311-details",
+  "module-go-live",
+]);
+
+const ABHI_HIDDEN_ITEM_LABELS = new Set(["Cap Table Management", "Unit311 Details"]);
 
 function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Training") return section;
@@ -424,7 +430,7 @@ function filterAbhiHiddenNavItems(section: InternalNavSection): InternalNavSecti
     items: section.items
       .map((item) => {
         if (item.view && ABHI_HIDDEN_VIEWS.has(item.view)) return null;
-        if (item.label === "Cap Table Management") return null;
+        if (ABHI_HIDDEN_ITEM_LABELS.has(item.label)) return null;
         if (item.children?.length) {
           const children = item.children.filter(
             (child) => !(child.view && ABHI_HIDDEN_VIEWS.has(child.view)),
