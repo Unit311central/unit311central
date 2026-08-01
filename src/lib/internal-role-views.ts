@@ -396,6 +396,9 @@ function isAbhiNavSurface(): boolean {
   }
 }
 
+/** ABHI — trade association; no equity cap table. */
+export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>(["corporate-cap-table"]);
+
 function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Training") return section;
   const alreadyHasInternal = section.items.some(
@@ -415,6 +418,26 @@ function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSec
   };
 }
 
+function filterAbhiHiddenNavItems(section: InternalNavSection): InternalNavSection {
+  return {
+    ...section,
+    items: section.items
+      .map((item) => {
+        if (item.view && ABHI_HIDDEN_VIEWS.has(item.view)) return null;
+        if (item.label === "Cap Table Management") return null;
+        if (item.children?.length) {
+          const children = item.children.filter(
+            (child) => !(child.view && ABHI_HIDDEN_VIEWS.has(child.view)),
+          );
+          if (children.length === 0 && !item.view && !item.href) return null;
+          return { ...item, children };
+        }
+        return item;
+      })
+      .filter((item): item is NonNullable<typeof item> => item != null),
+  };
+}
+
 function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
   try {
     const { ABHI_MARKETING_NAV_SECTION } =
@@ -422,7 +445,7 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
     const out: InternalNavSection[] = [];
     let inserted = false;
     for (const section of sections) {
-      const next = reshapeAbhiTrainingSection(section);
+      const next = filterAbhiHiddenNavItems(reshapeAbhiTrainingSection(section));
       out.push(next);
       if (section.label === "Human Resources") {
         out.push(ABHI_MARKETING_NAV_SECTION);
@@ -430,9 +453,11 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
       }
     }
     if (!inserted) out.push(ABHI_MARKETING_NAV_SECTION);
-    return out;
+    return out.filter((section) => section.items.length > 0);
   } catch {
-    return sections.map(reshapeAbhiTrainingSection);
+    return sections.map((section) =>
+      filterAbhiHiddenNavItems(reshapeAbhiTrainingSection(section)),
+    );
   }
 }
 

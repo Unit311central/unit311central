@@ -36,7 +36,8 @@ import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data
 import { InternalOperationsBasePathProvider } from "./InternalOperationsBasePathContext";
 import SurveyOperationsShell from "./SurveyOperationsShell";
 import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./OperatorEntitlementsProvider";
-import { isViewAllowedForGrants } from "@/lib/internal-role-views";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { ABHI_HIDDEN_VIEWS, isViewAllowedForGrants } from "@/lib/internal-role-views";
 import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
 import WorkspacePane from "./WorkspacePane";
 import WorkspaceErrorBoundary from "./WorkspaceErrorBoundary";
@@ -247,7 +248,7 @@ function readInitialView(
   }
 
   if (isCapTablePath(pathname)) {
-    return "corporate-cap-table";
+    return isBrowserAbhiSurface() ? "corporate-dashboard" : "corporate-cap-table";
   }
 
   if (isExecutiveAssistantPath(pathname)) {
@@ -257,6 +258,9 @@ function readInitialView(
   const fromQuery = normalizeInternalOperationsView(searchParams.get("view"));
   if (fromQuery === "executive-assistant" && !EXECUTIVE_ASSISTANT_VISIBLE) {
     return "home";
+  }
+  if (fromQuery && ABHI_HIDDEN_VIEWS.has(fromQuery) && isBrowserAbhiSurface()) {
+    return "corporate-dashboard";
   }
   return fromQuery;
 }
@@ -462,7 +466,7 @@ export default function InternalOperationsDashboard({
         return;
       }
       if (isCapTablePath(pathname)) {
-        setActiveView("corporate-cap-table");
+        setActiveView(isBrowserAbhiSurface() ? "corporate-dashboard" : "corporate-cap-table");
         return;
       }
       if (!viewParam) {
@@ -470,6 +474,12 @@ export default function InternalOperationsDashboard({
       }
     });
   }, [initialView, pathname, searchParams]);
+
+  useEffect(() => {
+    if (isBrowserAbhiSurface() && ABHI_HIDDEN_VIEWS.has(activeView)) {
+      setActiveView("corporate-dashboard");
+    }
+  }, [activeView]);
 
   useEffect(() => {
     if (activeView !== "potential-clients") return;
