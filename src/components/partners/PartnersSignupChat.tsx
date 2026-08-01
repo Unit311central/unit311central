@@ -105,7 +105,7 @@ export default function PartnersSignupChat() {
   }
 
   return (
-    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#050816] text-white">
+    <div className="relative min-h-[100dvh] bg-[#050816] text-white">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -113,8 +113,8 @@ export default function PartnersSignupChat() {
             "radial-gradient(ellipse 70% 50% at 20% 0%, rgba(14,165,233,0.18), transparent 55%), radial-gradient(ellipse 50% 40% at 90% 10%, rgba(16,185,129,0.12), transparent 50%)",
         }}
       />
-      <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-4 pt-6 sm:px-6">
-        <header className="mb-4 shrink-0 border-b border-white/10 pb-4">
+      <div className="relative mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+        <header className="mb-5 border-b border-white/10 pb-4">
           <Logo height={48} href={null} />
           <div className="mt-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-300/80">
@@ -129,7 +129,7 @@ export default function PartnersSignupChat() {
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pb-3">
+        <div className="space-y-3">
           {messages.length === 0 && !error ? (
             <p className="inline-flex items-center gap-2 text-xs text-white/45">
               <Loader2 className="h-3.5 w-3.5 animate-spin" /> Starting chat…
@@ -157,12 +157,12 @@ export default function PartnersSignupChat() {
         </div>
 
         {error ? (
-          <p className="mb-3 shrink-0 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+          <p className="mt-3 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">
             {error}
           </p>
         ) : null}
 
-        <div className="shrink-0 border-t border-white/10 bg-[#050816]/95 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+        <div className="mt-4">
           {inputType === "none" ? (
             <p className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
               Signup complete. Check your email for your unique Partners portal link.
