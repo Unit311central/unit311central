@@ -50,11 +50,6 @@ export const ABHI_MARKETING_NAV_SECTION: InternalNavSection = {
       view: "marketing-me-accelerator",
     },
     {
-      label: "Internal Training",
-      icon: "GraduationCap",
-      view: "marketing-training",
-    },
-    {
       label: "Mailing List Management",
       icon: "Mail",
       view: "marketing-mailing-list",

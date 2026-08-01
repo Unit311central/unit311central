@@ -1007,7 +1007,7 @@ export const internalViewTitles: Record<
     title: "ABHI Middle East Accelerator",
     subtitle: "Marketing & Events",
   },
-  "marketing-training": { title: "Internal Training", subtitle: "Marketing & Events" },
+  "marketing-training": { title: "Internal Training", subtitle: "Training" },
   "marketing-mailing-list": { title: "Mailing List Management", subtitle: "Marketing & Events" },
 };
 

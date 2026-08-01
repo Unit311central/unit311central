@@ -396,6 +396,25 @@ function isAbhiNavSurface(): boolean {
   }
 }
 
+function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
+  if (section.label !== "Training") return section;
+  const alreadyHasInternal = section.items.some(
+    (item) => item.view === "marketing-training" || item.label === "Internal Training",
+  );
+  if (alreadyHasInternal) return section;
+  return {
+    ...section,
+    items: [
+      ...section.items,
+      {
+        label: "Internal Training",
+        icon: "GraduationCap",
+        view: "marketing-training",
+      },
+    ],
+  };
+}
+
 function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
   try {
     const { ABHI_MARKETING_NAV_SECTION } =
@@ -403,7 +422,8 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
     const out: InternalNavSection[] = [];
     let inserted = false;
     for (const section of sections) {
-      out.push(section);
+      const next = reshapeAbhiTrainingSection(section);
+      out.push(next);
       if (section.label === "Human Resources") {
         out.push(ABHI_MARKETING_NAV_SECTION);
         inserted = true;
@@ -412,7 +432,7 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
     if (!inserted) out.push(ABHI_MARKETING_NAV_SECTION);
     return out;
   } catch {
-    return [...sections];
+    return sections.map(reshapeAbhiTrainingSection);
   }
 }
 
