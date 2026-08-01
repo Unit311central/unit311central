@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { ganttBarStyle, type ProjectTask } from "@/lib/project-detail-data";
 import { getPortfolioProject } from "@/lib/project-portfolios";
@@ -125,6 +126,7 @@ export default function ProjectDetailWorkspace({
   onProjectProgressChange,
 }: ProjectDetailWorkspaceProps) {
   const basePath = useInternalOperationsBasePath();
+  const hideTasksAndMilestones = isBrowserAbhiSurface();
   const portfolio = useMemo(() => getPortfolioProject(project.id), [project.id]);
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -465,11 +467,14 @@ export default function ProjectDetailWorkspace({
         <section className={panelClassName()}>
           <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Project progress</p>
           <p className="mt-1 text-sm font-semibold tabular-nums text-white">
-            {displayProgress.toFixed(0)}% · averaged from tasks
+            {hideTasksAndMilestones
+              ? `${displayProgress.toFixed(0)}%`
+              : `${displayProgress.toFixed(0)}% · averaged from tasks`}
           </p>
         </section>
       )}
 
+      {!hideTasksAndMilestones ? (
       <section className={panelClassName()}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -763,7 +768,9 @@ export default function ProjectDetailWorkspace({
           </div>
         ) : null}
       </section>
+      ) : null}
 
+      {!hideTasksAndMilestones ? (
       <section className={panelClassName()}>
         <div className="flex items-center gap-2">
           <Milestone className="h-4 w-4 text-amber-300" />
@@ -816,6 +823,7 @@ export default function ProjectDetailWorkspace({
           </div>
         )}
       </section>
+      ) : null}
     </div>
   );
 }
