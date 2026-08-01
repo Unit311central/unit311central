@@ -213,6 +213,7 @@ function emptyOverview(cashPosition = 0): FinancialOverviewSnapshot {
     ar: {
       outstanding: 0,
       overdue: 0,
+      overdueCount: 0,
       dueSoon: 0,
       collectionRate: 0,
       ageing: [
@@ -724,6 +725,7 @@ export async function getFinancialOverview(
             0,
           ),
         ),
+        overdueCount: overdue.length,
         dueSoon: roundMoney(
           dueSoon.reduce(
             (sum, invoice) =>
@@ -777,23 +779,27 @@ export async function getFinancialOverview(
         ...charts,
         // Demo treasury is Wise SSOT at £1.58m — never show GL cash (often deeply negative)
         // then patch only the final month (that produced the fake “+£3.55m vs prior month”).
-        cashPosition: isDemoTreasury
-          ? (charts.cashPosition.length > 0 ? charts.cashPosition : [{ month: monthPrefix, amount: cashPosition }]).map(
-              (point, index, arr) => {
+        // ABHI uses a GBP operating-cash series so Home MoM is not artificially flat.
+        cashPosition: isAbhiWorkspaceSlug(workspaceSlug)
+          ? getAbhiMonthlyCashSeries()
+          : isDemoTreasury
+            ? (charts.cashPosition.length > 0
+                ? charts.cashPosition
+                : [{ month: monthPrefix, amount: cashPosition }]
+              ).map((point, index, arr) => {
                 const t = arr.length <= 1 ? 1 : index / (arr.length - 1);
                 return {
                   ...point,
                   amount: roundMoney(cashPosition * (0.9 + 0.1 * t)),
                 };
-              },
-            )
-          : charts.cashPosition.length > 0
-            ? charts.cashPosition.map((point, index) =>
-                index === charts.cashPosition.length - 1
-                  ? { ...point, amount: cashPosition }
-                  : point,
-              )
-            : [{ month: monthPrefix, amount: cashPosition }],
+              })
+            : charts.cashPosition.length > 0
+              ? charts.cashPosition.map((point, index) =>
+                  index === charts.cashPosition.length - 1
+                    ? { ...point, amount: cashPosition }
+                    : point,
+                )
+              : [{ month: monthPrefix, amount: cashPosition }],
       },
       activity,
     };

@@ -499,7 +499,10 @@ export function buildExecutiveHomeLiveNarrative(input: {
   const currency = input.financials?.burnRate?.currency || "GBP";
   const cash = input.financials?.cashPosition ?? 0;
   const overdue = input.financials?.ar.overdue ?? 0;
-  const overdueCount = input.financials?.outstandingInvoices ?? 0;
+  const overdueCount =
+    input.financials?.ar.overdueCount ??
+    // Legacy snapshots without overdueCount — never use all-outstanding as overdue.
+    0;
   const openProjects = countLiveProjects(input.projects);
   const atRisk = input.projects.filter(
     (project) => project.phase === "live" && project.progressPct > 0 && project.progressPct < 40,

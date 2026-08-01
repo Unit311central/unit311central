@@ -555,40 +555,30 @@ async function main() {
     await wipeJournalSource(WS, AR_SOURCE);
   }
 
-  // Nine AR invoices dated across Jan–Jul (plus two extras in Jun/Jul) — BS debtors.
-  const arIssueDates = [
-    "2026-01-15",
-    "2026-02-12",
-    "2026-03-18",
-    "2026-04-14",
-    "2026-05-20",
-    "2026-06-10",
-    "2026-07-08",
-    "2026-06-25",
-    "2026-07-22",
+  // Nine AR invoices — ~£1m overdue (first 3), remainder current / due soon.
+  const OVERDUE_TARGET = 1_000_000;
+  const arPlanSpec = [
+    { amount: 420_000, issueDate: "2026-05-10", dueDate: "2026-06-09", overdue: true },
+    { amount: 330_000, issueDate: "2026-05-22", dueDate: "2026-06-21", overdue: true },
+    { amount: 250_000, issueDate: "2026-06-05", dueDate: "2026-07-05", overdue: true },
+    { amount: 480_000, issueDate: "2026-07-08", dueDate: "2026-08-22", overdue: false },
+    { amount: 450_000, issueDate: "2026-07-12", dueDate: "2026-08-26", overdue: false },
+    { amount: 420_000, issueDate: "2026-07-15", dueDate: "2026-09-01", overdue: false },
+    { amount: 380_000, issueDate: "2026-07-18", dueDate: "2026-09-05", overdue: false },
+    { amount: 350_000, issueDate: "2026-07-22", dueDate: "2026-09-12", overdue: false },
+    // Remainder so debtors still total DEBTORS.
+    { amount: 0, issueDate: "2026-07-28", dueDate: "2026-09-20", overdue: false },
   ];
-  const arWeights = [0.18, 0.15, 0.14, 0.12, 0.11, 0.1, 0.08, 0.07, 0.05];
-  let allocated = 0;
-  const arPlan = arWeights.map((w, i) => {
-    const isLast = i === arWeights.length - 1;
-    const amount = isLast ? round2(DEBTORS - allocated) : round2(DEBTORS * w);
-    allocated = round2(allocated + amount);
-    const issueDate = arIssueDates[i] || "2026-07-15";
-    const issue = new Date(`${issueDate}T12:00:00.000Z`);
-    const due = new Date(issue);
-    due.setUTCDate(due.getUTCDate() + (i < 2 ? 20 : 30));
-    const dueDate = due.toISOString().slice(0, 10);
-    const overdue = dueDate < "2026-08-01";
-    return {
-      amount,
-      client: clients[i % clients.length],
-      overdue: overdue && i < 3,
-      issueDate,
-      dueDate,
-    };
-  });
-  const arDrift = round2(DEBTORS - arPlan.reduce((s, p) => s + p.amount, 0));
-  if (arDrift !== 0) arPlan[arPlan.length - 1].amount = round2(arPlan[arPlan.length - 1].amount + arDrift);
+  const fixedSum = arPlanSpec.slice(0, -1).reduce((s, row) => s + row.amount, 0);
+  arPlanSpec[arPlanSpec.length - 1].amount = round2(DEBTORS - fixedSum);
+  const overdueSum = arPlanSpec.filter((row) => row.overdue).reduce((s, row) => s + row.amount, 0);
+  if (Math.abs(overdueSum - OVERDUE_TARGET) > 0.01) {
+    throw new Error(`ABHI overdue invoices sum £${overdueSum}, expected £${OVERDUE_TARGET}`);
+  }
+  const arPlan = arPlanSpec.map((item, i) => ({
+    ...item,
+    client: clients[i % clients.length],
+  }));
 
   const arJournalId = await postSimpleJournal({
     workspaceId: WS,

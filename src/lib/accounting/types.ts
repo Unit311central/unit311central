@@ -161,6 +161,8 @@ export type FinancialOverviewSnapshot = {
   ar: {
     outstanding: number;
     overdue: number;
+    /** Count of unpaid invoices past due date (not all outstanding). */
+    overdueCount: number;
     dueSoon: number;
     collectionRate: number;
     ageing: Array<{ bucket: string; amount: number }>;
