@@ -15,6 +15,9 @@ import {
 } from "@/lib/support-data";
 import { cn } from "@/lib/utils";
 import SupportTicketClientActions from "@/components/testflighthub/SupportTicketClientActions";
+import ResponsiveMasterDetail, {
+  useMobileDetailPanel,
+} from "@/components/ui/ResponsiveMasterDetail";
 import { Archive, ArchiveRestore, BarChart3, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 import {
   Bar,
@@ -194,6 +197,12 @@ export default function SupportWorkspace({
   const snapshottedIdRef = useRef<string | null>(null);
   const deepLinkAppliedRef = useRef<string | null>(null);
   const [analyticsNowMs] = useState(() => Date.now());
+  const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
+
+  function selectTicket(ticketId: string) {
+    setSelectedTicketId(ticketId);
+    openDetail();
+  }
 
   useEffect(() => {
     if (!mineMode) return;
@@ -444,8 +453,8 @@ export default function SupportWorkspace({
   const latestTicket = visibleTickets[0] ?? null;
 
   const selectedTicket = useMemo(
-    () => filteredTickets.find((ticket) => ticket.id === selectedTicketId) ?? filteredTickets[0] ?? null,
-    [filteredTickets, selectedTicketId],
+    () => tickets.find((ticket) => ticket.id === selectedTicketId) ?? null,
+    [tickets, selectedTicketId],
   );
 
   const isDirty = useMemo(() => {
@@ -470,14 +479,16 @@ export default function SupportWorkspace({
         const firstOpen = nextTickets.find((ticket) => !ticket.archived);
         return firstOpen?.id ?? nextTickets[0]?.id ?? null;
       });
+      if (nextTickets.length > 0) openDetail();
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load support tickets");
       setTickets([]);
       setSelectedTicketId(null);
+      closeDetail();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [closeDetail, openDetail]);
 
   useEffect(() => {
     startTransition(() => {
@@ -491,7 +502,7 @@ export default function SupportWorkspace({
     if (deepLinkAppliedRef.current === ticketId) return;
     if (!tickets.some((ticket) => ticket.id.toUpperCase() === ticketId)) return;
     deepLinkAppliedRef.current = ticketId;
-    setSelectedTicketId(ticketId);
+    selectTicket(ticketId);
     setShowArchived(true);
     setAssigneeFilter("all");
     setClientFilter("all");
@@ -587,7 +598,7 @@ export default function SupportWorkspace({
       if (!response.ok || !data.ticket) throw new Error(data.error ?? "Failed to create ticket");
 
       setTickets((current) => [data.ticket!, ...current]);
-      setSelectedTicketId(data.ticket.id);
+      selectTicket(data.ticket.id);
       snapshottedIdRef.current = data.ticket.id;
       setSavedSnapshot(data.ticket);
       setSaveMessage("Ticket created");
@@ -614,7 +625,12 @@ export default function SupportWorkspace({
 
       const remaining = tickets.filter((ticket) => ticket.id !== selectedTicket.id);
       setTickets(remaining);
-      setSelectedTicketId(remaining.find((ticket) => !ticket.archived)?.id ?? remaining[0]?.id ?? null);
+      const nextId = remaining.find((ticket) => !ticket.archived)?.id ?? remaining[0]?.id ?? null;
+      if (nextId) selectTicket(nextId);
+      else {
+        setSelectedTicketId(null);
+        closeDetail();
+      }
       setSaveMessage(null);
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Failed to delete ticket");
@@ -646,7 +662,11 @@ export default function SupportWorkspace({
 
       if (archived && !showArchived) {
         const remaining = tickets.filter((ticket) => ticket.id !== data.ticket!.id && !ticket.archived);
-        setSelectedTicketId(remaining[0]?.id ?? null);
+        if (remaining[0]) selectTicket(remaining[0].id);
+        else {
+          setSelectedTicketId(null);
+          closeDetail();
+        }
       }
     } catch (archiveError) {
       setError(archiveError instanceof Error ? archiveError.message : "Failed to archive ticket");
@@ -941,254 +961,226 @@ export default function SupportWorkspace({
           Loading tickets…
         </div>
       ) : (
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-white">Support explorer</h2>
-                <p className="mt-1 text-xs text-white/45">
-                  {filteredTickets.length} tickets · sorted by latest activity
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowArchived((current) => !current)}
-                  className={cn(
-                    "rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
-                    showArchived
-                      ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
-                      : "border-white/10 bg-white/[0.03] text-white/55 hover:border-white/20",
-                  )}
-                >
-                  {showArchived ? "Showing archived" : "Show archived"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleAddTicket()}
-                  disabled={busy}
-                  className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/20 disabled:opacity-60"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add ticket
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)]">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search by user name, assignee, ID…"
-                  className={cn(inputClassName(), "mt-0 pl-10")}
-                />
-              </div>
-              <select
-                value={clientFilter}
-                onChange={(event) => setClientFilter(event.target.value)}
-                className={cn(inputClassName(), "mt-0")}
-                aria-label="Filter by client"
-              >
-                <option value="all">All clients</option>
-                {clientOptions.map((organisation) => (
-                  <option key={organisation} value={organisation}>
-                    {organisation}
-                  </option>
-                ))}
-              </select>
-              {mineMode ? (
-                <div
-                  className={cn(
-                    inputClassName(),
-                    "mt-0 flex items-center border-sky-400/30 bg-sky-500/10 text-sky-100",
-                  )}
-                  aria-label="Assigned to you"
-                >
-                  {myAssignee || "Loading…"}
+        <ResponsiveMasterDetail
+          showDetail={showDetail}
+          onBack={() => {
+            closeDetail();
+            setSelectedTicketId(null);
+          }}
+          backLabel="Back to tickets"
+          columnsClassName="xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]"
+          className="min-h-[70vh] xl:items-start"
+          master={
+            <section className="flex max-h-[78vh] flex-col rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Support explorer</h2>
+                  <p className="mt-1 text-xs text-white/45">
+                    {filteredTickets.length} tickets · sorted by latest activity
+                  </p>
                 </div>
-              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowArchived((current) => !current)}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
+                      showArchived
+                        ? "border-sky-400/30 bg-sky-500/10 text-sky-200"
+                        : "border-white/10 bg-white/[0.03] text-white/55 hover:border-white/20",
+                    )}
+                  >
+                    {showArchived ? "Showing archived" : "Show archived"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleAddTicket()}
+                    disabled={busy}
+                    className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/20 disabled:opacity-60"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add ticket
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="relative sm:col-span-2 xl:col-span-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search by user name, assignee, ID…"
+                    className={cn(inputClassName(), "mt-0 pl-10")}
+                  />
+                </div>
                 <select
-                  value={assigneeFilter}
-                  onChange={(event) => setAssigneeFilter(event.target.value)}
+                  value={clientFilter}
+                  onChange={(event) => setClientFilter(event.target.value)}
                   className={cn(inputClassName(), "mt-0")}
-                  aria-label="Filter by support user"
+                  aria-label="Filter by client"
                 >
-                  <option value="all">All support users</option>
-                  <option value="unassigned">Unassigned</option>
-                  {assigneeOptions.map((assignee) => (
-                    <option key={assignee} value={assignee}>
-                      {assignee}
+                  <option value="all">All clients</option>
+                  {clientOptions.map((organisation) => (
+                    <option key={organisation} value={organisation}>
+                      {organisation}
                     </option>
                   ))}
                 </select>
-              )}
-              <select
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(
-                    event.target.value as "all" | "open" | "closed" | "outstanding" | "in_queue",
-                  )
-                }
-                className={cn(inputClassName(), "mt-0")}
-                aria-label="Filter by status"
-              >
-                <option value="all">All statuses</option>
-                <option value="open">Open</option>
-                <option value="outstanding">Outstanding</option>
-                <option value="in_queue">In queue</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
+                {mineMode ? (
+                  <div
+                    className={cn(
+                      inputClassName(),
+                      "mt-0 flex items-center border-sky-400/30 bg-sky-500/10 text-sky-100",
+                    )}
+                    aria-label="Assigned to you"
+                  >
+                    {myAssignee || "Loading…"}
+                  </div>
+                ) : (
+                  <select
+                    value={assigneeFilter}
+                    onChange={(event) => setAssigneeFilter(event.target.value)}
+                    className={cn(inputClassName(), "mt-0")}
+                    aria-label="Filter by support user"
+                  >
+                    <option value="all">All support users</option>
+                    <option value="unassigned">Unassigned</option>
+                    {assigneeOptions.map((assignee) => (
+                      <option key={assignee} value={assignee}>
+                        {assignee}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <select
+                  value={statusFilter}
+                  onChange={(event) =>
+                    setStatusFilter(
+                      event.target.value as "all" | "open" | "closed" | "outstanding" | "in_queue",
+                    )
+                  }
+                  className={cn(inputClassName(), "mt-0")}
+                  aria-label="Filter by status"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="open">Open</option>
+                  <option value="outstanding">Outstanding</option>
+                  <option value="in_queue">In queue</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
 
-            <div className="mt-4 max-h-[28rem] space-y-2 overflow-y-auto pr-1">
-              {filteredTickets.length === 0 ? (
-                <p className="text-sm text-white/45">No tickets match your filters.</p>
-              ) : mineMode ? (
-                <div className="overflow-x-auto rounded-xl border border-white/10">
-                  <table className="min-w-full text-left text-xs">
-                    <thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/45">
-                      <tr>
-                        <th className="px-3 py-2">ID</th>
-                        <th className="px-3 py-2">Status</th>
-                        <th className="px-3 py-2">Client</th>
-                        <th className="px-3 py-2">Created</th>
-                        <th className="px-3 py-2">Updated</th>
-                        <th className="px-3 py-2">Assigned</th>
-                        <th className="px-3 py-2">Summary</th>
-                        <th className="px-3 py-2">Links</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTickets.map((ticket) => {
-                        const selected = ticket.id === selectedTicket?.id;
-                        return (
-                          <tr
-                            key={ticket.id}
-                            onClick={() => setSelectedTicketId(ticket.id)}
+              <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                {filteredTickets.length === 0 ? (
+                  <p className="text-sm text-white/45">No tickets match your filters.</p>
+                ) : mineMode ? (
+                  <div className="overflow-x-auto rounded-xl border border-white/10">
+                    <table className="min-w-full text-left text-xs">
+                      <thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/45">
+                        <tr>
+                          <th className="px-3 py-2">ID</th>
+                          <th className="px-3 py-2">Status</th>
+                          <th className="px-3 py-2">Client</th>
+                          <th className="px-3 py-2">Assigned</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTickets.map((ticket) => {
+                          const selected = ticket.id === selectedTicket?.id;
+                          return (
+                            <tr
+                              key={ticket.id}
+                              onClick={() => selectTicket(ticket.id)}
+                              className={cn(
+                                "cursor-pointer border-b border-white/5 hover:bg-sky-500/5",
+                                selected && "bg-sky-500/10",
+                              )}
+                            >
+                              <td className="px-3 py-2 font-mono text-sky-300">{ticket.id}</td>
+                              <td className="px-3 py-2 capitalize text-white/80">
+                                {(ticket.status || (ticket.closed ? "closed" : "open")).replaceAll(
+                                  "_",
+                                  " ",
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-white/70">{ticket.organisation || "—"}</td>
+                              <td className="px-3 py-2 text-white/70">
+                                {ticket.userAssigned || "Unassigned"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  filteredTickets.map((ticket) => {
+                    const selected = ticket.id === selectedTicket?.id;
+                    const isLatest = latestTicket?.id === ticket.id;
+
+                    return (
+                      <button
+                        key={ticket.id}
+                        type="button"
+                        onClick={() => selectTicket(ticket.id)}
+                        className={cn(
+                          "w-full rounded-xl border px-3 py-3 text-left transition-colors",
+                          selected
+                            ? "border-sky-400/40 bg-sky-500/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
+                          ticket.archived && "opacity-70",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-sky-300/80">
+                            {ticket.id}
+                          </p>
+                          {isLatest && (
+                            <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-200">
+                              Latest
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-sm font-semibold text-white">{ticket.name || "Unnamed"}</p>
+                        <p className="mt-1 text-xs text-white/45">
+                          {ticket.organisation || "No organisation"}
+                          {ticket.userAssigned ? ` · assigned ${ticket.userAssigned}` : " · unassigned"}
+                          {!ticket.closed
+                            ? ` · open ${formatLapsedHours(hoursBetween(ticket.createdAt, analyticsNowMs))}`
+                            : ""}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span
                             className={cn(
-                              "cursor-pointer border-b border-white/5 hover:bg-sky-500/5",
-                              selected && "bg-sky-500/10",
+                              "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]",
+                              priorityBadgeClass(ticket.priority),
                             )}
                           >
-                            <td className="px-3 py-2 font-mono text-sky-300">{ticket.id}</td>
-                            <td className="px-3 py-2 capitalize text-white/80">
-                              {(ticket.status || (ticket.closed ? "closed" : "open")).replaceAll(
-                                "_",
-                                " ",
-                              )}
-                            </td>
-                            <td className="px-3 py-2 text-white/70">{ticket.organisation || "—"}</td>
-                            <td className="px-3 py-2 text-white/55">
-                              {formatSupportDate(ticket.createdAt)}
-                            </td>
-                            <td className="px-3 py-2 text-white/55">
-                              {formatSupportDate(ticket.updatedAt)}
-                            </td>
-                            <td className="px-3 py-2 text-white/70">
-                              {ticket.userAssigned || "Unassigned"}
-                            </td>
-                            <td className="max-w-[12rem] truncate px-3 py-2 text-white/55">
-                              {ticket.description.replace(/\n/g, " ")}
-                            </td>
-                            <td className="px-3 py-2">
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  type="button"
-                                  className="text-sky-300 hover:underline"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setSelectedTicketId(ticket.id);
-                                  }}
-                                >
-                                  Open
-                                </button>
-                                {ticket.ticketPublicUrl ? (
-                                  <a
-                                    href={ticket.ticketPublicUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-sky-300 hover:underline"
-                                    onClick={(event) => event.stopPropagation()}
-                                  >
-                                    Case
-                                  </a>
-                                ) : null}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                filteredTickets.map((ticket) => {
-                  const selected = ticket.id === selectedTicket?.id;
-                  const isLatest = latestTicket?.id === ticket.id;
-
-                  return (
-                    <button
-                      key={ticket.id}
-                      type="button"
-                      onClick={() => setSelectedTicketId(ticket.id)}
-                      className={cn(
-                        "w-full rounded-xl border px-4 py-3 text-left transition-colors",
-                        selected
-                          ? "border-sky-400/40 bg-sky-500/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
-                          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
-                        ticket.archived && "opacity-70",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-sky-300/80">
-                          {ticket.id}
-                        </p>
-                        {isLatest && (
-                          <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-200">
-                            Latest
+                            {SUPPORT_PRIORITY_LABELS[ticket.priority]}
                           </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-sm font-semibold text-white">{ticket.name || "Unnamed"}</p>
-                      <p className="mt-1 text-xs text-white/45">
-                        {ticket.organisation || "No organisation"}
-                        {ticket.userAssigned ? ` · assigned ${ticket.userAssigned}` : " · unassigned"}
-                        {!ticket.closed
-                          ? ` · open ${formatLapsedHours(hoursBetween(ticket.createdAt, analyticsNowMs))}`
-                          : ""}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span
-                          className={cn(
-                            "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]",
-                            priorityBadgeClass(ticket.priority),
+                          {ticket.source === "lounge" && (
+                            <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-violet-200">
+                              Lounge
+                            </span>
                           )}
-                        >
-                          {SUPPORT_PRIORITY_LABELS[ticket.priority]}
-                        </span>
-                        {ticket.source === "lounge" && (
-                          <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-violet-200">
-                            Lounge
-                          </span>
-                        )}
-                        {ticket.escalated && (
-                          <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-amber-200">
-                            Human
-                          </span>
-                        )}
-                        <span className="text-[10px] text-white/40">{formatSupportDate(ticket.updatedAt)}</span>
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </section>
-
-          {selectedTicket ? (
-            <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+                          {ticket.escalated && (
+                            <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-amber-200">
+                              Human
+                            </span>
+                          )}
+                          <span className="text-[10px] text-white/40">{formatSupportDate(ticket.updatedAt)}</span>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+          }
+          detail={
+            selectedTicket ? (
+              <section className="max-h-[78vh] overflow-y-auto rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300">
@@ -1427,12 +1419,13 @@ export default function SupportWorkspace({
                   ) : null}
                 </div>
               </section>
-          ) : (
-            <section className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-12 text-center text-sm text-white/45">
-              Select a ticket from the explorer above.
-            </section>
-          )}
-        </div>
+            ) : (
+              <section className="flex min-h-[24rem] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-12 text-center text-sm text-white/45">
+                Select a ticket from the list to open it here.
+              </section>
+            )
+          }
+        />
       )}
     </div>
   );
