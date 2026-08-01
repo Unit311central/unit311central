@@ -33,10 +33,12 @@ export const ABHI_MARKETING_NAV_SECTION: InternalNavSection = {
     {
       label: "External Events",
       icon: "CalendarDays",
-      children: [
-        { label: "Overview", view: "marketing-events" },
-        { label: "ABHI Events", view: "marketing-abhi-events" },
-      ],
+      view: "marketing-events",
+    },
+    {
+      label: "ABHI Events",
+      icon: "CalendarCheck2",
+      view: "marketing-abhi-events",
     },
     {
       label: "ABHI Working Groups",
