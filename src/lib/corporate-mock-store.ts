@@ -15,6 +15,7 @@ import type {
   CorporateShareholder,
 } from "@/lib/corporate-data";
 import { daysUntil, isWithinDays } from "@/lib/corporate-data";
+import { ABHI_CASH_BALANCE_GBP } from "@/lib/abhi-financials";
 import { CORPCENTRE_BANK_BALANCES_AUD } from "@/lib/corpcentre-financials";
 
 type Listener = () => void;
@@ -397,8 +398,357 @@ function seedCorpCentreState(): CorporateMockState {
   };
 }
 
+/** ABHI — UK offices, GBP banking, London-focused corporate records. */
+function seedAbhiState(): CorporateMockState {
+  const offices: CorporateOffice[] = [
+    {
+      id: "abhi-office-london-hq",
+      name: "London HQ",
+      country: "United Kingdom",
+      city: "London",
+      address: "107 Gray's Inn Road, London WC1X 8TZ",
+      manager: "Jane Lewis",
+      employees: 24,
+      status: "active",
+      phone: "+44 20 7960 4360",
+      timezone: "Europe/London",
+    },
+    {
+      id: "abhi-office-cambridge",
+      name: "Cambridge Innovation Desk",
+      country: "United Kingdom",
+      city: "Cambridge",
+      address: "Hauser Forum, 3 Charles Babbage Road, Cambridge CB3 0GT",
+      manager: "Richard Phillips",
+      employees: 4,
+      status: "active",
+      phone: "+44 1223 766 900",
+      timezone: "Europe/London",
+    },
+    {
+      id: "abhi-office-manchester",
+      name: "Manchester Northern Hub",
+      country: "United Kingdom",
+      city: "Manchester",
+      address: "One St Peter's Square, Manchester M2 3DE",
+      manager: "Sarah Chen",
+      employees: 3,
+      status: "active",
+      phone: "+44 161 228 2200",
+      timezone: "Europe/London",
+    },
+  ];
+
+  const banks: CorporateBankAccount[] = [
+    {
+      id: "abhi-bank-barclays-ops",
+      bank: "Barclays",
+      accountName: "ABHI Operating GBP",
+      currency: "GBP",
+      country: "United Kingdom",
+      accountType: "Current",
+      status: "active",
+      primary: true,
+      balance: ABHI_CASH_BALANCE_GBP,
+      iban: "GB29 BARC 2000 0031 9268 19",
+      swift: "BARCGB22",
+      routing: "20-00-00",
+      branch: "London Victoria",
+      accountHolder: "Association of British HealthTech Industries",
+      notes: "Primary operating account · membership receipts and supplier payments · £4.24M",
+    },
+    {
+      id: "abhi-bank-natwest-events",
+      bank: "NatWest",
+      accountName: "ABHI Events & Conferences GBP",
+      currency: "GBP",
+      country: "United Kingdom",
+      accountType: "Current",
+      status: "active",
+      primary: false,
+      iban: "GB82 NWBK 6016 1331 9268 19",
+      swift: "NWBKGB2L",
+      routing: "60-16-13",
+      branch: "London City",
+      accountHolder: "Association of British HealthTech Industries",
+      notes: "WHX / Hospitalar event deposits and exhibitor receipts",
+    },
+    {
+      id: "abhi-bank-barclays-reserve",
+      bank: "Barclays",
+      accountName: "ABHI Reserves GBP",
+      currency: "GBP",
+      country: "United Kingdom",
+      accountType: "Savings",
+      status: "review",
+      primary: false,
+      iban: "GB33 BARC 2004 1533 1122 00",
+      swift: "BARCGB22",
+      routing: "20-04-15",
+      branch: "London Victoria",
+      accountHolder: "Association of British HealthTech Industries",
+      notes: "Cash reserve · annual KYC refresh pending",
+    },
+  ];
+
+  const advisors: CorporateAdvisor[] = [
+    {
+      id: "abhi-adv-dac",
+      company: "DAC Beachcroft LLP",
+      contact: "Helen Marsh (Partner)",
+      category: "Lawyers",
+      country: "United Kingdom",
+      phone: "+44 20 7894 6000",
+      email: "helen.marsh@dacbeachcroft.com",
+      retainer: "£4,200 / month",
+      status: "active",
+      notes: "Corporate, employment, and membership governance counsel · London",
+    },
+    {
+      id: "abhi-adv-kpmg",
+      company: "KPMG UK",
+      contact: "James Okafor",
+      category: "Accountants",
+      country: "United Kingdom",
+      phone: "+44 20 7311 1000",
+      email: "james.okafor@kpmg.co.uk",
+      retainer: "£3,100 / month",
+      status: "active",
+      notes: "Management accounts, VAT, and Companies House filings · London",
+    },
+    {
+      id: "abhi-adv-bdo",
+      company: "BDO LLP",
+      contact: "Priya Shah",
+      category: "Auditors",
+      country: "United Kingdom",
+      phone: "+44 20 7486 5888",
+      email: "priya.shah@bdo.co.uk",
+      retainer: "Annual audit fee £22,000",
+      status: "active",
+      notes: "Statutory audit · FY2025/26 fieldwork scheduled Q4",
+    },
+    {
+      id: "abhi-adv-hiscox",
+      company: "Hiscox Insurance",
+      contact: "Tom Bradley",
+      category: "Insurance Brokers",
+      country: "United Kingdom",
+      phone: "+44 20 7448 6000",
+      email: "tom.bradley@hiscox.com",
+      retainer: "Broker fee on placement",
+      status: "active",
+      notes: "PI, cyber, and office contents · London",
+    },
+  ];
+
+  const contracts: CorporateContract[] = [
+    {
+      id: "abhi-contract-aws",
+      name: "AWS UK Cloud Services",
+      supplier: "Amazon Web Services UK Ltd",
+      type: "MSA",
+      owner: "Jane Lewis",
+      startDate: isoDaysFromNow(-540),
+      expiryDate: isoDaysFromNow(42),
+      value: "£72,000 / year",
+      status: "expiring",
+      summary: "Membership portal hosting, analytics, and event microsites (London region).",
+      parties: "Association of British HealthTech Industries · Amazon Web Services UK Ltd",
+      renewalNotes: "Renew before board finance committee in September.",
+      documents: "AWS_UK_MSA_2025_signed.pdf",
+      notes: "Committed spend ~£6k/month · eu-west-2",
+    },
+    {
+      id: "abhi-contract-london-lease",
+      name: "London HQ Office Lease",
+      supplier: "Gray's Inn Estates Ltd",
+      type: "Lease",
+      owner: "Jane Lewis",
+      startDate: isoDaysFromNow(-730),
+      expiryDate: isoDaysFromNow(28),
+      value: "£186,000 / year",
+      status: "expiring",
+      summary: "Gray's Inn Road HQ · 2 floors · 40 desks · member meeting suites.",
+      parties: "Association of British HealthTech Industries · Gray's Inn Estates Ltd",
+      renewalNotes: "Landlord offered 5-year extension at RPI +1%.",
+      documents: "",
+      notes: "Break clause at month 36 — retained",
+    },
+    {
+      id: "abhi-contract-insurance",
+      name: "Professional Indemnity & Cyber",
+      supplier: "Hiscox Insurance",
+      type: "Insurance",
+      owner: "Richard Phillips",
+      startDate: isoDaysFromNow(-120),
+      expiryDate: isoDaysFromNow(245),
+      value: "£18,400 / year",
+      status: "active",
+      summary: "£5M PI and cyber cover for association operations and member events.",
+      parties: "Association of British HealthTech Industries · Hiscox Insurance Company Ltd",
+      renewalNotes: "",
+      documents: "Hiscox_PI_Cyber_2026.pdf",
+      notes: "Broker: Hiscox London",
+    },
+    {
+      id: "abhi-contract-m365",
+      name: "Microsoft 365 E5 Enterprise",
+      supplier: "Microsoft UK",
+      type: "Supplier",
+      owner: "Sarah Chen",
+      startDate: isoDaysFromNow(-365),
+      expiryDate: isoDaysFromNow(28),
+      value: "£28,800 / year",
+      status: "expiring",
+      summary: "Enterprise productivity suite for ABHI staff and board collaborators.",
+      parties: "Association of British HealthTech Industries · Microsoft Ltd",
+      renewalNotes: "",
+      documents: "M365_E5_Order_2025.pdf",
+      notes: "32 seats · UK billing",
+    },
+    {
+      id: "abhi-contract-excel",
+      name: "ExCeL London Venue Framework",
+      supplier: "ExCeL London",
+      type: "Supplier",
+      owner: "Jane Lewis",
+      startDate: isoDaysFromNow(-200),
+      expiryDate: isoDaysFromNow(160),
+      value: "£95,000 / year",
+      status: "active",
+      summary: "Preferred venue rates for ABHI member conferences and working-group summits.",
+      parties: "Association of British HealthTech Industries · ExCeL London",
+      renewalNotes: "",
+      documents: "ExCeL_Framework_2026.pdf",
+      notes: "London Docklands",
+    },
+  ];
+
+  const licences: CorporateLicence[] = [
+    {
+      id: "abhi-lic-m365",
+      software: "Microsoft 365 E5",
+      vendor: "Microsoft UK",
+      licenceType: "Enterprise subscription",
+      seats: 32,
+      renewalDate: isoDaysFromNow(28),
+      cost: "£28,800 / year",
+      owner: "Sarah Chen",
+      status: "expiring",
+    },
+    {
+      id: "abhi-lic-figma",
+      software: "Figma Organization",
+      vendor: "Figma Inc.",
+      licenceType: "Org plan",
+      seats: 8,
+      renewalDate: isoDaysFromNow(11),
+      cost: "£2,880 / year",
+      owner: "Sarah Chen",
+      status: "expiring",
+    },
+    {
+      id: "abhi-lic-github",
+      software: "GitHub Team",
+      vendor: "GitHub",
+      licenceType: "Team",
+      seats: 12,
+      renewalDate: isoDaysFromNow(48),
+      cost: "£2,400 / year",
+      owner: "Richard Phillips",
+      status: "expiring",
+    },
+    {
+      id: "abhi-lic-zoom",
+      software: "Zoom Workplace",
+      vendor: "Zoom",
+      licenceType: "Annual",
+      seats: 40,
+      renewalDate: isoDaysFromNow(165),
+      cost: "£4,800 / year",
+      owner: "Jane Lewis",
+      status: "active",
+    },
+  ];
+
+  const shareholders: CorporateShareholder[] = [];
+  const optionPool: CorporateOptionPool = {
+    authorised: 0,
+    issued: 0,
+    reserved: 0,
+    lastUpdated: isoDaysFromNow(0),
+  };
+  const capital: CorporateCapital = {
+    authorisedShareCapital: "Limited by guarantee",
+    issuedShareCapital: "—",
+    currency: "GBP",
+  };
+
+  const activity: CorporateActivityItem[] = [
+    {
+      id: "abhi-act-1",
+      at: isoDaysFromNow(0),
+      label: "Bank account updated",
+      detail: "Barclays ABHI Reserves GBP — KYC refresh flagged for review",
+    },
+    {
+      id: "abhi-act-2",
+      at: isoDaysFromNow(-1),
+      label: "Contract renewal due",
+      detail: "London HQ Office Lease — Gray's Inn Estates Ltd",
+    },
+    {
+      id: "abhi-act-3",
+      at: isoDaysFromNow(-3),
+      label: "Licence renewal due",
+      detail: "Figma Organization — renewal in 11 days",
+    },
+    {
+      id: "abhi-act-4",
+      at: isoDaysFromNow(-5),
+      label: "Office record updated",
+      detail: "Cambridge Innovation Desk — headcount set to 4",
+    },
+    {
+      id: "abhi-act-5",
+      at: isoDaysFromNow(-8),
+      label: "Advisor retained",
+      detail: "DAC Beachcroft LLP — London corporate counsel",
+    },
+    {
+      id: "abhi-act-6",
+      at: isoDaysFromNow(-12),
+      label: "Contract renewed",
+      detail: "Professional Indemnity & Cyber — Hiscox Insurance",
+    },
+  ];
+
+  return {
+    offices,
+    banks,
+    advisors,
+    contracts,
+    shareholders,
+    optionPool,
+    capital,
+    licences,
+    activity,
+  };
+}
+
 function seedState(): CorporateMockState {
   if (typeof window !== "undefined") {
+    try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        return seedAbhiState();
+      }
+    } catch {
+      // Fall through.
+    }
+
     try {
       const { isBrowserTalantonImpactSurface } =
         require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
@@ -1090,7 +1440,7 @@ function ensureState(): CorporateMockState {
     state = seedState();
     seededHost = hostKey;
   } else if (typeof window !== "undefined") {
-    // SSR can initialize Internal mock; reseed once we detect Demo/CorpCentre host + Unit311 leakage.
+    // SSR can initialize Internal mock; reseed once we detect Demo/CorpCentre/ABHI host leakage.
     try {
       const { isBrowserCorpCentreSurface } =
         require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
@@ -1111,6 +1461,24 @@ function ensureState(): CorporateMockState {
       if (
         isBrowserDemoSurface() &&
         state.banks.some((bank) => /unit311|nakama/i.test(`${bank.accountName} ${bank.accountHolder}`))
+      ) {
+        state = seedState();
+        seededHost = hostKey;
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (
+        isBrowserAbhiSurface() &&
+        (state.offices.some((office) => /barcelona|madrid|spain/i.test(`${office.city} ${office.country}`)) ||
+          state.banks.some((bank) =>
+            /unit311|nakama|usd|eur|j\.?\s*p\.?\s*morgan|caixabank/i.test(
+              `${bank.accountName} ${bank.accountHolder} ${bank.bank} ${bank.currency}`,
+            ),
+          ))
       ) {
         state = seedState();
         seededHost = hostKey;
