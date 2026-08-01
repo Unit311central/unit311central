@@ -298,9 +298,9 @@ export function buildExecutiveHomeLiveKpis(input: {
       id: "clients",
       label: "Active Clients",
       value: String(activeClients),
-      delta: onboarding > 0 ? `${onboarding} onboarding` : `${input.clients.length} total`,
+      delta: onboarding > 0 ? `${onboarding} onboarding` : "",
       tone: "positive",
-      hint: "Live commercial relationships",
+      hint: onboarding > 0 || !abhiHome ? "Live commercial relationships" : "",
     },
   ]);
 }
