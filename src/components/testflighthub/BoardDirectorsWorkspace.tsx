@@ -55,7 +55,7 @@ export default function BoardDirectorsWorkspace() {
     <div className="space-y-4">
       <CorporateSection
         title="Board of Directors"
-        description="Governance board members for this organisation."
+        subtitle="Governance board members for this organisation."
       >
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
           <CorporateKpiTile label="Directors" value={String(directors.length)} />
