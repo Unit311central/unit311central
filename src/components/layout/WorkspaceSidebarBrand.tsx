@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import CorpCentreLogoMark, {
   isCorpCentreSlug,
@@ -28,6 +28,21 @@ function hostWorkspaceSlug(): string | null {
 
 type BrandKind = "unit311" | "corpcentre" | "talanton";
 
+function resolveBrand(): BrandKind {
+  const hostSlug = hostWorkspaceSlug();
+  if (
+    !hostSlug ||
+    hostSlug === "internal" ||
+    hostSlug === "unit311" ||
+    hostSlug === "demo"
+  ) {
+    return "unit311";
+  }
+  if (isCorpCentreSlug(hostSlug)) return "corpcentre";
+  if (isTalantonImpactSlug(hostSlug)) return "talanton";
+  return "unit311";
+}
+
 /**
  * Sidebar brand — tenant logos only on their hosts.
  * Internal / demo / all other hosts keep the Unit311 Central wordmark unchanged.
@@ -36,32 +51,13 @@ export default function WorkspaceSidebarBrand({
   className,
   href = "/",
 }: WorkspaceSidebarBrandProps) {
-  const [brand, setBrand] = useState<BrandKind>("unit311");
-
-  useEffect(() => {
-    const hostSlug = hostWorkspaceSlug();
-    if (
-      !hostSlug ||
-      hostSlug === "internal" ||
-      hostSlug === "unit311" ||
-      hostSlug === "demo"
-    ) {
-      return;
-    }
-    if (isCorpCentreSlug(hostSlug)) {
-      setBrand("corpcentre");
-      return;
-    }
-    if (isTalantonImpactSlug(hostSlug)) {
-      setBrand("talanton");
-    }
-  }, []);
+  const [brand] = useState<BrandKind>(() => resolveBrand());
 
   const content =
     brand === "corpcentre" ? (
       <CorpCentreLogoMark className={className} height={32} />
     ) : brand === "talanton" ? (
-      <TalantonLogoMark className={className} height={32} />
+      <TalantonLogoMark height={36} />
     ) : (
       <Unit311CentralWordmark variant="sidebar" className={className} />
     );
@@ -76,7 +72,10 @@ export default function WorkspaceSidebarBrand({
   return (
     <a
       href={href}
-      className={cn("inline-flex shrink-0 transition-opacity duration-100 hover:opacity-90", className)}
+      className={cn(
+        "inline-flex max-w-full shrink-0 items-center overflow-visible transition-opacity duration-100 hover:opacity-90",
+        className,
+      )}
       aria-label={ariaLabel}
     >
       {content}
