@@ -1,8 +1,20 @@
 import { createExpense } from "@/lib/financial-expenses-service";
 import { resolveFinancialsWorkspaceId } from "@/lib/financials-workspace";
+import {
+  EXPENSE_CURRENCY_OPTIONS,
+  type ExpenseCurrency,
+} from "@/lib/expenses-data";
 import { getPartnerById } from "@/lib/partners/service";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { generateInvoiceNumber } from "@/lib/subscription-invoice-pdf";
+
+function asExpenseCurrency(value: string | undefined): ExpenseCurrency {
+  const raw = (value || "USD").toUpperCase();
+  if (EXPENSE_CURRENCY_OPTIONS.includes(raw as ExpenseCurrency)) {
+    return raw as ExpenseCurrency;
+  }
+  return "USD";
+}
 
 export type PartnerCommissionRate = {
   id: string;
@@ -207,7 +219,7 @@ export async function createPartnerJob(input: {
       : selectedRate?.ratePct || 0;
   const baseAmount = Number(input.baseAmount) || 0;
   const commissionAmount = computeCommissionAmount(baseAmount, ratePct);
-  const currency = (input.currency || "USD").toUpperCase();
+  const currency = asExpenseCurrency(input.currency);
   const paymentDueDate =
     input.paymentDueDate?.trim() ||
     input.jobDate ||
