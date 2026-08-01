@@ -91,6 +91,8 @@ type WorkspaceDashboardProps = {
   loading?: boolean;
   onAction?: DashboardActionHandler;
   className?: string;
+  /** When true, render sections in config order instead of the default slot order. */
+  preserveSectionOrder?: boolean;
 };
 
 /**
@@ -103,6 +105,7 @@ export default function WorkspaceDashboard({
   loading = false,
   onAction,
   className,
+  preserveSectionOrder = false,
 }: WorkspaceDashboardProps) {
   if (loading) {
     return (
@@ -124,14 +127,17 @@ export default function WorkspaceDashboard({
 
   const resolved = resolveWorkspaceDashboard(config, { audience });
   const sectionsBySlot = new Map(resolved.sections.map((section) => [section.slot, section]));
+  const orderedSections = preserveSectionOrder
+    ? resolved.sections
+    : SLOT_ORDER.map((slot) => sectionsBySlot.get(slot)).filter(
+        (section): section is DashboardSectionConfig => Boolean(section),
+      );
 
   return (
     <div className={className ?? "mx-auto max-w-6xl space-y-4 pb-4"}>
-      {SLOT_ORDER.map((slot) => {
-        const section = sectionsBySlot.get(slot);
-        if (!section) return null;
-        return <Section key={section.id} section={section} onAction={onAction} />;
-      })}
+      {orderedSections.map((section) => (
+        <Section key={section.id} section={section} onAction={onAction} />
+      ))}
     </div>
   );
 }
