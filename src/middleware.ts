@@ -27,7 +27,10 @@ import {
 } from "@/lib/workspace-host-session-gate";
 import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
-import { PLATFORM_SESSION_COOKIE } from "@/lib/platform-session-token";
+import {
+  clearPlatformSessionCookie,
+  PLATFORM_SESSION_COOKIE,
+} from "@/lib/platform-session-cookie";
 
 function canonicalizePortalRedirect(redirectPath: string | null | undefined): string | null {
   if (!redirectPath) return null;
@@ -151,9 +154,8 @@ export async function middleware(request: NextRequest) {
         const isLoginRest =
           portalMatch.rest === "/login" || portalMatch.rest.startsWith("/login/");
 
-        // Anonymous / invalid: company-branded portal login (URL stays /{company}).
-        if (gate.status === "anonymous" || gate.status === "invalid" || gate.status === "forbidden") {
-          const response = rewriteTo(
+        const companyPortalLoginRewrite = () =>
+          rewriteTo(
             request,
             `/portfolio-portal/${portalMatch.route.path}/login`,
             headers,
@@ -162,22 +164,35 @@ export async function middleware(request: NextRequest) {
               "x-unit311-company-portal": portalMatch.route.path,
             },
           );
+
+        // Anonymous: branded portal login (URL stays /{company} or /{company}/login).
+        if (gate.status === "anonymous") {
+          return companyPortalLoginRewrite();
+        }
+
+        // Invalid / forbidden / missing workspace: MUST clear the shared
+        // Domain=.unit311central.com cookie. Otherwise login page / auth helpers
+        // keep seeing a readable JWT and redirect back to /{company} forever
+        // (ERR_TOO_MANY_REDIRECTS).
+        if (
+          gate.status === "invalid" ||
+          gate.status === "forbidden" ||
+          gate.status === "workspace_missing"
+        ) {
+          const response = companyPortalLoginRewrite();
+          clearPlatformSessionCookie(response, request);
           return response;
         }
-        if (gate.status === "workspace_missing") {
-          return rewriteTo(
-            request,
-            `/portfolio-portal/${portalMatch.route.path}/login`,
-            headers,
-            {
-              ...workspaceResponseHeaders,
-              "x-unit311-company-portal": portalMatch.route.path,
-            },
-          );
-        }
+
         if (gate.session.userType === "external") {
           const allowed = canonicalizePortalRedirect(gate.session.redirectPath);
-          if (allowed && allowed !== `/${portalMatch.route.path}` && !pathname.startsWith(allowed)) {
+          if (!allowed) {
+            // Member with no company portal assignment — do not enter portal app.
+            const response = companyPortalLoginRewrite();
+            clearPlatformSessionCookie(response, request);
+            return response;
+          }
+          if (allowed !== `/${portalMatch.route.path}` && !pathname.startsWith(allowed)) {
             const bounce = redirectExternal(`${workspaceOrigin}${allowed}`);
             return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
           }
@@ -221,13 +236,7 @@ export async function middleware(request: NextRequest) {
         // Broken external sessions (no portal redirect_path) must not loop login↔dashboard.
         if (!portalHome) {
           const clear = redirectExternal(`${workspaceOrigin}/login`);
-          clear.cookies.set(PLATFORM_SESSION_COOKIE, "", {
-            httpOnly: true,
-            secure: true,
-            sameSite: "lax",
-            path: "/",
-            maxAge: 0,
-          });
+          clearPlatformSessionCookie(clear, request);
           return clear;
         }
 
@@ -251,13 +260,7 @@ export async function middleware(request: NextRequest) {
           if (!portalHome) {
             // Avoid redirect loop: clear broken session and show login once.
             const response = NextResponse.next({ request: { headers } });
-            response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
-              httpOnly: true,
-              secure: true,
-              sameSite: "lax",
-              path: "/",
-              maxAge: 0,
-            });
+            clearPlatformSessionCookie(response, request);
             for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
               response.headers.set(key, value);
             }

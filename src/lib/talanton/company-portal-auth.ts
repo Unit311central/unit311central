@@ -18,9 +18,10 @@ export type CompanyPortalSession = {
   isStaffPreview: boolean;
 };
 
-function loginRedirectForPortal(path: string) {
-  // Stay on the company portal URL so the branded portal login is shown.
-  return `/${path}`;
+function portalLoginPath(path: string) {
+  // Use /{company}/login — never redirect to bare /{company} from the app
+  // layout, or middleware will rewrite into this layout again (redirect loop).
+  return `/${path}/login`;
 }
 
 export async function requireCompanyPortalAccess(
@@ -34,19 +35,23 @@ export async function requireCompanyPortalAccess(
   const jar = await cookies();
   const token = jar.get(PLATFORM_SESSION_COOKIE)?.value;
   if (!token) {
-    redirect(loginRedirectForPortal(route.path));
+    redirect(portalLoginPath(route.path));
   }
 
   const session = await readPlatformSessionToken(token);
   if (!session) {
-    redirect(loginRedirectForPortal(route.path));
+    redirect(portalLoginPath(route.path));
   }
 
   // External users: only their assigned company portal.
   if (session.userType === "external") {
     const allowed = getCompanyPortalByPath(session.redirectPath);
-    if (!allowed || allowed.path !== route.path) {
-      redirect(allowed ? `/${allowed.path}` : loginRedirectForPortal(route.path));
+    if (!allowed) {
+      // Unassigned portal — leave the app shell; middleware clears bad sessions.
+      redirect(portalLoginPath(route.path));
+    }
+    if (allowed.path !== route.path) {
+      redirect(`/${allowed.path}`);
     }
 
     return {
@@ -80,5 +85,5 @@ export async function requireCompanyPortalAccess(
     };
   }
 
-  redirect(loginRedirectForPortal(route.path));
+  redirect(portalLoginPath(route.path));
 }
