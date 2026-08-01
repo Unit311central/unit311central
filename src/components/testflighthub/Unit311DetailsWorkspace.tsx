@@ -361,19 +361,45 @@ export default function Unit311DetailsWorkspace() {
     });
   }, [isDocPackSection, loadDocPack, sectionView, selectedCategory]);
 
-  const handleSelectCategory = useCallback((categoryId: string) => {
-    setSelectedCategoryId(categoryId);
-    setSectionView("documentation");
-    const pack = findDocPackForCategory({ categoryId });
-    setActiveTab(pack ? "documents" : "details");
-    setNewTaskTitle("");
-    setSuccessMessage(null);
-    setError(null);
-    setHubActiveDiagramSlug(null);
-    setActivePackDocId(null);
-    setPackDocuments([]);
-    setPackLabel(null);
+  const loadCategoryDetail = useCallback(async (categoryId: string) => {
+    try {
+      const response = await fetch(
+        `/api/unit311-details?category=${encodeURIComponent(categoryId)}`,
+        { cache: "no-store" },
+      );
+      const data = await readApiJson<{
+        content?: string;
+        tasks?: Unit311DetailTask[];
+        error?: string;
+      }>(response);
+      if (!response.ok) throw new Error(data.error ?? "Failed to load section");
+      setContents((current) => ({ ...current, [categoryId]: data.content ?? "" }));
+      setTasksByCategory((current) => ({
+        ...current,
+        [categoryId]: Array.isArray(data.tasks) ? data.tasks : [],
+      }));
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Failed to load section");
+    }
   }, []);
+
+  const handleSelectCategory = useCallback(
+    (categoryId: string) => {
+      setSelectedCategoryId(categoryId);
+      setSectionView("documentation");
+      const pack = findDocPackForCategory({ categoryId });
+      setActiveTab(pack ? "documents" : "details");
+      setNewTaskTitle("");
+      setSuccessMessage(null);
+      setError(null);
+      setHubActiveDiagramSlug(null);
+      setActivePackDocId(null);
+      setPackDocuments([]);
+      setPackLabel(null);
+      void loadCategoryDetail(categoryId);
+    },
+    [loadCategoryDetail],
+  );
 
   const handleSave = useCallback(async () => {
     if (!selectedCategoryId) return;

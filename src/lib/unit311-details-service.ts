@@ -472,7 +472,10 @@ export async function loadUnit311DetailContent(
   }
 
   const txtName = detailTxtFileName(category.label);
-  const txtFile = await findFileInFolder(folderId, txtName, scope);
+  const [txtFile, tasks] = await Promise.all([
+    findFileInFolder(folderId, txtName, scope),
+    loadTasksFromFolder(folderId, category.label, scope),
+  ]);
   let content = txtFile ? await readStorageText(txtFile.storage_path) : "";
 
   if (!content.trim()) {
@@ -488,6 +491,7 @@ export async function loadUnit311DetailContent(
     label: category.label,
     content,
     folderId,
+    tasks,
   };
 }
 
@@ -652,7 +656,9 @@ export async function getUnit311DetailsOverview(scope?: FilesWorkspaceScope) {
     console.warn("[unit311-details] Demo overview short-circuit failed", error);
   }
 
-  await ensureUnit311DetailsFolders(scope);
+  // Folder bootstrap only — do not read every section's storage files here.
+  // Content/tasks load on category select so the Details grid appears immediately.
+  const refreshed = await ensureUnit311DetailsFolders(scope);
 
   // Ensure the Cyber Resilience Act section button/folder exists (no duplicate).
   try {
@@ -664,35 +670,16 @@ export async function getUnit311DetailsOverview(scope?: FilesWorkspaceScope) {
     console.warn("[unit311-details] CRA section ensure failed", error);
   }
 
-  const refreshed = await ensureUnit311DetailsFolders(scope);
-  const contents: Record<string, string> = {};
-  const tasks: Record<string, Unit311DetailTask[]> = {};
-
-  for (const category of refreshed.categories) {
-    if (isGoLiveStorageCategory(category.id)) {
-      continue;
-    }
-
-    const folderId = refreshed.folders[category.id];
-    if (!folderId) {
-      contents[category.id] = "";
-      tasks[category.id] = [];
-      continue;
-    }
-
-    const txtFile = await findFileInFolder(folderId, detailTxtFileName(category.label), scope);
-    contents[category.id] = txtFile ? await readStorageText(txtFile.storage_path) : "";
-    tasks[category.id] = await loadTasksFromFolder(folderId, category.label, scope);
-  }
+  const latest = await ensureUnit311DetailsFolders(scope);
 
   return {
-    rootFolderId: refreshed.rootFolderId,
-    folders: refreshed.folders,
-    categories: refreshed.categories.filter(
+    rootFolderId: latest.rootFolderId,
+    folders: latest.folders,
+    categories: latest.categories.filter(
       (category) => !isGoLiveStorageCategory(category.id),
     ),
-    contents,
-    tasks,
+    contents: {} as Record<string, string>,
+    tasks: {} as Record<string, Unit311DetailTask[]>,
   };
 }
 

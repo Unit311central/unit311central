@@ -25,8 +25,8 @@ export async function GET(request: NextRequest) {
   const scope = { workspaceId: auth.workspace.id };
 
   try {
-    // Ensure architecture table + core diagram seeds when Details opens.
-    await ensureCoreArchitectureSeeds().catch(() => null);
+    // Seed diagrams in the background — never block the Details overview on this.
+    void ensureCoreArchitectureSeeds().catch(() => null);
 
     const categoryId = parseUnit311DetailCategoryId(request.nextUrl.searchParams.get("category"));
 
