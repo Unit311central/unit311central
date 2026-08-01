@@ -1,3 +1,5 @@
+import { isInternalDomainHost } from "@/lib/app-domains";
+import { getClarityDashboardUrl } from "@/lib/clarity";
 import { normalizePlatformUsername } from "@/lib/platform-auth";
 
 import type { InternalNavSection, InternalOperationsView } from "./internal-operations-data";
@@ -557,6 +559,33 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
   }
 }
 
+/** Platform Analytics → Clarity dashboard. Internal host only; never in shared nav catalogue. */
+function injectInternalPlatformAnalytics(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  if (typeof window === "undefined") return [...sections];
+  if (!isInternalDomainHost(window.location.hostname)) return [...sections];
+
+  const dashboardUrl = getClarityDashboardUrl();
+  if (!dashboardUrl) return [...sections];
+
+  return sections.map((section) => {
+    if (section.label !== "Tools") return section;
+    if (section.items.some((item) => item.label === "Platform Analytics")) return section;
+    return {
+      ...section,
+      items: [
+        ...section.items,
+        {
+          label: "Platform Analytics",
+          icon: "BarChart3",
+          href: dashboardUrl,
+        },
+      ],
+    };
+  });
+}
+
 export function filterInternalNavSectionsForDemoSurface(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
@@ -571,7 +600,7 @@ export function filterInternalNavSectionsForDemoSurface(
   }
 
   if (!shouldHideDroneToolNavViews()) {
-    return [...sections];
+    return injectInternalPlatformAnalytics(sections);
   }
 
   const hideViews = isCorpCentreNavSurface() ? CORPCENTRE_HIDDEN_VIEWS : DEMO_HIDDEN_VIEWS;
@@ -620,5 +649,5 @@ export function filterInternalNavSectionsForDemoSurface(
     })
     .filter((section) => section.items.length > 0);
 
-  return filtered;
+  return injectInternalPlatformAnalytics(filtered);
 }

@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  BarChart3,
   Bot,
   Briefcase,
   Building2,
@@ -64,6 +65,7 @@ import {
 } from "@/lib/internal-operations-data";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
 import { isInternalDomainHost } from "@/lib/app-domains";
+import { isAbsoluteHttpUrl } from "@/lib/clarity";
 import {
   getSidebarTheme,
   readSidebarExpandedState,
@@ -79,6 +81,7 @@ const iconMap = {
   LayoutDashboard,
   ArrowDownLeft,
   ArrowUpRight,
+  BarChart3,
   Bot,
   Briefcase,
   Building2,
@@ -277,6 +280,21 @@ export default function EnterprisePlatformSidebar({
     );
 
     if (opts.href) {
+      if (isAbsoluteHttpUrl(opts.href)) {
+        return (
+          <a
+            key={key}
+            href={opts.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+            className={className}
+            style={style}
+          >
+            {content}
+          </a>
+        );
+      }
       return (
         <Link
           key={key}
