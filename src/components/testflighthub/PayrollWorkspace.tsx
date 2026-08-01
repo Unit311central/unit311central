@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
+import { getPayrollUiLabels } from "@/lib/payroll/payroll-ui-labels";
 import type {
   PayrollDashboardSnapshot,
   PayrollRun,
@@ -89,6 +90,20 @@ export default function PayrollWorkspace() {
   const selectedRun = useMemo(
     () => runs.find((run) => run.id === selectedRunId) ?? null,
     [runs, selectedRunId],
+  );
+
+  const payrollLabels = useMemo(
+    () =>
+      getPayrollUiLabels(
+        settings
+          ? {
+              countryCode: settings.countryCode,
+              defaultCurrency: settings.defaultCurrency,
+              defaultTaxState: settings.defaultTaxState,
+            }
+          : null,
+      ),
+    [settings],
   );
 
   const load = useCallback(async () => {
@@ -314,11 +329,19 @@ export default function PayrollWorkspace() {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi label="Monthly gross payroll" value={money(dashboard.monthlyGrossPayroll)} />
             <Kpi
-              label="Estimated employer taxes"
+              label={
+                payrollLabels.countryCode === "GB" || payrollLabels.countryCode === "UK"
+                  ? "Estimated employer NI"
+                  : "Estimated employer taxes"
+              }
               value={money(dashboard.estimatedEmployerTaxes)}
             />
             <Kpi
-              label="Estimated employee tax withheld"
+              label={
+                payrollLabels.countryCode === "GB" || payrollLabels.countryCode === "UK"
+                  ? "Estimated PAYE & employee NI"
+                  : "Estimated employee tax withheld"
+              }
               value={money(dashboard.estimatedEmployeeTaxWithheld)}
             />
             <Kpi label="Estimated net payroll" value={money(dashboard.estimatedNetPayroll)} />
@@ -572,8 +595,8 @@ export default function PayrollWorkspace() {
                       <th className="px-3 py-2">Employee</th>
                       <th className="px-3 py-2">Department</th>
                       <th className="px-3 py-2">Gross</th>
-                      <th className="px-3 py-2">Employee tax</th>
-                      <th className="px-3 py-2">Employer tax</th>
+                      <th className="px-3 py-2">{payrollLabels.employeeTaxTotal}</th>
+                      <th className="px-3 py-2">{payrollLabels.employerTaxTotal}</th>
                       <th className="px-3 py-2">Net</th>
                     </tr>
                   </thead>
@@ -614,20 +637,9 @@ export default function PayrollWorkspace() {
       {panel === "settings" && settings ? (
         <section className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <h3 className="text-sm font-semibold text-white">Payroll settings</h3>
-          <p className="text-sm text-white/50">
-            Applies to all employees unless overridden on the employee Payroll tab. V1: United States,
-            monthly, USD.
-          </p>
+          <p className="text-sm text-white/50">{payrollLabels.settingsBlurb}</p>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {(
-              [
-                ["federalTaxPct", "Federal tax %"],
-                ["stateTaxPct", "State tax %"],
-                ["socialSecurityPct", "Social Security %"],
-                ["medicarePct", "Medicare %"],
-                ["employerPayrollPct", "Employer payroll %"],
-              ] as const
-            ).map(([key, label]) => (
+            {payrollLabels.rateFields.map(({ key, label }) => (
               <label key={key} className="block text-sm text-white/70">
                 {label}
                 <input
@@ -708,7 +720,7 @@ export default function PayrollWorkspace() {
               />
             </label>
             <label className="block text-sm text-white/70">
-              Default tax state
+              {payrollLabels.taxRegionLabel}
               <input
                 className="mt-1 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-white"
                 value={settings.defaultTaxState}

@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
+import { HR_CURRENCY_OPTIONS } from "@/lib/hr-data";
+import {
+  getPayrollUiLabels,
+  overrideRateLabel,
+  type PayrollUiLabels,
+} from "@/lib/payroll/payroll-ui-labels";
 import type { PayrollCalculation, PayrollEmployeeProfile } from "@/lib/payroll/types";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +44,7 @@ const inputClass =
 export default function EmployeePayrollPanel({ employeeId }: { employeeId: string }) {
   const [profile, setProfile] = useState<Partial<PayrollEmployeeProfile>>({});
   const [calculation, setCalculation] = useState<PayrollCalculation | null>(null);
+  const [labels, setLabels] = useState<PayrollUiLabels>(() => getPayrollUiLabels("US"));
   const [nextBonusPayDate, setNextBonusPayDate] = useState<string | null>(null);
   const [bonusDueThisYear, setBonusDueThisYear] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -49,21 +56,33 @@ export default function EmployeePayrollPanel({ employeeId }: { employeeId: strin
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/payroll/employees/${employeeId}/profile`, {
-        cache: "no-store",
-      });
+      const [profileRes, settingsRes] = await Promise.all([
+        fetch(`/api/payroll/employees/${employeeId}/profile`, { cache: "no-store" }),
+        fetch("/api/payroll/settings", { cache: "no-store" }),
+      ]);
       const data = await readJson<{
         profile?: PayrollEmployeeProfile | null;
         calculation?: PayrollCalculation;
         nextBonusPayDate?: string;
         bonusDueThisYear?: number;
         error?: string;
-      }>(response);
-      if (!response.ok) throw new Error(data.error ?? "Failed to load payroll profile");
+      }>(profileRes);
+      if (!profileRes.ok) throw new Error(data.error ?? "Failed to load payroll profile");
       setProfile(data.profile ?? {});
       setCalculation(data.calculation ?? null);
       setNextBonusPayDate(data.nextBonusPayDate ?? null);
       setBonusDueThisYear(Number(data.bonusDueThisYear ?? 0));
+
+      if (settingsRes.ok) {
+        const settingsData = await readJson<{
+          settings?: {
+            countryCode?: string;
+            defaultCurrency?: string;
+            defaultTaxState?: string;
+          };
+        }>(settingsRes);
+        setLabels(getPayrollUiLabels(settingsData.settings ?? null));
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load payroll");
     } finally {
@@ -177,16 +196,22 @@ export default function EmployeePayrollPanel({ employeeId }: { employeeId: strin
 
       {calculation ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            ["Gross salary", calculation.gross],
-            ["Federal tax", calculation.federalTax],
-            ["State tax", calculation.stateTax],
-            ["Social Security", calculation.socialSecurity],
-            ["Medicare", calculation.medicare],
-            ["Employer tax", calculation.employerTax],
-            ["Net salary", calculation.net],
-            ["Total employment cost", calculation.totalEmploymentCost],
-          ].map(([label, value]) => (
+          {(
+            [
+              ["Gross salary", calculation.gross],
+              [labels.calculation.federalTax, calculation.federalTax],
+              ...(labels.countryCode === "GB" || labels.countryCode === "UK"
+                ? []
+                : ([
+                    [labels.calculation.stateTax, calculation.stateTax],
+                    [labels.calculation.medicare, calculation.medicare],
+                  ] as Array<[string, number]>)),
+              [labels.calculation.socialSecurity, calculation.socialSecurity],
+              [labels.calculation.employerTax, calculation.employerTax],
+              ["Net salary", calculation.net],
+              ["Total employment cost", calculation.totalEmploymentCost],
+            ] as Array<[string, number]>
+          ).map(([label, value]) => (
             <div
               key={String(label)}
               className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
@@ -267,65 +292,57 @@ export default function EmployeePayrollPanel({ employeeId }: { employeeId: strin
           </select>
         </Field>
         <Field label="Currency">
-          <input
+          <select
             className={inputClass}
-            value={profile.currency ?? "USD"}
+            value={
+              (HR_CURRENCY_OPTIONS as readonly string[]).includes(profile.currency ?? "")
+                ? (profile.currency as string)
+                : profile.currency || "USD"
+            }
             onChange={(event) => patch("currency", event.target.value.toUpperCase())}
-          />
+          >
+            {!(HR_CURRENCY_OPTIONS as readonly string[]).includes(profile.currency ?? "") &&
+            profile.currency ? (
+              <option value={profile.currency}>{profile.currency}</option>
+            ) : null}
+            {HR_CURRENCY_OPTIONS.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
         </Field>
-        <Field label="Tax state">
+        <Field label={labels.employeeTaxRegionLabel}>
           <input
             className={inputClass}
-            value={profile.taxState ?? "CA"}
+            value={profile.taxState ?? (labels.countryCode === "GB" ? "ENG" : "CA")}
             onChange={(event) => patch("taxState", event.target.value.toUpperCase())}
           />
         </Field>
-        <Field label="Federal tax % (override)">
-          <input
-            type="number"
-            className={inputClass}
-            value={profile.federalTaxPct ?? ""}
-            onChange={(event) =>
-              patch(
-                "federalTaxPct",
-                event.target.value === "" ? null : Number(event.target.value),
-              )
-            }
-          />
-        </Field>
-        <Field label="State tax % (override)">
-          <input
-            type="number"
-            className={inputClass}
-            value={profile.stateTaxPct ?? ""}
-            onChange={(event) =>
-              patch("stateTaxPct", event.target.value === "" ? null : Number(event.target.value))
-            }
-          />
-        </Field>
-        <Field label="Social Security % (override)">
-          <input
-            type="number"
-            className={inputClass}
-            value={profile.socialSecurityPct ?? ""}
-            onChange={(event) =>
-              patch(
-                "socialSecurityPct",
-                event.target.value === "" ? null : Number(event.target.value),
-              )
-            }
-          />
-        </Field>
-        <Field label="Medicare % (override)">
-          <input
-            type="number"
-            className={inputClass}
-            value={profile.medicarePct ?? ""}
-            onChange={(event) =>
-              patch("medicarePct", event.target.value === "" ? null : Number(event.target.value))
-            }
-          />
-        </Field>
+        {labels.rateFields.map(({ key, label }) => {
+          const profileKey = key as
+            | "federalTaxPct"
+            | "stateTaxPct"
+            | "socialSecurityPct"
+            | "medicarePct"
+            | "employerPayrollPct";
+          if (profileKey === "employerPayrollPct") return null;
+          return (
+            <Field key={key} label={overrideRateLabel(label)}>
+              <input
+                type="number"
+                className={inputClass}
+                value={profile[profileKey] ?? ""}
+                onChange={(event) =>
+                  patch(
+                    profileKey,
+                    event.target.value === "" ? null : Number(event.target.value),
+                  )
+                }
+              />
+            </Field>
+          );
+        })}
         <Field label="Payroll status">
           <select
             className={inputClass}
@@ -349,7 +366,7 @@ export default function EmployeePayrollPanel({ employeeId }: { employeeId: strin
             onChange={(event) => patch("bankAccount", event.target.value)}
           />
         </Field>
-        <Field label="Routing number">
+        <Field label={labels.bankSecondaryLabel}>
           <input
             className={inputClass}
             value={profile.routingNumber ?? ""}
