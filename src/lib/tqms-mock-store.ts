@@ -256,7 +256,11 @@ export function getTqmsMockSnapshot(): TqmsMockState {
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       const { isNonAbhiTrainingLeak } =
         require("@/lib/abhi-tqms-training") as typeof import("@/lib/abhi-tqms-training");
-      if (isBrowserAbhiSurface() && isNonAbhiTrainingLeak(state.learners)) {
+      if (
+        isBrowserAbhiSurface() &&
+        (isNonAbhiTrainingLeak(state.learners) ||
+          !state.courses.some((course) => course.id === "abhi-crs-abc"))
+      ) {
         state = createInitialTqmsState();
       }
     } catch {

@@ -5,6 +5,7 @@ export const ABHI_MARKETING_VIEWS = [
   "marketing-newsletter",
   "marketing-events",
   "marketing-abhi-events",
+  "marketing-event-management",
   "marketing-working-groups",
   "marketing-us-accelerator",
   "marketing-me-accelerator",
@@ -39,6 +40,11 @@ export const ABHI_MARKETING_NAV_SECTION: InternalNavSection = {
       label: "ABHI Events",
       icon: "CalendarDays",
       view: "marketing-abhi-events",
+    },
+    {
+      label: "Event Management",
+      icon: "ClipboardCheck",
+      view: "marketing-event-management",
     },
     {
       label: "ABHI Working Groups",

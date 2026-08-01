@@ -1,7 +1,8 @@
 /**
  * ABHI-only internal staff training fixtures — current ABHI employees only.
- * No external course URLs; mirrors the CorpCentre training data shape.
+ * Course catalogue matches Talanton Assigned Courses (compliance programme).
  */
+import { ABHI_COMPLIANCE_COURSES } from "@/lib/abhi-training-courses";
 import type {
   TqmsAssignment,
   TqmsAssessment,
@@ -57,48 +58,16 @@ const ADDIE = {
 };
 
 export function createAbhiTqmsCourses(): TqmsCourse[] {
-  return [
-    {
-      id: "abhi-crs-001",
-      code: "ABHI-101",
-      title: "ABHI Induction & Governance",
-      category: "Onboarding",
-      mandatory: true,
-      durationHours: 2,
-      status: "Published",
-      owner: "People Ops",
-    },
-    {
-      id: "abhi-crs-002",
-      code: "ABHI-201",
-      title: "UK Market Access & NHS Policy Essentials",
-      category: "Policy",
-      mandatory: true,
-      durationHours: 3,
-      status: "Published",
-      owner: "UK Market Affairs",
-    },
-    {
-      id: "abhi-crs-003",
-      code: "ABHI-301",
-      title: "Member Engagement & CRM Practice",
-      category: "Operations",
-      mandatory: true,
-      durationHours: 2,
-      status: "Published",
-      owner: "Membership",
-    },
-    {
-      id: "abhi-crs-004",
-      code: "ABHI-401",
-      title: "Event & Delegation Management",
-      category: "Events",
-      mandatory: false,
-      durationHours: 3,
-      status: "Published",
-      owner: "Communications",
-    },
-  ];
+  return ABHI_COMPLIANCE_COURSES.map((course, index) => ({
+    id: course.id,
+    code: `ABHI-${String(index + 1).padStart(3, "0")}`,
+    title: course.title,
+    category: course.category,
+    mandatory: course.mandatory,
+    durationHours: Math.max(0.5, Math.round((course.durationMinutes / 60) * 10) / 10),
+    status: "Published" as const,
+    owner: "People Ops",
+  }));
 }
 
 export function createAbhiTqmsLearners(): TqmsLearner[] {
@@ -162,128 +131,29 @@ export function createAbhiTqmsLearners(): TqmsLearner[] {
 }
 
 export function createAbhiTqmsAssignments(): TqmsAssignment[] {
-  return [
-    {
-      id: "abhi-asg-001",
-      learnerId: PETER.id,
-      courseId: "abhi-crs-001",
-      progress: 100,
-      status: "Completed",
-      dueDate: "2022-03-01",
-      completedAt: "2022-02-24",
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-002",
-      learnerId: PETER.id,
-      courseId: "abhi-crs-002",
-      progress: 100,
-      status: "Completed",
-      dueDate: "2022-05-01",
-      completedAt: "2022-04-20",
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-003",
-      learnerId: JUDITH.id,
-      courseId: "abhi-crs-001",
-      progress: 100,
-      status: "Completed",
-      dueDate: "2023-06-15",
-      completedAt: "2023-06-10",
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-004",
-      learnerId: JUDITH.id,
-      courseId: "abhi-crs-002",
-      progress: 85,
-      status: "In Progress",
-      dueDate: "2026-08-30",
-      completedAt: null,
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-005",
-      learnerId: JUDITH.id,
-      courseId: "abhi-crs-003",
-      progress: 60,
-      status: "In Progress",
-      dueDate: "2026-09-15",
-      completedAt: null,
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-006",
-      learnerId: CHARLOTTE.id,
-      courseId: "abhi-crs-001",
-      progress: 100,
-      status: "Completed",
-      dueDate: "2024-02-08",
-      completedAt: "2024-02-01",
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-007",
-      learnerId: CHARLOTTE.id,
-      courseId: "abhi-crs-004",
-      progress: 70,
-      status: "In Progress",
-      dueDate: "2026-08-20",
-      completedAt: null,
-      mandatory: false,
-    },
-    {
-      id: "abhi-asg-008",
-      learnerId: OWAIN.id,
-      courseId: "abhi-crs-001",
-      progress: 100,
-      status: "Completed",
-      dueDate: "2024-07-03",
-      completedAt: "2024-06-28",
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-009",
-      learnerId: OWAIN.id,
-      courseId: "abhi-crs-002",
-      progress: 45,
-      status: "In Progress",
-      dueDate: "2026-08-25",
-      completedAt: null,
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-010",
-      learnerId: OWAIN.id,
-      courseId: "abhi-crs-003",
-      progress: 30,
-      status: "In Progress",
-      dueDate: "2026-09-30",
-      completedAt: null,
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-011",
-      learnerId: ADDIE.id,
-      courseId: "abhi-crs-001",
-      progress: 100,
-      status: "Completed",
-      dueDate: "2023-10-18",
-      completedAt: "2023-10-12",
-      mandatory: true,
-    },
-    {
-      id: "abhi-asg-012",
-      learnerId: ADDIE.id,
-      courseId: "abhi-crs-002",
-      progress: 25,
-      status: "Overdue",
-      dueDate: "2026-06-30",
-      completedAt: null,
-      mandatory: true,
-    },
-  ];
+  const courses = ABHI_COMPLIANCE_COURSES;
+  const learners = [PETER, JUDITH, CHARLOTTE, OWAIN, ADDIE];
+  const rows: TqmsAssignment[] = [];
+  let n = 0;
+  for (const learner of learners) {
+    for (let i = 0; i < Math.min(3, courses.length); i += 1) {
+      const course = courses[(learners.indexOf(learner) + i) % courses.length]!;
+      n += 1;
+      const completed = i === 0;
+      const overdue = learner.id === ADDIE.id && i === 1;
+      rows.push({
+        id: `abhi-asg-${String(n).padStart(3, "0")}`,
+        learnerId: learner.id,
+        courseId: course.id,
+        progress: completed ? 100 : overdue ? 25 : course.progressPct,
+        status: completed ? "Completed" : overdue ? "Overdue" : "In Progress",
+        dueDate: completed ? "2025-12-01" : overdue ? "2026-06-30" : "2026-09-30",
+        completedAt: completed ? "2025-11-20" : null,
+        mandatory: course.mandatory,
+      });
+    }
+  }
+  return rows;
 }
 
 export function createAbhiTqmsCertificates(): TqmsCertificate[] {
@@ -291,48 +161,48 @@ export function createAbhiTqmsCertificates(): TqmsCertificate[] {
     {
       id: "abhi-crt-001",
       learnerId: PETER.id,
-      title: "ABHI Induction & Governance",
-      issuedAt: "2022-02-24",
+      title: "Anti-Bribery & Corruption",
+      issuedAt: "2025-11-20",
       expiresAt: "2027-02-24",
       issuer: "ABHI Academy",
     },
     {
       id: "abhi-crt-002",
       learnerId: PETER.id,
-      title: "UK Market Access & NHS Policy Essentials",
-      issuedAt: "2022-04-20",
+      title: "Code of Conduct",
+      issuedAt: "2025-11-18",
       expiresAt: "2027-04-20",
       issuer: "ABHI Academy",
     },
     {
       id: "abhi-crt-003",
       learnerId: JUDITH.id,
-      title: "ABHI Induction & Governance",
-      issuedAt: "2023-06-10",
+      title: "Anti-Bribery & Corruption",
+      issuedAt: "2025-11-10",
       expiresAt: "2026-06-10",
       issuer: "ABHI Academy",
     },
     {
       id: "abhi-crt-004",
       learnerId: CHARLOTTE.id,
-      title: "ABHI Induction & Governance",
-      issuedAt: "2024-02-01",
+      title: "Whistleblowing",
+      issuedAt: "2025-10-01",
       expiresAt: "2027-02-01",
       issuer: "ABHI Academy",
     },
     {
       id: "abhi-crt-005",
       learnerId: OWAIN.id,
-      title: "ABHI Induction & Governance",
-      issuedAt: "2024-06-28",
+      title: "Health & Safety",
+      issuedAt: "2025-09-28",
       expiresAt: "2027-06-28",
       issuer: "ABHI Academy",
     },
     {
       id: "abhi-crt-006",
       learnerId: ADDIE.id,
-      title: "ABHI Induction & Governance",
-      issuedAt: "2023-10-12",
+      title: "Modern Slavery",
+      issuedAt: "2025-08-12",
       expiresAt: "2026-10-12",
       issuer: "ABHI Academy",
     },
@@ -344,7 +214,7 @@ export function createAbhiTqmsAssessments(): TqmsAssessment[] {
     {
       id: "abhi-asm-001",
       learnerId: JUDITH.id,
-      title: "Market Access & NHS Policy Check",
+      title: "Anti-Bribery & Corruption — Final assessment",
       score: null,
       status: "Pending",
       dueDate: "2026-08-30",
@@ -352,7 +222,7 @@ export function createAbhiTqmsAssessments(): TqmsAssessment[] {
     {
       id: "abhi-asm-002",
       learnerId: CHARLOTTE.id,
-      title: "Event & Delegation Management Quiz",
+      title: "Whistleblowing — Knowledge check",
       score: 88,
       status: "Passed",
       dueDate: "2026-07-15",
@@ -360,7 +230,7 @@ export function createAbhiTqmsAssessments(): TqmsAssessment[] {
     {
       id: "abhi-asm-003",
       learnerId: OWAIN.id,
-      title: "Member Engagement & CRM Assessment",
+      title: "Information Security — Final assessment",
       score: null,
       status: "Pending",
       dueDate: "2026-09-30",
@@ -368,7 +238,7 @@ export function createAbhiTqmsAssessments(): TqmsAssessment[] {
     {
       id: "abhi-asm-004",
       learnerId: ADDIE.id,
-      title: "UK Market Access Assessment",
+      title: "Modern Slavery — Final assessment",
       score: null,
       status: "Pending",
       dueDate: "2026-06-30",

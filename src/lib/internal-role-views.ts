@@ -404,6 +404,8 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "testing",
   "telemetry",
   "potential-clients",
+  "qms-training",
+  "marketing-training",
 ]);
 
 const ABHI_HIDDEN_ITEM_LABELS = new Set([
@@ -413,22 +415,25 @@ const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Testing",
   "Telemetry",
   "Potential Clients",
+  "QMS Courses",
+  "Internal Training",
 ]);
 
 function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Training") return section;
-  const alreadyHasInternal = section.items.some(
-    (item) => item.view === "marketing-training" || item.label === "Internal Training",
-  );
-  if (alreadyHasInternal) return section;
+  // ABHI Training: Dashboard + Courses only (no QMS Courses, no Internal Training).
   return {
     ...section,
     items: [
-      ...section.items,
       {
-        label: "Internal Training",
+        label: "Dashboard",
+        icon: "LayoutDashboard",
+        view: "training-dashboard" as const,
+      },
+      {
+        label: "Courses",
         icon: "GraduationCap",
-        view: "marketing-training",
+        view: "training" as const,
       },
     ],
   };

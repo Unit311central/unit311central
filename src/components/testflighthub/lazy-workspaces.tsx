@@ -19,6 +19,12 @@ export const AbhiEventsWorkspace = lazyWorkspace(() => import("./AbhiEventsWorks
 export const AbhiCalendarEventsWorkspace = lazyWorkspace(
   () => import("./AbhiCalendarEventsWorkspace"),
 );
+export const AbhiEventManagementWorkspace = lazyWorkspace(
+  () => import("./AbhiEventManagementWorkspace"),
+);
+export const AbhiComplianceTrainingWorkspace = lazyWorkspace(
+  () => import("./AbhiComplianceTrainingWorkspace"),
+);
 export const AbhiNewsletterWorkspace = lazyWorkspace(() => import("./AbhiNewsletterWorkspace"));
 export const AbhiMailingListWorkspace = lazyWorkspace(() => import("./AbhiMailingListWorkspace"));
 export const AbhiProgrammesWorkspace = lazyWorkspace(() => import("./AbhiProgrammesWorkspace"));

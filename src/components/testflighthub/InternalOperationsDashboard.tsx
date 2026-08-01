@@ -63,6 +63,8 @@ const TalantonPortfolioWorkspace = dynamic(
 );
 import {
   AbhiCalendarEventsWorkspace,
+  AbhiComplianceTrainingWorkspace,
+  AbhiEventManagementWorkspace,
   AbhiEventsWorkspace,
   AbhiMailingListWorkspace,
   AbhiNewsletterWorkspace,
@@ -794,13 +796,20 @@ export default function InternalOperationsDashboard({
 
           {activeView === "sector" && <SectorWorkspace />}
 
-          {activeView === "training" && <StaffTrainingWorkspace />}
+          {activeView === "training" &&
+            (isBrowserAbhiSurface() ? (
+              <AbhiComplianceTrainingWorkspace mode="courses" />
+            ) : (
+              <StaffTrainingWorkspace />
+            ))}
 
           {activeView === "marketing-newsletter" && <AbhiNewsletterWorkspace />}
 
           {activeView === "marketing-events" && <AbhiEventsWorkspace />}
 
           {activeView === "marketing-abhi-events" && <AbhiCalendarEventsWorkspace />}
+
+          {activeView === "marketing-event-management" && <AbhiEventManagementWorkspace />}
 
           {activeView === "marketing-working-groups" && (
             <AbhiProgrammesWorkspace mode="working-groups" />
@@ -814,11 +823,21 @@ export default function InternalOperationsDashboard({
             <AbhiProgrammesWorkspace mode="me-accelerator" />
           )}
 
-          {activeView === "marketing-training" && <StaffTrainingWorkspace />}
+          {activeView === "marketing-training" &&
+            (isBrowserAbhiSurface() ? (
+              <AbhiComplianceTrainingWorkspace mode="courses" />
+            ) : (
+              <StaffTrainingWorkspace />
+            ))}
 
           {activeView === "marketing-mailing-list" && <AbhiMailingListWorkspace />}
 
-          {activeView === "training-dashboard" && <TrainingDashboardWorkspace />}
+          {activeView === "training-dashboard" &&
+            (isBrowserAbhiSurface() ? (
+              <AbhiComplianceTrainingWorkspace mode="dashboard" />
+            ) : (
+              <TrainingDashboardWorkspace />
+            ))}
 
           {activeView === "corporate-dashboard" && <CorporateDashboardWorkspace />}
 

@@ -22,9 +22,24 @@ export type AbhiEvent = {
   website: string;
   memberIds: string[];
   notes: string;
+  /** ABHI staff member responsible for delivery. */
+  ownerId: string;
+  ownerName: string;
   calendarSynced: boolean;
   createdAt: string;
 };
+
+/** Staff options for External Events ownership. */
+export const ABHI_EVENT_OWNERS = [
+  { id: "abhi-emp-michelle-michelucci", name: "Michelle Michelucci" },
+  { id: "abhi-emp-paul-benton", name: "Paul Benton" },
+  { id: "abhi-emp-bayode-adisa", name: "Bayode Adisa" },
+  { id: "abhi-emp-jane-lewis", name: "Jane Lewis" },
+  { id: "abhi-emp-lauren-hayes", name: "Lauren Hayes" },
+  { id: "abhi-emp-sophie-green", name: "Sophie Green" },
+  { id: "abhi-emp-jonathan-evans", name: "Jonathan Evans" },
+  { id: "abhi-emp-charlotte-hart", name: "Charlotte Hart" },
+] as const;
 
 export type AbhiNewsletterStatus = "draft" | "scheduled" | "sent";
 export type AbhiRecipientMode = "all" | "selected" | "manual";
@@ -73,13 +88,21 @@ export type AbhiMailingCampaign = {
   createdAt: string;
 };
 
+export type AbhiWorkingGroupPerson = {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  role: string;
+};
+
 export type AbhiWorkingGroup = {
   id: string;
   name: string;
   description: string;
   lead: string;
   meetingCadence: string;
-  memberIds: string[];
+  people: AbhiWorkingGroupPerson[];
 };
 
 export type AbhiAcceleratorRegion = "us" | "me";
@@ -92,6 +115,10 @@ export type AbhiAcceleratorCohort = {
   location: string;
   startYear: number;
   status: AbhiAcceleratorStatus;
+  /** ABHI programme lead for the cohort. */
+  programmeLead: string;
+  /** Extra delivery / market notes. */
+  notes: string;
   companyIds: string[];
 };
 
@@ -140,6 +167,10 @@ function seedMembers(): AbhiMemberCompany[] {
 
 function seedEvents(memberIds: string[]): AbhiEvent[] {
   const pick = (...idx: number[]) => idx.map((i) => memberIds[i]).filter(Boolean) as string[];
+  const owner = (id: (typeof ABHI_EVENT_OWNERS)[number]["id"]) => {
+    const row = ABHI_EVENT_OWNERS.find((item) => item.id === id)!;
+    return { ownerId: row.id, ownerName: row.name };
+  };
   return [
     {
       id: "abhi-evt-whx-jhb-2026",
@@ -152,6 +183,7 @@ function seedEvents(memberIds: string[]): AbhiEvent[] {
       website: "https://whxjohannesburg.com",
       memberIds: pick(0, 3, 7),
       notes: "ABHI-led UK pavilion — African market access focus.",
+      ...owner("abhi-emp-michelle-michelucci"),
       calendarSynced: true,
       createdAt: daysAgoIso(120),
     },
@@ -166,6 +198,7 @@ function seedEvents(memberIds: string[]): AbhiEvent[] {
       website: "https://globalhealthexhibition.com",
       memberIds: pick(1, 6, 9, 10),
       notes: "Largest healthcare exhibition in the MENA region — Vision 2030 alignment.",
+      ...owner("abhi-emp-bayode-adisa"),
       calendarSynced: true,
       createdAt: daysAgoIso(110),
     },
@@ -180,6 +213,7 @@ function seedEvents(memberIds: string[]): AbhiEvent[] {
       website: "https://whxdubai.com",
       memberIds: pick(2, 4, 8),
       notes: "Flagship Middle East congress — co-located with WHX Tech.",
+      ...owner("abhi-emp-michelle-michelucci"),
       calendarSynced: true,
       createdAt: daysAgoIso(95),
     },
@@ -194,6 +228,7 @@ function seedEvents(memberIds: string[]): AbhiEvent[] {
       website: "https://whxtech.com",
       memberIds: pick(5, 9),
       notes: "Digital health and health-tech innovation track.",
+      ...owner("abhi-emp-lauren-hayes"),
       calendarSynced: false,
       createdAt: daysAgoIso(90),
     },
@@ -208,6 +243,7 @@ function seedEvents(memberIds: string[]): AbhiEvent[] {
       website: "https://hospitalar.com",
       memberIds: pick(2, 6),
       notes: "Latin America's largest healthcare trade show.",
+      ...owner("abhi-emp-michelle-michelucci"),
       calendarSynced: false,
       createdAt: daysAgoIso(60),
     },
@@ -222,6 +258,7 @@ function seedEvents(memberIds: string[]): AbhiEvent[] {
       website: "https://whxlagos.com",
       memberIds: pick(0, 7, 11),
       notes: "West Africa market entry showcase.",
+      ...owner("abhi-emp-paul-benton"),
       calendarSynced: false,
       createdAt: daysAgoIso(45),
     },
@@ -236,6 +273,7 @@ function seedEvents(memberIds: string[]): AbhiEvent[] {
       website: "https://hlth.com/europe",
       memberIds: pick(3, 4, 5, 10),
       notes: "Pan-European health innovation summit.",
+      ...owner("abhi-emp-jane-lewis"),
       calendarSynced: true,
       createdAt: daysAgoIso(30),
     },
@@ -250,6 +288,7 @@ function seedEvents(memberIds: string[]): AbhiEvent[] {
       website: "https://whxmiami.com",
       memberIds: pick(1, 8, 11),
       notes: "US gateway congress — LatAm and North America crossover.",
+      ...owner("abhi-emp-sophie-green"),
       calendarSynced: false,
       createdAt: daysAgoIso(20),
     },
@@ -373,8 +412,15 @@ function seedMailingCampaigns(memberIds: string[]): AbhiMailingCampaign[] {
   ];
 }
 
-function seedWorkingGroups(memberIds: string[]): AbhiWorkingGroup[] {
-  const pick = (...idx: number[]) => idx.map((i) => memberIds[i]).filter(Boolean) as string[];
+function seedWorkingGroups(_memberIds: string[]): AbhiWorkingGroup[] {
+  const person = (
+    id: string,
+    name: string,
+    company: string,
+    email: string,
+    role = "Member",
+  ): AbhiWorkingGroupPerson => ({ id, name, company, email, role });
+
   return [
     {
       id: "abhi-wg-regulatory",
@@ -382,7 +428,12 @@ function seedWorkingGroups(memberIds: string[]): AbhiWorkingGroup[] {
       description: "Tracks MHRA, UKCA, and international regulatory developments affecting members.",
       lead: "Judith Mellis",
       meetingCadence: "Monthly — first Tuesday",
-      memberIds: pick(1, 3, 6, 9),
+      people: [
+        person("abhi-wgp-reg-1", "Judith Mellis", "ABHI", "judith.mellis@abhi.org.uk", "Lead"),
+        person("abhi-wgp-reg-2", "Sarah Chen", "Aether Diagnostics", "sarah.chen@aetherdx.com"),
+        person("abhi-wgp-reg-3", "Tom Bradley", "Northstar Telehealth", "tom.bradley@northstar.health"),
+        person("abhi-wgp-reg-4", "Priya Shah", "Halcyon Health Analytics", "priya.shah@halcyonhealth.ai"),
+      ],
     },
     {
       id: "abhi-wg-digital-health",
@@ -390,7 +441,12 @@ function seedWorkingGroups(memberIds: string[]): AbhiWorkingGroup[] {
       description: "Shapes ABHI positions on NHS digital adoption, AI in health, and interoperability.",
       lead: "Rebecca Parkin",
       meetingCadence: "Bi-weekly",
-      memberIds: pick(0, 4, 5, 10),
+      people: [
+        person("abhi-wgp-dh-1", "Rebecca Parkin", "ABHI", "rebecca.parkin@abhi.org.uk", "Lead"),
+        person("abhi-wgp-dh-2", "James Okonkwo", "Pulseware Systems", "james@pulseware.co.uk"),
+        person("abhi-wgp-dh-3", "Elena Rossi", "Iris Imaging Solutions", "elena.rossi@irisimaging.co.uk"),
+        person("abhi-wgp-dh-4", "Marcus Webb", "Zenith Biotech Partners", "marcus.webb@zenithbiotech.com"),
+      ],
     },
     {
       id: "abhi-wg-market-access",
@@ -398,7 +454,12 @@ function seedWorkingGroups(memberIds: string[]): AbhiWorkingGroup[] {
       description: "Supports members navigating NICE, procurement frameworks, and NHS commercial routes.",
       lead: "Owain Prescott",
       meetingCadence: "Monthly — third Wednesday",
-      memberIds: pick(2, 7, 8, 11),
+      people: [
+        person("abhi-wgp-ma-1", "Owain Prescott", "ABHI", "owain.prescott@abhi.org.uk", "Lead"),
+        person("abhi-wgp-ma-2", "Hannah Cole", "Lumina Med Devices", "hannah.cole@luminamed.com"),
+        person("abhi-wgp-ma-3", "David Kwon", "ClearPath Orthopaedics", "david.kwon@clearpathortho.com"),
+        person("abhi-wgp-ma-4", "Amelia Frost", "Vitaflow Therapeutics", "amelia.frost@vitaflow.co.uk"),
+      ],
     },
     {
       id: "abhi-wg-sustainability",
@@ -406,7 +467,11 @@ function seedWorkingGroups(memberIds: string[]): AbhiWorkingGroup[] {
       description: "Develops guidance on net-zero supply chains and sustainable HealthTech manufacturing.",
       lead: "Addie Macgregor",
       meetingCadence: "Quarterly",
-      memberIds: pick(3, 6, 9),
+      people: [
+        person("abhi-wgp-sus-1", "Addie Macgregor", "ABHI", "addie.macgregor@abhi.org.uk", "Lead"),
+        person("abhi-wgp-sus-2", "Nina Patel", "GreenMed Manufacturing", "nina.patel@greenmed.co.uk"),
+        person("abhi-wgp-sus-3", "Chris Doyle", "Orbit Surgical", "chris.doyle@orbitsurgical.com"),
+      ],
     },
   ];
 }
@@ -421,6 +486,8 @@ function seedAccelerators(memberIds: string[]): AbhiAcceleratorCohort[] {
       location: "Boston, USA",
       startYear: 2026,
       status: "active",
+      programmeLead: "Michelle Michelucci",
+      notes: "FDA pathway clinics, payer introductions, and East Coast hospital network meetings.",
       companyIds: pick(0, 2, 5, 8),
     },
     {
@@ -430,6 +497,8 @@ function seedAccelerators(memberIds: string[]): AbhiAcceleratorCohort[] {
       location: "San Francisco, USA",
       startYear: 2027,
       status: "recruiting",
+      programmeLead: "Paul Benton",
+      notes: "Digital health and AI focus — Bay Area investor and health-system immersion.",
       companyIds: pick(4, 10),
     },
     {
@@ -439,6 +508,8 @@ function seedAccelerators(memberIds: string[]): AbhiAcceleratorCohort[] {
       location: "Dubai, UAE",
       startYear: 2026,
       status: "active",
+      programmeLead: "Bayode Adisa",
+      notes: "DHA and private provider introductions; co-located with WHX Dubai engagement.",
       companyIds: pick(1, 3, 9, 11),
     },
     {
@@ -448,6 +519,8 @@ function seedAccelerators(memberIds: string[]): AbhiAcceleratorCohort[] {
       location: "Riyadh, Saudi Arabia",
       startYear: 2027,
       status: "recruiting",
+      programmeLead: "Jane Lewis",
+      notes: "Vision 2030 health transformation partnerships and MOH pathway workshops.",
       companyIds: pick(6, 7),
     },
   ];
@@ -504,6 +577,45 @@ export function addMember(input: { companyName: string; contactEmail: string }) 
   return member;
 }
 
+export function updateMember(
+  id: string,
+  input: Partial<Pick<AbhiMemberCompany, "companyName" | "contactEmail">>,
+) {
+  const existing = state.members.find((row) => row.id === id);
+  if (!existing) return null;
+  const next: AbhiMemberCompany = {
+    ...existing,
+    companyName: input.companyName?.trim() || existing.companyName,
+    contactEmail: input.contactEmail?.trim() || existing.contactEmail,
+  };
+  state = {
+    ...state,
+    members: state.members.map((row) => (row.id === id ? next : row)),
+  };
+  emit();
+  return next;
+}
+
+export function deleteMember(id: string) {
+  state = {
+    ...state,
+    members: state.members.filter((row) => row.id !== id),
+    events: state.events.map((row) => ({
+      ...row,
+      memberIds: row.memberIds.filter((memberId) => memberId !== id),
+    })),
+    mailingCampaigns: state.mailingCampaigns.map((row) => ({
+      ...row,
+      recipientMemberIds: row.recipientMemberIds.filter((memberId) => memberId !== id),
+    })),
+    acceleratorCohorts: state.acceleratorCohorts.map((row) => ({
+      ...row,
+      companyIds: row.companyIds.filter((companyId) => companyId !== id),
+    })),
+  };
+  emit();
+}
+
 /* —— Events —— */
 
 export function listEvents() {
@@ -524,6 +636,8 @@ export function upsertEvent(input: Partial<AbhiEvent> & { id?: string }) {
     website: input.website ?? existing?.website ?? "",
     memberIds: input.memberIds ?? existing?.memberIds ?? [],
     notes: input.notes ?? existing?.notes ?? "",
+    ownerId: input.ownerId ?? existing?.ownerId ?? "",
+    ownerName: input.ownerName ?? existing?.ownerName ?? "",
     calendarSynced: input.calendarSynced ?? existing?.calendarSynced ?? false,
     createdAt: existing?.createdAt ?? nowIso(),
   };
@@ -692,7 +806,7 @@ export function upsertWorkingGroup(input: Partial<AbhiWorkingGroup> & { id?: str
     description: input.description ?? existing?.description ?? "",
     lead: input.lead ?? existing?.lead ?? "",
     meetingCadence: input.meetingCadence ?? existing?.meetingCadence ?? "Monthly",
-    memberIds: input.memberIds ?? existing?.memberIds ?? [],
+    people: input.people ?? existing?.people ?? [],
   };
   state = {
     ...state,
@@ -709,21 +823,34 @@ export function deleteWorkingGroup(id: string) {
   emit();
 }
 
-export function toggleWorkingGroupMember(groupId: string, memberId: string) {
-  state = {
-    ...state,
-    workingGroups: state.workingGroups.map((row) => {
-      if (row.id !== groupId) return row;
-      const already = row.memberIds.includes(memberId);
-      return {
-        ...row,
-        memberIds: already
-          ? row.memberIds.filter((id) => id !== memberId)
-          : [...row.memberIds, memberId],
-      };
-    }),
+export function upsertWorkingGroupPerson(
+  groupId: string,
+  input: Partial<AbhiWorkingGroupPerson> & { id?: string },
+) {
+  const group = state.workingGroups.find((row) => row.id === groupId);
+  if (!group) return null;
+  const existing = input.id ? group.people.find((row) => row.id === input.id) : null;
+  const nextPerson: AbhiWorkingGroupPerson = {
+    id: existing?.id ?? uid("abhi-wgp"),
+    name: input.name ?? existing?.name ?? "New member",
+    company: input.company ?? existing?.company ?? "",
+    email: input.email ?? existing?.email ?? "",
+    role: input.role ?? existing?.role ?? "Member",
   };
-  emit();
+  const people = existing
+    ? group.people.map((row) => (row.id === existing.id ? nextPerson : row))
+    : [...group.people, nextPerson];
+  upsertWorkingGroup({ id: groupId, people });
+  return nextPerson;
+}
+
+export function deleteWorkingGroupPerson(groupId: string, personId: string) {
+  const group = state.workingGroups.find((row) => row.id === groupId);
+  if (!group) return;
+  upsertWorkingGroup({
+    id: groupId,
+    people: group.people.filter((row) => row.id !== personId),
+  });
 }
 
 /* —— Accelerators —— */
@@ -743,6 +870,8 @@ export function upsertAcceleratorCohort(
     location: input.location ?? existing?.location ?? "",
     startYear: input.startYear ?? existing?.startYear ?? new Date().getFullYear(),
     status: input.status ?? existing?.status ?? "recruiting",
+    programmeLead: input.programmeLead ?? existing?.programmeLead ?? "",
+    notes: input.notes ?? existing?.notes ?? "",
     companyIds: input.companyIds ?? existing?.companyIds ?? [],
   };
   state = {

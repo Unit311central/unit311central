@@ -1,61 +1,214 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Users } from "lucide-react";
+import { Loader2, Pencil, Plus, Search, Trash2, Users, X } from "lucide-react";
 
 import type { BoardDirector } from "@/lib/board-directors-service";
 import {
+  CorporateFieldLabel,
   CorporateKpiTile,
   CorporateSection,
   corporateInputClass,
+  corporatePrimaryButtonClass,
+  corporateSecondaryButtonClass,
 } from "./corporate-ui";
+
+type DirectorFormState = {
+  id: string | null;
+  fullName: string;
+  roleTitle: string;
+  organisation: string;
+  email: string;
+  phone: string;
+  notes: string;
+};
+
+function emptyForm(): DirectorFormState {
+  return {
+    id: null,
+    fullName: "",
+    roleTitle: "",
+    organisation: "",
+    email: "",
+    phone: "",
+    notes: "",
+  };
+}
+
+function formFromDirector(director: BoardDirector): DirectorFormState {
+  return {
+    id: director.id,
+    fullName: director.fullName,
+    roleTitle: director.roleTitle,
+    organisation: director.organisation,
+    email: director.email ?? "",
+    phone: director.phone ?? "",
+    notes: director.notes,
+  };
+}
+
+function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm sm:p-8">
+      <div className="w-full max-w-xl rounded-2xl border border-white/15 bg-[#0b1524] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h3 className="text-lg font-semibold text-white">{title}</h3>
+          <button
+            type="button"
+            className="rounded-lg border border-white/10 p-1.5 text-white/50 hover:bg-white/5 hover:text-white"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function BoardDirectorsWorkspace() {
   const [directors, setDirectors] = useState<BoardDirector[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [form, setForm] = useState<DirectorFormState>(emptyForm());
+
+  async function loadDirectors() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/board-directors", { credentials: "include" });
+      const data = (await res.json()) as { directors?: BoardDirector[]; error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to load board directors.");
+      setDirectors(data.directors ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load board directors.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/board-directors", { credentials: "include" });
-        const data = (await res.json()) as { directors?: BoardDirector[]; error?: string };
-        if (!res.ok) throw new Error(data.error || "Failed to load board directors.");
-        if (!cancelled) setDirectors(data.directors ?? []);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load board directors.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
+    void loadDirectors();
   }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return directors;
     return directors.filter((d) =>
-      [d.fullName, d.roleTitle, d.organisation, d.email ?? ""]
+      [d.fullName, d.roleTitle, d.organisation, d.email ?? "", d.phone ?? ""]
         .join(" ")
         .toLowerCase()
         .includes(q),
     );
   }, [directors, search]);
 
+  function openCreate() {
+    setForm(emptyForm());
+    setFormOpen(true);
+    setNotice(null);
+  }
+
+  function openEdit(director: BoardDirector) {
+    setForm(formFromDirector(director));
+    setFormOpen(true);
+    setNotice(null);
+  }
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!form.fullName.trim() || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = {
+        fullName: form.fullName.trim(),
+        roleTitle: form.roleTitle.trim(),
+        organisation: form.organisation.trim(),
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+        notes: form.notes.trim(),
+      };
+      const res = await fetch(
+        form.id ? `/api/board-directors/${form.id}` : "/api/board-directors",
+        {
+          method: form.id ? "PATCH" : "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      const data = (await res.json()) as { director?: BoardDirector; error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to save director.");
+      if (!data.director) throw new Error("Failed to save director.");
+      setDirectors((current) => {
+        if (form.id) {
+          return current
+            .map((row) => (row.id === data.director!.id ? data.director! : row))
+            .sort((a, b) => a.sortOrder - b.sortOrder || a.fullName.localeCompare(b.fullName));
+        }
+        return [...current, data.director!].sort(
+          (a, b) => a.sortOrder - b.sortOrder || a.fullName.localeCompare(b.fullName),
+        );
+      });
+      setFormOpen(false);
+      setNotice(form.id ? "Director updated." : "Director added.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save director.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(director: BoardDirector) {
+    const ok = window.confirm(`Delete “${director.fullName}” from the board?`);
+    if (!ok) return;
+    setError(null);
+    try {
+      const res = await fetch(`/api/board-directors/${director.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Failed to delete director.");
+      setDirectors((current) => current.filter((row) => row.id !== director.id));
+      if (form.id === director.id) setFormOpen(false);
+      setNotice("Director deleted.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete director.");
+    }
+  }
+
   return (
     <div className="space-y-4">
+      {notice ? (
+        <p className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          {notice}
+        </p>
+      ) : null}
+
       <CorporateSection
         title="Board of Directors"
         subtitle="Governance board members for this organisation."
+        actions={
+          <button type="button" onClick={openCreate} className={corporatePrimaryButtonClass()}>
+            <Plus className="h-3.5 w-3.5" />
+            Add director
+          </button>
+        }
       >
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
           <CorporateKpiTile label="Directors" value={String(directors.length)} />
@@ -91,6 +244,10 @@ export default function BoardDirectorsWorkspace() {
           <div className="rounded-2xl border border-dashed border-white/15 px-6 py-10 text-center">
             <Users className="mx-auto mb-3 h-8 w-8 text-white/30" />
             <p className="text-sm text-white/55">No board directors found.</p>
+            <button type="button" onClick={openCreate} className={`${corporatePrimaryButtonClass()} mt-4`}>
+              <Plus className="h-3.5 w-3.5" />
+              Add director
+            </button>
           </div>
         ) : null}
 
@@ -102,6 +259,9 @@ export default function BoardDirectorsWorkspace() {
                   <th className="px-3 py-2.5">Name</th>
                   <th className="px-3 py-2.5">Role / title</th>
                   <th className="px-3 py-2.5">Organisation</th>
+                  <th className="px-3 py-2.5">Email</th>
+                  <th className="px-3 py-2.5">Phone</th>
+                  <th className="px-3 py-2.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -110,6 +270,44 @@ export default function BoardDirectorsWorkspace() {
                     <td className="px-3 py-2.5 font-medium text-white">{d.fullName}</td>
                     <td className="px-3 py-2.5">{d.roleTitle || "—"}</td>
                     <td className="px-3 py-2.5">{d.organisation || "—"}</td>
+                    <td className="px-3 py-2.5">
+                      {d.email ? (
+                        <a href={`mailto:${d.email}`} className="text-sky-300 hover:text-sky-200">
+                          {d.email}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {d.phone ? (
+                        <a href={`tel:${d.phone}`} className="text-white/80 hover:text-white">
+                          {d.phone}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(d)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/45 transition-colors hover:border-sky-400/40 hover:text-sky-200"
+                          aria-label={`Edit ${d.fullName}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(d)}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/35 transition-colors hover:border-rose-400/40 hover:text-rose-300"
+                          aria-label={`Delete ${d.fullName}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -117,6 +315,101 @@ export default function BoardDirectorsWorkspace() {
           </div>
         ) : null}
       </CorporateSection>
+
+      {formOpen ? (
+        <Modal
+          title={form.id ? "Edit director" : "Add director"}
+          onClose={() => setFormOpen(false)}
+        >
+          <form className="space-y-3" onSubmit={(e) => void handleSubmit(e)}>
+            <div>
+              <CorporateFieldLabel>Full name</CorporateFieldLabel>
+              <input
+                value={form.fullName}
+                onChange={(e) => setForm((current) => ({ ...current, fullName: e.target.value }))}
+                className={corporateInputClass}
+                required
+              />
+            </div>
+            <div>
+              <CorporateFieldLabel>Role / title</CorporateFieldLabel>
+              <input
+                value={form.roleTitle}
+                onChange={(e) => setForm((current) => ({ ...current, roleTitle: e.target.value }))}
+                className={corporateInputClass}
+                placeholder="e.g. Managing Director, B. Braun in the UK"
+              />
+            </div>
+            <div>
+              <CorporateFieldLabel>Organisation</CorporateFieldLabel>
+              <input
+                value={form.organisation}
+                onChange={(e) =>
+                  setForm((current) => ({ ...current, organisation: e.target.value }))
+                }
+                className={corporateInputClass}
+                placeholder="Company / organisation"
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <CorporateFieldLabel>Email address</CorporateFieldLabel>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
+                  className={corporateInputClass}
+                  placeholder="name@company.com"
+                />
+              </div>
+              <div>
+                <CorporateFieldLabel>Phone number</CorporateFieldLabel>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm((current) => ({ ...current, phone: e.target.value }))}
+                  className={corporateInputClass}
+                  placeholder="+44 …"
+                />
+              </div>
+            </div>
+            <div>
+              <CorporateFieldLabel>Notes</CorporateFieldLabel>
+              <textarea
+                value={form.notes}
+                onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))}
+                rows={3}
+                className={`${corporateInputClass} resize-none`}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setFormOpen(false)}
+                className={corporateSecondaryButtonClass()}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving || !form.fullName.trim()}
+                className={corporatePrimaryButtonClass(saving || !form.fullName.trim())}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Saving…
+                  </>
+                ) : form.id ? (
+                  "Save changes"
+                ) : (
+                  "Add director"
+                )}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
     </div>
   );
 }

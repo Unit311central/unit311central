@@ -129,6 +129,7 @@ export type InternalOperationsView =
   | "marketing-newsletter"
   | "marketing-events"
   | "marketing-abhi-events"
+  | "marketing-event-management"
   | "marketing-working-groups"
   | "marketing-us-accelerator"
   | "marketing-me-accelerator"
@@ -309,6 +310,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "marketing-newsletter",
   "marketing-events",
   "marketing-abhi-events",
+  "marketing-event-management",
   "marketing-working-groups",
   "marketing-us-accelerator",
   "marketing-me-accelerator",
@@ -916,8 +918,8 @@ export const internalViewTitles: Record<
   telemetry: { title: "Live Telemetry", subtitle: "Tools" },
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },
   sector: { title: "Sector Intelligence", subtitle: "Unit311" },
-  training: { title: "Staff Courses", subtitle: "Training" },
-  "training-dashboard": { title: "Training Dashboard", subtitle: "Training" },
+  training: { title: "Courses", subtitle: "Training" },
+  "training-dashboard": { title: "Dashboard", subtitle: "Training" },
   logistics: { title: "Logistics", subtitle: "Operations" },
   "client-onboarding": { title: "Client Onboarding", subtitle: "Customer Management" },
   "quality-management": { title: "Quality Management System", subtitle: "QMS" },
@@ -1004,6 +1006,10 @@ export const internalViewTitles: Record<
   "marketing-newsletter": { title: "Digital Newsletter", subtitle: "Marketing & Events" },
   "marketing-events": { title: "External Events", subtitle: "Marketing & Events" },
   "marketing-abhi-events": { title: "ABHI Events", subtitle: "Marketing & Events" },
+  "marketing-event-management": {
+    title: "Event Management",
+    subtitle: "Marketing & Events",
+  },
   "marketing-working-groups": { title: "ABHI Working Groups", subtitle: "Marketing & Events" },
   "marketing-us-accelerator": { title: "ABHI US Accelerator", subtitle: "Marketing & Events" },
   "marketing-me-accelerator": {

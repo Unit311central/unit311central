@@ -1,13 +1,17 @@
 "use client";
 
-import { Mail, Plus, Send, Trash2, Users } from "lucide-react";
+import { Mail, Pencil, Plus, Send, Trash2, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
+  addMember,
   deleteMailingCampaign,
+  deleteMember,
   sendMailingCampaignNow,
+  updateMember,
   upsertMailingCampaign,
   type AbhiMailingCampaign,
+  type AbhiMemberCompany,
   type AbhiRecipientMode,
 } from "@/lib/abhi-marketing-store";
 import { cn } from "@/lib/utils";
@@ -16,12 +20,31 @@ import {
   TqmsEmpty,
   TqmsKpiTile,
   TqmsSection,
+  TqmsSlideOver,
   TqmsStatusPill,
   tqmsInputClass,
   tqmsLabelClass,
   tqmsPrimaryButtonClass,
   tqmsSecondaryButtonClass,
 } from "./tqms-ui";
+
+type MemberFormState = {
+  id: string | null;
+  companyName: string;
+  contactEmail: string;
+};
+
+function emptyMemberForm(): MemberFormState {
+  return { id: null, companyName: "", contactEmail: "" };
+}
+
+function memberFormFrom(member: AbhiMemberCompany): MemberFormState {
+  return {
+    id: member.id,
+    companyName: member.companyName,
+    contactEmail: member.contactEmail,
+  };
+}
 
 type FormState = {
   id: string | null;
@@ -74,6 +97,8 @@ export default function AbhiMailingListWorkspace() {
   const store = useAbhiMarketingStore();
   const [form, setForm] = useState<FormState>(emptyForm());
   const [notice, setNotice] = useState<string | null>(null);
+  const [memberFormOpen, setMemberFormOpen] = useState(false);
+  const [memberForm, setMemberForm] = useState<MemberFormState>(emptyMemberForm());
 
   const sorted = useMemo(
     () =>
@@ -140,6 +165,49 @@ export default function AbhiMailingListWorkspace() {
   function handleDelete(id: string) {
     deleteMailingCampaign(id);
     if (form.id === id) startNew();
+  }
+
+  function openAddMember() {
+    setMemberForm(emptyMemberForm());
+    setMemberFormOpen(true);
+  }
+
+  function openEditMember(member: AbhiMemberCompany) {
+    setMemberForm(memberFormFrom(member));
+    setMemberFormOpen(true);
+  }
+
+  function handleMemberSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!memberForm.companyName.trim()) return;
+    const contactEmail =
+      memberForm.contactEmail.trim() ||
+      `contact@${memberForm.companyName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "")}.com`;
+    if (memberForm.id) {
+      updateMember(memberForm.id, {
+        companyName: memberForm.companyName.trim(),
+        contactEmail,
+      });
+      setNotice("Member updated.");
+    } else {
+      addMember({
+        companyName: memberForm.companyName.trim(),
+        contactEmail,
+      });
+      setNotice("Member added.");
+    }
+    setMemberFormOpen(false);
+  }
+
+  function handleDeleteMember(member: AbhiMemberCompany) {
+    const ok = window.confirm(`Remove “${member.companyName}” from the member directory?`);
+    if (!ok) return;
+    deleteMember(member.id);
+    patchForm({
+      recipientMemberIds: form.recipientMemberIds.filter((id) => id !== member.id),
+    });
+    if (memberForm.id === member.id) setMemberFormOpen(false);
+    setNotice("Member removed.");
   }
 
   const canSend = form.subject.trim().length > 0 && form.body.trim().length > 0;
@@ -301,19 +369,99 @@ export default function AbhiMailingListWorkspace() {
         </TqmsSection>
       </div>
 
-      <TqmsSection title="Member directory" subtitle="Companies available for mailing list campaigns.">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {store.members.map((member) => (
-            <div key={member.id} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
-              <Mail className="h-3.5 w-3.5 shrink-0 text-white/35" />
-              <div className="min-w-0">
-                <p className="truncate text-xs font-medium text-white/85">{member.companyName}</p>
-                <p className="truncate text-[10px] text-white/40">{member.contactEmail}</p>
+      <TqmsSection
+        title="Member directory"
+        subtitle="Companies available for mailing list campaigns."
+        actions={
+          <button type="button" onClick={openAddMember} className={tqmsPrimaryButtonClass()}>
+            <Plus className="h-3.5 w-3.5" />
+            Add member
+          </button>
+        }
+      >
+        {store.members.length === 0 ? (
+          <TqmsEmpty message="No member companies yet." />
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {store.members.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+              >
+                <Mail className="h-3.5 w-3.5 shrink-0 text-white/35" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-medium text-white/85">{member.companyName}</p>
+                  <p className="truncate text-[10px] text-white/40">{member.contactEmail}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => openEditMember(member)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-white/40 transition-colors hover:border-sky-400/40 hover:text-sky-200"
+                    aria-label={`Edit ${member.companyName}`}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteMember(member)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 text-white/30 transition-colors hover:border-rose-400/40 hover:text-rose-300"
+                    aria-label={`Delete ${member.companyName}`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </TqmsSection>
+
+      {memberFormOpen ? (
+        <TqmsSlideOver
+          title={memberForm.id ? "Edit member" : "Add member"}
+          subtitle="Company and contact email for mailing campaigns."
+          onClose={() => setMemberFormOpen(false)}
+        >
+          <form className="space-y-4" onSubmit={handleMemberSubmit}>
+            <label className="block">
+              <span className={tqmsLabelClass()}>Company name</span>
+              <input
+                value={memberForm.companyName}
+                onChange={(e) =>
+                  setMemberForm((current) => ({ ...current, companyName: e.target.value }))
+                }
+                className={tqmsInputClass()}
+                required
+              />
+            </label>
+            <label className="block">
+              <span className={tqmsLabelClass()}>Contact email</span>
+              <input
+                type="email"
+                value={memberForm.contactEmail}
+                onChange={(e) =>
+                  setMemberForm((current) => ({ ...current, contactEmail: e.target.value }))
+                }
+                placeholder="contact@company.com"
+                className={tqmsInputClass()}
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setMemberFormOpen(false)}
+                className={tqmsSecondaryButtonClass()}
+              >
+                Cancel
+              </button>
+              <button type="submit" className={tqmsPrimaryButtonClass()}>
+                {memberForm.id ? "Save changes" : "Add member"}
+              </button>
+            </div>
+          </form>
+        </TqmsSlideOver>
+      ) : null}
     </div>
   );
 }
