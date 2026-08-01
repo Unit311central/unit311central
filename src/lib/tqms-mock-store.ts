@@ -99,6 +99,30 @@ function createInitialTqmsState(): TqmsMockState {
     } catch {
       /* fall through */
     }
+
+    try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        const { applyAbhiTqmsSeed } =
+          require("@/lib/abhi-tqms-training") as typeof import("@/lib/abhi-tqms-training");
+        base = applyAbhiTqmsSeed(base);
+        return {
+          ...base,
+          activity: [
+            {
+              id: "abhi-trn-act-1",
+              at: new Date().toISOString(),
+              label: "ABHI training loaded",
+              detail: "Internal staff courses seeded for current ABHI employees.",
+            },
+            ...base.activity.slice(0, 8),
+          ],
+        };
+      }
+    } catch {
+      /* fall through */
+    }
   }
 
   if (!fixtures) return base;
@@ -222,6 +246,17 @@ export function getTqmsMockSnapshot(): TqmsMockState {
       const { isAviationTrainingLeak } =
         require("@/lib/corpcentre-tqms-training") as typeof import("@/lib/corpcentre-tqms-training");
       if (isBrowserCorpCentreSurface() && isAviationTrainingLeak(state.learners)) {
+        state = createInitialTqmsState();
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      const { isNonAbhiTrainingLeak } =
+        require("@/lib/abhi-tqms-training") as typeof import("@/lib/abhi-tqms-training");
+      if (isBrowserAbhiSurface() && isNonAbhiTrainingLeak(state.learners)) {
         state = createInitialTqmsState();
       }
     } catch {

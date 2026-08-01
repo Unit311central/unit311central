@@ -33,12 +33,13 @@ import {
 import type { IntegrationConnectionPublic } from "@/lib/integration-framework-data";
 import { useWebsiteMockStore } from "./useWebsiteMockStore";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { ABHI_LINKEDIN_URL, ABHI_X_URL, isBrowserAbhiSurface } from "@/lib/abhi-surface";
 
 const NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 const MOCK_USERS = createInitialUsers();
 
 type PlatformCredentials = {
-  id: "linkedin" | "instagram";
+  id: "linkedin" | "instagram" | "twitter";
   name: string;
   accent: string;
   accentBorder: string;
@@ -160,8 +161,36 @@ const INTERNAL_PLATFORMS: PlatformCredentials[] = [
   },
 ];
 
+const ABHI_PLATFORMS: PlatformCredentials[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
+    accentBorder: "border-[#0A66C2]/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
+        in
+      </span>
+    ),
+    urlPlaceholder: ABHI_LINKEDIN_URL,
+  },
+  {
+    id: "twitter",
+    name: "X (Twitter)",
+    accent: "from-white/15 to-white/5",
+    accentBorder: "border-white/25",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-black text-[10px] font-bold text-white">
+        X
+      </span>
+    ),
+    urlPlaceholder: ABHI_X_URL,
+  },
+];
+
 function resolveSettingsPlatforms(): PlatformCredentials[] {
   if (typeof window === "undefined") return INTERNAL_PLATFORMS;
+  if (isBrowserAbhiSurface()) return ABHI_PLATFORMS;
   try {
     const { isBrowserDemoSurface } =
       require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
@@ -984,7 +1013,11 @@ export default function SettingsWorkspace() {
 
         <SettingsColumn
           title="Social accounts"
-          description="LinkedIn and Instagram publishing credentials."
+          description={
+            isBrowserAbhiSurface()
+              ? "LinkedIn and X (Twitter) publishing credentials."
+              : "LinkedIn and Instagram publishing credentials."
+          }
           icon={<Share2 className="h-4 w-4" />}
           accentClass="border-pink-400/20"
         >

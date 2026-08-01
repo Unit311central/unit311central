@@ -196,7 +196,8 @@ async function upsertPlatformUser({
     username,
     display_name: displayName,
     password_hash: passwordHash,
-    user_type: "external",
+    // Workspace operators must be internal so Clients Dashboard / External Users APIs work.
+    user_type: "internal",
     redirect_path: "/dashboard",
     client_name: COMPANY,
     is_active: true,

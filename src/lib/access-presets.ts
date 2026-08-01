@@ -86,6 +86,20 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     ],
   },
   {
+    id: "marketing-events",
+    label: "Marketing & Events",
+    section: "Marketing & Events",
+    views: [
+      "marketing-newsletter",
+      "marketing-events",
+      "marketing-working-groups",
+      "marketing-us-accelerator",
+      "marketing-me-accelerator",
+      "marketing-training",
+      "marketing-mailing-list",
+    ],
+  },
+  {
     id: "corporate",
     label: "Corporate Information",
     section: "Corporate Information",

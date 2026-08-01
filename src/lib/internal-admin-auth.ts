@@ -79,8 +79,9 @@ export async function requireInternalWorkspaceSession(): Promise<
       return { session, workspace };
     }
 
-    // Stale session.userType after repairs: trust live platform_users.user_type
-    // for customer workspace members so External Users / module APIs do not 403.
+    // Customer workspace operators: trust live DB when the session cookie is stale
+    // (e.g. user_type flipped external→internal) or when an owner/admin was
+    // mis-provisioned as external — otherwise Clients Dashboard hides portal metrics.
     if (isCustomerWorkspaceSlug(workspace.slug) && isSupabaseConfigured()) {
       const supabase = isSupabaseServiceRoleConfigured()
         ? createSupabaseServiceRoleClient()
@@ -91,14 +92,29 @@ export async function requireInternalWorkspaceSession(): Promise<
         .eq("id", session.sub)
         .maybeSingle();
 
-      if (
-        platformUser?.user_type === "internal" &&
-        platformUser.is_active !== false
-      ) {
-        return {
-          session: { ...session, userType: "internal" },
-          workspace,
-        };
+      if (platformUser && platformUser.is_active !== false) {
+        if (platformUser.user_type === "internal") {
+          return {
+            session: { ...session, userType: "internal" },
+            workspace,
+          };
+        }
+
+        const { data: membership } = await supabase
+          .from("workspace_users")
+          .select("role, is_owner")
+          .eq("workspace_id", workspace.id)
+          .eq("user_id", session.sub)
+          .maybeSingle();
+        const role = String(membership?.role ?? "").toLowerCase();
+        const isOperator =
+          Boolean(membership?.is_owner) || role === "owner" || role === "admin";
+        if (isOperator) {
+          return {
+            session: { ...session, userType: "internal" },
+            workspace,
+          };
+        }
       }
     }
 

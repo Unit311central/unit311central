@@ -61,6 +61,10 @@ const TalantonPortfolioWorkspace = dynamic(
   },
 );
 import {
+  AbhiEventsWorkspace,
+  AbhiMailingListWorkspace,
+  AbhiNewsletterWorkspace,
+  AbhiProgrammesWorkspace,
   AccountsPayableWorkspace,
   AccountsReceivableWorkspace,
   AssetManagementWorkspace,
@@ -778,6 +782,26 @@ export default function InternalOperationsDashboard({
           {activeView === "sector" && <SectorWorkspace />}
 
           {activeView === "training" && <StaffTrainingWorkspace />}
+
+          {activeView === "marketing-newsletter" && <AbhiNewsletterWorkspace />}
+
+          {activeView === "marketing-events" && <AbhiEventsWorkspace />}
+
+          {activeView === "marketing-working-groups" && (
+            <AbhiProgrammesWorkspace mode="working-groups" />
+          )}
+
+          {activeView === "marketing-us-accelerator" && (
+            <AbhiProgrammesWorkspace mode="us-accelerator" />
+          )}
+
+          {activeView === "marketing-me-accelerator" && (
+            <AbhiProgrammesWorkspace mode="me-accelerator" />
+          )}
+
+          {activeView === "marketing-training" && <StaffTrainingWorkspace />}
+
+          {activeView === "marketing-mailing-list" && <AbhiMailingListWorkspace />}
 
           {activeView === "training-dashboard" && <TrainingDashboardWorkspace />}
 

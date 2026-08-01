@@ -385,12 +385,48 @@ function filterTalantonBaseNav(sections: readonly InternalNavSection[]): Interna
     .filter((section) => section.items.length > 0);
 }
 
+function isAbhiNavSurface(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserAbhiSurface } =
+      require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+    return isBrowserAbhiSurface();
+  } catch {
+    return false;
+  }
+}
+
+function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
+  try {
+    const { ABHI_MARKETING_NAV_SECTION } =
+      require("@/lib/abhi/nav") as typeof import("@/lib/abhi/nav");
+    const out: InternalNavSection[] = [];
+    let inserted = false;
+    for (const section of sections) {
+      out.push(section);
+      if (section.label === "Human Resources") {
+        out.push(ABHI_MARKETING_NAV_SECTION);
+        inserted = true;
+      }
+    }
+    if (!inserted) out.push(ABHI_MARKETING_NAV_SECTION);
+    return out;
+  } catch {
+    return [...sections];
+  }
+}
+
 export function filterInternalNavSectionsForDemoSurface(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
   // Talanton customer host: strip QMS/Website, restore Training, prepend Portfolio Companies.
   if (isTalantonNavSurface()) {
     return appendTalantonNavSections(filterTalantonBaseNav(sections));
+  }
+
+  // ABHI: inject Marketing & Events after Human Resources.
+  if (isAbhiNavSurface()) {
+    return insertAbhiMarketingSection(sections);
   }
 
   if (!shouldHideDroneToolNavViews()) {

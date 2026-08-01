@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { ABHI_LINKEDIN_URL, ABHI_X_URL, isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { cn } from "@/lib/utils";
 import {
   ArrowDownRight,
@@ -39,9 +40,17 @@ type LastPost = {
 };
 
 type PlatformConfig = {
-  id: "linkedin" | "instagram";
+  id: "linkedin" | "instagram" | "twitter";
   name: string;
   handle: string;
+  /** External profile URL — when set, the handle links out instead of being static text. */
+  href?: string;
+  /** Display name shown on the mocked post preview card. */
+  displayName: string;
+  /** "wide" mimics a LinkedIn/X feed post; "square" mimics an Instagram grid post. */
+  layout: "wide" | "square";
+  avatarLabel: string;
+  avatarClassName: string;
   accent: string;
   accentBorder: string;
   icon: React.ReactNode;
@@ -53,6 +62,10 @@ const INTERNAL_PLATFORMS: PlatformConfig[] = [
     id: "linkedin",
     name: "LinkedIn",
     handle: "@bcndrone",
+    displayName: "BCN Drone",
+    layout: "wide",
+    avatarLabel: "BC",
+    avatarClassName: "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold",
     accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
     accentBorder: "border-[#0A66C2]/35",
     icon: (
@@ -76,6 +89,10 @@ const INTERNAL_PLATFORMS: PlatformConfig[] = [
     id: "instagram",
     name: "Instagram",
     handle: "@bcndrone",
+    displayName: "@bcndrone",
+    layout: "square",
+    avatarLabel: "IG",
+    avatarClassName: "rounded-full bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold",
     accent: "from-fuchsia-500/20 via-pink-500/15 to-amber-500/10",
     accentBorder: "border-pink-400/35",
     icon: (
@@ -102,6 +119,10 @@ const DEMO_PLATFORMS: PlatformConfig[] = [
     id: "linkedin",
     name: "LinkedIn",
     handle: "@meridianatlas",
+    displayName: "Meridian Atlas",
+    layout: "wide",
+    avatarLabel: "MA",
+    avatarClassName: "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold",
     accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
     accentBorder: "border-[#0A66C2]/35",
     icon: (
@@ -125,6 +146,10 @@ const DEMO_PLATFORMS: PlatformConfig[] = [
     id: "instagram",
     name: "Instagram",
     handle: "@meridianatlas",
+    displayName: "@meridianatlas",
+    layout: "square",
+    avatarLabel: "IG",
+    avatarClassName: "rounded-full bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold",
     accent: "from-fuchsia-500/20 via-pink-500/15 to-amber-500/10",
     accentBorder: "border-pink-400/35",
     icon: (
@@ -146,8 +171,68 @@ const DEMO_PLATFORMS: PlatformConfig[] = [
   },
 ];
 
+const ABHI_PLATFORMS: PlatformConfig[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    handle: "ABHI",
+    href: ABHI_LINKEDIN_URL,
+    displayName: "ABHI",
+    layout: "wide",
+    avatarLabel: "AB",
+    avatarClassName: "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold",
+    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
+    accentBorder: "border-[#0A66C2]/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
+        in
+      </span>
+    ),
+    lastPost: {
+      date: "22 Jul 2026 · 11:00",
+      preview:
+        "ABHI members are heading to WHX Dubai 2027 — early bird registration is now open for the UK pavilion.",
+      stats: [
+        { label: "Impressions", value: "7.6K", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Reactions", value: "164", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "21", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Reposts", value: "18", icon: <Repeat2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+  {
+    id: "twitter",
+    name: "X (Twitter)",
+    handle: "@UK_ABHI",
+    href: ABHI_X_URL,
+    displayName: "ABHI",
+    layout: "wide",
+    avatarLabel: "X",
+    avatarClassName: "rounded-full border border-white/15 bg-black text-sm font-bold",
+    accent: "from-white/15 to-white/5",
+    accentBorder: "border-white/25",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-black text-[10px] font-bold text-white">
+        X
+      </span>
+    ),
+    lastPost: {
+      date: "19 Jul 2026 · 09:30",
+      preview:
+        "350 member companies and counting — thank you to everyone driving UK HealthTech growth this year. 🚀",
+      stats: [
+        { label: "Impressions", value: "5.2K", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Likes", value: "98", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
+        { label: "Replies", value: "12", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Reposts", value: "27", icon: <Repeat2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+];
+
 function resolveSocialPlatforms(): PlatformConfig[] {
   if (typeof window === "undefined") return INTERNAL_PLATFORMS;
+  if (isBrowserAbhiSurface()) return ABHI_PLATFORMS;
   try {
     const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
     if (isBrowserDemoSurface()) return DEMO_PLATFORMS;
@@ -461,7 +546,7 @@ function PostPreviewCard({
   scheduleTime: string;
 }) {
   const scheduleLabel = mode === "schedule" ? formatScheduleLabel(scheduleDate, scheduleTime) : null;
-  const isLinkedIn = platform.id === "linkedin";
+  const isWide = platform.layout === "wide";
 
   return (
     <div className="space-y-3">
@@ -483,32 +568,30 @@ function PostPreviewCard({
       <div
         className={cn(
           "overflow-hidden border border-white/12 bg-[#0b1524]",
-          isLinkedIn ? "rounded-xl" : "rounded-2xl",
+          isWide ? "rounded-xl" : "rounded-2xl",
         )}
       >
         <div className="flex items-center gap-3 border-b border-white/10 px-3.5 py-3">
           <div
             className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center text-white",
-              isLinkedIn
-                ? "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold"
-                : "rounded-full bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold",
+              platform.avatarClassName,
             )}
           >
-            {isLinkedIn ? "BC" : "IG"}
+            {platform.avatarLabel}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-white">
-              {isLinkedIn ? "BCN Drone" : platform.handle}
+              {isWide ? platform.displayName : platform.handle}
             </p>
             <p className="text-[11px] text-white/45">
-              {isLinkedIn ? `${platform.handle} · Just now` : "Just now"}
+              {isWide ? `${platform.handle} · Just now` : "Just now"}
             </p>
           </div>
           {platform.icon}
         </div>
 
-        {!isLinkedIn && imageUrl ? (
+        {!isWide && imageUrl ? (
           <div className="aspect-square w-full bg-black/40">
             <img src={imageUrl} alt={imageName ?? "Post image preview"} className="h-full w-full object-cover" />
           </div>
@@ -520,7 +603,7 @@ function PostPreviewCard({
           </p>
         </div>
 
-        {isLinkedIn && imageUrl ? (
+        {isWide && imageUrl ? (
           <div className="border-t border-white/10 bg-black/30">
             <img
               src={imageUrl}
@@ -537,7 +620,7 @@ function PostPreviewCard({
         ) : null}
 
         <div className="flex items-center gap-4 border-t border-white/10 px-3.5 py-2.5 text-white/35">
-          {isLinkedIn ? (
+          {isWide ? (
             <>
               <span className="inline-flex items-center gap-1 text-[11px]">
                 <ThumbsUp className="h-3.5 w-3.5" /> Like
@@ -642,7 +725,18 @@ function PlatformColumn({ platform }: { platform: PlatformConfig }) {
           </div>
           <div>
             <h3 className="text-base font-semibold text-white sm:text-lg">{platform.name}</h3>
-            <p className="text-xs text-white/50">{platform.handle}</p>
+            {platform.href ? (
+              <a
+                href={platform.href}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-sky-300/90 hover:text-sky-200 hover:underline"
+              >
+                {platform.handle}
+              </a>
+            ) : (
+              <p className="text-xs text-white/50">{platform.handle}</p>
+            )}
           </div>
         </div>
       </div>

@@ -61,6 +61,13 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
     import("@/components/testflighthub/TechnologyPlaceholderWorkspace"),
   "technology-settings": () =>
     import("@/components/testflighthub/TechnologyPlaceholderWorkspace"),
+  "marketing-newsletter": () => import("@/components/testflighthub/AbhiNewsletterWorkspace"),
+  "marketing-events": () => import("@/components/testflighthub/AbhiEventsWorkspace"),
+  "marketing-working-groups": () => import("@/components/testflighthub/AbhiProgrammesWorkspace"),
+  "marketing-us-accelerator": () => import("@/components/testflighthub/AbhiProgrammesWorkspace"),
+  "marketing-me-accelerator": () => import("@/components/testflighthub/AbhiProgrammesWorkspace"),
+  "marketing-training": () => import("@/components/testflighthub/StaffTrainingWorkspace"),
+  "marketing-mailing-list": () => import("@/components/testflighthub/AbhiMailingListWorkspace"),
 };
 
 /**
@@ -137,6 +144,12 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
   settings: ["profile", "users"],
   profile: ["settings"],
   users: ["settings", "users-external"],
+  "marketing-newsletter": ["marketing-events", "marketing-mailing-list"],
+  "marketing-events": ["marketing-newsletter", "marketing-working-groups"],
+  "marketing-working-groups": ["marketing-us-accelerator", "marketing-me-accelerator"],
+  "marketing-us-accelerator": ["marketing-me-accelerator", "marketing-working-groups"],
+  "marketing-me-accelerator": ["marketing-us-accelerator", "marketing-working-groups"],
+  "marketing-mailing-list": ["marketing-newsletter", "marketing-events"],
 };
 
 const warmed = new Set<string>();

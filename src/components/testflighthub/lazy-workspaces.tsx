@@ -15,6 +15,10 @@ function lazyWorkspace(
   });
 }
 
+export const AbhiEventsWorkspace = lazyWorkspace(() => import("./AbhiEventsWorkspace"));
+export const AbhiNewsletterWorkspace = lazyWorkspace(() => import("./AbhiNewsletterWorkspace"));
+export const AbhiMailingListWorkspace = lazyWorkspace(() => import("./AbhiMailingListWorkspace"));
+export const AbhiProgrammesWorkspace = lazyWorkspace(() => import("./AbhiProgrammesWorkspace"));
 export const AssetManagementWorkspace = lazyWorkspace(() => import("./AssetManagementWorkspace"));
 export const InventoryManagementWorkspace = lazyWorkspace(() => import("./InventoryManagementWorkspace"));
 export const ProcurementWorkspace = lazyWorkspace(() => import("./ProcurementWorkspace"));

@@ -125,7 +125,14 @@ export type InternalOperationsView =
   | "portfolio-analytics-risk"
   | "portfolio-analytics-geo"
   | "portfolio-analytics-quarterly"
-  | "portfolio-quarterly-reporting";
+  | "portfolio-quarterly-reporting"
+  | "marketing-newsletter"
+  | "marketing-events"
+  | "marketing-working-groups"
+  | "marketing-us-accelerator"
+  | "marketing-me-accelerator"
+  | "marketing-training"
+  | "marketing-mailing-list";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -298,6 +305,13 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "portfolio-analytics-geo",
   "portfolio-analytics-quarterly",
   "portfolio-quarterly-reporting",
+  "marketing-newsletter",
+  "marketing-events",
+  "marketing-working-groups",
+  "marketing-us-accelerator",
+  "marketing-me-accelerator",
+  "marketing-training",
+  "marketing-mailing-list",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -985,6 +999,16 @@ export const internalViewTitles: Record<
     title: "Reporting Hub",
     subtitle: "Quarterly Reporting",
   },
+  "marketing-newsletter": { title: "Digital Newsletter", subtitle: "Marketing & Events" },
+  "marketing-events": { title: "Events", subtitle: "Marketing & Events" },
+  "marketing-working-groups": { title: "ABHI Working Groups", subtitle: "Marketing & Events" },
+  "marketing-us-accelerator": { title: "ABHI US Accelerator", subtitle: "Marketing & Events" },
+  "marketing-me-accelerator": {
+    title: "ABHI Middle East Accelerator",
+    subtitle: "Marketing & Events",
+  },
+  "marketing-training": { title: "Internal Training", subtitle: "Marketing & Events" },
+  "marketing-mailing-list": { title: "Mailing List Management", subtitle: "Marketing & Events" },
 };
 
 /** Breadcrumb labels for the active internal leaf (section → … → page).

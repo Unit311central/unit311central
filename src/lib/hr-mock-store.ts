@@ -136,6 +136,9 @@ function seedState(): HrMockState {
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {
+        const { buildAbhiRecruitmentVacancies } =
+          require("@/lib/abhi-hr-recruitment") as typeof import("@/lib/abhi-hr-recruitment");
+        const vacancies = buildAbhiRecruitmentVacancies();
         const leaveRequests: HrLeaveRequest[] = [
           {
             id: "leave-abhi-1",
@@ -298,7 +301,7 @@ function seedState(): HrMockState {
               calendar: "England & Wales",
             },
           ],
-          vacancies: [],
+          vacancies,
           candidates: [],
           reviews: [],
           goals: [],
@@ -319,14 +322,26 @@ function seedState(): HrMockState {
             {
               id: "act-abhi-3",
               at: isoDaysFromNow(-3),
-              label: "Leave approved",
-              detail: "Charlotte Hart — Annual leave",
+              label: "Recruitment role opened",
+              detail: "Events & Conferences Coordinator — London",
             },
             {
               id: "act-abhi-4",
               at: isoDaysFromNow(-5),
               label: "Leave requested",
               detail: "Sophie Green — Training (pending)",
+            },
+            {
+              id: "act-abhi-5",
+              at: isoDaysFromNow(-7),
+              label: "Recruitment role opened",
+              detail: "Policy & Public Affairs Advisor — London / Hybrid",
+            },
+            {
+              id: "act-abhi-6",
+              at: isoDaysFromNow(-14),
+              label: "Recruitment role opened",
+              detail: "Membership Engagement Manager — London",
             },
           ],
         };
@@ -1716,11 +1731,13 @@ function ensureHrState(): HrMockState {
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (
         isBrowserAbhiSurface() &&
-        state.leaveRequests.some((row) =>
-          /elena ruiz|pablo serrano|mar[ií]a garc[ií]a|carlos mendoza|barcelona|madrid/i.test(
-            `${row.employeeName} ${row.location} ${row.managerName}`,
-          ),
-        )
+        (state.vacancies.length === 0 ||
+          state.vacancies.some((row) => !String(row.id).startsWith("abhi-vac-")) ||
+          state.leaveRequests.some((row) =>
+            /elena ruiz|pablo serrano|mar[ií]a garc[ií]a|carlos mendoza|barcelona|madrid/i.test(
+              `${row.employeeName} ${row.location} ${row.managerName}`,
+            ),
+          ))
       ) {
         state = seedState();
         seededHost = window.location.hostname;
