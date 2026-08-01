@@ -1090,11 +1090,13 @@ export default function SupportLoungeApp({
                       )}
                     </button>
                   </div>
-                  <p className="mt-2 text-[11px] leading-relaxed text-white/35">
-                    At any time simply type in &quot;speak to an advisor&quot; and we&apos;ll connect
-                    you with your assigned support engineer. Please note responses may not always be
-                    immediate.
-                  </p>
+                  {!intakeMode ? (
+                    <p className="mt-2 text-[11px] leading-relaxed text-white/35">
+                      At any time simply type in &quot;speak to an advisor&quot; and we&apos;ll
+                      connect you with your assigned support engineer. Please note responses may not
+                      always be immediate.
+                    </p>
+                  ) : null}
                 </form>
               )}
             </div>
