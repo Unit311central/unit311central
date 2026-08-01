@@ -1821,37 +1821,42 @@ export async function ensureClientOnboardingRecordsTable(): Promise<boolean> {
 }
 
 export async function ensureInternalClientsFilesFolderColumns(): Promise<boolean> {
-  const exists = await columnExistsViaManagementApi("internal_clients", "files_folder_id");
-  if (exists === true) {
-    await reloadPostgrestSchema();
-    return true;
-  }
+  return onceEnsured("columns:internal_clients.files_folder_id", async () => {
+    // Prefer REST probe — avoid Management API + schema reload on every clients list.
+    const viaRest = await columnExistsViaRestApi("internal_clients", "files_folder_id");
+    if (viaRest === true) return true;
 
-  const dbUrl = getDatabaseUrl();
-  if (dbUrl) {
-    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    const exists = await columnExistsViaManagementApi("internal_clients", "files_folder_id");
+    if (exists === true) {
+      // Schema already applied — do not reload PostgREST on every request.
+      return true;
+    }
 
-    try {
-      await client.connect();
-      if (await columnExists(client, "internal_clients", "files_folder_id")) {
+    const dbUrl = getDatabaseUrl();
+    if (dbUrl) {
+      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+
+      try {
+        await client.connect();
+        if (await columnExists(client, "internal_clients", "files_folder_id")) {
+          return true;
+        }
+        await applyMigration(client, INTERNAL_CLIENTS_FILES_FOLDER_MIGRATION_PATH);
         await reloadPostgrestSchema();
         return true;
+      } finally {
+        await client.end().catch(() => undefined);
       }
-      await applyMigration(client, INTERNAL_CLIENTS_FILES_FOLDER_MIGRATION_PATH);
-      await reloadPostgrestSchema();
-      return true;
-    } finally {
-      await client.end().catch(() => undefined);
     }
-  }
 
-  if (exists === false) {
-    const applied = await applyMigrationViaManagementApi(INTERNAL_CLIENTS_FILES_FOLDER_MIGRATION_PATH);
-    if (applied) await reloadPostgrestSchema();
-    return applied;
-  }
+    if (exists === false) {
+      const applied = await applyMigrationViaManagementApi(INTERNAL_CLIENTS_FILES_FOLDER_MIGRATION_PATH);
+      if (applied) await reloadPostgrestSchema();
+      return applied;
+    }
 
-  return false;
+    return false;
+  });
 }
 
 export async function columnExistsViaRestApi(tableName: string, columnName: string) {
@@ -1990,37 +1995,38 @@ export async function withInternalClientsFilesFolderColumns<T>(
 }
 
 export async function ensureInternalClientsSignupProfileColumns(): Promise<boolean> {
-  const exists = await columnExistsViaManagementApi("internal_clients", "job_title");
-  if (exists === true) {
-    await reloadPostgrestSchema();
-    return true;
-  }
+  return onceEnsured("columns:internal_clients.job_title", async () => {
+    const viaRest = await columnExistsViaRestApi("internal_clients", "job_title");
+    if (viaRest === true) return true;
 
-  const dbUrl = getDatabaseUrl();
-  if (dbUrl) {
-    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    const exists = await columnExistsViaManagementApi("internal_clients", "job_title");
+    if (exists === true) return true;
 
-    try {
-      await client.connect();
-      if (await columnExists(client, "internal_clients", "job_title")) {
+    const dbUrl = getDatabaseUrl();
+    if (dbUrl) {
+      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+
+      try {
+        await client.connect();
+        if (await columnExists(client, "internal_clients", "job_title")) {
+          return true;
+        }
+        await applyMigration(client, INTERNAL_CLIENTS_SIGNUP_PROFILE_MIGRATION_PATH);
         await reloadPostgrestSchema();
         return true;
+      } finally {
+        await client.end().catch(() => undefined);
       }
-      await applyMigration(client, INTERNAL_CLIENTS_SIGNUP_PROFILE_MIGRATION_PATH);
-      await reloadPostgrestSchema();
-      return true;
-    } finally {
-      await client.end().catch(() => undefined);
     }
-  }
 
-  if (exists === false) {
-    const applied = await applyMigrationViaManagementApi(INTERNAL_CLIENTS_SIGNUP_PROFILE_MIGRATION_PATH);
-    if (applied) await reloadPostgrestSchema();
-    return applied;
-  }
+    if (exists === false) {
+      const applied = await applyMigrationViaManagementApi(INTERNAL_CLIENTS_SIGNUP_PROFILE_MIGRATION_PATH);
+      if (applied) await reloadPostgrestSchema();
+      return applied;
+    }
 
-  return false;
+    return false;
+  });
 }
 
 export async function withInternalClientsSignupProfileColumns<T>(

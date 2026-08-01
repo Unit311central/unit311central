@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import {
   fetchCachedJson,
   invalidateCachedJson,
+  peekCachedJson,
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
@@ -179,17 +180,27 @@ export default function ClientManagementWorkspace({
   );
 
   const loadClients = useCallback(async () => {
-    setLoading(true);
     setError(null);
+
+    // Paint instantly from shared shell cache (dashboard / other views often warm this).
+    const cached = peekCachedJson<{ clients?: ManagedClient[] }>(PLATFORM_CACHE_KEYS.clients);
+    if (cached?.clients?.length) {
+      syncClients(cached.clients);
+      setSelectedClientId((current) => {
+        if (current && cached.clients!.some((client) => client.id === current)) return current;
+        return cached.clients![0]?.id ?? null;
+      });
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
 
     try {
       // Lounge tokens are minted on create / copy — do not block the directory load.
-      invalidateCachedJson(PLATFORM_CACHE_KEYS.clients);
-
       const data = await fetchCachedJson<{ clients?: ManagedClient[] }>(
         PLATFORM_CACHE_KEYS.clients,
         "/api/clients",
-        { ttlMs: 30_000, timeoutMs: 25_000 },
+        { ttlMs: 120_000, timeoutMs: 25_000 },
       );
 
       const nextClients = data.clients ?? [];
@@ -200,8 +211,10 @@ export default function ClientManagementWorkspace({
       });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load clients");
-      syncClients([]);
-      setSelectedClientId(null);
+      if (!cached?.clients?.length) {
+        syncClients([]);
+        setSelectedClientId(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -646,6 +659,8 @@ export default function ClientManagementWorkspace({
                         <img
                           src={clientLogoUrl(client.companyName, client.id)}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
                           className="h-7 w-7 shrink-0 rounded-lg border border-white/10 bg-white/90 object-cover"
                         />
                         <p className="min-w-0 truncate text-sm font-semibold text-white">

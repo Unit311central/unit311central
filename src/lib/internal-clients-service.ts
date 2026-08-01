@@ -9,7 +9,6 @@ import {
 } from "@/lib/client-management-data";
 import {
   ensureClientBillingProfileColumns,
-  ensureInternalClientsFilesFolderColumns,
   ensureInternalClientsSignupProfileColumns,
   ensureInternalClientsTable,
   withInternalClientsFilesFolderColumns,
@@ -136,8 +135,7 @@ export async function listInternalClients(
   scope?: ClientsWorkspaceScope,
 ): Promise<ManagedClient[]> {
   const workspaceId = await resolveClientsWorkspaceId(scope);
-  await ensureInternalClientsTable();
-  await ensureInternalClientsFilesFolderColumns();
+  // Happy path: query only. Schema ensure/reload runs only if PostgREST reports missing table/columns.
   return withInternalClientsFilesFolderColumns(() =>
     withInternalClientsTable(async () => {
       const supabase = requireClientsSupabase();
@@ -235,8 +233,6 @@ export async function getInternalClient(
   scope?: ClientsWorkspaceScope,
 ): Promise<ManagedClient | null> {
   const workspaceId = await resolveClientsWorkspaceId(scope);
-  await ensureInternalClientsTable();
-  await ensureInternalClientsFilesFolderColumns();
   return withInternalClientsFilesFolderColumns(() =>
     withInternalClientsTable(async () => {
       const supabase = requireClientsSupabase();

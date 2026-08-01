@@ -23,7 +23,6 @@ export async function GET() {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    await ensureInternalClientsTable();
     const clients = await listInternalClients({ workspaceId: workspace.id });
     return NextResponse.json({
       clients,
