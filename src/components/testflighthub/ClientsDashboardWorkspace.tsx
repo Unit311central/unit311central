@@ -13,9 +13,23 @@ import {
   TrendingUp,
   UserPlus,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-import { ABHI_MEMBER_SIGNUP_GROWTH, isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import {
+  ABHI_MEMBERS_BY_REGION,
+  ABHI_MEMBER_SIGNUP_GROWTH,
+  isBrowserAbhiSurface,
+} from "@/lib/abhi-surface";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import { type ManagedClient } from "@/lib/client-management-data";
@@ -59,8 +73,21 @@ const ACTIVITY_LABEL: Record<ClientsDashboardActivityKind, string> = {
 
 const ACTIVITY_PREVIEW_LIMIT = 5;
 
+const chartTooltipStyle = {
+  background: "#0b1524",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: 12,
+  fontSize: 12,
+  color: "#fff",
+} as const;
+
 function AbhiMemberGrowthSection() {
-  const rows = ABHI_MEMBER_SIGNUP_GROWTH;
+  const growthRows = ABHI_MEMBER_SIGNUP_GROWTH;
+  const regionRows = ABHI_MEMBERS_BY_REGION;
+  const latest = growthRows[growthRows.length - 1]!;
+  const prior = growthRows[growthRows.length - 2]!;
+  const yoy = latest.members - prior.members;
+
   return (
     <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
@@ -70,51 +97,84 @@ function AbhiMemberGrowthSection() {
           </p>
           <h3 className="mt-0.5 text-base font-semibold text-white">Member companies signed up</h3>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {rows.slice(1).map((row, index) => {
-            const previous = rows[index]!.members;
-            const delta = row.members - previous;
-            return (
-              <span
-                key={row.year}
-                className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200"
-              >
-                <TrendingUp className="h-3 w-3" />
-                {row.year} +{delta}
-              </span>
-            );
-          })}
-        </div>
+        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+          <TrendingUp className="h-3 w-3" />
+          {latest.year} +{yoy} · {latest.members} total
+        </span>
       </div>
-      <div className="mt-3 h-[200px] w-full min-w-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows.map((row) => ({ ...row }))}>
-            <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="year"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
-              width={36}
-            />
-            <Tooltip
-              cursor={{ fill: "rgba(255,255,255,0.04)" }}
-              contentStyle={{
-                background: "#0b1524",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 12,
-                fontSize: 12,
-                color: "#fff",
-              }}
-            />
-            <Bar dataKey="members" name="Member companies" fill="#38bdf8" radius={[6, 6, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+
+      <div className="mt-3 grid gap-4 lg:grid-cols-2">
+        <div className="min-w-0">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+            Members over time
+          </p>
+          <div className="h-[220px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={growthRows.map((row) => ({ ...row }))}>
+                <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="year"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
+                  width={36}
+                  domain={["dataMin - 20", "dataMax + 20"]}
+                />
+                <Tooltip
+                  contentStyle={chartTooltipStyle}
+                  formatter={(value) => [`${value}`, "Members"]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="members"
+                  name="Members"
+                  stroke="#38bdf8"
+                  strokeWidth={2.5}
+                  dot={{ r: 3.5, fill: "#38bdf8", strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+            Members by region
+          </p>
+          <div className="h-[220px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={regionRows.map((row) => ({ ...row }))} layout="vertical" margin={{ left: 8 }}>
+                <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" horizontal={false} />
+                <XAxis
+                  type="number"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="region"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                  width={96}
+                />
+                <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  contentStyle={chartTooltipStyle}
+                  formatter={(value) => [`${value}`, "Members"]}
+                />
+                <Bar dataKey="members" name="Members" fill="#34d399" radius={[0, 6, 6, 0]} barSize={22} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
     </section>
   );

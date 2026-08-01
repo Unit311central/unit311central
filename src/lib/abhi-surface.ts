@@ -12,9 +12,19 @@ export const ABHI_EVENTS_CALENDAR_EMAIL = "events@abhi.org.uk";
 
 /** Member companies signed up by year (Clients Dashboard growth chart). */
 export const ABHI_MEMBER_SIGNUP_GROWTH = [
+  { year: "2021", members: 248 },
+  { year: "2022", members: 276 },
+  { year: "2023", members: 298 },
   { year: "2024", members: 320 },
   { year: "2025", members: 350 },
   { year: "2026", members: 379 },
+] as const;
+
+/** Current membership by region (sums to latest year total). */
+export const ABHI_MEMBERS_BY_REGION = [
+  { region: "UK", members: 245 },
+  { region: "EU", members: 78 },
+  { region: "North America", members: 56 },
 ] as const;
 
 export function isAbhiSlug(slug: string | null | undefined): boolean {
