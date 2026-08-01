@@ -185,9 +185,15 @@ function DashboardAssignedView() {
 
 function CoursesCatalogView() {
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
+      {notice ? (
+        <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          {notice}
+        </div>
+      ) : null}
       <TqmsSection
         title="Courses"
         subtitle="ABHI compliance courses (Anti-Bribery through Modern Slavery)."
@@ -201,7 +207,20 @@ function CoursesCatalogView() {
         <CourseTable rows={ABHI_COMPLIANCE_COURSES} />
       </TqmsSection>
 
-      {wizardOpen ? <CreateCourseWizard onClose={() => setWizardOpen(false)} /> : null}
+      {wizardOpen ? (
+        <CreateCourseWizard
+          suggestedCode={`ABHI-${String(ABHI_COMPLIANCE_COURSES.length + 1).padStart(3, "0")}`}
+          onClose={() => setWizardOpen(false)}
+          onSubmit={(course) => {
+            setWizardOpen(false);
+            setNotice(
+              course.status === "Published"
+                ? `"${course.title}" published to the course builder.`
+                : `"${course.title}" draft saved in the course builder.`,
+            );
+          }}
+        />
+      ) : null}
     </div>
   );
 }

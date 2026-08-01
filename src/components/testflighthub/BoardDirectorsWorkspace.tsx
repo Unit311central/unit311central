@@ -225,7 +225,7 @@ export default function BoardDirectorsWorkspace() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search directors…"
-            className={`${corporateInputClass} border-0 bg-transparent px-0`}
+            className={`${corporateInputClass()} border-0 bg-transparent px-0`}
           />
         </div>
 
@@ -327,7 +327,7 @@ export default function BoardDirectorsWorkspace() {
               <input
                 value={form.fullName}
                 onChange={(e) => setForm((current) => ({ ...current, fullName: e.target.value }))}
-                className={corporateInputClass}
+                className={corporateInputClass()}
                 required
               />
             </div>
@@ -336,7 +336,7 @@ export default function BoardDirectorsWorkspace() {
               <input
                 value={form.roleTitle}
                 onChange={(e) => setForm((current) => ({ ...current, roleTitle: e.target.value }))}
-                className={corporateInputClass}
+                className={corporateInputClass()}
                 placeholder="e.g. Managing Director, B. Braun in the UK"
               />
             </div>
@@ -347,7 +347,7 @@ export default function BoardDirectorsWorkspace() {
                 onChange={(e) =>
                   setForm((current) => ({ ...current, organisation: e.target.value }))
                 }
-                className={corporateInputClass}
+                className={corporateInputClass()}
                 placeholder="Company / organisation"
               />
             </div>
@@ -358,7 +358,7 @@ export default function BoardDirectorsWorkspace() {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
-                  className={corporateInputClass}
+                  className={corporateInputClass()}
                   placeholder="name@company.com"
                 />
               </div>
@@ -368,7 +368,7 @@ export default function BoardDirectorsWorkspace() {
                   type="tel"
                   value={form.phone}
                   onChange={(e) => setForm((current) => ({ ...current, phone: e.target.value }))}
-                  className={corporateInputClass}
+                  className={corporateInputClass()}
                   placeholder="+44 …"
                 />
               </div>
@@ -379,7 +379,7 @@ export default function BoardDirectorsWorkspace() {
                 value={form.notes}
                 onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))}
                 rows={3}
-                className={`${corporateInputClass} resize-none`}
+                className={`${corporateInputClass()} resize-none`}
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
