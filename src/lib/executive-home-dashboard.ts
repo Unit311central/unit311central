@@ -418,39 +418,42 @@ export function buildExecutiveHomeLiveAnalytics(input: {
         latestLabel: formatCompactMoney(latestSpend, currency),
       },
     ],
-    annotations: [
-      {
-        id: "latest-revenue",
-        label: "Latest month revenue",
-        value: formatCompactMoney(latestRevenue, currency),
-        tone: "positive",
-        hint: latest ? latest.label : "Current month",
-      },
-      {
-        id: "latest-spend",
-        label: "Latest month spend",
-        value: formatCompactMoney(latestSpend, currency),
-        tone: "neutral",
-        hint: latest ? latest.label : "Current month",
-      },
-      {
-        id: "net",
-        label: "Month contribution",
-        value: formatCompactMoney(net, currency),
-        tone: net >= 0 ? "positive" : "warning",
-        hint: "Revenue − spend",
-      },
-      {
-        id: "mom",
-        label: "Revenue MoM",
-        value: momLabel,
-        tone: momTone,
-        hint:
-          points.length >= 2
-            ? `${formatCompactMoney(periodRevenue, currency)} in / ${formatCompactMoney(periodSpend, currency)} out · ${points.length} mo`
-            : "Need 2 months of history",
-      },
-    ],
+    // ABHI Home keeps the chart only — these summary chips duplicate the KPI row.
+    annotations: isBrowserAbhiHome()
+      ? []
+      : [
+          {
+            id: "latest-revenue",
+            label: "Latest month revenue",
+            value: formatCompactMoney(latestRevenue, currency),
+            tone: "positive",
+            hint: latest ? latest.label : "Current month",
+          },
+          {
+            id: "latest-spend",
+            label: "Latest month spend",
+            value: formatCompactMoney(latestSpend, currency),
+            tone: "neutral",
+            hint: latest ? latest.label : "Current month",
+          },
+          {
+            id: "net",
+            label: "Month contribution",
+            value: formatCompactMoney(net, currency),
+            tone: net >= 0 ? "positive" : "warning",
+            hint: "Revenue − spend",
+          },
+          {
+            id: "mom",
+            label: "Revenue MoM",
+            value: momLabel,
+            tone: momTone,
+            hint:
+              points.length >= 2
+                ? `${formatCompactMoney(periodRevenue, currency)} in / ${formatCompactMoney(periodSpend, currency)} out · ${points.length} mo`
+                : "Need 2 months of history",
+          },
+        ],
   };
 }
 
