@@ -34,6 +34,7 @@ export type InternalOperationsView =
   | "expenses"
   | "hr"
   | "hr-dashboard"
+  | "hr-org-chart"
   | "hr-recruitment"
   | "hr-leave"
   | "hr-performance"
@@ -215,6 +216,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "expenses",
   "hr",
   "hr-dashboard",
+  "hr-org-chart",
   "hr-recruitment",
   "hr-leave",
   "hr-performance",
@@ -565,6 +567,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "hr-dashboard" as const },
       { label: "Employees", icon: "Users", view: "hr" as const },
+      { label: "Org Chart", icon: "Network", view: "hr-org-chart" as const },
       {
         label: "Recruitment",
         icon: "ContactRound",
@@ -875,6 +878,7 @@ export const internalViewTitles: Record<
   expenses: { title: "Expenses", subtitle: "Financials" },
   hr: { title: "Employees", subtitle: "Human Resources" },
   "hr-dashboard": { title: "Dashboard", subtitle: "Human Resources" },
+  "hr-org-chart": { title: "Org Chart", subtitle: "Human Resources" },
   "hr-recruitment": { title: "Recruitment", subtitle: "Human Resources" },
   "hr-leave": { title: "Time & Attendance", subtitle: "Human Resources" },
   "hr-performance": { title: "Performance", subtitle: "Human Resources" },

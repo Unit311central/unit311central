@@ -24,6 +24,7 @@ const FINANCIAL_VIEWS = new Set<InternalOperationsView>([
 const HR_VIEWS = new Set<InternalOperationsView>([
   "hr",
   "hr-dashboard",
+  "hr-org-chart",
   "hr-recruitment",
   "hr-leave",
   "hr-payroll",

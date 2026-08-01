@@ -104,6 +104,7 @@ import {
   GrantsWorkspace,
   HrReportsWorkspace,
   HrWorkspace,
+  OrgChartWorkspace,
   InfoEmailWorkspace,
   InternalAuditsWorkspace,
   InternalDesignMockups,
@@ -769,6 +770,8 @@ export default function InternalOperationsDashboard({
           {activeView === "hr" && <HrWorkspace mode="employees" />}
 
           {activeView === "hr-dashboard" && <HrWorkspace mode="dashboard" />}
+
+          {activeView === "hr-org-chart" && <OrgChartWorkspace />}
 
           {activeView === "hr-recruitment" && <RecruitmentWorkspace />}
 

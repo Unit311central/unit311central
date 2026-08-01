@@ -78,6 +78,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     views: [
       "hr-dashboard",
       "hr",
+      "hr-org-chart",
       "hr-recruitment",
       "hr-leave",
       "hr-payroll",
