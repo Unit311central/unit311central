@@ -53,6 +53,13 @@ const ExecutiveHomeDashboard = dynamic(() => import("./ExecutiveHomeDashboard"),
   loading: () => <WorkspaceLoadingFallback label="Loading executive dashboard" />,
   ssr: false,
 });
+const TalantonPortfolioWorkspace = dynamic(
+  () => import("./talanton/TalantonPortfolioWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading Talanton portfolio" />,
+    ssr: false,
+  },
+);
 import {
   AccountsPayableWorkspace,
   AccountsReceivableWorkspace,
@@ -895,6 +902,21 @@ export default function InternalOperationsDashboard({
 
           {activeView === "technology-settings" && (
             <TechnologyPlaceholderWorkspace module="settings" />
+          )}
+
+          {(activeView === "portfolio-companies" ||
+            activeView === "portfolio-courses" ||
+            activeView === "portfolio-my-training" ||
+            activeView === "portfolio-compliance-dashboard" ||
+            activeView === "portfolio-policies" ||
+            activeView === "portfolio-risk-register" ||
+            activeView === "portfolio-action-tracking" ||
+            activeView === "portfolio-report-compliance" ||
+            activeView === "portfolio-report-company" ||
+            activeView === "portfolio-report-training") && (
+            <WorkspaceErrorBoundary title="Talanton Impact">
+              <TalantonPortfolioWorkspace view={activeView} />
+            </WorkspaceErrorBoundary>
           )}
         </div>
       </div>

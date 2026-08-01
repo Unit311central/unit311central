@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import CorpCentreLogoMark from "@/components/layout/CorpCentreLogoMark";
+import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
 import {
   parseLoginReturnTo,
   parseSafePostLoginNext,
@@ -26,6 +27,40 @@ const LOGIN_LOGO_HEIGHT = 334;
 
 const RETURN_TO_STORAGE_KEY = "unit311_workspace_return_to";
 const NEXT_STORAGE_KEY = "unit311_post_login_next";
+const CORPCENTRE_SAVED_LOGIN_KEY = "corpcentre_login_saved_details";
+
+type SavedLoginDetails = {
+  username: string;
+  password: string;
+};
+
+function readCorpCentreSavedLogin(): SavedLoginDetails | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CORPCENTRE_SAVED_LOGIN_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SavedLoginDetails>;
+    const username = typeof parsed.username === "string" ? parsed.username : "";
+    const password = typeof parsed.password === "string" ? parsed.password : "";
+    if (!username && !password) return null;
+    return { username, password };
+  } catch {
+    return null;
+  }
+}
+
+function writeCorpCentreSavedLogin(details: SavedLoginDetails | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!details || (!details.username && !details.password)) {
+      localStorage.removeItem(CORPCENTRE_SAVED_LOGIN_KEY);
+      return;
+    }
+    localStorage.setItem(CORPCENTRE_SAVED_LOGIN_KEY, JSON.stringify(details));
+  } catch {
+    // Ignore quota / private mode failures.
+  }
+}
 
 function readReturnToFromLocation(): string | null {
   if (typeof window === "undefined") return null;
@@ -115,19 +150,22 @@ export default function Unit311LoginPage({
   nextPath = null,
 }: {
   variant?: "default" | "central";
-  /** Tenant login branding. CorpCentre uses corplogo.jpg. */
-  brand?: "default" | "central" | "corpcentre";
+  /** Tenant login branding. CorpCentre / Talanton use workspace logos. */
+  brand?: "default" | "central" | "corpcentre" | "talanton";
   /** Validated return origin (`return_to`) for workspace / demo / internal. */
   returnTo?: string | null;
   /** Canonical deep-link path (`next`), e.g. `/?view=clients`. */
   nextPath?: string | null;
 }) {
   const router = useRouter();
-  const isCentral = variant === "central" || brand === "corpcentre";
+  const isCentral =
+    variant === "central" || brand === "corpcentre" || brand === "talanton";
   const isCorpCentre = brand === "corpcentre";
+  const isTalanton = brand === "talanton";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [saveForFuture, setSaveForFuture] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -137,6 +175,15 @@ export default function Unit311LoginPage({
     const nextFromUrl = readNextFromLocation() ?? nextPath;
     if (nextFromUrl) persistNext(nextFromUrl);
   }, [returnTo, nextPath]);
+
+  useEffect(() => {
+    if (!isCorpCentre) return;
+    const saved = readCorpCentreSavedLogin();
+    if (!saved) return;
+    setUsername(saved.username);
+    setPassword(saved.password);
+    setSaveForFuture(true);
+  }, [isCorpCentre]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -164,6 +211,14 @@ export default function Unit311LoginPage({
       const data = await readApiJson<{ redirectPath?: string; error?: string }>(response);
       if (!response.ok || !data.redirectPath) {
         throw new Error(data.error ?? "Invalid username or password.");
+      }
+
+      if (isCorpCentre) {
+        if (saveForFuture) {
+          writeCorpCentreSavedLogin({ username, password });
+        } else {
+          writeCorpCentreSavedLogin(null);
+        }
       }
 
       persistNext(null);
@@ -196,6 +251,8 @@ export default function Unit311LoginPage({
         <div className="flex w-full items-center justify-center px-2">
           {isCorpCentre ? (
             <CorpCentreLogoMark height={56} className="rounded-2xl px-4 py-3" />
+          ) : isTalanton ? (
+            <TalantonLogoMark height={56} className="rounded-2xl px-4 py-3" />
           ) : (
             <div
               className="relative w-full max-w-[min(100%,240px)] sm:max-w-[280px]"
@@ -215,12 +272,18 @@ export default function Unit311LoginPage({
 
         <div className="mt-10 w-full text-center sm:mt-12">
           <h1 className="text-[1.75rem] font-semibold tracking-[-0.035em] text-white sm:text-[2.125rem]">
-            {isCorpCentre ? "Corp.Centre Login" : "Workspace Login"}
+            {isCorpCentre
+              ? "Corp.Centre Login"
+              : isTalanton
+                ? "Talanton Impact Login"
+                : "Workspace Login"}
           </h1>
           <p className="mx-auto mt-3 max-w-[20rem] text-[14px] leading-relaxed text-white/55 sm:mt-3.5 sm:max-w-none sm:text-[15px]">
             {isCorpCentre
               ? "Secure access to your Corp.Centre workspace"
-              : "Secure Access to your Workspace"}
+              : isTalanton
+                ? "Secure access to your Talanton Impact workspace"
+                : "Secure Access to your Workspace"}
           </p>
         </div>
 
@@ -245,9 +308,11 @@ export default function Unit311LoginPage({
                 placeholder={
                   isCorpCentre
                     ? "you@corpcentre.com.au"
-                    : isCentral
-                      ? "you@unit311central.com"
-                      : "Enter username"
+                    : isTalanton
+                      ? "info@talantonimpact.com"
+                      : isCentral
+                        ? "you@unit311central.com"
+                        : "Enter username"
                 }
               />
             </div>
@@ -281,6 +346,24 @@ export default function Unit311LoginPage({
                 </button>
               </div>
             </div>
+
+            {isCorpCentre ? (
+              <label className="flex cursor-pointer items-center gap-2.5 select-none">
+                <input
+                  type="checkbox"
+                  checked={saveForFuture}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    setSaveForFuture(checked);
+                    if (!checked) writeCorpCentreSavedLogin(null);
+                  }}
+                  className="h-4 w-4 rounded border-white/25 bg-white/[0.06] text-[#2563eb] focus:ring-[#3b82f6] focus:ring-offset-0"
+                />
+                <span className="text-[13px] font-medium tracking-[0.01em] text-white/70">
+                  Save for future
+                </span>
+              </label>
+            ) : null}
 
             {error ? (
               <p className="rounded-xl border border-red-400/25 bg-red-500/[0.08] px-4 py-3 text-sm text-red-300">

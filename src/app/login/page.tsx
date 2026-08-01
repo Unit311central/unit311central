@@ -11,6 +11,7 @@ import {
   customerWorkspaceOrigin,
 } from "@/lib/app-domains";
 import { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 export async function generateMetadata(): Promise<Metadata> {
   const host = getRequestHost({ headers: await headers() });
@@ -21,6 +22,14 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
       title: "Login | Corp.Centre",
       description: "Secure access to your Corp.Centre workspace.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  if (isTalantonImpactSlug(workspaceSlug)) {
+    return {
+      title: "Login | Talanton Impact",
+      description: "Secure access to your Talanton Impact workspace.",
       robots: { index: false, follow: false },
     };
   }
@@ -47,13 +56,19 @@ export default async function LoginPage({ searchParams }: PageProps) {
   const nextPath = parseSafePostLoginNext(params.next);
   const brand = isCorpCentreSlug(workspaceSlug)
     ? "corpcentre"
-    : isCentral
-      ? "central"
-      : "default";
+    : isTalantonImpactSlug(workspaceSlug)
+      ? "talanton"
+      : isCentral
+        ? "central"
+        : "default";
 
   return (
     <Unit311LoginPage
-      variant={brand === "corpcentre" ? "central" : brand === "central" ? "central" : "default"}
+      variant={
+        brand === "corpcentre" || brand === "talanton" || brand === "central"
+          ? "central"
+          : "default"
+      }
       brand={brand}
       returnTo={returnTo}
       nextPath={nextPath}

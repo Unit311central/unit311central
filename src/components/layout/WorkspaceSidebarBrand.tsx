@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import CorpCentreLogoMark, {
   isCorpCentreSlug,
 } from "@/components/layout/CorpCentreLogoMark";
+import TalantonLogoMark, {
+  isTalantonImpactSlug,
+} from "@/components/layout/TalantonLogoMark";
 import Unit311CentralWordmark from "@/components/layout/Unit311CentralWordmark";
 import { cn } from "@/lib/utils";
 
@@ -23,15 +26,17 @@ function hostWorkspaceSlug(): string | null {
   return slug;
 }
 
+type BrandKind = "unit311" | "corpcentre" | "talanton";
+
 /**
- * Sidebar brand — Corp.Centre logo ONLY on corpcentre host.
+ * Sidebar brand — tenant logos only on their hosts.
  * Internal / demo / all other hosts keep the Unit311 Central wordmark unchanged.
  */
 export default function WorkspaceSidebarBrand({
   className,
   href = "/",
 }: WorkspaceSidebarBrandProps) {
-  const [isCorpCentre, setIsCorpCentre] = useState(false);
+  const [brand, setBrand] = useState<BrandKind>("unit311");
 
   useEffect(() => {
     const hostSlug = hostWorkspaceSlug();
@@ -44,21 +49,35 @@ export default function WorkspaceSidebarBrand({
       return;
     }
     if (isCorpCentreSlug(hostSlug)) {
-      setIsCorpCentre(true);
+      setBrand("corpcentre");
+      return;
+    }
+    if (isTalantonImpactSlug(hostSlug)) {
+      setBrand("talanton");
     }
   }, []);
 
-  const content = isCorpCentre ? (
-    <CorpCentreLogoMark className={className} height={32} />
-  ) : (
-    <Unit311CentralWordmark variant="sidebar" className={className} />
-  );
+  const content =
+    brand === "corpcentre" ? (
+      <CorpCentreLogoMark className={className} height={32} />
+    ) : brand === "talanton" ? (
+      <TalantonLogoMark className={className} height={32} />
+    ) : (
+      <Unit311CentralWordmark variant="sidebar" className={className} />
+    );
+
+  const ariaLabel =
+    brand === "corpcentre"
+      ? "Corp.Centre home"
+      : brand === "talanton"
+        ? "Talanton Impact home"
+        : "Unit311 Central home";
 
   return (
     <a
       href={href}
       className={cn("inline-flex shrink-0 transition-opacity duration-100 hover:opacity-90", className)}
-      aria-label={isCorpCentre ? "Corp.Centre home" : "Unit311 Central home"}
+      aria-label={ariaLabel}
     >
       {content}
     </a>

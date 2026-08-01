@@ -257,16 +257,40 @@ function isCorpCentreNavSurface(): boolean {
   }
 }
 
+function isTalantonNavSurface(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserTalantonImpactSurface } =
+      require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+    return isBrowserTalantonImpactSurface();
+  } catch {
+    return false;
+  }
+}
+
+function appendTalantonNavSections(sections: InternalNavSection[]): InternalNavSection[] {
+  if (!isTalantonNavSurface()) return sections;
+  try {
+    const { TALANTON_IMPACT_NAV_SECTIONS } =
+      require("@/lib/talanton/nav") as typeof import("@/lib/talanton/nav");
+    return [...sections, ...TALANTON_IMPACT_NAV_SECTIONS];
+  } catch {
+    return sections;
+  }
+}
+
 export function filterInternalNavSectionsForDemoSurface(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
-  if (!shouldHideDroneToolNavViews()) return [...sections];
+  if (!shouldHideDroneToolNavViews()) {
+    return appendTalantonNavSections([...sections]);
+  }
 
   const hideViews = isCorpCentreNavSurface() ? CORPCENTRE_HIDDEN_VIEWS : DEMO_HIDDEN_VIEWS;
   const hideUnit311Details = isCorpCentreNavSurface();
   const corpcentre = isCorpCentreNavSurface();
 
-  return sections
+  const filtered = sections
     .map((section) => {
       if (
         corpcentre &&
@@ -307,4 +331,6 @@ export function filterInternalNavSectionsForDemoSurface(
       };
     })
     .filter((section) => section.items.length > 0);
+
+  return appendTalantonNavSections(filtered);
 }

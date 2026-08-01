@@ -103,7 +103,17 @@ export type InternalOperationsView =
   | "technology-telecommunications"
   | "technology-infrastructure"
   | "technology-reports"
-  | "technology-settings";
+  | "technology-settings"
+  | "portfolio-companies"
+  | "portfolio-courses"
+  | "portfolio-my-training"
+  | "portfolio-compliance-dashboard"
+  | "portfolio-policies"
+  | "portfolio-risk-register"
+  | "portfolio-action-tracking"
+  | "portfolio-report-compliance"
+  | "portfolio-report-company"
+  | "portfolio-report-training";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -254,6 +264,16 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "technology-infrastructure",
   "technology-reports",
   "technology-settings",
+  "portfolio-companies",
+  "portfolio-courses",
+  "portfolio-my-training",
+  "portfolio-compliance-dashboard",
+  "portfolio-policies",
+  "portfolio-risk-register",
+  "portfolio-action-tracking",
+  "portfolio-report-compliance",
+  "portfolio-report-company",
+  "portfolio-report-training",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -883,6 +903,28 @@ export const internalViewTitles: Record<
   },
   "technology-reports": { title: "Reports", subtitle: "Technology Management" },
   "technology-settings": { title: "Settings", subtitle: "Technology Management" },
+  "portfolio-companies": { title: "Portfolio Companies", subtitle: "Portfolio" },
+  "portfolio-courses": { title: "Portfolio Courses", subtitle: "Impact Training" },
+  "portfolio-my-training": { title: "My Training", subtitle: "Impact Training" },
+  "portfolio-compliance-dashboard": {
+    title: "Compliance Dashboard",
+    subtitle: "Impact Training",
+  },
+  "portfolio-policies": { title: "Policies", subtitle: "Governance" },
+  "portfolio-risk-register": { title: "Risk Register", subtitle: "Governance" },
+  "portfolio-action-tracking": { title: "Action Tracking", subtitle: "Governance" },
+  "portfolio-report-compliance": {
+    title: "Portfolio Compliance",
+    subtitle: "Impact Reports",
+  },
+  "portfolio-report-company": {
+    title: "Company Compliance",
+    subtitle: "Impact Reports",
+  },
+  "portfolio-report-training": {
+    title: "Training Completion",
+    subtitle: "Impact Reports",
+  },
 };
 
 /** Breadcrumb labels for the active internal leaf (section → … → page).
@@ -893,11 +935,22 @@ export function getInternalNavBreadcrumb(
 ): readonly string[] {
   const titles = internalViewTitles[activeView];
 
-  for (const section of internalSurveyNavSections) {
-    for (const item of section.items) {
-      const trail = findNavTrailLabels(item, activeView, []);
-      if (trail) {
-        return section.label != null ? [section.label, ...trail] : [...trail];
+  const sectionLists: Array<readonly InternalNavSection[]> = [internalSurveyNavSections];
+  try {
+    const { TALANTON_IMPACT_NAV_SECTIONS } =
+      require("@/lib/talanton/nav") as typeof import("@/lib/talanton/nav");
+    sectionLists.push(TALANTON_IMPACT_NAV_SECTIONS);
+  } catch {
+    /* Talanton nav optional at build edges */
+  }
+
+  for (const sections of sectionLists) {
+    for (const section of sections) {
+      for (const item of section.items) {
+        const trail = findNavTrailLabels(item, activeView, []);
+        if (trail) {
+          return section.label != null ? [section.label, ...trail] : [...trail];
+        }
       }
     }
   }
