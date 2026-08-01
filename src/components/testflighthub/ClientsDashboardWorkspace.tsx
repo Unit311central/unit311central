@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
   ArrowUpRight,
   Building2,
   ClipboardList,
@@ -24,7 +23,6 @@ import {
   buildClientsDashboardActivity,
   buildClientsDashboardKpis,
   buildClientsExecutiveTileCatalog,
-  buildClientsOperationalInsights,
   DEFAULT_CLIENTS_EXECUTIVE_TILE_LAYOUT,
   formatClientsDashboardWhen,
   type ClientsDashboardActivityKind,
@@ -240,11 +238,6 @@ export default function ClientsDashboardWorkspace({
     [clients, projects, tickets, users],
   );
 
-  const insights = useMemo(
-    () => buildClientsOperationalInsights(clients, projects ?? [], users ?? [], kpis),
-    [clients, projects, users, kpis],
-  );
-
   function clientDirectoryHref(clientId?: string | null) {
     if (!clientId) return directoryHref;
     const params = new URLSearchParams({ view: "clients", clientId });
@@ -338,115 +331,69 @@ export default function ClientsDashboardWorkspace({
 
       {isBrowserAbhiSurface() ? <AbhiMemberGrowthSection /> : null}
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem] xl:gap-4">
-        <div className="space-y-3 sm:space-y-4">
-          <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
-                  Recent activity
-                </p>
-                <h3 className="mt-0.5 text-base font-semibold text-white">What changed</h3>
-              </div>
-              {!showAllActivity && activityTotal > ACTIVITY_PREVIEW_LIMIT ? (
-                <button
-                  type="button"
-                  onClick={() => setShowAllActivity(true)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-sky-300 hover:text-sky-200"
-                >
-                  View all
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </button>
-              ) : null}
-              {showAllActivity ? (
-                <button
-                  type="button"
-                  onClick={() => setShowAllActivity(false)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-white/55 hover:text-white/80"
-                >
-                  Show less
-                </button>
-              ) : null}
-            </div>
-
-            {activity.length === 0 ? (
-              <p className="mt-3 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-6 text-center text-sm text-white/45">
-                No recent activity events could be derived from live records yet.
-              </p>
-            ) : (
-              <ul className="mt-3 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/40">
-                {activity.map((event) => (
-                  <li key={event.id} className="flex items-start gap-3 px-3 py-2.5">
-                    <span className="mt-0.5 shrink-0 rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/50">
-                      {ACTIVITY_LABEL[event.kind]}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <p className="text-sm font-medium text-white">{event.title}</p>
-                        <p className="text-[11px] text-white/40">
-                          {formatClientsDashboardWhen(event.at)}
-                        </p>
-                      </div>
-                      {event.clientId ? (
-                        <Link
-                          href={clientDirectoryHref(event.clientId)}
-                          className="mt-0.5 block truncate text-xs text-sky-300/90 hover:text-sky-200"
-                        >
-                          {event.detail}
-                        </Link>
-                      ) : (
-                        <p className="mt-0.5 truncate text-xs text-white/50">{event.detail}</p>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+      <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
+              Recent activity
+            </p>
+            <h3 className="mt-0.5 text-base font-semibold text-white">What changed</h3>
+          </div>
+          {!showAllActivity && activityTotal > ACTIVITY_PREVIEW_LIMIT ? (
+            <button
+              type="button"
+              onClick={() => setShowAllActivity(true)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-sky-300 hover:text-sky-200"
+            >
+              View all
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          {showAllActivity ? (
+            <button
+              type="button"
+              onClick={() => setShowAllActivity(false)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-white/55 hover:text-white/80"
+            >
+              Show less
+            </button>
+          ) : null}
         </div>
 
-        <aside className="space-y-3 xl:sticky xl:top-3 xl:self-start">
-          <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
-              Operational insights
-            </p>
-            <h3 className="mt-0.5 text-base font-semibold text-white">Right now</h3>
-            <div className="mt-3 space-y-2.5">
-              {insights.map((insight) => (
-                <div
-                  key={insight.id}
-                  className="rounded-xl border border-white/10 bg-[#0b1524]/55 p-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-semibold text-white/85">{insight.label}</p>
-                    <p className="text-sm font-semibold text-white">{insight.value}</p>
-                  </div>
-                  <p className="mt-1 text-[11px] text-white/40">{insight.hint}</p>
-                  {insight.empty ? (
-                    <p className="mt-2 flex items-start gap-1.5 text-[11px] text-white/35">
-                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 opacity-70" />
-                      No items to action in this category.
+        {activity.length === 0 ? (
+          <p className="mt-3 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-6 text-center text-sm text-white/45">
+            No recent activity events could be derived from live records yet.
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/40">
+            {activity.map((event) => (
+              <li key={event.id} className="flex items-start gap-3 px-3 py-2.5">
+                <span className="mt-0.5 shrink-0 rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/50">
+                  {ACTIVITY_LABEL[event.kind]}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium text-white">{event.title}</p>
+                    <p className="text-[11px] text-white/40">
+                      {formatClientsDashboardWhen(event.at)}
                     </p>
-                  ) : insight.clients && insight.clients.length > 0 ? (
-                    <ul className="mt-2 space-y-1">
-                      {insight.clients.map((client) => (
-                        <li key={`${insight.id}-${client.id}`}>
-                          <Link
-                            href={clientDirectoryHref(client.id)}
-                            className="truncate text-[11px] text-sky-300/90 hover:text-sky-200"
-                          >
-                            {client.companyName}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
+                  </div>
+                  {event.clientId ? (
+                    <Link
+                      href={clientDirectoryHref(event.clientId)}
+                      className="mt-0.5 block truncate text-xs text-sky-300/90 hover:text-sky-200"
+                    >
+                      {event.detail}
+                    </Link>
+                  ) : (
+                    <p className="mt-0.5 truncate text-xs text-white/50">{event.detail}</p>
+                  )}
                 </div>
-              ))}
-            </div>
-          </section>
-        </aside>
-      </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
