@@ -29,7 +29,7 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
-import {
+import ResponsiveMasterDetail, {
   useMobileDetailPanel,
 } from "@/components/ui/ResponsiveMasterDetail";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
@@ -81,13 +81,6 @@ function inputClassName() {
   return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50";
 }
 
-/** Shared template for Client Directory header + rows (fixed tracks — no per-row `auto`). */
-const CLIENT_EXPLORER_ROW_GRID =
-  "grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_7.25rem_9.5rem] sm:items-center sm:gap-x-4 sm:gap-y-0";
-
-const CLIENT_EXPLORER_ROW_GRID_CORPCENTRE =
-  "grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_7.25rem_9.5rem] lg:items-center lg:gap-x-4 lg:gap-y-0";
-
 export default function ClientManagementWorkspace({
   onClientsChange,
 }: ClientManagementWorkspaceProps) {
@@ -116,7 +109,6 @@ export default function ClientManagementWorkspace({
   const deepLinkedClientRef = useRef<string | null>(null);
   const isCorpCentre =
     typeof window !== "undefined" ? isBrowserCorpCentreSurface() : false;
-  const rowGrid = isCorpCentre ? CLIENT_EXPLORER_ROW_GRID_CORPCENTRE : CLIENT_EXPLORER_ROW_GRID;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
   const selectedClient = useMemo(
@@ -170,15 +162,15 @@ export default function ClientManagementWorkspace({
   function openClient(clientId: string) {
     setSelectedClientId(clientId);
     setDetailClientId(clientId);
+    openDetail();
     pinDetailTopRef.current = true;
-    if (isCorpCentre) {
-      openDetail();
-      return;
-    }
-    // Pin after paint; finance panel height changes must not drag the viewport down.
+    // Keep the detail pane at its top (list stays on the left — no page jump to a stacked form).
     window.requestAnimationFrame(() => {
+      const pane = detailSectionRef.current;
+      if (pane) pane.scrollTop = 0;
       pinClientRecordTop();
       window.setTimeout(() => {
+        if (pane) pane.scrollTop = 0;
         if (pinDetailTopRef.current) pinClientRecordTop();
         pinDetailTopRef.current = false;
       }, 120);
@@ -204,6 +196,10 @@ export default function ClientManagementWorkspace({
         if (current && cached.clients!.some((client) => client.id === current)) return current;
         return cached.clients![0]?.id ?? null;
       });
+      setDetailClientId((current) => {
+        if (current && cached.clients!.some((client) => client.id === current)) return current;
+        return cached.clients![0]?.id ?? null;
+      });
       setLoading(false);
     } else {
       setLoading(true);
@@ -223,11 +219,16 @@ export default function ClientManagementWorkspace({
         if (current && nextClients.some((client) => client.id === current)) return current;
         return nextClients[0]?.id ?? null;
       });
+      setDetailClientId((current) => {
+        if (current && nextClients.some((client) => client.id === current)) return current;
+        return nextClients[0]?.id ?? null;
+      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load clients");
       if (!cached?.clients?.length) {
         syncClients([]);
         setSelectedClientId(null);
+        setDetailClientId(null);
       }
     } finally {
       setLoading(false);
@@ -544,213 +545,180 @@ export default function ClientManagementWorkspace({
       )}
 
       {loading ? (
-          <WorkspaceLoadingFallback variant="list" label="Loading clients" />
-        ) : (
-        <div className="space-y-4">
-          <section
-            className={cn(
-              "rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6",
-              isCorpCentre && showDetail && detailClientId ? "hidden xl:block" : null,
-            )}
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <p className="text-xs text-white/45">{clients.length} accounts</p>
-              <button
-                type="button"
-                onClick={() => void handleAddClient()}
-                disabled={busy}
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25 disabled:opacity-60"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add Client
-              </button>
-            </div>
-
-            <div className="relative mt-4">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by name, contact, email, location…"
-                className={cn(inputClassName(), "mt-0 pl-10")}
-              />
-            </div>
-
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div>
-                <FieldLabel>Industry</FieldLabel>
-                <select
-                  className={inputClassName()}
-                  value={filterIndustry}
-                  onChange={(event) => setFilterIndustry(event.target.value)}
+        <WorkspaceLoadingFallback variant="list" label="Loading clients" />
+      ) : (
+        <ResponsiveMasterDetail
+          showDetail={showDetail}
+          onBack={() => {
+            closeDetail();
+            setDetailClientId(null);
+          }}
+          backLabel="Back to clients"
+          columnsClassName="xl:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]"
+          className="min-h-[70vh] xl:items-start"
+          master={
+            <section className="flex max-h-[78vh] flex-col rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <p className="text-xs text-white/45">{clients.length} accounts</p>
+                <button
+                  type="button"
+                  onClick={() => void handleAddClient()}
+                  disabled={busy}
+                  className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25 disabled:opacity-60"
                 >
-                  <option value="all">All industries</option>
-                  {CLIENT_INDUSTRY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Client
+                </button>
               </div>
-              <div>
-                <FieldLabel>Region</FieldLabel>
-                <select
-                  className={inputClassName()}
-                  value={filterRegion}
-                  onChange={(event) => setFilterRegion(event.target.value)}
-                >
-                  <option value="all">All regions</option>
-                  {CLIENT_REGION_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <FieldLabel>Status</FieldLabel>
-                <select
-                  className={inputClassName()}
-                  value={filterStatus}
-                  onChange={(event) => setFilterStatus(event.target.value)}
-                >
-                  <option value="all">All statuses</option>
-                  {CLIENT_STATUS_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <FieldLabel>Contract</FieldLabel>
-                <select
-                  className={inputClassName()}
-                  value={filterContract}
-                  onChange={(event) => setFilterContract(event.target.value)}
-                >
-                  <option value="all">All contract types</option>
-                  {CLIENT_CONTRACT_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
 
-            {filteredClients.length === 0 ? (
-              <p className="mt-4 text-sm text-white/45">
-                {clients.length === 0
-                  ? "No clients in this workspace yet. Create a client to get started."
-                  : "No clients match your search."}
-              </p>
-            ) : (
-              <div className="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-[#0b1524]/40">
-                <div
-                  className={cn(
-                    rowGrid,
-                    "hidden border-b border-white/10 px-4 py-2.5 text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 sm:grid",
-                    isCorpCentre && "sm:hidden lg:grid",
-                  )}
-                >
-                  <span className="min-w-0">Client name</span>
-                  <span className="min-w-0">Primary contact</span>
-                  <span className="min-w-0">Location</span>
-                  <span className="min-w-0">Industry</span>
-                  <span className="min-w-0">Status</span>
-                  <span className="min-w-0 text-right">Actions</span>
-                </div>
-                <ul className="divide-y divide-white/10">
-                {filteredClients.map((client) => {
-                  const selected = client.id === detailClientId;
-
-                  return (
-                    <li
-                      key={client.id}
-                      className={cn(
-                        rowGrid,
-                        "px-4 py-3 transition-colors [content-visibility:auto] [contain-intrinsic-size:0_3.5rem]",
-                        selected && "bg-sky-500/[0.06]",
-                      )}
-                    >
-                      <div className="flex min-w-0 items-center gap-2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={clientLogoUrl(client.companyName, client.id)}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="h-7 w-7 shrink-0 rounded-lg border border-white/10 bg-white/90 object-cover"
-                        />
-                        <p className="min-w-0 truncate text-sm font-semibold text-white">
-                          {client.companyName}
-                        </p>
-                      </div>
-                      <p className="min-w-0 truncate text-xs text-white/50">{client.primaryContact}</p>
-                      <p className="min-w-0 truncate text-xs text-white/45">{client.region}</p>
-                      <p className="min-w-0 truncate text-xs text-white/45">{client.industry}</p>
-                      <div className="min-w-0">
-                        <span
-                          className={cn(
-                            "inline-block max-w-full truncate rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
-                            clientStatusClass(client.accountStatus),
-                          )}
-                        >
-                          {client.accountStatus}
-                        </span>
-                      </div>
-                      <div className="flex min-w-0 shrink-0 items-center justify-start gap-2 sm:justify-end">
-                        <button
-                          type="button"
-                          onClick={() => openClient(client.id)}
-                          className={cn(
-                            "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors",
-                            selected
-                              ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
-                              : "border-white/15 bg-white/[0.04] text-white/70 hover:border-white/25 hover:bg-white/[0.08]",
-                          )}
-                        >
-                          <FolderOpen className="h-3.5 w-3.5" />
-                          Open
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDeleteClient(client)}
-                          disabled={busy}
-                          aria-label={`Delete ${client.companyName}`}
-                          title={`Delete ${client.companyName}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-200 transition-colors hover:border-red-400/50 hover:bg-red-500/20 disabled:opacity-60"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-                </ul>
+              <div className="relative mt-4">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search clients…"
+                  className={cn(inputClassName(), "mt-0 pl-10")}
+                />
               </div>
-            )}
-          </section>
 
-          {detailClient && selectedClient ? (
-            <section
-              ref={detailSectionRef}
-              className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl [overflow-anchor:none] sm:p-6"
-            >
-                <div ref={detailTopRef} tabIndex={-1} className="h-0 outline-none" aria-hidden />
-                {isCorpCentre && showDetail ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeDetail();
-                      setDetailClientId(null);
-                    }}
-                    className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-white/55 transition-colors hover:text-white/80 xl:hidden"
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <div>
+                  <FieldLabel>Industry</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterIndustry}
+                    onChange={(event) => setFilterIndustry(event.target.value)}
                   >
-                    ← Back to clients
-                  </button>
-                ) : null}
+                    <option value="all">All industries</option>
+                    {CLIENT_INDUSTRY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel>Region</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterRegion}
+                    onChange={(event) => setFilterRegion(event.target.value)}
+                  >
+                    <option value="all">All regions</option>
+                    {CLIENT_REGION_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel>Status</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterStatus}
+                    onChange={(event) => setFilterStatus(event.target.value)}
+                  >
+                    <option value="all">All statuses</option>
+                    {CLIENT_STATUS_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel>Contract</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterContract}
+                    onChange={(event) => setFilterContract(event.target.value)}
+                  >
+                    <option value="all">All contract types</option>
+                    {CLIENT_CONTRACT_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {filteredClients.length === 0 ? (
+                <p className="mt-4 text-sm text-white/45">
+                  {clients.length === 0
+                    ? "No clients in this workspace yet. Create a client to get started."
+                    : "No clients match your search."}
+                </p>
+              ) : (
+                <ul className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto rounded-xl border border-white/10 bg-[#0b1524]/40 p-1">
+                  {filteredClients.map((client) => {
+                    const selected = client.id === detailClientId;
+                    return (
+                      <li key={client.id}>
+                        <div
+                          className={cn(
+                            "flex items-center gap-2 rounded-xl px-2.5 py-2.5 transition-colors",
+                            selected
+                              ? "bg-sky-500/15 ring-1 ring-sky-400/30"
+                              : "hover:bg-white/[0.04]",
+                          )}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => openClient(client.id)}
+                            className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={clientLogoUrl(client.companyName, client.id)}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="h-8 w-8 shrink-0 rounded-lg border border-white/10 bg-white/90 object-cover"
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-semibold text-white">
+                                {client.companyName}
+                              </span>
+                              <span className="mt-0.5 block truncate text-[11px] text-white/45">
+                                {client.primaryContact || client.region || client.industry}
+                              </span>
+                            </span>
+                            <span
+                              className={cn(
+                                "shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em]",
+                                clientStatusClass(client.accountStatus),
+                              )}
+                            >
+                              {client.accountStatus}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteClient(client)}
+                            disabled={busy}
+                            aria-label={`Delete ${client.companyName}`}
+                            title={`Delete ${client.companyName}`}
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-400/30 bg-red-500/10 text-red-200 transition-colors hover:border-red-400/50 hover:bg-red-500/20 disabled:opacity-60"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          }
+          detail={
+            detailClient && selectedClient ? (
+              <section
+                ref={detailSectionRef}
+                className="max-h-[78vh] overflow-y-auto rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl [overflow-anchor:none] sm:p-6"
+              >
+                <div ref={detailTopRef} tabIndex={-1} className="h-0 outline-none" aria-hidden />
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
@@ -1268,13 +1236,14 @@ export default function ClientManagementWorkspace({
                   </div>
                 </div>
               </section>
-          ) : (
-            <section className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-12 text-center text-sm text-white/45">
-              Select a client from the explorer to view details.
-            </section>
-          )}
-        </div>
-        )}
+            ) : (
+              <section className="flex min-h-[20rem] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-12 text-center text-sm text-white/45">
+                Select a client from the list to view details.
+              </section>
+            )
+          }
+        />
+      )}
     </div>
   );
 }
