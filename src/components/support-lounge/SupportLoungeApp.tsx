@@ -706,9 +706,33 @@ export default function SupportLoungeApp({
                   {loungeTitle || companyName}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
-                  {caseMode
-                    ? `Case ${caseTicket?.id}. Bookmark this page for updates, enter new information, and chat with your support advisor. For any problems you can always email support@unit311central.com.`
-                    : "Create a new support request to Demo. After your request is submitted, you will be emailed with updates and the web address to visit to get updates, enter new information and chat with your support advisor. For any problems you can always email support@unit311central.com"}
+                  {caseMode ? (
+                    <>
+                      Case {caseTicket?.id}. Bookmark this page for updates, enter new information,
+                      and chat with your support advisor. For any problems you can always email{" "}
+                      <a
+                        href="mailto:support@unit311central.com"
+                        className="font-medium text-sky-300 underline decoration-sky-400/40 underline-offset-2 transition-colors hover:text-sky-200 hover:decoration-sky-300/70"
+                      >
+                        support@unit311central.com
+                      </a>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Create a new support request to Demo. After your request is submitted, you will
+                      be emailed with updates and the web address to visit to get updates, enter new
+                      information and chat with your support advisor. For any problems you can always
+                      email{" "}
+                      <a
+                        href="mailto:support@unit311central.com"
+                        className="font-medium text-sky-300 underline decoration-sky-400/40 underline-offset-2 transition-colors hover:text-sky-200 hover:decoration-sky-300/70"
+                      >
+                        support@unit311central.com
+                      </a>
+                      .
+                    </>
+                  )}
                 </p>
               </div>
             </div>
