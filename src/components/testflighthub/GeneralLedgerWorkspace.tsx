@@ -15,6 +15,7 @@ import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import type { JournalEntry, LedgerAccount, TrialBalanceRow } from "@/lib/accounting/types";
 import { centralLoginUrl } from "@/lib/app-domains";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { cn } from "@/lib/utils";
 
 type Totals = {
@@ -73,7 +74,11 @@ export default function GeneralLedgerWorkspace() {
   const [selectedJournalId, setSelectedJournalId] = useState<string | null>(null);
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
 
-  const reportingCurrency = isBrowserCorpCentreSurface() ? "AUD" : "GBP";
+  const reportingCurrency = isBrowserCorpCentreSurface()
+    ? "AUD"
+    : isBrowserDemoSurface()
+      ? "USD"
+      : "GBP";
   const money = (amount: number, _currency?: string | null) =>
     formatMoney(amount, reportingCurrency);
 
