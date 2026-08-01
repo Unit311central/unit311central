@@ -14,14 +14,15 @@ import type { InternalProject } from "@/lib/projects-data";
 function formatCompactMoney(amount: number, currency = "GBP") {
   const code = String(currency || "GBP").toUpperCase();
   const abs = Math.abs(amount);
-  const fractionDigits = code === "AUD" ? 0 : 2;
-  if (abs >= 1_000_000 || abs >= 10_000) {
+  // Home KPI tiles should read as whole compact units (e.g. $156k), not $156.06k.
+  if (abs >= 10_000) {
     return withPreferredCurrencySymbol(
       new Intl.NumberFormat(code === "AUD" ? "en-AU" : "en-GB", {
         style: "currency",
         currency: code,
         notation: "compact",
-        maximumFractionDigits: fractionDigits,
+        maximumFractionDigits: 0,
+        minimumFractionDigits: 0,
       }).format(amount),
       code,
     );
