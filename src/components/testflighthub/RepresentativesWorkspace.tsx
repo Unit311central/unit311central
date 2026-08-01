@@ -71,6 +71,69 @@ export default function RepresentativesWorkspace({
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [customTerritories, setCustomTerritories] = useState<Record<string, string[]>>({});
   const [customTerritoryInput, setCustomTerritoryInput] = useState("");
+  const [livePartnerNotes, setLivePartnerNotes] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/partners/list", { cache: "no-store" })
+      .then((res) => res.json())
+      .then(
+        (data: {
+          partners?: Array<{
+            id: string;
+            firstName: string;
+            lastName: string;
+            companyName: string;
+            email: string;
+            phoneCountryCode?: string | null;
+            phoneNumber?: string | null;
+            status?: string;
+            portalUrl?: string | null;
+          }>;
+        }) => {
+          if (cancelled || !Array.isArray(data.partners)) return;
+          const existingEmails = new Set(
+            representatives.map((rep) => rep.email.trim().toLowerCase()),
+          );
+          const mapped: Representative[] = data.partners
+            .filter((partner) => !existingEmails.has(partner.email.trim().toLowerCase()))
+            .map((partner) => ({
+              id: partner.id,
+              fullName: `${partner.firstName} ${partner.lastName}`.trim(),
+              companyName: partner.companyName,
+              email: partner.email,
+              phone: `${partner.phoneCountryCode || ""} ${partner.phoneNumber || ""}`.trim(),
+              territory: "Global",
+              repType: "Distributor",
+              status: partner.status === "active" ? "Active" : "Onboarding",
+              notes: partner.portalUrl
+                ? `Signup portal: ${partner.portalUrl}`
+                : "Signed up via /partners",
+            }));
+          setLivePartnerNotes(
+            data.partners
+              .slice(0, 8)
+              .map(
+                (partner) =>
+                  `${partner.companyName} · ${partner.email}${
+                    partner.portalUrl ? ` · ${partner.portalUrl}` : ""
+                  }`,
+              ),
+          );
+          if (mapped.length > 0) {
+            onRepresentativesChange([...mapped, ...representatives]);
+            if (!selectedRepresentativeId && mapped[0]) {
+              onSelectRepresentative(mapped[0].id);
+            }
+          }
+        },
+      )
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once from live Partners signup
+  }, []);
 
   const selectedRepresentative = useMemo(
     () =>
@@ -216,6 +279,22 @@ export default function RepresentativesWorkspace({
                 <p className="mt-1 text-xs text-white/45">
                   {representatives.length} representatives, distributors &amp; referral partners
                 </p>
+                <p className="mt-1 text-[11px] text-sky-300/80">
+                  Public signup:{" "}
+                  <a
+                    href="https://unit311central.com/partners"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline-offset-2 hover:underline"
+                  >
+                    unit311central.com/partners
+                  </a>
+                </p>
+                {livePartnerNotes.length > 0 ? (
+                  <p className="mt-1 text-[11px] text-white/40">
+                    Latest signups: {livePartnerNotes.slice(0, 3).join(" · ")}
+                  </p>
+                ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-200 transition-colors hover:border-emerald-400/60 hover:bg-emerald-500/25">
