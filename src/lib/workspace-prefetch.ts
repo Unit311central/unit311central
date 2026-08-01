@@ -73,6 +73,7 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "marketing-me-accelerator": () => import("@/components/testflighthub/AbhiProgrammesWorkspace"),
   "marketing-training": () => import("@/components/testflighthub/StaffTrainingWorkspace"),
   "marketing-mailing-list": () => import("@/components/testflighthub/AbhiMailingListWorkspace"),
+  "website-uk-pavilion": () => import("@/components/testflighthub/AbhiUkPavilionWorkspace"),
 };
 
 /**
@@ -162,6 +163,8 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
   "marketing-us-accelerator": ["marketing-me-accelerator", "marketing-working-groups"],
   "marketing-me-accelerator": ["marketing-us-accelerator", "marketing-working-groups"],
   "marketing-mailing-list": ["marketing-newsletter", "marketing-events"],
+  "website-management": ["website-uk-pavilion", "integrations"],
+  "website-uk-pavilion": ["website-management"],
 };
 
 const warmed = new Set<string>();

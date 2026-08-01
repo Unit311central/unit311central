@@ -205,6 +205,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "users-external",
       "external-client-access",
       "website-management",
+      "website-uk-pavilion",
       "integrations",
       "module-go-live",
       "billing",

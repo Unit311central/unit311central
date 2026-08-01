@@ -68,6 +68,7 @@ import {
   AbhiEventsWorkspace,
   AbhiMailingListWorkspace,
   AbhiNewsletterWorkspace,
+  AbhiUkPavilionWorkspace,
   AbhiProgrammesWorkspace,
   AccountsPayableWorkspace,
   AccountsReceivableWorkspace,
@@ -926,6 +927,8 @@ export default function InternalOperationsDashboard({
           {activeView === "telemetry" && <TelemetryDashboard />}
 
           {activeView === "website-management" && <WebsiteManagementWorkspace />}
+
+          {activeView === "website-uk-pavilion" && <AbhiUkPavilionWorkspace />}
 
           {activeView === "integrations" && (
             <WorkspaceErrorBoundary title="Integrations">

@@ -12,7 +12,9 @@ import {
   Shield,
 } from "lucide-react";
 
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isAbhiManagedWebsite } from "@/lib/abhi-website-insights";
+import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
   WEBSITE_CMS_TYPES,
   WEBSITE_ENVIRONMENTS,
@@ -34,6 +36,7 @@ import {
   AbhiPerformanceTechPanel,
   AbhiSeoInsightsPanel,
 } from "./AbhiWebsiteInsightsPanels";
+import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import { useWebsiteMockStore } from "./useWebsiteMockStore";
 import {
   WsEmpty,
@@ -327,6 +330,8 @@ function actionButtonClass(tone: "sky" | "amber" | "rose" | "emerald" | "neutral
 
 export default function WebsiteManagementWorkspace() {
   const store = useWebsiteMockStore();
+  const basePath = useInternalOperationsBasePath();
+  const showUkPavilion = isBrowserAbhiSurface();
   const [selectedWebsiteId, setSelectedWebsiteId] = useState<string | null>(
     store.websites[0]?.id ?? null,
   );
@@ -569,7 +574,16 @@ export default function WebsiteManagementWorkspace() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-end gap-4">
+      <div className="flex flex-wrap items-start justify-end gap-3">
+        {showUkPavilion ? (
+          <Link
+            href={getInternalNavHref("website-uk-pavilion", basePath)}
+            className={WsSecondaryButtonClass()}
+          >
+            <ExternalLink className="h-4 w-4" />
+            UK Healthcare Pavilion management
+          </Link>
+        ) : null}
         <button type="button" className={WsPrimaryButtonClass()} onClick={openWizard}>
           <Plus className="h-4 w-4" />
           Connect website
