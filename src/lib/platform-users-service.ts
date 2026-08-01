@@ -155,7 +155,6 @@ export async function resolveSubscriptionRedirectForUser(
 
   // Talanton portfolio company portal demo accounts — never force /payment.
   if (
-    String(user.client_id ?? "").startsWith("ti-cli-") ||
     String(user.redirect_path ?? "").match(
       /^\/(ethicalapparelafrica|arcrideglobal|burnstoves|kentegrabiotech|longmilescoffee|pharmakina|moko|pwr|autosprings|biofarms|endasportswear|kijaniforestry|kivutilapia|masakafarms|owppharma|pezesha|poa|rabboni|tarajischools)(\/|$)/i,
     )
