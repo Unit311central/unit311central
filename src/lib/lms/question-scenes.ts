@@ -9,15 +9,15 @@ export type QuestionScene = {
 const SCENES = {
   port: {
     imageUrl:
-      "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1600&q=80",
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1600&q=80",
     label: "Port & customs",
-    caption: "Cargo, clearance desks, and commercial pressure at the gate",
+    caption: "Operations teams under pressure at the gate",
   },
   factory: {
     imageUrl:
-      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1600&q=80",
+      "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1600&q=80",
     label: "Plant floor",
-    caption: "Operations leaders balancing schedule, safety and integrity",
+    caption: "Leaders balancing schedule, safety and integrity",
   },
   boardroom: {
     imageUrl:
@@ -27,19 +27,19 @@ const SCENES = {
   },
   handshake: {
     imageUrl:
-      "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=80",
+      "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=1600&q=80",
     label: "Partners & deals",
     caption: "Relationships should never replace transparent process",
   },
   market: {
     imageUrl:
-      "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=1600&q=80",
+      "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1600&q=80",
     label: "Market reality",
     caption: "Growth markets reward discipline, not shortcuts",
   },
   office: {
     imageUrl:
-      "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1600&q=80",
+      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1600&q=80",
     label: "Office floor",
     caption: "Everyday choices in procurement, finance and ops",
   },
@@ -51,15 +51,15 @@ const SCENES = {
   },
   hospitality: {
     imageUrl:
-      "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1600&q=80",
+      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=80",
     label: "Hospitality",
     caption: "Gifts and entertainment need clear green / amber / red lines",
   },
   city: {
     imageUrl:
-      "https://images.unsplash.com/photo-1611348524140-53c9a25263d6?auto=format&fit=crop&w=1600&q=80",
+      "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1600&q=80",
     label: "City & licences",
-    caption: "Regulators, renewals and official channels",
+    caption: "Officials, renewals and transparent channels",
   },
   finance: {
     imageUrl:

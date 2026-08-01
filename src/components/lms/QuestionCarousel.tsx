@@ -190,8 +190,7 @@ export default function QuestionCarousel({
                   alt={scene.label}
                   className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a1628] via-[#0a1628]/35 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-[#0a1628]/20 lg:to-[#0a1628]" />
-                <div className="absolute bottom-4 left-4 right-4">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0a1628] via-[#0a1628]/70 to-transparent p-4 pt-16 lg:inset-y-0 lg:left-auto lg:right-0 lg:w-2/5 lg:bg-gradient-to-l lg:via-[#0a1628]/50 lg:pt-4">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-200/90">
                     {scene.label}
                   </p>
