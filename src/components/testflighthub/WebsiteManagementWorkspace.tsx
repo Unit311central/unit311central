@@ -12,6 +12,7 @@ import {
   Shield,
 } from "lucide-react";
 
+import { isAbhiManagedWebsite } from "@/lib/abhi-website-insights";
 import {
   WEBSITE_CMS_TYPES,
   WEBSITE_ENVIRONMENTS,
@@ -28,6 +29,11 @@ import {
   updateContentStatus,
 } from "@/lib/website-management-mock-store";
 import { cn } from "@/lib/utils";
+import {
+  AbhiAnalyticsInsightsPanel,
+  AbhiPerformanceTechPanel,
+  AbhiSeoInsightsPanel,
+} from "./AbhiWebsiteInsightsPanels";
 import { useWebsiteMockStore } from "./useWebsiteMockStore";
 import {
   WsEmpty,
@@ -53,6 +59,7 @@ const CONTENT_TABS = [
   "Themes",
   "SEO",
   "Analytics",
+  "Performance",
   "Deployments",
   "Backups",
 ] as const;
@@ -323,7 +330,10 @@ export default function WebsiteManagementWorkspace() {
   const [selectedWebsiteId, setSelectedWebsiteId] = useState<string | null>(
     store.websites[0]?.id ?? null,
   );
-  const [activeTab, setActiveTab] = useState<ContentTab>("Pages");
+  const [activeTab, setActiveTab] = useState<ContentTab>(() => {
+    const first = store.websites[0];
+    return first && isAbhiManagedWebsite(first) ? "SEO" : "Pages";
+  });
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [wizardForm, setWizardForm] = useState<WizardForm>(emptyWizardForm);
@@ -700,7 +710,17 @@ export default function WebsiteManagementWorkspace() {
                 ))}
               </div>
 
-              {activeTab === "Deployments" ? (
+              {selectedWebsite &&
+              isAbhiManagedWebsite(selectedWebsite) &&
+              (activeTab === "SEO" || activeTab === "Analytics" || activeTab === "Performance") ? (
+                activeTab === "SEO" ? (
+                  <AbhiSeoInsightsPanel />
+                ) : activeTab === "Analytics" ? (
+                  <AbhiAnalyticsInsightsPanel />
+                ) : (
+                  <AbhiPerformanceTechPanel />
+                )
+              ) : activeTab === "Deployments" ? (
                 websiteDeployments.length ? (
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-left text-sm">
