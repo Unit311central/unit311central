@@ -434,11 +434,27 @@ export default function SupportLoungeApp({
       setExistingIdDraft("");
       pushAssistant(
         openTickets.length > 0
-          ? "Select the existing ticket from the dropdown, or type a ticket ID (e.g. SUP-023)."
-          : "No open tickets found yet for this company. Type a ticket ID if you have one, or go back and choose New ticket.",
+          ? "Select the existing ticket from the dropdown, or type a ticket ID (e.g. SUP-023). Use Back if you meant to open a new ticket."
+          : "No open tickets found yet for this company. Type a ticket ID if you have one, or tap Back to choose New ticket.",
       );
       return;
     }
+    setIntakeStep("description");
+    pushAssistant("Please provide a description of the problem you are experiencing.");
+  }
+
+  function goBackToTicketKind() {
+    setIntake((prev) => ({ ...prev, ticketKind: "new", existingTicketId: "" }));
+    setExistingIdDraft("");
+    setIntakeStep("kind");
+    pushUser("Back");
+    pushAssistant("Is this a new ticket or an existing ticket? Choose below.");
+  }
+
+  function switchToNewTicket() {
+    setIntake((prev) => ({ ...prev, ticketKind: "new", existingTicketId: "" }));
+    setExistingIdDraft("");
+    pushUser("New ticket");
     setIntakeStep("description");
     pushAssistant("Please provide a description of the problem you are experiencing.");
   }
@@ -852,10 +868,22 @@ export default function SupportLoungeApp({
 
               {intakeMode && intakeStep === "existing" ? (
                 <div className="mt-4 space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-white/45">
-                    Existing ticket
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-white/45">
+                      Existing ticket
+                    </p>
+                    <button
+                      type="button"
+                      onClick={goBackToTicketKind}
+                      className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:border-white/25 hover:text-white"
+                    >
+                      ← Back
+                    </button>
+                  </div>
+                  <label className="block text-xs text-white/45">
+                    <span className="sr-only">Select existing ticket</span>
                     <select
-                      className="mt-2 h-12 w-full rounded-2xl border border-white/10 bg-[#0b1524] px-4 text-sm text-white outline-none focus:border-sky-400/40"
+                      className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-[#0b1524] px-4 text-sm text-white outline-none focus:border-sky-400/40"
                       defaultValue=""
                       onChange={(event) => {
                         if (event.target.value) chooseExistingTicket(event.target.value);
@@ -886,6 +914,13 @@ export default function SupportLoungeApp({
                       Continue
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={switchToNewTicket}
+                    className="w-full rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2.5 text-sm font-semibold text-sky-100"
+                  >
+                    Create a new ticket instead
+                  </button>
                 </div>
               ) : null}
 
