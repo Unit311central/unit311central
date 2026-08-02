@@ -27,7 +27,9 @@ import { resolveTalantonCompanyPortalPostLoginUrl } from "@/lib/talanton/company
 import { resolveAbhiMemberPortalPostLoginUrl } from "@/lib/abhi/member-portal-login";
 import {
   ABHI_DEMO_PLATFORM_USERNAME,
-  isAbhiDemoPlatformUsername,
+  ABHI_PORTALS_ADMIN_USERNAME,
+  ABHI_PORTALS_SHARED_PASSWORD,
+  isAbhiPortalsAllowedUsername,
 } from "@/lib/abhi/portals-demo";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
@@ -120,7 +122,7 @@ async function resolvePostLoginRedirect(options: {
 
   if (loginReturn?.kind === "workspace") {
     const slug = parseClientPlatformSubdomainSafe(new URL(loginReturn.origin).host);
-    if (isAbhiSlug(slug) && isAbhiDemoPlatformUsername(username) && userType !== "external") {
+    if (isAbhiSlug(slug) && isAbhiPortalsAllowedUsername(username) && userType !== "external") {
       return `${loginReturn.origin.replace(/\/$/, "")}/portals`;
     }
     let needsOnboarding = false;
@@ -146,7 +148,7 @@ async function resolvePostLoginRedirect(options: {
   const workspaceOnly = parseValidWorkspaceReturnTo(returnToRaw);
   if (workspaceOnly) {
     const slug = parseClientPlatformSubdomainSafe(new URL(workspaceOnly).host);
-    if (isAbhiSlug(slug) && isAbhiDemoPlatformUsername(username) && userType !== "external") {
+    if (isAbhiSlug(slug) && isAbhiPortalsAllowedUsername(username) && userType !== "external") {
       return `${workspaceOnly.replace(/\/$/, "")}/portals`;
     }
     let needsOnboarding = false;
@@ -220,6 +222,61 @@ async function createDemoLoginResponse(
   return response;
 }
 
+async function createAbhiPortalsCredentialLoginResponse(
+  request: NextRequest,
+  usernameRaw: string,
+  returnToRaw: string | null,
+  nextRaw: string | null,
+  workspaceSlug: string | null,
+) {
+  const username = normalizePlatformUsername(usernameRaw);
+  if (!isAbhiSlug(workspaceSlug) || !isAbhiPortalsAllowedUsername(username)) {
+    return null;
+  }
+
+  const workspace = await resolveWorkspaceBinding({
+    workspaceSlug,
+    fallbackInternal: false,
+  });
+
+  const displayName = username === ABHI_PORTALS_ADMIN_USERNAME ? "ABHI Portals Admin" : "ABHI Demo";
+  const session: PlatformSession = withSessionWorkspace(
+    {
+      sub:
+        username === ABHI_PORTALS_ADMIN_USERNAME
+          ? "00000000-0000-4000-8000-00000000ab01"
+          : "00000000-0000-4000-8000-00000000ab02",
+      username,
+      displayName,
+      userType: "internal",
+      redirectPath: "/portals",
+      exp: Date.now() + PLATFORM_SESSION_MAX_AGE_SECONDS * 1000,
+    },
+    workspace,
+  );
+
+  const redirectPath = await resolvePostLoginRedirect({
+    redirectPath: "/portals",
+    requestHost: getRequestHost(request),
+    returnToRaw,
+    nextRaw: nextRaw || "/portals",
+    userType: "internal",
+    username,
+  });
+
+  const response = NextResponse.json({
+    redirectPath,
+    userType: session.userType,
+    displayName: session.displayName,
+    workspace: workspace
+      ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+      : null,
+  });
+
+  applyPlatformSessionCookie(response, await createPlatformSessionToken(session), request);
+  return response;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
@@ -272,6 +329,17 @@ export async function POST(request: NextRequest) {
       return createDemoLoginResponse(request, returnToRaw, nextRaw);
     }
 
+    if (body.password === ABHI_PORTALS_SHARED_PASSWORD) {
+      const portalsLogin = await createAbhiPortalsCredentialLoginResponse(
+        request,
+        body.username,
+        returnToRaw,
+        nextRaw,
+        workspaceSlug,
+      );
+      if (portalsLogin) return portalsLogin;
+    }
+
     if (!isSupabaseConfigured()) {
       return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
     }
@@ -289,15 +357,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ABHI platform login (internal) is limited to the demo briefing account.
+    // ABHI platform login (internal) is limited to the portals demo accounts.
     if (
       isAbhiSlug(workspaceSlug) &&
       result.session.userType !== "external" &&
-      !isAbhiDemoPlatformUsername(result.session.username)
+      !isAbhiPortalsAllowedUsername(result.session.username)
     ) {
       return NextResponse.json(
         {
-          error: `ABHI platform login is limited to ${ABHI_DEMO_PLATFORM_USERNAME} for this demonstration.`,
+          error: `ABHI platform login is limited to ${ABHI_DEMO_PLATFORM_USERNAME} and ${ABHI_PORTALS_ADMIN_USERNAME} for this demonstration.`,
         },
         { status: 403 },
       );

@@ -29,7 +29,12 @@ import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-porta
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
+import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
 import { clearPlatformSessionCookie } from "@/lib/platform-session-cookie";
+import {
+  PLATFORM_SESSION_COOKIE,
+  readPlatformSessionToken,
+} from "@/lib/platform-session-token";
 
 function canonicalizePortalRedirect(redirectPath: string | null | undefined): string | null {
   if (!redirectPath) return null;
@@ -258,11 +263,20 @@ export async function middleware(request: NextRequest) {
       return bounce;
     }
 
-    // ABHI pre-demo portals briefing — public on the ABHI host (before external gate).
+    // ABHI pre-demo portals briefing — requires demo@ or admin@ session cookie.
+    // Uses username allowlist (not workspace membership) so demo credential logins work.
     if (
       workspaceSlug === ABHI_SLUG &&
       (pathname === "/portals" || pathname.startsWith("/portals/"))
     ) {
+      const loginUrl = `${workspaceOrigin}/login?next=${encodeURIComponent("/portals")}`;
+      const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
+      const session = token ? await readPlatformSessionToken(token) : null;
+      if (!session || !isAbhiPortalsAllowedUsername(session.username)) {
+        const bounce = redirectExternal(loginUrl);
+        if (token) clearPlatformSessionCookie(bounce, request);
+        return bounce;
+      }
       const response = NextResponse.next({ request: { headers } });
       for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
         response.headers.set(key, value);
