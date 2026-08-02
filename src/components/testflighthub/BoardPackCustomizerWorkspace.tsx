@@ -58,14 +58,20 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 function resolveWorkspacePdfCompanyName(): string {
-  if (typeof window === "undefined") return SITE_NAME;
   try {
-    const cached = window.sessionStorage.getItem("unit311-whoami-workspace-name")?.trim();
-    if (cached) return cached;
+    const { resolveBrowserWorkspaceDisplayName } =
+      require("@/lib/workspace-brand") as typeof import("@/lib/workspace-brand");
+    return resolveBrowserWorkspaceDisplayName();
   } catch {
-    /* ignore */
+    if (typeof window === "undefined") return SITE_NAME;
+    try {
+      const cached = window.sessionStorage.getItem("unit311-whoami-workspace-name")?.trim();
+      if (cached) return cached;
+    } catch {
+      /* ignore */
+    }
+    return SITE_NAME;
   }
-  return SITE_NAME;
 }
 
 export default function BoardPackCustomizerWorkspace() {

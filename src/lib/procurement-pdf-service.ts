@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 
 import { moneyExact, type PurchaseOrder } from "@/lib/procurement-data";
+import { resolveBrowserWorkspaceDisplayName } from "@/lib/workspace-brand";
 
 /** Generate a professional purchase order PDF (client-side download). */
 export function generatePurchaseOrderPdf(po: PurchaseOrder): Blob {
@@ -10,7 +11,7 @@ export function generatePurchaseOrderPdf(po: PurchaseOrder): Blob {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text("Unit311 Central", margin, y);
+  doc.text(resolveBrowserWorkspaceDisplayName(), margin, y);
   y += 22;
   doc.setFontSize(14);
   doc.text("Purchase Order", margin, y);

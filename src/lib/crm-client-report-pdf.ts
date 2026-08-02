@@ -128,7 +128,7 @@ function drawTitlePage(doc: jsPDF, lead: CrmLead, generatedAt: string, logo: Cli
   doc.setFontSize(10);
   doc.setTextColor(148, 163, 184);
   doc.text(`Generated ${formatLondonDateTime(generatedAt)} GMT`, MARGIN, 260);
-  doc.text("Unit311 Central", MARGIN, 268);
+  doc.text("Confidential", MARGIN, 268);
 }
 
 function drawSummaryPage(doc: jsPDF, lead: CrmLead) {

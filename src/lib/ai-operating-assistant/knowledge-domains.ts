@@ -171,7 +171,7 @@ export function classifyKnowledgeDomain(message: string): EaKnowledgeClassificat
 export const KNOWLEDGE_DOMAIN_SOURCES = {
   platform: {
     name: "Application Catalogue",
-    purpose: "Understand the Unit311 Central platform (modules → applications → pages/views).",
+    purpose: "Understand the workspace platform structure (modules → applications → pages/views).",
     tools: ["listPlatformModules", "searchApplications"],
   },
   capability: {

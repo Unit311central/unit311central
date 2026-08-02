@@ -36,7 +36,7 @@ function buildChaseBody(input: {
     ``,
     `Kind regards,`,
     input.senderName,
-    `Unit311 Central`,
+    `Accounts receivable`,
   ];
   return lines.join("\n");
 }

@@ -7,6 +7,13 @@ import {
   getFounderBookingTimezone,
   getTimezoneAbbreviation,
 } from "@/lib/founder-booking/timezones";
+import {
+  brandEmailFooterHtml,
+  brandEmailLogoHtml,
+  brandFromWorkspaceClaim,
+  resolveWorkspaceBrand,
+  type WorkspaceBrand,
+} from "@/lib/workspace-brand";
 
 function parseEmails(raw: string | string[] | undefined): string[] {
   const text = Array.isArray(raw) ? raw.join(",") : raw ?? "";
@@ -86,20 +93,7 @@ function formatMeetingWhen(iso: string, timeZone: string) {
   return formatDateTimeInTimezone(iso, timeZone);
 }
 
-function emailLogoHtml() {
-  return `
-    <div style="margin-bottom:24px;">
-      <span style="font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:700;color:#0b2d63;letter-spacing:-0.03em;">
-        Unit<span style="color:#2563eb;">311</span>
-      </span>
-      <div style="margin-top:6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#64748b;letter-spacing:0.12em;text-transform:uppercase;">
-        Unit311 Central
-      </div>
-    </div>
-  `;
-}
-
-function emailShell(title: string, bodyHtml: string) {
+function emailShell(brand: WorkspaceBrand, title: string, bodyHtml: string) {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -110,11 +104,11 @@ function emailShell(title: string, bodyHtml: string) {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:32px;">
                 <tr>
                   <td style="font-family:Arial,Helvetica,sans-serif;color:#0f172a;line-height:1.6;">
-                    ${emailLogoHtml()}
+                    ${brandEmailLogoHtml(brand)}
                     <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:#0b2d63;">${title}</h1>
                     ${bodyHtml}
                     <p style="margin:28px 0 0;font-size:12px;color:#94a3b8;">
-                      Unit311 Central · <a href="${CENTRAL_SITE_URL}" style="color:#2563eb;text-decoration:none;">unit311central.com</a>
+                      ${brandEmailFooterHtml(brand)}
                     </p>
                   </td>
                 </tr>
@@ -138,14 +132,20 @@ export function buildCalendarMeetingIcs(input: {
   organiserEmail: string;
   attendeeEmails: string[];
   timeZone: string;
+  brand?: WorkspaceBrand | null;
 }): string {
-  const uid = `meeting-${input.event.id}@unit311central.com`;
+  const brand =
+    input.brand ?? brandFromWorkspaceClaim({ slug: "unit311", name: "Unit311 Central" });
+  const icsDomain = brand.showPlatformBranding
+    ? "unit311central.com"
+    : "meetings.local";
+  const uid = `meeting-${input.event.id}@${icsDomain}`;
   const dtStamp = formatIcsUtc(new Date().toISOString());
   const dtStart = formatIcsUtc(input.event.startsAt);
   const dtEnd = formatIcsUtc(input.event.endsAt);
   const description = escapeIcsText(
     [
-      stripAttendeesFromNotes(input.event.notes) || "Unit311 Central meeting",
+      stripAttendeesFromNotes(input.event.notes) || `${brand.displayName} meeting`,
       "",
       `Join: ${input.meetingUrl}`,
       `Timezone: ${getTimezoneAbbreviation(input.timeZone)} (${input.timeZone})`,
@@ -163,7 +163,7 @@ export function buildCalendarMeetingIcs(input: {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Unit311 Central//Meeting Invitation//EN",
+    `PRODID:-//${brand.displayName}//Meeting Invitation//EN`,
     "CALSCALE:GREGORIAN",
     "METHOD:REQUEST",
     "BEGIN:VEVENT",
@@ -193,9 +193,12 @@ export function buildGoogleCalendarInviteUrl(input: {
   endsAt: string;
   meetingUrl: string;
   description?: string | null;
+  brand?: WorkspaceBrand | null;
 }): string {
+  const brand =
+    input.brand ?? brandFromWorkspaceClaim({ slug: "unit311", name: "Unit311 Central" });
   const details = [
-    input.description?.trim() || "Unit311 Central meeting",
+    input.description?.trim() || `${brand.displayName} meeting`,
     "",
     `Join: ${input.meetingUrl}`,
   ].join("\n");
@@ -238,10 +241,14 @@ export async function sendCalendarMeetingInvites(input: {
     return { sent: 0, failed: [], meetingUrl, errors: {} };
   }
 
+  const resolvedBrand = await resolveWorkspaceBrand().catch(() =>
+    brandFromWorkspaceClaim({ slug: "unit311", name: "Unit311 Central" }),
+  );
+
   const timeZone = resolveMeetingTimezone(input.event, input.timeZone);
   const timezoneMeta = getFounderBookingTimezone(timeZone);
-  const organiser = input.organiserName?.trim() || "Unit311 Central";
-  const organiserEmail = input.organiserEmail?.trim() || "info@unit311central.com";
+  const organiser = input.organiserName?.trim() || resolvedBrand.displayName;
+  const organiserEmail = input.organiserEmail?.trim() || resolvedBrand.supportEmail;
   const description =
     stripAttendeesFromNotes(stripTimezoneLine(input.event.notes)) || "No additional description.";
   const startsLabel = formatMeetingWhen(input.event.startsAt, timeZone);
@@ -252,6 +259,7 @@ export async function sendCalendarMeetingInvites(input: {
     endsAt: input.event.endsAt,
     meetingUrl,
     description,
+    brand: resolvedBrand,
   });
 
   const ics = buildCalendarMeetingIcs({
@@ -261,6 +269,7 @@ export async function sendCalendarMeetingInvites(input: {
     organiserEmail,
     attendeeEmails: emails,
     timeZone,
+    brand: resolvedBrand,
   });
 
   const failed: string[] = [];
@@ -270,10 +279,11 @@ export async function sendCalendarMeetingInvites(input: {
   for (const to of emails) {
     try {
       const html = emailShell(
+        resolvedBrand,
         "Meeting invitation",
         `
           <p style="margin:0 0 16px;font-size:15px;color:#334155;">
-            You are invited to a meeting on Unit311 Central.
+            You are invited to a meeting on ${escapeHtml(resolvedBrand.displayName)}.
           </p>
           <p style="margin:0 0 8px;font-size:15px;color:#334155;">
             <strong>Meeting:</strong> ${escapeHtml(input.event.title)}
@@ -315,7 +325,7 @@ export async function sendCalendarMeetingInvites(input: {
       );
 
       const text = [
-        `You are invited to a meeting on Unit311 Central.`,
+        `You are invited to a meeting on ${resolvedBrand.displayName}.`,
         ``,
         `Meeting: ${input.event.title}`,
         `Date & time: ${startsLabel} – ${endsLabel}`,
@@ -338,7 +348,7 @@ export async function sendCalendarMeetingInvites(input: {
         html,
         attachments: [
           {
-            filename: "unit311-meeting.ics",
+            filename: "meeting-invite.ics",
             content: ics,
             contentType: "text/calendar; method=REQUEST; charset=UTF-8",
           },

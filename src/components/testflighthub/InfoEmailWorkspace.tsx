@@ -70,8 +70,17 @@ const DEFAULT_MAILBOXES: EmailAccountOption[] = [
 ];
 
 function defaultMailboxesForHost(): EmailAccountOption[] {
-  // Demo and Internal both show the live Unit311 Zoho mailboxes.
-  return DEFAULT_MAILBOXES;
+  if (typeof window === "undefined") return [];
+  try {
+    const { resolveRuntimeSurface } =
+      require("@/lib/runtime-surface") as typeof import("@/lib/runtime-surface");
+    const surface = resolveRuntimeSurface(window.location.hostname);
+    // Platform Zoho mailboxes are Internal/Demo only — never customer tenants.
+    if (surface === "internal" || surface === "demo") return DEFAULT_MAILBOXES;
+  } catch {
+    /* fall through */
+  }
+  return [];
 }
 
 function emailSignatureCompany() {
@@ -83,8 +92,15 @@ function emailSignatureCompany() {
     } catch {
       // fall through
     }
+    try {
+      const { resolveBrowserWorkspaceDisplayName } =
+        require("@/lib/workspace-brand") as typeof import("@/lib/workspace-brand");
+      return resolveBrowserWorkspaceDisplayName();
+    } catch {
+      // fall through
+    }
   }
-  return "Unit311";
+  return "Workspace";
 }
 
 type EmailAccountOption = EmailAccount & { configured?: boolean };

@@ -86,7 +86,7 @@ export async function buildBusinessContext(
         input.workspaceName ??
         input.session.workspaceName ??
         organisationName ??
-        "Unit311 Central",
+        "Workspace",
       slug: input.workspaceSlug ?? input.session.workspaceSlug ?? null,
     },
     page: {

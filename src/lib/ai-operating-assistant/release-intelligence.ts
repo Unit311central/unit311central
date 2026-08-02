@@ -56,7 +56,7 @@ export function buildReleaseIntelligence(lastSeenIso: string | null): ReleaseInt
     offerTour: count > 0,
     message:
       count === 0
-        ? "You are up to date with the latest Unit311 Central features."
+        ? "You are up to date with the latest workspace features."
         : count === 1
           ? "One new feature has been added since your last visit. Would you like a 90-second guided tour?"
           : `${count} new features have been added since your last visit. Would you like a 90-second guided tour?`,

@@ -100,7 +100,7 @@ function addInvoiceHeader(doc: jsPDF, invoiceNumber: string, logoDataUrl: string
   doc.text("INVOICE", MARGIN, 16);
   doc.setFontSize(10);
   doc.setTextColor(147, 197, 253);
-  doc.text("Unit311 Central — Quarterly Subscription", MARGIN, 24);
+  doc.text("Quarterly Subscription Invoice", MARGIN, 24);
   doc.text(`Invoice #${invoiceNumber}`, MARGIN, 32);
 }
 
@@ -141,7 +141,7 @@ export async function buildSubscriptionInvoicePdf(
   doc.text("From", PAGE_W / 2, y);
   doc.setFont("helvetica", "normal");
   doc.text("Nakama Technology Holdings Ltd", PAGE_W / 2, y + 6);
-  doc.text("Unit311 Central", PAGE_W / 2, y + 12);
+  doc.text("Subscription invoice", PAGE_W / 2, y + 12);
   doc.text(
     `Issued ${issuedAt.toLocaleDateString("en-US", { dateStyle: "long" })}`,
     PAGE_W / 2,

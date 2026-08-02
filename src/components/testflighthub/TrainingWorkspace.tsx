@@ -185,7 +185,7 @@ export default function TrainingWorkspace() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300"
           >
-            Unit311 courses
+            Workspace courses
             <ExternalLink className="h-3 w-3" />
           </a>
           . Select a course tile to filter enrolled participants.

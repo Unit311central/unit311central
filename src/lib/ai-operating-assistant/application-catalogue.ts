@@ -20,6 +20,7 @@ import {
   isViewAllowedForGrants,
 } from "@/lib/internal-role-views";
 import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
+import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
 
 export type ApplicationCataloguePage = {
   id: string;
@@ -207,7 +208,7 @@ function moduleFromSection(section: InternalNavSection): ApplicationCatalogueMod
     id,
     label: section.label,
     displayName: DISPLAY_NAMES[id] ?? section.label,
-    description: MODULE_DESCRIPTIONS[id] ?? `${section.label} workspace in Unit311 Central.`,
+    description: MODULE_DESCRIPTIONS[id] ?? `${section.label} workspace module.`,
     icon: section.icon,
     color: section.color,
     applications,
@@ -422,9 +423,12 @@ export type PlatformQuestionAnswer = {
   navigateLabel?: string;
 };
 
-function formatModuleList(modules: ApplicationCatalogueModule[]): string {
+function formatModuleList(
+  modules: ApplicationCatalogueModule[],
+  workspaceLabel = "Workspace",
+): string {
   return [
-    "Unit311 Central platform modules:",
+    `${workspaceLabel} platform modules:`,
     "",
     ...modules.map((m) => `• ${m.displayName}`),
     "",
@@ -527,9 +531,15 @@ export function answerPlatformQuestion(
 
   if (isModulesList) {
     const modules = listPlatformModules(options);
+    const workspaceLabel = options?.workspaceSlug
+      ? brandFromWorkspaceClaim({
+          slug: options.workspaceSlug,
+          name: options.workspaceSlug,
+        }).displayName
+      : "Workspace";
     return {
       kind: "modules",
-      answer: formatModuleList(modules),
+      answer: formatModuleList(modules, workspaceLabel),
       modules,
     };
   }

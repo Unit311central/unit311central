@@ -1,6 +1,5 @@
 /**
- * Shared EA PDF chrome — ABHI board-paper brand on ABHI hosts;
- * Unit311 sky mark elsewhere.
+ * Shared EA PDF chrome — workspace-aware brand marks.
  */
 
 import { readFile } from "node:fs/promises";
@@ -14,13 +13,9 @@ import {
   ABHI_LOGO_SRC,
   isAbhiSlug,
 } from "@/lib/abhi-surface";
-import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { brandFromWorkspaceClaim, type WorkspaceBrandKind } from "@/lib/workspace-brand";
 
-function isCorpCentreWorkspaceSlug(slug: string): boolean {
-  return slug === "corpcentre" || slug === "corporatecentre";
-}
-
-export type AssistantPdfBrandKind = "abhi" | "corpcentre" | "talanton" | "unit311";
+export type AssistantPdfBrandKind = WorkspaceBrandKind | "unit311";
 
 export type AssistantPdfRgb = readonly [number, number, number];
 
@@ -87,60 +82,37 @@ async function loadPublicImageDataUrl(
 
 export async function resolveAssistantPdfBrand(
   workspaceSlug?: string | null,
+  workspaceName?: string | null,
 ): Promise<AssistantPdfBrand> {
   const slug = String(workspaceSlug ?? "")
     .trim()
     .toLowerCase();
+  const brand = brandFromWorkspaceClaim({ slug, name: workspaceName });
 
   if (isAbhiSlug(slug)) {
     const logo = await loadPublicImageDataUrl(ABHI_LOGO_SRC);
     return {
       kind: "abhi",
-      brandName: "ABHI",
-      organisationFallback: "ABHI",
+      brandName: brand.productName,
+      organisationFallback: brand.displayName,
       colors: ABHI_COLORS,
       logoDataUrl: logo?.dataUrl ?? null,
       logoFormat: logo?.format ?? null,
-      footnoteSource:
-        "Figures sourced from live ABHI workspace data. Empty sections mean no records — not estimates.",
+      footnoteSource: brand.pdfFootnote,
     };
   }
 
-  if (isCorpCentreWorkspaceSlug(slug)) {
-    return {
-      kind: "corpcentre",
-      brandName: "Corp.Centre",
-      organisationFallback: "Corp.Centre",
-      colors: UNIT311_COLORS,
-      logoDataUrl: null,
-      logoFormat: null,
-      footnoteSource:
-        "Figures sourced from live Corp.Centre workspace data. Empty sections mean no records — not estimates.",
-    };
-  }
-
-  if (isTalantonImpactSlug(slug)) {
-    return {
-      kind: "talanton",
-      brandName: "Talanton Impact",
-      organisationFallback: "Talanton Impact",
-      colors: UNIT311_COLORS,
-      logoDataUrl: null,
-      logoFormat: null,
-      footnoteSource:
-        "Figures sourced from live Talanton Impact workspace data. Empty sections mean no records — not estimates.",
-    };
-  }
+  const kind: AssistantPdfBrandKind =
+    brand.kind === "platform" ? "unit311" : brand.kind;
 
   return {
-    kind: "unit311",
-    brandName: "Unit311",
-    organisationFallback: "Central",
-    colors: UNIT311_COLORS,
+    kind,
+    brandName: brand.productName,
+    organisationFallback: brand.displayName,
+    colors: brand.kind === "abhi" ? ABHI_COLORS : UNIT311_COLORS,
     logoDataUrl: null,
     logoFormat: null,
-    footnoteSource:
-      "Figures sourced from live Unit311 workspace data. Empty sections mean no records — not estimates.",
+    footnoteSource: brand.pdfFootnote,
   };
 }
 

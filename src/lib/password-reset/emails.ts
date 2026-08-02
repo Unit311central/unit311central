@@ -1,9 +1,16 @@
-import { CENTRAL_SITE_URL } from "@/lib/app-domains";
+import {
+  brandEmailFooterHtml,
+  brandEmailLogoHtml,
+  brandFromWorkspaceClaim,
+  type WorkspaceBrand,
+} from "@/lib/workspace-brand";
 
 export type PasswordResetEmailInput = {
   displayName: string;
   resetUrl: string;
   expiresInMinutes: number;
+  /** Active workspace brand — defaults to platform when omitted. */
+  brand?: WorkspaceBrand | null;
 };
 
 function escapeHtml(value: string) {
@@ -15,20 +22,7 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
-function emailLogoHtml() {
-  return `
-    <div style="margin-bottom:24px;">
-      <span style="font-family:Arial,Helvetica,sans-serif;font-size:28px;font-weight:700;color:#0b2d63;letter-spacing:-0.03em;">
-        Unit<span style="color:#2563eb;">311</span>
-      </span>
-      <div style="margin-top:6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#64748b;letter-spacing:0.12em;text-transform:uppercase;">
-        Unit311 Central
-      </div>
-    </div>
-  `;
-}
-
-function emailShell(title: string, bodyHtml: string) {
+function emailShell(brand: WorkspaceBrand, title: string, bodyHtml: string) {
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -39,11 +33,11 @@ function emailShell(title: string, bodyHtml: string) {
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:32px;">
                 <tr>
                   <td style="font-family:Arial,Helvetica,sans-serif;color:#0f172a;line-height:1.6;">
-                    ${emailLogoHtml()}
+                    ${brandEmailLogoHtml(brand)}
                     <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;color:#0b2d63;">${title}</h1>
                     ${bodyHtml}
                     <p style="margin:28px 0 0;font-size:12px;color:#94a3b8;">
-                      Unit311 Central · <a href="${CENTRAL_SITE_URL}" style="color:#2563eb;text-decoration:none;">unit311central.com</a>
+                      ${brandEmailFooterHtml(brand)}
                     </p>
                   </td>
                 </tr>
@@ -57,17 +51,24 @@ function emailShell(title: string, bodyHtml: string) {
 }
 
 export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
+  const brand = input.brand ?? brandFromWorkspaceClaim({ slug: "unit311", name: "Unit311 Central" });
   const firstName = input.displayName.trim().split(/\s+/)[0] || "there";
-  const subject = "Reset your Unit311 password";
+  const accountLabel = brand.showPlatformBranding
+    ? "your Unit311 account"
+    : `your ${brand.displayName} workspace account`;
+  const subject = brand.showPlatformBranding
+    ? "Reset your Unit311 password"
+    : `Reset your ${brand.displayName} password`;
 
   const html = emailShell(
+    brand,
     "Reset your password",
     `
       <p style="margin:0 0 16px;font-size:15px;color:#334155;">
         Hi ${escapeHtml(firstName)},
       </p>
       <p style="margin:0 0 16px;font-size:15px;color:#334155;">
-        We received a request to reset the password for your Unit311 account. Use the button below to choose a new password.
+        We received a request to reset the password for ${escapeHtml(accountLabel)}. Use the button below to choose a new password.
         This link expires in ${input.expiresInMinutes} minutes.
       </p>
       <p style="margin:0 0 24px;">
@@ -88,7 +89,7 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
   const text = [
     `Hi ${firstName},`,
     "",
-    "We received a request to reset the password for your Unit311 account.",
+    `We received a request to reset the password for ${accountLabel}.`,
     `Open this link within ${input.expiresInMinutes} minutes to choose a new password:`,
     input.resetUrl,
     "",

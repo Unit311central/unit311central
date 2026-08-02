@@ -1,6 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { CENTRAL_SITE_URL } from "@/lib/app-domains";
+import { headers } from "next/headers";
+
+import {
+  CENTRAL_SITE_URL,
+  getRequestHost,
+  parseClientPlatformSubdomainSafe,
+} from "@/lib/app-domains";
 import { sendMailboxEmail } from "@/lib/email/smtp";
 import {
   ensurePlatformPasswordResetTokensTable,
@@ -17,6 +23,8 @@ import {
   findPlatformUsersByEmail,
 } from "@/lib/platform-users-service";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { resolveWorkspaceBrandFor } from "@/lib/workspace-brand";
+import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 export const PASSWORD_RESET_EXPIRY_MINUTES = 60;
 
@@ -157,10 +165,28 @@ export async function requestPlatformPasswordReset(input: { email: string }) {
   });
 
   const resetUrl = buildResetUrl(token);
+  let brand = undefined as Awaited<ReturnType<typeof resolveWorkspaceBrandFor>> | undefined;
+  try {
+    const host = getRequestHost({ headers: await headers() });
+    const slug = parseClientPlatformSubdomainSafe(host);
+    if (slug) {
+      const workspace = await findWorkspaceBySlug(slug);
+      brand = await resolveWorkspaceBrandFor({
+        workspace: workspace
+          ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+          : null,
+        slug,
+        name: workspace?.name ?? slug,
+      });
+    }
+  } catch {
+    brand = undefined;
+  }
   const emailContent = buildPasswordResetEmail({
     displayName: user.display_name,
     resetUrl,
     expiresInMinutes: PASSWORD_RESET_EXPIRY_MINUTES,
+    brand,
   });
 
   await sendMailboxEmail({

@@ -53,7 +53,9 @@ function defaultReportName(kind: TqmsReport["kind"]) {
 
 function downloadStub(report: TqmsReport) {
   const content = [
-    `Unit311 QMS Report`,
+    `${(typeof window !== "undefined" &&
+      window.sessionStorage.getItem("unit311-whoami-workspace-name")?.trim()) ||
+      "Workspace"} QMS Report`,
     `Name: ${report.name}`,
     `Kind: ${report.kind}`,
     `Format: ${report.format}`,

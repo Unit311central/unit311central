@@ -121,7 +121,9 @@ export default function BurnRateOverviewSection({
 
   function buildReportText() {
     const lines = [
-      "Unit311 Central — Burn Rate Report",
+      `${(typeof window !== "undefined" &&
+        window.sessionStorage.getItem("unit311-whoami-workspace-name")?.trim()) ||
+        "Workspace"} — Burn Rate Report`,
       `Generated: ${new Date().toISOString()}`,
       `Source: ${burnRate.source === "live" ? "General Ledger" : "GL-derived demo"}`,
       "",

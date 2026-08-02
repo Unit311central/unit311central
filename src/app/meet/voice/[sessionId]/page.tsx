@@ -8,7 +8,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const metadata = createNoIndexMetadata({
   title: "Voice meeting",
-  description: "Private Unit311 Central voice meeting room.",
+  description: "Private workspace voice meeting room.",
   path: "/meet/voice",
 });
 
@@ -48,7 +48,7 @@ export default async function MeetVoicePage({ params, searchParams }: MeetVoiceP
           </span>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300">
-              Unit311 Central
+              Meeting
             </p>
             <h1 className="text-xl font-semibold text-white">Voice call not found</h1>
           </div>

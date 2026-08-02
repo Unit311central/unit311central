@@ -61,7 +61,10 @@ export function meetingCreatedPrompt(clientName?: string | null): string {
 async function resolveOrganiserEmail(
   business: AssistantBusinessContext,
 ): Promise<{ name: string; email: string }> {
-  const name = business.user.displayName?.trim() || "Unit311 Central";
+  const name =
+    business.user.displayName?.trim() ||
+    business.workspace.name?.trim() ||
+    "Workspace";
   const username = business.user.username?.trim() || "";
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(username)) {
     return { name, email: username.toLowerCase() };
@@ -87,7 +90,12 @@ async function resolveOrganiserEmail(
     // fall through
   }
 
-  return { name, email: "info@unit311central.com" };
+  const { brandFromWorkspaceClaim } = await import("@/lib/workspace-brand");
+  const brand = brandFromWorkspaceClaim({
+    slug: business.workspace.slug,
+    name: business.workspace.name,
+  });
+  return { name, email: brand.supportEmail };
 }
 
 export async function findPendingMeetingForInvite(

@@ -152,13 +152,20 @@ export async function buildBusinessSnapshot(
         })()
       : Promise.resolve(null),
     want("assets")
-      ? Promise.resolve({
-          physicalAssets: [] as unknown[],
-          categories: [] as unknown[],
-          locations: [] as unknown[],
-          inventoryItems: [] as unknown[],
-          liveUnavailable: true as const,
-        })
+      ? (async () => {
+          const { loadWorkspaceInventory } = await import("./workspace-operational-data");
+          const snapshot = loadWorkspaceInventory(context.workspace.slug);
+          const assets = snapshot.assets.filter((asset) => !asset.archived);
+          const categories = [...new Set(assets.map((a) => a.category))].sort();
+          const locations = [...new Set(assets.map((a) => a.location))].sort();
+          return {
+            physicalAssets: assets,
+            categories,
+            locations,
+            inventoryItems: assets,
+            liveUnavailable: false as const,
+          };
+        })()
       : Promise.resolve(null),
   ]);
 
@@ -169,11 +176,6 @@ export async function buildBusinessSnapshot(
   const unpaidExpenses = expenses.filter((expense) => !expense.paid);
 
   const dataGaps: string[] = [];
-  if (want("assets")) {
-    dataGaps.push(
-      "Waiting for live business data — Assets/inventory register is not connected for EA answers yet.",
-    );
-  }
   if (want("finance") && !context.permissions.canAccessFinancials) {
     dataGaps.push("Finance data hidden for current role.");
   }
@@ -194,25 +196,25 @@ export async function buildBusinessSnapshot(
         ? wiseCash.totalGbp
         : wiseCash?.totalGbp ?? null;
 
-  const physicalAssets: Array<{
-    operationalStatus: string;
-    category: string;
-    location: string;
-    assetTag: string;
-    model: string;
-    serialNumber: string;
-    nextMaintenanceDue: string | null;
-    notes: string;
-  }> = [];
-  const inventoryItems: Array<{
-    assetTag: string;
-    name: string;
-    category: string;
-    location: string;
-    status: string;
-    currentValue: number;
-  }> = [];
-  void assetBundle;
+  const physicalAssets = (assetBundle?.physicalAssets ?? []).map((asset) => ({
+    operationalStatus: String((asset as { status?: string }).status ?? "unknown"),
+    category: String((asset as { category?: string }).category ?? ""),
+    location: String((asset as { location?: string }).location ?? ""),
+    assetTag: String((asset as { assetTag?: string }).assetTag ?? ""),
+    model: String((asset as { model?: string }).model ?? ""),
+    serialNumber: String((asset as { serialNumber?: string }).serialNumber ?? ""),
+    nextMaintenanceDue:
+      String((asset as { nextService?: string }).nextService ?? "").trim() || null,
+    notes: String((asset as { name?: string }).name ?? ""),
+  }));
+  const inventoryItems = (assetBundle?.inventoryItems ?? []).map((asset) => ({
+    assetTag: String((asset as { assetTag?: string }).assetTag ?? ""),
+    name: String((asset as { name?: string }).name ?? ""),
+    category: String((asset as { category?: string }).category ?? ""),
+    location: String((asset as { location?: string }).location ?? ""),
+    status: String((asset as { status?: string }).status ?? ""),
+    currentValue: Number((asset as { currentValue?: string | number }).currentValue) || 0,
+  }));
 
   return {
     asOf: new Date().toISOString(),
@@ -416,6 +418,6 @@ export async function buildBusinessSnapshot(
     guidance:
       domain === "assets"
         ? "The user asked about physical Assets. Answer ONLY from the assets register (tags, models, locations, status). Do NOT report Wise cash, bank balances, clients, or finance unless they also asked."
-        : "Answer using only these live figures. For bank/cash questions use Wise balances. For Assets section / physical assets / fleet / drones use the assets register — never confuse Assets with finance. If a field is null/empty/zero, say so plainly.",
+        : "Answer using only these live figures. For bank/cash questions use workspace cash/ledger figures (not platform treasury). For Assets section / physical assets / fleet / drones use the assets register — never confuse Assets with finance. If a field is null/empty/zero, say so plainly.",
   };
 }

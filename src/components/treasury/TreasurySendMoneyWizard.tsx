@@ -84,7 +84,7 @@ export default function TreasurySendMoneyWizard({
   const [step, setStep] = useState(0);
   const [balanceId, setBalanceId] = useState<number | null>(balances[0]?.id ?? null);
   const [amount, setAmount] = useState("");
-  const [reference, setReference] = useState("Unit311 payment");
+  const [reference, setReference] = useState("Workspace payment");
   const [recipients, setRecipients] = useState<TreasuryRecipientRow[]>([]);
   const [recipientSearch, setRecipientSearch] = useState("");
   const [selectedRecipientId, setSelectedRecipientId] = useState<number | null>(null);

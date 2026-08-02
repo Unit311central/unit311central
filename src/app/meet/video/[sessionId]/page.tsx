@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Video } from "lucide-react";
 
 import CalendarMeetRoom from "@/components/calendar/CalendarMeetRoom";
@@ -10,7 +9,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const metadata = createNoIndexMetadata({
   title: "Video meeting",
-  description: "Private Unit311 Central video meeting room.",
+  description: "Private workspace video meeting room.",
   path: "/meet/video",
 });
 
@@ -29,7 +28,7 @@ function NotFoundMeetStub({ sessionId }: { sessionId: string }) {
           </span>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300">
-              Unit311 Central
+              Meeting
             </p>
             <h1 className="text-xl font-semibold text-white">Meeting not found</h1>
           </div>
@@ -45,14 +44,7 @@ function NotFoundMeetStub({ sessionId }: { sessionId: string }) {
         </div>
 
         <p className="mt-6 text-center text-xs text-white/40">
-          Need help? Email{" "}
-          <a href="mailto:info@unit311central.com" className="text-sky-300 hover:underline">
-            info@unit311central.com
-          </a>
-          {" · "}
-          <Link href="/book" className="text-sky-300 hover:underline">
-            Book a founder session
-          </Link>
+          Need help? Contact the meeting organiser for a new link.
         </p>
       </div>
     </section>

@@ -190,7 +190,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "searchPerformanceReviews",
     description:
-      "List or search live HR performance reviews from Unit311 Performance. Use for “show all performance reviews”, ratings, review periods, or an employee’s reviews. Never say you lack access — query this tool.",
+      "List or search live HR performance reviews. Use for “show all performance reviews”, ratings, review periods, or an employee’s reviews. Never say you lack access — query this tool.",
     parameters: {
       type: "object",
       properties: {
@@ -737,7 +737,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "listPlatformModules",
     description:
-      "List Unit311 Central PLATFORM modules from the Application Catalogue (Business Central, Financials, HR, …). Use for “What modules exist?” — NOT for “What can you do?” (that is listBusinessActions / Action Registry).",
+      "List PLATFORM modules from the Application Catalogue (Business Central, Financials, HR, …). Use for “What modules exist?” — NOT for “What can you do?” (that is listBusinessActions / Action Registry).",
     parameters: {
       type: "object",
       properties: {},

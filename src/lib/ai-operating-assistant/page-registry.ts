@@ -54,7 +54,7 @@ function baseTargets(viewId: string): AiUiTarget[] {
       kind: "nav",
       selector: '[data-ai-target="platform-nav"]',
       explanation:
-        "Use the left sidebar to move between Unit311 modules. Your current page stays highlighted.",
+        "Use the left sidebar to move between workspace modules. Your current page stays highlighted.",
       relatedActions: ["Open another module", "Return home"],
     },
     {
@@ -310,7 +310,7 @@ const PAGE_GUIDES: Record<string, AiPageGuide> = {
     forms: ["Upload form"],
     workflows: ["Find a document", "Upload a contract", "Ask AI to summarise a file"],
     permissions: ["Internal operators"],
-    relationships: ["Clients folders", "Unit311 Details", "Projects"],
+    relationships: ["Clients folders", "Company Details", "Projects"],
     commonQuestions: [
       "Where do I upload a contract?",
       "How do I find a document?",
@@ -343,7 +343,7 @@ const PAGE_GUIDES: Record<string, AiPageGuide> = {
     forms: [],
     workflows: ["Open a QMS area", "Ask about ISO / quality docs in Files"],
     permissions: ["Available to operators"],
-    relationships: ["QMS Training", "Files", "Unit311 Details"],
+    relationships: ["QMS Training", "Files", "Company Details"],
     commonQuestions: ["What is QMS here?", "Where are controlled documents?", "How do I find ISO 13485 docs?"],
     targets: [
       {
@@ -401,7 +401,7 @@ export function getPageGuide(viewId: string | null | undefined): AiPageGuide {
       : id;
 
   return guide(id, {
-    purpose: `${title} workspace in Unit311 Central.`,
+    purpose: `${title} workspace module.`,
     kpis: [],
     buttons: ["Module actions in the main panel"],
     actions: ["Use module controls", "Ask the AI about this page"],

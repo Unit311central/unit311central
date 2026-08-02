@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import type { FinancialReportRecord } from "@/lib/financial-reports-mock-data";
+import { resolveBrowserWorkspaceDisplayName } from "@/lib/workspace-brand";
 
 function money(value: number, currency = "USD") {
   try {
@@ -59,7 +60,8 @@ export function buildFinancialReportPdfBlob(
     y += 26;
   };
 
-  write("Unit311 Central — Financial Report", 16, "bold");
+  const orgName = resolveBrowserWorkspaceDisplayName();
+  write(`${orgName} — Financial Report`, 16, "bold");
   y += 4;
   write(report.name, 14, "bold");
   y += 2;
@@ -130,7 +132,7 @@ export function buildFinancialReportPdfBlob(
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184);
   doc.text(
-    "Figures sourced from live Unit311 financials (GL, invoices, expenses, Wise cash). Zeros mean no posted activity — not estimates.",
+    `Figures sourced from live ${orgName} financials (GL, invoices, expenses, cash). Zeros mean no posted activity — not estimates.`,
     left,
     y,
     { maxWidth: usable },

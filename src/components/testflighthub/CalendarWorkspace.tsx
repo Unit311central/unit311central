@@ -1058,7 +1058,7 @@ export default function CalendarWorkspace({
                   )}
                 />
                 <p className="mt-1 text-[10px] text-white/40">
-                  New meetings automatically receive a unique Unit311 meeting URL in Location.
+                  New meetings automatically receive a unique meeting URL in Location.
                 </p>
               </div>
 

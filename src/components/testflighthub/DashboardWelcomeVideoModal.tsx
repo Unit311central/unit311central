@@ -54,7 +54,7 @@ export default function DashboardWelcomeVideoModal() {
 
         <div className="border-b border-white/10 px-5 py-4 pr-14">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
-            Unit311 Central
+            Welcome
           </p>
           <h2 id="dashboard-welcome-video-title" className="mt-1 text-lg font-semibold text-white">
             Workspace demo

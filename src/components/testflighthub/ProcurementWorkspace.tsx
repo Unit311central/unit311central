@@ -103,8 +103,8 @@ const AI_KIND_LABELS: Record<string, string> = {
   supplier_summary: "Supplier summary",
 };
 
-const DEFAULT_DELIVERY = "Unit311 Central, Carrer de la Marina 16, Barcelona 08005";
-const DEFAULT_BILLING = "Unit311 Central Finance, Carrer de la Marina 16, Barcelona 08005";
+const DEFAULT_DELIVERY = "Workspace delivery address";
+const DEFAULT_BILLING = "Workspace billing address";
 
 function emptyLine(partial?: Partial<ProcurementLineItem>): ProcurementLineItem {
   return {
