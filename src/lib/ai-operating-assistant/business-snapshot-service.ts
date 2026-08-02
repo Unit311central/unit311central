@@ -1,4 +1,4 @@
-import { listInternalClients } from "@/lib/internal-clients-service";
+﻿import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { listLeads } from "@/lib/crm-leads-service";
 import { listHrEmployees } from "@/lib/hr-employees-service";
@@ -27,7 +27,7 @@ export type BusinessSnapshotDomain =
 
 /**
  * Compact live business snapshot for open-ended executive Q&A.
- * Never invents metrics — zeros / empty arrays mean no live data.
+ * Never invents metrics ÔÇö zeros / empty arrays mean no live data.
  */
 export async function buildBusinessSnapshot(
   context: AssistantBusinessContext,
@@ -36,7 +36,7 @@ export async function buildBusinessSnapshot(
   const want = (name: BusinessSnapshotDomain) => {
     if (domain === name) return true;
     if (domain === "all") return name !== "overview";
-    // Overview is a management summary — not a dump of Assets register.
+    // Overview is a management summary ÔÇö not a dump of Assets register.
     if (domain === "overview") {
       return (
         name === "overview" ||
@@ -152,20 +152,13 @@ export async function buildBusinessSnapshot(
         })()
       : Promise.resolve(null),
     want("assets")
-      ? (async () => {
-          const { loadWorkspaceInventory } = await import("./workspace-operational-data");
-          const snapshot = loadWorkspaceInventory(context.workspace.slug);
-          const assets = snapshot.assets.filter((asset) => !asset.archived);
-          const categories = [...new Set(assets.map((a) => a.category))].sort();
-          const locations = [...new Set(assets.map((a) => a.location))].sort();
-          return {
-            physicalAssets: assets,
-            categories,
-            locations,
-            inventoryItems: assets,
-            liveUnavailable: false as const,
-          };
-        })()
+      ? Promise.resolve({
+          physicalAssets: [] as unknown[],
+          categories: [] as unknown[],
+          locations: [] as unknown[],
+          inventoryItems: [] as unknown[],
+          liveUnavailable: true as const,
+        })
       : Promise.resolve(null),
   ]);
 
@@ -176,6 +169,11 @@ export async function buildBusinessSnapshot(
   const unpaidExpenses = expenses.filter((expense) => !expense.paid);
 
   const dataGaps: string[] = [];
+  if (want("assets")) {
+    dataGaps.push(
+      "Waiting for live business data ÔÇö Assets/inventory register is not connected for EA answers yet.",
+    );
+  }
   if (want("finance") && !context.permissions.canAccessFinancials) {
     dataGaps.push("Finance data hidden for current role.");
   }
@@ -196,25 +194,25 @@ export async function buildBusinessSnapshot(
         ? wiseCash.totalGbp
         : wiseCash?.totalGbp ?? null;
 
-  const physicalAssets = (assetBundle?.physicalAssets ?? []).map((asset) => ({
-    operationalStatus: String((asset as { status?: string }).status ?? "unknown"),
-    category: String((asset as { category?: string }).category ?? ""),
-    location: String((asset as { location?: string }).location ?? ""),
-    assetTag: String((asset as { assetTag?: string }).assetTag ?? ""),
-    model: String((asset as { model?: string }).model ?? ""),
-    serialNumber: String((asset as { serialNumber?: string }).serialNumber ?? ""),
-    nextMaintenanceDue:
-      String((asset as { nextService?: string }).nextService ?? "").trim() || null,
-    notes: String((asset as { name?: string }).name ?? ""),
-  }));
-  const inventoryItems = (assetBundle?.inventoryItems ?? []).map((asset) => ({
-    assetTag: String((asset as { assetTag?: string }).assetTag ?? ""),
-    name: String((asset as { name?: string }).name ?? ""),
-    category: String((asset as { category?: string }).category ?? ""),
-    location: String((asset as { location?: string }).location ?? ""),
-    status: String((asset as { status?: string }).status ?? ""),
-    currentValue: Number((asset as { currentValue?: string | number }).currentValue) || 0,
-  }));
+  const physicalAssets: Array<{
+    operationalStatus: string;
+    category: string;
+    location: string;
+    assetTag: string;
+    model: string;
+    serialNumber: string;
+    nextMaintenanceDue: string | null;
+    notes: string;
+  }> = [];
+  const inventoryItems: Array<{
+    assetTag: string;
+    name: string;
+    category: string;
+    location: string;
+    status: string;
+    currentValue: number;
+  }> = [];
+  void assetBundle;
 
   return {
     asOf: new Date().toISOString(),
@@ -265,7 +263,7 @@ export async function buildBusinessSnapshot(
           },
     assets: want("assets")
       ? {
-          source: "Assets register (Assets, Inventory & Logistics → Assets)",
+          source: "Assets register (Assets, Inventory & Logistics ÔåÆ Assets)",
           total: physicalAssets.length,
           byStatus: physicalAssets.reduce<Record<string, number>>((acc, asset) => {
             acc[asset.operationalStatus] = (acc[asset.operationalStatus] || 0) + 1;
@@ -418,6 +416,7 @@ export async function buildBusinessSnapshot(
     guidance:
       domain === "assets"
         ? "The user asked about physical Assets. Answer ONLY from the assets register (tags, models, locations, status). Do NOT report Wise cash, bank balances, clients, or finance unless they also asked."
-        : "Answer using only these live figures. For bank/cash questions use workspace cash/ledger figures (not platform treasury). For Assets section / physical assets / fleet / drones use the assets register — never confuse Assets with finance. If a field is null/empty/zero, say so plainly.",
+        : "Answer using only these live figures. For bank/cash questions use workspace cash/ledger figures (not platform treasury). For Assets section / physical assets / fleet / drones use the assets register ÔÇö never confuse Assets with finance. If a field is null/empty/zero, say so plainly.",
   };
 }
+
