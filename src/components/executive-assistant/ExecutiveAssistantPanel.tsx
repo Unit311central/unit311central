@@ -24,6 +24,7 @@ import AbhiBoardPackProgress from "@/components/executive-assistant/AbhiBoardPac
 import { PlanViewer } from "@/components/executive-assistant/PlanViewer";
 import { ExecutionCardsList } from "@/components/executive-assistant/execution-cards";
 import type { EaCardAction, EaExecutionCard } from "@/lib/ai-operating-assistant/execution-cards";
+import { cardsFromBoardPackSuccess } from "@/lib/ai-operating-assistant/execution-card-adapters";
 import { actionConfirmationToPlanViewer } from "@/lib/ai-operating-assistant/actions/planning/summaries";
 import type { PlanViewerModel } from "@/lib/ai-operating-assistant/actions/planning/types";
 import type { ActionConfirmationView } from "@/components/executive-assistant/ActionConfirmationCard";
@@ -38,6 +39,8 @@ import {
   saveAbhiBoardPack,
 } from "@/lib/abhi/board-pack-record";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { getAbhiBoardMeetingsState } from "@/lib/abhi/board-meetings-store";
+import { getAbhiRiskRegisterState } from "@/lib/abhi/risk-register-store";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { saveFileToFolderPath } from "@/lib/pdf-file-storage";
 import { cn } from "@/lib/utils";
@@ -659,6 +662,7 @@ export default function ExecutiveAssistantPanel({
     abortRef.current = controller;
 
     let finalReply: string | null = null;
+    let sawBoardPackTool = false;
     const correlationId =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? `ea_${crypto.randomUUID()}`
@@ -686,6 +690,14 @@ export default function ExecutiveAssistantPanel({
           roleView,
           stream: true,
           correlationId,
+          ...(isBrowserAbhiSurface()
+            ? {
+                abhiOrgState: {
+                  meetings: getAbhiBoardMeetingsState(),
+                  risks: getAbhiRiskRegisterState(),
+                },
+              }
+            : {}),
         }),
       });
 
@@ -706,6 +718,7 @@ export default function ExecutiveAssistantPanel({
             }
           }
           if (event.type === "tool_call" && event.name === "boardpack.generate" && isAbhi) {
+            sawBoardPackTool = true;
             setBoardPackProgress({ active: true, complete: false });
             setMessages((current) =>
               current.map((entry) =>
@@ -719,14 +732,82 @@ export default function ExecutiveAssistantPanel({
             applyGuidedToolResult(event.result);
             applyProactiveToolResult(event.name, event.result);
             if (event.name === "boardpack.generate" && isAbhi) {
-              setBoardPackProgress({ active: true, complete: true });
               const summary = (event.result as { summary?: Record<string, unknown> } | null)
                 ?.summary;
-              if (summary && typeof summary.packName === "string") {
+              if (summary?.needsMeetingDate) {
+                setBoardPackProgress({ active: false, complete: false });
+              } else if (summary && typeof summary.packName === "string") {
+                setBoardPackProgress({ active: true, complete: true });
+              }
+              if (
+                summary &&
+                typeof summary.packName === "string" &&
+                !summary.needsMeetingDate &&
+                typeof summary.pdfOpenUrl === "string"
+              ) {
+                const pdfOpenUrl = String(summary.pdfOpenUrl);
+                const pdfDownloadUrl = String(
+                  summary.pdfDownloadUrl ?? summary.pdfOpenUrl,
+                );
+                const pptxDownloadUrl = String(summary.pptxDownloadUrl ?? "");
+                const meetingDate = String(summary.meetingDate ?? "");
+                const packName = String(summary.packName);
+                const successCards = cardsFromBoardPackSuccess({
+                  packName,
+                  meetingDate,
+                  status: String(summary.status ?? "Draft"),
+                  folderPath: String(
+                    summary.folderPath ?? "Corporate Information / Board Deck",
+                  ),
+                  boardDeckHref: String(
+                    summary.boardDeckHref ?? "/dashboard?view=board-pack",
+                  ),
+                  pdfOpenUrl,
+                  pdfDownloadUrl,
+                  pptxDownloadUrl,
+                });
+                // Show the success card immediately — do not wait for a later
+                // done event that historically never arrived after large payloads.
+                setMessages((current) =>
+                  current.map((entry) =>
+                    entry.id === assistantId
+                      ? {
+                          ...entry,
+                          content: "Board Pack Generated Successfully",
+                          executionCards: successCards,
+                          artifacts: [
+                            {
+                              id: String(summary.pdfArtifactId ?? "pdf"),
+                              kind: "pdf" as const,
+                              title: packName,
+                              filename: String(summary.filename ?? "Board Pack.pdf"),
+                              openUrl: pdfOpenUrl,
+                              downloadUrl: pdfDownloadUrl,
+                            },
+                            ...(pptxDownloadUrl
+                              ? [
+                                  {
+                                    id: String(summary.pptxArtifactId ?? "pptx"),
+                                    kind: "pptx" as const,
+                                    title: `${packName} (PowerPoint)`,
+                                    filename: String(
+                                      summary.pptxFilename ?? "Board Pack.pptx",
+                                    ),
+                                    openUrl: pptxDownloadUrl,
+                                    downloadUrl: pptxDownloadUrl,
+                                  },
+                                ]
+                              : []),
+                          ],
+                        }
+                      : entry,
+                  ),
+                );
+
                 const record = {
                   id: createAbhiBoardPackRecordId(),
-                  packName: String(summary.packName),
-                  meetingDate: String(summary.meetingDate ?? ""),
+                  packName,
+                  meetingDate,
                   status: "Draft" as const,
                   createdAt: new Date().toISOString(),
                   pdfArtifactId:
@@ -737,12 +818,8 @@ export default function ExecutiveAssistantPanel({
                     typeof summary.pptxArtifactId === "string"
                       ? summary.pptxArtifactId
                       : undefined,
-                  pdfOpenUrl:
-                    typeof summary.pdfOpenUrl === "string" ? summary.pdfOpenUrl : undefined,
-                  pptxDownloadUrl:
-                    typeof summary.pptxDownloadUrl === "string"
-                      ? summary.pptxDownloadUrl
-                      : undefined,
+                  pdfOpenUrl,
+                  pptxDownloadUrl: pptxDownloadUrl || undefined,
                   folderPath: String(
                     summary.folderPath ?? "Corporate Information / Board Deck",
                   ),
@@ -754,39 +831,33 @@ export default function ExecutiveAssistantPanel({
 
                 void (async () => {
                   try {
-                    const pdfB64 =
-                      typeof summary.pdfContentBase64 === "string"
-                        ? summary.pdfContentBase64
-                        : null;
-                    const pptxB64 =
-                      typeof summary.pptxContentBase64 === "string"
-                        ? summary.pptxContentBase64
-                        : null;
                     const folderSegments = [
                       "Corporate Information",
                       "Board Deck",
-                      String(summary.packName),
+                      packName,
                     ];
-                    if (pdfB64 && typeof summary.filename === "string") {
-                      const bytes = Uint8Array.from(atob(pdfB64), (c) => c.charCodeAt(0));
-                      await saveFileToFolderPath({
-                        blob: new Blob([bytes], { type: "application/pdf" }),
-                        filename: String(summary.filename),
-                        folderSegments,
-                        mimeType: "application/pdf",
-                      });
+                    if (typeof summary.filename === "string") {
+                      const pdfRes = await fetch(pdfDownloadUrl);
+                      if (pdfRes.ok) {
+                        await saveFileToFolderPath({
+                          blob: await pdfRes.blob(),
+                          filename: String(summary.filename),
+                          folderSegments,
+                          mimeType: "application/pdf",
+                        });
+                      }
                     }
-                    if (pptxB64 && typeof summary.pptxFilename === "string") {
-                      const bytes = Uint8Array.from(atob(pptxB64), (c) => c.charCodeAt(0));
-                      await saveFileToFolderPath({
-                        blob: new Blob([bytes], {
-                          type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                        }),
-                        filename: String(summary.pptxFilename),
-                        folderSegments,
-                        mimeType:
-                          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                      });
+                    if (pptxDownloadUrl && typeof summary.pptxFilename === "string") {
+                      const pptxRes = await fetch(pptxDownloadUrl);
+                      if (pptxRes.ok) {
+                        await saveFileToFolderPath({
+                          blob: await pptxRes.blob(),
+                          filename: String(summary.pptxFilename),
+                          folderSegments,
+                          mimeType:
+                            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        });
+                      }
                     }
                   } catch {
                     /* folder save is best-effort for the demo */
@@ -839,9 +910,20 @@ export default function ExecutiveAssistantPanel({
                   ? {
                       ...event.message,
                       id: assistantId,
-                      followUpActions: event.message.followUpActions,
-                      artifacts: event.message.artifacts,
-                      executionCards: event.message.executionCards,
+                      content:
+                        event.message.content?.trim() ||
+                        entry.content ||
+                        "Board Pack Generated Successfully",
+                      followUpActions:
+                        event.message.followUpActions ?? entry.followUpActions,
+                      artifacts:
+                        event.message.artifacts?.length
+                          ? event.message.artifacts
+                          : entry.artifacts,
+                      executionCards:
+                        event.message.executionCards?.length
+                          ? event.message.executionCards
+                          : entry.executionCards,
                     }
                   : entry,
               ),
@@ -907,12 +989,11 @@ export default function ExecutiveAssistantPanel({
       return null;
     } finally {
       setSending(false);
-      if (boardPackProgress.active) {
+      if (sawBoardPackTool) {
+        // Keep the completion checklist briefly, then clear so the success card is focus.
         window.setTimeout(() => {
-          setBoardPackProgress((prev) =>
-            prev.complete ? { active: false, complete: false } : prev,
-          );
-        }, 1600);
+          setBoardPackProgress({ active: false, complete: false });
+        }, 1800);
       }
     }
   }

@@ -4,7 +4,11 @@ import {
   resolveOrchestrationRoute,
 } from "./action-orchestration";
 import { getAssistantAction } from "./actions/registry";
-import { cardsFromArtifacts, cardsFromBoardPackSuccess } from "./execution-card-adapters";
+import {
+  cardsFromArtifacts,
+  cardsFromBoardPackNeedsDate,
+  cardsFromBoardPackSuccess,
+} from "./execution-card-adapters";
 import { eaStage, eaStop, getEaCorrelationId, setEaConversationId } from "./ea-forensic-trace";
 import { topicHintFromHistory } from "./intent-router";
 import { extractConversationEntityMemory } from "./intent-action-resolver";
@@ -54,8 +58,29 @@ function toInputMessages(
   return [...prior, { role: "user", content: latestUserMessage }];
 }
 
+/** Drop inlined file bytes before SSE — large base64 payloads break the client stream. */
+function stripStreamPayloadBytes<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((entry) => stripStreamPayloadBytes(entry)) as T;
+  }
+  if (!value || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  const next: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(record)) {
+    if (
+      key === "contentBase64" ||
+      key === "pdfContentBase64" ||
+      key === "pptxContentBase64"
+    ) {
+      continue;
+    }
+    next[key] = stripStreamPayloadBytes(entry);
+  }
+  return next as T;
+}
+
 function encodeSse(event: AssistantStreamEvent) {
-  return `data: ${JSON.stringify(event)}\n\n`;
+  return `data: ${JSON.stringify(stripStreamPayloadBytes(event))}\n\n`;
 }
 
 async function resolveHistory(
@@ -403,6 +428,20 @@ function formatExecutiveIntelligenceReply(
     return parts.join("\n");
   }
 
+  if (
+    toolName === "abhi.getExecutiveBriefing" ||
+    toolName === "abhi.getOrgHealth" ||
+    toolName === "abhi.queryActions" ||
+    toolName === "abhi.getBoardInsights"
+  ) {
+    const prose =
+      (typeof summary?.message === "string" && summary.message) ||
+      (typeof items?.[0]?.prose === "string" && items[0].prose) ||
+      null;
+    if (prose) return prose;
+    return "I could not complete that ABHI executive analysis.";
+  }
+
   return null;
 }
 
@@ -426,6 +465,45 @@ function formatDirectListReply(toolName: string, result: unknown): string | null
         emptyFallback: "There are currently no leave requests matching that request.",
         line: (item, index) =>
           `${index + 1}. ${String(item.employeeName ?? "—")} — ${String(item.type ?? "—")} — ${String(item.startDate ?? "")} → ${String(item.endDate ?? "")} — ${String(item.status ?? "")}`,
+      });
+    case "searchVacancies":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no open vacancies.",
+        line: (item, index) =>
+          `${index + 1}. ${String(item.title ?? "—")} — ${String(item.department ?? "—")} — ${String(item.location ?? "—")} — ${String(item.status ?? "—")}`,
+      });
+    case "searchSupportTickets":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no support tickets matching that request.",
+        line: (item, index) =>
+          `${index + 1}. ${String(item.id ?? "—")} — ${String(item.name ?? "—")} — ${String(item.priority ?? "—")} — ${String(item.status ?? "—")}`,
+      });
+    case "searchSoftwareAssets":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no software assets matching that request.",
+        line: (item, index) =>
+          item.kind === "summary"
+            ? `${index + 1}. ${String(item.totalProducts ?? 0)} products · monthly ${String(item.monthlySpend ?? "—")} · renewals (30d) ${String(item.renewalsDueIn30Days ?? 0)}`
+            : `${index + 1}. ${String(item.name ?? "—")} — ${String(item.vendor ?? "—")} — ${String(item.status ?? "—")}`,
+      });
+    case "searchInventory":
+      return formatListedToolReply(result, {
+        emptyFallback: "There are currently no inventory assets matching that request.",
+        line: (item, index) =>
+          `${index + 1}. ${String(item.assetTag ?? "—")} — ${String(item.name ?? "—")} — ${String(item.status ?? "—")} — ${String(item.location ?? "—")}`,
+      });
+    case "searchQmsTraining":
+      return formatListedToolReply(result, {
+        emptyFallback: "No QMS training records match that request.",
+        line: (item, index) => {
+          if (item.kind === "summary") {
+            return `${index + 1}. Compliance ${String(item.complianceScore ?? "—")}% · overdue ${String(item.overdue ?? 0)} · expiring certs ${String(item.expiring ?? 0)}`;
+          }
+          if (item.kind === "capa") {
+            return `${index + 1}. [CAPA] ${String(item.reference ?? item.id ?? "—")} — ${String(item.title ?? "—")} — ${String(item.status ?? "—")}`;
+          }
+          return `${index + 1}. ${String(item.learnerName ?? "—")} — ${String(item.courseTitle ?? "—")} — ${String(item.status ?? "—")}`;
+        },
       });
     case "searchClients":
       return formatListedToolReply(result, {
@@ -717,6 +795,18 @@ async function persistTurn(input: {
  * Yields SSE-friendly stream events.
  */
 export async function* runAssistantTurn(input: {
+  session: PlatformSession;
+  request: AssistantChatRequest;
+}): AsyncGenerator<AssistantStreamEvent> {
+  const {
+    iterateWithAbhiRequestOrgState,
+    parseAbhiClientOrgState,
+  } = await import("@/lib/abhi/abhi-request-org-state");
+  const abhiOrgState = parseAbhiClientOrgState(input.request.abhiOrgState);
+  yield* iterateWithAbhiRequestOrgState(abhiOrgState, runAssistantTurnInner(input));
+}
+
+async function* runAssistantTurnInner(input: {
   session: PlatformSession;
   request: AssistantChatRequest;
 }): AsyncGenerator<AssistantStreamEvent> {
@@ -1063,34 +1153,45 @@ export async function* runAssistantTurn(input: {
         directIntent.tool === "boardpack.generate"
           ? ((result as { summary?: Record<string, unknown> }).summary ?? null)
           : null;
+      const boardPackNeedsDate = Boolean(boardPackSummary?.needsMeetingDate);
       const boardPackCards =
-        boardPackSummary &&
-        typeof boardPackSummary.packName === "string" &&
-        typeof boardPackSummary.pdfOpenUrl === "string"
-          ? cardsFromBoardPackSuccess({
-              packName: String(boardPackSummary.packName),
-              meetingDate: String(boardPackSummary.meetingDate ?? ""),
-              status: String(boardPackSummary.status ?? "Draft"),
-              folderPath: String(
-                boardPackSummary.folderPath ?? "Corporate Information / Board Deck",
+        boardPackSummary && boardPackNeedsDate
+          ? cardsFromBoardPackNeedsDate({
+              message: String(
+                boardPackSummary.message ??
+                  "A meeting date is required before generating the Board Pack.",
               ),
-              boardDeckHref: String(
-                boardPackSummary.boardDeckHref ?? "/dashboard?view=board-pack",
-              ),
-              pdfOpenUrl: String(boardPackSummary.pdfOpenUrl),
-              pdfDownloadUrl: String(
-                boardPackSummary.pdfDownloadUrl ?? boardPackSummary.pdfOpenUrl,
-              ),
-              pptxDownloadUrl: String(boardPackSummary.pptxDownloadUrl ?? ""),
               followUpActions: turnFollowUps,
             })
-          : [];
+          : boardPackSummary &&
+              typeof boardPackSummary.packName === "string" &&
+              typeof boardPackSummary.pdfOpenUrl === "string"
+            ? cardsFromBoardPackSuccess({
+                packName: String(boardPackSummary.packName),
+                meetingDate: String(boardPackSummary.meetingDate ?? ""),
+                status: String(boardPackSummary.status ?? "Draft"),
+                folderPath: String(
+                  boardPackSummary.folderPath ?? "Corporate Information / Board Deck",
+                ),
+                boardDeckHref: String(
+                  boardPackSummary.boardDeckHref ?? "/dashboard?view=board-pack",
+                ),
+                pdfOpenUrl: String(boardPackSummary.pdfOpenUrl),
+                pdfDownloadUrl: String(
+                  boardPackSummary.pdfDownloadUrl ?? boardPackSummary.pdfOpenUrl,
+                ),
+                pptxDownloadUrl: String(boardPackSummary.pptxDownloadUrl ?? ""),
+                followUpActions: turnFollowUps,
+              })
+            : [];
 
       if (directIntent.tool === "boardpack.generate" && !extracted.errorText) {
         assistantText =
           typeof boardPackSummary?.message === "string"
             ? String(boardPackSummary.message)
-            : "Board Pack Generated Successfully";
+            : boardPackNeedsDate
+              ? "A meeting date is required before generating the Board Pack."
+              : "Board Pack Generated Successfully";
       }
 
       yield { type: "delta", text: assistantText };
@@ -1369,9 +1470,10 @@ export async function* runAssistantTurn(input: {
       if (!pdf || !pptx) return null;
       if (!/board pack/i.test(pdf.title) && !/board pack/i.test(pdf.filename)) return null;
       const meetingMatch = pdf.filename.match(/(\d{4}-\d{2}-\d{2})/);
+      if (!meetingMatch?.[1]) return null;
       return cardsFromBoardPackSuccess({
         packName: pdf.title.replace(/\s*\(PDF\)\s*$/i, "") || pdf.filename.replace(/\.pdf$/i, ""),
-        meetingDate: meetingMatch?.[1] ?? new Date().toISOString().slice(0, 10),
+        meetingDate: meetingMatch[1],
         status: "Draft",
         folderPath: "Corporate Information / Board Deck",
         boardDeckHref: "/dashboard?view=board-pack",

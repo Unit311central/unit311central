@@ -175,6 +175,8 @@ export async function generateBoardPackTool(
       "Strategic Discussion & AOB",
     ];
 
+    // Never stream file bytes in the tool result — PDF/PPTX base64 blows up the SSE
+    // frame and the client never receives the success card / done event.
     return toolOk(
       "boardpack.generate",
       [
@@ -184,7 +186,6 @@ export async function generateBoardPackTool(
           filename: pdfArtifact.filename,
           openUrl: pdfOpenUrl,
           downloadUrl: pdfDownloadUrl,
-          contentBase64: pdfArtifact.contentBase64,
           kind: "pdf",
         },
         {
@@ -193,7 +194,6 @@ export async function generateBoardPackTool(
           filename: pptxArtifact.filename,
           openUrl: pptxDownloadUrl,
           downloadUrl: pptxDownloadUrl,
-          contentBase64: pptxArtifact.contentBase64,
           kind: "pptx",
         },
       ],
@@ -227,8 +227,6 @@ export async function generateBoardPackTool(
           pdfOpenUrl,
           pdfDownloadUrl,
           pptxDownloadUrl,
-          pdfContentBase64: pdfArtifact.contentBase64,
-          pptxContentBase64: pptxArtifact.contentBase64,
         },
         followUpActions: [
           {
