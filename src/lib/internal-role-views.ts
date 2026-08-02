@@ -416,6 +416,7 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "potential-clients",
   "qms-training",
   "marketing-training",
+  "module-go-live",
   // Technology Management: Settings only (do not hide top-level Settings section).
   "technology-settings",
 ]);
@@ -431,6 +432,7 @@ const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Potential Clients",
   "QMS Courses",
   "Internal Training",
+  "Module Go-Live",
 ]);
 
 /** ABHI Business Central: Clients → Members; Unit311 Details → ABHI Details. */
@@ -466,18 +468,42 @@ function renameAbhiClientNavLabels(section: InternalNavSection): InternalNavSect
 
 function reshapeAbhiCorporateSection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Corporate Information") return section;
-  if (section.items.some((item) => item.view === "board-pack")) return section;
-  return {
-    ...section,
-    items: [
-      ...section.items,
+
+  let items = [...section.items];
+
+  if (!items.some((item) => item.view === "corporate-risk-register")) {
+    const riskItem = {
+      label: "Risk Register",
+      icon: "AlertTriangle",
+      view: "corporate-risk-register" as const,
+    };
+    const boardIdx = items.findIndex((item) => item.view === "board-pack");
+    const contractsIdx = items.findIndex((item) => item.view === "corporate-contracts");
+    if (boardIdx >= 0) {
+      items = [...items.slice(0, boardIdx), riskItem, ...items.slice(boardIdx)];
+    } else if (contractsIdx >= 0) {
+      items = [
+        ...items.slice(0, contractsIdx + 1),
+        riskItem,
+        ...items.slice(contractsIdx + 1),
+      ];
+    } else {
+      items = [...items, riskItem];
+    }
+  }
+
+  if (!items.some((item) => item.view === "board-pack")) {
+    items = [
+      ...items,
       {
         label: "Board deck",
         icon: "ScrollText",
         view: "board-pack" as const,
       },
-    ],
-  };
+    ];
+  }
+
+  return { ...section, items };
 }
 
 function reshapeAbhiProductivitySection(section: InternalNavSection): InternalNavSection {

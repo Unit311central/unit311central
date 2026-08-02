@@ -117,11 +117,26 @@ async function main() {
 
     // Portal demo accounts must never hit the /payment subscription gate —
     // keep the member row's account_status Active (subscription_status stays null).
+    // Also store the public member-portal URL on the client record.
+    const portalUrl = `https://abhi.unit311central.com/${row.path}`;
+    const clientPatch = {
+      platform_url: portalUrl,
+      updated_at: new Date().toISOString(),
+    };
     if (String(client.account_status ?? "").toLowerCase() !== "active") {
-      await admin
+      clientPatch.account_status = "Active";
+    }
+    {
+      const { error: clientUpdateErr } = await admin
         .from("internal_clients")
-        .update({ account_status: "Active", updated_at: new Date().toISOString() })
-        .eq("id", client.id);
+        .update(clientPatch)
+        .eq("id", client.id)
+        .eq("workspace_id", ws.id);
+      if (clientUpdateErr) {
+        console.error("client platform_url update failed", row.clientId, clientUpdateErr.message);
+      } else {
+        console.log("client URL", row.clientId, "->", portalUrl);
+      }
     }
 
     const username = normalizeUsername(row.username);
