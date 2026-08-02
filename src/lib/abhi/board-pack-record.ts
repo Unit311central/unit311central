@@ -50,6 +50,21 @@ export function saveAbhiBoardPack(record: AbhiBoardPackRecord): AbhiBoardPackRec
   return record;
 }
 
+/** Remove a generated board pack draft from local storage. */
+export function deleteAbhiBoardPack(id: string): boolean {
+  if (typeof window === "undefined") return false;
+  const current = readAll();
+  const next = current.filter((record) => record.id !== id);
+  if (next.length === current.length) return false;
+  writeAll(next);
+  const latestId = window.localStorage.getItem(LATEST_KEY);
+  if (latestId === id) {
+    if (next[0]?.id) setLatestAbhiBoardPack(next[0].id);
+    else window.localStorage.removeItem(LATEST_KEY);
+  }
+  return true;
+}
+
 export function getAbhiBoardPack(id: string): AbhiBoardPackRecord | null {
   return readAll().find((record) => record.id === id) ?? null;
 }
