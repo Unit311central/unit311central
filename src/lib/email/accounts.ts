@@ -2,6 +2,7 @@ import type { EmailAccount, EmailAccountId, EmailMailboxFolder } from "@/lib/ema
 import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 
 import { resolveAccountCredentials } from "@/lib/email/credentials-service";
+import { isPlatformWorkspaceSlug } from "@/lib/workspace-brand";
 
 export const ZOHO_IMAP_HOST = process.env.ZOHO_IMAP_HOST?.trim() || "imap.zoho.eu";
 export const ZOHO_IMAP_PORT = Number(process.env.ZOHO_IMAP_PORT ?? 993);
@@ -49,8 +50,6 @@ export function getPublicEmailAccounts(options?: {
   const slug = String(options?.workspaceSlug ?? "")
     .trim()
     .toLowerCase();
-  const { isPlatformWorkspaceSlug } =
-    require("@/lib/workspace-brand") as typeof import("@/lib/workspace-brand");
   if (!isPlatformWorkspaceSlug(slug)) {
     return [];
   }

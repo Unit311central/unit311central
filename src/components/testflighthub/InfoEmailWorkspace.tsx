@@ -268,11 +268,22 @@ export default function InfoEmailWorkspace() {
         ? await readApiJson<Partial<Record<EmailAccountId, boolean>>>(statusResponse)
         : null;
 
+      // Defense in depth: never surface platform Zoho inboxes on customer hosts
+      // even if the accounts API misbehaves.
+      const allowedDefaults = defaultMailboxesForHost();
+      const platformOnly = allowedDefaults.length === 0;
       const merged = filterRemovedMailboxes(
-        data.map((account) => ({
-          ...account,
-          configured: account.configured || Boolean(status?.[account.id]),
-        })),
+        data
+          .filter((account) => {
+            if (!platformOnly) return true;
+            return !String(account.email ?? "")
+              .toLowerCase()
+              .endsWith("@unit311central.com");
+          })
+          .map((account) => ({
+            ...account,
+            configured: account.configured || Boolean(status?.[account.id]),
+          })),
       );
 
       setAccounts(merged);
