@@ -139,8 +139,9 @@ function rewriteTo(
 
 /**
  * Apex (public site): marketing + permanent redirects of legacy internal paths.
- * Internal/demo hosts: rewrite `/` onto /internaldashboard (App Router); never
+ * Internal host: rewrite `/` onto /internaldashboard (App Router); never
  * expose /internaldashboard as a public browser URL.
+ * Demo host: apex `/` always forces /login (no auto session); shell is /dashboard.
  * Customer hosts `{slug}.unit311central.com`: rewrite onto /ws/[slug] gateway.
  *
  * RC1-C07: on customer hosts, host is the tenant boundary. Valid sessions that
@@ -478,14 +479,22 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next({ request: { headers } });
     }
 
+    // Apex always forces the Demo login page — never auto-enter the shell from a
+    // leftover Domain=.unit311central.com session (e.g. after ABHI/Talanton/internal).
+    if (pathname === "/" || pathname === "") {
+      const bounce = redirectExternal(`${demoOrigin}/login${search}`);
+      clearPlatformSessionCookie(bounce, request);
+      return bounce;
+    }
+
     // Keep login on the demo host (before marketing-path redirects).
+    // Always render /login — do not bounce signed-in users into the platform.
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const gate = await evaluateCustomerHostSessionGate(request, DEMO_WORKSPACE_SLUG);
-      if (gate.status === "ok") {
-        // Already signed in — send to the platform shell.
-        return redirectExternal(`${demoOrigin}/`);
-      }
       const response = NextResponse.next({ request: { headers } });
+      if (gate.status === "invalid" || gate.status === "forbidden") {
+        clearPlatformSessionCookie(response, request);
+      }
       for (const [key, value] of Object.entries(shellHeaders)) {
         response.headers.set(key, value);
       }
@@ -522,7 +531,13 @@ export async function middleware(request: NextRequest) {
       return bounce;
     }
 
-    if (pathname === "/" || pathname === "") {
+    // Post-login lands on /dashboard (apex `/` always clears the session).
+    if (
+      pathname === "/dashboard" ||
+      pathname.startsWith("/dashboard/") ||
+      pathname === "/internaldashboard" ||
+      pathname.startsWith("/internaldashboard/")
+    ) {
       const response = rewriteTo(request, "/internaldashboard", headers, shellHeaders);
       return applyCustomerHostRebindIfNeeded({ request, response, gate });
     }
@@ -537,10 +552,7 @@ export async function middleware(request: NextRequest) {
       return redirectPermanent(request, viewMap[pathname]);
     }
 
-    const response = NextResponse.next({ request: { headers } });
-    for (const [key, value] of Object.entries(shellHeaders)) {
-      response.headers.set(key, value);
-    }
+    const response = rewriteTo(request, "/internaldashboard", headers, shellHeaders);
     return applyCustomerHostRebindIfNeeded({ request, response, gate });
   }
 

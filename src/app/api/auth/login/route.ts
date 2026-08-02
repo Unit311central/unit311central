@@ -49,7 +49,7 @@ export const dynamic = "force-dynamic";
 const DEMO_LOGIN = {
   username: "client",
   password: "client",
-  redirectPath: "/",
+  redirectPath: "/dashboard",
   userId: "00000000-0000-4000-8000-000000000001",
 } as const;
 
@@ -152,9 +152,10 @@ async function resolvePostLoginRedirect(options: {
 
   // Demo / Internal hosts must keep the user on that host after login.
   // Never bounce a Demo login onto internal.unit311central.com.
+  // Demo apex `/` always clears the session and forces /login, so land on /dashboard.
   if (userType !== "external" && isDemoDomainHost(requestHost)) {
-    const path = nextPath && nextPath !== "/" ? nextPath : "/";
-    return path === "/" ? `${DEMO_SITE_URL}/` : `${DEMO_SITE_URL}${path}`;
+    const path = nextPath && nextPath !== "/" ? nextPath : "/dashboard";
+    return `${DEMO_SITE_URL}${path}`;
   }
   if (userType !== "external" && isInternalDomainHost(requestHost)) {
     const path = nextPath && nextPath !== "/" ? nextPath : "/";
