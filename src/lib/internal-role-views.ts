@@ -417,6 +417,7 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "qms-training",
   "marketing-training",
   "module-go-live",
+  "unit311-details",
   // Technology Management: Settings only (do not hide top-level Settings section).
   "technology-settings",
 ]);
@@ -433,6 +434,8 @@ const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "QMS Courses",
   "Internal Training",
   "Module Go-Live",
+  "Unit311 Details",
+  "ABHI Details",
 ]);
 
 /** ABHI Business Central: Clients → Members; Unit311 Details → ABHI Details. */
