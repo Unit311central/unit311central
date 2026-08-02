@@ -86,31 +86,31 @@ type SceneKey = keyof typeof SCENES;
 const RULES: { key: SceneKey; patterns: RegExp }[] = [
   {
     key: "port",
-    patterns: /customs|port|shipment|cargo|clearance|freight|mobile money|handling fee/i,
+    patterns: /\bcustoms\b|\bports?\b|\bshipment\b|\bcargo\b|\bclearance\b|\bfreight\b|mobile money|handling fee/i,
   },
   {
     key: "hospitality",
-    patterns: /gift|hospitality|resort|lunch|ticket|safari|entertainment|branded/i,
+    patterns: /\bgifts?\b|hospitality|resort|lunch|ticket|safari|entertainment|branded/i,
   },
   {
     key: "factory",
-    patterns: /plant|factory|manufactur|expansion|operations lead|shop floor/i,
+    patterns: /\bplant\b|factory|manufactur|expansion|operations lead|shop floor/i,
   },
   {
     key: "city",
-    patterns: /licen[cs]e|ministry|regulator|permit|official|government/i,
+    patterns: /licen[cs]e|ministry|regulator|permit|\bofficial\b|government|\bmhra\b|medical device/i,
   },
   {
     key: "finance",
-    patterns: /expense|books|records|invoice|cash|ledger|accounting|miscellaneous/i,
+    patterns: /expense|books|records|invoice|cash|ledger|accounting|miscellaneous|sponsorship|revenue/i,
   },
   {
     key: "speakup",
-    patterns: /speak.?up|whistle|retaliat|report|confidential/i,
+    patterns: /speak.?up|whistle|retaliat|\breport\b|confidential|incident/i,
   },
   {
     key: "agent",
-    patterns: /agent|intermediar|consultant|third.?party|distributor|commission/i,
+    patterns: /\bagents?\b|intermediar|consultant|third.?party|distributor|commission/i,
   },
   {
     key: "handshake",
@@ -118,7 +118,7 @@ const RULES: { key: SceneKey; patterns: RegExp }[] = [
   },
   {
     key: "boardroom",
-    patterns: /leadership|talanton|board|managing director|md\b|tone/i,
+    patterns: /leadership|talanton|\bboard\b|managing director|\bmd\b|tone|governance|director/i,
   },
   {
     key: "market",
@@ -126,7 +126,7 @@ const RULES: { key: SceneKey; patterns: RegExp }[] = [
   },
   {
     key: "team",
-    patterns: /conflict|colleague|team|employee|staff/i,
+    patterns: /conflict|colleague|team|employee|staff|training/i,
   },
 ];
 
