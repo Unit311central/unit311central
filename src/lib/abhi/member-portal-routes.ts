@@ -13,9 +13,19 @@ export type AbhiMemberPortalRoute = {
   redirectPath: string;
   /** Optional member-company logo under the ABHI mark on the login page. */
   companyLogoSrc?: string;
+  /** Member company portal vs ABHI Board governance portal. */
+  portalKind?: "member" | "board";
 };
 
 export const ABHI_MEMBER_PORTAL_ROUTES: readonly AbhiMemberPortalRoute[] = [
+  {
+    path: "board",
+    displayName: "ABHI Board",
+    clientId: "abhi-cli-board",
+    username: "board@abhi.org.uk",
+    redirectPath: "/board",
+    portalKind: "board",
+  },
   {
     path: "centrak",
     displayName: "Centrak",

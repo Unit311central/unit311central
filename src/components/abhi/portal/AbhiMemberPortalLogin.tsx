@@ -9,6 +9,7 @@ type Props = {
   companyName: string;
   suggestedUsername: string;
   companyLogoSrc?: string;
+  portalKind?: "member" | "board";
 };
 
 export function AbhiMemberPortalLogin({
@@ -16,7 +17,9 @@ export function AbhiMemberPortalLogin({
   companyName,
   suggestedUsername,
   companyLogoSrc,
+  portalKind = "member",
 }: Props) {
+  const isBoard = portalKind === "board";
   const [username, setUsername] = useState(suggestedUsername);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -72,14 +75,15 @@ export function AbhiMemberPortalLogin({
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
-            ABHI Member Portal
+            {isBoard ? "ABHI Board Portal" : "ABHI Member Portal"}
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-            {companyName} Portal Login
+            {isBoard ? "Board Member Login" : `${companyName} Portal Login`}
           </h1>
           <p className="mt-2 text-sm text-white/55">
-            Sign in with your assigned member portal account to view billing, events, and your
-            Working Group updates.
+            {isBoard
+              ? "Secure access to board papers, meetings, minutes, and the risk register. Read-only."
+              : "Sign in with your assigned member portal account to view billing, events, and your Working Group updates."}
           </p>
 
           <form className="mt-6 space-y-4" onSubmit={(e) => void handleSubmit(e)}>

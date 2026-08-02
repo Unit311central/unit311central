@@ -22,6 +22,10 @@ export type InternalOperationsView =
   | "corporate-software"
   | "corporate-contracts"
   | "corporate-risk-register"
+  | "board-dashboard"
+  | "board-meetings"
+  | "board-minutes"
+  | "board-members"
   | "financials"
   | "general-ledger"
   | "accounts-receivable"
@@ -208,6 +212,10 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "corporate-software",
   "corporate-contracts",
   "corporate-risk-register",
+  "board-dashboard",
+  "board-meetings",
+  "board-minutes",
+  "board-members",
   "financials",
   "general-ledger",
   "accounts-receivable",
@@ -648,6 +656,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         view: "board-pack" as const,
       },
       {
+        label: "Board Meetings",
+        icon: "CalendarDays",
+        view: "board-meetings" as const,
+      },
+      {
         label: "Unit311 Details",
         icon: "ShieldCheck",
         children: [
@@ -879,6 +892,10 @@ export const internalViewTitles: Record<
   "corporate-software": { title: "Software", subtitle: "Technology Management" },
   "corporate-contracts": { title: "Contracts", subtitle: "Corporate Information" },
   "corporate-risk-register": { title: "Risk Register", subtitle: "Corporate Information" },
+  "board-dashboard": { title: "Board Dashboard", subtitle: "Board" },
+  "board-meetings": { title: "Board Meetings", subtitle: "Board" },
+  "board-minutes": { title: "Minutes & Decisions", subtitle: "Board" },
+  "board-members": { title: "Board Members", subtitle: "Board" },
   financials: { title: "Dashboard", subtitle: "Financials" },
   "general-ledger": { title: "General Ledger", subtitle: "Financials" },
   "accounts-receivable": { title: "Accounts Receivable", subtitle: "Financials" },

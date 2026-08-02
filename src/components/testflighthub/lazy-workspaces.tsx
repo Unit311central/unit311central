@@ -34,6 +34,8 @@ export const InventoryManagementWorkspace = lazyWorkspace(() => import("./Invent
 export const ProcurementWorkspace = lazyWorkspace(() => import("./ProcurementWorkspace"));
 export const BoardPackCustomizerWorkspace = lazyWorkspace(() => import("./BoardPackCustomizerWorkspace"));
 export const RiskRegisterWorkspace = lazyWorkspace(() => import("./RiskRegisterWorkspace"));
+export const BoardMeetingsWorkspace = lazyWorkspace(() => import("./BoardMeetingsWorkspace"));
+export const BoardGovernanceWorkspace = lazyWorkspace(() => import("./BoardGovernanceWorkspace"));
 export const ClientManagementWorkspace = lazyWorkspace(() => import("./ClientManagementWorkspace"));
 export const ClientsDashboardWorkspace = lazyWorkspace(() => import("./ClientsDashboardWorkspace"));
 export const ClientOnboardingWorkspace = lazyWorkspace(() => import("./ClientOnboardingWorkspace"));

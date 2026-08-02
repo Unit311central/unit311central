@@ -131,6 +131,8 @@ import {
   RecruitmentWorkspace,
   RepresentativesWorkspace,
   RiskRegisterWorkspace,
+  BoardMeetingsWorkspace,
+  BoardGovernanceWorkspace,
   SectorWorkspace,
   SettingsWorkspace,
   SocialWorkspace,
@@ -774,6 +776,10 @@ export default function InternalOperationsDashboard({
           {activeView === "wise" && <WiseWorkspace />}
 
           {activeView === "corporate-risk-register" && <RiskRegisterWorkspace />}
+          {activeView === "board-dashboard" && <BoardGovernanceWorkspace section="dashboard" />}
+          {activeView === "board-meetings" && <BoardMeetingsWorkspace />}
+          {activeView === "board-minutes" && <BoardGovernanceWorkspace section="minutes" />}
+          {activeView === "board-members" && <BoardGovernanceWorkspace section="members" />}
 
           {activeView === "board-pack" && <BoardPackCustomizerWorkspace />}
 

@@ -4,6 +4,7 @@ import { startTransition, useEffect, useMemo, useState, type CSSProperties } fro
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
   BarChart3,
@@ -108,6 +109,7 @@ const iconMap = {
   Package,
   PenLine,
   Plug,
+  AlertTriangle,
   Radio,
   Receipt,
   ScrollText,

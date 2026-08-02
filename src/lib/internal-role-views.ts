@@ -506,6 +506,20 @@ function reshapeAbhiCorporateSection(section: InternalNavSection): InternalNavSe
     ];
   }
 
+  if (!items.some((item) => item.view === "board-meetings")) {
+    const meetingsItem = {
+      label: "Board Meetings",
+      icon: "CalendarDays",
+      view: "board-meetings" as const,
+    };
+    const boardIdx = items.findIndex((item) => item.view === "board-pack");
+    if (boardIdx >= 0) {
+      items = [...items.slice(0, boardIdx + 1), meetingsItem, ...items.slice(boardIdx + 1)];
+    } else {
+      items = [...items, meetingsItem];
+    }
+  }
+
   return { ...section, items };
 }
 
@@ -575,24 +589,61 @@ function reshapeAbhiNavSection(section: InternalNavSection): InternalNavSection 
   );
 }
 
+const ABHI_BOARD_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "Board",
+  icon: "ShieldCheck",
+  color: "#C2185B",
+  items: [
+    { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" as const },
+    { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" as const },
+    { label: "Board Decks", icon: "ScrollText", view: "board-pack" as const },
+    { label: "Minutes & Decisions", icon: "ClipboardCheck", view: "board-minutes" as const },
+    { label: "Risk Register", icon: "AlertTriangle", view: "corporate-risk-register" as const },
+    { label: "Board Members", icon: "Users", view: "board-members" as const },
+  ],
+};
+
 function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
   try {
     const { ABHI_MARKETING_NAV_SECTION } =
       require("@/lib/abhi/nav") as typeof import("@/lib/abhi/nav");
     const out: InternalNavSection[] = [];
-    let inserted = false;
+    let insertedMarketing = false;
+    let insertedBoard = false;
     for (const section of sections) {
       const next = reshapeAbhiNavSection(section);
-      out.push(next);
+      // Drop Board Meetings / Board deck / Risk from Corporate Information when BOARD section exists.
+      if (next.label === "Corporate Information") {
+        out.push({
+          ...next,
+          items: next.items.filter(
+            (item) =>
+              item.view !== "board-meetings" &&
+              item.view !== "board-pack" &&
+              item.view !== "corporate-risk-register",
+          ),
+        });
+      } else {
+        out.push(next);
+      }
       if (section.label === "Human Resources") {
         out.push(ABHI_MARKETING_NAV_SECTION);
-        inserted = true;
+        insertedMarketing = true;
+      }
+      if (section.label === "Corporate Information") {
+        out.push(ABHI_BOARD_NAV_SECTION);
+        insertedBoard = true;
       }
     }
-    if (!inserted) out.push(ABHI_MARKETING_NAV_SECTION);
+    if (!insertedMarketing) out.push(ABHI_MARKETING_NAV_SECTION);
+    if (!insertedBoard) out.push(ABHI_BOARD_NAV_SECTION);
     return out.filter((section) => section.items.length > 0);
   } catch {
-    return sections.map((section) => reshapeAbhiNavSection(section));
+    return [
+      ...sections.map((section) => reshapeAbhiNavSection(section)),
+      ABHI_BOARD_NAV_SECTION,
+    ];
   }
 }
 
