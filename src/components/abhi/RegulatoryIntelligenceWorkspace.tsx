@@ -62,6 +62,7 @@ export default function RegulatoryIntelligenceWorkspace({ clients, view }: Props
           dashboard={dashboard}
           onOpenUpdate={(id) => setView("regulatory-updates", id)}
           onOpenImpact={(id) => setView("regulatory-impact", id)}
+          onOpenAlerts={() => setView("regulatory-alerts")}
           onExport={exportPdf}
         />
       ) : null}
@@ -96,11 +97,13 @@ function DashboardView({
   dashboard,
   onOpenUpdate,
   onOpenImpact,
+  onOpenAlerts,
   onExport,
 }: {
   dashboard: ReturnType<typeof buildAbhiRegulatoryDashboard>;
   onOpenUpdate: (id: string) => void;
   onOpenImpact: (id: string) => void;
+  onOpenAlerts: () => void;
   onExport: (kind: AbhiRegulatoryExportKind) => void;
 }) {
   const [draft, setDraft] = useState("");
@@ -222,6 +225,8 @@ function DashboardView({
         </div>
       </section>
 
+      <AbhiActionsPanel actions={dashboard.abhiActions} onOpenAlerts={onOpenAlerts} />
+
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
           <h2 className="text-sm font-semibold text-white">Recent regulatory alerts</h2>
@@ -235,9 +240,10 @@ function DashboardView({
                   <p className="text-sm font-medium text-white">{alert.memberName}</p>
                   <PriorityBadge priority={alert.priority} />
                 </div>
-                <p className="mt-1 text-xs text-white/50">
-                  {alert.relevantUpdateCount} relevant updates · {alert.highPriorityCount} high
-                  priority
+                <p className="mt-1 text-xs font-medium text-white/70">{alert.mostRelevantUpdate}</p>
+                <p className="mt-1 text-xs text-white/50">{alert.whyItMatters}</p>
+                <p className="mt-1 text-[11px] text-[#f4a6c4]">
+                  Next: {alert.recommendedAction.split("\n")[0]} · Owner {alert.owner}
                 </p>
               </li>
             ))}
@@ -444,32 +450,47 @@ function AlertsView({
     <>
       <Header
         title="Member Alerts"
-        subtitle="Members with relevant regulatory exposure — prioritised for outreach."
+        subtitle="Actionable outreach queue — most relevant update, owner, and target date for each member."
       />
-      <div className="space-y-2">
+      <div className="space-y-3">
         {dashboard.memberAlerts.map((alert) => (
           <div
             key={alert.memberId}
-            className="rounded-xl border border-white/12 bg-white/[0.03] px-4 py-3"
+            className="rounded-xl border border-white/12 bg-white/[0.03] px-4 py-4"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-semibold text-white">{alert.memberName}</p>
-                <p className="text-xs text-white/50">
-                  {alert.relevantUpdateCount} relevant regulatory update
-                  {alert.relevantUpdateCount === 1 ? "" : "s"}
-                </p>
-              </div>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h3 className="text-base font-semibold text-white">{alert.memberName}</h3>
               <PriorityBadge priority={alert.priority} />
             </div>
-            <ul className="mt-2 space-y-0.5 text-xs text-white/60">
-              {alert.topUpdateTitles.map((title) => (
-                <li key={title}>• {title}</li>
-              ))}
-            </ul>
+            <dl className="mt-3 grid gap-2 sm:grid-cols-2 text-sm">
+              <div className="sm:col-span-2">
+                <dt className="text-[10px] uppercase tracking-wide text-white/40">
+                  Most relevant update
+                </dt>
+                <dd className="mt-0.5 text-white/85">{alert.mostRelevantUpdate}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-white/40">Why it matters</dt>
+                <dd className="mt-0.5 text-white/70">{alert.whyItMatters}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-white/40">
+                  Recommended action
+                </dt>
+                <dd className="mt-0.5 whitespace-pre-line text-white/70">{alert.recommendedAction}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-white/40">Owner</dt>
+                <dd className="mt-0.5 text-white/70">{alert.owner}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-white/40">Target date</dt>
+                <dd className="mt-0.5 text-white/70">{formatRegulatoryDate(alert.targetDate)}</dd>
+              </div>
+            </dl>
             <button
               type="button"
-              onClick={() => onOpenImpact(alert.topUpdateIds[0]!)}
+              onClick={() => onOpenImpact(alert.mostRelevantUpdateId)}
               className="mt-3 rounded-lg border border-[#C2185B]/40 bg-[#C2185B]/20 px-3 py-1.5 text-xs font-semibold text-[#f4a6c4] hover:bg-[#C2185B]/30"
             >
               View Impact Assessment
@@ -564,15 +585,48 @@ function ImpactDetail({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 lg:grid-cols-3">
-        <MemberList title="Affected Members" members={assessment.affectedMembers.slice(0, 8)} />
-        <MemberList title="High Impact Members" members={assessment.highImpactMembers.slice(0, 6)} />
-        <MemberList title="Strategic Members" members={assessment.strategicMembers.slice(0, 6)} />
+      <div className="mt-4 space-y-3">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+          Affected members — actionable impact
+        </p>
+        {assessment.affectedMembers.slice(0, 10).map((member) => (
+          <article
+            key={member.id}
+            className="rounded-xl border border-white/10 bg-black/25 px-4 py-3"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h3 className="text-sm font-semibold text-white">{member.memberName}</h3>
+              <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-200">
+                Impact Score: {member.impactScore}%
+              </span>
+            </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2 text-xs">
+              <div>
+                <p className="uppercase tracking-wide text-white/40">Why affected</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4 text-white/70">
+                  {member.whyAffected.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="uppercase tracking-wide text-white/40">Relevant technologies</p>
+                <p className="mt-1 text-white/70">{member.relevantTechnologies.join(" · ")}</p>
+                <p className="mt-2 uppercase tracking-wide text-white/40">Relevant products</p>
+                <p className="mt-1 text-white/70">{member.relevantProducts.join(" · ")}</p>
+              </div>
+            </div>
+            <p className="mt-3 rounded-lg border border-[#C2185B]/25 bg-[#C2185B]/10 px-3 py-2 text-xs text-[#f4a6c4]">
+              <span className="font-semibold">Recommended ABHI action: </span>
+              {member.recommendedAbhiAction}
+            </p>
+          </article>
+        ))}
       </div>
 
       <div className="mt-4">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-          Recommended actions
+          Portfolio recommended actions
         </p>
         <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-white/75">
           {assessment.recommendedActions.map((action) => (
@@ -584,31 +638,61 @@ function ImpactDetail({
   );
 }
 
-function MemberList({
-  title,
-  members,
+function AbhiActionsPanel({
+  actions,
+  onOpenAlerts,
 }: {
-  title: string;
-  members: { memberName: string; matchScore: number; matchReasons: string[] }[];
+  actions: ReturnType<typeof buildAbhiRegulatoryDashboard>["abhiActions"];
+  onOpenAlerts: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">{title}</p>
-      <ul className="mt-2 space-y-2">
-        {members.map((m) => (
-          <li key={m.memberName}>
-            <p className="text-xs font-semibold text-white">
-              {m.memberName}{" "}
-              <span className="font-normal text-white/40">{m.matchScore}%</span>
-            </p>
-            <p className="text-[11px] text-white/45">{m.matchReasons[0]}</p>
-          </li>
-        ))}
-        {members.length === 0 ? (
-          <li className="text-xs text-white/40">None in current snapshot</li>
-        ) : null}
-      </ul>
-    </div>
+    <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f4a6c4]/80">
+        Action centre
+      </p>
+      <h2 className="mt-1 text-lg font-semibold text-white">ABHI Actions</h2>
+      <p className="mt-1 text-sm text-white/50">
+        Exactly what ABHI staff should do next — not just who is affected.
+      </p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Tile label="Prepare Member Briefings" value={String(actions.prepareMemberBriefings)} tone="accent" />
+        <Tile label="Schedule Regulatory Webinars" value={String(actions.scheduleRegulatoryWebinars)} />
+        <Tile label="Members Requiring Outreach" value={String(actions.membersRequiringOutreach)} tone="risk" />
+        <Tile label="Consultation Responses Due" value={String(actions.consultationResponsesDue)} tone="risk" />
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+            Required ABHI actions
+          </p>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-sm text-white/75">
+            {actions.requiredAbhiActions.map((action) => (
+              <li key={action}>{action}</li>
+            ))}
+          </ol>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+            Notify working groups
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-white/75">
+            {actions.notifyWorkingGroups.map((group) => (
+              <li key={group}>{group}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-white/45">{actions.consultationDueLabel}</p>
+          <button
+            type="button"
+            onClick={onOpenAlerts}
+            className="mt-3 rounded-lg border border-[#C2185B]/40 bg-[#C2185B]/20 px-3 py-1.5 text-xs font-semibold text-[#f4a6c4] hover:bg-[#C2185B]/30"
+          >
+            Open priority impact / outreach
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 

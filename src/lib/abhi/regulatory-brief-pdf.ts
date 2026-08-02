@@ -116,7 +116,7 @@ export function buildAbhiRegulatoryPdf(
   for (const member of memberSlice) {
     y = wrap(
       doc,
-      `• ${member.memberName} (${member.matchScore}% match${member.highImpact ? ", high impact" : ""})`,
+      `• ${member.memberName} (${member.impactScore}% impact${member.highImpact ? ", high impact" : ""}) — ${member.recommendedAbhiAction}`,
       16,
       y,
       pageW - 30,

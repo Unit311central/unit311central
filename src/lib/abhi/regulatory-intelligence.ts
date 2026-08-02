@@ -93,10 +93,18 @@ export type AbhiMatchedRegulatoryMember = {
   id: string;
   memberName: string;
   membershipType: string;
+  /** Impact score 0–100 displayed as %. */
+  impactScore: number;
+  /** @deprecated use impactScore — kept for PDF/compat */
   matchScore: number;
+  whyAffected: string[];
+  relevantTechnologies: string[];
+  relevantProducts: string[];
+  recommendedAbhiAction: string;
   matchReasons: string[];
   strategic: boolean;
   highImpact: boolean;
+  accountManager: string;
 };
 
 export type AbhiRegulatoryImpactAssessment = {
@@ -117,6 +125,12 @@ export type AbhiRegulatoryMemberAlert = {
   relevantUpdateCount: number;
   highPriorityCount: number;
   priority: "High" | "Medium" | "Low";
+  mostRelevantUpdateId: string;
+  mostRelevantUpdate: string;
+  whyItMatters: string;
+  recommendedAction: string;
+  owner: string;
+  targetDate: string;
   topUpdateIds: string[];
   topUpdateTitles: string[];
 };
@@ -130,6 +144,16 @@ export type AbhiTodaysRegulatoryBrief = {
   refreshedAt: string;
 };
 
+export type AbhiRegulatoryActionsPanel = {
+  requiredAbhiActions: string[];
+  notifyWorkingGroups: string[];
+  prepareMemberBriefings: number;
+  scheduleRegulatoryWebinars: number;
+  membersRequiringOutreach: number;
+  consultationResponsesDue: number;
+  consultationDueLabel: string;
+};
+
 export type AbhiRegulatoryDashboard = {
   refreshedAt: string;
   openRegulatoryChanges: number;
@@ -138,6 +162,7 @@ export type AbhiRegulatoryDashboard = {
   pendingImpactAssessments: number;
   recentAlerts: AbhiRegulatoryMemberAlert[];
   todaysBrief: AbhiTodaysRegulatoryBrief;
+  abhiActions: AbhiRegulatoryActionsPanel;
   sources: readonly AbhiRegulatorySource[];
   updates: AbhiRegulatoryUpdate[];
   assessments: AbhiRegulatoryImpactAssessment[];
@@ -317,6 +342,112 @@ function severityRank(severity: AbhiRegulatorySeverity) {
   }
 }
 
+function memberProductsFor(profile: ReturnType<typeof getAbhiMemberOrgProfile>, memberName: string) {
+  if (/abbott/i.test(memberName)) {
+    return ["Laboratory diagnostics systems", "Point-of-care platforms", "Digital diagnostic software"];
+  }
+  if (/siemens/i.test(memberName)) {
+    return ["Imaging diagnostics", "Laboratory diagnostics", "AI-enabled clinical decision support"];
+  }
+  if (/roche/i.test(memberName)) {
+    return ["IVD assay portfolio", "Laboratory analysers", "Molecular diagnostics"];
+  }
+  if (/centrak/i.test(memberName)) {
+    return ["RTLS / clinical operations platforms", "Digital health infrastructure"];
+  }
+  return profile.capabilities.slice(0, 3);
+}
+
+function whyAffectedFor(
+  update: AbhiRegulatoryUpdate,
+  profile: ReturnType<typeof getAbhiMemberOrgProfile>,
+  memberName: string,
+): string[] {
+  if (update.id === "mhra-ai-diagnostics-2026" && /abbott|siemens|roche/i.test(memberName)) {
+    return [
+      "AI-enabled diagnostics",
+      "UK regulatory submissions",
+      "NHS deployment pathway",
+    ];
+  }
+  const reasons: string[] = [];
+  if (update.affectedTechnologies.some((t) => /ai/i.test(t))) {
+    reasons.push("AI-enabled diagnostics");
+  }
+  if (update.sourceId === "mhra" || update.status === "Consultation") {
+    reasons.push("UK regulatory submissions");
+  }
+  if (profile.nhsCollaboration || update.affectedSectors.some((s) => /digital|diagnostic/i.test(s))) {
+    reasons.push("NHS deployment pathway");
+  }
+  for (const cap of profile.capabilities.slice(0, 2)) {
+    if (!reasons.includes(cap)) reasons.push(cap);
+  }
+  if (reasons.length < 2) {
+    reasons.push(...update.affectedTechnologies.slice(0, 2));
+  }
+  return [...new Set(reasons)].slice(0, 4);
+}
+
+function recommendedActionForMember(
+  update: AbhiRegulatoryUpdate,
+  impactScore: number,
+): string {
+  if (update.id === "mhra-ai-diagnostics-2026") {
+    return impactScore >= 90
+      ? "Invite to MHRA consultation briefing."
+      : "Send MHRA consultation summary and webinar invite.";
+  }
+  if (update.status === "Consultation") {
+    return "Invite to consultation briefing and request input for ABHI response.";
+  }
+  if (severityRank(update.severity) >= 3) {
+    return "Send briefing note and schedule account review.";
+  }
+  return "Share regulatory update note with primary contact.";
+}
+
+function enrichMatchedMember(
+  base: Omit<
+    AbhiMatchedRegulatoryMember,
+    | "whyAffected"
+    | "relevantTechnologies"
+    | "relevantProducts"
+    | "recommendedAbhiAction"
+    | "impactScore"
+    | "matchScore"
+  > & { impactScore: number; accountManager: string },
+  update: AbhiRegulatoryUpdate,
+): AbhiMatchedRegulatoryMember {
+  const profile = getAbhiMemberOrgProfile(base.id, base.memberName);
+  const whyAffected = whyAffectedFor(update, profile, base.memberName);
+  const relevantTechnologies = update.affectedTechnologies
+    .filter((tech) => {
+      const t = tech.toLowerCase();
+      return (
+        profile.capabilities.some((c) => c.toLowerCase().includes(t.split(" ")[0]!)) ||
+        profile.keywords.some((k) => t.includes(k) || k.includes(t.split(" ")[0]!)) ||
+        /diagnostic|ai|digital|ivd/i.test(tech)
+      );
+    })
+    .slice(0, 4);
+  const techs =
+    relevantTechnologies.length > 0
+      ? relevantTechnologies
+      : update.affectedTechnologies.slice(0, 3);
+
+  return {
+    ...base,
+    impactScore: base.impactScore,
+    matchScore: base.impactScore,
+    whyAffected,
+    relevantTechnologies: techs,
+    relevantProducts: memberProductsFor(profile, base.memberName),
+    recommendedAbhiAction: recommendedActionForMember(update, base.impactScore),
+    matchReasons: whyAffected,
+  };
+}
+
 function matchMembersToUpdate(
   update: AbhiRegulatoryUpdate,
   members: AbhiMemberIntelligenceRow[],
@@ -369,9 +500,8 @@ function matchMembersToUpdate(
         }
       }
 
-      // Pilot named matches for MHRA AI diagnostics example
       if (update.id === "mhra-ai-diagnostics-2026") {
-        if (/abbott/i.test(member.memberName)) score = Math.max(score, 96);
+        if (/abbott/i.test(member.memberName)) score = Math.max(score, 98);
         if (/centrak/i.test(member.memberName)) score = Math.max(score, 78);
         if (/gama/i.test(member.memberName)) score = Math.max(score, 72);
       }
@@ -380,20 +510,24 @@ function matchMembersToUpdate(
         member.relationshipStatus === "Strategic" ||
         member.membershipType === "Sponsor" ||
         member.revenueToDateGbp >= 22_000;
-      const highImpact = score >= 75 || (score >= 60 && severityRank(update.severity) >= 3);
+      const impactScore = Math.min(98, score);
+      const highImpact = impactScore >= 75 || (impactScore >= 60 && severityRank(update.severity) >= 3);
 
-      return {
-        id: member.id,
-        memberName: member.memberName,
-        membershipType: member.membershipType,
-        matchScore: Math.min(98, score),
-        matchReasons: [...new Set(reasons)].slice(0, 3),
-        strategic,
-        highImpact,
-      };
+      return enrichMatchedMember(
+        {
+          id: member.id,
+          memberName: member.memberName,
+          membershipType: member.membershipType,
+          impactScore,
+          strategic,
+          highImpact,
+          accountManager: member.accountManager,
+        },
+        update,
+      );
     })
-    .filter((m) => m.matchScore >= 45)
-    .sort((a, b) => b.matchScore - a.matchScore || a.memberName.localeCompare(b.memberName));
+    .filter((m) => m.impactScore >= 45)
+    .sort((a, b) => b.impactScore - a.impactScore || a.memberName.localeCompare(b.memberName));
 }
 
 function ensurePilotDiagnosticsMembers(
@@ -401,48 +535,56 @@ function ensurePilotDiagnosticsMembers(
   affected: AbhiMatchedRegulatoryMember[],
 ): AbhiMatchedRegulatoryMember[] {
   if (update.id !== "mhra-ai-diagnostics-2026") return affected;
-  const pilots: AbhiMatchedRegulatoryMember[] = [
+  const pilots = [
     {
       id: "abhi-cli-abbott-diagnostics-ltd",
       memberName: "Abbott Diagnostics Ltd",
       membershipType: "Corporate",
-      matchScore: 96,
-      matchReasons: ["Diagnostics portfolio alignment", "AI / digital diagnostics capability"],
+      impactScore: 98,
       strategic: true,
       highImpact: true,
+      accountManager: "Sarah Mitchell",
     },
     {
       id: "pilot-siemens-healthineers",
       memberName: "Siemens Healthineers",
       membershipType: "Corporate",
-      matchScore: 93,
-      matchReasons: ["Diagnostics sector", "AI-enabled imaging & diagnostics"],
+      impactScore: 93,
       strategic: true,
       highImpact: true,
+      accountManager: "James Okonkwo",
     },
     {
       id: "pilot-roche-diagnostics",
       memberName: "Roche Diagnostics",
       membershipType: "Corporate",
-      matchScore: 92,
-      matchReasons: ["Laboratory diagnostics", "IVD portfolio"],
+      impactScore: 92,
       strategic: true,
       highImpact: true,
+      accountManager: "Priya Shah",
     },
-  ];
+  ].map((pilot) => enrichMatchedMember(pilot, update));
+
   const byId = new Map(affected.map((m) => [m.id, m]));
   for (const pilot of pilots) {
     const existing = [...byId.values()].find(
       (m) => m.memberName.toLowerCase() === pilot.memberName.toLowerCase(),
     );
     if (existing) {
-      byId.set(existing.id, { ...existing, ...pilot, id: existing.id, matchScore: Math.max(existing.matchScore, pilot.matchScore) });
+      byId.set(existing.id, {
+        ...existing,
+        ...pilot,
+        id: existing.id,
+        impactScore: Math.max(existing.impactScore, pilot.impactScore),
+        matchScore: Math.max(existing.impactScore, pilot.impactScore),
+        accountManager: existing.accountManager || pilot.accountManager,
+      });
     } else {
       byId.set(pilot.id, pilot);
     }
   }
   return [...byId.values()].sort(
-    (a, b) => b.matchScore - a.matchScore || a.memberName.localeCompare(b.memberName),
+    (a, b) => b.impactScore - a.impactScore || a.memberName.localeCompare(b.memberName),
   );
 }
 
@@ -491,13 +633,25 @@ function buildImpactAssessment(
   };
 }
 
+function addDaysIso(asOf: Date, days: number) {
+  const d = new Date(asOf.getTime());
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 function buildMemberAlerts(
   assessments: AbhiRegulatoryImpactAssessment[],
   updates: AbhiRegulatoryUpdate[],
+  asOf = new Date(),
 ): AbhiRegulatoryMemberAlert[] {
   const byMember = new Map<
     string,
-    { memberName: string; updateIds: string[]; high: number }
+    {
+      memberName: string;
+      accountManager: string;
+      entries: { update: AbhiRegulatoryUpdate; member: AbhiMatchedRegulatoryMember }[];
+      high: number;
+    }
   >();
 
   for (const assessment of assessments) {
@@ -506,10 +660,11 @@ function buildMemberAlerts(
     for (const member of assessment.affectedMembers) {
       const current = byMember.get(member.id) ?? {
         memberName: member.memberName,
-        updateIds: [],
+        accountManager: member.accountManager,
+        entries: [],
         high: 0,
       };
-      current.updateIds.push(update.id);
+      current.entries.push({ update, member });
       if (severityRank(update.severity) >= 3 || member.highImpact) current.high += 1;
       byMember.set(member.id, current);
     }
@@ -517,24 +672,51 @@ function buildMemberAlerts(
 
   return [...byMember.entries()]
     .map(([memberId, row]) => {
-      const relevantUpdateCount = row.updateIds.length;
+      const ranked = [...row.entries].sort(
+        (a, b) =>
+          b.member.impactScore - a.member.impactScore ||
+          severityRank(b.update.severity) - severityRank(a.update.severity),
+      );
+      const top = ranked[0]!;
+      const relevantUpdateCount = row.entries.length;
       const priority: AbhiRegulatoryMemberAlert["priority"] =
-        row.high >= 2 || relevantUpdateCount >= 3
+        top.member.impactScore >= 85 || row.high >= 2
           ? "High"
-          : row.high >= 1 || relevantUpdateCount >= 2
+          : top.member.impactScore >= 65 || row.high >= 1
             ? "Medium"
             : "Low";
-      const topUpdateIds = row.updateIds.slice(0, 3);
+
+      const whyItMatters =
+        top.update.id === "mhra-ai-diagnostics-2026"
+          ? "Potential future evidence requirements."
+          : top.update.severity === "High" || top.update.severity === "Critical"
+            ? "May change compliance or market-access expectations."
+            : top.member.whyAffected[0] ?? top.update.summary;
+
+      const recommendedAction =
+        top.update.id === "mhra-ai-diagnostics-2026"
+          ? "Send briefing note.\nInvite to webinar."
+          : top.member.recommendedAbhiAction;
+
+      const targetOffset =
+        priority === "High" ? 7 : priority === "Medium" ? 14 : 21;
+
+      const topUpdateIds = ranked.slice(0, 3).map((e) => e.update.id);
+
       return {
         memberId,
         memberName: row.memberName,
         relevantUpdateCount,
         highPriorityCount: row.high,
         priority,
+        mostRelevantUpdateId: top.update.id,
+        mostRelevantUpdate: top.update.title,
+        whyItMatters,
+        recommendedAction,
+        owner: row.accountManager || top.member.accountManager || "ABHI Regulatory Team",
+        targetDate: addDaysIso(asOf, targetOffset),
         topUpdateIds,
-        topUpdateTitles: topUpdateIds.map(
-          (id) => updates.find((u) => u.id === id)?.title ?? id,
-        ),
+        topUpdateTitles: ranked.slice(0, 3).map((e) => e.update.title),
       };
     })
     .sort((a, b) => {
@@ -547,6 +729,53 @@ function buildMemberAlerts(
     });
 }
 
+export function buildAbhiActionsPanel(
+  updates: AbhiRegulatoryUpdate[],
+  assessments: AbhiRegulatoryImpactAssessment[],
+  memberAlerts: AbhiRegulatoryMemberAlert[],
+): AbhiRegulatoryActionsPanel {
+  const consultations = updates.filter((u) => u.status === "Consultation");
+  const highImpact = updates.filter((u) => severityRank(u.severity) >= 3);
+  const outreach = memberAlerts.filter((a) => a.priority === "High" || a.priority === "Medium");
+
+  const workingGroups = new Set<string>();
+  for (const update of highImpact) {
+    if (update.affectedSectors.some((s) => /diagnostic/i.test(s))) {
+      workingGroups.add("Diagnostics Working Group");
+    }
+    if (update.affectedSectors.some((s) => /digital/i.test(s)) || update.affectedTechnologies.some((t) => /ai|digital/i.test(t))) {
+      workingGroups.add("Digital Health Working Group");
+    }
+    if (update.affectedSectors.some((s) => /medical technology/i.test(s))) {
+      workingGroups.add("Regulatory Affairs Working Group");
+    }
+  }
+  if (workingGroups.size === 0) workingGroups.add("Diagnostics Working Group");
+
+  const requiredAbhiActions = [
+    `Notify ${workingGroups.size} working group${workingGroups.size === 1 ? "" : "s"} of high-impact updates`,
+    `Prepare ${Math.max(1, highImpact.length)} member briefing${highImpact.length === 1 ? "" : "s"}`,
+    `Schedule ${Math.max(1, consultations.length || 1)} regulatory webinar${(consultations.length || 1) === 1 ? "" : "s"}`,
+    `Complete outreach to ${outreach.length} priority members`,
+    consultations.length > 0
+      ? `Coordinate ABHI response for ${consultations.length} open consultation${consultations.length === 1 ? "" : "s"}`
+      : "Monitor open guidance for member communication triggers",
+  ];
+
+  return {
+    requiredAbhiActions,
+    notifyWorkingGroups: [...workingGroups],
+    prepareMemberBriefings: Math.max(1, highImpact.length),
+    scheduleRegulatoryWebinars: Math.max(1, consultations.length || (highImpact.length > 0 ? 1 : 0)),
+    membersRequiringOutreach: outreach.length,
+    consultationResponsesDue: consultations.length,
+    consultationDueLabel:
+      consultations.length > 0
+        ? `${consultations.length} open consultation${consultations.length === 1 ? "" : "s"} requiring coordinated response`
+        : "No consultation responses currently due",
+  };
+}
+
 export function buildAbhiRegulatoryDashboard(
   clients: ManagedClient[],
   asOf = new Date(),
@@ -557,7 +786,8 @@ export function buildAbhiRegulatoryDashboard(
     b.publicationDate.localeCompare(a.publicationDate),
   );
   const assessments = updates.map((update) => buildImpactAssessment(update, members));
-  const memberAlerts = buildMemberAlerts(assessments, updates);
+  const memberAlerts = buildMemberAlerts(assessments, updates, asOf);
+  const abhiActions = buildAbhiActionsPanel(updates, assessments, memberAlerts);
 
   const openUpdates = updates.filter((u) => u.status !== "Closed");
   const highImpactUpdates = updates.filter((u) => severityRank(u.severity) >= 3);
@@ -593,6 +823,7 @@ export function buildAbhiRegulatoryDashboard(
     pendingImpactAssessments,
     recentAlerts: memberAlerts.filter((a) => a.priority === "High").slice(0, 5),
     todaysBrief,
+    abhiActions,
     sources: ABHI_REGULATORY_SOURCES,
     updates,
     assessments,
