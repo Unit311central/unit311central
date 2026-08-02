@@ -5,7 +5,7 @@
  *
  * Portal home: https://abhi.unit311central.com/{path}
  *   demo@centrak.com            -> /centrak            (Centrak)
- *   demo@abbotdiagnostics.com   -> /abbotdiagnostics   (Abbott Diagnostics Ltd)
+ *   demo@abbotdiagnostics.com   -> /abbotdiagnostics  (Abbott Diagnostics Ltd)
  *   demo@gamahealthcare.com     -> /gamahealthcare     (GAMA Healthcare Ltd)
  *   demo@zeumed.com             -> /zeumed             (Zeumed)
  *   demo@ddcdolphin.com         -> /ddcdolphin         (DDC Dolphin Ltd)

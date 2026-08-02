@@ -76,6 +76,12 @@ export const ABHI_MEMBER_PORTAL_ROUTES: readonly AbhiMemberPortalRoute[] = [
 const BY_PATH = new Map(ABHI_MEMBER_PORTAL_ROUTES.map((r) => [r.path, r]));
 const BY_CLIENT_ID = new Map(ABHI_MEMBER_PORTAL_ROUTES.map((r) => [r.clientId, r]));
 
+/** Legacy path aliases → canonical route path. */
+const PATH_ALIASES: Record<string, string> = {
+  // Older double-t spelling from "Abbott"; public URL is /abbotdiagnostics.
+  abbottdiagnostics: "abbotdiagnostics",
+};
+
 /** Compact path slug from company name: "GAMA Healthcare Ltd" → gamahealthcare */
 export function abhiMemberPortalSlug(companyName: string): string {
   const slug = String(companyName ?? "")
@@ -95,7 +101,8 @@ export function getMemberPortalByPath(
     .replace(/^\/+|\/+$/g, "")
     .split("/")[0];
   if (!key) return null;
-  return BY_PATH.get(key) ?? null;
+  const canonical = PATH_ALIASES[key] ?? key;
+  return BY_PATH.get(canonical) ?? null;
 }
 
 export function getMemberPortalByClientId(
@@ -158,7 +165,7 @@ export function matchAbhiMemberPortalPathname(pathname: string): {
   const cleaned = pathname.split("?")[0] || "/";
   const parts = cleaned.split("/").filter(Boolean);
   if (parts.length === 0) return null;
-  const route = BY_PATH.get(parts[0].toLowerCase());
+  const route = getMemberPortalByPath(parts[0]);
   if (!route) return null;
   const rest = parts.length > 1 ? `/${parts.slice(1).join("/")}` : "";
   return { route, rest };

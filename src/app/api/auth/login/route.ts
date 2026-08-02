@@ -26,7 +26,10 @@ import { loginPlatformUser } from "@/lib/platform-users-service";
 import { recordPlatformUserLogin } from "@/lib/external-platform-users-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { resolveTalantonCompanyPortalPostLoginUrl } from "@/lib/talanton/company-portal-login";
-import { resolveAbhiMemberPortalPostLoginUrl } from "@/lib/abhi/member-portal-login";
+import {
+  resolveAbhiMemberPortalPostLoginUrl,
+  resolveAbhiMemberPortalSessionRedirect,
+} from "@/lib/abhi/member-portal-login";
 import {
   ABHI_DEMO_PLATFORM_USERNAME,
   ABHI_PORTALS_ADMIN_USERNAME,
@@ -173,6 +176,7 @@ async function resolvePostLoginRedirect(options: {
       nextRaw: nextPath ?? nextRaw,
       returnToRaw,
       requestHost,
+      username,
     });
     if (abhiPortalUrl) return abhiPortalUrl;
   }
@@ -435,30 +439,48 @@ export async function POST(request: NextRequest) {
           // Non-blocking if last_login_at column is not yet migrated.
         }
 
+        // Member-portal logins must carry the portal path in the session JWT —
+        // middleware rejects /dashboard (and other non-portal) redirectPaths.
+        let session = result.session;
+        let token = result.token;
+        let storedRedirect = result.redirectPath;
+        if (session.userType === "external") {
+          const portalRedirect = resolveAbhiMemberPortalSessionRedirect({
+            redirectPath: session.redirectPath || result.redirectPath,
+            nextRaw,
+            username: session.username,
+          });
+          if (portalRedirect && portalRedirect !== session.redirectPath) {
+            session = { ...session, redirectPath: portalRedirect };
+            token = await createPlatformSessionToken(session);
+            storedRedirect = portalRedirect;
+          }
+        }
+
         const redirectPath = await resolvePostLoginRedirect({
-          redirectPath: result.redirectPath,
+          redirectPath: storedRedirect,
           requestHost: getRequestHost(request),
           returnToRaw,
           nextRaw,
-          userType: result.session.userType,
-          username: result.session.username,
+          userType: session.userType,
+          username: session.username,
         });
 
         const response = NextResponse.json({
           redirectPath,
           appliedReturnTo: loginReturn?.origin ?? parseValidWorkspaceReturnTo(returnToRaw),
-          userType: result.session.userType,
-          displayName: result.session.displayName,
-          workspace: result.session.workspaceId
+          userType: session.userType,
+          displayName: session.displayName,
+          workspace: session.workspaceId
             ? {
-                id: result.session.workspaceId,
-                slug: result.session.workspaceSlug,
-                name: result.session.workspaceName,
+                id: session.workspaceId,
+                slug: session.workspaceSlug,
+                name: session.workspaceName,
               }
             : null,
         });
 
-        applyPlatformSessionCookie(response, result.token, request);
+        applyPlatformSessionCookie(response, token, request);
         applyPortalsGateIfNeeded(response, request, {
           nextRaw,
           username: result.session.username,
