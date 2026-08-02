@@ -141,10 +141,42 @@ function EditableRows({
     onChange(rows.filter((row) => row.id !== id));
   }
 
-  function addRow(indent: 0 | 1 = 0) {
+  function addTopLevelRow() {
     onChange([
       ...rows,
-      { id: newPortalsRowId(indent === 1 ? "n" : "r"), text: "New row", indent },
+      { id: newPortalsRowId("r"), text: "", indent: 0 },
+    ]);
+  }
+
+  /** Insert a nested row after this top-level row (and its existing children). */
+  function addNestedUnder(parentId: string) {
+    const parentIndex = rows.findIndex((row) => row.id === parentId);
+    if (parentIndex < 0) return;
+
+    let insertAt = parentIndex + 1;
+    while (insertAt < rows.length && rows[insertAt]?.indent === 1) {
+      insertAt += 1;
+    }
+
+    const next = [...rows];
+    next.splice(insertAt, 0, {
+      id: newPortalsRowId("n"),
+      text: "",
+      indent: 1,
+    });
+    onChange(next);
+  }
+
+  function addNestedAtEnd() {
+    const lastTopLevel = [...rows].reverse().find((row) => row.indent !== 1);
+    if (lastTopLevel) {
+      addNestedUnder(lastTopLevel.id);
+      return;
+    }
+    onChange([
+      ...rows,
+      { id: newPortalsRowId("r"), text: "", indent: 0 },
+      { id: newPortalsRowId("n"), text: "", indent: 1 },
     ]);
   }
 
@@ -167,9 +199,10 @@ function EditableRows({
                 <input
                   value={row.text}
                   onChange={(event) => updateRow(row.id, { text: event.target.value })}
-                  className="w-full rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-[13px] text-white outline-none focus:border-sky-400/50"
+                  placeholder={row.indent === 1 ? "Nested row…" : "Top-level row…"}
+                  className="w-full rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-[13px] text-white outline-none placeholder:text-white/30 focus:border-sky-400/50"
                 />
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <label className="inline-flex items-center gap-1.5 text-[10px] text-white/45">
                     <input
                       type="checkbox"
@@ -181,6 +214,16 @@ function EditableRows({
                     />
                     Nested
                   </label>
+                  {row.indent !== 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => addNestedUnder(row.id)}
+                      className="inline-flex items-center gap-1 rounded border border-sky-400/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] text-sky-100 hover:bg-sky-500/20"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add nested
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => removeRow(row.id)}
@@ -195,7 +238,9 @@ function EditableRows({
               <p
                 className={cn(
                   "min-w-0 flex-1 leading-snug",
-                  row.indent === 1 ? "text-[12px] text-white/55" : "text-[13px] font-medium text-white/90",
+                  row.indent === 1
+                    ? "text-[12px] text-white/55"
+                    : "text-[13px] font-medium text-white/90",
                 )}
               >
                 {row.text}
@@ -208,19 +253,19 @@ function EditableRows({
         <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-3">
           <button
             type="button"
-            onClick={() => addRow(0)}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/80 hover:bg-white/[0.08]"
+            onClick={addTopLevelRow}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/35 bg-sky-500/15 px-3 py-2 text-[11px] font-semibold text-sky-50 hover:bg-sky-500/25"
           >
             <Plus className="h-3.5 w-3.5" />
-            Add row
+            Add top-level row
           </button>
           <button
             type="button"
-            onClick={() => addRow(1)}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/80 hover:bg-white/[0.08]"
+            onClick={addNestedAtEnd}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/[0.06] px-3 py-2 text-[11px] font-semibold text-white/85 hover:bg-white/[0.1]"
           >
             <Plus className="h-3.5 w-3.5" />
-            Add nested
+            Add nested row
           </button>
         </div>
       ) : null}
