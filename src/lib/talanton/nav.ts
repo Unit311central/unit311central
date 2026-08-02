@@ -6,6 +6,7 @@ export const TALANTON_IMPACT_VIEWS = [
   "portfolio-directory",
   "portfolio-company",
   "portfolio-companies",
+  "portfolio-intelligence-briefing",
   "portfolio-courses",
   "portfolio-course-management",
 ] as const satisfies readonly InternalOperationsView[];
@@ -16,7 +17,7 @@ export function isTalantonImpactView(view: string | null | undefined): view is T
   return (TALANTON_IMPACT_VIEWS as readonly string[]).includes(String(view ?? ""));
 }
 
-/** Prepended on Talanton host after pin items — Portfolio Companies + Board. */
+/** Prepended on Talanton host after pin items — Portfolio Companies, Portfolio Intelligence, Board. */
 export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
   {
     kind: "workspace",
@@ -33,6 +34,19 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
         label: "Directory",
         icon: "Building2",
         view: "portfolio-directory",
+      },
+    ],
+  },
+  {
+    kind: "workspace",
+    label: "Portfolio Intelligence",
+    icon: "Target",
+    color: "#1B8A5A",
+    items: [
+      {
+        label: "Executive Briefing",
+        icon: "ScrollText",
+        view: "portfolio-intelligence-briefing",
       },
     ],
   },

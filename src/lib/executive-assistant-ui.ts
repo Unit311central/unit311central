@@ -57,6 +57,15 @@ const CONTEXT_BY_VIEW: Partial<Record<string, ExecutiveAssistantPageContext>> = 
       "Generate project report",
     ],
   },
+  "portfolio-intelligence-briefing": {
+    label: "Portfolio Intelligence",
+    suggestedPrompts: [
+      "What requires attention across the portfolio?",
+      "Summarise companies requiring follow-up",
+      "Draft recommended actions for Harry Turner",
+      "Highlight compliance and reporting risks",
+    ],
+  },
   clients: {
     label: "Clients",
     suggestedPrompts: [

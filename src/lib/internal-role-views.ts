@@ -376,9 +376,13 @@ function insertTalantonBoardSection(sections: readonly InternalNavSection[]): In
   if (sections.some((s) => s.label === "Board")) return [...sections];
   const out: InternalNavSection[] = [];
   let inserted = false;
+  const hasPortfolioIntelligence = sections.some((s) => s.label === "Portfolio Intelligence");
   for (const section of sections) {
     out.push(section);
-    if (section.label === "Portfolio Companies") {
+    if (hasPortfolioIntelligence && section.label === "Portfolio Intelligence") {
+      out.push(TALANTON_BOARD_NAV_SECTION);
+      inserted = true;
+    } else if (!hasPortfolioIntelligence && section.label === "Portfolio Companies") {
       out.push(TALANTON_BOARD_NAV_SECTION);
       inserted = true;
     }

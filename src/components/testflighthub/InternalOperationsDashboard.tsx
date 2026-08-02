@@ -68,6 +68,13 @@ const TalantonPortfolioWorkspace = dynamic(
     ssr: false,
   },
 );
+const PortfolioIntelligenceBriefingWorkspace = dynamic(
+  () => import("./talanton/PortfolioIntelligenceBriefingWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading executive briefing" />,
+    ssr: false,
+  },
+);
 import {
   AbhiCalendarEventsWorkspace,
   AbhiComplianceTrainingWorkspace,
@@ -1123,6 +1130,12 @@ export default function InternalOperationsDashboard({
               group="Operations"
               description="Track release readiness, rollout, and post-release notes."
             />
+          )}
+
+          {activeView === "portfolio-intelligence-briefing" && (
+            <WorkspaceErrorBoundary title="Portfolio Intelligence">
+              <PortfolioIntelligenceBriefingWorkspace />
+            </WorkspaceErrorBoundary>
           )}
 
           {(activeView === "portfolio-companies" ||
