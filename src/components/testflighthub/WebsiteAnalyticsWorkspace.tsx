@@ -154,17 +154,62 @@ export default function WebsiteAnalyticsWorkspace() {
 
       {summary && !loading ? (
         <>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/55">
-            Clarity project: {summary.clarityProjectId || "not set"} · API token:{" "}
-            {summary.clarityApiConfigured ? "configured" : "missing (CLARITY_API_TOKEN)"} · Last
-            snapshot: {summary.clarityFetchedAt ? new Date(summary.clarityFetchedAt).toLocaleString() : "never"}
-            {summary.clarityError ? ` · Snapshot note: ${summary.clarityError}` : ""}
+          <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/55">
+            <p>
+              Clarity project:{" "}
+              <span className="font-mono text-white/80">{summary.clarityProjectId || "not set"}</span>
+              {" · "}
+              Traffic source:{" "}
+              <span className="text-white/80">
+                {summary.trafficSource === "clarity_api"
+                  ? "Clarity Data Export API"
+                  : summary.trafficSource === "first_party"
+                    ? "First-party website telemetry"
+                    : summary.trafficSource === "mixed"
+                      ? "Clarity API + first-party"
+                      : "No traffic yet"}
+              </span>
+              {" · "}
+              API token:{" "}
+              {summary.clarityApiConfigured ? "configured" : "missing (CLARITY_API_TOKEN)"}
+              {" · "}
+              Last snapshot:{" "}
+              {summary.clarityFetchedAt
+                ? new Date(summary.clarityFetchedAt).toLocaleString()
+                : "never"}
+              {summary.clarityError ? ` · Snapshot note: ${summary.clarityError}` : ""}
+            </p>
+            {summary.dataNotes?.length ? (
+              <ul className="list-disc space-y-1 pl-4 text-amber-100/80">
+                {summary.dataNotes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            ) : null}
+            {!summary.clarityApiConfigured ? (
+              <p className="text-white/45">
+                To import Clarity dashboard metrics: open Clarity → Settings → Data Export →
+                Generate new API token for project{" "}
+                <span className="font-mono">{summary.clarityProjectId || "xvt6yldo67"}</span>, then
+                set Production env <span className="font-mono">CLARITY_API_TOKEN</span> and
+                redeploy. Behaviour metrics (rage/dead/quick-back) require that token or the
+                Clarity UI links below.
+              </p>
+            ) : null}
           </div>
 
-          <TqmsSection title="Traffic" subtitle="Visitors and sessions from Clarity (when available).">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <TqmsSection
+            title="Traffic"
+            subtitle={
+              summary.trafficSource === "clarity_api" || summary.trafficSource === "mixed"
+                ? "Visitors and sessions from Clarity Data Export (with first-party page views)."
+                : "Visitors and sessions from first-party unit311central.com telemetry."
+            }
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
               <Kpi label="Visitors" value={String(summary.traffic.visitors)} />
               <Kpi label="Sessions" value={String(summary.traffic.sessions)} />
+              <Kpi label="Page views" value={String(summary.traffic.pageViews)} />
               <Kpi label="Returning visitors" value={String(summary.traffic.returningVisitors)} />
               <Kpi
                 label="Pages / session"
@@ -173,7 +218,7 @@ export default function WebsiteAnalyticsWorkspace() {
               <Kpi
                 label="Bot sessions"
                 value={String(summary.traffic.botSessions)}
-                hint="Filtered in Clarity where possible"
+                hint="Clarity export only"
               />
               <Kpi
                 label="Avg time on page"
@@ -186,17 +231,17 @@ export default function WebsiteAnalyticsWorkspace() {
             </div>
             <div className="mt-4 grid gap-4 lg:grid-cols-3">
               <RankTable
-                headers={["Country", "Sessions"]}
+                headers={["Country", "Views / sessions"]}
                 rows={summary.traffic.countries.map((r) => [r.name, String(r.value)])}
                 empty="No country breakdown yet."
               />
               <RankTable
-                headers={["Device", "Sessions"]}
+                headers={["Device", "Views / sessions"]}
                 rows={summary.traffic.devices.map((r) => [r.name, String(r.value)])}
                 empty="No device breakdown yet."
               />
               <RankTable
-                headers={["Browser", "Sessions"]}
+                headers={["Browser", "Views / sessions"]}
                 rows={summary.traffic.browsers.map((r) => [r.name, String(r.value)])}
                 empty="No browser breakdown yet."
               />
@@ -269,7 +314,14 @@ export default function WebsiteAnalyticsWorkspace() {
             </div>
           </TqmsSection>
 
-          <TqmsSection title="User behaviour" subtitle="Frustration signals from Clarity.">
+          <TqmsSection
+            title="User behaviour"
+            subtitle={
+              summary.behaviour.availableViaClarityOnly
+                ? "Rage/dead/quick-back counts need Clarity Data Export. Use the Clarity links for heatmaps and recordings now."
+                : "Frustration signals from Clarity Data Export."
+            }
+          >
             <div className="grid gap-3 sm:grid-cols-3">
               <Kpi label="Rage clicks" value={String(summary.behaviour.rageClicks)} />
               <Kpi label="Dead clicks" value={String(summary.behaviour.deadClicks)} />

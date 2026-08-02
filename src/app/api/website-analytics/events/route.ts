@@ -12,6 +12,19 @@ const ALLOWED_TYPES = new Set([
   "demo_request",
 ]);
 
+function countryFromRequest(request: NextRequest): string | null {
+  const headers = request.headers;
+  const raw =
+    headers.get("x-vercel-ip-country") ||
+    headers.get("cf-ipcountry") ||
+    headers.get("x-country-code") ||
+    null;
+  if (!raw) return null;
+  const code = String(raw).trim().toUpperCase();
+  if (!code || code === "XX" || code === "T1") return null;
+  return code.slice(0, 8);
+}
+
 /**
  * Public marketing-site event ingest (apex / www only).
  */
@@ -38,11 +51,21 @@ export async function POST(request: NextRequest) {
     }
 
     const path = String(body.path ?? "/").slice(0, 500);
+    const clientMeta =
+      body.meta && typeof body.meta === "object" && !Array.isArray(body.meta)
+        ? body.meta
+        : {};
+    const country = countryFromRequest(request);
+    const meta: Record<string, unknown> = {
+      ...clientMeta,
+      ...(country ? { country } : {}),
+    };
+
     const result = await insertMarketingEvent({
       eventType,
       path,
       label: body.label?.slice(0, 200) ?? null,
-      meta: body.meta && typeof body.meta === "object" ? body.meta : {},
+      meta,
     });
 
     if (!result.ok) {

@@ -5,6 +5,50 @@ import { usePathname } from "next/navigation";
 
 import { isPublicSiteHost } from "@/lib/app-domains";
 
+function storageGet(storage: Storage, key: string): string | null {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(storage: Storage, key: string, value: string) {
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // Ignore private-mode / blocked storage.
+  }
+}
+
+function getOrCreateId(storage: Storage, key: string): string {
+  const existing = storageGet(storage, key);
+  if (existing) return existing;
+  const id =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `id_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  storageSet(storage, key, id);
+  return id;
+}
+
+function detectDevice(): string {
+  const ua = navigator.userAgent || "";
+  if (/iPad|Tablet/i.test(ua)) return "Tablet";
+  if (/Mobi|Android.*Mobile|iPhone|iPod/i.test(ua)) return "Mobile";
+  return "Desktop";
+}
+
+function detectBrowser(): string {
+  const ua = navigator.userAgent || "";
+  if (/Edg\//i.test(ua)) return "Edge";
+  if (/OPR\/|Opera/i.test(ua)) return "Opera";
+  if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return "Chrome";
+  if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) return "Safari";
+  if (/Firefox\//i.test(ua)) return "Firefox";
+  return "Other";
+}
+
 function postEvent(payload: {
   eventType: string;
   path: string;
@@ -30,6 +74,8 @@ function postEvent(payload: {
 
 /**
  * Public marketing site page-view + delegated CTA click tracking.
+ * Captures first-party visitor/session/device/browser signals used by Website Analytics
+ * when Clarity Data Export API is unavailable.
  */
 export default function MarketingAnalyticsBeacon() {
   const pathname = usePathname();
@@ -42,9 +88,21 @@ export default function MarketingAnalyticsBeacon() {
     }
 
     const path = pathname || window.location.pathname || "/";
+    const visitorId = getOrCreateId(window.localStorage, "wa_vid");
+    const sessionId = getOrCreateId(window.sessionStorage, "wa_sid");
+    const device = detectDevice();
+    const browser = detectBrowser();
+    const baseMeta = {
+      visitorId,
+      sessionId,
+      device,
+      browser,
+      source: "marketing_beacon",
+    };
+
     if (lastPath.current !== path) {
       lastPath.current = path;
-      postEvent({ eventType: "page_view", path });
+      postEvent({ eventType: "page_view", path, meta: baseMeta });
     }
 
     const onClick = (event: MouseEvent) => {
@@ -63,6 +121,7 @@ export default function MarketingAnalyticsBeacon() {
         eventType: "cta_click",
         path,
         label,
+        meta: baseMeta,
       });
     };
 
