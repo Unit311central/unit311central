@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   Building2,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
+import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
   buildPortfolioExecutiveBriefing,
   formatAttentionCompanyText,
@@ -24,6 +26,7 @@ import {
 } from "@/lib/talanton/portfolio-intelligence";
 import type { RiskRating } from "@/lib/talanton/portfolio-data";
 import { cn } from "@/lib/utils";
+import { useInternalOperationsBasePath } from "../InternalOperationsBasePathContext";
 
 function riskClass(rating: RiskRating) {
   switch (rating) {
@@ -158,6 +161,7 @@ function HealthMetric({
 
 export default function PortfolioIntelligenceBriefingWorkspace() {
   const briefing = useMemo(() => buildPortfolioExecutiveBriefing(), []);
+  const basePath = useInternalOperationsBasePath();
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
@@ -169,6 +173,9 @@ export default function PortfolioIntelligenceBriefingWorkspace() {
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/85">
+              Talanton Intelligence
+            </p>
+            <p className="mt-1.5 text-[11px] font-medium tracking-wide text-emerald-200/55">
               Portfolio Intelligence
             </p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
@@ -290,56 +297,74 @@ export default function PortfolioIntelligenceBriefingWorkspace() {
           </div>
         </div>
         <div className="grid gap-3 lg:grid-cols-2">
-          {briefing.attentionCompanies.map((company) => (
-            <article
-              key={company.companyId}
-              className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
-            >
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 shrink-0 text-emerald-300/80" />
-                    <h3 className="truncate text-base font-semibold text-white">
-                      {company.companyName}
-                    </h3>
+          {briefing.attentionCompanies.map((company) => {
+            const companyHref = getInternalNavHref("portfolio-intelligence-company", basePath, {
+              companyId: company.companyId,
+            });
+            return (
+              <article
+                key={company.companyId}
+                className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-emerald-400/25 hover:bg-emerald-500/[0.04] sm:p-5"
+              >
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <Link href={companyHref} className="min-w-0 group">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 shrink-0 text-emerald-300/80" />
+                      <h3 className="truncate text-base font-semibold text-white group-hover:text-emerald-100">
+                        {company.companyName}
+                      </h3>
+                    </div>
+                    <p className="mt-1 text-xs text-white/45">
+                      {company.sector} · {company.country}
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium text-emerald-300/80">
+                      Open Company Intelligence →
+                    </p>
+                  </Link>
+                  <div
+                    className="shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    <CopyToClipboardButton text={formatAttentionCompanyText(company)} />
                   </div>
-                  <p className="mt-1 text-xs text-white/45">
-                    {company.sector} · {company.country}
-                  </p>
                 </div>
-                <CopyToClipboardButton
-                  text={formatAttentionCompanyText(company)}
-                  className="shrink-0"
-                />
-              </div>
 
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="rounded-md border border-white/10 bg-black/25 px-2 py-1 text-xs text-white/70">
-                  Health {company.healthScore}/100
-                </span>
-                <span
-                  className={cn(
-                    "rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
-                    riskClass(company.riskRating),
-                  )}
-                >
-                  {company.riskRating} risk
-                </span>
-                <span className={cn("text-xs font-semibold uppercase tracking-wide", priorityClass(company.priority))}>
-                  {company.priority}
-                </span>
-              </div>
+                <Link href={companyHref} className="block">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className="rounded-md border border-white/10 bg-black/25 px-2 py-1 text-xs text-white/70">
+                      Health {company.healthScore}/100
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
+                        riskClass(company.riskRating),
+                      )}
+                    >
+                      {company.riskRating} risk
+                    </span>
+                    <span
+                      className={cn(
+                        "text-xs font-semibold uppercase tracking-wide",
+                        priorityClass(company.priority),
+                      )}
+                    >
+                      {company.priority}
+                    </span>
+                  </div>
 
-              <p className="text-sm font-medium text-white/90">{company.reason}</p>
-              <p className="mt-1.5 text-sm leading-relaxed text-white/55">{company.detail}</p>
-              <div className="mt-4 rounded-xl border border-emerald-400/15 bg-emerald-500/[0.07] px-3 py-2.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300/80">
-                  Recommended action
-                </p>
-                <p className="mt-1 text-sm text-emerald-50/95">{company.recommendedAction}</p>
-              </div>
-            </article>
-          ))}
+                  <p className="text-sm font-medium text-white/90">{company.reason}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-white/55">{company.detail}</p>
+                  <div className="mt-4 rounded-xl border border-emerald-400/15 bg-emerald-500/[0.07] px-3 py-2.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300/80">
+                      Recommended action
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-50/95">{company.recommendedAction}</p>
+                  </div>
+                </Link>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -379,35 +404,49 @@ export default function PortfolioIntelligenceBriefingWorkspace() {
           board notes, or EA handoff.
         </p>
         <div className="grid gap-3 lg:grid-cols-2">
-          {briefing.recommendedActions.map((action) => (
-            <article
-              key={action.id}
-              className="relative rounded-xl border border-white/10 bg-black/20 p-4"
-            >
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <span
-                  className={cn(
-                    "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
-                    urgencyClass(action.urgency),
-                  )}
-                >
-                  {action.urgency}
-                </span>
-                <CopyToClipboardButton
-                  text={formatRecommendedActionText(action)}
-                  className="shrink-0"
-                />
-              </div>
-              <h3 className="text-sm font-semibold leading-snug text-white">{action.title}</h3>
-              {action.companyName ? (
-                <p className="mt-1 text-xs text-emerald-300/75">{action.companyName}</p>
-              ) : null}
-              <p className="mt-2 text-sm leading-relaxed text-white/55">{action.rationale}</p>
-              <p className="mt-3 text-[11px] uppercase tracking-[0.1em] text-white/40">
-                Owner · {action.owner}
-              </p>
-            </article>
-          ))}
+          {briefing.recommendedActions.map((action) => {
+            const companyHref = action.companyId
+              ? getInternalNavHref("portfolio-intelligence-company", basePath, {
+                  companyId: action.companyId,
+                })
+              : null;
+            return (
+              <article
+                key={action.id}
+                className="relative rounded-xl border border-white/10 bg-black/20 p-4"
+              >
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <span
+                    className={cn(
+                      "inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
+                      urgencyClass(action.urgency),
+                    )}
+                  >
+                    {action.urgency}
+                  </span>
+                  <CopyToClipboardButton
+                    text={formatRecommendedActionText(action)}
+                    className="shrink-0"
+                  />
+                </div>
+                <h3 className="text-sm font-semibold leading-snug text-white">{action.title}</h3>
+                {action.companyName && companyHref ? (
+                  <Link
+                    href={companyHref}
+                    className="mt-1 inline-block text-xs text-emerald-300/75 transition hover:text-emerald-200"
+                  >
+                    {action.companyName} →
+                  </Link>
+                ) : action.companyName ? (
+                  <p className="mt-1 text-xs text-emerald-300/75">{action.companyName}</p>
+                ) : null}
+                <p className="mt-2 text-sm leading-relaxed text-white/55">{action.rationale}</p>
+                <p className="mt-3 text-[11px] uppercase tracking-[0.1em] text-white/40">
+                  Owner · {action.owner}
+                </p>
+              </article>
+            );
+          })}
         </div>
       </GeneratedPanel>
     </div>

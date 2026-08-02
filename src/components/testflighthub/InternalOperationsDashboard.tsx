@@ -75,6 +75,34 @@ const PortfolioIntelligenceBriefingWorkspace = dynamic(
     ssr: false,
   },
 );
+const CompanyIntelligenceWorkspace = dynamic(
+  () => import("./talanton/CompanyIntelligenceWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading company intelligence" />,
+    ssr: false,
+  },
+);
+const ImpactIntelligenceDashboardWorkspace = dynamic(
+  () => import("./talanton/ImpactIntelligenceDashboardWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading impact dashboard" />,
+    ssr: false,
+  },
+);
+const CompanyImpactWorkspace = dynamic(
+  () => import("./talanton/CompanyImpactWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading company impact" />,
+    ssr: false,
+  },
+);
+const OpportunityIntelligenceWorkspace = dynamic(
+  () => import("./talanton/OpportunityIntelligenceWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading opportunity intelligence" />,
+    ssr: false,
+  },
+);
 import {
   AbhiCalendarEventsWorkspace,
   AbhiComplianceTrainingWorkspace,
@@ -1135,6 +1163,30 @@ export default function InternalOperationsDashboard({
           {activeView === "portfolio-intelligence-briefing" && (
             <WorkspaceErrorBoundary title="Portfolio Intelligence">
               <PortfolioIntelligenceBriefingWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "portfolio-intelligence-company" && (
+            <WorkspaceErrorBoundary title="Company Intelligence">
+              <CompanyIntelligenceWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "impact-intelligence-dashboard" && (
+            <WorkspaceErrorBoundary title="Impact Intelligence">
+              <ImpactIntelligenceDashboardWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "impact-intelligence-company" && (
+            <WorkspaceErrorBoundary title="Company Impact">
+              <CompanyImpactWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "opportunity-intelligence" && (
+            <WorkspaceErrorBoundary title="Opportunity Intelligence">
+              <OpportunityIntelligenceWorkspace />
             </WorkspaceErrorBoundary>
           )}
 

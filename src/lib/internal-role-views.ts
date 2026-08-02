@@ -376,13 +376,27 @@ function insertTalantonBoardSection(sections: readonly InternalNavSection[]): In
   if (sections.some((s) => s.label === "Board")) return [...sections];
   const out: InternalNavSection[] = [];
   let inserted = false;
-  const hasPortfolioIntelligence = sections.some((s) => s.label === "Portfolio Intelligence");
+  const hasTalantonIntelligence = sections.some((s) => s.label === "Talanton Intelligence");
+  const hasLegacyPortfolioIntelligence = sections.some(
+    (s) => s.label === "Portfolio Intelligence",
+  );
   for (const section of sections) {
     out.push(section);
-    if (hasPortfolioIntelligence && section.label === "Portfolio Intelligence") {
+    if (hasTalantonIntelligence && section.label === "Talanton Intelligence") {
       out.push(TALANTON_BOARD_NAV_SECTION);
       inserted = true;
-    } else if (!hasPortfolioIntelligence && section.label === "Portfolio Companies") {
+    } else if (
+      !hasTalantonIntelligence &&
+      hasLegacyPortfolioIntelligence &&
+      section.label === "Portfolio Intelligence"
+    ) {
+      out.push(TALANTON_BOARD_NAV_SECTION);
+      inserted = true;
+    } else if (
+      !hasTalantonIntelligence &&
+      !hasLegacyPortfolioIntelligence &&
+      section.label === "Portfolio Companies"
+    ) {
       out.push(TALANTON_BOARD_NAV_SECTION);
       inserted = true;
     }

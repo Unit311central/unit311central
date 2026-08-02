@@ -1,12 +1,16 @@
 import type { InternalNavSection, InternalOperationsView } from "@/lib/internal-operations-data";
 
-/** Talanton-only operations views still used under Portfolio Companies / Training. */
+/** Talanton-only operations views still used under Portfolio Companies / Training / Intelligence. */
 export const TALANTON_IMPACT_VIEWS = [
   "portfolio-dashboard",
   "portfolio-directory",
   "portfolio-company",
   "portfolio-companies",
   "portfolio-intelligence-briefing",
+  "portfolio-intelligence-company",
+  "impact-intelligence-dashboard",
+  "impact-intelligence-company",
+  "opportunity-intelligence",
   "portfolio-courses",
   "portfolio-course-management",
 ] as const satisfies readonly InternalOperationsView[];
@@ -17,7 +21,10 @@ export function isTalantonImpactView(view: string | null | undefined): view is T
   return (TALANTON_IMPACT_VIEWS as readonly string[]).includes(String(view ?? ""));
 }
 
-/** Prepended on Talanton host after pin items — Portfolio Companies, Portfolio Intelligence, Board. */
+/**
+ * Prepended on Talanton host after pin items —
+ * Portfolio Companies, Talanton Intelligence, Board.
+ */
 export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
   {
     kind: "workspace",
@@ -39,14 +46,42 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
   },
   {
     kind: "workspace",
-    label: "Portfolio Intelligence",
-    icon: "Target",
+    label: "Talanton Intelligence",
+    icon: "Sparkles",
     color: "#1B8A5A",
     items: [
       {
-        label: "Executive Briefing",
-        icon: "ScrollText",
-        view: "portfolio-intelligence-briefing",
+        label: "Portfolio Intelligence",
+        icon: "Target",
+        children: [
+          {
+            label: "Executive Briefing",
+            view: "portfolio-intelligence-briefing",
+          },
+          {
+            label: "Company Intelligence",
+            view: "portfolio-intelligence-company",
+          },
+        ],
+      },
+      {
+        label: "Impact Intelligence",
+        icon: "HeartHandshake",
+        children: [
+          {
+            label: "Impact Dashboard",
+            view: "impact-intelligence-dashboard",
+          },
+          {
+            label: "Company Impact",
+            view: "impact-intelligence-company",
+          },
+        ],
+      },
+      {
+        label: "Opportunity Intelligence",
+        icon: "Lightbulb",
+        view: "opportunity-intelligence",
       },
     ],
   },

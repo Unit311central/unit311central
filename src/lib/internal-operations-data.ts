@@ -120,6 +120,10 @@ export type InternalOperationsView =
   | "portfolio-directory"
   | "portfolio-company"
   | "portfolio-intelligence-briefing"
+  | "portfolio-intelligence-company"
+  | "impact-intelligence-dashboard"
+  | "impact-intelligence-company"
+  | "opportunity-intelligence"
   | "portfolio-courses"
   | "portfolio-course-management"
   | "portfolio-my-training"
@@ -325,6 +329,10 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "portfolio-directory",
   "portfolio-company",
   "portfolio-intelligence-briefing",
+  "portfolio-intelligence-company",
+  "impact-intelligence-dashboard",
+  "impact-intelligence-company",
+  "opportunity-intelligence",
   "portfolio-courses",
   "portfolio-course-management",
   "portfolio-my-training",
@@ -1040,7 +1048,23 @@ export const internalViewTitles: Record<
   "portfolio-company": { title: "Company Profile", subtitle: "Portfolio Companies" },
   "portfolio-intelligence-briefing": {
     title: "Executive Briefing",
-    subtitle: "Portfolio Intelligence",
+    subtitle: "Talanton Intelligence · Portfolio Intelligence",
+  },
+  "portfolio-intelligence-company": {
+    title: "Company Intelligence",
+    subtitle: "Talanton Intelligence · Portfolio Intelligence",
+  },
+  "impact-intelligence-dashboard": {
+    title: "Impact Dashboard",
+    subtitle: "Talanton Intelligence · Impact Intelligence",
+  },
+  "impact-intelligence-company": {
+    title: "Company Impact",
+    subtitle: "Talanton Intelligence · Impact Intelligence",
+  },
+  "opportunity-intelligence": {
+    title: "Opportunity Intelligence",
+    subtitle: "Talanton Intelligence",
   },
   "portfolio-courses": { title: "Portfolio Courses", subtitle: "Training" },
   "portfolio-course-management": {

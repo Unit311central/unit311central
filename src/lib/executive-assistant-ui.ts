@@ -66,6 +66,42 @@ const CONTEXT_BY_VIEW: Partial<Record<string, ExecutiveAssistantPageContext>> = 
       "Highlight compliance and reporting risks",
     ],
   },
+  "portfolio-intelligence-company": {
+    label: "Company Intelligence",
+    suggestedPrompts: [
+      "Summarise this portfolio company",
+      "What risks require attention?",
+      "Draft recommended actions for Talanton staff",
+      "Assess compliance and reporting status",
+    ],
+  },
+  "impact-intelligence-dashboard": {
+    label: "Impact Intelligence",
+    suggestedPrompts: [
+      "Summarise portfolio impact across jobs and communities",
+      "Which holdings drive the most mission impact?",
+      "Draft an impact briefing for the board",
+      "Highlight gaps in impact reporting",
+    ],
+  },
+  "impact-intelligence-company": {
+    label: "Company Impact",
+    suggestedPrompts: [
+      "Summarise this company's social and economic impact",
+      "Assess jobs created and communities served",
+      "Draft company impact commentary",
+      "What impact data is still missing?",
+    ],
+  },
+  "opportunity-intelligence": {
+    label: "Opportunity Intelligence",
+    suggestedPrompts: [
+      "What opportunities fit Talanton's mission?",
+      "Summarise sector and SSA market signals",
+      "Highlight funding or partnership openings",
+      "Draft an opportunity assessment",
+    ],
+  },
   clients: {
     label: "Clients",
     suggestedPrompts: [
