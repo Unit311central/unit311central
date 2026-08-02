@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
-import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import {
   type AbhiPortalsEditableContent,
@@ -30,7 +29,6 @@ const body = Manrope({
   weight: ["400", "500", "600", "700"],
 });
 
-const LOGIN_BACKGROUND = "/images/login-workspace-bg.webp";
 const UNIT311_LOGO = "/images/unit311central-login.webp";
 
 type CredentialBlock = {
@@ -306,16 +304,8 @@ export default function AbhiPortalsDemoPage() {
   }
 
   return (
-    <div className={body.className}>
-      <MarketingPageShell
-        backgroundImage={LOGIN_BACKGROUND}
-        backgroundImageClassName="object-cover object-[center_30%] opacity-75 sm:object-center"
-        backgroundImageQuality={92}
-        overlayClassName="absolute inset-0 bg-gradient-to-b from-[#020617]/55 via-[#07111f]/78 to-[#020617]/92"
-        contentClassName="relative z-10 mx-auto flex w-full max-w-[1280px] flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10"
-      >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#C2185B]/15 to-transparent" />
-
+    <div className={cn(body.className, "min-h-[100dvh] bg-[#07111f] text-white")}>
+      <div className="relative z-10 mx-auto flex w-full max-w-[1280px] flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         <header className="relative flex items-center justify-between gap-4">
           <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
             <div className="relative h-9 w-[160px] sm:h-10 sm:w-[190px]">
@@ -456,7 +446,7 @@ export default function AbhiPortalsDemoPage() {
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </footer>
-      </MarketingPageShell>
+      </div>
     </div>
   );
 }
