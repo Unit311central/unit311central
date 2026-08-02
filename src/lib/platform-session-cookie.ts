@@ -46,8 +46,18 @@ export function clearPlatformSessionCookie(
   request?: NextRequest | Request,
 ) {
   const options = getPlatformSessionCookieOptions(request);
+  // Clear Domain=.unit311central.com variant (shared across hosts).
   response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
     ...options,
+    maxAge: 0,
+  });
+  // Also clear any host-only cookie with the same name (older clients / mis-sets).
+  // Browsers treat Domain-less and Domain= cookies as distinct.
+  response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
     maxAge: 0,
   });
 }
