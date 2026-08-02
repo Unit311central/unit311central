@@ -9,11 +9,18 @@ import {
 export { PLATFORM_SESSION_COOKIE, PLATFORM_SESSION_MAX_AGE_SECONDS };
 
 /**
- * Set after an explicit /portals login — required to enter the briefing page.
- * Name bumped from `abhi_portals_gate` so stale 7-day gates cannot skip login.
+ * One-time entry ticket set only by an explicit /portals login.
+ * Name bumped so stale `abhi_portals_access` cookies cannot skip login.
  */
-export const ABHI_PORTALS_GATE_COOKIE = "abhi_portals_access";
-const ABHI_PORTALS_GATE_COOKIE_LEGACY = "abhi_portals_gate";
+export const ABHI_PORTALS_GATE_COOKIE = "abhi_portals_entry";
+
+/** Short-lived cookie that keeps an open /portals tab working after entry is consumed. */
+export const ABHI_PORTALS_VIEW_COOKIE = "abhi_portals_view";
+
+const ABHI_PORTALS_GATE_COOKIE_LEGACY = ["abhi_portals_gate", "abhi_portals_access"] as const;
+
+/** View cookie lifetime — long enough for a demo, not a permanent skip-login pass. */
+const ABHI_PORTALS_VIEW_MAX_AGE_SECONDS = 60 * 60 * 2;
 
 /** Shared session cookie options for apex ↔ internal.* (and future workspace hosts). */
 export function getPlatformSessionCookieOptions(request?: NextRequest | Request) {
@@ -30,10 +37,17 @@ export function getPlatformSessionCookieOptions(request?: NextRequest | Request)
   };
 }
 
-/** Portals gate is browser-session scoped — closing the browser requires login again. */
+/** Portals entry ticket is browser-session scoped. */
 export function getAbhiPortalsGateCookieOptions(request?: NextRequest | Request) {
   const { maxAge: _maxAge, ...options } = getPlatformSessionCookieOptions(request);
   return options;
+}
+
+export function getAbhiPortalsViewCookieOptions(request?: NextRequest | Request) {
+  return {
+    ...getPlatformSessionCookieOptions(request),
+    maxAge: ABHI_PORTALS_VIEW_MAX_AGE_SECONDS,
+  };
 }
 
 /**
@@ -64,23 +78,40 @@ export function applyAbhiPortalsGateCookie(
   );
 }
 
-export function clearAbhiPortalsGateCookie(
+export function applyAbhiPortalsViewCookie(
   response: NextResponse,
   request?: NextRequest | Request,
 ) {
+  response.cookies.set(
+    ABHI_PORTALS_VIEW_COOKIE,
+    "1",
+    getAbhiPortalsViewCookieOptions(request),
+  );
+}
+
+function expiredCookieOptions(request?: NextRequest | Request) {
   const options = getPlatformSessionCookieOptions(request);
   const secure =
     Boolean(options.secure) ||
     (typeof process !== "undefined" && process.env.NODE_ENV === "production");
-  const expired = {
+  return {
     ...options,
     secure,
     maxAge: 0,
     expires: new Date(0),
   };
+}
+
+export function clearAbhiPortalsGateCookie(
+  response: NextResponse,
+  request?: NextRequest | Request,
+) {
+  const expired = expiredCookieOptions(request);
   response.cookies.set(ABHI_PORTALS_GATE_COOKIE, "", expired);
-  // Drop legacy long-lived gates from earlier builds.
-  response.cookies.set(ABHI_PORTALS_GATE_COOKIE_LEGACY, "", expired);
+  response.cookies.set(ABHI_PORTALS_VIEW_COOKIE, "", expired);
+  for (const legacy of ABHI_PORTALS_GATE_COOKIE_LEGACY) {
+    response.cookies.set(legacy, "", expired);
+  }
 }
 
 /** Clear the shared platform session cookie (logout). */

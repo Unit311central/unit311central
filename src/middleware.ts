@@ -32,7 +32,8 @@ import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
 import {
   ABHI_PORTALS_GATE_COOKIE,
-  applyAbhiPortalsGateCookie,
+  ABHI_PORTALS_VIEW_COOKIE,
+  applyAbhiPortalsViewCookie,
   clearAbhiPortalsGateCookie,
   clearPlatformSessionCookie,
 } from "@/lib/platform-session-cookie";
@@ -292,8 +293,21 @@ export async function middleware(request: NextRequest) {
       const loginUrl = `${workspaceOrigin}/login?next=${encodeURIComponent("/portals")}`;
       const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
       const session = token ? await readPlatformSessionToken(token) : null;
-      const portalsGate = request.cookies.get(ABHI_PORTALS_GATE_COOKIE)?.value === "1";
-      if (!session || !isAbhiPortalsAllowedUsername(session.username) || !portalsGate) {
+      const portalsEntry = request.cookies.get(ABHI_PORTALS_GATE_COOKIE)?.value === "1";
+      const portalsView = request.cookies.get(ABHI_PORTALS_VIEW_COOKIE)?.value === "1";
+      // Address-bar / bookmark / external opens must complete login again even if a
+      // short-lived view cookie remains from an earlier briefing tab.
+      const fetchMode = (request.headers.get("sec-fetch-mode") ?? "").toLowerCase();
+      const fetchSite = (request.headers.get("sec-fetch-site") ?? "").toLowerCase();
+      const isDocumentNav = fetchMode === "navigate" || fetchMode === "";
+      const isFreshEntry =
+        isDocumentNav && (fetchSite === "none" || fetchSite === "cross-site");
+      const allowed =
+        Boolean(session) &&
+        isAbhiPortalsAllowedUsername(session?.username) &&
+        (isFreshEntry ? portalsEntry : portalsEntry || portalsView);
+
+      if (!allowed) {
         const bounce = redirectExternal(loginUrl);
         if (token && (!session || !isAbhiPortalsAllowedUsername(session.username))) {
           clearPlatformSessionCookie(bounce, request);
@@ -302,8 +316,9 @@ export async function middleware(request: NextRequest) {
         return bounce;
       }
       const response = NextResponse.next({ request: { headers } });
-      // Keep the gate alive for the open briefing tab (polls / soft navs).
-      applyAbhiPortalsGateCookie(response, request);
+      // Consume the one-time login ticket; keep a short view cookie for this tab.
+      clearAbhiPortalsGateCookie(response, request);
+      applyAbhiPortalsViewCookie(response, request);
       for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
         response.headers.set(key, value);
       }
