@@ -93,6 +93,12 @@ export type AssistantConversationRecord = {
   updatedAt: string;
 };
 
+/** Browser ABHI Board Meetings + Risk Register snapshot for EA server tools. */
+export type AssistantAbhiOrgStatePayload = {
+  meetings?: { meetings: unknown[] } | null;
+  risks?: { risks: unknown[] } | null;
+};
+
 export type AssistantChatRequest = {
   conversationId?: string | null;
   message: string;
@@ -104,6 +110,8 @@ export type AssistantChatRequest = {
   stream?: boolean;
   /** When true, ask model for structured JSON object in the final answer. */
   structuredJson?: boolean;
+  /** ABHI-only: client org state so EA matches Board Meetings / Risk Register UI. */
+  abhiOrgState?: AssistantAbhiOrgStatePayload | null;
 };
 
 export type AssistantStreamEvent =
