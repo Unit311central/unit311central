@@ -9,7 +9,6 @@ import {
   readAbhiPortalsContent,
   writeAbhiPortalsContent,
 } from "@/lib/abhi/portals-content-store";
-import { applyAbhiPortalsGateCookie } from "@/lib/platform-session-cookie";
 import { getPlatformSession } from "@/lib/platform-session";
 
 export const runtime = "nodejs";
@@ -20,51 +19,36 @@ const NO_STORE_HEADERS = {
   Vary: "Cookie",
 } as const;
 
-function portalsJson(
-  body: unknown,
-  init: { status?: number; request?: NextRequest; refreshGate?: boolean } = {},
-) {
-  const response = NextResponse.json(body, {
-    status: init.status,
-    headers: NO_STORE_HEADERS,
-  });
-  if (init.refreshGate && init.request) {
-    // Keep the one-time portals gate alive for the active session so a cleared
-    // gate (prefetch / accidental /login visit) cannot demote an open admin tab.
-    applyAbhiPortalsGateCookie(response, init.request);
-  }
-  return response;
+function portalsJson(body: unknown, status = 200) {
+  return NextResponse.json(body, { status, headers: NO_STORE_HEADERS });
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const session = await getPlatformSession();
   if (!session || !isAbhiPortalsAllowedUsername(session.username)) {
-    return portalsJson({ error: "Authentication required." }, { status: 401 });
+    return portalsJson({ error: "Authentication required." }, 401);
   }
 
   const content = await readAbhiPortalsContent();
-  return portalsJson(
-    {
-      content,
-      canEdit: isAbhiPortalsAdminUsername(session.username),
-      username: session.username,
-    },
-    { request, refreshGate: true },
-  );
+  return portalsJson({
+    content,
+    canEdit: isAbhiPortalsAdminUsername(session.username),
+    username: session.username,
+  });
 }
 
 export async function PUT(request: NextRequest) {
   const session = await getPlatformSession();
   if (!session || !isAbhiPortalsAdminUsername(session.username)) {
-    return portalsJson({ error: "Admin access required." }, { status: 403 });
+    return portalsJson({ error: "Admin access required." }, 403);
   }
 
   try {
     const body = (await request.json()) as { content?: unknown };
     const content = await writeAbhiPortalsContent(sanitizePortalsContent(body.content));
-    return portalsJson({ ok: true, content }, { request, refreshGate: true });
+    return portalsJson({ ok: true, content });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to save portals content.";
-    return portalsJson({ error: message }, { status: 500 });
+    return portalsJson({ error: message }, 500);
   }
 }

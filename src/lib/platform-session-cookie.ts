@@ -8,8 +8,12 @@ import {
 
 export { PLATFORM_SESSION_COOKIE, PLATFORM_SESSION_MAX_AGE_SECONDS };
 
-/** Set after an explicit /portals login — required to enter the briefing page. */
-export const ABHI_PORTALS_GATE_COOKIE = "abhi_portals_gate";
+/**
+ * Set after an explicit /portals login — required to enter the briefing page.
+ * Name bumped from `abhi_portals_gate` so stale 7-day gates cannot skip login.
+ */
+export const ABHI_PORTALS_GATE_COOKIE = "abhi_portals_access";
+const ABHI_PORTALS_GATE_COOKIE_LEGACY = "abhi_portals_gate";
 
 /** Shared session cookie options for apex ↔ internal.* (and future workspace hosts). */
 export function getPlatformSessionCookieOptions(request?: NextRequest | Request) {
@@ -24,6 +28,12 @@ export function getPlatformSessionCookieOptions(request?: NextRequest | Request)
     maxAge: PLATFORM_SESSION_MAX_AGE_SECONDS,
     ...(domain ? { domain } : {}),
   };
+}
+
+/** Portals gate is browser-session scoped — closing the browser requires login again. */
+export function getAbhiPortalsGateCookieOptions(request?: NextRequest | Request) {
+  const { maxAge: _maxAge, ...options } = getPlatformSessionCookieOptions(request);
+  return options;
 }
 
 /**
@@ -47,7 +57,11 @@ export function applyAbhiPortalsGateCookie(
   response: NextResponse,
   request?: NextRequest | Request,
 ) {
-  response.cookies.set(ABHI_PORTALS_GATE_COOKIE, "1", getPlatformSessionCookieOptions(request));
+  response.cookies.set(
+    ABHI_PORTALS_GATE_COOKIE,
+    "1",
+    getAbhiPortalsGateCookieOptions(request),
+  );
 }
 
 export function clearAbhiPortalsGateCookie(
@@ -58,12 +72,15 @@ export function clearAbhiPortalsGateCookie(
   const secure =
     Boolean(options.secure) ||
     (typeof process !== "undefined" && process.env.NODE_ENV === "production");
-  response.cookies.set(ABHI_PORTALS_GATE_COOKIE, "", {
+  const expired = {
     ...options,
     secure,
     maxAge: 0,
     expires: new Date(0),
-  });
+  };
+  response.cookies.set(ABHI_PORTALS_GATE_COOKIE, "", expired);
+  // Drop legacy long-lived gates from earlier builds.
+  response.cookies.set(ABHI_PORTALS_GATE_COOKIE_LEGACY, "", expired);
 }
 
 /** Clear the shared platform session cookie (logout). */

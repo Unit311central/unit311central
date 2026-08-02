@@ -54,6 +54,17 @@ function isCompanyPortalSlug(workspaceSlug: string): boolean {
   return workspaceSlug === TALANTON_IMPACT_SLUG || workspaceSlug === ABHI_SLUG;
 }
 
+/** Next.js / browser prefetch must not clear auth gates or bounce live sessions. */
+function isNextPrefetchRequest(request: NextRequest): boolean {
+  const purpose = request.headers.get("Purpose") ?? request.headers.get("Sec-Purpose");
+  return (
+    request.headers.get("Next-Router-Prefetch") === "1" ||
+    request.headers.get("next-router-prefetch") === "1" ||
+    request.headers.get("X-Middleware-Prefetch") === "1" ||
+    purpose === "prefetch"
+  );
+}
+
 function matchPortalPathnameForSlug(workspaceSlug: string, pathname: string) {
   if (workspaceSlug === TALANTON_IMPACT_SLUG) return matchTalantonCompanyPortalPathname(pathname);
   if (workspaceSlug === ABHI_SLUG) return matchAbhiMemberPortalPathname(pathname);
@@ -342,11 +353,15 @@ export async function middleware(request: NextRequest) {
       // wipe active /portals (and other) sessions within seconds.
       if (isCompanyPortalSlug(workspaceSlug)) {
         const response = NextResponse.next({ request: { headers } });
-        // Do NOT clear the portals gate on /login?next=/portals here.
-        // Prefetch / speculative loads of that URL were wiping the gate while the
-        // admin still had /portals open, so the next navigation bounced them and
-        // a demo re-login looked like "edit mode reverted". Gate clears on logout
-        // (and when /portals rejects a missing/invalid session).
+        // Real visits to portals login clear the one-time gate so /portals
+        // requires completing the form again. Prefetch must not do this — that
+        // was wiping an open admin editor mid-session.
+        const nextParam = request.nextUrl.searchParams.get("next");
+        const wantsPortals =
+          nextParam === "/portals" || Boolean(nextParam?.startsWith("/portals"));
+        if (wantsPortals && !isNextPrefetchRequest(request)) {
+          clearAbhiPortalsGateCookie(response, request);
+        }
         for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
           response.headers.set(key, value);
         }
@@ -398,7 +413,12 @@ export async function middleware(request: NextRequest) {
         const session = token ? await readPlatformSessionToken(token) : null;
         if (session && isAbhiPortalsAllowedUsername(session.username)) {
           if (pathname === "/" || pathname === "") {
-            return redirectExternal(`${workspaceOrigin}/dashboard${search}`);
+            const bounce = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
+            // Leaving the briefing surface drops the one-time portals gate.
+            if (!isNextPrefetchRequest(request)) {
+              clearAbhiPortalsGateCookie(bounce, request);
+            }
+            return bounce;
           }
           let response: NextResponse;
           const dashboardHardPath = mapHardPathToViewQuery(pathname, search);
@@ -406,6 +426,9 @@ export async function middleware(request: NextRequest) {
             response = redirectPermanent(request, dashboardHardPath);
           } else {
             response = rewriteTo(request, "/internaldashboard", headers, workspaceResponseHeaders);
+          }
+          if (!isNextPrefetchRequest(request)) {
+            clearAbhiPortalsGateCookie(response, request);
           }
           return response;
         }
