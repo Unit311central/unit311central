@@ -4,6 +4,10 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 import { isPublicSiteHost } from "@/lib/app-domains";
+import {
+  classifyTrafficSource,
+  normalizeDeviceBucket,
+} from "@/lib/website-analytics/traffic-source";
 
 function storageGet(storage: Storage, key: string): string | null {
   try {
@@ -32,21 +36,25 @@ function getOrCreateId(storage: Storage, key: string): string {
   return id;
 }
 
-function detectDevice(): string {
+function detectRawDevice(): string {
   const ua = navigator.userAgent || "";
   if (/iPad|Tablet/i.test(ua)) return "Tablet";
   if (/Mobi|Android.*Mobile|iPhone|iPod/i.test(ua)) return "Mobile";
   return "Desktop";
 }
 
-function detectBrowser(): string {
-  const ua = navigator.userAgent || "";
-  if (/Edg\//i.test(ua)) return "Edge";
-  if (/OPR\/|Opera/i.test(ua)) return "Opera";
-  if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return "Chrome";
-  if (/Safari\//i.test(ua) && !/Chrome\//i.test(ua)) return "Safari";
-  if (/Firefox\//i.test(ua)) return "Firefox";
-  return "Other";
+function resolveSessionTrafficSource(): string {
+  const cached = storageGet(window.sessionStorage, "wa_traffic_source");
+  if (cached) return cached;
+
+  const source = classifyTrafficSource({
+    referrer: document.referrer || "",
+    search: window.location.search || "",
+    landingHost: window.location.hostname,
+  });
+  storageSet(window.sessionStorage, "wa_traffic_source", source);
+  storageSet(window.sessionStorage, "wa_landing_path", window.location.pathname || "/");
+  return source;
 }
 
 function postEvent(payload: {
@@ -73,9 +81,7 @@ function postEvent(payload: {
 }
 
 /**
- * Public marketing site page-view + delegated CTA click tracking.
- * Captures first-party visitor/session/device/browser signals used by Website Analytics
- * when Clarity Data Export API is unavailable.
+ * Public marketing site page-view + CTA tracking for Website Analytics.
  */
 export default function MarketingAnalyticsBeacon() {
   const pathname = usePathname();
@@ -90,14 +96,15 @@ export default function MarketingAnalyticsBeacon() {
     const path = pathname || window.location.pathname || "/";
     const visitorId = getOrCreateId(window.localStorage, "wa_vid");
     const sessionId = getOrCreateId(window.sessionStorage, "wa_sid");
-    const device = detectDevice();
-    const browser = detectBrowser();
+    const device = normalizeDeviceBucket(detectRawDevice());
+    const trafficSource = resolveSessionTrafficSource();
     const baseMeta = {
       visitorId,
       sessionId,
       device,
-      browser,
-      source: "marketing_beacon",
+      trafficSource,
+      referrer: document.referrer || null,
+      landingPath: storageGet(window.sessionStorage, "wa_landing_path"),
     };
 
     if (lastPath.current !== path) {
