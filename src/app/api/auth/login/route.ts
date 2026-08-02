@@ -122,7 +122,13 @@ async function resolvePostLoginRedirect(options: {
 
   if (loginReturn?.kind === "workspace") {
     const slug = parseClientPlatformSubdomainSafe(new URL(loginReturn.origin).host);
-    if (isAbhiSlug(slug) && isAbhiPortalsAllowedUsername(username) && userType !== "external") {
+    // Only land on /portals when that was the explicit deep-link (e.g. login?next=/portals).
+    if (
+      nextPath === "/portals" &&
+      isAbhiSlug(slug) &&
+      isAbhiPortalsAllowedUsername(username) &&
+      userType !== "external"
+    ) {
       return `${loginReturn.origin.replace(/\/$/, "")}/portals`;
     }
     let needsOnboarding = false;
@@ -148,7 +154,12 @@ async function resolvePostLoginRedirect(options: {
   const workspaceOnly = parseValidWorkspaceReturnTo(returnToRaw);
   if (workspaceOnly) {
     const slug = parseClientPlatformSubdomainSafe(new URL(workspaceOnly).host);
-    if (isAbhiSlug(slug) && isAbhiPortalsAllowedUsername(username) && userType !== "external") {
+    if (
+      nextPath === "/portals" &&
+      isAbhiSlug(slug) &&
+      isAbhiPortalsAllowedUsername(username) &&
+      userType !== "external"
+    ) {
       return `${workspaceOnly.replace(/\/$/, "")}/portals`;
     }
     let needsOnboarding = false;
@@ -249,17 +260,17 @@ async function createAbhiPortalsCredentialLoginResponse(
       username,
       displayName,
       userType: "internal",
-      redirectPath: "/portals",
+      redirectPath: "/dashboard",
       exp: Date.now() + PLATFORM_SESSION_MAX_AGE_SECONDS * 1000,
     },
     workspace,
   );
 
   const redirectPath = await resolvePostLoginRedirect({
-    redirectPath: "/portals",
+    redirectPath: "/dashboard",
     requestHost: getRequestHost(request),
     returnToRaw,
-    nextRaw: nextRaw || "/portals",
+    nextRaw,
     userType: "internal",
     username,
   });
