@@ -52,11 +52,32 @@ function parseMeetingDate(raw: string | undefined): string | undefined {
   if (!raw) return undefined;
   const trimmed = raw.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const toIso = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  const lower = trimmed.toLowerCase();
+  if (/\btomorrow\b/.test(lower)) {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return toIso(d);
+  }
+  if (/\btoday\b/.test(lower)) {
+    return toIso(new Date());
+  }
+  if (/\bnext\s+week\b/.test(lower)) {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return toIso(d);
+  }
+
+  const iso = trimmed.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+  if (iso?.[1]) return iso[1];
+
   const parsed = Date.parse(trimmed);
   if (Number.isNaN(parsed)) return undefined;
-  const d = new Date(parsed);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return toIso(new Date(parsed));
 }
 
 async function loadAbhiLogoDataUrl(): Promise<string | null> {

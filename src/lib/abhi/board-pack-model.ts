@@ -230,16 +230,17 @@ const ABHI_AGENDA = [
 ] as const;
 
 /**
- * Pack builders must receive a resolved date from {@link resolveAbhiBoardPackMeetingDate}.
- * Never invent tomorrow / +7 days here.
+ * Prefer an explicit ISO date; otherwise default to tomorrow (demo-friendly).
+ * Temporary: governance “ask for date” gate is disabled so EA can generate immediately.
  */
 function resolveMeetingDate(meetingDateIso?: string): string {
   if (meetingDateIso && /^\d{4}-\d{2}-\d{2}$/.test(meetingDateIso)) {
     return meetingDateIso;
   }
-  throw new Error(
-    "Board Pack meeting date is not set. Schedule a Board Meeting or provide an explicit YYYY-MM-DD date.",
-  );
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function buildPackName(meetingDate: string) {

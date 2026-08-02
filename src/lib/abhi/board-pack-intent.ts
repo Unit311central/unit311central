@@ -1,61 +1,50 @@
 /**
  * ABHI Board Pack Generation — natural-language capability intent.
  * Used only on the ABHI workspace to invoke boardpack.generate.
+ *
+ * Analysis questions (risks, briefing, actions, health) must NOT match —
+ * those route to Executive Intelligence tools first.
  */
+
+import { parseExplicitAbhiBoardMeetingDate } from "@/lib/abhi/board-pack-date";
 
 export type AbhiBoardPackIntent = {
   tool: "boardpack.generate";
-  args: { meetingDate?: string; focus?: string };
+  args: { meetingDate?: string; when?: string; focus?: string };
   reason: string;
 };
 
-function isoDaysFromToday(offset: number): string {
-  const d = new Date();
-  d.setHours(12, 0, 0, 0);
-  d.setDate(d.getDate() + offset);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function nextWeekday(targetDow: number): string {
-  const d = new Date();
-  d.setHours(12, 0, 0, 0);
-  const delta = (targetDow - d.getDay() + 7) % 7 || 7;
-  d.setDate(d.getDate() + delta);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function inferMeetingDate(lower: string): string | undefined {
-  if (/\btomorrow\b/.test(lower)) return isoDaysFromToday(1);
-  if (/\bnext week\b/.test(lower)) return isoDaysFromToday(7);
-  if (/\bmonday\b/.test(lower)) return nextWeekday(1);
-  if (/\btuesday\b/.test(lower)) return nextWeekday(2);
-  if (/\bwednesday\b/.test(lower)) return nextWeekday(3);
-  if (/\bthursday\b/.test(lower)) return nextWeekday(4);
-  if (/\bfriday\b/.test(lower)) return nextWeekday(5);
-  const iso = lower.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
-  if (iso?.[1]) return iso[1];
-  return undefined;
-}
-
 /**
- * True when the user is asking for board meeting materials / pack / deck / papers.
- * This is capability intent for the ABHI Board Pack generator — not a generic PDF report.
+ * True when the user is explicitly asking to generate board meeting materials.
+ * Requires a generation verb — mere mentions of "board pack" for analysis do not match.
  */
 export function resolveAbhiBoardPackIntent(message: string): AbhiBoardPackIntent | null {
   const text = message.trim();
   if (!text) return null;
   const lower = text.toLowerCase();
 
+  // Analysis / briefing language wins — never treat as pack generation.
+  if (
+    /\b(briefing|org(anisational|anizational)?\s+health|organisation\s+health|overdue\s+actions?|board\s+insights?|biggest\s+risks?|what\s+decisions?|deteriorat|improv(ed|ing)|action\s+centre|summarise|summarize|how\s+is|are\s+whx|what\s+should\s+the\s+board)\b/.test(
+      lower,
+    ) &&
+    !/\b(create|generate|prepare|build|make|produce|draft|assemble|export)\b/.test(lower)
+  ) {
+    return null;
+  }
+
   const boardMaterials =
-    /\bboard\s+(pack|packs|deck|decks|papers?|presentation|materials|report)\b/.test(lower) ||
-    /\bboard\s+meeting\s+(pack|papers?|materials|deck|presentation|report)\b/.test(lower) ||
-    (/\bboard\b/.test(lower) &&
-      /\b(pack|deck|papers?|presentation|materials|report)\b/.test(lower) &&
-      /\b(create|generate|prepare|build|make|produce|draft|assemble|ready)\b/.test(lower));
+    /\bboard\s+(pack|packs|deck|decks|papers?|presentation|materials)\b/.test(lower) ||
+    /\bboard\s+meeting\s+(pack|papers?|materials|deck|presentation)\b/.test(lower);
 
   if (!boardMaterials) return null;
+
+  // Require an explicit generation / delivery verb.
+  const wantsGenerate =
+    /\b(create|generate|prepare|build|make|produce|draft|assemble|export|ready)\b/.test(lower) ||
+    /\b(give|send|get)\s+(me\s+)?(a\s+|the\s+)?board\s+(pack|deck|papers?)\b/.test(lower);
+
+  if (!wantsGenerate) return null;
 
   // Exclude pure financial board PDF asks (those stay on generateFinancialReportPdf).
   if (
@@ -65,11 +54,13 @@ export function resolveAbhiBoardPackIntent(message: string): AbhiBoardPackIntent
     return null;
   }
 
-  const meetingDate = inferMeetingDate(lower);
+  const meetingDate = parseExplicitAbhiBoardMeetingDate(text);
   return {
     tool: "boardpack.generate",
     args: {
       ...(meetingDate ? { meetingDate } : {}),
+      // Pass raw phrase so the tool can resolve "tomorrow" / "next week".
+      when: text.slice(0, 240),
       focus: text.slice(0, 240),
     },
     reason: "abhi_board_pack_generation",
