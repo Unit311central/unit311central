@@ -4,11 +4,13 @@ export const ABHI_DEMO_PLATFORM_USERNAME = "demo@abhi.org.uk";
 export const ABHI_PORTALS_ADMIN_USERNAME = "admin@abhi.org.uk";
 export const ABHI_PORTALS_SHARED_PASSWORD = "London1999$";
 
+export type PortalsIndent = 0 | 1 | 2;
+
 export type PortalsModuleRow = {
   id: string;
   text: string;
-  /** 0 = top-level, 1 = nested under previous parent (column 2). */
-  indent?: 0 | 1;
+  /** 0 = top-level, 1 = sub-row, 2 = sub-sub-row. */
+  indent?: PortalsIndent;
 };
 
 export type AbhiPortalsEditableContent = {
@@ -16,7 +18,7 @@ export type AbhiPortalsEditableContent = {
   customModules: PortalsModuleRow[];
 };
 
-function row(id: string, text: string, indent: 0 | 1 = 0): PortalsModuleRow {
+function row(id: string, text: string, indent: PortalsIndent = 0): PortalsModuleRow {
   return { id, text, indent };
 }
 
@@ -24,23 +26,23 @@ export const DEFAULT_MAJOR_MODULES: PortalsModuleRow[] = [
   row("m1", "Home dashboard"),
   row("m2", "AI Executive Assistant"),
   row("m3", "Business Central"),
-  row("m4", "Members"),
-  row("m5", "Dashboard Overview", 1),
-  row("m6", "Member Directory", 1),
-  row("m6b", "Member Intelligence", 1),
-  row("m6c", "Regulatory Intelligence"),
-  row("m6d", "Dashboard", 1),
-  row("m6e", "Regulatory Updates", 1),
-  row("m6f", "Impact Assessments", 1),
-  row("m6g", "Member Alerts", 1),
-  row("m7", "Customer Management"),
-  row("m8", "Pipeline", 1),
-  row("m9", "Discovery Calls", 1),
-  row("m10", "Member onboarding", 1),
-  row("m11", "Projects"),
-  row("m12", "Internal projects", 1),
-  row("m13", "External projects", 1),
-  row("m14", "Grants", 1),
+  row("m4", "Members", 1),
+  row("m5", "Dashboard Overview", 2),
+  row("m6", "Member Directory", 2),
+  row("m6b", "Member Intelligence", 2),
+  row("m6c", "Regulatory Intelligence", 1),
+  row("m6d", "Dashboard", 2),
+  row("m6e", "Regulatory Updates", 2),
+  row("m6f", "Impact Assessments", 2),
+  row("m6g", "Member Alerts", 2),
+  row("m7", "Customer Management", 1),
+  row("m8", "Pipeline", 2),
+  row("m9", "Discovery Calls", 2),
+  row("m10", "Member onboarding", 2),
+  row("m11", "Projects", 1),
+  row("m12", "Internal projects", 2),
+  row("m13", "External projects", 2),
+  row("m14", "Grants", 2),
   row("m15", "Partners"),
   row("m16", "Financials"),
   row("m17", "Human Resources"),
@@ -108,6 +110,20 @@ export function newPortalsRowId(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+export function portalsRowIndent(row: PortalsModuleRow | null | undefined): PortalsIndent {
+  if (row?.indent === 2) return 2;
+  if (row?.indent === 1) return 1;
+  return 0;
+}
+
+/** End index (exclusive) of a row plus all deeper descendants. */
+export function portalsRowBlockEnd(rows: PortalsModuleRow[], start: number): number {
+  const base = portalsRowIndent(rows[start]);
+  let end = start + 1;
+  while (end < rows.length && portalsRowIndent(rows[end]) > base) end += 1;
+  return end;
+}
+
 export function sanitizePortalsContent(raw: unknown): AbhiPortalsEditableContent {
   const fallback = defaultAbhiPortalsContent();
   if (!raw || typeof raw !== "object") return fallback;
@@ -120,7 +136,8 @@ export function sanitizePortalsContent(raw: unknown): AbhiPortalsEditableContent
       if (!entry || typeof entry !== "object") continue;
       const text = String((entry as PortalsModuleRow).text ?? "").trim();
       if (!text) continue;
-      const indent = (entry as PortalsModuleRow).indent === 1 ? 1 : 0;
+      const rawIndent = (entry as PortalsModuleRow).indent;
+      const indent: PortalsIndent = rawIndent === 2 ? 2 : rawIndent === 1 ? 1 : 0;
       const id =
         typeof (entry as PortalsModuleRow).id === "string" && (entry as PortalsModuleRow).id
           ? String((entry as PortalsModuleRow).id)

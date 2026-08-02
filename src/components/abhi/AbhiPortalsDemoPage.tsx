@@ -20,9 +20,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import {
   type AbhiPortalsEditableContent,
+  type PortalsIndent,
   type PortalsModuleRow,
   defaultAbhiPortalsContent,
   newPortalsRowId,
+  portalsRowBlockEnd,
+  portalsRowIndent,
 } from "@/lib/abhi/portals-demo";
 import { SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
@@ -152,24 +155,48 @@ function CredentialCard({ block }: { block: CredentialBlock }) {
   );
 }
 
-type ModuleGroup = {
-  parent: PortalsModuleRow;
-  parentIndex: number;
-  children: Array<{ row: PortalsModuleRow; index: number }>;
+type ModuleNode = {
+  row: PortalsModuleRow;
+  index: number;
+  children: ModuleNode[];
 };
 
-function groupModuleRows(rows: PortalsModuleRow[]): ModuleGroup[] {
-  const groups: ModuleGroup[] = [];
+function buildModuleTree(rows: PortalsModuleRow[]): ModuleNode[] {
+  const roots: ModuleNode[] = [];
+  let current0: ModuleNode | null = null;
+  let current1: ModuleNode | null = null;
+
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index]!;
-    if (row.indent === 1) {
-      const last = groups[groups.length - 1];
-      if (last) last.children.push({ row, index });
+    const indent = portalsRowIndent(row);
+    const node: ModuleNode = { row, index, children: [] };
+
+    if (indent === 0) {
+      roots.push(node);
+      current0 = node;
+      current1 = null;
       continue;
     }
-    groups.push({ parent: row, parentIndex: index, children: [] });
+    if (indent === 1) {
+      if (current0) {
+        current0.children.push(node);
+        current1 = node;
+      } else {
+        roots.push(node);
+        current0 = node;
+        current1 = null;
+      }
+      continue;
+    }
+    if (current1) {
+      current1.children.push(node);
+    } else if (current0) {
+      current0.children.push(node);
+    } else {
+      roots.push(node);
+    }
   }
-  return groups;
+  return roots;
 }
 
 function EditableRows({
@@ -186,12 +213,11 @@ function EditableRows({
   collapsible?: boolean;
   onChange: (next: PortalsModuleRow[]) => void;
 }) {
-  const groups = useMemo(() => groupModuleRows(rows), [rows]);
+  const tree = useMemo(() => buildModuleTree(rows), [rows]);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
   function isExpanded(id: string) {
     if (!collapsible) return true;
-    // In admin edit mode, default expanded so nested rows stay editable.
     if (canEdit) return expandedIds[id] !== false;
     return Boolean(expandedIds[id]);
   }
@@ -208,7 +234,10 @@ function EditableRows({
   }
 
   function removeRow(id: string) {
-    onChange(rows.filter((row) => row.id !== id));
+    const index = rows.findIndex((row) => row.id === id);
+    if (index < 0) return;
+    const end = portalsRowBlockEnd(rows, index);
+    onChange([...rows.slice(0, index), ...rows.slice(end)]);
   }
 
   function addTopLevelRow() {
@@ -217,20 +246,18 @@ function EditableRows({
     setExpandedIds((current) => ({ ...current, [id]: true }));
   }
 
-  function addNestedUnder(parentId: string) {
+  function addChildUnder(parentId: string) {
     const parentIndex = rows.findIndex((row) => row.id === parentId);
     if (parentIndex < 0) return;
-
-    let insertAt = parentIndex + 1;
-    while (insertAt < rows.length && rows[insertAt]?.indent === 1) {
-      insertAt += 1;
-    }
-
+    const parentIndent = portalsRowIndent(rows[parentIndex]);
+    if (parentIndent >= 2) return;
+    const childIndent = (parentIndent + 1) as PortalsIndent;
+    const insertAt = portalsRowBlockEnd(rows, parentIndex);
     const next = [...rows];
     next.splice(insertAt, 0, {
-      id: newPortalsRowId("n"),
+      id: newPortalsRowId(childIndent === 2 ? "nn" : "n"),
       text: "",
-      indent: 1,
+      indent: childIndent,
     });
     onChange(next);
     setExpandedIds((current) => ({ ...current, [parentId]: true }));
@@ -239,39 +266,25 @@ function EditableRows({
   function moveRow(index: number, direction: -1 | 1) {
     const row = rows[index];
     if (!row) return;
-
-    if (row.indent === 1) {
-      const target = index + direction;
-      if (target < 0 || target >= rows.length) return;
-      if (rows[target]?.indent !== 1) return;
-      const next = [...rows];
-      const current = next[index]!;
-      next[index] = next[target]!;
-      next[target] = current;
-      onChange(next);
-      return;
-    }
-
-    let end = index + 1;
-    while (end < rows.length && rows[end]?.indent === 1) end += 1;
+    const indent = portalsRowIndent(row);
+    const end = portalsRowBlockEnd(rows, index);
     const block = rows.slice(index, end);
 
     if (direction === -1) {
-      if (index === 0) return;
-      let prevStart = index - 1;
-      while (prevStart > 0 && rows[prevStart]?.indent === 1) prevStart -= 1;
+      let prev = index - 1;
+      while (prev >= 0 && portalsRowIndent(rows[prev]) > indent) prev -= 1;
+      if (prev < 0 || portalsRowIndent(rows[prev]) !== indent) return;
       onChange([
-        ...rows.slice(0, prevStart),
+        ...rows.slice(0, prev),
         ...block,
-        ...rows.slice(prevStart, index),
+        ...rows.slice(prev, index),
         ...rows.slice(end),
       ]);
       return;
     }
 
-    if (end >= rows.length) return;
-    let nextEnd = end + 1;
-    while (nextEnd < rows.length && rows[nextEnd]?.indent === 1) nextEnd += 1;
+    if (end >= rows.length || portalsRowIndent(rows[end]) !== indent) return;
+    const nextEnd = portalsRowBlockEnd(rows, end);
     onChange([
       ...rows.slice(0, index),
       ...rows.slice(end, nextEnd),
@@ -280,171 +293,158 @@ function EditableRows({
     ]);
   }
 
+  function canMove(index: number, direction: -1 | 1) {
+    const indent = portalsRowIndent(rows[index]);
+    const end = portalsRowBlockEnd(rows, index);
+    if (direction === -1) {
+      let prev = index - 1;
+      while (prev >= 0 && portalsRowIndent(rows[prev]) > indent) prev -= 1;
+      return prev >= 0 && portalsRowIndent(rows[prev]) === indent;
+    }
+    return end < rows.length && portalsRowIndent(rows[end]) === indent;
+  }
+
+  function renderNode(node: ModuleNode, depth: 0 | 1 | 2) {
+    const hasChildren = node.children.length > 0;
+    const open = isExpanded(node.row.id);
+    const ExpandIcon = open ? ChevronDown : ChevronRight;
+    const childLabel = depth === 0 ? "sub-row" : "sub-sub-row";
+    const placeholder =
+      depth === 0 ? "Top-level row…" : depth === 1 ? "Sub-row…" : "Sub-sub-row…";
+
+    return (
+      <li key={node.row.id} className="space-y-1">
+        <div className="flex items-start gap-1.5">
+          {collapsible && depth === 0 ? (
+            hasChildren ? (
+              <button
+                type="button"
+                onClick={() => toggleExpanded(node.row.id)}
+                className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 text-white/70 hover:bg-white/5 hover:text-white"
+                aria-expanded={open}
+                aria-label={open ? "Collapse" : "Expand"}
+              >
+                <ExpandIcon className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <span className="mt-1 inline-flex h-6 w-6 shrink-0" aria-hidden />
+            )
+          ) : null}
+          {!collapsible && depth === 0 && accent === "pink" ? (
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F48FB1]" />
+          ) : null}
+
+          {canEdit ? (
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <div className="flex items-start gap-1.5">
+                <div className="flex shrink-0 flex-col gap-0.5 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => moveRow(node.index, -1)}
+                    disabled={!canMove(node.index, -1)}
+                    className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                    aria-label="Move up"
+                  >
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveRow(node.index, 1)}
+                    disabled={!canMove(node.index, 1)}
+                    className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                    aria-label="Move down"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <input
+                  value={node.row.text}
+                  onChange={(event) => updateRow(node.row.id, { text: event.target.value })}
+                  placeholder={placeholder}
+                  className={cn(
+                    "min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-white outline-none placeholder:text-white/30 focus:border-sky-400/50",
+                    depth === 0 ? "text-[13px] font-medium" : "text-[12px]",
+                    depth === 2 && "text-white/85",
+                  )}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pl-8">
+                {depth < 2 ? (
+                  <button
+                    type="button"
+                    onClick={() => addChildUnder(node.row.id)}
+                    className="inline-flex items-center gap-1 rounded border border-sky-400/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] text-sky-100 hover:bg-sky-500/20"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add {childLabel}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => removeRow(node.row.id)}
+                  className="inline-flex items-center gap-1 rounded border border-rose-400/25 px-1.5 py-0.5 text-[10px] text-rose-200 hover:bg-rose-500/10"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Delete
+                </button>
+                {depth === 0 && hasChildren ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(node.row.id)}
+                    className="text-[10px] text-white/45 hover:text-white/70"
+                  >
+                    {open ? "Hide sub-rows" : `Show ${node.children.length} sub-rows`}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : depth === 0 ? (
+            <button
+              type="button"
+              onClick={() => (hasChildren ? toggleExpanded(node.row.id) : undefined)}
+              className={cn(
+                "min-w-0 flex-1 rounded-lg px-1 py-1 text-left text-[13px] font-medium text-white/90",
+                hasChildren && "hover:bg-white/[0.04]",
+              )}
+            >
+              {node.row.text}
+              {hasChildren && !open ? (
+                <span className="ml-2 text-[11px] font-normal text-white/40">
+                  ({node.children.length})
+                </span>
+              ) : null}
+            </button>
+          ) : (
+            <p
+              className={cn(
+                "min-w-0 flex-1 py-0.5 leading-snug",
+                depth === 1 ? "text-[12px] text-white/55" : "text-[11px] text-white/45",
+              )}
+            >
+              {node.row.text}
+            </p>
+          )}
+        </div>
+
+        {open && hasChildren ? (
+          <ul
+            className={cn(
+              "space-y-1.5 border-l border-white/10 pl-3",
+              depth === 0 ? "ml-7" : "ml-5",
+            )}
+          >
+            {node.children.map((child) =>
+              renderNode(child, depth === 0 ? 1 : 2),
+            )}
+          </ul>
+        ) : null}
+      </li>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col">
-      <ul className="flex-1 space-y-1.5">
-        {groups.map((group) => {
-          const hasChildren = group.children.length > 0;
-          const open = isExpanded(group.parent.id);
-          const ExpandIcon = open ? ChevronDown : ChevronRight;
-
-          return (
-            <li key={group.parent.id} className="space-y-1">
-              <div className="flex items-start gap-1.5">
-                {collapsible && hasChildren ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleExpanded(group.parent.id)}
-                    className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 text-white/70 hover:bg-white/5 hover:text-white"
-                    aria-expanded={open}
-                    aria-label={open ? "Collapse" : "Expand"}
-                  >
-                    <ExpandIcon className="h-3.5 w-3.5" />
-                  </button>
-                ) : collapsible ? (
-                  <span className="mt-1 inline-flex h-6 w-6 shrink-0" aria-hidden />
-                ) : accent === "pink" ? (
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F48FB1]" />
-                ) : null}
-
-                {canEdit ? (
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <div className="flex items-start gap-1.5">
-                      <div className="flex shrink-0 flex-col gap-0.5 pt-0.5">
-                        <button
-                          type="button"
-                          onClick={() => moveRow(group.parentIndex, -1)}
-                          disabled={group.parentIndex === 0}
-                          className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                          aria-label="Move up"
-                        >
-                          <ChevronUp className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveRow(group.parentIndex, 1)}
-                          disabled={
-                            group.parentIndex + group.children.length >= rows.length - 1 &&
-                            group.parentIndex === rows.length - 1
-                          }
-                          className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                          aria-label="Move down"
-                        >
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <input
-                        value={group.parent.text}
-                        onChange={(event) =>
-                          updateRow(group.parent.id, { text: event.target.value })
-                        }
-                        placeholder="Top-level row…"
-                        className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-[13px] font-medium text-white outline-none placeholder:text-white/30 focus:border-sky-400/50"
-                      />
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 pl-8">
-                      <button
-                        type="button"
-                        onClick={() => addNestedUnder(group.parent.id)}
-                        className="inline-flex items-center gap-1 rounded border border-sky-400/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] text-sky-100 hover:bg-sky-500/20"
-                      >
-                        <Plus className="h-3 w-3" />
-                        Add sub-row
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeRow(group.parent.id)}
-                        className="inline-flex items-center gap-1 rounded border border-rose-400/25 px-1.5 py-0.5 text-[10px] text-rose-200 hover:bg-rose-500/10"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Delete
-                      </button>
-                      {hasChildren ? (
-                        <button
-                          type="button"
-                          onClick={() => toggleExpanded(group.parent.id)}
-                          className="text-[10px] text-white/45 hover:text-white/70"
-                        >
-                          {open ? "Hide sub-rows" : `Show ${group.children.length} sub-rows`}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => (hasChildren ? toggleExpanded(group.parent.id) : undefined)}
-                    className={cn(
-                      "min-w-0 flex-1 rounded-lg px-1 py-1 text-left text-[13px] font-medium text-white/90",
-                      hasChildren && "hover:bg-white/[0.04]",
-                    )}
-                  >
-                    {group.parent.text}
-                    {hasChildren && !open ? (
-                      <span className="ml-2 text-[11px] font-normal text-white/40">
-                        ({group.children.length})
-                      </span>
-                    ) : null}
-                  </button>
-                )}
-              </div>
-
-              {open && hasChildren ? (
-                <ul className="ml-7 space-y-1.5 border-l border-white/10 pl-3">
-                  {group.children.map(({ row, index }) => (
-                    <li key={row.id} className="flex items-start gap-1.5">
-                      {canEdit ? (
-                        <div className="flex min-w-0 flex-1 flex-col gap-1">
-                          <div className="flex items-start gap-1.5">
-                            <div className="flex shrink-0 flex-col gap-0.5 pt-0.5">
-                              <button
-                                type="button"
-                                onClick={() => moveRow(index, -1)}
-                                className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                                aria-label="Move sub-row up"
-                              >
-                                <ChevronUp className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => moveRow(index, 1)}
-                                className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                                aria-label="Move sub-row down"
-                              >
-                                <ChevronDown className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                            <input
-                              value={row.text}
-                              onChange={(event) => updateRow(row.id, { text: event.target.value })}
-                              placeholder="Sub-row…"
-                              className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-[12px] text-white outline-none placeholder:text-white/30 focus:border-sky-400/50"
-                            />
-                          </div>
-                          <div className="pl-8">
-                            <button
-                              type="button"
-                              onClick={() => removeRow(row.id)}
-                              className="inline-flex items-center gap-1 rounded border border-rose-400/25 px-1.5 py-0.5 text-[10px] text-rose-200 hover:bg-rose-500/10"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="min-w-0 flex-1 py-0.5 text-[12px] leading-snug text-white/55">
-                          {row.text}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+      <ul className="flex-1 space-y-1.5">{tree.map((node) => renderNode(node, 0))}</ul>
       {canEdit ? (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-3">
           <button
@@ -627,10 +627,21 @@ export default function AbhiPortalsDemoPage() {
               <p className="hidden text-[11px] text-white/50 sm:block">{username}</p>
             ) : null}
             {canEdit ? (
-              <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100">
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                {saveMessage ?? "Auto-save on"}
-              </span>
+              <>
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100">
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  {saveMessage ?? "Auto-save on"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void saveContent()}
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/40 bg-sky-500/20 px-3 py-1.5 text-[11px] font-semibold text-sky-50 hover:bg-sky-500/30 disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                  Save
+                </button>
+              </>
             ) : null}
             <button
               type="button"
@@ -658,7 +669,8 @@ export default function AbhiPortalsDemoPage() {
           </p>
           {canEdit ? (
             <p className="mt-2 text-[12px] text-emerald-200/80">
-              Admin edit mode — edits auto-save; other open views refresh within a few seconds.
+              Admin edit mode — use Save or wait for auto-save. Nested rows support sub-rows and
+              sub-sub-rows.
               {saveMessage ? ` ${saveMessage}` : ""}
             </p>
           ) : null}
