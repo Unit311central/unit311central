@@ -96,6 +96,17 @@ export type AbhiWorkingGroupPerson = {
   role: string;
 };
 
+export type AbhiWorkingGroupMeeting = {
+  id: string;
+  title: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  location: string;
+  agenda: string;
+  attendeePersonIds: string[];
+  notes: string;
+};
+
 export type AbhiWorkingGroup = {
   id: string;
   name: string;
@@ -103,10 +114,29 @@ export type AbhiWorkingGroup = {
   lead: string;
   meetingCadence: string;
   people: AbhiWorkingGroupPerson[];
+  meetings: AbhiWorkingGroupMeeting[];
 };
 
 export type AbhiAcceleratorRegion = "us" | "me";
 export type AbhiAcceleratorStatus = "recruiting" | "active" | "completed";
+export type AbhiAcceleratorVisitType = "company" | "hospital" | "health-system";
+
+export type AbhiAcceleratorScheduleItem = {
+  id: string;
+  label: string;
+  startDate: string;
+  endDate: string;
+  notes: string;
+};
+
+export type AbhiAcceleratorVisitTarget = {
+  id: string;
+  name: string;
+  type: AbhiAcceleratorVisitType;
+  location: string;
+  focus: string;
+  confirmed: boolean;
+};
 
 export type AbhiAcceleratorCohort = {
   id: string;
@@ -119,6 +149,10 @@ export type AbhiAcceleratorCohort = {
   programmeLead: string;
   /** Extra delivery / market notes. */
   notes: string;
+  /** Editable cohort plan summary. */
+  cohortPlan: string;
+  schedule: AbhiAcceleratorScheduleItem[];
+  visitTargets: AbhiAcceleratorVisitTarget[];
   companyIds: string[];
 };
 
@@ -146,6 +180,12 @@ function daysAgoIso(days: number) {
   const date = new Date();
   date.setDate(date.getDate() - days);
   return date.toISOString();
+}
+
+function daysFromNowDate(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function seedMembers(): AbhiMemberCompany[] {
@@ -421,6 +461,26 @@ function seedWorkingGroups(_memberIds: string[]): AbhiWorkingGroup[] {
     role = "Member",
   ): AbhiWorkingGroupPerson => ({ id, name, company, email, role });
 
+  const meeting = (
+    id: string,
+    title: string,
+    daysAhead: number,
+    time: string,
+    location: string,
+    agenda: string,
+    attendeeIds: string[] = [],
+    notes = "",
+  ): AbhiWorkingGroupMeeting => ({
+    id,
+    title,
+    scheduledDate: daysFromNowDate(daysAhead),
+    scheduledTime: time,
+    location,
+    agenda,
+    attendeePersonIds: attendeeIds,
+    notes,
+  });
+
   return [
     {
       id: "abhi-wg-regulatory",
@@ -433,6 +493,35 @@ function seedWorkingGroups(_memberIds: string[]): AbhiWorkingGroup[] {
         person("abhi-wgp-reg-2", "Sarah Chen", "Aether Diagnostics", "sarah.chen@aetherdx.com"),
         person("abhi-wgp-reg-3", "Tom Bradley", "Northstar Telehealth", "tom.bradley@northstar.health"),
         person("abhi-wgp-reg-4", "Priya Shah", "Halcyon Health Analytics", "priya.shah@halcyonhealth.ai"),
+      ],
+      meetings: [
+        meeting(
+          "abhi-wgm-reg-1",
+          "MHRA software as medical device update",
+          7,
+          "10:00",
+          "Microsoft Teams",
+          "Review MHRA SaMD consultation responses and member impact summary.",
+          ["abhi-wgp-reg-1", "abhi-wgp-reg-2"],
+        ),
+        meeting(
+          "abhi-wgm-reg-2",
+          "UKCA transition checkpoint",
+          35,
+          "10:00",
+          "ABHI London office",
+          "Member readiness survey results and Q3 regulatory horizon scan.",
+          [],
+        ),
+        meeting(
+          "abhi-wgm-reg-3",
+          "International equivalence pathways",
+          63,
+          "14:00",
+          "Microsoft Teams",
+          "US FDA / EU MDR alignment briefing with member Q&A.",
+          ["abhi-wgp-reg-1"],
+        ),
       ],
     },
     {
@@ -447,6 +536,35 @@ function seedWorkingGroups(_memberIds: string[]): AbhiWorkingGroup[] {
         person("abhi-wgp-dh-3", "Elena Rossi", "Iris Imaging Solutions", "elena.rossi@irisimaging.co.uk"),
         person("abhi-wgp-dh-4", "Marcus Webb", "Zenith Biotech Partners", "marcus.webb@zenithbiotech.com"),
       ],
+      meetings: [
+        meeting(
+          "abhi-wgm-dh-1",
+          "NHS Federated Data Platform — member briefing",
+          5,
+          "11:00",
+          "Microsoft Teams",
+          "Guest speaker from NHS England on FDP procurement and interoperability standards.",
+          ["abhi-wgp-dh-1", "abhi-wgp-dh-3"],
+        ),
+        meeting(
+          "abhi-wgm-dh-2",
+          "AI assurance framework workshop",
+          19,
+          "11:00",
+          "Microsoft Teams",
+          "Draft ABHI position on responsible AI deployment in clinical settings.",
+          [],
+        ),
+        meeting(
+          "abhi-wgm-dh-3",
+          "Digital adoption playbook review",
+          33,
+          "11:00",
+          "ABHI London office",
+          "Finalise member-facing playbook chapter on remote monitoring.",
+          ["abhi-wgp-dh-1", "abhi-wgp-dh-2", "abhi-wgp-dh-4"],
+        ),
+      ],
     },
     {
       id: "abhi-wg-market-access",
@@ -460,6 +578,35 @@ function seedWorkingGroups(_memberIds: string[]): AbhiWorkingGroup[] {
         person("abhi-wgp-ma-3", "David Kwon", "ClearPath Orthopaedics", "david.kwon@clearpathortho.com"),
         person("abhi-wgp-ma-4", "Amelia Frost", "Vitaflow Therapeutics", "amelia.frost@vitaflow.co.uk"),
       ],
+      meetings: [
+        meeting(
+          "abhi-wgm-ma-1",
+          "NICE early value assessment update",
+          12,
+          "15:00",
+          "Microsoft Teams",
+          "Impact of updated EVA guidance on diagnostics and digital therapeutics.",
+          ["abhi-wgp-ma-1", "abhi-wgp-ma-2"],
+        ),
+        meeting(
+          "abhi-wgm-ma-2",
+          "NHS Supply Chain framework changes",
+          40,
+          "15:00",
+          "Microsoft Teams",
+          "Member feedback on new med-tech framework lots and submission timelines.",
+          [],
+        ),
+        meeting(
+          "abhi-wgm-ma-3",
+          "Integrated care board engagement",
+          68,
+          "15:00",
+          "ABHI London office",
+          "Best practice sharing on ICB commercial discussions.",
+          ["abhi-wgp-ma-1"],
+        ),
+      ],
     },
     {
       id: "abhi-wg-sustainability",
@@ -472,12 +619,63 @@ function seedWorkingGroups(_memberIds: string[]): AbhiWorkingGroup[] {
         person("abhi-wgp-sus-2", "Nina Patel", "GreenMed Manufacturing", "nina.patel@greenmed.co.uk"),
         person("abhi-wgp-sus-3", "Chris Doyle", "Orbit Surgical", "chris.doyle@orbitsurgical.com"),
       ],
+      meetings: [
+        meeting(
+          "abhi-wgm-sus-1",
+          "Scope 3 emissions baseline review",
+          21,
+          "09:30",
+          "Microsoft Teams",
+          "Member survey results and draft net-zero roadmap milestones.",
+          ["abhi-wgp-sus-1", "abhi-wgp-sus-2"],
+        ),
+        meeting(
+          "abhi-wgm-sus-2",
+          "Circular economy in med-tech manufacturing",
+          55,
+          "09:30",
+          "ABHI London office",
+          "Case studies from members on reusable device programmes.",
+          [],
+        ),
+        meeting(
+          "abhi-wgm-sus-3",
+          "NHS Greener NHS alignment session",
+          84,
+          "09:30",
+          "Microsoft Teams",
+          "Mapping ABHI sustainability guidance to Greener NHS supplier requirements.",
+          ["abhi-wgp-sus-1"],
+        ),
+      ],
     },
   ];
 }
 
 function seedAccelerators(memberIds: string[]): AbhiAcceleratorCohort[] {
   const pick = (...idx: number[]) => idx.map((i) => memberIds[i]).filter(Boolean) as string[];
+  const scheduleItem = (
+    id: string,
+    label: string,
+    startDays: number,
+    endDays: number,
+    notes: string,
+  ): AbhiAcceleratorScheduleItem => ({
+    id,
+    label,
+    startDate: daysFromNowDate(startDays),
+    endDate: daysFromNowDate(endDays),
+    notes,
+  });
+  const visit = (
+    id: string,
+    name: string,
+    type: AbhiAcceleratorVisitType,
+    location: string,
+    focus: string,
+    confirmed: boolean,
+  ): AbhiAcceleratorVisitTarget => ({ id, name, type, location, focus, confirmed });
+
   return [
     {
       id: "abhi-acc-us-boston-2026",
@@ -488,6 +686,73 @@ function seedAccelerators(memberIds: string[]): AbhiAcceleratorCohort[] {
       status: "active",
       programmeLead: "Michelle Michelucci",
       notes: "FDA pathway clinics, payer introductions, and East Coast hospital network meetings.",
+      cohortPlan:
+        "Two-week immersion in Boston's health innovation corridor. Week 1 focuses on regulatory and reimbursement pathways; Week 2 on hospital pilot discussions and investor readiness.",
+      schedule: [
+        scheduleItem(
+          "abhi-acc-us-bos-s1",
+          "Cohort kick-off & FDA clinic",
+          14,
+          16,
+          "Welcome dinner, FDA Digital Health Center briefing, and member pitch rehearsals.",
+        ),
+        scheduleItem(
+          "abhi-acc-us-bos-s2",
+          "Hospital innovation tours",
+          17,
+          19,
+          "Site visits to Mass General Brigham and Partners Health innovation labs.",
+        ),
+        scheduleItem(
+          "abhi-acc-us-bos-s3",
+          "Payer & investor showcase",
+          20,
+          21,
+          "Closed-door sessions with US payers and East Coast HealthTech VCs.",
+        ),
+      ],
+      visitTargets: [
+        visit(
+          "abhi-acc-us-bos-v1",
+          "Massachusetts General Hospital",
+          "hospital",
+          "Boston, MA",
+          "Digital surgery and perioperative monitoring pilots",
+          true,
+        ),
+        visit(
+          "abhi-acc-us-bos-v2",
+          "Brigham and Women's Hospital",
+          "hospital",
+          "Boston, MA",
+          "Remote patient monitoring and care-at-home programmes",
+          true,
+        ),
+        visit(
+          "abhi-acc-us-bos-v3",
+          "Philips HealthTech Innovation Hub",
+          "company",
+          "Cambridge, MA",
+          "Interoperability and connected care partnerships",
+          true,
+        ),
+        visit(
+          "abhi-acc-us-bos-v4",
+          "CVS Health Innovation Lab",
+          "company",
+          "Woonsocket, RI",
+          "Retail health and pharmacy-led diagnostics",
+          false,
+        ),
+        visit(
+          "abhi-acc-us-bos-v5",
+          "FDA Digital Health Center of Excellence",
+          "health-system",
+          "Silver Spring, MD",
+          "SaMD pre-submission and Q-Sub pathway briefing",
+          true,
+        ),
+      ],
       companyIds: pick(0, 2, 5, 8),
     },
     {
@@ -499,6 +764,73 @@ function seedAccelerators(memberIds: string[]): AbhiAcceleratorCohort[] {
       status: "recruiting",
       programmeLead: "Paul Benton",
       notes: "Digital health and AI focus — Bay Area investor and health-system immersion.",
+      cohortPlan:
+        "Bay Area programme blending UCSF Health partnerships, AI assurance workshops, and Silicon Valley investor office hours for UK HealthTech scale-ups.",
+      schedule: [
+        scheduleItem(
+          "abhi-acc-us-sf-s1",
+          "AI in health assurance workshop",
+          45,
+          46,
+          "Responsible AI deployment frameworks with UCSF digital health faculty.",
+        ),
+        scheduleItem(
+          "abhi-acc-us-sf-s2",
+          "Health system immersion week",
+          47,
+          51,
+          "UCSF, Stanford Health, and Kaiser Permanente innovation introductions.",
+        ),
+        scheduleItem(
+          "abhi-acc-us-sf-s3",
+          "Investor demo day",
+          52,
+          52,
+          "Pitch sessions with Bay Area HealthTech VCs and strategic corporates.",
+        ),
+      ],
+      visitTargets: [
+        visit(
+          "abhi-acc-us-sf-v1",
+          "UCSF Health Hub for Digital Health Innovation",
+          "health-system",
+          "San Francisco, CA",
+          "Clinical AI validation and digital therapeutics pilots",
+          false,
+        ),
+        visit(
+          "abhi-acc-us-sf-v2",
+          "Stanford Health Care",
+          "hospital",
+          "Palo Alto, CA",
+          "Precision medicine and genomics-enabled diagnostics",
+          false,
+        ),
+        visit(
+          "abhi-acc-us-sf-v3",
+          "Kaiser Permanente Innovation Center",
+          "health-system",
+          "Oakland, CA",
+          "Population health analytics and remote monitoring at scale",
+          false,
+        ),
+        visit(
+          "abhi-acc-us-sf-v4",
+          "Verily Life Sciences",
+          "company",
+          "South San Francisco, CA",
+          "Real-world evidence and connected device partnerships",
+          false,
+        ),
+        visit(
+          "abhi-acc-us-sf-v5",
+          "Rock Health",
+          "company",
+          "San Francisco, CA",
+          "US market entry strategy and fundraising readiness",
+          true,
+        ),
+      ],
       companyIds: pick(4, 10),
     },
     {
@@ -510,6 +842,73 @@ function seedAccelerators(memberIds: string[]): AbhiAcceleratorCohort[] {
       status: "active",
       programmeLead: "Bayode Adisa",
       notes: "DHA and private provider introductions; co-located with WHX Dubai engagement.",
+      cohortPlan:
+        "Dubai immersion aligned with DHA digital health strategy. Members receive regulatory briefings, private hospital introductions, and WHX Dubai pavilion preparation support.",
+      schedule: [
+        scheduleItem(
+          "abhi-acc-me-dxb-s1",
+          "DHA regulatory & licensing briefing",
+          10,
+          10,
+          "Dubai Health Authority digital health licensing and SaMD requirements.",
+        ),
+        scheduleItem(
+          "abhi-acc-me-dxb-s2",
+          "Private hospital roadshow",
+          11,
+          14,
+          "Site visits across Mediclinic, Saudi German, and American Hospital Dubai.",
+        ),
+        scheduleItem(
+          "abhi-acc-me-dxb-s3",
+          "WHX Dubai pavilion prep",
+          15,
+          16,
+          "Stand design, buyer meetings, and Gulf distributor matchmaking.",
+        ),
+      ],
+      visitTargets: [
+        visit(
+          "abhi-acc-me-dxb-v1",
+          "Dubai Health Authority (DHA)",
+          "health-system",
+          "Dubai, UAE",
+          "Digital health licensing and NABIDH integration",
+          true,
+        ),
+        visit(
+          "abhi-acc-me-dxb-v2",
+          "Mediclinic City Hospital",
+          "hospital",
+          "Dubai, UAE",
+          "Robotic surgery and perioperative digital workflows",
+          true,
+        ),
+        visit(
+          "abhi-acc-me-dxb-v3",
+          "Saudi German Hospital Dubai",
+          "hospital",
+          "Dubai, UAE",
+          "Telehealth and remote diagnostics deployment",
+          true,
+        ),
+        visit(
+          "abhi-acc-me-dxb-v4",
+          "G42 Healthcare",
+          "company",
+          "Abu Dhabi, UAE",
+          "AI-enabled diagnostics and population screening",
+          false,
+        ),
+        visit(
+          "abhi-acc-me-dxb-v5",
+          "M42 / Cleveland Clinic Abu Dhabi",
+          "health-system",
+          "Abu Dhabi, UAE",
+          "Precision medicine and advanced imaging partnerships",
+          true,
+        ),
+      ],
       companyIds: pick(1, 3, 9, 11),
     },
     {
@@ -521,6 +920,73 @@ function seedAccelerators(memberIds: string[]): AbhiAcceleratorCohort[] {
       status: "recruiting",
       programmeLead: "Jane Lewis",
       notes: "Vision 2030 health transformation partnerships and MOH pathway workshops.",
+      cohortPlan:
+        "Riyadh programme focused on Vision 2030 health transformation. MOH engagement, SEHA cluster introductions, and Global Health Exhibition follow-on meetings.",
+      schedule: [
+        scheduleItem(
+          "abhi-acc-me-ruh-s1",
+          "MOH digital transformation briefing",
+          60,
+          60,
+          "Ministry of Health procurement pathways and local content requirements.",
+        ),
+        scheduleItem(
+          "abhi-acc-me-ruh-s2",
+          "SEHA cluster hospital visits",
+          61,
+          64,
+          "King Faisal Specialist Hospital and King Saud Medical City introductions.",
+        ),
+        scheduleItem(
+          "abhi-acc-me-ruh-s3",
+          "Vision 2030 partner showcase",
+          65,
+          66,
+          "Closed sessions with NEOM Health and Saudi German Hospital Group.",
+        ),
+      ],
+      visitTargets: [
+        visit(
+          "abhi-acc-me-ruh-v1",
+          "Ministry of Health (Saudi Arabia)",
+          "health-system",
+          "Riyadh, Saudi Arabia",
+          "National digital health platform and procurement frameworks",
+          false,
+        ),
+        visit(
+          "abhi-acc-me-ruh-v2",
+          "King Faisal Specialist Hospital",
+          "hospital",
+          "Riyadh, Saudi Arabia",
+          "Oncology diagnostics and precision therapeutics",
+          false,
+        ),
+        visit(
+          "abhi-acc-me-ruh-v3",
+          "King Saud Medical City",
+          "hospital",
+          "Riyadh, Saudi Arabia",
+          "Emergency care digital triage and connected devices",
+          false,
+        ),
+        visit(
+          "abhi-acc-me-ruh-v4",
+          "NEOM Health",
+          "health-system",
+          "NEOM, Saudi Arabia",
+          "Greenfield health system technology adoption",
+          false,
+        ),
+        visit(
+          "abhi-acc-me-ruh-v5",
+          "Saudi German Hospitals Group",
+          "hospital",
+          "Riyadh, Saudi Arabia",
+          "Private sector expansion and UK supplier partnerships",
+          true,
+        ),
+      ],
       companyIds: pick(6, 7),
     },
   ];
@@ -557,6 +1023,16 @@ export function getAbhiMarketingSnapshot(): AbhiMarketingState {
 
 export function resetAbhiMarketingStore() {
   state = seedState();
+  emit();
+}
+
+/** Re-seed events when the store is empty (demo / first load). */
+export function ensureAbhiMarketingEventsSeeded() {
+  if (state.events.length > 0) return;
+  state = {
+    ...state,
+    events: seedEvents(state.members.map((member) => member.id)),
+  };
   emit();
 }
 
@@ -807,6 +1283,7 @@ export function upsertWorkingGroup(input: Partial<AbhiWorkingGroup> & { id?: str
     lead: input.lead ?? existing?.lead ?? "",
     meetingCadence: input.meetingCadence ?? existing?.meetingCadence ?? "Monthly",
     people: input.people ?? existing?.people ?? [],
+    meetings: input.meetings ?? existing?.meetings ?? [],
   };
   state = {
     ...state,
@@ -850,6 +1327,48 @@ export function deleteWorkingGroupPerson(groupId: string, personId: string) {
   upsertWorkingGroup({
     id: groupId,
     people: group.people.filter((row) => row.id !== personId),
+    meetings: group.meetings.map((meeting) => ({
+      ...meeting,
+      attendeePersonIds: meeting.attendeePersonIds.filter((id) => id !== personId),
+    })),
+  });
+}
+
+export function updateWorkingGroupMeeting(
+  groupId: string,
+  meetingId: string,
+  input: Partial<Pick<AbhiWorkingGroupMeeting, "attendeePersonIds" | "notes">>,
+) {
+  const group = state.workingGroups.find((row) => row.id === groupId);
+  if (!group) return null;
+  const existing = group.meetings.find((row) => row.id === meetingId);
+  if (!existing) return null;
+  const nextMeeting: AbhiWorkingGroupMeeting = {
+    ...existing,
+    attendeePersonIds: input.attendeePersonIds ?? existing.attendeePersonIds,
+    notes: input.notes !== undefined ? input.notes : existing.notes,
+  };
+  upsertWorkingGroup({
+    id: groupId,
+    meetings: group.meetings.map((row) => (row.id === meetingId ? nextMeeting : row)),
+  });
+  return nextMeeting;
+}
+
+export function toggleWorkingGroupMeetingAttendee(
+  groupId: string,
+  meetingId: string,
+  personId: string,
+) {
+  const group = state.workingGroups.find((row) => row.id === groupId);
+  if (!group) return;
+  const meeting = group.meetings.find((row) => row.id === meetingId);
+  if (!meeting) return;
+  const already = meeting.attendeePersonIds.includes(personId);
+  updateWorkingGroupMeeting(groupId, meetingId, {
+    attendeePersonIds: already
+      ? meeting.attendeePersonIds.filter((id) => id !== personId)
+      : [...meeting.attendeePersonIds, personId],
   });
 }
 
@@ -872,6 +1391,9 @@ export function upsertAcceleratorCohort(
     status: input.status ?? existing?.status ?? "recruiting",
     programmeLead: input.programmeLead ?? existing?.programmeLead ?? "",
     notes: input.notes ?? existing?.notes ?? "",
+    cohortPlan: input.cohortPlan ?? existing?.cohortPlan ?? "",
+    schedule: input.schedule ?? existing?.schedule ?? [],
+    visitTargets: input.visitTargets ?? existing?.visitTargets ?? [],
     companyIds: input.companyIds ?? existing?.companyIds ?? [],
   };
   state = {
@@ -904,6 +1426,42 @@ export function toggleAcceleratorCompany(cohortId: string, companyId: string) {
     }),
   };
   emit();
+}
+
+export function updateAcceleratorCohortPlan(cohortId: string, cohortPlan: string) {
+  const cohort = state.acceleratorCohorts.find((row) => row.id === cohortId);
+  if (!cohort) return null;
+  return upsertAcceleratorCohort({ id: cohortId, region: cohort.region, cohortPlan: cohortPlan.trim() });
+}
+
+export function upsertAcceleratorScheduleItem(
+  cohortId: string,
+  input: Partial<AbhiAcceleratorScheduleItem> & { id?: string },
+) {
+  const cohort = state.acceleratorCohorts.find((row) => row.id === cohortId);
+  if (!cohort) return null;
+  const existing = input.id ? cohort.schedule.find((row) => row.id === input.id) : null;
+  const nextItem: AbhiAcceleratorScheduleItem = {
+    id: existing?.id ?? uid("abhi-acc-sch"),
+    label: input.label ?? existing?.label ?? "New milestone",
+    startDate: input.startDate ?? existing?.startDate ?? daysFromNowDate(30),
+    endDate: input.endDate ?? existing?.endDate ?? daysFromNowDate(30),
+    notes: input.notes ?? existing?.notes ?? "",
+  };
+  const schedule = existing
+    ? cohort.schedule.map((row) => (row.id === existing.id ? nextItem : row))
+    : [...cohort.schedule, nextItem];
+  return upsertAcceleratorCohort({ id: cohortId, region: cohort.region, schedule });
+}
+
+export function deleteAcceleratorScheduleItem(cohortId: string, itemId: string) {
+  const cohort = state.acceleratorCohorts.find((row) => row.id === cohortId);
+  if (!cohort) return;
+  upsertAcceleratorCohort({
+    id: cohortId,
+    region: cohort.region,
+    schedule: cohort.schedule.filter((row) => row.id !== itemId),
+  });
 }
 
 /* —— Dashboard helpers —— */

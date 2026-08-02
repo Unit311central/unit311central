@@ -192,6 +192,14 @@ export default function HrDashboardWorkspace({ employees }: HrDashboardWorkspace
               </div>
             ))}
           </div>
+          {isAbhi ? (
+            <div className="mt-5 border-t border-white/10 pt-4">
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+                Currently on leave
+              </p>
+              <AttentionList items={onLeave} empty="Nobody is currently on leave." />
+            </div>
+          ) : null}
         </HrSection>
       </div>
 
@@ -202,15 +210,19 @@ export default function HrDashboardWorkspace({ employees }: HrDashboardWorkspace
             empty="Date of birth is not captured on employee records yet. Add DOB to enable birthday reminders."
           />
         </HrSection>
-        <HrSection title="Work Anniversaries" subtitle="Next 45 days.">
-          <AttentionList
-            items={anniversaries}
-            empty="No work anniversaries in the next 45 days."
-          />
-        </HrSection>
-        <HrSection title="Currently On Leave" subtitle="Approved absences today.">
-          <AttentionList items={onLeave} empty="Nobody is currently on leave." />
-        </HrSection>
+        {!isAbhi ? (
+          <HrSection title="Work Anniversaries" subtitle="Next 45 days.">
+            <AttentionList
+              items={anniversaries}
+              empty="No work anniversaries in the next 45 days."
+            />
+          </HrSection>
+        ) : null}
+        {!isAbhi ? (
+          <HrSection title="Currently On Leave" subtitle="Approved absences today.">
+            <AttentionList items={onLeave} empty="Nobody is currently on leave." />
+          </HrSection>
+        ) : null}
         <HrSection title="Probation Reviews Due" subtitle="Employees in probation or nearing review.">
           <AttentionList items={probation} empty="No probation reviews due." />
         </HrSection>

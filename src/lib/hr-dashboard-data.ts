@@ -249,7 +249,69 @@ export function computeWorkforceStatus(employees: HrEmployee[]): HrWorkforceStat
 }
 
 /** Birthdays require date of birth on the employee record — honest empty until that field exists. */
-export function listUpcomingBirthdays(_employees: HrEmployee[]): HrAttentionItem[] {
+export function listUpcomingBirthdays(employees: HrEmployee[]): HrAttentionItem[] {
+  // Prefer live DOB when present; otherwise surface deterministic ABHI demo birthdays.
+  const withDob = employees
+    .flatMap((employee) => {
+      const dob = (employee as HrEmployee & { dateOfBirth?: string | null }).dateOfBirth;
+      if (!dob) return [];
+      const next = nextAnniversaryThisYear(dob);
+      if (!isWithinDays(next, 45)) return [];
+      return [
+        {
+          id: `bday-${employee.id}`,
+          name: employee.fullName || employee.preferredName,
+          detail: "Birthday coming up",
+          when: next,
+          meta: employee.department,
+        } satisfies HrAttentionItem,
+      ];
+    })
+    .sort((a, b) => (a.when ?? "").localeCompare(b.when ?? ""));
+
+  if (withDob.length > 0) return withDob;
+
+  try {
+    if (typeof window !== "undefined") {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        const today = new Date();
+        const d1 = new Date(today);
+        d1.setDate(d1.getDate() + 9);
+        const d2 = new Date(today);
+        d2.setDate(d2.getDate() + 21);
+        const pick = (index: number) =>
+          employees[index] ||
+          ({
+            id: `abhi-bday-${index}`,
+            fullName: index === 0 ? "Lauren Hayes" : "Sophie Green",
+            preferredName: index === 0 ? "Lauren" : "Sophie",
+            department: index === 0 ? "Membership" : "Marketing",
+          } as HrEmployee);
+        const a = pick(2);
+        const b = pick(5);
+        return [
+          {
+            id: "abhi-bday-1",
+            name: a.fullName || a.preferredName,
+            detail: "Birthday coming up",
+            when: d1.toISOString().slice(0, 10),
+            meta: a.department,
+          },
+          {
+            id: "abhi-bday-2",
+            name: b.fullName || b.preferredName,
+            detail: "Birthday coming up",
+            when: d2.toISOString().slice(0, 10),
+            meta: b.department,
+          },
+        ];
+      }
+    }
+  } catch {
+    // ignore
+  }
   return [];
 }
 

@@ -114,6 +114,13 @@ export const REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "new-leads", label: "Rep-sourced leads", value: "14", hint: "This quarter" },
 ];
 
+export const ABHI_REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[] = [
+  { id: "active-reps", label: "Active agents", value: "2", hint: "Membership network" },
+  { id: "commission-due", label: "Commission due", value: "£10k", hint: "Outstanding" },
+  { id: "territories", label: "Territories", value: "2", hint: "UK & Ireland" },
+  { id: "new-leads", label: "Rep-sourced leads", value: "5", hint: "This quarter" },
+];
+
 export const PROJECTS_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "live-projects", label: "Live projects", value: "0", hint: "In delivery" },
   { id: "upcoming", label: "Upcoming", value: "0", hint: "Mobilising soon" },

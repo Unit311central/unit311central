@@ -33,8 +33,39 @@ export const REP_COMMISSIONS: RepCommissionRow[] = [
   { repId: "rep-3", client: "Oxford Heritage Survey", period: "Feb 2026", amountEur: 3100, status: "Paid" },
 ];
 
+/** ABHI membership agents — £5,000 outstanding each (£10k total). */
+export const ABHI_REP_COMMISSIONS: RepCommissionRow[] = [
+  {
+    repId: "rep-abhi-1",
+    client: "Oxbridge MedTech Ltd",
+    period: "Aug 2026",
+    amountEur: 5000,
+    status: "Outstanding",
+  },
+  {
+    repId: "rep-abhi-2",
+    client: "Cambridge Diagnostics Group",
+    period: "Aug 2026",
+    amountEur: 5000,
+    status: "Outstanding",
+  },
+];
+
+function activeRepCommissions(): RepCommissionRow[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) return ABHI_REP_COMMISSIONS;
+    } catch {
+      // Fall through.
+    }
+  }
+  return REP_COMMISSIONS;
+}
+
 export function commissionSummaryForRep(repId: string) {
-  const rows = REP_COMMISSIONS.filter((row) => row.repId === repId);
+  const rows = activeRepCommissions().filter((row) => row.repId === repId);
   const paid = rows.filter((r) => r.status === "Paid").reduce((s, r) => s + r.amountEur, 0);
   const outstanding = rows.filter((r) => r.status === "Outstanding").reduce((s, r) => s + r.amountEur, 0);
   const upcoming = rows.filter((r) => r.status === "Upcoming").reduce((s, r) => s + r.amountEur, 0);
@@ -42,7 +73,7 @@ export function commissionSummaryForRep(repId: string) {
 }
 
 export function commissionTrendForRep(repId: string) {
-  const rows = REP_COMMISSIONS.filter((row) => row.repId === repId);
+  const rows = activeRepCommissions().filter((row) => row.repId === repId);
   const byPeriod = new Map<string, { paid: number; outstanding: number; upcoming: number }>();
 
   for (const row of rows) {

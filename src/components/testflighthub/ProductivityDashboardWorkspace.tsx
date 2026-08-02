@@ -14,9 +14,12 @@ import {
   Sparkles,
   Ticket,
   Upload,
+  Users,
   Video,
+  Zap,
 } from "lucide-react";
 
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserDemoSurface, getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 import type { SupportTicket } from "@/lib/support-data";
 import { cn } from "@/lib/utils";
@@ -41,6 +44,50 @@ type ProductivitySnapshot = {
   };
   social: Array<{ network: string; text: string; time: string }>;
   approvals: Array<{ title: string; meta: string; due: string }>;
+};
+
+const ABHI_SNAPSHOT: ProductivitySnapshot = {
+  summary: {
+    attention: 3,
+    changed: 9,
+    nextUp: "Member onboarding review · 11:00",
+    headline:
+      "Membership morning: 3 items need attention, 2 discovery demos today, 1 partner commission pack awaiting sign-off, and WHX stand build is on the critical path.",
+  },
+  emails: [],
+  schedule: [
+    { time: "09:30", title: "Working Group — Digital Health", meta: "Teams · 45 min" },
+    { time: "11:00", title: "Member onboarding review", meta: "Boardroom · 30 min" },
+    { time: "14:00", title: "Discovery — OrthoTech UK", meta: "Video · 45 min" },
+    { time: "16:00", title: "US Accelerator briefing", meta: "Hybrid · 60 min" },
+  ],
+  messages: [
+    { channel: "#membership", text: "OrthoTech UK pack ready for Jane.", time: "18m" },
+    { channel: "#events", text: "WHX stand elevations approved.", time: "42m" },
+    { channel: "Paul B.", text: "Partner commission schedule updated.", time: "1h" },
+  ],
+  files: [],
+  support: {
+    open: 4,
+    waiting: 1,
+    resolvedToday: 3,
+    critical: 0,
+    items: [
+      { id: "TK-ABHI-88", title: "Member portal SSO hiccup — Midland Med", status: "Waiting" },
+      { id: "TK-ABHI-84", title: "Events microsite form validation", status: "Open" },
+      { id: "TK-ABHI-79", title: "CRM sync for discovery meetings", status: "Open" },
+    ],
+  },
+  social: [
+    { network: "LinkedIn", text: "ABHI US Accelerator post — 1.2k impressions.", time: "Today" },
+    { network: "X", text: "WHX countdown creative scheduled.", time: "Today" },
+    { network: "LinkedIn", text: "Member spotlight draft queued.", time: "Yesterday" },
+  ],
+  approvals: [
+    { title: "Partner commission — £5k (Agent A)", meta: "Finance · Membership", due: "Due today" },
+    { title: "Partner commission — £5k (Agent B)", meta: "Finance · Membership", due: "Due today" },
+    { title: "External speaker release — Digital Health WG", meta: "Comms", due: "Tomorrow" },
+  ],
 };
 
 /** Placeholder Internal snapshot — Demo uses Meridian Atlas fixtures. */
@@ -97,6 +144,9 @@ const INTERNAL_SNAPSHOT: ProductivitySnapshot = {
 };
 
 function resolveProductivitySnapshot(): ProductivitySnapshot {
+  if (typeof window !== "undefined" && isBrowserAbhiSurface()) {
+    return ABHI_SNAPSHOT;
+  }
   if (typeof window !== "undefined" && isBrowserDemoSurface()) {
     const fixtures = getDemoEnterpriseFixtures();
     return {
@@ -119,6 +169,15 @@ const QUICK_ACTIONS = [
   { label: "Upload File", icon: Upload },
   { label: "Start Video Call", icon: Video },
   { label: "Create Ticket", icon: Ticket },
+] as const;
+
+const ABHI_QUICK_ACTIONS = [
+  { label: "New Meeting", icon: CalendarDays, tone: "sky" },
+  { label: "Add Member", icon: Users, tone: "emerald" },
+  { label: "Upload File", icon: Upload, tone: "violet" },
+  { label: "Start Video", icon: Video, tone: "cyan" },
+  { label: "Create Ticket", icon: Ticket, tone: "amber" },
+  { label: "Compose Email", icon: Mail, tone: "rose" },
 ] as const;
 
 function cardClass() {
@@ -150,7 +209,246 @@ function WidgetHeader({
   );
 }
 
+const TONE_BTN: Record<string, string> = {
+  sky: "border-sky-400/40 bg-sky-500/15 text-sky-100 hover:bg-sky-500/25",
+  emerald: "border-emerald-400/40 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25",
+  violet: "border-violet-400/40 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25",
+  cyan: "border-cyan-400/40 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/25",
+  amber: "border-amber-400/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25",
+  rose: "border-rose-400/40 bg-rose-500/15 text-rose-100 hover:bg-rose-500/25",
+};
+
+function AbhiProductivityDashboard({
+  summary,
+  schedule,
+  messages,
+  support,
+  social,
+  approvals,
+}: {
+  summary: ProductivitySnapshot["summary"];
+  schedule: ProductivitySnapshot["schedule"];
+  messages: ProductivitySnapshot["messages"];
+  support: ProductivitySnapshot["support"];
+  social: ProductivitySnapshot["social"];
+  approvals: ProductivitySnapshot["approvals"];
+}) {
+  return (
+    <div className="mx-auto max-w-6xl space-y-4 pb-4">
+      <section className="flex flex-nowrap items-stretch gap-2 overflow-x-auto pb-0.5">
+        {ABHI_QUICK_ACTIONS.map((action) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={action.label}
+              type="button"
+              className={cn(
+                "inline-flex h-11 shrink-0 items-center gap-2 rounded-xl border px-4 text-[12px] font-semibold transition-colors",
+                TONE_BTN[action.tone],
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+              {action.label}
+            </button>
+          );
+        })}
+      </section>
+
+      <section className="relative overflow-hidden rounded-2xl border border-white/10 p-5 sm:p-6">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 10% 0%, rgba(56,189,248,0.22), transparent 55%), radial-gradient(ellipse 70% 50% at 90% 20%, rgba(52,211,153,0.16), transparent 50%), linear-gradient(160deg, #0b1628 0%, #121C2D 55%, #0e1a2e 100%)",
+          }}
+        />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 max-w-3xl">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-sky-300" strokeWidth={1.8} />
+              <p className="text-[11px] font-semibold tracking-[0.14em] text-sky-200/80 uppercase">
+                ABHI daily pulse
+              </p>
+            </div>
+            <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl">
+              Membership operations today
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/70">{summary.headline}</p>
+            <p className="mt-3 flex items-center gap-1.5 text-[12px] text-emerald-200/80">
+              <Clock3 className="h-3.5 w-3.5" strokeWidth={1.6} />
+              Next up: {summary.nextUp}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:min-w-[18rem]">
+            {[
+              {
+                label: "Needs attention",
+                value: summary.attention,
+                ring: "border-rose-400/35 bg-rose-500/15",
+                num: "text-rose-100",
+              },
+              {
+                label: "Changed today",
+                value: summary.changed,
+                ring: "border-sky-400/35 bg-sky-500/15",
+                num: "text-sky-100",
+              },
+              {
+                label: "Meetings left",
+                value: schedule.length,
+                ring: "border-emerald-400/35 bg-emerald-500/15",
+                num: "text-emerald-100",
+              },
+            ].map((kpi) => (
+              <div
+                key={kpi.label}
+                className={cn("rounded-xl border px-3 py-3 text-center backdrop-blur-sm", kpi.ring)}
+              >
+                <p className={cn("text-2xl font-semibold tabular-nums", kpi.num)}>{kpi.value}</p>
+                <p className="mt-0.5 text-[10px] leading-tight text-white/55">{kpi.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <section className={cn(cardClass(), "border-sky-500/25 bg-gradient-to-br from-sky-500/10 to-transparent")}>
+          <WidgetHeader icon={CalendarDays} title="Today's Calendar" meta={`${schedule.length} events`} />
+          <ul className="space-y-2">
+            {schedule.map((row, i) => (
+              <li
+                key={row.title}
+                className="flex gap-3 rounded-lg border border-white/[0.06] bg-black/20 px-2.5 py-2"
+              >
+                <span
+                  className={cn(
+                    "w-11 shrink-0 text-[12px] font-semibold tabular-nums",
+                    i === 0 ? "text-sky-300" : "text-white/45",
+                  )}
+                >
+                  {row.time}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] text-white/90">{row.title}</p>
+                  <p className="truncate text-[11px] text-white/40">{row.meta}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className={cn(cardClass(), "border-violet-500/25 bg-gradient-to-br from-violet-500/10 to-transparent")}>
+          <WidgetHeader icon={Video} title="Upcoming Meetings" meta="Next 24h" />
+          <ul className="space-y-2.5">
+            {schedule.filter((_, i) => i >= 1).map((row) => (
+              <li
+                key={`meet-${row.title}`}
+                className="rounded-lg border border-violet-400/20 bg-violet-500/10 px-3 py-2"
+              >
+                <p className="text-[13px] text-white/90">{row.title}</p>
+                <p className="mt-0.5 text-[11px] text-violet-100/60">
+                  {row.time} · {row.meta}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className={cn(cardClass(), "border-cyan-500/25 bg-gradient-to-br from-cyan-500/10 to-transparent")}>
+          <WidgetHeader icon={MessageSquare} title="Recent Messages" meta="3 new" />
+          <ul className="space-y-2.5">
+            {messages.map((row) => (
+              <li key={row.channel + row.text} className="min-w-0">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="truncate text-[13px] font-medium text-cyan-100/90">{row.channel}</p>
+                  <span className="shrink-0 text-[11px] text-white/35">{row.time}</span>
+                </div>
+                <p className="truncate text-[12px] text-white/45">{row.text}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className={cn(cardClass(), "border-amber-500/25 bg-gradient-to-br from-amber-500/10 to-transparent")}>
+          <WidgetHeader icon={LifeBuoy} title="Support Desk" />
+          <div className="mb-3 grid grid-cols-4 gap-1.5">
+            {[
+              { label: "Open", value: support.open, c: "text-sky-200" },
+              { label: "Waiting", value: support.waiting, c: "text-amber-200" },
+              { label: "Resolved", value: support.resolvedToday, c: "text-emerald-200" },
+              { label: "Critical", value: support.critical, c: "text-rose-200" },
+            ].map((kpi) => (
+              <div key={kpi.label} className="rounded-md bg-black/25 px-1.5 py-1.5 text-center">
+                <p className={cn("text-sm font-semibold tabular-nums", kpi.c)}>{kpi.value}</p>
+                <p className="text-[9px] text-white/40">{kpi.label}</p>
+              </div>
+            ))}
+          </div>
+          <ul className="space-y-2">
+            {support.items.map((row) => (
+              <li key={row.id} className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-[12px] text-white/85">{row.title}</p>
+                  <p className="text-[11px] text-white/35">{row.id}</p>
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+                    row.status === "Critical"
+                      ? "bg-rose-500/15 text-rose-200"
+                      : row.status === "Waiting"
+                        ? "bg-amber-500/15 text-amber-200"
+                        : "bg-white/10 text-white/60",
+                  )}
+                >
+                  {row.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className={cn(cardClass(), "border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 to-transparent")}>
+          <WidgetHeader icon={Share2} title="Social Pulse" />
+          <ul className="space-y-2.5">
+            {social.map((row) => (
+              <li key={row.network + row.text} className="min-w-0">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-[13px] font-medium text-emerald-100/90">{row.network}</p>
+                  <span className="shrink-0 text-[11px] text-white/35">{row.time}</span>
+                </div>
+                <p className="truncate text-[12px] text-white/45">{row.text}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className={cn(cardClass(), "border-rose-500/25 bg-gradient-to-br from-rose-500/10 to-transparent")}>
+          <WidgetHeader icon={CheckCircle2} title="Pending Approvals" meta={`${approvals.length} open`} />
+          <ul className="space-y-2.5">
+            {approvals.map((row) => (
+              <li
+                key={row.title}
+                className="min-w-0 rounded-lg border border-rose-400/20 bg-rose-500/10 px-3 py-2"
+              >
+                <p className="truncate text-[13px] text-white/90">{row.title}</p>
+                <div className="mt-0.5 flex items-center justify-between gap-2">
+                  <p className="truncate text-[11px] text-white/40">{row.meta}</p>
+                  <span className="shrink-0 text-[11px] text-amber-200/90">{row.due}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 export default function ProductivityDashboardWorkspace() {
+  const isAbhi = isBrowserAbhiSurface();
   const {
     summary: SUMMARY,
     emails: EMAILS,
@@ -165,6 +463,7 @@ export default function ProductivityDashboardWorkspace() {
   const [SUPPORT, setSupport] = useState(SUPPORT_FIXTURE);
 
   useEffect(() => {
+    if (isAbhi) return;
     let cancelled = false;
     void fetch("/api/support/tickets?includeArchived=false", { cache: "no-store" })
       .then(async (response) => {
@@ -203,11 +502,23 @@ export default function ProductivityDashboardWorkspace() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAbhi]);
+
+  if (isAbhi) {
+    return (
+      <AbhiProductivityDashboard
+        summary={SUMMARY}
+        schedule={TODAY_SCHEDULE}
+        messages={MESSAGES}
+        support={SUPPORT}
+        social={SOCIAL}
+        approvals={APPROVALS}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 pb-4">
-      {/* Top summary — what is happening today */}
       <section
         className={cn(cardClass(), "relative overflow-hidden p-5 sm:p-6")}
         style={{
@@ -255,7 +566,6 @@ export default function ProductivityDashboardWorkspace() {
         </div>
       </section>
 
-      {/* Widget grid */}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <section className={cardClass()}>
           <WidgetHeader icon={Mail} title="Unread Email" meta="12 unread" />

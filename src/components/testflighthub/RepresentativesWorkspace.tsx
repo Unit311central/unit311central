@@ -19,7 +19,9 @@ import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import PartnerJobsPanel from "@/components/testflighthub/PartnerJobsPanel";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import {
+  ABHI_REPRESENTATIVES_DASHBOARD_TILES,
   DEFAULT_REPRESENTATIVES_TILE_LAYOUT,
   REPRESENTATIVES_DASHBOARD_TILES,
 } from "@/lib/view-dashboard-tile-catalogs";
@@ -54,10 +56,10 @@ function inputClassName() {
   return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50";
 }
 
-function formatEur(amount: number) {
+function formatCommissionAmount(amount: number, currency: "GBP" | "EUR") {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "EUR",
+    currency,
     maximumFractionDigits: 0,
   }).format(amount);
 }
@@ -69,6 +71,9 @@ export default function RepresentativesWorkspace({
   onRepresentativesChange,
 }: RepresentativesWorkspaceProps) {
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
+  const isAbhi = isBrowserAbhiSurface();
+  const commissionCurrency: "GBP" | "EUR" = isAbhi ? "GBP" : "EUR";
+  const dashboardTiles = isAbhi ? ABHI_REPRESENTATIVES_DASHBOARD_TILES : REPRESENTATIVES_DASHBOARD_TILES;
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [customTerritories, setCustomTerritories] = useState<Record<string, string[]>>({});
   const [customTerritoryInput, setCustomTerritoryInput] = useState("");
@@ -272,7 +277,7 @@ export default function RepresentativesWorkspace({
     <div className="space-y-6">
       <DashboardTopTilesBar
         storageKey="unit311-representatives-dashboard-tiles"
-        catalog={REPRESENTATIVES_DASHBOARD_TILES}
+        catalog={dashboardTiles}
         defaultLayout={DEFAULT_REPRESENTATIVES_TILE_LAYOUT}
         title="Representative key details"
         showCustomizeHint={false}
@@ -573,7 +578,7 @@ export default function RepresentativesWorkspace({
                       Paid last month
                     </p>
                     <p className="mt-1 text-xl font-semibold text-white">
-                      {formatEur(commissionSummary.paid)}
+                      {formatCommissionAmount(commissionSummary.paid, commissionCurrency)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-3">
@@ -581,7 +586,7 @@ export default function RepresentativesWorkspace({
                       Outstanding
                     </p>
                     <p className="mt-1 text-xl font-semibold text-white">
-                      {formatEur(commissionSummary.outstanding)}
+                      {formatCommissionAmount(commissionSummary.outstanding, commissionCurrency)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-sky-400/25 bg-sky-500/10 px-4 py-3">
@@ -589,7 +594,7 @@ export default function RepresentativesWorkspace({
                       Upcoming
                     </p>
                     <p className="mt-1 text-xl font-semibold text-white">
-                      {formatEur(commissionSummary.upcoming)}
+                      {formatCommissionAmount(commissionSummary.upcoming, commissionCurrency)}
                     </p>
                   </div>
                 </div>
@@ -612,7 +617,9 @@ export default function RepresentativesWorkspace({
                           <tr key={`${row.client}-${row.period}`} className="text-white/75">
                             <td className="px-4 py-2.5 font-medium text-white">{row.client}</td>
                             <td className="px-4 py-2.5">{row.period}</td>
-                            <td className="px-4 py-2.5">{formatEur(row.amountEur)}</td>
+                            <td className="px-4 py-2.5">
+                              {formatCommissionAmount(row.amountEur, commissionCurrency)}
+                            </td>
                             <td className="px-4 py-2.5">
                               <span
                                 className={cn(
@@ -669,7 +676,9 @@ export default function RepresentativesWorkspace({
                             borderRadius: 12,
                             color: "#f8fafc",
                           }}
-                          formatter={(value) => formatEur(Number(value))}
+                          formatter={(value) =>
+                            formatCommissionAmount(Number(value), commissionCurrency)
+                          }
                         />
                         <Legend wrapperStyle={{ color: "rgba(255,255,255,0.65)", fontSize: 12 }} />
                         <Bar dataKey="paid" name="Paid" fill="#34d399" radius={[4, 4, 0, 0]} />

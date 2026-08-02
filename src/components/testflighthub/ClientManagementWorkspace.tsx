@@ -32,6 +32,7 @@ import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadin
 import ResponsiveMasterDetail, {
   useMobileDetailPanel,
 } from "@/components/ui/ResponsiveMasterDetail";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { ExternalLink, FolderOpen, FolderPlus, Link2, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 
@@ -109,6 +110,7 @@ export default function ClientManagementWorkspace({
   const deepLinkedClientRef = useRef<string | null>(null);
   const isCorpCentre =
     typeof window !== "undefined" ? isBrowserCorpCentreSurface() : false;
+  const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
   const selectedClient = useMemo(
@@ -745,18 +747,24 @@ export default function ClientManagementWorkspace({
                     {selectedClient.filesFolderId ? (
                       <>
                         <Link
-                          href={`${basePath}?view=files-client`}
+                          href={
+                            isAbhi
+                              ? `${basePath}?view=files-client&folderId=${encodeURIComponent(selectedClient.filesFolderId)}`
+                              : `${basePath}?view=files-client`
+                          }
                           className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
                         >
                           <FolderOpen className="h-3.5 w-3.5" />
-                          Open client files
+                          {isAbhi ? "Member Folder" : "Open client files"}
                         </Link>
-                        <Link
-                          href={`${basePath}?view=files-internal&folderId=${encodeURIComponent(selectedClient.filesFolderId)}`}
-                          className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white/70 transition-colors hover:bg-white/[0.08]"
-                        >
-                          Open in internal files
-                        </Link>
+                        {!isAbhi ? (
+                          <Link
+                            href={`${basePath}?view=files-internal&folderId=${encodeURIComponent(selectedClient.filesFolderId)}`}
+                            className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white/70 transition-colors hover:bg-white/[0.08]"
+                          >
+                            Open in internal files
+                          </Link>
+                        ) : null}
                       </>
                     ) : (
                       <button
@@ -766,10 +774,10 @@ export default function ClientManagementWorkspace({
                         className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25 disabled:opacity-60"
                       >
                         <FolderPlus className="h-3.5 w-3.5" />
-                        Ensure files folder
+                        {isAbhi ? "Member Folder" : "Ensure files folder"}
                       </button>
                     )}
-                    {selectedClient.platformUrl && (
+                    {selectedClient.platformUrl && !isAbhi ? (
                       <Link
                         href={selectedClient.platformUrl}
                         className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
@@ -777,7 +785,7 @@ export default function ClientManagementWorkspace({
                         <ExternalLink className="h-3.5 w-3.5" />
                         Open Intelligence Platform
                       </Link>
-                    )}
+                    ) : null}
                     {selectedClient.supportLoungeUrl ? (
                       <div className="w-full rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-2 sm:col-span-full">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200/80">

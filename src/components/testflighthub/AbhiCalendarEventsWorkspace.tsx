@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, MapPin, Pencil, Plus, Trash2, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/lib/abhi-calendar-events-data";
 import {
   addAbhiCalendarEvent,
+  ensureAbhiCalendarEventsSeeded,
   formatAbhiCalendarDate,
   getAbhiCalendarEvents,
   removeAbhiCalendarEvent,
@@ -16,6 +17,10 @@ import {
   updateAbhiCalendarEvent,
 } from "@/lib/abhi-calendar-events-store";
 import { cn } from "@/lib/utils";
+import AbhiEventsMonthCalendar, {
+  formatAbhiEventDateRange,
+  type AbhiCalendarMonthItem,
+} from "./AbhiEventsMonthCalendar";
 import {
   TqmsEmpty,
   TqmsKpiTile,
@@ -93,14 +98,60 @@ function categoryPillClass(category: string) {
   }
 }
 
+function categoryMarkerClass(category: string): string {
+  switch (category) {
+    case "Exhibition":
+      return "bg-violet-400";
+    case "Trade Mission":
+      return "bg-sky-400";
+    case "External Event":
+      return "bg-amber-400";
+    case "Member Group Meeting":
+      return "bg-emerald-400";
+    case "ABHI Event":
+    default:
+      return "bg-rose-400";
+  }
+}
+
+function eventLocation(event: AbhiCalendarEvent): string {
+  if (event.category === "Member Group Meeting") return "Virtual · Members only";
+  if (event.category === "Trade Mission") return "Trade mission";
+  if (event.category === "Exhibition") return "Exhibition";
+  if (event.contactEmail) return event.contactEmail;
+  return event.category;
+}
+
+function eventOwner(event: AbhiCalendarEvent): string {
+  if (event.contactEmail) {
+    const local = event.contactEmail.split("@")[0]?.replace(/\./g, " ");
+    if (local) return local.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  return "ABHI Events team";
+}
+
+function eventToCalendarItem(event: AbhiCalendarEvent): AbhiCalendarMonthItem {
+  return {
+    id: event.id,
+    title: event.title,
+    startDate: event.dateIso,
+    location: eventLocation(event),
+    colorClass: categoryMarkerClass(event.category),
+  };
+}
+
 export default function AbhiCalendarEventsWorkspace() {
   const [events, setEvents] = useState<AbhiCalendarEvent[]>(() => getAbhiCalendarEvents());
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  useEffect(() => subscribeAbhiCalendarEvents(() => setEvents(getAbhiCalendarEvents())), []);
+  useEffect(() => {
+    ensureAbhiCalendarEventsSeeded();
+    return subscribeAbhiCalendarEvents(() => setEvents(getAbhiCalendarEvents()));
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -118,6 +169,16 @@ export default function AbhiCalendarEventsWorkspace() {
       .sort((a, b) => (a.dateIso || a.dateLabel).localeCompare(b.dateIso || b.dateLabel));
   }, [events, filterCategory, query]);
 
+  const calendarItems = useMemo(
+    () => filtered.map((event) => eventToCalendarItem(event)),
+    [filtered],
+  );
+
+  const selectedEvent = useMemo(
+    () => filtered.find((event) => event.id === selectedId) ?? null,
+    [filtered, selectedId],
+  );
+
   const categories = useMemo(() => {
     const fromData = new Set<string>([...ABHI_CALENDAR_EVENT_CATEGORIES, ...events.map((e) => e.category)]);
     return [...fromData].sort((a, b) => a.localeCompare(b));
@@ -127,6 +188,8 @@ export default function AbhiCalendarEventsWorkspace() {
     const today = new Date().toISOString().slice(0, 10);
     return events.filter((event) => (event.dateIso || "9999") >= today).length;
   }, [events]);
+
+  const focusDate = selectedEvent?.dateIso ?? filtered[0]?.dateIso;
 
   function openCreate() {
     setForm(emptyForm());
@@ -158,8 +221,10 @@ export default function AbhiCalendarEventsWorkspace() {
     };
     if (form.id) {
       updateAbhiCalendarEvent(form.id, payload);
+      setSelectedId(form.id);
     } else {
-      addAbhiCalendarEvent(payload);
+      const created = addAbhiCalendarEvent(payload);
+      setSelectedId(created.id);
     }
     setShowForm(false);
   }
@@ -167,6 +232,7 @@ export default function AbhiCalendarEventsWorkspace() {
   function handleDelete(id: string, title: string) {
     if (typeof window !== "undefined" && !window.confirm(`Remove “${title}”?`)) return;
     removeAbhiCalendarEvent(id);
+    if (selectedId === id) setSelectedId(null);
   }
 
   return (
@@ -175,11 +241,7 @@ export default function AbhiCalendarEventsWorkspace() {
         <TqmsKpiTile label="Total events" value={events.length} />
         <TqmsKpiTile label="Upcoming" value={upcomingCount} />
         <TqmsKpiTile label="Categories" value={categories.length} />
-        <TqmsKpiTile
-          label="Source"
-          value="ABHI.org.uk"
-          hint="Loaded from spreadsheet.xlsx"
-        />
+        <TqmsKpiTile label="Source" value="ABHI.org.uk" hint="Loaded from spreadsheet.xlsx" />
       </div>
 
       <TqmsSection
@@ -222,90 +284,150 @@ export default function AbhiCalendarEventsWorkspace() {
         {filtered.length === 0 ? (
           <TqmsEmpty message="No ABHI events match this filter." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.08] text-[10px] font-medium uppercase tracking-[0.12em] text-white/35">
-                  <th className="pb-2 pr-3 font-medium">Date</th>
-                  <th className="pb-2 pr-3 font-medium">Title</th>
-                  <th className="pb-2 pr-3 font-medium">Category</th>
-                  <th className="pb-2 pr-3 font-medium">Contact</th>
-                  <th className="pb-2 pr-3 font-medium">URL</th>
-                  <th className="pb-2 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((event) => (
-                  <tr key={event.id} className="border-b border-white/[0.05] last:border-0">
-                    <td className="py-3 pr-3 align-top tabular-nums text-white/75">
-                      {event.dateLabel || formatAbhiCalendarDate(event.dateIso)}
-                      <p className="mt-0.5 text-[11px] text-white/35">{event.year}</p>
-                    </td>
-                    <td className="py-3 pr-3 align-top">
-                      <p className="font-medium text-white">{event.title}</p>
-                      {event.description ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-white/45">{event.description}</p>
-                      ) : null}
-                    </td>
-                    <td className="py-3 pr-3 align-top">
-                      <TqmsStatusPill className={categoryPillClass(event.category)}>
-                        {event.category}
-                      </TqmsStatusPill>
-                    </td>
-                    <td className="py-3 pr-3 align-top text-xs text-white/65">
-                      {event.contactEmail ? (
-                        <a
-                          href={`mailto:${event.contactEmail}`}
-                          className="text-sky-300/90 hover:text-sky-200"
-                        >
-                          {event.contactEmail}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="py-3 pr-3 align-top">
-                      {event.url ? (
-                        <a
-                          href={event.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-sky-300/90 hover:text-sky-200"
-                        >
-                          Open
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <span className="text-xs text-white/35">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 align-top">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(event)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/55 transition-colors hover:border-sky-400/40 hover:text-sky-200"
-                          aria-label={`Edit ${event.title}`}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(event.id, event.title)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/40 transition-colors hover:border-rose-400/40 hover:text-rose-300"
-                          aria-label={`Remove ${event.title}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+            <div className="flex min-h-0 flex-col">
+              <p className={tqmsLabelClass()}>Events</p>
+              <ul className="mt-2 max-h-[36rem] space-y-2 overflow-y-auto pr-1">
+                {filtered.map((event) => {
+                  const selected = event.id === selectedId;
+                  return (
+                    <li key={event.id}>
+                      <div
+                        className={cn(
+                          "rounded-xl border p-3 transition-colors",
+                          selected
+                            ? "border-sky-400/40 bg-sky-500/10"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedId(event.id)}
+                            className="min-w-0 flex-1 text-left"
+                          >
+                            <p className="text-sm font-semibold text-white hover:text-sky-200">{event.title}</p>
+                            <p className="mt-1 text-xs tabular-nums text-white/50">
+                              {event.dateLabel || formatAbhiCalendarDate(event.dateIso)}
+                            </p>
+                            <p className="mt-1 inline-flex items-center gap-1 text-xs text-white/50">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              {eventLocation(event)}
+                            </p>
+                            <p className="mt-1 inline-flex items-center gap-1 text-xs text-white/55">
+                              <UserRound className="h-3 w-3 shrink-0" />
+                              {eventOwner(event)}
+                            </p>
+                            <TqmsStatusPill className={cn("mt-2", categoryPillClass(event.category))}>
+                              {event.category}
+                            </TqmsStatusPill>
+                          </button>
+                          <div className="flex shrink-0 gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(event)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/55 transition-colors hover:border-sky-400/40 hover:text-sky-200"
+                              aria-label={`Edit ${event.title}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(event.id, event.title)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/40 transition-colors hover:border-rose-400/40 hover:text-rose-300"
+                              aria-label={`Remove ${event.title}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="min-w-0">
+              <p className={tqmsLabelClass()}>Calendar</p>
+              <div className="mt-2">
+                <AbhiEventsMonthCalendar
+                  items={calendarItems}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  focusDate={focusDate}
+                />
+              </div>
+            </div>
           </div>
         )}
       </TqmsSection>
+
+      {selectedEvent && !showForm ? (
+        <TqmsSlideOver
+          title={selectedEvent.title}
+          subtitle={selectedEvent.category}
+          onClose={() => setSelectedId(null)}
+          footer={
+            <div className="flex flex-wrap justify-end gap-2">
+              <button type="button" onClick={() => setSelectedId(null)} className={tqmsSecondaryButtonClass()}>
+                Close
+              </button>
+              <button type="button" onClick={() => openEdit(selectedEvent)} className={tqmsPrimaryButtonClass()}>
+                <Pencil className="h-3.5 w-3.5" />
+                Edit event
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <dl className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <dt className={tqmsLabelClass()}>Date</dt>
+                <dd className="mt-1.5 text-sm text-white">
+                  {formatAbhiEventDateRange(selectedEvent.dateIso)}
+                </dd>
+              </div>
+              <div>
+                <dt className={tqmsLabelClass()}>Location</dt>
+                <dd className="mt-1.5 text-sm text-white">{eventLocation(selectedEvent)}</dd>
+              </div>
+              <div>
+                <dt className={tqmsLabelClass()}>Contact</dt>
+                <dd className="mt-1.5 text-sm text-white">
+                  {selectedEvent.contactEmail ? (
+                    <a
+                      href={`mailto:${selectedEvent.contactEmail}`}
+                      className="text-sky-300 hover:text-sky-200"
+                    >
+                      {selectedEvent.contactEmail}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </dd>
+              </div>
+            </dl>
+            {selectedEvent.description ? (
+              <div>
+                <p className={tqmsLabelClass()}>Description</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-white/75">{selectedEvent.description}</p>
+              </div>
+            ) : null}
+            {selectedEvent.url ? (
+              <a
+                href={selectedEvent.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-sky-300 hover:text-sky-200"
+              >
+                View on ABHI.org.uk
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            ) : null}
+          </div>
+        </TqmsSlideOver>
+      ) : null}
 
       {showForm ? (
         <TqmsSlideOver
@@ -388,11 +510,7 @@ export default function AbhiCalendarEventsWorkspace() {
               />
             </label>
             <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className={tqmsSecondaryButtonClass()}
-              >
+              <button type="button" onClick={() => setShowForm(false)} className={tqmsSecondaryButtonClass()}>
                 Cancel
               </button>
               <button type="submit" className={tqmsPrimaryButtonClass()}>

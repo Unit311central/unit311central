@@ -437,6 +437,33 @@ export default function ProjectsWorkspace({
   if (isPortfolioLayout) {
     return (
       <div className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-white">
+            {scope === "internal" ? "Internal Projects" : "External Projects"}
+          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            {selectedIds.length > 0 ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void handleDeleteSelectedProjects()}
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/15 px-4 py-2 text-sm font-semibold text-rose-100 transition-colors hover:bg-rose-500/25 disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete ({selectedIds.length})
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setShowForm((open) => !open)}
+              className="inline-flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-4 py-2 text-sm font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
+            >
+              {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {showForm ? "Cancel" : "New Project"}
+            </button>
+          </div>
+        </div>
+
         <DashboardTopTilesBar
           storageKey={`unit311-projects-portfolio-tiles-${scope}`}
           catalog={portfolioTiles}
@@ -445,28 +472,6 @@ export default function ProjectsWorkspace({
           title="Portfolio summary"
           showCustomizeHint={false}
         />
-
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          {selectedIds.length > 0 ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void handleDeleteSelectedProjects()}
-              className="inline-flex items-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/15 px-4 py-2 text-sm font-semibold text-rose-100 transition-colors hover:bg-rose-500/25 disabled:opacity-60"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Delete ({selectedIds.length})
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setShowForm((open) => !open)}
-            className="inline-flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-4 py-2 text-sm font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
-          >
-            {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {showForm ? "Cancel" : "New project"}
-          </button>
-        </div>
 
         {error ? (
           <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">

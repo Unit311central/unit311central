@@ -27,6 +27,13 @@ export function getAbhiCalendarEvents(): AbhiCalendarEvent[] {
   return events;
 }
 
+/** Re-seed from spreadsheet data when the calendar store is empty. */
+export function ensureAbhiCalendarEventsSeeded() {
+  if (events.length > 0) return;
+  events = ABHI_CALENDAR_EVENTS_SEED.map((event) => ({ ...event }));
+  notify();
+}
+
 export function subscribeAbhiCalendarEvents(listener: Listener): () => void {
   listeners.add(listener);
   return () => {

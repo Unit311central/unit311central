@@ -1,7 +1,7 @@
 "use client";
 
-import { CalendarCheck2, CalendarPlus, ExternalLink, Pencil, Plus, Trash2, UserRound } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CalendarCheck2, CalendarPlus, ExternalLink, MapPin, Pencil, Plus, Trash2, UserRound } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ABHI_EVENTS_CALENDAR_EMAIL } from "@/lib/abhi-surface";
 import {
@@ -9,11 +9,16 @@ import {
   addMember,
   computeEventsDashboardKpis,
   deleteEvent,
+  ensureAbhiMarketingEventsSeeded,
   toggleEventCalendarSync,
   upsertEvent,
   type AbhiEvent,
 } from "@/lib/abhi-marketing-store";
 import { cn } from "@/lib/utils";
+import AbhiEventsMonthCalendar, {
+  formatAbhiEventDateRange,
+  type AbhiCalendarMonthItem,
+} from "./AbhiEventsMonthCalendar";
 import { useAbhiMarketingStore } from "./useAbhiMarketingStore";
 import {
   TqmsEmpty,
@@ -41,6 +46,17 @@ type EventFormState = {
   memberIds: string[];
   sendToAll: boolean;
 };
+
+const EXTERNAL_EVENT_COLORS = [
+  "bg-sky-400",
+  "bg-violet-400",
+  "bg-amber-400",
+  "bg-emerald-400",
+  "bg-rose-400",
+  "bg-cyan-400",
+  "bg-orange-400",
+  "bg-indigo-400",
+] as const;
 
 function emptyForm(): EventFormState {
   return {
@@ -76,17 +92,25 @@ function formFromEvent(event: AbhiEvent): EventFormState {
   };
 }
 
-function formatDateRange(startDate: string, endDate: string) {
-  const fmt = (value: string) =>
-    new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(
-      new Date(`${value}T12:00:00`),
-    );
-  return startDate === endDate ? fmt(startDate) : `${fmt(startDate)} – ${fmt(endDate)}`;
-}
-
 function ownerLabel(ownerId: string, ownerName: string) {
   if (ownerName.trim()) return ownerName;
   return ABHI_EVENT_OWNERS.find((row) => row.id === ownerId)?.name ?? "Unassigned";
+}
+
+function locationLabel(event: AbhiEvent) {
+  const parts = [event.city, event.country].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : "Location TBC";
+}
+
+function eventToCalendarItem(event: AbhiEvent, index: number): AbhiCalendarMonthItem {
+  return {
+    id: event.id,
+    title: event.name,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    location: locationLabel(event),
+    colorClass: EXTERNAL_EVENT_COLORS[index % EXTERNAL_EVENT_COLORS.length],
+  };
 }
 
 export default function AbhiEventsWorkspace() {
@@ -99,9 +123,18 @@ export default function AbhiEventsWorkspace() {
   const [newCompanyEmail, setNewCompanyEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
 
+  useEffect(() => {
+    ensureAbhiMarketingEventsSeeded();
+  }, []);
+
   const sortedEvents = useMemo(
     () => [...store.events].sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate)),
     [store.events],
+  );
+
+  const calendarItems = useMemo(
+    () => sortedEvents.map((event, index) => eventToCalendarItem(event, index)),
+    [sortedEvents],
   );
 
   const selectedEvent = useMemo(
@@ -114,6 +147,8 @@ export default function AbhiEventsWorkspace() {
     const byId = new Map(store.members.map((member) => [member.id, member]));
     return selectedEvent.memberIds.map((id) => byId.get(id)).filter(Boolean);
   }, [selectedEvent, store.members]);
+
+  const focusDate = selectedEvent?.startDate ?? sortedEvents[0]?.startDate;
 
   function openCreate() {
     setSelectedId(null);
@@ -236,67 +271,93 @@ export default function AbhiEventsWorkspace() {
         {sortedEvents.length === 0 ? (
           <TqmsEmpty message="No events scheduled yet." />
         ) : (
-          <ul className="space-y-3">
-            {sortedEvents.map((event) => {
-              const selected = event.id === selectedId;
-              return (
-                <li key={event.id}>
-                  <div
-                    className={cn(
-                      "rounded-xl border p-3.5 transition-colors",
-                      selected
-                        ? "border-sky-400/40 bg-sky-500/10"
-                        : "border-white/10 bg-white/[0.03] hover:border-white/20",
-                    )}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => openDetail(event)}
-                        className="min-w-0 flex-1 text-left"
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+            <div className="flex min-h-0 flex-col">
+              <p className={tqmsLabelClass()}>Events</p>
+              <ul className="mt-2 max-h-[36rem] space-y-2 overflow-y-auto pr-1">
+                {sortedEvents.map((event) => {
+                  const selected = event.id === selectedId;
+                  return (
+                    <li key={event.id}>
+                      <div
+                        className={cn(
+                          "rounded-xl border p-3 transition-colors",
+                          selected
+                            ? "border-sky-400/40 bg-sky-500/10"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20",
+                        )}
                       >
-                        <p className="text-sm font-semibold text-white hover:text-sky-200">{event.name}</p>
-                        <p className="mt-1 text-xs text-white/50">
-                          {formatDateRange(event.startDate, event.endDate)} · {event.city}, {event.country}
-                        </p>
-                        <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-white/55">
-                          <UserRound className="h-3.5 w-3.5 shrink-0" />
-                          {ownerLabel(event.ownerId, event.ownerName)}
-                        </p>
-                      </button>
-                      <div className="flex shrink-0 flex-wrap items-center gap-2">
-                        <TqmsStatusPill
-                          className={
-                            event.calendarSynced
-                              ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-                              : "border-white/15 bg-white/[0.04] text-white/50"
-                          }
-                        >
-                          {event.memberIds.length} member{event.memberIds.length === 1 ? "" : "s"}
-                        </TqmsStatusPill>
-                        <button
-                          type="button"
-                          onClick={() => openEdit(event)}
-                          className={tqmsSecondaryButtonClass()}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(event)}
-                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-white/10 px-3 text-xs font-semibold text-white/50 transition-colors hover:border-rose-400/40 hover:text-rose-300"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Delete
-                        </button>
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openDetail(event)}
+                            className="min-w-0 flex-1 text-left"
+                          >
+                            <p className="text-sm font-semibold text-white hover:text-sky-200">{event.name}</p>
+                            <p className="mt-1 text-xs tabular-nums text-white/50">
+                              {formatAbhiEventDateRange(event.startDate, event.endDate)}
+                            </p>
+                            <p className="mt-1 inline-flex items-center gap-1 text-xs text-white/50">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              {locationLabel(event)}
+                            </p>
+                            <p className="mt-1 inline-flex items-center gap-1 text-xs text-white/55">
+                              <UserRound className="h-3 w-3 shrink-0" />
+                              {ownerLabel(event.ownerId, event.ownerName)}
+                            </p>
+                          </button>
+                          <div className="flex shrink-0 flex-col items-end gap-1.5">
+                            <TqmsStatusPill
+                              className={
+                                event.calendarSynced
+                                  ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                                  : "border-white/15 bg-white/[0.04] text-white/50"
+                              }
+                            >
+                              {event.memberIds.length} member{event.memberIds.length === 1 ? "" : "s"}
+                            </TqmsStatusPill>
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() => openEdit(event)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/55 transition-colors hover:border-sky-400/40 hover:text-sky-200"
+                                aria-label={`Edit ${event.name}`}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(event)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/40 transition-colors hover:border-rose-400/40 hover:text-rose-300"
+                                aria-label={`Delete ${event.name}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="min-w-0">
+              <p className={tqmsLabelClass()}>Calendar</p>
+              <div className="mt-2">
+                <AbhiEventsMonthCalendar
+                  items={calendarItems}
+                  selectedId={selectedId}
+                  onSelect={(id) => {
+                    const event = sortedEvents.find((row) => row.id === id);
+                    if (event) openDetail(event);
+                  }}
+                  focusDate={focusDate}
+                />
+              </div>
+            </div>
+          </div>
         )}
       </TqmsSection>
 
@@ -332,7 +393,7 @@ export default function AbhiEventsWorkspace() {
               <div>
                 <dt className={tqmsLabelClass()}>Dates</dt>
                 <dd className="mt-1.5 text-sm text-white">
-                  {formatDateRange(selectedEvent.startDate, selectedEvent.endDate)}
+                  {formatAbhiEventDateRange(selectedEvent.startDate, selectedEvent.endDate)}
                 </dd>
               </div>
               <div>
@@ -341,9 +402,7 @@ export default function AbhiEventsWorkspace() {
               </div>
               <div>
                 <dt className={tqmsLabelClass()}>Location</dt>
-                <dd className="mt-1.5 text-sm text-white">
-                  {selectedEvent.city}, {selectedEvent.country}
-                </dd>
+                <dd className="mt-1.5 text-sm text-white">{locationLabel(selectedEvent)}</dd>
               </div>
               <div>
                 <dt className={tqmsLabelClass()}>Members signed up</dt>

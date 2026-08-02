@@ -126,7 +126,9 @@ export default function ProjectDetailWorkspace({
   onProjectProgressChange,
 }: ProjectDetailWorkspaceProps) {
   const basePath = useInternalOperationsBasePath();
-  const hideTasksAndMilestones = isBrowserAbhiSurface();
+  // ABHI programmes use the same full project workspace as Internal.
+  const hideTasksAndMilestones = false;
+  const isAbhiProjectSurface = isBrowserAbhiSurface();
   const portfolio = useMemo(() => getPortfolioProject(project.id), [project.id]);
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -403,7 +405,7 @@ export default function ProjectDetailWorkspace({
             <FolderOpen className="h-3.5 w-3.5" />
             Project folder
           </Link>
-        ) : (
+        ) : isAbhiProjectSurface ? null : (
           <span className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs text-white/35">
             <FolderOpen className="h-3.5 w-3.5" />
             No linked folder

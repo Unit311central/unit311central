@@ -548,19 +548,30 @@ export function buildExecutiveHomeLiveNarrative(input: {
   const attention =
     (overdue > 0 ? 1 : 0) + (atRisk.length > 0 ? 1 : 0) + (onboarding.length > 0 ? 1 : 0);
 
-  const summaryParts = [
-    `${activeClients.length} active clients across the portfolio.`,
-    `${openProjects} live projects in delivery.`,
-    cash > 0
-      ? `Cash position ${formatCompactMoney(cash, currency)}.`
-      : "Cash position needs treasury attention.",
-    overdue > 0
-      ? `${overdueCount} invoices overdue (${formatCompactMoney(overdue, currency)}).`
-      : "Receivables are current.",
-    atRisk.length > 0
-      ? `${atRisk.length} delivery engagement${atRisk.length === 1 ? "" : "s"} behind plan.`
-      : "No live projects currently flagged at risk.",
-  ];
+  const summaryParts = abhiHome
+    ? [
+        `${activeClients.length} active members.`,
+        `${openProjects} live programmes in delivery.`,
+        overdue > 0
+          ? `${overdueCount} membership invoices overdue (${formatCompactMoney(overdue, currency)}).`
+          : "Membership receivables are current.",
+        atRisk.length > 0
+          ? `${atRisk.length} programme${atRisk.length === 1 ? "" : "s"} behind plan.`
+          : "No programmes currently flagged at risk.",
+      ]
+    : [
+        `${activeClients.length} active clients across the portfolio.`,
+        `${openProjects} live projects in delivery.`,
+        cash > 0
+          ? `Cash position ${formatCompactMoney(cash, currency)}.`
+          : "Cash position needs treasury attention.",
+        overdue > 0
+          ? `${overdueCount} invoices overdue (${formatCompactMoney(overdue, currency)}).`
+          : "Receivables are current.",
+        atRisk.length > 0
+          ? `${atRisk.length} delivery engagement${atRisk.length === 1 ? "" : "s"} behind plan.`
+          : "No live projects currently flagged at risk.",
+      ];
 
   const alerts: Array<{
     id: string;
@@ -590,10 +601,12 @@ export function buildExecutiveHomeLiveNarrative(input: {
   if (onboarding.length > 0) {
     alerts.push({
       id: "live-onboard",
-      title: `${onboarding.length} client${onboarding.length === 1 ? "" : "s"} in onboarding`,
-      detail: "Complete workspace provisioning and kickoff packs this week.",
+      title: `${onboarding.length} ${abhiHome ? "member" : "client"}${onboarding.length === 1 ? "" : "s"} in onboarding`,
+      detail: abhiHome
+        ? "Complete membership provisioning and welcome packs this week."
+        : "Complete workspace provisioning and kickoff packs this week.",
       severity: "info",
-      timeLabel: "Clients",
+      timeLabel: abhiHome ? "Members" : "Clients",
     });
   }
   // Cash is already on the KPI row — skip the redundant bank info chip on ABHI Home.
@@ -674,32 +687,44 @@ export function buildExecutiveHomeLiveNarrative(input: {
     queue.push({
       id: "q-onboard",
       title: `Complete onboarding — ${onboarding[0].companyName}`,
-      meta: "Clients · Workspace setup",
+      meta: abhiHome ? "Members · Membership setup" : "Clients · Workspace setup",
       status: "Action",
       dueLabel: "This week",
       priority: "medium",
     });
   }
-  queue.push({
-    id: "q-cash",
-    title: "Confirm treasury balances for board pack",
-    meta: `Bank · ${formatCompactMoney(cash, currency)}`,
-    status: "Review",
-    dueLabel: "This week",
-    priority: "medium",
-  });
+  if (!abhiHome) {
+    queue.push({
+      id: "q-cash",
+      title: "Confirm treasury balances for board pack",
+      meta: `Bank · ${formatCompactMoney(cash, currency)}`,
+      status: "Review",
+      dueLabel: "This week",
+      priority: "medium",
+    });
+  }
+
+  const needsAttentionCount = abhiHome ? alerts.length : Math.max(attention, queue.length);
+  const needsAttentionDetail =
+    alerts.length === 0
+      ? `Review ${companyName} operating dashboard before leadership sync.`
+      : alerts.map((a) => a.title).join(" · ");
 
   return {
     ai: {
       headline: greetingForNow(),
       summary: summaryParts.join(" "),
-      nextUp:
-        queue[0]?.title ??
-        `Review ${companyName} operating dashboard before leadership sync.`,
+      nextUp: needsAttentionDetail,
       metrics: [
-        { label: "Needs attention", value: String(Math.max(attention, queue.length)) },
-        { label: "Live projects", value: String(openProjects) },
-        { label: "Active clients", value: String(activeClients.length) },
+        { label: "Needs attention", value: String(needsAttentionCount) },
+        {
+          label: abhiHome ? "Live programmes" : "Live projects",
+          value: String(openProjects),
+        },
+        {
+          label: abhiHome ? "Active members" : "Active clients",
+          value: String(activeClients.length),
+        },
       ],
     },
     alerts: alerts.slice(0, 4),
