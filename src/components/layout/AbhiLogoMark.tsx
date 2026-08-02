@@ -1,33 +1,49 @@
 "use client";
 
-import { ABHI_LOGO_SRC, isAbhiSlug } from "@/lib/abhi-surface";
+import {
+  ABHI_LOGO_INTRINSIC_HEIGHT,
+  ABHI_LOGO_INTRINSIC_WIDTH,
+  ABHI_LOGO_SRC,
+  isAbhiSlug,
+} from "@/lib/abhi-surface";
 import { cn } from "@/lib/utils";
-
-/** Intrinsic pixel size of abhi.jpg */
-const LOGO_INTRINSIC_W = 152;
-const LOGO_INTRINSIC_H = 83;
 
 export { isAbhiSlug, ABHI_LOGO_SRC };
 
 type AbhiLogoMarkProps = {
   className?: string;
+  /** Display height in CSS pixels. Width is derived from the asset aspect ratio. */
   height?: number;
+  /** Optional max width clamp (keeps aspect ratio). */
+  maxWidth?: number;
+  priority?: boolean;
 };
 
 /**
- * ABHI logo for dark surfaces (login + sidebar).
- * White well keeps the magenta wordmark readable on navy UI.
+ * Canonical ABHI brand mark — transparent PNG, no card / well / padding.
+ * Use on login, sidebar, portals, and any dark or light application surface.
  */
 export default function AbhiLogoMark({
   className,
   height = 40,
+  maxWidth,
+  priority = false,
 }: AbhiLogoMarkProps) {
-  const width = Math.round((height * LOGO_INTRINSIC_W) / LOGO_INTRINSIC_H);
+  let width = Math.round(
+    (height * ABHI_LOGO_INTRINSIC_WIDTH) / ABHI_LOGO_INTRINSIC_HEIGHT,
+  );
+  let displayHeight = height;
+  if (maxWidth != null && width > maxWidth) {
+    width = maxWidth;
+    displayHeight = Math.round(
+      (width * ABHI_LOGO_INTRINSIC_HEIGHT) / ABHI_LOGO_INTRINSIC_WIDTH,
+    );
+  }
 
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center overflow-visible rounded-xl bg-white px-3 py-2 shadow-[0_1px_0_rgba(255,255,255,0.35)]",
+        "inline-flex shrink-0 items-center justify-center overflow-visible bg-transparent p-0",
         className,
       )}
     >
@@ -36,14 +52,15 @@ export default function AbhiLogoMark({
         src={ABHI_LOGO_SRC}
         alt="ABHI"
         width={width}
-        height={height}
+        height={displayHeight}
         decoding="async"
-        className="block object-contain object-center"
+        fetchPriority={priority ? "high" : "auto"}
+        className="block bg-transparent object-contain object-center"
         style={{
-          height,
+          height: displayHeight,
           width,
           minWidth: width,
-          maxWidth: "none",
+          maxWidth: "100%",
         }}
       />
     </span>

@@ -6,7 +6,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { isAbhiSlug } from "@/lib/abhi-surface";
+import { ABHI_LOGO_SRC, isAbhiSlug } from "@/lib/abhi-surface";
+import { resolveAbhiBoardPackMeetingDate } from "@/lib/abhi/board-pack-date";
 import {
   buildAbhiBoardPackData,
   type AbhiBoardPackData,
@@ -48,22 +49,19 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function parseMeetingDate(raw: string | undefined): string | undefined {
-  if (!raw) return undefined;
-  const trimmed = raw.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-  const parsed = Date.parse(trimmed);
-  if (Number.isNaN(parsed)) return undefined;
-  const d = new Date(parsed);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 async function loadAbhiLogoDataUrl(): Promise<string | null> {
   try {
-    const path = join(process.cwd(), "public", "images", "workspaces", "abhi.jpg");
-    const bytes = await readFile(path);
-    return `data:image/jpeg;base64,${bytes.toString("base64")}`;
+    // Same transparent asset as {@link AbhiLogoMark} / {@link ABHI_LOGO_SRC}.
+    const relative = ABHI_LOGO_SRC.replace(/^\//, "");
+    const primaryPath = join(process.cwd(), "public", relative);
+    try {
+      const pngBytes = await readFile(primaryPath);
+      return `data:image/png;base64,${pngBytes.toString("base64")}`;
+    } catch {
+      const jpgPath = join(process.cwd(), "public", "images", "workspaces", "abhi.jpg");
+      const bytes = await readFile(jpgPath);
+      return `data:image/jpeg;base64,${bytes.toString("base64")}`;
+    }
   } catch {
     return null;
   }
@@ -88,9 +86,33 @@ export async function generateBoardPackTool(
   }
 
   try {
-    const meetingDate = parseMeetingDate(
-      asString(args.meetingDate) || asString(args.date) || asString(args.when),
-    );
+    const dateResolution = resolveAbhiBoardPackMeetingDate({
+      explicitDate:
+        asString(args.meetingDate) || asString(args.date) || asString(args.when),
+    });
+
+    if (!dateResolution.ok) {
+      return toolOk("boardpack.generate", [], {
+        source: ["abhi:board-pack", "abhi:board-meetings"],
+        summary: {
+          executed: false,
+          needsMeetingDate: true,
+          message: dateResolution.message,
+          packName: "Board Pack - Meeting Date Not Set",
+        },
+        followUpActions: [
+          {
+            id: "open_board_meetings",
+            label: "Open Board Meetings",
+            kind: "navigate",
+            href: "/dashboard?view=board-meetings",
+          },
+        ],
+        status: "partial",
+      });
+    }
+
+    const meetingDate = dateResolution.meetingDate;
     const data: AbhiBoardPackData = buildAbhiBoardPackData(meetingDate);
     const logoDataUrl = await loadAbhiLogoDataUrl();
 
@@ -204,6 +226,9 @@ export async function generateBoardPackTool(
           pptxFilename,
           packName: data.packName,
           meetingDate: data.meetingDate,
+          dateSource: dateResolution.source,
+          meetingId: dateResolution.meetingId,
+          meetingTitle: dateResolution.meetingTitle,
           status: data.status,
           orgStatus: data.orgStatus,
           folderPath,
@@ -225,10 +250,11 @@ export async function generateBoardPackTool(
             href: pdfOpenUrl,
           },
           {
-            id: "edit_board_pack",
-            label: "Edit Board Pack",
-            kind: "navigate",
-            href: boardDeckHref,
+            id: "download_pdf",
+            label: "Download PDF",
+            kind: "download",
+            artifactId: pdfArtifact.id,
+            href: pdfDownloadUrl,
           },
           {
             id: "download_pptx",
@@ -238,11 +264,10 @@ export async function generateBoardPackTool(
             href: pptxDownloadUrl,
           },
           {
-            id: "download_pdf",
-            label: "Download PDF",
-            kind: "download",
-            artifactId: pdfArtifact.id,
-            href: pdfDownloadUrl,
+            id: "open_board_deck",
+            label: "Open Board Deck",
+            kind: "navigate",
+            href: boardDeckHref,
           },
         ],
       },

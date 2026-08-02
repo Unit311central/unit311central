@@ -281,7 +281,7 @@ export default function Unit311LoginPage({
           ) : isTalanton ? (
             <TalantonLogoMark height={56} className="rounded-2xl px-4 py-3" />
           ) : isAbhi ? (
-            <AbhiLogoMark height={56} className="rounded-2xl px-4 py-3" />
+            <AbhiLogoMark height={56} priority />
           ) : (
             <div
               className="relative w-full max-w-[min(100%,240px)] sm:max-w-[280px]"

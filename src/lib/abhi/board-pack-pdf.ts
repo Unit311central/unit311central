@@ -1,222 +1,140 @@
 import { jsPDF } from "jspdf";
 
 import {
-  abhiActionStatusColor,
-  abhiKpiTrendArrow,
+  ABHI_LOGO_INTRINSIC_HEIGHT,
+  ABHI_LOGO_INTRINSIC_WIDTH,
+} from "@/lib/abhi-surface";
+import {
   abhiRiskRatingBand,
   abhiRiskScore,
   abhiRiskTrendLabel,
   abhiSortedBoardActions,
+  formatAbhiBoardBudgetStatus,
+  formatAbhiBoardBudgetVarianceNarrative,
   formatAbhiBoardDate,
   formatAbhiBoardGbp,
+  formatAbhiBoardKpiValue,
+  formatAbhiBoardKpiVariance,
   type AbhiActionStatus,
   type AbhiBoardPackData,
   type AbhiBoardRisk,
+  type AbhiKpiIndicator,
 } from "@/lib/abhi/board-pack-model";
 
 const SLIDE_W = 297;
 const SLIDE_H = 167;
-const MARGIN = 14;
+const MARGIN = 12;
 const CONTENT_W = SLIDE_W - MARGIN * 2;
 
-const COLORS = {
-  navy: [11, 31, 58] as const,
-  accent: [27, 79, 138] as const,
-  red: [200, 16, 46] as const,
+const C = {
+  navy: [0, 43, 92] as const,
   white: [255, 255, 255] as const,
-  light: [232, 238, 247] as const,
-  muted: [148, 163, 184] as const,
-  amber: [245, 158, 11] as const,
-  green: [16, 185, 129] as const,
-  rowAlt: [18, 42, 71] as const,
-  card: [15, 39, 68] as const,
-  warnBg: [58, 31, 31] as const,
-  decisionBg: [19, 47, 82] as const,
-  chipGreen: [6, 95, 70] as const,
-  chipAmber: [120, 53, 15] as const,
-  chipRed: [127, 29, 29] as const,
-  heatLow: [26, 58, 42] as const,
-  heatMed: [58, 47, 20] as const,
-  heatHigh: [58, 26, 26] as const,
+  page: [245, 247, 250] as const,
+  soft: [238, 241, 245] as const,
+  line: [213, 220, 230] as const,
+  text: [27, 36, 48] as const,
+  muted: [91, 101, 119] as const,
+  subtleRed: [166, 25, 46] as const,
+  green: [15, 118, 110] as const,
+  amber: [180, 83, 9] as const,
+  chipGreen: [209, 250, 229] as const,
+  chipAmber: [254, 243, 199] as const,
+  chipRed: [254, 226, 226] as const,
+  chipGreenText: [6, 95, 70] as const,
+  chipAmberText: [146, 64, 14] as const,
+  chipRedText: [153, 27, 27] as const,
+  decision: [232, 238, 246] as const,
 };
+
+function setFill(doc: jsPDF, rgb: readonly [number, number, number]) {
+  doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+}
+function setDraw(doc: jsPDF, rgb: readonly [number, number, number]) {
+  doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
+}
+function setText(doc: jsPDF, rgb: readonly [number, number, number]) {
+  doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+}
 
 export function abhiBoardPackPdfFileName(meetingDate: string): string {
   return `Board Pack - ${meetingDate}.pdf`;
 }
 
-function setFill(doc: jsPDF, rgb: readonly [number, number, number]) {
-  doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-}
-
-function setDraw(doc: jsPDF, rgb: readonly [number, number, number]) {
-  doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
-}
-
-function setText(doc: jsPDF, rgb: readonly [number, number, number]) {
-  doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-}
-
 function paintBackground(doc: jsPDF) {
-  setFill(doc, COLORS.navy);
+  setFill(doc, C.page);
   doc.rect(0, 0, SLIDE_W, SLIDE_H, "F");
-  setFill(doc, COLORS.red);
-  doc.rect(0, 0, SLIDE_W, 2.5, "F");
 }
 
-function drawHeader(doc: jsPDF, title: string, subtitle?: string) {
-  setText(doc, COLORS.white);
+/** Transparent PNG wordmark — consistent size, correct aspect. */
+const LOGO_W = 22;
+const LOGO_H = LOGO_W * (ABHI_LOGO_INTRINSIC_HEIGHT / ABHI_LOGO_INTRINSIC_WIDTH);
+
+function logoImageFormat(logoDataUrl: string): "PNG" | "JPEG" {
+  return logoDataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
+}
+
+function drawLogo(doc: jsPDF, logoDataUrl: string | null) {
+  if (!logoDataUrl) return;
+  try {
+    doc.addImage(
+      logoDataUrl,
+      logoImageFormat(logoDataUrl),
+      SLIDE_W - MARGIN - LOGO_W,
+      4,
+      LOGO_W,
+      LOGO_H,
+    );
+  } catch {
+    // optional
+  }
+}
+
+function boardAttentionForRisk(risk: AbhiBoardRisk): string {
+  if (risk.flags.overdueMitigation) return "Mitigation overdue — escalate this cycle";
+  if (risk.flags.increased || risk.trend === "↑") return "Increasing — board oversight required";
+  if (risk.flags.new) return "New risk — confirm ownership and response";
+  if (abhiRiskRatingBand(risk) === "High") return "High exposure — monitor closely";
+  if (abhiRiskRatingBand(risk) === "Medium") return "Watch — review at next meeting";
+  return "Monitor";
+}
+
+function drawHeader(doc: jsPDF, title: string, logoDataUrl: string | null, subtitle?: string) {
+  drawLogo(doc, logoDataUrl);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
+  doc.setFontSize(18);
+  setText(doc, C.navy);
   doc.text(title, MARGIN, 12);
   if (subtitle) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    setText(doc, COLORS.muted);
-    doc.text(subtitle, MARGIN, 17);
+    doc.setFontSize(9);
+    setText(doc, C.muted);
+    doc.text(subtitle, MARGIN, 17.5);
   }
+  setDraw(doc, C.line);
+  doc.setLineWidth(0.3);
+  doc.line(MARGIN, 20, SLIDE_W - MARGIN, 20);
 }
 
 function drawFooter(doc: jsPDF, packName: string, slideNumber: number) {
-  setFill(doc, COLORS.accent);
+  setFill(doc, C.navy);
   doc.rect(0, SLIDE_H - 8, SLIDE_W, 8, "F");
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  setText(doc, COLORS.light);
-  doc.text(packName, MARGIN, SLIDE_H - 3.5);
-  doc.text(`Confidential · Slide ${slideNumber}`, SLIDE_W - MARGIN, SLIDE_H - 3.5, {
-    align: "right",
-  });
-}
-
-function drawBullets(doc: jsPDF, items: string[], x: number, y: number, width: number, maxLines = 6) {
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  setText(doc, COLORS.light);
-  let cursorY = y;
-  for (const item of items.slice(0, maxLines)) {
-    const lines = doc.splitTextToSize(`• ${item}`, width);
-    doc.text(lines, x, cursorY);
-    cursorY += lines.length * 3.6 + 1;
-  }
-}
-
-function drawMiniTable(
-  doc: jsPDF,
-  x: number,
-  y: number,
-  width: number,
-  rows: { left: string; right: string }[],
-  title?: string,
-) {
-  if (title) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    setText(doc, COLORS.white);
-    doc.text(title, x, y - 1.5);
-  }
-  setDraw(doc, COLORS.accent);
-  doc.roundedRect(x, y, width, 6 + rows.length * 6.5, 1.5, 1.5, "S");
-  rows.forEach((row, index) => {
-    const rowY = y + 5 + index * 6.5;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    setText(doc, COLORS.light);
-    doc.text(row.left, x + 2, rowY);
-    setText(doc, COLORS.white);
-    doc.text(row.right, x + width - 2, rowY, { align: "right" });
-  });
-}
-
-function drawBarChart(
-  doc: jsPDF,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  labels: string[],
-  values: number[],
-  title: string,
-) {
-  doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  setText(doc, COLORS.white);
-  doc.text(title, x, y - 2);
-  const max = Math.max(...values, 1);
-  const barW = width / values.length - 4;
-  const bottom = y + height;
-  setDraw(doc, COLORS.accent);
-  doc.line(x, bottom, x + width, bottom);
-  values.forEach((value, index) => {
-    const barH = (value / max) * (height - 8);
-    const barX = x + index * (barW + 4) + 2;
-    setFill(doc, index % 2 === 0 ? COLORS.accent : COLORS.red);
-    doc.rect(barX, bottom - barH, barW, barH, "F");
-    doc.setFontSize(6);
-    setText(doc, COLORS.muted);
-    doc.text(labels[index] ?? "", barX + barW / 2, bottom + 3.5, { align: "center" });
-  });
+  setText(doc, C.white);
+  doc.text(packName, MARGIN, SLIDE_H - 3);
+  doc.text(`Confidential · Slide ${slideNumber}`, SLIDE_W - MARGIN, SLIDE_H - 3, { align: "right" });
 }
 
-function drawSparkline(
-  doc: jsPDF,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  values: number[],
-  title: string,
-) {
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  setText(doc, COLORS.white);
-  doc.text(title, x, y - 1.5);
-  setDraw(doc, COLORS.accent);
-  doc.roundedRect(x, y, width, height, 1.5, 1.5, "S");
-  if (values.length < 2) return;
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = Math.max(max - min, 1);
-  const stepX = (width - 6) / (values.length - 1);
-  setDraw(doc, COLORS.green);
-  for (let index = 1; index < values.length; index += 1) {
-    const x1 = x + 3 + (index - 1) * stepX;
-    const x2 = x + 3 + index * stepX;
-    const y1 = y + height - 3 - ((values[index - 1] - min) / range) * (height - 6);
-    const y2 = y + height - 3 - ((values[index] - min) / range) * (height - 6);
-    doc.line(x1, y1, x2, y2);
-  }
+function actionChip(status: AbhiActionStatus) {
+  if (status === "Completed") return { fill: C.chipGreen, text: C.chipGreenText };
+  if (status === "Underway") return { fill: C.chipAmber, text: C.chipAmberText };
+  return { fill: C.chipRed, text: C.chipRedText };
 }
 
-function riskRatingColor(risk: AbhiBoardRisk): readonly [number, number, number] {
-  const band = abhiRiskRatingBand(risk);
-  if (band === "High") return COLORS.red;
-  if (band === "Medium") return COLORS.amber;
-  return COLORS.green;
-}
-
-function orgStatusColor(status: AbhiBoardPackData["orgStatus"]): readonly [number, number, number] {
-  if (status === "Green") return COLORS.green;
-  if (status === "Red") return COLORS.red;
-  return COLORS.amber;
-}
-
-function actionStatusFill(status: AbhiActionStatus): readonly [number, number, number] {
-  const tone = abhiActionStatusColor(status);
-  if (tone === "green") return COLORS.chipGreen;
-  if (tone === "amber") return COLORS.chipAmber;
-  return COLORS.chipRed;
-}
-
-function impactLikelihoodLabel(value: "H" | "M" | "L"): string {
-  if (value === "H") return "High";
-  if (value === "M") return "Medium";
-  return "Low";
-}
-
-function hlmToScore(value: "H" | "M" | "L"): number {
-  if (value === "H") return 3;
-  if (value === "M") return 2;
-  return 1;
+function indicatorChip(indicator: AbhiKpiIndicator) {
+  if (indicator === "On track") return { fill: C.chipGreen, text: C.chipGreenText };
+  if (indicator === "Watch") return { fill: C.chipAmber, text: C.chipAmberText };
+  return { fill: C.chipRed, text: C.chipRedText };
 }
 
 function varianceText(value: number): string {
@@ -224,17 +142,65 @@ function varianceText(value: number): string {
   return `${prefix}${formatAbhiBoardGbp(value, true)}`;
 }
 
-function addSlide(doc: jsPDF): { slideNumber: number } {
+type PillTone = "green" | "amber" | "red" | "navy";
+
+function pillColors(tone: PillTone) {
+  if (tone === "green") return { fill: C.chipGreen, text: C.chipGreenText };
+  if (tone === "amber") return { fill: C.chipAmber, text: C.chipAmberText };
+  if (tone === "red") return { fill: C.chipRed, text: C.chipRedText };
+  return { fill: C.decision, text: C.navy };
+}
+
+function drawStatusPill(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  label: string,
+  tone: PillTone,
+) {
+  const chip = pillColors(tone);
+  setFill(doc, chip.fill);
+  doc.roundedRect(x, y, w, h, 1.5, 1.5, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(h >= 8 ? 9 : 8);
+  setText(doc, chip.text);
+  doc.text(label, x + w / 2, y + h / 2 + 1.1, { align: "center" });
+}
+
+function drawProgressBar(
+  doc: jsPDF,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  ratio: number,
+  fill: readonly [number, number, number],
+) {
+  const clamped = Math.max(0, Math.min(1, ratio));
+  setFill(doc, C.soft);
+  doc.roundedRect(x, y, w, h, 1.2, 1.2, "F");
+  if (clamped > 0.02) {
+    setFill(doc, fill);
+    doc.roundedRect(x, y, Math.max(3, w * clamped), h, 1.2, 1.2, "F");
+  }
+}
+
+function addSlide(doc: jsPDF) {
   doc.addPage([SLIDE_W, SLIDE_H], "landscape");
   paintBackground(doc);
-  const slideNumber = doc.getNumberOfPages();
-  return { slideNumber };
 }
 
 export async function buildAbhiBoardPackPdf(
   data: AbhiBoardPackData,
   logoDataUrl: string | null,
 ): Promise<Uint8Array> {
+  const { validateAndSanitizeAbhiBoardPackData } = await import(
+    "@/lib/abhi/board-pack-validate"
+  );
+  data = validateAndSanitizeAbhiBoardPackData(data).data;
+
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [SLIDE_W, SLIDE_H] });
   doc.deletePage(1);
 
@@ -243,622 +209,849 @@ export async function buildAbhiBoardPackPdf(
     addSlide(doc);
     if (logoDataUrl) {
       try {
-        doc.addImage(logoDataUrl, "JPEG", MARGIN, 8, 28, 16);
+        const coverW = LOGO_W * 1.45;
+        const coverH = LOGO_H * 1.45;
+        doc.addImage(logoDataUrl, logoImageFormat(logoDataUrl), MARGIN, 8, coverW, coverH);
       } catch {
-        // Logo optional — continue without image if format unsupported.
+        // optional
       }
     }
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    setText(doc, COLORS.muted);
-    doc.text("Association of British HealthTech Industries", MARGIN, 30);
+    doc.setFontSize(11);
+    setText(doc, C.muted);
+    doc.text("Association of British HealthTech Industries", MARGIN, 32);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(24);
-    setText(doc, COLORS.white);
-    doc.text("Board Meeting Pack", MARGIN, 42);
+    doc.setFontSize(28);
+    setText(doc, C.navy);
+    doc.text("Board Meeting Pack", MARGIN, 45);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(12);
-    setText(doc, COLORS.light);
-    doc.text(formatAbhiBoardDate(data.meetingDate), MARGIN, 52);
+    doc.setFontSize(14);
+    setText(doc, C.text);
+    doc.text(formatAbhiBoardDate(data.meetingDate), MARGIN, 55);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setText(doc, COLORS.red);
-    doc.text("CONFIDENTIAL", MARGIN, 58);
+    doc.setFontSize(10);
+    setText(doc, C.subtleRed);
+    doc.text("CONFIDENTIAL", MARGIN, 62);
 
-    let rowY = 66;
+    let y = 72;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    setText(doc, COLORS.white);
-    doc.text("Name", MARGIN, rowY);
-    doc.text("Role", MARGIN + 70, rowY);
-    rowY += 4;
+    doc.setFontSize(10);
+    setText(doc, C.navy);
+    doc.text("Name", MARGIN, y);
+    doc.text("Role", MARGIN + 70, y);
+    y += 6;
     doc.setFont("helvetica", "normal");
     for (const person of data.attendees) {
-      setText(doc, COLORS.light);
-      doc.text(person.name, MARGIN, rowY);
-      setText(doc, COLORS.muted);
-      doc.text(person.role, MARGIN + 70, rowY);
-      rowY += 4.5;
+      setText(doc, C.text);
+      doc.text(person.name, MARGIN, y);
+      setText(doc, C.muted);
+      doc.text(person.role, MARGIN + 70, y);
+      y += 5.5;
     }
     drawFooter(doc, data.packName, 1);
   }
 
-  // Slide 2 — Executive Summary (board paper layout)
+  // Slide 2 — Executive Summary
   {
     addSlide(doc);
-    drawHeader(doc, "Executive Summary");
+    drawHeader(doc, "Executive Summary", logoDataUrl);
 
-    const leftX = MARGIN;
-    const centreX = 78;
-    const rightX = 188;
-    const contentTop = 22;
-    const decisionsY = 132;
-
-    // LEFT — Agenda
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    setText(doc, C.muted);
+    doc.text("Organisation Status", 230, 8);
+    const statusColor =
+      data.orgStatus === "Green" ? C.green : data.orgStatus === "Red" ? C.subtleRed : C.amber;
+    setFill(doc, statusColor);
+    doc.circle(232, 14, 2.2, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setText(doc, COLORS.white);
-    doc.text("Agenda", leftX, contentTop);
+    doc.setFontSize(10);
+    setText(doc, C.text);
+    doc.text(data.orgStatus, 237, 15.5);
+
+    // Agenda
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    setText(doc, C.navy);
+    doc.text("Agenda", MARGIN, 28);
     data.agenda.forEach((item, index) => {
-      const y = contentTop + 6 + index * 5.8;
+      const y = 34 + index * 6.2;
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
-      setText(doc, COLORS.red);
-      doc.text(String(index + 1), leftX, y);
+      doc.setFontSize(10);
+      setText(doc, C.navy);
+      doc.text(String(index + 1), MARGIN, y);
       doc.setFont("helvetica", "normal");
-      setText(doc, COLORS.light);
-      doc.text(item, leftX + 5, y);
+      setText(doc, C.text);
+      doc.text(item, MARGIN + 6, y);
     });
 
-    // LEFT — Organisation Status (secondary)
-    const statusY = 122;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    setText(doc, COLORS.muted);
-    doc.text("Organisation Status", leftX, statusY);
-    setFill(doc, orgStatusColor(data.orgStatus));
-    doc.circle(leftX + 2, statusY + 5, 2, "F");
+    // Highlights
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setText(doc, COLORS.light);
-    doc.text(data.orgStatus, leftX + 6, statusY + 6.5);
-
-    // CENTRE — Key Highlights
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setText(doc, COLORS.green);
-    doc.text("Key Highlights", centreX, contentTop);
+    doc.setFontSize(11);
+    setText(doc, C.green);
+    doc.text("Key Highlights", 78, 28);
     data.highlightCards.forEach((card, index) => {
-      const y = contentTop + 4 + index * 16.5;
-      setFill(doc, COLORS.card);
-      setDraw(doc, COLORS.accent);
-      doc.roundedRect(centreX, y, 102, 14.5, 1.2, 1.2, "FD");
-      setFill(doc, COLORS.green);
-      doc.rect(centreX, y, 1.8, 14.5, "F");
+      const y = 32 + index * 14.5;
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(78, y, 95, 13, 1.2, 1.2, "FD");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
-      setText(doc, COLORS.muted);
-      doc.text(card.title, centreX + 4, y + 4);
-      doc.setFontSize(9);
-      setText(doc, COLORS.white);
-      doc.text(card.primary, centreX + 4, y + 8.5);
+      doc.setFontSize(7);
+      setText(doc, C.muted);
+      doc.text(card.title, 81, y + 4);
+      doc.setFontSize(11);
+      setText(doc, C.navy);
+      doc.text(card.primary, 81, y + 8.5);
       if (card.secondary) {
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(7);
-        setText(doc, COLORS.light);
-        doc.text(card.secondary, centreX + 4, y + 12.5);
+        doc.setFontSize(8);
+        setText(doc, C.text);
+        doc.text(card.secondary, 81, y + 11.5);
       }
     });
 
-    // RIGHT — Key Concerns
+    // Concerns — neutral board styling
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    setText(doc, COLORS.amber);
-    doc.text("Key Concerns", rightX, contentTop);
+    doc.setFontSize(11);
+    setText(doc, C.amber);
+    doc.text("Key Concerns", 182, 28);
     data.concernCards.forEach((card, index) => {
-      const y = contentTop + 4 + index * 16.5;
-      setFill(doc, COLORS.warnBg);
-      setDraw(doc, COLORS.red);
-      doc.roundedRect(rightX, y, 95, 14.5, 1.2, 1.2, "FD");
-      setFill(doc, COLORS.amber);
-      doc.rect(rightX, y, 1.8, 14.5, "F");
+      const y = 32 + index * 14.5;
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(182, y, 103, 13, 1.2, 1.2, "FD");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
-      setText(doc, COLORS.amber);
-      doc.text(card.title, rightX + 4, y + 5);
-      doc.setFontSize(9);
-      setText(doc, COLORS.white);
-      doc.text(card.detail, rightX + 4, y + 10.5);
+      doc.setFontSize(7);
+      setText(doc, C.muted);
+      doc.text(card.title, 185, y + 4.5);
+      doc.setFontSize(11);
+      setText(doc, C.text);
+      doc.text(card.detail, 185, y + 9.5);
     });
 
-    // BOTTOM — Board Decisions Required
-    setFill(doc, COLORS.decisionBg);
-    setDraw(doc, COLORS.red);
-    doc.roundedRect(MARGIN, decisionsY, CONTENT_W, 22, 1.5, 1.5, "FD");
+    // Decisions — navy band, white text
+    setFill(doc, C.navy);
+    doc.roundedRect(MARGIN, 128, CONTENT_W, 26, 1.5, 1.5, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    setText(doc, COLORS.red);
-    doc.text("Board Decisions Required", MARGIN + 3, decisionsY + 5);
+    doc.setFontSize(10);
+    setText(doc, C.white);
+    doc.text("Board Decisions Required", MARGIN + 3, 135);
     data.boardDecisions.forEach((decision, index) => {
-      doc.setFontSize(8);
-      setText(doc, COLORS.white);
-      doc.text(`${index + 1}.  ${decision}`, MARGIN + 3, decisionsY + 10 + index * 3.8);
+      doc.setFontSize(9);
+      doc.text(`${index + 1}.  ${decision}`, MARGIN + 3, 141 + index * 4);
     });
     drawFooter(doc, data.packName, 2);
   }
 
-  // Slide 3 — Previous Meeting Actions (board action register)
+  // Slide 3 — Actions
   {
     addSlide(doc);
-    drawHeader(doc, "Previous Meeting Actions", "Board action register · sorted by status priority");
-
+    drawHeader(doc, "Previous Meeting Actions", logoDataUrl, "Board action register");
     const actions = abhiSortedBoardActions(data);
-    const colX = [MARGIN, MARGIN + 18, MARGIN + 168, MARGIN + 212, MARGIN + 240];
-    const headers = ["Ref", "Action", "Owner", "Due Date", "Status"];
-    let y = 24;
-    setFill(doc, COLORS.accent);
-    doc.rect(MARGIN, y - 4, CONTENT_W, 7, "F");
+    const colX = [MARGIN, MARGIN + 16, MARGIN + 165, MARGIN + 210, MARGIN + 240];
+    let y = 28;
+    setFill(doc, C.navy);
+    doc.rect(MARGIN, y - 4, CONTENT_W, 8, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    setText(doc, COLORS.white);
-    headers.forEach((header, index) => doc.text(header, colX[index]!, y));
-    y += 6;
-
+    doc.setFontSize(9);
+    setText(doc, C.white);
+    ["Ref", "Action", "Owner", "Due Date", "Status"].forEach((h, i) => doc.text(h, colX[i]!, y));
+    y += 8;
     for (const [index, action] of actions.entries()) {
-      const rowH = 12;
-      setFill(doc, index % 2 === 0 ? COLORS.navy : COLORS.rowAlt);
-      doc.rect(MARGIN, y - 3.5, CONTENT_W, rowH, "F");
+      const rowH = 13;
+      setFill(doc, index % 2 ? C.soft : C.white);
+      doc.rect(MARGIN, y - 4, CONTENT_W, rowH, "F");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
-      setText(doc, COLORS.light);
-      doc.text(action.id, colX[0]!, y);
+      doc.setFontSize(9);
+      setText(doc, C.navy);
+      doc.text(action.id, colX[0]!, y + 1);
       doc.setFont("helvetica", "normal");
-      setText(doc, COLORS.white);
-      const actionLines = doc.splitTextToSize(action.title, 145);
-      doc.text(actionLines.slice(0, 2), colX[1]!, y);
-      setText(doc, COLORS.light);
-      doc.text(action.owner, colX[2]!, y);
-      setText(doc, COLORS.muted);
-      doc.text(action.due, colX[3]!, y);
-      setFill(doc, actionStatusFill(action.status));
-      doc.roundedRect(colX[4]!, y - 3, 22, 5.5, 1, 1, "F");
+      setText(doc, C.text);
+      const lines = doc.splitTextToSize(action.title, 145);
+      doc.text(lines.slice(0, 2), colX[1]!, y);
+      doc.text(action.owner, colX[2]!, y + 1);
+      setText(doc, C.muted);
+      doc.text(action.due, colX[3]!, y + 1);
+      const chip = actionChip(action.status);
+      setFill(doc, chip.fill);
+      doc.roundedRect(colX[4]!, y - 2.5, 26, 7, 1.2, 1.2, "F");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(6);
-      setText(doc, COLORS.white);
-      doc.text(action.status, colX[4]! + 11, y, { align: "center" });
+      doc.setFontSize(8);
+      setText(doc, chip.text);
+      doc.text(action.status, colX[4]! + 13, y + 1.5, { align: "center" });
       y += rowH;
     }
     drawFooter(doc, data.packName, 3);
   }
 
-  // Slide 4 — Risk Register (board risk register)
+  // Slide 4 — Risk Register
   {
     addSlide(doc);
-    drawHeader(doc, "Risk Register", "Highest risk first · New, increasing, and overdue mitigations highlighted");
-
-    const sortedRisks = [...data.risks].sort((a, b) => abhiRiskScore(b) - abhiRiskScore(a));
-    const newCount = sortedRisks.filter((r) => r.flags.new).length;
-    const increasingCount = sortedRisks.filter((r) => r.flags.increased || r.trend === "↑").length;
-    const overdueMitCount = sortedRisks.filter((r) => r.flags.overdueMitigation).length;
-
-    const flagItems = [
-      { label: `New Risks: ${newCount}`, color: COLORS.accent },
-      { label: `Increasing Risks: ${increasingCount}`, color: COLORS.amber },
-      { label: `Overdue Mitigations: ${overdueMitCount}`, color: COLORS.red },
+    drawHeader(doc, "Risk Register", logoDataUrl, "Executive risk briefing");
+    const sorted = [...data.risks]
+      .sort((a, b) => abhiRiskScore(b) - abhiRiskScore(a))
+      .slice(0, 6);
+    const summary = [
+      {
+        label: "New Risks",
+        value: String(sorted.filter((r) => r.flags.new).length),
+        color: C.navy,
+      },
+      {
+        label: "Increasing Risks",
+        value: String(sorted.filter((r) => r.flags.increased || r.trend === "↑").length),
+        color: C.amber,
+      },
+      {
+        label: "Overdue Mitigations",
+        value: String(sorted.filter((r) => r.flags.overdueMitigation).length),
+        color: C.subtleRed,
+      },
     ];
-    flagItems.forEach((flag, index) => {
-      const x = MARGIN + index * 55;
-      setFill(doc, COLORS.card);
-      setDraw(doc, flag.color);
-      doc.roundedRect(x, 20, 52, 7, 1, 1, "FD");
+    const cardW = (CONTENT_W - 8) / 3;
+    summary.forEach((item, index) => {
+      const x = MARGIN + index * (cardW + 4);
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(x, 24, cardW, 22, 1.2, 1.2, "FD");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
-      setText(doc, flag.color);
-      doc.text(flag.label, x + 26, 24.5, { align: "center" });
+      doc.setFontSize(10);
+      setText(doc, C.muted);
+      doc.text(item.label, x + 4, 31);
+      doc.setFontSize(26);
+      setText(doc, item.color);
+      doc.text(item.value, x + 4, 42);
     });
 
-    // Mini heatmap
-    const heatX = 190;
-    const heatY = 20;
+    const colX = [MARGIN + 2, MARGIN + 118, MARGIN + 168, MARGIN + 200];
+    const colW = [112, 48, 30, 73];
+    let y = 52;
+    setFill(doc, C.navy);
+    doc.rect(MARGIN, y - 4, CONTENT_W, 8, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
-    setText(doc, COLORS.muted);
-    doc.text("Risk Heatmap", heatX, heatY + 2);
-    const levels: Array<"L" | "M" | "H"> = ["L", "M", "H"];
-    const heatCounts = levels.map(() => levels.map(() => 0));
-    for (const risk of sortedRisks) {
-      const i = hlmToScore(risk.impact) - 1;
-      const j = hlmToScore(risk.likelihood) - 1;
-      heatCounts[i]![j]! += 1;
-    }
-    levels.forEach((_, row) => {
-      levels.forEach((__, col) => {
-        const count = heatCounts[row]![col]!;
-        const score = (row + 1) * (col + 1);
-        const fill = score >= 6 ? COLORS.heatHigh : score >= 3 ? COLORS.heatMed : COLORS.heatLow;
-        const x = heatX + 28 + col * 8;
-        const y = heatY + (2 - row) * 6;
-        setFill(doc, fill);
-        setDraw(doc, COLORS.accent);
-        doc.rect(x, y, 7, 5.5, "FD");
-        if (count > 0) {
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(6);
-          setText(doc, COLORS.white);
-          doc.text(String(count), x + 3.5, y + 3.8, { align: "center" });
-        }
-      });
-    });
-
-    const colX = [MARGIN, MARGIN + 14, MARGIN + 78, MARGIN + 112, MARGIN + 130, MARGIN + 152, MARGIN + 172, MARGIN + 198, MARGIN + 250];
-    const headers = ["ID", "Risk Description", "Owner", "Impact", "Like.", "Rating", "Trend", "Mitigation", "Status"];
-    let y = 42;
-    setFill(doc, COLORS.accent);
-    doc.rect(MARGIN, y - 4, CONTENT_W, 6.5, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6);
-    setText(doc, COLORS.white);
-    headers.forEach((header, index) => doc.text(header, colX[index]!, y));
-    y += 5.5;
-
-    for (const [index, risk] of sortedRisks.entries()) {
+    doc.setFontSize(10);
+    setText(doc, C.white);
+    ["Risk", "Owner", "Trend", "Board Attention Required"].forEach((h, i) =>
+      doc.text(h, colX[i]!, y),
+    );
+    y += 9;
+    for (const [index, risk] of sorted.entries()) {
       const rowH = 14;
-      const flagged = risk.flags.new || risk.flags.increased || risk.flags.overdueMitigation;
-      setFill(doc, flagged ? COLORS.warnBg : index % 2 === 0 ? COLORS.navy : COLORS.rowAlt);
-      doc.rect(MARGIN, y - 3, CONTENT_W, rowH, "F");
-
-      const band = abhiRiskRatingBand(risk);
-      const trendLabel = abhiRiskTrendLabel(risk.trend);
-      const flagPrefix = [
-        risk.flags.new ? "NEW" : "",
-        risk.flags.increased ? "↑" : "",
-        risk.flags.overdueMitigation ? "OD" : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6);
-      setText(doc, COLORS.light);
-      doc.text(risk.id, colX[0]!, y + 2);
+      setFill(doc, index % 2 ? C.soft : C.white);
+      doc.rect(MARGIN, y - 4, CONTENT_W, rowH, "F");
+      const trend = abhiRiskTrendLabel(risk.trend);
 
       doc.setFont("helvetica", "normal");
-      setText(doc, COLORS.white);
-      const desc = flagPrefix ? `[${flagPrefix}] ${risk.risk}` : risk.risk;
-      const descLines = doc.splitTextToSize(desc, 60);
-      doc.text(descLines.slice(0, 2), colX[1]!, y + 1);
+      doc.setFontSize(10);
+      setText(doc, C.text);
+      const desc = doc.splitTextToSize(risk.risk, colW[0]! - 2);
+      doc.text(desc.slice(0, 2), colX[0]!, y);
 
-      setText(doc, COLORS.light);
-      const ownerLines = doc.splitTextToSize(risk.owner, 30);
-      doc.text(ownerLines.slice(0, 2), colX[2]!, y + 1);
-
-      doc.text(impactLikelihoodLabel(risk.impact), colX[3]!, y + 2);
-      doc.text(impactLikelihoodLabel(risk.likelihood), colX[4]!, y + 2);
-
-      setFill(doc, riskRatingColor(risk));
-      doc.roundedRect(colX[5]!, y - 1.5, 16, 8, 1, 1, "F");
       doc.setFont("helvetica", "bold");
-      setText(doc, COLORS.white);
-      doc.text(`${band}`, colX[5]! + 8, y + 1.5, { align: "center" });
-      doc.setFontSize(5.5);
-      doc.text(String(risk.rating), colX[5]! + 8, y + 5, { align: "center" });
+      setText(doc, C.navy);
+      const owner = doc.splitTextToSize(risk.owner, colW[1]! - 2);
+      doc.text(owner.slice(0, 2), colX[1]!, y);
 
-      doc.setFont("helvetica", trendLabel === "Increasing" ? "bold" : "normal");
-      doc.setFontSize(6);
-      setText(
-        doc,
-        trendLabel === "Increasing" ? COLORS.amber : trendLabel === "Reducing" ? COLORS.green : COLORS.light,
-      );
-      doc.text(trendLabel, colX[6]!, y + 2);
+      doc.setFont("helvetica", trend === "Increasing" ? "bold" : "normal");
+      doc.setFontSize(10);
+      setText(doc, trend === "Increasing" ? C.amber : trend === "Reducing" ? C.green : C.text);
+      doc.text(trend, colX[2]!, y + 1);
 
       doc.setFont("helvetica", "normal");
-      setText(doc, COLORS.muted);
-      const mitLines = doc.splitTextToSize(risk.mitigation, 48);
-      doc.text(mitLines.slice(0, 2), colX[7]!, y + 1);
-
-      setText(doc, COLORS.white);
-      doc.text(risk.status, colX[8]!, y + 2);
+      doc.setFontSize(9);
+      setText(doc, C.text);
+      const attention = doc.splitTextToSize(boardAttentionForRisk(risk), colW[3]! - 2);
+      doc.text(attention.slice(0, 2), colX[3]!, y);
       y += rowH;
     }
     drawFooter(doc, data.packName, 4);
   }
 
-  // Slide 5 — KPI Dashboard
+  // Slide 5 — KPI
   {
     addSlide(doc);
-    drawHeader(doc, "KPI Dashboard", "Actual vs budget with trend indicators");
-    let y = 24;
+    drawHeader(doc, "KPI Dashboard", logoDataUrl, "Actual vs budget with performance indicator");
+    const colX = [MARGIN, MARGIN + 95, MARGIN + 135, MARGIN + 175, MARGIN + 220];
+    let y = 28;
+    setFill(doc, C.navy);
+    doc.rect(MARGIN, y - 4, CONTENT_W, 8, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    setText(doc, COLORS.white);
-    doc.text("KPI", MARGIN, y);
-    doc.text("Actual", MARGIN + 72, y);
-    doc.text("Budget", MARGIN + 98, y);
-    doc.text("Variance", MARGIN + 124, y);
-    doc.text("Trend", MARGIN + 152, y);
-    y += 4;
-    for (const kpi of data.kpis) {
+    doc.setFontSize(10);
+    setText(doc, C.white);
+    ["KPI", "Actual", "Budget", "Variance", "Status"].forEach((h, i) => doc.text(h, colX[i]!, y));
+    y += 9;
+    for (const [index, kpi] of data.kpis.entries()) {
+      const rowH = 12;
+      setFill(doc, index % 2 ? C.soft : C.white);
+      doc.rect(MARGIN, y - 4, CONTENT_W, rowH, "F");
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      setText(doc, COLORS.light);
-      doc.text(kpi.name, MARGIN, y);
-      setText(doc, COLORS.white);
-      doc.text(
-        typeof kpi.actual === "number" ? formatAbhiBoardGbp(kpi.actual, true) : String(kpi.actual),
-        MARGIN + 72,
-        y,
-      );
-      setText(doc, COLORS.muted);
-      doc.text(
-        typeof kpi.budget === "number" ? formatAbhiBoardGbp(kpi.budget, true) : String(kpi.budget),
-        MARGIN + 98,
-        y,
-      );
-      setText(doc, COLORS.light);
-      doc.text(
-        typeof kpi.variance === "number" ? varianceText(kpi.variance) : String(kpi.variance),
-        MARGIN + 124,
-        y,
-      );
-      setText(doc, kpi.trend > 0 ? COLORS.green : kpi.trend < 0 ? COLORS.red : COLORS.amber);
-      doc.text(abhiKpiTrendArrow(kpi.trend), MARGIN + 158, y);
-      y += 5.5;
+      doc.setFontSize(11);
+      setText(doc, C.text);
+      doc.text(kpi.name, colX[0]!, y + 1);
+      doc.setFont("helvetica", "bold");
+      setText(doc, C.navy);
+      doc.text(formatAbhiBoardKpiValue(kpi.actual, kpi.unit), colX[1]!, y + 1);
+      doc.setFont("helvetica", "normal");
+      setText(doc, C.muted);
+      doc.text(formatAbhiBoardKpiValue(kpi.budget, kpi.unit), colX[2]!, y + 1);
+      setText(doc, C.text);
+      doc.text(formatAbhiBoardKpiVariance(kpi.variance, kpi.unit), colX[3]!, y + 1);
+      const chip = indicatorChip(kpi.indicator);
+      setFill(doc, chip.fill);
+      doc.roundedRect(colX[4]!, y - 2.5, 28, 7, 1.2, 1.2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      setText(doc, chip.text);
+      doc.text(kpi.indicator, colX[4]! + 14, y + 1.5, { align: "center" });
+      y += rowH;
     }
-    drawSparkline(doc, 188, 24, 95, 28, data.kpis[1]?.sparkline ?? [], "Revenue sparkline");
-    drawSparkline(doc, 188, 58, 95, 28, data.balanceSheet.cashTrend, "Cash sparkline");
     drawFooter(doc, data.packName, 5);
   }
 
-  // Slide 6 — Financial Overview
+  // Slide 6 — Financial Overview (CEO visual metrics)
   {
     addSlide(doc);
-    drawHeader(doc, "Financial Overview", "Executive financial summary");
-    const tiles = [
-      data.financialOverview.revenueVsBudget,
-      data.financialOverview.operatingSurplus,
-      data.financialOverview.cashPosition,
+    drawHeader(doc, "Financial Overview", logoDataUrl, "10-second board view");
+
+    const rev = data.financialOverview.revenueVsBudget;
+    const op = data.financialOverview.operatingSurplus;
+    const cash = data.financialOverview.cashPosition.actual;
+    const fc = data.financialOverview.forecastYearEnd;
+    const revPct =
+      rev.budget && rev.budget !== 0
+        ? Math.round((Math.abs(rev.variance ?? 0) / Math.abs(rev.budget)) * 100)
+        : 7;
+    const cashMove = data.balanceSheet.cashMovementMom;
+
+    const metricCards = [
+      {
+        title: "Revenue",
+        value: formatAbhiBoardGbp(rev.actual, true),
+        signal: formatAbhiBoardBudgetStatus(rev.variance ?? 0, { percentAbs: revPct }),
+        tone: "amber" as const,
+        detail: null as string | null,
+      },
+      {
+        title: "Operating Result",
+        value: formatAbhiBoardGbp(op.actual, true),
+        signal: formatAbhiBoardBudgetVarianceNarrative(op.variance ?? 0),
+        tone: "red" as const,
+        detail: null as string | null,
+      },
+      {
+        title: "Cash",
+        value: formatAbhiBoardGbp(cash, true),
+        signal: "Net cash increase this month",
+        tone: "green" as const,
+        detail: `+${formatAbhiBoardGbp(cashMove, true)}`,
+      },
     ];
-    tiles.forEach((tile, index) => {
-      const x = MARGIN + index * 92;
-      setFill(doc, COLORS.accent);
-      doc.roundedRect(x, 22, 86, 22, 2, 2, "F");
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      setText(doc, COLORS.light);
-      doc.text(tile.label, x + 4, 28);
+
+    const metricW = (CONTENT_W - 8) / 3;
+    metricCards.forEach((card, index) => {
+      const x = MARGIN + index * (metricW + 4);
+      const y = 24;
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(x, y, metricW, 52, 1.5, 1.5, "FD");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      setText(doc, COLORS.white);
-      doc.text(formatAbhiBoardGbp(tile.actual, true), x + 4, 38);
-      if (tile.budget !== undefined) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(6.5);
-        setText(doc, COLORS.muted);
-        doc.text(
-          `Budget ${formatAbhiBoardGbp(tile.budget, true)} · Var ${varianceText(tile.variance ?? tile.actual - tile.budget)}`,
-          x + 4,
-          42,
-        );
+      doc.setFontSize(11);
+      setText(doc, C.muted);
+      doc.text(card.title, x + 5, y + 10);
+      doc.setFontSize(22);
+      setText(doc, C.navy);
+      doc.text(card.value, x + 5, y + 26);
+      if (card.detail) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        setText(doc, C.muted);
+        doc.text(card.signal, x + 5, y + 34);
+        drawStatusPill(doc, x + 5, y + 38, metricW - 10, 9, card.detail, card.tone);
+      } else {
+        drawStatusPill(doc, x + 5, y + 36, metricW - 10, 10, card.signal, card.tone);
       }
     });
-    const forecast = data.financialOverview.forecastYearEnd;
-    setFill(doc, COLORS.rowAlt);
-    doc.roundedRect(MARGIN, 48, CONTENT_W, 12, 2, 2, "F");
+
+    // Year-End Forecast panel
+    setFill(doc, C.white);
+    setDraw(doc, C.line);
+    doc.roundedRect(MARGIN, 82, CONTENT_W, 66, 1.5, 1.5, "FD");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    setText(doc, COLORS.white);
-    doc.text(
-      `Forecast year end — Revenue ${formatAbhiBoardGbp(forecast.revenue, true)} · Surplus ${formatAbhiBoardGbp(forecast.surplus, true)} · Cash ${formatAbhiBoardGbp(forecast.cash, true)}`,
-      MARGIN + 4,
-      55,
-    );
-    drawBarChart(
-      doc,
-      MARGIN,
-      66,
-      130,
-      38,
-      ["Rev Budget", "Rev Actual", "Surp Budget", "Surp Actual"],
-      [
-        data.financialOverview.revenueVsBudget.budget ?? 0,
-        data.financialOverview.revenueVsBudget.actual,
-        data.financialOverview.operatingSurplus.budget ?? 0,
-        data.financialOverview.operatingSurplus.actual,
-      ],
-      "Revenue & surplus",
-    );
-    drawSparkline(doc, 150, 66, 133, 38, data.balanceSheet.cashTrend, "Cash trend");
+    doc.setFontSize(13);
+    setText(doc, C.navy);
+    doc.text("Year-End Forecast", MARGIN + 6, 94);
+    drawStatusPill(doc, SLIDE_W - MARGIN - 48, 86, 44, 8, "Confidence: Medium", "amber");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    setText(doc, C.muted);
+    doc.text("Based on current trading assumptions", SLIDE_W - MARGIN - 4, 99, {
+      align: "right",
+    });
+
+    const forecastCards = [
+      { label: "Revenue", value: formatAbhiBoardGbp(fc.revenue, true) },
+      { label: "Operating Result", value: formatAbhiBoardGbp(fc.surplus, true) },
+      { label: "Cash", value: formatAbhiBoardGbp(fc.cash, true) },
+    ];
+    const fcW = (CONTENT_W - 20) / 3;
+    forecastCards.forEach((card, index) => {
+      const x = MARGIN + 6 + index * (fcW + 4);
+      setFill(doc, C.soft);
+      doc.roundedRect(x, 105, fcW, 35, 1.2, 1.2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      setText(doc, C.muted);
+      doc.text(card.label, x + 4, 116);
+      doc.setFontSize(18);
+      setText(doc, C.navy);
+      doc.text(card.value, x + 4, 132);
+    });
     drawFooter(doc, data.packName, 6);
   }
 
-  // Slide 7 — Profit & Loss
+  // Slide 7 — P&L
   {
     addSlide(doc);
-    drawHeader(doc, "Profit & Loss", "YTD actual vs budget");
-    let y = 24;
+    drawHeader(doc, "Profit & Loss", logoDataUrl, "YTD actual vs budget");
+    const colX = [MARGIN, MARGIN + 95, MARGIN + 135, MARGIN + 175, MARGIN + 220];
+    let y = 28;
+    setFill(doc, C.navy);
+    doc.rect(MARGIN, y - 4, CONTENT_W, 8, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    setText(doc, COLORS.white);
-    doc.text("Line", MARGIN, y);
-    doc.text("Actual", MARGIN + 78, y);
-    doc.text("Budget", MARGIN + 108, y);
-    doc.text("Variance", MARGIN + 138, y);
-    doc.text("Prior Year", MARGIN + 168, y);
-    y += 4;
-    for (const row of data.pnl.rows) {
+    doc.setFontSize(9);
+    setText(doc, C.white);
+    ["Line", "Actual", "Budget", "Variance", "Prior Year"].forEach((h, i) => doc.text(h, colX[i]!, y));
+    y += 8;
+    for (const [index, row] of data.pnl.rows.entries()) {
+      const rowH = row.emphasis ? 9 : 8;
+      setFill(doc, row.emphasis ? C.decision : index % 2 ? C.soft : C.white);
+      doc.rect(MARGIN, y - 3.5, CONTENT_W, rowH, "F");
       doc.setFont("helvetica", row.emphasis ? "bold" : "normal");
-      doc.setFontSize(row.emphasis ? 7.5 : 7);
-      setText(doc, COLORS.light);
-      doc.text(row.line, MARGIN, y);
-      setText(doc, COLORS.white);
-      doc.text(formatAbhiBoardGbp(row.actual, true), MARGIN + 78, y);
-      setText(doc, COLORS.muted);
-      doc.text(formatAbhiBoardGbp(row.budget, true), MARGIN + 108, y);
-      setText(doc, COLORS.light);
-      doc.text(varianceText(row.variance), MARGIN + 138, y);
-      doc.text(formatAbhiBoardGbp(row.priorYear, true), MARGIN + 168, y);
-      y += row.emphasis ? 6 : 5;
+      doc.setFontSize(10);
+      setText(doc, C.text);
+      doc.text(row.line, colX[0]!, y + 1);
+      setText(doc, C.navy);
+      doc.text(formatAbhiBoardGbp(row.actual, true), colX[1]!, y + 1);
+      setText(doc, C.muted);
+      doc.text(formatAbhiBoardGbp(row.budget, true), colX[2]!, y + 1);
+      setText(doc, row.variance < 0 ? C.subtleRed : C.green);
+      doc.setFont("helvetica", "bold");
+      doc.text(varianceText(row.variance), colX[3]!, y + 1);
+      doc.setFont("helvetica", "normal");
+      setText(doc, C.muted);
+      doc.text(formatAbhiBoardGbp(row.priorYear, true), colX[4]!, y + 1);
+      y += rowH;
     }
-    setFill(doc, COLORS.rowAlt);
-    doc.roundedRect(MARGIN, 118, CONTENT_W, 22, 2, 2, "F");
+    setFill(doc, C.white);
+    setDraw(doc, C.line);
+    doc.roundedRect(MARGIN, 125, CONTENT_W, 28, 1.5, 1.5, "FD");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    setText(doc, COLORS.amber);
-    doc.text("Variance commentary", MARGIN + 3, 124);
-    drawBullets(doc, data.pnl.commentary, MARGIN + 3, 128, CONTENT_W - 6, 3);
+    doc.setFontSize(9);
+    setText(doc, C.navy);
+    doc.text("Variance commentary", MARGIN + 3, 132);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    setText(doc, C.text);
+    data.pnl.commentary.forEach((line, index) => {
+      doc.text(`•  ${line}`, MARGIN + 3, 138 + index * 4.5);
+    });
     drawFooter(doc, data.packName, 7);
   }
 
-  // Slide 8 — Balance Sheet & Cash
+  // Slide 8 — Balance Sheet & Cash (visual cash story)
   {
     addSlide(doc);
-    drawHeader(doc, "Balance Sheet & Cash", "Summary position and liquidity");
-    drawMiniTable(doc, MARGIN, 24, 70, [
-      { left: "Assets", right: formatAbhiBoardGbp(data.balanceSheet.assets, true) },
-      { left: "Liabilities", right: formatAbhiBoardGbp(data.balanceSheet.liabilities, true) },
-      { left: "Net assets", right: formatAbhiBoardGbp(data.balanceSheet.netAssets, true) },
-    ]);
-    drawMiniTable(doc, MARGIN, 58, 70, [
-      { left: "Debtors", right: formatAbhiBoardGbp(data.balanceSheet.debtors, true) },
-      { left: "Creditors", right: formatAbhiBoardGbp(data.balanceSheet.creditors, true) },
+    drawHeader(doc, "Balance Sheet & Cash", logoDataUrl, "Cash position at a glance");
+
+    const position = [
+      { label: "Assets", value: data.balanceSheet.assets },
+      { label: "Liabilities", value: data.balanceSheet.liabilities },
+      { label: "Net Assets", value: data.balanceSheet.netAssets },
+    ];
+    const tileW = (CONTENT_W - 8) / 3;
+    position.forEach((item, index) => {
+      const x = MARGIN + index * (tileW + 4);
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(x, 24, tileW, 24, 1.5, 1.5, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      setText(doc, C.muted);
+      doc.text(item.label, x + 4, 33);
+      doc.setFontSize(16);
+      setText(doc, C.navy);
+      doc.text(formatAbhiBoardGbp(item.value, true), x + 4, 43);
+    });
+
+    // Left navy cash panel
+    const cashPanelW = 110;
+    setFill(doc, C.navy);
+    doc.roundedRect(MARGIN, 54, cashPanelW, 94, 2, 2, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    setText(doc, C.white);
+    doc.text("CURRENT CASH", MARGIN + cashPanelW / 2, 68, { align: "center" });
+    doc.setFontSize(28);
+    doc.text(
+      formatAbhiBoardGbp(data.financialOverview.cashPosition.actual, true),
+      MARGIN + cashPanelW / 2,
+      90,
+      { align: "center" },
+    );
+    drawStatusPill(doc, MARGIN + 28, 100, 54, 10, "Liquidity: GREEN", "green");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    setText(doc, C.white);
+    doc.text("No short-term funding pressure", MARGIN + cashPanelW / 2, 120, { align: "center" });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(
+      `Expected Year End Cash  ${formatAbhiBoardGbp(data.balanceSheet.cashForecast, true)}`,
+      MARGIN + cashPanelW / 2,
+      136,
+      { align: "center" },
+    );
+
+    // Right supporting indicators
+    const rightX = MARGIN + cashPanelW + 6;
+    const rightW = CONTENT_W - cashPanelW - 6;
+    const support = [
       {
-        left: "Cash forecast (FY)",
-        right: formatAbhiBoardGbp(data.balanceSheet.cashForecast, true),
+        label: "Net Cash Movement This Month",
+        value: `+${formatAbhiBoardGbp(data.balanceSheet.cashMovementMom, true)}`,
+        tone: "green" as const,
       },
-    ], "Cash & working capital");
-    drawSparkline(doc, 92, 24, 191, 70, data.balanceSheet.cashTrend, "Cash trend & forecast trajectory");
+      {
+        label: "Expected Year End Cash",
+        value: formatAbhiBoardGbp(data.balanceSheet.cashForecast, true),
+        tone: "navy" as const,
+      },
+      { label: "Liquidity Rating", value: "GREEN", tone: "green" as const },
+    ];
+    support.forEach((item, index) => {
+      const y = 54 + index * 16;
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(rightX, y, rightW, 14, 1.2, 1.2, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      setText(doc, C.muted);
+      doc.text(item.label, rightX + 5, y + 9);
+      doc.setFontSize(12);
+      setText(doc, item.tone === "green" ? C.green : C.navy);
+      doc.text(item.value, rightX + rightW - 5, y + 9, { align: "right" });
+    });
+
+    // Cash drivers — positive / negative panels
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    setText(doc, C.navy);
+    doc.text("Cash Drivers", rightX, 105);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    setText(doc, C.muted);
+    const cashNarrative = doc.splitTextToSize(data.balanceSheet.cashDrivers, rightW);
+    doc.text(cashNarrative.slice(0, 2), rightX, 110);
+    const driverW = (rightW - 4) / 2;
+    const driverY = 116;
+    const driverH = 34;
+
+    setFill(doc, C.white);
+    setDraw(doc, C.line);
+    doc.roundedRect(rightX, driverY, driverW, driverH, 1.2, 1.2, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    setText(doc, C.green);
+    doc.text("Positive Drivers", rightX + 4, driverY + 8);
+    data.balanceSheet.positiveCashDrivers.slice(0, 3).forEach((driver, index) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      setText(doc, C.text);
+      doc.text(
+        `${driver.label}  +${formatAbhiBoardGbp(driver.amount, true)}`,
+        rightX + 4,
+        driverY + 16 + index * 6,
+      );
+    });
+
+    const negX = rightX + driverW + 4;
+    setFill(doc, C.white);
+    setDraw(doc, C.line);
+    doc.roundedRect(negX, driverY, driverW, driverH, 1.2, 1.2, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    setText(doc, C.subtleRed);
+    doc.text("Negative Drivers", negX + 4, driverY + 8);
+    data.balanceSheet.negativeCashDrivers.slice(0, 3).forEach((driver, index) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      setText(doc, C.text);
+      doc.text(
+        `${driver.label}  -${formatAbhiBoardGbp(driver.amount, true)}`,
+        negX + 4,
+        driverY + 16 + index * 6,
+      );
+    });
     drawFooter(doc, data.packName, 8);
   }
 
-  // Slide 9 — Commercial Performance
+  // Slide 9 — Commercial Performance (growth / pipeline visuals)
   {
     addSlide(doc);
-    drawHeader(doc, "Commercial Performance", "Membership, sponsorship, and events");
-    const membership = data.commercial.membership;
-    drawMiniTable(doc, MARGIN, 24, 62, [
-      { left: "New members", right: String(membership.new) },
-      { left: "Lost members", right: String(membership.lost) },
-      { left: "Net growth", right: String(membership.net) },
-      { left: "Total members", right: String(membership.total) },
-    ], "Membership");
-    drawBarChart(doc, MARGIN, 58, 62, 34, ["New", "Lost", "Net"], [membership.new, membership.lost, membership.net], "Membership movement");
+    drawHeader(doc, "Commercial Performance", logoDataUrl, "Growth · Pipeline · Momentum");
+    const colW = (CONTENT_W - 8) / 3;
+    const colH = 124;
+    const colY = 24;
 
-    const sponsorship = data.commercial.sponsorship;
-    drawBarChart(
-      doc,
-      82,
-      24,
-      70,
-      68,
-      ["Budget", "Actual", "Forecast"],
-      [sponsorship.budget, sponsorship.actual, sponsorship.forecast],
-      "Sponsorship (£)",
-    );
+    // Membership
+    {
+      const x = MARGIN;
+      const m = data.commercial.membership;
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(x, colY, colW, colH, 1.5, 1.5, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      setText(doc, C.navy);
+      doc.text("MEMBERSHIP", x + 5, colY + 12);
+      doc.setFontSize(32);
+      doc.text(String(m.total), x + 5, colY + 36);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      setText(doc, C.muted);
+      doc.text("Active members", x + 5, colY + 46);
+      drawStatusPill(doc, x + 5, colY + 54, colW - 10, 10, "+18 YTD growth", "green");
+      drawStatusPill(doc, x + 5, colY + 68, colW - 10, 10, "11 at risk", "amber");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      setText(doc, C.muted);
+      doc.text("Net this quarter", x + 5, colY + 90);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      setText(doc, C.green);
+      doc.text(`+${m.net}`, x + 5, colY + 104);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      setText(doc, C.text);
+      doc.text(`${m.new} new  ·  ${m.lost} lost`, x + 5, colY + 114);
+    }
 
-    const events = data.commercial.events;
-    drawMiniTable(doc, 162, 24, 62, [
-      { left: "Revenue", right: formatAbhiBoardGbp(events.revenue, true) },
-      { left: "Registrations", right: events.registrations.toLocaleString("en-GB") },
-      { left: "Forecast", right: formatAbhiBoardGbp(events.forecast, true) },
-    ], "Events");
-    drawBarChart(
-      doc,
-      162,
-      58,
-      62,
-      34,
-      ["Actual", "Forecast"],
-      [events.revenue, events.forecast],
-      "Events revenue",
-    );
+    // Sponsorship
+    {
+      const x = MARGIN + colW + 4;
+      const s = data.commercial.sponsorship;
+      const progress = s.actual / s.budget;
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(x, colY, colW, colH, 1.5, 1.5, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      setText(doc, C.navy);
+      doc.text("SPONSORSHIP", x + 5, colY + 12);
+      doc.setFontSize(26);
+      doc.text(formatAbhiBoardGbp(s.actual, true), x + 5, colY + 34);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      setText(doc, C.muted);
+      doc.text(`of ${formatAbhiBoardGbp(s.budget, true)} target`, x + 5, colY + 44);
+      drawProgressBar(doc, x + 5, colY + 52, colW - 10, 6, progress, C.amber);
+      doc.setFontSize(9);
+      setText(doc, C.text);
+      doc.text(`${Math.round(progress * 100)}% of target`, x + 5, colY + 66);
+      drawStatusPill(
+        doc,
+        x + 5,
+        colY + 72,
+        colW - 10,
+        10,
+        `GAP  ${formatAbhiBoardGbp(s.actual - s.budget, true)}`,
+        "red",
+      );
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      setText(doc, C.muted);
+      doc.text("Forecast", x + 5, colY + 94);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      setText(doc, C.navy);
+      doc.text(formatAbhiBoardGbp(s.forecast, true), x + 5, colY + 108);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      setText(doc, C.muted);
+      doc.text("if MedCore & Helix close", x + 5, colY + 117);
+    }
+
+    // Events / WHX
+    {
+      const x = MARGIN + 2 * (colW + 4);
+      const secured = 28;
+      const target = 32;
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(x, colY, colW, colH, 1.5, 1.5, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      setText(doc, C.navy);
+      doc.text("EVENTS / WHX", x + 5, colY + 12);
+      doc.setFontSize(28);
+      doc.text(String(secured), x + 5, colY + 32);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      setText(doc, C.muted);
+      doc.text(`of ${target} target commitments`, x + 5, colY + 40);
+      drawProgressBar(doc, x + 5, colY + 46, colW - 10, 5, secured / target, C.navy);
+
+      const whxStats = [
+        { label: "Current commitments", value: String(secured) },
+        { label: "Remaining to target", value: String(target - secured) },
+        { label: "Commercial status", value: "On track" },
+        { label: "Delivery status", value: "Watch — deposit due" },
+      ];
+      whxStats.forEach((stat, index) => {
+        const sy = colY + 56 + index * 10;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        setText(doc, C.muted);
+        doc.text(stat.label, x + 5, sy);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        setText(doc, C.text);
+        doc.text(stat.value, x + 5, sy + 5);
+      });
+
+      drawStatusPill(doc, x + 5, colY + 98, colW - 10, 9, "Programme status: AMBER", "amber");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      setText(doc, C.muted);
+      doc.text(
+        `Events revenue YTD  ${formatAbhiBoardGbp(data.commercial.events.revenue, true)}`,
+        x + 5,
+        colY + 116,
+      );
+    }
     drawFooter(doc, data.packName, 9);
   }
 
-  // Slide 10 — Team & Organisation
+  // Slide 10 — Team
   {
     addSlide(doc);
-    drawHeader(doc, "Team & Organisation", "Headcount and recent changes");
-    setFill(doc, COLORS.accent);
-    doc.roundedRect(MARGIN, 24, 36, 18, 2, 2, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    setText(doc, COLORS.light);
-    doc.text("Headcount", MARGIN + 3, 30);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    setText(doc, COLORS.white);
-    doc.text(String(data.team.headcount), MARGIN + 3, 38);
-    setFill(doc, COLORS.rowAlt);
-    doc.roundedRect(56, 24, 36, 18, 2, 2, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    setText(doc, COLORS.light);
-    doc.text("Open roles", 59, 30);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    setText(doc, COLORS.amber);
-    doc.text(String(data.team.openRoles), 59, 38);
+    drawHeader(doc, "Team & Organisation", logoDataUrl, "Headcount, vacancies and recent changes");
+    [
+      { label: "Headcount", value: String(data.team.headcount), x: MARGIN, color: C.navy },
+      { label: "Open roles", value: String(data.team.openRoles), x: MARGIN + 70, color: C.amber },
+    ].forEach((tile) => {
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(tile.x, 26, 64, 24, 1.5, 1.5, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      setText(doc, C.muted);
+      doc.text(tile.label, tile.x + 4, 34);
+      doc.setFontSize(22);
+      setText(doc, tile.color);
+      doc.text(tile.value, tile.x + 4, 45);
+    });
 
-    let y = 50;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    setText(doc, COLORS.white);
-    doc.text("Recent joiners", MARGIN, y);
-    doc.text("Recent leavers", 150, y);
-    y += 5;
+    doc.setFontSize(11);
+    setText(doc, C.navy);
+    doc.text("Recent joiners", MARGIN, 62);
+    doc.text("Recent leavers", 155, 62);
+    let y = 68;
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
+    doc.setFontSize(10);
     for (const person of data.team.joiners) {
-      setText(doc, COLORS.light);
+      setText(doc, C.text);
       doc.text(`${person.name} — ${person.role} (${person.startDate})`, MARGIN, y);
-      y += 4.5;
+      y += 7;
     }
-    y = 55;
+    y = 68;
     for (const person of data.team.leavers) {
-      setText(doc, COLORS.light);
-      doc.text(`${person.name} — ${person.role} (${person.endDate})`, 150, y);
-      y += 4.5;
+      setText(doc, C.text);
+      doc.text(`${person.name} — ${person.role} (${person.endDate})`, 155, y);
+      y += 7;
     }
-    setFill(doc, COLORS.rowAlt);
-    doc.roundedRect(MARGIN, 72, CONTENT_W, 24, 2, 2, "F");
+
+    setFill(doc, C.white);
+    setDraw(doc, C.line);
+    doc.roundedRect(MARGIN, 95, CONTENT_W, 50, 1.5, 1.5, "FD");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    setText(doc, COLORS.amber);
-    doc.text("Organisation notes", MARGIN + 3, 78);
+    doc.setFontSize(11);
+    setText(doc, C.navy);
+    doc.text("Organisation notes", MARGIN + 4, 104);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    setText(doc, COLORS.light);
-    const notes = doc.splitTextToSize(data.team.notes, CONTENT_W - 6);
-    doc.text(notes, MARGIN + 3, 83);
+    doc.setFontSize(10);
+    setText(doc, C.text);
+    const notes = doc.splitTextToSize(data.team.notes, CONTENT_W - 8);
+    doc.text(notes, MARGIN + 4, 112);
     drawFooter(doc, data.packName, 10);
   }
 
-  // Slide 11 — Strategic Discussion & AOB
+  // Slide 11 — Strategic Discussion (decision-first)
   {
     addSlide(doc);
-    drawHeader(doc, "Strategic Discussion & AOB", "Board topics requiring decision");
-    let y = 24;
-    for (const topic of data.strategicTopics) {
-      setFill(doc, COLORS.rowAlt);
-      doc.roundedRect(MARGIN, y - 3, CONTENT_W, 16, 2, 2, "F");
+    drawHeader(doc, "Strategic Discussion & AOB", logoDataUrl, "Decisions required");
+    const cardW = (CONTENT_W - 6) / 2;
+    const cardH = 58;
+    data.strategicTopics.forEach((topic, index) => {
+      const col = index % 2;
+      const row = Math.floor(index / 2);
+      const x = MARGIN + col * (cardW + 6);
+      const y = 24 + row * (cardH + 3);
+      const priorityTone: PillTone =
+        topic.priority === "HIGH" ? "red" : topic.priority === "MEDIUM" ? "amber" : "green";
+
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(x, y, cardW, cardH, 1.5, 1.5, "FD");
+
+      drawStatusPill(doc, x + cardW - 28, y + 3, 24, 7, topic.priority, priorityTone);
+
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      setText(doc, COLORS.white);
-      doc.text(topic.issue, MARGIN + 3, y + 1);
+      doc.setFontSize(7);
+      setText(doc, C.muted);
+      doc.text("ISSUE", x + 4, y + 8);
+      doc.setFontSize(9);
+      setText(doc, C.navy);
+      const issue = doc.splitTextToSize(topic.issue, cardW - 36);
+      doc.text(issue.slice(0, 1), x + 4, y + 14);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      setText(doc, C.muted);
+      doc.text("WHY IT MATTERS", x + 4, y + 21);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(6.5);
-      setText(doc, COLORS.muted);
-      const evidence = doc.splitTextToSize(`Evidence: ${topic.evidence}`, CONTENT_W - 6);
-      doc.text(evidence[0] ?? "", MARGIN + 3, y + 5.5);
-      setText(doc, COLORS.light);
-      const recommendation = doc.splitTextToSize(`Recommendation: ${topic.recommendation}`, CONTENT_W - 6);
-      doc.text(recommendation[0] ?? "", MARGIN + 3, y + 10);
-      y += 18;
-    }
+      doc.setFontSize(8);
+      setText(doc, C.text);
+      const why = doc.splitTextToSize(topic.whyItMatters, cardW - 10);
+      doc.text(why.slice(0, 1), x + 4, y + 27);
+
+      // Decision panel — most prominent
+      setFill(doc, C.navy);
+      doc.roundedRect(x + 3, y + 31, cardW - 6, 15, 1.2, 1.2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      setText(doc, C.white);
+      doc.text("DECISION REQUIRED", x + 6, y + 36);
+      doc.setFontSize(9);
+      const decision = doc.splitTextToSize(topic.decisionRequired, cardW - 14);
+      doc.text(decision.slice(0, 1), x + 6, y + 43);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      setText(doc, C.muted);
+      doc.text("IMPACT", x + 4, y + 52);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      setText(doc, C.text);
+      const impact = doc.splitTextToSize(topic.impact, cardW - 28);
+      doc.text(impact.slice(0, 1), x + 22, y + 52);
+    });
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    setText(doc, COLORS.muted);
-    doc.text(`AOB: ${data.aob}`, MARGIN, 118);
+    doc.setFontSize(9);
+    setText(doc, C.muted);
+    const aob = doc.splitTextToSize(`AOB: ${data.aob}`, CONTENT_W);
+    doc.text(aob.slice(0, 1), MARGIN, 150);
     drawFooter(doc, data.packName, 11);
   }
 

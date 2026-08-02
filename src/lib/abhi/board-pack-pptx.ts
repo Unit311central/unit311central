@@ -1,177 +1,68 @@
 import pptxgen from "pptxgenjs";
 
 import {
-  abhiActionStatusColor,
-  abhiKpiTrendArrow,
+  ABHI_LOGO_INTRINSIC_HEIGHT,
+  ABHI_LOGO_INTRINSIC_WIDTH,
+} from "@/lib/abhi-surface";
+import {
   abhiRiskRatingBand,
   abhiRiskScore,
   abhiRiskTrendLabel,
   abhiSortedBoardActions,
+  formatAbhiBoardBudgetStatus,
+  formatAbhiBoardBudgetVarianceNarrative,
   formatAbhiBoardDate,
   formatAbhiBoardGbp,
+  formatAbhiBoardKpiValue,
+  formatAbhiBoardKpiVariance,
   type AbhiActionStatus,
+  type AbhiBoardKpi,
   type AbhiBoardPackData,
   type AbhiBoardRisk,
+  type AbhiKpiIndicator,
 } from "@/lib/abhi/board-pack-model";
 
-const COLORS = {
-  navy: "0B1F3A",
-  accent: "1B4F8A",
-  red: "C8102E",
+/** ABHI board-paper palette — navy / white / light grey; red only for attention. */
+const C = {
+  navy: "002B5C",
+  navySoft: "0E3A6B",
   white: "FFFFFF",
-  light: "E8EEF7",
-  muted: "94A3B8",
-  amber: "F59E0B",
-  green: "10B981",
-  rowAlt: "122A47",
-  card: "0F2744",
-  warnBg: "3A1F1F",
-  warnBorder: "C8102E",
-  decisionBg: "132F52",
-  chipGreen: "065F46",
-  chipAmber: "78350F",
-  chipRed: "7F1D1D",
-  heatLow: "1A3A2A",
-  heatMed: "3A2F14",
-  heatHigh: "3A1A1A",
+  page: "F5F7FA",
+  soft: "EEF1F5",
+  line: "D5DCE6",
+  text: "1B2430",
+  muted: "5B6577",
+  subtleRed: "A6192E",
+  green: "0F766E",
+  amber: "B45309",
+  chipGreen: "D1FAE5",
+  chipAmber: "FEF3C7",
+  chipRed: "FEE2E2",
+  chipGreenText: "065F46",
+  chipAmberText: "92400E",
+  chipRedText: "991B1B",
+  decision: "E8EEF6",
 } as const;
 
 const SLIDE_W = 13.33;
-const MARGIN = 0.55;
+const MARGIN = 0.5;
+const CONTENT_TOP = 1.05;
+const FOOTER_Y = 7.05;
 
 export function abhiBoardPackPptxFileName(meetingDate: string): string {
   return `Board Pack - ${meetingDate}.pptx`;
 }
 
-function riskRatingColor(risk: AbhiBoardRisk): string {
-  const band = abhiRiskRatingBand(risk);
-  if (band === "High") return COLORS.red;
-  if (band === "Medium") return COLORS.amber;
-  return COLORS.green;
+function actionChip(status: AbhiActionStatus): { fill: string; text: string } {
+  if (status === "Completed") return { fill: C.chipGreen, text: C.chipGreenText };
+  if (status === "Underway") return { fill: C.chipAmber, text: C.chipAmberText };
+  return { fill: C.chipRed, text: C.chipRedText };
 }
 
-function actionStatusFill(status: AbhiActionStatus): string {
-  const tone = abhiActionStatusColor(status);
-  if (tone === "green") return COLORS.chipGreen;
-  if (tone === "amber") return COLORS.chipAmber;
-  return COLORS.chipRed;
-}
-
-function impactLikelihoodLabel(value: "H" | "M" | "L"): string {
-  if (value === "H") return "High";
-  if (value === "M") return "Medium";
-  return "Low";
-}
-
-function hlmToScore(value: "H" | "M" | "L"): number {
-  if (value === "H") return 3;
-  if (value === "M") return 2;
-  return 1;
-}
-
-function orgStatusColor(status: AbhiBoardPackData["orgStatus"]): string {
-  if (status === "Green") return COLORS.green;
-  if (status === "Red") return COLORS.red;
-  return COLORS.amber;
-}
-
-function paintSlideBackground(slide: pptxgen.Slide) {
-  slide.background = { color: COLORS.navy };
-}
-
-function addHeaderBar(slide: pptxgen.Slide, title: string, subtitle?: string) {
-  slide.addShape("rect" as pptxgen.SHAPE_NAME, {
-    x: 0,
-    y: 0,
-    w: SLIDE_W,
-    h: 0.08,
-    fill: { color: COLORS.red },
-    line: { color: COLORS.red, width: 0 },
-  });
-  slide.addText(title, {
-    x: MARGIN,
-    y: 0.35,
-    w: SLIDE_W - MARGIN * 2,
-    h: 0.55,
-    fontSize: 22,
-    bold: true,
-    color: COLORS.white,
-    fontFace: "Calibri",
-  });
-  if (subtitle) {
-    slide.addText(subtitle, {
-      x: MARGIN,
-      y: 0.92,
-      w: SLIDE_W - MARGIN * 2,
-      h: 0.35,
-      fontSize: 11,
-      color: COLORS.muted,
-      fontFace: "Calibri",
-    });
-  }
-}
-
-function addFooter(
-  slide: pptxgen.Slide,
-  pptx: pptxgen,
-  logoDataUrl: string | null,
-  packName: string,
-  slideNumber: number,
-) {
-  slide.addShape("rect" as pptxgen.SHAPE_NAME, {
-    x: 0,
-    y: 7.05,
-    w: SLIDE_W,
-    h: 0.45,
-    fill: { color: COLORS.accent },
-    line: { color: COLORS.accent, width: 0 },
-  });
-  if (logoDataUrl) {
-    slide.addImage({
-      data: logoDataUrl,
-      x: MARGIN,
-      y: 7.1,
-      w: 0.55,
-      h: 0.35,
-    });
-  }
-  slide.addText(packName, {
-    x: logoDataUrl ? 1.25 : MARGIN,
-    y: 7.18,
-    w: 9,
-    h: 0.25,
-    fontSize: 8,
-    color: COLORS.light,
-    fontFace: "Calibri",
-  });
-  slide.addText(`Confidential  ·  Slide ${slideNumber}`, {
-    x: SLIDE_W - 2.2,
-    y: 7.18,
-    w: 1.6,
-    h: 0.25,
-    fontSize: 8,
-    color: COLORS.light,
-    align: "right",
-    fontFace: "Calibri",
-  });
-}
-
-function bulletBlock(
-  items: string[],
-  symbol = "•",
-): { text: string; options: pptxgen.TextPropsOptions }[] {
-  return items.flatMap((item, index) => [
-    {
-      text: `${symbol} ${item}`,
-      options: {
-        fontSize: 10,
-        color: COLORS.light,
-        fontFace: "Calibri",
-        breakLine: index < items.length - 1,
-        paraSpaceAfter: 4,
-      },
-    },
-  ]);
+function indicatorChip(indicator: AbhiKpiIndicator): { fill: string; text: string } {
+  if (indicator === "On track") return { fill: C.chipGreen, text: C.chipGreenText };
+  if (indicator === "Watch") return { fill: C.chipAmber, text: C.chipAmberText };
+  return { fill: C.chipRed, text: C.chipRedText };
 }
 
 function varianceText(value: number): string {
@@ -179,1356 +70,1721 @@ function varianceText(value: number): string {
   return `${prefix}${formatAbhiBoardGbp(value, true)}`;
 }
 
+function paintSlide(slide: pptxgen.Slide) {
+  slide.background = { color: C.page };
+}
+
+/** Transparent PNG wordmark — consistent size, correct aspect. */
+const LOGO_W = 1.35;
+const LOGO_H = LOGO_W * (ABHI_LOGO_INTRINSIC_HEIGHT / ABHI_LOGO_INTRINSIC_WIDTH);
+
+function addLogo(slide: pptxgen.Slide, logoDataUrl: string | null) {
+  if (!logoDataUrl) return;
+  slide.addImage({
+    data: logoDataUrl,
+    x: SLIDE_W - MARGIN - LOGO_W,
+    y: 0.28,
+    w: LOGO_W,
+    h: LOGO_H,
+  });
+}
+
+function boardAttentionForRisk(risk: AbhiBoardRisk): string {
+  if (risk.flags.overdueMitigation) return "Mitigation overdue — escalate this cycle";
+  if (risk.flags.increased || risk.trend === "↑") return "Increasing — board oversight required";
+  if (risk.flags.new) return "New risk — confirm ownership and response";
+  if (abhiRiskRatingBand(risk) === "High") return "High exposure — monitor closely";
+  if (abhiRiskRatingBand(risk) === "Medium") return "Watch — review at next meeting";
+  return "Monitor";
+}
+
+function addProgressBar(
+  slide: pptxgen.Slide,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  ratio: number,
+  fillColor: string,
+) {
+  const clamped = Math.max(0, Math.min(1, ratio));
+  slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    x,
+    y,
+    w,
+    h,
+    fill: { color: C.soft },
+    line: { color: C.soft, width: 0 },
+    rectRadius: 0.08,
+  });
+  if (clamped > 0.02) {
+    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      x,
+      y,
+      w: Math.max(0.12, w * clamped),
+      h,
+      fill: { color: fillColor },
+      line: { color: fillColor, width: 0 },
+      rectRadius: 0.08,
+    });
+  }
+}
+
+function addStatusPill(
+  slide: pptxgen.Slide,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  label: string,
+  tone: "green" | "amber" | "red" | "navy",
+) {
+  const fill =
+    tone === "green"
+      ? C.chipGreen
+      : tone === "amber"
+        ? C.chipAmber
+        : tone === "red"
+          ? C.chipRed
+          : C.decision;
+  const text =
+    tone === "green"
+      ? C.chipGreenText
+      : tone === "amber"
+        ? C.chipAmberText
+        : tone === "red"
+          ? C.chipRedText
+          : C.navy;
+  slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    x,
+    y,
+    w,
+    h,
+    fill: { color: fill },
+    line: { color: fill, width: 0 },
+    rectRadius: 0.1,
+  });
+  slide.addText(label, {
+    x,
+    y,
+    w,
+    h,
+    fontSize: 11,
+    bold: true,
+    color: text,
+    align: "center",
+    valign: "middle",
+    fontFace: "Calibri",
+  });
+}
+
+function addHeader(
+  slide: pptxgen.Slide,
+  title: string,
+  opts?: { subtitle?: string; logoDataUrl?: string | null; titleWidth?: number },
+) {
+  addLogo(slide, opts?.logoDataUrl ?? null);
+  slide.addText(title, {
+    x: MARGIN,
+    y: 0.28,
+    w: opts?.titleWidth ?? SLIDE_W - MARGIN * 2 - 1.4,
+    h: 0.45,
+    fontSize: 26,
+    bold: true,
+    color: C.navy,
+    fontFace: "Calibri",
+  });
+  if (opts?.subtitle) {
+    slide.addText(opts.subtitle, {
+      x: MARGIN,
+      y: 0.72,
+      w: SLIDE_W - MARGIN * 2 - 1.4,
+      h: 0.28,
+      fontSize: 12,
+      color: C.muted,
+      fontFace: "Calibri",
+    });
+  }
+  slide.addShape("rect" as pptxgen.SHAPE_NAME, {
+    x: MARGIN,
+    y: 0.95,
+    w: SLIDE_W - MARGIN * 2,
+    h: 0.015,
+    fill: { color: C.line },
+    line: { color: C.line, width: 0 },
+  });
+}
+
+function addFooter(slide: pptxgen.Slide, packName: string, slideNumber: number) {
+  slide.addShape("rect" as pptxgen.SHAPE_NAME, {
+    x: 0,
+    y: FOOTER_Y,
+    w: SLIDE_W,
+    h: 0.45,
+    fill: { color: C.navy },
+    line: { color: C.navy, width: 0 },
+  });
+  slide.addText(packName, {
+    x: MARGIN,
+    y: 7.16,
+    w: 8,
+    h: 0.24,
+    fontSize: 10,
+    color: C.white,
+    fontFace: "Calibri",
+  });
+  slide.addText(`Confidential  ·  Slide ${slideNumber}`, {
+    x: SLIDE_W - 3.2,
+    y: 7.16,
+    w: 2.7,
+    h: 0.24,
+    fontSize: 10,
+    color: C.white,
+    align: "right",
+    fontFace: "Calibri",
+  });
+}
+
+function sectionLabel(slide: pptxgen.Slide, text: string, x: number, y: number, w: number, color = C.navy) {
+  slide.addText(text, {
+    x,
+    y,
+    w,
+    h: 0.32,
+    fontSize: 14,
+    bold: true,
+    color,
+    fontFace: "Calibri",
+  });
+}
+
 export async function buildAbhiBoardPackPptx(
   data: AbhiBoardPackData,
   logoDataUrl: string | null,
 ): Promise<Uint8Array> {
+  const { validateAndSanitizeAbhiBoardPackData } = await import(
+    "@/lib/abhi/board-pack-validate"
+  );
+  data = validateAndSanitizeAbhiBoardPackData(data).data;
+
   const pptx = new pptxgen();
   pptx.layout = "LAYOUT_WIDE";
   pptx.author = "Association of British HealthTech Industries";
   pptx.company = "ABHI";
   pptx.title = data.packName;
   pptx.subject = "Board Meeting Pack";
-  pptx.theme = {
-    headFontFace: "Calibri",
-    bodyFontFace: "Calibri",
-  };
+  pptx.theme = { headFontFace: "Calibri", bodyFontFace: "Calibri" };
 
   let slideNumber = 0;
-  const footer = (slide: pptxgen.Slide) => {
+  const finish = (slide: pptxgen.Slide) => {
     slideNumber += 1;
-    addFooter(slide, pptx, logoDataUrl, data.packName, slideNumber);
+    addFooter(slide, data.packName, slideNumber);
   };
 
-  // Slide 1 — Cover
+  // ——— Slide 1 Cover ———
   {
     const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    slide.addShape("rect" as pptxgen.SHAPE_NAME, {
-      x: 0,
-      y: 0,
-      w: SLIDE_W,
-      h: 0.12,
-      fill: { color: COLORS.red },
-      line: { color: COLORS.red, width: 0 },
-    });
+    paintSlide(slide);
     if (logoDataUrl) {
       slide.addImage({
         data: logoDataUrl,
         x: MARGIN,
         y: 0.55,
-        w: 1.6,
-        h: 1.0,
+        w: LOGO_W * 1.45,
+        h: LOGO_H * 1.45,
       });
     }
     slide.addText("Association of British HealthTech Industries", {
       x: MARGIN,
-      y: 1.85,
+      y: 1.9,
       w: 10,
-      h: 0.45,
+      h: 0.35,
       fontSize: 14,
-      color: COLORS.muted,
+      color: C.muted,
       fontFace: "Calibri",
     });
     slide.addText("Board Meeting Pack", {
       x: MARGIN,
-      y: 2.45,
+      y: 2.35,
       w: 11,
-      h: 0.9,
-      fontSize: 36,
+      h: 0.7,
+      fontSize: 40,
       bold: true,
-      color: COLORS.white,
+      color: C.navy,
       fontFace: "Calibri",
     });
     slide.addText(formatAbhiBoardDate(data.meetingDate), {
       x: MARGIN,
-      y: 3.35,
+      y: 3.15,
       w: 8,
-      h: 0.45,
-      fontSize: 16,
-      color: COLORS.light,
+      h: 0.4,
+      fontSize: 18,
+      color: C.text,
       fontFace: "Calibri",
     });
     slide.addText("CONFIDENTIAL", {
       x: MARGIN,
-      y: 3.95,
+      y: 3.65,
       w: 3,
-      h: 0.35,
-      fontSize: 11,
+      h: 0.3,
+      fontSize: 12,
       bold: true,
-      color: COLORS.red,
+      color: C.subtleRed,
       fontFace: "Calibri",
     });
 
     const attendeeRows: pptxgen.TableRow[] = [
       [
-        { text: "Name", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Role", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
+        { text: "Name", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Role", options: { bold: true, color: C.white, fill: { color: C.navy } } },
       ],
       ...data.attendees.map(
-        (person): pptxgen.TableRow => [
-          { text: person.name, options: { color: COLORS.light, fontSize: 10 } },
-          { text: person.role, options: { color: COLORS.muted, fontSize: 10 } },
+        (person, index): pptxgen.TableRow => [
+          {
+            text: person.name,
+            options: {
+              color: C.text,
+              fontSize: 12,
+              fill: { color: index % 2 ? C.soft : C.white },
+            },
+          },
+          {
+            text: person.role,
+            options: {
+              color: C.muted,
+              fontSize: 12,
+              fill: { color: index % 2 ? C.soft : C.white },
+            },
+          },
         ],
       ),
     ];
     slide.addTable(attendeeRows, {
       x: MARGIN,
-      y: 4.55,
-      w: 8.5,
-      colW: [2.8, 5.7],
-      border: { type: "solid", color: COLORS.accent, pt: 0.5 },
-      fontSize: 10,
-      fill: { color: COLORS.navy },
+      y: 4.2,
+      w: 9.5,
+      colW: [3.2, 6.3],
+      border: { type: "solid", color: C.line, pt: 0.5 },
+      fontFace: "Calibri",
+      fontSize: 12,
     });
-    footer(slide);
+    finish(slide);
   }
 
-  // Slide 2 — Executive Summary (board paper layout)
+  // ——— Slide 2 Executive Summary ———
   {
     const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "Executive Summary");
+    paintSlide(slide);
+    addHeader(slide, "Executive Summary", { logoDataUrl, titleWidth: 8.5 });
 
-    const leftX = MARGIN;
-    const leftW = 3.05;
-    const centreX = 3.8;
-    const centreW = 4.55;
-    const rightX = 8.55;
-    const rightW = 4.2;
-    const contentTop = 1.2;
-    const decisionsY = 5.85;
-
-    // LEFT — Agenda
-    slide.addText("Agenda", {
-      x: leftX,
-      y: contentTop,
-      w: leftW,
-      h: 0.28,
-      fontSize: 12,
-      bold: true,
-      color: COLORS.white,
+    // Org status beside heading
+    slide.addText("Organisation Status", {
+      x: 9.2,
+      y: 0.28,
+      w: 1.8,
+      h: 0.22,
+      fontSize: 9,
+      color: C.muted,
       fontFace: "Calibri",
     });
+    const statusColor =
+      data.orgStatus === "Green" ? C.green : data.orgStatus === "Red" ? C.subtleRed : C.amber;
+    slide.addShape("ellipse" as pptxgen.SHAPE_NAME, {
+      x: 9.2,
+      y: 0.54,
+      w: 0.2,
+      h: 0.2,
+      fill: { color: statusColor },
+      line: { color: statusColor, width: 0 },
+    });
+    slide.addText(data.orgStatus, {
+      x: 9.5,
+      y: 0.5,
+      w: 1.2,
+      h: 0.28,
+      fontSize: 13,
+      bold: true,
+      color: C.text,
+      fontFace: "Calibri",
+    });
+
+    const leftX = MARGIN;
+    const leftW = 3.2;
+    const centreX = 3.95;
+    const centreW = 4.4;
+    const rightX = 8.55;
+    const rightW = 4.25;
+    const bodyTop = 1.2;
+    const cardsTop = 1.55;
+
+    sectionLabel(slide, "Agenda", leftX, bodyTop, leftW);
     data.agenda.forEach((item, index) => {
-      const y = contentTop + 0.38 + index * 0.36;
+      const y = bodyTop + 0.4 + index * 0.38;
       slide.addText(
         [
-          {
-            text: `${index + 1}`,
-            options: { bold: true, color: COLORS.red, fontSize: 10, fontFace: "Calibri" },
-          },
-          {
-            text: `  ${item}`,
-            options: { color: COLORS.light, fontSize: 10, fontFace: "Calibri" },
-          },
+          { text: `${index + 1}`, options: { bold: true, color: C.navy, fontSize: 13 } },
+          { text: `   ${item}`, options: { color: C.text, fontSize: 13 } },
         ],
-        { x: leftX, y, w: leftW, h: 0.32, valign: "middle" },
+        { x: leftX, y, w: leftW, h: 0.36, fontFace: "Calibri", valign: "middle" },
       );
     });
 
-    // LEFT — Organisation Status (secondary)
-    const statusY = 5.15;
-    slide.addText("Organisation Status", {
-      x: leftX,
-      y: statusY,
-      w: leftW,
-      h: 0.22,
-      fontSize: 8,
-      color: COLORS.muted,
-      fontFace: "Calibri",
-    });
-    slide.addShape("ellipse" as pptxgen.SHAPE_NAME, {
-      x: leftX,
-      y: statusY + 0.28,
-      w: 0.22,
-      h: 0.22,
-      fill: { color: orgStatusColor(data.orgStatus) },
-      line: { color: orgStatusColor(data.orgStatus), width: 0 },
-    });
-    slide.addText(data.orgStatus, {
-      x: leftX + 0.32,
-      y: statusY + 0.26,
-      w: 1.2,
-      h: 0.26,
-      fontSize: 11,
-      bold: true,
-      color: COLORS.light,
-      fontFace: "Calibri",
-    });
-
-    // CENTRE — Key Highlights (summary cards)
-    slide.addText("Key Highlights", {
-      x: centreX,
-      y: contentTop,
-      w: centreW,
-      h: 0.28,
-      fontSize: 12,
-      bold: true,
-      color: COLORS.green,
-      fontFace: "Calibri",
-    });
+    sectionLabel(slide, "Key Highlights", centreX, cardsTop, centreW, C.green);
     data.highlightCards.forEach((card, index) => {
-      const y = contentTop + 0.38 + index * 0.82;
+      const y = cardsTop + 0.4 + index * 0.72;
       slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
         x: centreX,
         y,
         w: centreW,
-        h: 0.74,
-        fill: { color: COLORS.card },
-        line: { color: COLORS.accent, width: 0.75 },
+        h: 0.64,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
         rectRadius: 0.04,
-      });
-      slide.addShape("rect" as pptxgen.SHAPE_NAME, {
-        x: centreX,
-        y,
-        w: 0.06,
-        h: 0.74,
-        fill: { color: COLORS.green },
-        line: { color: COLORS.green, width: 0 },
       });
       slide.addText(card.title, {
         x: centreX + 0.18,
-        y: y + 0.08,
+        y: y + 0.06,
         w: centreW - 0.3,
-        h: 0.2,
-        fontSize: 9,
+        h: 0.18,
+        fontSize: 10,
+        color: C.muted,
         bold: true,
-        color: COLORS.muted,
         fontFace: "Calibri",
       });
       slide.addText(card.primary, {
         x: centreX + 0.18,
-        y: y + 0.28,
+        y: y + 0.24,
         w: centreW - 0.3,
         h: 0.22,
-        fontSize: 13,
+        fontSize: 15,
         bold: true,
-        color: COLORS.white,
+        color: C.navy,
         fontFace: "Calibri",
       });
       if (card.secondary) {
         slide.addText(card.secondary, {
           x: centreX + 0.18,
-          y: y + 0.5,
+          y: y + 0.44,
           w: centreW - 0.3,
-          h: 0.18,
-          fontSize: 9,
-          color: COLORS.light,
+          h: 0.16,
+          fontSize: 11,
+          color: C.text,
           fontFace: "Calibri",
         });
       }
     });
 
-    // RIGHT — Key Concerns (issue cards)
-    slide.addText("Key Concerns", {
-      x: rightX,
-      y: contentTop,
-      w: rightW,
-      h: 0.28,
-      fontSize: 12,
-      bold: true,
-      color: COLORS.amber,
-      fontFace: "Calibri",
-    });
+    sectionLabel(slide, "Key Concerns", rightX, cardsTop, rightW, C.amber);
     data.concernCards.forEach((card, index) => {
-      const y = contentTop + 0.38 + index * 0.82;
+      const y = cardsTop + 0.4 + index * 0.72;
       slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
         x: rightX,
         y,
         w: rightW,
-        h: 0.74,
-        fill: { color: COLORS.warnBg },
-        line: { color: COLORS.warnBorder, width: 1 },
+        h: 0.64,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
         rectRadius: 0.04,
-      });
-      slide.addShape("rect" as pptxgen.SHAPE_NAME, {
-        x: rightX,
-        y,
-        w: 0.06,
-        h: 0.74,
-        fill: { color: COLORS.amber },
-        line: { color: COLORS.amber, width: 0 },
       });
       slide.addText(card.title, {
         x: rightX + 0.18,
-        y: y + 0.12,
+        y: y + 0.1,
         w: rightW - 0.3,
-        h: 0.2,
-        fontSize: 9,
+        h: 0.18,
+        fontSize: 10,
+        color: C.muted,
         bold: true,
-        color: COLORS.amber,
         fontFace: "Calibri",
       });
       slide.addText(card.detail, {
         x: rightX + 0.18,
-        y: y + 0.36,
+        y: y + 0.3,
         w: rightW - 0.3,
-        h: 0.26,
-        fontSize: 13,
+        h: 0.24,
+        fontSize: 15,
         bold: true,
-        color: COLORS.white,
+        color: C.text,
         fontFace: "Calibri",
       });
     });
 
-    // BOTTOM — Board Decisions Required
+    // Board Decisions — white text on navy band (subtle, prominent)
+    const dy = 5.75;
     slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
       x: MARGIN,
-      y: decisionsY,
-      w: 12.2,
-      h: 1.05,
-      fill: { color: COLORS.decisionBg },
-      line: { color: COLORS.red, width: 1.25 },
+      y: dy,
+      w: SLIDE_W - MARGIN * 2,
+      h: 1.15,
+      fill: { color: C.navy },
+      line: { color: C.navy, width: 0 },
       rectRadius: 0.04,
     });
     slide.addText("Board Decisions Required", {
-      x: MARGIN + 0.2,
-      y: decisionsY + 0.1,
-      w: 11.8,
-      h: 0.24,
-      fontSize: 11,
+      x: MARGIN + 0.25,
+      y: dy + 0.12,
+      w: 12,
+      h: 0.28,
+      fontSize: 14,
       bold: true,
-      color: COLORS.red,
+      color: C.white,
       fontFace: "Calibri",
     });
     data.boardDecisions.forEach((decision, index) => {
       slide.addText(`${index + 1}.  ${decision}`, {
-        x: MARGIN + 0.2,
-        y: decisionsY + 0.36 + index * 0.2,
-        w: 11.8,
-        h: 0.2,
-        fontSize: 11,
-        bold: true,
-        color: COLORS.white,
+        x: MARGIN + 0.25,
+        y: dy + 0.42 + index * 0.22,
+        w: 12,
+        h: 0.22,
+        fontSize: 13,
+        color: C.white,
         fontFace: "Calibri",
       });
     });
-    footer(slide);
+    finish(slide);
   }
 
-  // Slide 3 — Previous Meeting Actions (board action register)
+  // ——— Slide 3 Previous Actions ———
   {
     const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "Previous Meeting Actions", "Board action register · sorted by status priority");
+    paintSlide(slide);
+    addHeader(slide, "Previous Meeting Actions", {
+      logoDataUrl,
+      subtitle: "Board action register",
+    });
 
     const actions = abhiSortedBoardActions(data);
-    const actionRows: pptxgen.TableRow[] = [
+    const rows: pptxgen.TableRow[] = [
       [
-        { text: "Ref", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent }, align: "center" } },
-        { text: "Action", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Owner", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Due Date", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent }, align: "center" } },
-        { text: "Status", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent }, align: "center" } },
+        { text: "Ref", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
+        { text: "Action", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Owner", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Due Date", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
+        { text: "Status", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
       ],
       ...actions.map((action, index): pptxgen.TableRow => {
-        const rowFill = index % 2 === 0 ? COLORS.navy : COLORS.rowAlt;
+        const fill = index % 2 ? C.soft : C.white;
+        const chip = actionChip(action.status);
         return [
-          {
-            text: action.id,
-            options: { color: COLORS.light, fontSize: 9, bold: true, fill: { color: rowFill }, align: "center" },
-          },
-          {
-            text: action.title,
-            options: { color: COLORS.white, fontSize: 9, fill: { color: rowFill }, valign: "middle" },
-          },
-          {
-            text: action.owner,
-            options: { color: COLORS.light, fontSize: 9, fill: { color: rowFill } },
-          },
-          {
-            text: action.due,
-            options: { color: COLORS.muted, fontSize: 9, fill: { color: rowFill }, align: "center" },
-          },
+          { text: action.id, options: { color: C.navy, fontSize: 12, bold: true, fill: { color: fill }, align: "center" } },
+          { text: action.title, options: { color: C.text, fontSize: 12, fill: { color: fill }, valign: "middle" } },
+          { text: action.owner, options: { color: C.text, fontSize: 12, fill: { color: fill } } },
+          { text: action.due, options: { color: C.muted, fontSize: 12, fill: { color: fill }, align: "center" } },
           {
             text: action.status,
             options: {
-              color: COLORS.white,
-              fontSize: 9,
+              color: chip.text,
+              fontSize: 12,
               bold: true,
               align: "center",
-              fill: { color: actionStatusFill(action.status) },
+              fill: { color: chip.fill },
             },
           },
         ];
       }),
     ];
-    slide.addTable(actionRows, {
+    slide.addTable(rows, {
       x: MARGIN,
-      y: 1.3,
-      w: 12.2,
-      colW: [0.85, 6.55, 1.85, 1.35, 1.6],
-      border: { type: "solid", color: COLORS.accent, pt: 0.5 },
+      y: CONTENT_TOP + 0.15,
+      w: SLIDE_W - MARGIN * 2,
+      colW: [0.95, 6.4, 2.0, 1.45, 1.55],
+      border: { type: "solid", color: C.line, pt: 0.6 },
+      fontFace: "Calibri",
+      valign: "middle",
+      rowH: 0.62,
+    });
+    finish(slide);
+  }
+
+  // ——— Slide 4 Risk Register (executive briefing) ———
+  {
+    const slide = pptx.addSlide();
+    paintSlide(slide);
+    addHeader(slide, "Risk Register", {
+      logoDataUrl,
+      subtitle: "Executive risk briefing",
+    });
+
+    const sorted = [...data.risks]
+      .sort((a, b) => abhiRiskScore(b) - abhiRiskScore(a))
+      .slice(0, 6);
+    const summary = [
+      {
+        label: "New Risks",
+        value: String(sorted.filter((r) => r.flags.new).length),
+        color: C.navy,
+      },
+      {
+        label: "Increasing Risks",
+        value: String(sorted.filter((r) => r.flags.increased || r.trend === "↑").length),
+        color: C.amber,
+      },
+      {
+        label: "Overdue Mitigations",
+        value: String(sorted.filter((r) => r.flags.overdueMitigation).length),
+        color: C.subtleRed,
+      },
+    ];
+    summary.forEach((item, index) => {
+      const x = MARGIN + index * 4.2;
+      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+        x,
+        y: CONTENT_TOP + 0.05,
+        w: 4.0,
+        h: 1.15,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
+        rectRadius: 0.05,
+      });
+      slide.addText(item.label, {
+        x: x + 0.25,
+        y: CONTENT_TOP + 0.2,
+        w: 3.5,
+        h: 0.28,
+        fontSize: 13,
+        bold: true,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+      slide.addText(item.value, {
+        x: x + 0.25,
+        y: CONTENT_TOP + 0.5,
+        w: 3.5,
+        h: 0.55,
+        fontSize: 36,
+        bold: true,
+        color: item.color,
+        fontFace: "Calibri",
+      });
+    });
+
+    const rows: pptxgen.TableRow[] = [
+      [
+        { text: "Risk", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Owner", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Trend", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
+        {
+          text: "Board Attention Required",
+          options: { bold: true, color: C.white, fill: { color: C.navy } },
+        },
+      ],
+      ...sorted.map((risk, index): pptxgen.TableRow => {
+        const fill = index % 2 ? C.soft : C.white;
+        const trend = abhiRiskTrendLabel(risk.trend);
+        return [
+          {
+            text: risk.risk,
+            options: { color: C.text, fontSize: 14, fill: { color: fill }, valign: "middle" },
+          },
+          {
+            text: risk.owner,
+            options: { color: C.navy, fontSize: 14, bold: true, fill: { color: fill }, valign: "middle" },
+          },
+          {
+            text: trend,
+            options: {
+              color: trend === "Increasing" ? C.amber : trend === "Reducing" ? C.green : C.text,
+              fontSize: 14,
+              bold: trend === "Increasing",
+              fill: { color: fill },
+              align: "center",
+              valign: "middle",
+            },
+          },
+          {
+            text: boardAttentionForRisk(risk),
+            options: { color: C.text, fontSize: 13, fill: { color: fill }, valign: "middle" },
+          },
+        ];
+      }),
+    ];
+    slide.addTable(rows, {
+      x: MARGIN,
+      y: CONTENT_TOP + 1.45,
+      w: SLIDE_W - MARGIN * 2,
+      colW: [5.4, 2.2, 1.5, 3.25],
+      border: { type: "solid", color: C.line, pt: 0.5 },
+      fontFace: "Calibri",
+      valign: "middle",
+      rowH: 0.72,
+    });
+    finish(slide);
+  }
+
+  // ——— Slide 5 KPI Dashboard ———
+  {
+    const slide = pptx.addSlide();
+    paintSlide(slide);
+    addHeader(slide, "KPI Dashboard", {
+      logoDataUrl,
+      subtitle: "Actual vs budget with performance indicator",
+    });
+
+    const rows: pptxgen.TableRow[] = [
+      [
+        { text: "KPI", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Actual", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
+        { text: "Budget", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
+        { text: "Variance", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
+        { text: "Status", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
+      ],
+      ...data.kpis.map((kpi: AbhiBoardKpi, index): pptxgen.TableRow => {
+        const fill = index % 2 ? C.soft : C.white;
+        const chip = indicatorChip(kpi.indicator);
+        return [
+          { text: kpi.name, options: { color: C.text, fontSize: 14, fill: { color: fill } } },
+          {
+            text: formatAbhiBoardKpiValue(kpi.actual, kpi.unit),
+            options: { color: C.navy, fontSize: 15, bold: true, fill: { color: fill }, align: "center" },
+          },
+          {
+            text: formatAbhiBoardKpiValue(kpi.budget, kpi.unit),
+            options: { color: C.muted, fontSize: 14, fill: { color: fill }, align: "center" },
+          },
+          {
+            text: formatAbhiBoardKpiVariance(kpi.variance, kpi.unit),
+            options: { color: C.text, fontSize: 14, fill: { color: fill }, align: "center" },
+          },
+          {
+            text: kpi.indicator,
+            options: {
+              color: chip.text,
+              fontSize: 13,
+              bold: true,
+              align: "center",
+              fill: { color: chip.fill },
+            },
+          },
+        ];
+      }),
+    ];
+    slide.addTable(rows, {
+      x: MARGIN,
+      y: CONTENT_TOP + 0.15,
+      w: SLIDE_W - MARGIN * 2,
+      colW: [4.2, 2.0, 2.0, 2.0, 2.15],
+      border: { type: "solid", color: C.line, pt: 0.6 },
       fontFace: "Calibri",
       valign: "middle",
       rowH: 0.58,
     });
-    footer(slide);
+    finish(slide);
   }
 
-  // Slide 4 — Risk Register (board risk register)
+  // ——— Slide 6 Financial Overview (CEO visual metrics) ———
   {
     const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "Risk Register", "Highest risk first · New, increasing, and overdue mitigations highlighted");
+    paintSlide(slide);
+    addHeader(slide, "Financial Overview", {
+      logoDataUrl,
+      subtitle: "10-second board view",
+    });
 
-    const sortedRisks = [...data.risks].sort((a, b) => abhiRiskScore(b) - abhiRiskScore(a));
-    const newCount = sortedRisks.filter((r) => r.flags.new).length;
-    const increasingCount = sortedRisks.filter((r) => r.flags.increased || r.trend === "↑").length;
-    const overdueMitCount = sortedRisks.filter((r) => r.flags.overdueMitigation).length;
+    const rev = data.financialOverview.revenueVsBudget;
+    const op = data.financialOverview.operatingSurplus;
+    const cash = data.financialOverview.cashPosition.actual;
+    const fc = data.financialOverview.forecastYearEnd;
+    const revPct =
+      rev.budget && rev.budget !== 0
+        ? Math.round((Math.abs(rev.variance ?? 0) / Math.abs(rev.budget)) * 100)
+        : 7;
+    const cashMove = data.balanceSheet.cashMovementMom;
 
-    // Flag strip
-    const flags = [
-      { label: `New Risks: ${newCount}`, color: COLORS.accent },
-      { label: `Increasing Risks: ${increasingCount}`, color: COLORS.amber },
-      { label: `Overdue Mitigations: ${overdueMitCount}`, color: COLORS.red },
+    const metricCards = [
+      {
+        title: "Revenue",
+        value: formatAbhiBoardGbp(rev.actual, true),
+        signal: formatAbhiBoardBudgetStatus(rev.variance ?? 0, { percentAbs: revPct }),
+        tone: "amber" as const,
+        detail: null as string | null,
+      },
+      {
+        title: "Operating Result",
+        value: formatAbhiBoardGbp(op.actual, true),
+        signal: formatAbhiBoardBudgetVarianceNarrative(op.variance ?? 0),
+        tone: "red" as const,
+        detail: null as string | null,
+      },
+      {
+        title: "Cash",
+        value: formatAbhiBoardGbp(cash, true),
+        signal: "Net cash increase this month",
+        tone: "green" as const,
+        detail: `+${formatAbhiBoardGbp(cashMove, true)}`,
+      },
     ];
-    flags.forEach((flag, index) => {
-      const x = MARGIN + index * 2.85;
+
+    metricCards.forEach((card, index) => {
+      const x = MARGIN + index * 4.2;
       slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
         x,
-        y: 1.2,
-        w: 2.7,
-        h: 0.32,
-        fill: { color: COLORS.card },
-        line: { color: flag.color, width: 1 },
-        rectRadius: 0.04,
+        y: CONTENT_TOP + 0.05,
+        w: 4.0,
+        h: 2.55,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
+        rectRadius: 0.06,
       });
-      slide.addText(flag.label, {
-        x: x + 0.1,
-        y: 1.24,
-        w: 2.5,
-        h: 0.24,
-        fontSize: 9,
+      slide.addText(card.title, {
+        x: x + 0.25,
+        y: CONTENT_TOP + 0.22,
+        w: 3.5,
+        h: 0.3,
+        fontSize: 14,
         bold: true,
-        color: flag.color,
+        color: C.muted,
         fontFace: "Calibri",
-        align: "center",
       });
-    });
-
-    // Mini risk heatmap (Impact × Likelihood)
-    const heatX = 9.3;
-    const heatY = 1.18;
-    slide.addText("Risk Heatmap", {
-      x: heatX,
-      y: heatY,
-      w: 3.4,
-      h: 0.2,
-      fontSize: 8,
-      bold: true,
-      color: COLORS.muted,
-      fontFace: "Calibri",
-    });
-    const levels: Array<"L" | "M" | "H"> = ["L", "M", "H"];
-    const heatCounts = levels.map(() => levels.map(() => 0));
-    for (const risk of sortedRisks) {
-      const i = hlmToScore(risk.impact) - 1;
-      const j = hlmToScore(risk.likelihood) - 1;
-      heatCounts[i]![j]! += 1;
-    }
-    levels.forEach((_impact, row) => {
-      levels.forEach((_likelihood, col) => {
-        const count = heatCounts[row]![col]!;
-        const score = (row + 1) * (col + 1);
-        const fill =
-          score >= 6 ? COLORS.heatHigh : score >= 3 ? COLORS.heatMed : COLORS.heatLow;
-        const x = heatX + 1.55 + col * 0.55;
-        const y = heatY + 0.22 + (2 - row) * 0.28;
-        slide.addShape("rect" as pptxgen.SHAPE_NAME, {
-          x,
-          y,
-          w: 0.5,
-          h: 0.25,
-          fill: { color: fill },
-          line: { color: COLORS.accent, width: 0.5 },
+      slide.addText(card.value, {
+        x: x + 0.25,
+        y: CONTENT_TOP + 0.65,
+        w: 3.5,
+        h: 0.65,
+        fontSize: 36,
+        bold: true,
+        color: C.navy,
+        fontFace: "Calibri",
+      });
+      if (card.detail) {
+        slide.addText(card.signal, {
+          x: x + 0.25,
+          y: CONTENT_TOP + 1.45,
+          w: 3.5,
+          h: 0.28,
+          fontSize: 13,
+          bold: true,
+          color: C.muted,
+          fontFace: "Calibri",
         });
-        if (count > 0) {
-          slide.addText(String(count), {
-            x,
-            y,
-            w: 0.5,
-            h: 0.25,
-            fontSize: 9,
-            bold: true,
-            color: COLORS.white,
-            align: "center",
-            valign: "middle",
-            fontFace: "Calibri",
-          });
-        }
-      });
+        addStatusPill(slide, x + 0.25, CONTENT_TOP + 1.8, 3.5, 0.5, card.detail, card.tone);
+      } else {
+        addStatusPill(slide, x + 0.25, CONTENT_TOP + 1.55, 3.5, 0.55, card.signal, card.tone);
+      }
     });
-    slide.addText("I×L", {
-      x: heatX + 1.55,
-      y: heatY + 1.08,
-      w: 1.6,
-      h: 0.18,
-      fontSize: 7,
-      color: COLORS.muted,
+
+    // Forecast panel
+    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      x: MARGIN,
+      y: 3.9,
+      w: SLIDE_W - MARGIN * 2,
+      h: 2.85,
+      fill: { color: C.white },
+      line: { color: C.line, width: 1 },
+      rectRadius: 0.06,
+    });
+    slide.addText("Year-End Forecast", {
+      x: MARGIN + 0.3,
+      y: 4.1,
+      w: 6,
+      h: 0.35,
+      fontSize: 16,
+      bold: true,
+      color: C.navy,
+      fontFace: "Calibri",
+    });
+    addStatusPill(slide, 9.9, 4.05, 2.8, 0.35, "Confidence: Medium", "amber");
+    slide.addText("Based on current trading assumptions", {
+      x: 9.5,
+      y: 4.45,
+      w: 3.2,
+      h: 0.25,
+      fontSize: 10,
+      color: C.muted,
+      align: "right",
       fontFace: "Calibri",
     });
 
-    const riskRows: pptxgen.TableRow[] = [
+    const forecastCards = [
+      { label: "Revenue", value: formatAbhiBoardGbp(fc.revenue, true) },
+      { label: "Operating Result", value: formatAbhiBoardGbp(fc.surplus, true) },
+      { label: "Cash", value: formatAbhiBoardGbp(fc.cash, true) },
+    ];
+    forecastCards.forEach((card, index) => {
+      const x = MARGIN + 0.35 + index * 4.05;
+      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+        x,
+        y: 4.85,
+        w: 3.85,
+        h: 1.55,
+        fill: { color: C.soft },
+        line: { color: C.soft, width: 0 },
+        rectRadius: 0.05,
+      });
+      slide.addText(card.label, {
+        x: x + 0.2,
+        y: 5.0,
+        w: 3.45,
+        h: 0.3,
+        fontSize: 13,
+        bold: true,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+      slide.addText(card.value, {
+        x: x + 0.2,
+        y: 5.4,
+        w: 3.45,
+        h: 0.7,
+        fontSize: 28,
+        bold: true,
+        color: C.navy,
+        fontFace: "Calibri",
+      });
+    });
+    finish(slide);
+  }
+
+  // ——— Slide 7 Profit & Loss ———
+  {
+    const slide = pptx.addSlide();
+    paintSlide(slide);
+    addHeader(slide, "Profit & Loss", {
+      logoDataUrl,
+      subtitle: "YTD actual vs budget",
+    });
+
+    const rows: pptxgen.TableRow[] = [
       [
-        { text: "Risk ID", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent }, align: "center" } },
-        { text: "Risk Description", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Owner", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Impact", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent }, align: "center" } },
-        { text: "Likelihood", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent }, align: "center" } },
-        { text: "Risk Rating", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent }, align: "center" } },
-        { text: "Trend", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent }, align: "center" } },
-        { text: "Mitigation", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Status", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent }, align: "center" } },
+        { text: "Line", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Actual", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "right" } },
+        { text: "Budget", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "right" } },
+        { text: "Variance", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "right" } },
+        { text: "Prior Year", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "right" } },
       ],
-      ...sortedRisks.map((risk, index): pptxgen.TableRow => {
-        const flagged = risk.flags.new || risk.flags.increased || risk.flags.overdueMitigation;
-        const rowFill = flagged ? COLORS.warnBg : index % 2 === 0 ? COLORS.navy : COLORS.rowAlt;
-        const band = abhiRiskRatingBand(risk);
-        const trendLabel = abhiRiskTrendLabel(risk.trend);
-        const flagPrefix = [
-          risk.flags.new ? "NEW" : "",
-          risk.flags.increased ? "↑" : "",
-          risk.flags.overdueMitigation ? "OD MIT" : "",
-        ]
-          .filter(Boolean)
-          .join(" · ");
+      ...data.pnl.rows.map((row, index): pptxgen.TableRow => {
+        const fill = row.emphasis ? C.decision : index % 2 ? C.soft : C.white;
+        const varColor = row.variance < 0 ? C.subtleRed : C.green;
         return [
           {
-            text: risk.id,
-            options: { color: COLORS.light, fontSize: 8, bold: true, fill: { color: rowFill }, align: "center" },
+            text: row.line,
+            options: { color: C.text, fontSize: 13, bold: Boolean(row.emphasis), fill: { color: fill } },
           },
           {
-            text: flagPrefix ? `${flagPrefix}  |  ${risk.risk}` : risk.risk,
-            options: { color: COLORS.white, fontSize: 8, fill: { color: rowFill }, valign: "middle" },
-          },
-          {
-            text: risk.owner,
-            options: { color: COLORS.light, fontSize: 8, fill: { color: rowFill } },
-          },
-          {
-            text: impactLikelihoodLabel(risk.impact),
-            options: { color: COLORS.light, fontSize: 8, fill: { color: rowFill }, align: "center" },
-          },
-          {
-            text: impactLikelihoodLabel(risk.likelihood),
-            options: { color: COLORS.light, fontSize: 8, fill: { color: rowFill }, align: "center" },
-          },
-          {
-            text: `${band}\n${String(risk.rating)}`,
+            text: formatAbhiBoardGbp(row.actual, true),
             options: {
-              color: COLORS.white,
-              fontSize: 8,
+              color: C.navy,
+              fontSize: 13,
+              bold: Boolean(row.emphasis),
+              fill: { color: fill },
+              align: "right",
+            },
+          },
+          {
+            text: formatAbhiBoardGbp(row.budget, true),
+            options: { color: C.muted, fontSize: 13, fill: { color: fill }, align: "right" },
+          },
+          {
+            text: varianceText(row.variance),
+            options: {
+              color: varColor,
+              fontSize: 13,
               bold: true,
-              align: "center",
-              valign: "middle",
-              fill: { color: riskRatingColor(risk) },
+              fill: { color: fill },
+              align: "right",
             },
           },
           {
-            text: trendLabel,
-            options: {
-              color: trendLabel === "Increasing" ? COLORS.amber : trendLabel === "Reducing" ? COLORS.green : COLORS.light,
-              fontSize: 8,
-              bold: trendLabel === "Increasing",
-              fill: { color: rowFill },
-              align: "center",
-            },
-          },
-          {
-            text: risk.mitigation,
-            options: { color: COLORS.muted, fontSize: 7.5, fill: { color: rowFill }, valign: "middle" },
-          },
-          {
-            text: risk.status,
-            options: { color: COLORS.white, fontSize: 8, fill: { color: rowFill }, align: "center" },
+            text: formatAbhiBoardGbp(row.priorYear, true),
+            options: { color: C.muted, fontSize: 13, fill: { color: fill }, align: "right" },
           },
         ];
       }),
     ];
-    slide.addTable(riskRows, {
+    slide.addTable(rows, {
       x: MARGIN,
-      y: 2.35,
-      w: 12.2,
-      colW: [0.7, 2.55, 1.15, 0.75, 0.85, 0.85, 0.95, 3.3, 1.1],
-      border: { type: "solid", color: COLORS.accent, pt: 0.5 },
+      y: CONTENT_TOP + 0.1,
+      w: SLIDE_W - MARGIN * 2,
+      colW: [4.0, 2.05, 2.05, 2.05, 2.2],
+      border: { type: "solid", color: C.line, pt: 0.6 },
       fontFace: "Calibri",
       valign: "middle",
-      rowH: 0.68,
-    });
-    footer(slide);
-  }
-
-  // Slide 5 — KPI Dashboard
-  {
-    const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "KPI Dashboard", "Executive scorecard · actual vs budget");
-
-    const kpiRows: pptxgen.TableRow[] = [
-      [
-        { text: "KPI", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Actual", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Budget", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Variance", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Trend", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-      ],
-      ...data.kpis.map(
-        (kpi): pptxgen.TableRow => [
-          { text: kpi.name, options: { color: COLORS.light, fontSize: 10 } },
-          {
-            text: typeof kpi.actual === "number" ? formatAbhiBoardGbp(kpi.actual, true) : String(kpi.actual),
-            options: { color: COLORS.white, fontSize: 10, bold: true },
-          },
-          {
-            text: typeof kpi.budget === "number" ? formatAbhiBoardGbp(kpi.budget, true) : String(kpi.budget),
-            options: { color: COLORS.muted, fontSize: 10 },
-          },
-          {
-            text:
-              typeof kpi.variance === "number"
-                ? varianceText(kpi.variance)
-                : String(kpi.variance),
-            options: { color: COLORS.light, fontSize: 10 },
-          },
-          {
-            text: abhiKpiTrendArrow(kpi.trend),
-            options: {
-              color: kpi.trend > 0 ? COLORS.green : kpi.trend < 0 ? COLORS.red : COLORS.amber,
-              fontSize: 14,
-              align: "center",
-            },
-          },
-        ],
-      ),
-    ];
-    slide.addTable(kpiRows, {
-      x: MARGIN,
-      y: 1.35,
-      w: 8.5,
-      colW: [3.2, 1.3, 1.3, 1.3, 0.8],
-      fontSize: 10,
-      border: { type: "solid", color: COLORS.accent, pt: 0.5 },
-    });
-
-    slide.addChart(
-      pptx.ChartType.line,
-      [
-        {
-          name: "Revenue trend",
-          labels: data.kpis[1]?.sparkline.map((_, index) => `M${index + 1}`) ?? [],
-          values: data.kpis[1]?.sparkline ?? [],
-        },
-      ],
-      {
-        x: 9.3,
-        y: 1.35,
-        w: 3.5,
-        h: 2.6,
-        chartColors: [COLORS.red],
-        showLegend: false,
-        showTitle: true,
-        title: "Revenue sparkline",
-        titleColor: COLORS.light,
-        titleFontSize: 10,
-        catAxisLabelColor: COLORS.muted,
-        valAxisLabelColor: COLORS.muted,
-        valGridLine: { color: COLORS.accent, size: 0.5 },
-      },
-    );
-
-    slide.addChart(
-      pptx.ChartType.line,
-      [
-        {
-          name: "Cash trend",
-          labels: data.balanceSheet.cashTrend.map((_, index) => `M${index + 1}`) ?? [],
-          values: data.balanceSheet.cashTrend,
-        },
-      ],
-      {
-        x: 9.3,
-        y: 4.2,
-        w: 3.5,
-        h: 2.5,
-        chartColors: [COLORS.accent],
-        showLegend: false,
-        showTitle: true,
-        title: "Cash sparkline",
-        titleColor: COLORS.light,
-        titleFontSize: 10,
-        catAxisLabelColor: COLORS.muted,
-        valAxisLabelColor: COLORS.muted,
-        valGridLine: { color: COLORS.accent, size: 0.5 },
-      },
-    );
-    footer(slide);
-  }
-
-  // Slide 6 — Financial Overview
-  {
-    const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "Financial Overview", "Executive financial summary");
-
-    const tiles = [
-      data.financialOverview.revenueVsBudget,
-      data.financialOverview.operatingSurplus,
-      data.financialOverview.cashPosition,
-    ];
-    tiles.forEach((tile, index) => {
-      const x = MARGIN + index * 4.1;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
-        x,
-        y: 1.35,
-        w: 3.85,
-        h: 1.45,
-        fill: { color: COLORS.accent },
-        line: { color: COLORS.accent, width: 0 },
-        rectRadius: 0.06,
-      });
-      slide.addText(tile.label, {
-        x: x + 0.2,
-        y: 1.48,
-        w: 3.4,
-        h: 0.3,
-        fontSize: 10,
-        color: COLORS.light,
-        fontFace: "Calibri",
-      });
-      slide.addText(formatAbhiBoardGbp(tile.actual, true), {
-        x: x + 0.2,
-        y: 1.85,
-        w: 3.4,
-        h: 0.55,
-        fontSize: 24,
-        bold: true,
-        color: COLORS.white,
-        fontFace: "Calibri",
-      });
-      if (tile.budget !== undefined) {
-        slide.addText(
-          `Budget ${formatAbhiBoardGbp(tile.budget, true)} · Var ${varianceText(tile.variance ?? tile.actual - tile.budget)}`,
-          {
-            x: x + 0.2,
-            y: 2.45,
-            w: 3.4,
-            h: 0.25,
-            fontSize: 9,
-            color: COLORS.muted,
-            fontFace: "Calibri",
-          },
-        );
-      }
+      rowH: 0.42,
     });
 
     slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
       x: MARGIN,
-      y: 3.05,
-      w: 12.2,
-      h: 0.95,
-      fill: { color: COLORS.rowAlt },
-      line: { color: COLORS.accent, width: 0.5 },
-      rectRadius: 0.06,
+      y: 5.7,
+      w: SLIDE_W - MARGIN * 2,
+      h: 1.15,
+      fill: { color: C.white },
+      line: { color: C.line, width: 1 },
+      rectRadius: 0.04,
     });
-    slide.addText("Forecast Year End", {
+    slide.addText("Variance commentary", {
       x: MARGIN + 0.2,
-      y: 3.18,
-      w: 3,
+      y: 5.82,
+      w: 4,
       h: 0.25,
-      fontSize: 10,
-      color: COLORS.light,
+      fontSize: 12,
+      bold: true,
+      color: C.navy,
       fontFace: "Calibri",
     });
-    const forecast = data.financialOverview.forecastYearEnd;
+    data.pnl.commentary.forEach((line, index) => {
+      slide.addText(`•  ${line}`, {
+        x: MARGIN + 0.2,
+        y: 6.12 + index * 0.22,
+        w: 12,
+        h: 0.22,
+        fontSize: 11,
+        color: C.text,
+        fontFace: "Calibri",
+      });
+    });
+    finish(slide);
+  }
+
+  // ——— Slide 8 Balance Sheet & Cash (visual cash story) ———
+  {
+    const slide = pptx.addSlide();
+    paintSlide(slide);
+    addHeader(slide, "Balance Sheet & Cash", {
+      logoDataUrl,
+      subtitle: "Cash position at a glance",
+    });
+
+    const position = [
+      { label: "Assets", value: data.balanceSheet.assets },
+      { label: "Liabilities", value: data.balanceSheet.liabilities },
+      { label: "Net Assets", value: data.balanceSheet.netAssets },
+    ];
+    position.forEach((item, index) => {
+      const x = MARGIN + index * 4.2;
+      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+        x,
+        y: CONTENT_TOP + 0.05,
+        w: 4.0,
+        h: 1.15,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
+        rectRadius: 0.06,
+      });
+      slide.addText(item.label, {
+        x: x + 0.22,
+        y: CONTENT_TOP + 0.18,
+        w: 3.5,
+        h: 0.25,
+        fontSize: 12,
+        bold: true,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+      slide.addText(formatAbhiBoardGbp(item.value, true), {
+        x: x + 0.22,
+        y: CONTENT_TOP + 0.5,
+        w: 3.5,
+        h: 0.5,
+        fontSize: 24,
+        bold: true,
+        color: C.navy,
+        fontFace: "Calibri",
+      });
+    });
+
+    // Central cash graphic
+    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      x: MARGIN,
+      y: 2.5,
+      w: 5.5,
+      h: 4.25,
+      fill: { color: C.navy },
+      line: { color: C.navy, width: 0 },
+      rectRadius: 0.08,
+    });
+    slide.addText("CURRENT CASH", {
+      x: MARGIN + 0.3,
+      y: 2.85,
+      w: 4.9,
+      h: 0.35,
+      fontSize: 14,
+      bold: true,
+      color: "A8C0DC",
+      align: "center",
+      fontFace: "Calibri",
+    });
+    slide.addText(formatAbhiBoardGbp(data.financialOverview.cashPosition.actual, true), {
+      x: MARGIN + 0.3,
+      y: 3.4,
+      w: 4.9,
+      h: 0.9,
+      fontSize: 48,
+      bold: true,
+      color: C.white,
+      align: "center",
+      fontFace: "Calibri",
+    });
+    addStatusPill(slide, MARGIN + 1.35, 4.5, 2.8, 0.45, "Liquidity: GREEN", "green");
+    slide.addText("No short-term funding pressure", {
+      x: MARGIN + 0.3,
+      y: 5.2,
+      w: 4.9,
+      h: 0.3,
+      fontSize: 13,
+      color: "D6E4F5",
+      align: "center",
+      fontFace: "Calibri",
+    });
     slide.addText(
-      `Revenue ${formatAbhiBoardGbp(forecast.revenue, true)}  ·  Surplus ${formatAbhiBoardGbp(forecast.surplus, true)}  ·  Cash ${formatAbhiBoardGbp(forecast.cash, true)}`,
+      `Expected Year End Cash  ${formatAbhiBoardGbp(data.balanceSheet.cashForecast, true)}`,
       {
         x: MARGIN + 0.2,
-        y: 3.5,
-        w: 11.5,
+        y: 5.85,
+        w: 5.1,
+        h: 0.4,
+        fontSize: 14,
+        bold: true,
+        color: C.white,
+        align: "center",
+        fontFace: "Calibri",
+      },
+    );
+
+    // Supporting indicators
+    const support = [
+      {
+        label: "Net Cash Movement This Month",
+        value: `+${formatAbhiBoardGbp(data.balanceSheet.cashMovementMom, true)}`,
+        tone: "green" as const,
+      },
+      {
+        label: "Expected Year End Cash",
+        value: formatAbhiBoardGbp(data.balanceSheet.cashForecast, true),
+        tone: "navy" as const,
+      },
+      { label: "Liquidity Rating", value: "GREEN", tone: "green" as const },
+    ];
+    support.forEach((item, index) => {
+      const y = 2.5 + index * 0.72;
+      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+        x: 6.3,
+        y,
+        w: 6.5,
+        h: 0.65,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
+        rectRadius: 0.05,
+      });
+      slide.addText(item.label, {
+        x: 6.5,
+        y: y + 0.1,
+        w: 3.6,
+        h: 0.45,
+        fontSize: 12,
+        color: C.muted,
+        bold: true,
+        valign: "middle",
+        fontFace: "Calibri",
+      });
+      slide.addText(item.value, {
+        x: 10.0,
+        y: y + 0.1,
+        w: 2.55,
+        h: 0.45,
+        fontSize: 16,
+        bold: true,
+        color: item.tone === "green" ? C.green : C.navy,
+        align: "right",
+        valign: "middle",
+        fontFace: "Calibri",
+      });
+    });
+
+    // Cash drivers — biggest positive / negative
+    slide.addText("Cash Drivers", {
+      x: 6.3,
+      y: 4.68,
+      w: 6.5,
+      h: 0.22,
+      fontSize: 13,
+      bold: true,
+      color: C.navy,
+      fontFace: "Calibri",
+    });
+    slide.addText(data.balanceSheet.cashDrivers, {
+      x: 6.3,
+      y: 4.9,
+      w: 6.5,
+      h: 0.28,
+      fontSize: 11,
+      color: C.muted,
+      fontFace: "Calibri",
+    });
+
+    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      x: 6.3,
+      y: 5.22,
+      w: 3.15,
+      h: 1.53,
+      fill: { color: C.white },
+      line: { color: C.line, width: 1 },
+      rectRadius: 0.05,
+    });
+    slide.addText("Positive Drivers", {
+      x: 6.45,
+      y: 5.32,
+      w: 2.85,
+      h: 0.24,
+      fontSize: 12,
+      bold: true,
+      color: C.green,
+      fontFace: "Calibri",
+    });
+    data.balanceSheet.positiveCashDrivers.slice(0, 3).forEach((driver, index) => {
+      slide.addText(
+        `${driver.label}  +${formatAbhiBoardGbp(driver.amount, true)}`,
+        {
+          x: 6.45,
+          y: 5.58 + index * 0.35,
+          w: 2.85,
+          h: 0.32,
+          fontSize: 12,
+          color: C.text,
+          fontFace: "Calibri",
+        },
+      );
+    });
+
+    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      x: 9.65,
+      y: 5.22,
+      w: 3.15,
+      h: 1.53,
+      fill: { color: C.white },
+      line: { color: C.line, width: 1 },
+      rectRadius: 0.05,
+    });
+    slide.addText("Negative Drivers", {
+      x: 9.8,
+      y: 5.32,
+      w: 2.85,
+      h: 0.24,
+      fontSize: 12,
+      bold: true,
+      color: C.subtleRed,
+      fontFace: "Calibri",
+    });
+    data.balanceSheet.negativeCashDrivers.slice(0, 3).forEach((driver, index) => {
+      slide.addText(
+        `${driver.label}  -${formatAbhiBoardGbp(driver.amount, true)}`,
+        {
+          x: 9.8,
+          y: 5.58 + index * 0.35,
+          w: 2.85,
+          h: 0.32,
+          fontSize: 12,
+          color: C.text,
+          fontFace: "Calibri",
+        },
+      );
+    });
+    finish(slide);
+  }
+
+  // ——— Slide 9 Commercial Performance (growth / pipeline visuals) ———
+  {
+    const slide = pptx.addSlide();
+    paintSlide(slide);
+    addHeader(slide, "Commercial Performance", {
+      logoDataUrl,
+      subtitle: "Growth · Pipeline · Momentum",
+    });
+
+    // Membership
+    {
+      const x = MARGIN;
+      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+        x,
+        y: CONTENT_TOP + 0.05,
+        w: 4.0,
+        h: 5.7,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
+        rectRadius: 0.06,
+      });
+      slide.addText("MEMBERSHIP", {
+        x: x + 0.25,
+        y: CONTENT_TOP + 0.25,
+        w: 3.5,
         h: 0.35,
         fontSize: 14,
         bold: true,
-        color: COLORS.white,
+        color: C.navy,
         fontFace: "Calibri",
-      },
-    );
-
-    slide.addChart(
-      pptx.ChartType.bar,
-      [
-        {
-          name: "Revenue",
-          labels: ["Budget", "Actual"],
-          values: [
-            data.financialOverview.revenueVsBudget.budget ?? 0,
-            data.financialOverview.revenueVsBudget.actual,
-          ],
-        },
-        {
-          name: "Surplus",
-          labels: ["Budget", "Actual"],
-          values: [
-            data.financialOverview.operatingSurplus.budget ?? 0,
-            data.financialOverview.operatingSurplus.actual,
-          ],
-        },
-      ],
-      {
-        x: MARGIN,
-        y: 4.25,
-        w: 7.5,
-        h: 2.55,
-        barDir: "col",
-        chartColors: [COLORS.accent, COLORS.red],
-        showLegend: true,
-        legendColor: COLORS.light,
-        legendFontSize: 9,
-        catAxisLabelColor: COLORS.muted,
-        valAxisLabelColor: COLORS.muted,
-        valGridLine: { color: COLORS.accent, size: 0.5 },
-      },
-    );
-
-    slide.addChart(
-      pptx.ChartType.line,
-      [
-        {
-          name: "Cash",
-          labels: data.balanceSheet.cashTrend.map((_, index) => `M${index + 1}`),
-          values: data.balanceSheet.cashTrend,
-        },
-      ],
-      {
-        x: 8.35,
-        y: 4.25,
-        w: 4.4,
-        h: 2.55,
-        chartColors: [COLORS.green],
-        showLegend: false,
-        showTitle: true,
-        title: "Cash position trend",
-        titleColor: COLORS.light,
-        titleFontSize: 10,
-        catAxisLabelColor: COLORS.muted,
-        valAxisLabelColor: COLORS.muted,
-        valGridLine: { color: COLORS.accent, size: 0.5 },
-      },
-    );
-    footer(slide);
-  }
-
-  // Slide 7 — Profit & Loss
-  {
-    const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "Profit & Loss", "Board-level P&L · YTD actual vs budget");
-
-    const pnlRows: pptxgen.TableRow[] = [
-      [
-        { text: "Line", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Actual", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Budget", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Variance", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Prior Year", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-      ],
-      ...data.pnl.rows.map(
-        (row): pptxgen.TableRow => [
-          {
-            text: row.line,
-            options: {
-              color: COLORS.light,
-              fontSize: row.emphasis ? 10 : 9,
-              bold: Boolean(row.emphasis),
-            },
-          },
-          {
-            text: formatAbhiBoardGbp(row.actual, true),
-            options: { color: COLORS.white, fontSize: 9, bold: Boolean(row.emphasis) },
-          },
-          {
-            text: formatAbhiBoardGbp(row.budget, true),
-            options: { color: COLORS.muted, fontSize: 9 },
-          },
-          {
-            text: varianceText(row.variance),
-            options: { color: COLORS.light, fontSize: 9 },
-          },
-          {
-            text: formatAbhiBoardGbp(row.priorYear, true),
-            options: { color: COLORS.muted, fontSize: 9 },
-          },
-        ],
-      ),
-    ];
-    slide.addTable(pnlRows, {
-      x: MARGIN,
-      y: 1.35,
-      w: 12.2,
-      colW: [3.8, 2.1, 2.1, 2.1, 2.1],
-      fontSize: 9,
-      border: { type: "solid", color: COLORS.accent, pt: 0.5 },
-    });
-
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
-      x: MARGIN,
-      y: 5.85,
-      w: 12.2,
-      h: 1.0,
-      fill: { color: COLORS.rowAlt },
-      line: { color: COLORS.accent, width: 0.5 },
-      rectRadius: 0.06,
-    });
-    slide.addText("Variance commentary", {
-      x: MARGIN + 0.15,
-      y: 5.95,
-      w: 3,
-      h: 0.25,
-      fontSize: 9,
-      bold: true,
-      color: COLORS.amber,
-      fontFace: "Calibri",
-    });
-    slide.addText(bulletBlock(data.pnl.commentary, "–"), {
-      x: MARGIN + 0.15,
-      y: 6.2,
-      w: 11.8,
-      h: 0.6,
-      valign: "top",
-    });
-    footer(slide);
-  }
-
-  // Slide 8 — Balance Sheet & Cash
-  {
-    const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "Balance Sheet & Cash", "Summary position and liquidity outlook");
-
-    const summaryRows: pptxgen.TableRow[] = [
-      [
-        { text: "Assets", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: formatAbhiBoardGbp(data.balanceSheet.assets, true), options: { color: COLORS.white, fontSize: 12, bold: true } },
-      ],
-      [
-        { text: "Liabilities", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: formatAbhiBoardGbp(data.balanceSheet.liabilities, true), options: { color: COLORS.light, fontSize: 12 } },
-      ],
-      [
-        { text: "Net Assets", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: formatAbhiBoardGbp(data.balanceSheet.netAssets, true), options: { color: COLORS.white, fontSize: 12, bold: true } },
-      ],
-    ];
-    slide.addTable(summaryRows, {
-      x: MARGIN,
-      y: 1.35,
-      w: 4.2,
-      colW: [2.0, 2.2],
-      fontSize: 11,
-      border: { type: "solid", color: COLORS.accent, pt: 0.5 },
-    });
-
-    const cashRows: pptxgen.TableRow[] = [
-      [
-        { text: "Debtors", options: { color: COLORS.light, fontSize: 10 } },
-        { text: formatAbhiBoardGbp(data.balanceSheet.debtors, true), options: { color: COLORS.white, fontSize: 10 } },
-      ],
-      [
-        { text: "Creditors", options: { color: COLORS.light, fontSize: 10 } },
-        { text: formatAbhiBoardGbp(data.balanceSheet.creditors, true), options: { color: COLORS.white, fontSize: 10 } },
-      ],
-      [
-        { text: "Cash forecast (FY)", options: { color: COLORS.light, fontSize: 10 } },
-        {
-          text: formatAbhiBoardGbp(data.balanceSheet.cashForecast, true),
-          options: { color: COLORS.green, fontSize: 10, bold: true },
-        },
-      ],
-    ];
-    slide.addTable(cashRows, {
-      x: MARGIN,
-      y: 3.2,
-      w: 4.2,
-      colW: [2.0, 2.2],
-      fontSize: 10,
-      border: { type: "solid", color: COLORS.accent, pt: 0.5 },
-    });
-
-    slide.addChart(
-      pptx.ChartType.line,
-      [
-        {
-          name: "Cash at bank",
-          labels: data.balanceSheet.cashTrend.map((_, index) => `M${index + 1}`),
-          values: data.balanceSheet.cashTrend,
-        },
-      ],
-      {
-        x: 5.0,
-        y: 1.35,
-        w: 7.75,
-        h: 5.5,
-        chartColors: [COLORS.green],
-        showLegend: false,
-        showTitle: true,
-        title: "Cash trend & forecast trajectory",
-        titleColor: COLORS.light,
-        titleFontSize: 11,
-        catAxisLabelColor: COLORS.muted,
-        valAxisLabelColor: COLORS.muted,
-        valGridLine: { color: COLORS.accent, size: 0.5 },
-      },
-    );
-    footer(slide);
-  }
-
-  // Slide 9 — Commercial Performance
-  {
-    const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "Commercial Performance", "Membership, sponsorship, and events");
-
-    const membership = data.commercial.membership;
-    slide.addText("Membership", {
-      x: MARGIN,
-      y: 1.35,
-      w: 2,
-      h: 0.3,
-      fontSize: 12,
-      bold: true,
-      color: COLORS.white,
-      fontFace: "Calibri",
-    });
-    slide.addTable(
-      [
-        [
-          { text: "New", options: { color: COLORS.light } },
-          { text: String(membership.new), options: { color: COLORS.green, bold: true } },
-        ],
-        [
-          { text: "Lost", options: { color: COLORS.light } },
-          { text: String(membership.lost), options: { color: COLORS.red, bold: true } },
-        ],
-        [
-          { text: "Net", options: { color: COLORS.light } },
-          { text: String(membership.net), options: { color: COLORS.white, bold: true } },
-        ],
-        [
-          { text: "Total", options: { color: COLORS.light } },
-          { text: String(membership.total), options: { color: COLORS.white, bold: true } },
-        ],
-      ],
-      {
-        x: MARGIN,
-        y: 1.7,
+      });
+      slide.addText(String(data.commercial.membership.total), {
+        x: x + 0.25,
+        y: CONTENT_TOP + 0.85,
         w: 3.5,
-        colW: [1.5, 2.0],
-        fontSize: 11,
-        border: { type: "solid", color: COLORS.accent, pt: 0.5 },
-      },
-    );
-
-    slide.addChart(
-      pptx.ChartType.bar,
-      [
-        {
-          name: "Members",
-          labels: ["New", "Lost", "Net"],
-          values: [membership.new, membership.lost, membership.net],
-        },
-      ],
-      {
-        x: MARGIN,
-        y: 3.8,
+        h: 0.75,
+        fontSize: 48,
+        bold: true,
+        color: C.navy,
+        fontFace: "Calibri",
+      });
+      slide.addText("Active members", {
+        x: x + 0.25,
+        y: CONTENT_TOP + 1.6,
         w: 3.5,
-        h: 2.8,
-        chartColors: [COLORS.green, COLORS.red, COLORS.accent],
-        showLegend: false,
-        catAxisLabelColor: COLORS.muted,
-        valAxisLabelColor: COLORS.muted,
-        valGridLine: { color: COLORS.accent, size: 0.5 },
-      },
-    );
+        h: 0.3,
+        fontSize: 13,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+      addStatusPill(slide, x + 0.25, CONTENT_TOP + 2.2, 3.5, 0.5, "+18 YTD growth", "green");
+      addStatusPill(slide, x + 0.25, CONTENT_TOP + 2.9, 3.5, 0.5, "11 at risk", "amber");
+      slide.addText("Net this quarter", {
+        x: x + 0.25,
+        y: CONTENT_TOP + 3.7,
+        w: 3.5,
+        h: 0.25,
+        fontSize: 12,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+      slide.addText(`+${data.commercial.membership.net}`, {
+        x: x + 0.25,
+        y: CONTENT_TOP + 4.05,
+        w: 3.5,
+        h: 0.55,
+        fontSize: 28,
+        bold: true,
+        color: C.green,
+        fontFace: "Calibri",
+      });
+      slide.addText(`${data.commercial.membership.new} new  ·  ${data.commercial.membership.lost} lost`, {
+        x: x + 0.25,
+        y: CONTENT_TOP + 4.7,
+        w: 3.5,
+        h: 0.35,
+        fontSize: 13,
+        color: C.text,
+        fontFace: "Calibri",
+      });
+    }
 
-    const sponsorship = data.commercial.sponsorship;
-    slide.addText("Sponsorship", {
-      x: 4.7,
-      y: 1.35,
-      w: 2,
-      h: 0.3,
-      fontSize: 12,
-      bold: true,
-      color: COLORS.white,
-      fontFace: "Calibri",
-    });
-    slide.addChart(
-      pptx.ChartType.bar,
-      [
-        {
-          name: "Sponsorship (£)",
-          labels: ["Budget", "Actual", "Forecast"],
-          values: [sponsorship.budget, sponsorship.actual, sponsorship.forecast],
-        },
-      ],
-      {
-        x: 4.7,
-        y: 1.7,
-        w: 3.8,
-        h: 4.9,
-        chartColors: [COLORS.accent, COLORS.red, COLORS.amber],
-        showLegend: false,
-        catAxisLabelColor: COLORS.muted,
-        valAxisLabelColor: COLORS.muted,
-        valGridLine: { color: COLORS.accent, size: 0.5 },
-      },
-    );
+    // Sponsorship
+    {
+      const x = 4.8;
+      const s = data.commercial.sponsorship;
+      const progress = s.actual / s.budget;
+      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+        x,
+        y: CONTENT_TOP + 0.05,
+        w: 4.0,
+        h: 5.7,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
+        rectRadius: 0.06,
+      });
+      slide.addText("SPONSORSHIP", {
+        x: x + 0.25,
+        y: CONTENT_TOP + 0.25,
+        w: 3.5,
+        h: 0.35,
+        fontSize: 14,
+        bold: true,
+        color: C.navy,
+        fontFace: "Calibri",
+      });
+      slide.addText(formatAbhiBoardGbp(s.actual, true), {
+        x: x + 0.25,
+        y: CONTENT_TOP + 0.85,
+        w: 3.5,
+        h: 0.65,
+        fontSize: 36,
+        bold: true,
+        color: C.navy,
+        fontFace: "Calibri",
+      });
+      slide.addText(`of ${formatAbhiBoardGbp(s.budget, true)} target`, {
+        x: x + 0.25,
+        y: CONTENT_TOP + 1.55,
+        w: 3.5,
+        h: 0.3,
+        fontSize: 13,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+      addProgressBar(slide, x + 0.25, CONTENT_TOP + 2.1, 3.5, 0.35, progress, C.amber);
+      slide.addText(`${Math.round(progress * 100)}% of target`, {
+        x: x + 0.25,
+        y: CONTENT_TOP + 2.55,
+        w: 3.5,
+        h: 0.3,
+        fontSize: 12,
+        color: C.text,
+        fontFace: "Calibri",
+      });
+      addStatusPill(
+        slide,
+        x + 0.25,
+        CONTENT_TOP + 3.15,
+        3.5,
+        0.55,
+        `GAP  ${formatAbhiBoardGbp(s.actual - s.budget, true)}`,
+        "red",
+      );
+      slide.addText("Forecast", {
+        x: x + 0.25,
+        y: CONTENT_TOP + 4.0,
+        w: 3.5,
+        h: 0.25,
+        fontSize: 12,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+      slide.addText(formatAbhiBoardGbp(s.forecast, true), {
+        x: x + 0.25,
+        y: CONTENT_TOP + 4.35,
+        w: 3.5,
+        h: 0.5,
+        fontSize: 24,
+        bold: true,
+        color: C.navy,
+        fontFace: "Calibri",
+      });
+      slide.addText("if MedCore & Helix close", {
+        x: x + 0.25,
+        y: CONTENT_TOP + 4.95,
+        w: 3.5,
+        h: 0.3,
+        fontSize: 12,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+    }
 
-    const events = data.commercial.events;
-    slide.addText("Events", {
-      x: 8.85,
-      y: 1.35,
-      w: 2,
-      h: 0.3,
-      fontSize: 12,
-      bold: true,
-      color: COLORS.white,
-      fontFace: "Calibri",
-    });
-    slide.addTable(
-      [
-        [
-          { text: "Revenue", options: { color: COLORS.light } },
-          { text: formatAbhiBoardGbp(events.revenue, true), options: { color: COLORS.white, bold: true } },
-        ],
-        [
-          { text: "Registrations", options: { color: COLORS.light } },
-          { text: events.registrations.toLocaleString("en-GB"), options: { color: COLORS.white, bold: true } },
-        ],
-        [
-          { text: "Forecast", options: { color: COLORS.light } },
-          { text: formatAbhiBoardGbp(events.forecast, true), options: { color: COLORS.green, bold: true } },
-        ],
-      ],
-      {
-        x: 8.85,
-        y: 1.7,
-        w: 3.9,
-        colW: [1.8, 2.1],
-        fontSize: 11,
-        border: { type: "solid", color: COLORS.accent, pt: 0.5 },
-      },
-    );
-    slide.addChart(
-      pptx.ChartType.bar,
-      [
-        {
-          name: "Events revenue",
-          labels: ["Actual", "Forecast"],
-          values: [events.revenue, events.forecast],
-        },
-      ],
-      {
-        x: 8.85,
-        y: 3.55,
-        w: 3.9,
-        h: 3.05,
-        chartColors: [COLORS.red, COLORS.green],
-        showLegend: false,
-        catAxisLabelColor: COLORS.muted,
-        valAxisLabelColor: COLORS.muted,
-        valGridLine: { color: COLORS.accent, size: 0.5 },
-      },
-    );
-    footer(slide);
+    // Events / WHX
+    {
+      const x = 9.05;
+      const secured = 28;
+      const target = 32;
+      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+        x,
+        y: CONTENT_TOP + 0.05,
+        w: 3.75,
+        h: 5.7,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
+        rectRadius: 0.06,
+      });
+      slide.addText("EVENTS / WHX", {
+        x: x + 0.2,
+        y: CONTENT_TOP + 0.25,
+        w: 3.35,
+        h: 0.35,
+        fontSize: 14,
+        bold: true,
+        color: C.navy,
+        fontFace: "Calibri",
+      });
+      slide.addText(`${secured}`, {
+        x: x + 0.2,
+        y: CONTENT_TOP + 0.75,
+        w: 3.35,
+        h: 0.55,
+        fontSize: 40,
+        bold: true,
+        color: C.navy,
+        fontFace: "Calibri",
+      });
+      slide.addText(`of ${target} target commitments`, {
+        x: x + 0.2,
+        y: CONTENT_TOP + 1.35,
+        w: 3.35,
+        h: 0.3,
+        fontSize: 13,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+      addProgressBar(slide, x + 0.2, CONTENT_TOP + 1.85, 3.35, 0.35, secured / target, C.navy);
+
+      const whxStats = [
+        { label: "Current commitments", value: String(secured) },
+        { label: "Remaining to target", value: String(target - secured) },
+        { label: "Commercial status", value: "On track" },
+        { label: "Delivery status", value: "Watch — deposit due" },
+      ];
+      whxStats.forEach((stat, index) => {
+        const y = CONTENT_TOP + 2.45 + index * 0.48;
+        slide.addText(stat.label, {
+          x: x + 0.2,
+          y,
+          w: 3.35,
+          h: 0.2,
+          fontSize: 11,
+          color: C.muted,
+          fontFace: "Calibri",
+        });
+        slide.addText(stat.value, {
+          x: x + 0.2,
+          y: y + 0.18,
+          w: 3.35,
+          h: 0.25,
+          fontSize: 14,
+          bold: true,
+          color: C.text,
+          fontFace: "Calibri",
+        });
+      });
+      addStatusPill(slide, x + 0.2, CONTENT_TOP + 4.55, 3.35, 0.4, "Programme status: AMBER", "amber");
+      slide.addText(`Events revenue YTD  ${formatAbhiBoardGbp(data.commercial.events.revenue, true)}`, {
+        x: x + 0.2,
+        y: CONTENT_TOP + 5.15,
+        w: 3.35,
+        h: 0.3,
+        fontSize: 12,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+    }
+    finish(slide);
   }
 
-  // Slide 10 — Team & Organisation
+  // ——— Slide 10 Team & Organisation ———
   {
     const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "Team & Organisation", "Headcount, vacancies, and recent changes");
-
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
-      x: MARGIN,
-      y: 1.35,
-      w: 2.4,
-      h: 1.2,
-      fill: { color: COLORS.accent },
-      line: { color: COLORS.accent, width: 0 },
-      rectRadius: 0.06,
-    });
-    slide.addText("Headcount", {
-      x: MARGIN + 0.15,
-      y: 1.5,
-      w: 2,
-      h: 0.25,
-      fontSize: 10,
-      color: COLORS.light,
-      fontFace: "Calibri",
-    });
-    slide.addText(String(data.team.headcount), {
-      x: MARGIN + 0.15,
-      y: 1.85,
-      w: 2,
-      h: 0.55,
-      fontSize: 28,
-      bold: true,
-      color: COLORS.white,
-      fontFace: "Calibri",
+    paintSlide(slide);
+    addHeader(slide, "Team & Organisation", {
+      logoDataUrl,
+      subtitle: "Headcount, vacancies and recent changes",
     });
 
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
-      x: 3.2,
-      y: 1.35,
-      w: 2.4,
-      h: 1.2,
-      fill: { color: COLORS.rowAlt },
-      line: { color: COLORS.accent, width: 0.5 },
-      rectRadius: 0.06,
-    });
-    slide.addText("Open roles", {
-      x: 3.35,
-      y: 1.5,
-      w: 2,
-      h: 0.25,
-      fontSize: 10,
-      color: COLORS.light,
-      fontFace: "Calibri",
-    });
-    slide.addText(String(data.team.openRoles), {
-      x: 3.35,
-      y: 1.85,
-      w: 2,
-      h: 0.55,
-      fontSize: 28,
-      bold: true,
-      color: COLORS.amber,
-      fontFace: "Calibri",
+    const tiles = [
+      { label: "Headcount", value: String(data.team.headcount), color: C.navy },
+      { label: "Open roles", value: String(data.team.openRoles), color: C.amber },
+    ];
+    tiles.forEach((tile, index) => {
+      const x = MARGIN + index * 3.3;
+      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+        x,
+        y: CONTENT_TOP + 0.1,
+        w: 3.1,
+        h: 1.3,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
+        rectRadius: 0.05,
+      });
+      slide.addText(tile.label, {
+        x: x + 0.2,
+        y: CONTENT_TOP + 0.28,
+        w: 2.7,
+        h: 0.3,
+        fontSize: 13,
+        color: C.muted,
+        bold: true,
+        fontFace: "Calibri",
+      });
+      slide.addText(tile.value, {
+        x: x + 0.2,
+        y: CONTENT_TOP + 0.65,
+        w: 2.7,
+        h: 0.55,
+        fontSize: 36,
+        bold: true,
+        color: tile.color,
+        fontFace: "Calibri",
+      });
     });
 
     const joinerRows: pptxgen.TableRow[] = [
       [
-        { text: "Recent joiners", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Role", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Start", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
+        { text: "Recent joiners", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Role", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Start", options: { bold: true, color: C.white, fill: { color: C.navy } } },
       ],
       ...data.team.joiners.map(
-        (person): pptxgen.TableRow => [
-          { text: person.name, options: { color: COLORS.light, fontSize: 10 } },
-          { text: person.role, options: { color: COLORS.muted, fontSize: 10 } },
-          { text: person.startDate, options: { color: COLORS.muted, fontSize: 10 } },
+        (person, index): pptxgen.TableRow => [
+          { text: person.name, options: { color: C.text, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
+          { text: person.role, options: { color: C.muted, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
+          { text: person.startDate, options: { color: C.muted, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
         ],
       ),
     ];
     slide.addTable(joinerRows, {
       x: MARGIN,
-      y: 2.85,
-      w: 5.8,
-      colW: [2.0, 2.5, 1.3],
-      fontSize: 10,
-      border: { type: "solid", color: COLORS.accent, pt: 0.5 },
+      y: 2.7,
+      w: 6.0,
+      colW: [2.1, 2.5, 1.4],
+      border: { type: "solid", color: C.line, pt: 0.6 },
+      fontFace: "Calibri",
+      rowH: 0.5,
     });
 
     const leaverRows: pptxgen.TableRow[] = [
       [
-        { text: "Recent leavers", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "Role", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
-        { text: "End", options: { bold: true, color: COLORS.white, fill: { color: COLORS.accent } } },
+        { text: "Recent leavers", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "Role", options: { bold: true, color: C.white, fill: { color: C.navy } } },
+        { text: "End", options: { bold: true, color: C.white, fill: { color: C.navy } } },
       ],
       ...data.team.leavers.map(
-        (person): pptxgen.TableRow => [
-          { text: person.name, options: { color: COLORS.light, fontSize: 10 } },
-          { text: person.role, options: { color: COLORS.muted, fontSize: 10 } },
-          { text: person.endDate, options: { color: COLORS.muted, fontSize: 10 } },
+        (person, index): pptxgen.TableRow => [
+          { text: person.name, options: { color: C.text, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
+          { text: person.role, options: { color: C.muted, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
+          { text: person.endDate, options: { color: C.muted, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
         ],
       ),
     ];
     slide.addTable(leaverRows, {
-      x: 6.75,
-      y: 2.85,
-      w: 5.8,
-      colW: [2.0, 2.5, 1.3],
-      fontSize: 10,
-      border: { type: "solid", color: COLORS.accent, pt: 0.5 },
+      x: 6.8,
+      y: 2.7,
+      w: 6.0,
+      colW: [2.1, 2.5, 1.4],
+      border: { type: "solid", color: C.line, pt: 0.6 },
+      fontFace: "Calibri",
+      rowH: 0.5,
     });
 
     slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
       x: MARGIN,
-      y: 5.0,
-      w: 12.2,
-      h: 1.35,
-      fill: { color: COLORS.rowAlt },
-      line: { color: COLORS.accent, width: 0.5 },
-      rectRadius: 0.06,
+      y: 4.6,
+      w: SLIDE_W - MARGIN * 2,
+      h: 2.15,
+      fill: { color: C.white },
+      line: { color: C.line, width: 1 },
+      rectRadius: 0.05,
     });
     slide.addText("Organisation notes", {
-      x: MARGIN + 0.15,
-      y: 5.12,
-      w: 3,
-      h: 0.25,
-      fontSize: 10,
+      x: MARGIN + 0.25,
+      y: 4.8,
+      w: 4,
+      h: 0.3,
+      fontSize: 14,
       bold: true,
-      color: COLORS.amber,
+      color: C.navy,
       fontFace: "Calibri",
     });
     slide.addText(data.team.notes, {
-      x: MARGIN + 0.15,
-      y: 5.45,
-      w: 11.8,
-      h: 0.75,
-      fontSize: 10,
-      color: COLORS.light,
+      x: MARGIN + 0.25,
+      y: 5.25,
+      w: 12,
+      h: 1.25,
+      fontSize: 14,
+      color: C.text,
       fontFace: "Calibri",
       valign: "top",
     });
-    footer(slide);
+    finish(slide);
   }
 
-  // Slide 11 — Strategic Discussion & AOB
+  // ——— Slide 11 Strategic Discussion (decision-first) ———
   {
     const slide = pptx.addSlide();
-    paintSlideBackground(slide);
-    addHeaderBar(slide, "Strategic Discussion & AOB", "Board topics requiring decision or debate");
+    paintSlide(slide);
+    addHeader(slide, "Strategic Discussion & AOB", {
+      logoDataUrl,
+      subtitle: "Decisions required",
+    });
 
     data.strategicTopics.forEach((topic, index) => {
-      const y = 1.35 + index * 1.28;
+      const col = index % 2;
+      const row = Math.floor(index / 2);
+      const x = MARGIN + col * 6.35;
+      const y = CONTENT_TOP + 0.05 + row * 2.7;
+      const priorityTone =
+        topic.priority === "HIGH" ? "red" : topic.priority === "MEDIUM" ? "amber" : "green";
+
       slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
-        x: MARGIN,
+        x,
         y,
-        w: 12.2,
-        h: 1.15,
-        fill: { color: index % 2 === 0 ? COLORS.rowAlt : COLORS.navy },
-        line: { color: COLORS.accent, width: 0.5 },
-        rectRadius: 0.05,
+        w: 6.15,
+        h: 2.55,
+        fill: { color: C.white },
+        line: { color: C.line, width: 1 },
+        rectRadius: 0.06,
+      });
+
+      // Priority chip top-right
+      addStatusPill(slide, x + 4.55, y + 0.15, 1.4, 0.35, topic.priority, priorityTone);
+
+      slide.addText("ISSUE", {
+        x: x + 0.25,
+        y: y + 0.12,
+        w: 4,
+        h: 0.18,
+        fontSize: 9,
+        bold: true,
+        color: C.muted,
+        fontFace: "Calibri",
       });
       slide.addText(topic.issue, {
-        x: MARGIN + 0.15,
-        y: y + 0.08,
-        w: 11.8,
-        h: 0.25,
-        fontSize: 10,
+        x: x + 0.25,
+        y: y + 0.3,
+        w: 4.2,
+        h: 0.35,
+        fontSize: 13,
         bold: true,
-        color: COLORS.white,
+        color: C.navy,
+        fontFace: "Calibri",
+        valign: "top",
+      });
+      slide.addText("WHY IT MATTERS", {
+        x: x + 0.25,
+        y: y + 0.68,
+        w: 5.5,
+        h: 0.16,
+        fontSize: 9,
+        bold: true,
+        color: C.muted,
         fontFace: "Calibri",
       });
-      slide.addText(`Evidence: ${topic.evidence}`, {
-        x: MARGIN + 0.15,
-        y: y + 0.38,
-        w: 11.8,
-        h: 0.35,
-        fontSize: 8.5,
-        color: COLORS.muted,
+      slide.addText(topic.whyItMatters, {
+        x: x + 0.25,
+        y: y + 0.84,
+        w: 5.5,
+        h: 0.28,
+        fontSize: 12,
+        color: C.text,
         fontFace: "Calibri",
       });
-      slide.addText(`Recommendation: ${topic.recommendation}`, {
-        x: MARGIN + 0.15,
-        y: y + 0.75,
-        w: 11.8,
+
+      // Decision panel — most prominent
+      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+        x: x + 0.2,
+        y: y + 1.2,
+        w: 5.75,
+        h: 0.7,
+        fill: { color: C.navy },
+        line: { color: C.navy, width: 0 },
+        rectRadius: 0.05,
+      });
+      slide.addText("DECISION REQUIRED", {
+        x: x + 0.35,
+        y: y + 1.28,
+        w: 5.45,
+        h: 0.18,
+        fontSize: 9,
+        bold: true,
+        color: "A8C0DC",
+        fontFace: "Calibri",
+      });
+      slide.addText(topic.decisionRequired, {
+        x: x + 0.35,
+        y: y + 1.48,
+        w: 5.45,
+        h: 0.32,
+        fontSize: 13,
+        bold: true,
+        color: C.white,
+        fontFace: "Calibri",
+      });
+
+      slide.addText("IMPACT", {
+        x: x + 0.25,
+        y: y + 2.05,
+        w: 1.2,
+        h: 0.2,
+        fontSize: 9,
+        bold: true,
+        color: C.muted,
+        fontFace: "Calibri",
+      });
+      slide.addText(topic.impact, {
+        x: x + 1.4,
+        y: y + 2.02,
+        w: 4.5,
         h: 0.35,
-        fontSize: 8.5,
-        color: COLORS.light,
+        fontSize: 12,
+        color: C.text,
         fontFace: "Calibri",
       });
     });
@@ -1536,13 +1792,13 @@ export async function buildAbhiBoardPackPptx(
     slide.addText(`AOB: ${data.aob}`, {
       x: MARGIN,
       y: 6.55,
-      w: 12.2,
+      w: SLIDE_W - MARGIN * 2,
       h: 0.35,
-      fontSize: 9,
-      color: COLORS.muted,
+      fontSize: 12,
+      color: C.muted,
       fontFace: "Calibri",
     });
-    footer(slide);
+    finish(slide);
   }
 
   const buffer = (await pptx.write({ outputType: "nodebuffer" })) as Buffer;

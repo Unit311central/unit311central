@@ -4,7 +4,12 @@
 
 export const ABHI_SLUG = "abhi";
 
-export const ABHI_LOGO_SRC = "/images/workspaces/abhi.jpg";
+/** Transparent ABHI wordmark (PNG with alpha). Prefer this over abhi.jpg. */
+export const ABHI_LOGO_SRC = "/images/workspaces/abhi-logo.png";
+
+/** Intrinsic pixel size of {@link ABHI_LOGO_SRC}. */
+export const ABHI_LOGO_INTRINSIC_WIDTH = 640;
+export const ABHI_LOGO_INTRINSIC_HEIGHT = 224;
 
 export const ABHI_LINKEDIN_URL = "https://www.linkedin.com/company/abhi/";
 export const ABHI_X_URL = "https://x.com/UK_ABHI";
