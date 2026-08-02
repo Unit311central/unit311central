@@ -5,17 +5,16 @@ import {
   isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
 import type {
-  LessonContent,
   LmsCertificate,
   LmsCourse,
   LmsCourseCreateInput,
   LmsCourseTree,
   LmsEnrolment,
   LmsLesson,
-  LmsLessonType,
   LmsModule,
   LmsQuestion,
 } from "@/lib/lms/types";
+import { sanitizeCourseLessonInput, sanitizeLessonContent } from "@/lib/lms/sanitize-lesson-content";
 
 function db() {
   if (!isSupabaseServiceRoleConfigured()) {
@@ -53,14 +52,15 @@ function mapModule(row: Record<string, unknown>): LmsModule {
 }
 
 function mapLesson(row: Record<string, unknown>): LmsLesson {
-  const content = (row.content ?? { type: row.lesson_type }) as LessonContent;
+  const title = String(row.title);
+  const sanitized = sanitizeLessonContent(row.lesson_type, row.content, title);
   return {
     id: String(row.id),
     courseId: String(row.course_id),
     moduleId: String(row.module_id),
-    title: String(row.title),
-    lessonType: String(row.lesson_type) as LmsLessonType,
-    content,
+    title,
+    lessonType: sanitized.lessonType,
+    content: sanitized.content,
     sortOrder: Number(row.sort_order ?? 0),
     estimatedMinutes: Number(row.estimated_minutes ?? 5),
   };
@@ -911,7 +911,7 @@ export async function createCourseTree(
       if (modErr || !moduleRow) throw new Error(modErr?.message || "Failed to create module.");
 
       for (let li = 0; li < mod.lessons.length; li += 1) {
-        const lesson = mod.lessons[li]!;
+        const lesson = sanitizeCourseLessonInput(mod.lessons[li]!);
         const { error: lessonErr } = await db().from("lms_lessons").insert({
           workspace_id: workspaceId,
           course_id: courseId,

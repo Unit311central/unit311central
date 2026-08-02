@@ -1,6 +1,7 @@
 "use client";
 
 import type { LmsLesson } from "@/lib/lms/types";
+import { sanitizeLessonContent } from "@/lib/lms/sanitize-lesson-content";
 
 import AssessmentLesson from "./AssessmentLesson";
 import BranchingLesson from "./BranchingLesson";
@@ -33,57 +34,68 @@ export function LessonRenderer({
   courseSlug,
   enrolmentId,
 }: LessonRendererProps) {
-  const content = lesson.content;
   const complete = () => onComplete();
+  const sanitized = sanitizeLessonContent(lesson.lessonType, lesson.content, lesson.title);
+  const safeLesson: LmsLesson = {
+    ...lesson,
+    lessonType: sanitized.lessonType,
+    content: sanitized.content,
+  };
+  const content = safeLesson.content;
 
-  switch (content.type) {
-    case "rich_text":
-      return <RichTextLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "image":
-      return <ImageLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "video":
-      return <VideoLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "interactive_cards":
-      return (
-        <InteractiveCardsLesson lesson={lesson} content={content} onComplete={complete} />
-      );
-    case "scenario":
-      return <ScenarioLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "drag_drop":
-      return <DragDropLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "knowledge_check":
-      return (
-        <KnowledgeCheckLesson lesson={lesson} content={content} onComplete={complete} />
-      );
-    case "quiz":
-      return <QuizLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "document":
-      return <DocumentLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "embedded_pdf":
-      return <EmbeddedPdfLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "narration":
-      return <NarrationLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "infographic":
-      return <InfographicLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "branching":
-      return <BranchingLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "hotspot":
-      return <HotspotLesson lesson={lesson} content={content} onComplete={complete} />;
-    case "assessment":
-      if (!courseSlug || !enrolmentId) {
-        return <UnsupportedLesson lesson={lesson} onComplete={complete} />;
-      }
-      return (
-        <AssessmentLesson
-          lesson={lesson}
-          courseSlug={courseSlug}
-          enrolmentId={enrolmentId}
-          passMark={content.passMark}
-          onComplete={(result) => onComplete(result)}
-        />
-      );
-    default:
-      return <UnsupportedLesson lesson={lesson} onComplete={complete} />;
+  try {
+    switch (content.type) {
+      case "rich_text":
+        return <RichTextLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "image":
+        return <ImageLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "video":
+        return <VideoLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "interactive_cards":
+        return (
+          <InteractiveCardsLesson lesson={safeLesson} content={content} onComplete={complete} />
+        );
+      case "scenario":
+        return <ScenarioLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "drag_drop":
+        return <DragDropLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "knowledge_check":
+        return (
+          <KnowledgeCheckLesson lesson={safeLesson} content={content} onComplete={complete} />
+        );
+      case "quiz":
+        return <QuizLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "document":
+        return <DocumentLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "embedded_pdf":
+        return <EmbeddedPdfLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "narration":
+        return <NarrationLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "infographic":
+        return <InfographicLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "branching":
+        return <BranchingLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "hotspot":
+        return <HotspotLesson lesson={safeLesson} content={content} onComplete={complete} />;
+      case "assessment":
+        if (!courseSlug || !enrolmentId) {
+          return <UnsupportedLesson lesson={safeLesson} onComplete={complete} />;
+        }
+        return (
+          <AssessmentLesson
+            lesson={safeLesson}
+            courseSlug={courseSlug}
+            enrolmentId={enrolmentId}
+            passMark={content.passMark}
+            onComplete={(result) => onComplete(result)}
+          />
+        );
+      default:
+        return <UnsupportedLesson lesson={safeLesson} onComplete={complete} />;
+    }
+  } catch (error) {
+    console.error("[LessonRenderer]", safeLesson.id, error);
+    return <UnsupportedLesson lesson={safeLesson} onComplete={complete} />;
   }
 }
 

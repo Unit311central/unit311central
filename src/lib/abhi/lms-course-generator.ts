@@ -7,6 +7,7 @@ import {
   getAssistantModel,
 } from "@/lib/ai-operating-assistant/openai-client";
 import { clipDocumentText } from "@/lib/document-extract";
+import { sanitizeCourseLessonInput } from "@/lib/lms/sanitize-lesson-content";
 import type { LmsCourseCreateInput, LessonContent } from "@/lib/lms/types";
 
 export type GeneratedCourseDraft = LmsCourseCreateInput & {
@@ -393,6 +394,10 @@ function normalizeAiDraft(raw: unknown, sourceFileName?: string): GeneratedCours
       learningObjectives: Array.isArray(obj.learningObjectives)
         ? (obj.learningObjectives as string[]).map(String)
         : fallback.learningObjectives,
+      modules: mapped.modules.map((mod) => ({
+        ...mod,
+        lessons: mod.lessons.map((lesson) => sanitizeCourseLessonInput(lesson)),
+      })),
       questions: mapped.questions?.length ? mapped.questions : fallback.questions,
       scenarioCount: scenarioCount || fallback.scenarioCount,
       assessmentCount: assessmentCount || 1,

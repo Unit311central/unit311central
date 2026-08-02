@@ -12,6 +12,7 @@ import {
 import type { LmsCertificate, LmsCourse, LmsCourseTree, LmsEnrolment } from "@/lib/lms/types";
 import { cn } from "@/lib/utils";
 import CreateCourseWizard from "./CreateCourseWizard";
+import WorkspaceErrorBoundary from "./WorkspaceErrorBoundary";
 import {
   TqmsSection,
   TqmsStatusPill,
@@ -436,7 +437,9 @@ function PlayerOverlay({
 }) {
   return (
     <div className="fixed inset-0 z-[90] bg-[#070d18]">
-      <CoursePlayer courseSlug={slug} onClose={onClose} />
+      <WorkspaceErrorBoundary title="Course player" onReset={onClose}>
+        <CoursePlayer courseSlug={slug} onClose={onClose} />
+      </WorkspaceErrorBoundary>
     </div>
   );
 }
@@ -822,9 +825,8 @@ function CoursesCatalogView() {
           onPublished={(slug) => {
             setReviewCourse(null);
             setReviewSummary(null);
-            setNotice(`“${slug}” published. Launch it from the catalogue.`);
+            setNotice(`“${slug}” published. Open it from the catalogue when ready.`);
             void reload();
-            setLaunchSlug(slug);
           }}
         />
       ) : null}
@@ -847,6 +849,9 @@ export default function AbhiComplianceTrainingWorkspace({
 }: {
   mode: AbhiComplianceTrainingMode;
 }) {
-  if (mode === "dashboard") return <DashboardAssignedView />;
-  return <CoursesCatalogView />;
+  return (
+    <WorkspaceErrorBoundary title="Training">
+      {mode === "dashboard" ? <DashboardAssignedView /> : <CoursesCatalogView />}
+    </WorkspaceErrorBoundary>
+  );
 }
