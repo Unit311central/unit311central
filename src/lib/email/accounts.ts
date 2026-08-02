@@ -43,18 +43,18 @@ export function getPublicEmailAccounts(options?: {
   demo?: boolean;
   workspaceSlug?: string | null;
 }): EmailAccount[] {
-  // Demo and Internal share the real Unit311 Zoho mailboxes
-  // (info@ / paul@ / admin@ / demo@unit311central.com). Never substitute
-  // Meridian Atlas fictional addresses into the Email UI.
+  // Platform Zoho mailboxes (info@ / paul@ / admin@ / demo@unit311central.com)
+  // are Internal/Demo only. Customer workspaces must not inherit them.
   void options?.demo;
   const slug = String(options?.workspaceSlug ?? "")
     .trim()
     .toLowerCase();
-  const accounts =
-    slug === "corpcentre" || slug === "corporatecentre"
-      ? ACCOUNT_DEFINITIONS.filter((account) => account.id === "demo")
-      : ACCOUNT_DEFINITIONS;
-  return accounts.map((account) => ({
+  const { isPlatformWorkspaceSlug } =
+    require("@/lib/workspace-brand") as typeof import("@/lib/workspace-brand");
+  if (!isPlatformWorkspaceSlug(slug)) {
+    return [];
+  }
+  return ACCOUNT_DEFINITIONS.map((account) => ({
     ...account,
     email: resolveAccountEmailFromEnv(account.id) ?? account.email,
   }));
