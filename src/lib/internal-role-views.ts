@@ -457,6 +457,17 @@ function isAbhiNavSurface(): boolean {
   }
 }
 
+function isOnwardAirNavSurface(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserOnwardAirSurface } =
+      require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+    return isBrowserOnwardAirSurface();
+  } catch {
+    return false;
+  }
+}
+
 /** ABHI — hide platform-internal / non-member equity surfaces. */
 export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "corporate-cap-table",
@@ -683,6 +694,74 @@ const ABHI_BOARD_NAV_SECTION: InternalNavSection = {
   ],
 };
 
+/** OnwardAir BOARD — same capability surface as ABHI, isolated tenant data. */
+const ONWARDAIR_BOARD_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "Board",
+  icon: "ShieldCheck",
+  color: "#0EA5E9",
+  items: [
+    { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" as const },
+    { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" as const },
+    { label: "Board Decks", icon: "ScrollText", view: "board-pack" as const },
+    { label: "Minutes & Decisions", icon: "ClipboardCheck", view: "board-minutes" as const },
+    { label: "Risk Register", icon: "AlertTriangle", view: "corporate-risk-register" as const },
+    { label: "Board Members", icon: "Users", view: "board-members" as const },
+  ],
+};
+
+const ONWARDAIR_ENGINEERING_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "Engineering",
+  icon: "Cpu",
+  color: "#38BDF8",
+  items: [
+    { label: "Test Plans", icon: "ClipboardCheck", view: "oa-test-plans" as const },
+    { label: "Test Runs", icon: "FlaskConical", view: "oa-test-runs" as const },
+    { label: "Defects", icon: "AlertTriangle", view: "oa-defects" as const },
+    { label: "UAT Tracking", icon: "Users", view: "oa-uat-tracking" as const },
+  ],
+};
+
+const ONWARDAIR_OPERATIONS_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "Operations",
+  icon: "Activity",
+  color: "#34D399",
+  items: [
+    { label: "Platform Health", icon: "Activity", view: "oa-platform-health" as const },
+    { label: "Monitoring", icon: "Radio", view: "oa-monitoring" as const },
+    { label: "Incident Management", icon: "AlertTriangle", view: "oa-incident-management" as const },
+    { label: "Change Management", icon: "Layers", view: "oa-change-management" as const },
+    { label: "Release Tracking", icon: "ScrollText", view: "oa-release-tracking" as const },
+  ],
+};
+
+function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): InternalNavSection[] {
+  const out: InternalNavSection[] = [];
+  let insertedBoard = false;
+  for (const section of sections) {
+    if (section.label === "Corporate Information") {
+      out.push({
+        ...section,
+        items: section.items.filter(
+          (item) =>
+            item.view !== "board-meetings" &&
+            item.view !== "board-pack" &&
+            item.view !== "corporate-risk-register",
+        ),
+      });
+      out.push(ONWARDAIR_BOARD_NAV_SECTION);
+      insertedBoard = true;
+    } else {
+      out.push(section);
+    }
+  }
+  if (!insertedBoard) out.push(ONWARDAIR_BOARD_NAV_SECTION);
+  out.push(ONWARDAIR_ENGINEERING_NAV_SECTION, ONWARDAIR_OPERATIONS_NAV_SECTION);
+  return out.filter((section) => section.items.length > 0);
+}
+
 function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
   try {
     const { ABHI_MARKETING_NAV_SECTION, ABHI_REGULATORY_NAV_SECTION } =
@@ -855,6 +934,11 @@ export function filterInternalNavSectionsForDemoSurface(
   // ABHI: keep Member Intelligence under Members; inject Marketing & Events.
   if (isAbhiNavSurface()) {
     return insertAbhiMarketingSection(sections);
+  }
+
+  // OnwardAir: BOARD + Engineering/Operations placeholders (clean tenant, no ABHI data).
+  if (isOnwardAirNavSurface()) {
+    return insertOnwardAirNavSections(stripMemberIntelligenceNavForNonAbhi(sections));
   }
 
   if (!shouldHideDroneToolNavViews()) {

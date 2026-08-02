@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
-import AbhiLogoMark, { isAbhiSlug } from "@/components/layout/AbhiLogoMark";
+import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import CorpCentreLogoMark, { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import Logo from "@/components/layout/Logo";
 import { CENTRAL_SITE_URL } from "@/lib/app-domains";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import {
   findWorkspaceBySlug,
   formatWorkspaceDisplayStatus,

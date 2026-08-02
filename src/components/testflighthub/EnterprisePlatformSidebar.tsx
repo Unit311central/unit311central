@@ -4,6 +4,7 @@ import { startTransition, useEffect, useMemo, useState, type CSSProperties } fro
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  Activity,
   AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
@@ -79,6 +80,7 @@ import { cn } from "@/lib/utils";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 
 const iconMap = {
+  Activity,
   LayoutDashboard,
   ArrowDownLeft,
   ArrowUpRight,

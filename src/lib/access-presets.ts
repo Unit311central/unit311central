@@ -142,6 +142,37 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     ],
   },
   {
+    id: "board-governance",
+    label: "Board",
+    section: "Board",
+    views: [
+      "board-dashboard",
+      "board-meetings",
+      "board-pack",
+      "board-minutes",
+      "corporate-risk-register",
+      "board-members",
+    ],
+  },
+  {
+    id: "onwardair-engineering",
+    label: "Engineering (OnwardAir)",
+    section: "Engineering",
+    views: ["oa-test-plans", "oa-test-runs", "oa-defects", "oa-uat-tracking"],
+  },
+  {
+    id: "onwardair-operations",
+    label: "Operations (OnwardAir)",
+    section: "Operations",
+    views: [
+      "oa-platform-health",
+      "oa-monitoring",
+      "oa-incident-management",
+      "oa-change-management",
+      "oa-release-tracking",
+    ],
+  },
+  {
     id: "strategy",
     label: "Strategy & Competitors",
     section: "Strategy",

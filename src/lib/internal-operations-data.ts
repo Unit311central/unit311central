@@ -148,7 +148,16 @@ export type InternalOperationsView =
   | "regulatory-dashboard"
   | "regulatory-updates"
   | "regulatory-impact"
-  | "regulatory-alerts";
+  | "regulatory-alerts"
+  | "oa-test-plans"
+  | "oa-test-runs"
+  | "oa-defects"
+  | "oa-uat-tracking"
+  | "oa-platform-health"
+  | "oa-monitoring"
+  | "oa-incident-management"
+  | "oa-change-management"
+  | "oa-release-tracking";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -344,6 +353,15 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "regulatory-updates",
   "regulatory-impact",
   "regulatory-alerts",
+  "oa-test-plans",
+  "oa-test-runs",
+  "oa-defects",
+  "oa-uat-tracking",
+  "oa-platform-health",
+  "oa-monitoring",
+  "oa-incident-management",
+  "oa-change-management",
+  "oa-release-tracking",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -1081,6 +1099,15 @@ export const internalViewTitles: Record<
   "regulatory-updates": { title: "Regulatory Updates", subtitle: "Regulatory Intelligence" },
   "regulatory-impact": { title: "Impact Assessments", subtitle: "Regulatory Intelligence" },
   "regulatory-alerts": { title: "Member Alerts", subtitle: "Regulatory Intelligence" },
+  "oa-test-plans": { title: "Test Plans", subtitle: "Engineering" },
+  "oa-test-runs": { title: "Test Runs", subtitle: "Engineering" },
+  "oa-defects": { title: "Defects", subtitle: "Engineering" },
+  "oa-uat-tracking": { title: "UAT Tracking", subtitle: "Engineering" },
+  "oa-platform-health": { title: "Platform Health", subtitle: "Operations" },
+  "oa-monitoring": { title: "Monitoring", subtitle: "Operations" },
+  "oa-incident-management": { title: "Incident Management", subtitle: "Operations" },
+  "oa-change-management": { title: "Change Management", subtitle: "Operations" },
+  "oa-release-tracking": { title: "Release Tracking", subtitle: "Operations" },
 };
 
 /** Breadcrumb labels for the active internal leaf (section → … → page).

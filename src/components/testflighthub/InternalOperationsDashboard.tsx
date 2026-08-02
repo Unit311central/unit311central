@@ -166,6 +166,7 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvider";
+import { OnwardAirPlaceholderWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
   "fleet",
@@ -1038,6 +1039,70 @@ export default function InternalOperationsDashboard({
 
           {activeView === "technology-settings" && (
             <TechnologyPlaceholderWorkspace module="settings" />
+          )}
+
+          {activeView === "oa-test-plans" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Test Plans"
+              group="Engineering"
+              description="Define and maintain product test plans for OnwardAir releases."
+            />
+          )}
+          {activeView === "oa-test-runs" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Test Runs"
+              group="Engineering"
+              description="Execute and record test runs against active plans."
+            />
+          )}
+          {activeView === "oa-defects" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Defects"
+              group="Engineering"
+              description="Track defects discovered during engineering and UAT cycles."
+            />
+          )}
+          {activeView === "oa-uat-tracking" && (
+            <OnwardAirPlaceholderWorkspace
+              title="UAT Tracking"
+              group="Engineering"
+              description="Coordinate user-acceptance testing progress and sign-off."
+            />
+          )}
+          {activeView === "oa-platform-health" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Platform Health"
+              group="Operations"
+              description="High-level health of OnwardAir platform services and dependencies."
+            />
+          )}
+          {activeView === "oa-monitoring" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Monitoring"
+              group="Operations"
+              description="Operational monitoring dashboards and alerting overview."
+            />
+          )}
+          {activeView === "oa-incident-management" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Incident Management"
+              group="Operations"
+              description="Incident intake, triage, and resolution workflow (placeholder)."
+            />
+          )}
+          {activeView === "oa-change-management" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Change Management"
+              group="Operations"
+              description="Change requests and approvals for platform releases."
+            />
+          )}
+          {activeView === "oa-release-tracking" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Release Tracking"
+              group="Operations"
+              description="Track release readiness, rollout, and post-release notes."
+            />
           )}
 
           {(activeView === "portfolio-companies" ||
