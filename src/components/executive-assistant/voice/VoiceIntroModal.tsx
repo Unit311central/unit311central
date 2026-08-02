@@ -46,7 +46,7 @@ export function VoiceIntroModal({
           Voice Assistant
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-white/70">
-          You can now speak directly with your AI Executive Assistant.
+          You can now speak directly with your Executive Assistant.
         </p>
         <ul className="mt-3 space-y-2 text-sm text-white/65">
           <li>• Click the microphone or press CTRL + Q to start speaking.</li>

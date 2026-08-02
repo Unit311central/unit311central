@@ -74,7 +74,7 @@ function baseTargets(viewId: string): AiUiTarget[] {
     },
     {
       id: "ai-assistant",
-      label: "AI Executive Assistant",
+      label: "Executive Assistant",
       kind: "button",
       selector: '[data-ai-target="ai-assistant"]',
       explanation:

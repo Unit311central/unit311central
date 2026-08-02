@@ -225,7 +225,7 @@ export default function SurveyOperationsShell({
                   <button
                     type="button"
                     data-ai-target="ai-assistant"
-                    aria-label="Open AI Executive Assistant"
+                    aria-label="Open Executive Assistant"
                     aria-expanded={assistantOpen}
                     onClick={() => setAssistantOpen(true)}
                     className={cn(

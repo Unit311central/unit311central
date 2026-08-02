@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type {
   AssistantChatMessage,
@@ -44,6 +44,7 @@ import { getAbhiRiskRegisterState } from "@/lib/abhi/risk-register-store";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { saveFileToFolderPath } from "@/lib/pdf-file-storage";
 import { cn } from "@/lib/utils";
+import { resolveBrowserWorkspaceDisplayName } from "@/lib/workspace-brand";
 import {
   fetchCachedJson,
   invalidateCachedJson,
@@ -241,6 +242,11 @@ export default function ExecutiveAssistantPanel({
     complete: boolean;
   }>({ active: false, complete: false });
   const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
+  const [assistantTitle, setAssistantTitle] = useState("Executive Assistant");
+  useLayoutEffect(() => {
+    const name = resolveBrowserWorkspaceDisplayName().trim();
+    setAssistantTitle(name ? `${name} Executive Assistant` : "Executive Assistant");
+  }, []);
   const abortRef = useRef<AbortController | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);
   const handleSendRef = useRef<
@@ -1236,7 +1242,7 @@ export default function ExecutiveAssistantPanel({
                 embedded ? "text-sm" : "text-base",
               )}
             >
-              {embedded ? "Conversation" : "AI Executive Assistant"}
+              {embedded ? "Conversation" : assistantTitle}
             </h2>
             {!embedded ? (
               <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-emerald-300/90">
