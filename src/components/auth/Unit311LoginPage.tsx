@@ -189,7 +189,9 @@ export default function Unit311LoginPage({
     const fromUrl = readReturnToFromLocation() ?? returnTo;
     if (fromUrl) persistReturnTo(fromUrl);
     const nextFromUrl = readNextFromLocation() ?? nextPath;
+    // Bare /login must not reuse a stale deep-link (e.g. /portals) from an earlier visit.
     if (nextFromUrl) persistNext(nextFromUrl);
+    else persistNext(null);
   }, [returnTo, nextPath]);
 
   useEffect(() => {
@@ -208,9 +210,11 @@ export default function Unit311LoginPage({
 
     const workspaceReturnTo =
       readReturnToFromLocation() ?? returnTo ?? readPersistedReturnTo();
-    const deepLinkNext = readNextFromLocation() ?? nextPath ?? readPersistedNext();
+    // Prefer the URL/prop next only — do not fall back to a stale sessionStorage deep-link
+    // when the user opened plain /login (should land on the platform dashboard).
+    const deepLinkNext = readNextFromLocation() ?? nextPath;
     if (workspaceReturnTo) persistReturnTo(workspaceReturnTo);
-    if (deepLinkNext) persistNext(deepLinkNext);
+    persistNext(deepLinkNext);
 
     try {
       const response = await fetch("/api/auth/login", {
