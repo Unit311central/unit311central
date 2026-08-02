@@ -246,27 +246,11 @@ function writeState(next: AbhiBoardMeetingsState) {
 }
 
 export function getAbhiBoardMeetingsState(): AbhiBoardMeetingsState {
-  try {
-    const { getAbhiRequestMeetings } =
-      require("@/lib/abhi/abhi-request-org-state") as typeof import("@/lib/abhi/abhi-request-org-state");
-    const overlay = getAbhiRequestMeetings();
-    if (overlay?.meetings?.length) return overlay;
-  } catch {
-    // ignore — overlay only present during EA server turns
-  }
   ensureHydrated();
   return state;
 }
 
 export function getAbhiBoardMeetingsServerSnapshot(): AbhiBoardMeetingsState {
-  try {
-    const { getAbhiRequestMeetings } =
-      require("@/lib/abhi/abhi-request-org-state") as typeof import("@/lib/abhi/abhi-request-org-state");
-    const overlay = getAbhiRequestMeetings();
-    if (overlay?.meetings?.length) return overlay;
-  } catch {
-    // ignore
-  }
   return serverSnapshot;
 }
 
