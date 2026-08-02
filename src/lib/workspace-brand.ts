@@ -1,12 +1,12 @@
 /**
- * Platform-wide workspace branding.
+ * Platform-wide workspace branding (client-safe).
  *
  * Customer workspaces inherit display name / assistant identity / email chrome
  * from the active workspace. Unit311 platform branding is reserved for
  * Internal (unit311) and Demo hosts only.
+ *
+ * Server-only async resolution lives in `workspace-brand-server.ts`.
  */
-
-import { cache } from "react";
 
 import {
   CENTRAL_SITE_URL,
@@ -17,14 +17,6 @@ import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
 import { CONTACT, SITE_NAME } from "@/lib/site";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
-import {
-  createSupabaseServerClient,
-  isSupabaseConfigured,
-} from "@/lib/supabase/server";
-import {
-  getCurrentWorkspace,
-  type CurrentWorkspace,
-} from "@/lib/workspace-context";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 export type WorkspaceBrandKind =
@@ -114,7 +106,6 @@ export function buildWorkspaceBrand(input: {
   if (kind === "customer") {
     displayName = input.name?.trim() || (slug ? titleCaseSlug(slug) : "Workspace");
   } else if (kind === "platform") {
-    // Demo surface may use a trading name elsewhere; platform chrome stays Unit311 Central.
     displayName = "Unit311 Central";
   }
 
@@ -127,8 +118,7 @@ export function buildWorkspaceBrand(input: {
       : customerWorkspaceOrigin(slug) || CENTRAL_SITE_URL;
 
   const supportEmail =
-    input.supportEmail?.trim() ||
-    (showPlatformBranding ? PLATFORM_SUPPORT_EMAIL : PLATFORM_SUPPORT_EMAIL);
+    input.supportEmail?.trim() || PLATFORM_SUPPORT_EMAIL;
 
   const emailFooterLabel = displayName;
   const emailFooterUrl = showPlatformBranding ? CENTRAL_SITE_URL : siteOrigin;
@@ -155,47 +145,6 @@ export function buildWorkspaceBrand(input: {
 export function platformWorkspaceBrand(): WorkspaceBrand {
   return buildWorkspaceBrand({ slug: INTERNAL_WORKSPACE_SLUG, name: "Unit311 Central" });
 }
-
-async function loadWorkspaceSettings(workspaceId: string | null | undefined): Promise<{
-  logoUrl: string | null;
-}> {
-  if (!workspaceId || !isSupabaseConfigured()) return { logoUrl: null };
-  try {
-    const supabase = createSupabaseServerClient();
-    const { data } = await supabase
-      .from("workspace_settings")
-      .select("logo_url")
-      .eq("workspace_id", workspaceId)
-      .maybeSingle();
-    return { logoUrl: data?.logo_url ? String(data.logo_url) : null };
-  } catch {
-    return { logoUrl: null };
-  }
-}
-
-/** Resolve brand for an explicit workspace record (or slug/name). */
-export async function resolveWorkspaceBrandFor(input?: {
-  workspace?: CurrentWorkspace | null;
-  slug?: string | null;
-  name?: string | null;
-}): Promise<WorkspaceBrand> {
-  const workspace = input?.workspace ?? null;
-  const slug = workspace?.slug ?? input?.slug ?? null;
-  const name = workspace?.name ?? input?.name ?? null;
-  const settings = await loadWorkspaceSettings(workspace?.id ?? null);
-  return buildWorkspaceBrand({
-    slug,
-    name,
-    logoUrl: settings.logoUrl,
-  });
-}
-
-/** Request-scoped brand for the active workspace. */
-export const resolveWorkspaceBrand = cache(async (): Promise<WorkspaceBrand> => {
-  const workspace = await getCurrentWorkspace();
-  if (!workspace) return platformWorkspaceBrand();
-  return resolveWorkspaceBrandFor({ workspace });
-});
 
 /** Sync helper for client / string templating when only slug+name are known. */
 export function brandFromWorkspaceClaim(input: {

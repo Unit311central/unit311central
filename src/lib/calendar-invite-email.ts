@@ -11,9 +11,9 @@ import {
   brandEmailFooterHtml,
   brandEmailLogoHtml,
   brandFromWorkspaceClaim,
-  resolveWorkspaceBrand,
   type WorkspaceBrand,
 } from "@/lib/workspace-brand";
+import { resolveWorkspaceBrand } from "@/lib/workspace-brand-server";
 
 function parseEmails(raw: string | string[] | undefined): string[] {
   const text = Array.isArray(raw) ? raw.join(",") : raw ?? "";

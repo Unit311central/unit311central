@@ -23,7 +23,7 @@ import {
   findPlatformUsersByEmail,
 } from "@/lib/platform-users-service";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { resolveWorkspaceBrandFor } from "@/lib/workspace-brand";
+import { resolveWorkspaceBrandFor } from "@/lib/workspace-brand-server";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 export const PASSWORD_RESET_EXPIRY_MINUTES = 60;
