@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, startTransition } from "react";
 
 import {
+  deleteAbhiBoardPack,
   loadAbhiBoardPacks,
   type AbhiBoardPackRecord,
 } from "@/lib/abhi/board-pack-record";
@@ -56,6 +57,17 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function resolveWorkspacePdfCompanyName(): string {
+  if (typeof window === "undefined") return SITE_NAME;
+  try {
+    const cached = window.sessionStorage.getItem("unit311-whoami-workspace-name")?.trim();
+    if (cached) return cached;
+  } catch {
+    /* ignore */
+  }
+  return SITE_NAME;
+}
+
 export default function BoardPackCustomizerWorkspace() {
   const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
   const [pages, setPages] = useState<BoardPackPage[]>(defaultBoardPackPages);
@@ -71,6 +83,13 @@ export default function BoardPackCustomizerWorkspace() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState(SITE_NAME);
+
+  useEffect(() => {
+    startTransition(() => {
+      setCompanyName(resolveWorkspacePdfCompanyName());
+    });
+  }, []);
 
   useEffect(() => {
     startTransition(() => {
@@ -152,7 +171,7 @@ export default function BoardPackCustomizerWorkspace() {
     setError(null);
     try {
       closePackPdfViewer();
-      const url = buildBoardPackPdfUrl({ packName, pages, companyName: SITE_NAME });
+      const url = buildBoardPackPdfUrl({ packName, pages, companyName });
       setPackPdfUrl(url);
     } catch (viewError) {
       setError(viewError instanceof Error ? viewError.message : "Failed to generate PDF");
@@ -162,7 +181,7 @@ export default function BoardPackCustomizerWorkspace() {
   }
 
   function handleDownloadPackPdf() {
-    downloadBoardPackPdf({ packName, pages, companyName: SITE_NAME });
+    downloadBoardPackPdf({ packName, pages, companyName });
   }
 
   function handleViewReviewPdf() {
@@ -170,7 +189,7 @@ export default function BoardPackCustomizerWorkspace() {
     setError(null);
     try {
       closeReviewPdfViewer();
-      const url = buildBoardReviewPdfUrl({ employees, companyName: SITE_NAME });
+      const url = buildBoardReviewPdfUrl({ employees, companyName });
       setReviewPdfUrl(url);
     } catch (viewError) {
       setError(viewError instanceof Error ? viewError.message : "Failed to generate board review PDF");
@@ -182,7 +201,7 @@ export default function BoardPackCustomizerWorkspace() {
   function handleDownloadReviewPdf() {
     setGeneratingReviewPdf(true);
     try {
-      downloadBoardReviewPdf({ employees, companyName: SITE_NAME });
+      downloadBoardReviewPdf({ employees, companyName });
     } finally {
       setGeneratingReviewPdf(false);
     }
@@ -194,7 +213,7 @@ export default function BoardPackCustomizerWorkspace() {
     setMessage(null);
 
     try {
-      const blob = buildBoardPackPdfBlob({ packName, pages, companyName: SITE_NAME });
+      const blob = buildBoardPackPdfBlob({ packName, pages, companyName });
       const filename = boardPackPdfFilename({ packName, pages });
       const folderName = boardPackFolderName();
       const folderSegments = ["Financials", folderName];
@@ -233,6 +252,20 @@ export default function BoardPackCustomizerWorkspace() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleDeleteAbhiPack(pack: AbhiBoardPackRecord) {
+    const confirmed = window.confirm(
+      `Delete “${pack.packName}”? This removes it from Executive Assistant drafts.`,
+    );
+    if (!confirmed) return;
+    if (!deleteAbhiBoardPack(pack.id)) {
+      setError("Could not delete that board pack.");
+      return;
+    }
+    setAbhiGenerated(loadAbhiBoardPacks());
+    setMessage(`Deleted ${pack.packName}.`);
+    setError(null);
   }
 
   return (
@@ -296,6 +329,15 @@ export default function BoardPackCustomizerWorkspace() {
                         PowerPoint
                       </a>
                     ) : null}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAbhiPack(pack)}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-400/35 bg-rose-500/10 px-2.5 text-[11px] font-semibold text-rose-100 hover:bg-rose-500/20"
+                      aria-label={`Delete ${pack.packName}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
                   </div>
                 </li>
               ))}
@@ -578,7 +620,7 @@ export default function BoardPackCustomizerWorkspace() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
                 Board review
               </p>
-              <h3 className="text-sm font-semibold text-white">{SITE_NAME} quarterly board review PDF</h3>
+              <h3 className="text-sm font-semibold text-white">{companyName} quarterly board review PDF</h3>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -601,7 +643,7 @@ export default function BoardPackCustomizerWorkspace() {
           </header>
           <iframe
             src={reviewPdfUrl}
-            title={`${SITE_NAME} board review PDF`}
+            title={`${companyName} board review PDF`}
             className="min-h-0 flex-1 w-full border-0 bg-white"
           />
         </div>

@@ -62,7 +62,7 @@ function latestPl() {
 
 function buildDeckContext(input: BoardReviewPdfInput) {
   const q = input.quarterLabel ?? quarterLabel();
-  const company = input.companyName ?? "OnwardAir";
+  const company = input.companyName?.trim() || "Workspace";
   const employees = input.employees ?? [];
   const ytdRevenue = sumRevenueYtd();
   const jun = latestPl();

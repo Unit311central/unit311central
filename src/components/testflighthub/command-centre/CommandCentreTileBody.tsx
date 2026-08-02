@@ -793,7 +793,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
           value={formatMoney(cashPosition ?? 0, reportingCurrency)}
           href={hrefs.financials}
           loading={data.loading.financials}
-          hint="Wise treasury"
+          hint="Ledger cash"
         />
       );
 

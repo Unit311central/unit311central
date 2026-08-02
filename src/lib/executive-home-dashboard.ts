@@ -22,6 +22,39 @@ function isBrowserAbhiHome(): boolean {
   }
 }
 
+/** Customer hosts (not Internal / Demo / ABHI / CorpCentre) — no platform treasury copy. */
+function isBrowserCustomerCashSurface(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname.toLowerCase();
+  if (
+    host === "internal.unit311central.com" ||
+    host === "internal.localhost" ||
+    host === "demo.unit311central.com" ||
+    host === "demo.localhost" ||
+    host === "unit311central.com" ||
+    host === "www.unit311central.com" ||
+    host === "localhost"
+  ) {
+    return false;
+  }
+  if (isBrowserAbhiHome()) return false;
+  try {
+    const { isBrowserCorpCentreSurface } =
+      require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+    if (isBrowserCorpCentreSurface()) return false;
+  } catch {
+    /* continue */
+  }
+  try {
+    const { isBrowserDemoSurface } =
+      require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    if (isBrowserDemoSurface()) return false;
+  } catch {
+    /* continue */
+  }
+  return Boolean(host.match(/^[a-z0-9-]+\.unit311central\.com$/i) || host.endsWith(".localhost"));
+}
+
 const ONBOARDING_ACCOUNT_STATUSES = new Set([
   "Client Created",
   "Workspace Provisioned",
@@ -301,6 +334,7 @@ export function buildExecutiveHomeLiveKpis(input: {
     revenuePeriods.find((period) => period.id === defaultRevenuePeriodId) ??
     revenuePeriods.find((period) => period.id === "ytd") ??
     revenuePeriods[0];
+  const customerCashLabels = !abhiHome && isBrowserCustomerCashSurface();
 
   return normalizeKpiRow([
     {
@@ -317,9 +351,15 @@ export function buildExecutiveHomeLiveKpis(input: {
       id: "cash",
       label: "Cash Available",
       value: formatCompactMoney(cash, currency),
-      delta: cashDelta?.label ?? (abhiHome ? "Cash at bank" : "Operating + treasury"),
+      delta:
+        cashDelta?.label ??
+        (abhiHome ? "Cash at bank" : customerCashLabels ? "Ledger cash" : "Operating cash"),
       tone: cashDelta?.tone ?? "neutral",
-      hint: abhiHome ? "ABHI operating cash (GBP)" : "Wise / treasury position",
+      hint: abhiHome
+        ? "ABHI operating cash (GBP)"
+        : customerCashLabels
+          ? "Workspace cash from ledger"
+          : "Operating cash position",
     },
     {
       id: "burn",
@@ -558,10 +598,21 @@ export function buildExecutiveHomeLiveNarrative(input: {
     .slice(0, 3);
   const liveProjects = input.projects.filter((project) => project.phase === "live").slice(0, 3);
 
-  let companyName = "Unit311";
+  let companyName = "Workspace";
   let abhiHome = false;
+  let showTreasurySurfaces = false;
   try {
     if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase();
+      const slugMatch = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
+      const hostSlug = slugMatch?.[1] ?? "";
+      if (hostSlug && hostSlug !== "www" && hostSlug !== "internal" && hostSlug !== "demo") {
+        companyName = hostSlug
+          .split("-")
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
+      }
+
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {
@@ -572,13 +623,29 @@ export function buildExecutiveHomeLiveNarrative(input: {
           require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
         if (isBrowserCorpCentreSurface()) {
           companyName = "CorpCentre";
+          showTreasurySurfaces = cash > 0;
         } else {
           const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
             require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
           if (isBrowserDemoSurface()) {
             companyName = getDemoEnterpriseFixtures().company.tradingName;
+            showTreasurySurfaces = cash > 0;
+          } else if (
+            host === "internal.unit311central.com" ||
+            host === "internal.localhost"
+          ) {
+            companyName = "Unit311";
+            showTreasurySurfaces = cash > 0;
           }
+          // Customer hosts (OnwardAir, etc.): never surface platform treasury.
         }
+      }
+
+      try {
+        const cached = window.sessionStorage?.getItem("unit311-whoami-workspace-name");
+        if (cached && cached.trim()) companyName = cached.trim();
+      } catch {
+        /* ignore */
       }
     }
   } catch {
@@ -613,7 +680,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
         `${openProjects} live projects in delivery.`,
         cash > 0
           ? `Cash position ${formatCompactMoney(cash, currency)}.`
-          : "Cash position needs treasury attention.",
+          : "No cash balance recorded yet.",
         overdue > 0
           ? `${overdueCount} invoices overdue (${formatCompactMoney(overdue, currency)}).`
           : "Receivables are current.",
@@ -658,12 +725,12 @@ export function buildExecutiveHomeLiveNarrative(input: {
       timeLabel: abhiHome ? "Members" : "Clients",
     });
   }
-  // Cash is already on the KPI row — skip the redundant bank info chip on ABHI Home.
-  if (!abhiHome) {
+  // Cash is already on the KPI row — never show platform/Wise treasury chips on customer homes.
+  if (!abhiHome && showTreasurySurfaces && cash > 0) {
     alerts.push({
       id: "live-treasury",
-      title: `${companyName} treasury position`,
-      detail: `Wise simulated balances total ${formatCompactMoney(cash, currency)} across operating currencies.`,
+      title: `${companyName} cash position`,
+      detail: `Available cash ${formatCompactMoney(cash, currency)} across operating currencies.`,
       severity: "info",
       timeLabel: "Bank",
     });
@@ -751,10 +818,10 @@ export function buildExecutiveHomeLiveNarrative(input: {
       priority: "medium",
     });
   }
-  if (!abhiHome) {
+  if (!abhiHome && showTreasurySurfaces && cash > 0) {
     queue.push({
       id: "q-cash",
-      title: "Confirm treasury balances for board pack",
+      title: "Confirm cash balances for board pack",
       meta: `Bank · ${formatCompactMoney(cash, currency)}`,
       status: "Review",
       dueLabel: "This week",
@@ -916,7 +983,7 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
               id: "cash",
               label: "Cash Available",
               value: "—",
-              hint: "Wise / treasury position",
+              hint: "Workspace cash position",
             },
             {
               id: "burn",

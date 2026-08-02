@@ -24,6 +24,7 @@ export async function GET() {
   let departments: string[] | null = null;
   let allowedViews: string[] | null = null;
   let dashboardPrefs: { homeTiles: string[] } | null = null;
+  let workspaceLogoUrl: string | null = null;
 
   if (session.userType === "internal" && isSupabaseConfigured()) {
     try {
@@ -43,6 +44,21 @@ export async function GET() {
     }
   }
 
+  if (workspace?.id && isSupabaseConfigured()) {
+    try {
+      const { createSupabaseServerClient } = await import("@/lib/supabase/server");
+      const supabase = createSupabaseServerClient();
+      const { data: settings } = await supabase
+        .from("workspace_settings")
+        .select("logo_url")
+        .eq("workspace_id", workspace.id)
+        .maybeSingle();
+      workspaceLogoUrl = settings?.logo_url?.trim() || null;
+    } catch {
+      /* optional branding */
+    }
+  }
+
   return NextResponse.json(
     {
       displayName: session.displayName,
@@ -59,6 +75,7 @@ export async function GET() {
       workspaceId: workspace?.id ?? null,
       workspaceSlug: workspace?.slug ?? null,
       workspaceName: workspace?.name ?? null,
+      workspaceLogoUrl,
     },
     {
       headers: {

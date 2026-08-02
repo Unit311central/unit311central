@@ -706,7 +706,7 @@ function buildFilename(input: BoardPackPdfInput) {
 
 function buildDeck(input: BoardPackPdfInput) {
   const packName = input.packName?.trim() || "Board Review Pack";
-  const company = input.companyName ?? "OnwardAir";
+  const company = input.companyName?.trim() || "Workspace";
   const deck = new BoardPackDeck(packName, company);
   deck.addTitleSlide();
   for (const page of input.pages) {

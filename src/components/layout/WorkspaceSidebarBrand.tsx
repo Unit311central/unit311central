@@ -21,32 +21,38 @@ function hostWorkspaceSlug(): string | null {
   if (typeof window === "undefined") return null;
   const host = window.location.hostname.toLowerCase();
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
-  if (!match) return null;
+  if (!match) {
+    if (host.endsWith(".localhost") && host !== "localhost") {
+      return host.split(".")[0] || null;
+    }
+    return null;
+  }
   const slug = match[1];
   if (slug === "www" || slug === "app" || slug === "login") return null;
   return slug;
 }
 
-type BrandKind = "unit311" | "corpcentre" | "talanton" | "abhi";
+function titleCaseSlug(slug: string) {
+  return slug
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
-function resolveBrand(): BrandKind {
-  const hostSlug = hostWorkspaceSlug();
-  if (
-    !hostSlug ||
-    hostSlug === "internal" ||
-    hostSlug === "unit311" ||
-    hostSlug === "demo"
-  ) {
+type BrandKind = "unit311" | "corpcentre" | "talanton" | "abhi" | "customer";
+
+function resolveBrandKind(slug: string | null): BrandKind {
+  if (!slug || slug === "internal" || slug === "unit311" || slug === "demo") {
     return "unit311";
   }
-  if (isCorpCentreSlug(hostSlug)) return "corpcentre";
-  if (isTalantonImpactSlug(hostSlug)) return "talanton";
-  if (isAbhiSlug(hostSlug)) return "abhi";
-  return "unit311";
+  if (isCorpCentreSlug(slug)) return "corpcentre";
+  if (isTalantonImpactSlug(slug)) return "talanton";
+  if (isAbhiSlug(slug)) return "abhi";
+  return "customer";
 }
 
 /**
- * Sidebar brand — tenant logos only on their hosts.
+ * Sidebar brand — tenant logos / workspace name on customer hosts.
  * Resolved on the client after mount so SSR never locks Unit311 branding on tenants.
  */
 export default function WorkspaceSidebarBrand({
@@ -54,9 +60,42 @@ export default function WorkspaceSidebarBrand({
   href = "/",
 }: WorkspaceSidebarBrandProps) {
   const [brand, setBrand] = useState<BrandKind>("unit311");
+  const [customerName, setCustomerName] = useState("Workspace");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useLayoutEffect(() => {
-    setBrand(resolveBrand());
+    const slug = hostWorkspaceSlug();
+    const kind = resolveBrandKind(slug);
+    setBrand(kind);
+    if (kind === "customer" && slug) {
+      setCustomerName(titleCaseSlug(slug));
+      try {
+        const cached = window.sessionStorage.getItem("unit311-whoami-workspace-name");
+        if (cached?.trim()) setCustomerName(cached.trim());
+      } catch {
+        /* ignore */
+      }
+      void fetch("/api/auth/whoami", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { workspaceName?: string | null; workspaceLogoUrl?: string | null } | null) => {
+          if (!data) return;
+          if (data.workspaceName?.trim()) {
+            setCustomerName(data.workspaceName.trim());
+            try {
+              window.sessionStorage.setItem(
+                "unit311-whoami-workspace-name",
+                data.workspaceName.trim(),
+              );
+            } catch {
+              /* ignore */
+            }
+          }
+          if (data.workspaceLogoUrl?.trim()) {
+            setLogoUrl(data.workspaceLogoUrl.trim());
+          }
+        })
+        .catch(() => undefined);
+    }
   }, []);
 
   const content =
@@ -66,6 +105,19 @@ export default function WorkspaceSidebarBrand({
       <TalantonLogoMark height={36} />
     ) : brand === "abhi" ? (
       <AbhiLogoMark height={32} tone="onDark" />
+    ) : brand === "customer" ? (
+      logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt={customerName}
+          className="h-8 w-auto max-w-[180px] object-contain object-left"
+        />
+      ) : (
+        <span className="truncate text-[15px] font-semibold tracking-tight text-white">
+          {customerName}
+        </span>
+      )
     ) : (
       <Unit311CentralWordmark variant="sidebar" className={className} />
     );
@@ -77,7 +129,9 @@ export default function WorkspaceSidebarBrand({
         ? "Talanton Impact home"
         : brand === "abhi"
           ? "ABHI home"
-          : "Unit311 Central home";
+          : brand === "customer"
+            ? `${customerName} home`
+            : "Unit311 Central home";
 
   return (
     <a

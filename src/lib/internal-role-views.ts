@@ -484,6 +484,12 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "technology-settings",
 ]);
 
+/** Platform-ops modules hidden on customer workspaces (OnwardAir and peers). */
+export const CUSTOMER_PLATFORM_HIDDEN_VIEWS = new Set<InternalOperationsView>([
+  "unit311-details",
+  "module-go-live",
+]);
+
 const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Cap Table Management",
   "Infrastructure & Cloud",
@@ -748,13 +754,35 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
           (item) =>
             item.view !== "board-meetings" &&
             item.view !== "board-pack" &&
-            item.view !== "corporate-risk-register",
+            item.view !== "corporate-risk-register" &&
+            item.view !== "unit311-details" &&
+            item.view !== "module-go-live" &&
+            item.label !== "Unit311 Details",
         ),
       });
       out.push(ONWARDAIR_BOARD_NAV_SECTION);
       insertedBoard = true;
     } else {
-      out.push(section);
+      out.push({
+        ...section,
+        items: section.items
+          .map((item) => {
+            if (item.view === "unit311-details" || item.view === "module-go-live") return null;
+            if (item.label === "Unit311 Details") return null;
+            if (item.children?.length) {
+              const children = item.children.filter(
+                (child) =>
+                  child.view !== "unit311-details" &&
+                  child.view !== "module-go-live" &&
+                  child.label !== "Unit311 Details" &&
+                  child.label !== "Module Go-Live",
+              );
+              return { ...item, children };
+            }
+            return item;
+          })
+          .filter((item): item is NonNullable<typeof item> => item != null),
+      });
     }
   }
   if (!insertedBoard) out.push(ONWARDAIR_BOARD_NAV_SECTION);
@@ -921,6 +949,33 @@ function stripMemberIntelligenceNavForNonAbhi(
   return stripMemberIntelligenceNav(sections);
 }
 
+function stripCustomerPlatformNav(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items
+        .map((item) => {
+          if (item.view && CUSTOMER_PLATFORM_HIDDEN_VIEWS.has(item.view)) return null;
+          if (item.label === "Unit311 Details" || item.label === "Module Go-Live") return null;
+          if (item.children?.length) {
+            const children = item.children.filter(
+              (child) =>
+                !(child.view && CUSTOMER_PLATFORM_HIDDEN_VIEWS.has(child.view)) &&
+                child.label !== "Unit311 Details" &&
+                child.label !== "Module Go-Live",
+            );
+            if (children.length === 0 && !item.view && !item.href) return null;
+            return { ...item, children };
+          }
+          return item;
+        })
+        .filter((item): item is NonNullable<typeof item> => item != null),
+    }))
+    .filter((section) => section.items.length > 0);
+}
+
 export function filterInternalNavSectionsForDemoSurface(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
@@ -942,7 +997,19 @@ export function filterInternalNavSectionsForDemoSurface(
   }
 
   if (!shouldHideDroneToolNavViews()) {
-    return injectInternalPlatformAnalytics(stripMemberIntelligenceNavForNonAbhi(sections));
+    const base = stripMemberIntelligenceNavForNonAbhi(sections);
+    if (typeof window !== "undefined") {
+      try {
+        const { resolveRuntimeSurface } =
+          require("@/lib/runtime-surface") as typeof import("@/lib/runtime-surface");
+        if (resolveRuntimeSurface(window.location.hostname) === "customer") {
+          return injectInternalPlatformAnalytics(stripCustomerPlatformNav(base));
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+    return injectInternalPlatformAnalytics(base);
   }
 
   const hideViews = isCorpCentreNavSurface() ? CORPCENTRE_HIDDEN_VIEWS : DEMO_HIDDEN_VIEWS;

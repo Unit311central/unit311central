@@ -8,9 +8,10 @@ import {
   type CurrentWorkspace,
 } from "@/lib/workspace-context";
 
-export const WISE_INTERNAL_ONLY_MESSAGE = "Wise treasury is Internal-only.";
+export const WISE_INTERNAL_ONLY_MESSAGE =
+  "Bank connections are not enabled for this workspace.";
 export const WISE_WORKSPACE_DENIED_MESSAGE =
-  "Wise treasury is available on Internal and Demo workspaces only.";
+  "Bank connections are not enabled for this workspace.";
 
 export async function requireTreasuryApiSession():
   Promise<

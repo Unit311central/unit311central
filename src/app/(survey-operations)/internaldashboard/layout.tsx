@@ -1,11 +1,28 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 
-import { isCentralDomainHost, isInternalDomainHost } from "@/lib/app-domains";
+import {
+  getRequestHost,
+  isCentralDomainHost,
+  isInternalDomainHost,
+  parseClientPlatformSubdomainSafe,
+} from "@/lib/app-domains";
+import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const host = (await headers()).get("host");
+  const host = getRequestHost({ headers: await headers() });
   const isCentral = isCentralDomainHost(host) || isInternalDomainHost(host);
+  const workspaceSlug = parseClientPlatformSubdomainSafe(host);
+
+  if (workspaceSlug) {
+    const workspace = await findWorkspaceBySlug(workspaceSlug);
+    const name = workspace?.name?.trim() || workspaceSlug;
+    return {
+      title: `${name} | Dashboard`,
+      description: `${name} workspace — operations, finance, and delivery.`,
+      robots: { index: false, follow: false },
+    };
+  }
 
   return {
     title: isCentral

@@ -19,6 +19,23 @@ import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { cn } from "@/lib/utils";
 
+function isBrowserCustomerGeneralLedgerCopy(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isBrowserAbhiSurface() || isBrowserCorpCentreSurface() || isBrowserDemoSurface()) {
+    return false;
+  }
+  const host = window.location.hostname.toLowerCase();
+  if (
+    host === "internal.unit311central.com" ||
+    host === "internal.localhost" ||
+    host === "unit311central.com" ||
+    host === "www.unit311central.com"
+  ) {
+    return false;
+  }
+  return Boolean(host.match(/^[a-z0-9-]+\.unit311central\.com$/i) || host.endsWith(".localhost"));
+}
+
 type Totals = {
   assets: number;
   liabilities: number;
@@ -297,7 +314,9 @@ export default function GeneralLedgerWorkspace() {
           <p className="text-sm text-white/55">
             {isBrowserAbhiSurface()
               ? "Source of truth for all ABHI financial postings."
-              : "Source of truth for all Unit311 financial postings."}
+              : isBrowserCustomerGeneralLedgerCopy()
+                ? "Source of truth for all workspace financial postings."
+                : "Source of truth for all financial postings."}
           </p>
           <button
             type="button"

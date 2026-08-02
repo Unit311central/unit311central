@@ -563,7 +563,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         icon: "ContactRound",
         children: [
           { label: "Pipeline", view: "crm" as const },
-          { label: "Discovery & Demo", view: "crm-meetings" as const },
+          { label: "Discovery", view: "crm-meetings" as const },
           { label: "Client Onboarding", view: "client-onboarding" as const },
           { label: "Potential Clients", view: "potential-clients" as const },
           ],
@@ -901,7 +901,7 @@ export const internalViewTitles: Record<
   "member-intelligence": { title: "Member Intelligence", subtitle: "Members" },
   crm: { title: "Pipeline", subtitle: "Customer Management" },
   "crm-meetings": {
-    title: "Discovery & Demo",
+    title: "Discovery",
     subtitle: "Customer Management",
   },
   "crm-questions-test": {

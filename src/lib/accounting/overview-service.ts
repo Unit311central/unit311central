@@ -152,12 +152,17 @@ export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
     // Customer fixtures must never fall through to platform Wise leftovers (~£1.58).
     try {
       const { getCurrentWorkspace } = await import("@/lib/workspace-context");
+      const { isWiseTreasuryWorkspaceSlug } = await import("@/lib/treasury/bank-provider");
       const workspace = await getCurrentWorkspace();
       const slug = String(workspace?.slug ?? "")
         .trim()
         .toLowerCase();
       if (isAbhiWorkspaceSlug(slug)) return ABHI_CASH_BALANCE_GBP;
       if (isCorpCentreWorkspaceSlug(slug)) return CORPCENTRE_CASH_BALANCE_AUD;
+      // Customer workspaces (e.g. OnwardAir): GL cash only — never platform Wise.
+      if (slug && !isWiseTreasuryWorkspaceSlug(slug)) {
+        return roundMoney(glWiseCash);
+      }
     } catch {
       /* fall through */
     }

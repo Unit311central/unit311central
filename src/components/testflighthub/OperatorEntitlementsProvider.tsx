@@ -66,7 +66,19 @@ export function OperatorEntitlementsProvider({ children }: { children: ReactNode
         departments?: string[] | null;
         allowedViews?: InternalOperationsView[] | null;
         dashboardPrefs?: { homeTiles?: CommandCentreHomeTileId[] } | null;
+        workspaceName?: string | null;
       }>(PLATFORM_CACHE_KEYS.whoami, "/api/auth/whoami", { ttlMs: 60_000 });
+
+      if (data.workspaceName?.trim()) {
+        try {
+          window.sessionStorage.setItem(
+            "unit311-whoami-workspace-name",
+            data.workspaceName.trim(),
+          );
+        } catch {
+          /* ignore */
+        }
+      }
 
       const roles = (data.roles?.length ? data.roles : data.role ? [data.role] : []) as UserRole[];
       const departments = (data.departments?.length

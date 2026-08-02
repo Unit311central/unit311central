@@ -247,11 +247,15 @@ function TreasuryShellContent({
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/90">
-                Treasury Management
+                {error?.toLowerCase().includes("not enabled") ? "Bank" : "Treasury Management"}
               </p>
-              <h2 className="mt-0.5 text-lg font-semibold text-white">Wise</h2>
+              <h2 className="mt-0.5 text-lg font-semibold text-white">
+                {error?.toLowerCase().includes("not enabled") ? "Connections" : "Wise"}
+              </h2>
               <p className="mt-1 max-w-2xl text-sm text-white/55">
-                Live balances, transaction history, transfers, conversions, analytics, and approvals.
+                {error?.toLowerCase().includes("not enabled")
+                  ? "Bank connections are managed per workspace. Contact your administrator if you need access."
+                  : "Live balances, transaction history, transfers, conversions, analytics, and approvals."}
               </p>
             </div>
           </div>

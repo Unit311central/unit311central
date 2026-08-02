@@ -131,7 +131,7 @@ export const PROJECTS_DASHBOARD_TILES: DashboardTileDefinition[] = [
 
 export const FINANCIALS_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "revenue-ytd", label: "Revenue YTD", value: "£0.00", hint: "From general ledger" },
-  { id: "cash-position", label: "Cash Position", value: "£0.00", hint: "Wise treasury balances" },
+  { id: "cash-position", label: "Cash Position", value: "£0.00", hint: "From general ledger cash accounts" },
   { id: "burn-rate", label: "Burn Rate", value: "£0.00 / month", hint: "Operating spend pace" },
   { id: "accounts-receivable", label: "Accounts Receivable", value: "£0.00", hint: "Outstanding AR" },
   { id: "accounts-payable", label: "Accounts Payable", value: "£0.00", hint: "Outstanding AP" },

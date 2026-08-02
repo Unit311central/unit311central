@@ -38,7 +38,12 @@ import SurveyOperationsShell from "./SurveyOperationsShell";
 import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
-import { ABHI_HIDDEN_VIEWS, isViewAllowedForGrants } from "@/lib/internal-role-views";
+import {
+  ABHI_HIDDEN_VIEWS,
+  CUSTOMER_PLATFORM_HIDDEN_VIEWS,
+  isViewAllowedForGrants,
+} from "@/lib/internal-role-views";
+import { resolveRuntimeSurface } from "@/lib/runtime-surface";
 import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
 import WorkspacePane from "./WorkspacePane";
 import WorkspaceErrorBoundary from "./WorkspaceErrorBoundary";
@@ -277,6 +282,14 @@ function readInitialView(
   if (fromQuery && ABHI_HIDDEN_VIEWS.has(fromQuery) && isBrowserAbhiSurface()) {
     return fromQuery === "corporate-cap-table" ? "corporate-dashboard" : "home";
   }
+  if (
+    fromQuery &&
+    CUSTOMER_PLATFORM_HIDDEN_VIEWS.has(fromQuery) &&
+    typeof window !== "undefined" &&
+    resolveRuntimeSurface(window.location.hostname) === "customer"
+  ) {
+    return "home";
+  }
   return fromQuery;
 }
 
@@ -500,6 +513,13 @@ export default function InternalOperationsDashboard({
   useEffect(() => {
     if (isBrowserAbhiSurface() && ABHI_HIDDEN_VIEWS.has(activeView)) {
       setActiveView(activeView === "corporate-cap-table" ? "corporate-dashboard" : "home");
+      return;
+    }
+    if (
+      resolveRuntimeSurface(window.location.hostname) === "customer" &&
+      CUSTOMER_PLATFORM_HIDDEN_VIEWS.has(activeView)
+    ) {
+      setActiveView("home");
     }
   }, [activeView]);
 

@@ -17,6 +17,7 @@ import {
 import { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 export async function generateMetadata(): Promise<Metadata> {
   const host = getRequestHost({ headers: await headers() });
@@ -45,6 +46,16 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
       title: "Login | ABHI",
       description: "Secure access to your ABHI workspace.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  if (workspaceSlug) {
+    const workspace = await findWorkspaceBySlug(workspaceSlug);
+    const name = workspace?.name?.trim() || workspaceSlug;
+    return {
+      title: `Login | ${name}`,
+      description: `Secure access to your ${name} workspace.`,
       robots: { index: false, follow: false },
     };
   }
@@ -81,15 +92,19 @@ export default async function LoginPage({ searchParams }: PageProps) {
     (isDemo ? DEMO_SITE_URL : null) ??
     (isInternal ? INTERNAL_SITE_URL : null);
   const nextPath = parseSafePostLoginNext(params.next);
+  const workspaceRecord = workspaceSlug ? await findWorkspaceBySlug(workspaceSlug) : null;
+  const customerWorkspaceName = workspaceRecord?.name?.trim() || null;
   const brand = isCorpCentreSlug(workspaceSlug)
     ? "corpcentre"
     : isTalantonImpactSlug(workspaceSlug)
       ? "talanton"
       : isAbhiSlug(workspaceSlug)
         ? "abhi"
-        : isCentral
-          ? "central"
-          : "default";
+        : workspaceSlug
+          ? "customer"
+          : isCentral
+            ? "central"
+            : "default";
 
   return (
     <Unit311LoginPage
@@ -97,11 +112,13 @@ export default async function LoginPage({ searchParams }: PageProps) {
         brand === "corpcentre" ||
         brand === "talanton" ||
         brand === "abhi" ||
+        brand === "customer" ||
         brand === "central"
           ? "central"
           : "default"
       }
       brand={brand}
+      workspaceName={customerWorkspaceName}
       returnTo={returnTo}
       nextPath={nextPath}
     />
