@@ -18,6 +18,7 @@ import {
   updateOptionPool,
   upsertShareholder,
 } from "@/lib/corporate-mock-store";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { useCorporateMockStore } from "./useCorporateMockStore";
 import {
   CorporateFieldLabel,
@@ -60,9 +61,14 @@ function formatShares(value: number) {
   return value.toLocaleString();
 }
 
+function defaultCompanyName() {
+  if (typeof window !== "undefined" && isBrowserOnwardAirSurface()) return "OnwardAir";
+  return "Company";
+}
+
 function emptyShareholderForm(): ShareholderFormState {
   return {
-    company: "Nakama Ventures SL",
+    company: defaultCompanyName(),
     shareholder: "",
     shareClass: "Ordinary",
     shares: "",
@@ -209,6 +215,9 @@ function ShareholderDetailPanel({
 
 export default function CapTableWorkspace() {
   const store = useCorporateMockStore();
+  const isOnwardAir =
+    store.shareholders.some((row) => String(row.id).startsWith("oa-sh-")) ||
+    (typeof window !== "undefined" && isBrowserOnwardAirSurface());
   const [viewId, setViewId] = useState<string | null>(null);
   const [shareholderForm, setShareholderForm] = useState<ShareholderFormState | null>(null);
   const [transferForm, setTransferForm] = useState<TransferFormState | null>(null);
@@ -306,23 +315,55 @@ export default function CapTableWorkspace() {
 
   return (
     <div className="space-y-5">
+      {isOnwardAir ? (
+        <div className="rounded-xl border border-sky-400/25 bg-sky-500/10 px-4 py-3 sm:px-5">
+          <p className="text-sm font-semibold text-sky-100">
+            Projected Pre-Seed Cap Table Structure
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-sky-100/70">
+            Estimated layout against 10,000,000 authorised fully diluted shares. Capital raised to
+            date: $1.7M. Share counts are projected midpoints (exact issued amounts not yet
+            confirmed) — edit freely as legal docs firm up.
+          </p>
+        </div>
+      ) : null}
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <CorporateKpiTile label="Issued Shares" value={formatShares(totalShares)} />
-        <CorporateKpiTile label="Shareholders" value={store.shareholders.length} />
+        <CorporateKpiTile
+          label={isOnwardAir ? "Fully Diluted Shares" : "Issued Shares"}
+          value={formatShares(totalShares)}
+          hint={isOnwardAir ? "Projected 10,000,000 FD baseline" : undefined}
+        />
+        <CorporateKpiTile
+          label={isOnwardAir ? "Capital Raised" : "Shareholders"}
+          value={isOnwardAir ? "$1.7M" : store.shareholders.length}
+          hint={isOnwardAir ? "Pre-seed to date · estimated" : undefined}
+        />
         <CorporateKpiTile
           label="Option Pool"
           value={formatShares(store.optionPool.reserved)}
           hint={`${formatShares(store.optionPool.authorised)} authorised · ${formatShares(store.optionPool.issued)} issued`}
         />
         <CorporateKpiTile
-          label="Last Updated"
-          value={formatCorporateDate(store.optionPool.lastUpdated)}
+          label={isOnwardAir ? "Shareholders" : "Last Updated"}
+          value={
+            isOnwardAir
+              ? store.shareholders.length
+              : formatCorporateDate(store.optionPool.lastUpdated)
+          }
+          hint={
+            isOnwardAir ? `Updated ${formatCorporateDate(store.optionPool.lastUpdated)}` : undefined
+          }
         />
       </section>
 
       <CorporateSection
-        title="Shareholder Register"
-        subtitle="Current equity ownership by shareholder and share class."
+        title={isOnwardAir ? "Projected Pre-Seed Cap Table" : "Shareholder Register"}
+        subtitle={
+          isOnwardAir
+            ? "Estimated equity % and share allotment by shareholder class (fully diluted)."
+            : "Current equity ownership by shareholder and share class."
+        }
         actions={
           <div className="flex flex-wrap gap-2">
             <button type="button" className={corporatePrimaryButtonClass()} onClick={openAddShareholder}>
@@ -370,10 +411,18 @@ export default function CapTableWorkspace() {
             <table className="min-w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
-                  <th className="px-4 py-3 font-semibold sm:px-5">Shareholder</th>
-                  <th className="px-4 py-3 font-semibold sm:px-5">Share Class</th>
-                  <th className="px-4 py-3 text-right font-semibold sm:px-5">Shares</th>
-                  <th className="px-4 py-3 text-right font-semibold sm:px-5">Ownership %</th>
+                  <th className="px-4 py-3 font-semibold sm:px-5">
+                    {isOnwardAir ? "Shareholder Class" : "Shareholder"}
+                  </th>
+                  <th className="px-4 py-3 font-semibold sm:px-5">
+                    {isOnwardAir ? "Share Type" : "Share Class"}
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold sm:px-5">
+                    {isOnwardAir ? "Potential Share Allotment" : "Shares"}
+                  </th>
+                  <th className="px-4 py-3 text-right font-semibold sm:px-5">
+                    {isOnwardAir ? "Estimated Equity %" : "Ownership %"}
+                  </th>
                   <th className="px-4 py-3 text-right font-semibold sm:px-5">Actions</th>
                 </tr>
               </thead>
@@ -381,7 +430,16 @@ export default function CapTableWorkspace() {
                 {store.shareholders.map((row) => (
                   <tr key={row.id} className="border-b border-white/8 text-white/85">
                     <td className="px-4 py-3 font-medium text-white sm:px-5">{row.shareholder}</td>
-                    <td className="px-4 py-3 sm:px-5">{row.shareClass}</td>
+                    <td className="px-4 py-3 sm:px-5">
+                      {isOnwardAir ? (
+                        <div>
+                          <p>{row.notes.split("·")[0]?.trim() || row.shareClass}</p>
+                          <p className="mt-0.5 text-[11px] text-white/40">{row.shareClass}</p>
+                        </div>
+                      ) : (
+                        row.shareClass
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right tabular-nums sm:px-5">
                       {formatShares(row.shares)}
                     </td>
@@ -419,8 +477,12 @@ export default function CapTableWorkspace() {
                   </tr>
                 ))}
                 <tr className="bg-white/[0.04] text-white">
-                  <td className="px-4 py-3 font-semibold sm:px-5">Total</td>
-                  <td className="px-4 py-3 sm:px-5" />
+                  <td className="px-4 py-3 font-semibold sm:px-5">
+                    {isOnwardAir ? "Total Fully Diluted Layout" : "Total"}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-white/45 sm:px-5">
+                    {isOnwardAir ? "Total Capital Footprint" : null}
+                  </td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums sm:px-5">
                     {formatShares(totalShares)}
                   </td>

@@ -737,6 +737,128 @@ function seedAbhiState(): CorporateMockState {
   };
 }
 
+/** Projected pre-seed layout for OnwardAir — estimated FD of 10M shares, ~$1.7M raised. */
+function seedOnwardAirState(): CorporateMockState {
+  const company = "OnwardAir";
+  const issueDate = isoDaysFromNow(-180);
+  const shareholders: CorporateShareholder[] = [
+    {
+      id: "oa-sh-founders",
+      company,
+      shareholder: "Founding Team (Dr. Scott Parazynski & Core Team)",
+      shareClass: "Ordinary",
+      shares: 6_000_000,
+      price: "—",
+      issueDate,
+      notes: "Common Stock (Vesting) · ~60% FD · CEO retains voting control through early FAA prototype testing",
+    },
+    {
+      id: "oa-sh-1588",
+      company,
+      shareholder: "1588 Ventures (Rick Perez)",
+      shareClass: "Preference",
+      shares: 1_000_000,
+      price: "~$0.75",
+      issueDate,
+      notes: "Preferred / Seed Common · ~10% FD · Lead strategic ~$750k · anchor advisory role",
+    },
+    {
+      id: "oa-sh-burr",
+      company,
+      shareholder: "Cameron Burr",
+      shareClass: "Ordinary",
+      shares: 400_000,
+      price: "~$0.625",
+      issueDate,
+      notes: "Angel Common · ~4% FD · Aviation angel ~$250k",
+    },
+    {
+      id: "oa-sh-taylor",
+      company,
+      shareholder: "Dylan Taylor",
+      shareClass: "Ordinary",
+      shares: 400_000,
+      price: "~$0.625",
+      issueDate,
+      notes: "Angel Common · ~4% FD · Aviation angel ~$250k",
+    },
+    {
+      id: "oa-sh-network",
+      company,
+      shareholder: "Other Network / Advisory Notes",
+      shareClass: "Preference",
+      shares: 700_000,
+      price: "—",
+      issueDate,
+      notes: "Convertible / Advisory · ~7% FD · network + advisory capital in pre-seed footprint",
+    },
+    {
+      id: "oa-sh-esop",
+      company,
+      shareholder: "Employee Option Pool (ESOP)",
+      shareClass: "Options",
+      shares: 1_500_000,
+      price: "—",
+      issueDate,
+      notes: "Unissued Options · ~15% FD · reserved for flight controls, aero, and defense-logistics hires",
+    },
+  ];
+
+  return {
+    offices: [
+      {
+        id: "oa-office-houston",
+        name: "OnwardAir HQ",
+        country: "United States",
+        city: "Houston",
+        address: "Houston, Texas",
+        manager: "Dr. Scott Parazynski",
+        employees: 12,
+        status: "active",
+        phone: "",
+        timezone: "America/Chicago",
+      },
+    ],
+    banks: [],
+    advisors: [],
+    contracts: [],
+    shareholders,
+    optionPool: {
+      authorised: 1_500_000,
+      issued: 0,
+      reserved: 1_500_000,
+      lastUpdated: isoDaysFromNow(0),
+    },
+    capital: {
+      authorisedShareCapital: "10,000,000 shares (projected FD)",
+      issuedShareCapital: "8,500,000 allotted · 1,500,000 ESOP unissued",
+      currency: "USD",
+    },
+    licences: [],
+    activity: [
+      {
+        id: "oa-act-cap-1",
+        at: isoDaysFromNow(0),
+        label: "Share capital updated",
+        detail:
+          "Projected pre-seed cap table loaded — $1.7M raised to date · 10,000,000 authorised FD shares (estimated).",
+      },
+      {
+        id: "oa-act-cap-2",
+        at: isoDaysFromNow(0),
+        label: "Option pool updated",
+        detail: "ESOP reserved at 1,500,000 shares (15% fully diluted).",
+      },
+      {
+        id: "oa-act-cap-3",
+        at: isoDaysFromNow(0),
+        label: "Shareholder added",
+        detail: "Founding Team — 6,000,000 Ordinary (vesting).",
+      },
+    ],
+  };
+}
+
 function seedState(): CorporateMockState {
   if (typeof window !== "undefined") {
     try {
@@ -744,6 +866,16 @@ function seedState(): CorporateMockState {
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {
         return seedAbhiState();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        return seedOnwardAirState();
       }
     } catch {
       // Fall through.
@@ -1479,6 +1611,25 @@ function ensureState(): CorporateMockState {
               `${bank.accountName} ${bank.accountHolder} ${bank.bank} ${bank.currency}`,
             ),
           ))
+      ) {
+        state = seedState();
+        seededHost = hostKey;
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (
+        isBrowserOnwardAirSurface() &&
+        (state.shareholders.some((row) =>
+          /nakama|paul fotheringham|hannes weber|meridian|ashley cole|stefan braun/i.test(
+            `${row.company} ${row.shareholder}`,
+          ),
+        ) ||
+          (state.shareholders.length > 0 &&
+            !state.shareholders.some((row) => String(row.id).startsWith("oa-sh-"))))
       ) {
         state = seedState();
         seededHost = hostKey;
