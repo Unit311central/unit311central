@@ -1001,16 +1001,21 @@ export function filterInternalNavSectionsForDemoSurface(
 
   if (!shouldHideDroneToolNavViews()) {
     const base = stripMemberIntelligenceNavForNonAbhi(sections);
+    // Platform-only modules (Unit311 Details / Module Go-Live) stay on Internal/Demo.
+    // SSR and customer hosts default to stripped nav so tenants never flash platform chrome.
+    let isPlatformHost = false;
     if (typeof window !== "undefined") {
       try {
         const { resolveRuntimeSurface } =
           require("@/lib/runtime-surface") as typeof import("@/lib/runtime-surface");
-        if (resolveRuntimeSurface(window.location.hostname) === "customer") {
-          return injectInternalPlatformAnalytics(stripCustomerPlatformNav(base));
-        }
+        const surface = resolveRuntimeSurface(window.location.hostname);
+        isPlatformHost = surface === "internal" || surface === "demo";
       } catch {
-        /* fall through */
+        isPlatformHost = false;
       }
+    }
+    if (!isPlatformHost) {
+      return injectInternalPlatformAnalytics(stripCustomerPlatformNav(base));
     }
     return injectInternalPlatformAnalytics(base);
   }

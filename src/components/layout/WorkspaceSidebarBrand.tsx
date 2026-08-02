@@ -59,7 +59,8 @@ export default function WorkspaceSidebarBrand({
   className,
   href = "/",
 }: WorkspaceSidebarBrandProps) {
-  const [brand, setBrand] = useState<BrandKind>("unit311");
+  // Start unset so SSR/first paint never flashes Unit311 on customer hosts.
+  const [brand, setBrand] = useState<BrandKind | null>(null);
   const [customerName, setCustomerName] = useState("Workspace");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
@@ -97,6 +98,21 @@ export default function WorkspaceSidebarBrand({
         .catch(() => undefined);
     }
   }, []);
+
+  if (!brand) {
+    return (
+      <a
+        href={href}
+        className={cn(
+          "inline-flex h-8 max-w-full shrink-0 items-center overflow-hidden",
+          className,
+        )}
+        aria-label="Home"
+      >
+        <span className="inline-block h-5 w-28 rounded bg-white/10" aria-hidden />
+      </a>
+    );
+  }
 
   const content =
     brand === "corpcentre" ? (
