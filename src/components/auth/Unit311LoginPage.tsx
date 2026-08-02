@@ -247,6 +247,12 @@ export default function Unit311LoginPage({
 
       persistNext(null);
 
+      // Absolute API redirects are authoritative (dashboard vs /portals deep-link).
+      if (/^https?:\/\//i.test(data.redirectPath)) {
+        window.location.assign(data.redirectPath);
+        return;
+      }
+
       // External company-portal redirects from the API are authoritative — never
       // collapse them back to workspace /dashboard via return_to handling.
       if (data.userType === "external") {
