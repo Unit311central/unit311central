@@ -36,6 +36,7 @@ import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadin
 import ResponsiveMasterDetail, {
   useMobileDetailPanel,
 } from "@/components/ui/ResponsiveMasterDetail";
+import { resolveAbhiMemberPortalAbsoluteUrl } from "@/lib/abhi/member-portal-routes";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { ExternalLink, FolderOpen, FolderPlus, Link2, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
@@ -853,31 +854,29 @@ export default function ClientManagementWorkspace({
                         {isAbhi ? "Member Folder" : "Ensure files folder"}
                       </button>
                     )}
-                    {selectedClient.platformUrl ? (
-                      isAbhi ? (
-                        <div className="w-full rounded-xl border border-sky-400/20 bg-sky-500/5 px-3 py-2 sm:col-span-full">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-200/80">
-                            Member portal URL
-                          </p>
-                          <a
-                            href={selectedClient.platformUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-1 inline-flex items-center gap-1.5 break-all text-xs text-sky-100 underline-offset-2 hover:underline"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                            {selectedClient.platformUrl}
-                          </a>
-                        </div>
-                      ) : (
-                        <Link
-                          href={selectedClient.platformUrl}
-                          className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
+                    {isAbhi ? (
+                      <div className="w-full rounded-xl border border-sky-400/20 bg-sky-500/5 px-3 py-2 sm:col-span-full">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-200/80">
+                          Member portal URL
+                        </p>
+                        <a
+                          href={resolveAbhiMemberPortalAbsoluteUrl(selectedClient)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 inline-flex items-center gap-1.5 break-all text-xs text-sky-100 underline-offset-2 hover:underline"
                         >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Open Intelligence Platform
-                        </Link>
-                      )
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                          {resolveAbhiMemberPortalAbsoluteUrl(selectedClient)}
+                        </a>
+                      </div>
+                    ) : selectedClient.platformUrl ? (
+                      <Link
+                        href={selectedClient.platformUrl}
+                        className="inline-flex h-9 items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Open Intelligence Platform
+                      </Link>
                     ) : null}
                     {selectedClient.supportLoungeUrl ? (
                       <div className="w-full rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-2 sm:col-span-full">

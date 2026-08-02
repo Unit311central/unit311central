@@ -64,6 +64,13 @@ const PLATFORM_LOGINS: CredentialBlock[] = [
     username: "demo@centrak.com",
     password: "London1999$",
   },
+  {
+    title: "Member Portal Access — Abbott Diagnostics",
+    url: "https://abhi.unit311central.com/abbotdiagnostics",
+    urlLabel: "abhi.unit311central.com/abbotdiagnostics",
+    username: "demo@abbotdiagnostics.com",
+    password: "London1999$",
+  },
 ];
 
 function CopyButton({ value, label }: { value: string; label: string }) {

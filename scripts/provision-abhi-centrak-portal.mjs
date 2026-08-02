@@ -4,11 +4,12 @@
  * scripts/provision-talanton-company-portals.mjs, scoped to ABHI only.
  *
  * Portal home: https://abhi.unit311central.com/{path}
- *   demo@centrak.com          -> /centrak          (Centrak)
- *   demo@gamahealthcare.com   -> /gamahealthcare    (GAMA Healthcare Ltd)
- *   demo@zeumed.com           -> /zeumed            (Zeumed)
- *   demo@ddcdolphin.com       -> /ddcdolphin         (DDC Dolphin Ltd)
- *   demo@wavetec.com          -> /wavetec           (Wavetec)
+ *   demo@centrak.com            -> /centrak            (Centrak)
+ *   demo@abbotdiagnostics.com   -> /abbotdiagnostics   (Abbott Diagnostics Ltd)
+ *   demo@gamahealthcare.com     -> /gamahealthcare     (GAMA Healthcare Ltd)
+ *   demo@zeumed.com             -> /zeumed             (Zeumed)
+ *   demo@ddcdolphin.com         -> /ddcdolphin         (DDC Dolphin Ltd)
+ *   demo@wavetec.com            -> /wavetec            (Wavetec)
  *
  *   node scripts/provision-abhi-centrak-portal.mjs
  */
@@ -68,6 +69,12 @@ function hashPlatformPasswordForUser(username, password) {
 /** Matches src/lib/abhi/member-portal-routes.ts */
 const PORTAL_USERS = [
   { path: "centrak", clientId: "abhi-cli-centrak", name: "Centrak", username: "demo@centrak.com" },
+  {
+    path: "abbotdiagnostics",
+    clientId: "abhi-cli-abbott-diagnostics-ltd",
+    name: "Abbott Diagnostics Ltd",
+    username: "demo@abbotdiagnostics.com",
+  },
   {
     path: "gamahealthcare",
     clientId: "abhi-cli-gama-healthcare-ltd",

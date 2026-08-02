@@ -17,6 +17,8 @@ export type AbhiMemberPortalRoute = {
   portalKind?: "member" | "board";
 };
 
+export const ABHI_MEMBER_PORTAL_ORIGIN = "https://abhi.unit311central.com";
+
 export const ABHI_MEMBER_PORTAL_ROUTES: readonly AbhiMemberPortalRoute[] = [
   {
     path: "board",
@@ -33,6 +35,13 @@ export const ABHI_MEMBER_PORTAL_ROUTES: readonly AbhiMemberPortalRoute[] = [
     username: "demo@centrak.com",
     redirectPath: "/centrak",
     companyLogoSrc: "/images/portals/centrak.jpg",
+  },
+  {
+    path: "abbotdiagnostics",
+    displayName: "Abbott Diagnostics Ltd",
+    clientId: "abhi-cli-abbott-diagnostics-ltd",
+    username: "demo@abbotdiagnostics.com",
+    redirectPath: "/abbotdiagnostics",
   },
   {
     path: "gamahealthcare",
@@ -67,6 +76,16 @@ export const ABHI_MEMBER_PORTAL_ROUTES: readonly AbhiMemberPortalRoute[] = [
 const BY_PATH = new Map(ABHI_MEMBER_PORTAL_ROUTES.map((r) => [r.path, r]));
 const BY_CLIENT_ID = new Map(ABHI_MEMBER_PORTAL_ROUTES.map((r) => [r.clientId, r]));
 
+/** Compact path slug from company name: "GAMA Healthcare Ltd" → gamahealthcare */
+export function abhiMemberPortalSlug(companyName: string): string {
+  const slug = String(companyName ?? "")
+    .toLowerCase()
+    .replace(/\b(ltd|limited|llc|inc|plc|gmbh|pty|srl|sa|nv|bv)\b\.?/gi, "")
+    .replace(/[^a-z0-9]+/g, "")
+    .slice(0, 48);
+  return slug || "member";
+}
+
 export function getMemberPortalByPath(
   path: string | null | undefined,
 ): AbhiMemberPortalRoute | null {
@@ -87,7 +106,45 @@ export function getMemberPortalByClientId(
 }
 
 export function memberPortalAbsoluteUrl(route: AbhiMemberPortalRoute): string {
-  return `https://abhi.unit311central.com${route.redirectPath}`;
+  return `${ABHI_MEMBER_PORTAL_ORIGIN}${route.redirectPath}`;
+}
+
+/** Prefer curated portal path; otherwise derive from company name. */
+export function resolveAbhiMemberPortalPath(client: {
+  id?: string | null;
+  companyName?: string | null;
+}): string {
+  const registered = getMemberPortalByClientId(client.id);
+  if (registered && registered.portalKind !== "board") {
+    return registered.path;
+  }
+  return abhiMemberPortalSlug(client.companyName ?? "");
+}
+
+export function resolveAbhiMemberPortalAbsoluteUrl(client: {
+  id?: string | null;
+  companyName?: string | null;
+}): string {
+  return `${ABHI_MEMBER_PORTAL_ORIGIN}/${resolveAbhiMemberPortalPath(client)}`;
+}
+
+/** demo@{email-domain} — falls back to demo@{portalSlug}.com */
+export function resolveAbhiMemberPortalDemoUsername(input: {
+  email?: string | null;
+  companyName?: string | null;
+  id?: string | null;
+}): string {
+  const registered = getMemberPortalByClientId(input.id);
+  if (registered?.username) return registered.username;
+
+  const email = String(input.email ?? "").trim().toLowerCase();
+  const at = email.indexOf("@");
+  if (at > 0 && at < email.length - 1) {
+    return `demo@${email.slice(at + 1)}`;
+  }
+
+  const slug = resolveAbhiMemberPortalPath(input);
+  return `demo@${slug}.com`;
 }
 
 export function isAbhiMemberPortalPath(pathname: string | null | undefined): boolean {

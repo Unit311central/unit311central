@@ -7,6 +7,7 @@ import {
   type PlatformUserRecord,
 } from "@/lib/platform-auth";
 import { canonicalizeStoredRedirectPath } from "@/lib/app-domains";
+import { getMemberPortalByPath } from "@/lib/abhi/member-portal-routes";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { resolveWorkspaceOnboardingRedirectForUser } from "@/lib/workspace-customer-onboarding-service";
 import { formatWorkspaceDisplayStatus } from "@/lib/workspace-host";
@@ -163,11 +164,7 @@ export async function resolveSubscriptionRedirectForUser(
   }
 
   // ABHI member portal demo accounts — never force /payment.
-  if (
-    String(user.redirect_path ?? "").match(
-      /^\/(board|centrak|gamahealthcare|zeumed|ddcdolphin|wavetec)(\/|$)/i,
-    )
-  ) {
+  if (getMemberPortalByPath(String(user.redirect_path ?? ""))) {
     return null;
   }
 
