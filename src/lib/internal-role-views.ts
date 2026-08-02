@@ -86,7 +86,15 @@ export function isViewAllowedForGrants(
   allowedViews: readonly InternalOperationsView[] | null | undefined,
 ): boolean {
   if (allowedViews == null) return true;
-  return allowedViews.includes(view);
+  if (allowedViews.includes(view)) return true;
+  // Member Intelligence ships with the Members / Client Directory module surface.
+  if (
+    view === "member-intelligence" &&
+    (allowedViews.includes("clients") || allowedViews.includes("clients-dashboard"))
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function shouldHideFinancialBankBalances(role: InternalRoleView) {
@@ -610,11 +618,39 @@ function filterAbhiHiddenNavItems(section: InternalNavSection): InternalNavSecti
   };
 }
 
+function injectAbhiMemberIntelligenceNav(section: InternalNavSection): InternalNavSection {
+  if (section.label !== "Business Central") return section;
+  return {
+    ...section,
+    items: section.items.map((item) => {
+      const isMembersGroup =
+        item.label === "Clients" ||
+        item.label === "Members" ||
+        item.children?.some((child) => child.view === "clients");
+      if (!isMembersGroup || !item.children?.length) return item;
+      if (item.children.some((child) => child.view === "member-intelligence")) return item;
+      const directoryIdx = item.children.findIndex((child) => child.view === "clients");
+      const intelligenceChild = {
+        label: "Member Intelligence",
+        view: "member-intelligence" as const,
+      };
+      if (directoryIdx < 0) {
+        return { ...item, children: [...item.children, intelligenceChild] };
+      }
+      const children = [...item.children];
+      children.splice(directoryIdx + 1, 0, intelligenceChild);
+      return { ...item, children };
+    }),
+  };
+}
+
 function reshapeAbhiNavSection(section: InternalNavSection): InternalNavSection {
   return renameAbhiClientNavLabels(
-    filterAbhiHiddenNavItems(
-      reshapeAbhiProductivitySection(
-        reshapeAbhiCorporateSection(reshapeAbhiTrainingSection(section)),
+    injectAbhiMemberIntelligenceNav(
+      filterAbhiHiddenNavItems(
+        reshapeAbhiProductivitySection(
+          reshapeAbhiCorporateSection(reshapeAbhiTrainingSection(section)),
+        ),
       ),
     ),
   );
@@ -757,28 +793,61 @@ function injectInternalPlatformAnalytics(
   return out;
 }
 
+function stripMemberIntelligenceNav(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items
+        .map((item) => {
+          if (!item.children?.length) {
+            return item.view === "member-intelligence" ? null : item;
+          }
+          const children = item.children.filter(
+            (child) => child.view !== "member-intelligence",
+          );
+          if (children.length === 0 && !item.view && !item.href) return null;
+          return { ...item, children };
+        })
+        .filter((item): item is NonNullable<typeof item> => item != null),
+    }))
+    .filter((section) => section.items.length > 0);
+}
+
+/** Hide Member Intelligence on non-ABHI hosts only (keep on SSR until host is known). */
+function stripMemberIntelligenceNavForNonAbhi(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  if (typeof window === "undefined") return [...sections];
+  if (isAbhiNavSurface()) return [...sections];
+  return stripMemberIntelligenceNav(sections);
+}
+
 export function filterInternalNavSectionsForDemoSurface(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
   // Talanton customer host: strip QMS/Website, restore Training, prepend Portfolio Companies.
   if (isTalantonNavSurface()) {
-    return appendTalantonNavSections(filterTalantonBaseNav(sections));
+    return appendTalantonNavSections(
+      filterTalantonBaseNav(stripMemberIntelligenceNavForNonAbhi(sections)),
+    );
   }
 
-  // ABHI: inject Marketing & Events after Human Resources.
+  // ABHI: keep Member Intelligence under Members; inject Marketing & Events.
   if (isAbhiNavSurface()) {
     return insertAbhiMarketingSection(sections);
   }
 
   if (!shouldHideDroneToolNavViews()) {
-    return injectInternalPlatformAnalytics(sections);
+    return injectInternalPlatformAnalytics(stripMemberIntelligenceNavForNonAbhi(sections));
   }
 
   const hideViews = isCorpCentreNavSurface() ? CORPCENTRE_HIDDEN_VIEWS : DEMO_HIDDEN_VIEWS;
   const hideUnit311Details = isCorpCentreNavSurface();
   const corpcentre = isCorpCentreNavSurface();
 
-  const filtered = sections
+  const filtered = stripMemberIntelligenceNavForNonAbhi(sections)
     .map((section) => {
       if (
         corpcentre &&

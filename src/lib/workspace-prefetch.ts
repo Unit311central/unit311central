@@ -24,6 +24,7 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "financial-reports": () => import("@/components/testflighthub/FinancialReportsWorkspace"),
   clients: () => import("@/components/testflighthub/ClientManagementWorkspace"),
   "clients-dashboard": () => import("@/components/testflighthub/ClientsDashboardWorkspace"),
+  "member-intelligence": () => import("@/components/abhi/MemberIntelligenceWorkspace"),
   "client-onboarding": () => import("@/components/testflighthub/ClientOnboardingWorkspace"),
   "potential-clients": () => import("@/components/testflighthub/PotentialClientsWorkspace"),
   hr: () => import("@/components/testflighthub/HrWorkspace"),
@@ -85,7 +86,8 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
 > = {
   home: ["clients", "financials", "projects", "executive-assistant"],
   clients: ["crm", "clients-dashboard", "client-onboarding", "projects"],
-  "clients-dashboard": ["clients", "crm", "projects"],
+  "clients-dashboard": ["clients", "member-intelligence", "crm", "projects"],
+  "member-intelligence": ["clients", "clients-dashboard"],
   "client-onboarding": ["clients", "crm"],
   crm: ["projects", "crm-meetings", "clients", "potential-clients"],
   "crm-meetings": ["calendar", "crm", "messaging"],

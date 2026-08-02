@@ -85,6 +85,7 @@ import {
   ClientManagementWorkspace,
   ClientOnboardingWorkspace,
   ClientsDashboardWorkspace,
+  MemberIntelligenceWorkspace,
   CompetitorsWorkspace,
   ConnectionsWorkspace,
   CorporateDashboardWorkspace,
@@ -394,6 +395,7 @@ export default function InternalOperationsDashboard({
     const needsClients =
       activeView === "clients" ||
       activeView === "clients-dashboard" ||
+      activeView === "member-intelligence" ||
       activeView === "assets" ||
       activeView === "projects" ||
       activeView === "projects-dashboard" ||
@@ -647,6 +649,10 @@ export default function InternalOperationsDashboard({
             <WorkspacePane view="clients-dashboard" activeView={activeView} keepMounted={isWarm("clients-dashboard")}>
               <ClientsDashboardWorkspace onClientsChange={setClients} />
             </WorkspacePane>
+          )}
+
+          {activeView === "member-intelligence" && (
+            <MemberIntelligenceWorkspace clients={clients} />
           )}
 
           {activeView === "client-onboarding" && <ClientOnboardingWorkspace />}

@@ -38,6 +38,9 @@ export const BoardMeetingsWorkspace = lazyWorkspace(() => import("./BoardMeeting
 export const BoardGovernanceWorkspace = lazyWorkspace(() => import("./BoardGovernanceWorkspace"));
 export const ClientManagementWorkspace = lazyWorkspace(() => import("./ClientManagementWorkspace"));
 export const ClientsDashboardWorkspace = lazyWorkspace(() => import("./ClientsDashboardWorkspace"));
+export const MemberIntelligenceWorkspace = lazyWorkspace(
+  () => import("@/components/abhi/MemberIntelligenceWorkspace"),
+);
 export const ClientOnboardingWorkspace = lazyWorkspace(() => import("./ClientOnboardingWorkspace"));
 export const CalendarWorkspace = lazyWorkspace(() => import("./CalendarWorkspace"));
 export const CompetitorsWorkspace = lazyWorkspace(() => import("./CompetitorsWorkspace"));

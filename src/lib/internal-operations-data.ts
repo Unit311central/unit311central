@@ -5,6 +5,7 @@ export type InternalOperationsView =
   | "home"
   | "clients"
   | "clients-dashboard"
+  | "member-intelligence"
   | "crm"
   | "crm-meetings"
   | "crm-questions-test"
@@ -195,6 +196,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "home",
   "clients",
   "clients-dashboard",
+  "member-intelligence",
   "crm",
   "crm-meetings",
   "crm-questions-test",
@@ -527,6 +529,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         children: [
           { label: "Dashboard", view: "clients-dashboard" as const },
           { label: "Client Directory", view: "clients" as const },
+          { label: "Member Intelligence", view: "member-intelligence" as const },
         ],
       },
       {
@@ -869,6 +872,7 @@ export const internalViewTitles: Record<
   home: { title: "Home", subtitle: "Executive Dashboard" },
   clients: { title: "Client Directory", subtitle: "Clients" },
   "clients-dashboard": { title: "Dashboard", subtitle: "Clients" },
+  "member-intelligence": { title: "Member Intelligence", subtitle: "Members" },
   crm: { title: "Pipeline", subtitle: "Customer Management" },
   "crm-meetings": {
     title: "Discovery & Demo",
@@ -1124,6 +1128,9 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
         }
         if (activeView === "clients-dashboard") {
           return { title: "Dashboard", subtitle: "Members" };
+        }
+        if (activeView === "member-intelligence") {
+          return { title: "Member Intelligence", subtitle: "Members" };
         }
         if (activeView === "client-onboarding") {
           return { title: "Member Onboarding", subtitle: "Customer Management" };

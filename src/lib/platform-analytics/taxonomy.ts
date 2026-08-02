@@ -73,6 +73,10 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
     sectionLabel: "Clients",
     core: true,
   }),
+  page("business-central", "Business Central", "member-intelligence", "Member Intelligence", {
+    sectionKey: "clients",
+    sectionLabel: "Clients",
+  }),
   page("business-central", "Business Central", "crm", "Pipeline", {
     sectionKey: "customer-management",
     sectionLabel: "Customer Management",
@@ -154,6 +158,7 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
     "Risk Register",
   ),
   page("corporate-information", "Corporate Information", "board-pack", "Board deck"),
+  page("corporate-information", "Corporate Information", "board-meetings", "Board Meetings"),
   page("corporate-information", "Corporate Information", "unit311-details", "Dashboard", {
     sectionKey: "unit311-details",
     sectionLabel: "Unit311 Details",

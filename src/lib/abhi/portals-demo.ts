@@ -27,6 +27,7 @@ export const DEFAULT_MAJOR_MODULES: PortalsModuleRow[] = [
   row("m4", "Members"),
   row("m5", "Dashboard Overview", 1),
   row("m6", "Member Directory", 1),
+  row("m6b", "Member Intelligence", 1),
   row("m7", "Customer Management"),
   row("m8", "Pipeline", 1),
   row("m9", "Discovery Calls", 1),

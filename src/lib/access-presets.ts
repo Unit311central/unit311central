@@ -48,7 +48,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     id: "clients",
     label: "Clients",
     section: "Business Central",
-    views: ["clients-dashboard", "clients"],
+    views: ["clients-dashboard", "clients", "member-intelligence"],
   },
   {
     id: "crm",
