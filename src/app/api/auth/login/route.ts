@@ -102,7 +102,28 @@ async function resolvePostLoginRedirect(options: {
   const nextPath = parseSafePostLoginNext(nextRaw);
   const rawNext = String(nextRaw ?? "").trim();
   const wantsPortalsNext =
-    nextPath === "/portals" || rawNext === "/portals" || rawNext.startsWith("/portals?");
+    nextPath === "/portals" ||
+    nextPath?.startsWith("/portals/") === true ||
+    rawNext === "/portals" ||
+    rawNext.startsWith("/portals?");
+
+  // Prefer /portals whenever the deep-link asked for it (ABHI demo/admin only).
+  // Do this before the generic workspace → dashboard default.
+  if (wantsPortalsNext && isAbhiPortalsAllowedUsername(username) && userType !== "external") {
+    const fromReturn =
+      loginReturn?.kind === "workspace"
+        ? loginReturn.origin
+        : parseValidWorkspaceReturnTo(returnToRaw);
+    const hostSlug = parseClientPlatformSubdomainSafe(requestHost);
+    const origin =
+      (fromReturn && isAbhiSlug(parseClientPlatformSubdomainSafe(new URL(fromReturn).host))
+        ? fromReturn
+        : null) ||
+      (isAbhiSlug(hostSlug) ? customerWorkspaceOrigin(hostSlug!) : null);
+    if (origin) {
+      return `${origin.replace(/\/$/, "")}/portals`;
+    }
+  }
 
   // Company/member portal externals must never land in the admin shell.
   if (userType === "external") {

@@ -80,9 +80,14 @@ function readPortalReturnPathFromLocation(): string | null {
 function readNextFromLocation(): string | null {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
-  return (
-    parseSafePostLoginNext(params.get("next")) ?? readPortalReturnPathFromLocation()
-  );
+  const raw = params.get("next");
+  // ABHI portals briefing deep-link — keep even if path allowlists lag behind.
+  if (raw === "/portals" || raw?.startsWith("/portals/") || raw?.startsWith("/portals?")) {
+    return raw.startsWith("/portals/") || raw.startsWith("/portals?")
+      ? parseSafePostLoginNext(raw) ?? "/portals"
+      : "/portals";
+  }
+  return parseSafePostLoginNext(raw) ?? readPortalReturnPathFromLocation();
 }
 
 function readPersistedReturnTo(): string | null {
