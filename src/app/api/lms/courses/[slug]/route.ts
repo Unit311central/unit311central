@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import { requireLmsWorkspaceSession } from "@/lib/lms/auth";
-import { getCourseTree } from "@/lib/lms/service";
+import { getCourseTree, updateCourseMeta } from "@/lib/lms/service";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,33 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ course: tree });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load course.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: Params) {
+  const auth = await requireLmsWorkspaceSession();
+  if ("error" in auth) return auth.error;
+  if (auth.session.userType !== "internal") {
+    return NextResponse.json({ error: "Staff only." }, { status: 403 });
+  }
+  if (!isAbhiSlug(auth.workspace.slug)) {
+    return NextResponse.json({ error: "ABHI only." }, { status: 403 });
+  }
+
+  try {
+    const { slug } = await params;
+    const body = (await request.json()) as {
+      title?: string;
+      description?: string;
+      category?: string;
+      durationMinutes?: number;
+      passMark?: number;
+    };
+    const course = await updateCourseMeta(auth.workspace.id, slug, body);
+    return NextResponse.json({ course });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to update course.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

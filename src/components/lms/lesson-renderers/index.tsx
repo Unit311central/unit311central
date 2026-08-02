@@ -7,6 +7,7 @@ import BranchingLesson from "./BranchingLesson";
 import DocumentLesson from "./DocumentLesson";
 import DragDropLesson from "./DragDropLesson";
 import EmbeddedPdfLesson from "./EmbeddedPdfLesson";
+import HotspotLesson from "./HotspotLesson";
 import ImageLesson from "./ImageLesson";
 import InfographicLesson from "./InfographicLesson";
 import InteractiveCardsLesson from "./InteractiveCardsLesson";
@@ -66,6 +67,8 @@ export function LessonRenderer({
       return <InfographicLesson lesson={lesson} content={content} onComplete={complete} />;
     case "branching":
       return <BranchingLesson lesson={lesson} content={content} onComplete={complete} />;
+    case "hotspot":
+      return <HotspotLesson lesson={lesson} content={content} onComplete={complete} />;
     case "assessment":
       if (!courseSlug || !enrolmentId) {
         return <UnsupportedLesson lesson={lesson} onComplete={complete} />;

@@ -10,6 +10,7 @@
 
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
+import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
 
 import type { AssistantBusinessContext, AssistantChatMessage } from "./types";
 import type { DirectAssistantIntent } from "./intent-router";
@@ -205,6 +206,21 @@ export async function resolveOrchestrationRoute(
           tool: boardPack.tool,
           args: boardPack.args,
           reason: boardPack.reason,
+        },
+      };
+    }
+
+    if (resolveAbhiLmsCourseIntent(message)) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: "lms.generateCourseFromDocument",
+          args: {
+            fileId: business.selection?.fileId ?? undefined,
+            fileName: business.selection?.fileName ?? undefined,
+            title: undefined,
+          },
+          reason: "ABHI AI course generator from document",
         },
       };
     }

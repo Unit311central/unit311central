@@ -8,6 +8,7 @@ import type {
   LessonContent,
   LmsCertificate,
   LmsCourse,
+  LmsCourseCreateInput,
   LmsCourseTree,
   LmsEnrolment,
   LmsLesson,
@@ -834,4 +835,163 @@ export async function getWorkspaceReporting(workspaceId: string): Promise<{
   });
 
   return { byCompany, byUser };
+}
+
+function slugifyCourse(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || `course-${Date.now().toString(36)}`;
+}
+
+async function deleteCourseTree(workspaceId: string, courseId: string) {
+  await db().from("lms_questions").delete().eq("course_id", courseId).eq("workspace_id", workspaceId);
+  await db().from("lms_lessons").delete().eq("course_id", courseId).eq("workspace_id", workspaceId);
+  await db().from("lms_modules").delete().eq("course_id", courseId).eq("workspace_id", workspaceId);
+  await db().from("lms_courses").delete().eq("id", courseId).eq("workspace_id", workspaceId);
+}
+
+export async function createCourseTree(
+  workspaceId: string,
+  input: LmsCourseCreateInput,
+): Promise<LmsCourseTree> {
+  const baseSlug = slugifyCourse(input.slug || input.title);
+  let slug = baseSlug;
+  for (let i = 0; i < 8; i += 1) {
+    const existing = await getCourseBySlug(workspaceId, slug);
+    if (!existing) break;
+    slug = `${baseSlug}-${i + 2}`;
+  }
+
+  const code =
+    input.code?.trim() ||
+    `ABHI-${slug.replace(/[^a-z0-9]+/g, "-").toUpperCase().slice(0, 24)}`;
+  const passMark = input.passMark ?? 80;
+  const status = input.status ?? "draft";
+  const objectivesNote =
+    input.learningObjectives?.length
+      ? `\n\nLearning objectives:\n${input.learningObjectives.map((o) => `• ${o}`).join("\n")}`
+      : "";
+
+  const { data: courseRow, error: courseErr } = await db()
+    .from("lms_courses")
+    .insert({
+      workspace_id: workspaceId,
+      code,
+      slug,
+      title: input.title.trim(),
+      description: `${input.description.trim()}${objectivesNote}`,
+      category: input.category?.trim() || "Compliance",
+      duration_minutes: input.durationMinutes ?? 40,
+      status,
+      pass_mark: passMark,
+      certificate_prefix: (input.certificatePrefix || code).slice(0, 12),
+      sort_order: 50,
+    })
+    .select("*")
+    .single();
+  if (courseErr || !courseRow) throw new Error(courseErr?.message || "Failed to create course.");
+
+  const courseId = String(courseRow.id);
+  try {
+    for (let mi = 0; mi < input.modules.length; mi += 1) {
+      const mod = input.modules[mi]!;
+      const { data: moduleRow, error: modErr } = await db()
+        .from("lms_modules")
+        .insert({
+          workspace_id: workspaceId,
+          course_id: courseId,
+          title: mod.title.trim(),
+          summary: mod.summary?.trim() || "",
+          sort_order: mi + 1,
+        })
+        .select("*")
+        .single();
+      if (modErr || !moduleRow) throw new Error(modErr?.message || "Failed to create module.");
+
+      for (let li = 0; li < mod.lessons.length; li += 1) {
+        const lesson = mod.lessons[li]!;
+        const { error: lessonErr } = await db().from("lms_lessons").insert({
+          workspace_id: workspaceId,
+          course_id: courseId,
+          module_id: moduleRow.id,
+          title: lesson.title.trim(),
+          lesson_type: lesson.lessonType,
+          content: lesson.content,
+          sort_order: li + 1,
+          estimated_minutes: lesson.estimatedMinutes ?? 5,
+        });
+        if (lessonErr) throw new Error(lessonErr.message);
+      }
+    }
+
+    const questions = input.questions ?? [];
+    for (let i = 0; i < questions.length; i += 25) {
+      const chunk = questions.slice(i, i + 25).map((q, offset) => ({
+        workspace_id: workspaceId,
+        course_id: courseId,
+        module_id: null,
+        question_type: q.questionType,
+        stem: q.stem,
+        choices: q.choices,
+        correct_choice_id: q.correctChoiceId,
+        explanation: q.explanation ?? "",
+        difficulty: q.difficulty ?? "medium",
+        sort_order: i + offset + 1,
+      }));
+      if (chunk.length) {
+        const { error: qErr } = await db().from("lms_questions").insert(chunk);
+        if (qErr) throw new Error(qErr.message);
+      }
+    }
+  } catch (error) {
+    await deleteCourseTree(workspaceId, courseId);
+    throw error;
+  }
+
+  const tree = await getCourseTree(workspaceId, slug);
+  if (!tree) throw new Error("Course created but could not be reloaded.");
+  return tree;
+}
+
+export async function publishCourse(
+  workspaceId: string,
+  slug: string,
+): Promise<LmsCourse> {
+  const course = await getCourseBySlug(workspaceId, slug);
+  if (!course) throw new Error("Course not found.");
+  const { data, error } = await db()
+    .from("lms_courses")
+    .update({ status: "published", updated_at: new Date().toISOString() })
+    .eq("id", course.id)
+    .eq("workspace_id", workspaceId)
+    .select("*")
+    .single();
+  if (error || !data) throw new Error(error?.message || "Failed to publish course.");
+  return mapCourse(data as Record<string, unknown>);
+}
+
+export async function updateCourseMeta(
+  workspaceId: string,
+  slug: string,
+  patch: { title?: string; description?: string; category?: string; durationMinutes?: number; passMark?: number },
+): Promise<LmsCourse> {
+  const course = await getCourseBySlug(workspaceId, slug);
+  if (!course) throw new Error("Course not found.");
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.title !== undefined) payload.title = patch.title.trim();
+  if (patch.description !== undefined) payload.description = patch.description.trim();
+  if (patch.category !== undefined) payload.category = patch.category.trim();
+  if (patch.durationMinutes !== undefined) payload.duration_minutes = patch.durationMinutes;
+  if (patch.passMark !== undefined) payload.pass_mark = patch.passMark;
+  const { data, error } = await db()
+    .from("lms_courses")
+    .update(payload)
+    .eq("id", course.id)
+    .eq("workspace_id", workspaceId)
+    .select("*")
+    .single();
+  if (error || !data) throw new Error(error?.message || "Failed to update course.");
+  return mapCourse(data as Record<string, unknown>);
 }

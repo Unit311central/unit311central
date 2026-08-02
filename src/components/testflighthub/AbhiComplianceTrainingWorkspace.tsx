@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
-import { Loader2, Plus, UserPlus, Users, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
+import { Loader2, Plus, Sparkles, Upload, UserPlus, Users, X } from "lucide-react";
 
 import CoursePlayer from "@/components/lms/CoursePlayer";
+import CourseReviewScreen from "@/components/lms/CourseReviewScreen";
 import {
   ABHI_COMPLIANCE_COURSES,
   type AbhiComplianceCourse,
 } from "@/lib/abhi-training-courses";
-import type { LmsCertificate, LmsCourse, LmsEnrolment } from "@/lib/lms/types";
+import type { LmsCertificate, LmsCourse, LmsCourseTree, LmsEnrolment } from "@/lib/lms/types";
 import { cn } from "@/lib/utils";
 import CreateCourseWizard from "./CreateCourseWizard";
 import {
@@ -605,11 +606,27 @@ function CoursesCatalogView() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<CatalogRow[]>(ABHI_COMPLIANCE_COURSES);
   const [launchSlug, setLaunchSlug] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [reviewCourse, setReviewCourse] = useState<LmsCourseTree | null>(null);
+  const [reviewSummary, setReviewSummary] = useState<{
+    title: string;
+    durationMinutes: number;
+    moduleCount: number;
+    lessonCount: number;
+    scenarioCount: number;
+    assessmentCount: number;
+    questionCount: number;
+    certificateEnabled: boolean;
+    learningObjectives?: string[];
+  } | null>(null);
+  const [lastFile, setLastFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/lms/courses", {
+      const response = await fetch("/api/lms/courses?all=1", {
         cache: "no-store",
         credentials: "include",
       });
@@ -634,6 +651,46 @@ function CoursesCatalogView() {
     });
   }, [reload]);
 
+  async function generateFromFile(file: File) {
+    setGenerating(true);
+    setGenError(null);
+    setLastFile(file);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/lms/generate-from-document", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      const data = (await res.json()) as {
+        course?: LmsCourseTree;
+        summary?: {
+          title: string;
+          durationMinutes: number;
+          moduleCount: number;
+          lessonCount: number;
+          scenarioCount: number;
+          assessmentCount: number;
+          questionCount: number;
+          certificateEnabled: boolean;
+          learningObjectives?: string[];
+        };
+        error?: string;
+      };
+      if (!res.ok || !data.course || !data.summary) {
+        throw new Error(data.error || "Course generation failed.");
+      }
+      setReviewCourse(data.course);
+      setReviewSummary(data.summary);
+      void reload();
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Course generation failed.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {notice ? (
@@ -641,9 +698,57 @@ function CoursesCatalogView() {
           {notice}
         </div>
       ) : null}
+
+      <div className="rounded-3xl border border-[#C2185B]/25 bg-gradient-to-br from-[#C2185B]/15 via-transparent to-transparent p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9a8d4]">
+              <Sparkles className="h-3.5 w-3.5" />
+              ABHI AI Course Generator
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-white">
+              Upload a policy — get a complete interactive course
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-white/55">
+              PDF or Word (Anti-Bribery, GDPR, handbook, MHRA, SOPs, exhibitor guides). AI builds
+              modules, scenarios, assessments, and certificate settings for review.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={generating}
+            onClick={() => fileInputRef.current?.click()}
+            className={cn(tqmsPrimaryButtonClass(), "inline-flex items-center gap-2")}
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            {generating ? "Building course…" : "Upload PDF / Word"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void generateFromFile(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+        {genError ? (
+          <p className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+            {genError}
+          </p>
+        ) : null}
+      </div>
+
       <TqmsSection
         title="Courses"
-        subtitle="ABHI HealthTech compliance catalogue. Assign to staff or launch the LMS player."
+        subtitle="Modern vertical learning experience. Assign to staff or launch the player."
         actions={
           <>
             <button
@@ -655,9 +760,9 @@ function CoursesCatalogView() {
               <UserPlus className="h-3.5 w-3.5" />
               Assign to staff
             </button>
-            <button type="button" onClick={() => setWizardOpen(true)} className={tqmsPrimaryButtonClass()}>
+            <button type="button" onClick={() => setWizardOpen(true)} className={tqmsSecondaryButtonClass()}>
               <Plus className="h-3.5 w-3.5" />
-              Create Course
+              Manual builder
             </button>
           </>
         }
@@ -695,6 +800,32 @@ function CoursesCatalogView() {
           course={assignCourse}
           onClose={() => setAssignCourse(null)}
           onAssigned={setNotice}
+        />
+      ) : null}
+
+      {reviewCourse && reviewSummary ? (
+        <CourseReviewScreen
+          course={reviewCourse}
+          summary={reviewSummary}
+          regenerating={generating}
+          onClose={() => {
+            setReviewCourse(null);
+            setReviewSummary(null);
+          }}
+          onRegenerate={
+            lastFile
+              ? () => {
+                  void generateFromFile(lastFile);
+                }
+              : undefined
+          }
+          onPublished={(slug) => {
+            setReviewCourse(null);
+            setReviewSummary(null);
+            setNotice(`“${slug}” published. Launch it from the catalogue.`);
+            void reload();
+            setLaunchSlug(slug);
+          }}
         />
       ) : null}
 

@@ -14,6 +14,7 @@ import {
 export type DirectAssistantIntent = {
   tool:
     | "boardpack.generate"
+    | "lms.generateCourseFromDocument"
     | "generateEmployeeListPdf"
     | "generateFinancialReportPdf"
     | "generateReportPdf"

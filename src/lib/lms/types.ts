@@ -15,6 +15,7 @@ export const LMS_LESSON_TYPES = [
   "assessment",
   "infographic",
   "branching",
+  "hotspot",
 ] as const;
 
 export type LmsLessonType = (typeof LMS_LESSON_TYPES)[number];
@@ -102,6 +103,7 @@ export type LessonContent =
   | {
       type: "infographic";
       title?: string;
+      layout?: "steps" | "flow" | "grid";
       items: { id: string; label: string; body: string; icon?: string }[];
     }
   | {
@@ -116,6 +118,22 @@ export type LessonContent =
           choices?: { label: string; to: string }[];
         }
       >;
+    }
+  | {
+      type: "hotspot";
+      title?: string;
+      prompt: string;
+      imageUrl: string;
+      regions: {
+        id: string;
+        label: string;
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+        correct?: boolean;
+        feedback: string;
+      }[];
     };
 
 export type LmsCourse = {
@@ -198,4 +216,36 @@ export type LmsCertificate = {
 export type LmsCourseTree = LmsCourse & {
   modules: (LmsModule & { lessons: LmsLesson[] })[];
   questionCount: number;
+};
+
+/** Payload for AI / wizard course creation into live LMS tables. */
+export type LmsCourseCreateInput = {
+  slug?: string;
+  code?: string;
+  title: string;
+  description: string;
+  category?: string;
+  durationMinutes?: number;
+  passMark?: number;
+  certificatePrefix?: string;
+  status?: "draft" | "published";
+  learningObjectives?: string[];
+  modules: {
+    title: string;
+    summary?: string;
+    lessons: {
+      title: string;
+      lessonType: LmsLessonType;
+      content: LessonContent;
+      estimatedMinutes?: number;
+    }[];
+  }[];
+  questions?: {
+    questionType: LmsQuestion["questionType"];
+    stem: string;
+    choices: { id: string; label: string }[];
+    correctChoiceId: string;
+    explanation?: string;
+    difficulty?: string;
+  }[];
 };

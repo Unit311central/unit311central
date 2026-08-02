@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   Loader2,
   Menu,
@@ -48,13 +46,15 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
   const [timeSpent, setTimeSpent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCeremony, setShowCeremony] = useState(false);
   const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
   const [certificateNumber, setCertificateNumber] = useState<string | null>(null);
   const [finalScore, setFinalScore] = useState<number | null>(null);
 
+  const scrollRef = useRef<HTMLElement | null>(null);
+  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const timeBaseRef = useRef(0);
   const sessionStartRef = useRef(Date.now());
   const enrolmentRef = useRef<LmsEnrolment | null>(null);
@@ -72,8 +72,6 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
   }, [lessonIndex]);
 
   const lessons = useMemo(() => (course ? flattenLessons(course) : []), [course]);
-  const currentLesson = lessons[lessonIndex] ?? null;
-  const immersiveLesson = Boolean(currentLesson);
   const progressPct =
     lessons.length === 0 ? 0 : Math.round((completedIds.size / lessons.length) * 100);
 
@@ -234,28 +232,68 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
     return () => window.removeEventListener("beforeunload", onUnload);
   }, [saveProgress]);
 
-  async function handleLessonComplete(meta?: { score?: number; passed?: boolean }) {
-    if (!currentLesson || !course) return;
+  // Sync active lesson from scroll position.
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || lessons.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible?.target?.id) return;
+        const id = visible.target.id.replace(/^lesson-/, "");
+        const idx = lessons.findIndex((l) => l.id === id);
+        if (idx >= 0 && idx !== lessonIndexRef.current) {
+          setLessonIndex(idx);
+        }
+      },
+      { root, threshold: [0.35, 0.55], rootMargin: "-12% 0px -45% 0px" },
+    );
+    for (const lesson of lessons) {
+      const el = sectionRefs.current.get(lesson.id);
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [lessons, loading]);
+
+  function scrollToLesson(index: number) {
+    const lesson = lessons[index];
+    if (!lesson) return;
+    setLessonIndex(index);
+    const el = sectionRefs.current.get(lesson.id);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    void saveProgress({
+      status: "in_progress",
+      lastLessonId: lesson.id,
+    });
+  }
+
+  async function handleLessonComplete(
+    lesson: LmsLesson,
+    meta?: { score?: number; passed?: boolean },
+  ) {
+    if (!course) return;
+    const index = lessons.findIndex((l) => l.id === lesson.id);
     const nextCompleted = new Set(completedIds);
-    nextCompleted.add(currentLesson.id);
+    nextCompleted.add(lesson.id);
     setCompletedIds(nextCompleted);
 
-    const isLast = lessonIndex >= lessons.length - 1;
+    const isLast = index >= lessons.length - 1;
     const assessmentPassed = meta?.passed === true;
     const courseDone =
       (isLast && nextCompleted.size >= lessons.length) ||
-      (currentLesson.lessonType === "assessment" && assessmentPassed);
+      (lesson.lessonType === "assessment" && assessmentPassed);
 
     if (typeof meta?.score === "number") setFinalScore(meta.score);
 
     if (courseDone) {
-      const saved = await saveProgress({
+      await saveProgress({
         completed: nextCompleted,
         status: "completed",
-        lastLessonId: currentLesson.id,
+        lastLessonId: lesson.id,
         score: meta?.score ?? finalScore,
       });
-      let certNumber: string | null = null;
       try {
         const certRes = await fetch("/api/lms/complete", {
           method: "POST",
@@ -268,7 +306,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
           error?: string;
         };
         if (certData.certificate?.certificateNumber) {
-          certNumber = certData.certificate.certificateNumber;
+          const certNumber = certData.certificate.certificateNumber;
           setCertificateUrl(
             `/api/lms/certificates/${encodeURIComponent(certNumber)}/pdf`,
           );
@@ -277,7 +315,6 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
       } catch {
         /* ceremony still shows */
       }
-      void saved;
       setShowCeremony(true);
       return;
     }
@@ -285,27 +322,34 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
     await saveProgress({
       completed: nextCompleted,
       status: "in_progress",
-      lastLessonId: currentLesson.id,
+      lastLessonId: lesson.id,
     });
 
-    if (!isLast) setLessonIndex((i) => i + 1);
+    if (!isLast) {
+      window.setTimeout(() => scrollToLesson(index + 1), 220);
+    }
   }
 
-  function goToLesson(index: number) {
-    setLessonIndex(index);
-    void saveProgress({
-      status: "in_progress",
-      lastLessonId: lessons[index]?.id ?? null,
-    });
-  }
+  // Resume scroll after load.
+  useEffect(() => {
+    if (loading || !lessons[lessonIndex]) return;
+    const el = sectionRefs.current.get(lessons[lessonIndex].id);
+    if (el) {
+      window.setTimeout(() => {
+        el.scrollIntoView({ behavior: "auto", block: "start" });
+      }, 80);
+    }
+    // Only on initial load completion
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#07111f] text-white">
-      <header className="flex shrink-0 items-center gap-3 border-b border-white/10 px-4 py-3">
+      <header className="sticky top-0 z-30 flex shrink-0 items-center gap-3 border-b border-white/10 bg-[#07111f]/95 px-4 py-3 backdrop-blur">
         <button
           type="button"
           onClick={() => setSidebarOpen((v) => !v)}
-          className="rounded-lg p-2 text-white/60 hover:bg-white/5 hover:text-white lg:hidden"
+          className="rounded-lg p-2 text-white/60 hover:bg-white/5 hover:text-white"
           aria-label="Toggle modules"
         >
           <Menu className="h-5 w-5" />
@@ -316,7 +360,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
           </p>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
+              className="h-full rounded-full bg-gradient-to-r from-[#C2185B] to-[#f472b6]"
               initial={false}
               animate={{ width: `${progressPct}%` }}
               transition={{ type: "spring", stiffness: 120, damping: 20 }}
@@ -347,14 +391,13 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
         <aside
           className={cn(
             "shrink-0 overflow-y-auto border-r border-white/10 bg-[#0a1628] transition-all",
-            sidebarOpen && !immersiveLesson ? "w-72" : "w-0 overflow-hidden border-0",
+            sidebarOpen ? "w-72" : "w-0 overflow-hidden border-0",
             "absolute inset-y-14 left-0 z-20 lg:static lg:inset-auto",
-            immersiveLesson && "lg:hidden",
           )}
         >
           <div className="p-3">
             <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
-              Modules
+              Journey
             </p>
             {course?.modules.map((mod) => (
               <div key={mod.id} className="mb-4">
@@ -369,18 +412,18 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
                         <button
                           type="button"
                           onClick={() => {
-                            goToLesson(flatIndex);
+                            scrollToLesson(flatIndex);
                             if (window.innerWidth < 1024) setSidebarOpen(false);
                           }}
                           className={cn(
                             "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition",
                             active
-                              ? "bg-emerald-500/20 text-emerald-100"
+                              ? "bg-[#C2185B]/25 text-pink-100"
                               : "text-white/60 hover:bg-white/[0.04] hover:text-white",
                           )}
                         >
                           {done ? (
-                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-[#f472b6]" />
                           ) : (
                             <span className="h-3.5 w-3.5 shrink-0 rounded-full border border-white/25" />
                           )}
@@ -395,12 +438,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
           </div>
         </aside>
 
-        <main
-          className={cn(
-            "relative min-w-0 flex-1 px-4 py-4 sm:px-8",
-            immersiveLesson ? "overflow-hidden" : "overflow-y-auto",
-          )}
-        >
+        <main ref={scrollRef} className="relative min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
           {loading ? (
             <div className="flex h-full items-center justify-center gap-2 text-white/55">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -417,54 +455,64 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
                 Close
               </button>
             </div>
-          ) : currentLesson ? (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentLesson.id}
-                initial={{ opacity: 0, x: 28 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ type: "spring", stiffness: 260, damping: 28 }}
-                className={cn(immersiveLesson && "h-full")}
-              >
-                <LessonRenderer
-                  lesson={currentLesson}
-                  courseId={course?.id}
-                  courseSlug={courseSlug}
-                  enrolmentId={enrolment?.id}
-                  onComplete={(meta) => void handleLessonComplete(meta)}
-                />
-              </motion.div>
-            </AnimatePresence>
+          ) : lessons.length > 0 ? (
+            <div className="mx-auto flex max-w-3xl flex-col gap-8 pb-24">
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-5 py-6 sm:px-7">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9a8d4]/80">
+                  Learning path
+                </p>
+                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                  {course?.title}
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
+                  Scroll through short explanations, visuals, and interactive moments. Complete each
+                  section as you go — your progress saves automatically.
+                </p>
+              </div>
+
+              {lessons.map((lesson, index) => {
+                const moduleTitle =
+                  course?.modules.find((m) => m.id === lesson.moduleId)?.title ?? "Module";
+                const done = completedIds.has(lesson.id);
+                return (
+                  <div
+                    key={lesson.id}
+                    id={`lesson-${lesson.id}`}
+                    ref={(el) => {
+                      if (el) sectionRefs.current.set(lesson.id, el);
+                      else sectionRefs.current.delete(lesson.id);
+                    }}
+                    className="scroll-mt-24"
+                  >
+                    <div className="mb-3 flex items-center gap-2 px-1">
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                        {moduleTitle}
+                      </span>
+                      <span className="text-[10px] text-white/35">
+                        {index + 1} / {lessons.length}
+                      </span>
+                      {done ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#f9a8d4]">
+                          <CheckCircle2 className="h-3 w-3" /> Done
+                        </span>
+                      ) : null}
+                    </div>
+                    <LessonRenderer
+                      lesson={lesson}
+                      courseId={course?.id}
+                      courseSlug={courseSlug}
+                      enrolmentId={enrolment?.id}
+                      onComplete={(meta) => void handleLessonComplete(lesson, meta)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <p className="text-center text-sm text-white/50">No lessons in this course.</p>
           )}
         </main>
       </div>
-
-      <footer className="flex shrink-0 items-center justify-between border-t border-white/10 px-4 py-3">
-        <button
-          type="button"
-          disabled={lessonIndex <= 0}
-          onClick={() => goToLesson(lessonIndex - 1)}
-          className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70 hover:bg-white/[0.04] disabled:opacity-30"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </button>
-        <p className="text-xs text-white/45">
-          Lesson {lessons.length ? lessonIndex + 1 : 0} of {lessons.length}
-        </p>
-        <button
-          type="button"
-          disabled={lessonIndex >= lessons.length - 1}
-          onClick={() => goToLesson(lessonIndex + 1)}
-          className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70 hover:bg-white/[0.04] disabled:opacity-30"
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </footer>
 
       {showCeremony && course ? (
         <CourseCompletionCeremony

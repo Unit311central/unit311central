@@ -19,6 +19,7 @@ import {
   generateScopedBusinessPdf,
 } from "./artifact-tools";
 import { generateBoardPackTool } from "./boardpack-tools";
+import { generateLmsCourseFromDocumentTool } from "./lms-course-tools";
 import {
   getPageGuideTool,
   highlightUiTarget,
@@ -389,18 +390,42 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "boardpack.generate",
     description:
-      "ABHI only. Automatically generate a professional multi-slide Board Meeting Pack (PowerPoint + PDF preview) from organisational data — cover, executive summary, previous actions, risk register, KPIs, financials, P&L, balance sheet & cash, commercial/membership, team, and strategic discussion. Invoke whenever the user wants board meeting materials, board papers, a board pack, board deck, board presentation, board report for a meeting, or tomorrow/next week's board materials. Prefer this over generateReportPdf for any board pack/deck/papers request. Do not ask for confirmation.",
+      "ABHI only. Automatically generate a professional multi-slide Board Meeting Pack (PowerPoint + PDF preview) from organisational data — cover, executive summary, previous actions, risk register, KPIs, financials, P&L, balance sheet & cash, commercial/membership, team, and strategic discussion. Invoke whenever the user wants board meeting materials, board papers, a board pack, board deck, board presentation, or board report. Prefer this over generateReportPdf for any board pack/deck/papers request. Meeting date is resolved from the next scheduled Board Meeting; only pass meetingDate when the user gives an explicit YYYY-MM-DD. Never invent dates from tomorrow/next week. If no date can be resolved, the tool asks for one.",
     parameters: {
       type: "object",
       properties: {
         meetingDate: {
           type: "string",
           description:
-            "Optional meeting date as YYYY-MM-DD. Infer tomorrow or next week from the user request when stated.",
+            "Optional explicit meeting date as YYYY-MM-DD only. Do not invent relative dates (tomorrow, next week). Prefer leaving unset so the next scheduled Board Meeting is used.",
         },
         focus: {
           type: "string",
           description: "Optional focus note from the user request.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "lms.generateCourseFromDocument",
+    description:
+      "ABHI only. Create a complete interactive training course from an uploaded PDF or Word policy/guidance document (Anti-Bribery, GDPR, handbook, MHRA, SOPs, exhibitor guides). Generates modules, lessons, scenarios, assessments, and certificate settings as a draft. Use when the user asks to create/generate/build a training course from a document or policy. Prefer a selected Files fileId when available.",
+    parameters: {
+      type: "object",
+      properties: {
+        fileId: {
+          type: "string",
+          description: "Internal Files id of the PDF/DOCX to convert.",
+        },
+        fileName: { type: "string" },
+        documentText: {
+          type: "string",
+          description: "Optional pasted document text if no fileId.",
+        },
+        title: {
+          type: "string",
+          description: "Optional preferred course title.",
         },
       },
       additionalProperties: false,
@@ -836,6 +861,7 @@ const handlers: Record<string, ContextualToolHandler> = {
   searchCRM,
   generateReport,
   "boardpack.generate": generateBoardPackTool,
+  "lms.generateCourseFromDocument": generateLmsCourseFromDocumentTool,
   generateEmployeeListPdf,
   generateFinancialReportPdf,
   generateReportPdf,
