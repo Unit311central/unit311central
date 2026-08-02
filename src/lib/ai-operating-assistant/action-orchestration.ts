@@ -227,7 +227,7 @@ export async function resolveOrchestrationRoute(
     }
   }
 
-  // Talanton Impact — board pack / deck generation when explicitly requested.
+  // Talanton Impact — board pack + AI training course from document.
   if (isTalantonImpactSlug(business.workspace.slug)) {
     const boardPack = resolveAbhiBoardPackIntent(message);
     if (boardPack) {
@@ -237,6 +237,21 @@ export async function resolveOrchestrationRoute(
           tool: boardPack.tool,
           args: boardPack.args,
           reason: "Talanton Impact board pack generation",
+        },
+      };
+    }
+
+    if (resolveAbhiLmsCourseIntent(message)) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: "lms.generateCourseFromDocument",
+          args: {
+            fileId: business.selection?.fileId ?? undefined,
+            fileName: business.selection?.fileName ?? undefined,
+            title: undefined,
+          },
+          reason: "Talanton Impact AI course generator from document",
         },
       };
     }

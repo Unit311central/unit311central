@@ -410,7 +410,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "lms.generateCourseFromDocument",
     description:
-      "ABHI only. Create a complete interactive training course from an uploaded PDF or Word policy/guidance document (Anti-Bribery, GDPR, handbook, MHRA, SOPs, exhibitor guides). Generates modules, lessons, scenarios, assessments, and certificate settings as a draft. Use when the user asks to create/generate/build a training course from a document or policy. Prefer a selected Files fileId when available.",
+      "ABHI and Talanton Impact only. Create a complete interactive training course from an uploaded PDF or Word policy/guidance document (Anti-Bribery, GDPR, handbook, SOPs, policies). Generates modules, lessons, scenarios, assessments, and certificate settings as a draft. Use when the user asks to create/generate/build a training course from a document or policy. Prefer a selected Files fileId when available.",
     parameters: {
       type: "object",
       properties: {

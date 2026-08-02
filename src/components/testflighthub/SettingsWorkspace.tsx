@@ -859,9 +859,10 @@ export default function SettingsWorkspace() {
                     <Mail className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-white">Email</h3>
+                    <h3 className="text-sm font-semibold text-white">Email mailboxes</h3>
                     <p className="text-[10px] text-white/45">
-                      Remove mailboxes from the Email workspace list.
+                      Remove mailboxes from the Email workspace list for this workspace. You can
+                      restore them later.
                     </p>
                   </div>
                 </div>

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { isAbhiSlug } from "@/lib/abhi-surface";
 import { requireLmsWorkspaceSession } from "@/lib/lms/auth";
 import { getCourseTree, updateCourseMeta } from "@/lib/lms/service";
+import { allowsLmsAiCourseGeneration } from "@/lib/lms/workspace-gates";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +34,8 @@ export async function PATCH(request: Request, { params }: Params) {
   if (auth.session.userType !== "internal") {
     return NextResponse.json({ error: "Staff only." }, { status: 403 });
   }
-  if (!isAbhiSlug(auth.workspace.slug)) {
-    return NextResponse.json({ error: "ABHI only." }, { status: 403 });
+  if (!allowsLmsAiCourseGeneration(auth.workspace.slug)) {
+    return NextResponse.json({ error: "Not available on this workspace." }, { status: 403 });
   }
 
   try {

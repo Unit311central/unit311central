@@ -1,15 +1,15 @@
 /**
- * ABHI-only EA tool: lms.generateCourseFromDocument
+ * EA tool: lms.generateCourseFromDocument (ABHI + Talanton Impact)
  */
 
 import {
   generateAbhiCourseFromDocument,
   summarizeGeneratedCourse,
 } from "@/lib/abhi/lms-course-generator";
-import { isAbhiSlug } from "@/lib/abhi-surface";
 import { clipDocumentText, extractTextFromBuffer } from "@/lib/document-extract";
 import { downloadFileBuffer, getFileById } from "@/lib/internal-files-service";
 import { createCourseTree } from "@/lib/lms/service";
+import { allowsLmsAiCourseGeneration } from "@/lib/lms/workspace-gates";
 import {
   toolError,
   toolForbidden,
@@ -40,8 +40,11 @@ export async function generateLmsCourseFromDocumentTool(
 ): Promise<AssistantToolResult> {
   const tool = "lms.generateCourseFromDocument";
 
-  if (!isAbhiSlug(ctx.business.workspace.slug)) {
-    return toolForbidden(tool, "AI course generation from documents is available on ABHI only.");
+  if (!allowsLmsAiCourseGeneration(ctx.business.workspace.slug)) {
+    return toolForbidden(
+      tool,
+      "AI course generation from documents is available on ABHI and Talanton Impact only.",
+    );
   }
 
   const fileId =

@@ -116,7 +116,7 @@ export function buildSystemInstructions(
   const core = isCorpCentre ? CORPCENTRE_INSTRUCTIONS : CORE_INSTRUCTIONS;
   const talantonToolsHint = isTalanton
     ? `
-Talanton Impact tools: boardpack.generate — create board packs / board decks when the user explicitly asks.`
+Talanton Impact tools: boardpack.generate — create board packs / board decks when explicitly asked; lms.generateCourseFromDocument — create interactive training courses from uploaded PDF/Word policies when explicitly asked.`
     : "";
 
   return `${core}

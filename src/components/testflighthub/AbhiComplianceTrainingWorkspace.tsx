@@ -9,6 +9,7 @@ import {
   ABHI_COMPLIANCE_COURSES,
   type AbhiComplianceCourse,
 } from "@/lib/abhi-training-courses";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import type { LmsCertificate, LmsCourse, LmsCourseTree, LmsEnrolment } from "@/lib/lms/types";
 import { cn } from "@/lib/utils";
 import CreateCourseWizard from "./CreateCourseWizard";
@@ -20,6 +21,26 @@ import {
   tqmsPrimaryButtonClass,
   tqmsSecondaryButtonClass,
 } from "./tqms-ui";
+
+function useTrainingBrand() {
+  const isTalanton =
+    typeof window !== "undefined" ? isBrowserTalantonImpactSurface() : false;
+  return {
+    isTalanton,
+    orgName: isTalanton ? "Talanton Impact" : "ABHI",
+    generatorLabel: isTalanton
+      ? "Talanton Impact AI Course Generator"
+      : "ABHI AI Course Generator",
+    accentText: isTalanton ? "text-emerald-300" : "text-[#f9a8d4]",
+    accentBorder: isTalanton ? "border-emerald-400/25" : "border-[#C2185B]/25",
+    accentGradient: isTalanton
+      ? "from-emerald-500/15 via-transparent to-transparent"
+      : "from-[#C2185B]/15 via-transparent to-transparent",
+    description: isTalanton
+      ? "PDF or Word (policies, handbooks, ESG, investment process, portfolio SOPs). AI builds modules, scenarios, assessments, and certificate settings for review."
+      : "PDF or Word (Anti-Bribery, GDPR, handbook, MHRA, SOPs, exhibitor guides). AI builds modules, scenarios, assessments, and certificate settings for review.",
+  };
+}
 
 export type AbhiComplianceTrainingMode = "dashboard" | "courses";
 
@@ -528,7 +549,11 @@ function DashboardAssignedView() {
 
       <TqmsSection
         title={title}
-        subtitle="Your ABHI compliance programme — launch courses in the live LMS player."
+        subtitle={
+          isBrowserTalantonImpactSurface()
+            ? "Your Talanton Impact training programme — launch courses in the live LMS player."
+            : "Your ABHI compliance programme — launch courses in the live LMS player."
+        }
       >
         {loading ? (
           <p className="mb-3 flex items-center gap-2 text-sm text-white/50">
@@ -603,11 +628,16 @@ function DashboardAssignedView() {
 }
 
 function CoursesCatalogView() {
+  const brand = useTrainingBrand();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [assignCourse, setAssignCourse] = useState<CatalogRow | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<CatalogRow[]>(ABHI_COMPLIANCE_COURSES);
+  const [rows, setRows] = useState<CatalogRow[]>(() =>
+    typeof window !== "undefined" && isBrowserTalantonImpactSurface()
+      ? []
+      : ABHI_COMPLIANCE_COURSES,
+  );
   const [launchSlug, setLaunchSlug] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
@@ -628,6 +658,10 @@ function CoursesCatalogView() {
 
   const reload = useCallback(async () => {
     setLoading(true);
+    const fallback =
+      typeof window !== "undefined" && isBrowserTalantonImpactSurface()
+        ? []
+        : ABHI_COMPLIANCE_COURSES;
     try {
       const response = await fetch("/api/lms/courses?all=1", {
         cache: "no-store",
@@ -639,10 +673,10 @@ function CoursesCatalogView() {
       setRows(
         courses.length > 0
           ? courses.map((course) => toCatalogRow(course, null))
-          : ABHI_COMPLIANCE_COURSES,
+          : fallback,
       );
     } catch {
-      setRows(ABHI_COMPLIANCE_COURSES);
+      setRows(fallback);
     } finally {
       setLoading(false);
     }
@@ -702,20 +736,28 @@ function CoursesCatalogView() {
         </div>
       ) : null}
 
-      <div className="rounded-3xl border border-[#C2185B]/25 bg-gradient-to-br from-[#C2185B]/15 via-transparent to-transparent p-5">
+      <div
+        className={cn(
+          "rounded-3xl border bg-gradient-to-br p-5",
+          brand.accentBorder,
+          brand.accentGradient,
+        )}
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9a8d4]">
+            <p
+              className={cn(
+                "inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]",
+                brand.accentText,
+              )}
+            >
               <Sparkles className="h-3.5 w-3.5" />
-              ABHI AI Course Generator
+              {brand.generatorLabel}
             </p>
             <h3 className="mt-2 text-lg font-semibold text-white">
               Upload a policy — get a complete interactive course
             </h3>
-            <p className="mt-1 max-w-2xl text-sm text-white/55">
-              PDF or Word (Anti-Bribery, GDPR, handbook, MHRA, SOPs, exhibitor guides). AI builds
-              modules, scenarios, assessments, and certificate settings for review.
-            </p>
+            <p className="mt-1 max-w-2xl text-sm text-white/55">{brand.description}</p>
           </div>
           <button
             type="button"

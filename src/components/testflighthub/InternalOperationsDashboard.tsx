@@ -840,7 +840,7 @@ export default function InternalOperationsDashboard({
           {activeView === "sector" && <SectorWorkspace />}
 
           {activeView === "training" &&
-            (isBrowserAbhiSurface() ? (
+            (isBrowserAbhiSurface() || isBrowserTalantonImpactSurface() ? (
               <AbhiComplianceTrainingWorkspace mode="courses" />
             ) : (
               <StaffTrainingWorkspace />
@@ -876,7 +876,7 @@ export default function InternalOperationsDashboard({
           {activeView === "marketing-mailing-list" && <AbhiMailingListWorkspace />}
 
           {activeView === "training-dashboard" &&
-            (isBrowserAbhiSurface() ? (
+            (isBrowserAbhiSurface() || isBrowserTalantonImpactSurface() ? (
               <AbhiComplianceTrainingWorkspace mode="dashboard" />
             ) : (
               <TrainingDashboardWorkspace />

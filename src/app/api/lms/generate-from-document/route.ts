@@ -4,16 +4,16 @@ import {
   generateAbhiCourseFromDocument,
   summarizeGeneratedCourse,
 } from "@/lib/abhi/lms-course-generator";
-import { isAbhiSlug } from "@/lib/abhi-surface";
 import { extractTextFromBuffer } from "@/lib/document-extract";
 import { requireLmsWorkspaceSession } from "@/lib/lms/auth";
 import { createCourseTree } from "@/lib/lms/service";
+import { allowsLmsAiCourseGeneration } from "@/lib/lms/workspace-gates";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * ABHI staff: upload PDF/DOCX → AI course draft persisted to LMS.
+ * ABHI / Talanton Impact staff: upload PDF/DOCX → AI course draft persisted to LMS.
  */
 export async function POST(request: NextRequest) {
   const auth = await requireLmsWorkspaceSession();
@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
   if (auth.session.userType !== "internal") {
     return NextResponse.json({ error: "Staff only." }, { status: 403 });
   }
-  if (!isAbhiSlug(auth.workspace.slug)) {
+  if (!allowsLmsAiCourseGeneration(auth.workspace.slug)) {
     return NextResponse.json(
-      { error: "AI course generation is available on ABHI only." },
+      { error: "AI course generation is not available on this workspace." },
       { status: 403 },
     );
   }
