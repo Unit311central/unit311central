@@ -12,6 +12,11 @@ import {
   type AssistantStoredArtifact,
 } from "@/lib/ai-operating-assistant/artifact-store";
 import {
+  drawAssistantPdfFooter,
+  drawAssistantPdfHeader,
+  resolveAssistantPdfBrand,
+} from "@/lib/ai-operating-assistant/pdf-brand";
+import {
   formatReportPeriodLabel,
   lastNMonthKeys,
   type ReportPeriod,
@@ -515,10 +520,12 @@ export async function renderScopedBusinessPdf(input: {
   bundle: ScopedPdfLiveBundle;
   userId: string;
   organisationName?: string | null;
+  workspaceSlug?: string | null;
   title?: string;
   filename?: string;
   requestPreview?: string;
 }): Promise<AssistantStoredArtifact> {
+  const brand = await resolveAssistantPdfBrand(input.workspaceSlug);
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const dateLabel = new Date().toLocaleDateString("en-GB", {
@@ -527,40 +534,25 @@ export async function renderScopedBusinessPdf(input: {
     year: "numeric",
   });
 
-  doc.setFillColor(14, 165, 233);
-  doc.roundedRect(40, 36, 28, 28, 6, 6, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("U3", 48, 54);
-
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(18);
-  doc.text("Unit311", 78, 48);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.text(input.organisationName?.trim() || "Central", 78, 62);
-
   const title = input.title || "Custom Business Report";
-  doc.setTextColor(15, 23, 42);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(title, 40, 100);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.text(input.bundle.periodLabel, 40, 116);
-  doc.text(dateLabel, pageWidth - 40, 116, { align: "right" });
-
-  let y = 140;
+  let y = drawAssistantPdfHeader(doc, brand, {
+    organisationName: input.organisationName,
+    title,
+    subtitle: input.bundle.periodLabel,
+    metaRight: dateLabel,
+  });
   const left = 40;
   const usable = pageWidth - 80;
+  const { colors } = brand;
 
   const ensureSpace = (need: number) => {
     if (y + need > doc.internal.pageSize.getHeight() - 56) {
+      drawAssistantPdfFooter(doc, brand, title);
       doc.addPage();
+      if (brand.kind === "abhi") {
+        doc.setFillColor(...colors.page);
+        doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), "F");
+      }
       y = 48;
     }
   };
@@ -569,21 +561,21 @@ export async function renderScopedBusinessPdf(input: {
     ensureSpace(40);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
+    doc.setTextColor(...colors.navy);
     doc.text(heading, left, y);
     y += 16;
   };
 
   const drawRow = (label: string, value: string, emphasize = false) => {
     ensureSpace(28);
-    doc.setFillColor(emphasize ? 241 : 248, emphasize ? 245 : 250, emphasize ? 255 : 252);
+    doc.setFillColor(...colors.soft);
     doc.rect(left, y - 12, usable, 22, "F");
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    doc.setTextColor(51, 65, 85);
+    doc.setTextColor(...colors.muted);
     doc.text(label, left + 8, y);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(15, 23, 42);
+    doc.setTextColor(...(emphasize ? colors.navy : colors.text));
     doc.text(value, left + usable - 8, y, { align: "right" });
     y += 26;
   };
@@ -628,13 +620,14 @@ export async function renderScopedBusinessPdf(input: {
   ensureSpace(40);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(148, 163, 184);
+  doc.setTextColor(...colors.muted);
   doc.text(
-    "Only metrics you asked for are included. Figures are live Unit311 data. Zeros mean no posted activity — not estimates.",
+    `Only metrics you asked for are included. ${brand.footnoteSource}`,
     left,
     y,
     { maxWidth: usable },
   );
+  drawAssistantPdfFooter(doc, brand, title);
 
   const filename =
     input.filename?.trim() ||
@@ -656,6 +649,7 @@ export async function renderScopedBusinessPdf(input: {
       unknownTopics: input.bundle.unknownTopics,
       periodLabel: input.bundle.periodLabel,
       generatedAt: new Date().toISOString(),
+      brand: brand.kind,
     },
   });
 }

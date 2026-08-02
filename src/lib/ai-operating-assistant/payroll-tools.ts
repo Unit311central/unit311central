@@ -242,15 +242,19 @@ export async function generatePayrollPdf(
   const reportType = asString(args.reportType) || "summary";
   const userId = ctx.business.user.id;
   const scope = workspaceScope(ctx);
+  const brandOpts = {
+    workspaceSlug: ctx.business.workspace.slug,
+    organisationName: ctx.business.organisation.name,
+  };
   try {
     const dashboard = await getPayrollDashboard(scope);
     let artifact;
     if (reportType === "department") {
-      artifact = await generateDepartmentPayrollPdf(dashboard, userId);
+      artifact = await generateDepartmentPayrollPdf(dashboard, userId, brandOpts);
     } else if (reportType === "cost") {
-      artifact = await generatePayrollCostReportPdf(dashboard, userId);
+      artifact = await generatePayrollCostReportPdf(dashboard, userId, brandOpts);
     } else if (reportType === "board") {
-      artifact = await generateBoardPayrollReportPdf(dashboard, userId);
+      artifact = await generateBoardPayrollReportPdf(dashboard, userId, brandOpts);
     } else if (reportType === "employee") {
       const runId = asString(args.runId);
       const run = runId
@@ -261,9 +265,9 @@ export async function generatePayrollPdf(
         run.lines && run.lines.length > 0
           ? run
           : (await getPayrollRun(run.id, scope))!;
-      artifact = await generateEmployeePayrollSummaryPdf(detailed, userId);
+      artifact = await generateEmployeePayrollSummaryPdf(detailed, userId, brandOpts);
     } else {
-      artifact = await generatePayrollSummaryPdf(dashboard, userId);
+      artifact = await generatePayrollSummaryPdf(dashboard, userId, brandOpts);
     }
     artifact = await persistArtifactToStorage(artifact);
     return okPdf("generatePayrollPdf", artifact, ["payroll_dashboard", "payroll_runs"]);

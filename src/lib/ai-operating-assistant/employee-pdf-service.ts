@@ -9,6 +9,12 @@ import {
   putAssistantArtifact,
   type AssistantStoredArtifact,
 } from "@/lib/ai-operating-assistant/artifact-store";
+import {
+  drawAssistantPdfFooter,
+  drawAssistantPdfHeader,
+  resolveAssistantPdfBrand,
+  type AssistantPdfBrand,
+} from "@/lib/ai-operating-assistant/pdf-brand";
 
 type PdfEmployeeRow = {
   fullName: string;
@@ -24,11 +30,18 @@ function toRows(employees: HrEmployee[]): PdfEmployeeRow[] {
       fullName: employee.fullName || "—",
       department: employee.department || "—",
       jobTitle: employee.role || "—",
-      status: HR_EMPLOYMENT_STATUS_LABELS[employee.employmentStatus] ?? employee.employmentStatus,
+      status:
+        HR_EMPLOYMENT_STATUS_LABELS[employee.employmentStatus] ??
+        employee.employmentStatus,
     }));
 }
 
-function drawTable(doc: jsPDF, rows: PdfEmployeeRow[], startY: number) {
+function drawTable(
+  doc: jsPDF,
+  brand: AssistantPdfBrand,
+  rows: PdfEmployeeRow[],
+  startY: number,
+) {
   const left = 40;
   const pageWidth = doc.internal.pageSize.getWidth();
   const usable = pageWidth - 80;
@@ -40,11 +53,12 @@ function drawTable(doc: jsPDF, rows: PdfEmployeeRow[], startY: number) {
   ];
   const rowHeight = 22;
   let y = startY;
+  const { colors } = brand;
 
   const drawHeader = () => {
-    doc.setFillColor(15, 23, 42);
+    doc.setFillColor(...colors.navy);
     doc.rect(left, y, usable, rowHeight, "F");
-    doc.setTextColor(248, 250, 252);
+    doc.setTextColor(...colors.white);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     let x = left + 6;
@@ -59,17 +73,22 @@ function drawTable(doc: jsPDF, rows: PdfEmployeeRow[], startY: number) {
 
   doc.setFont("helvetica", "normal");
   rows.forEach((row, index) => {
-    if (y + rowHeight > doc.internal.pageSize.getHeight() - 48) {
+    if (y + rowHeight > doc.internal.pageSize.getHeight() - 56) {
+      drawAssistantPdfFooter(doc, brand, "Employee Directory");
       doc.addPage();
+      if (brand.kind === "abhi") {
+        doc.setFillColor(...colors.page);
+        doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), "F");
+      }
       y = 48;
       drawHeader();
       doc.setFont("helvetica", "normal");
     }
     if (index % 2 === 0) {
-      doc.setFillColor(248, 250, 252);
+      doc.setFillColor(...colors.soft);
       doc.rect(left, y, usable, rowHeight, "F");
     }
-    doc.setTextColor(30, 41, 59);
+    doc.setTextColor(...colors.text);
     doc.setFontSize(9);
     let x = left + 6;
     for (const col of cols) {
@@ -82,17 +101,18 @@ function drawTable(doc: jsPDF, rows: PdfEmployeeRow[], startY: number) {
 }
 
 /**
- * Executive employee directory PDF — logo/title/date + non-sensitive columns only.
+ * Executive employee directory PDF — brand chrome + non-sensitive columns only.
  */
 export async function generateEmployeeDirectoryPdf(input: {
   employees: HrEmployee[];
   userId: string;
   organisationName?: string | null;
+  workspaceSlug?: string | null;
   title?: string;
   filename?: string;
 }): Promise<AssistantStoredArtifact> {
+  const brand = await resolveAssistantPdfBrand(input.workspaceSlug);
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
   const dateLabel = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -101,33 +121,15 @@ export async function generateEmployeeDirectoryPdf(input: {
   const title = input.title?.trim() || "Employee Directory";
   const filename = input.filename?.trim() || "Employee Directory.pdf";
 
-  doc.setFillColor(14, 165, 233);
-  doc.roundedRect(40, 36, 28, 28, 6, 6, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("U3", 48, 54);
+  const contentY = drawAssistantPdfHeader(doc, brand, {
+    organisationName: input.organisationName,
+    title,
+    subtitle: dateLabel,
+    metaRight: `${input.employees.length} people`,
+  });
 
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(18);
-  doc.text("Unit311", 78, 48);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.text(input.organisationName?.trim() || "Central", 78, 62);
-
-  doc.setTextColor(15, 23, 42);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(title, 40, 100);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.text(dateLabel, 40, 116);
-  doc.text(`${input.employees.length} people`, pageWidth - 40, 116, { align: "right" });
-
-  drawTable(doc, toRows(input.employees), 132);
+  drawTable(doc, brand, toRows(input.employees), contentY);
+  drawAssistantPdfFooter(doc, brand, title);
 
   const arrayBuffer = doc.output("arraybuffer");
   const bytes = Buffer.from(arrayBuffer);
@@ -144,6 +146,7 @@ export async function generateEmployeeDirectoryPdf(input: {
     meta: {
       employeeCount: input.employees.length,
       generatedAt: new Date().toISOString(),
+      brand: brand.kind,
     },
   });
 }

@@ -10,6 +10,12 @@ import {
   type AssistantStoredArtifact,
 } from "@/lib/ai-operating-assistant/artifact-store";
 import {
+  drawAssistantPdfFooter,
+  drawAssistantPdfHeader,
+  resolveAssistantPdfBrand,
+  type AssistantPdfBrand,
+} from "@/lib/ai-operating-assistant/pdf-brand";
+import {
   reportDisplayMeta,
   type AssistantReportType,
 } from "@/lib/ai-operating-assistant/report-intent";
@@ -43,57 +49,44 @@ function money(value: number, currency = "USD") {
 
 function drawBrandedHeader(
   doc: jsPDF,
+  brand: AssistantPdfBrand,
   organisationName: string | null | undefined,
   title: string,
   subtitle: string,
-) {
-  const pageWidth = doc.internal.pageSize.getWidth();
-  doc.setFillColor(14, 165, 233);
-  doc.roundedRect(40, 36, 28, 28, 6, 6, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("U3", 48, 54);
-
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(18);
-  doc.text("Unit311", 78, 48);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.text(organisationName?.trim() || "Central", 78, 62);
-
-  doc.setTextColor(15, 23, 42);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(title, 40, 100);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(100, 116, 139);
-  doc.text(subtitle, 40, 116);
-  doc.text(
-    new Date().toLocaleDateString("en-GB", {
+): number {
+  return drawAssistantPdfHeader(doc, brand, {
+    organisationName,
+    title,
+    subtitle,
+    metaRight: new Date().toLocaleDateString("en-GB", {
       day: "numeric",
       month: "long",
       year: "numeric",
     }),
-    pageWidth - 40,
-    116,
-    { align: "right" },
-  );
+  });
 }
 
-function renderSections(doc: jsPDF, sections: ReportSection[]) {
+function renderSections(
+  doc: jsPDF,
+  brand: AssistantPdfBrand,
+  sections: ReportSection[],
+  startY: number,
+) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const left = 40;
   const usable = pageWidth - 80;
-  let y = 140;
+  let y = startY;
+  const { colors } = brand;
 
   const ensureSpace = (needed: number) => {
-    if (y + needed > pageHeight - 48) {
+    if (y + needed > pageHeight - 56) {
+      drawAssistantPdfFooter(doc, brand);
       doc.addPage();
+      if (brand.kind === "abhi") {
+        doc.setFillColor(...colors.page);
+        doc.rect(0, 0, pageWidth, pageHeight, "F");
+      }
       y = 48;
     }
   };
@@ -102,21 +95,21 @@ function renderSections(doc: jsPDF, sections: ReportSection[]) {
     ensureSpace(40);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
+    doc.setTextColor(...colors.navy);
     doc.text(section.heading, left, y);
     y += 16;
 
     for (const row of section.rows) {
       ensureSpace(28);
-      doc.setFillColor(248, 250, 252);
+      doc.setFillColor(...colors.soft);
       doc.rect(left, y - 12, usable, 22, "F");
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.setTextColor(51, 65, 85);
+      doc.setTextColor(...colors.muted);
       const labelLines = doc.splitTextToSize(row.label, usable * 0.62);
       doc.text(labelLines[0] ?? "", left + 8, y);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(...colors.text);
       doc.text(row.value, left + usable - 8, y, { align: "right" });
       y += 26;
     }
@@ -125,7 +118,7 @@ function renderSections(doc: jsPDF, sections: ReportSection[]) {
       ensureSpace(22);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.setTextColor(51, 65, 85);
+      doc.setTextColor(...colors.text);
       const lines = doc.splitTextToSize(`• ${bullet}`, usable - 8);
       doc.text(lines, left + 4, y);
       y += Math.max(18, lines.length * 12);
@@ -137,13 +130,8 @@ function renderSections(doc: jsPDF, sections: ReportSection[]) {
   ensureSpace(24);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(148, 163, 184);
-  doc.text(
-    "Figures sourced from live Unit311 workspace data. Empty sections mean no records — not estimates.",
-    left,
-    y,
-    { maxWidth: usable },
-  );
+  doc.setTextColor(...colors.muted);
+  doc.text(brand.footnoteSource, left, y, { maxWidth: usable });
 }
 
 function buildEngineeringSections(projects: InternalProject[]): ReportSection[] {
@@ -414,6 +402,7 @@ export async function generateTypedReportPdf(input: {
   reportType: Exclude<AssistantReportType, "financial" | "employee">;
   userId: string;
   organisationName?: string | null;
+  workspaceSlug?: string | null;
   title?: string;
   filename?: string;
   projects: InternalProject[];
@@ -421,6 +410,7 @@ export async function generateTypedReportPdf(input: {
   employees: HrEmployee[];
   overview?: FinancialOverviewSnapshot | null;
 }): Promise<AssistantStoredArtifact> {
+  const brand = await resolveAssistantPdfBrand(input.workspaceSlug);
   const meta = reportDisplayMeta(input.reportType);
   const title = input.title?.trim() || meta.title;
   const filename = input.filename?.trim() || meta.filename;
@@ -456,8 +446,15 @@ export async function generateTypedReportPdf(input: {
   }
 
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
-  drawBrandedHeader(doc, input.organisationName, title, subtitle);
-  renderSections(doc, sections);
+  const contentY = drawBrandedHeader(
+    doc,
+    brand,
+    input.organisationName,
+    title,
+    subtitle,
+  );
+  renderSections(doc, brand, sections, contentY);
+  drawAssistantPdfFooter(doc, brand, title);
 
   const arrayBuffer = doc.output("arraybuffer");
   const bytes = Buffer.from(arrayBuffer);
@@ -474,6 +471,7 @@ export async function generateTypedReportPdf(input: {
     meta: {
       reportType: input.reportType,
       generatedAt: new Date().toISOString(),
+      brand: brand.kind,
     },
   });
 }

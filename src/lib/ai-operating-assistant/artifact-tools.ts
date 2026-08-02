@@ -127,6 +127,7 @@ export async function generateEmployeeListPdf(
       employees,
       userId: ctx.business.user.id,
       organisationName: ctx.business.organisation.name,
+      workspaceSlug: ctx.business.workspace.slug,
       title: asString(args.title) || meta.title,
       filename: asString(args.filename) || meta.filename,
     });
@@ -174,6 +175,7 @@ export async function generateFinancialReportPdf(
       overview,
       userId: ctx.business.user.id,
       organisationName: ctx.business.organisation.name,
+      workspaceSlug: ctx.business.workspace.slug,
       periodKey,
       title:
         asString(args.title) ||
@@ -251,6 +253,7 @@ export async function generateScopedBusinessPdf(
       bundle,
       userId: ctx.business.user.id,
       organisationName: ctx.business.organisation.name,
+      workspaceSlug: ctx.business.workspace.slug,
       title: asString(args.title) || parsed?.title || "Custom Business Report",
       filename: asString(args.filename) || undefined,
       requestPreview: question.slice(0, 240) || undefined,
@@ -353,6 +356,7 @@ export async function generateReportPdf(
       reportType,
       userId: ctx.business.user.id,
       organisationName: ctx.business.organisation.name,
+      workspaceSlug: ctx.business.workspace.slug,
       title: asString(args.title) || meta.title,
       filename: asString(args.filename) || meta.filename,
       projects,
