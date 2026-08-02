@@ -32,6 +32,7 @@ import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
 import {
   ABHI_PORTALS_GATE_COOKIE,
+  applyAbhiPortalsGateCookie,
   clearAbhiPortalsGateCookie,
   clearPlatformSessionCookie,
 } from "@/lib/platform-session-cookie";
@@ -301,6 +302,8 @@ export async function middleware(request: NextRequest) {
         return bounce;
       }
       const response = NextResponse.next({ request: { headers } });
+      // Keep the gate alive for the open briefing tab (polls / soft navs).
+      applyAbhiPortalsGateCookie(response, request);
       for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
         response.headers.set(key, value);
       }
@@ -354,12 +357,20 @@ export async function middleware(request: NextRequest) {
       if (isCompanyPortalSlug(workspaceSlug)) {
         const response = NextResponse.next({ request: { headers } });
         // Real visits to portals login clear the one-time gate so /portals
-        // requires completing the form again. Prefetch must not do this — that
-        // was wiping an open admin editor mid-session.
+        // requires completing the form again. Skip prefetch AND any request
+        // that still originates from an open /portals tab (speculative loads
+        // often omit prefetch headers and were clearing the gate mid-edit).
         const nextParam = request.nextUrl.searchParams.get("next");
         const wantsPortals =
           nextParam === "/portals" || Boolean(nextParam?.startsWith("/portals"));
-        if (wantsPortals && !isNextPrefetchRequest(request)) {
+        const referer = request.headers.get("referer") ?? "";
+        let fromPortals = false;
+        try {
+          fromPortals = new URL(referer).pathname.startsWith("/portals");
+        } catch {
+          fromPortals = false;
+        }
+        if (wantsPortals && !isNextPrefetchRequest(request) && !fromPortals) {
           clearAbhiPortalsGateCookie(response, request);
         }
         for (const [key, value] of Object.entries(workspaceResponseHeaders)) {

@@ -33,6 +33,26 @@ const body = Manrope({
 });
 
 const UNIT311_LOGO = "/images/unit311central-login.webp";
+const PORTALS_ADMIN_LOCK_KEY = "abhi_portals_admin_lock";
+
+function readPortalsAdminLock(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(PORTALS_ADMIN_LOCK_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writePortalsAdminLock(locked: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    if (locked) window.sessionStorage.setItem(PORTALS_ADMIN_LOCK_KEY, "1");
+    else window.sessionStorage.removeItem(PORTALS_ADMIN_LOCK_KEY);
+  } catch {
+    // Ignore quota / private mode failures.
+  }
+}
 
 type CredentialBlock = {
   title: string;
@@ -453,8 +473,16 @@ export default function AbhiPortalsDemoPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const dirtyRef = useRef(false);
+  /** Once admin edit is granted in this tab, never demote until Sign out. */
+  const adminLockRef = useRef(false);
   const contentRef = useRef(content);
   contentRef.current = content;
+
+  useEffect(() => {
+    if (!readPortalsAdminLock()) return;
+    adminLockRef.current = true;
+    setCanEdit(true);
+  }, []);
 
   const applyContent = useCallback((next: AbhiPortalsEditableContent, markDirty: boolean) => {
     if (markDirty) dirtyRef.current = true;
@@ -474,9 +502,9 @@ export default function AbhiPortalsDemoPage() {
         headers: { Accept: "application/json" },
       });
       if (response.status === 401) {
-        // Initial auth failure → login. Silent polls must not bounce an active
-        // editor if a transient cookie glitch occurs; retry next interval.
-        if (!silent) {
+        // Initial auth failure → login. Silent polls / locked admin editors must
+        // not bounce mid-edit on a transient cookie glitch.
+        if (!silent && !adminLockRef.current) {
           window.location.assign("/login?next=%2Fportals");
         }
         return;
@@ -491,12 +519,13 @@ export default function AbhiPortalsDemoPage() {
       if (data.content && !dirtyRef.current) {
         setContent(data.content);
       }
-      const nextCanEdit = Boolean(data.canEdit);
-      const nextUsername = data.username ?? null;
-      // Never demote an active admin editor from a silent poll alone — cached or
-      // briefly-stale session reads were flipping the page to view-only demo mode.
-      setCanEdit((prev) => (silent && prev && !nextCanEdit ? prev : nextCanEdit));
-      setUsername((prev) => (silent && prev && !nextUsername ? prev : nextUsername));
+      const nextCanEdit = Boolean(data.canEdit) || adminLockRef.current;
+      if (nextCanEdit) {
+        adminLockRef.current = true;
+        writePortalsAdminLock(true);
+      }
+      setCanEdit(nextCanEdit);
+      if (data.username) setUsername(data.username);
     } catch (error) {
       if (!silent) {
         setLoadError(error instanceof Error ? error.message : "Failed to load");
@@ -511,18 +540,19 @@ export default function AbhiPortalsDemoPage() {
     void loadContent();
   }, [loadContent]);
 
-  // Viewers (and idle admin): refresh every few seconds so edits appear without a manual reload.
+  // View-only sessions refresh so admin edits appear. Admin editors do not poll —
+  // polls were racing autosave and flipping the UI back to the demo view.
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || canEdit || adminLockRef.current) return;
     const timer = window.setInterval(() => {
-      if (dirtyRef.current || saving) return;
+      if (dirtyRef.current || saving || adminLockRef.current) return;
       void loadContent({ silent: true });
     }, 4000);
     return () => window.clearInterval(timer);
-  }, [ready, saving, loadContent]);
+  }, [ready, canEdit, saving, loadContent]);
 
   const saveContent = useCallback(async (payload?: AbhiPortalsEditableContent) => {
-    if (!canEdit) return;
+    if (!canEdit && !adminLockRef.current) return;
     const body = payload ?? contentRef.current;
     setSaving(true);
     setSaveMessage("Saving…");
@@ -537,11 +567,8 @@ export default function AbhiPortalsDemoPage() {
         content?: AbhiPortalsEditableContent;
         error?: string;
       };
-      if (response.status === 403) {
-        // Confirmed loss of admin rights — drop to view-only.
-        setCanEdit(false);
-        throw new Error(data.error ?? "Admin access required.");
-      }
+      // Keep edit mode on save failures — demoting on 401/403 was the "flick to
+      // demo view" bug when a transient session read raced autosave.
       if (!response.ok) throw new Error(data.error ?? "Save failed");
       dirtyRef.current = false;
       if (data.content) setContent(data.content);
@@ -564,6 +591,8 @@ export default function AbhiPortalsDemoPage() {
   }, [content, canEdit, ready, saveContent]);
 
   async function handleLogout() {
+    adminLockRef.current = false;
+    writePortalsAdminLock(false);
     try {
       await fetch("/api/auth/logout", {
         method: "POST",

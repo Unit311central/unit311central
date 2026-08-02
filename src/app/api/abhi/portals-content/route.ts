@@ -39,7 +39,10 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   const session = await getPlatformSession();
-  if (!session || !isAbhiPortalsAdminUsername(session.username)) {
+  if (!session) {
+    return portalsJson({ error: "Authentication required." }, 401);
+  }
+  if (!isAbhiPortalsAdminUsername(session.username)) {
     return portalsJson({ error: "Admin access required." }, 403);
   }
 
