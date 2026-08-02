@@ -11,6 +11,10 @@ import {
   type InfoEmailThreadStatus,
 } from "@/lib/info-email-data";
 import type { EmailAccount, EmailAccountId, EmailMailboxFolder, EmailMessage } from "@/lib/email/types";
+import {
+  filterRemovedMailboxes,
+  REMOVED_MAILBOXES_CHANGED_EVENT,
+} from "@/lib/email/removed-mailboxes";
 import { groupMessagesIntoThreads, type EmailThread } from "@/lib/email/threading";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
@@ -248,22 +252,34 @@ export default function InfoEmailWorkspace() {
         ? await readApiJson<Partial<Record<EmailAccountId, boolean>>>(statusResponse)
         : null;
 
-      const merged = data.map((account) => ({
-        ...account,
-        configured: account.configured || Boolean(status?.[account.id]),
-      }));
+      const merged = filterRemovedMailboxes(
+        data.map((account) => ({
+          ...account,
+          configured: account.configured || Boolean(status?.[account.id]),
+        })),
+      );
 
       setAccounts(merged);
       if (merged.length > 0 && !merged.some((account) => account.id === selectedAccountId)) {
         setSelectedAccountId(merged[0].id);
       }
     } catch (loadError) {
-      setAccounts(defaultMailboxesForHost());
+      setAccounts(filterRemovedMailboxes(defaultMailboxesForHost()));
       setError(loadError instanceof Error ? loadError.message : "Failed to load mailboxes");
     } finally {
       setAccountsLoading(false);
     }
   }, [selectedAccountId]);
+
+  useEffect(() => {
+    function onRemovedChanged() {
+      startTransition(() => {
+        void loadAccounts();
+      });
+    }
+    window.addEventListener(REMOVED_MAILBOXES_CHANGED_EVENT, onRemovedChanged);
+    return () => window.removeEventListener(REMOVED_MAILBOXES_CHANGED_EVENT, onRemovedChanged);
+  }, [loadAccounts]);
 
   const loadMailbox = useCallback(
     async (options?: { background?: boolean }) => {

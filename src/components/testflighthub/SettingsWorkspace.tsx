@@ -22,15 +22,23 @@ import {
   EyeOff,
   Globe,
   Link2,
+  Loader2,
   Mail,
   Menu,
   Plus,
   Share2,
+  Trash2,
   Truck,
   Wallet,
 } from "lucide-react";
 
 import type { IntegrationConnectionPublic } from "@/lib/integration-framework-data";
+import type { EmailAccount } from "@/lib/email/types";
+import {
+  loadRemovedMailboxIds,
+  removeMailboxFromWorkspace,
+  restoreMailboxToWorkspace,
+} from "@/lib/email/removed-mailboxes";
 import { useWebsiteMockStore } from "./useWebsiteMockStore";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { ABHI_LINKEDIN_URL, ABHI_X_URL, isBrowserAbhiSurface } from "@/lib/abhi-surface";
@@ -55,12 +63,13 @@ type IntegrationCredentials = {
 
 type FinanceProvider = "xero" | "sage" | "oracle" | "sage-payroll" | "zoho-payroll";
 type LogisticsProvider = "fedex" | "ups" | "dhl";
-type EmailProvider = "office365" | "google-suite";
 
 type ProviderOption<T extends string> = {
   id: T;
   name: string;
 };
+
+type EmailMailboxRow = EmailAccount & { configured?: boolean };
 
 const FINANCE_PROVIDERS: ProviderOption<FinanceProvider>[] = [
   { id: "xero", name: "Xero" },
@@ -74,11 +83,6 @@ const LOGISTICS_PROVIDERS: ProviderOption<LogisticsProvider>[] = [
   { id: "fedex", name: "FedEx" },
   { id: "ups", name: "UPS" },
   { id: "dhl", name: "DHL" },
-];
-
-const EMAIL_PROVIDERS: ProviderOption<EmailProvider>[] = [
-  { id: "office365", name: "Office 365" },
-  { id: "google-suite", name: "Google Suite" },
 ];
 
 function createEmptyIntegrationCredentials(): IntegrationCredentials {
@@ -489,7 +493,6 @@ export default function SettingsWorkspace() {
 
   const [financeProvider, setFinanceProvider] = useState<FinanceProvider | "">("");
   const [logisticsProvider, setLogisticsProvider] = useState<LogisticsProvider | "">("");
-  const [emailProvider, setEmailProvider] = useState<EmailProvider | "">("");
 
   const [financeCredentials, setFinanceCredentials] = useState<
     Record<FinanceProvider, IntegrationCredentials>
@@ -497,9 +500,11 @@ export default function SettingsWorkspace() {
   const [logisticsCredentials, setLogisticsCredentials] = useState<
     Record<LogisticsProvider, IntegrationCredentials>
   >(() => createIntegrationCredentialsMap(LOGISTICS_PROVIDERS));
-  const [emailCredentials, setEmailCredentials] = useState<
-    Record<EmailProvider, IntegrationCredentials>
-  >(() => createIntegrationCredentialsMap(EMAIL_PROVIDERS));
+
+  const [mailboxes, setMailboxes] = useState<EmailMailboxRow[]>([]);
+  const [removedMailboxIds, setRemovedMailboxIds] = useState<string[]>([]);
+  const [mailboxesLoading, setMailboxesLoading] = useState(true);
+  const [mailboxActionError, setMailboxActionError] = useState<string | null>(null);
 
   const [phoneNotifications, setPhoneNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -569,6 +574,60 @@ export default function SettingsWorkspace() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMailboxesLoading(true);
+    setRemovedMailboxIds(loadRemovedMailboxIds());
+    void fetch("/api/email/accounts", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = (await response.json()) as EmailMailboxRow[] | { error?: string };
+        if (cancelled) return;
+        if (!response.ok || !Array.isArray(payload)) {
+          throw new Error(
+            !Array.isArray(payload) && payload.error
+              ? payload.error
+              : "Failed to load mailboxes",
+          );
+        }
+        setMailboxes(payload);
+        setMailboxActionError(null);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setMailboxes([]);
+        setMailboxActionError(
+          error instanceof Error ? error.message : "Failed to load mailboxes",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setMailboxesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activeMailboxes = useMemo(
+    () => mailboxes.filter((mailbox) => !removedMailboxIds.includes(mailbox.id)),
+    [mailboxes, removedMailboxIds],
+  );
+  const removedMailboxes = useMemo(
+    () => mailboxes.filter((mailbox) => removedMailboxIds.includes(mailbox.id)),
+    [mailboxes, removedMailboxIds],
+  );
+
+  function handleRemoveMailbox(accountId: string) {
+    removeMailboxFromWorkspace(accountId);
+    setRemovedMailboxIds(loadRemovedMailboxIds());
+    setMailboxActionError(null);
+  }
+
+  function handleRestoreMailbox(accountId: string) {
+    restoreMailboxToWorkspace(accountId);
+    setRemovedMailboxIds(loadRemovedMailboxIds());
+    setMailboxActionError(null);
+  }
 
   const websiteConnections = useMemo(
     () => frameworkConnections.filter((row) => row.category === "website"),
@@ -793,29 +852,99 @@ export default function SettingsWorkspace() {
               tenantPlaceholder="Shipper or account number"
             />
 
-            <ProviderIntegrationSection
-              title="Email"
-              description="Mailbox and calendar providers."
-              icon={<Mail className="h-4 w-4" />}
-              providers={EMAIL_PROVIDERS}
-              selectedProvider={emailProvider}
-              onSelectProvider={setEmailProvider}
-              credentials={
-                emailProvider
-                  ? emailCredentials[emailProvider]
-                  : createEmptyIntegrationCredentials()
-              }
-              onChangeCredentials={(next) => {
-                if (!emailProvider) return;
-                setEmailCredentials((current) => ({
-                  ...current,
-                  [emailProvider]: next,
-                }));
-              }}
-            />
+            <article className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/40">
+              <div className="border-b border-white/10 bg-white/[0.03] px-3 py-3">
+                <div className="flex items-start gap-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/30 text-sky-300">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-white">Email</h3>
+                    <p className="text-[10px] text-white/45">
+                      Remove mailboxes from the Email workspace list.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 p-3">
+                {mailboxesLoading ? (
+                  <p className="inline-flex items-center gap-2 text-xs text-white/50">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Loading mailboxes…
+                  </p>
+                ) : null}
+
+                {mailboxActionError ? (
+                  <p className="rounded-lg border border-rose-400/25 bg-rose-500/10 px-2.5 py-2 text-[11px] text-rose-100">
+                    {mailboxActionError}
+                  </p>
+                ) : null}
+
+                {!mailboxesLoading && activeMailboxes.length === 0 ? (
+                  <p className="text-[11px] text-white/45">No active mailboxes.</p>
+                ) : null}
+
+                <ul className="space-y-1.5">
+                  {activeMailboxes.map((mailbox) => (
+                    <li
+                      key={mailbox.id}
+                      className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#0b1524]/60 px-2.5 py-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-medium text-white/90">
+                          {mailbox.email}
+                        </p>
+                        <p className="truncate text-[10px] text-white/40">
+                          {mailbox.name}
+                          {mailbox.configured ? " · Connected" : " · Not connected"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMailbox(mailbox.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-rose-400/25 bg-rose-500/10 px-2 py-1 text-[10px] font-medium text-rose-100 hover:bg-rose-500/15"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                {removedMailboxes.length > 0 ? (
+                  <div className="space-y-1.5 border-t border-white/10 pt-3">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+                      Removed
+                    </p>
+                    <ul className="space-y-1.5">
+                      {removedMailboxes.map((mailbox) => (
+                        <li
+                          key={mailbox.id}
+                          className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2 opacity-80"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs text-white/70">{mailbox.email}</p>
+                            <p className="truncate text-[10px] text-white/35">{mailbox.name}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreMailbox(mailbox.id)}
+                            className="rounded-lg border border-white/10 px-2 py-1 text-[10px] font-medium text-white/70 hover:bg-white/[0.04] hover:text-white"
+                          >
+                            Restore
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            </article>
 
             <p className="text-[10px] leading-relaxed text-white/35">
-              Finance, logistics, and email credentials remain local until those connectors ship.
+              Finance and logistics credentials remain local until those connectors ship.
+              Removed mailboxes are hidden from the Email workspace on this browser.
               {hideWebsiteCms
                 ? ""
                 : " Website CMS connections use the Integration Framework."}
