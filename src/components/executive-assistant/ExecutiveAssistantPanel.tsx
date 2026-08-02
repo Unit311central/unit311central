@@ -1318,7 +1318,9 @@ export default function ExecutiveAssistantPanel({
                   />
                 </div>
               ) : null}
-              {entry.role === "assistant" ? renderArtifacts(entry.artifacts) : null}
+              {entry.role === "assistant" && !entry.executionCards?.length
+                ? renderArtifacts(entry.artifacts)
+                : null}
               {entry.role === "assistant" &&
               entry.followUpActions &&
               entry.followUpActions.length > 0 &&
