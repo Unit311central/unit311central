@@ -58,6 +58,7 @@ export type PortfolioRecommendedAction = {
   rationale: string;
   owner: string;
   urgency: "Today" | "This week" | "This month";
+  companyId: string | null;
   companyName: string | null;
 };
 
@@ -352,6 +353,7 @@ function buildRecommendedActions(
       : row.priority === "High"
         ? "This week"
         : "This month") as PortfolioRecommendedAction["urgency"],
+    companyId: row.companyId,
     companyName: row.companyName,
   }));
 
@@ -362,6 +364,7 @@ function buildRecommendedActions(
       rationale: "Reporting cadence slip risks incomplete IC visibility for mobility holdings.",
       owner: "Harry Turner",
       urgency: "This week",
+      companyId: "ti-co-arc-ride",
       companyName: "ARC Ride",
     },
     {
@@ -370,6 +373,7 @@ function buildRecommendedActions(
       rationale: "Health & safety reporting lag and operational risk require a focused performance review.",
       owner: "Portfolio Ops",
       urgency: "This week",
+      companyId: "ti-co-burn-manufacturing",
       companyName: "Burn Manufacturing",
     },
     {
@@ -378,6 +382,7 @@ function buildRecommendedActions(
       rationale: "AML refresher coverage remains incomplete; close before the next board materials cycle.",
       owner: "Head of Compliance",
       urgency: "This week",
+      companyId: "ti-co-pezesha",
       companyName: "Pezesha",
     },
   ];
