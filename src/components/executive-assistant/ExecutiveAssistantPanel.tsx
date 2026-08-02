@@ -934,11 +934,7 @@ export default function ExecutiveAssistantPanel({
             console.error(`- correlationId: ${correlationId}`);
             console.error(`- error: ${event.error}`);
             console.error(`- stack: ${"stack" in event ? event.stack : "(none)"}`);
-            throw new Error(
-              "stack" in event && event.stack
-                ? `${event.error}\n${event.stack}`
-                : event.error,
-            );
+            throw new Error(event.error);
           }
         });
       } else {
@@ -951,7 +947,8 @@ export default function ExecutiveAssistantPanel({
         };
         if (data.correlationId) setEaCorrelationId(data.correlationId);
         if (data.error) {
-          throw new Error(data.stack ? `${data.error}\n${data.stack}` : data.error);
+          if (data.stack) console.error(`[EA] Chat error stack\n${data.stack}`);
+          throw new Error(data.error);
         }
         if (data.conversationId) setActiveConversationId(data.conversationId);
         finalReply = data.reply?.trim() || "I could not complete that just now.";
@@ -975,17 +972,17 @@ export default function ExecutiveAssistantPanel({
     } catch (error) {
       if ((error as Error).name === "AbortError") return null;
       const detail = error instanceof Error ? error.message : "Assistant unavailable";
+      console.error("[EA] Chat request failed:", detail);
       setMessages((current) =>
         current.map((entry) =>
           entry.id === assistantId
             ? {
                 ...entry,
-                content: `I could not complete that request. ${detail}`,
+                content: "I could not complete that request. Please try again.",
               }
             : entry,
         ),
       );
-      showNotice(detail);
       return null;
     } finally {
       setSending(false);
@@ -1444,9 +1441,8 @@ export default function ExecutiveAssistantPanel({
                     } | null;
                     if (data?.correlationId) setEaCorrelationId(data.correlationId);
                     if (!response.ok) {
-                      const detail = data?.stack
-                        ? `${data.error ?? `Execute failed (${response.status})`}\n${data.stack}`
-                        : data?.error ?? `Execute failed (${response.status})`;
+                      const detail =
+                        data?.error ?? `Execute failed (${response.status})`;
                       console.error("[EA] Browser Approve failed");
                       console.error(`- correlationId: ${correlationId}`);
                       console.error(`- status: ${response.status}`);
@@ -1513,7 +1509,15 @@ export default function ExecutiveAssistantPanel({
                       `- stack: ${error instanceof Error ? error.stack ?? "(no stack)" : "(no stack)"}`,
                     );
                     if (error instanceof Error && error.stack) console.error(error.stack);
-                    showNotice(error instanceof Error ? error.message : String(error));
+                    setMessages((current) => [
+                      ...current,
+                      {
+                        id: `action_error_${Date.now()}`,
+                        role: "assistant",
+                        content: "I could not complete that action. Please try again.",
+                        createdAt: new Date().toISOString(),
+                      },
+                    ]);
                   } finally {
                     setActionConfirmBusy(false);
                   }

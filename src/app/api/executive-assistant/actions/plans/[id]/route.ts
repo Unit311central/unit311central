@@ -121,7 +121,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     } catch (thrown) {
       const err = thrown instanceof Error ? thrown : new Error(String(thrown));
       return NextResponse.json(
-        { error: err.message, stack: err.stack ?? null },
+        { error: err.message },
         { status: 500 },
       );
     }
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("[EA] EXCEPTION — Browser Approve received (JSON parse)");
     console.error(err.stack ?? err.message);
-    return NextResponse.json({ error: err.message, stack: err.stack ?? null }, { status: 400 });
+    return NextResponse.json({ error: err.message }, { status: 400 });
   }
 
   const correlationId = resolveIncomingCorrelationId({
@@ -355,7 +355,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json(
         {
           error: err.message,
-          stack: err.stack ?? null,
           correlationId: getEaCorrelationId(),
         },
         { status: 500 },

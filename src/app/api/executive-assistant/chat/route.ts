@@ -196,7 +196,7 @@ async function handleOperatingAssistantChat(
         if (error) {
           eaStop("Chat request received", error, { stack: errorStack });
           return NextResponse.json(
-            { error, stack: errorStack, correlationId: getEaCorrelationId() },
+            { error, correlationId: getEaCorrelationId() },
             { status: 502 },
           );
         }
@@ -278,7 +278,7 @@ export async function POST(request: NextRequest) {
         ? 503
         : 500;
     return NextResponse.json(
-      { error: err.message, stack: err.stack ?? null, correlationId },
+      { error: err.message, correlationId },
       { status },
     );
   }

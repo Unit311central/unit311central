@@ -1559,7 +1559,6 @@ export function createAssistantSseResponse(
             encodeSse({
               type: "error",
               error: err.message,
-              stack: err.stack ?? null,
               retryable: isRetryableOpenAIError(error),
             }),
           ),
