@@ -1,5 +1,6 @@
 /**
- * ABHI compliance training catalog — same programme as Talanton Assigned Courses.
+ * ABHI compliance training catalogue metadata (mandatory flags / fallback titles).
+ * Live LMS catalog, progress and certificates come from /api/lms/*.
  */
 
 export type AbhiComplianceCourse = {
@@ -9,7 +10,6 @@ export type AbhiComplianceCourse = {
   category: string;
   durationMinutes: number;
   mandatory: boolean;
-  /** Demo progress for Assigned view until LMS enrolments exist. */
   progressPct: number;
   status: "assigned" | "in_progress" | "completed";
 };

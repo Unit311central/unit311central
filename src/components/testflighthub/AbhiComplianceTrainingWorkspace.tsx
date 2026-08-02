@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 import { Loader2, Plus, UserPlus, Users, X } from "lucide-react";
 
+import CoursePlayer from "@/components/lms/CoursePlayer";
 import {
   ABHI_COMPLIANCE_COURSES,
   type AbhiComplianceCourse,
 } from "@/lib/abhi-training-courses";
+import type { LmsCertificate, LmsCourse, LmsEnrolment } from "@/lib/lms/types";
 import { cn } from "@/lib/utils";
 import CreateCourseWizard from "./CreateCourseWizard";
 import {
@@ -31,6 +33,10 @@ type AssignableStaff = {
   alreadyAssigned: boolean;
 };
 
+type CatalogRow = AbhiComplianceCourse & {
+  enrolmentStatus?: LmsEnrolment["status"] | null;
+};
+
 const TABS: { id: TabId; label: string }[] = [
   { id: "assigned", label: "Assigned" },
   { id: "in_progress", label: "In Progress" },
@@ -38,12 +44,42 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "certificates", label: "Certificates" },
 ];
 
-function statusLabel(course: AbhiComplianceCourse) {
+const MANDATORY_BY_SLUG = new Map(
+  ABHI_COMPLIANCE_COURSES.map((course) => [course.slug, course.mandatory] as const),
+);
+
+function toCatalogRow(
+  course: Pick<LmsCourse, "id" | "slug" | "title" | "category" | "durationMinutes">,
+  enrolment?: LmsEnrolment | null,
+): CatalogRow {
+  const status: CatalogRow["status"] =
+    enrolment?.status === "completed"
+      ? "completed"
+      : enrolment?.status === "in_progress"
+        ? "in_progress"
+        : "assigned";
+  return {
+    id: course.id,
+    slug: course.slug,
+    title: course.title.replace(/\s+for ABHI$/i, ""),
+    category: course.category || "Compliance",
+    durationMinutes: course.durationMinutes || 30,
+    mandatory: MANDATORY_BY_SLUG.get(course.slug) ?? true,
+    progressPct: enrolment?.progressPct ?? 0,
+    status,
+    enrolmentStatus: enrolment?.status ?? null,
+  };
+}
+
+function statusLabel(course: CatalogRow) {
+  if (course.enrolmentStatus === "completed") return "Completed";
+  if (course.enrolmentStatus === "in_progress") return "In progress";
+  if (course.enrolmentStatus === "assigned") return "Assigned";
   if (course.mandatory) return "Mandatory";
   return "Optional";
 }
 
-function statusPillClass(course: AbhiComplianceCourse) {
+function statusPillClass(course: CatalogRow) {
   if (course.status === "completed") {
     return "border-emerald-400/30 bg-emerald-500/10 text-emerald-200";
   }
@@ -58,7 +94,7 @@ function AssignCourseModal({
   onClose,
   onAssigned,
 }: {
-  course: AbhiComplianceCourse;
+  course: CatalogRow;
   onClose: () => void;
   onAssigned: (message: string) => void;
 }) {
@@ -327,11 +363,13 @@ function CourseTable({
   rows,
   actionLabel = "Launch",
   onAssign,
+  onLaunch,
   showAssign = false,
 }: {
-  rows: AbhiComplianceCourse[];
+  rows: CatalogRow[];
   actionLabel?: string;
-  onAssign?: (course: AbhiComplianceCourse) => void;
+  onAssign?: (course: CatalogRow) => void;
+  onLaunch?: (course: CatalogRow) => void;
   showAssign?: boolean;
 }) {
   return (
@@ -374,11 +412,7 @@ function CourseTable({
                   <button
                     type="button"
                     className="inline-flex rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400"
-                    onClick={() => {
-                      window.alert(
-                        `${course.title} will open in the ABHI LMS player. Slug: ${course.slug}`,
-                      );
-                    }}
+                    onClick={() => onLaunch?.(course)}
                   >
                     {actionLabel}
                   </button>
@@ -392,20 +426,72 @@ function CourseTable({
   );
 }
 
+function PlayerOverlay({
+  slug,
+  onClose,
+}: {
+  slug: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[90] bg-[#070d18]">
+      <CoursePlayer courseSlug={slug} onClose={onClose} />
+    </div>
+  );
+}
+
 function DashboardAssignedView() {
   const [tab, setTab] = useState<TabId>("assigned");
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<CatalogRow[]>([]);
+  const [certificates, setCertificates] = useState<LmsCertificate[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [launchSlug, setLaunchSlug] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [catalogRes, certRes] = await Promise.all([
+        fetch("/api/lms/catalog", { cache: "no-store", credentials: "include" }),
+        fetch("/api/lms/certificates", { cache: "no-store", credentials: "include" }),
+      ]);
+      const catalogData = await catalogRes.json();
+      const certData = await certRes.json();
+      if (!catalogRes.ok) throw new Error(catalogData.error ?? "Failed to load catalog");
+
+      const items = (catalogData.courses ?? []) as Array<LmsCourse & { enrolment?: LmsEnrolment | null }>;
+      setRows(
+        items.map((item) =>
+          toCatalogRow(item, item.enrolment ?? null),
+        ),
+      );
+      setCertificates(
+        certRes.ok && Array.isArray(certData.certificates)
+          ? (certData.certificates as LmsCertificate[])
+          : [],
+      );
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Failed to load training");
+      setRows(ABHI_COMPLIANCE_COURSES.map((c) => ({ ...c, enrolmentStatus: null })));
+      setCertificates([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    startTransition(() => {
+      void reload();
+    });
+  }, [reload]);
 
   const filtered = useMemo(() => {
-    if (tab === "assigned") return ABHI_COMPLIANCE_COURSES;
-    if (tab === "in_progress") {
-      return ABHI_COMPLIANCE_COURSES.filter((c) => c.status === "in_progress");
-    }
-    if (tab === "completed") {
-      return ABHI_COMPLIANCE_COURSES.filter((c) => c.status === "completed");
-    }
+    if (tab === "assigned") return rows;
+    if (tab === "in_progress") return rows.filter((c) => c.status === "in_progress");
+    if (tab === "completed") return rows.filter((c) => c.status === "completed");
     return [];
-  }, [tab]);
+  }, [tab, rows]);
 
   const title =
     tab === "assigned"
@@ -438,11 +524,16 @@ function DashboardAssignedView() {
 
       <TqmsSection
         title={title}
-        subtitle="Compliance programme for ABHI staff — same course set as the Talanton Assigned catalogue."
+        subtitle="Your ABHI compliance programme — launch courses in the live LMS player."
       >
         {loading ? (
           <p className="mb-3 flex items-center gap-2 text-sm text-white/50">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading catalog…
+          </p>
+        ) : null}
+        {error ? (
+          <p className="mb-3 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+            {error}
           </p>
         ) : null}
 
@@ -458,33 +549,90 @@ function DashboardAssignedView() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-t border-white/8 text-white/55">
-                  <td className="px-3 py-6" colSpan={4}>
-                    Certificates appear here after staff complete LMS assessments.
-                  </td>
-                </tr>
+                {certificates.length === 0 ? (
+                  <tr className="border-t border-white/8 text-white/55">
+                    <td className="px-3 py-6" colSpan={4}>
+                      Certificates appear here after you complete LMS assessments.
+                    </td>
+                  </tr>
+                ) : (
+                  certificates.map((cert) => (
+                    <tr key={cert.id} className="border-t border-white/8 text-white/80">
+                      <td className="px-3 py-2.5 font-medium text-white">{cert.courseTitle}</td>
+                      <td className="px-3 py-2.5 font-mono text-xs text-sky-200/90">
+                        {cert.certificateNumber}
+                      </td>
+                      <td className="px-3 py-2.5 tabular-nums">{cert.score}%</td>
+                      <td className="px-3 py-2.5 tabular-nums text-white/60">
+                        {cert.issuedAt ? new Date(cert.issuedAt).toLocaleDateString("en-GB") : "—"}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         ) : filtered.length === 0 ? (
           <p className="rounded-xl border border-dashed border-white/15 px-4 py-8 text-center text-sm text-white/45">
-            No courses in this view yet.
+            No courses in this view yet. Ask an administrator to assign training from Courses.
           </p>
         ) : (
           <CourseTable
             rows={filtered}
             actionLabel={tab === "in_progress" ? "Resume" : "Launch"}
+            onLaunch={(course) => setLaunchSlug(course.slug)}
           />
         )}
       </TqmsSection>
+
+      {launchSlug ? (
+        <PlayerOverlay
+          slug={launchSlug}
+          onClose={() => {
+            setLaunchSlug(null);
+            void reload();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 
 function CoursesCatalogView() {
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [assignCourse, setAssignCourse] = useState<AbhiComplianceCourse | null>(null);
+  const [assignCourse, setAssignCourse] = useState<CatalogRow | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<CatalogRow[]>(ABHI_COMPLIANCE_COURSES);
+  const [launchSlug, setLaunchSlug] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/lms/courses", {
+        cache: "no-store",
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Failed to load courses");
+      const courses = (data.courses ?? []) as LmsCourse[];
+      setRows(
+        courses.length > 0
+          ? courses.map((course) => toCatalogRow(course, null))
+          : ABHI_COMPLIANCE_COURSES,
+      );
+    } catch {
+      setRows(ABHI_COMPLIANCE_COURSES);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    startTransition(() => {
+      void reload();
+    });
+  }, [reload]);
 
   return (
     <div className="space-y-4">
@@ -495,13 +643,14 @@ function CoursesCatalogView() {
       ) : null}
       <TqmsSection
         title="Courses"
-        subtitle="ABHI compliance courses (Anti-Bribery through Modern Slavery). Assign any course to internal staff."
+        subtitle="ABHI HealthTech compliance catalogue. Assign to staff or launch the LMS player."
         actions={
           <>
             <button
               type="button"
-              onClick={() => setAssignCourse(ABHI_COMPLIANCE_COURSES[0] ?? null)}
+              onClick={() => setAssignCourse(rows[0] ?? null)}
               className={tqmsSecondaryButtonClass()}
+              disabled={rows.length === 0}
             >
               <UserPlus className="h-3.5 w-3.5" />
               Assign to staff
@@ -513,16 +662,22 @@ function CoursesCatalogView() {
           </>
         }
       >
+        {loading ? (
+          <p className="mb-3 flex items-center gap-2 text-sm text-white/50">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading LMS catalogue…
+          </p>
+        ) : null}
         <CourseTable
-          rows={ABHI_COMPLIANCE_COURSES}
+          rows={rows}
           showAssign
           onAssign={setAssignCourse}
+          onLaunch={(course) => setLaunchSlug(course.slug)}
         />
       </TqmsSection>
 
       {wizardOpen ? (
         <CreateCourseWizard
-          suggestedCode={`ABHI-${String(ABHI_COMPLIANCE_COURSES.length + 1).padStart(3, "0")}`}
+          suggestedCode={`ABHI-${String(rows.length + 1).padStart(3, "0")}`}
           onClose={() => setWizardOpen(false)}
           onSubmit={(course) => {
             setWizardOpen(false);
@@ -540,6 +695,16 @@ function CoursesCatalogView() {
           course={assignCourse}
           onClose={() => setAssignCourse(null)}
           onAssigned={setNotice}
+        />
+      ) : null}
+
+      {launchSlug ? (
+        <PlayerOverlay
+          slug={launchSlug}
+          onClose={() => {
+            setLaunchSlug(null);
+            void reload();
+          }}
         />
       ) : null}
     </div>
