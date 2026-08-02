@@ -42,6 +42,7 @@ import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
 import WorkspacePane from "./WorkspacePane";
 import WorkspaceErrorBoundary from "./WorkspaceErrorBoundary";
 import AdminPerformanceMode from "./AdminPerformanceMode";
+import PlatformAnalyticsBeacon from "@/components/analytics/PlatformAnalyticsBeacon";
 import InventoryManagementWorkspace from "./InventoryManagementWorkspace";
 import {
   prefetchNeighborsForView,
@@ -147,6 +148,8 @@ import {
   WebODMWorkspace,
   WebsiteManagementWorkspace,
   IntegrationsWorkspace,
+  PlatformAnalyticsWorkspace,
+  WebsiteAnalyticsWorkspace,
   WhiteboardWorkspace,
   WiseWorkspace,
 } from "./lazy-workspaces";
@@ -582,7 +585,12 @@ export default function InternalOperationsDashboard({
   return (
     <OperatorEntitlementsProvider>
       <InternalOperationsBasePathProvider basePath={basePath}>
-        <AccessViewGuard activeView={activeView} onRedirect={handleViewChange} />
+        <AccessViewGuard
+          activeView={activeView}
+          onRedirect={handleViewChange}
+          isInternalHost={isInternalHost}
+        />
+        <PlatformAnalyticsBeacon pageKey={activeView} />
         <SurveyOperationsShell
           mode="internal"
           activeView={activeView}
@@ -940,6 +948,18 @@ export default function InternalOperationsDashboard({
             </WorkspaceErrorBoundary>
           )}
 
+          {activeView === "platform-analytics" && isInternalHost && (
+            <WorkspaceErrorBoundary title="Platform Analytics">
+              <PlatformAnalyticsWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "website-analytics" && isInternalHost && (
+            <WorkspaceErrorBoundary title="Website Analytics">
+              <WebsiteAnalyticsWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
           {(activeView === "engineering" || activeView === "engineering-dashboard") && (
             <EngineeringDashboardWorkspace />
           )}
@@ -1011,18 +1031,27 @@ export default function InternalOperationsDashboard({
 function AccessViewGuard({
   activeView,
   onRedirect,
+  isInternalHost,
 }: {
   activeView: InternalOperationsView;
   onRedirect: (view: InternalOperationsView) => void;
+  isInternalHost: boolean;
 }) {
   const { allowedViews, ready } = useOperatorEntitlements();
 
   useEffect(() => {
     if (!ready) return;
+    if (
+      (activeView === "platform-analytics" || activeView === "website-analytics") &&
+      !isInternalHost
+    ) {
+      onRedirect("home");
+      return;
+    }
     if (!isViewAllowedForGrants(activeView, allowedViews)) {
       onRedirect("home");
     }
-  }, [activeView, allowedViews, onRedirect, ready]);
+  }, [activeView, allowedViews, isInternalHost, onRedirect, ready]);
 
   return null;
 }

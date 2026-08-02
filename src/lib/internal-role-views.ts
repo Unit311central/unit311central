@@ -1,5 +1,4 @@
 import { isInternalDomainHost } from "@/lib/app-domains";
-import { getClarityDashboardUrl } from "@/lib/clarity";
 import { normalizePlatformUsername } from "@/lib/platform-auth";
 
 import type { InternalNavSection, InternalOperationsView } from "./internal-operations-data";
@@ -152,10 +151,17 @@ export function filterInternalNavSectionsByGrants(
   );
 }
 
-const DEMO_HIDDEN_VIEWS = new Set<InternalOperationsView>(["testing", "telemetry"]);
+const DEMO_HIDDEN_VIEWS = new Set<InternalOperationsView>([
+  "testing",
+  "telemetry",
+  "platform-analytics",
+  "website-analytics",
+]);
 export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "testing",
   "telemetry",
+  "platform-analytics",
+  "website-analytics",
   "unit311-details",
   "module-go-live",
   "quality-management",
@@ -181,6 +187,8 @@ export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
 export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "testing",
   "telemetry",
+  "platform-analytics",
+  "website-analytics",
   "unit311-details",
   "module-go-live",
   "quality-management",
@@ -405,6 +413,8 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "module-go-live",
   "testing",
   "telemetry",
+  "platform-analytics",
+  "website-analytics",
   "potential-clients",
   "qms-training",
   "marketing-training",
@@ -559,31 +569,83 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
   }
 }
 
-/** Platform Analytics → Clarity dashboard. Internal host only; never in shared nav catalogue. */
+/**
+ * Analytics — Internal host only.
+ * Top-level section (after Executive Assistant) with Platform + Website Analytics.
+ * Never in shared tenant catalogues. Replaces legacy Tools → Clarity link and PA pin.
+ */
 function injectInternalPlatformAnalytics(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
   if (typeof window === "undefined") return [...sections];
   if (!isInternalDomainHost(window.location.hostname)) return [...sections];
 
-  const dashboardUrl = getClarityDashboardUrl();
-  if (!dashboardUrl) return [...sections];
+  // Strip legacy Tools → Platform Analytics Clarity href and old PA pin.
+  const cleaned = sections
+    .map((section) => {
+      if (section.label === "Tools") {
+        return {
+          ...section,
+          items: section.items.filter((item) => item.label !== "Platform Analytics"),
+        };
+      }
+      if (
+        section.kind === "pin" &&
+        section.items.some((item) => item.view === "platform-analytics")
+      ) {
+        return {
+          ...section,
+          items: section.items.filter((item) => item.view !== "platform-analytics"),
+        };
+      }
+      return section;
+    })
+    .filter((section) => section.items.length > 0);
 
-  return sections.map((section) => {
-    if (section.label !== "Tools") return section;
-    if (section.items.some((item) => item.label === "Platform Analytics")) return section;
-    return {
-      ...section,
-      items: [
-        ...section.items,
-        {
-          label: "Platform Analytics",
-          icon: "BarChart3",
-          href: dashboardUrl,
-        },
-      ],
-    };
-  });
+  if (cleaned.some((section) => section.label === "Analytics")) {
+    return cleaned;
+  }
+
+  const analyticsSection: InternalNavSection = {
+    kind: "workspace",
+    label: "Analytics",
+    icon: "BarChart3",
+    color: "#38BDF8",
+    items: [
+      {
+        label: "Platform Analytics",
+        icon: "LayoutDashboard",
+        view: "platform-analytics",
+      },
+      {
+        label: "Website Analytics",
+        icon: "Globe",
+        view: "website-analytics",
+      },
+    ],
+  };
+
+  const out: InternalNavSection[] = [];
+  let inserted = false;
+  for (const section of cleaned) {
+    out.push(section);
+    const isEaPin =
+      section.kind === "pin" &&
+      section.items.some((item) => item.view === "executive-assistant");
+    if (isEaPin && !inserted) {
+      out.push(analyticsSection);
+      inserted = true;
+    }
+  }
+  if (!inserted) {
+    const homeIdx = out.findIndex(
+      (section) =>
+        section.kind === "pin" && section.items.some((item) => item.view === "home"),
+    );
+    if (homeIdx >= 0) out.splice(homeIdx + 1, 0, analyticsSection);
+    else out.unshift(analyticsSection);
+  }
+  return out;
 }
 
 export function filterInternalNavSectionsForDemoSurface(

@@ -108,6 +108,8 @@ export const TechnologyPlaceholderWorkspace = lazyWorkspace(() => import("./Tech
 export const ExternalClientAccessWorkspace = lazyWorkspace(() => import("./ExternalClientAccessWorkspace"));
 export const WebsiteManagementWorkspace = lazyWorkspace(() => import("./WebsiteManagementWorkspace"));
 export const IntegrationsWorkspace = lazyWorkspace(() => import("./IntegrationsWorkspace"));
+export const PlatformAnalyticsWorkspace = lazyWorkspace(() => import("./PlatformAnalyticsWorkspace"));
+export const WebsiteAnalyticsWorkspace = lazyWorkspace(() => import("./WebsiteAnalyticsWorkspace"));
 export const WebODMWorkspace = lazyWorkspace(() => import("./WebODMWorkspace"));
 
 export const TelemetryDashboard = lazyWorkspace(() => import("@/components/telemetry/TelemetryDashboard"));

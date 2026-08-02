@@ -91,6 +91,8 @@ const MIGRATIONS = [
   "supabase/migrations/128_unit311_lms.sql",
   "supabase/migrations/129_board_directors.sql",
   "supabase/migrations/130_portfolio_companies.sql",
+  "supabase/migrations/131_platform_usage_events.sql",
+  "supabase/migrations/132_website_analytics.sql",
 ];
 
 function isAuthorized(request: NextRequest) {

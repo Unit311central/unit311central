@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { sendContactEnquiry } from "@/lib/contact/service";
+import { insertMarketingEvent } from "@/lib/website-analytics/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,12 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await sendContactEnquiry(body);
+    void insertMarketingEvent({
+      eventType: "contact_submit",
+      path: "/contact",
+      label: "contact_form",
+      meta: { subject: body.subject ?? null },
+    }).catch(() => undefined);
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to send enquiry";

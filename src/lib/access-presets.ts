@@ -18,6 +18,9 @@ export const ALWAYS_ALLOWED_VIEWS: readonly InternalOperationsView[] = [
   "settings",
   "support",
   "support-mine",
+  /** Internal host UI still host-gates these views; listed so Internal operators are never blocked by grants. */
+  "platform-analytics",
+  "website-analytics",
 ];
 
 export type ModuleGrantGroup = {
@@ -34,6 +37,12 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     label: "Executive Assistant",
     section: "Pinned",
     views: ["executive-assistant"],
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    section: "Analytics",
+    views: ["platform-analytics", "website-analytics"],
   },
   {
     id: "clients",

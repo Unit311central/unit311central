@@ -4,6 +4,7 @@ import {
   createFounderSessionBooking,
   listAvailableFounderSlots,
 } from "@/lib/founder-booking/service";
+import { insertMarketingEvent } from "@/lib/website-analytics/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +53,13 @@ export async function POST(request: NextRequest) {
       startsAt: body.startsAt,
       clientTimezone: body.clientTimezone,
     });
+
+    void insertMarketingEvent({
+      eventType: "demo_request",
+      path: "/book",
+      label: "founder_demo_session",
+      meta: { organization: body.organization?.trim() ?? null },
+    }).catch(() => undefined);
 
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {

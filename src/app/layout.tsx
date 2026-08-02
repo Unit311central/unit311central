@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import ClarityProvider from "@/components/analytics/ClarityProvider";
+import MarketingAnalyticsBeacon from "@/components/analytics/MarketingAnalyticsBeacon";
 import FooterGate from "@/components/layout/FooterGate";
 import Navbar from "@/components/layout/Navbar";
 import JsonLd from "@/components/JsonLd";
@@ -59,6 +60,7 @@ export default async function RootLayout({
     <html lang="en" className={`${inter.variable} h-full`}>
       <body className="flex min-h-full flex-col overflow-x-clip bg-background font-sans text-foreground antialiased">
         <ClarityProvider />
+        {hideMarketingChrome ? null : <MarketingAnalyticsBeacon />}
         <JsonLd
           data={[organizationJsonLd(), webSiteJsonLd(), softwareApplicationJsonLd()]}
         />
