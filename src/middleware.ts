@@ -478,20 +478,12 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next({ request: { headers } });
     }
 
-    if (isPublicMarketingPath(pathname)) {
-      if (isLocalDevHost(host)) {
-        const port = request.nextUrl.port || "3000";
-        return redirectExternal(`http://localhost:${port}${pathname}${search}`);
-      }
-      return redirectExternal(`${CENTRAL_SITE_URL}${pathname}${search}`);
-    }
-
-    // Keep login on the demo host (do not bounce to apex central login).
+    // Keep login on the demo host (before marketing-path redirects).
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const gate = await evaluateCustomerHostSessionGate(request, DEMO_WORKSPACE_SLUG);
       if (gate.status === "ok") {
         // Already signed in — send to the platform shell.
-        return redirectExternal(`${demoOrigin}/${search}`);
+        return redirectExternal(`${demoOrigin}/`);
       }
       const response = NextResponse.next({ request: { headers } });
       for (const [key, value] of Object.entries(shellHeaders)) {
@@ -502,6 +494,14 @@ export async function middleware(request: NextRequest) {
         "private, no-cache, no-store, max-age=0, must-revalidate",
       );
       return response;
+    }
+
+    if (isPublicMarketingPath(pathname)) {
+      if (isLocalDevHost(host)) {
+        const port = request.nextUrl.port || "3000";
+        return redirectExternal(`http://localhost:${port}${pathname}${search}`);
+      }
+      return redirectExternal(`${CENTRAL_SITE_URL}${pathname}${search}`);
     }
 
     const legacyBrowserRedirect = redirectLegacyInternalBrowserPath(request, pathname, search);

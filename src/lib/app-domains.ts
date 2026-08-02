@@ -632,8 +632,9 @@ const PUBLIC_ONLY_PATH_PREFIXES = [
 ];
 
 export function isPublicMarketingPath(pathname: string): boolean {
-  if (pathname === "/") return false; // on internal host, / is the app
-  if (pathname === "/login") return true;
+  if (pathname === "/") return false; // on internal/demo host, / is the app
+  // /login is host-local auth (demo/customer), not a marketing page.
+  if (pathname === "/login" || pathname.startsWith("/login/")) return false;
   return PUBLIC_ONLY_PATH_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

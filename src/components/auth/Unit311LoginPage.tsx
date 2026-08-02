@@ -218,7 +218,17 @@ export default function Unit311LoginPage({
     // Prefer the URL/prop next only — do not fall back to a stale sessionStorage deep-link
     // when the user opened plain /login (should land on the platform dashboard).
     const deepLinkNext = readNextFromLocation() ?? nextPath;
-    if (workspaceReturnTo) persistReturnTo(workspaceReturnTo);
+    // Demo / Internal hosts must always return to themselves after login.
+    let effectiveReturnTo = workspaceReturnTo;
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase();
+      if (host === "demo.unit311central.com" || host === "demo.localhost") {
+        effectiveReturnTo = `${window.location.protocol}//${window.location.host}`;
+      } else if (host === "internal.unit311central.com" || host === "internal.localhost") {
+        effectiveReturnTo = `${window.location.protocol}//${window.location.host}`;
+      }
+    }
+    if (effectiveReturnTo) persistReturnTo(effectiveReturnTo);
     persistNext(deepLinkNext);
 
     try {
@@ -228,7 +238,7 @@ export default function Unit311LoginPage({
         body: JSON.stringify({
           username,
           password,
-          ...(workspaceReturnTo ? { returnTo: workspaceReturnTo } : {}),
+          ...(effectiveReturnTo ? { returnTo: effectiveReturnTo } : {}),
           ...(deepLinkNext ? { next: deepLinkNext } : {}),
         }),
       });
@@ -265,9 +275,9 @@ export default function Unit311LoginPage({
         return;
       }
 
-      if (workspaceReturnTo) {
+      if (effectiveReturnTo) {
         window.location.assign(
-          resolveReturnNavigationTarget(data.redirectPath, workspaceReturnTo),
+          resolveReturnNavigationTarget(data.redirectPath, effectiveReturnTo),
         );
         return;
       }

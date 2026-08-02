@@ -147,6 +147,17 @@ async function resolvePostLoginRedirect(options: {
     }
   }
 
+  // Demo / Internal hosts must keep the user on that host after login.
+  // Never bounce a Demo login onto internal.unit311central.com.
+  if (userType !== "external" && isDemoDomainHost(requestHost)) {
+    const path = nextPath && nextPath !== "/" ? nextPath : "/";
+    return path === "/" ? `${DEMO_SITE_URL}/` : `${DEMO_SITE_URL}${path}`;
+  }
+  if (userType !== "external" && isInternalDomainHost(requestHost)) {
+    const path = nextPath && nextPath !== "/" ? nextPath : "/";
+    return path === "/" ? `${INTERNAL_SITE_URL}/` : `${INTERNAL_SITE_URL}${path}`;
+  }
+
   // Company/member portal externals must never land in the admin shell.
   if (userType === "external") {
     const talantonPortalUrl = resolveTalantonCompanyPortalPostLoginUrl({
