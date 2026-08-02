@@ -38,7 +38,7 @@ function normalizeLessonType(raw: unknown, contentType?: unknown): LmsLessonType
     : "rich_text";
 }
 
-function sanitizeBlocks(raw: unknown): RichTextBlock[] {
+function sanitizeBlocks(raw: unknown, fallbackText = ""): RichTextBlock[] {
   const blocks = asArray<Record<string, unknown>>(raw)
     .map((block): RichTextBlock | null => {
       const kind = asString(block.kind);
@@ -75,9 +75,177 @@ function sanitizeBlocks(raw: unknown): RichTextBlock[] {
     })
     .filter((b): b is RichTextBlock => Boolean(b));
 
-  return blocks.length
-    ? blocks
-    : [{ kind: "paragraph", text: "Continue when you have reviewed this section." }];
+  if (blocks.length) return blocks;
+  if (fallbackText.trim()) {
+    return [{ kind: "paragraph", text: fallbackText.trim() }];
+  }
+  return [{ kind: "paragraph", text: "Continue when you have reviewed this section." }];
+}
+
+/** Coerce common AI / alternate JSON shapes into LMS-native fields before typed sanitising. */
+function coerceAiContentShape(
+  lessonType: LmsLessonType,
+  raw: Record<string, unknown>,
+  lessonTitle: string,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...raw, type: raw.type || lessonType };
+
+  // rich_text: { text } or { body } or { content } without blocks
+  if (lessonType === "rich_text" || out.type === "rich_text") {
+    if (!Array.isArray(out.blocks) || out.blocks.length === 0) {
+      const text =
+        asString(out.text) ||
+        asString(out.body) ||
+        asString(out.content) ||
+        asString(out.summary);
+      if (text) {
+        out.blocks = [
+          { kind: "heading", level: 2, text: asString(out.title, lessonTitle) },
+          { kind: "paragraph", text },
+        ];
+      }
+    }
+  }
+
+  // infographic: elements: string[] → items
+  if (lessonType === "infographic" || out.type === "infographic") {
+    if (!Array.isArray(out.items) || out.items.length === 0) {
+      const elements = asArray<unknown>(out.elements);
+      if (elements.length) {
+        out.items = elements.map((el, i) => {
+          if (typeof el === "string") {
+            return { id: `item-${i + 1}`, label: el, body: el };
+          }
+          const row = asRecord(el) ?? {};
+          return {
+            id: asString(row.id, `item-${i + 1}`),
+            label: asString(row.label || row.title || row.name, `Step ${i + 1}`),
+            body: asString(row.body || row.text || row.description),
+            icon: row.icon ? asString(row.icon) : undefined,
+          };
+        });
+      }
+      const data = asRecord(out.data);
+      if (data && (!Array.isArray(out.items) || out.items.length === 0)) {
+        out.items = Object.entries(data).map(([key, value], i) => ({
+          id: `item-${i + 1}`,
+          label: key,
+          body: Array.isArray(value)
+            ? value.map(String).join("; ")
+            : typeof value === "object" && value
+              ? JSON.stringify(value)
+              : String(value ?? ""),
+        }));
+      }
+    }
+  }
+
+  // scenario: description / prompt / situation → story; invent choices if missing
+  if (lessonType === "scenario" || out.type === "scenario") {
+    if (!asString(out.story)) {
+      out.story =
+        asString(out.description) ||
+        asString(out.prompt) ||
+        asString(out.situation) ||
+        asString(out.scenario);
+    }
+    const choices = asArray<Record<string, unknown>>(out.choices);
+    if (choices.length < 2) {
+      out.choices = [
+        {
+          id: "a",
+          label: "Follow ABHI / organisational policy, document the situation, and escalate if needed",
+          correct: true,
+          feedback: "Correct. Transparent process and escalation protect patients, members, and ABHI.",
+        },
+        {
+          id: "b",
+          label: "Handle it informally and move on without records",
+          correct: false,
+          feedback: "Incorrect. Informal handling leaves no audit trail and increases risk.",
+        },
+        {
+          id: "c",
+          label: "Ignore it unless a senior leader raises it first",
+          correct: false,
+          feedback: "Incorrect. Waiting for escalation delays action and may worsen harm.",
+        },
+      ];
+    }
+  }
+
+  // knowledge_check: questions[{question,options,correctAnswer}] → first question
+  if (lessonType === "knowledge_check" || out.type === "knowledge_check") {
+    const choices = asArray<Record<string, unknown>>(out.choices);
+    if (choices.length < 2) {
+      const questions = asArray<Record<string, unknown>>(out.questions);
+      const first = questions[0];
+      if (first) {
+        const options = asArray<unknown>(first.options || first.choices);
+        out.prompt = asString(first.question || first.stem || first.prompt, lessonTitle);
+        out.choices = options.map((opt, i) => {
+          if (typeof opt === "string") {
+            return { id: String.fromCharCode(97 + i), label: opt };
+          }
+          const row = asRecord(opt) ?? {};
+          return {
+            id: asString(row.id, String.fromCharCode(97 + i)),
+            label: asString(row.label || row.text, `Option ${i + 1}`),
+          };
+        });
+        const correct = asString(first.correctAnswer || first.correctId || first.correct_choice_id);
+        const match = (out.choices as { id: string; label: string }[]).find(
+          (c) => c.id === correct || c.label === correct,
+        );
+        out.correctId = match?.id || "a";
+        out.explanation = asString(
+          first.explanation,
+          "Review the course material and try again.",
+        );
+      }
+    }
+  }
+
+  // drag_drop: elements + correctOrder → zones/items sort
+  if (lessonType === "drag_drop" || out.type === "drag_drop") {
+    const zones = asArray<unknown>(out.zones);
+    const items = asArray<unknown>(out.items);
+    if (zones.length < 2 || items.length < 2) {
+      const elements = asArray<unknown>(out.elements).map(String).filter(Boolean);
+      const order = asArray<unknown>(out.correctOrder).map(String);
+      if (elements.length >= 2) {
+        out.prompt = asString(out.prompt, "Place each record type in the correct category.");
+        out.mode = "match";
+        out.zones = elements.map((label, i) => ({
+          id: `zone-${i + 1}`,
+          label,
+          hint: "Match the record",
+        }));
+        // If correctOrder provided as ordering exercise, use ordered / unordered zones
+        if (order.length >= 2 && order.every((o) => elements.includes(o))) {
+          out.mode = "sort";
+          out.zones = order.map((label, i) => ({
+            id: `zone-${i + 1}`,
+            label: `Step ${i + 1}`,
+            hint: label,
+          }));
+          out.items = order.map((label, i) => ({
+            id: `item-${i + 1}`,
+            label,
+            correctZoneId: `zone-${i + 1}`,
+          }));
+        } else {
+          out.items = elements.map((label, i) => ({
+            id: `item-${i + 1}`,
+            label,
+            correctZoneId: `zone-${i + 1}`,
+          }));
+        }
+      }
+    }
+  }
+
+  return out;
 }
 
 export function sanitizeLessonContent(
@@ -85,8 +253,9 @@ export function sanitizeLessonContent(
   contentInput: unknown,
   lessonTitle = "Lesson",
 ): { lessonType: LmsLessonType; content: LessonContent } {
-  const raw = asRecord(contentInput) ?? {};
-  const lessonType = normalizeLessonType(lessonTypeInput, raw.type);
+  const initial = asRecord(contentInput) ?? {};
+  const lessonType = normalizeLessonType(lessonTypeInput, initial.type);
+  const raw = coerceAiContentShape(lessonType, initial, lessonTitle);
   const type = normalizeLessonType(raw.type || lessonType, lessonType);
 
   try {
@@ -97,7 +266,10 @@ export function sanitizeLessonContent(
           content: {
             type: "rich_text",
             title: asString(raw.title, lessonTitle),
-            blocks: sanitizeBlocks(raw.blocks),
+            blocks: sanitizeBlocks(
+              raw.blocks,
+              asString(raw.text) || asString(raw.body) || asString(raw.summary),
+            ),
           },
         };
       case "infographic": {

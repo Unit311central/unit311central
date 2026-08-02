@@ -468,7 +468,14 @@ Rules:
 - Final module must include assessment lesson (drawCount 8, passMark 80, questionBankScope "course").
 - Provide at least 8 question bank items.
 - Keep rich_text short (no walls of text).
-- Do not invent illegal instructions; stay faithful to the document principles.`,
+- Do not invent illegal instructions; stay faithful to the document principles.
+- CRITICAL content shapes (do not invent alternate keys):
+  - rich_text: { "type":"rich_text", "title":string, "blocks":[{ "kind":"heading"|"paragraph"|"bullet_list"|"callout", ... }] }
+  - infographic: { "type":"infographic", "layout":"flow"|"steps", "items":[{ "id", "label", "body" }] }
+  - knowledge_check: { "type":"knowledge_check", "prompt", "choices":[{ "id","label" }], "correctId", "explanation" }
+  - scenario: { "type":"scenario", "story", "choices":[{ "id","label","correct","feedback" }] }
+  - drag_drop: { "type":"drag_drop", "prompt", "mode":"match"|"sort", "zones":[{ "id","label" }], "items":[{ "id","label","correctZoneId" }] }
+  - Never use top-level "text", "elements", "description", or "questions" inside a lesson content object.`,
         },
         {
           role: "user",
