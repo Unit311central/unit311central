@@ -147,6 +147,12 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
   ),
   page("corporate-information", "Corporate Information", "corporate-advisers", "Professional Advisors"),
   page("corporate-information", "Corporate Information", "corporate-contracts", "Contracts"),
+  page(
+    "corporate-information",
+    "Corporate Information",
+    "corporate-risk-register",
+    "Risk Register",
+  ),
   page("corporate-information", "Corporate Information", "board-pack", "Board deck"),
   page("corporate-information", "Corporate Information", "unit311-details", "Dashboard", {
     sectionKey: "unit311-details",

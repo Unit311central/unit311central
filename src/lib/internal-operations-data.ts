@@ -21,6 +21,7 @@ export type InternalOperationsView =
   | "corporate-insurance"
   | "corporate-software"
   | "corporate-contracts"
+  | "corporate-risk-register"
   | "financials"
   | "general-ledger"
   | "accounts-receivable"
@@ -206,6 +207,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "corporate-insurance",
   "corporate-software",
   "corporate-contracts",
+  "corporate-risk-register",
   "financials",
   "general-ledger",
   "accounts-receivable",
@@ -636,6 +638,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         view: "corporate-contracts" as const,
       },
       {
+        label: "Risk Register",
+        icon: "AlertTriangle",
+        view: "corporate-risk-register" as const,
+      },
+      {
         label: "Board deck",
         icon: "ScrollText",
         view: "board-pack" as const,
@@ -871,6 +878,7 @@ export const internalViewTitles: Record<
   "corporate-insurance": { title: "Insurance", subtitle: "Corporate Information" },
   "corporate-software": { title: "Software", subtitle: "Technology Management" },
   "corporate-contracts": { title: "Contracts", subtitle: "Corporate Information" },
+  "corporate-risk-register": { title: "Risk Register", subtitle: "Corporate Information" },
   financials: { title: "Dashboard", subtitle: "Financials" },
   "general-ledger": { title: "General Ledger", subtitle: "Financials" },
   "accounts-receivable": { title: "Accounts Receivable", subtitle: "Financials" },

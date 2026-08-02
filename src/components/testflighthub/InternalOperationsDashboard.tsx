@@ -130,6 +130,7 @@ import {
   RecentMissionsPanel,
   RecruitmentWorkspace,
   RepresentativesWorkspace,
+  RiskRegisterWorkspace,
   SectorWorkspace,
   SettingsWorkspace,
   SocialWorkspace,
@@ -771,6 +772,8 @@ export default function InternalOperationsDashboard({
           {activeView === "financial-reports" && <FinancialReportsWorkspace />}
 
           {activeView === "wise" && <WiseWorkspace />}
+
+          {activeView === "corporate-risk-register" && <RiskRegisterWorkspace />}
 
           {activeView === "board-pack" && <BoardPackCustomizerWorkspace />}
 
