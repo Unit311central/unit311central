@@ -554,7 +554,8 @@ export default function EnterprisePlatformSidebar({
       filterInternalNavSectionsForDemoSurface(
         filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
       ),
-    [allowedViews],
+    // Recompute after mount so host-gated surfaces (ABHI / OnwardAir / Talanton) apply.
+    [allowedViews, hydrated],
   );
 
   const pinSections = navSections.filter((section) => section.kind === "pin");
