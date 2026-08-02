@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 
 import { AbhiBoardPortalApp } from "@/components/abhi/board/AbhiBoardPortalApp";
-import { AbhiMemberPortalDashboard } from "@/components/abhi/portal/AbhiMemberPortalDashboard";
+import { AbhiMemberPortalApp } from "@/components/abhi/portal/AbhiMemberPortalApp";
 import { parseBoardPortalSection } from "@/lib/abhi/board-portal-data";
+import { parseMemberPortalSection } from "@/lib/abhi/member-portal-data";
 import { getMemberPortalByPath } from "@/lib/abhi/member-portal-routes";
 
 export default async function AbhiMemberPortalPage({
@@ -20,8 +21,15 @@ export default async function AbhiMemberPortalPage({
     return <AbhiBoardPortalApp section={boardSection} />;
   }
 
-  // Member company portals — single dashboard today.
-  if (section.length > 0) notFound();
+  const memberSection = parseMemberPortalSection(section);
+  if (!memberSection) notFound();
 
-  return <AbhiMemberPortalDashboard companyId={route.clientId} companyName={route.displayName} />;
+  return (
+    <AbhiMemberPortalApp
+      companyPath={route.path}
+      companyId={route.clientId}
+      companyName={route.displayName}
+      section={memberSection}
+    />
+  );
 }
