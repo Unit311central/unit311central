@@ -23,6 +23,7 @@ import {
   DEFAULT_EXPENSES_TILE_LAYOUT,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { cn } from "@/lib/utils";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
@@ -82,6 +83,7 @@ function sanitizeExpenseAmountInput(value: string) {
 
 function reportingExpenseCurrency(expenses: FinancialExpense[]): ExpenseCurrency {
   if (isBrowserCorpCentreSurface()) return "AUD";
+  if (isBrowserAbhiSurface()) return "GBP";
   if (isBrowserDemoSurface()) return "USD";
   const codes = expenses.map((expense) => String(expense.currency || "").toUpperCase());
   const usdCount = codes.filter((code) => code === "USD").length;
@@ -89,13 +91,20 @@ function reportingExpenseCurrency(expenses: FinancialExpense[]): ExpenseCurrency
   const eurCount = codes.filter((code) => code === "EUR").length;
   const audCount = codes.filter((code) => code === "AUD").length;
   const ranked = [
-    { code: "USD" as const, count: usdCount },
     { code: "GBP" as const, count: gbpCount },
+    { code: "USD" as const, count: usdCount },
     { code: "EUR" as const, count: eurCount },
     { code: "AUD" as const, count: audCount },
   ].sort((a, b) => b.count - a.count);
   if (ranked[0] && ranked[0].count > 0) return ranked[0].code;
   return "GBP";
+}
+
+function expenseAxisCurrencySymbol(currency: ExpenseCurrency): string {
+  if (currency === "GBP") return "£";
+  if (currency === "EUR") return "€";
+  if (currency === "AUD") return "AU$";
+  return "$";
 }
 
 function parseExpenseAmount(value: string) {
@@ -575,7 +584,9 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
                   />
                   <YAxis
                     tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                    tickFormatter={(value: number) => `€${value}`}
+                    tickFormatter={(value: number) =>
+                      `${expenseAxisCurrencySymbol(reportCurrency)}${value}`
+                    }
                   />
                   <Tooltip
                     content={({ active, payload, label }) => (
@@ -1035,7 +1046,9 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
                   />
                   <YAxis
                     tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                    tickFormatter={(value: number) => `€${value}`}
+                    tickFormatter={(value: number) =>
+                      `${expenseAxisCurrencySymbol(reportCurrency)}${value}`
+                    }
                   />
                   <Tooltip
                     content={({ active, payload, label }) => (
