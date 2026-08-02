@@ -41,6 +41,9 @@ export const ClientsDashboardWorkspace = lazyWorkspace(() => import("./ClientsDa
 export const MemberIntelligenceWorkspace = lazyWorkspace(
   () => import("@/components/abhi/MemberIntelligenceWorkspace"),
 );
+export const RegulatoryIntelligenceWorkspace = lazyWorkspace(
+  () => import("@/components/abhi/RegulatoryIntelligenceWorkspace"),
+);
 export const ClientOnboardingWorkspace = lazyWorkspace(() => import("./ClientOnboardingWorkspace"));
 export const CalendarWorkspace = lazyWorkspace(() => import("./CalendarWorkspace"));
 export const CompetitorsWorkspace = lazyWorkspace(() => import("./CompetitorsWorkspace"));

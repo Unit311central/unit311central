@@ -144,7 +144,11 @@ export type InternalOperationsView =
   | "marketing-us-accelerator"
   | "marketing-me-accelerator"
   | "marketing-training"
-  | "marketing-mailing-list";
+  | "marketing-mailing-list"
+  | "regulatory-dashboard"
+  | "regulatory-updates"
+  | "regulatory-impact"
+  | "regulatory-alerts";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -336,6 +340,10 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "marketing-me-accelerator",
   "marketing-training",
   "marketing-mailing-list",
+  "regulatory-dashboard",
+  "regulatory-updates",
+  "regulatory-impact",
+  "regulatory-alerts",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -1069,6 +1077,10 @@ export const internalViewTitles: Record<
   },
   "marketing-training": { title: "Internal Training", subtitle: "Training" },
   "marketing-mailing-list": { title: "Mailing List Management", subtitle: "Marketing & Events" },
+  "regulatory-dashboard": { title: "Dashboard", subtitle: "Regulatory Intelligence" },
+  "regulatory-updates": { title: "Regulatory Updates", subtitle: "Regulatory Intelligence" },
+  "regulatory-impact": { title: "Impact Assessments", subtitle: "Regulatory Intelligence" },
+  "regulatory-alerts": { title: "Member Alerts", subtitle: "Regulatory Intelligence" },
 };
 
 /** Breadcrumb labels for the active internal leaf (section → … → page).

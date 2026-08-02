@@ -19,6 +19,50 @@ export function isAbhiMarketingView(view: string | null | undefined): view is Ab
   return (ABHI_MARKETING_VIEWS as readonly string[]).includes(String(view ?? ""));
 }
 
+/** ABHI-only Regulatory Intelligence views. */
+export const ABHI_REGULATORY_VIEWS = [
+  "regulatory-dashboard",
+  "regulatory-updates",
+  "regulatory-impact",
+  "regulatory-alerts",
+] as const satisfies readonly InternalOperationsView[];
+
+export type AbhiRegulatoryView = (typeof ABHI_REGULATORY_VIEWS)[number];
+
+export function isAbhiRegulatoryView(view: string | null | undefined): view is AbhiRegulatoryView {
+  return (ABHI_REGULATORY_VIEWS as readonly string[]).includes(String(view ?? ""));
+}
+
+/** Inserted on ABHI host after Business Central. */
+export const ABHI_REGULATORY_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "Regulatory Intelligence",
+  icon: "Landmark",
+  color: "#C2185B",
+  items: [
+    {
+      label: "Dashboard",
+      icon: "LayoutDashboard",
+      view: "regulatory-dashboard",
+    },
+    {
+      label: "Regulatory Updates",
+      icon: "ScrollText",
+      view: "regulatory-updates",
+    },
+    {
+      label: "Impact Assessments",
+      icon: "AlertTriangle",
+      view: "regulatory-impact",
+    },
+    {
+      label: "Member Alerts",
+      icon: "Users",
+      view: "regulatory-alerts",
+    },
+  ],
+};
+
 /** Inserted on ABHI host immediately after Human Resources. */
 export const ABHI_MARKETING_NAV_SECTION: InternalNavSection = {
   kind: "workspace",

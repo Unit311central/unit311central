@@ -94,6 +94,18 @@ export function isViewAllowedForGrants(
   ) {
     return true;
   }
+  // Regulatory Intelligence is available alongside Members for ABHI operators.
+  if (
+    (view === "regulatory-dashboard" ||
+      view === "regulatory-updates" ||
+      view === "regulatory-impact" ||
+      view === "regulatory-alerts") &&
+    (allowedViews.includes("clients") ||
+      allowedViews.includes("member-intelligence") ||
+      allowedViews.includes("regulatory-dashboard"))
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -673,10 +685,11 @@ const ABHI_BOARD_NAV_SECTION: InternalNavSection = {
 
 function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
   try {
-    const { ABHI_MARKETING_NAV_SECTION } =
+    const { ABHI_MARKETING_NAV_SECTION, ABHI_REGULATORY_NAV_SECTION } =
       require("@/lib/abhi/nav") as typeof import("@/lib/abhi/nav");
     const out: InternalNavSection[] = [];
     let insertedMarketing = false;
+    let insertedRegulatory = false;
     let insertedBoard = false;
     for (const section of sections) {
       const next = reshapeAbhiNavSection(section);
@@ -694,6 +707,10 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
       } else {
         out.push(next);
       }
+      if (section.label === "Business Central") {
+        out.push(ABHI_REGULATORY_NAV_SECTION);
+        insertedRegulatory = true;
+      }
       if (section.label === "Human Resources") {
         out.push(ABHI_MARKETING_NAV_SECTION);
         insertedMarketing = true;
@@ -703,6 +720,7 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
         insertedBoard = true;
       }
     }
+    if (!insertedRegulatory) out.push(ABHI_REGULATORY_NAV_SECTION);
     if (!insertedMarketing) out.push(ABHI_MARKETING_NAV_SECTION);
     if (!insertedBoard) out.push(ABHI_BOARD_NAV_SECTION);
     return out.filter((section) => section.items.length > 0);

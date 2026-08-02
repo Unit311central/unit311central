@@ -112,6 +112,17 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     ],
   },
   {
+    id: "regulatory-intelligence",
+    label: "Regulatory Intelligence",
+    section: "Regulatory Intelligence",
+    views: [
+      "regulatory-dashboard",
+      "regulatory-updates",
+      "regulatory-impact",
+      "regulatory-alerts",
+    ],
+  },
+  {
     id: "corporate",
     label: "Corporate Information",
     section: "Corporate Information",

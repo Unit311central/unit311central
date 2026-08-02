@@ -77,6 +77,23 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
     sectionKey: "clients",
     sectionLabel: "Clients",
   }),
+  page("regulatory", "Regulatory Intelligence", "regulatory-dashboard", "Dashboard", {
+    sectionKey: "regulatory",
+    sectionLabel: "Regulatory Intelligence",
+    core: true,
+  }),
+  page("regulatory", "Regulatory Intelligence", "regulatory-updates", "Regulatory Updates", {
+    sectionKey: "regulatory",
+    sectionLabel: "Regulatory Intelligence",
+  }),
+  page("regulatory", "Regulatory Intelligence", "regulatory-impact", "Impact Assessments", {
+    sectionKey: "regulatory",
+    sectionLabel: "Regulatory Intelligence",
+  }),
+  page("regulatory", "Regulatory Intelligence", "regulatory-alerts", "Member Alerts", {
+    sectionKey: "regulatory",
+    sectionLabel: "Regulatory Intelligence",
+  }),
   page("business-central", "Business Central", "crm", "Pipeline", {
     sectionKey: "customer-management",
     sectionLabel: "Customer Management",

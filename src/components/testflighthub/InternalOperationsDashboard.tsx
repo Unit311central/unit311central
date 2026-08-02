@@ -86,6 +86,7 @@ import {
   ClientOnboardingWorkspace,
   ClientsDashboardWorkspace,
   MemberIntelligenceWorkspace,
+  RegulatoryIntelligenceWorkspace,
   CompetitorsWorkspace,
   ConnectionsWorkspace,
   CorporateDashboardWorkspace,
@@ -396,6 +397,10 @@ export default function InternalOperationsDashboard({
       activeView === "clients" ||
       activeView === "clients-dashboard" ||
       activeView === "member-intelligence" ||
+      activeView === "regulatory-dashboard" ||
+      activeView === "regulatory-updates" ||
+      activeView === "regulatory-impact" ||
+      activeView === "regulatory-alerts" ||
       activeView === "assets" ||
       activeView === "projects" ||
       activeView === "projects-dashboard" ||
@@ -653,6 +658,16 @@ export default function InternalOperationsDashboard({
 
           {activeView === "member-intelligence" && (
             <MemberIntelligenceWorkspace clients={clients} />
+          )}
+
+          {(activeView === "regulatory-dashboard" ||
+            activeView === "regulatory-updates" ||
+            activeView === "regulatory-impact" ||
+            activeView === "regulatory-alerts") && (
+            <RegulatoryIntelligenceWorkspace
+              clients={clients}
+              view={activeView}
+            />
           )}
 
           {activeView === "client-onboarding" && <ClientOnboardingWorkspace />}
