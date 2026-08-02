@@ -389,9 +389,11 @@ export default function Unit311LoginPage({
                     ? "you@corpcentre.com.au"
                     : isTalanton
                       ? "demo@talantonimpact.com"
-                      : isCentral
-                        ? "you@unit311central.com"
-                        : "Enter username"
+                      : isCustomer
+                        ? "you@company.com"
+                        : isCentral
+                          ? "you@unit311central.com"
+                          : "Enter username"
                 }
               />
             </div>
