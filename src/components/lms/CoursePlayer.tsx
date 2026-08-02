@@ -181,21 +181,10 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
         );
         setCompletedIds(done);
 
-        const flat = flattenLessons(tree);
-        let resumeIndex = 0;
-        if (enr.lastLessonId) {
-          const idx = flat.findIndex((l) => l.id === enr.lastLessonId);
-          if (idx >= 0) resumeIndex = idx;
-        } else if (done.size > 0) {
-          const next = flat.findIndex((l) => !done.has(l.id));
-          resumeIndex = next >= 0 ? next : Math.max(0, flat.length - 1);
-        }
-        setLessonIndex(resumeIndex);
-
-        if (enr.status === "completed") {
-          setShowCeremony(true);
-          setFinalScore(enr.score);
-        }
+        // Always open on the first lesson — never resume mid-course.
+        setLessonIndex(0);
+        setShowCeremony(false);
+        setFinalScore(enr.score);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load course.");
@@ -332,13 +321,22 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
     }
   }
 
-  // Resume horizontal position after load.
+  // Always pin horizontal scroll to the first lesson after load.
   useEffect(() => {
-    if (loading || !lessons[lessonIndex]) return;
-    window.setTimeout(() => scrollToLesson(lessonIndex, "auto"), 80);
+    if (loading || lessons.length === 0) return;
+    const root = scrollRef.current;
+    if (root) root.scrollLeft = 0;
+    setLessonIndex(0);
+    window.setTimeout(() => {
+      const first = lessons[0];
+      if (!first) return;
+      const el = sectionRefs.current.get(first.id);
+      el?.scrollIntoView({ behavior: "auto", inline: "start", block: "nearest" });
+      if (root) root.scrollLeft = 0;
+    }, 80);
     // Only on initial load completion
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading]);
+  }, [loading, courseSlug]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#07111f] text-white">
