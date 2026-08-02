@@ -245,7 +245,14 @@ function addFooter(slide: pptxgen.Slide, packName: string, slideNumber: number) 
   });
 }
 
-function sectionLabel(slide: pptxgen.Slide, text: string, x: number, y: number, w: number, color = C.navy) {
+function sectionLabel(
+  slide: pptxgen.Slide,
+  text: string,
+  x: number,
+  y: number,
+  w: number,
+  color: string = C.navy,
+) {
   slide.addText(text, {
     x,
     y,
