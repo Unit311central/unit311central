@@ -237,6 +237,125 @@ export const CLIENT_REGION_OPTIONS: ClientRegion[] = [
   "Broken Hill, NSW",
 ];
 
+/** Country + city resolved from legacy `region` values (e.g. Brisbane, QLD → Australia / Brisbane). */
+export type ClientLocation = { country: string; city: string };
+
+const REGION_TO_LOCATION: Record<string, ClientLocation> = {
+  "Catalonia, Spain": { country: "Spain", city: "Catalonia" },
+  "Porto, Portugal": { country: "Portugal", city: "Porto" },
+  "Oxfordshire, UK": { country: "United Kingdom", city: "Oxfordshire" },
+  "Western Australia": { country: "Australia", city: "Perth" },
+  Iberia: { country: "Spain", city: "" },
+  "United Kingdom": { country: "United Kingdom", city: "" },
+  "Europe-wide": { country: "Europe", city: "" },
+  "Sydney, NSW": { country: "Australia", city: "Sydney" },
+  "Melbourne, VIC": { country: "Australia", city: "Melbourne" },
+  "Brisbane, QLD": { country: "Australia", city: "Brisbane" },
+  "Perth, WA": { country: "Australia", city: "Perth" },
+  "Adelaide, SA": { country: "Australia", city: "Adelaide" },
+  "Canberra, ACT": { country: "Australia", city: "Canberra" },
+  "Hobart, TAS": { country: "Australia", city: "Hobart" },
+  "Darwin, NT": { country: "Australia", city: "Darwin" },
+  "Newcastle, NSW": { country: "Australia", city: "Newcastle" },
+  "Gold Coast, QLD": { country: "Australia", city: "Gold Coast" },
+  "Sunshine Coast, QLD": { country: "Australia", city: "Sunshine Coast" },
+  "Wollongong, NSW": { country: "Australia", city: "Wollongong" },
+  "Geelong, VIC": { country: "Australia", city: "Geelong" },
+  "Cairns, QLD": { country: "Australia", city: "Cairns" },
+  "Broken Hill, NSW": { country: "Australia", city: "Broken Hill" },
+};
+
+const LOCATION_TO_REGION = new Map<string, ClientRegion>(
+  Object.entries(REGION_TO_LOCATION).map(([region, loc]) => [
+    `${loc.country.toLowerCase()}::${loc.city.toLowerCase()}`,
+    region as ClientRegion,
+  ]),
+);
+
+export const CLIENT_COUNTRY_OPTIONS = [
+  "Australia",
+  "United Kingdom",
+  "Spain",
+  "Portugal",
+  "Europe",
+] as const;
+
+export function parseRegionToLocation(region: string | null | undefined): ClientLocation {
+  const trimmed = String(region ?? "").trim();
+  if (!trimmed) return { country: "", city: "" };
+  const mapped = REGION_TO_LOCATION[trimmed];
+  if (mapped) return { ...mapped };
+
+  // Already "Country, City" (new display form)
+  const countryCity = trimmed.match(/^([^,]+),\s*(.+)$/);
+  if (countryCity) {
+    const left = countryCity[1].trim();
+    const right = countryCity[2].trim();
+    if (CLIENT_COUNTRY_OPTIONS.some((c) => c.toLowerCase() === left.toLowerCase())) {
+      return { country: left, city: right };
+    }
+    // Legacy "City, State/Country" fallback — treat left as city when right looks like a country/state code
+    if (/^(UK|NSW|VIC|QLD|WA|SA|ACT|TAS|NT|Spain|Portugal)$/i.test(right)) {
+      const fromState = REGION_TO_LOCATION[trimmed];
+      if (fromState) return { ...fromState };
+      if (/^UK$/i.test(right)) return { country: "United Kingdom", city: left };
+      if (/^(NSW|VIC|QLD|WA|SA|ACT|TAS|NT)$/i.test(right)) {
+        return { country: "Australia", city: left };
+      }
+      return { country: right, city: left };
+    }
+  }
+
+  return { country: trimmed, city: "" };
+}
+
+export function resolveClientLocation(
+  client: Pick<ManagedClient, "region" | "companyCountry" | "companyCity">,
+): ClientLocation {
+  const country = client.companyCountry?.trim() ?? "";
+  const city = client.companyCity?.trim() ?? "";
+  if (country || city) return { country, city };
+  return parseRegionToLocation(client.region);
+}
+
+/** Display as "Country, City" (e.g. Australia, Brisbane). */
+export function formatClientLocation(
+  client: Pick<ManagedClient, "region" | "companyCountry" | "companyCity"> | ClientLocation,
+): string {
+  const loc =
+    "country" in client && !("region" in client)
+      ? (client as ClientLocation)
+      : resolveClientLocation(client as Pick<ManagedClient, "region" | "companyCountry" | "companyCity">);
+  if (loc.country && loc.city) return `${loc.country}, ${loc.city}`;
+  return loc.country || loc.city || "";
+}
+
+export function composeLegacyRegion(country: string, city: string): ClientRegion {
+  const c = country.trim();
+  const cityName = city.trim();
+  const key = `${c.toLowerCase()}::${cityName.toLowerCase()}`;
+  const mapped = LOCATION_TO_REGION.get(key);
+  if (mapped) return mapped;
+  if (c && !cityName) {
+    const countryOnly = LOCATION_TO_REGION.get(`${c.toLowerCase()}::`);
+    if (countryOnly) return countryOnly;
+    if (c === "United Kingdom") return "United Kingdom";
+    if (c === "Europe") return "Europe-wide";
+  }
+  if (c && cityName) return `${cityName}, ${c}` as ClientRegion;
+  return (c || "United Kingdom") as ClientRegion;
+}
+
+export function clientCitiesForCountry(country: string): string[] {
+  const c = country.trim().toLowerCase();
+  if (!c) return [];
+  const cities = new Set<string>();
+  for (const loc of Object.values(REGION_TO_LOCATION)) {
+    if (loc.country.toLowerCase() === c && loc.city) cities.add(loc.city);
+  }
+  return Array.from(cities).sort((a, b) => a.localeCompare(b));
+}
+
 let clientCounter = 6;
 
 export function createClientId() {
@@ -254,6 +373,8 @@ export function createInitialClients(): ManagedClient[] {
       email: "e.gomez@venturi.aero",
       phone: "+34 93 200 4500",
       region: "Catalonia, Spain",
+      companyCountry: "Spain",
+      companyCity: "Catalonia",
       accountStatus: "Active",
       contractType: "Framework Agreement",
       taxId: "ES-B65432109",
@@ -271,6 +392,8 @@ export function createInitialClients(): ManagedClient[] {
       email: "e.morales@cataloniaenergy.es",
       phone: "+34 93 412 8800",
       region: "Catalonia, Spain",
+      companyCountry: "Spain",
+      companyCity: "Catalonia",
       accountStatus: "Active",
       contractType: "Framework Agreement",
       taxId: "ES-B66233441",
@@ -286,6 +409,8 @@ export function createInitialClients(): ManagedClient[] {
       email: "rui.ferreira@dourologistics.pt",
       phone: "+351 22 340 1200",
       region: "Porto, Portugal",
+      companyCountry: "Portugal",
+      companyCity: "Porto",
       accountStatus: "Active",
       contractType: "Project-based",
       taxId: "PT509876543",
@@ -301,6 +426,8 @@ export function createInitialClients(): ManagedClient[] {
       email: "j.whitfield@oxfordheritage.co.uk",
       phone: "+44 1865 742 900",
       region: "Oxfordshire, UK",
+      companyCountry: "United Kingdom",
+      companyCity: "Oxfordshire",
       accountStatus: "Active",
       contractType: "Retainer",
       taxId: "GB123456789",
@@ -316,6 +443,8 @@ export function createInitialClients(): ManagedClient[] {
       email: "sofia.alvarez@iberiainfra.com",
       phone: "+34 91 555 0142",
       region: "Iberia",
+      companyCountry: "Spain",
+      companyCity: "",
       accountStatus: "Client Created",
       contractType: "Trial",
       taxId: "ES-A80192736",
@@ -331,6 +460,8 @@ export function createInitialClients(): ManagedClient[] {
       email: "m.chen@terrabuild.com.au",
       phone: "+61 8 9432 8800",
       region: "Western Australia",
+      companyCountry: "Australia",
+      companyCity: "Perth",
       accountStatus: "Active",
       contractType: "Framework Agreement",
       taxId: "AU 51 824 753 556",
@@ -359,7 +490,7 @@ export function createBlankClient(): ManagedClient {
     companyAddress: "",
     companyCity: "",
     companyPostcode: "",
-    companyCountry: "",
+    companyCountry: "United Kingdom",
     accountsPayableEmail: "",
     invoiceEmail: "",
     billingSameAsCompany: true,
@@ -446,6 +577,9 @@ type DbInternalClient = {
 
 export function mapInternalClient(row: DbInternalClient): ManagedClient {
   const loungeToken = row.support_lounge_token?.trim() || null;
+  const fromRegion = parseRegionToLocation(row.region);
+  const companyCountry = (row.company_country ?? "").trim() || fromRegion.country || undefined;
+  const companyCity = (row.company_city ?? "").trim() || fromRegion.city || undefined;
   return {
     id: row.id,
     companyName: row.company_name,
@@ -460,9 +594,9 @@ export function mapInternalClient(row: DbInternalClient): ManagedClient {
     billingAddress: row.billing_address,
     jobTitle: row.job_title ?? undefined,
     companyAddress: row.company_address ?? undefined,
-    companyCity: row.company_city ?? undefined,
+    companyCity,
     companyPostcode: row.company_postcode ?? undefined,
-    companyCountry: row.company_country ?? undefined,
+    companyCountry,
     accountsPayableEmail: row.invoice_email ?? undefined,
     invoiceEmail: row.invoice_email ?? undefined,
     billingSameAsCompany: row.billing_same_as_company ?? undefined,

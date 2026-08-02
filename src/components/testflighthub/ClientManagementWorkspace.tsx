@@ -7,12 +7,16 @@ import { useCallback, useEffect, useMemo, useRef, useState, startTransition } fr
 import type { ClientFinanceSummary } from "@/lib/accounting/client-finance";
 import {
   CLIENT_CONTRACT_OPTIONS,
+  CLIENT_COUNTRY_OPTIONS,
   CLIENT_INDUSTRY_OPTIONS,
-  CLIENT_REGION_OPTIONS,
   CLIENT_STATUS_OPTIONS,
   canTransitionClientAccountStatus,
+  clientCitiesForCountry,
   clientFieldsEqual,
   clientStatusClass,
+  composeLegacyRegion,
+  formatClientLocation,
+  resolveClientLocation,
   type ClientAccountStatus,
   type ManagedClient,
 } from "@/lib/client-management-data";
@@ -96,7 +100,8 @@ export default function ClientManagementWorkspace({
   const [savedSnapshot, setSavedSnapshot] = useState<ManagedClient | null>(null);
   const [search, setSearch] = useState("");
   const [filterIndustry, setFilterIndustry] = useState("all");
-  const [filterRegion, setFilterRegion] = useState("all");
+  const [filterCountry, setFilterCountry] = useState("all");
+  const [filterCity, setFilterCity] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterContract, setFilterContract] = useState("all");
   const [detailClientId, setDetailClientId] = useState<string | null>(null);
@@ -133,8 +138,10 @@ export default function ClientManagementWorkspace({
     const query = search.trim().toLowerCase();
 
     return clients.filter((client) => {
+      const location = resolveClientLocation(client);
       if (filterIndustry !== "all" && client.industry !== filterIndustry) return false;
-      if (filterRegion !== "all" && client.region !== filterRegion) return false;
+      if (filterCountry !== "all" && location.country !== filterCountry) return false;
+      if (filterCity !== "all" && location.city !== filterCity) return false;
       if (filterStatus !== "all" && client.accountStatus !== filterStatus) return false;
       if (filterContract !== "all" && client.contractType !== filterContract) return false;
       if (!query) return true;
@@ -143,7 +150,9 @@ export default function ClientManagementWorkspace({
         client.companyName,
         client.primaryContact,
         client.email,
-        client.region,
+        location.country,
+        location.city,
+        formatClientLocation(location),
         client.industry,
         client.contractType,
         client.accountStatus,
@@ -153,7 +162,52 @@ export default function ClientManagementWorkspace({
         .toLowerCase();
       return haystack.includes(query);
     });
-  }, [clients, filterContract, filterIndustry, filterRegion, filterStatus, search]);
+  }, [clients, filterContract, filterCountry, filterCity, filterIndustry, filterStatus, search]);
+
+  const countryFilterOptions = useMemo(() => {
+    const fromClients = new Set<string>();
+    for (const client of clients) {
+      const country = resolveClientLocation(client).country;
+      if (country) fromClients.add(country);
+    }
+    for (const option of CLIENT_COUNTRY_OPTIONS) fromClients.add(option);
+    return Array.from(fromClients).sort((a, b) => a.localeCompare(b));
+  }, [clients]);
+
+  const cityFilterOptions = useMemo(() => {
+    const cities = new Set<string>();
+    for (const client of clients) {
+      const location = resolveClientLocation(client);
+      if (filterCountry !== "all" && location.country !== filterCountry) continue;
+      if (location.city) cities.add(location.city);
+    }
+    if (filterCountry !== "all") {
+      for (const city of clientCitiesForCountry(filterCountry)) cities.add(city);
+    }
+    return Array.from(cities).sort((a, b) => a.localeCompare(b));
+  }, [clients, filterCountry]);
+
+  const selectedLocation = useMemo(
+    () => (selectedClient ? resolveClientLocation(selectedClient) : { country: "", city: "" }),
+    [selectedClient],
+  );
+
+  const selectedCityOptions = useMemo(() => {
+    const cities = new Set(clientCitiesForCountry(selectedLocation.country));
+    if (selectedLocation.city) cities.add(selectedLocation.city);
+    return Array.from(cities).sort((a, b) => a.localeCompare(b));
+  }, [selectedLocation.country, selectedLocation.city]);
+
+  function patchSelectedLocation(next: { country?: string; city?: string }) {
+    if (!selectedClient) return;
+    const country = next.country !== undefined ? next.country : selectedLocation.country;
+    const city = next.city !== undefined ? next.city : selectedLocation.city;
+    patchSelected({
+      companyCountry: country,
+      companyCity: city,
+      region: composeLegacyRegion(country, city),
+    });
+  }
 
   function pinClientRecordTop() {
     const target = detailTopRef.current ?? detailSectionRef.current;
@@ -600,14 +654,32 @@ export default function ClientManagementWorkspace({
                   </select>
                 </div>
                 <div>
-                  <FieldLabel>Region</FieldLabel>
+                  <FieldLabel>Country</FieldLabel>
                   <select
                     className={inputClassName()}
-                    value={filterRegion}
-                    onChange={(event) => setFilterRegion(event.target.value)}
+                    value={filterCountry}
+                    onChange={(event) => {
+                      setFilterCountry(event.target.value);
+                      setFilterCity("all");
+                    }}
                   >
-                    <option value="all">All regions</option>
-                    {CLIENT_REGION_OPTIONS.map((option) => (
+                    <option value="all">All countries</option>
+                    {countryFilterOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <FieldLabel>City</FieldLabel>
+                  <select
+                    className={inputClassName()}
+                    value={filterCity}
+                    onChange={(event) => setFilterCity(event.target.value)}
+                  >
+                    <option value="all">All cities</option>
+                    {cityFilterOptions.map((option) => (
                       <option key={option} value={option}>
                         {option}
                       </option>
@@ -684,7 +756,9 @@ export default function ClientManagementWorkspace({
                                 {client.companyName}
                               </span>
                               <span className="mt-0.5 block truncate text-[11px] text-white/45">
-                                {client.primaryContact || client.region || client.industry}
+                                {formatClientLocation(client) ||
+                                  client.primaryContact ||
+                                  client.industry}
                               </span>
                             </span>
                             <span
@@ -735,7 +809,9 @@ export default function ClientManagementWorkspace({
                       />
                       {selectedClient.companyName || "New Client"}
                     </h2>
-                    <p className="mt-1 text-sm text-white/50">{selectedClient.region}</p>
+                    <p className="mt-1 text-sm text-white/50">
+                      {formatClientLocation(selectedClient) || "—"}
+                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
@@ -900,21 +976,43 @@ export default function ClientManagementWorkspace({
                     </select>
                   </div>
                   <div>
-                    <FieldLabel>Region</FieldLabel>
+                    <FieldLabel>Country</FieldLabel>
                     <select
                       className={inputClassName()}
-                      value={selectedClient.region}
+                      value={selectedLocation.country}
                       onChange={(event) =>
-                        patchSelected({ region: event.target.value as ManagedClient["region"] })
+                        patchSelectedLocation({ country: event.target.value, city: "" })
                       }
                       disabled={busy}
                     >
-                      {CLIENT_REGION_OPTIONS.map((option) => (
+                      <option value="">Select country</option>
+                      {Array.from(
+                        new Set([
+                          ...CLIENT_COUNTRY_OPTIONS,
+                          ...(selectedLocation.country ? [selectedLocation.country] : []),
+                        ]),
+                      ).map((option) => (
                         <option key={option} value={option}>
                           {option}
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <FieldLabel>City</FieldLabel>
+                    <input
+                      className={inputClassName()}
+                      list="member-city-suggestions"
+                      value={selectedLocation.city}
+                      onChange={(event) => patchSelectedLocation({ city: event.target.value })}
+                      disabled={busy || !selectedLocation.country}
+                      placeholder="City"
+                    />
+                    <datalist id="member-city-suggestions">
+                      {selectedCityOptions.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
                   </div>
                   <div>
                     <FieldLabel>Primary Contact</FieldLabel>
@@ -1063,29 +1161,11 @@ export default function ClientManagementWorkspace({
                     />
                   </div>
                   <div>
-                    <FieldLabel>Company City</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.companyCity ?? ""}
-                      onChange={(event) => patchSelected({ companyCity: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div>
                     <FieldLabel>Company Postcode</FieldLabel>
                     <input
                       className={inputClassName()}
                       value={selectedClient.companyPostcode ?? ""}
                       onChange={(event) => patchSelected({ companyPostcode: event.target.value })}
-                      disabled={busy}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FieldLabel>Company Country</FieldLabel>
-                    <input
-                      className={inputClassName()}
-                      value={selectedClient.companyCountry ?? ""}
-                      onChange={(event) => patchSelected({ companyCountry: event.target.value })}
                       disabled={busy}
                     />
                   </div>
