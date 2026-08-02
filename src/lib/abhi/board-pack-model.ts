@@ -4,6 +4,11 @@ import {
   getAbhiMonthlyCashSeries,
   getAbhiMonthlyRevenueSeries,
 } from "@/lib/abhi-financials";
+import { ABHI_MEMBER_SIGNUP_GROWTH } from "@/lib/abhi-surface";
+import {
+  getLatestHeldAbhiBoardMeeting,
+  type AbhiMeetingAction,
+} from "@/lib/abhi/board-meetings-store";
 
 export type AbhiOrgStatus = "Green" | "Amber" | "Red";
 export type AbhiPackStatus = "Draft" | "Final";
@@ -46,6 +51,8 @@ export type AbhiBoardRisk = {
   trend: AbhiRiskTrend;
   mitigation: string;
   status: string;
+  dateRaised?: string;
+  reviewDate?: string;
   flags: {
     new?: boolean;
     increased?: boolean;
@@ -53,11 +60,16 @@ export type AbhiBoardRisk = {
   };
 };
 
+export type AbhiKpiUnit = "currency" | "count" | "percent";
+export type AbhiKpiIndicator = "On track" | "Watch" | "Off track";
+
 export type AbhiBoardKpi = {
   name: string;
   actual: number | string;
   budget: number | string;
   variance: number | string;
+  unit: AbhiKpiUnit;
+  indicator: AbhiKpiIndicator;
   trend: AbhiKpiTrend;
   sparkline: number[];
 };
@@ -78,10 +90,48 @@ export type AbhiPnlRow = {
   emphasis?: boolean;
 };
 
+export type AbhiStrategicPriority = "HIGH" | "MEDIUM" | "LOW";
+
 export type AbhiStrategicTopic = {
   issue: string;
   evidence: string;
   recommendation: string;
+  /** One-line rationale — why the board should care. */
+  whyItMatters: string;
+  decisionRequired: string;
+  impact: string;
+  priority: AbhiStrategicPriority;
+};
+
+export type AbhiCashDriver = {
+  label: string;
+  amount: number;
+};
+
+export type AbhiFinancialInsightCard = {
+  title: string;
+  position: string;
+  variance: string;
+  commentary: string;
+};
+
+export type AbhiCashInsightCard = {
+  title: string;
+  current: string;
+  movement: string;
+  assessment: string;
+};
+
+export type AbhiForecastInsightCard = {
+  title: string;
+  outlook: string;
+  confidence: string;
+  assumptions: string;
+};
+
+export type AbhiCommercialInsight = {
+  title: string;
+  lines: { label: string; value: string }[];
 };
 
 export type AbhiBoardPackData = {
@@ -117,6 +167,13 @@ export type AbhiBoardPackData = {
       cash: number;
     };
   };
+  /** Executive narrative for Financial Overview slide. */
+  financialInsights: {
+    revenue: AbhiFinancialInsightCard;
+    operatingResult: AbhiFinancialInsightCard;
+    cash: AbhiCashInsightCard;
+    forecast: AbhiForecastInsightCard;
+  };
   pnl: {
     rows: AbhiPnlRow[];
     commentary: string[];
@@ -129,11 +186,22 @@ export type AbhiBoardPackData = {
     cashForecast: number;
     debtors: number;
     creditors: number;
+    cashMovementMom: number;
+    cashDrivers: string;
+    liquidityAssessment: string;
+    positiveCashDrivers: AbhiCashDriver[];
+    negativeCashDrivers: AbhiCashDriver[];
   };
   commercial: {
     membership: { new: number; lost: number; net: number; total: number };
     sponsorship: { budget: number; actual: number; forecast: number };
     events: { revenue: number; registrations: number; forecast: number };
+  };
+  /** Executive narrative for Commercial Performance slide. */
+  commercialInsights: {
+    membership: AbhiCommercialInsight;
+    sponsorship: AbhiCommercialInsight;
+    events: AbhiCommercialInsight;
   };
   team: {
     headcount: number;
@@ -161,25 +229,55 @@ const ABHI_AGENDA = [
   "Strategic Discussion & AOB",
 ] as const;
 
-function pad2(value: number) {
-  return String(value).padStart(2, "0");
-}
-
-function toIsoDate(date: Date) {
-  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
-}
-
+/**
+ * Pack builders must receive a resolved date from {@link resolveAbhiBoardPackMeetingDate}.
+ * Never invent tomorrow / +7 days here.
+ */
 function resolveMeetingDate(meetingDateIso?: string): string {
   if (meetingDateIso && /^\d{4}-\d{2}-\d{2}$/.test(meetingDateIso)) {
     return meetingDateIso;
   }
-  const next = new Date();
-  next.setDate(next.getDate() + 1);
-  return toIsoDate(next);
+  throw new Error(
+    "Board Pack meeting date is not set. Schedule a Board Meeting or provide an explicit YYYY-MM-DD date.",
+  );
 }
 
 function buildPackName(meetingDate: string) {
   return `Board Pack - ${meetingDate}`;
+}
+
+function mapMeetingActionToBoardAction(action: AbhiMeetingAction): AbhiBoardAction {
+  const status: AbhiActionStatus =
+    action.status === "Completed" || action.status === "Closed"
+      ? "Completed"
+      : action.status === "Overdue"
+        ? "Overdue"
+        : action.status === "Blocked"
+          ? "Blocked"
+          : "Underway";
+  return {
+    id: action.id,
+    title: action.title,
+    owner: action.owner,
+    due: action.dueDate,
+    status,
+  };
+}
+
+/** Prefer Board Meetings outcomes when available; fall back to fixture actions. */
+function resolvePreviousActionsFromMeetings(fallback: AbhiBoardPackData["previousActions"]) {
+  try {
+    const latest = getLatestHeldAbhiBoardMeeting();
+    if (!latest || latest.actions.length === 0) return fallback;
+    const mapped = latest.actions.map(mapMeetingActionToBoardAction);
+    return {
+      completed: mapped.filter((a) => a.status === "Completed"),
+      outstanding: mapped.filter((a) => a.status === "Underway" || a.status === "Blocked"),
+      overdue: mapped.filter((a) => a.status === "Overdue"),
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 function buildFolderPath(packName: string) {
@@ -213,7 +311,8 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
   const cashTrend = getAbhiMonthlyCashSeries().map((point) => point.amount);
   const revenueSparkline = getAbhiMonthlyRevenueSeries().map((point) => point.amount);
 
-  const membershipTotal = 350;
+  const membershipTotal =
+    ABHI_MEMBER_SIGNUP_GROWTH[ABHI_MEMBER_SIGNUP_GROWTH.length - 1]?.members ?? 379;
   const membershipNew = 12;
   const membershipLost = 5;
   const membershipNet = membershipNew - membershipLost;
@@ -326,7 +425,11 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
       { name: "Phil Brown", role: "Director, Regulatory Affairs" },
     ],
     highlightCards: [
-      { title: "Membership Growth", primary: "350 active members", secondary: "+7 net growth" },
+      {
+        title: "Membership Growth",
+        primary: `${membershipTotal} active members`,
+        secondary: "+7 net growth",
+      },
       { title: "Revenue Performance", primary: "£2.0m YTD", secondary: "7% below budget" },
       { title: "Cash Position", primary: "£4.24m", secondary: "+£143k MoM" },
       { title: "WHX Dubai", primary: "28 of 32 commitments secured" },
@@ -340,7 +443,7 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
       { title: "Events Overspend", detail: "£15k over budget" },
     ],
     highlights: [
-      "Membership reached 350 active companies (+7 net this quarter) with OrthoTech UK and Lumina Diagnostics completing onboarding.",
+      `Membership reached ${membershipTotal} active companies (+7 net this quarter) with OrthoTech UK and Lumina Diagnostics completing onboarding.`,
       "YTD revenue of £2.0M is tracking 7% below budget, primarily due to two tier-one sponsorship renewals slipping to Q4.",
       "Cash at bank stands at £4.24M following August membership collections — up £143k month-on-month.",
       "WHX Dubai 2027 UK pavilion design approved; 28 member slots committed against a 32-company target.",
@@ -366,7 +469,7 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
       "Approve NHS adoption working group funding.",
     ],
     agenda: [...ABHI_AGENDA],
-    previousActions: {
+    previousActions: resolvePreviousActionsFromMeetings({
       completed: [
         {
           id: "BA-241",
@@ -435,7 +538,7 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
           status: "Overdue",
         },
       ],
-    },
+    }),
     risks: [
       {
         id: "R-01",
@@ -447,6 +550,8 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         trend: "↑",
         mitigation: "Executive outreach to MedCore and Helix; WHX co-brand packages offered by 20 Aug.",
         status: "Active",
+        dateRaised: "2026-05-12",
+        reviewDate: "2026-08-15",
         flags: { increased: true },
       },
       {
@@ -459,6 +564,8 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         trend: "→",
         mitigation: "Secondary fit-out supplier on standby; weekly DWTC programme calls.",
         status: "Mitigating",
+        dateRaised: "2026-06-02",
+        reviewDate: "2026-08-08",
         flags: { overdueMitigation: true },
       },
       {
@@ -471,6 +578,8 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         trend: "↑",
         mitigation: "Member toolkit and webinar series; regulatory helpline hours extended in Sep.",
         status: "New",
+        dateRaised: "2026-07-21",
+        reviewDate: "2026-08-20",
         flags: { new: true },
       },
       {
@@ -483,6 +592,8 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         trend: "→",
         mitigation: "Working group scenario planning; quarterly NHS stakeholder map refresh.",
         status: "Monitoring",
+        dateRaised: "2026-03-18",
+        reviewDate: "2026-09-01",
         flags: {},
       },
       {
@@ -495,6 +606,8 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         trend: "↓",
         mitigation: "Events Coordinator hire closing 24 Aug; cross-training plan for UK pavilion ops.",
         status: "Mitigating",
+        dateRaised: "2026-04-09",
+        reviewDate: "2026-08-24",
         flags: {},
       },
       {
@@ -507,6 +620,8 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         trend: "→",
         mitigation: "Retention playbook with staged fee options; CEO call programme for at-risk accounts.",
         status: "Monitoring",
+        dateRaised: "2026-06-30",
+        reviewDate: "2026-09-15",
         flags: {},
       },
     ],
@@ -516,38 +631,48 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         actual: membershipTotal,
         budget: 345,
         variance: membershipTotal - 345,
+        unit: "count",
+        indicator: "On track",
         trend: 1,
-        sparkline: [338, 341, 343, 345, 347, 349, 350, 350],
+        sparkline: [338, 341, 343, 345, 355, 365, 372, membershipTotal],
       },
       {
-        name: "YTD revenue (£)",
+        name: "YTD revenue",
         actual: revenueYtd,
         budget: revenueBudget,
         variance: revenueVariance,
+        unit: "currency",
+        indicator: "Off track",
         trend: -1,
         sparkline: revenueSparkline,
       },
       {
-        name: "Cash at bank (£)",
+        name: "Cash at bank",
         actual: cashPosition,
         budget: 4_100_000,
         variance: cashPosition - 4_100_000,
+        unit: "currency",
+        indicator: "On track",
         trend: 1,
         sparkline: cashTrend,
       },
       {
-        name: "Sponsorship YTD (£)",
+        name: "Sponsorship YTD",
         actual: sponsorshipIncome,
         budget: sponsorshipBudget,
         variance: sponsorshipIncome - sponsorshipBudget,
+        unit: "currency",
+        indicator: "Off track",
         trend: -1,
         sparkline: [420_000, 470_000, 505_000, 520_000, 535_000, 548_000, 555_000, 560_000],
       },
       {
-        name: "Event revenue YTD (£)",
+        name: "Event revenue YTD",
         actual: eventsIncome,
         budget: 435_000,
         variance: eventsIncome - 435_000,
+        unit: "currency",
+        indicator: "Watch",
         trend: 0,
         sparkline: [45_000, 95_000, 150_000, 210_000, 265_000, 310_000, 355_000, 390_000],
       },
@@ -556,6 +681,8 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         actual: 18,
         budget: 15,
         variance: 3,
+        unit: "count",
+        indicator: "On track",
         trend: 1,
         sparkline: [2, 5, 8, 10, 12, 14, 16, 18],
       },
@@ -564,40 +691,74 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         actual: 28,
         budget: 32,
         variance: -4,
+        unit: "count",
+        indicator: "Watch",
         trend: -1,
         sparkline: [8, 12, 16, 19, 22, 24, 26, 28],
       },
       {
-        name: "Staff retention (%)",
+        name: "Staff retention",
         actual: 96,
         budget: 95,
         variance: 1,
+        unit: "percent",
+        indicator: "On track",
         trend: 1,
         sparkline: [94, 94, 95, 95, 95, 96, 96, 96],
       },
     ],
     financialOverview: {
       revenueVsBudget: {
-        label: "YTD Revenue vs Budget",
+        label: "Revenue performance",
         actual: revenueYtd,
         budget: revenueBudget,
         variance: revenueVariance,
       },
       operatingSurplus: {
-        label: "Operating Surplus",
+        label: "Operating result",
         actual: operatingSurplus,
         budget: surplusBudget,
         variance: operatingSurplus - surplusBudget,
       },
       cashPosition: {
-        label: "Cash at Bank",
+        label: "Cash position",
         actual: cashPosition,
       },
       forecastYearEnd: {
-        label: "FY2026 Forecast",
+        label: "Year-end forecast",
         revenue: 4_500_000,
         surplus: 480_000,
         cash: 4_400_000,
+      },
+    },
+    financialInsights: {
+      revenue: {
+        title: "Revenue",
+        position: formatAbhiBoardGbp(revenueYtd, true) + " YTD",
+        variance: "7% Below Budget",
+        commentary:
+          "Shortfall driven by two tier-one sponsorship renewals slipping into Q4. Membership income remains ahead of plan.",
+      },
+      operatingResult: {
+        title: "Operating Result",
+        position: formatAbhiBoardGbp(operatingSurplus, true),
+        variance: formatAbhiBoardBudgetVarianceNarrative(operatingSurplus - surplusBudget),
+        commentary:
+          "Result held by cost control in marketing; offset by higher staff costs for Digital Health hire and WHX programme cover.",
+      },
+      cash: {
+        title: "Cash",
+        current: formatAbhiBoardGbp(cashPosition, true),
+        movement: "Net cash increase this month  +£143k",
+        assessment: "Liquidity remains strong. No short-term funding pressure.",
+      },
+      forecast: {
+        title: "Forecast",
+        outlook:
+          "Year-end revenue £4.5m · Operating result £480k · Cash £4.4m",
+        confidence: "Medium — contingent on Q4 sponsorship recovery",
+        assumptions:
+          "Based on current trading assumptions. MedCore and Helix renewals close by 30 Sep; WHX deposit schedule unchanged; no further SME invoice write-offs.",
       },
     },
     pnl: {
@@ -616,6 +777,21 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
       cashForecast: 4_400_000,
       debtors: 485_000,
       creditors: 312_000,
+      cashMovementMom: 143_000,
+      cashDrivers:
+        "Net cash rose £143k. Membership collections and sponsorship receipts outweighed payroll, WHX programme costs and supplier payments.",
+      liquidityAssessment:
+        "Cash cover remains comfortable for the next 6 months. Expected year-end cash £4.4m assumes Q4 sponsorship recovery.",
+      positiveCashDrivers: [
+        { label: "Membership collections", amount: 180_000 },
+        { label: "Sponsorship receipts", amount: 65_000 },
+        { label: "Event income", amount: 42_000 },
+      ],
+      negativeCashDrivers: [
+        { label: "Payroll", amount: 88_000 },
+        { label: "WHX programme costs", amount: 37_000 },
+        { label: "Supplier payments", amount: 19_000 },
+      ],
     },
     commercial: {
       membership: {
@@ -633,6 +809,47 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         revenue: eventsIncome,
         registrations: eventsRegistrations,
         forecast: eventsForecast,
+      },
+    },
+    commercialInsights: {
+      membership: {
+        title: "Membership",
+        lines: [
+          { label: "Current position", value: `${membershipTotal} active members` },
+          { label: "Net growth", value: "+7 this quarter · +18 YTD" },
+          {
+            label: "Key issue",
+            value: "11 SME accounts flagged at risk ahead of Dec renewals (£33k value)",
+          },
+          {
+            label: "Outlook",
+            value: "Retention playbook and CEO call programme to protect year-end base",
+          },
+        ],
+      },
+      sponsorship: {
+        title: "Sponsorship",
+        lines: [
+          { label: "Current position", value: "£560k YTD vs £680k budget" },
+          { label: "Gap to target", value: "£120k · two tier-one renewals unsigned" },
+          {
+            label: "Recovery plan",
+            value: "Executive renewal sprint with WHX co-brand packages by 30 Sep",
+          },
+          { label: "Forecast", value: "£640k full-year if MedCore and Helix close on plan" },
+        ],
+      },
+      events: {
+        title: "Events",
+        lines: [
+          { label: "Current performance", value: "£390k revenue · 1,240 registrations" },
+          { label: "WHX progress", value: "28 of 32 pavilion commitments secured" },
+          { label: "Revenue outlook", value: "£520k forecast · dependent on Q4 programme" },
+          {
+            label: "Delivery confidence",
+            value: "Amber — stand deposit (£85k) due 22 Aug remains on critical path",
+          },
+        ],
       },
     },
     team: {
@@ -654,7 +871,11 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
         evidence:
           "YTD sponsorship £560k vs £680k budget (−18%). Two tier-one accounts unsigned; pavilion packages 87% sold but sponsor income lagging.",
         recommendation:
-          "Board to approve executive-led renewal sprint and WHX co-brand tier for lapsed sponsors closing by 30 Sep.",
+          "Approve executive-led renewal sprint and WHX co-brand tier for lapsed sponsors, closing by 30 Sep.",
+        whyItMatters: "Sponsorship shortfall is the primary driver of the YTD revenue gap.",
+        decisionRequired: "Approve Q4 sponsorship recovery plan.",
+        impact: "Year-end revenue shortfall widens beyond £150k.",
+        priority: "HIGH",
       },
       {
         issue: "MHRA SaMD consultation — member position and resourcing",
@@ -662,6 +883,10 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
           "Consultation closes 15 Sep; 42 member queries logged. Draft response 60% complete; regulatory helpline demand up 35% since July.",
         recommendation:
           "Endorse final ABHI position by 25 Aug and fund two additional regulatory clinic sessions in September.",
+        whyItMatters: "Members need a clear ABHI position before the consultation closes.",
+        decisionRequired: "Confirm ABHI SaMD position and clinic funding.",
+        impact: "SME members lack guidance before consultation closes.",
+        priority: "HIGH",
       },
       {
         issue: "NHS MedTech Funding Mandate — converting briefing momentum",
@@ -669,6 +894,10 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
           "140 attendees at July briefing; 62 members requested follow-on adoption workshops. Working group capacity currently two days per week.",
         recommendation:
           "Expand working group mandate and approve £45k programme budget for autumn NHS adoption workshop series.",
+        whyItMatters: "Demand for adoption support exceeds current working group capacity.",
+        decisionRequired: "Approve NHS adoption working group funding (£45k).",
+        impact: "Briefing momentum lost; weaker autumn adoption pathway.",
+        priority: "MEDIUM",
       },
       {
         issue: "Membership retention for SME segment ahead of Dec renewals",
@@ -676,6 +905,10 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
           "18 net YTD growth but 5 losses this quarter; 11 SME accounts flagged at-risk in CRM with £33k renewal value.",
         recommendation:
           "Approve staged fee options and CEO call programme for at-risk SMEs before 30 Sep renewal outreach window.",
+        whyItMatters: "£33k of SME renewals are at risk before the December window.",
+        decisionRequired: "Endorse SME retention playbook.",
+        impact: "At-risk SME renewals may reverse net growth.",
+        priority: "MEDIUM",
       },
     ],
     aob: "Board away-day date confirmation (Nov 2026) · GDPR annual audit timetable · Approval of revised delegate travel policy.",
@@ -687,10 +920,10 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
       "KPI Dashboard — Eight executive KPIs with variance and sparklines.",
       "Financial Overview — Revenue, surplus, cash, and year-end forecast.",
       "Profit & Loss — Board P&L with variance commentary.",
-      "Balance Sheet & Cash — Assets, liabilities, cash trend and forecast.",
-      "Commercial Performance — Membership, sponsorship, and events.",
+      "Balance Sheet & Cash — Cash position, net cash movement, and cash drivers.",
+      "Commercial Performance — Membership, sponsorship, and WHX commitments.",
       "Team & Organisation — Headcount, vacancies, joiners and leavers.",
-      "Strategic Discussion & AOB — Board topics with evidence and recommendations.",
+      "Strategic Discussion & AOB — Issue, why it matters, decision required, impact.",
     ],
     folderPath: buildFolderPath(packName),
   };
@@ -701,13 +934,14 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
 export function formatAbhiBoardGbp(value: number, compact = false): string {
   if (compact) {
     const abs = Math.abs(value);
+    const sign = value < 0 ? "-" : "";
     if (abs >= 1_000_000) {
-      const millions = value / 1_000_000;
-      const formatted = millions.toFixed(Math.abs(millions) >= 10 ? 0 : 1);
-      return `£${formatted}M`;
+      const millions = abs / 1_000_000;
+      const formatted = millions.toFixed(millions >= 10 ? 0 : 1);
+      return `${sign}£${formatted}M`;
     }
     if (abs >= 1_000) {
-      return `£${Math.round(value / 1_000)}k`;
+      return `${sign}£${Math.round(abs / 1_000)}k`;
     }
   }
   return new Intl.NumberFormat("en-GB", {
@@ -715,6 +949,32 @@ export function formatAbhiBoardGbp(value: number, compact = false): string {
     currency: "GBP",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+/** Absolute compact currency for board narrative (never shows a negative £ sign). */
+export function formatAbhiBoardGbpAbs(value: number, compact = true): string {
+  return formatAbhiBoardGbp(Math.abs(value), compact);
+}
+
+/** Board-facing budget language for non-finance directors. */
+export function formatAbhiBoardBudgetStatus(
+  variance: number,
+  options?: { percentAbs?: number },
+): "Below Budget" | "Ahead Of Budget" | "On Budget" | string {
+  if (Math.abs(variance) < 1) return "On Budget";
+  const status = variance < 0 ? "Below Budget" : "Ahead Of Budget";
+  if (options?.percentAbs != null) {
+    return `${Math.round(options.percentAbs)}% ${status}`;
+  }
+  return status;
+}
+
+/** e.g. "£200k below budget" — avoids "£-200k vs budget". */
+export function formatAbhiBoardBudgetVarianceNarrative(variance: number): string {
+  if (Math.abs(variance) < 1) return "On Budget";
+  const amount = formatAbhiBoardGbpAbs(variance, true);
+  if (variance < 0) return `${amount} below budget`;
+  return `${amount} ahead of budget`;
 }
 
 export function formatAbhiBoardDate(isoDate: string): string {
@@ -731,6 +991,27 @@ export function abhiKpiTrendArrow(trend: AbhiKpiTrend): string {
   if (trend > 0) return "↑";
   if (trend < 0) return "↓";
   return "→";
+}
+
+export function formatAbhiBoardKpiValue(
+  value: number | string,
+  unit: AbhiKpiUnit,
+): string {
+  if (typeof value !== "number") return String(value);
+  if (unit === "currency") return formatAbhiBoardGbp(value, true);
+  if (unit === "percent") return `${value}%`;
+  return value.toLocaleString("en-GB");
+}
+
+export function formatAbhiBoardKpiVariance(
+  value: number | string,
+  unit: AbhiKpiUnit,
+): string {
+  if (typeof value !== "number") return String(value);
+  const prefix = value > 0 ? "+" : "";
+  if (unit === "currency") return `${prefix}${formatAbhiBoardGbp(value, true)}`;
+  if (unit === "percent") return `${prefix}${value}pp`;
+  return `${prefix}${value.toLocaleString("en-GB")}`;
 }
 
 export function abhiRiskTrendLabel(trend: AbhiRiskTrend): AbhiRiskTrendLabel {
