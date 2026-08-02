@@ -258,6 +258,22 @@ export async function middleware(request: NextRequest) {
       return bounce;
     }
 
+    // ABHI pre-demo portals briefing — public on the ABHI host (before external gate).
+    if (
+      workspaceSlug === ABHI_SLUG &&
+      (pathname === "/portals" || pathname.startsWith("/portals/"))
+    ) {
+      const response = NextResponse.next({ request: { headers } });
+      for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
+        response.headers.set(key, value);
+      }
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return response;
+    }
+
     // Talanton / ABHI externals may only use login/api/static + their assigned portal.
     // Apex `/` and `/login` are the organisation entry — never hijack into /{company}.
     if (isCompanyPortalSlug(workspaceSlug)) {

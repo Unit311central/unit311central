@@ -25,6 +25,11 @@ import { recordPlatformUserLogin } from "@/lib/external-platform-users-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { resolveTalantonCompanyPortalPostLoginUrl } from "@/lib/talanton/company-portal-login";
 import { resolveAbhiMemberPortalPostLoginUrl } from "@/lib/abhi/member-portal-login";
+import {
+  ABHI_DEMO_PLATFORM_USERNAME,
+  isAbhiDemoPlatformUsername,
+} from "@/lib/abhi/portals-demo";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
   INTERNAL_WORKSPACE_SLUG,
@@ -88,8 +93,9 @@ async function resolvePostLoginRedirect(options: {
   returnToRaw: string | null;
   nextRaw: string | null;
   userType: string;
+  username?: string | null;
 }): Promise<string> {
-  const { redirectPath, requestHost, returnToRaw, nextRaw, userType } = options;
+  const { redirectPath, requestHost, returnToRaw, nextRaw, userType, username } = options;
   const loginReturn = parseLoginReturnTo(returnToRaw);
   const nextPath = parseSafePostLoginNext(nextRaw);
 
@@ -114,6 +120,9 @@ async function resolvePostLoginRedirect(options: {
 
   if (loginReturn?.kind === "workspace") {
     const slug = parseClientPlatformSubdomainSafe(new URL(loginReturn.origin).host);
+    if (isAbhiSlug(slug) && isAbhiDemoPlatformUsername(username) && userType !== "external") {
+      return `${loginReturn.origin.replace(/\/$/, "")}/portals`;
+    }
     let needsOnboarding = false;
     if (slug) {
       try {
@@ -137,6 +146,9 @@ async function resolvePostLoginRedirect(options: {
   const workspaceOnly = parseValidWorkspaceReturnTo(returnToRaw);
   if (workspaceOnly) {
     const slug = parseClientPlatformSubdomainSafe(new URL(workspaceOnly).host);
+    if (isAbhiSlug(slug) && isAbhiDemoPlatformUsername(username) && userType !== "external") {
+      return `${workspaceOnly.replace(/\/$/, "")}/portals`;
+    }
     let needsOnboarding = false;
     if (slug) {
       try {
@@ -277,6 +289,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ABHI platform login (internal) is limited to the demo briefing account.
+    if (
+      isAbhiSlug(workspaceSlug) &&
+      result.session.userType !== "external" &&
+      !isAbhiDemoPlatformUsername(result.session.username)
+    ) {
+      return NextResponse.json(
+        {
+          error: `ABHI platform login is limited to ${ABHI_DEMO_PLATFORM_USERNAME} for this demonstration.`,
+        },
+        { status: 403 },
+      );
+    }
+
     try {
       await recordPlatformUserLogin(result.session.sub);
     } catch {
@@ -289,6 +315,7 @@ export async function POST(request: NextRequest) {
       returnToRaw,
       nextRaw,
       userType: result.session.userType,
+      username: result.session.username,
     });
 
     const response = NextResponse.json({
