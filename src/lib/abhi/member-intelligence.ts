@@ -75,8 +75,28 @@ export type AbhiMemberIntelligenceRow = {
   engagementTrend: "up" | "flat" | "down";
 };
 
+export type AbhiHealthTrendLabel = "Improving" | "Stable" | "Declining";
+
+export type AbhiHealthAssessmentDetail = {
+  healthScore: number;
+  trend: AbhiHealthTrendLabel;
+  riskLevel: AbhiRenewalRisk;
+  reasoning: string[];
+};
+
+export type AbhiRenewalAssessmentDetail = {
+  renewalProbability: number;
+  confidence: "High" | "Medium" | "Low";
+  drivers: string[];
+  summary: string;
+};
+
 export type AbhiMemberExecutiveInsights = {
   relationshipSummary: string;
+  recommendedNextAction: string;
+  health: AbhiHealthAssessmentDetail;
+  renewal: AbhiRenewalAssessmentDetail;
+  /** Plain-language aliases used by AI Q&A and PDF brief. */
   healthAssessment: string;
   renewalAssessment: string;
   recommendedActions: string[];
@@ -95,6 +115,23 @@ export type AbhiMemberIntelligenceDetail = AbhiMemberIntelligenceRow & {
   funding: AbhiMemberFundingStub;
 };
 
+export type AbhiPortfolioPriorityAction = {
+  memberId: string;
+  memberName: string;
+  reasons: string[];
+  urgencyScore: number;
+};
+
+export type AbhiPortfolioAiIntelligence = {
+  membersRequiringAttention: number;
+  highValueAtRisk: number;
+  renewalsDueIn90Days: number;
+  lowEngagementMembers: number;
+  priorityActions: AbhiPortfolioPriorityAction[];
+  recommendedAccountManagerActions: string[];
+  interventionRecommendations: string[];
+};
+
 export type AbhiMemberIntelligencePortfolio = {
   rows: AbhiMemberIntelligenceRow[];
   summary: {
@@ -105,6 +142,7 @@ export type AbhiMemberIntelligencePortfolio = {
     totalMembershipRevenueGbp: number;
     averageEngagementScore: number;
   };
+  aiIntelligence: AbhiPortfolioAiIntelligence;
 };
 
 const ACCOUNT_MANAGERS = [
@@ -217,9 +255,150 @@ function formatIso(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
-function daysUntil(iso: string, asOf = new Date()) {
+export function daysUntil(iso: string, asOf = new Date()) {
   const target = new Date(`${iso}T12:00:00`);
   return Math.ceil((target.getTime() - asOf.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function requiresAttention(row: AbhiMemberIntelligenceRow, asOf = new Date()) {
+  const renewalDays = daysUntil(row.renewalDate, asOf);
+  return (
+    row.healthBand === "Needs Attention" ||
+    row.healthBand === "At Risk" ||
+    row.renewalRisk === "High" ||
+    row.renewalRisk === "Medium" ||
+    row.engagementScore < 55 ||
+    row.engagementTrend === "down" ||
+    (renewalDays >= 0 && renewalDays <= 90 && row.engagementScore < 75)
+  );
+}
+
+function priorityReasons(row: AbhiMemberIntelligenceRow, asOf = new Date()): string[] {
+  const reasons: string[] = [];
+  const renewalDays = daysUntil(row.renewalDate, asOf);
+  if (renewalDays >= 0 && renewalDays <= 90) {
+    reasons.push(`Renewal due in ${renewalDays} days.`);
+  }
+  if (row.engagementTrend === "down") {
+    reasons.push("Engagement declining.");
+  }
+  if (row.eventsAttended <= 1) {
+    reasons.push("No meaningful event attendance recently.");
+  }
+  if (row.workingGroupsJoined === 0) {
+    reasons.push(
+      row.membershipType === "Sponsor" || row.revenueToDateGbp >= 18_000
+        ? "High-value member with no working group activity."
+        : "No working group activity.",
+    );
+  }
+  if (row.engagementScore < 55) {
+    reasons.push(`Low engagement (${row.engagementScore}/100).`);
+  }
+  if (row.renewalRisk === "High") {
+    reasons.push("High renewal risk.");
+  } else if (row.renewalRisk === "Medium") {
+    reasons.push("Medium renewal risk.");
+  }
+  if (row.portalUsageScore < 40) {
+    reasons.push("Low portal activity.");
+  }
+  if (reasons.length === 0) {
+    reasons.push(`${row.healthBand} health · ${row.relationshipStatus} relationship.`);
+  }
+  return reasons.slice(0, 3);
+}
+
+function urgencyScore(row: AbhiMemberIntelligenceRow, asOf = new Date()) {
+  let score = 0;
+  const renewalDays = daysUntil(row.renewalDate, asOf);
+  if (row.renewalRisk === "High") score += 40;
+  else if (row.renewalRisk === "Medium") score += 22;
+  if (renewalDays >= 0 && renewalDays <= 45) score += 28;
+  else if (renewalDays >= 0 && renewalDays <= 90) score += 16;
+  if (row.revenueToDateGbp >= 18_000) score += 14;
+  if (row.engagementTrend === "down") score += 12;
+  if (row.engagementScore < 55) score += 12;
+  if (row.eventsAttended <= 1) score += 8;
+  if (row.workingGroupsJoined === 0) score += 6;
+  return score;
+}
+
+export function buildPortfolioAiIntelligence(
+  rows: AbhiMemberIntelligenceRow[],
+  asOf = new Date(),
+): AbhiPortfolioAiIntelligence {
+  const attention = rows.filter((r) => requiresAttention(r, asOf));
+  const highValueAtRisk = rows.filter(
+    (r) =>
+      r.revenueToDateGbp >= 18_000 &&
+      (r.renewalRisk === "High" ||
+        r.renewalRisk === "Medium" ||
+        r.healthBand === "At Risk" ||
+        r.engagementTrend === "down"),
+  );
+  const renewalsDueIn90Days = rows.filter((r) => {
+    const d = daysUntil(r.renewalDate, asOf);
+    return d >= 0 && d <= 90;
+  });
+  const lowEngagement = rows.filter((r) => r.engagementScore < 55);
+
+  const priorityActions = [...attention]
+    .map((row) => ({
+      memberId: row.id,
+      memberName: row.memberName,
+      reasons: priorityReasons(row, asOf),
+      urgencyScore: urgencyScore(row, asOf),
+    }))
+    .sort((a, b) => b.urgencyScore - a.urgencyScore || a.memberName.localeCompare(b.memberName))
+    .slice(0, 5);
+
+  const renewalMeetings = Math.min(
+    8,
+    renewalsDueIn90Days.filter((r) => r.renewalRisk !== "Low" || r.engagementTrend === "down")
+      .length || Math.min(3, renewalsDueIn90Days.length),
+  );
+  const lowEngagementContacts = Math.min(8, Math.max(2, lowEngagement.length));
+  const wgInvites = Math.min(
+    12,
+    rows.filter((r) => r.workingGroupsJoined === 0 && r.engagementScore < 80).length,
+  );
+  const sponsorReviews = rows.filter(
+    (r) =>
+      (r.membershipType === "Sponsor" || r.revenueToDateGbp >= 22_000) &&
+      (r.engagementScore < 70 || r.workingGroupsJoined === 0 || r.engagementTrend === "down"),
+  ).length;
+
+  const recommendedAccountManagerActions = [
+    `Schedule ${Math.max(1, renewalMeetings)} renewal meeting${renewalMeetings === 1 ? "" : "s"}.`,
+    `Contact ${lowEngagementContacts} low-engagement member${lowEngagementContacts === 1 ? "" : "s"}.`,
+    `Invite ${Math.max(1, wgInvites)} members to Digital Health Working Group.`,
+    sponsorReviews > 0
+      ? `Review sponsor engagement plan (${sponsorReviews} account${sponsorReviews === 1 ? "" : "s"}).`
+      : "Maintain strategic check-ins with high-value corporate members.",
+  ];
+
+  const interventionRecommendations = [
+    attention.length > 0
+      ? `${attention.length} members require attention — prioritise the top ${Math.min(3, priorityActions.length)} accounts this week.`
+      : "Portfolio health is stable — keep proactive cadence on renewals within 90 days.",
+    highValueAtRisk.length > 0
+      ? `${highValueAtRisk.length} high-value members show risk signals — escalate to senior relationship owners.`
+      : "No high-value members currently flagged at elevated risk.",
+    lowEngagement.length > 0
+      ? `Re-engage ${lowEngagement.length} low-engagement members via events, working groups, or portal walkthroughs.`
+      : "Engagement levels are broadly healthy across the portfolio.",
+  ];
+
+  return {
+    membersRequiringAttention: attention.length,
+    highValueAtRisk: highValueAtRisk.length,
+    renewalsDueIn90Days: renewalsDueIn90Days.length,
+    lowEngagementMembers: lowEngagement.length,
+    priorityActions,
+    recommendedAccountManagerActions,
+    interventionRecommendations,
+  };
 }
 
 export function healthBandForScore(score: number): AbhiHealthBand {
@@ -448,6 +627,7 @@ export function buildMemberIntelligencePortfolio(
       totalMembershipRevenueGbp,
       averageEngagementScore,
     },
+    aiIntelligence: buildPortfolioAiIntelligence(rows, asOf),
   };
 }
 
@@ -545,50 +725,169 @@ function buildTimeline(row: AbhiMemberIntelligenceRow): AbhiMemberTimelineEvent[
   return events.sort((a, b) => b.date.localeCompare(a.date));
 }
 
-function buildInsights(row: AbhiMemberIntelligenceRow): AbhiMemberExecutiveInsights {
-  const relationshipSummary = `${row.memberName} is a ${row.membershipType.toLowerCase()} member since ${row.memberSinceYear} with a ${row.relationshipStatus.toLowerCase()} relationship. Engagement sits at ${row.engagementScore}/100 (${row.engagementTrend} trend) under account manager ${row.accountManager}.`;
+function trendLabel(trend: AbhiMemberIntelligenceRow["engagementTrend"]): AbhiHealthTrendLabel {
+  if (trend === "up") return "Improving";
+  if (trend === "down") return "Declining";
+  return "Stable";
+}
 
-  const healthAssessment = `Health score ${row.healthScore}/100 (${row.healthBand}). Driven by ${row.eventsAttended} events, ${row.workingGroupsJoined} working groups, ${row.trainingCompleted} training completions, and portal usage ${row.portalUsageScore}/100.`;
+function buildHealthAssessment(row: AbhiMemberIntelligenceRow): AbhiHealthAssessmentDetail {
+  const reasoning: string[] = [];
+  if (row.eventsAttended >= 4) reasoning.push("Strong event participation.");
+  else if (row.eventsAttended <= 1) reasoning.push("Limited recent event participation.");
+  else reasoning.push("Moderate event participation.");
 
-  const renewalAssessment =
+  if (row.workingGroupsJoined > 0) {
+    reasoning.push("Active working-group involvement.");
+  } else {
+    reasoning.push("No current working-group involvement.");
+  }
+
+  if (row.memberSinceYear <= 2020) {
+    reasoning.push("Good renewal history as a long-standing member.");
+  } else if (row.renewalRisk === "Low") {
+    reasoning.push("Renewal history appears stable.");
+  } else {
+    reasoning.push("Renewal history needs closer monitoring.");
+  }
+
+  if (row.portalUsageScore >= 70) reasoning.push("Healthy portal usage.");
+  else if (row.portalUsageScore < 40) reasoning.push("Low portal activity.");
+
+  if (row.engagementTrend === "down") reasoning.push("Engagement trend is declining.");
+  else if (row.engagementTrend === "up") reasoning.push("Engagement trend is improving.");
+
+  return {
+    healthScore: row.healthScore,
+    trend: trendLabel(row.engagementTrend),
+    riskLevel: row.renewalRisk,
+    reasoning: reasoning.slice(0, 4),
+  };
+}
+
+function buildRenewalAssessment(row: AbhiMemberIntelligenceRow): AbhiRenewalAssessmentDetail {
+  let probability = 78;
+  if (row.renewalRisk === "Low") probability = 90 + Math.min(8, Math.floor(row.engagementScore / 20));
+  else if (row.renewalRisk === "Medium") probability = 62 + Math.floor(row.engagementScore / 10);
+  else probability = 35 + Math.floor(row.engagementScore / 5);
+
+  if (row.engagementTrend === "down") probability -= 8;
+  if (row.engagementTrend === "up") probability += 4;
+  if (row.revenueToDateGbp >= 18_000 && row.renewalRisk !== "High") probability += 2;
+  probability = clamp(probability, 18, 97);
+
+  const drivers: string[] = [];
+  if (row.engagementScore >= 75) drivers.push("High engagement.");
+  else if (row.engagementScore < 55) drivers.push("Low engagement.");
+  else drivers.push("Moderate engagement.");
+
+  if (row.eventsAttended >= 3 || row.workingGroupsJoined > 0) {
+    drivers.push("Positive participation history.");
+  } else {
+    drivers.push("Limited participation history.");
+  }
+
+  if (
+    row.relationshipStatus === "Strategic" ||
+    row.relationshipStatus === "Strong" ||
+    row.relationshipStatus === "Stable"
+  ) {
+    drivers.push("Strong relationship status.");
+  } else {
+    drivers.push("Relationship status needs attention.");
+  }
+
+  if (row.renewalRisk === "High") drivers.push("Proximity to renewal with risk signals.");
+
+  const confidence: AbhiRenewalAssessmentDetail["confidence"] =
+    row.renewalRisk === "High" || row.engagementTrend === "down"
+      ? "Medium"
+      : row.engagementScore >= 70 && row.eventsAttended >= 2
+        ? "High"
+        : "Medium";
+
+  const summary =
     row.renewalRisk === "High"
-      ? `Renewal risk is High — renewal ${row.renewalDate}. Engagement and participation signals require immediate intervention.`
+      ? `Renewal probability is ${probability}% with elevated risk. Immediate relationship intervention is required before ${formatMemberIntelDate(row.renewalDate)}.`
       : row.renewalRisk === "Medium"
-        ? `Renewal risk is Medium — renewal ${row.renewalDate}. Schedule a proactive account conversation before the window closes.`
-        : `Renewal risk is Low — renewal ${row.renewalDate}. Relationship is on track; maintain cadence and surface relevant opportunities.`;
+        ? `Renewal probability is ${probability}%. Schedule a proactive account conversation before the renewal window closes.`
+        : `Renewal probability is ${probability}%. Relationship is on track — maintain cadence and surface relevant opportunities.`;
+
+  return {
+    renewalProbability: probability,
+    confidence,
+    drivers: drivers.slice(0, 4),
+    summary,
+  };
+}
+
+function buildInsights(row: AbhiMemberIntelligenceRow): AbhiMemberExecutiveInsights {
+  const health = buildHealthAssessment(row);
+  const renewal = buildRenewalAssessment(row);
+  const renewalDays = daysUntil(row.renewalDate);
+
+  const relationshipSummary = [
+    `${row.memberName} has been an ABHI ${row.membershipType.toLowerCase()} member since ${row.memberSinceYear}.`,
+    row.engagementScore >= 70
+      ? `Engagement remains healthy with participation in ${row.eventsAttended} events and ${row.workingGroupsJoined} working groups.`
+      : `Engagement needs attention (${row.engagementScore}/100) with ${row.eventsAttended} events and ${row.workingGroupsJoined} working groups recorded.`,
+    `Renewal risk is currently ${row.renewalRisk}${
+      renewalDays >= 0 && renewalDays <= 90 ? ` — renewal due in ${renewalDays} days` : ""
+    }.`,
+  ].join(" ");
 
   const recommendedActions: string[] = [];
-  if (row.renewalRisk !== "Low") {
-    recommendedActions.push("Book a renewal readiness call with the primary contact");
+  if (row.renewalRisk !== "Low" || (renewalDays >= 0 && renewalDays <= 90)) {
+    recommendedActions.push("Arrange quarterly relationship review ahead of renewal.");
+  }
+  if (row.workingGroupsJoined === 0) {
+    recommendedActions.push("Invite to Digital Health Working Group.");
+  }
+  recommendedActions.push("Discuss WHX Dubai participation.");
+  recommendedActions.push("Share relevant ABHI initiatives and programme briefings.");
+  if (row.membershipType === "Corporate" || row.membershipType === "Sponsor" || row.eventsAttended >= 4) {
+    recommendedActions.push("Explore speaking opportunities at flagship ABHI events.");
   }
   if (row.engagementScore < 70) {
-    recommendedActions.push("Invite to the next high-relevance ABHI event or working group");
+    recommendedActions.push("Invite to the upcoming Digital Health Conference.");
   }
-  if (row.portalUsageScore < 50) {
-    recommendedActions.push("Re-activate member portal access and walk through Funding & Opportunities");
+  const uniqueActions = [...new Set(recommendedActions)].slice(0, 5);
+
+  const nextBestActions: string[] = [
+    "Schedule call with primary contact.",
+    row.eventsAttended < 3
+      ? "Send event invitation for the next ABHI programme."
+      : "Send personalised thank-you and VIP event invitation.",
+  ];
+  if (row.workingGroupsJoined === 0) {
+    nextBestActions.push("Introduce to working group chair.");
+  } else {
+    nextBestActions.push("Confirm next working group attendance.");
   }
-  if (row.membershipType === "Corporate" || row.revenueToDateGbp >= 18_000) {
-    recommendedActions.push("Brief leadership on strategic partnership opportunities");
-  }
-  if (recommendedActions.length === 0) {
-    recommendedActions.push("Maintain quarterly strategic check-in");
-    recommendedActions.push("Share curated funding and programme opportunities");
+  if (row.membershipType === "Sponsor" || row.revenueToDateGbp >= 18_000) {
+    nextBestActions.push("Discuss sponsorship and partnership opportunities.");
+  } else {
+    nextBestActions.push("Share funding and growth opportunities relevant to their sector.");
   }
 
-  const nextBestActions = [
-    `Account manager (${row.accountManager}): confirm next meeting agenda within 7 days`,
-    row.eventsAttended < 3
-      ? "Propose 1–2 upcoming events matched to their sector"
-      : "Recognise high engagement in the next member communication",
-    "Log relationship notes after next interaction",
-  ];
+  const recommendedNextAction =
+    row.renewalRisk === "High" || (renewalDays >= 0 && renewalDays <= 60 && row.engagementTrend === "down")
+      ? `Book a renewal readiness call within 7 days and agree a 90-day engagement plan with ${row.accountManager}.`
+      : row.workingGroupsJoined === 0 || row.eventsAttended < 3
+        ? `Invite ${row.memberName.replace(/ Ltd$/i, "")} to the upcoming Digital Health Conference and discuss participation in future innovation programmes.`
+        : `Maintain the strategic cadence — confirm the next quarterly review and surface 1–2 high-fit opportunities.`;
+
+  const healthAssessment = `Health Score: ${health.healthScore}. Trend: ${health.trend}. Risk: ${health.riskLevel}. ${health.reasoning.join(" ")}`;
 
   return {
     relationshipSummary,
+    recommendedNextAction,
+    health,
+    renewal,
     healthAssessment,
-    renewalAssessment,
-    recommendedActions: recommendedActions.slice(0, 4),
-    nextBestActions,
+    renewalAssessment: renewal.summary,
+    recommendedActions: uniqueActions,
+    nextBestActions: nextBestActions.slice(0, 4),
   };
 }
 
@@ -633,13 +932,16 @@ export function answerMemberIntelligenceQuestion(
   const name = detail.memberName;
 
   if (/summar|relationship/.test(q)) {
-    return detail.insights.relationshipSummary;
+    return `${detail.insights.relationshipSummary} Recommended next action: ${detail.insights.recommendedNextAction}`;
   }
-  if (/risk|non-renewal|renew/.test(q)) {
-    return detail.insights.renewalAssessment;
+  if (/risk|non-renewal|renew|probability/.test(q)) {
+    return `${detail.insights.renewalAssessment} Renewal probability ${detail.insights.renewal.renewalProbability}% (${detail.insights.renewal.confidence} confidence). Drivers: ${detail.insights.renewal.drivers.join(" ")}`;
+  }
+  if (/health/.test(q)) {
+    return detail.insights.healthAssessment;
   }
   if (/discuss|meeting|agenda/.test(q)) {
-    return `For the next meeting with ${name}: cover renewal (${detail.renewalDate}, ${detail.renewalRisk} risk), engagement (${detail.engagementScore}/100), and ${detail.insights.nextBestActions[0]}. Also surface ${detail.funding.highMatchOpportunities} high-match funding opportunities.`;
+    return `For the next meeting with ${name}: ${detail.insights.recommendedNextAction} Also cover: ${detail.insights.nextBestActions.slice(0, 2).join(" ")}`;
   }
   if (/opportunit|funding|grant/.test(q)) {
     return `${name} currently has ${detail.funding.fundingOpportunities} open funding opportunities with ${detail.funding.highMatchOpportunities} high matches (~${detail.funding.potentialFundingLabel} potential). Open Funding & Opportunities on the member portal for detail.`;

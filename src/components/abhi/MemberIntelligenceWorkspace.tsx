@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Brain,
+  FileDown,
   HeartPulse,
   Sparkles,
   TrendingUp,
@@ -24,8 +25,10 @@ import {
   getMemberIntelligenceDetail,
   type AbhiMemberIntelFilter,
   type AbhiMemberIntelligenceDetail,
+  type AbhiPortfolioAiIntelligence,
   type AbhiRenewalRisk,
 } from "@/lib/abhi/member-intelligence";
+import { downloadAbhiRelationshipBriefPdf } from "@/lib/abhi/relationship-brief-pdf";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -105,7 +108,7 @@ export default function MemberIntelligenceWorkspace({ clients }: Props) {
     return <MemberDetail detail={detail} onBack={backToPortfolio} />;
   }
 
-  const { summary } = portfolio;
+  const { summary, aiIntelligence } = portfolio;
 
   return (
     <div className="space-y-5 p-1">
@@ -151,6 +154,11 @@ export default function MemberIntelligenceWorkspace({ clients }: Props) {
           />
         </div>
       </header>
+
+      <AiRelationshipIntelligencePanel
+        intelligence={aiIntelligence}
+        onOpenMember={openMember}
+      />
 
       <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -305,12 +313,20 @@ function MemberDetail({
         <h1 className="mt-1 text-2xl font-semibold text-white sm:text-3xl">
           {detail.memberName}
         </h1>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <Chip>{detail.membershipType}</Chip>
           <Chip>Status: {detail.membershipStatus}</Chip>
           <Chip>Health: {detail.healthScore} · {detail.healthBand}</Chip>
           <RiskBadge risk={detail.renewalRisk} />
           <Chip>{detail.relationshipStatus}</Chip>
+          <button
+            type="button"
+            onClick={() => downloadAbhiRelationshipBriefPdf(detail)}
+            className="ml-auto inline-flex items-center gap-2 rounded-lg border border-[#C2185B]/40 bg-[#C2185B]/20 px-3 py-1.5 text-xs font-semibold text-[#f4a6c4] hover:bg-[#C2185B]/30"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            Generate Relationship Brief
+          </button>
         </div>
       </header>
 
@@ -343,31 +359,84 @@ function MemberDetail({
       </div>
 
       <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
-        <h2 className="text-sm font-semibold text-white">Executive insights</h2>
-        <div className="mt-3 grid gap-3 lg:grid-cols-2">
-          <InsightCard title="Relationship Summary" body={detail.insights.relationshipSummary} />
-          <InsightCard title="Member Health Assessment" body={detail.insights.healthAssessment} />
-          <InsightCard title="Renewal Assessment" body={detail.insights.renewalAssessment} />
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-              Recommended Actions
-            </p>
-            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-white/75">
-              {detail.insights.recommendedActions.map((a) => (
-                <li key={a}>{a}</li>
-              ))}
-            </ul>
-            <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-white/40">
-              Next Best Actions
-            </p>
-            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-white/75">
-              {detail.insights.nextBestActions.map((a) => (
-                <li key={a}>{a}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <h2 className="text-sm font-semibold text-white">Relationship summary</h2>
+        <p className="mt-3 text-sm leading-relaxed text-white/75">
+          {detail.insights.relationshipSummary}
+        </p>
+        <p className="mt-3 rounded-xl border border-[#C2185B]/25 bg-[#C2185B]/10 px-3 py-2.5 text-sm text-[#f4a6c4]">
+          <span className="font-semibold">Recommended next action: </span>
+          {detail.insights.recommendedNextAction}
+        </p>
       </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
+          <h2 className="text-sm font-semibold text-white">Member health assessment</h2>
+          <dl className="mt-3 space-y-2 text-sm">
+            <DetailRow label="Health Score" value={String(detail.insights.health.healthScore)} />
+            <DetailRow label="Trend" value={detail.insights.health.trend} />
+            <DetailRow label="Risk Level" value={detail.insights.health.riskLevel} />
+          </dl>
+          <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+            Reasoning
+          </p>
+          <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-white/75">
+            {detail.insights.health.reasoning.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
+          <h2 className="text-sm font-semibold text-white">Renewal assessment</h2>
+          <dl className="mt-3 space-y-2 text-sm">
+            <DetailRow
+              label="Renewal Probability"
+              value={`${detail.insights.renewal.renewalProbability}%`}
+            />
+            <DetailRow label="Confidence" value={detail.insights.renewal.confidence} />
+          </dl>
+          <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+            Key drivers
+          </p>
+          <ul className="mt-1 list-disc space-y-1 pl-4 text-sm text-white/75">
+            {detail.insights.renewal.drivers.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-sm text-white/60">{detail.insights.renewal.summary}</p>
+        </section>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
+          <h2 className="text-sm font-semibold text-white">Recommended actions</h2>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-4 text-sm text-white/75">
+            {detail.insights.recommendedActions.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ol>
+        </section>
+        <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
+          <h2 className="text-sm font-semibold text-white">Next best actions</h2>
+          <p className="mt-1 text-xs text-white/40">
+            Immediate actions for {detail.accountManager}
+          </p>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-4 text-sm text-white/75">
+            {detail.insights.nextBestActions.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ol>
+          <button
+            type="button"
+            onClick={() => downloadAbhiRelationshipBriefPdf(detail)}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-white/80 hover:bg-white/10"
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            Download PDF
+          </button>
+        </section>
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
@@ -462,6 +531,107 @@ function MemberDetail({
   );
 }
 
+function AiRelationshipIntelligencePanel({
+  intelligence,
+  onOpenMember,
+}: {
+  intelligence: AbhiPortfolioAiIntelligence;
+  onOpenMember: (id: string) => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-[#C2185B]/25 bg-gradient-to-br from-[#C2185B]/12 via-white/[0.03] to-transparent p-4 sm:p-5">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-[#f4a6c4]" />
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f4a6c4]/80">
+            Action centre
+          </p>
+          <h2 className="text-lg font-semibold text-white">AI Relationship Intelligence</h2>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SummaryTile
+          label="Members Requiring Attention"
+          value={String(intelligence.membersRequiringAttention)}
+          tone="risk"
+        />
+        <SummaryTile
+          label="High Value Members At Risk"
+          value={String(intelligence.highValueAtRisk)}
+          tone="accent"
+        />
+        <SummaryTile
+          label="Renewals Due In 90 Days"
+          value={String(intelligence.renewalsDueIn90Days)}
+        />
+        <SummaryTile
+          label="Low Engagement Members"
+          value={String(intelligence.lowEngagementMembers)}
+        />
+      </div>
+
+      <p className="mt-4 text-sm font-medium text-white/85">
+        {intelligence.membersRequiringAttention} members require attention.
+      </p>
+
+      <div className="mt-3 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+            Priority actions
+          </p>
+          <ol className="mt-3 space-y-3">
+            {intelligence.priorityActions.map((item, index) => (
+              <li key={item.memberId}>
+                <button
+                  type="button"
+                  onClick={() => onOpenMember(item.memberId)}
+                  className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-left transition hover:border-[#C2185B]/40 hover:bg-[#C2185B]/10"
+                >
+                  <p className="text-sm font-semibold text-white">
+                    {index + 1}. {item.memberName}
+                  </p>
+                  <ul className="mt-1 space-y-0.5 text-xs text-white/60">
+                    {item.reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                </button>
+              </li>
+            ))}
+            {intelligence.priorityActions.length === 0 ? (
+              <li className="text-sm text-white/45">No urgent priority accounts right now.</li>
+            ) : null}
+          </ol>
+        </div>
+
+        <div className="space-y-3">
+          <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+              Recommended account manager actions
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-white/75">
+              {intelligence.recommendedAccountManagerActions.map((action) => (
+                <li key={action}>{action}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+              Relationship intervention recommendations
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-white/75">
+              {intelligence.interventionRecommendations.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function SummaryTile({
   label,
   value,
@@ -533,15 +703,6 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between gap-3 border-b border-white/8 pb-1.5">
       <dt className="text-white/40">{label}</dt>
       <dd className="text-right text-white/85">{value}</dd>
-    </div>
-  );
-}
-
-function InsightCard({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">{title}</p>
-      <p className="mt-2 text-sm text-white/75">{body}</p>
     </div>
   );
 }
