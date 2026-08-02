@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { workspaceLoginUrl, parseValidWorkspaceReturnTo } from "@/lib/app-domains";
-import { clearPlatformSessionCookie } from "@/lib/platform-session-cookie";
+import {
+  clearAbhiPortalsGateCookie,
+  clearPlatformSessionCookie,
+} from "@/lib/platform-session-cookie";
 import { getPlatformSession } from "@/lib/platform-session";
 
 export const dynamic = "force-dynamic";
@@ -39,5 +42,6 @@ export async function POST(request: NextRequest) {
     hadSession: Boolean(session),
   });
   clearPlatformSessionCookie(response, request);
+  clearAbhiPortalsGateCookie(response, request);
   return response;
 }

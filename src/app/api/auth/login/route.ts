@@ -6,7 +6,7 @@ import {
   normalizePlatformUsername,
   type PlatformSession,
 } from "@/lib/platform-auth";
-import { applyPlatformSessionCookie } from "@/lib/platform-session-cookie";
+import { applyPlatformSessionCookie, applyAbhiPortalsGateCookie } from "@/lib/platform-session-cookie";
 import {
   DEMO_WORKSPACE_SLUG,
   DEMO_SITE_URL,
@@ -85,6 +85,31 @@ function nextFromReferer(request: NextRequest): string | null {
   }
 }
 
+function wantsAbhiPortalsNext(nextRaw: string | null | undefined): boolean {
+  const nextPath = parseSafePostLoginNext(nextRaw);
+  const rawNext = String(nextRaw ?? "").trim();
+  return (
+    nextPath === "/portals" ||
+    nextPath?.startsWith("/portals/") === true ||
+    rawNext === "/portals" ||
+    rawNext.startsWith("/portals?")
+  );
+}
+
+function applyPortalsGateIfNeeded(
+  response: NextResponse,
+  request: NextRequest,
+  options: { nextRaw: string | null; username?: string | null; userType: string },
+) {
+  if (
+    wantsAbhiPortalsNext(options.nextRaw) &&
+    isAbhiPortalsAllowedUsername(options.username) &&
+    options.userType !== "external"
+  ) {
+    applyAbhiPortalsGateCookie(response, request);
+  }
+}
+
 /**
  * Resolve post-login navigation.
  * Priority for Talanton company-portal externals: assigned portal URL (never admin dashboard).
@@ -102,12 +127,7 @@ async function resolvePostLoginRedirect(options: {
   const { redirectPath, requestHost, returnToRaw, nextRaw, userType, username } = options;
   const loginReturn = parseLoginReturnTo(returnToRaw);
   const nextPath = parseSafePostLoginNext(nextRaw);
-  const rawNext = String(nextRaw ?? "").trim();
-  const wantsPortalsNext =
-    nextPath === "/portals" ||
-    nextPath?.startsWith("/portals/") === true ||
-    rawNext === "/portals" ||
-    rawNext.startsWith("/portals?");
+  const wantsPortalsNext = wantsAbhiPortalsNext(nextRaw);
 
   // Prefer /portals whenever the deep-link asked for it (ABHI demo/admin only).
   // Do this before the generic workspace → dashboard default.
@@ -314,6 +334,11 @@ async function createAbhiPortalsCredentialLoginResponse(
   });
 
   applyPlatformSessionCookie(response, await createPlatformSessionToken(session), request);
+  applyPortalsGateIfNeeded(response, request, {
+    nextRaw,
+    username,
+    userType: "internal",
+  });
   return response;
 }
 
@@ -423,6 +448,11 @@ export async function POST(request: NextRequest) {
         });
 
         applyPlatformSessionCookie(response, result.token, request);
+        applyPortalsGateIfNeeded(response, request, {
+          nextRaw,
+          username: result.session.username,
+          userType: result.session.userType,
+        });
         return response;
       }
 

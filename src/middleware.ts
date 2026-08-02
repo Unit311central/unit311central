@@ -30,7 +30,11 @@ import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
-import { clearPlatformSessionCookie } from "@/lib/platform-session-cookie";
+import {
+  ABHI_PORTALS_GATE_COOKIE,
+  clearAbhiPortalsGateCookie,
+  clearPlatformSessionCookie,
+} from "@/lib/platform-session-cookie";
 import {
   PLATFORM_SESSION_COOKIE,
   readPlatformSessionToken,
@@ -266,8 +270,8 @@ export async function middleware(request: NextRequest) {
       return bounce;
     }
 
-    // ABHI pre-demo portals briefing — requires demo@ or admin@ session cookie.
-    // Uses username allowlist (not workspace membership) so demo credential logins work.
+    // ABHI pre-demo portals briefing — requires an explicit portals login.
+    // A normal ABHI platform session alone must not skip the portals login page.
     if (
       workspaceSlug === ABHI_SLUG &&
       (pathname === "/portals" || pathname.startsWith("/portals/"))
@@ -275,9 +279,13 @@ export async function middleware(request: NextRequest) {
       const loginUrl = `${workspaceOrigin}/login?next=${encodeURIComponent("/portals")}`;
       const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
       const session = token ? await readPlatformSessionToken(token) : null;
-      if (!session || !isAbhiPortalsAllowedUsername(session.username)) {
+      const portalsGate = request.cookies.get(ABHI_PORTALS_GATE_COOKIE)?.value === "1";
+      if (!session || !isAbhiPortalsAllowedUsername(session.username) || !portalsGate) {
         const bounce = redirectExternal(loginUrl);
-        if (token) clearPlatformSessionCookie(bounce, request);
+        if (token && (!session || !isAbhiPortalsAllowedUsername(session.username))) {
+          clearPlatformSessionCookie(bounce, request);
+        }
+        clearAbhiPortalsGateCookie(bounce, request);
         return bounce;
       }
       const response = NextResponse.next({ request: { headers } });
@@ -333,6 +341,12 @@ export async function middleware(request: NextRequest) {
       // wipe active /portals (and other) sessions within seconds.
       if (isCompanyPortalSlug(workspaceSlug)) {
         const response = NextResponse.next({ request: { headers } });
+        // Visiting portals login entry clears the one-time portals gate so users
+        // must complete the login form before /portals opens again.
+        const nextParam = request.nextUrl.searchParams.get("next");
+        if (nextParam === "/portals" || nextParam?.startsWith("/portals")) {
+          clearAbhiPortalsGateCookie(response, request);
+        }
         for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
           response.headers.set(key, value);
         }

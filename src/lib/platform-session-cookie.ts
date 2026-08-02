@@ -8,6 +8,9 @@ import {
 
 export { PLATFORM_SESSION_COOKIE, PLATFORM_SESSION_MAX_AGE_SECONDS };
 
+/** Set after an explicit /portals login — required to enter the briefing page. */
+export const ABHI_PORTALS_GATE_COOKIE = "abhi_portals_gate";
+
 /** Shared session cookie options for apex ↔ internal.* (and future workspace hosts). */
 export function getPlatformSessionCookieOptions(request?: NextRequest | Request) {
   const host = resolveUnit311CookieHost(request ?? null);
@@ -38,6 +41,29 @@ export function applyPlatformSessionCookie(
     token,
     getPlatformSessionCookieOptions(request),
   );
+}
+
+export function applyAbhiPortalsGateCookie(
+  response: NextResponse,
+  request?: NextRequest | Request,
+) {
+  response.cookies.set(ABHI_PORTALS_GATE_COOKIE, "1", getPlatformSessionCookieOptions(request));
+}
+
+export function clearAbhiPortalsGateCookie(
+  response: NextResponse,
+  request?: NextRequest | Request,
+) {
+  const options = getPlatformSessionCookieOptions(request);
+  const secure =
+    Boolean(options.secure) ||
+    (typeof process !== "undefined" && process.env.NODE_ENV === "production");
+  response.cookies.set(ABHI_PORTALS_GATE_COOKIE, "", {
+    ...options,
+    secure,
+    maxAge: 0,
+    expires: new Date(0),
+  });
 }
 
 /** Clear the shared platform session cookie (logout). */
