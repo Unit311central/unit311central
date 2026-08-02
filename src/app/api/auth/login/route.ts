@@ -9,6 +9,8 @@ import {
 import { applyPlatformSessionCookie } from "@/lib/platform-session-cookie";
 import {
   DEMO_WORKSPACE_SLUG,
+  DEMO_SITE_URL,
+  INTERNAL_SITE_URL,
   customerWorkspaceOrigin,
   getRequestHost,
   isDemoDomainHost,
@@ -168,6 +170,9 @@ async function resolvePostLoginRedirect(options: {
 
   if (loginReturn?.kind === "demo" || loginReturn?.kind === "internal") {
     const path = nextPath || "/";
+    if (path === "/" || path === "") {
+      return `${loginReturn.origin.replace(/\/$/, "")}/`;
+    }
     return resolveBrowserRedirectPathForHost(path, requestHost, {
       userType: "internal",
       opsOrigin: loginReturn.origin,
@@ -329,7 +334,11 @@ export async function POST(request: NextRequest) {
     const hostWorkspaceSlug = parseClientPlatformSubdomainSafe(requestHost);
     const hostWorkspaceOrigin = hostWorkspaceSlug
       ? customerWorkspaceOrigin(hostWorkspaceSlug)
-      : null;
+      : isDemoDomainHost(requestHost)
+        ? DEMO_SITE_URL
+        : isInternalDomainHost(requestHost)
+          ? INTERNAL_SITE_URL
+          : null;
 
     const returnToRaw =
       body.returnTo?.trim() ||

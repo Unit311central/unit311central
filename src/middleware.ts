@@ -456,16 +456,12 @@ export async function middleware(request: NextRequest) {
       "x-unit311-demo": "1",
       "x-unit311-workspace-slug": DEMO_WORKSPACE_SLUG,
     };
+    const demoOrigin = isLocalDevHost(host)
+      ? `${request.nextUrl.protocol}//${host}`
+      : DEMO_SITE_URL;
 
-    if (pathname === "/login" || pathname.startsWith("/login/")) {
-      if (isLocalDevHost(host)) {
-        const port = request.nextUrl.port || "3000";
-        return redirectExternal(`http://localhost:${port}/login${search}`);
-      }
-      const loginUrl = new URL(`${CENTRAL_SITE_URL}/login`);
-      loginUrl.search = search;
-      loginUrl.searchParams.set("return_to", DEMO_SITE_URL);
-      return redirectExternal(loginUrl.toString());
+    if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
+      return NextResponse.next({ request: { headers } });
     }
 
     if (isPublicMarketingPath(pathname)) {
@@ -476,15 +472,45 @@ export async function middleware(request: NextRequest) {
       return redirectExternal(`${CENTRAL_SITE_URL}${pathname}${search}`);
     }
 
-    if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
-      return NextResponse.next({ request: { headers } });
+    // Keep login on the demo host (do not bounce to apex central login).
+    if (pathname === "/login" || pathname.startsWith("/login/")) {
+      const gate = await evaluateCustomerHostSessionGate(request, DEMO_WORKSPACE_SLUG);
+      if (gate.status === "ok") {
+        // Already signed in — send to the platform shell.
+        return redirectExternal(`${demoOrigin}/${search}`);
+      }
+      const response = NextResponse.next({ request: { headers } });
+      for (const [key, value] of Object.entries(shellHeaders)) {
+        response.headers.set(key, value);
+      }
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return response;
     }
 
     const legacyBrowserRedirect = redirectLegacyInternalBrowserPath(request, pathname, search);
     if (legacyBrowserRedirect) return legacyBrowserRedirect;
 
+    // Require a Demo workspace session for the platform shell.
+    const gate = await evaluateCustomerHostSessionGate(request, DEMO_WORKSPACE_SLUG);
+    if (
+      gate.status === "anonymous" ||
+      gate.status === "invalid" ||
+      gate.status === "forbidden" ||
+      gate.status === "workspace_missing"
+    ) {
+      const bounce = redirectExternal(`${demoOrigin}/login`);
+      if (gate.status !== "anonymous") {
+        clearPlatformSessionCookie(bounce, request);
+      }
+      return bounce;
+    }
+
     if (pathname === "/" || pathname === "") {
-      return rewriteTo(request, "/internaldashboard", headers, shellHeaders);
+      const response = rewriteTo(request, "/internaldashboard", headers, shellHeaders);
+      return applyCustomerHostRebindIfNeeded({ request, response, gate });
     }
 
     const hardPathRedirect = mapHardPathToViewQuery(pathname, search);
@@ -501,7 +527,7 @@ export async function middleware(request: NextRequest) {
     for (const [key, value] of Object.entries(shellHeaders)) {
       response.headers.set(key, value);
     }
-    return response;
+    return applyCustomerHostRebindIfNeeded({ request, response, gate });
   }
 
   // --- Internal application host ---
@@ -600,13 +626,9 @@ export async function middleware(request: NextRequest) {
     const headers = withHostHeaders(request, { demo: true });
     const legacyBrowserRedirect = redirectLegacyInternalBrowserPath(request, pathname, search);
     if (legacyBrowserRedirect) return legacyBrowserRedirect;
-    if (pathname === "/" || pathname === "") {
-      return rewriteTo(request, "/internaldashboard", headers, {
-        "x-unit311-internal": "1",
-        "x-unit311-demo": "1",
-      });
-    }
-    return NextResponse.next({ request: { headers } });
+    // Defer to the primary isDemoDomainHost branch above whenever possible.
+    // Fallback: never serve the shell without auth.
+    return redirectExternal(`${DEMO_SITE_URL}/login`);
   }
 
   return NextResponse.next();

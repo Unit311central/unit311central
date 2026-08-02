@@ -3,8 +3,12 @@ import { headers } from "next/headers";
 
 import Unit311LoginPage from "@/components/auth/Unit311LoginPage";
 import {
+  DEMO_SITE_URL,
+  INTERNAL_SITE_URL,
   getRequestHost,
   isCentralDomainHost,
+  isDemoDomainHost,
+  isInternalDomainHost,
   parseClientPlatformSubdomainSafe,
   parseLoginReturnTo,
   parseSafePostLoginNext,
@@ -18,6 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = getRequestHost({ headers: await headers() });
   const workspaceSlug = parseClientPlatformSubdomainSafe(host);
   const isCentral = isCentralDomainHost(host);
+  const isDemo = isDemoDomainHost(host);
 
   if (isCorpCentreSlug(workspaceSlug)) {
     return {
@@ -44,6 +49,14 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
 
+  if (isDemo) {
+    return {
+      title: "Login | Unit311 Demo",
+      description: "Secure access to the Unit311 Demo workspace.",
+      robots: { index: false, follow: false },
+    };
+  }
+
   return {
     title: isCentral ? "Workspace Login | Unit311 Central" : "Workspace Login | Unit311",
     description: "Secure Access to your Workspace.",
@@ -58,11 +71,15 @@ type PageProps = {
 export default async function LoginPage({ searchParams }: PageProps) {
   const host = getRequestHost({ headers: await headers() });
   const isCentral = isCentralDomainHost(host);
+  const isDemo = isDemoDomainHost(host);
+  const isInternal = isInternalDomainHost(host);
   const workspaceSlug = parseClientPlatformSubdomainSafe(host);
   const params = await searchParams;
   const returnTo =
     parseLoginReturnTo(params.return_to)?.origin ??
-    (workspaceSlug ? customerWorkspaceOrigin(workspaceSlug) : null);
+    (workspaceSlug ? customerWorkspaceOrigin(workspaceSlug) : null) ??
+    (isDemo ? DEMO_SITE_URL : null) ??
+    (isInternal ? INTERNAL_SITE_URL : null);
   const nextPath = parseSafePostLoginNext(params.next);
   const brand = isCorpCentreSlug(workspaceSlug)
     ? "corpcentre"
