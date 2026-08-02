@@ -47,33 +47,29 @@ export function clearPlatformSessionCookie(
 ) {
   const options = getPlatformSessionCookieOptions(request);
   const secure =
-    options.secure ||
+    Boolean(options.secure) ||
     (typeof process !== "undefined" && process.env.NODE_ENV === "production");
   const expired = new Date(0).toUTCString();
 
-  // Prefer response.cookies API…
-  response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
-    ...options,
-    secure,
-    maxAge: 0,
-    expires: new Date(0),
-  });
-  response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-    expires: new Date(0),
-  });
-
-  // …and also emit explicit Set-Cookie headers. Middleware redirects on Vercel
-  // have dropped cookies.set() in some cases; headers.append is reliable.
+  // Explicit Set-Cookie headers — reliable on middleware redirects (Vercel).
+  // Clear both host-only and Domain=.unit311central.com variants; browsers
+  // treat them as distinct cookies.
   const base = `${PLATFORM_SESSION_COOKIE}=; Path=/; Max-Age=0; Expires=${expired}; HttpOnly; SameSite=Lax${
     secure ? "; Secure" : ""
   }`;
   response.headers.append("Set-Cookie", base);
   if (options.domain) {
     response.headers.append("Set-Cookie", `${base}; Domain=${options.domain}`);
+  } else {
+    // Fallback domain clear for unit311 family hosts when request host is missing.
+    response.headers.append("Set-Cookie", `${base}; Domain=.unit311central.com`);
   }
+
+  // Keep cookies API in sync for non-redirect responses.
+  response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
+    ...options,
+    secure,
+    maxAge: 0,
+    expires: new Date(0),
+  });
 }
