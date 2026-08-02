@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Loader2,
   Menu,
@@ -232,7 +234,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
     return () => window.removeEventListener("beforeunload", onUnload);
   }, [saveProgress]);
 
-  // Sync active lesson from scroll position.
+  // Sync active lesson from horizontal scroll position.
   useEffect(() => {
     const root = scrollRef.current;
     if (!root || lessons.length === 0) return;
@@ -248,7 +250,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
           setLessonIndex(idx);
         }
       },
-      { root, threshold: [0.35, 0.55], rootMargin: "-12% 0px -45% 0px" },
+      { root, threshold: [0.55, 0.75], rootMargin: "0px -20% 0px -20%" },
     );
     for (const lesson of lessons) {
       const el = sectionRefs.current.get(lesson.id);
@@ -257,12 +259,12 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
     return () => observer.disconnect();
   }, [lessons, loading]);
 
-  function scrollToLesson(index: number) {
+  function scrollToLesson(index: number, behavior: ScrollBehavior = "smooth") {
     const lesson = lessons[index];
     if (!lesson) return;
     setLessonIndex(index);
     const el = sectionRefs.current.get(lesson.id);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    el?.scrollIntoView({ behavior, inline: "start", block: "nearest" });
     void saveProgress({
       status: "in_progress",
       lastLessonId: lesson.id,
@@ -330,15 +332,10 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
     }
   }
 
-  // Resume scroll after load.
+  // Resume horizontal position after load.
   useEffect(() => {
     if (loading || !lessons[lessonIndex]) return;
-    const el = sectionRefs.current.get(lessons[lessonIndex].id);
-    if (el) {
-      window.setTimeout(() => {
-        el.scrollIntoView({ behavior: "auto", block: "start" });
-      }, 80);
-    }
+    window.setTimeout(() => scrollToLesson(lessonIndex, "auto"), 80);
     // Only on initial load completion
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
@@ -438,80 +435,124 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
           </div>
         </aside>
 
-        <main ref={scrollRef} className="relative min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8">
-          {loading ? (
-            <div className="flex h-full items-center justify-center gap-2 text-white/55">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Loading course…
-            </div>
-          ) : error ? (
-            <div className="mx-auto max-w-lg rounded-2xl border border-rose-400/30 bg-rose-500/10 p-6 text-center">
-              <p className="text-sm text-rose-100">{error}</p>
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+          <main
+            ref={scrollRef}
+            className="relative min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden scroll-smooth"
+          >
+            {loading ? (
+              <div className="flex h-full w-full items-center justify-center gap-2 text-white/55">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Loading course…
+              </div>
+            ) : error ? (
+              <div className="flex h-full w-full items-center justify-center px-4">
+                <div className="max-w-lg rounded-2xl border border-rose-400/30 bg-rose-500/10 p-6 text-center">
+                  <p className="text-sm text-rose-100">{error}</p>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="mt-4 rounded-lg bg-white/10 px-4 py-2 text-sm text-white"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : lessons.length > 0 ? (
+              <div className="flex h-full">
+                {lessons.map((lesson, index) => {
+                  const moduleTitle =
+                    course?.modules.find((m) => m.id === lesson.moduleId)?.title ?? "Module";
+                  const done = completedIds.has(lesson.id);
+                  return (
+                    <section
+                      key={lesson.id}
+                      id={`lesson-${lesson.id}`}
+                      ref={(el) => {
+                        if (el) sectionRefs.current.set(lesson.id, el);
+                        else sectionRefs.current.delete(lesson.id);
+                      }}
+                      className="flex h-full w-full min-w-full max-w-full shrink-0 snap-start snap-always flex-col px-4 py-4 sm:px-8"
+                    >
+                      <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                          {moduleTitle}
+                        </span>
+                        <span className="text-[10px] text-white/35">
+                          {index + 1} / {lessons.length}
+                        </span>
+                        {done ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#f9a8d4]">
+                            <CheckCircle2 className="h-3 w-3" /> Done
+                          </span>
+                        ) : null}
+                        <span className="ml-auto hidden text-[10px] text-white/35 sm:inline">
+                          Swipe or use arrows →
+                        </span>
+                      </div>
+                      <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+                        <div className="mx-auto max-w-3xl">
+                          <LessonRenderer
+                            lesson={lesson}
+                            courseId={course?.id}
+                            courseSlug={courseSlug}
+                            enrolmentId={enrolment?.id}
+                            onComplete={(meta) => void handleLessonComplete(lesson, meta)}
+                          />
+                        </div>
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="flex h-full items-center justify-center text-sm text-white/50">
+                No lessons in this course.
+              </p>
+            )}
+          </main>
+
+          {lessons.length > 0 && !loading && !error ? (
+            <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
               <button
                 type="button"
-                onClick={onClose}
-                className="mt-4 rounded-lg bg-white/10 px-4 py-2 text-sm text-white"
+                disabled={lessonIndex <= 0}
+                onClick={() => scrollToLesson(lessonIndex - 1)}
+                className="inline-flex items-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/[0.04] disabled:opacity-30"
               >
-                Close
+                <ChevronLeft className="h-4 w-4" />
+                Back
               </button>
-            </div>
-          ) : lessons.length > 0 ? (
-            <div className="mx-auto flex max-w-3xl flex-col gap-8 pb-24">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-5 py-6 sm:px-7">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9a8d4]/80">
-                  Learning path
-                </p>
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                  {course?.title}
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
-                  Scroll through short explanations, visuals, and interactive moments. Complete each
-                  section as you go — your progress saves automatically.
-                </p>
-              </div>
-
-              {lessons.map((lesson, index) => {
-                const moduleTitle =
-                  course?.modules.find((m) => m.id === lesson.moduleId)?.title ?? "Module";
-                const done = completedIds.has(lesson.id);
-                return (
-                  <div
+              <div className="flex items-center gap-1.5">
+                {lessons.map((lesson, i) => (
+                  <button
                     key={lesson.id}
-                    id={`lesson-${lesson.id}`}
-                    ref={(el) => {
-                      if (el) sectionRefs.current.set(lesson.id, el);
-                      else sectionRefs.current.delete(lesson.id);
-                    }}
-                    className="scroll-mt-24"
-                  >
-                    <div className="mb-3 flex items-center gap-2 px-1">
-                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                        {moduleTitle}
-                      </span>
-                      <span className="text-[10px] text-white/35">
-                        {index + 1} / {lessons.length}
-                      </span>
-                      {done ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#f9a8d4]">
-                          <CheckCircle2 className="h-3 w-3" /> Done
-                        </span>
-                      ) : null}
-                    </div>
-                    <LessonRenderer
-                      lesson={lesson}
-                      courseId={course?.id}
-                      courseSlug={courseSlug}
-                      enrolmentId={enrolment?.id}
-                      onComplete={(meta) => void handleLessonComplete(lesson, meta)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-white/50">No lessons in this course.</p>
-          )}
-        </main>
+                    type="button"
+                    aria-label={`Go to lesson ${i + 1}`}
+                    onClick={() => scrollToLesson(i)}
+                    className={cn(
+                      "h-2 rounded-full transition-all",
+                      i === lessonIndex
+                        ? "w-6 bg-[#C2185B]"
+                        : completedIds.has(lesson.id)
+                          ? "w-2 bg-[#f472b6]/70"
+                          : "w-2 bg-white/25",
+                    )}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                disabled={lessonIndex >= lessons.length - 1}
+                onClick={() => scrollToLesson(lessonIndex + 1)}
+                className="inline-flex items-center gap-1 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/[0.04] disabled:opacity-30"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </footer>
+          ) : null}
+        </div>
       </div>
 
       {showCeremony && course ? (

@@ -25,7 +25,7 @@ type Props = {
 };
 
 /**
- * Vertical learning section shell — stacked visual + content (not a side-by-side LMS card).
+ * Learning card shell for horizontal (left→right) course scroller panels.
  */
 export default function ImmersiveLessonShell({
   eyebrow,
@@ -47,9 +47,9 @@ export default function ImmersiveLessonShell({
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 18 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
+      initial={{ opacity: 0, x: 28 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true, amount: 0.35 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
       className={cn(
         "w-full overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#0d1a2e] to-[#0a1424] shadow-[0_24px_60px_-36px_rgba(0,0,0,0.85)]",
