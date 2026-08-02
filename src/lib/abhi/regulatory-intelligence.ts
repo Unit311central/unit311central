@@ -408,15 +408,15 @@ function recommendedActionForMember(
 }
 
 function enrichMatchedMember(
-  base: Omit<
-    AbhiMatchedRegulatoryMember,
-    | "whyAffected"
-    | "relevantTechnologies"
-    | "relevantProducts"
-    | "recommendedAbhiAction"
-    | "impactScore"
-    | "matchScore"
-  > & { impactScore: number; accountManager: string },
+  base: {
+    id: string;
+    memberName: string;
+    membershipType: string;
+    impactScore: number;
+    strategic: boolean;
+    highImpact: boolean;
+    accountManager: string;
+  },
   update: AbhiRegulatoryUpdate,
 ): AbhiMatchedRegulatoryMember {
   const profile = getAbhiMemberOrgProfile(base.id, base.memberName);
@@ -437,7 +437,9 @@ function enrichMatchedMember(
       : update.affectedTechnologies.slice(0, 3);
 
   return {
-    ...base,
+    id: base.id,
+    memberName: base.memberName,
+    membershipType: base.membershipType,
     impactScore: base.impactScore,
     matchScore: base.impactScore,
     whyAffected,
@@ -445,6 +447,9 @@ function enrichMatchedMember(
     relevantProducts: memberProductsFor(profile, base.memberName),
     recommendedAbhiAction: recommendedActionForMember(update, base.impactScore),
     matchReasons: whyAffected,
+    strategic: base.strategic,
+    highImpact: base.highImpact,
+    accountManager: base.accountManager,
   };
 }
 
