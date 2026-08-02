@@ -205,20 +205,25 @@ export async function middleware(request: NextRequest) {
           return response;
         }
 
-        if (gate.session.userType === "external") {
-          const allowed = canonicalizePortalRedirect(gate.session.redirectPath);
-          if (!allowed) {
-            // Member with no company portal assignment — do not enter portal app.
-            const response = companyPortalLoginRewrite();
-            clearPlatformSessionCookie(response, request);
-            return response;
-          }
-          if (allowed !== `/${portalMatch.route.path}` && !pathname.startsWith(allowed)) {
-            const bounce = redirectExternal(`${workspaceOrigin}${allowed}`);
-            return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
-          }
+        // Member portals are external-only. Internal ABHI/Talanton staff sessions
+        // must still see the branded login (not skip straight into the portal view).
+        if (gate.session.userType !== "external") {
+          return companyPortalLoginRewrite();
         }
-        // Signed-in users hitting /{company}/login go to the portal home.
+
+        const allowed = canonicalizePortalRedirect(gate.session.redirectPath);
+        if (!allowed) {
+          // Member with no company portal assignment — do not enter portal app.
+          const response = companyPortalLoginRewrite();
+          clearPlatformSessionCookie(response, request);
+          return response;
+        }
+        if (allowed !== `/${portalMatch.route.path}` && !pathname.startsWith(allowed)) {
+          const bounce = redirectExternal(`${workspaceOrigin}${allowed}`);
+          return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
+        }
+
+        // Matching external users hitting /{company}/login go to the portal home.
         if (isLoginRest) {
           const bounce = redirectExternal(`${workspaceOrigin}/${portalMatch.route.path}`);
           return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });

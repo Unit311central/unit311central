@@ -25,6 +25,7 @@ export default async function AbhiMemberPortalLoginPage({
       companyPath={route.path}
       companyName={route.displayName}
       suggestedUsername={route.username}
+      companyLogoSrc={route.companyLogoSrc}
     />
   );
 }

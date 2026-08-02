@@ -43,7 +43,8 @@ export async function requireAbhiMemberPortalAccess(
     redirect(portalLoginPath(route.path));
   }
 
-  // External users: only their assigned member portal.
+  // External users only — staff must use the branded portal login with the
+  // assigned member account (e.g. demo@centrak.com), not skip via admin session.
   if (session.userType === "external") {
     const allowed = getMemberPortalByPath(session.redirectPath);
     if (!allowed) {
@@ -63,23 +64,6 @@ export async function requireAbhiMemberPortalAccess(
         redirectPath: session.redirectPath,
         clientId: allowed.clientId,
         isStaffPreview: false,
-      },
-    };
-  }
-
-  // Internal ABHI staff (host membership already enforced by middleware) may
-  // preview member portals. These URLs always render portal chrome — never admin nav.
-  if (session.userType === "internal") {
-    return {
-      route,
-      session: {
-        userId: session.sub,
-        username: session.username,
-        displayName: session.displayName,
-        userType: session.userType,
-        redirectPath: `/${route.path}`,
-        clientId: route.clientId,
-        isStaffPreview: true,
       },
     };
   }

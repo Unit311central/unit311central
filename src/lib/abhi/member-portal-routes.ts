@@ -11,6 +11,8 @@ export type AbhiMemberPortalRoute = {
   clientId: string;
   username: string;
   redirectPath: string;
+  /** Optional member-company logo under the ABHI mark on the login page. */
+  companyLogoSrc?: string;
 };
 
 export const ABHI_MEMBER_PORTAL_ROUTES: readonly AbhiMemberPortalRoute[] = [
@@ -20,6 +22,7 @@ export const ABHI_MEMBER_PORTAL_ROUTES: readonly AbhiMemberPortalRoute[] = [
     clientId: "abhi-cli-centrak",
     username: "demo@centrak.com",
     redirectPath: "/centrak",
+    companyLogoSrc: "/images/portals/centrak.jpg",
   },
   {
     path: "gamahealthcare",

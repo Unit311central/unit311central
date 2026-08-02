@@ -8,9 +8,15 @@ type Props = {
   companyPath: string;
   companyName: string;
   suggestedUsername: string;
+  companyLogoSrc?: string;
 };
 
-export function AbhiMemberPortalLogin({ companyPath, companyName, suggestedUsername }: Props) {
+export function AbhiMemberPortalLogin({
+  companyPath,
+  companyName,
+  suggestedUsername,
+  companyLogoSrc,
+}: Props) {
   const [username, setUsername] = useState(suggestedUsername);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +56,19 @@ export function AbhiMemberPortalLogin({ companyPath, companyName, suggestedUsern
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#07111f] px-4 py-10 text-white">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex justify-center">
-          <AbhiLogoMark height={48} />
+        <div className="mb-6 flex flex-col items-center gap-4">
+          <AbhiLogoMark height={52} />
+          {companyLogoSrc ? (
+            <span className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.35)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={companyLogoSrc}
+                alt={companyName}
+                className="h-10 w-auto max-w-[200px] object-contain"
+                decoding="async"
+              />
+            </span>
+          ) : null}
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
