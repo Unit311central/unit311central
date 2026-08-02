@@ -468,7 +468,11 @@ export default function AbhiPortalsDemoPage() {
       setLoadError(null);
     }
     try {
-      const response = await fetch("/api/abhi/portals-content", { cache: "no-store" });
+      const response = await fetch("/api/abhi/portals-content", {
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
       if (response.status === 401) {
         // Initial auth failure → login. Silent polls must not bounce an active
         // editor if a transient cookie glitch occurs; retry next interval.
@@ -487,8 +491,12 @@ export default function AbhiPortalsDemoPage() {
       if (data.content && !dirtyRef.current) {
         setContent(data.content);
       }
-      setCanEdit(Boolean(data.canEdit));
-      setUsername(data.username ?? null);
+      const nextCanEdit = Boolean(data.canEdit);
+      const nextUsername = data.username ?? null;
+      // Never demote an active admin editor from a silent poll alone — cached or
+      // briefly-stale session reads were flipping the page to view-only demo mode.
+      setCanEdit((prev) => (silent && prev && !nextCanEdit ? prev : nextCanEdit));
+      setUsername((prev) => (silent && prev && !nextUsername ? prev : nextUsername));
     } catch (error) {
       if (!silent) {
         setLoadError(error instanceof Error ? error.message : "Failed to load");
@@ -521,13 +529,19 @@ export default function AbhiPortalsDemoPage() {
     try {
       const response = await fetch("/api/abhi/portals-content", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ content: body }),
       });
       const data = (await response.json()) as {
         content?: AbhiPortalsEditableContent;
         error?: string;
       };
+      if (response.status === 403) {
+        // Confirmed loss of admin rights — drop to view-only.
+        setCanEdit(false);
+        throw new Error(data.error ?? "Admin access required.");
+      }
       if (!response.ok) throw new Error(data.error ?? "Save failed");
       dirtyRef.current = false;
       if (data.content) setContent(data.content);
@@ -551,7 +565,12 @@ export default function AbhiPortalsDemoPage() {
 
   async function handleLogout() {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
     } catch {
       // Continue to login regardless.
     }
@@ -691,14 +710,14 @@ export default function AbhiPortalsDemoPage() {
           <p>
             {SITE_NAME} · Confidential demonstration material for ABHI
           </p>
-          <Link
-            href="/login?next=%2Fportals"
-            prefetch={false}
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
             className="inline-flex items-center gap-1 font-medium text-sky-300/80 transition hover:text-sky-200"
           >
             Switch account
             <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
+          </button>
         </footer>
       </div>
     </div>

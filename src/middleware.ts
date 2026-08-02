@@ -342,12 +342,11 @@ export async function middleware(request: NextRequest) {
       // wipe active /portals (and other) sessions within seconds.
       if (isCompanyPortalSlug(workspaceSlug)) {
         const response = NextResponse.next({ request: { headers } });
-        // Visiting portals login entry clears the one-time portals gate so users
-        // must complete the login form before /portals opens again.
-        const nextParam = request.nextUrl.searchParams.get("next");
-        if (nextParam === "/portals" || nextParam?.startsWith("/portals")) {
-          clearAbhiPortalsGateCookie(response, request);
-        }
+        // Do NOT clear the portals gate on /login?next=/portals here.
+        // Prefetch / speculative loads of that URL were wiping the gate while the
+        // admin still had /portals open, so the next navigation bounced them and
+        // a demo re-login looked like "edit mode reverted". Gate clears on logout
+        // (and when /portals rejects a missing/invalid session).
         for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
           response.headers.set(key, value);
         }
