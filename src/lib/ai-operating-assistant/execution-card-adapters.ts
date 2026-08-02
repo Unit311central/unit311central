@@ -169,6 +169,71 @@ export function cardsFromArtifacts(artifacts: AssistantMessageArtifact[]): EaExe
   );
 }
 
+/** Success card for ABHI Board Pack Generation. */
+export function cardsFromBoardPackSuccess(input: {
+  packName: string;
+  meetingDate: string;
+  status: string;
+  folderPath: string;
+  boardDeckHref: string;
+  pdfOpenUrl: string;
+  pdfDownloadUrl: string;
+  pptxDownloadUrl: string;
+  followUpActions?: AssistantFollowUpAction[];
+}): EaExecutionCard[] {
+  return [
+    {
+      id: `boardpack_success_${input.meetingDate}`,
+      kind: "summary",
+      title: "Board Pack Generated Successfully",
+      subtitle: `${input.packName} · ${input.status}`,
+      body: `Saved to ${input.folderPath}. Review in Corporate Information → Board Deck.`,
+      fields: [
+        { key: "pack", label: "Pack", value: input.packName },
+        { key: "meeting", label: "Meeting date", value: input.meetingDate },
+        { key: "status", label: "Status", value: input.status },
+      ],
+      statusTone: "success",
+      actions: [
+        {
+          id: "preview",
+          label: "Preview Board Pack",
+          variant: "primary",
+          intent: "open",
+          href: input.pdfOpenUrl,
+        },
+        {
+          id: "edit",
+          label: "Edit Board Pack",
+          variant: "secondary",
+          intent: "navigate",
+          href: input.boardDeckHref,
+        },
+        {
+          id: "pptx",
+          label: "Download PowerPoint",
+          variant: "secondary",
+          intent: "navigate",
+          href: input.pptxDownloadUrl,
+        },
+        {
+          id: "pdf",
+          label: "Download PDF",
+          variant: "ghost",
+          intent: "navigate",
+          href: input.pdfDownloadUrl,
+        },
+      ],
+      nextActions: input.followUpActions,
+      meta: {
+        boardPack: true,
+        packName: input.packName,
+        meetingDate: input.meetingDate,
+      },
+    },
+  ];
+}
+
 export function cardsFromProgress(input: {
   title: string;
   progressPct: number;

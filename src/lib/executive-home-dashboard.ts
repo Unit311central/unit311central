@@ -22,6 +22,30 @@ function isBrowserAbhiHome(): boolean {
   }
 }
 
+const ONBOARDING_ACCOUNT_STATUSES = new Set([
+  "Client Created",
+  "Workspace Provisioned",
+  "Onboarding",
+]);
+
+function countClientsInOnboarding(clients: ManagedClient[]) {
+  return clients.filter((client) => ONBOARDING_ACCOUNT_STATUSES.has(client.accountStatus)).length;
+}
+
+/** ABHI home: prefer live client statuses, then incomplete onboarding pipeline records. */
+function resolveEffectiveOnboardingCount(input: {
+  clients: ManagedClient[];
+  onboardingPipelineCount?: number;
+  abhiHome: boolean;
+}) {
+  const fromClients = countClientsInOnboarding(input.clients);
+  if (fromClients > 0) return fromClients;
+  if (input.abhiHome && (input.onboardingPipelineCount ?? 0) > 0) {
+    return input.onboardingPipelineCount ?? 0;
+  }
+  return 0;
+}
+
 function formatCompactMoney(amount: number, currency = "GBP") {
   const code = String(currency || "GBP").toUpperCase();
   const abs = Math.abs(amount);
@@ -239,6 +263,7 @@ export function buildExecutiveHomeLiveKpis(input: {
   financials: FinancialOverviewSnapshot | null;
   projects: InternalProject[];
   clients: ManagedClient[];
+  onboardingPipelineCount?: number;
 }): [
   DashboardKpiItem,
   DashboardKpiItem,
@@ -254,13 +279,23 @@ export function buildExecutiveHomeLiveKpis(input: {
   const burnPrevious =
     burn && burn.previousMonthly > 0 ? burn.previousMonthly : (burn?.monthly ?? 0);
   const activeClients = input.clients.filter((client) => client.accountStatus === "Active").length;
-  const onboarding = input.clients.filter((client) =>
-    ["Client Created", "Workspace Provisioned", "Onboarding"].includes(client.accountStatus),
-  ).length;
+  const abhiHome = isBrowserAbhiHome();
+  const effectiveOnboarding = resolveEffectiveOnboardingCount({
+    clients: input.clients,
+    onboardingPipelineCount: input.onboardingPipelineCount,
+    abhiHome,
+  });
+  const clientsDelta =
+    effectiveOnboarding > 0
+      ? abhiHome
+        ? `${effectiveOnboarding} in onboarding`
+        : `${effectiveOnboarding} onboarding`
+      : abhiHome
+        ? "All members active"
+        : "";
 
   const cashDelta = monthDelta(input.financials?.charts.cashPosition);
   const burnDelta = burnPreviousMonthDelta(burn);
-  const abhiHome = isBrowserAbhiHome();
   const defaultRevenuePeriodId = abhiHome ? "last-month" : "ytd";
   const defaultRevenuePeriod =
     revenuePeriods.find((period) => period.id === defaultRevenuePeriodId) ??
@@ -296,11 +331,15 @@ export function buildExecutiveHomeLiveKpis(input: {
     },
     {
       id: "clients",
-      label: "Active Clients",
+      label: abhiHome ? "Active Members" : "Active Clients",
       value: String(activeClients),
-      delta: onboarding > 0 ? `${onboarding} onboarding` : "",
+      delta: clientsDelta,
       tone: "positive",
-      hint: onboarding > 0 || !abhiHome ? "Live commercial relationships" : "",
+      hint: abhiHome
+        ? effectiveOnboarding > 0
+          ? "Live membership relationships"
+          : "Membership roster"
+        : "Live commercial relationships",
     },
   ]);
 }
@@ -495,6 +534,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
   financials: FinancialOverviewSnapshot | null;
   projects: InternalProject[];
   clients: ManagedClient[];
+  onboardingPipelineCount?: number;
 }) {
   const currency = input.financials?.burnRate?.currency || "GBP";
   const cash = input.financials?.cashPosition ?? 0;
@@ -509,7 +549,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
   );
   const activeClients = input.clients.filter((client) => client.accountStatus === "Active");
   const onboarding = input.clients.filter((client) =>
-    ["Client Created", "Workspace Provisioned", "Onboarding"].includes(client.accountStatus),
+    ONBOARDING_ACCOUNT_STATUSES.has(client.accountStatus),
   );
   const recentClients = [...input.clients]
     .sort((a, b) =>
@@ -545,15 +585,24 @@ export function buildExecutiveHomeLiveNarrative(input: {
     // keep default
   }
 
+  const effectiveOnboarding = resolveEffectiveOnboardingCount({
+    clients: input.clients,
+    onboardingPipelineCount: input.onboardingPipelineCount,
+    abhiHome,
+  });
+  const showOverdueFinance = !abhiHome && overdue > 0;
+
   const attention =
-    (overdue > 0 ? 1 : 0) + (atRisk.length > 0 ? 1 : 0) + (onboarding.length > 0 ? 1 : 0);
+    (showOverdueFinance ? 1 : 0) +
+    (atRisk.length > 0 ? 1 : 0) +
+    (effectiveOnboarding > 0 ? 1 : 0);
 
   const summaryParts = abhiHome
     ? [
         `${activeClients.length} active members.`,
         `${openProjects} live programmes in delivery.`,
-        overdue > 0
-          ? `${overdueCount} membership invoices overdue (${formatCompactMoney(overdue, currency)}).`
+        effectiveOnboarding > 0
+          ? `${effectiveOnboarding} member${effectiveOnboarding === 1 ? "" : "s"} in onboarding.`
           : "Membership receivables are current.",
         atRisk.length > 0
           ? `${atRisk.length} programme${atRisk.length === 1 ? "" : "s"} behind plan.`
@@ -580,7 +629,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
     severity: "critical" | "warning" | "info";
     timeLabel: string;
   }> = [];
-  if (overdue > 0) {
+  if (showOverdueFinance) {
     alerts.push({
       id: "live-ar",
       title: `${overdueCount} overdue invoice${overdueCount === 1 ? "" : "s"}`,
@@ -598,10 +647,10 @@ export function buildExecutiveHomeLiveNarrative(input: {
       timeLabel: "Delivery",
     });
   }
-  if (onboarding.length > 0) {
+  if (effectiveOnboarding > 0) {
     alerts.push({
       id: "live-onboard",
-      title: `${onboarding.length} ${abhiHome ? "member" : "client"}${onboarding.length === 1 ? "" : "s"} in onboarding`,
+      title: `${effectiveOnboarding} ${abhiHome ? "member" : "client"}${effectiveOnboarding === 1 ? "" : "s"} in onboarding`,
       detail: abhiHome
         ? "Complete membership provisioning and welcome packs this week."
         : "Complete workspace provisioning and kickoff packs this week.",
@@ -645,7 +694,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
       category: "Clients",
     });
   }
-  if (overdueCount > 0) {
+  if (showOverdueFinance && overdueCount > 0) {
     activity.push({
       id: "fin-ar",
       title: "Receivables ageing updated",
@@ -663,7 +712,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
     dueLabel: string;
     priority: "high" | "medium" | "low";
   }> = [];
-  if (overdue > 0) {
+  if (showOverdueFinance) {
     queue.push({
       id: "q-ar",
       title: "Authorise overdue invoice chase sequence",
@@ -688,6 +737,15 @@ export function buildExecutiveHomeLiveNarrative(input: {
       id: "q-onboard",
       title: `Complete onboarding — ${onboarding[0].companyName}`,
       meta: abhiHome ? "Members · Membership setup" : "Clients · Workspace setup",
+      status: "Action",
+      dueLabel: "This week",
+      priority: "medium",
+    });
+  } else if (abhiHome && effectiveOnboarding > 0) {
+    queue.push({
+      id: "q-onboard-pipeline",
+      title: `Review ${effectiveOnboarding} member onboarding pipeline`,
+      meta: "Members · Membership setup",
       status: "Action",
       dueLabel: "This week",
       priority: "medium",
@@ -785,6 +843,7 @@ export function withExecutiveHomeLiveData(
     financials: FinancialOverviewSnapshot | null;
     projects: InternalProject[];
     clients: ManagedClient[];
+    onboardingPipelineCount?: number;
   },
 ): WorkspaceDashboardConfig {
   return withExecutiveHomeLiveNarrative(

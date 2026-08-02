@@ -47,3 +47,16 @@ export function getBrowserWorkspaceSlug(): string {
 export function isBrowserAbhiSurface(): boolean {
   return isAbhiSlug(getBrowserWorkspaceSlug());
 }
+
+/** ABHI renames the Unit311 Details module and root folder in the UI. */
+export const ABHI_DETAILS_DISPLAY_NAME = "ABHI Details";
+export const UNIT311_DETAILS_LEGACY_FOLDER_NAME = "Unit311 Details";
+
+/** Map legacy/internal folder names to ABHI-facing labels (browser ABHI only). */
+export function displayAbhiFolderName(name: string): string {
+  if (!isBrowserAbhiSurface()) return name;
+  if (name.trim() === UNIT311_DETAILS_LEGACY_FOLDER_NAME) {
+    return ABHI_DETAILS_DISPLAY_NAME;
+  }
+  return name;
+}

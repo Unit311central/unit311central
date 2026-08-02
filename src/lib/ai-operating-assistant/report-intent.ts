@@ -137,7 +137,18 @@ export function classifyReportIntent(message: string): ClassifiedReportIntent | 
     return { reportType: "client", ...meta, reason: "explicit_client" };
   }
 
-  if (/\b(board\s+report|board\s+pack|board\s+update|board\s+brief)\b/.test(lower)) {
+  // Board packs / decks / papers / presentations are handled by boardpack.generate (ABHI).
+  // Do not short-circuit those asks into the legacy board report PDF tool.
+  if (
+    /\bboard\s+(pack|packs|deck|decks|papers?|presentation|materials|meeting\s+pack)\b/.test(
+      lower,
+    ) ||
+    /\b(board\s+meeting\s+(pack|papers|materials)|prepare\s+.*\bboard\b)/.test(lower)
+  ) {
+    return null;
+  }
+
+  if (/\b(board\s+report|board\s+update|board\s+brief)\b/.test(lower)) {
     const meta = reportDisplayMeta("board");
     return { reportType: "board", ...meta, reason: "explicit_board" };
   }

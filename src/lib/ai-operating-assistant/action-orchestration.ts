@@ -8,6 +8,9 @@
  * Write requests use the Action Framework (propose → Plan Viewer → execute).
  */
 
+import { isAbhiSlug } from "@/lib/abhi-surface";
+import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
+
 import type { AssistantBusinessContext, AssistantChatMessage } from "./types";
 import type { DirectAssistantIntent } from "./intent-router";
 import { resolveDirectIntent } from "./intent-router";
@@ -189,6 +192,21 @@ export async function resolveOrchestrationRoute(
     const answered = answerCapabilityQuestion(message, { business });
     if (answered) {
       return { kind: "capability_answer", message: answered.answer };
+    }
+  }
+
+  // ABHI flagship — Board Pack Generation (PowerPoint + PDF). Workspace-gated.
+  if (isAbhiSlug(business.workspace.slug)) {
+    const boardPack = resolveAbhiBoardPackIntent(message);
+    if (boardPack) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: boardPack.tool,
+          args: boardPack.args,
+          reason: boardPack.reason,
+        },
+      };
     }
   }
 

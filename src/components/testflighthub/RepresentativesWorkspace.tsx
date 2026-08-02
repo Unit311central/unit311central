@@ -291,24 +291,28 @@ export default function RepresentativesWorkspace({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-white">Partners</h2>
-                <p className="mt-1 text-xs text-white/45">
-                  {representatives.length} representatives, distributors &amp; referral partners
-                </p>
-                <p className="mt-1 text-[11px] text-sky-300/80">
-                  Public signup:{" "}
-                  <a
-                    href="https://unit311central.com/partners"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline-offset-2 hover:underline"
-                  >
-                    unit311central.com/partners
-                  </a>
-                </p>
-                {livePartnerNotes.length > 0 ? (
-                  <p className="mt-1 text-[11px] text-white/40">
-                    Latest signups: {livePartnerNotes.slice(0, 3).join(" · ")}
-                  </p>
+                {!isAbhi ? (
+                  <>
+                    <p className="mt-1 text-xs text-white/45">
+                      {representatives.length} representatives, distributors &amp; referral partners
+                    </p>
+                    <p className="mt-1 text-[11px] text-sky-300/80">
+                      Public signup:{" "}
+                      <a
+                        href="https://unit311central.com/partners"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline-offset-2 hover:underline"
+                      >
+                        unit311central.com/partners
+                      </a>
+                    </p>
+                    {livePartnerNotes.length > 0 ? (
+                      <p className="mt-1 text-[11px] text-white/40">
+                        Latest signups: {livePartnerNotes.slice(0, 3).join(" · ")}
+                      </p>
+                    ) : null}
+                  </>
                 ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-2">

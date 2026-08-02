@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState, startTransition } from "react";
 
 import {
+  loadAbhiBoardPacks,
+  type AbhiBoardPackRecord,
+} from "@/lib/abhi/board-pack-record";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import {
   addSavedBoardPack,
   BOARD_PACK_CATEGORY_OPTIONS,
   BOARD_PACK_GRAPH_OPTIONS,
@@ -52,10 +57,12 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 export default function BoardPackCustomizerWorkspace() {
+  const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
   const [pages, setPages] = useState<BoardPackPage[]>(defaultBoardPackPages);
   const [packName, setPackName] = useState("Board Review Pack");
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [savedPacks, setSavedPacks] = useState<SavedBoardPack[]>([]);
+  const [abhiGenerated, setAbhiGenerated] = useState<AbhiBoardPackRecord[]>([]);
   const [employees, setEmployees] = useState<HrEmployee[]>([]);
   const [packPdfUrl, setPackPdfUrl] = useState<string | null>(null);
   const [reviewPdfUrl, setReviewPdfUrl] = useState<string | null>(null);
@@ -69,6 +76,7 @@ export default function BoardPackCustomizerWorkspace() {
     startTransition(() => {
       setPages(loadBoardPackPages());
       setSavedPacks(loadSavedBoardPacks());
+      if (isBrowserAbhiSurface()) setAbhiGenerated(loadAbhiBoardPacks());
     });
   }, []);
 
@@ -229,6 +237,73 @@ export default function BoardPackCustomizerWorkspace() {
 
   return (
     <div className="space-y-6">
+      {isAbhi ? (
+        <section className="rounded-2xl border border-sky-400/25 bg-gradient-to-br from-[#0b1f3a]/90 to-[#0b1524] p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
+                Executive Assistant drafts
+              </p>
+              <h3 className="mt-1 text-base font-semibold text-white">Board Deck</h3>
+              <p className="mt-1 text-sm text-white/55">
+                AI-generated board packs land here as Draft for review — do not rebuild slides
+                manually.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAbhiGenerated(loadAbhiBoardPacks())}
+              className="rounded-xl border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/[0.06]"
+            >
+              Refresh
+            </button>
+          </div>
+          {abhiGenerated.length === 0 ? (
+            <p className="mt-4 rounded-xl border border-dashed border-white/15 px-4 py-6 text-center text-sm text-white/45">
+              No generated packs yet. In Executive Assistant ask: “Create a board pack for tomorrow”.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {abhiGenerated.map((pack) => (
+                <li
+                  key={pack.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/25 px-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{pack.packName}</p>
+                    <p className="text-xs text-white/45">
+                      Meeting {pack.meetingDate} · {pack.status} · {pack.folderPath}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {pack.pdfOpenUrl ? (
+                      <a
+                        href={pack.pdfOpenUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-sky-400/35 bg-sky-500/15 px-2.5 text-[11px] font-semibold text-sky-100"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Preview
+                      </a>
+                    ) : null}
+                    {pack.pptxDownloadUrl ? (
+                      <a
+                        href={pack.pptxDownloadUrl}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-400/35 bg-emerald-500/15 px-2.5 text-[11px] font-semibold text-emerald-100"
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                        PowerPoint
+                      </a>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             type="button"

@@ -9,7 +9,7 @@ import {
 
 export type AssistantStoredArtifact = {
   id: string;
-  kind: "pdf";
+  kind: "pdf" | "pptx" | "file";
   title: string;
   filename: string;
   mimeType: string;
@@ -56,7 +56,13 @@ export async function persistArtifactToStorage(
   if (!isSupabaseServiceRoleConfigured()) return record;
   try {
     const supabase = createSupabaseServiceRoleClient();
-    const path = `${record.userId}/${record.id}.pdf`;
+    const ext =
+      record.kind === "pptx"
+        ? "pptx"
+        : record.mimeType.includes("pdf")
+          ? "pdf"
+          : "bin";
+    const path = `${record.userId}/${record.id}.${ext}`;
     await supabase.storage.createBucket(BUCKET, { public: false }).catch(() => undefined);
     const { error } = await supabase.storage.from(BUCKET).upload(path, record.bytes, {
       contentType: record.mimeType,
@@ -95,20 +101,37 @@ export async function loadArtifactBytes(
   if (!isSupabaseServiceRoleConfigured()) return null;
   try {
     const supabase = createSupabaseServiceRoleClient();
-    const path = `${userId}/${id}.pdf`;
-    const { data, error } = await supabase.storage.from(BUCKET).download(path);
-    if (error || !data) return null;
-    const buffer = Buffer.from(await data.arrayBuffer());
-    return putAssistantArtifact({
-      id,
-      kind: "pdf",
-      title: "Employee Directory",
-      filename: `unit311-employee-directory.pdf`,
-      mimeType: "application/pdf",
-      bytes: buffer,
-      userId,
-      storagePath: path,
-    });
+    const candidates = [
+      {
+        path: `${userId}/${id}.pdf`,
+        kind: "pdf" as const,
+        mimeType: "application/pdf",
+        filename: "document.pdf",
+      },
+      {
+        path: `${userId}/${id}.pptx`,
+        kind: "pptx" as const,
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        filename: "document.pptx",
+      },
+    ];
+    for (const candidate of candidates) {
+      const { data, error } = await supabase.storage.from(BUCKET).download(candidate.path);
+      if (error || !data) continue;
+      const buffer = Buffer.from(await data.arrayBuffer());
+      return putAssistantArtifact({
+        id,
+        kind: candidate.kind,
+        title: candidate.filename,
+        filename: candidate.filename,
+        mimeType: candidate.mimeType,
+        bytes: buffer,
+        userId,
+        storagePath: candidate.path,
+      });
+    }
+    return null;
   } catch {
     return null;
   }

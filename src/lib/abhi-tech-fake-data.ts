@@ -18,7 +18,107 @@ export type AbhiTechTelecom = {
   assignedTo: string;
   monthlyCostGbp: number;
   status: "Active" | "Pending" | "Cancelled";
+  /** Mobile handsets only */
+  manufacturer?: string;
+  /** Mobile handsets only */
+  model?: string;
 };
+
+export type AbhiTechRenewalItem = {
+  id: string;
+  label: string;
+  category: "Software" | "Telecom" | "Device";
+  dueDate: string;
+  costGbp: number;
+};
+
+export const ABHI_TELECOMS_STORAGE_KEY = "unit311-abhi-telecoms-v1";
+
+export function isAbhiMobileTelecomService(service: string): boolean {
+  return /mobile/i.test(service);
+}
+
+export function loadAbhiTelecoms(): AbhiTechTelecom[] {
+  if (typeof window === "undefined") return [...ABHI_TECH_TELECOMS];
+  try {
+    const raw = window.localStorage.getItem(ABHI_TELECOMS_STORAGE_KEY);
+    if (!raw) return [...ABHI_TECH_TELECOMS];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [...ABHI_TECH_TELECOMS];
+    return parsed.filter(
+      (row): row is AbhiTechTelecom =>
+        typeof row === "object" &&
+        row !== null &&
+        typeof (row as AbhiTechTelecom).id === "string" &&
+        typeof (row as AbhiTechTelecom).service === "string",
+    );
+  } catch {
+    return [...ABHI_TECH_TELECOMS];
+  }
+}
+
+export function saveAbhiTelecoms(rows: readonly AbhiTechTelecom[]): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ABHI_TELECOMS_STORAGE_KEY, JSON.stringify(rows));
+}
+
+export function sumAbhiTelecomMonthlySpend(rows: readonly AbhiTechTelecom[]): number {
+  return rows.reduce((sum, row) => sum + row.monthlyCostGbp, 0);
+}
+
+/** Fake but stable MoM tech spend trend (software + telecom baseline). */
+export function buildAbhiTechSpendTrend(input: {
+  softwareMonthlyGbp: number;
+  telecomMonthlyGbp: number;
+}) {
+  const latest = input.softwareMonthlyGbp + input.telecomMonthlyGbp;
+  const momPct = -2.4;
+  const prior = latest / (1 + momPct / 100);
+  const momGbp = Math.round(latest - prior);
+  const labels = ["Mar", "Apr", "May", "Jun", "Jul", "Aug"];
+  const scale = [0.97, 0.985, 0.992, 1.01, 1.018, 1];
+  const values = scale.map((factor) => Math.round(latest * factor));
+  values[values.length - 1] = Math.round(latest);
+  return { momPct, momGbp, labels, values, latest: Math.round(latest) };
+}
+
+export const ABHI_UPCOMING_TECH_RENEWALS: AbhiTechRenewalItem[] = [
+  {
+    id: "abhi-ren-1",
+    label: "Microsoft 365 Business Premium",
+    category: "Software",
+    dueDate: "2026-10-01",
+    costGbp: 12_960,
+  },
+  {
+    id: "abhi-ren-2",
+    label: "Zoom Workplace",
+    category: "Software",
+    dueDate: "2027-02-01",
+    costGbp: 2_700,
+  },
+  {
+    id: "abhi-ren-3",
+    label: "Office fibre — BT Business",
+    category: "Telecom",
+    dueDate: "2026-09-15",
+    costGbp: 2_640,
+  },
+  {
+    id: "abhi-ren-4",
+    label: "DocuSign eSignature",
+    category: "Software",
+    dueDate: "2026-11-20",
+    costGbp: 2_400,
+  },
+  {
+    id: "abhi-ren-5",
+    label: "MacBook Pro 14 — Jane Lewis",
+    category: "Device",
+    dueDate: "2027-03-01",
+    costGbp: 1_899,
+  },
+];
 
 export type AbhiTechAsset = {
   id: string;
@@ -96,6 +196,8 @@ export const ABHI_TECH_TELECOMS: AbhiTechTelecom[] = [
     assignedTo: "Jane Lewis",
     monthlyCostGbp: 45,
     status: "Active",
+    manufacturer: "Apple",
+    model: "iPhone 15",
   },
   {
     id: "abhi-tel-2",
@@ -105,6 +207,8 @@ export const ABHI_TECH_TELECOMS: AbhiTechTelecom[] = [
     assignedTo: "Paul Benton",
     monthlyCostGbp: 38,
     status: "Active",
+    manufacturer: "Samsung",
+    model: "Galaxy S24",
   },
   {
     id: "abhi-tel-3",

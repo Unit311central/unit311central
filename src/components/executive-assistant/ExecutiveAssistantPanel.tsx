@@ -20,6 +20,7 @@ import {
   startWorkflowGuide,
 } from "@/lib/ai-operating-assistant/proactive-client";
 import type { AiExplanation } from "@/lib/ai-operating-assistant/explainability";
+import AbhiBoardPackProgress from "@/components/executive-assistant/AbhiBoardPackProgress";
 import { PlanViewer } from "@/components/executive-assistant/PlanViewer";
 import { ExecutionCardsList } from "@/components/executive-assistant/execution-cards";
 import type { EaCardAction, EaExecutionCard } from "@/lib/ai-operating-assistant/execution-cards";
@@ -32,7 +33,13 @@ import {
   resolveExecutiveAssistantContext,
   type ExecutiveAssistantVariant,
 } from "@/lib/executive-assistant-ui";
+import {
+  createAbhiBoardPackRecordId,
+  saveAbhiBoardPack,
+} from "@/lib/abhi/board-pack-record";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { saveFileToFolderPath } from "@/lib/pdf-file-storage";
 import { cn } from "@/lib/utils";
 import {
   fetchCachedJson,
@@ -226,6 +233,11 @@ export default function ExecutiveAssistantPanel({
   const [actionConfirmBusy, setActionConfirmBusy] = useState(false);
   const [eaCorrelationId, setEaCorrelationId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [boardPackProgress, setBoardPackProgress] = useState<{
+    active: boolean;
+    complete: boolean;
+  }>({ active: false, complete: false });
+  const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
   const abortRef = useRef<AbortController | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);
   const handleSendRef = useRef<
@@ -629,6 +641,7 @@ export default function ExecutiveAssistantPanel({
     setMessages([...priorMessages, userMessage]);
     setMessage("");
     setSending(true);
+    setBoardPackProgress({ active: false, complete: false });
 
     const assistantId = `assistant_${Date.now()}`;
     setMessages((current) => [
@@ -692,9 +705,95 @@ export default function ExecutiveAssistantPanel({
               setEaCorrelationId(event.correlationId);
             }
           }
+          if (event.type === "tool_call" && event.name === "boardpack.generate" && isAbhi) {
+            setBoardPackProgress({ active: true, complete: false });
+            setMessages((current) =>
+              current.map((entry) =>
+                entry.id === assistantId
+                  ? { ...entry, content: "Generating Board Pack…" }
+                  : entry,
+              ),
+            );
+          }
           if (event.type === "tool_result") {
             applyGuidedToolResult(event.result);
             applyProactiveToolResult(event.name, event.result);
+            if (event.name === "boardpack.generate" && isAbhi) {
+              setBoardPackProgress({ active: true, complete: true });
+              const summary = (event.result as { summary?: Record<string, unknown> } | null)
+                ?.summary;
+              if (summary && typeof summary.packName === "string") {
+                const record = {
+                  id: createAbhiBoardPackRecordId(),
+                  packName: String(summary.packName),
+                  meetingDate: String(summary.meetingDate ?? ""),
+                  status: "Draft" as const,
+                  createdAt: new Date().toISOString(),
+                  pdfArtifactId:
+                    typeof summary.pdfArtifactId === "string"
+                      ? summary.pdfArtifactId
+                      : undefined,
+                  pptxArtifactId:
+                    typeof summary.pptxArtifactId === "string"
+                      ? summary.pptxArtifactId
+                      : undefined,
+                  pdfOpenUrl:
+                    typeof summary.pdfOpenUrl === "string" ? summary.pdfOpenUrl : undefined,
+                  pptxDownloadUrl:
+                    typeof summary.pptxDownloadUrl === "string"
+                      ? summary.pptxDownloadUrl
+                      : undefined,
+                  folderPath: String(
+                    summary.folderPath ?? "Corporate Information / Board Deck",
+                  ),
+                  pageSummaries: Array.isArray(summary.pageSummaries)
+                    ? summary.pageSummaries.map(String)
+                    : [],
+                };
+                saveAbhiBoardPack(record);
+
+                void (async () => {
+                  try {
+                    const pdfB64 =
+                      typeof summary.pdfContentBase64 === "string"
+                        ? summary.pdfContentBase64
+                        : null;
+                    const pptxB64 =
+                      typeof summary.pptxContentBase64 === "string"
+                        ? summary.pptxContentBase64
+                        : null;
+                    const folderSegments = [
+                      "Corporate Information",
+                      "Board Deck",
+                      String(summary.packName),
+                    ];
+                    if (pdfB64 && typeof summary.filename === "string") {
+                      const bytes = Uint8Array.from(atob(pdfB64), (c) => c.charCodeAt(0));
+                      await saveFileToFolderPath({
+                        blob: new Blob([bytes], { type: "application/pdf" }),
+                        filename: String(summary.filename),
+                        folderSegments,
+                        mimeType: "application/pdf",
+                      });
+                    }
+                    if (pptxB64 && typeof summary.pptxFilename === "string") {
+                      const bytes = Uint8Array.from(atob(pptxB64), (c) => c.charCodeAt(0));
+                      await saveFileToFolderPath({
+                        blob: new Blob([bytes], {
+                          type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        }),
+                        filename: String(summary.pptxFilename),
+                        folderSegments,
+                        mimeType:
+                          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                      });
+                    }
+                  } catch {
+                    /* folder save is best-effort for the demo */
+                  }
+                })();
+              }
+            }
             if (event.name === "proposeBusinessActionPlan" && event.result) {
               const result = event.result as {
                 items?: Array<{ confirmation?: ActionConfirmationView; blocked?: boolean }>;
@@ -808,6 +907,13 @@ export default function ExecutiveAssistantPanel({
       return null;
     } finally {
       setSending(false);
+      if (boardPackProgress.active) {
+        window.setTimeout(() => {
+          setBoardPackProgress((prev) =>
+            prev.complete ? { active: false, complete: false } : prev,
+          );
+        }, 1600);
+      }
     }
   }
 
@@ -852,6 +958,19 @@ export default function ExecutiveAssistantPanel({
 
     if (action.intent === "generate" && action.actionId) {
       void handleSend(undefined, action.label);
+      return;
+    }
+
+    if ((action.intent === "open" || action.intent === "navigate") && action.href) {
+      if (action.intent === "navigate" && action.href.includes("view=board-pack")) {
+        window.location.href = action.href;
+        return;
+      }
+      if (action.intent === "open") {
+        window.open(action.href, "_blank", "noopener,noreferrer");
+        return;
+      }
+      window.open(action.href, "_blank", "noopener,noreferrer");
     }
   }
 
@@ -1143,7 +1262,13 @@ export default function ExecutiveAssistantPanel({
               ) : null}
             </div>
           ))}
-          {sending ? (
+          {boardPackProgress.active ? (
+            <AbhiBoardPackProgress
+              active={boardPackProgress.active && !boardPackProgress.complete}
+              complete={boardPackProgress.complete}
+            />
+          ) : null}
+          {sending && !boardPackProgress.active ? (
             <p className="inline-flex items-center gap-2 text-[11px] text-white/45">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Working…

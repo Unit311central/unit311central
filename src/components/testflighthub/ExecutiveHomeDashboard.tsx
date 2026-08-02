@@ -24,6 +24,7 @@ type HomeKpiBundle = {
   projects: InternalProject[];
   clients: ManagedClient[];
   financials: FinancialOverviewSnapshot | null;
+  onboardingPipelineCount?: number;
 };
 
 /** Flagship Home experience — Executive Operating Centre with live KPI SSOT. */
@@ -54,9 +55,10 @@ export default function ExecutiveHomeDashboard() {
         projects: data.projects ?? [],
         clients: data.clients ?? [],
         financials: data.financials ?? null,
+        onboardingPipelineCount: data.onboardingPipelineCount ?? 0,
       });
     } catch {
-      setBundle({ projects: [], clients: [], financials: null });
+      setBundle({ projects: [], clients: [], financials: null, onboardingPipelineCount: 0 });
     } finally {
       setLoading(false);
     }

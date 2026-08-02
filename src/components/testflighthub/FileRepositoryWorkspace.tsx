@@ -12,6 +12,7 @@ import {
   type FileFolder,
 } from "@/lib/internal-files-data";
 import { browseExternalFiles } from "@/lib/external-files-mock-data";
+import { displayAbhiFolderName } from "@/lib/abhi-surface";
 import { cn } from "@/lib/utils";
 import {
   ChevronRight,
@@ -108,10 +109,14 @@ type FileRepositoryWorkspaceProps = {
 };
 
 function defaultRootLabel(scope: FileRepositoryScope, rootLabel?: string) {
-  if (rootLabel?.trim()) return rootLabel.trim();
+  if (rootLabel?.trim()) return displayAbhiFolderName(rootLabel.trim());
   if (scope === "external") return "External Files";
   if (scope === "client") return "Client Files";
-  return "Internal Files";
+  return displayAbhiFolderName("Internal Files");
+}
+
+function displayFolderLabel(name: string) {
+  return displayAbhiFolderName(name);
 }
 
 export default function FileRepositoryWorkspace({
@@ -839,7 +844,7 @@ export default function FileRepositoryWorkspace({
                     index === breadcrumb.length - 1 ? "text-white" : "text-white/55",
                   )}
                 >
-                  {segment.name}
+                  {displayFolderLabel(segment.name)}
                 </button>
               </div>
             ))}
@@ -1031,7 +1036,11 @@ export default function FileRepositoryWorkspace({
                               entry.kind === "folder" ? "text-amber-300" : "text-sky-300",
                             )}
                           />
-                          <span className="font-medium text-white">{entry.item.name}</span>
+                          <span className="font-medium text-white">
+                            {entry.kind === "folder"
+                              ? displayFolderLabel(entry.item.name)
+                              : entry.item.name}
+                          </span>
                         </div>
                       </td>
                       <td className="px-3 py-3 text-white/60">
@@ -1139,7 +1148,7 @@ export default function FileRepositoryWorkspace({
                         index === movePickerBreadcrumb.length - 1 ? "text-white" : "text-white/55",
                       )}
                     >
-                      {segment.name}
+                      {displayFolderLabel(segment.name)}
                     </button>
                   </div>
                 ))}
@@ -1175,7 +1184,7 @@ export default function FileRepositoryWorkspace({
                           )}
                         >
                           <Folder className="h-4 w-4 shrink-0 text-amber-300" />
-                          <span className="font-medium">{folder.name}</span>
+                          <span className="font-medium">{displayFolderLabel(folder.name)}</span>
                           {disabled && (
                             <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-white/30">
                               Invalid

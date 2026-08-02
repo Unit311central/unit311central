@@ -13,6 +13,7 @@ import {
 
 export type DirectAssistantIntent = {
   tool:
+    | "boardpack.generate"
     | "generateEmployeeListPdf"
     | "generateFinancialReportPdf"
     | "generateReportPdf"

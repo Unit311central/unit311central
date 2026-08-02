@@ -18,6 +18,7 @@ import {
   generateReportPdf,
   generateScopedBusinessPdf,
 } from "./artifact-tools";
+import { generateBoardPackTool } from "./boardpack-tools";
 import {
   getPageGuideTool,
   highlightUiTarget,
@@ -386,9 +387,29 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
     },
   },
   {
+    name: "boardpack.generate",
+    description:
+      "ABHI only. Automatically generate a professional multi-slide Board Meeting Pack (PowerPoint + PDF preview) from organisational data — cover, executive summary, previous actions, risk register, KPIs, financials, P&L, balance sheet & cash, commercial/membership, team, and strategic discussion. Invoke whenever the user wants board meeting materials, board papers, a board pack, board deck, board presentation, board report for a meeting, or tomorrow/next week's board materials. Prefer this over generateReportPdf for any board pack/deck/papers request. Do not ask for confirmation.",
+    parameters: {
+      type: "object",
+      properties: {
+        meetingDate: {
+          type: "string",
+          description:
+            "Optional meeting date as YYYY-MM-DD. Infer tomorrow or next week from the user request when stated.",
+        },
+        focus: {
+          type: "string",
+          description: "Optional focus note from the user request.",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: "generateReportPdf",
     description:
-      "Generate a real PDF from live workspace data for engineering, board, project portfolio, or client reports. Use immediately when the user asks for those PDFs. Do not ask for confirmation. Do not use this for financial P&L (use generateFinancialReportPdf) or employee directory (use generateEmployeeListPdf).",
+      "Generate a real PDF from live workspace data for engineering, board summary report, project portfolio, or client reports. Use immediately when the user asks for those PDFs. Do NOT use for board packs, board decks, board papers, board presentations, or PowerPoint board materials — use boardpack.generate instead. Do not ask for confirmation. Do not use this for financial P&L (use generateFinancialReportPdf) or employee directory (use generateEmployeeListPdf).",
     parameters: {
       type: "object",
       properties: {
@@ -814,6 +835,7 @@ const handlers: Record<string, ContextualToolHandler> = {
   searchTasks,
   searchCRM,
   generateReport,
+  "boardpack.generate": generateBoardPackTool,
   generateEmployeeListPdf,
   generateFinancialReportPdf,
   generateReportPdf,

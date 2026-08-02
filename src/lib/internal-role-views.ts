@@ -409,8 +409,6 @@ function isAbhiNavSurface(): boolean {
 /** ABHI — hide platform-internal / non-member equity surfaces. */
 export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "corporate-cap-table",
-  "unit311-details",
-  "module-go-live",
   "testing",
   "telemetry",
   "platform-analytics",
@@ -424,7 +422,6 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
 
 const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Cap Table Management",
-  "Unit311 Details",
   "Infrastructure & Cloud",
   "Networks & Domains",
   "Certificates & Identity",
@@ -436,13 +433,14 @@ const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Internal Training",
 ]);
 
-/** ABHI Business Central: Clients → Members (labels only; views unchanged). */
+/** ABHI Business Central: Clients → Members; Unit311 Details → ABHI Details. */
 const ABHI_CLIENT_LABEL_RENAMES: Record<string, string> = {
   Clients: "Members",
   "Client Directory": "Member Directory",
   "Client Onboarding": "Member Onboarding",
   "Client Explorer": "Member Explorer",
   "Potential Clients": "Potential Members",
+  "Unit311 Details": "ABHI Details",
 };
 
 function renameAbhiClientNavLabels(section: InternalNavSection): InternalNavSection {

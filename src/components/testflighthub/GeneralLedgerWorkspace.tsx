@@ -14,6 +14,7 @@ import {
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import type { JournalEntry, LedgerAccount, TrialBalanceRow } from "@/lib/accounting/types";
 import { centralLoginUrl } from "@/lib/app-domains";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { cn } from "@/lib/utils";
@@ -294,7 +295,9 @@ export default function GeneralLedgerWorkspace() {
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <p className="text-sm text-white/55">
-            Source of truth for all Unit311 financial postings.
+            {isBrowserAbhiSurface()
+              ? "Source of truth for all ABHI financial postings."
+              : "Source of truth for all Unit311 financial postings."}
           </p>
           <button
             type="button"

@@ -27,12 +27,35 @@ import {
 } from "@/lib/workspace-host-session-gate";
 import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
+import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { clearPlatformSessionCookie } from "@/lib/platform-session-cookie";
 
 function canonicalizePortalRedirect(redirectPath: string | null | undefined): string | null {
   if (!redirectPath) return null;
-  const match = matchTalantonCompanyPortalPathname(redirectPath);
-  return match ? `/${match.route.path}` : null;
+  const talanton = matchTalantonCompanyPortalPathname(redirectPath);
+  if (talanton) return `/${talanton.route.path}`;
+  const abhi = matchAbhiMemberPortalPathname(redirectPath);
+  if (abhi) return `/${abhi.route.path}`;
+  return null;
+}
+
+/** Route-based company/member portal slugs — talantonimpact and abhi. */
+function isCompanyPortalSlug(workspaceSlug: string): boolean {
+  return workspaceSlug === TALANTON_IMPACT_SLUG || workspaceSlug === ABHI_SLUG;
+}
+
+function matchPortalPathnameForSlug(workspaceSlug: string, pathname: string) {
+  if (workspaceSlug === TALANTON_IMPACT_SLUG) return matchTalantonCompanyPortalPathname(pathname);
+  if (workspaceSlug === ABHI_SLUG) return matchAbhiMemberPortalPathname(pathname);
+  return null;
+}
+
+/** Hidden App Router implementation base for a portal slug — never a public browser URL. */
+function portalImplBaseForSlug(workspaceSlug: string): string | null {
+  if (workspaceSlug === TALANTON_IMPACT_SLUG) return "/portfolio-portal";
+  if (workspaceSlug === ABHI_SLUG) return "/member-portal";
+  return null;
 }
 
 function withHostHeaders(
@@ -142,11 +165,12 @@ export async function middleware(request: NextRequest) {
       "x-unit311-workspace-slug": workspaceSlug,
     };
 
-    // Talanton route-based company portals: /{company}/... on talantonimpact host only.
+    // Route-based company/member portals: /{company}/... on talantonimpact and abhi hosts only.
     // These URLs must NEVER fall through to the admin /internaldashboard shell.
-    if (workspaceSlug === TALANTON_IMPACT_SLUG) {
-      const portalMatch = matchTalantonCompanyPortalPathname(pathname);
-      if (portalMatch) {
+    if (isCompanyPortalSlug(workspaceSlug)) {
+      const portalMatch = matchPortalPathnameForSlug(workspaceSlug, pathname);
+      const portalImplBase = portalImplBaseForSlug(workspaceSlug);
+      if (portalMatch && portalImplBase) {
         const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
         const isLoginRest =
           portalMatch.rest === "/login" || portalMatch.rest.startsWith("/login/");
@@ -154,7 +178,7 @@ export async function middleware(request: NextRequest) {
         const companyPortalLoginRewrite = () =>
           rewriteTo(
             request,
-            `/portfolio-portal/${portalMatch.route.path}/login`,
+            `${portalImplBase}/${portalMatch.route.path}/login`,
             headers,
             {
               ...workspaceResponseHeaders,
@@ -199,7 +223,7 @@ export async function middleware(request: NextRequest) {
           const bounce = redirectExternal(`${workspaceOrigin}/${portalMatch.route.path}`);
           return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
         }
-        const internalPath = `/portfolio-portal/${portalMatch.route.path}${portalMatch.rest}`;
+        const internalPath = `${portalImplBase}/${portalMatch.route.path}${portalMatch.rest}`;
         const response = rewriteTo(request, internalPath, headers, {
           ...workspaceResponseHeaders,
           "x-unit311-company-portal": portalMatch.route.path,
@@ -218,12 +242,12 @@ export async function middleware(request: NextRequest) {
       return redirectExternal(dest);
     }
 
-    // Talanton externals may only use login/api/static + their assigned company portal.
-    if (workspaceSlug === TALANTON_IMPACT_SLUG) {
+    // Talanton / ABHI externals may only use login/api/static + their assigned portal.
+    if (isCompanyPortalSlug(workspaceSlug)) {
       const externalGate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (externalGate.status === "ok" && externalGate.session.userType === "external") {
         const portalHome = canonicalizePortalRedirect(externalGate.session.redirectPath);
-        const isPortalPath = matchTalantonCompanyPortalPathname(pathname) != null;
+        const isPortalPath = matchPortalPathnameForSlug(workspaceSlug, pathname) != null;
         const isAllowedUtility =
           pathname === "/login" ||
           pathname.startsWith("/login/") ||
@@ -252,7 +276,7 @@ export async function middleware(request: NextRequest) {
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (gate.status === "ok") {
-        if (gate.session.userType === "external" && workspaceSlug === TALANTON_IMPACT_SLUG) {
+        if (gate.session.userType === "external" && isCompanyPortalSlug(workspaceSlug)) {
           const portalHome = canonicalizePortalRedirect(gate.session.redirectPath);
           if (!portalHome) {
             // Avoid redirect loop: clear broken session and show login once.
@@ -322,8 +346,7 @@ export async function middleware(request: NextRequest) {
       // Signed-in users hitting the splash go straight into the workspace app.
       if (pathname === "/" || pathname === "") {
         const portalHome =
-          gate.session.userType === "external" &&
-          workspaceSlug === TALANTON_IMPACT_SLUG
+          gate.session.userType === "external" && isCompanyPortalSlug(workspaceSlug)
             ? canonicalizePortalRedirect(gate.session.redirectPath)
             : null;
         const redirect = redirectExternal(
@@ -332,9 +355,9 @@ export async function middleware(request: NextRequest) {
         return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
       }
 
-      // Talanton company portal externals must not enter the admin shell.
+      // Talanton / ABHI company-portal externals must not enter the admin shell.
       if (
-        workspaceSlug === TALANTON_IMPACT_SLUG &&
+        isCompanyPortalSlug(workspaceSlug) &&
         gate.session.userType === "external" &&
         (pathname === "/dashboard" || pathname.startsWith("/dashboard/"))
       ) {

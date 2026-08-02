@@ -1,5 +1,7 @@
 /** External Client Access (MOD-160 / program MOD-620). */
 
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+
 export const ECA_PORTAL_MODULES = [
   "Projects",
   "Files",
@@ -78,7 +80,122 @@ export function ecaStatusClass(status: string): string {
   return "border-white/15 bg-white/[0.04] text-white/70";
 }
 
+/** ABHI HealthTech member companies used to seed the External Client Access dashboard. */
+const ABHI_ECA_MEMBERS = [
+  {
+    id: "portal-abhi-centrak",
+    clientId: "abhi-cli-centrak",
+    clientName: "Centrak",
+    portalName: "Centrak Member Portal",
+    logoLabel: "CT",
+    brandPrimary: "#C2185B",
+    brandAccent: "#880E4F",
+    modules: ["Projects", "Files", "Support", "Calendar", "Communications", "Reports"] as const,
+    landingPage: "Projects",
+    supportContact: "demo@centrak.com",
+    notificationsEnabled: true,
+    documentBranding: "ABHI member letterhead",
+    users: 4,
+    activeSessions: 2,
+    pendingInvites: 0,
+    lockedAccounts: 0,
+    storageGb: 6.4,
+    lastLogin: "2026-07-30T09:12:00Z",
+  },
+  {
+    id: "portal-abhi-gama",
+    clientId: "abhi-cli-gama-healthcare-ltd",
+    clientName: "GAMA Healthcare Ltd",
+    portalName: "GAMA Healthcare Member Portal",
+    logoLabel: "GH",
+    brandPrimary: "#0ea5e9",
+    brandAccent: "#0369a1",
+    modules: ["Projects", "Files", "Support", "Documents", "Reports", "Training"] as const,
+    landingPage: "Documents",
+    supportContact: "info@gamahealthcare.com",
+    notificationsEnabled: true,
+    documentBranding: "ABHI member letterhead",
+    users: 6,
+    activeSessions: 1,
+    pendingInvites: 1,
+    lockedAccounts: 0,
+    storageGb: 11.8,
+    lastLogin: "2026-07-29T14:40:00Z",
+  },
+  {
+    id: "portal-abhi-zeumed",
+    clientId: "abhi-cli-zeumed",
+    clientName: "Zeumed",
+    portalName: "Zeumed Member Portal",
+    logoLabel: "ZM",
+    brandPrimary: "#34d399",
+    brandAccent: "#059669",
+    modules: ["Projects", "Files", "Support", "Calendar", "Communications"] as const,
+    landingPage: "Files",
+    supportContact: "fionakiernan@zeumed.com",
+    notificationsEnabled: true,
+    documentBranding: "ABHI member letterhead",
+    users: 3,
+    activeSessions: 0,
+    pendingInvites: 1,
+    lockedAccounts: 0,
+    storageGb: 3.1,
+    lastLogin: "2026-07-24T11:05:00Z",
+  },
+  {
+    id: "portal-abhi-ddc-dolphin",
+    clientId: "abhi-cli-ddc-dolphin-ltd",
+    clientName: "DDC Dolphin Ltd",
+    portalName: "DDC Dolphin Member Portal",
+    logoLabel: "DD",
+    brandPrimary: "#a78bfa",
+    brandAccent: "#7c3aed",
+    modules: ["Projects", "Invoices", "Contracts", "Documents", "Reports"] as const,
+    landingPage: "Invoices",
+    supportContact: "demo@ddcdolphin.com",
+    notificationsEnabled: false,
+    documentBranding: "ABHI member letterhead",
+    users: 5,
+    activeSessions: 1,
+    pendingInvites: 0,
+    lockedAccounts: 1,
+    storageGb: 8.9,
+    lastLogin: "2026-07-27T08:22:00Z",
+  },
+  {
+    id: "portal-abhi-wavetec",
+    clientId: "abhi-cli-wavetec",
+    clientName: "Wavetec",
+    portalName: "Wavetec Member Portal",
+    logoLabel: "WV",
+    brandPrimary: "#f59e0b",
+    brandAccent: "#b45309",
+    modules: ["Projects", "Files", "Support", "Reports", "Training"] as const,
+    landingPage: "Projects",
+    supportContact: "demo@wavetec.com",
+    notificationsEnabled: true,
+    documentBranding: "ABHI member letterhead",
+    users: 7,
+    activeSessions: 3,
+    pendingInvites: 2,
+    lockedAccounts: 0,
+    storageGb: 14.2,
+    lastLogin: "2026-07-31T16:50:00Z",
+  },
+] as const;
+
+function createAbhiSeedEcaPortals(): EcaPortalConfig[] {
+  return ABHI_ECA_MEMBERS.map((member) => ({
+    ...member,
+    modules: [...member.modules],
+  }));
+}
+
 export function createSeedEcaPortals(): EcaPortalConfig[] {
+  if (isBrowserAbhiSurface()) {
+    return createAbhiSeedEcaPortals();
+  }
+
   if (typeof window !== "undefined") {
     try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
@@ -220,6 +337,16 @@ export function createSeedEcaPortals(): EcaPortalConfig[] {
 }
 
 export function createSeedEcaAudit(): EcaAuditEvent[] {
+  if (isBrowserAbhiSurface()) {
+    return [
+      { id: "aud-1", at: "2026-07-31T16:50:00Z", kind: "Successful Login", actor: "demo@wavetec.com", detail: "Portal session started", clientName: "Wavetec" },
+      { id: "aud-2", at: "2026-07-30T09:12:00Z", kind: "Successful Login", actor: "demo@centrak.com", detail: "Portal session started", clientName: "Centrak" },
+      { id: "aud-3", at: "2026-07-29T16:05:00Z", kind: "Invitation", actor: "Membership", detail: "Invited a contact at GAMA Healthcare Ltd as Contributor", clientName: "GAMA Healthcare Ltd" },
+      { id: "aud-4", at: "2026-07-28T19:22:00Z", kind: "Failed Login", actor: "unknown@external.example", detail: "Invalid password (3rd attempt)", clientName: "DDC Dolphin Ltd" },
+      { id: "aud-5", at: "2026-07-24T11:05:00Z", kind: "Password Reset", actor: "Membership", detail: "Reset issued for fionakiernan@zeumed.com", clientName: "Zeumed" },
+    ];
+  }
+
   if (typeof window !== "undefined") {
     try {
       const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
@@ -246,6 +373,29 @@ export function createSeedEcaAudit(): EcaAuditEvent[] {
 }
 
 export function createSeedEcaInvitations(): EcaInvitation[] {
+  if (isBrowserAbhiSurface()) {
+    return [
+      {
+        id: "inv-1",
+        email: "membership@bbraun.com",
+        clientName: "GAMA Healthcare Ltd",
+        role: "Contributor",
+        modules: ["Projects", "Files", "Support"],
+        status: "Sent",
+        createdAt: "2026-07-29",
+      },
+      {
+        id: "inv-2",
+        email: "ops@ddcdolphin.com",
+        clientName: "DDC Dolphin Ltd",
+        role: "Viewer",
+        modules: ["Invoices", "Reports"],
+        status: "Draft",
+        createdAt: "2026-07-27",
+      },
+    ];
+  }
+
   if (typeof window !== "undefined") {
     try {
       const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");

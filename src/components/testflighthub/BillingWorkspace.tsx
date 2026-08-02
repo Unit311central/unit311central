@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  ABHI_MEMBER_DIRECTORY_FEE_GBP,
   ABHI_MEMBERSHIP_FEE_GBP,
   ABHI_WEBSITE_LISTING_FEE_GBP,
   buildAbhiMemberBillingRows,
+  buildAbhiMemberDirectoryBillingRows,
   buildAbhiWebsiteListingRow,
   formatAbhiBillingDate,
   formatAbhiGbp,
@@ -21,7 +23,7 @@ import {
 } from "@/lib/billing-data";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { cn } from "@/lib/utils";
-import { Building2, Download, Globe, Loader2, Receipt, Users, Wallet } from "lucide-react";
+import { BookUser, Building2, Download, Globe, Loader2, Receipt, Users, Wallet } from "lucide-react";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -55,12 +57,54 @@ function billingStatusClass(status: AbhiBillingRowStatus) {
 function BillingTable({
   rows,
   emptyLabel,
+  compact = false,
 }: {
   rows: AbhiBillingRow[];
   emptyLabel: string;
+  /** Narrow (RHS) layout — fewer columns, no min-width, so no horizontal scrollbar. */
+  compact?: boolean;
 }) {
   if (rows.length === 0) {
     return <p className="px-5 py-8 text-sm text-white/45 sm:px-6">{emptyLabel}</p>;
+  }
+
+  if (compact) {
+    return (
+      <table className="w-full table-fixed border-collapse text-left text-sm">
+        <thead>
+          <tr className="border-b border-white/[0.08] text-[10px] font-medium uppercase tracking-[0.12em] text-white/35">
+            <th className="w-1/2 px-5 pb-2 pt-1 font-medium sm:px-6">Name</th>
+            <th className="pb-2 pr-3 font-medium">Amount due</th>
+            <th className="pb-2 pr-5 font-medium sm:pr-6">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id} className="border-b border-white/[0.05] last:border-0">
+              <td className="px-5 py-3 align-top sm:px-6">
+                <p className="truncate font-medium text-white">{row.name}</p>
+                <p className="mt-0.5 text-[11px] text-white/40">
+                  {formatAbhiGbp(row.lastPaymentAmountGbp)} · {row.billingCycle}
+                </p>
+              </td>
+              <td className="py-3 pr-3 align-top tabular-nums text-white">
+                {formatAbhiGbp(row.amountDueGbp)}
+              </td>
+              <td className="py-3 pr-5 align-top sm:pr-6">
+                <span
+                  className={cn(
+                    "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em]",
+                    billingStatusClass(row.status),
+                  )}
+                >
+                  {row.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
   }
 
   return (
@@ -154,6 +198,7 @@ function AbhiBillingWorkspace() {
 
   const memberRows = useMemo(() => buildAbhiMemberBillingRows(clients), [clients]);
   const websiteRow = useMemo(() => buildAbhiWebsiteListingRow(), []);
+  const directoryRows = useMemo(() => buildAbhiMemberDirectoryBillingRows(), []);
 
   const memberOutstanding = useMemo(
     () => memberRows.reduce((sum, row) => sum + row.outstandingGbp, 0),
@@ -162,6 +207,14 @@ function AbhiBillingWorkspace() {
   const memberDue = useMemo(
     () => memberRows.reduce((sum, row) => sum + row.amountDueGbp, 0),
     [memberRows],
+  );
+  const directoryDue = useMemo(
+    () => directoryRows.reduce((sum, row) => sum + row.amountDueGbp, 0),
+    [directoryRows],
+  );
+  const directoryOutstanding = useMemo(
+    () => directoryRows.reduce((sum, row) => sum + row.outstandingGbp, 0),
+    [directoryRows],
   );
 
   return (
@@ -188,10 +241,15 @@ function AbhiBillingWorkspace() {
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <DetailRow label="Members" value={String(memberRows.length)} />
           <DetailRow label="Membership fee" value={`${formatAbhiGbp(ABHI_MEMBERSHIP_FEE_GBP)} / year`} />
-          <DetailRow label="Amount due" value={formatAbhiGbp(memberDue + websiteRow.amountDueGbp)} />
+          <DetailRow
+            label="Amount due"
+            value={formatAbhiGbp(memberDue + websiteRow.amountDueGbp + directoryDue)}
+          />
           <DetailRow
             label="Outstanding"
-            value={formatAbhiGbp(memberOutstanding + websiteRow.outstandingGbp)}
+            value={formatAbhiGbp(
+              memberOutstanding + websiteRow.outstandingGbp + directoryOutstanding,
+            )}
           />
         </div>
       </section>
@@ -237,20 +295,37 @@ function AbhiBillingWorkspace() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
-          <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-amber-300">
-              <Globe className="h-5 w-5" />
+        <div className="space-y-5">
+          <section className="rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
+            <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-amber-300">
+                <Globe className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">ABHI Website listing</h3>
+                <p className="text-xs text-white/45">
+                  {formatAbhiGbp(ABHI_WEBSITE_LISTING_FEE_GBP)} per year · billable annually
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-base font-semibold text-white">ABHI Website listing</h3>
-              <p className="text-xs text-white/45">
-                {formatAbhiGbp(ABHI_WEBSITE_LISTING_FEE_GBP)} per year · billable annually
-              </p>
+            <BillingTable rows={[websiteRow]} emptyLabel="No website listings." compact />
+          </section>
+
+          <section className="rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
+            <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-violet-300">
+                <BookUser className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">Member directory</h3>
+                <p className="text-xs text-white/45">
+                  {formatAbhiGbp(ABHI_MEMBER_DIRECTORY_FEE_GBP)} per year · billable annually
+                </p>
+              </div>
             </div>
-          </div>
-          <BillingTable rows={[websiteRow]} emptyLabel="No website listings." />
-        </section>
+            <BillingTable rows={directoryRows} emptyLabel="No directory listings." compact />
+          </section>
+        </div>
       </div>
     </div>
   );

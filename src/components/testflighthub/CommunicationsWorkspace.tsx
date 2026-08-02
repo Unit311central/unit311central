@@ -767,7 +767,10 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
           onSubmit={(event) => void handleSchedule(event)}
           className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-5"
         >
-          <h2 className="text-sm font-semibold text-amber-50">Schedule meeting</h2>
+          <h2 className="text-sm font-semibold text-amber-50">Schedule a call</h2>
+          <p className="mt-1 text-[11px] text-amber-100/60">
+            Choose Video call or Voice call, then set a title, date, and time.
+          </p>
           <div className="mt-3 grid gap-3 md:grid-cols-4">
             <input
               value={scheduleTitle}
@@ -792,10 +795,11 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
               onChange={(event) =>
                 setScheduleCallType(event.target.value === "voice" ? "voice" : "video")
               }
+              aria-label="Call type"
               className={inputClassName()}
             >
-              <option value="video">Video</option>
-              <option value="voice">Voice</option>
+              <option value="video">Schedule a video call</option>
+              <option value="voice">Schedule a voice call</option>
             </select>
           </div>
           <div className="mt-3 flex gap-2">
@@ -804,7 +808,9 @@ export default function CommunicationsWorkspace(_props: CommunicationsWorkspaceP
               disabled={scheduling || !hostOperator}
               className="inline-flex h-10 items-center rounded-xl bg-amber-500/90 px-4 text-sm font-semibold text-slate-950 disabled:opacity-50"
             >
-              {scheduling ? "Scheduling…" : "Create meeting link"}
+              {scheduling
+                ? "Scheduling…"
+                : `Schedule ${scheduleCallType === "voice" ? "voice" : "video"} call`}
             </button>
             <button
               type="button"

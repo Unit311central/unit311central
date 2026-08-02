@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import {
+  ABHI_TECH_DEVICES,
+  ABHI_UPCOMING_TECH_RENEWALS,
+  buildAbhiTechSpendTrend,
+  loadAbhiTelecoms,
+  sumAbhiTelecomMonthlySpend,
+} from "@/lib/abhi-tech-fake-data";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import { buildTechnologyManagementDashboardConfig } from "@/lib/technology-management-dashboard";
 
@@ -26,11 +34,12 @@ function daysUntil(iso: string | null | undefined) {
 
 /**
  * Technology Management — Dashboard
- * Live Software & SaaS metrics only (no fake estate KPIs).
+ * Live Software & SaaS metrics; ABHI adds devices, telecom, and renewals.
  */
 export default function TechnologyDashboardWorkspace() {
   const router = useRouter();
   const basePath = useInternalOperationsBasePath();
+  const isAbhi = isBrowserAbhiSurface();
   const [assets, setAssets] = useState<SoftwareAssetRow[]>([]);
   const [summary, setSummary] = useState<{
     annualSpend?: number;
@@ -39,6 +48,12 @@ export default function TechnologyDashboardWorkspace() {
     renewalsDueIn30Days?: number;
   } | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [telecomMonthlyGbp, setTelecomMonthlyGbp] = useState(0);
+
+  useEffect(() => {
+    if (!isAbhi) return;
+    setTelecomMonthlyGbp(sumAbhiTelecomMonthlySpend(loadAbhiTelecoms()));
+  }, [isAbhi]);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,20 +100,42 @@ export default function TechnologyDashboardWorkspace() {
         const days = daysUntil(row.nextRenewalDate);
         return days != null && days >= 0 && days <= 60;
       }).length;
+    const monthlySpend = summary?.monthlySpend ?? 0;
+    const abhiEstate = isAbhi
+      ? (() => {
+          const trend = buildAbhiTechSpendTrend({
+            softwareMonthlyGbp: monthlySpend,
+            telecomMonthlyGbp,
+          });
+          return {
+            devicesCount: ABHI_TECH_DEVICES.length,
+            telecomMonthlyGbp,
+            spendTrendMomPct: trend.momPct,
+            spendTrendMomGbp: trend.momGbp,
+            spendTrendLabels: trend.labels,
+            spendTrendValues: trend.values,
+            upcomingRenewals: ABHI_UPCOMING_TECH_RENEWALS,
+          };
+        })()
+      : undefined;
+
     return buildTechnologyManagementDashboardConfig({
       softwareCount: assets.length,
       activeCount,
       renewingSoonCount,
       annualSpend: summary?.annualSpend,
-      monthlySpend: summary?.monthlySpend,
+      monthlySpend,
       currency: summary?.currency,
+      abhiEstate,
     });
-  }, [assets, summary]);
+  }, [assets, summary, isAbhi, telecomMonthlyGbp]);
 
   return (
     <div className="space-y-3">
       {!loaded ? (
-        <p className="text-sm text-white/45">Loading software register…</p>
+        <p className="text-sm text-white/45">
+          {isAbhi ? "Loading technology estate…" : "Loading software register…"}
+        </p>
       ) : null}
       <WorkspaceDashboard
         config={config}
@@ -106,6 +143,12 @@ export default function TechnologyDashboardWorkspace() {
         onAction={(action) => {
           if (action === "open-software") {
             router.push(getInternalNavHref("technology-software", basePath));
+          }
+          if (action === "open-devices") {
+            router.push(getInternalNavHref("technology-devices", basePath));
+          }
+          if (action === "open-telecom") {
+            router.push(getInternalNavHref("technology-telecommunications", basePath));
           }
         }}
       />

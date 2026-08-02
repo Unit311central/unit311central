@@ -4,7 +4,7 @@ import {
   resolveOrchestrationRoute,
 } from "./action-orchestration";
 import { getAssistantAction } from "./actions/registry";
-import { cardsFromArtifacts } from "./execution-card-adapters";
+import { cardsFromArtifacts, cardsFromBoardPackSuccess } from "./execution-card-adapters";
 import { eaStage, eaStop, getEaCorrelationId, setEaConversationId } from "./ea-forensic-trace";
 import { topicHintFromHistory } from "./intent-router";
 import { extractConversationEntityMemory } from "./intent-action-resolver";
@@ -569,6 +569,62 @@ function extractArtifactsFromToolResult(
     };
   }
 
+  const artifactItems = Array.isArray(items)
+    ? items.filter(
+        (item) =>
+          item &&
+          typeof item === "object" &&
+          typeof (item as { artifactId?: unknown }).artifactId === "string",
+      )
+    : [];
+
+  if (artifactItems.length > 0) {
+    const artifacts = artifactItems.map((item) => {
+      const id = String((item as { artifactId: string }).artifactId);
+      const kindRaw = String((item as { kind?: string }).kind ?? "pdf");
+      const kind =
+        kindRaw === "pptx" || kindRaw === "file" || kindRaw === "pdf" ? kindRaw : "pdf";
+      const title =
+        (typeof (item as { title?: string }).title === "string" &&
+          (item as { title: string }).title) ||
+        "Document";
+      const filename =
+        (typeof (item as { filename?: string }).filename === "string" &&
+          (item as { filename: string }).filename) ||
+        (kind === "pptx" ? "document.pptx" : "document.pdf");
+      const contentBase64 =
+        typeof (item as { contentBase64?: string }).contentBase64 === "string"
+          ? (item as { contentBase64: string }).contentBase64
+          : undefined;
+      const downloadUrl =
+        (typeof (item as { downloadUrl?: string }).downloadUrl === "string" &&
+          (item as { downloadUrl: string }).downloadUrl) ||
+        `/api/executive-assistant/artifacts/${id}?disposition=attachment`;
+      const openUrl =
+        (typeof (item as { openUrl?: string }).openUrl === "string" &&
+          (item as { openUrl: string }).openUrl) ||
+        `/api/executive-assistant/artifacts/${id}?disposition=inline`;
+      return {
+        id,
+        kind: kind as "pdf" | "pptx" | "file",
+        title,
+        filename,
+        downloadUrl,
+        openUrl,
+        contentBase64,
+      };
+    });
+
+    return {
+      followUps,
+      artifacts,
+      successText:
+        (typeof summary?.message === "string" && summary.message) ||
+        `${artifacts[0]?.filename ?? "Document"}\n\nGenerated successfully.`,
+      errorText: null,
+    };
+  }
+
   const title =
     (typeof summary?.title === "string" && summary.title) ||
     (typeof items?.[0]?.title === "string" && String(items[0].title)) ||
@@ -1003,11 +1059,46 @@ export async function* runAssistantTurn(input: {
           extracted.successText ??
           "Done.";
       }
+      const boardPackSummary =
+        directIntent.tool === "boardpack.generate"
+          ? ((result as { summary?: Record<string, unknown> }).summary ?? null)
+          : null;
+      const boardPackCards =
+        boardPackSummary &&
+        typeof boardPackSummary.packName === "string" &&
+        typeof boardPackSummary.pdfOpenUrl === "string"
+          ? cardsFromBoardPackSuccess({
+              packName: String(boardPackSummary.packName),
+              meetingDate: String(boardPackSummary.meetingDate ?? ""),
+              status: String(boardPackSummary.status ?? "Draft"),
+              folderPath: String(
+                boardPackSummary.folderPath ?? "Corporate Information / Board Deck",
+              ),
+              boardDeckHref: String(
+                boardPackSummary.boardDeckHref ?? "/dashboard?view=board-pack",
+              ),
+              pdfOpenUrl: String(boardPackSummary.pdfOpenUrl),
+              pdfDownloadUrl: String(
+                boardPackSummary.pdfDownloadUrl ?? boardPackSummary.pdfOpenUrl,
+              ),
+              pptxDownloadUrl: String(boardPackSummary.pptxDownloadUrl ?? ""),
+              followUpActions: turnFollowUps,
+            })
+          : [];
+
+      if (directIntent.tool === "boardpack.generate" && !extracted.errorText) {
+        assistantText =
+          typeof boardPackSummary?.message === "string"
+            ? String(boardPackSummary.message)
+            : "Board Pack Generated Successfully";
+      }
+
       yield { type: "delta", text: assistantText };
 
       const executionCards = [
         ...(route.executionCards ?? []),
-        ...cardsFromArtifacts(turnArtifacts),
+        ...boardPackCards,
+        ...(boardPackCards.length > 0 ? [] : cardsFromArtifacts(turnArtifacts)),
       ];
 
       const assistantMessage: AssistantChatMessage = {
@@ -1271,6 +1362,30 @@ export async function* runAssistantTurn(input: {
       assistantText = `Done.\n\n${turnArtifacts[0]!.filename} is ready.`;
     }
 
+    const lastBoardPackResult = (() => {
+      // Reconstruct success card from artifact filenames when OpenAI tool path was used.
+      const pdf = turnArtifacts.find((a) => a.kind === "pdf" || a.filename.endsWith(".pdf"));
+      const pptx = turnArtifacts.find((a) => a.kind === "pptx" || a.filename.endsWith(".pptx"));
+      if (!pdf || !pptx) return null;
+      if (!/board pack/i.test(pdf.title) && !/board pack/i.test(pdf.filename)) return null;
+      const meetingMatch = pdf.filename.match(/(\d{4}-\d{2}-\d{2})/);
+      return cardsFromBoardPackSuccess({
+        packName: pdf.title.replace(/\s*\(PDF\)\s*$/i, "") || pdf.filename.replace(/\.pdf$/i, ""),
+        meetingDate: meetingMatch?.[1] ?? new Date().toISOString().slice(0, 10),
+        status: "Draft",
+        folderPath: "Corporate Information / Board Deck",
+        boardDeckHref: "/dashboard?view=board-pack",
+        pdfOpenUrl: pdf.openUrl,
+        pdfDownloadUrl: pdf.downloadUrl,
+        pptxDownloadUrl: pptx.downloadUrl,
+        followUpActions: turnFollowUps,
+      });
+    })();
+
+    if (lastBoardPackResult) {
+      assistantText = "Board Pack Generated Successfully";
+    }
+
     void recordQualityEvent({
       kind: "turn",
       durationMs: Date.now() - turnStartedAt,
@@ -1285,6 +1400,7 @@ export async function* runAssistantTurn(input: {
       createdAt: new Date().toISOString(),
       followUpActions: turnFollowUps.length > 0 ? turnFollowUps : undefined,
       artifacts: turnArtifacts.length > 0 ? turnArtifacts : undefined,
+      executionCards: lastBoardPackResult ?? undefined,
     };
 
     const saved = await persistTurn({

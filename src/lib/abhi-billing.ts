@@ -6,6 +6,16 @@ import type { ManagedClient } from "@/lib/client-management-data";
 
 export const ABHI_MEMBERSHIP_FEE_GBP = 3000;
 export const ABHI_WEBSITE_LISTING_FEE_GBP = 1000;
+export const ABHI_MEMBER_DIRECTORY_FEE_GBP = 850;
+
+/** Fake member-directory listing clients (RHS website billing panel). */
+export const ABHI_MEMBER_DIRECTORY_CLIENTS = [
+  { id: "abhi-dir-northstar-telehealth", name: "Northstar Telehealth" },
+  { id: "abhi-dir-solent-diagnostics", name: "Solent Diagnostics" },
+  { id: "abhi-dir-mercia-robotics-health", name: "Mercia Robotics Health" },
+  { id: "abhi-dir-avon-vale-medtech", name: "Avon Vale MedTech" },
+  { id: "abhi-dir-blackthorn-biosciences", name: "Blackthorn Biosciences" },
+] as const;
 
 export type AbhiBillingRowStatus = "Current" | "Due soon" | "Outstanding";
 
@@ -122,6 +132,52 @@ export function buildAbhiWebsiteListingRow(now = new Date()): AbhiBillingRow {
     status: amountDueGbp > 0 ? "Due soon" : "Current",
     billingCycle: "Annually",
   };
+}
+
+/** Fixed £850/year member-directory listing fee — separate from membership + website listing. */
+export function buildMemberDirectoryBillingRow(
+  client: { id: string; name: string },
+  now = new Date(),
+): AbhiBillingRow {
+  const seed = hashSeed(client.id);
+  const monthsAgo = 1 + (seed % 11);
+  const dayOfMonth = 1 + (seed % 27);
+
+  const last = new Date(now.getFullYear(), now.getMonth() - monthsAgo, dayOfMonth);
+  let next = addYears(last, 1);
+  while (startOfDay(next) < startOfDay(now)) {
+    next = addYears(next, 1);
+  }
+
+  const daysUntilNext = Math.round(
+    (startOfDay(next).getTime() - startOfDay(now).getTime()) / (24 * 60 * 60 * 1000),
+  );
+  const isOverdueCycle = (seed % 13) === 0;
+  const outstandingGbp = isOverdueCycle ? ABHI_MEMBER_DIRECTORY_FEE_GBP : 0;
+  const amountDueGbp =
+    outstandingGbp > 0 || daysUntilNext <= 45 ? ABHI_MEMBER_DIRECTORY_FEE_GBP : 0;
+
+  let status: AbhiBillingRowStatus = "Current";
+  if (outstandingGbp > 0) status = "Outstanding";
+  else if (daysUntilNext <= 45) status = "Due soon";
+
+  return {
+    id: client.id,
+    name: client.name,
+    lastPaymentDate: formatIsoDate(last),
+    lastPaymentAmountGbp: ABHI_MEMBER_DIRECTORY_FEE_GBP,
+    nextPaymentDate: formatIsoDate(isOverdueCycle ? addDays(now, -((seed % 40) + 5)) : next),
+    amountDueGbp,
+    outstandingGbp,
+    status,
+    billingCycle: "Annually",
+  };
+}
+
+export function buildAbhiMemberDirectoryBillingRows(now = new Date()): AbhiBillingRow[] {
+  return ABHI_MEMBER_DIRECTORY_CLIENTS.map((client) =>
+    buildMemberDirectoryBillingRow(client, now),
+  ).sort((a, b) => a.name.localeCompare(b.name, "en-GB"));
 }
 
 export function formatAbhiGbp(amount: number): string {

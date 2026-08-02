@@ -24,6 +24,7 @@ import { loginPlatformUser } from "@/lib/platform-users-service";
 import { recordPlatformUserLogin } from "@/lib/external-platform-users-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { resolveTalantonCompanyPortalPostLoginUrl } from "@/lib/talanton/company-portal-login";
+import { resolveAbhiMemberPortalPostLoginUrl } from "@/lib/abhi/member-portal-login";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
   INTERNAL_WORKSPACE_SLUG,
@@ -92,15 +93,23 @@ async function resolvePostLoginRedirect(options: {
   const loginReturn = parseLoginReturnTo(returnToRaw);
   const nextPath = parseSafePostLoginNext(nextRaw);
 
-  // Company portal externals must never land in the Talanton admin shell.
+  // Company/member portal externals must never land in the admin shell.
   if (userType === "external") {
-    const portalUrl = resolveTalantonCompanyPortalPostLoginUrl({
+    const talantonPortalUrl = resolveTalantonCompanyPortalPostLoginUrl({
       redirectPath,
       nextRaw: nextPath ?? nextRaw,
       returnToRaw,
       requestHost,
     });
-    if (portalUrl) return portalUrl;
+    if (talantonPortalUrl) return talantonPortalUrl;
+
+    const abhiPortalUrl = resolveAbhiMemberPortalPostLoginUrl({
+      redirectPath,
+      nextRaw: nextPath ?? nextRaw,
+      returnToRaw,
+      requestHost,
+    });
+    if (abhiPortalUrl) return abhiPortalUrl;
   }
 
   if (loginReturn?.kind === "workspace") {

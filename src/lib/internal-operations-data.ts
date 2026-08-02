@@ -1106,6 +1106,12 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
         if (activeView === "files-client") {
           return { title: "Member Explorer", subtitle: "File Explorer" };
         }
+        if (activeView === "unit311-details") {
+          return { title: "Dashboard", subtitle: "ABHI Details" };
+        }
+        if (activeView === "module-go-live") {
+          return { title: "Module Go-Live", subtitle: "ABHI Details" };
+        }
       }
     } catch {
       /* ignore */

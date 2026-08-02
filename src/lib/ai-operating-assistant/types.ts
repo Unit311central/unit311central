@@ -7,7 +7,7 @@ export type AssistantMessageRole = "user" | "assistant" | "system" | "tool";
 
 export type AssistantMessageArtifact = {
   id: string;
-  kind: "pdf";
+  kind: "pdf" | "pptx" | "file";
   title: string;
   filename: string;
   downloadUrl: string;

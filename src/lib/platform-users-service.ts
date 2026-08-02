@@ -162,6 +162,15 @@ export async function resolveSubscriptionRedirectForUser(
     return null;
   }
 
+  // ABHI member portal demo accounts — never force /payment.
+  if (
+    String(user.redirect_path ?? "").match(
+      /^\/(centrak|gamahealthcare|zeumed|ddcdolphin|wavetec)(\/|$)/i,
+    )
+  ) {
+    return null;
+  }
+
   try {
     const { client, workspaceStatus } = await findClientForSubscriptionGate(
       user,

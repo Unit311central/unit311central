@@ -4,6 +4,7 @@ import { getFinancialOverview } from "@/lib/accounting/overview-service";
 import { listLeads } from "@/lib/crm-leads-service";
 import { listOpenActionItems } from "@/lib/internal-action-items-service";
 import { listCalendarEvents } from "@/lib/internal-calendar-service";
+import { listClientOnboardingRecords } from "@/lib/client-onboarding-service";
 import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { getPlatformSession } from "@/lib/platform-session";
@@ -33,7 +34,7 @@ export async function GET() {
     const to = new Date(today);
     to.setDate(to.getDate() + 1);
 
-    const [projects, clients, leads, events, tickets, financials, apiActions] =
+    const [projects, clients, leads, events, tickets, financials, apiActions, onboardingPipeline] =
       await Promise.all([
         listProjects(scope).catch(() => []),
         listInternalClients(scope).catch(() => []),
@@ -43,6 +44,7 @@ export async function GET() {
         // Same SSOT as Financial Overview / GL / AR / AP / Wise — never null.
         getFinancialOverview(scope),
         listOpenActionItems(scope).catch(() => []),
+        listClientOnboardingRecords({ status: "in_progress", workspaceId }).catch(() => []),
       ]);
 
     return NextResponse.json({
@@ -53,6 +55,7 @@ export async function GET() {
       tickets,
       financials,
       apiActions,
+      onboardingPipelineCount: onboardingPipeline.length,
       elapsedMs: Date.now() - started,
       generatedAt: new Date().toISOString(),
     });
