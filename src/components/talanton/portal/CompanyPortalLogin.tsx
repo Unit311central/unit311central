@@ -8,9 +8,16 @@ type Props = {
   companyPath: string;
   companyName: string;
   suggestedUsername: string;
+  portalKind?: "company" | "board";
 };
 
-export function CompanyPortalLogin({ companyPath, companyName, suggestedUsername }: Props) {
+export function CompanyPortalLogin({
+  companyPath,
+  companyName,
+  suggestedUsername,
+  portalKind = "company",
+}: Props) {
+  const isBoard = portalKind === "board";
   const [username, setUsername] = useState(suggestedUsername);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -55,14 +62,15 @@ export function CompanyPortalLogin({ companyPath, companyName, suggestedUsername
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
-            Portfolio Company Portal
+            {isBoard ? "Board Portal" : "Portfolio Company Portal"}
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-            {companyName} Portal Login
+            {isBoard ? "Board Portal Login" : `${companyName} Portal Login`}
           </h1>
           <p className="mt-2 text-sm text-white/55">
-            Sign in with your assigned company portal account to access training, reports and
-            documents.
+            {isBoard
+              ? "Sign in with your assigned board account to access governance materials, meetings, decks, and the risk register."
+              : "Sign in with your assigned company portal account to access training, reports and documents."}
           </p>
 
           <form className="mt-6 space-y-4" onSubmit={(e) => void handleSubmit(e)}>
@@ -98,12 +106,12 @@ export function CompanyPortalLogin({ companyPath, companyName, suggestedUsername
               disabled={busy}
               className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
             >
-              {busy ? "Signing in…" : "Sign in to portal"}
+              {busy ? "Signing in…" : isBoard ? "Sign in to Board Portal" : "Sign in to portal"}
             </button>
           </form>
         </div>
         <p className="mt-4 text-center text-xs text-white/35">
-          Talanton Impact · {companyName}
+          Talanton Impact · {isBoard ? "Board" : companyName}
         </p>
       </div>
     </div>

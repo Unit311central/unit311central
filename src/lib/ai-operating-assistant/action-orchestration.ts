@@ -11,6 +11,7 @@
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 import type { AssistantBusinessContext, AssistantChatMessage } from "./types";
 import type { DirectAssistantIntent } from "./intent-router";
@@ -221,6 +222,21 @@ export async function resolveOrchestrationRoute(
             title: undefined,
           },
           reason: "ABHI AI course generator from document",
+        },
+      };
+    }
+  }
+
+  // Talanton Impact — board pack / deck generation when explicitly requested.
+  if (isTalantonImpactSlug(business.workspace.slug)) {
+    const boardPack = resolveAbhiBoardPackIntent(message);
+    if (boardPack) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: boardPack.tool,
+          args: boardPack.args,
+          reason: "Talanton Impact board pack generation",
         },
       };
     }

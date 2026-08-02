@@ -43,7 +43,7 @@ export async function requireCompanyPortalAccess(
     redirect(portalLoginPath(route.path));
   }
 
-  // External users: only their assigned company portal.
+  // External users: only their assigned company/board portal.
   if (session.userType === "external") {
     const allowed = getCompanyPortalByPath(session.redirectPath);
     if (!allowed) {
@@ -66,6 +66,11 @@ export async function requireCompanyPortalAccess(
         isStaffPreview: false,
       },
     };
+  }
+
+  // Board portal is external-only (same as ABHI Board) — staff must use board@ login.
+  if (route.portalKind === "board") {
+    redirect(portalLoginPath(route.path));
   }
 
   // Internal Talanton staff (host membership already enforced by middleware) may

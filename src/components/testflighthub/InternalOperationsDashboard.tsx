@@ -37,6 +37,7 @@ import { InternalOperationsBasePathProvider } from "./InternalOperationsBasePath
 import SurveyOperationsShell from "./SurveyOperationsShell";
 import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { ABHI_HIDDEN_VIEWS, isViewAllowedForGrants } from "@/lib/internal-role-views";
 import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
 import WorkspacePane from "./WorkspacePane";
@@ -775,13 +776,28 @@ export default function InternalOperationsDashboard({
 
           {activeView === "wise" && <WiseWorkspace />}
 
-          {activeView === "corporate-risk-register" && <RiskRegisterWorkspace />}
+          {activeView === "corporate-risk-register" &&
+            (isBrowserTalantonImpactSurface() ? (
+              <BoardGovernanceWorkspace section="risk" />
+            ) : (
+              <RiskRegisterWorkspace />
+            ))}
           {activeView === "board-dashboard" && <BoardGovernanceWorkspace section="dashboard" />}
-          {activeView === "board-meetings" && <BoardMeetingsWorkspace />}
+          {activeView === "board-meetings" &&
+            (isBrowserTalantonImpactSurface() ? (
+              <BoardGovernanceWorkspace section="meetings" />
+            ) : (
+              <BoardMeetingsWorkspace />
+            ))}
           {activeView === "board-minutes" && <BoardGovernanceWorkspace section="minutes" />}
           {activeView === "board-members" && <BoardGovernanceWorkspace section="members" />}
 
-          {activeView === "board-pack" && <BoardPackCustomizerWorkspace />}
+          {activeView === "board-pack" &&
+            (isBrowserTalantonImpactSurface() ? (
+              <BoardGovernanceWorkspace section="decks" />
+            ) : (
+              <BoardPackCustomizerWorkspace />
+            ))}
 
           {activeView === "expenses" && <ExpensesWorkspace />}
 

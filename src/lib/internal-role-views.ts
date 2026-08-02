@@ -330,10 +330,41 @@ function appendTalantonNavSections(sections: InternalNavSection[]): InternalNavS
     // Portfolio platform sections lead the workspace nav (after pin items like Home).
     const pins = sections.filter((section) => section.kind === "pin");
     const rest = sections.filter((section) => section.kind !== "pin");
-    return [...pins, ...TALANTON_IMPACT_NAV_SECTIONS, ...rest];
+    const withPortfolio = [...pins, ...TALANTON_IMPACT_NAV_SECTIONS, ...rest];
+    return insertTalantonBoardSection(withPortfolio);
   } catch {
-    return sections;
+    return insertTalantonBoardSection(sections);
   }
+}
+
+const TALANTON_BOARD_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "Board",
+  icon: "ShieldCheck",
+  color: "#1B8A5A",
+  items: [
+    { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" as const },
+    { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" as const },
+    { label: "Board Decks", icon: "ScrollText", view: "board-pack" as const },
+    { label: "Minutes & Decisions", icon: "ClipboardCheck", view: "board-minutes" as const },
+    { label: "Risk Register", icon: "AlertTriangle", view: "corporate-risk-register" as const },
+    { label: "Board Members", icon: "Users", view: "board-members" as const },
+  ],
+};
+
+function insertTalantonBoardSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
+  if (sections.some((s) => s.label === "Board")) return [...sections];
+  const out: InternalNavSection[] = [];
+  let inserted = false;
+  for (const section of sections) {
+    out.push(section);
+    if (section.label === "Portfolio Companies") {
+      out.push(TALANTON_BOARD_NAV_SECTION);
+      inserted = true;
+    }
+  }
+  if (!inserted) out.push(TALANTON_BOARD_NAV_SECTION);
+  return out;
 }
 
 function reshapeTalantonTrainingSection(section: InternalNavSection): InternalNavSection {

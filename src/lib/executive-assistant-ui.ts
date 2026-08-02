@@ -3,6 +3,7 @@ import { internalViewTitles, isInternalOperationsView } from "@/lib/internal-ope
 import type { SurveyOperationsView } from "@/lib/survey-operations-mock-data";
 import { surveyViewTitles } from "@/lib/survey-operations-mock-data";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 
 export type ExecutiveAssistantVariant = "home" | "drawer" | "page";
 
@@ -284,6 +285,48 @@ export const FUTURE_ACTIONS = [
   "Schedule follow-up",
 ] as const;
 
+const TALANTON_BOARD_PACK_PROMPTS = [
+  "Create Board Pack",
+  "Summarise the next board meeting",
+  "What are the open board actions?",
+  "Highlight portfolio risks for the board",
+] as const;
+
+function withTalantonPrompts(
+  context: ExecutiveAssistantPageContext,
+  activeView: string,
+): ExecutiveAssistantPageContext {
+  if (typeof window === "undefined" || !isBrowserTalantonImpactSurface()) return context;
+
+  if (
+    activeView === "board-pack" ||
+    activeView === "board-meetings" ||
+    activeView === "board-dashboard" ||
+    activeView === "board-minutes" ||
+    activeView === "board-members" ||
+    activeView === "corporate-risk-register"
+  ) {
+    return { ...context, suggestedPrompts: [...TALANTON_BOARD_PACK_PROMPTS] };
+  }
+  if (activeView === "home" || activeView === "executive-assistant") {
+    const prompts = context.suggestedPrompts.includes("Create Board Pack")
+      ? context.suggestedPrompts
+      : ["Create Board Pack", ...context.suggestedPrompts];
+    return { ...context, suggestedPrompts: prompts.slice(0, 7) };
+  }
+  return context;
+}
+
+function withSurfacePrompts(
+  context: ExecutiveAssistantPageContext,
+  activeView: string,
+): ExecutiveAssistantPageContext {
+  if (typeof window !== "undefined" && isBrowserTalantonImpactSurface()) {
+    return withTalantonPrompts(context, activeView);
+  }
+  return withCorpCentrePrompts(context, activeView);
+}
+
 export function resolveExecutiveAssistantContext(
   activeView: string | null | undefined,
   mode: "survey" | "internal" = "internal",
@@ -297,11 +340,11 @@ export function resolveExecutiveAssistantContext(
   }
 
   const mapped = CONTEXT_BY_VIEW[activeView];
-  if (mapped) return withCorpCentrePrompts(mapped, activeView);
+  if (mapped) return withSurfacePrompts(mapped, activeView);
 
   if (mode === "internal" && isInternalOperationsView(activeView)) {
     const meta = internalViewTitles[activeView as InternalOperationsView];
-    return withCorpCentrePrompts(
+    return withSurfacePrompts(
       {
         label: meta.subtitle || meta.title,
         suggestedPrompts: [
@@ -316,7 +359,7 @@ export function resolveExecutiveAssistantContext(
 
   const surveyMeta = surveyViewTitles[activeView as SurveyOperationsView];
   if (surveyMeta) {
-    return withCorpCentrePrompts(
+    return withSurfacePrompts(
       {
         label: surveyMeta.subtitle || surveyMeta.title,
         suggestedPrompts: [...DEFAULT_PROMPTS],
@@ -325,7 +368,7 @@ export function resolveExecutiveAssistantContext(
     );
   }
 
-  return withCorpCentrePrompts(
+  return withSurfacePrompts(
     { label: "Workspace", suggestedPrompts: [...DEFAULT_PROMPTS] },
     activeView,
   );

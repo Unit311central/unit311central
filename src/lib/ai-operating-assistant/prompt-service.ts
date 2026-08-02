@@ -5,6 +5,7 @@ import {
   CORPCENTRE_CASH_BALANCE_AUD,
   isCorpCentreWorkspaceSlug,
 } from "@/lib/corpcentre-financials";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 const CORE_INSTRUCTIONS = `You are the Unit311 AI Executive Assistant — an experienced Chief of Staff.
 
@@ -111,7 +112,12 @@ export function buildSystemInstructions(
     : "";
 
   const isCorpCentre = isCorpCentreWorkspaceSlug(context.workspace.slug);
+  const isTalanton = isTalantonImpactSlug(context.workspace.slug);
   const core = isCorpCentre ? CORPCENTRE_INSTRUCTIONS : CORE_INSTRUCTIONS;
+  const talantonToolsHint = isTalanton
+    ? `
+Talanton Impact tools: boardpack.generate — create board packs / board decks when the user explicitly asks.`
+    : "";
 
   return `${core}
 
@@ -151,7 +157,7 @@ Active selection: ${selection || "none"}${topicBlock}${memoryBlock}${artifactBlo
 Platform: listPlatformModules / searchApplications.
 Capabilities: listBusinessActions / searchCapabilities / proposeBusinessActionPlan.
 Finance writes: finance.createExpense, finance.chaseOverdueInvoice (then calendar.scheduleMeeting for follow-up).
-Business facts: queryBusiness / getSmartInsights / search* tools. Prefer executing registered capabilities over describing screens when the user wants work done.`;
+Business facts: queryBusiness / getSmartInsights / search* tools. Prefer executing registered capabilities over describing screens when the user wants work done.${talantonToolsHint}`;
 }
 
 export function buildStructuredJsonHint() {

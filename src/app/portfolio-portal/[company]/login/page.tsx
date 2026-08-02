@@ -25,6 +25,7 @@ export default async function CompanyPortalLoginPage({
       companyPath={route.path}
       companyName={route.displayName}
       suggestedUsername={route.username}
+      portalKind={route.portalKind ?? "company"}
     />
   );
 }

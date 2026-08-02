@@ -1,6 +1,6 @@
 /**
- * ABHI-only Board Pack Generation — EA tool `boardpack.generate`.
- * Generates PowerPoint + PDF preview with staged analysis delay (8–12s).
+ * Board Pack Generation — EA tool `boardpack.generate`.
+ * Available on ABHI and Talanton Impact. Generates PowerPoint + PDF with staged analysis delay.
  */
 
 import { readFile } from "node:fs/promises";
@@ -31,8 +31,14 @@ import {
   type AssistantToolExecutionContext,
   type AssistantToolResult,
 } from "@/lib/ai-operating-assistant/tool-result";
-
 import { ABHI_BOARD_PACK_STAGES } from "@/lib/abhi/board-pack-stages";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+
+const TALANTON_LOGO_SRC = "/images/workspaces/talantonimpact-t.jpg";
+
+function canGenerateBoardPack(slug: string | null | undefined) {
+  return isAbhiSlug(slug) || isTalantonImpactSlug(slug);
+}
 
 const STAGE_MS = [1100, 1000, 1100, 1200, 1100, 900, 1100, 1400, 1000] as const;
 const GENERATION_STAGES = ABHI_BOARD_PACK_STAGES.map((stage, index) => ({
@@ -80,15 +86,22 @@ function parseMeetingDate(raw: string | undefined): string | undefined {
   return toIso(new Date(parsed));
 }
 
-async function loadAbhiLogoDataUrl(): Promise<string | null> {
+async function loadLogoDataUrl(slug: string): Promise<string | null> {
   try {
-    // Prefer the same transparent PNG as AbhiLogoMark; fall back to JPG.
-    const relative = ABHI_LOGO_SRC.replace(/^\//, "");
+    const relative = (
+      isTalantonImpactSlug(slug) ? TALANTON_LOGO_SRC : ABHI_LOGO_SRC
+    ).replace(/^\//, "");
     const primaryPath = join(process.cwd(), "public", relative);
     try {
-      const pngBytes = await readFile(primaryPath);
-      return `data:image/png;base64,${pngBytes.toString("base64")}`;
+      const bytes = await readFile(primaryPath);
+      const mime = relative.endsWith(".png")
+        ? "image/png"
+        : relative.endsWith(".jpg") || relative.endsWith(".jpeg")
+          ? "image/jpeg"
+          : "image/png";
+      return `data:${mime};base64,${bytes.toString("base64")}`;
     } catch {
+      if (isTalantonImpactSlug(slug)) return null;
       const jpgPath = join(
         process.cwd(),
         "public",
@@ -104,6 +117,26 @@ async function loadAbhiLogoDataUrl(): Promise<string | null> {
   }
 }
 
+function brandBoardPackForWorkspace(
+  data: AbhiBoardPackData,
+  slug: string,
+): AbhiBoardPackData {
+  if (!isTalantonImpactSlug(slug)) return data;
+  const rebrand = (value: string) =>
+    value
+      .replace(/\bABHI\b/g, "Talanton Impact")
+      .replace(/Association of British HealthTech Industries/gi, "Talanton Impact");
+  return {
+    ...data,
+    packName: rebrand(data.packName).replace(
+      /Talanton Impact Board Meeting Pack/i,
+      "Talanton Impact Board Pack",
+    ),
+    folderPath: rebrand(data.folderPath),
+    pageSummaries: data.pageSummaries?.map(rebrand),
+  };
+}
+
 async function runStagedAnalysis(): Promise<void> {
   // Keep total delay in the 8–12s demo window while generation work runs in parallel.
   for (const stage of GENERATION_STAGES) {
@@ -115,10 +148,11 @@ export async function generateBoardPackTool(
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ): Promise<AssistantToolResult> {
-  if (!isAbhiSlug(ctx.business.workspace.slug)) {
+  const slug = ctx.business.workspace.slug;
+  if (!canGenerateBoardPack(slug)) {
     return toolForbidden(
       "boardpack.generate",
-      "Board Pack Generation is available on the ABHI workspace only.",
+      "Board Pack Generation is available on the ABHI and Talanton Impact workspaces only.",
     );
   }
 
@@ -126,8 +160,11 @@ export async function generateBoardPackTool(
     const meetingDate = parseMeetingDate(
       asString(args.meetingDate) || asString(args.date) || asString(args.when),
     );
-    const data: AbhiBoardPackData = buildAbhiBoardPackData(meetingDate);
-    const logoDataUrl = await loadAbhiLogoDataUrl();
+    const data: AbhiBoardPackData = brandBoardPackForWorkspace(
+      buildAbhiBoardPackData(meetingDate),
+      slug,
+    );
+    const logoDataUrl = await loadLogoDataUrl(slug);
 
     const analysisPromise = runStagedAnalysis();
     const [pdfBytes, pptxBytes] = await Promise.all([

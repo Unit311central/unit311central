@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import PortalCourseLaunch from "@/components/lms/PortalCourseLaunch";
+import { TalantonBoardPortalApp } from "@/components/talanton/board/TalantonBoardPortalApp";
 import {
   CompanyPortalAssignedCourses,
   CompanyPortalCourseCompletion,
@@ -19,6 +20,7 @@ import {
   CompanyPortalTrainingHub,
   CompanyPortalTrainingInProgress,
 } from "@/components/talanton/portal/CompanyPortalPanels";
+import { parseTiBoardPortalSection } from "@/lib/talanton/board-portal-data";
 import { getCompanyPortalByPath } from "@/lib/talanton/company-portal-routes";
 
 function SubLinks({
@@ -58,6 +60,12 @@ export default async function CompanyPortalPage({
   const { company, section = [] } = await params;
   const route = getCompanyPortalByPath(company);
   if (!route) notFound();
+
+  if (route.portalKind === "board") {
+    const boardSection = parseTiBoardPortalSection(section);
+    if (!boardSection) notFound();
+    return <TalantonBoardPortalApp section={boardSection} />;
+  }
 
   const key = section.join("/");
   const base = `/${route.path}`;

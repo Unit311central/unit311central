@@ -16,7 +16,7 @@ export function isTalantonImpactView(view: string | null | undefined): view is T
   return (TALANTON_IMPACT_VIEWS as readonly string[]).includes(String(view ?? ""));
 }
 
-/** Prepended on Talanton host after pin items — Portfolio Companies only. */
+/** Prepended on Talanton host after pin items — Portfolio Companies + Board. */
 export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
   {
     kind: "workspace",
@@ -34,6 +34,20 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
         icon: "Building2",
         view: "portfolio-directory",
       },
+    ],
+  },
+  {
+    kind: "workspace",
+    label: "Board",
+    icon: "ShieldCheck",
+    color: "#1B8A5A",
+    items: [
+      { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" },
+      { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" },
+      { label: "Board Decks", icon: "ScrollText", view: "board-pack" },
+      { label: "Minutes & Decisions", icon: "ClipboardCheck", view: "board-minutes" },
+      { label: "Risk Register", icon: "AlertTriangle", view: "corporate-risk-register" },
+      { label: "Board Members", icon: "Users", view: "board-members" },
     ],
   },
 ];

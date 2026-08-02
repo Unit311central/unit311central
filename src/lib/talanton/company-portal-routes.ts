@@ -1,5 +1,5 @@
 /**
- * Route-based Talanton portfolio company portals.
+ * Route-based Talanton portfolio company portals + Board governance portal.
  * Public URLs live on talantonimpact.unit311central.com/{path} only — no company subdomains.
  */
 
@@ -8,13 +8,24 @@ export type TalantonCompanyPortalRoute = {
   displayName: string;
   /** internal_clients.id */
   clientId: string;
-  /** portfolio-data company id */
+  /** portfolio-data company id (empty for Board portal) */
   companyId: string;
   username: string;
   redirectPath: string;
+  /** Portfolio company portal vs Talanton Board governance portal. */
+  portalKind?: "company" | "board";
 };
 
 export const TALANTON_COMPANY_PORTAL_ROUTES: readonly TalantonCompanyPortalRoute[] = [
+  {
+    path: "board",
+    displayName: "Talanton Impact Board",
+    clientId: "ti-cli-board",
+    companyId: "",
+    username: "board@talantonimpact.com",
+    redirectPath: "/board",
+    portalKind: "board",
+  },
   {
     path: "ethicalapparelafrica",
     displayName: "Ethical Apparel Africa",
@@ -170,7 +181,9 @@ export const TALANTON_COMPANY_PORTAL_ROUTES: readonly TalantonCompanyPortalRoute
 ] as const;
 
 const BY_PATH = new Map(TALANTON_COMPANY_PORTAL_ROUTES.map((r) => [r.path, r]));
-const BY_COMPANY_ID = new Map(TALANTON_COMPANY_PORTAL_ROUTES.map((r) => [r.companyId, r]));
+const BY_COMPANY_ID = new Map(
+  TALANTON_COMPANY_PORTAL_ROUTES.filter((r) => r.companyId).map((r) => [r.companyId, r]),
+);
 const BY_CLIENT_ID = new Map(TALANTON_COMPANY_PORTAL_ROUTES.map((r) => [r.clientId, r]));
 
 export function getCompanyPortalByPath(
