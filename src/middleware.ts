@@ -223,9 +223,12 @@ export async function middleware(request: NextRequest) {
           clearPlatformSessionCookie(response, request);
           return response;
         }
-        if (allowed !== `/${portalMatch.route.path}` && !pathname.startsWith(allowed)) {
-          const bounce = redirectExternal(`${workspaceOrigin}${allowed}`);
-          return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
+        // Wrong portal (e.g. board session on /centrak): show this company's
+        // login — never hijack the browser to a different member portal.
+        if (allowed !== `/${portalMatch.route.path}` && !pathname.startsWith(`${allowed}/`) && pathname !== allowed) {
+          const response = companyPortalLoginRewrite();
+          clearPlatformSessionCookie(response, request);
+          return response;
         }
 
         // Matching external users hitting /{company}/login go to the portal home.
@@ -326,10 +329,10 @@ export async function middleware(request: NextRequest) {
 
       // ABHI / Talanton: always render the org login page at /login.
       // Do not bounce signed-in users to /dashboard or /{company}.
-      // Clear any existing session so apex/login is a clean sign-in surface.
+      // Do NOT clear the session here — Next.js Link prefetch of /login would
+      // wipe active /portals (and other) sessions within seconds.
       if (isCompanyPortalSlug(workspaceSlug)) {
         const response = NextResponse.next({ request: { headers } });
-        clearPlatformSessionCookie(response, request);
         for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
           response.headers.set(key, value);
         }

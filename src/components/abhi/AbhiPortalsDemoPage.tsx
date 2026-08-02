@@ -470,7 +470,11 @@ export default function AbhiPortalsDemoPage() {
     try {
       const response = await fetch("/api/abhi/portals-content", { cache: "no-store" });
       if (response.status === 401) {
-        window.location.assign("/login?next=%2Fportals");
+        // Initial auth failure → login. Silent polls must not bounce an active
+        // editor if a transient cookie glitch occurs; retry next interval.
+        if (!silent) {
+          window.location.assign("/login?next=%2Fportals");
+        }
         return;
       }
       const data = (await response.json()) as {
@@ -689,6 +693,7 @@ export default function AbhiPortalsDemoPage() {
           </p>
           <Link
             href="/login?next=%2Fportals"
+            prefetch={false}
             className="inline-flex items-center gap-1 font-medium text-sky-300/80 transition hover:text-sky-200"
           >
             Switch account
