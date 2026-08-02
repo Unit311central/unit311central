@@ -296,17 +296,10 @@ export async function middleware(request: NextRequest) {
 
       // ABHI / Talanton: always render the org login page at /login.
       // Do not bounce signed-in users to /dashboard or /{company}.
-      // Clear leftover member-portal / foreign sessions so the form is clean.
+      // Clear any existing session so apex/login is a clean sign-in surface.
       if (isCompanyPortalSlug(workspaceSlug)) {
         const response = NextResponse.next({ request: { headers } });
-        if (
-          gate.status === "ok" &&
-          gate.session.userType === "external"
-        ) {
-          clearPlatformSessionCookie(response, request);
-        } else if (gate.status === "invalid" || gate.status === "forbidden") {
-          clearPlatformSessionCookie(response, request);
-        }
+        clearPlatformSessionCookie(response, request);
         for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
           response.headers.set(key, value);
         }

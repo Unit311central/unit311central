@@ -46,18 +46,34 @@ export function clearPlatformSessionCookie(
   request?: NextRequest | Request,
 ) {
   const options = getPlatformSessionCookieOptions(request);
-  // Clear Domain=.unit311central.com variant (shared across hosts).
+  const secure =
+    options.secure ||
+    (typeof process !== "undefined" && process.env.NODE_ENV === "production");
+  const expired = new Date(0).toUTCString();
+
+  // Prefer response.cookies API…
   response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
     ...options,
+    secure,
     maxAge: 0,
+    expires: new Date(0),
   });
-  // Also clear any host-only cookie with the same name (older clients / mis-sets).
-  // Browsers treat Domain-less and Domain= cookies as distinct.
   response.cookies.set(PLATFORM_SESSION_COOKIE, "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     sameSite: "lax",
     path: "/",
     maxAge: 0,
+    expires: new Date(0),
   });
+
+  // …and also emit explicit Set-Cookie headers. Middleware redirects on Vercel
+  // have dropped cookies.set() in some cases; headers.append is reliable.
+  const base = `${PLATFORM_SESSION_COOKIE}=; Path=/; Max-Age=0; Expires=${expired}; HttpOnly; SameSite=Lax${
+    secure ? "; Secure" : ""
+  }`;
+  response.headers.append("Set-Cookie", base);
+  if (options.domain) {
+    response.headers.append("Set-Cookie", `${base}; Domain=${options.domain}`);
+  }
 }
