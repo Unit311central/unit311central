@@ -6,13 +6,15 @@ import { Manrope } from "next/font/google";
 import {
   ArrowUpRight,
   Check,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Loader2,
   LogOut,
   Plus,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import {
@@ -142,10 +144,7 @@ function EditableRows({
   }
 
   function addTopLevelRow() {
-    onChange([
-      ...rows,
-      { id: newPortalsRowId("r"), text: "", indent: 0 },
-    ]);
+    onChange([...rows, { id: newPortalsRowId("r"), text: "", indent: 0 }]);
   }
 
   /** Insert a nested row after this top-level row (and its existing children). */
@@ -180,10 +179,57 @@ function EditableRows({
     ]);
   }
 
+  function moveRow(index: number, direction: -1 | 1) {
+    const row = rows[index];
+    if (!row) return;
+
+    // Nested: swap with adjacent nested sibling when possible.
+    if (row.indent === 1) {
+      const target = index + direction;
+      if (target < 0 || target >= rows.length) return;
+      if (rows[target]?.indent !== 1 && direction === -1) return;
+      if (rows[target]?.indent !== 1 && direction === 1) return;
+      const next = [...rows];
+      const current = next[index]!;
+      next[index] = next[target]!;
+      next[target] = current;
+      onChange(next);
+      return;
+    }
+
+    // Top-level: move the row together with its nested children.
+    let end = index + 1;
+    while (end < rows.length && rows[end]?.indent === 1) end += 1;
+    const block = rows.slice(index, end);
+
+    if (direction === -1) {
+      if (index === 0) return;
+      let prevStart = index - 1;
+      while (prevStart > 0 && rows[prevStart]?.indent === 1) prevStart -= 1;
+      onChange([
+        ...rows.slice(0, prevStart),
+        ...block,
+        ...rows.slice(prevStart, index),
+        ...rows.slice(end),
+      ]);
+      return;
+    }
+
+    if (end >= rows.length) return;
+    let nextEnd = end + 1;
+    while (nextEnd < rows.length && rows[nextEnd]?.indent === 1) nextEnd += 1;
+    onChange([
+      ...rows.slice(0, index),
+      ...rows.slice(end, nextEnd),
+      ...block,
+      ...rows.slice(nextEnd),
+    ]);
+  }
+
   return (
     <div className="flex h-full flex-col">
       <ul className="flex-1 space-y-2.5">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <li
             key={row.id}
             className={cn(
@@ -196,13 +242,35 @@ function EditableRows({
             ) : null}
             {canEdit ? (
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <input
-                  value={row.text}
-                  onChange={(event) => updateRow(row.id, { text: event.target.value })}
-                  placeholder={row.indent === 1 ? "Nested row…" : "Top-level row…"}
-                  className="w-full rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-[13px] text-white outline-none placeholder:text-white/30 focus:border-sky-400/50"
-                />
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-start gap-1.5">
+                  <div className="flex shrink-0 flex-col gap-0.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => moveRow(index, -1)}
+                      disabled={index === 0}
+                      className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                      aria-label="Move up"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveRow(index, 1)}
+                      disabled={index >= rows.length - 1}
+                      className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                      aria-label="Move down"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <input
+                    value={row.text}
+                    onChange={(event) => updateRow(row.id, { text: event.target.value })}
+                    placeholder={row.indent === 1 ? "Nested row…" : "Top-level row…"}
+                    className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-[13px] text-white outline-none placeholder:text-white/30 focus:border-sky-400/50"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2 pl-8">
                   <label className="inline-flex items-center gap-1.5 text-[10px] text-white/45">
                     <input
                       type="checkbox"
@@ -283,10 +351,22 @@ export default function AbhiPortalsDemoPage() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const dirtyRef = useRef(false);
+  const contentRef = useRef(content);
+  contentRef.current = content;
 
-  const loadContent = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
+  const applyContent = useCallback((next: AbhiPortalsEditableContent, markDirty: boolean) => {
+    if (markDirty) dirtyRef.current = true;
+    setContent(next);
+  }, []);
+
+  const loadContent = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setLoading(true);
+      setLoadError(null);
+    }
     try {
       const response = await fetch("/api/abhi/portals-content", { cache: "no-store" });
       if (response.status === 401) {
@@ -300,13 +380,18 @@ export default function AbhiPortalsDemoPage() {
         error?: string;
       };
       if (!response.ok) throw new Error(data.error ?? "Failed to load portals content");
-      if (data.content) setContent(data.content);
+      if (data.content && !dirtyRef.current) {
+        setContent(data.content);
+      }
       setCanEdit(Boolean(data.canEdit));
       setUsername(data.username ?? null);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Failed to load");
+      if (!silent) {
+        setLoadError(error instanceof Error ? error.message : "Failed to load");
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+      setReady(true);
     }
   }, []);
 
@@ -314,21 +399,33 @@ export default function AbhiPortalsDemoPage() {
     void loadContent();
   }, [loadContent]);
 
-  async function saveContent() {
+  // Viewers (and idle admin): refresh every few seconds so edits appear without a manual reload.
+  useEffect(() => {
+    if (!ready) return;
+    const timer = window.setInterval(() => {
+      if (dirtyRef.current || saving) return;
+      void loadContent({ silent: true });
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [ready, saving, loadContent]);
+
+  const saveContent = useCallback(async (payload?: AbhiPortalsEditableContent) => {
     if (!canEdit) return;
+    const body = payload ?? contentRef.current;
     setSaving(true);
-    setSaveMessage(null);
+    setSaveMessage("Saving…");
     try {
       const response = await fetch("/api/abhi/portals-content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content: body }),
       });
       const data = (await response.json()) as {
         content?: AbhiPortalsEditableContent;
         error?: string;
       };
       if (!response.ok) throw new Error(data.error ?? "Save failed");
+      dirtyRef.current = false;
       if (data.content) setContent(data.content);
       setSaveMessage("Saved");
       window.setTimeout(() => setSaveMessage(null), 2000);
@@ -337,7 +434,16 @@ export default function AbhiPortalsDemoPage() {
     } finally {
       setSaving(false);
     }
-  }
+  }, [canEdit]);
+
+  // Auto-save shortly after admin edits.
+  useEffect(() => {
+    if (!canEdit || !ready || !dirtyRef.current) return;
+    const timer = window.setTimeout(() => {
+      void saveContent(content);
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [content, canEdit, ready, saveContent]);
 
   async function handleLogout() {
     try {
@@ -369,15 +475,10 @@ export default function AbhiPortalsDemoPage() {
               <p className="hidden text-[11px] text-white/50 sm:block">{username}</p>
             ) : null}
             {canEdit ? (
-              <button
-                type="button"
-                onClick={() => void saveContent()}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100 hover:bg-emerald-500/25 disabled:opacity-60"
-              >
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100">
                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                {saveMessage === "Saved" ? "Saved" : "Save edits"}
-              </button>
+                {saveMessage ?? "Auto-save on"}
+              </span>
             ) : null}
             <button
               type="button"
@@ -405,8 +506,8 @@ export default function AbhiPortalsDemoPage() {
           </p>
           {canEdit ? (
             <p className="mt-2 text-[12px] text-emerald-200/80">
-              Admin edit mode — change rows below, then Save edits.
-              {saveMessage && saveMessage !== "Saved" ? ` ${saveMessage}` : ""}
+              Admin edit mode — edits auto-save; other open views refresh within a few seconds.
+              {saveMessage ? ` ${saveMessage}` : ""}
             </p>
           ) : null}
           {loadError ? (
@@ -451,7 +552,9 @@ export default function AbhiPortalsDemoPage() {
                   rows={content.majorModules}
                   canEdit={canEdit}
                   accent="sky"
-                  onChange={(majorModules) => setContent((current) => ({ ...current, majorModules }))}
+                  onChange={(majorModules) =>
+                    applyContent({ ...contentRef.current, majorModules }, true)
+                  }
                 />
               </div>
             </section>
@@ -471,7 +574,7 @@ export default function AbhiPortalsDemoPage() {
                   canEdit={canEdit}
                   accent="pink"
                   onChange={(customModules) =>
-                    setContent((current) => ({ ...current, customModules }))
+                    applyContent({ ...contentRef.current, customModules }, true)
                   }
                 />
               </div>
