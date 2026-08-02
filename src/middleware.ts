@@ -248,14 +248,19 @@ export async function middleware(request: NextRequest) {
     }
 
     // Talanton / ABHI externals may only use login/api/static + their assigned portal.
+    // Apex `/` and `/login` are the organisation entry — never hijack into /{company}.
     if (isCompanyPortalSlug(workspaceSlug)) {
       const externalGate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (externalGate.status === "ok" && externalGate.session.userType === "external") {
         const portalHome = canonicalizePortalRedirect(externalGate.session.redirectPath);
         const isPortalPath = matchPortalPathnameForSlug(workspaceSlug, pathname) != null;
-        const isAllowedUtility =
+        const isOrgEntry =
+          pathname === "/" ||
+          pathname === "" ||
           pathname === "/login" ||
-          pathname.startsWith("/login/") ||
+          pathname.startsWith("/login/");
+        const isAllowedUtility =
+          isOrgEntry ||
           pathname.startsWith("/api/") ||
           pathname.startsWith("/_next/");
 
@@ -264,6 +269,15 @@ export async function middleware(request: NextRequest) {
           const clear = redirectExternal(`${workspaceOrigin}/login`);
           clearPlatformSessionCookie(clear, request);
           return clear;
+        }
+
+        // Workspace apex is always the org login page — not a member portal home.
+        // Clear the member-portal session so a leftover /centrak cookie cannot
+        // keep hijacking abhi.unit311central.com away from the ABHI login page.
+        if (pathname === "/" || pathname === "") {
+          const bounce = redirectExternal(`${workspaceOrigin}/login${search}`);
+          clearPlatformSessionCookie(bounce, request);
+          return bounce;
         }
 
         if (!isPortalPath && !isAllowedUtility) {
@@ -281,23 +295,19 @@ export async function middleware(request: NextRequest) {
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (gate.status === "ok") {
+        // Member-portal externals keep /login as the org login page.
+        // Portal homes are only at /{company} (e.g. /centrak), never via apex login.
         if (gate.session.userType === "external" && isCompanyPortalSlug(workspaceSlug)) {
-          const portalHome = canonicalizePortalRedirect(gate.session.redirectPath);
-          if (!portalHome) {
-            // Avoid redirect loop: clear broken session and show login once.
-            const response = NextResponse.next({ request: { headers } });
-            clearPlatformSessionCookie(response, request);
-            for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
-              response.headers.set(key, value);
-            }
-            response.headers.set(
-              "Cache-Control",
-              "private, no-cache, no-store, max-age=0, must-revalidate",
-            );
-            return response;
+          const response = NextResponse.next({ request: { headers } });
+          clearPlatformSessionCookie(response, request);
+          for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
+            response.headers.set(key, value);
           }
-          const redirect = redirectExternal(`${workspaceOrigin}${portalHome}`);
-          return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
+          response.headers.set(
+            "Cache-Control",
+            "private, no-cache, no-store, max-age=0, must-revalidate",
+          );
+          return response;
         }
         const redirect = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
         return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
@@ -348,15 +358,18 @@ export async function middleware(request: NextRequest) {
         return customerHostLoginRedirect(workspaceOrigin);
       }
 
-      // Signed-in users hitting the splash go straight into the workspace app.
+      // Apex `/` is the organisation entry:
+      // - internal staff → workspace dashboard
+      // - member-portal externals → org login (never /{company} such as /centrak)
       if (pathname === "/" || pathname === "") {
-        const portalHome =
-          gate.session.userType === "external" && isCompanyPortalSlug(workspaceSlug)
-            ? canonicalizePortalRedirect(gate.session.redirectPath)
-            : null;
-        const redirect = redirectExternal(
-          `${workspaceOrigin}${portalHome || "/dashboard"}${search}`,
-        );
+        if (
+          gate.session.userType === "external" &&
+          isCompanyPortalSlug(workspaceSlug)
+        ) {
+          const redirect = redirectExternal(`${workspaceOrigin}/login${search}`);
+          return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
+        }
+        const redirect = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
         return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
       }
 
