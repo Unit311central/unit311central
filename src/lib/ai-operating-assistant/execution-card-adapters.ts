@@ -186,10 +186,10 @@ export function cardsFromBoardPackSuccess(input: {
       id: `boardpack_success_${input.meetingDate}`,
       kind: "summary",
       title: "Board Pack Generated Successfully",
-      subtitle: `${input.packName} · ${input.status}`,
-      body: `Saved to ${input.folderPath}. Review in Corporate Information → Board Deck.`,
+      subtitle: input.packName,
+      body: `Board Pack:\n${input.packName}`,
       fields: [
-        { key: "pack", label: "Pack", value: input.packName },
+        { key: "pack", label: "Board Pack", value: input.packName },
         { key: "meeting", label: "Meeting date", value: input.meetingDate },
         { key: "status", label: "Status", value: input.status },
       ],
@@ -203,11 +203,11 @@ export function cardsFromBoardPackSuccess(input: {
           href: input.pdfOpenUrl,
         },
         {
-          id: "edit",
-          label: "Edit Board Pack",
+          id: "pdf",
+          label: "Download PDF",
           variant: "secondary",
           intent: "navigate",
-          href: input.boardDeckHref,
+          href: input.pdfDownloadUrl,
         },
         {
           id: "pptx",
@@ -217,11 +217,11 @@ export function cardsFromBoardPackSuccess(input: {
           href: input.pptxDownloadUrl,
         },
         {
-          id: "pdf",
-          label: "Download PDF",
+          id: "open_board_deck",
+          label: "Open Board Deck",
           variant: "ghost",
           intent: "navigate",
-          href: input.pdfDownloadUrl,
+          href: input.boardDeckHref,
         },
       ],
       nextActions: input.followUpActions,
@@ -229,6 +229,46 @@ export function cardsFromBoardPackSuccess(input: {
         boardPack: true,
         packName: input.packName,
         meetingDate: input.meetingDate,
+      },
+    },
+  ];
+}
+
+/** Ask card when Board Pack cannot invent a meeting date. */
+export function cardsFromBoardPackNeedsDate(input: {
+  message: string;
+  boardMeetingsHref?: string;
+  followUpActions?: AssistantFollowUpAction[];
+}): EaExecutionCard[] {
+  const href = input.boardMeetingsHref ?? "/dashboard?view=board-meetings";
+  return [
+    {
+      id: "boardpack_needs_meeting_date",
+      kind: "summary",
+      title: "Meeting Date Required",
+      subtitle: "Board Pack - Meeting Date Not Set",
+      body: input.message,
+      fields: [
+        {
+          key: "pack",
+          label: "Board Pack",
+          value: "Board Pack - Meeting Date Not Set",
+        },
+      ],
+      statusTone: "warning",
+      actions: [
+        {
+          id: "open_board_meetings",
+          label: "Open Board Meetings",
+          variant: "primary",
+          intent: "navigate",
+          href,
+        },
+      ],
+      nextActions: input.followUpActions,
+      meta: {
+        boardPack: true,
+        needsMeetingDate: true,
       },
     },
   ];
