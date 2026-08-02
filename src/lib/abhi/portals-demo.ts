@@ -134,8 +134,8 @@ export function sanitizePortalsContent(raw: unknown): AbhiPortalsEditableContent
     const rows: PortalsModuleRow[] = [];
     for (const entry of value) {
       if (!entry || typeof entry !== "object") continue;
-      const text = String((entry as PortalsModuleRow).text ?? "").trim();
-      if (!text) continue;
+      // Keep empty draft rows — stripping them made new sub-row inputs vanish on autosave.
+      const text = String((entry as PortalsModuleRow).text ?? "");
       const rawIndent = (entry as PortalsModuleRow).indent;
       const indent: PortalsIndent = rawIndent === 2 ? 2 : rawIndent === 1 ? 1 : 0;
       const id =

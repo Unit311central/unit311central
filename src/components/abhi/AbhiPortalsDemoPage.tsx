@@ -215,6 +215,7 @@ function EditableRows({
 }) {
   const tree = useMemo(() => buildModuleTree(rows), [rows]);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [focusRowId, setFocusRowId] = useState<string | null>(null);
 
   function isExpanded(id: string) {
     if (!collapsible) return true;
@@ -244,6 +245,7 @@ function EditableRows({
     const id = newPortalsRowId("r");
     onChange([...rows, { id, text: "", indent: 0 }]);
     setExpandedIds((current) => ({ ...current, [id]: true }));
+    setFocusRowId(id);
   }
 
   function addChildUnder(parentId: string) {
@@ -253,14 +255,16 @@ function EditableRows({
     if (parentIndent >= 2) return;
     const childIndent = (parentIndent + 1) as PortalsIndent;
     const insertAt = portalsRowBlockEnd(rows, parentIndex);
+    const id = newPortalsRowId(childIndent === 2 ? "nn" : "n");
     const next = [...rows];
     next.splice(insertAt, 0, {
-      id: newPortalsRowId(childIndent === 2 ? "nn" : "n"),
+      id,
       text: "",
       indent: childIndent,
     });
     onChange(next);
     setExpandedIds((current) => ({ ...current, [parentId]: true }));
+    setFocusRowId(id);
   }
 
   function moveRow(index: number, direction: -1 | 1) {
@@ -312,6 +316,9 @@ function EditableRows({
     const placeholder =
       depth === 0 ? "Top-level row…" : depth === 1 ? "Sub-row…" : "Sub-sub-row…";
 
+    // Viewers skip blank drafts; admins always see the input so new rows stay editable.
+    if (!canEdit && !node.row.text.trim() && !hasChildren) return null;
+
     return (
       <li key={node.row.id} className="space-y-1">
         <div className="flex items-start gap-1.5">
@@ -361,6 +368,10 @@ function EditableRows({
                   value={node.row.text}
                   onChange={(event) => updateRow(node.row.id, { text: event.target.value })}
                   placeholder={placeholder}
+                  autoFocus={focusRowId === node.row.id}
+                  onFocus={() => {
+                    if (focusRowId === node.row.id) setFocusRowId(null);
+                  }}
                   className={cn(
                     "min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-white outline-none placeholder:text-white/30 focus:border-sky-400/50",
                     depth === 0 ? "text-[13px] font-medium" : "text-[12px]",
@@ -554,6 +565,9 @@ export default function AbhiPortalsDemoPage() {
   const saveContent = useCallback(async (payload?: AbhiPortalsEditableContent) => {
     if (!canEdit && !adminLockRef.current) return;
     const body = payload ?? contentRef.current;
+    // Clear dirty before the request so typing during save re-marks dirty and
+    // we do not clobber in-progress draft rows with the server echo.
+    dirtyRef.current = false;
     setSaving(true);
     setSaveMessage("Saving…");
     try {
@@ -569,9 +583,14 @@ export default function AbhiPortalsDemoPage() {
       };
       // Keep edit mode on save failures — demoting on 401/403 was the "flick to
       // demo view" bug when a transient session read raced autosave.
-      if (!response.ok) throw new Error(data.error ?? "Save failed");
-      dirtyRef.current = false;
-      if (data.content) setContent(data.content);
+      if (!response.ok) {
+        dirtyRef.current = true;
+        throw new Error(data.error ?? "Save failed");
+      }
+      // Prefer local editor state when the user kept typing during save.
+      if (data.content && !dirtyRef.current) {
+        setContent(data.content);
+      }
       setSaveMessage("Saved");
       window.setTimeout(() => setSaveMessage(null), 2000);
     } catch (error) {
@@ -581,9 +600,14 @@ export default function AbhiPortalsDemoPage() {
     }
   }, [canEdit]);
 
-  // Auto-save shortly after admin edits.
+  // Auto-save shortly after admin edits. Skip while a draft row is still blank so
+  // a brand-new sub-row is not raced by save before the admin can type.
   useEffect(() => {
     if (!canEdit || !ready || !dirtyRef.current) return;
+    const hasBlankDraft =
+      content.majorModules.some((row) => !row.text.trim()) ||
+      content.customModules.some((row) => !row.text.trim());
+    if (hasBlankDraft) return;
     const timer = window.setTimeout(() => {
       void saveContent(content);
     }, 900);
