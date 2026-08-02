@@ -148,8 +148,8 @@ export async function generateBoardPackTool(
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ): Promise<AssistantToolResult> {
-  const slug = ctx.business.workspace.slug;
-  if (!canGenerateBoardPack(slug)) {
+  const slug = ctx.business.workspace.slug?.trim() || null;
+  if (!slug || !canGenerateBoardPack(slug)) {
     return toolForbidden(
       "boardpack.generate",
       "Board Pack Generation is available on the ABHI and Talanton Impact workspaces only.",
