@@ -287,7 +287,9 @@ export default function InfoEmailWorkspace() {
       );
 
       setAccounts(merged);
-      if (merged.length > 0 && !merged.some((account) => account.id === selectedAccountId)) {
+      if (merged.length === 0) {
+        // No mailbox available on this workspace — leave selection unset for UI empty state.
+      } else if (!merged.some((account) => account.id === selectedAccountId)) {
         setSelectedAccountId(merged[0].id);
       }
     } catch (loadError) {
@@ -312,7 +314,7 @@ export default function InfoEmailWorkspace() {
     async (options?: { background?: boolean }) => {
       if (accountsLoading) return;
 
-      if (!selectedAccountConfigured && !options?.background) {
+      if (accounts.length === 0 || (!selectedAccountConfigured && !options?.background)) {
         setLoading(false);
         setThreads([]);
         setSelectedThreadId(null);
@@ -420,6 +422,7 @@ export default function InfoEmailWorkspace() {
     },
     [
       accountsLoading,
+      accounts.length,
       selectedAccountId,
       selectedAccountConfigured,
       mailboxView,
@@ -700,22 +703,18 @@ export default function InfoEmailWorkspace() {
               </label>
               <div className="relative mt-1">
                 <select
-                  value={selectedAccountId}
+                  value={accounts.length === 0 ? "" : selectedAccountId}
                   onChange={(event) =>
                     setSelectedAccountId(event.target.value as EmailAccountId)
                   }
-                  disabled={loading && accounts.length === 0}
+                  disabled={accountsLoading || accounts.length === 0}
                   className={cn(
                     inputClassName(),
                     "min-w-[16rem] appearance-none pr-9 font-medium",
                   )}
                 >
                   {accounts.length === 0 ? (
-                    defaultMailboxesForHost().map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.email}
-                      </option>
-                    ))
+                    <option value="">No mailboxes configured</option>
                   ) : (
                     accounts.map((account) => (
                       <option key={account.id} value={account.id}>
@@ -757,7 +756,7 @@ export default function InfoEmailWorkspace() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {selectedAccountId === "info" && (
+            {accounts.length > 0 && selectedAccountId === "info" && (
               <>
                 <button
                   type="button"
@@ -946,7 +945,17 @@ export default function InfoEmailWorkspace() {
         </section>
       )}
 
-      {!accountsLoading && !selectedAccountConfigured && (
+      {!accountsLoading && accounts.length === 0 && (
+        <section className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 sm:px-5">
+          <h3 className="text-sm font-semibold text-white">No mailboxes configured</h3>
+          <p className="mt-1 text-sm text-white/65">
+            This workspace does not have email accounts connected yet. Workspace mailboxes are
+            separate from platform inboxes and must be configured for {emailSignatureCompany()}.
+          </p>
+        </section>
+      )}
+
+      {!accountsLoading && accounts.length > 0 && !selectedAccountConfigured && (
         <section className="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-4 sm:px-5">
           <h3 className="text-sm font-semibold text-amber-100">Connect {mailboxEmail}</h3>
           <p className="mt-1 text-sm text-amber-100/80">

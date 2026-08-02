@@ -992,8 +992,11 @@ export function filterInternalNavSectionsForDemoSurface(
   }
 
   // OnwardAir: BOARD + Engineering/Operations placeholders (clean tenant, no ABHI data).
+  // Still strip platform-only modules (Unit311 Details / Module Go-Live).
   if (isOnwardAirNavSurface()) {
-    return insertOnwardAirNavSections(stripMemberIntelligenceNavForNonAbhi(sections));
+    return insertOnwardAirNavSections(
+      stripCustomerPlatformNav(stripMemberIntelligenceNavForNonAbhi(sections)),
+    );
   }
 
   if (!shouldHideDroneToolNavViews()) {
