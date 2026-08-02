@@ -153,7 +153,9 @@ export function buildAbhiRelationshipBriefPdf(
 /** Browser helper — triggers a PDF download. */
 export function downloadAbhiRelationshipBriefPdf(detail: AbhiMemberIntelligenceDetail) {
   const bytes = buildAbhiRelationshipBriefPdf(detail);
-  const blob = new Blob([bytes], { type: "application/pdf" });
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  const blob = new Blob([copy.buffer], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
