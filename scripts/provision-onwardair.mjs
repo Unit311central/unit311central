@@ -46,8 +46,8 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
 const SLUG = "onwardair";
 const COMPANY = "OnwardAir";
 const WEBSITE = "https://onwardair.unit311central.com";
-const OWNER_EMAIL = "admin@onwardair.com";
-const OWNER_PASSWORD = "Franny1999$";
+const OWNER_EMAIL = "admin@onwardair.tech";
+const OWNER_PASSWORD = "Houston1999$";
 const FORBIDDEN_TARGET_SLUGS = new Set([
   "demo",
   "unit311",

@@ -19,9 +19,25 @@ import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
-export async function generateMetadata(): Promise<Metadata> {
+function workspaceSlugFromReturnTo(returnTo: string | null | undefined): string | null {
+  const target = parseLoginReturnTo(returnTo);
+  if (!target || target.kind !== "workspace") return null;
+  try {
+    return parseClientPlatformSubdomainSafe(new URL(target.origin).host);
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ return_to?: string }>;
+}): Promise<Metadata> {
   const host = getRequestHost({ headers: await headers() });
-  const workspaceSlug = parseClientPlatformSubdomainSafe(host);
+  const params = await searchParams;
+  const workspaceSlug =
+    parseClientPlatformSubdomainSafe(host) ?? workspaceSlugFromReturnTo(params.return_to);
   const isCentral = isCentralDomainHost(host);
   const isDemo = isDemoDomainHost(host);
 
@@ -84,8 +100,11 @@ export default async function LoginPage({ searchParams }: PageProps) {
   const isCentral = isCentralDomainHost(host);
   const isDemo = isDemoDomainHost(host);
   const isInternal = isInternalDomainHost(host);
-  const workspaceSlug = parseClientPlatformSubdomainSafe(host);
   const params = await searchParams;
+  const hostWorkspaceSlug = parseClientPlatformSubdomainSafe(host);
+  const returnWorkspaceSlug = workspaceSlugFromReturnTo(params.return_to);
+  // Prefer the host tenant; fall back to return_to so apex /login?return_to=… brands as the customer.
+  const workspaceSlug = hostWorkspaceSlug ?? returnWorkspaceSlug;
   const returnTo =
     parseLoginReturnTo(params.return_to)?.origin ??
     (workspaceSlug ? customerWorkspaceOrigin(workspaceSlug) : null) ??
