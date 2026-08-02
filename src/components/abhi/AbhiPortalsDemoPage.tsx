@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Copy,
   Loader2,
@@ -14,7 +15,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import {
@@ -124,17 +125,57 @@ function CredentialCard({ block }: { block: CredentialBlock }) {
   );
 }
 
+type ModuleGroup = {
+  parent: PortalsModuleRow;
+  parentIndex: number;
+  children: Array<{ row: PortalsModuleRow; index: number }>;
+};
+
+function groupModuleRows(rows: PortalsModuleRow[]): ModuleGroup[] {
+  const groups: ModuleGroup[] = [];
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index]!;
+    if (row.indent === 1) {
+      const last = groups[groups.length - 1];
+      if (last) last.children.push({ row, index });
+      continue;
+    }
+    groups.push({ parent: row, parentIndex: index, children: [] });
+  }
+  return groups;
+}
+
 function EditableRows({
   rows,
   canEdit,
   accent,
+  collapsible = false,
   onChange,
 }: {
   rows: PortalsModuleRow[];
   canEdit: boolean;
   accent: "sky" | "pink";
+  /** When true, top-level rows collapse nested children behind an expand arrow. */
+  collapsible?: boolean;
   onChange: (next: PortalsModuleRow[]) => void;
 }) {
+  const groups = useMemo(() => groupModuleRows(rows), [rows]);
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+
+  function isExpanded(id: string) {
+    if (!collapsible) return true;
+    // In admin edit mode, default expanded so nested rows stay editable.
+    if (canEdit) return expandedIds[id] !== false;
+    return Boolean(expandedIds[id]);
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((current) => {
+      const open = canEdit ? current[id] !== false : Boolean(current[id]);
+      return { ...current, [id]: !open };
+    });
+  }
+
   function updateRow(id: string, patch: Partial<PortalsModuleRow>) {
     onChange(rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   }
@@ -144,10 +185,11 @@ function EditableRows({
   }
 
   function addTopLevelRow() {
-    onChange([...rows, { id: newPortalsRowId("r"), text: "", indent: 0 }]);
+    const id = newPortalsRowId("r");
+    onChange([...rows, { id, text: "", indent: 0 }]);
+    setExpandedIds((current) => ({ ...current, [id]: true }));
   }
 
-  /** Insert a nested row after this top-level row (and its existing children). */
   function addNestedUnder(parentId: string) {
     const parentIndex = rows.findIndex((row) => row.id === parentId);
     if (parentIndex < 0) return;
@@ -164,31 +206,17 @@ function EditableRows({
       indent: 1,
     });
     onChange(next);
-  }
-
-  function addNestedAtEnd() {
-    const lastTopLevel = [...rows].reverse().find((row) => row.indent !== 1);
-    if (lastTopLevel) {
-      addNestedUnder(lastTopLevel.id);
-      return;
-    }
-    onChange([
-      ...rows,
-      { id: newPortalsRowId("r"), text: "", indent: 0 },
-      { id: newPortalsRowId("n"), text: "", indent: 1 },
-    ]);
+    setExpandedIds((current) => ({ ...current, [parentId]: true }));
   }
 
   function moveRow(index: number, direction: -1 | 1) {
     const row = rows[index];
     if (!row) return;
 
-    // Nested: swap with adjacent nested sibling when possible.
     if (row.indent === 1) {
       const target = index + direction;
       if (target < 0 || target >= rows.length) return;
-      if (rows[target]?.indent !== 1 && direction === -1) return;
-      if (rows[target]?.indent !== 1 && direction === 1) return;
+      if (rows[target]?.indent !== 1) return;
       const next = [...rows];
       const current = next[index]!;
       next[index] = next[target]!;
@@ -197,7 +225,6 @@ function EditableRows({
       return;
     }
 
-    // Top-level: move the row together with its nested children.
     let end = index + 1;
     while (end < rows.length && rows[end]?.indent === 1) end += 1;
     const block = rows.slice(index, end);
@@ -228,94 +255,168 @@ function EditableRows({
 
   return (
     <div className="flex h-full flex-col">
-      <ul className="flex-1 space-y-2.5">
-        {rows.map((row, index) => (
-          <li
-            key={row.id}
-            className={cn(
-              "flex items-start gap-2",
-              row.indent === 1 && "ml-3 border-l border-white/10 pl-3",
-            )}
-          >
-            {accent === "pink" && row.indent !== 1 ? (
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F48FB1]" />
-            ) : null}
-            {canEdit ? (
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <div className="flex items-start gap-1.5">
-                  <div className="flex shrink-0 flex-col gap-0.5 pt-0.5">
-                    <button
-                      type="button"
-                      onClick={() => moveRow(index, -1)}
-                      disabled={index === 0}
-                      className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                      aria-label="Move up"
-                    >
-                      <ChevronUp className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveRow(index, 1)}
-                      disabled={index >= rows.length - 1}
-                      className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                      aria-label="Move down"
-                    >
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <input
-                    value={row.text}
-                    onChange={(event) => updateRow(row.id, { text: event.target.value })}
-                    placeholder={row.indent === 1 ? "Nested row…" : "Top-level row…"}
-                    className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-[13px] text-white outline-none placeholder:text-white/30 focus:border-sky-400/50"
-                  />
-                </div>
-                <div className="flex flex-wrap items-center gap-2 pl-8">
-                  <label className="inline-flex items-center gap-1.5 text-[10px] text-white/45">
-                    <input
-                      type="checkbox"
-                      checked={row.indent === 1}
-                      onChange={(event) =>
-                        updateRow(row.id, { indent: event.target.checked ? 1 : 0 })
-                      }
-                      className="h-3 w-3 rounded border-white/20"
-                    />
-                    Nested
-                  </label>
-                  {row.indent !== 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => addNestedUnder(row.id)}
-                      className="inline-flex items-center gap-1 rounded border border-sky-400/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] text-sky-100 hover:bg-sky-500/20"
-                    >
-                      <Plus className="h-3 w-3" />
-                      Add nested
-                    </button>
-                  ) : null}
+      <ul className="flex-1 space-y-1.5">
+        {groups.map((group) => {
+          const hasChildren = group.children.length > 0;
+          const open = isExpanded(group.parent.id);
+          const ExpandIcon = open ? ChevronDown : ChevronRight;
+
+          return (
+            <li key={group.parent.id} className="space-y-1">
+              <div className="flex items-start gap-1.5">
+                {collapsible && hasChildren ? (
                   <button
                     type="button"
-                    onClick={() => removeRow(row.id)}
-                    className="inline-flex items-center gap-1 rounded border border-rose-400/25 px-1.5 py-0.5 text-[10px] text-rose-200 hover:bg-rose-500/10"
+                    onClick={() => toggleExpanded(group.parent.id)}
+                    className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 text-white/70 hover:bg-white/5 hover:text-white"
+                    aria-expanded={open}
+                    aria-label={open ? "Collapse" : "Expand"}
                   >
-                    <Trash2 className="h-3 w-3" />
-                    Delete
+                    <ExpandIcon className="h-3.5 w-3.5" />
                   </button>
-                </div>
-              </div>
-            ) : (
-              <p
-                className={cn(
-                  "min-w-0 flex-1 leading-snug",
-                  row.indent === 1
-                    ? "text-[12px] text-white/55"
-                    : "text-[13px] font-medium text-white/90",
+                ) : collapsible ? (
+                  <span className="mt-1 inline-flex h-6 w-6 shrink-0" aria-hidden />
+                ) : accent === "pink" ? (
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F48FB1]" />
+                ) : null}
+
+                {canEdit ? (
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <div className="flex items-start gap-1.5">
+                      <div className="flex shrink-0 flex-col gap-0.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => moveRow(group.parentIndex, -1)}
+                          disabled={group.parentIndex === 0}
+                          className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                          aria-label="Move up"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveRow(group.parentIndex, 1)}
+                          disabled={
+                            group.parentIndex + group.children.length >= rows.length - 1 &&
+                            group.parentIndex === rows.length - 1
+                          }
+                          className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                          aria-label="Move down"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <input
+                        value={group.parent.text}
+                        onChange={(event) =>
+                          updateRow(group.parent.id, { text: event.target.value })
+                        }
+                        placeholder="Top-level row…"
+                        className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-[13px] font-medium text-white outline-none placeholder:text-white/30 focus:border-sky-400/50"
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pl-8">
+                      <button
+                        type="button"
+                        onClick={() => addNestedUnder(group.parent.id)}
+                        className="inline-flex items-center gap-1 rounded border border-sky-400/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] text-sky-100 hover:bg-sky-500/20"
+                      >
+                        <Plus className="h-3 w-3" />
+                        Add sub-row
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeRow(group.parent.id)}
+                        className="inline-flex items-center gap-1 rounded border border-rose-400/25 px-1.5 py-0.5 text-[10px] text-rose-200 hover:bg-rose-500/10"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Delete
+                      </button>
+                      {hasChildren ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpanded(group.parent.id)}
+                          className="text-[10px] text-white/45 hover:text-white/70"
+                        >
+                          {open ? "Hide sub-rows" : `Show ${group.children.length} sub-rows`}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => (hasChildren ? toggleExpanded(group.parent.id) : undefined)}
+                    className={cn(
+                      "min-w-0 flex-1 rounded-lg px-1 py-1 text-left text-[13px] font-medium text-white/90",
+                      hasChildren && "hover:bg-white/[0.04]",
+                    )}
+                  >
+                    {group.parent.text}
+                    {hasChildren && !open ? (
+                      <span className="ml-2 text-[11px] font-normal text-white/40">
+                        ({group.children.length})
+                      </span>
+                    ) : null}
+                  </button>
                 )}
-              >
-                {row.text}
-              </p>
-            )}
-          </li>
-        ))}
+              </div>
+
+              {open && hasChildren ? (
+                <ul className="ml-7 space-y-1.5 border-l border-white/10 pl-3">
+                  {group.children.map(({ row, index }) => (
+                    <li key={row.id} className="flex items-start gap-1.5">
+                      {canEdit ? (
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <div className="flex items-start gap-1.5">
+                            <div className="flex shrink-0 flex-col gap-0.5 pt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => moveRow(index, -1)}
+                                className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                                aria-label="Move sub-row up"
+                              >
+                                <ChevronUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveRow(index, 1)}
+                                className="rounded border border-white/15 p-0.5 text-white/55 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                                aria-label="Move sub-row down"
+                              >
+                                <ChevronDown className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            <input
+                              value={row.text}
+                              onChange={(event) => updateRow(row.id, { text: event.target.value })}
+                              placeholder="Sub-row…"
+                              className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1.5 text-[12px] text-white outline-none placeholder:text-white/30 focus:border-sky-400/50"
+                            />
+                          </div>
+                          <div className="pl-8">
+                            <button
+                              type="button"
+                              onClick={() => removeRow(row.id)}
+                              className="inline-flex items-center gap-1 rounded border border-rose-400/25 px-1.5 py-0.5 text-[10px] text-rose-200 hover:bg-rose-500/10"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="min-w-0 flex-1 py-0.5 text-[12px] leading-snug text-white/55">
+                          {row.text}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
       {canEdit ? (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-3">
@@ -326,14 +427,6 @@ function EditableRows({
           >
             <Plus className="h-3.5 w-3.5" />
             Add top-level row
-          </button>
-          <button
-            type="button"
-            onClick={addNestedAtEnd}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/[0.06] px-3 py-2 text-[11px] font-semibold text-white/85 hover:bg-white/[0.1]"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add nested row
           </button>
         </div>
       ) : null}
@@ -552,6 +645,7 @@ export default function AbhiPortalsDemoPage() {
                   rows={content.majorModules}
                   canEdit={canEdit}
                   accent="sky"
+                  collapsible
                   onChange={(majorModules) =>
                     applyContent({ ...contentRef.current, majorModules }, true)
                   }
