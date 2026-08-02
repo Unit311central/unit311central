@@ -712,10 +712,7 @@ export default function AbhiPortalsDemoPage() {
           <div className="relative mt-8 grid flex-1 items-stretch gap-5 lg:mt-10 lg:grid-cols-3 lg:gap-6">
             <section className="flex h-full min-h-0 flex-col">
               <div className="border-b border-white/10 pb-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
-                  Column 1
-                </p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight text-white">
+                <h2 className="text-lg font-semibold tracking-tight text-white">
                   Platform Login
                 </h2>
               </div>
