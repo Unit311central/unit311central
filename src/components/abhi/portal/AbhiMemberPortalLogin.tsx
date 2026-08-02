@@ -60,7 +60,7 @@ export function AbhiMemberPortalLogin({
     <div className="flex min-h-screen items-center justify-center bg-[#07111f] px-4 py-10 text-white">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center gap-4">
-          <AbhiLogoMark height={52} />
+          <AbhiLogoMark height={47} tone="onDark" />
           {companyLogoSrc ? (
             <span className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.35)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -65,7 +65,7 @@ export default function WorkspaceSidebarBrand({
     ) : brand === "talanton" ? (
       <TalantonLogoMark height={36} />
     ) : brand === "abhi" ? (
-      <AbhiLogoMark height={36} />
+      <AbhiLogoMark height={32} tone="onDark" />
     ) : (
       <Unit311CentralWordmark variant="sidebar" className={className} />
     );
@@ -84,6 +84,7 @@ export default function WorkspaceSidebarBrand({
       href={href}
       className={cn(
         "inline-flex max-w-full shrink-0 items-center overflow-visible transition-opacity duration-100 hover:opacity-90",
+        brand === "abhi" && "w-full justify-center",
         className,
       )}
       aria-label={ariaLabel}

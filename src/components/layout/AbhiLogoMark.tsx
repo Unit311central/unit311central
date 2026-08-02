@@ -16,6 +16,11 @@ type AbhiLogoMarkProps = {
   height?: number;
   /** Optional max width clamp (keeps aspect ratio). */
   maxWidth?: number;
+  /**
+   * `onDark` forces a pure white mark (for navy sidebars / dark login).
+   * `brand` keeps the source PNG colours (for light board paper / light surfaces).
+   */
+  tone?: "brand" | "onDark";
   priority?: boolean;
 };
 
@@ -27,6 +32,7 @@ export default function AbhiLogoMark({
   className,
   height = 40,
   maxWidth,
+  tone = "brand",
   priority = false,
 }: AbhiLogoMarkProps) {
   let width = Math.round(
@@ -55,7 +61,10 @@ export default function AbhiLogoMark({
         height={displayHeight}
         decoding="async"
         fetchPriority={priority ? "high" : "auto"}
-        className="block bg-transparent object-contain object-center"
+        className={cn(
+          "block bg-transparent object-contain object-center",
+          tone === "onDark" && "brightness-0 invert",
+        )}
         style={{
           height: displayHeight,
           width,
