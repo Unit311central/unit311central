@@ -375,6 +375,25 @@ export async function middleware(request: NextRequest) {
       pathname === "";
 
     if (requiresAuthenticatedApp) {
+      // ABHI demo/admin briefing accounts may use shared-password sessions without DB membership.
+      if (workspaceSlug === ABHI_SLUG) {
+        const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
+        const session = token ? await readPlatformSessionToken(token) : null;
+        if (session && isAbhiPortalsAllowedUsername(session.username)) {
+          if (pathname === "/" || pathname === "") {
+            return redirectExternal(`${workspaceOrigin}/dashboard${search}`);
+          }
+          let response: NextResponse;
+          const dashboardHardPath = mapHardPathToViewQuery(pathname, search);
+          if (dashboardHardPath) {
+            response = redirectPermanent(request, dashboardHardPath);
+          } else {
+            response = rewriteTo(request, "/internaldashboard", headers, workspaceResponseHeaders);
+          }
+          return response;
+        }
+      }
+
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
 
       if (gate.status === "anonymous" || gate.status === "invalid") {

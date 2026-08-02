@@ -100,6 +100,9 @@ async function resolvePostLoginRedirect(options: {
   const { redirectPath, requestHost, returnToRaw, nextRaw, userType, username } = options;
   const loginReturn = parseLoginReturnTo(returnToRaw);
   const nextPath = parseSafePostLoginNext(nextRaw);
+  const rawNext = String(nextRaw ?? "").trim();
+  const wantsPortalsNext =
+    nextPath === "/portals" || rawNext === "/portals" || rawNext.startsWith("/portals?");
 
   // Company/member portal externals must never land in the admin shell.
   if (userType === "external") {
@@ -124,7 +127,7 @@ async function resolvePostLoginRedirect(options: {
     const slug = parseClientPlatformSubdomainSafe(new URL(loginReturn.origin).host);
     // Only land on /portals when that was the explicit deep-link (e.g. login?next=/portals).
     if (
-      nextPath === "/portals" &&
+      wantsPortalsNext &&
       isAbhiSlug(slug) &&
       isAbhiPortalsAllowedUsername(username) &&
       userType !== "external"
@@ -155,7 +158,7 @@ async function resolvePostLoginRedirect(options: {
   if (workspaceOnly) {
     const slug = parseClientPlatformSubdomainSafe(new URL(workspaceOnly).host);
     if (
-      nextPath === "/portals" &&
+      wantsPortalsNext &&
       isAbhiSlug(slug) &&
       isAbhiPortalsAllowedUsername(username) &&
       userType !== "external"
@@ -311,7 +314,7 @@ export async function POST(request: NextRequest) {
       body.returnTo?.trim() ||
       returnToFromReferer(request) ||
       hostWorkspaceOrigin;
-    const nextRaw = body.next?.trim() || nextFromReferer(request) || null;
+    const nextRaw = body.next?.trim() || null;
 
     const loginReturn = parseLoginReturnTo(returnToRaw);
     const workspaceSlug =
@@ -340,6 +343,67 @@ export async function POST(request: NextRequest) {
       return createDemoLoginResponse(request, returnToRaw, nextRaw);
     }
 
+    // Prefer real workspace membership first so /login lands on the main platform.
+    // Fall back to the shared demo password login only when DB auth fails.
+    if (isSupabaseConfigured()) {
+      const result = await loginPlatformUser(body.username, body.password, {
+        workspaceSlug,
+      });
+      if (result && !("forbidden" in result)) {
+        if (
+          isAbhiSlug(workspaceSlug) &&
+          result.session.userType !== "external" &&
+          !isAbhiPortalsAllowedUsername(result.session.username)
+        ) {
+          return NextResponse.json(
+            {
+              error: `ABHI platform login is limited to ${ABHI_DEMO_PLATFORM_USERNAME} and ${ABHI_PORTALS_ADMIN_USERNAME} for this demonstration.`,
+            },
+            { status: 403 },
+          );
+        }
+
+        try {
+          await recordPlatformUserLogin(result.session.sub);
+        } catch {
+          // Non-blocking if last_login_at column is not yet migrated.
+        }
+
+        const redirectPath = await resolvePostLoginRedirect({
+          redirectPath: result.redirectPath,
+          requestHost: getRequestHost(request),
+          returnToRaw,
+          nextRaw,
+          userType: result.session.userType,
+          username: result.session.username,
+        });
+
+        const response = NextResponse.json({
+          redirectPath,
+          appliedReturnTo: loginReturn?.origin ?? parseValidWorkspaceReturnTo(returnToRaw),
+          userType: result.session.userType,
+          displayName: result.session.displayName,
+          workspace: result.session.workspaceId
+            ? {
+                id: result.session.workspaceId,
+                slug: result.session.workspaceSlug,
+                name: result.session.workspaceName,
+              }
+            : null,
+        });
+
+        applyPlatformSessionCookie(response, result.token, request);
+        return response;
+      }
+
+      if (result && "forbidden" in result) {
+        return NextResponse.json(
+          { error: "You do not have access to this workspace." },
+          { status: 403 },
+        );
+      }
+    }
+
     if (body.password === ABHI_PORTALS_SHARED_PASSWORD) {
       const portalsLogin = await createAbhiPortalsCredentialLoginResponse(
         request,
@@ -351,69 +415,7 @@ export async function POST(request: NextRequest) {
       if (portalsLogin) return portalsLogin;
     }
 
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
-    }
-
-    const result = await loginPlatformUser(body.username, body.password, {
-      workspaceSlug,
-    });
-    if (!result) {
-      return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
-    }
-    if ("forbidden" in result) {
-      return NextResponse.json(
-        { error: "You do not have access to this workspace." },
-        { status: 403 },
-      );
-    }
-
-    // ABHI platform login (internal) is limited to the portals demo accounts.
-    if (
-      isAbhiSlug(workspaceSlug) &&
-      result.session.userType !== "external" &&
-      !isAbhiPortalsAllowedUsername(result.session.username)
-    ) {
-      return NextResponse.json(
-        {
-          error: `ABHI platform login is limited to ${ABHI_DEMO_PLATFORM_USERNAME} and ${ABHI_PORTALS_ADMIN_USERNAME} for this demonstration.`,
-        },
-        { status: 403 },
-      );
-    }
-
-    try {
-      await recordPlatformUserLogin(result.session.sub);
-    } catch {
-      // Non-blocking if last_login_at column is not yet migrated.
-    }
-
-    const redirectPath = await resolvePostLoginRedirect({
-      redirectPath: result.redirectPath,
-      requestHost: getRequestHost(request),
-      returnToRaw,
-      nextRaw,
-      userType: result.session.userType,
-      username: result.session.username,
-    });
-
-    const response = NextResponse.json({
-      redirectPath,
-      appliedReturnTo: loginReturn?.origin ?? parseValidWorkspaceReturnTo(returnToRaw),
-      userType: result.session.userType,
-      displayName: result.session.displayName,
-      workspace: result.session.workspaceId
-        ? {
-            id: result.session.workspaceId,
-            slug: result.session.workspaceSlug,
-            name: result.session.workspaceName,
-          }
-        : null,
-    });
-
-    applyPlatformSessionCookie(response, result.token, request);
-
-    return response;
+    return NextResponse.json({ error: "Invalid username or password." }, { status: 401 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Login failed";
     return NextResponse.json({ error: message }, { status: 500 });
