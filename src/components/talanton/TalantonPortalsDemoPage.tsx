@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -17,16 +17,16 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
+import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
 import {
-  type AbhiPortalsEditableContent,
+  type TalantonPortalsEditableContent,
   type PortalsIndent,
   type PortalsModuleRow,
-  defaultAbhiPortalsContent,
+  defaultTalantonPortalsContent,
   newPortalsRowId,
   portalsRowBlockEnd,
   portalsRowIndent,
-} from "@/lib/abhi/portals-demo";
+} from "@/lib/talanton/portals-demo";
 import { SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ const body = Manrope({
 });
 
 const UNIT311_LOGO = "/images/unit311central-login.webp";
-const PORTALS_ADMIN_LOCK_KEY = "abhi_portals_admin_lock";
+const PORTALS_ADMIN_LOCK_KEY = "talanton_portals_admin_lock";
 
 function readPortalsAdminLock(): boolean {
   if (typeof window === "undefined") return false;
@@ -67,34 +67,28 @@ type CredentialBlock = {
 
 const PLATFORM_LOGINS: CredentialBlock[] = [
   {
-    title: "ABHI Platform Login",
-    url: "https://abhi.unit311central.com/login",
-    urlLabel: "abhi.unit311central.com/login",
-    username: "demo@abhi.org.uk",
-    password: "London1999$",
+    title: "TALANTON IMPACT MAIN PLATFORM LOGIN",
+    url: "https://talantonimpact.unit311central.com/login",
+    urlLabel: "talantonimpact.unit311central.com/login",
+    username: "demo@talantonimpact.com",
+    password: "Africa1999$",
   },
   {
-    title: "Board Portal Login",
-    url: "https://abhi.unit311central.com/board",
-    urlLabel: "abhi.unit311central.com/board",
-    username: "board@abhi.org.uk",
-    password: "London1999$",
+    title: "TALANTON IMPACT BOARD PORTAL LOGIN",
+    url: "https://talantonimpact.unit311central.com/board",
+    urlLabel: "talantonimpact.unit311central.com/board",
+    username: "board@talantonimpact.com",
+    password: "Africa1999$",
   },
   {
-    title: "Member Portal Access — Demo Centrak",
-    url: "https://abhi.unit311central.com/centrak",
-    urlLabel: "abhi.unit311central.com/centrak",
-    username: "demo@centrak.com",
-    password: "London1999$",
-  },
-  {
-    title: "Member Portal Access — Abbott Diagnostics",
-    url: "https://abhi.unit311central.com/abbotdiagnostics",
-    urlLabel: "abhi.unit311central.com/abbotdiagnostics",
-    username: "demo@abbotdiagnostics.com",
-    password: "London1999$",
+    title: "TALANTON IMPACT EXAMPLE CLIENT PORTAL LOGIN",
+    url: "https://talantonimpact.unit311central.com/arcrideglobal",
+    urlLabel: "talantonimpact.unit311central.com/arcrideglobal",
+    username: "demo@arcrideglobal.com",
+    password: "Africa1999$",
   },
 ];
+
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -472,9 +466,9 @@ function EditableRows({
   );
 }
 
-export default function AbhiPortalsDemoPage() {
-  const [content, setContent] = useState<AbhiPortalsEditableContent>(() =>
-    defaultAbhiPortalsContent(),
+export default function TalantonPortalsDemoPage() {
+  const [content, setContent] = useState<TalantonPortalsEditableContent>(() =>
+    defaultTalantonPortalsContent(),
   );
   const [canEdit, setCanEdit] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
@@ -495,7 +489,7 @@ export default function AbhiPortalsDemoPage() {
     setCanEdit(true);
   }, []);
 
-  const applyContent = useCallback((next: AbhiPortalsEditableContent, markDirty: boolean) => {
+  const applyContent = useCallback((next: TalantonPortalsEditableContent, markDirty: boolean) => {
     if (markDirty) dirtyRef.current = true;
     setContent(next);
   }, []);
@@ -507,13 +501,13 @@ export default function AbhiPortalsDemoPage() {
       setLoadError(null);
     }
     try {
-      const response = await fetch("/api/abhi/portals-content", {
+      const response = await fetch("/api/talanton/portals-content", {
         cache: "no-store",
         credentials: "same-origin",
         headers: { Accept: "application/json" },
       });
       if (response.status === 401) {
-        // Initial auth failure → login. Silent polls / locked admin editors must
+        // Initial auth failure â†’ login. Silent polls / locked admin editors must
         // not bounce mid-edit on a transient cookie glitch.
         if (!silent && !adminLockRef.current) {
           window.location.assign("/login?next=%2Fportals");
@@ -521,7 +515,7 @@ export default function AbhiPortalsDemoPage() {
         return;
       }
       const data = (await response.json()) as {
-        content?: AbhiPortalsEditableContent;
+        content?: TalantonPortalsEditableContent;
         canEdit?: boolean;
         username?: string;
         error?: string;
@@ -562,7 +556,7 @@ export default function AbhiPortalsDemoPage() {
     return () => window.clearInterval(timer);
   }, [ready, canEdit, saving, loadContent]);
 
-  const saveContent = useCallback(async (payload?: AbhiPortalsEditableContent) => {
+  const saveContent = useCallback(async (payload?: TalantonPortalsEditableContent) => {
     if (!canEdit && !adminLockRef.current) return;
     const body = payload ?? contentRef.current;
     // Clear dirty before the request so typing during save re-marks dirty and
@@ -571,14 +565,14 @@ export default function AbhiPortalsDemoPage() {
     setSaving(true);
     setSaveMessage("Saving…");
     try {
-      const response = await fetch("/api/abhi/portals-content", {
+      const response = await fetch("/api/talanton/portals-content", {
         method: "PUT",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ content: body }),
       });
       const data = (await response.json()) as {
-        content?: AbhiPortalsEditableContent;
+        content?: TalantonPortalsEditableContent;
         error?: string;
       };
       // Keep edit mode on save failures — demoting on 401/403 was the "flick to
@@ -675,21 +669,21 @@ export default function AbhiPortalsDemoPage() {
               <LogOut className="h-3.5 w-3.5" />
               Sign out
             </button>
-            <AbhiLogoMark height={36} tone="onDark" priority />
+            <TalantonLogoMark height={36} />
           </div>
         </header>
 
         <section className="relative mt-8 max-w-3xl sm:mt-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#F48FB1]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/90">
             Pre-demo briefing
           </p>
           <h1 className="mt-2 text-[2rem] font-semibold leading-[1.1] tracking-tight text-white sm:text-[2.5rem]">
-            ABHI on Unit311 Central
+            Talanton Impact on Unit311 Central
           </h1>
           <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-white/65 sm:text-[15px]">
             Credential and capability overview for your demonstration. Sign in with{" "}
-            <span className="text-white/90">demo@abhi.org.uk</span> to view, or{" "}
-            <span className="text-white/90">admin@abhi.org.uk</span> to edit columns 2 and 3.
+            <span className="text-white/90">demo@talantonimpact.com</span> to view, or{" "}
+            <span className="text-white/90">admin@talantonimpact.com</span> to edit columns 2 and 3.
           </p>
           {canEdit ? (
             <p className="mt-2 text-[12px] text-emerald-200/80">
@@ -745,7 +739,7 @@ export default function AbhiPortalsDemoPage() {
             <section className="flex h-full min-h-0 flex-col">
               <div className="border-b border-white/10 pb-3">
                 <h2 className="text-lg font-semibold tracking-tight text-white">
-                  ABHI Customised Modules
+                  Talanton Customised Modules
                 </h2>
               </div>
               <div className="mt-3 flex h-full flex-col rounded-2xl border border-[#C2185B]/25 bg-gradient-to-b from-[#C2185B]/12 to-white/[0.03] p-4 backdrop-blur-md">
@@ -764,7 +758,7 @@ export default function AbhiPortalsDemoPage() {
 
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5 text-[11px] text-white/40">
           <p>
-            {SITE_NAME} · Confidential demonstration material for ABHI
+            {SITE_NAME} · Confidential demonstration material for Talanton Impact
           </p>
           <button
             type="button"
@@ -779,3 +773,4 @@ export default function AbhiPortalsDemoPage() {
     </div>
   );
 }
+

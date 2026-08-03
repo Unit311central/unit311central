@@ -36,7 +36,18 @@ import {
   ABHI_PORTALS_SHARED_PASSWORD,
   isAbhiPortalsAllowedUsername,
 } from "@/lib/abhi/portals-demo";
+import {
+  TALANTON_DEMO_PLATFORM_USERNAME,
+  TALANTON_PORTALS_ADMIN_USERNAME,
+  TALANTON_PORTALS_SHARED_PASSWORD,
+  isTalantonPortalsAllowedUsername,
+} from "@/lib/talanton/portals-demo";
 import { isAbhiSlug } from "@/lib/abhi-surface";
+import {
+  canonicalizeTalantonImpactSlug,
+  isTalantonImpactSlug,
+  TALANTON_IMPACT_SLUG,
+} from "@/lib/talanton-surface";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
   INTERNAL_WORKSPACE_SLUG,
@@ -106,7 +117,8 @@ function applyPortalsGateIfNeeded(
 ) {
   if (
     wantsAbhiPortalsNext(options.nextRaw) &&
-    isAbhiPortalsAllowedUsername(options.username) &&
+    (isAbhiPortalsAllowedUsername(options.username) ||
+      isTalantonPortalsAllowedUsername(options.username)) &&
     options.userType !== "external"
   ) {
     applyAbhiPortalsGateCookie(response, request);
@@ -131,20 +143,30 @@ async function resolvePostLoginRedirect(options: {
   const loginReturn = parseLoginReturnTo(returnToRaw);
   const nextPath = parseSafePostLoginNext(nextRaw);
   const wantsPortalsNext = wantsAbhiPortalsNext(nextRaw);
+  const portalsAllowed =
+    isAbhiPortalsAllowedUsername(username) || isTalantonPortalsAllowedUsername(username);
 
-  // Prefer /portals whenever the deep-link asked for it (ABHI demo/admin only).
+  // Prefer /portals whenever the deep-link asked for it (demo/admin only).
   // Do this before the generic workspace → dashboard default.
-  if (wantsPortalsNext && isAbhiPortalsAllowedUsername(username) && userType !== "external") {
+  if (wantsPortalsNext && portalsAllowed && userType !== "external") {
     const fromReturn =
       loginReturn?.kind === "workspace"
         ? loginReturn.origin
         : parseValidWorkspaceReturnTo(returnToRaw);
     const hostSlug = parseClientPlatformSubdomainSafe(requestHost);
+    const fromReturnSlug = fromReturn
+      ? parseClientPlatformSubdomainSafe(new URL(fromReturn).host)
+      : null;
     const origin =
-      (fromReturn && isAbhiSlug(parseClientPlatformSubdomainSafe(new URL(fromReturn).host))
+      (fromReturn &&
+      (isAbhiSlug(fromReturnSlug) || isTalantonImpactSlug(fromReturnSlug))
         ? fromReturn
         : null) ||
-      (isAbhiSlug(hostSlug) ? customerWorkspaceOrigin(hostSlug!) : null);
+      (isAbhiSlug(hostSlug)
+        ? customerWorkspaceOrigin(hostSlug!)
+        : isTalantonImpactSlug(hostSlug)
+          ? customerWorkspaceOrigin(hostSlug!)
+          : null);
     if (origin) {
       return `${origin.replace(/\/$/, "")}/portals`;
     }
@@ -187,8 +209,8 @@ async function resolvePostLoginRedirect(options: {
     // Only land on /portals when that was the explicit deep-link (e.g. login?next=/portals).
     if (
       wantsPortalsNext &&
-      isAbhiSlug(slug) &&
-      isAbhiPortalsAllowedUsername(username) &&
+      (isAbhiSlug(slug) || isTalantonImpactSlug(slug)) &&
+      portalsAllowed &&
       userType !== "external"
     ) {
       return `${loginReturn.origin.replace(/\/$/, "")}/portals`;
@@ -221,8 +243,8 @@ async function resolvePostLoginRedirect(options: {
     const slug = parseClientPlatformSubdomainSafe(new URL(workspaceOnly).host);
     if (
       wantsPortalsNext &&
-      isAbhiSlug(slug) &&
-      isAbhiPortalsAllowedUsername(username) &&
+      (isAbhiSlug(slug) || isTalantonImpactSlug(slug)) &&
+      portalsAllowed &&
       userType !== "external"
     ) {
       return `${workspaceOnly.replace(/\/$/, "")}/portals`;
@@ -358,6 +380,69 @@ async function createAbhiPortalsCredentialLoginResponse(
   return response;
 }
 
+async function createTalantonPortalsCredentialLoginResponse(
+  request: NextRequest,
+  usernameRaw: string,
+  returnToRaw: string | null,
+  nextRaw: string | null,
+  workspaceSlug: string | null,
+) {
+  const username = normalizePlatformUsername(usernameRaw);
+  if (!isTalantonImpactSlug(workspaceSlug) || !isTalantonPortalsAllowedUsername(username)) {
+    return null;
+  }
+
+  const workspace = await resolveWorkspaceBinding({
+    workspaceSlug: canonicalizeTalantonImpactSlug(workspaceSlug) ?? TALANTON_IMPACT_SLUG,
+    fallbackInternal: false,
+  });
+
+  const displayName =
+    username === TALANTON_PORTALS_ADMIN_USERNAME
+      ? "Talanton Portals Admin"
+      : "Talanton Demo";
+  const session: PlatformSession = withSessionWorkspace(
+    {
+      sub:
+        username === TALANTON_PORTALS_ADMIN_USERNAME
+          ? "00000000-0000-4000-8000-00000000ti01"
+          : "00000000-0000-4000-8000-00000000ti02",
+      username,
+      displayName,
+      userType: "internal",
+      redirectPath: "/dashboard",
+      exp: Date.now() + PLATFORM_SESSION_MAX_AGE_SECONDS * 1000,
+    },
+    workspace,
+  );
+
+  const redirectPath = await resolvePostLoginRedirect({
+    redirectPath: "/dashboard",
+    requestHost: getRequestHost(request),
+    returnToRaw,
+    nextRaw,
+    userType: "internal",
+    username,
+  });
+
+  const response = NextResponse.json({
+    redirectPath,
+    userType: session.userType,
+    displayName: session.displayName,
+    workspace: workspace
+      ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+      : null,
+  });
+
+  applyPlatformSessionCookie(response, await createPlatformSessionToken(session), request);
+  applyPortalsGateIfNeeded(response, request, {
+    nextRaw,
+    username,
+    userType: "internal",
+  });
+  return response;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
@@ -388,7 +473,7 @@ export async function POST(request: NextRequest) {
     const nextRaw = body.next?.trim() || null;
 
     const loginReturn = parseLoginReturnTo(returnToRaw);
-    const workspaceSlug =
+    const resolvedWorkspaceSlug =
       loginReturn?.kind === "demo"
         ? DEMO_WORKSPACE_SLUG
         : loginReturn?.kind === "internal"
@@ -405,6 +490,9 @@ export async function POST(request: NextRequest) {
                       ? new URL(parseValidWorkspaceReturnTo(returnToRaw)!).host
                       : null,
                   );
+    // Alias host talanton.* binds to the canonical talantonimpact workspace.
+    const workspaceSlug =
+      canonicalizeTalantonImpactSlug(resolvedWorkspaceSlug) ?? resolvedWorkspaceSlug;
 
     if (
       isDemoLoginEnabled() &&
@@ -429,6 +517,20 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               error: `ABHI platform login is limited to ${ABHI_DEMO_PLATFORM_USERNAME} and ${ABHI_PORTALS_ADMIN_USERNAME} for this demonstration.`,
+            },
+            { status: 403 },
+          );
+        }
+
+        if (
+          isTalantonImpactSlug(workspaceSlug) &&
+          result.session.userType !== "external" &&
+          wantsAbhiPortalsNext(nextRaw) &&
+          !isTalantonPortalsAllowedUsername(result.session.username)
+        ) {
+          return NextResponse.json(
+            {
+              error: `Talanton portals login is limited to ${TALANTON_DEMO_PLATFORM_USERNAME} and ${TALANTON_PORTALS_ADMIN_USERNAME}.`,
             },
             { status: 403 },
           );
@@ -500,6 +602,17 @@ export async function POST(request: NextRequest) {
 
     if (body.password === ABHI_PORTALS_SHARED_PASSWORD) {
       const portalsLogin = await createAbhiPortalsCredentialLoginResponse(
+        request,
+        body.username,
+        returnToRaw,
+        nextRaw,
+        workspaceSlug,
+      );
+      if (portalsLogin) return portalsLogin;
+    }
+
+    if (body.password === TALANTON_PORTALS_SHARED_PASSWORD) {
+      const portalsLogin = await createTalantonPortalsCredentialLoginResponse(
         request,
         body.username,
         returnToRaw,

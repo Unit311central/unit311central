@@ -1,9 +1,12 @@
 /**
- * Talanton Impact customer host detection (talantonimpact.unit311central.com).
- * Gates Talanton-only portfolio / governance / compliance fixtures and nav.
+ * Talanton Impact customer host detection.
+ * Primary: talantonimpact.unit311central.com
+ * Alias: talanton.unit311central.com (portals briefing + same workspace)
  */
 
 export const TALANTON_IMPACT_SLUG = "talantonimpact";
+/** Short host alias used for /portals briefing (maps to Talanton Impact workspace). */
+export const TALANTON_HOST_ALIAS_SLUG = "talanton";
 
 export function getBrowserWorkspaceSlug(): string {
   if (typeof window === "undefined") return "";
@@ -17,9 +20,17 @@ export function getBrowserWorkspaceSlug(): string {
 }
 
 export function isTalantonImpactSlug(slug: string | null | undefined): boolean {
-  return String(slug ?? "")
+  const normalized = String(slug ?? "")
     .trim()
-    .toLowerCase() === TALANTON_IMPACT_SLUG;
+    .toLowerCase();
+  return normalized === TALANTON_IMPACT_SLUG || normalized === TALANTON_HOST_ALIAS_SLUG;
+}
+
+/** Canonical workspace slug for DB / session binding. */
+export function canonicalizeTalantonImpactSlug(
+  slug: string | null | undefined,
+): typeof TALANTON_IMPACT_SLUG | null {
+  return isTalantonImpactSlug(slug) ? TALANTON_IMPACT_SLUG : null;
 }
 
 export function isBrowserTalantonImpactSurface(): boolean {

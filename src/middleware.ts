@@ -26,10 +26,11 @@ import {
   evaluateCustomerHostSessionGate,
 } from "@/lib/workspace-host-session-gate";
 import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
-import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
+import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-demo";
 import {
   ABHI_PORTALS_GATE_COOKIE,
   ABHI_PORTALS_VIEW_COOKIE,
@@ -51,9 +52,15 @@ function canonicalizePortalRedirect(redirectPath: string | null | undefined): st
   return null;
 }
 
-/** Route-based company/member portal slugs — talantonimpact and abhi. */
+/** Route-based company/member portal slugs — talantonimpact/talanton and abhi. */
 function isCompanyPortalSlug(workspaceSlug: string): boolean {
-  return workspaceSlug === TALANTON_IMPACT_SLUG || workspaceSlug === ABHI_SLUG;
+  return isTalantonImpactSlug(workspaceSlug) || workspaceSlug === ABHI_SLUG;
+}
+
+function isPortalsAllowedUsername(username: string | null | undefined, workspaceSlug: string): boolean {
+  if (workspaceSlug === ABHI_SLUG) return isAbhiPortalsAllowedUsername(username);
+  if (isTalantonImpactSlug(workspaceSlug)) return isTalantonPortalsAllowedUsername(username);
+  return false;
 }
 
 /** Next.js / browser prefetch must not clear auth gates or bounce live sessions. */
@@ -68,14 +75,14 @@ function isNextPrefetchRequest(request: NextRequest): boolean {
 }
 
 function matchPortalPathnameForSlug(workspaceSlug: string, pathname: string) {
-  if (workspaceSlug === TALANTON_IMPACT_SLUG) return matchTalantonCompanyPortalPathname(pathname);
+  if (isTalantonImpactSlug(workspaceSlug)) return matchTalantonCompanyPortalPathname(pathname);
   if (workspaceSlug === ABHI_SLUG) return matchAbhiMemberPortalPathname(pathname);
   return null;
 }
 
 /** Hidden App Router implementation base for a portal slug — never a public browser URL. */
 function portalImplBaseForSlug(workspaceSlug: string): string | null {
-  if (workspaceSlug === TALANTON_IMPACT_SLUG) return "/portfolio-portal";
+  if (isTalantonImpactSlug(workspaceSlug)) return "/portfolio-portal";
   if (workspaceSlug === ABHI_SLUG) return "/member-portal";
   return null;
 }
@@ -284,10 +291,10 @@ export async function middleware(request: NextRequest) {
       return bounce;
     }
 
-    // ABHI pre-demo portals briefing — requires an explicit portals login.
-    // A normal ABHI platform session alone must not skip the portals login page.
+    // ABHI / Talanton pre-demo portals briefing — requires an explicit portals login.
+    // A normal platform session alone must not skip the portals login page.
     if (
-      workspaceSlug === ABHI_SLUG &&
+      (workspaceSlug === ABHI_SLUG || isTalantonImpactSlug(workspaceSlug)) &&
       (pathname === "/portals" || pathname.startsWith("/portals/"))
     ) {
       const loginUrl = `${workspaceOrigin}/login?next=${encodeURIComponent("/portals")}`;
@@ -304,12 +311,12 @@ export async function middleware(request: NextRequest) {
         isDocumentNav && (fetchSite === "none" || fetchSite === "cross-site");
       const allowed =
         Boolean(session) &&
-        isAbhiPortalsAllowedUsername(session?.username) &&
+        isPortalsAllowedUsername(session?.username, workspaceSlug) &&
         (isFreshEntry ? portalsEntry : portalsEntry || portalsView);
 
       if (!allowed) {
         const bounce = redirectExternal(loginUrl);
-        if (token && (!session || !isAbhiPortalsAllowedUsername(session.username))) {
+        if (token && (!session || !isPortalsAllowedUsername(session.username, workspaceSlug))) {
           clearPlatformSessionCookie(bounce, request);
         }
         clearAbhiPortalsGateCookie(bounce, request);
@@ -433,11 +440,11 @@ export async function middleware(request: NextRequest) {
       pathname === "";
 
     if (requiresAuthenticatedApp) {
-      // ABHI demo/admin briefing accounts may use shared-password sessions without DB membership.
-      if (workspaceSlug === ABHI_SLUG) {
+      // ABHI / Talanton demo/admin briefing accounts may use shared-password sessions without DB membership.
+      if (workspaceSlug === ABHI_SLUG || isTalantonImpactSlug(workspaceSlug)) {
         const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
         const session = token ? await readPlatformSessionToken(token) : null;
-        if (session && isAbhiPortalsAllowedUsername(session.username)) {
+        if (session && isPortalsAllowedUsername(session.username, workspaceSlug)) {
           if (pathname === "/" || pathname === "") {
             const bounce = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
             // Leaving the briefing surface drops the one-time portals gate.
