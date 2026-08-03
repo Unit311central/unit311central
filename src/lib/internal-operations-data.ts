@@ -1102,7 +1102,7 @@ export const internalViewTitles: Record<
   },
   "quarterly-portfolio-update": {
     title: "Quarterly Portfolio Update",
-    subtitle: "Talanton Intelligence · Impact Intelligence",
+    subtitle: "Talanton Intelligence · Portfolio Intelligence",
   },
   "funds-dashboard": { title: "Fund Dashboard", subtitle: "Funds" },
   "funds-impact": { title: "Impact Fund", subtitle: "Funds" },

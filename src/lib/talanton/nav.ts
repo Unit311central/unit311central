@@ -94,6 +94,10 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
             label: "Company Intelligence",
             view: "portfolio-intelligence-company",
           },
+          {
+            label: "Quarterly Portfolio Update",
+            view: "quarterly-portfolio-update",
+          },
         ],
       },
       {
@@ -111,10 +115,6 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
           {
             label: "Annual Impact Report",
             view: "annual-impact-report",
-          },
-          {
-            label: "Quarterly Portfolio Update",
-            view: "quarterly-portfolio-update",
           },
         ],
       },
