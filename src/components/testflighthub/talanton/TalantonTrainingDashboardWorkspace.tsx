@@ -3,7 +3,11 @@
 import { useMemo } from "react";
 import { AlertTriangle, GraduationCap, TrendingUp, Users } from "lucide-react";
 
-import { buildTrainingExecutiveSummary } from "@/lib/talanton/training-phase2";
+import {
+  buildCompanyLearningRows,
+  buildTrainingExecutiveSummary,
+  type CompanyLearningRow,
+} from "@/lib/talanton/training-phase2";
 import { cn } from "@/lib/utils";
 import {
   TalantonImpactMetric,
@@ -20,8 +24,18 @@ function Bar({ value, tone = "good" }: { value: number; tone?: "good" | "watch" 
   );
 }
 
+function healthStatusClass(status: CompanyLearningRow["status"]) {
+  if (status === "On track") return "border-emerald-400/30 bg-emerald-500/10 text-emerald-100";
+  if (status === "Watch") return "border-amber-400/30 bg-amber-500/10 text-amber-100";
+  return "border-rose-400/30 bg-rose-500/10 text-rose-100";
+}
+
 export default function TalantonTrainingDashboardWorkspace() {
   const summary = useMemo(() => buildTrainingExecutiveSummary(), []);
+  const companyRows = useMemo(
+    () => [...buildCompanyLearningRows()].sort((a, b) => a.completionPct - b.completionPct),
+    [],
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
@@ -174,6 +188,51 @@ export default function TalantonTrainingDashboardWorkspace() {
             holdings. Use Certifications to prioritise renewals before the next LP reporting cycle.
           </p>
         </article>
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <h2 className="mb-3 text-lg font-semibold text-white">Portfolio course health</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-[11px] uppercase tracking-wide text-white/40">
+                <th className="py-2 pr-4 font-medium">Company</th>
+                <th className="py-2 pr-4 font-medium">Completion</th>
+                <th className="py-2 pr-4 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {companyRows.map((row) => (
+                <tr key={row.company.id} className="border-b border-white/5 last:border-0">
+                  <td className="py-2.5 pr-4 text-white/85">{row.company.name}</td>
+                  <td className="py-2.5 pr-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className={cn(
+                            "h-full rounded-full",
+                            row.completionPct >= 90
+                              ? "bg-emerald-400"
+                              : row.completionPct >= 70
+                                ? "bg-amber-400"
+                                : "bg-rose-400",
+                          )}
+                          style={{ width: `${row.completionPct}%` }}
+                        />
+                      </div>
+                      <span className="tabular-nums text-white/70">{row.completionPct}%</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 pr-4">
+                    <span className={cn("rounded-full border px-2 py-0.5 text-[10px]", healthStatusClass(row.status))}>
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );

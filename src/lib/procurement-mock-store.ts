@@ -70,7 +70,706 @@ function line(partial: Partial<ProcurementLineItem> & { item: string }): Procure
   };
 }
 
+function seedTalantonProcurementState(): ProcurementMockState {
+  const suppliers: SupplierRecord[] = [
+    {
+      id: "ti-sup-office",
+      companyName: "Nairobi Office Supplies Ltd",
+      contacts: [
+        {
+          name: "Grace Wanjiru",
+          email: "grace@nairobiofficesupplies.example",
+          phone: "+254 20 445 6612",
+          role: "Account Manager",
+        },
+      ],
+      addresses: [
+        {
+          label: "HQ",
+          line1: "Mombasa Road Business Park, Unit 4",
+          city: "Nairobi",
+          country: "Kenya",
+          postcode: "00100",
+        },
+      ],
+      taxId: "KE-PIN-A004488712X",
+      paymentTerms: "Net 30",
+      bankDetails: "Equity Bank KE — 0170 2934 5561",
+      preferred: true,
+      insuranceExpiry: isoDaysFromNow(180),
+      contractExpiry: isoDaysFromNow(260),
+      rating: 4.5,
+      performanceScore: 90,
+      onTimeDeliveryPct: 94,
+      qualityScore: 91,
+      priceCompetitiveness: 92,
+      averageLeadTimeDays: 3,
+      totalSpend: 18400,
+      notes: "Stationery, furniture, and general office consumables for Nairobi HQ.",
+      documents: [],
+      category: "Office Supplies",
+      currency: "USD",
+      status: "active",
+    },
+    {
+      id: "ti-sup-dellhp",
+      companyName: "Dell/HP Kenya Authorised Reseller",
+      contacts: [
+        {
+          name: "Brian Otieno",
+          email: "brian@dellhpkenya.example",
+          phone: "+254 733 221 004",
+          role: "Sales",
+        },
+      ],
+      addresses: [
+        {
+          label: "Showroom",
+          line1: "Westlands Business Centre, 3rd Floor",
+          city: "Nairobi",
+          country: "Kenya",
+          postcode: "00600",
+        },
+      ],
+      taxId: "KE-PIN-A007712340Y",
+      paymentTerms: "Net 30",
+      bankDetails: "KCB Bank KE — 1122 6673 0091",
+      preferred: true,
+      insuranceExpiry: isoDaysFromNow(220),
+      contractExpiry: isoDaysFromNow(310),
+      rating: 4.6,
+      performanceScore: 93,
+      onTimeDeliveryPct: 90,
+      qualityScore: 95,
+      priceCompetitiveness: 84,
+      averageLeadTimeDays: 8,
+      totalSpend: 42600,
+      notes: "Laptops, monitors, and docking hardware for staff refresh cycles.",
+      documents: [],
+      category: "IT Hardware",
+      currency: "USD",
+      status: "active",
+    },
+    {
+      id: "ti-sup-print",
+      companyName: "Print & Board Pack Co",
+      contacts: [
+        {
+          name: "Faith Njoroge",
+          email: "faith@printboardpack.example",
+          phone: "+254 20 271 8830",
+          role: "Production Manager",
+        },
+      ],
+      addresses: [
+        {
+          label: "Print House",
+          line1: "Industrial Area, Enterprise Road",
+          city: "Nairobi",
+          country: "Kenya",
+          postcode: "00200",
+        },
+      ],
+      taxId: "KE-PIN-A009981205Z",
+      paymentTerms: "Net 15",
+      bankDetails: "Co-operative Bank KE — 0113 5567 8820",
+      preferred: true,
+      insuranceExpiry: isoDaysFromNow(140),
+      contractExpiry: isoDaysFromNow(200),
+      rating: 4.7,
+      performanceScore: 95,
+      onTimeDeliveryPct: 97,
+      qualityScore: 96,
+      priceCompetitiveness: 88,
+      averageLeadTimeDays: 4,
+      totalSpend: 9800,
+      notes: "Board pack binding and printing for quarterly board meetings.",
+      documents: [],
+      category: "Print & Board Packs",
+      currency: "USD",
+      status: "active",
+    },
+    {
+      id: "ti-sup-courier",
+      companyName: "Wanjiku Courier & Logistics",
+      contacts: [
+        {
+          name: "Peter Kamau",
+          email: "peter@wanjikucourier.example",
+          phone: "+254 722 664 190",
+          role: "Dispatch",
+        },
+      ],
+      addresses: [
+        {
+          label: "Depot",
+          line1: "Industrial Area, Likoni Road",
+          city: "Nairobi",
+          country: "Kenya",
+          postcode: "00200",
+        },
+      ],
+      taxId: "KE-PIN-A002217788W",
+      paymentTerms: "Net 15",
+      bankDetails: "NCBA Bank KE — 0055 4432 1190",
+      preferred: false,
+      insuranceExpiry: isoDaysFromNow(90),
+      contractExpiry: isoDaysFromNow(150),
+      rating: 4.2,
+      performanceScore: 87,
+      onTimeDeliveryPct: 92,
+      qualityScore: 88,
+      priceCompetitiveness: 90,
+      averageLeadTimeDays: 2,
+      totalSpend: 3600,
+      notes: "Local courier for board pack delivery and inter-office shuttling.",
+      documents: [],
+      category: "Logistics Services",
+      currency: "USD",
+      status: "active",
+    },
+    {
+      id: "ti-sup-usit",
+      companyName: "Summit IT Reseller (US)",
+      contacts: [
+        {
+          name: "Rachel Nguyen",
+          email: "rachel@summititreseller.example",
+          phone: "+1 415 555 0138",
+          role: "Account Executive",
+        },
+      ],
+      addresses: [
+        {
+          label: "US Office",
+          line1: "1120 Market Street, Suite 400",
+          city: "San Francisco",
+          country: "United States",
+          postcode: "94102",
+        },
+      ],
+      taxId: "US-EIN-84-2201155",
+      paymentTerms: "Net 30",
+      bankDetails: "Chase Business — 000123456789",
+      preferred: false,
+      insuranceExpiry: isoDaysFromNow(260),
+      contractExpiry: isoDaysFromNow(340),
+      rating: 4.4,
+      performanceScore: 89,
+      onTimeDeliveryPct: 91,
+      qualityScore: 90,
+      priceCompetitiveness: 82,
+      averageLeadTimeDays: 6,
+      totalSpend: 21200,
+      notes: "US office IT hardware and software licensing.",
+      documents: [],
+      category: "IT Hardware",
+      currency: "USD",
+      status: "active",
+    },
+  ];
+
+  const requisitions: PurchaseRequisition[] = [
+    {
+      id: "ti-req-1",
+      requestNumber: "PR-2026-1001",
+      requestDate: isoDaysFromNow(-5),
+      requestedBy: "David Mwangi",
+      department: "Operations",
+      costCentre: "OPS-NBO",
+      priority: "normal",
+      requiredDate: isoDaysFromNow(15),
+      businessJustification: "Laptop refresh for two new Nairobi HQ hires.",
+      budgetCode: "BUD-IT-26",
+      status: "manager_approval",
+      lines: [
+        line({
+          item: "Dell Latitude 5450 Laptop",
+          description: "14-inch business laptop, 16GB RAM",
+          sku: "DELL-LAT5450",
+          quantity: 2,
+          unitPrice: 1150,
+          preferredSupplierId: "ti-sup-dellhp",
+          preferredSupplierName: "Dell/HP Kenya Authorised Reseller",
+        }),
+      ],
+      attachments: [],
+      approvalHistory: [
+        {
+          id: uid("ap"),
+          at: isoDaysFromNow(-5),
+          actor: "David Mwangi",
+          role: "employee",
+          action: "submitted",
+          note: "Submitted for manager approval",
+        },
+      ],
+      linkedPoId: null,
+      createdAt: isoDaysFromNow(-5),
+      updatedAt: isoDaysFromNow(-5),
+    },
+    {
+      id: "ti-req-2",
+      requestNumber: "PR-2026-1002",
+      requestDate: isoDaysFromNow(-12),
+      requestedBy: "Wanjiru Kariuki",
+      department: "Governance",
+      costCentre: "GOV-NBO",
+      priority: "high",
+      requiredDate: isoDaysFromNow(6),
+      businessJustification: "Board pack printing and binding for Q3 board meeting.",
+      budgetCode: "BUD-GOV-26",
+      status: "po_created",
+      lines: [
+        line({
+          item: "Board pack printing & binding (30 sets)",
+          sku: "PBP-BOARD-30",
+          quantity: 30,
+          unitPrice: 12,
+          preferredSupplierId: "ti-sup-print",
+          preferredSupplierName: "Print & Board Pack Co",
+        }),
+      ],
+      attachments: [],
+      approvalHistory: [
+        {
+          id: uid("ap"),
+          at: isoDaysFromNow(-12),
+          actor: "Wanjiru Kariuki",
+          role: "employee",
+          action: "submitted",
+          note: "Submitted",
+        },
+        {
+          id: uid("ap"),
+          at: isoDaysFromNow(-10),
+          actor: "Grace Wanjiru",
+          role: "department_manager",
+          action: "approved",
+          note: "Approved — quarterly board meeting",
+        },
+      ],
+      linkedPoId: "ti-po-2",
+      createdAt: isoDaysFromNow(-12),
+      updatedAt: isoDaysFromNow(-9),
+    },
+    {
+      id: "ti-req-3",
+      requestNumber: "PR-2026-0998",
+      requestDate: isoDaysFromNow(-20),
+      requestedBy: "Amina Yusuf",
+      department: "Operations",
+      costCentre: "OPS-NBO",
+      priority: "normal",
+      requiredDate: isoDaysFromNow(-2),
+      businessJustification: "Office furniture and stationery restock for Nairobi HQ.",
+      budgetCode: "BUD-OPS-26",
+      status: "po_created",
+      lines: [
+        line({
+          item: "Ergonomic office chairs",
+          sku: "OFC-CHAIR-ERG",
+          quantity: 6,
+          unitPrice: 145,
+          preferredSupplierId: "ti-sup-office",
+          preferredSupplierName: "Nairobi Office Supplies Ltd",
+        }),
+        line({
+          item: "Stationery bundle (paper, pens, folders)",
+          sku: "OFC-STATIONERY-BDL",
+          quantity: 4,
+          unitPrice: 60,
+          preferredSupplierId: "ti-sup-office",
+          preferredSupplierName: "Nairobi Office Supplies Ltd",
+        }),
+      ],
+      attachments: [],
+      approvalHistory: [
+        {
+          id: uid("ap"),
+          at: isoDaysFromNow(-20),
+          actor: "Amina Yusuf",
+          role: "employee",
+          action: "submitted",
+          note: "Submitted",
+        },
+        {
+          id: uid("ap"),
+          at: isoDaysFromNow(-18),
+          actor: "Grace Wanjiru",
+          role: "department_manager",
+          action: "approved",
+          note: "Approved",
+        },
+      ],
+      linkedPoId: "ti-po-3",
+      createdAt: isoDaysFromNow(-20),
+      updatedAt: isoDaysFromNow(-16),
+    },
+    {
+      id: "ti-req-4",
+      requestNumber: "PR-2026-1003",
+      requestDate: isoDaysFromNow(-2),
+      requestedBy: "Chris Bennett",
+      department: "US Operations",
+      costCentre: "OPS-US",
+      priority: "normal",
+      requiredDate: isoDaysFromNow(20),
+      businessJustification: "Monitors for US office staff hybrid workstations.",
+      budgetCode: "BUD-IT-26",
+      status: "submitted",
+      lines: [
+        line({
+          item: "27\" 4K Monitor",
+          sku: "MON-27-4K",
+          quantity: 5,
+          unitPrice: 340,
+          preferredSupplierId: "ti-sup-usit",
+          preferredSupplierName: "Summit IT Reseller (US)",
+        }),
+      ],
+      attachments: [],
+      approvalHistory: [
+        {
+          id: uid("ap"),
+          at: isoDaysFromNow(-2),
+          actor: "Chris Bennett",
+          role: "employee",
+          action: "submitted",
+          note: "Submitted",
+        },
+      ],
+      linkedPoId: null,
+      createdAt: isoDaysFromNow(-2),
+      updatedAt: isoDaysFromNow(-2),
+    },
+  ];
+
+  const poLines2 = [
+    line({
+      item: "Board pack printing & binding (30 sets)",
+      sku: "PBP-BOARD-30",
+      quantity: 30,
+      unitPrice: 12,
+      preferredSupplierId: "ti-sup-print",
+      preferredSupplierName: "Print & Board Pack Co",
+    }),
+  ];
+  const totals2 = calcPoTotals(poLines2);
+
+  const poLines3 = [
+    line({
+      item: "Ergonomic office chairs",
+      sku: "OFC-CHAIR-ERG",
+      quantity: 6,
+      unitPrice: 145,
+      preferredSupplierId: "ti-sup-office",
+      preferredSupplierName: "Nairobi Office Supplies Ltd",
+    }),
+    line({
+      item: "Stationery bundle (paper, pens, folders)",
+      sku: "OFC-STATIONERY-BDL",
+      quantity: 4,
+      unitPrice: 60,
+      preferredSupplierId: "ti-sup-office",
+      preferredSupplierName: "Nairobi Office Supplies Ltd",
+    }),
+  ];
+  const totals3 = calcPoTotals(poLines3);
+
+  const poLines1 = [
+    line({
+      item: "Dell Latitude 5450 Laptop",
+      description: "14-inch business laptop, 16GB RAM",
+      sku: "DELL-LAT5450",
+      quantity: 2,
+      unitPrice: 1150,
+      preferredSupplierId: "ti-sup-dellhp",
+      preferredSupplierName: "Dell/HP Kenya Authorised Reseller",
+    }),
+  ];
+  const totals1 = calcPoTotals(poLines1);
+
+  const purchaseOrders: PurchaseOrder[] = [
+    {
+      id: "ti-po-1",
+      poNumber: "PO-2026-2201",
+      supplierId: "ti-sup-dellhp",
+      supplierName: "Dell/HP Kenya Authorised Reseller",
+      supplierContact: "Brian Otieno <brian@dellhpkenya.example>",
+      deliveryAddress: "Talanton Impact Nairobi HQ, Mombasa Road, Nairobi",
+      billingAddress: "Talanton Impact Finance, Mombasa Road, Nairobi",
+      currency: "USD",
+      paymentTerms: "Net 30",
+      expectedDelivery: isoDaysFromNow(10),
+      status: "sent",
+      requisitionId: "ti-req-1",
+      lines: poLines1,
+      notes: "Standard staff laptop allocation for new hires.",
+      ...totals1,
+      emailedAt: isoDaysFromNow(-3),
+      createdAt: isoDaysFromNow(-4),
+      updatedAt: isoDaysFromNow(-3),
+    },
+    {
+      id: "ti-po-2",
+      poNumber: "PO-2026-2198",
+      supplierId: "ti-sup-print",
+      supplierName: "Print & Board Pack Co",
+      supplierContact: "Faith Njoroge <faith@printboardpack.example>",
+      deliveryAddress: "Talanton Impact Nairobi HQ, Mombasa Road, Nairobi",
+      billingAddress: "Talanton Impact Finance, Mombasa Road, Nairobi",
+      currency: "USD",
+      paymentTerms: "Net 15",
+      expectedDelivery: isoDaysFromNow(-4),
+      status: "received",
+      requisitionId: "ti-req-2",
+      lines: poLines2,
+      notes: "Delivered ahead of Q3 board meeting.",
+      ...totals2,
+      emailedAt: isoDaysFromNow(-10),
+      createdAt: isoDaysFromNow(-10),
+      updatedAt: isoDaysFromNow(-4),
+    },
+    {
+      id: "ti-po-3",
+      poNumber: "PO-2026-2189",
+      supplierId: "ti-sup-office",
+      supplierName: "Nairobi Office Supplies Ltd",
+      supplierContact: "Grace Wanjiru <grace@nairobiofficesupplies.example>",
+      deliveryAddress: "Talanton Impact Nairobi HQ, Mombasa Road, Nairobi",
+      billingAddress: "Talanton Impact Finance, Mombasa Road, Nairobi",
+      currency: "USD",
+      paymentTerms: "Net 30",
+      expectedDelivery: isoDaysFromNow(-15),
+      status: "received",
+      requisitionId: "ti-req-3",
+      lines: poLines3,
+      notes: "Furniture and stationery restock — Nairobi HQ.",
+      ...totals3,
+      emailedAt: isoDaysFromNow(-18),
+      createdAt: isoDaysFromNow(-18),
+      updatedAt: isoDaysFromNow(-15),
+    },
+  ];
+
+  const goodsReceipts: GoodsReceipt[] = [
+    {
+      id: "ti-gr-1",
+      receiptNumber: "GR-2026-2050",
+      poId: "ti-po-2",
+      poNumber: "PO-2026-2198",
+      supplierName: "Print & Board Pack Co",
+      deliveryDate: isoDaysFromNow(-4),
+      receivedBy: "Wanjiru Kariuki",
+      lines: [
+        {
+          lineId: poLines2[0].id,
+          item: "Board pack printing & binding (30 sets)",
+          orderedQty: 30,
+          receivedQty: 30,
+          damagedQty: 0,
+          backOrderQty: 0,
+        },
+      ],
+      photos: [],
+      notes: "Full delivery ahead of board meeting.",
+      inventoryUpdated: true,
+      createdAt: isoDaysFromNow(-4),
+    },
+    {
+      id: "ti-gr-2",
+      receiptNumber: "GR-2026-2041",
+      poId: "ti-po-3",
+      poNumber: "PO-2026-2189",
+      supplierName: "Nairobi Office Supplies Ltd",
+      deliveryDate: isoDaysFromNow(-15),
+      receivedBy: "Amina Yusuf",
+      lines: [
+        {
+          lineId: poLines3[0].id,
+          item: "Ergonomic office chairs",
+          orderedQty: 6,
+          receivedQty: 6,
+          damagedQty: 0,
+          backOrderQty: 0,
+        },
+        {
+          lineId: poLines3[1].id,
+          item: "Stationery bundle (paper, pens, folders)",
+          orderedQty: 4,
+          receivedQty: 4,
+          damagedQty: 0,
+          backOrderQty: 0,
+        },
+      ],
+      photos: [],
+      notes: "Full delivery — office restock complete.",
+      inventoryUpdated: true,
+      createdAt: isoDaysFromNow(-15),
+    },
+  ];
+
+  const invoiceMatches: SupplierInvoiceMatch[] = [
+    {
+      id: "ti-inv-1",
+      invoiceNumber: "INV-PBP-3312",
+      supplierId: "ti-sup-print",
+      supplierName: "Print & Board Pack Co",
+      poId: "ti-po-2",
+      poNumber: "PO-2026-2198",
+      receiptId: "ti-gr-1",
+      receiptNumber: "GR-2026-2050",
+      invoiceDate: isoDaysFromNow(-3),
+      invoiceTotal: totals2.grandTotal,
+      poTotal: totals2.grandTotal,
+      receiptTotal: totals2.grandTotal,
+      currency: "USD",
+      matchStatus: "matched",
+      mismatches: [],
+      status: "approved",
+      createdAt: isoDaysFromNow(-3),
+    },
+  ];
+
+  const approvalRules: ApprovalRule[] = [
+    {
+      id: "ti-rule-1",
+      name: "Standard under $2,500",
+      minValue: 0,
+      maxValue: 2500,
+      department: "any",
+      businessUnit: "any",
+      costCentre: "any",
+      project: "any",
+      levels: [{ level: 1, role: "department_manager", label: "Department Manager" }],
+      active: true,
+    },
+    {
+      id: "ti-rule-2",
+      name: "Mid-value $2,500–$10,000",
+      minValue: 2500,
+      maxValue: 10000,
+      department: "any",
+      businessUnit: "any",
+      costCentre: "any",
+      project: "any",
+      levels: [
+        { level: 1, role: "department_manager", label: "Department Manager" },
+        { level: 2, role: "finance", label: "Finance" },
+      ],
+      active: true,
+    },
+  ];
+
+  const contracts: SupplierContract[] = [
+    {
+      id: "ti-ctr-1",
+      title: "Dell/HP Kenya hardware framework",
+      supplierId: "ti-sup-dellhp",
+      supplierName: "Dell/HP Kenya Authorised Reseller",
+      contractValue: 60000,
+      currency: "USD",
+      startDate: isoDaysFromNow(-180),
+      renewalDate: isoDaysFromNow(185),
+      noticePeriodDays: 30,
+      owner: "David Mwangi",
+      status: "active",
+      documents: [],
+      reminderSent: false,
+      notes: "Annual hardware refresh framework for Nairobi HQ.",
+    },
+    {
+      id: "ti-ctr-2",
+      title: "Print & Board Pack Co printing agreement",
+      supplierId: "ti-sup-print",
+      supplierName: "Print & Board Pack Co",
+      contractValue: 12000,
+      currency: "USD",
+      startDate: isoDaysFromNow(-120),
+      renewalDate: isoDaysFromNow(90),
+      noticePeriodDays: 15,
+      owner: "Wanjiru Kariuki",
+      status: "active",
+      documents: [],
+      reminderSent: false,
+      notes: "Quarterly board pack printing and binding.",
+    },
+  ];
+
+  const aiInsights: AiInsight[] = [
+    {
+      id: "ti-ai-1",
+      kind: "cost_saving",
+      title: "Consolidate US hardware orders",
+      detail: "Bundling the pending monitor requisition with the next laptop cycle could reduce Summit IT Reseller shipping fees.",
+      confidence: 0.8,
+      actionLabel: "Review requisition PR-2026-1003",
+      relatedIds: ["ti-req-4"],
+      createdAt: isoDaysFromNow(0),
+    },
+    {
+      id: "ti-ai-2",
+      kind: "preferred_supplier",
+      title: "Prefer Print & Board Pack Co for board materials",
+      detail: "97% on-time delivery across 6 board cycles at competitive per-set pricing.",
+      confidence: 0.9,
+      actionLabel: "Apply preferred supplier",
+      relatedIds: ["ti-sup-print"],
+      createdAt: isoDaysFromNow(0),
+    },
+  ];
+
+  const integrations: IntegrationConnector[] = [
+    {
+      id: "ti-int-quickbooks",
+      platform: "QuickBooks",
+      status: "connected",
+      lastSyncAt: isoDaysFromNow(-1),
+      syncPurchaseOrders: true,
+      syncInvoices: true,
+      notes: "POs and supplier bills sync nightly.",
+    },
+    {
+      id: "ti-int-xero",
+      platform: "Xero",
+      status: "available",
+      lastSyncAt: null,
+      syncPurchaseOrders: true,
+      syncInvoices: true,
+      notes: "",
+    },
+  ];
+
+  return {
+    suppliers,
+    requisitions,
+    purchaseOrders,
+    goodsReceipts,
+    invoiceMatches,
+    approvalRules,
+    contracts,
+    aiInsights,
+    integrations,
+    rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+    currentRole: "purchasing_officer",
+    monthlyBudget: 32000,
+  };
+}
+
 function seedState(): ProcurementMockState {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        return seedTalantonProcurementState();
+      }
+    } catch {
+      // Fall through.
+    }
+  }
+
   const fixtures = tryGetDemoFixtures();
   if (fixtures) {
     const suppliers: SupplierRecord[] = fixtures.suppliers.map((row, index) => ({
@@ -851,6 +1550,26 @@ export function subscribeProcurementMockStore(listener: Listener) {
 }
 
 export function getProcurementMockSnapshot() {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        const hasStaleData = state.suppliers.some(
+          (supplier) =>
+            supplier.id === "sup-dji" ||
+            supplier.addresses.some((address) => address.city === "Barcelona"),
+        );
+        if (hasStaleData || !state.suppliers.some((supplier) => supplier.id.startsWith("ti-sup-"))) {
+          state = seedState();
+        }
+        return state;
+      }
+    } catch {
+      // Fall through.
+    }
+  }
+
   if (
     typeof window !== "undefined" &&
     tryGetDemoFixtures() &&

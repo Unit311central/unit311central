@@ -152,13 +152,6 @@ const StoriesMailingListWorkspace = dynamic(
     ssr: false,
   },
 );
-const TalantonMinutesDecisionsWorkspace = dynamic(
-  () => import("./talanton/TalantonMinutesDecisionsWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading minutes & decisions" />,
-    ssr: false,
-  },
-);
 const TalantonTrainingDashboardWorkspace = dynamic(
   () => import("./talanton/TalantonTrainingDashboardWorkspace"),
   {
@@ -973,9 +966,7 @@ export default function InternalOperationsDashboard({
             ))}
           {activeView === "board-minutes" &&
             (isBrowserTalantonImpactSurface() ? (
-              <WorkspaceErrorBoundary title="Minutes & Decisions">
-                <TalantonMinutesDecisionsWorkspace />
-              </WorkspaceErrorBoundary>
+              <BoardGovernanceWorkspace section="meetings" />
             ) : (
               <BoardGovernanceWorkspace section="minutes" />
             ))}

@@ -55,7 +55,6 @@ export const DEFAULT_MAJOR_MODULES: PortalsModuleRow[] = [
   row("m7a", "Board Dashboard", 1),
   row("m7b", "Board Meetings", 1),
   row("m7c", "Board Decks", 1),
-  row("m7d", "Minutes & Decisions", 1),
   row("m7e", "Risk Register", 1),
   row("m7f", "Board Members", 1),
 

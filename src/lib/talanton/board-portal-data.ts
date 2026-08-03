@@ -11,7 +11,6 @@ export type TiBoardPortalSection =
   | "dashboard"
   | "meetings"
   | "decks"
-  | "minutes"
   | "risk"
   | "impact"
   | "journeys"
@@ -25,7 +24,6 @@ export const TI_BOARD_NAV: {
   { id: "dashboard", label: "Board Dashboard", href: "/board" },
   { id: "meetings", label: "Board Meetings", href: "/board/meetings" },
   { id: "decks", label: "Board Decks", href: "/board/decks" },
-  { id: "minutes", label: "Minutes & Decisions", href: "/board/minutes" },
   { id: "risk", label: "Risk Register", href: "/board/risk" },
   { id: "impact", label: "Impact Intelligence", href: "/board/impact" },
   { id: "journeys", label: "Journey Stories", href: "/board/journeys" },
@@ -369,7 +367,8 @@ export function parseTiBoardPortalSection(
   const key = section[0]?.toLowerCase();
   if (key === "meetings") return "meetings";
   if (key === "decks" || key === "packs") return "decks";
-  if (key === "minutes" || key === "decisions") return "minutes";
+  // Minutes & Decisions retired as a standalone section — content now lives under Board Meetings.
+  if (key === "minutes" || key === "decisions") return "meetings";
   if (key === "risk" || key === "risks") return "risk";
   if (key === "impact" || key === "impact-intelligence") return "impact";
   if (key === "journeys" || key === "journey-stories" || key === "stories") return "journeys";

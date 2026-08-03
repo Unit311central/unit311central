@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -18,14 +18,21 @@ import BoardJourneyStoriesPage from "@/components/talanton/board/BoardJourneySto
 import { loadAbhiBoardPacks } from "@/lib/abhi/board-pack-record";
 import {
   TI_BOARD_MEETINGS,
-  TI_BOARD_MEMBERS,
   TI_BOARD_RISKS,
   buildTiMinutesFromMeetings,
   getTiBoardDashboardSnapshot,
   getTiDemoApprovedBoardPacks,
+  type TiBoardMember,
   type TiBoardPack,
   type TiBoardPortalSection,
 } from "@/lib/talanton/board-portal-data";
+import {
+  addMember,
+  listMembers,
+  removeMember,
+  subscribeBoardMembersStore,
+  updateMember,
+} from "@/lib/talanton/board-members-store";
 import { buildBoardFundSummary } from "@/lib/talanton/funds-data";
 import { buildBoardImpactIntelligence } from "@/lib/talanton/board-impact-intelligence";
 import {
@@ -374,15 +381,42 @@ function BoardMeetings() {
   const sorted = [...TI_BOARD_MEETINGS].sort((a, b) =>
     b.meetingDate.localeCompare(a.meetingDate),
   );
+  const minutesByMeetingId = useMemo(() => {
+    const records = buildTiMinutesFromMeetings();
+    return new Map(records.map((r) => [r.meetingId, r]));
+  }, []);
+  const [q, setQ] = useState("");
+  const filtered = q.trim()
+    ? sorted.filter((m) => {
+        const minutes = minutesByMeetingId.get(m.id);
+        const hay = `${m.title} ${minutes?.minutesSummary ?? ""} ${m.decisions
+          .map((d) => d.text)
+          .join(" ")} ${m.resolutions.join(" ")}`.toLowerCase();
+        return hay.includes(q.trim().toLowerCase());
+      })
+    : sorted;
 
   return (
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-white">Board Meetings</h1>
-        <p className="mt-1 text-sm text-white/55">Agenda, minutes, actions, and decisions.</p>
+        <p className="mt-1 text-sm text-white/55">
+          Agenda, minutes, decisions, and actions for every board meeting.
+        </p>
       </header>
+      <label className="relative block max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search meetings, minutes, decisions, owners…"
+          className="w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-emerald-400/50"
+        />
+      </label>
       <div className="space-y-3">
-        {sorted.map((m) => (
+        {filtered.map((m) => {
+          const minutes = minutesByMeetingId.get(m.id);
+          return (
           <article
             key={m.id}
             className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
@@ -441,7 +475,21 @@ function BoardMeetings() {
                   )}
                 </ul>
               </div>
-              {m.notes ? (
+              {minutes ? (
+                <div className="md:col-span-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Minutes summary
+                  </p>
+                  <p className="mt-1 text-sm text-white/65">{minutes.minutesSummary}</p>
+                  {minutes.resolutions.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-sm text-white/70">
+                      {minutes.resolutions.map((resolution, idx) => (
+                        <li key={`${m.id}-res-${idx}`}>• {resolution}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : m.notes ? (
                 <div className="md:col-span-2">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
                     Minutes notes
@@ -451,7 +499,8 @@ function BoardMeetings() {
               ) : null}
             </div>
           </article>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -546,83 +595,6 @@ function BoardDecks() {
   );
 }
 
-function BoardMinutes() {
-  const records = buildTiMinutesFromMeetings();
-  const [q, setQ] = useState("");
-  const filtered = records.filter((r) => {
-    const hay =
-      `${r.title} ${r.minutesSummary} ${r.decisions.map((d) => d.text).join(" ")} ${r.resolutions.join(" ")}`.toLowerCase();
-    return hay.includes(q.trim().toLowerCase());
-  });
-
-  return (
-    <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-semibold text-white">Minutes & Decisions</h1>
-        <p className="mt-1 text-sm text-white/55">
-          Search historical minutes, resolutions, decisions, and action owners.
-        </p>
-      </header>
-      <label className="relative block max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search minutes, decisions, owners…"
-          className="w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-emerald-400/50"
-        />
-      </label>
-      <div className="space-y-3">
-        {filtered.map((r) => (
-          <article
-            key={r.id}
-            className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
-          >
-            <h2 className="text-lg font-semibold text-white">{r.title}</h2>
-            <p className="text-sm text-white/45">{r.meetingDate}</p>
-            <p className="mt-3 text-sm leading-relaxed text-white/70">{r.minutesSummary}</p>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                  Decisions / resolutions
-                </p>
-                <ul className="mt-1 space-y-1 text-sm text-white/70">
-                  {r.decisions.map((d) => (
-                    <li key={d.id}>
-                      • {d.text}
-                      {d.resolution ? (
-                        <span className="text-white/45"> — {d.resolution}</span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                  Action owners
-                </p>
-                <ul className="mt-1 space-y-1 text-sm text-white/70">
-                  {r.actions.map((a) => (
-                    <li key={a.id}>
-                      • {a.owner}: {a.title}{" "}
-                      <span className="text-white/40">
-                        (due {a.dueDate}, {a.status})
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </article>
-        ))}
-        {filtered.length === 0 ? (
-          <p className="text-sm text-white/45">No minutes match your search.</p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 function BoardRisk() {
   return (
     <div className="space-y-5">
@@ -663,36 +635,256 @@ function BoardRisk() {
   );
 }
 
+type BoardMemberFormState = {
+  firstName: string;
+  lastName: string;
+  role: string;
+  email: string;
+  committees: string;
+};
+
+const EMPTY_MEMBER_FORM: BoardMemberFormState = {
+  firstName: "",
+  lastName: "",
+  role: "",
+  email: "",
+  committees: "",
+};
+
+function memberToForm(member: TiBoardMember): BoardMemberFormState {
+  return {
+    firstName: member.firstName,
+    lastName: member.lastName,
+    role: member.role,
+    email: member.email,
+    committees: member.committees.join(", "),
+  };
+}
+
+function formToMemberInput(form: BoardMemberFormState) {
+  return {
+    firstName: form.firstName.trim(),
+    lastName: form.lastName.trim(),
+    role: form.role.trim(),
+    email: form.email.trim(),
+    committees: form.committees
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean),
+  };
+}
+
+const memberInputClass =
+  "w-full rounded-lg border border-emerald-400/20 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/50";
+
+function BoardMemberForm({
+  initial,
+  onCancel,
+  onSubmit,
+  submitLabel,
+}: {
+  initial: BoardMemberFormState;
+  onCancel: () => void;
+  onSubmit: (form: BoardMemberFormState) => void;
+  submitLabel: string;
+}) {
+  const [form, setForm] = useState<BoardMemberFormState>(initial);
+  const valid = form.firstName.trim() && form.lastName.trim() && form.role.trim() && form.email.trim();
+
+  return (
+    <form
+      className="space-y-3 rounded-2xl border border-emerald-400/25 bg-emerald-500/[0.06] p-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!valid) return;
+        onSubmit(form);
+      }}
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
+            First name
+          </span>
+          <input
+            className={memberInputClass}
+            value={form.firstName}
+            onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+            required
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
+            Last name
+          </span>
+          <input
+            className={memberInputClass}
+            value={form.lastName}
+            onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+            required
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
+            Role
+          </span>
+          <input
+            className={memberInputClass}
+            value={form.role}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+            placeholder="Board Member"
+            required
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
+            Email
+          </span>
+          <input
+            type="email"
+            className={memberInputClass}
+            value={form.email}
+            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            required
+          />
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-emerald-300/80">
+            Committees (comma separated)
+          </span>
+          <input
+            className={memberInputClass}
+            value={form.committees}
+            onChange={(e) => setForm((f) => ({ ...f, committees: e.target.value }))}
+            placeholder="Board, Investment Committee"
+          />
+        </label>
+      </div>
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/5"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={!valid}
+          className="rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-50 hover:bg-emerald-500/30 disabled:opacity-50"
+        >
+          {submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function BoardMembers() {
+  const members = useSyncExternalStore(
+    subscribeBoardMembersStore,
+    listMembers,
+    listMembers,
+  );
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   return (
     <div className="space-y-5">
-      <header>
-        <h1 className="text-2xl font-semibold text-white">Board Members</h1>
-        <p className="mt-1 text-sm text-white/55">
-          Board of Advisors · from talantonimpact.com/about/our-team
-        </p>
-      </header>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {TI_BOARD_MEMBERS.map((m) => (
-          <article
-            key={m.id}
-            className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Board Members</h1>
+          <p className="mt-1 text-sm text-white/55">
+            Board of Advisors roster — add, edit, or remove board members.
+          </p>
+        </div>
+        {!adding ? (
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              setAdding(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/40 bg-emerald-500/20 px-3 py-2 text-xs font-semibold text-emerald-50 hover:bg-emerald-500/30"
           >
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-200">
-                <Users className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="font-semibold text-white">{m.name}</p>
-                <p className="text-sm text-white/55">{m.role}</p>
-                <p className="mt-1 text-xs text-white/45">{m.email}</p>
-                <p className="mt-2 text-xs text-white/50">
-                  Committees: {m.committees.join(", ")}
-                </p>
-              </div>
+            <Users className="h-3.5 w-3.5" />
+            Add board member
+          </button>
+        ) : null}
+      </header>
+
+      {adding ? (
+        <BoardMemberForm
+          initial={EMPTY_MEMBER_FORM}
+          submitLabel="Add member"
+          onCancel={() => setAdding(false)}
+          onSubmit={(form) => {
+            addMember(formToMemberInput(form));
+            setAdding(false);
+          }}
+        />
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {members.map((m) =>
+          editingId === m.id ? (
+            <div key={m.id} className="sm:col-span-2">
+              <BoardMemberForm
+                initial={memberToForm(m)}
+                submitLabel="Save changes"
+                onCancel={() => setEditingId(null)}
+                onSubmit={(form) => {
+                  updateMember(m.id, formToMemberInput(form));
+                  setEditingId(null);
+                }}
+              />
             </div>
-          </article>
-        ))}
+          ) : (
+            <article
+              key={m.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-200">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-white">{m.name}</p>
+                      <p className="text-sm text-white/55">{m.role}</p>
+                    </div>
+                    <div className="flex shrink-0 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdding(false);
+                          setEditingId(m.id);
+                        }}
+                        className="rounded-lg border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-white/70 hover:bg-white/5"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeMember(m.id)}
+                        className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-200 hover:bg-rose-500/20"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-white/45">{m.email}</p>
+                  <p className="mt-2 text-xs text-white/50">
+                    Committees: {m.committees.length ? m.committees.join(", ") : "—"}
+                  </p>
+                </div>
+              </div>
+            </article>
+          ),
+        )}
+        {members.length === 0 ? (
+          <p className="text-sm text-white/45">No board members yet.</p>
+        ) : null}
       </div>
     </div>
   );
@@ -701,7 +893,6 @@ function BoardMembers() {
 export function TalantonBoardPortalApp({ section }: Props) {
   if (section === "meetings") return <BoardMeetings />;
   if (section === "decks") return <BoardDecks />;
-  if (section === "minutes") return <BoardMinutes />;
   if (section === "risk") return <BoardRisk />;
   if (section === "impact") return <BoardImpactIntelligencePage />;
   if (section === "journeys") return <BoardJourneyStoriesPage />;

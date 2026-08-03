@@ -31,6 +31,24 @@ export function subscribeEcaMockStore(listener: () => void) {
 }
 
 export function getEcaMockSnapshot() {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (
+        isBrowserTalantonImpactSurface() &&
+        !state.portals.every((portal) => portal.id.startsWith("portal-ti-"))
+      ) {
+        state = {
+          portals: createSeedEcaPortals(),
+          audit: createSeedEcaAudit(),
+          invitations: createSeedEcaInvitations(),
+        };
+      }
+    } catch {
+      // Fall through.
+    }
+  }
   return state;
 }
 

@@ -4,10 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { Loader2, Search, Sparkles, Upload } from "lucide-react";
 
 import CourseReviewScreen from "@/components/lms/CourseReviewScreen";
-import {
-  TALANTON_COMPLIANCE_COURSES,
-  courseTitleById,
-} from "@/lib/talanton/portfolio-data";
+import { TALANTON_COMPLIANCE_COURSES } from "@/lib/talanton/portfolio-data";
 import {
   buildCompanyLearningRows,
   buildTrainingExecutiveSummary,
@@ -29,6 +26,12 @@ function statusClass(status: CompanyLearningRow["status"]) {
   return "border-rose-400/30 bg-rose-500/10 text-rose-100";
 }
 
+function completionBarColor(pct: number) {
+  if (pct >= 90) return "bg-emerald-400";
+  if (pct >= 70) return "bg-amber-400";
+  return "bg-rose-400";
+}
+
 type GenerationSummary = {
   title: string;
   durationMinutes: number;
@@ -45,8 +48,6 @@ export default function TalantonPortfolioCoursesWorkspace() {
   const summary = useMemo(() => buildTrainingExecutiveSummary(), []);
   const rows = useMemo(() => buildCompanyLearningRows(), []);
   const [query, setQuery] = useState("");
-  const [companyFilter, setCompanyFilter] = useState("all");
-  const [courseFilter, setCourseFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | CompanyLearningRow["status"]>("all");
   const [certFilter, setCertFilter] = useState<"all" | "has" | "none">("all");
   const [sort, setSort] = useState<"completion-asc" | "completion-desc" | "name">("completion-asc");
@@ -89,9 +90,10 @@ export default function TalantonPortfolioCoursesWorkspace() {
     }
   }
 
-  const filtered = useMemo(() => {
-    let list = rows.filter((r) => {
-      if (companyFilter !== "all" && r.company.id !== companyFilter) return false;
+  // Companies are never hidden by course selection — filters only narrow by
+  // search text, completion status, and certification presence.
+  const filteredCompanies = useMemo(() => {
+    const list = rows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (certFilter === "has" && r.certifications <= 0) return false;
       if (certFilter === "none" && r.certifications > 0) return false;
@@ -102,25 +104,19 @@ export default function TalantonPortfolioCoursesWorkspace() {
       }
       return true;
     });
-    if (courseFilter !== "all") {
-      list = list.filter(
-        (r) => r.completionPct < 95 || courseFilter === TALANTON_COMPLIANCE_COURSES[0]?.id,
-      );
-    }
-    list = [...list].sort((a, b) => {
+    return [...list].sort((a, b) => {
       if (sort === "name") return a.company.name.localeCompare(b.company.name);
       if (sort === "completion-desc") return b.completionPct - a.completionPct;
       return a.completionPct - b.completionPct;
     });
-    return list;
-  }, [rows, query, companyFilter, courseFilter, statusFilter, certFilter, sort]);
+  }, [rows, query, statusFilter, certFilter, sort]);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
       <TalantonIntelligenceHeader
         moduleLabel="Training"
         title="Portfolio Courses"
-        description="Company-centric learning view across Talanton holdings — assignments, completion, certifications and last activity by portfolio company."
+        description="Compliance course catalogue and company-by-company learning coverage across every Talanton portfolio holding."
       />
 
       {notice ? (
@@ -184,8 +180,69 @@ export default function TalantonPortfolioCoursesWorkspace() {
         <TalantonImpactMetric label="Certifications earned" value={summary.certificationsEarned} />
       </div>
 
+      {/* Courses */}
       <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <h3 className="mb-3 text-sm font-semibold text-white">
+          Courses <span className="text-white/40">({TALANTON_COMPLIANCE_COURSES.length})</span>
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-[11px] uppercase tracking-wide text-white/40">
+                <th className="py-2 pr-4 font-medium">Title</th>
+                <th className="py-2 pr-4 font-medium">Category</th>
+                <th className="py-2 pr-4 font-medium">Mandatory</th>
+                <th className="py-2 pr-4 font-medium">Assigned companies</th>
+                <th className="py-2 pr-4 font-medium">Completion</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TALANTON_COMPLIANCE_COURSES.map((course) => (
+                <tr key={course.id} className="border-b border-white/5 last:border-0">
+                  <td className="py-2.5 pr-4 text-white/85">{course.title}</td>
+                  <td className="py-2.5 pr-4 text-white/60">{course.category}</td>
+                  <td className="py-2.5 pr-4">
+                    <span
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 text-[10px]",
+                        course.mandatory
+                          ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
+                          : "border-white/15 bg-white/5 text-white/50",
+                      )}
+                    >
+                      {course.mandatory ? "Mandatory" : "Optional"}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-4 tabular-nums text-white/70">{course.assignedCompanies}</td>
+                  <td className="py-2.5 pr-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className={cn("h-full rounded-full", completionBarColor(course.completionPct))}
+                          style={{ width: `${course.completionPct}%` }}
+                        />
+                      </div>
+                      <span className="tabular-nums text-white/70">{course.completionPct}%</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Portfolio companies */}
+      <section className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-white">
+            Portfolio companies{" "}
+            <span className="text-white/40">
+              ({filteredCompanies.length} of {rows.length})
+            </span>
+          </h3>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <label className="relative xl:col-span-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
             <input
@@ -195,22 +252,6 @@ export default function TalantonPortfolioCoursesWorkspace() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
-          <select className={selectClass} value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)}>
-            <option value="all">All companies</option>
-            {rows.map((r) => (
-              <option key={r.company.id} value={r.company.id}>
-                {r.company.name}
-              </option>
-            ))}
-          </select>
-          <select className={selectClass} value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
-            <option value="all">All courses</option>
-            {TALANTON_COMPLIANCE_COURSES.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title}
-              </option>
-            ))}
-          </select>
           <select
             className={selectClass}
             value={statusFilter}
@@ -230,79 +271,56 @@ export default function TalantonPortfolioCoursesWorkspace() {
             <option value="has">Has certifications</option>
             <option value="none">No certifications</option>
           </select>
-        </div>
-        <div className="mt-3">
           <select className={selectClass} value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
             <option value="completion-asc">Sort: completion (low → high)</option>
             <option value="completion-desc">Sort: completion (high → low)</option>
             <option value="name">Sort: company name</option>
           </select>
         </div>
-      </section>
 
-      <div className="space-y-3">
-        {filtered.map((r) => (
-          <article
-            key={r.company.id}
-            className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#0f2a1f]/40 via-[#0b1a14]/80 to-[#08110d] p-5"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-base font-semibold text-white">{r.company.name}</h3>
-                  <span className={cn("rounded-full border px-2 py-0.5 text-[10px]", statusClass(r.status))}>
-                    {r.status}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-white/45">
-                  {r.company.country} · {r.company.sector} · Last activity {r.lastActivity}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-semibold tabular-nums text-emerald-200">{r.completionPct}%</p>
-                <p className="text-[11px] text-white/40">Completion</p>
-              </div>
-            </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-              <div
-                className={cn(
-                  "h-full rounded-full",
-                  r.completionPct >= 90
-                    ? "bg-emerald-400"
-                    : r.completionPct >= 70
-                      ? "bg-amber-400"
-                      : "bg-rose-400",
-                )}
-                style={{ width: `${r.completionPct}%` }}
-              />
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-white/40">Assigned</p>
-                <p className="mt-1 text-lg font-semibold text-white">{r.assigned}</p>
-              </div>
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-white/40">Completed</p>
-                <p className="mt-1 text-lg font-semibold text-white">{r.completed}</p>
-              </div>
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-white/40">In progress</p>
-                <p className="mt-1 text-lg font-semibold text-white">{r.inProgress}</p>
-              </div>
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-white/40">Certifications</p>
-                <p className="mt-1 text-lg font-semibold text-white">{r.certifications}</p>
-              </div>
-              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-2.5 sm:col-span-2 xl:col-span-1">
-                <p className="text-[10px] uppercase tracking-wide text-white/40">Focus course</p>
-                <p className="mt-1 truncate text-sm text-white/75">
-                  {courseTitleById(TALANTON_COMPLIANCE_COURSES[0]!.id)}
-                </p>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[820px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-[11px] uppercase tracking-wide text-white/40">
+                <th className="py-2 pr-4 font-medium">Company</th>
+                <th className="py-2 pr-4 font-medium">Country</th>
+                <th className="py-2 pr-4 font-medium">Assigned</th>
+                <th className="py-2 pr-4 font-medium">Completed</th>
+                <th className="py-2 pr-4 font-medium">In progress</th>
+                <th className="py-2 pr-4 font-medium">Completion</th>
+                <th className="py-2 pr-4 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCompanies.map((r) => (
+                <tr key={r.company.id} className="border-b border-white/5 last:border-0">
+                  <td className="py-2.5 pr-4 text-white/85">{r.company.name}</td>
+                  <td className="py-2.5 pr-4 text-white/60">{r.company.country}</td>
+                  <td className="py-2.5 pr-4 tabular-nums text-white/70">{r.assigned}</td>
+                  <td className="py-2.5 pr-4 tabular-nums text-white/70">{r.completed}</td>
+                  <td className="py-2.5 pr-4 tabular-nums text-white/70">{r.inProgress}</td>
+                  <td className="py-2.5 pr-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className={cn("h-full rounded-full", completionBarColor(r.completionPct))}
+                          style={{ width: `${r.completionPct}%` }}
+                        />
+                      </div>
+                      <span className="tabular-nums text-white/70">{r.completionPct}%</span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 pr-4">
+                    <span className={cn("rounded-full border px-2 py-0.5 text-[10px]", statusClass(r.status))}>
+                      {r.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {reviewCourse && reviewSummary ? (
         <CourseReviewScreen

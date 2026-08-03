@@ -3,6 +3,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
+import { filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import {
@@ -226,8 +227,13 @@ const NOTIFICATION_FUNCTIONS = ["Projects", "Support", "Finance"] as const;
 const NOTIFICATION_FREQUENCIES = ["Immediate", "Hourly digest", "Daily digest", "Weekly summary"] as const;
 
 function buildDefaultNavItems(): NavEditorItem[] {
+  // Match the live LHS: host-filtered sections (Talanton / ABHI / CorpCentre / …).
+  const sections =
+    typeof window !== "undefined"
+      ? filterInternalNavSectionsForDemoSurface(internalSurveyNavSections)
+      : internalSurveyNavSections;
   const items: NavEditorItem[] = [];
-  internalSurveyNavSections.forEach((section) => {
+  sections.forEach((section) => {
     section.items.forEach((item) => {
       items.push({
         id: `nav-${section.label ?? "root"}-${item.label}`,
@@ -242,6 +248,16 @@ function buildDefaultNavItems(): NavEditorItem[] {
             sectionLabel: section.label,
             parentLabel: item.label,
           });
+          if (child.children) {
+            child.children.forEach((nested) => {
+              items.push({
+                id: `nav-${section.label ?? "root"}-${item.label}-${child.label}-${nested.label}`,
+                label: nested.label,
+                sectionLabel: section.label,
+                parentLabel: `${item.label} › ${child.label}`,
+              });
+            });
+          }
         });
       }
     });
@@ -499,12 +515,14 @@ function ProviderIntegrationSection<T extends string>({
 }
 
 export default function SettingsWorkspace() {
-  const defaultNavItems = useMemo(() => buildDefaultNavItems(), []);
+  const [hydrated, setHydrated] = useState(false);
+  const defaultNavItems = useMemo(() => buildDefaultNavItems(), [hydrated]);
   const [navCustom, setNavCustom] = useState<NavCustomStorage>(() => loadNavCustomState());
   const [customNavLabel, setCustomNavLabel] = useState("");
   const [hideWebsiteCms, setHideWebsiteCms] = useState(false);
 
   useEffect(() => {
+    setHydrated(true);
     setHideWebsiteCms(isBrowserCorpCentreSurface());
   }, []);
 
@@ -669,11 +687,36 @@ export default function SettingsWorkspace() {
 
   useEffect(() => {
     if (defaultNavItems.length === 0) return;
-    if (navCustom.order.length === 0) {
+    const validIds = new Set(defaultNavItems.map((item) => item.id));
+    navCustom.customItems.forEach((item) => validIds.add(item.id));
+    const prunedOrder = navCustom.order.filter((id) => validIds.has(id));
+    const prunedHidden: Record<string, boolean> = {};
+    for (const [id, value] of Object.entries(navCustom.hidden)) {
+      if (validIds.has(id) && value) prunedHidden[id] = true;
+    }
+    const orderStale =
+      navCustom.order.length === 0 ||
+      prunedOrder.length < Math.min(navCustom.order.length, defaultNavItems.length) * 0.5 ||
+      prunedOrder.length === 0;
+    if (orderStale) {
+      startTransition(() => {
+        persistNavCustom({
+          order: defaultNavItems.map((item) => item.id),
+          hidden: {},
+          customItems: navCustom.customItems.filter((item) => item.custom),
+        });
+      });
+      return;
+    }
+    if (
+      prunedOrder.length !== navCustom.order.length ||
+      Object.keys(prunedHidden).length !== Object.keys(navCustom.hidden).length
+    ) {
       startTransition(() => {
         persistNavCustom({
           ...navCustom,
-          order: defaultNavItems.map((item) => item.id),
+          order: [...prunedOrder, ...defaultNavItems.map((i) => i.id).filter((id) => !prunedOrder.includes(id))],
+          hidden: prunedHidden,
         });
       });
     }

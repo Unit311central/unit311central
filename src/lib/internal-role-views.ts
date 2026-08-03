@@ -233,9 +233,12 @@ export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "technology-infrastructure",
   "technology-reports",
   "technology-settings",
-  "files-internal",
-  "files-external",
+  // Keep File Explorer (Internal + External); hide Client Explorer only.
   "files-client",
+  // Board of Directors list lives under Board → Board Members.
+  "corporate-board-directors",
+  // Minutes & Decisions retired — Board meetings own minutes/decisions content.
+  "board-minutes",
 ]);
 
 export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
@@ -243,10 +246,7 @@ export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
   "External Client Access",
 ]);
 
-export const TALANTON_HIDDEN_SECTION_LABELS = new Set([
-  "QMS",
-  "External Client Access",
-]);
+export const TALANTON_HIDDEN_SECTION_LABELS = new Set(["QMS"]);
 
 export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
   "Unit311 Details",
@@ -283,10 +283,9 @@ export const TALANTON_HIDDEN_ITEM_LABELS = new Set([
   "Certificates & Identity",
   "Certificates",
   "Security",
-  "File Explorer",
-  "Internal Files",
-  "External Files",
   "Client Explorer",
+  "Member Explorer",
+  "Board of Directors",
 ]);
 /** Server-safe CorpCentre nav filter (no window). */
 export function filterInternalNavSectionsForCorpCentreWorkspace(
@@ -387,7 +386,6 @@ const TALANTON_BOARD_NAV_SECTION: InternalNavSection = {
     { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" as const },
     { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" as const },
     { label: "Board Decks", icon: "ScrollText", view: "board-pack" as const },
-    { label: "Minutes & Decisions", icon: "ClipboardCheck", view: "board-minutes" as const },
     { label: "Risk Register", icon: "AlertTriangle", view: "corporate-risk-register" as const },
     { label: "Board Members", icon: "Users", view: "board-members" as const },
   ],
@@ -456,13 +454,75 @@ function reshapeTalantonTrainingSection(section: InternalNavSection): InternalNa
         icon: "BarChart3",
         view: "company-progress",
       },
-      {
-        label: "Portal Management",
-        icon: "Building2",
-        view: "external-client-access",
-      },
     ],
   };
+}
+
+const TALANTON_HIDDEN_CORPORATE_VIEWS = new Set<InternalOperationsView>([
+  "corporate-board-directors",
+  "corporate-risk-register",
+  "board-pack",
+  "board-meetings",
+]);
+
+const TALANTON_HIDDEN_CORPORATE_LABELS = new Set([
+  "Board of Directors",
+  "Risk Register",
+  "Board deck",
+  "Board Deck",
+  "Board Decks",
+  "Board Meetings",
+]);
+
+/** Risk / Board deck / Meetings / Directors live under Board — not Corporate Information. */
+function reshapeTalantonCorporateSection(section: InternalNavSection): InternalNavSection {
+  if (section.label !== "Corporate Information") return section;
+  return {
+    ...section,
+    items: section.items.filter((item) => {
+      if (TALANTON_HIDDEN_CORPORATE_LABELS.has(item.label)) return false;
+      if (item.view && TALANTON_HIDDEN_CORPORATE_VIEWS.has(item.view)) return false;
+      return true;
+    }),
+  };
+}
+
+/** Ensure File Explorer stays with Internal + External only (no Client Explorer). */
+function reshapeTalantonProductivitySection(section: InternalNavSection): InternalNavSection {
+  if (section.label !== "Business Productivity") return section;
+  const items = section.items.map((item) => {
+    if (item.label !== "File Explorer") return item;
+    const children = (item.children ?? []).filter(
+      (child) =>
+        child.view !== "files-client" &&
+        child.label !== "Client Explorer" &&
+        child.label !== "Member Explorer",
+    );
+    return {
+      ...item,
+      children:
+        children.length > 0
+          ? children
+          : [
+              { label: "Internal Files", view: "files-internal" as const },
+              { label: "External Files", view: "files-external" as const },
+            ],
+    };
+  });
+  const hasFileExplorer = items.some((item) => item.label === "File Explorer");
+  if (hasFileExplorer) return { ...section, items };
+
+  const dashboardIdx = items.findIndex((item) => item.view === "productivity-dashboard");
+  const next = [...items];
+  next.splice(dashboardIdx >= 0 ? dashboardIdx + 1 : 0, 0, {
+    label: "File Explorer",
+    icon: "FolderOpen",
+    children: [
+      { label: "Internal Files", view: "files-internal" as const },
+      { label: "External Files", view: "files-external" as const },
+    ],
+  });
+  return { ...section, items: next };
 }
 
 function filterTalantonBaseNav(sections: readonly InternalNavSection[]): InternalNavSection[] {
@@ -490,7 +550,9 @@ function filterTalantonBaseNav(sections: readonly InternalNavSection[]): Interna
           })
           .filter((item): item is NonNullable<typeof item> => item != null),
       };
-      return reshapeTalantonTrainingSection(filtered);
+      return reshapeTalantonProductivitySection(
+        reshapeTalantonCorporateSection(reshapeTalantonTrainingSection(filtered)),
+      );
     })
     .filter((section) => section.items.length > 0);
 }
