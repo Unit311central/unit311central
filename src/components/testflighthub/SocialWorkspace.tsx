@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ABHI_LINKEDIN_URL, ABHI_X_URL, isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { cn } from "@/lib/utils";
 import {
   ArrowDownRight,
@@ -230,9 +231,41 @@ const ABHI_PLATFORMS: PlatformConfig[] = [
   },
 ];
 
+const TALANTON_PLATFORMS: PlatformConfig[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    handle: "Talanton Impact",
+    href: "https://www.linkedin.com/company/talantonimpact",
+    displayName: "Talanton Impact",
+    layout: "wide",
+    avatarLabel: "TI",
+    avatarClassName: "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold",
+    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
+    accentBorder: "border-[#0A66C2]/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
+        in
+      </span>
+    ),
+    lastPost: {
+      date: "28 Jul 2026 · 09:40",
+      preview:
+        "Across our African portfolio, jobs created and people served remain the north star — Impact Health holds steady as we prepare the August board pack.",
+      stats: [
+        { label: "Impressions", value: "5.1K", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Reactions", value: "128", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "19", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Reposts", value: "11", icon: <Repeat2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+];
+
 function resolveSocialPlatforms(): PlatformConfig[] {
   if (typeof window === "undefined") return INTERNAL_PLATFORMS;
   if (isBrowserAbhiSurface()) return ABHI_PLATFORMS;
+  if (isBrowserTalantonImpactSurface()) return TALANTON_PLATFORMS;
   try {
     const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
     if (isBrowserDemoSurface()) return DEMO_PLATFORMS;

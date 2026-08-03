@@ -473,6 +473,208 @@ function seedAbhiInventoryState(): InventoryMockState {
   };
 }
 
+function seedTalantonInventoryState(): InventoryMockState {
+  const stockNote = (text: string): InventoryNote[] => [
+    {
+      id: uid("note"),
+      at: isoDaysFromNow(0),
+      author: "Ops",
+      kind: "operational",
+      text,
+    },
+  ];
+
+  const assets = [
+    seedAsset({
+      id: "ti-inv-1",
+      assetTag: "INV-4101",
+      name: "A4 Letterhead (Talanton Impact)",
+      category: "Office Supplies",
+      manufacturer: "Nairobi Print Co",
+      model: "TI Letterhead 500",
+      serialNumber: "LH-NBO-01",
+      purchaseDate: isoDaysFromNow(-45),
+      purchaseCost: "$180",
+      warrantyExpiry: "",
+      currentValue: "$140",
+      location: "Nairobi HQ stores",
+      status: "operational",
+      condition: "excellent",
+      department: "Operations",
+      assignedTo: "",
+      nextService: "",
+      certificationExpiry: "",
+      assignment: emptyAssignment(),
+      services: [],
+      documents: [],
+      history: [],
+      notes: stockNote("On hand: 8 reams · board pack printing"),
+    }),
+    seedAsset({
+      id: "ti-inv-2",
+      assetTag: "INV-4102",
+      name: "Board Pack Binders (A4)",
+      category: "Office Supplies",
+      manufacturer: "Office Depot",
+      model: "Ring binder 25mm",
+      serialNumber: "BIND-NBO-02",
+      purchaseDate: isoDaysFromNow(-30),
+      purchaseCost: "$95",
+      warrantyExpiry: "",
+      currentValue: "$80",
+      location: "Nairobi HQ stores",
+      status: "operational",
+      condition: "good",
+      department: "Governance",
+      assignedTo: "",
+      nextService: "",
+      certificationExpiry: "",
+      assignment: emptyAssignment(),
+      services: [],
+      documents: [],
+      history: [],
+      notes: stockNote("On hand: 24 binders"),
+    }),
+    seedAsset({
+      id: "ti-inv-3",
+      assetTag: "INV-4103",
+      name: "Visitor Lanyards + Cards",
+      category: "Office Supplies",
+      manufacturer: "BadgePro",
+      model: "Visitor kit",
+      serialNumber: "LANY-NBO-03",
+      purchaseDate: isoDaysFromNow(-60),
+      purchaseCost: "$120",
+      warrantyExpiry: "",
+      currentValue: "$90",
+      location: "Nairobi reception",
+      status: "operational",
+      condition: "excellent",
+      department: "Operations",
+      assignedTo: "",
+      nextService: "",
+      certificationExpiry: "",
+      assignment: emptyAssignment(),
+      services: [],
+      documents: [],
+      history: [],
+      notes: stockNote("On hand: 40 sets"),
+    }),
+    seedAsset({
+      id: "ti-inv-4",
+      assetTag: "INV-4104",
+      name: "USB-C Docking Spares",
+      category: "IT Equipment",
+      manufacturer: "CalDigit",
+      model: "TS4 spare pool",
+      serialNumber: "DOCK-NBO-04",
+      purchaseDate: isoDaysFromNow(-90),
+      purchaseCost: "$1,200",
+      warrantyExpiry: isoDaysFromNow(600),
+      currentValue: "$980",
+      location: "Nairobi IT cupboard",
+      status: "operational",
+      condition: "excellent",
+      department: "Technology",
+      assignedTo: "",
+      nextService: isoDaysFromNow(120),
+      certificationExpiry: "",
+      assignment: emptyAssignment(),
+      services: [],
+      documents: [],
+      history: [],
+      notes: stockNote("On hand: 3 docks"),
+    }),
+    seedAsset({
+      id: "ti-inv-5",
+      assetTag: "INV-4105",
+      name: "Camera Battery + SD Card Kit",
+      category: "IT Equipment",
+      manufacturer: "Sony",
+      model: "Field media kit",
+      serialNumber: "CAMKIT-NBO-05",
+      purchaseDate: isoDaysFromNow(-40),
+      purchaseCost: "$310",
+      warrantyExpiry: isoDaysFromNow(320),
+      currentValue: "$280",
+      location: "Field Kit locker",
+      status: "operational",
+      condition: "good",
+      department: "Impact",
+      assignedTo: "",
+      nextService: "",
+      certificationExpiry: "",
+      assignment: emptyAssignment(),
+      services: [],
+      documents: [],
+      history: [],
+      notes: stockNote("On hand: 2 kits · site visit storytelling"),
+    }),
+    seedAsset({
+      id: "ti-inv-6",
+      assetTag: "INV-4106",
+      name: "Meeting Room Marker Packs",
+      category: "Office Supplies",
+      manufacturer: "Expo",
+      model: "Whiteboard markers",
+      serialNumber: "MRK-NBO-06",
+      purchaseDate: isoDaysFromNow(-10),
+      purchaseCost: "$48",
+      warrantyExpiry: "",
+      currentValue: "$40",
+      location: "Nairobi boardroom",
+      status: "operational",
+      condition: "excellent",
+      department: "Operations",
+      assignedTo: "",
+      nextService: "",
+      certificationExpiry: "",
+      assignment: emptyAssignment(),
+      services: [],
+      documents: [],
+      history: [],
+      notes: stockNote("On hand: 12 packs"),
+    }),
+    seedAsset({
+      id: "ti-inv-7",
+      assetTag: "INV-4107",
+      name: "Courier Packaging (document envelopes)",
+      category: "Office Supplies",
+      manufacturer: "DHL Supply",
+      model: "A4 document wallets",
+      serialNumber: "PKG-NBO-07",
+      purchaseDate: isoDaysFromNow(-15),
+      purchaseCost: "$65",
+      warrantyExpiry: "",
+      currentValue: "$55",
+      location: "Nairobi mail room",
+      status: "operational",
+      condition: "excellent",
+      department: "Operations",
+      assignedTo: "",
+      nextService: "",
+      certificationExpiry: "",
+      assignment: emptyAssignment(),
+      services: [],
+      documents: [],
+      history: [],
+      notes: stockNote("On hand: 50 envelopes · US/UK shipments"),
+    }),
+  ];
+
+  return {
+    assets,
+    activity: [
+      {
+        id: "act-ti-inv-1",
+        at: isoDaysFromNow(0),
+        label: "Talanton inventory loaded",
+        detail: "Office supplies, board pack materials, and field media kits · Nairobi HQ",
+      },
+    ],
+  };
+}
+
 function seedState(): InventoryMockState {
   if (typeof window !== "undefined") {
     try {
@@ -480,6 +682,16 @@ function seedState(): InventoryMockState {
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {
         return seedAbhiInventoryState();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        return seedTalantonInventoryState();
       }
     } catch {
       // Fall through.
@@ -1662,11 +1874,43 @@ export function getInventoryMockSnapshot(): InventoryMockState {
       // Fall through.
     }
 
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (
+        isBrowserTalantonImpactSurface() &&
+        !state.activity.some((row) => row.id === "act-ti-inv-1")
+      ) {
+        state = seedState();
+        return state;
+      }
+    } catch {
+      // Fall through.
+    }
+
     if (tryGetDemoFixtures() && !state.activity.some((row) => row.id === "act-mag-inv-1")) {
       state = seedState();
     }
   }
   return state;
+}
+
+/** Server-safe inventory seed selection by workspace slug (for EA tools). */
+export function getInventorySnapshotForWorkspace(slug?: string | null): InventoryMockState {
+  try {
+    const { isAbhiSlug } = require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+    if (isAbhiSlug(slug)) return seedAbhiInventoryState();
+  } catch {
+    // fall through
+  }
+  try {
+    const { isTalantonImpactSlug } =
+      require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+    if (isTalantonImpactSlug(slug)) return seedTalantonInventoryState();
+  } catch {
+    // fall through
+  }
+  return getInventoryMockSnapshot();
 }
 
 export function resetInventoryMockStore() {

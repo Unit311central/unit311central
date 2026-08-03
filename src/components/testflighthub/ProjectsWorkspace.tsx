@@ -21,6 +21,7 @@ import {
   type ProjectPortfolioScope,
 } from "@/lib/project-portfolios";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import { FolderKanban, Loader2, Plus, Trash2, X } from "lucide-react";
@@ -172,7 +173,8 @@ export default function ProjectsWorkspace({
   );
   // CorpCentre Internal Projects use the AU/AUD portfolio fixtures (20 programmes).
   // External / dashboard keep live API projects so client delivery work stays visible.
-  const usesPortfolio = scope === "internal" && isBrowserCorpCentreSurface();
+  const usesPortfolio =
+    isBrowserTalantonImpactSurface() || (scope === "internal" && isBrowserCorpCentreSurface());
   const isPortfolioLayout = scope === "internal" || scope === "external";
   const isCorpCentre = isBrowserCorpCentreSurface();
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel(false);

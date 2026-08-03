@@ -22,6 +22,89 @@ function isBrowserAbhiHome(): boolean {
   }
 }
 
+function isBrowserTalantonHome(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserTalantonImpactSurface } =
+      require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+    return isBrowserTalantonImpactSurface();
+  } catch {
+    return false;
+  }
+}
+
+function buildTalantonExecutiveHomeKpis(): DashboardKpiItem[] {
+  const {
+    buildPortfolioImpactBriefing,
+  } = require("@/lib/talanton/impact-intelligence") as typeof import("@/lib/talanton/impact-intelligence");
+  const {
+    formatUsd,
+    TALANTON_PORTFOLIO_COMPANIES,
+  } = require("@/lib/talanton/portfolio-data") as typeof import("@/lib/talanton/portfolio-data");
+
+  const briefing = buildPortfolioImpactBriefing();
+  const capitalRaised = TALANTON_PORTFOLIO_COMPANIES.reduce(
+    (sum, company) => sum + company.investmentAmountUsd,
+    0,
+  );
+
+  return normalizeKpiRow([
+    {
+      id: "portfolio-companies",
+      label: "Portfolio Companies",
+      value: String(TALANTON_PORTFOLIO_COMPANIES.length),
+      delta: "Active holdings",
+      tone: "positive",
+      hint: "Talanton Impact portfolio",
+    },
+    {
+      id: "countries-active",
+      label: "Countries Active",
+      value: String(briefing.summary.countriesImpacted),
+      delta: "Across Africa",
+      tone: "positive",
+      hint: "Countries with active holdings",
+    },
+    {
+      id: "capital-raised",
+      label: "Total Capital Raised",
+      value: formatUsd(capitalRaised),
+      delta: "Deployed into holdings",
+      tone: "neutral",
+      hint: "Cumulative investment capital",
+    },
+    {
+      id: "people-served",
+      label: "People Served",
+      value: briefing.summary.peopleServed.toLocaleString(),
+      delta: "Portfolio reach",
+      tone: "positive",
+      hint: "Estimated people reached",
+    },
+    {
+      id: "jobs-created",
+      label: "Jobs Created",
+      value: briefing.summary.jobsCreated.toLocaleString(),
+      delta: `${briefing.summary.jobsRetained.toLocaleString()} retained`,
+      tone: "positive",
+      hint: "Rolling jobs created",
+    },
+    {
+      id: "impact-health",
+      label: "Impact Health Score",
+      value: `${briefing.health.score}/100`,
+      delta: briefing.health.band,
+      tone:
+        briefing.health.band === "Strong" || briefing.health.band === "Healthy"
+          ? "positive"
+          : briefing.health.band === "Watch"
+            ? "warning"
+            : "critical",
+      hint: briefing.health.postureReason.slice(0, 80),
+    },
+  ]);
+}
+
 /** Customer hosts (not Internal / Demo / ABHI / CorpCentre) — no platform treasury copy. */
 function isBrowserCustomerCashSurface(): boolean {
   if (typeof window === "undefined") return false;
@@ -297,12 +380,11 @@ export function buildExecutiveHomeLiveKpis(input: {
   projects: InternalProject[];
   clients: ManagedClient[];
   onboardingPipelineCount?: number;
-}): [
-  DashboardKpiItem,
-  DashboardKpiItem,
-  DashboardKpiItem,
-  DashboardKpiItem,
-] {
+}): DashboardKpiItem[] {
+  if (isBrowserTalantonHome()) {
+    return buildTalantonExecutiveHomeKpis();
+  }
+
   const currency = input.financials?.burnRate.currency || "GBP";
   const revenuePeriods = buildRevenuePeriodOptions({ financials: input.financials, currency });
   const revenueYtd = input.financials?.revenueYtd ?? 0;
@@ -433,11 +515,75 @@ function alignMonthlySeries(
 export function buildExecutiveHomeLiveAnalytics(input: {
   financials: FinancialOverviewSnapshot | null;
 }): {
+  title?: string;
   caption: string;
   series: DashboardAnalyticsSeries[];
   annotations: DashboardAnalyticsAnnotation[];
   emptyMessage: string;
 } {
+  if (isBrowserTalantonHome()) {
+    const {
+      buildPortfolioImpactBriefing,
+    } = require("@/lib/talanton/impact-intelligence") as typeof import("@/lib/talanton/impact-intelligence");
+    const briefing = buildPortfolioImpactBriefing();
+    const labels = ["Q1", "Q2", "Q3", "Q4"];
+    const jobsBase = briefing.summary.jobsCreated;
+    const peopleBase = briefing.summary.peopleServed;
+    const jobsValues = [0.72, 0.84, 0.93, 1].map((f) => Math.round(jobsBase * f));
+    const peopleValues = [0.7, 0.82, 0.92, 1].map((f) => Math.round(peopleBase * f));
+    return {
+      title: "Impact Performance",
+      caption: "Jobs created vs people served · portfolio impact trends",
+      emptyMessage: "Impact trend series will appear once portfolio metrics load.",
+      series: [
+        {
+          id: "jobs",
+          label: "Jobs created",
+          values: jobsValues,
+          labels,
+          format: "number",
+          latestLabel: briefing.summary.jobsCreated.toLocaleString(),
+        },
+        {
+          id: "people",
+          label: "People served",
+          values: peopleValues,
+          labels,
+          format: "number",
+          latestLabel: briefing.summary.peopleServed.toLocaleString(),
+        },
+      ],
+      annotations: [
+        {
+          id: "impact-health",
+          label: "Impact health",
+          value: `${briefing.health.score}/100`,
+          tone:
+            briefing.health.band === "Strong" || briefing.health.band === "Healthy"
+              ? "positive"
+              : briefing.health.band === "Watch"
+                ? "warning"
+                : "critical",
+          hint: briefing.health.band,
+        },
+        {
+          id: "communities",
+          label: "Communities",
+          value: briefing.summary.communitiesImpacted.toLocaleString(),
+          tone: "positive",
+          hint: "Communities impacted",
+        },
+        {
+          id: "countries",
+          label: "Countries",
+          value: String(briefing.summary.countriesImpacted),
+          tone: "neutral",
+          hint: "Active footprint",
+        },
+      ],
+    };
+  }
+
   const currency = "GBP";
   const revenueSeries = input.financials?.charts.monthlyRevenue ?? [];
   const points = alignMonthlySeries(
@@ -550,6 +696,7 @@ export function withExecutiveHomeLiveAnalytics(
           widget.type === "analytics"
             ? {
                 ...widget,
+                title: analytics.title ?? widget.title,
                 caption: analytics.caption,
                 series: analytics.series,
                 annotations: analytics.annotations,
@@ -619,6 +766,11 @@ export function buildExecutiveHomeLiveNarrative(input: {
         companyName = "ABHI";
         abhiHome = true;
       } else {
+        const { isBrowserTalantonImpactSurface } =
+          require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+        if (isBrowserTalantonImpactSurface()) {
+          companyName = "Talanton Impact";
+        } else {
         const { isBrowserCorpCentreSurface } =
           require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
         if (isBrowserCorpCentreSurface()) {
@@ -638,6 +790,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
             showTreasurySurfaces = cash > 0;
           }
           // Customer hosts (OnwardAir, etc.): never surface platform treasury.
+        }
         }
       }
 

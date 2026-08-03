@@ -904,12 +904,7 @@ export default function InternalOperationsDashboard({
           {activeView === "board-minutes" && <BoardGovernanceWorkspace section="minutes" />}
           {activeView === "board-members" && <BoardGovernanceWorkspace section="members" />}
 
-          {activeView === "board-pack" &&
-            (isBrowserTalantonImpactSurface() ? (
-              <BoardGovernanceWorkspace section="decks" />
-            ) : (
-              <BoardPackCustomizerWorkspace />
-            ))}
+          {activeView === "board-pack" && <BoardPackCustomizerWorkspace />}
 
           {activeView === "expenses" && <ExpensesWorkspace />}
 

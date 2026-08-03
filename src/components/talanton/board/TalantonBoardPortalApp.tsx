@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import BoardImpactIntelligencePage from "@/components/talanton/board/BoardImpactIntelligencePage";
+import { loadAbhiBoardPacks } from "@/lib/abhi/board-pack-record";
 import {
   TI_BOARD_MEETINGS,
   TI_BOARD_MEMBERS,
@@ -21,6 +22,7 @@ import {
   buildTiMinutesFromMeetings,
   getTiBoardDashboardSnapshot,
   getTiDemoApprovedBoardPacks,
+  type TiBoardPack,
   type TiBoardPortalSection,
 } from "@/lib/talanton/board-portal-data";
 import { buildBoardImpactIntelligence } from "@/lib/talanton/board-impact-intelligence";
@@ -29,6 +31,26 @@ import { cn } from "@/lib/utils";
 type Props = {
   section: TiBoardPortalSection;
 };
+
+function useApprovedPacks(): TiBoardPack[] {
+  return useMemo(() => {
+    if (typeof window === "undefined") return getTiDemoApprovedBoardPacks();
+    const stored = loadAbhiBoardPacks()
+      .filter((p) => p.status === "Final")
+      .map(
+        (p): TiBoardPack => ({
+          id: p.id,
+          packName: p.packName,
+          meetingDate: p.meetingDate,
+          status: "Final",
+          createdAt: p.createdAt,
+          pdfOpenUrl: p.pdfOpenUrl || "#",
+          pptxDownloadUrl: p.pptxDownloadUrl || "#",
+        }),
+      );
+    return stored.length > 0 ? stored : getTiDemoApprovedBoardPacks();
+  }, []);
+}
 
 function Card({
   title,
@@ -317,7 +339,7 @@ function BoardMeetings() {
 }
 
 function BoardDecks() {
-  const packs = getTiDemoApprovedBoardPacks();
+  const packs = useApprovedPacks();
 
   return (
     <div className="space-y-5">

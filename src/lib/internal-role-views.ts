@@ -228,6 +228,14 @@ export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "potential-clients",
   "representatives",
   "portfolio-company",
+  // Remediation: remove unused modules
+  "grants",
+  "technology-infrastructure",
+  "technology-reports",
+  "technology-settings",
+  "files-internal",
+  "files-external",
+  "files-client",
 ]);
 
 export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
@@ -266,6 +274,18 @@ export const TALANTON_HIDDEN_ITEM_LABELS = new Set([
   "Potential Clients",
   "Partners",
   "Company Profile",
+  "Grants",
+  "Infrastructure & Cloud",
+  "Infrastructure",
+  "Cloud",
+  "Networks & Domains",
+  "Certificates & Identity",
+  "Certificates",
+  "Security",
+  "File Explorer",
+  "Internal Files",
+  "External Files",
+  "Client Explorer",
 ]);
 /** Server-safe CorpCentre nav filter (no window). */
 export function filterInternalNavSectionsForCorpCentreWorkspace(

@@ -1,6 +1,11 @@
 import type { InternalProject, ProjectPhase } from "@/lib/projects-data";
 import { CORPCENTRE_INTERNAL_PROJECT_PORTFOLIO } from "@/lib/corpcentre-project-portfolios";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import {
+  TALANTON_EXTERNAL_PROJECT_PORTFOLIO,
+  TALANTON_INTERNAL_PROJECT_PORTFOLIO,
+} from "@/lib/talanton/project-portfolios";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 
 export type ProjectPortfolioScope = "internal" | "external" | "all";
 
@@ -893,6 +898,8 @@ const BY_ID = new Map<string, PortfolioProject>(
     ...INTERNAL_PROJECT_PORTFOLIO,
     ...EXTERNAL_PROJECT_PORTFOLIO,
     ...CORPCENTRE_INTERNAL_PROJECT_PORTFOLIO,
+    ...TALANTON_INTERNAL_PROJECT_PORTFOLIO,
+    ...TALANTON_EXTERNAL_PROJECT_PORTFOLIO,
   ].map((entry) => [entry.id, entry]),
 );
 
@@ -908,7 +915,23 @@ function isCorpCentrePortfolioSurface(): boolean {
   }
 }
 
+function isTalantonPortfolioSurface(): boolean {
+  try {
+    return typeof window !== "undefined" && isBrowserTalantonImpactSurface();
+  } catch {
+    return false;
+  }
+}
+
 export function getProjectsForScope(scope: ProjectPortfolioScope): PortfolioProject[] {
+  if (isTalantonPortfolioSurface()) {
+    if (scope === "internal") return TALANTON_INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+    if (scope === "external") return TALANTON_EXTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+    return [...TALANTON_INTERNAL_PROJECT_PORTFOLIO, ...TALANTON_EXTERNAL_PROJECT_PORTFOLIO].map(
+      (entry) => ({ ...entry }),
+    );
+  }
+
   if (scope === "internal") {
     if (isCorpCentrePortfolioSurface()) {
       return CORPCENTRE_INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));

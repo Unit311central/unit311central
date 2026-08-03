@@ -39,6 +39,10 @@ export type EcaPortalConfig = {
   lockedAccounts: number;
   storageGb: number;
   lastLogin: string;
+  /** When set, portal access is enabled for this client. */
+  portalAccessEnabled?: boolean;
+  /** Unique public portal URL (Talanton company portals). */
+  portalUrl?: string;
 };
 
 export type EcaAuditEvent = {
@@ -194,6 +198,61 @@ function createAbhiSeedEcaPortals(): EcaPortalConfig[] {
 export function createSeedEcaPortals(): EcaPortalConfig[] {
   if (isBrowserAbhiSurface()) {
     return createAbhiSeedEcaPortals();
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        const { TALANTON_COMPANY_PORTAL_ROUTES } =
+          require("@/lib/talanton/company-portal-routes") as typeof import("@/lib/talanton/company-portal-routes");
+        const companies = TALANTON_COMPANY_PORTAL_ROUTES.filter(
+          (route) => route.portalKind !== "board" && route.companyId,
+        );
+        const accents = [
+          ["#10b981", "#047857"],
+          ["#0ea5e9", "#0369a1"],
+          ["#f59e0b", "#b45309"],
+          ["#8b5cf6", "#6d28d9"],
+          ["#ef4444", "#b91c1c"],
+        ] as const;
+        return companies.map((route, index) => {
+          const [primary, accent] = accents[index % accents.length];
+          const initials = route.displayName
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase() ?? "")
+            .join("");
+          return {
+            id: `portal-ti-${route.path}`,
+            clientId: route.clientId,
+            clientName: route.displayName,
+            portalName: `${route.displayName} Portal`,
+            logoLabel: initials || "TI",
+            brandPrimary: primary,
+            brandAccent: accent,
+            modules: ["Projects", "Files", "Support", "Documents", "Reports", "Training"] as EcaPortalModule[],
+            landingPage: "Documents",
+            supportContact: "demo@unit311central.com",
+            notificationsEnabled: true,
+            documentBranding: "Talanton Impact letterhead",
+            users: 4 + (index % 8),
+            activeSessions: index % 3,
+            pendingInvites: index % 2,
+            lockedAccounts: 0,
+            storageGb: 8 + index * 1.4,
+            lastLogin: "2026-07-28T10:00:00Z",
+            // Portal access + unique URL for Talanton company portals
+            portalAccessEnabled: true,
+            portalUrl: `https://talantonimpact.unit311central.com/${route.path}`,
+          };
+        });
+      }
+    } catch {
+      // Fall through.
+    }
   }
 
   if (typeof window !== "undefined") {

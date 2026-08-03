@@ -8,6 +8,7 @@ import {
   type AbhiBoardPackRecord,
 } from "@/lib/abhi/board-pack-record";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import {
   addSavedBoardPack,
   BOARD_PACK_CATEGORY_OPTIONS,
@@ -75,7 +76,10 @@ function resolveWorkspacePdfCompanyName(): string {
 }
 
 export default function BoardPackCustomizerWorkspace() {
-  const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
+  const isBoardPackWorkspace =
+    typeof window !== "undefined"
+      ? isBrowserAbhiSurface() || isBrowserTalantonImpactSurface()
+      : false;
   const [pages, setPages] = useState<BoardPackPage[]>(defaultBoardPackPages);
   const [packName, setPackName] = useState("Board Review Pack");
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
@@ -101,7 +105,9 @@ export default function BoardPackCustomizerWorkspace() {
     startTransition(() => {
       setPages(loadBoardPackPages());
       setSavedPacks(loadSavedBoardPacks());
-      if (isBrowserAbhiSurface()) setAbhiGenerated(loadAbhiBoardPacks());
+      if (isBrowserAbhiSurface() || isBrowserTalantonImpactSurface()) {
+        setAbhiGenerated(loadAbhiBoardPacks());
+      }
     });
   }, []);
 
@@ -147,6 +153,24 @@ export default function BoardPackCustomizerWorkspace() {
   function addPage() {
     const page = createBlankBoardPackPage();
     setPages((current) => [...current, page]);
+    setSelectedPageId(page.id);
+  }
+
+  function duplicatePage(id: string) {
+    const source = pages.find((page) => page.id === id);
+    if (!source) return;
+    const page: BoardPackPage = {
+      ...source,
+      id: `page-${Date.now().toString(36)}`,
+      title: source.title ? `${source.title} (copy)` : "Untitled (copy)",
+    };
+    setPages((current) => {
+      const index = current.findIndex((entry) => entry.id === id);
+      if (index < 0) return [...current, page];
+      const next = [...current];
+      next.splice(index + 1, 0, page);
+      return next;
+    });
     setSelectedPageId(page.id);
   }
 
@@ -276,7 +300,7 @@ export default function BoardPackCustomizerWorkspace() {
 
   return (
     <div className="space-y-6">
-      {isAbhi ? (
+      {isBoardPackWorkspace ? (
         <section className="rounded-2xl border border-sky-400/25 bg-gradient-to-br from-[#0b1f3a]/90 to-[#0b1524] p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -479,14 +503,23 @@ export default function BoardPackCustomizerWorkspace() {
           <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-base font-semibold text-white">Edit page</h3>
-              <button
-                type="button"
-                onClick={() => removePage(selectedPage.id)}
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-rose-400/30 px-2 text-[11px] font-semibold text-rose-200"
-              >
-                <Trash2 className="h-3 w-3" />
-                Remove
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => duplicatePage(selectedPage.id)}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-white/15 px-2 text-[11px] font-semibold text-white/75"
+                >
+                  Duplicate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removePage(selectedPage.id)}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-rose-400/30 px-2 text-[11px] font-semibold text-rose-200"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Remove
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">

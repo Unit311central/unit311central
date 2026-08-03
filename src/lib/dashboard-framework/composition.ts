@@ -87,12 +87,13 @@ export function resolveWorkspaceDashboard(
   };
 }
 
-/** Convenience: ensure KPI row has exactly four items (pad / trim for safety). */
-export function normalizeKpiRow(
-  kpis: readonly DashboardKpiItem[],
-): [DashboardKpiItem, DashboardKpiItem, DashboardKpiItem, DashboardKpiItem] {
+/**
+ * Ensure KPI row has at least four items (pad for safety).
+ * Allows longer rows (e.g. Talanton Impact’s six portfolio KPIs).
+ */
+export function normalizeKpiRow(kpis: readonly DashboardKpiItem[]): DashboardKpiItem[] {
   const fallback: DashboardKpiItem = { id: "kpi-placeholder", label: "—", value: "—" };
   const list: DashboardKpiItem[] = [...kpis];
   while (list.length < 4) list.push({ ...fallback, id: `${fallback.id}-${list.length}` });
-  return [list[0], list[1], list[2], list[3]];
+  return list;
 }

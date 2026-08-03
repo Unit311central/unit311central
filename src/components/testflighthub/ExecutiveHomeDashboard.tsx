@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutGrid, Plus, RotateCcw, X } from "lucide-react";
 
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
+import PortfolioCompanyMap from "@/components/testflighthub/talanton/PortfolioCompanyMap";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import {
@@ -18,6 +19,7 @@ import {
   type ExecutiveHomeTileId,
 } from "@/lib/executive-home-layout";
 import type { InternalProject } from "@/lib/projects-data";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { cn } from "@/lib/utils";
 
 type HomeKpiBundle = {
@@ -34,6 +36,7 @@ export default function ExecutiveHomeDashboard() {
   const [layout, setLayout] = useState<ExecutiveHomeTileId[]>([...DEFAULT_EXECUTIVE_HOME_LAYOUT]);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [layoutHydrated, setLayoutHydrated] = useState(false);
+  const isTalanton = typeof window !== "undefined" ? isBrowserTalantonImpactSurface() : false;
 
   useEffect(() => {
     setLayout(loadExecutiveHomeLayout());
@@ -206,6 +209,8 @@ export default function ExecutiveHomeDashboard() {
         loading={loading && !bundle}
         preserveSectionOrder
       />
+
+      {isTalanton ? <PortfolioCompanyMap /> : null}
     </div>
   );
 }

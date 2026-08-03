@@ -371,6 +371,38 @@ export default function ExternalClientAccessWorkspace() {
               subtitle={`${selectedPortal.clientName} · ${selectedPortal.modules.length} modules enabled`}
             >
               <div className="grid gap-4 lg:grid-cols-2">
+                <Field label="Company name">
+                  <div className="mt-1 rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2.5 text-sm text-white/85">
+                    {selectedPortal.clientName}
+                  </div>
+                </Field>
+                <Field label="Portal access">
+                  <div className="mt-1 flex items-center gap-2 rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2.5 text-sm text-white/80">
+                    <span
+                      className={cn(
+                        "inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
+                        selectedPortal.portalAccessEnabled !== false
+                          ? "bg-emerald-500/15 text-emerald-200"
+                          : "bg-white/10 text-white/50",
+                      )}
+                    >
+                      {selectedPortal.portalAccessEnabled !== false ? "Enabled" : "Disabled"}
+                    </span>
+                    <span className="text-white/45">Company portal</span>
+                  </div>
+                </Field>
+                {selectedPortal.portalUrl ? (
+                  <Field label="Portal URL">
+                    <a
+                      href={selectedPortal.portalUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1 block truncate rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-100 hover:bg-emerald-500/15"
+                    >
+                      {selectedPortal.portalUrl}
+                    </a>
+                  </Field>
+                ) : null}
                 <Field label="Portal name">
                   <input
                     className={WsInputClass()}

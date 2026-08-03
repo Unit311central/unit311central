@@ -90,8 +90,14 @@ export function KpiWidget({ kpi }: { kpi: DashboardKpiItem }) {
 }
 
 export default function KpiRowWidget({ widget }: { widget: DashboardKpiRowWidget }) {
+  const count = widget.kpis.length;
+  const gridClass =
+    count > 4
+      ? "grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6"
+      : "grid grid-cols-2 gap-3 xl:grid-cols-4";
+
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div className={gridClass}>
       {widget.kpis.map((kpi) => (
         <KpiWidget key={kpi.id} kpi={kpi} />
       ))}

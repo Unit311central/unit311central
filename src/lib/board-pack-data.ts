@@ -4,7 +4,9 @@ export type BoardPackCategory =
   | "commercial"
   | "financial"
   | "operations"
-  | "governance";
+  | "governance"
+  | "portfolio-company-report"
+  | "impact-report";
 
 export type BoardPackGraphType =
   | "none"
@@ -41,6 +43,8 @@ export const BOARD_PACK_CATEGORY_OPTIONS: { value: BoardPackCategory; label: str
   { value: "financial", label: "Financial" },
   { value: "operations", label: "Operations" },
   { value: "governance", label: "Governance" },
+  { value: "portfolio-company-report", label: "Portfolio Company Report" },
+  { value: "impact-report", label: "Impact Report" },
 ];
 
 export const BOARD_PACK_GRAPH_OPTIONS: { value: BoardPackGraphType; label: string }[] = [
@@ -66,6 +70,51 @@ export function createBlankBoardPackPage(): BoardPackPage {
 }
 
 export function defaultBoardPackPages(): BoardPackPage[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        return [
+          {
+            id: "page-exec",
+            title: "Executive Summary",
+            category: "executive",
+            bodyText:
+              "Talanton Impact board overview — portfolio health, capital deployment, and impact outcomes across active African holdings.",
+            graphType: "projects-portfolio",
+          },
+          {
+            id: "page-portfolio-report",
+            title: "Portfolio Company Report",
+            category: "portfolio-company-report",
+            bodyText:
+              "Holding-level performance, ownership, revenue trajectory, and board actions for priority portfolio companies.",
+            graphType: "projects-portfolio",
+          },
+          {
+            id: "page-impact-report",
+            title: "Impact Report",
+            category: "impact-report",
+            bodyText:
+              "Jobs created, people served, communities impacted, and Impact Health Score with recommended board actions.",
+            graphType: "none",
+          },
+          {
+            id: "page-governance",
+            title: "Governance & Risk",
+            category: "governance",
+            bodyText:
+              "Risk register highlights, compliance posture, and resolutions requiring board endorsement.",
+            graphType: "none",
+          },
+        ];
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
   return [
     {
       id: "page-exec",

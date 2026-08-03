@@ -12,13 +12,31 @@ export type AbhiBoardPackRecord = {
   pageSummaries: string[];
 };
 
-const STORAGE_KEY = "unit311-abhi-board-packs";
-const LATEST_KEY = "unit311-abhi-board-packs-latest";
+function storageKeys(): { packs: string; latest: string } {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        return {
+          packs: "unit311-talanton-board-packs",
+          latest: "unit311-talanton-board-packs-latest",
+        };
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  return {
+    packs: "unit311-abhi-board-packs",
+    latest: "unit311-abhi-board-packs-latest",
+  };
+}
 
 function readAll(): AbhiBoardPackRecord[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(storageKeys().packs);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as AbhiBoardPackRecord[];
     return Array.isArray(parsed) ? parsed : [];
@@ -29,7 +47,7 @@ function readAll(): AbhiBoardPackRecord[] {
 
 function writeAll(records: AbhiBoardPackRecord[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  window.localStorage.setItem(storageKeys().packs, JSON.stringify(records));
 }
 
 export function loadAbhiBoardPacks(): AbhiBoardPackRecord[] {
@@ -57,10 +75,11 @@ export function deleteAbhiBoardPack(id: string): boolean {
   const next = current.filter((record) => record.id !== id);
   if (next.length === current.length) return false;
   writeAll(next);
-  const latestId = window.localStorage.getItem(LATEST_KEY);
+  const latestKey = storageKeys().latest;
+  const latestId = window.localStorage.getItem(latestKey);
   if (latestId === id) {
     if (next[0]?.id) setLatestAbhiBoardPack(next[0].id);
-    else window.localStorage.removeItem(LATEST_KEY);
+    else window.localStorage.removeItem(latestKey);
   }
   return true;
 }
@@ -71,19 +90,31 @@ export function getAbhiBoardPack(id: string): AbhiBoardPackRecord | null {
 
 export function setLatestAbhiBoardPack(id: string): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(LATEST_KEY, id);
+  window.localStorage.setItem(storageKeys().latest, id);
 }
 
 export function getLatestAbhiBoardPack(): AbhiBoardPackRecord | null {
   if (typeof window === "undefined") return null;
-  const latestId = window.localStorage.getItem(LATEST_KEY);
+  const latestId = window.localStorage.getItem(storageKeys().latest);
   if (!latestId) return loadAbhiBoardPacks()[0] ?? null;
   return getAbhiBoardPack(latestId) ?? loadAbhiBoardPacks()[0] ?? null;
 }
 
 export function createAbhiBoardPackRecordId(): string {
+  const prefix =
+    typeof window !== "undefined"
+      ? (() => {
+          try {
+            const { isBrowserTalantonImpactSurface } =
+              require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+            return isBrowserTalantonImpactSurface() ? "ti-bp" : "abhi-bp";
+          } catch {
+            return "abhi-bp";
+          }
+        })()
+      : "abhi-bp";
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return `abhi-bp-${crypto.randomUUID().slice(0, 8)}`;
+    return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
   }
-  return `abhi-bp-${Date.now().toString(36)}`;
+  return `${prefix}-${Date.now().toString(36)}`;
 }

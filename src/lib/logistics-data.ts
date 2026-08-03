@@ -345,6 +345,90 @@ function isAbhiLogisticsSurface() {
   }
 }
 
+function isTalantonLogisticsSurface() {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserTalantonImpactSurface } =
+      require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+    return isBrowserTalantonImpactSurface();
+  } catch {
+    return false;
+  }
+}
+
+const TALANTON_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
+  {
+    id: "ti-shp-us-docs",
+    trackingNumber: "1Z999TI10123456784",
+    direction: "outbound",
+    status: "In transit",
+    carrier: "UPS",
+    carrierTrackingUrl: "https://www.ups.com/track",
+    sentAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+    eta: new Date(Date.now() + 2 * 86400000).toISOString(),
+    origin: "Talanton Impact · Nairobi HQ",
+    destination: "LP Relations desk · New York, NY",
+    recipient: "US LP relations · Manhattan",
+    sender: "Talanton Logistics",
+    sentBy: "Portfolio Ops",
+    contents: "US document shipment — Q2 portfolio packs + impact annex (signed originals)",
+    weightKg: 3.4,
+    featured: true,
+  },
+  {
+    id: "ti-shp-uk-equip",
+    trackingNumber: "JD0146000TI7654321",
+    direction: "outbound",
+    status: "Out for delivery",
+    carrier: "DHL",
+    carrierTrackingUrl: "https://www.dhl.com/gb-en/home/tracking.html",
+    sentAt: new Date(Date.now() - 4 * 86400000).toISOString(),
+    eta: new Date(Date.now() + 0.4 * 86400000).toISOString(),
+    origin: "Talanton Impact · Nairobi HQ",
+    destination: "Talanton London Office · EC2",
+    recipient: "London office receiving",
+    sender: "Talanton Logistics",
+    sentBy: "Operations",
+    contents: "UK equipment shipment — meeting room AV spare + camera field kit",
+    weightKg: 11.2,
+  },
+  {
+    id: "ti-shp-in-1",
+    trackingNumber: "RM998877665GB",
+    direction: "inbound",
+    status: "Delivered",
+    carrier: "Royal Mail",
+    carrierTrackingUrl: "https://www.royalmail.com/track-your-item",
+    sentAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+    eta: new Date(Date.now() - 1 * 86400000).toISOString(),
+    origin: "Board counsel · London",
+    destination: "Talanton Impact · Nairobi HQ",
+    recipient: "Company Secretary",
+    sender: "External counsel",
+    sentBy: "Counsel admin",
+    contents: "Executed board resolutions + company seals paperwork",
+    weightKg: 1.1,
+  },
+];
+
+const FEATURED_NAIROBI_NEWYORK_ROUTE: FeaturedRouteSnapshot = {
+  shipmentId: "ti-shp-us-docs",
+  label: "Nairobi → New York",
+  currentLeg: "air",
+  progressPct: 62,
+  currentLocationLabel: "Atlantic crossing — airborne",
+  origin: { name: "Nairobi HQ", lat: -1.2921, lng: 36.8219 },
+  destination: { name: "New York", lat: 40.7128, lng: -74.006 },
+  route: [
+    { lat: -1.2921, lng: 36.8219 },
+    { lat: 10, lng: 20 },
+    { lat: 25, lng: 0 },
+    { lat: 35, lng: -30 },
+    { lat: 40.7128, lng: -74.006 },
+  ],
+  currentPosition: { lat: 25, lng: 0 },
+};
+
 const ABHI_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
   {
     id: "abhi-shp-out-1",
@@ -560,17 +644,20 @@ const CORPCENTRE_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
 
 export function getLogisticsMockShipments(): LogisticsShipment[] {
   if (isAbhiLogisticsSurface()) return ABHI_LOGISTICS_SHIPMENTS;
+  if (isTalantonLogisticsSurface()) return TALANTON_LOGISTICS_SHIPMENTS;
   if (isCorpCentreLogisticsSurface()) return CORPCENTRE_LOGISTICS_SHIPMENTS;
   return isDemoLogisticsSurface() ? DEMO_LOGISTICS_SHIPMENTS : LOGISTICS_MOCK_SHIPMENTS;
 }
 
 export function getFeaturedLogisticsRoute(): FeaturedRouteSnapshot {
   if (isAbhiLogisticsSurface()) return FEATURED_LONDON_CAMBRIDGE_ROUTE;
+  if (isTalantonLogisticsSurface()) return FEATURED_NAIROBI_NEWYORK_ROUTE;
   return isDemoLogisticsSurface() ? FEATURED_LONDON_NEW_YORK_ROUTE : FEATURED_BARCELONA_LONDON_ROUTE;
 }
 
 export function getLogisticsBrandName() {
   if (isAbhiLogisticsSurface()) return "ABHI Logistics";
+  if (isTalantonLogisticsSurface()) return "Talanton Logistics";
   if (isDemoLogisticsSurface()) {
     try {
       const { getDemoEnterpriseFixtures } =

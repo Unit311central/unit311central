@@ -813,6 +813,148 @@ function createAbhiAssetRegistry(): AssetRegistryState {
   };
 }
 
+function createTalantonAssetRegistry(): AssetRegistryState {
+  const categories = [
+    "Laptop",
+    "Camera",
+    "Meeting Room Equipment",
+    "Office Equipment",
+    "Monitor",
+    "Peripheral",
+    "Software Licence",
+  ];
+  const locations = ["Nairobi HQ", "London Office", "Field Kit"];
+  const seeds: SeedAsset[] = [
+    {
+      assetTag: "TI-LT-001",
+      category: "Laptop",
+      location: "Nairobi HQ",
+      model: "Dell Latitude 5550",
+      serialNumber: "DL5550-KE-1001",
+      purchaseDate: "2025-04-12",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Assigned · Impact Director",
+    },
+    {
+      assetTag: "TI-LT-002",
+      category: "Laptop",
+      location: "Nairobi HQ",
+      model: "Lenovo ThinkPad X1 Carbon",
+      serialNumber: "X1C-KE-1002",
+      purchaseDate: "2025-06-02",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Assigned · Portfolio Ops",
+    },
+    {
+      assetTag: "TI-LT-003",
+      category: "Laptop",
+      location: "London Office",
+      model: "MacBook Pro 14",
+      serialNumber: "MBP14-UK-1003",
+      purchaseDate: "2025-02-18",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Assigned · Board Secretary travel kit",
+    },
+    {
+      assetTag: "TI-CAM-001",
+      category: "Camera",
+      location: "Field Kit",
+      model: "Sony ZV-E10 II",
+      serialNumber: "ZVE10-KE-2001",
+      purchaseDate: "2025-01-20",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Portfolio company site storytelling kit",
+    },
+    {
+      assetTag: "TI-CAM-002",
+      category: "Camera",
+      location: "Nairobi HQ",
+      model: "Canon EOS R50",
+      serialNumber: "R50-KE-2002",
+      purchaseDate: "2024-11-08",
+      operationalStatus: "In Hangar",
+      firmwareVersion: "N/A",
+      notes: "Board / LP event photography",
+    },
+    {
+      assetTag: "TI-MR-001",
+      category: "Meeting Room Equipment",
+      location: "Nairobi HQ",
+      model: "Logitech Rally Bar",
+      serialNumber: "RALLY-KE-3001",
+      purchaseDate: "2024-09-15",
+      operationalStatus: "In Service",
+      firmwareVersion: "1.18.2",
+      notes: "Boardroom hybrid meetings",
+    },
+    {
+      assetTag: "TI-MR-002",
+      category: "Meeting Room Equipment",
+      location: "Nairobi HQ",
+      model: "Samsung 75\" QLED Display",
+      serialNumber: "Q75-KE-3002",
+      purchaseDate: "2024-09-15",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Main boardroom presentation display",
+    },
+    {
+      assetTag: "TI-OE-001",
+      category: "Office Equipment",
+      location: "Nairobi HQ",
+      model: "HP LaserJet Pro MFP",
+      serialNumber: "HPMFP-KE-4001",
+      purchaseDate: "2024-05-22",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Admin floor · secure print",
+    },
+    {
+      assetTag: "TI-OE-002",
+      category: "Office Equipment",
+      location: "London Office",
+      model: "Herman Miller Aeron Chair (pool ×4)",
+      serialNumber: "HM-UK-4002",
+      purchaseDate: "2025-03-01",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Hot-desk seating pool",
+    },
+    {
+      assetTag: "TI-MON-001",
+      category: "Monitor",
+      location: "Nairobi HQ",
+      model: "Dell UltraSharp U2723QE",
+      serialNumber: "U2723-KE-5001",
+      purchaseDate: "2025-04-12",
+      operationalStatus: "In Service",
+      firmwareVersion: "N/A",
+      notes: "Dual desk kit · portfolio ops",
+    },
+    {
+      assetTag: "TI-LIC-001",
+      category: "Software Licence",
+      location: "Nairobi HQ",
+      model: "Microsoft 365 Business Premium",
+      serialNumber: "M365-TI-40SEATS",
+      purchaseDate: "2025-07-01",
+      operationalStatus: "Active Licence",
+      firmwareVersion: "N/A",
+      notes: "40 seats · USD annual billing",
+    },
+  ];
+
+  return {
+    assets: seeds.map(buildSeedAsset),
+    categories,
+    locations,
+  };
+}
+
 export function createInitialAssetRegistry(): AssetRegistryState {
   assetCounter = 0;
 
@@ -822,6 +964,16 @@ export function createInitialAssetRegistry(): AssetRegistryState {
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {
         return createAbhiAssetRegistry();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        return createTalantonAssetRegistry();
       }
     } catch {
       // Fall through.

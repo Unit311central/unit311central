@@ -42,6 +42,7 @@ import {
 import { useWebsiteMockStore } from "./useWebsiteMockStore";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { ABHI_LINKEDIN_URL, ABHI_X_URL, isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 
 const NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 const MOCK_USERS = createInitialUsers();
@@ -192,9 +193,25 @@ const ABHI_PLATFORMS: PlatformCredentials[] = [
   },
 ];
 
+const TALANTON_PLATFORMS: PlatformCredentials[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
+    accentBorder: "border-[#0A66C2]/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
+        in
+      </span>
+    ),
+    urlPlaceholder: "https://www.linkedin.com/company/talantonimpact",
+  },
+];
+
 function resolveSettingsPlatforms(): PlatformCredentials[] {
   if (typeof window === "undefined") return INTERNAL_PLATFORMS;
   if (isBrowserAbhiSurface()) return ABHI_PLATFORMS;
+  if (isBrowserTalantonImpactSurface()) return TALANTON_PLATFORMS;
   try {
     const { isBrowserDemoSurface } =
       require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");

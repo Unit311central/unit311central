@@ -170,8 +170,8 @@ export type DashboardKpiWidget = DashboardWidgetBase & {
 
 export type DashboardKpiRowWidget = DashboardWidgetBase & {
   type: "kpi-row";
-  /** Exactly four KPIs for the standard layout. */
-  kpis: readonly [DashboardKpiItem, DashboardKpiItem, DashboardKpiItem, DashboardKpiItem];
+  /** Typically four KPIs; Talanton Impact home uses six portfolio KPIs. */
+  kpis: readonly DashboardKpiItem[];
 };
 
 export type DashboardAlertsWidget = DashboardWidgetBase & {
