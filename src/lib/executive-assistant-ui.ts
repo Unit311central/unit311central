@@ -102,6 +102,15 @@ const CONTEXT_BY_VIEW: Partial<Record<string, ExecutiveAssistantPageContext>> = 
       "What should Looking Forward emphasise for next year?",
     ],
   },
+  "quarterly-portfolio-update": {
+    label: "Quarterly Portfolio Update",
+    suggestedPrompts: [
+      "Summarise this quarter's portfolio performance",
+      "What impact metrics should leadership focus on?",
+      "Draft looking-ahead priorities for next quarter",
+      "Highlight journey stories for the portfolio update",
+    ],
+  },
   "opportunity-intelligence": {
     label: "Opportunity Intelligence",
     suggestedPrompts: [

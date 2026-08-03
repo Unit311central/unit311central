@@ -103,6 +103,13 @@ const AnnualImpactReportWorkspace = dynamic(
     ssr: false,
   },
 );
+const QuarterlyPortfolioUpdateWorkspace = dynamic(
+  () => import("./talanton/QuarterlyPortfolioUpdateWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading quarterly portfolio update" />,
+    ssr: false,
+  },
+);
 const OpportunityIntelligenceWorkspace = dynamic(
   () => import("./talanton/OpportunityIntelligenceWorkspace"),
   {
@@ -1322,6 +1329,12 @@ export default function InternalOperationsDashboard({
           {activeView === "annual-impact-report" && (
             <WorkspaceErrorBoundary title="Annual Impact Report">
               <AnnualImpactReportWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "quarterly-portfolio-update" && (
+            <WorkspaceErrorBoundary title="Quarterly Portfolio Update">
+              <QuarterlyPortfolioUpdateWorkspace />
             </WorkspaceErrorBoundary>
           )}
 
