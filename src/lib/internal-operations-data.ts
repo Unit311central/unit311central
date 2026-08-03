@@ -193,7 +193,13 @@ export type InternalOperationsView =
   | "oa-supply-dependencies"
   | "oa-assurance-certification"
   | "oa-engineering-risks"
-  | "oa-engineering-integrations";
+  | "oa-engineering-integrations"
+  | "oa-ip-dashboard"
+  | "oa-ip-register"
+  | "oa-ip-portfolio"
+  | "oa-ip-documents"
+  | "oa-ip-search"
+  | "oa-competitor-intelligence";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -434,6 +440,12 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "oa-assurance-certification",
   "oa-engineering-risks",
   "oa-engineering-integrations",
+  "oa-ip-dashboard",
+  "oa-ip-register",
+  "oa-ip-portfolio",
+  "oa-ip-documents",
+  "oa-ip-search",
+  "oa-competitor-intelligence",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -1272,6 +1284,15 @@ export const internalViewTitles: Record<
   "oa-assurance-certification": { title: "Assurance & Certification", subtitle: "Engineering" },
   "oa-engineering-risks": { title: "Engineering Risks", subtitle: "Engineering" },
   "oa-engineering-integrations": { title: "Integrations", subtitle: "Engineering" },
+  "oa-ip-dashboard": { title: "IP & Patents Dashboard", subtitle: "IP & Patents" },
+  "oa-ip-register": { title: "Patent Register", subtitle: "IP & Patents" },
+  "oa-ip-portfolio": { title: "Patent Portfolio", subtitle: "IP & Patents" },
+  "oa-ip-documents": { title: "Patent Documents", subtitle: "IP & Patents" },
+  "oa-ip-search": { title: "IP Search", subtitle: "IP & Patents" },
+  "oa-competitor-intelligence": {
+    title: "Competitor Intelligence",
+    subtitle: "Business Central",
+  },
 };
 
 /** Breadcrumb labels for the active internal leaf (section → … → page).

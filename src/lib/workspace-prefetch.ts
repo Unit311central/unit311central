@@ -79,6 +79,13 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "marketing-training": () => import("@/components/testflighthub/StaffTrainingWorkspace"),
   "marketing-mailing-list": () => import("@/components/testflighthub/AbhiMailingListWorkspace"),
   "website-uk-pavilion": () => import("@/components/testflighthub/AbhiUkPavilionWorkspace"),
+  "oa-ip-dashboard": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
+  "oa-ip-register": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
+  "oa-ip-portfolio": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
+  "oa-ip-documents": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
+  "oa-ip-search": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
+  "oa-competitor-intelligence": () =>
+    import("@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace"),
 };
 
 /**
@@ -179,6 +186,11 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
   "marketing-mailing-list": ["marketing-newsletter", "marketing-events"],
   "website-management": ["website-uk-pavilion", "integrations"],
   "website-uk-pavilion": ["website-management"],
+  "oa-ip-dashboard": ["oa-ip-register", "oa-ip-portfolio", "oa-ip-documents", "oa-ip-search"],
+  "oa-ip-register": ["oa-ip-dashboard", "oa-ip-portfolio"],
+  "oa-ip-portfolio": ["oa-ip-register", "oa-ip-documents"],
+  "oa-ip-documents": ["oa-ip-register", "oa-ip-portfolio"],
+  "oa-ip-search": ["oa-ip-register", "oa-ip-dashboard"],
 };
 
 const warmed = new Set<string>();

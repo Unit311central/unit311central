@@ -1,7 +1,11 @@
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { normalizePlatformUsername } from "@/lib/platform-auth";
 
-import type { InternalNavSection, InternalOperationsView } from "./internal-operations-data";
+import type {
+  InternalNavItem,
+  InternalNavSection,
+  InternalOperationsView,
+} from "./internal-operations-data";
 
 export type InternalRoleView = "admin" | "c-suite" | "manager" | "staff";
 
@@ -917,6 +921,19 @@ function stripOnwardAirPlatformItems(section: InternalNavSection): InternalNavSe
   };
 }
 
+/** OnwardAir IP & Patents — appended to Corporate Information (not a Board / Cap Table item). */
+const ONWARDAIR_IP_PATENTS_NAV_ITEM: InternalNavItem = {
+  label: "IP & Patents",
+  icon: "ScrollText",
+  children: [
+    { label: "Dashboard", view: "oa-ip-dashboard" as const },
+    { label: "Patent Register", view: "oa-ip-register" as const },
+    { label: "Patent Portfolio", view: "oa-ip-portfolio" as const },
+    { label: "Patent Documents", view: "oa-ip-documents" as const },
+    { label: "Search", view: "oa-ip-search" as const },
+  ],
+};
+
 function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): InternalNavSection[] {
   const out: InternalNavSection[] = [];
   let insertedBoard = false;
@@ -932,20 +949,36 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
     }
 
     if (section.label === "Corporate Information") {
+      const filteredItems = section.items.filter(
+        (item) =>
+          item.view !== "board-meetings" &&
+          item.view !== "board-pack" &&
+          item.view !== "corporate-risk-register" &&
+          item.view !== "unit311-details" &&
+          item.view !== "module-go-live" &&
+          item.label !== "Unit311 Details",
+      );
       out.push({
         ...section,
-        items: section.items.filter(
-          (item) =>
-            item.view !== "board-meetings" &&
-            item.view !== "board-pack" &&
-            item.view !== "corporate-risk-register" &&
-            item.view !== "unit311-details" &&
-            item.view !== "module-go-live" &&
-            item.label !== "Unit311 Details",
-        ),
+        items: [...filteredItems, ONWARDAIR_IP_PATENTS_NAV_ITEM],
       });
       out.push(ONWARDAIR_BOARD_NAV_SECTION);
       insertedBoard = true;
+      continue;
+    }
+
+    if (section.label === "Business Central") {
+      out.push({
+        ...section,
+        items: [
+          ...section.items,
+          {
+            label: "Competitor Intelligence",
+            icon: "Target",
+            view: "oa-competitor-intelligence" as const,
+          },
+        ],
+      });
       continue;
     }
 

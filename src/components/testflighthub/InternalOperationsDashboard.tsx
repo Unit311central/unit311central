@@ -305,6 +305,8 @@ import {
 } from "@/lib/platform-fetch-cache";
 import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvider";
 import { OnwardAirPlaceholderWorkspace, FundraisingDashboardWorkspace, OperationsDashboardWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
+import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
+import { OnwardAirCompetitorIntelligenceWorkspace } from "@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
   "fleet",
@@ -1380,6 +1382,37 @@ export default function InternalOperationsDashboard({
               group="Operations"
               description="Legacy placeholder retained for compatibility."
             />
+          )}
+
+          {activeView === "oa-ip-dashboard" && (
+            <WorkspaceErrorBoundary title="IP & Patents Dashboard">
+              <OnwardAirIpPatentsWorkspace section="dashboard" />
+            </WorkspaceErrorBoundary>
+          )}
+          {activeView === "oa-ip-register" && (
+            <WorkspaceErrorBoundary title="Patent Register">
+              <OnwardAirIpPatentsWorkspace section="register" />
+            </WorkspaceErrorBoundary>
+          )}
+          {activeView === "oa-ip-portfolio" && (
+            <WorkspaceErrorBoundary title="Patent Portfolio">
+              <OnwardAirIpPatentsWorkspace section="portfolio" />
+            </WorkspaceErrorBoundary>
+          )}
+          {activeView === "oa-ip-documents" && (
+            <WorkspaceErrorBoundary title="Patent Documents">
+              <OnwardAirIpPatentsWorkspace section="documents" />
+            </WorkspaceErrorBoundary>
+          )}
+          {activeView === "oa-ip-search" && (
+            <WorkspaceErrorBoundary title="IP Search">
+              <OnwardAirIpPatentsWorkspace section="search" />
+            </WorkspaceErrorBoundary>
+          )}
+          {activeView === "oa-competitor-intelligence" && (
+            <WorkspaceErrorBoundary title="Competitor Intelligence">
+              <OnwardAirCompetitorIntelligenceWorkspace />
+            </WorkspaceErrorBoundary>
           )}
 
           {activeView === "portfolio-intelligence-briefing" && (
