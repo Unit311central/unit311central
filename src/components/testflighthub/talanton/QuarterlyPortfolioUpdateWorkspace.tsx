@@ -27,15 +27,12 @@ import {
 } from "@/lib/talanton/quarterly-portfolio-update-store";
 import { downloadQuarterlyPortfolioUpdatePdf } from "@/lib/talanton/quarterly-portfolio-update-pdf";
 import { cn } from "@/lib/utils";
-import {
-  TalantonGeneratedPanel,
-} from "./talanton-intelligence-ui";
 import { useQuarterlyPortfolioUpdatesStore } from "./useQuarterlyPortfolioUpdatesStore";
 
 const PortfolioCompanyMap = dynamic(() => import("./PortfolioCompanyMap"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-64 items-center justify-center rounded-xl border border-[#1B8A5A]/20 bg-[#f3faf6] text-sm text-[#1B8A5A]/70">
+    <div className="flex h-56 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-500">
       Loading portfolio map…
     </div>
   ),
@@ -43,45 +40,11 @@ const PortfolioCompanyMap = dynamic(() => import("./PortfolioCompanyMap"), {
 
 type Mode = "dashboard" | "create" | "viewer";
 
-const GREEN = "#1B8A5A";
-
-/** Light-report KPI card — dark ink on white/green (readable on green+white pages). */
-function ReportMetric({
-  label,
-  value,
-  hint,
-  tone = "default",
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-  tone?: "default" | "watch" | "good";
-}) {
-  const valueClass =
-    tone === "watch"
-      ? "text-amber-700"
-      : tone === "good"
-        ? "text-[#1B8A5A]"
-        : "text-slate-900";
-
-  return (
-    <div className="rounded-xl border border-[#1B8A5A]/25 bg-white px-4 py-3.5 shadow-sm">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1B8A5A]/80">
-        {label}
-      </p>
-      <p className={cn("mt-2 text-2xl font-semibold tabular-nums tracking-tight", valueClass)}>
-        {value}
-      </p>
-      {hint ? <p className="mt-1 text-[11px] leading-snug text-slate-500">{hint}</p> : null}
-    </div>
-  );
-}
-
 const btnPrimary =
   "inline-flex items-center gap-1.5 rounded-full border border-[#1B8A5A]/40 bg-[#1B8A5A] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#167a4f]";
 
 const btnGhost =
-  "inline-flex items-center gap-1.5 rounded-full border border-[#1B8A5A]/25 bg-white px-3 py-1.5 text-xs font-medium text-[#1B8A5A] transition hover:bg-[#1B8A5A]/8";
+  "inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-[#1B8A5A]/40 hover:text-[#1B8A5A]";
 
 function statusClass(status: QuarterlyUpdateStatus) {
   if (status === "Published") return "border-emerald-600/30 bg-emerald-50 text-emerald-800";
@@ -90,96 +53,121 @@ function statusClass(status: QuarterlyUpdateStatus) {
   return "border-amber-400/40 bg-amber-50 text-amber-800";
 }
 
+/** ABHI-style light page chrome: white paper, logo plate top-left, green footer bar. */
 function ReportPageShell({
   page,
   total,
   title,
   children,
-  light = true,
+  cover = false,
 }: {
   page: number;
   total: number;
   title: string;
   children: ReactNode;
-  light?: boolean;
+  cover?: boolean;
 }) {
+  if (cover) {
+    return (
+      <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="p-6 sm:p-8">{children}</div>
+      </article>
+    );
+  }
+
   return (
-    <article
-      className={cn(
-        "overflow-hidden rounded-2xl border shadow-sm",
-        light
-          ? "border-[#1B8A5A]/15 bg-white text-slate-800"
-          : "border-[#1B8A5A]/40 bg-[#0b1f16] text-white",
-      )}
-    >
-      <header
-        className={cn(
-          "flex items-center justify-between gap-3 border-b px-5 py-3 sm:px-6",
-          light ? "border-[#1B8A5A]/12 bg-[#1B8A5A]" : "border-white/10 bg-[#1B8A5A]",
-        )}
-      >
-        <TalantonLogoMark height={28} maxWidth={160} />
+    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <header className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4 sm:px-8">
+        <div className="inline-flex rounded-lg bg-[#1B8A5A] px-3 py-2">
+          <TalantonLogoMark height={26} maxWidth={150} />
+        </div>
         <div className="text-right">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
             Page {page} of {total}
           </p>
-          <p className="text-xs font-medium text-white">{title}</p>
+          <p className="text-sm font-semibold text-[#1B8A5A]">{title}</p>
         </div>
       </header>
-      <div className="p-5 sm:p-7">{children}</div>
+      <div className="px-6 py-7 sm:px-8 sm:py-8">{children}</div>
+      <footer className="flex items-center justify-between bg-[#1B8A5A] px-6 py-2.5 text-[11px] text-white sm:px-8">
+        <span>Talanton Quarterly Portfolio Update</span>
+        <span>
+          Page {page} of {total}
+        </span>
+      </footer>
     </article>
   );
 }
 
-function BarRow({
-  label,
-  pct,
-  hint,
-}: {
-  label: string;
-  pct: number;
-  hint?: string;
-}) {
+function PageTitle({ children }: { children: ReactNode }) {
   return (
-    <div>
-      <div className="mb-1 flex items-baseline justify-between gap-2">
-        <span className="text-sm text-slate-700">{label}</span>
-        <span className="text-xs font-semibold tabular-nums text-[#1B8A5A]">
-          {hint ?? `${pct}%`}
-        </span>
-      </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-[#1B8A5A]/12">
-        <div
-          className="h-full rounded-full bg-[#1B8A5A]"
-          style={{ width: `${Math.min(100, Math.max(4, pct))}%` }}
-        />
-      </div>
+    <h2 className="text-3xl font-semibold tracking-tight text-[#1B8A5A] sm:text-4xl">
+      {children}
+    </h2>
+  );
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#1B8A5A]">
+      {children}
+    </h3>
+  );
+}
+
+function BulletList({ items }: { items: string[] }) {
+  return (
+    <ul className="mt-3 space-y-2.5">
+      {items.map((item) => (
+        <li key={item} className="flex gap-3 text-base leading-relaxed text-slate-700">
+          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#1B8A5A]" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function MetricTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-[#f7faf8] px-4 py-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold tabular-nums text-[#1B8A5A]">{value}</p>
     </div>
   );
 }
 
-function TrendBars({
+function BarChart({
+  title,
   rows,
   format,
 }: {
+  title: string;
   rows: Array<{ label: string; value: number }>;
   format: (n: number) => string;
 }) {
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (
-    <div className="flex h-40 items-end gap-3">
-      {rows.map((r) => (
-        <div key={r.label} className="flex flex-1 flex-col items-center gap-2">
-          <span className="text-[10px] font-semibold tabular-nums text-[#1B8A5A]">
-            {format(r.value)}
-          </span>
-          <div
-            className="w-full max-w-[3rem] rounded-t-md bg-gradient-to-t from-[#1B8A5A] to-[#3cb371]"
-            style={{ height: `${Math.max(12, Math.round((r.value / max) * 100))}%` }}
-          />
-          <span className="text-[11px] font-medium text-slate-500">{r.label}</span>
-        </div>
-      ))}
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <SectionLabel>{title}</SectionLabel>
+      <div className="mt-4 space-y-3">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <div className="mb-1 flex justify-between gap-2 text-sm">
+              <span className="text-slate-700">{r.label}</span>
+              <span className="font-semibold tabular-nums text-[#1B8A5A]">{format(r.value)}</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-[#1B8A5A]"
+                style={{ width: `${Math.max(4, Math.round((r.value / max) * 100))}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -200,14 +188,13 @@ function CreateWizard({
         <ArrowLeft className="h-3.5 w-3.5" />
         Back
       </button>
-      <section className="rounded-2xl border border-[#1B8A5A]/20 bg-white p-6 shadow-sm">
-        <div className="mb-4 rounded-xl bg-[#1B8A5A] px-4 py-3">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 inline-flex rounded-lg bg-[#1B8A5A] px-3 py-2">
           <TalantonLogoMark height={26} maxWidth={150} />
         </div>
         <h2 className="text-xl font-semibold text-slate-900">Create Quarterly Portfolio Update</h2>
         <p className="mt-2 text-sm text-slate-600">
-          Assemble a 12-page portfolio performance and impact update for management, board, and IC
-          — not a governance board pack.
+          Assemble a 12-page executive portfolio publication from live Talanton platform data.
         </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <label className="block text-xs font-medium text-slate-500">
@@ -275,17 +262,17 @@ function ReportViewer({
 
   const pageTitles = [
     "Cover",
-    "Quarter At A Glance",
-    "Executive Commentary",
-    "Portfolio Footprint",
+    "Executive Summary",
+    "Portfolio Overview",
     "Portfolio Performance",
+    "New Investments & Changes",
     "Impact Overview",
     "Featured Impact Story",
     "Journey Highlights",
     "Portfolio Highlights",
-    "New Investments & Capital",
     "Opportunity Intelligence",
-    "Looking Ahead",
+    "Strategic Outlook",
+    "Closing Summary",
   ];
 
   return (
@@ -313,9 +300,7 @@ function ReportViewer({
             type="button"
             className={btnGhost}
             onClick={() => {
-              void downloadQuarterlyPortfolioUpdatePdf(report).then(() =>
-                flash("Exported PDF."),
-              );
+              void downloadQuarterlyPortfolioUpdatePdf(report).then(() => flash("Exported PDF."));
             }}
           >
             <Download className="h-3.5 w-3.5" />
@@ -340,7 +325,7 @@ function ReportViewer({
               "rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
               page === i + 1
                 ? "border-[#1B8A5A] bg-[#1B8A5A] text-white"
-                : "border-[#1B8A5A]/20 bg-white text-[#1B8A5A]/80 hover:bg-[#1B8A5A]/8",
+                : "border-slate-200 bg-white text-slate-600 hover:border-[#1B8A5A]/40",
             )}
           >
             {i + 1}. {t}
@@ -349,150 +334,82 @@ function ReportViewer({
       </div>
 
       {page === 1 && (
-        <ReportPageShell page={1} total={total} title="Cover" light={false}>
-          <div className="relative overflow-hidden rounded-xl">
+        <ReportPageShell page={1} total={total} title="Cover" cover>
+          <div className="inline-flex rounded-lg bg-[#1B8A5A] px-3 py-2">
+            <TalantonLogoMark height={28} maxWidth={160} />
+          </div>
+          <h1 className="mt-14 max-w-3xl text-4xl font-semibold tracking-tight text-[#1B8A5A] sm:text-5xl">
+            Talanton Quarterly Portfolio Update
+          </h1>
+          <p className="mt-6 text-2xl font-semibold text-slate-900">{period}</p>
+          <p className="mt-3 text-base text-slate-500">Report Date · {report.reportDate}</p>
+          <div className="mt-10 overflow-hidden rounded-xl">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={report.heroImageUrl}
               alt=""
-              className="h-72 w-full object-cover sm:h-96"
+              className="h-80 w-full object-cover sm:h-[28rem]"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0b1f16] via-[#0b1f16]/55 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
-                Talanton Impact
-              </p>
-              <h2 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                Talanton Quarterly Portfolio Update
-              </h2>
-              <p className="mt-3 text-lg text-white/85">{period}</p>
-              <p className="mt-2 max-w-xl text-sm text-white/60">
-                Portfolio performance, impact, and progress for management, board, and investment
-                committee.
-              </p>
-            </div>
           </div>
         </ReportPageShell>
       )}
 
       {page === 2 && (
-        <ReportPageShell page={2} total={total} title="Quarter At A Glance">
-          <h2 className="text-2xl font-semibold text-slate-900">Quarter At A Glance</h2>
-          <p className="mt-1 text-sm text-slate-500">{period} · Executive KPI summary</p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <ReportMetric
-              label="Portfolio Companies"
-              value={report.glance.portfolioCompanies}
-            />
-            <ReportMetric label="Countries Active" value={report.glance.countriesActive} />
-            <ReportMetric
-              label="Capital Raised"
-              value={formatUsd(report.glance.capitalRaisedUsd)}
-            />
-            <ReportMetric
-              label="Capital Deployed"
-              value={formatUsd(report.glance.capitalDeployedUsd)}
-            />
-            <ReportMetric
-              label="People Served"
-              value={report.glance.peopleServed.toLocaleString()}
-              tone="good"
-            />
-            <ReportMetric
-              label="Jobs Created"
-              value={report.glance.jobsCreated.toLocaleString()}
-            />
-            <ReportMetric label="New Investments" value={report.glance.newInvestments} />
-            <ReportMetric
-              label="Impact Health Score"
-              value={`${report.glance.impactHealthScore}/100`}
-              tone="watch"
-            />
+        <ReportPageShell page={2} total={total} title="Executive Summary">
+          <PageTitle>Executive Summary</PageTitle>
+          <div className="mt-8 space-y-8">
+            <div>
+              <SectionLabel>Quarter Highlights</SectionLabel>
+              <BulletList items={report.executiveSummary.quarterHighlights} />
+            </div>
+            <div>
+              <SectionLabel>Key Portfolio Developments</SectionLabel>
+              <BulletList items={report.executiveSummary.keyPortfolioDevelopments} />
+            </div>
+            <div>
+              <SectionLabel>Key Impact Achievements</SectionLabel>
+              <BulletList items={report.executiveSummary.keyImpactAchievements} />
+            </div>
+            <div>
+              <SectionLabel>Portfolio Focus Areas</SectionLabel>
+              <BulletList items={report.executiveSummary.portfolioFocusAreas} />
+            </div>
+            <div>
+              <SectionLabel>Looking Ahead</SectionLabel>
+              <BulletList items={report.executiveSummary.lookingAhead} />
+            </div>
           </div>
         </ReportPageShell>
       )}
 
       {page === 3 && (
-        <ReportPageShell page={3} total={total} title="Executive Commentary">
-          <h2 className="text-2xl font-semibold text-slate-900">Executive Commentary</h2>
-          <div className="mt-5 space-y-4">
-            {(
-              [
-                ["Quarter Overview", report.commentary.quarterOverview],
-                ["Major Developments", report.commentary.majorDevelopments],
-                ["Key Achievements", report.commentary.keyAchievements],
-                ["Areas of Focus", report.commentary.areasOfFocus],
-              ] as const
-            ).map(([heading, body]) => (
-              <TalantonGeneratedPanel key={heading} eyebrow="Narrative" title={heading} copyText={body}>
-                <p className="text-sm leading-relaxed text-white/75">{body}</p>
-              </TalantonGeneratedPanel>
-            ))}
-          </div>
-        </ReportPageShell>
-      )}
-
-      {page === 4 && (
-        <ReportPageShell page={4} total={total} title="Portfolio Footprint">
-          <h2 className="text-2xl font-semibold text-slate-900">Portfolio Footprint</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Composition and geography — not a repeat of the glance metrics.
+        <ReportPageShell page={3} total={total} title="Portfolio Overview">
+          <PageTitle>Portfolio Overview</PageTitle>
+          <p className="mt-2 text-base text-slate-500">
+            Introduction to the active Talanton portfolio.
           </p>
-          <div className="mt-5 overflow-hidden rounded-xl border border-[#1B8A5A]/15">
+          <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
             <PortfolioCompanyMap />
           </div>
-          <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <div className="space-y-3 rounded-xl border border-[#1B8A5A]/15 bg-[#f7fcf9] p-4">
-              <h3 className="text-sm font-semibold text-[#1B8A5A]">Distribution by country</h3>
-              {report.footprint.byCountry.map((c) => (
-                <BarRow key={c.label} label={c.label} pct={c.pct} hint={`${c.value} · ${c.pct}%`} />
-              ))}
-            </div>
-            <div className="space-y-3 rounded-xl border border-[#1B8A5A]/15 bg-[#f7fcf9] p-4">
-              <h3 className="text-sm font-semibold text-[#1B8A5A]">Distribution by sector</h3>
-              {report.footprint.bySector.map((c) => (
-                <BarRow key={c.label} label={c.label} pct={c.pct} hint={`${c.value} · ${c.pct}%`} />
-              ))}
-            </div>
-          </div>
-          <div className="mt-6 overflow-x-auto rounded-xl border border-[#1B8A5A]/15">
+          <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-[#1B8A5A] text-xs uppercase tracking-wide text-white">
+              <thead className="bg-[#1B8A5A] text-[11px] uppercase tracking-wide text-white">
                 <tr>
-                  <th className="px-3 py-2.5 font-semibold">Company</th>
-                  <th className="px-3 py-2.5 font-semibold">Country</th>
-                  <th className="px-3 py-2.5 font-semibold">Sector</th>
-                  <th className="px-3 py-2.5 font-semibold">Employees</th>
-                  <th className="px-3 py-2.5 font-semibold">Revenue</th>
-                  <th className="px-3 py-2.5 font-semibold">Status</th>
+                  <th className="px-3 py-3 font-semibold">Company Name</th>
+                  <th className="px-3 py-3 font-semibold">Country</th>
+                  <th className="px-3 py-3 font-semibold">Sector</th>
+                  <th className="px-3 py-3 font-semibold">Short Description</th>
+                  <th className="px-3 py-3 font-semibold">What They Do</th>
                 </tr>
               </thead>
               <tbody>
-                {report.footprint.rows.map((r) => (
-                  <tr key={r.companyId} className="border-t border-slate-100 even:bg-[#f7fcf9]">
-                    <td className="px-3 py-2 font-medium text-slate-800">{r.companyName}</td>
-                    <td className="px-3 py-2 text-slate-600">{r.country}</td>
-                    <td className="px-3 py-2 text-slate-600">{r.sector}</td>
-                    <td className="px-3 py-2 tabular-nums text-slate-700">
-                      {r.employees.toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2 tabular-nums text-slate-700">
-                      {formatUsd(r.revenueUsd)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
-                          r.status === "Watch"
-                            ? "bg-amber-100 text-amber-800"
-                            : r.status === "Follow-on"
-                              ? "bg-sky-100 text-sky-800"
-                              : "bg-emerald-100 text-emerald-800",
-                        )}
-                      >
-                        {r.status}
-                      </span>
-                    </td>
+                {report.portfolioOverview.rows.map((r) => (
+                  <tr key={r.companyId} className="border-t border-slate-100 even:bg-[#f7faf8]">
+                    <td className="px-3 py-2.5 font-medium text-slate-900">{r.companyName}</td>
+                    <td className="px-3 py-2.5 text-slate-600">{r.country}</td>
+                    <td className="px-3 py-2.5 text-slate-600">{r.sector}</td>
+                    <td className="px-3 py-2.5 text-slate-600">{r.shortDescription}</td>
+                    <td className="max-w-xs px-3 py-2.5 text-slate-600">{r.whatTheyDo}</td>
                   </tr>
                 ))}
               </tbody>
@@ -501,43 +418,60 @@ function ReportViewer({
         </ReportPageShell>
       )}
 
-      {page === 5 && (
-        <ReportPageShell page={5} total={total} title="Portfolio Performance">
-          <h2 className="text-2xl font-semibold text-slate-900">Portfolio Performance</h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <ReportMetric
-              label="Portfolio Revenue"
-              value={formatUsd(report.performance.portfolioRevenueUsd)}
-            />
-            <ReportMetric
+      {page === 4 && (
+        <ReportPageShell page={4} total={total} title="Portfolio Performance">
+          <PageTitle>Portfolio Performance</PageTitle>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MetricTile
               label="Revenue Growth"
               value={`${report.performance.revenueGrowthPct}%`}
-              tone="good"
             />
-            <ReportMetric
-              label="Employee Growth"
-              value={`${report.performance.employeeGrowthPct}%`}
+            <MetricTile
+              label="Employment Growth"
+              value={`${report.performance.employmentGrowthPct}%`}
             />
-            <ReportMetric
-              label="Capital Raised"
-              value={formatUsd(report.performance.capitalRaisedUsd)}
+            <MetricTile
+              label="New Customers Served"
+              value={report.performance.newCustomersServed.toLocaleString()}
             />
-            <ReportMetric
-              label="Capital Deployed"
-              value={formatUsd(report.performance.capitalDeployedUsd)}
+            <MetricTile
+              label="Capital Invested Across Portfolio"
+              value={formatUsd(report.performance.capitalRaisedByPortfolioUsd)}
             />
           </div>
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            <div className="rounded-xl border border-[#1B8A5A]/15 bg-[#f7fcf9] p-4">
-              <h3 className="mb-4 text-sm font-semibold text-[#1B8A5A]">Revenue trend</h3>
-              <TrendBars rows={report.performance.revenueTrend} format={(n) => formatUsd(n)} />
+            <BarChart
+              title="Revenue by Sector"
+              rows={report.performance.revenueBySector}
+              format={formatUsd}
+            />
+            <BarChart
+              title="Employment by Country"
+              rows={report.performance.employmentByCountry}
+              format={(n) => n.toLocaleString()}
+            />
+          </div>
+        </ReportPageShell>
+      )}
+
+      {page === 5 && (
+        <ReportPageShell page={5} total={total} title="New Investments & Portfolio Changes">
+          <PageTitle>New Investments & Portfolio Changes</PageTitle>
+          <p className="mt-5 text-base leading-relaxed text-slate-700">
+            {report.portfolioChanges.summary}
+          </p>
+          <div className="mt-8 space-y-7">
+            <div>
+              <SectionLabel>New Investments / Priority Growth</SectionLabel>
+              <BulletList items={report.portfolioChanges.newInvestments} />
             </div>
-            <div className="rounded-xl border border-[#1B8A5A]/15 bg-[#f7fcf9] p-4">
-              <h3 className="mb-4 text-sm font-semibold text-[#1B8A5A]">Employee trend</h3>
-              <TrendBars
-                rows={report.performance.employeeTrend}
-                format={(n) => n.toLocaleString()}
-              />
+            <div>
+              <SectionLabel>Additional Investments</SectionLabel>
+              <BulletList items={report.portfolioChanges.additionalInvestments} />
+            </div>
+            <div>
+              <SectionLabel>Portfolio Changes</SectionLabel>
+              <BulletList items={report.portfolioChanges.portfolioChanges} />
             </div>
           </div>
         </ReportPageShell>
@@ -545,146 +479,98 @@ function ReportViewer({
 
       {page === 6 && (
         <ReportPageShell page={6} total={total} title="Impact Overview">
-          <h2 className="text-2xl font-semibold text-slate-900">Impact Overview</h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <ReportMetric
-              label="People Served"
-              value={report.impact.peopleServed.toLocaleString()}
-              tone="good"
+          <PageTitle>Impact Overview</PageTitle>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <MetricTile label="Jobs Created" value={report.impact.jobsCreated.toLocaleString()} />
+            <MetricTile label="Jobs Retained" value={report.impact.jobsRetained.toLocaleString()} />
+            <MetricTile
+              label="Women Employed"
+              value={report.impact.womenEmployed.toLocaleString()}
             />
-            <ReportMetric
-              label="Jobs Created"
-              value={report.impact.jobsCreated.toLocaleString()}
+            <MetricTile
+              label="Youth Employed"
+              value={report.impact.youthEmployed.toLocaleString()}
             />
-            <ReportMetric
-              label="Jobs Retained"
-              value={report.impact.jobsRetained.toLocaleString()}
-            />
-            <ReportMetric
-              label="Women Impacted"
-              value={report.impact.womenImpacted.toLocaleString()}
-            />
-            <ReportMetric
-              label="Youth Impacted"
-              value={report.impact.youthImpacted.toLocaleString()}
-            />
-            <ReportMetric
-              label="Communities Reached"
-              value={report.impact.communitiesReached.toLocaleString()}
+            <MetricTile
+              label="Communities Impacted"
+              value={report.impact.communitiesImpacted.toLocaleString()}
             />
           </div>
-          <div className="mt-5">
-            <TalantonGeneratedPanel
-              eyebrow="Impact Intelligence"
-              title="Impact narrative"
-              copyText={report.impact.narrative}
-            >
-              <p className="text-sm leading-relaxed text-white/75">{report.impact.narrative}</p>
-            </TalantonGeneratedPanel>
+          <div className="mt-6">
+            <BarChart
+              title="Jobs Created by Sector"
+              rows={report.impact.jobsBySector}
+              format={(n) => n.toLocaleString()}
+            />
           </div>
         </ReportPageShell>
       )}
 
       {page === 7 && (
         <ReportPageShell page={7} total={total} title="Featured Impact Story">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={report.featuredStory.imageUrl}
-                alt=""
-                className="h-72 w-full rounded-xl object-cover sm:h-96"
-              />
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {report.featuredStory.metrics.map((m) => (
-                  <div
-                    key={m.label}
-                    className="rounded-xl border border-[#1B8A5A]/20 bg-[#f7fcf9] px-3 py-2"
-                  >
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1B8A5A]/70">
-                      {m.label}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">{m.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1B8A5A]">
-                Featured Impact Story
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-900">
-                {report.featuredStory.companyName}
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">{report.featuredStory.country}</p>
-              {(
-                [
-                  ["Challenge", report.featuredStory.challenge],
-                  ["Solution", report.featuredStory.solution],
-                  ["Outcome", report.featuredStory.outcome],
-                  ["Why It Matters", report.featuredStory.whyItMatters],
-                ] as const
-              ).map(([h, body]) => (
-                <div key={h} className="mt-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-[#1B8A5A]">
-                    {h}
-                  </h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-slate-700">{body}</p>
-                </div>
-              ))}
-            </div>
+          <PageTitle>Featured Impact Story</PageTitle>
+          <div className="mt-6 overflow-hidden rounded-xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={report.featuredStory.imageUrl}
+              alt=""
+              className="h-72 w-full object-cover sm:h-96"
+            />
           </div>
+          <h3 className="mt-6 text-2xl font-semibold text-slate-900">
+            {report.featuredStory.companyName}
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            {report.featuredStory.country} · {report.featuredStory.sector}
+          </p>
+          <div className="mt-4 inline-flex rounded-lg border border-[#1B8A5A]/20 bg-[#f7faf8] px-4 py-2 text-sm font-semibold text-[#1B8A5A]">
+            {report.featuredStory.metricLabel}: {report.featuredStory.metricValue}
+          </div>
+          <p className="mt-6 text-base leading-relaxed text-slate-700 whitespace-pre-wrap">
+            {report.featuredStory.narrative}
+          </p>
         </ReportPageShell>
       )}
 
       {page === 8 && (
         <ReportPageShell page={8} total={total} title="Journey Highlights">
-          <h2 className="text-2xl font-semibold text-slate-900">Journey Highlights</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Pulled from Journey Stories · {report.journeys.countriesVisited.join(", ") || "—"} ·{" "}
-            {report.journeys.companiesVisited.length} companies visited
-          </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {report.journeys.gallery.map((g) => (
-              <figure
-                key={g.url + g.caption}
-                className="overflow-hidden rounded-xl border border-[#1B8A5A]/15"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={g.url} alt="" className="h-32 w-full object-cover" />
-                <figcaption className="bg-[#f7fcf9] px-2.5 py-2 text-[11px] text-slate-600">
-                  {g.caption}
-                </figcaption>
-              </figure>
-            ))}
+          <PageTitle>Journey Highlights</PageTitle>
+          <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
+            <p>
+              <span className="font-semibold text-[#1B8A5A]">Countries visited:</span>{" "}
+              {report.journeys.countriesVisited.join(", ") || "—"}
+            </p>
+            <p>
+              <span className="font-semibold text-[#1B8A5A]">Companies visited:</span>{" "}
+              {report.journeys.companiesVisited.join(", ") || "—"}
+            </p>
           </div>
-          <div className="mt-6 space-y-4">
+          {report.journeys.gallery.length > 0 ? (
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {report.journeys.gallery.slice(0, 3).map((g) => (
+                <figure key={g.url} className="overflow-hidden rounded-xl border border-slate-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={g.url} alt="" className="h-36 w-full object-cover" />
+                  <figcaption className="px-3 py-2 text-xs text-slate-500">{g.caption}</figcaption>
+                </figure>
+              ))}
+            </div>
+          ) : null}
+          <div className="mt-8 space-y-6">
             {report.journeys.blocks.map((b) => (
-              <TalantonGeneratedPanel
-                key={b.title}
-                eyebrow={b.country}
-                title={b.title}
-                copyText={[
-                  b.observations,
-                  `Opportunities: ${b.opportunities}`,
-                  `Challenges: ${b.challenges}`,
-                  `Companies: ${b.companies.join(", ")}`,
-                ].join("\n")}
-              >
-                <p className="text-xs text-white/45">Companies: {b.companies.join(", ")}</p>
-                <p className="mt-2 text-sm text-white/75">
-                  <span className="font-semibold text-emerald-200">Observations — </span>
+              <div key={b.title} className="rounded-xl border border-slate-200 bg-[#f7faf8] p-5">
+                <h3 className="text-lg font-semibold text-slate-900">{b.title}</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {b.country} · {b.companies.join(", ")}
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-slate-700">
+                  <span className="font-semibold text-[#1B8A5A]">Key observations.</span>{" "}
                   {b.observations}
                 </p>
-                <p className="mt-2 text-sm text-white/75">
-                  <span className="font-semibold text-emerald-200">Opportunities — </span>
-                  {b.opportunities}
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                  <span className="font-semibold text-[#1B8A5A]">Lessons learned.</span> {b.lessons}
                 </p>
-                <p className="mt-2 text-sm text-white/75">
-                  <span className="font-semibold text-emerald-200">Challenges — </span>
-                  {b.challenges}
-                </p>
-              </TalantonGeneratedPanel>
+              </div>
             ))}
           </div>
         </ReportPageShell>
@@ -692,23 +578,21 @@ function ReportViewer({
 
       {page === 9 && (
         <ReportPageShell page={9} total={total} title="Portfolio Highlights">
-          <h2 className="text-2xl font-semibold text-slate-900">Portfolio Highlights</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <PageTitle>Portfolio Highlights</PageTitle>
+          <div className="mt-8 grid gap-4 lg:grid-cols-2">
             {report.portfolioHighlights.map((h) => (
               <article
-                key={h.companyName + h.kind}
-                className="rounded-xl border border-[#1B8A5A]/20 bg-[#f7fcf9] p-4"
+                key={`${h.companyName}-${h.kind}`}
+                className="rounded-xl border border-slate-200 bg-[#f7faf8] p-5"
               >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="font-semibold text-slate-900">{h.companyName}</h3>
-                  <span className="rounded-full bg-[#1B8A5A]/12 px-2.5 py-0.5 text-[10px] font-semibold uppercase text-[#1B8A5A]">
-                    {h.kind}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#1B8A5A]">
+                  {h.kind}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-slate-900">{h.companyName}</h3>
+                <p className="mt-1 text-sm text-slate-500">
                   {h.country} · {h.sector}
                 </p>
-                <p className="mt-3 text-sm leading-relaxed text-slate-700">{h.milestone}</p>
+                <p className="mt-3 text-sm leading-relaxed text-slate-700">{h.achievement}</p>
               </article>
             ))}
           </div>
@@ -716,134 +600,59 @@ function ReportViewer({
       )}
 
       {page === 10 && (
-        <ReportPageShell page={10} total={total} title="New Investments & Capital">
-          <h2 className="text-2xl font-semibold text-slate-900">
-            New Investments & Capital Deployment
-          </h2>
-          <TalantonGeneratedPanel
-            eyebrow="Capital"
-            title="Deployment activity"
-            copyText={report.capital.deploymentNarrative}
-            className="mt-5"
-          >
-            <p className="text-sm leading-relaxed text-white/75">
-              {report.capital.deploymentNarrative}
-            </p>
-          </TalantonGeneratedPanel>
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            <div className="rounded-xl border border-[#1B8A5A]/15 bg-[#f7fcf9] p-4">
-              <h3 className="text-sm font-semibold text-[#1B8A5A]">New portfolio companies</h3>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
-                {report.capital.newCompanies.map((n) => (
-                  <li key={n}>{n}</li>
-                ))}
-              </ul>
-              <h3 className="mt-4 text-sm font-semibold text-[#1B8A5A]">Additional investments</h3>
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
-                {report.capital.additionalInvestments.map((n) => (
-                  <li key={n}>{n}</li>
-                ))}
-              </ul>
+        <ReportPageShell page={10} total={total} title="Opportunity Intelligence">
+          <PageTitle>Opportunity Intelligence</PageTitle>
+          <div className="mt-8 space-y-8">
+            <div>
+              <SectionLabel>Strategic Observations</SectionLabel>
+              <BulletList items={report.opportunity.observations} />
             </div>
-            <div className="space-y-5">
-              <div className="space-y-3 rounded-xl border border-[#1B8A5A]/15 bg-white p-4">
-                <h3 className="text-sm font-semibold text-[#1B8A5A]">Sector allocation</h3>
-                {report.capital.sectorAllocation.map((s) => (
-                  <BarRow key={s.label} label={s.label} pct={s.pct} />
-                ))}
-              </div>
-              <div className="space-y-3 rounded-xl border border-[#1B8A5A]/15 bg-white p-4">
-                <h3 className="text-sm font-semibold text-[#1B8A5A]">Country allocation</h3>
-                {report.capital.countryAllocation.map((s) => (
-                  <BarRow key={s.label} label={s.label} pct={s.pct} />
-                ))}
-              </div>
+            <div>
+              <SectionLabel>Sector Outlook</SectionLabel>
+              <BulletList items={report.opportunity.emerging} />
+            </div>
+            <div>
+              <SectionLabel>Recommended Focus</SectionLabel>
+              <BulletList items={report.opportunity.recommendedFocus} />
             </div>
           </div>
         </ReportPageShell>
       )}
 
       {page === 11 && (
-        <ReportPageShell page={11} total={total} title="Opportunity Intelligence">
-          <h2 className="text-2xl font-semibold text-slate-900">Opportunity Intelligence</h2>
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            {(
-              [
-                ["Emerging Opportunities", report.opportunity.emerging],
-                ["Growth Opportunities", report.opportunity.growth],
-                ["Strategic Opportunities", report.opportunity.strategic],
-                ["Market Trends", report.opportunity.marketTrends],
-              ] as const
-            ).map(([title, items]) => (
-              <TalantonGeneratedPanel
-                key={title}
-                eyebrow="Opportunity"
-                title={title}
-                copyText={items.join("\n")}
-              >
-                <ul className="list-disc space-y-1.5 pl-5 text-sm text-white/75">
-                  {items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </TalantonGeneratedPanel>
-            ))}
-          </div>
-          <div className="mt-4">
-            <TalantonGeneratedPanel
-              eyebrow="AI commentary"
-              title="Opportunity commentary"
-              copyText={report.opportunity.aiCommentary}
-            >
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-white/75">
-                {report.opportunity.aiCommentary}
-              </pre>
-            </TalantonGeneratedPanel>
+        <ReportPageShell page={11} total={total} title="Strategic Outlook">
+          <PageTitle>Strategic Outlook</PageTitle>
+          <div className="mt-8 space-y-8">
+            <div>
+              <SectionLabel>Management Outlook</SectionLabel>
+              <BulletList items={report.outlook.management} />
+            </div>
+            <div>
+              <SectionLabel>Portfolio Outlook</SectionLabel>
+              <BulletList items={report.outlook.portfolio} />
+            </div>
+            <div>
+              <SectionLabel>Impact Outlook</SectionLabel>
+              <BulletList items={report.outlook.impact} />
+            </div>
           </div>
         </ReportPageShell>
       )}
 
       {page === 12 && (
-        <ReportPageShell page={12} total={total} title="Looking Ahead">
-          <h2 className="text-2xl font-semibold text-slate-900">Looking Ahead</h2>
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            {(
-              [
-                ["Next Quarter Priorities", report.lookingAhead.nextQuarterPriorities],
-                ["Portfolio Focus Areas", report.lookingAhead.portfolioFocusAreas],
-                ["Growth Priorities", report.lookingAhead.growthPriorities],
-                ["Impact Priorities", report.lookingAhead.impactPriorities],
-              ] as const
-            ).map(([title, items]) => (
-              <TalantonGeneratedPanel
-                key={title}
-                eyebrow="Forward look"
-                title={title}
-                copyText={items.join("\n")}
-              >
-                <ul className="list-disc space-y-1.5 pl-5 text-sm text-white/75">
-                  {items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </TalantonGeneratedPanel>
+        <ReportPageShell page={12} total={total} title="Closing Summary">
+          <PageTitle>Closing Summary</PageTitle>
+          <div className="mt-10 max-w-3xl space-y-6">
+            {report.closing.statement.split(/\n\n+/).map((para) => (
+              <p key={para.slice(0, 40)} className="text-lg leading-relaxed text-slate-700">
+                {para}
+              </p>
             ))}
-          </div>
-          <div className="mt-4">
-            <TalantonGeneratedPanel
-              eyebrow="Closing"
-              title="Closing summary"
-              copyText={report.lookingAhead.closingSummary}
-            >
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-white/75">
-                {report.lookingAhead.closingSummary}
-              </pre>
-            </TalantonGeneratedPanel>
           </div>
         </ReportPageShell>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <button
           type="button"
           className={btnGhost}
@@ -852,7 +661,7 @@ function ReportViewer({
         >
           Previous page
         </button>
-        <p className="text-xs font-medium text-slate-500" style={{ color: GREEN }}>
+        <p className="text-xs font-medium text-slate-500">
           {page} / {total} · {pageTitles[page - 1]}
         </p>
         <button
@@ -890,7 +699,7 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
 
   if (mode === "create") {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto bg-[#f4faf7] p-5 sm:p-6">
+      <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto bg-slate-50 p-5 sm:p-6">
         <CreateWizard
           onCancel={() => setMode("dashboard")}
           onCreated={(r) => {
@@ -905,7 +714,7 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
 
   if (mode === "viewer" && active) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto bg-[#f4faf7] p-5 sm:p-6">
+      <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto bg-slate-50 p-5 sm:p-6">
         <ReportViewer
           report={active}
           onBack={() => {
@@ -919,22 +728,23 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto bg-[#f4faf7] p-5 sm:p-6">
-      <header className="overflow-hidden rounded-2xl border border-[#1B8A5A]/20 bg-white shadow-sm">
-        <div className="bg-[#1B8A5A] px-5 py-4 sm:px-7">
-          <TalantonLogoMark height={32} maxWidth={180} />
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">
-            Impact Intelligence
+    <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto bg-slate-50 p-5 sm:p-6">
+      <header className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-5 py-5 sm:px-7">
+          <div className="inline-flex rounded-lg bg-[#1B8A5A] px-3 py-2">
+            <TalantonLogoMark height={28} maxWidth={160} />
+          </div>
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#1B8A5A]">
+            Portfolio Intelligence
           </p>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
                 Quarterly Portfolio Update
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/75">
-                Concise quarterly view of portfolio performance, impact, and progress — for Talanton
-                management, board, investment committee, and internal stakeholders. Not a board
-                deck.
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
+                Professional quarterly portfolio publication — performance, impact, journeys and
+                outlook for Talanton stakeholders.
               </p>
             </div>
             <button type="button" className={btnPrimary} onClick={() => setMode("create")}>
@@ -951,7 +761,7 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
         </p>
       ) : null}
 
-      <section className="rounded-2xl border border-[#1B8A5A]/15 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Existing reports</h2>
         <p className="mt-1 text-sm text-slate-500">
           Demo library: Q1–Q3 2026 Portfolio Updates assembled from platform data.
@@ -960,7 +770,7 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
           {reports.map((r) => (
             <article
               key={r.id}
-              className="rounded-xl border border-[#1B8A5A]/15 bg-[#f7fcf9] p-4 transition hover:border-[#1B8A5A]/35"
+              className="rounded-xl border border-slate-200 bg-[#f7faf8] p-4 transition hover:border-[#1B8A5A]/40"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <button
@@ -975,12 +785,7 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                     {r.title}
                   </h3>
                   <p className="mt-1 text-xs text-slate-500">
-                    Reporting period · {periodLabel(r.period)} · Created{" "}
-                    {new Date(r.createdAt).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {periodLabel(r.period)} · {r.reportDate}
                   </p>
                 </button>
                 <span
@@ -1012,11 +817,11 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                     if (next) {
                       setActiveId(next.id);
                       setMode("viewer");
-                      flash("Report refreshed for editing.");
+                      flash("Report refreshed.");
                     }
                   }}
                 >
-                  Edit
+                  Refresh
                 </button>
                 <button
                   type="button"
@@ -1037,9 +842,7 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                   type="button"
                   className={btnGhost}
                   onClick={() => {
-                    void downloadQuarterlyPortfolioUpdatePdf(r).then(() =>
-                      flash("Exported PDF."),
-                    );
+                    void downloadQuarterlyPortfolioUpdatePdf(r).then(() => flash("Exported PDF."));
                   }}
                 >
                   <Download className="h-3.5 w-3.5" />
@@ -1050,7 +853,7 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                   className={btnGhost}
                   onClick={() => {
                     archiveQuarterlyPortfolioUpdate(r.id);
-                    flash("Report archived.");
+                    flash("Archived.");
                   }}
                 >
                   <Archive className="h-3.5 w-3.5" />
@@ -1058,12 +861,11 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                 </button>
                 <button
                   type="button"
-                  className={btnGhost}
+                  className={cn(btnGhost, "border-rose-200 text-rose-700 hover:border-rose-300")}
                   onClick={() => {
-                    if (window.confirm(`Delete “${r.title}”?`)) {
-                      deleteQuarterlyPortfolioUpdate(r.id);
-                      flash("Report deleted.");
-                    }
+                    deleteQuarterlyPortfolioUpdate(r.id);
+                    if (activeId === r.id) setActiveId(null);
+                    flash("Deleted.");
                   }}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
