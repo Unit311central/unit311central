@@ -975,13 +975,8 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
               ...cleaned.items,
             ],
       });
-      continue;
-    }
-
-    if (section.label === "Settings") {
       out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
       insertedEngineering = true;
-      out.push(stripOnwardAirPlatformItems(section));
       continue;
     }
 
@@ -998,9 +993,9 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
   }
   if (!insertedBoard) out.push(ONWARDAIR_BOARD_NAV_SECTION);
   if (!insertedEngineering) {
-    const settingsIdx = out.findIndex((s) => s.label === "Settings");
-    if (settingsIdx >= 0) {
-      out.splice(settingsIdx, 0, ONWARDAIR_ENGINEERING_NAV_SECTION);
+    const operationsIdx = out.findIndex((s) => s.label === "Operations");
+    if (operationsIdx >= 0) {
+      out.splice(operationsIdx + 1, 0, ONWARDAIR_ENGINEERING_NAV_SECTION);
     } else {
       out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
     }
