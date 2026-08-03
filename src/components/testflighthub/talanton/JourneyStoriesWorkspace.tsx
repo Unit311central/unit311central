@@ -528,7 +528,7 @@ export default function JourneyStoriesWorkspace() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-white/45">Distribution Targets</p>
+              <p className="text-xs text-white/45">Publish To</p>
               <div className="mt-2 space-y-1.5">
                 {JOURNEY_DISTRIBUTION_TARGETS.map((t) => (
                   <label key={t.id} className="flex items-center gap-2 text-sm text-white/70">
@@ -545,9 +545,9 @@ export default function JourneyStoriesWorkspace() {
           </div>
 
           <div className="mt-5 border-t border-white/10 pt-5">
-            <h3 className="text-sm font-semibold text-white">Investor Communications</h3>
+            <h3 className="text-sm font-semibold text-white">Investor Audience</h3>
             <p className="mt-1 text-xs text-white/45">
-              Include this Journey Story in investor email updates.
+              When Publish To includes Investor Updates, choose which investors receive this Journey Story.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {(
@@ -559,21 +559,25 @@ export default function JourneyStoriesWorkspace() {
                   ["custom", "Custom Selection"],
                 ] as const
               ).map(([id, label]) => (
-                <button
+                <label
                   key={id}
-                  type="button"
-                  onClick={() =>
-                    setDraft({ ...draft, investorAudience: id as InvestorAudience })
-                  }
                   className={cn(
-                    "rounded-full border px-3 py-1 text-[11px]",
+                    "inline-flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1 text-[11px]",
                     draft.investorAudience === id
                       ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
                       : "border-white/10 text-white/55",
                   )}
                 >
+                  <input
+                    type="checkbox"
+                    className="accent-emerald-400"
+                    checked={draft.investorAudience === id}
+                    onChange={() =>
+                      setDraft({ ...draft, investorAudience: id as InvestorAudience })
+                    }
+                  />
                   {label}
-                </button>
+                </label>
               ))}
             </div>
             {draft.investorAudience === "custom" ? (

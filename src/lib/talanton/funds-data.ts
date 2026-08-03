@@ -34,8 +34,52 @@ export type FundPortfolioCompany = {
   company: string;
   country: string;
   sector: string;
+  allocationUsd: number;
   investmentStatus: "Active" | "Follow-on" | "Exited" | "Pipeline";
   impactRating: "A" | "B" | "C";
+};
+
+export type InvestorStatus = "Active" | "Committed" | "Onboarding";
+
+export type InvestorCommunication = {
+  id: string;
+  date: string;
+  subject: string;
+  channel: "Investor Update" | "Journey Story" | "Quarterly Brief" | "Board Note";
+};
+
+/** Cross-fund investor directory row (strategic / relationship view). */
+export type PlatformInvestor = {
+  id: string;
+  name: string;
+  organisation: string;
+  type: InvestorType;
+  country: string;
+  fundIds: FundId[];
+  commitmentUsd: number;
+  status: InvestorStatus;
+  joinedDate: string;
+  portfolioExposure: string[];
+  communications: InvestorCommunication[];
+  relatedJourneyStoryIds: string[];
+};
+
+export type CapitalCommitment = {
+  id: string;
+  fundId: FundId;
+  fundName: string;
+  investorId: string;
+  investorName: string;
+  organisation: string;
+  amountUsd: number;
+  date: string;
+  status: "Active" | "Pending" | "Fulfilled";
+};
+
+export type CapitalChartRow = {
+  label: string;
+  amountUsd: number;
+  pct: number;
 };
 
 export type FundDocument = {
@@ -72,11 +116,14 @@ export type FundDefinition = {
 export type FundsPlatformOverview = {
   totalFunds: number;
   totalInvestors: number;
+  /** Total capital committed across funds (stewardship language). */
+  capitalCommittedUsd: number;
   capitalRaisedUsd: number;
   capitalDeployedUsd: number;
   availableCapitalUsd: number;
   portfolioCompanies: number;
   countriesRepresented: number;
+  impactHealthScore: number;
 };
 
 export type FundAiBriefing = {
@@ -143,17 +190,24 @@ function buildInvestors(prefix: string, count: number, scale: number): FundInves
   });
 }
 
-function portfolioSlice(start: number, count: number, statusCycle: FundPortfolioCompany["investmentStatus"][]): FundPortfolioCompany[] {
+function portfolioSlice(
+  start: number,
+  count: number,
+  statusCycle: FundPortfolioCompany["investmentStatus"][],
+  avgAllocationUsd: number,
+): FundPortfolioCompany[] {
   const companies = TALANTON_PORTFOLIO_COMPANIES;
   const ratings: Array<"A" | "B" | "C"> = ["A", "A", "B", "A", "B", "C"];
   const out: FundPortfolioCompany[] = [];
   for (let i = 0; i < count; i += 1) {
     const company = companies[(start + i) % companies.length]!;
+    const scale = 0.65 + ((i * 17) % 50) / 100;
     out.push({
       id: `${company.id}-slot-${i}`,
       company: company.name,
       country: company.country,
       sector: company.sector,
+      allocationUsd: Math.round(avgAllocationUsd * scale),
       investmentStatus: statusCycle[i % statusCycle.length]!,
       impactRating: ratings[i % ratings.length]!,
     });
@@ -163,22 +217,24 @@ function portfolioSlice(start: number, count: number, statusCycle: FundPortfolio
 
 function docs(prefix: string): FundDocument[] {
   return [
-    { id: `${prefix}-d1`, title: "Limited Partnership Agreement (Sample)", category: "Legal", updatedAt: "2025-11-02" },
-    { id: `${prefix}-d2`, title: "Quarterly Investor Report — Q1 2026", category: "Reporting", updatedAt: "2026-04-18" },
+    { id: `${prefix}-d1`, title: "Fund Stewardship Framework (Sample)", category: "Governance", updatedAt: "2025-11-02" },
+    { id: `${prefix}-d2`, title: "Quarterly Investor Brief — Q1 2026", category: "Reporting", updatedAt: "2026-04-18" },
     { id: `${prefix}-d3`, title: "ESG & Impact Policy Pack", category: "Impact", updatedAt: "2026-02-09" },
-    { id: `${prefix}-d4`, title: "Capital Call Notice — Illustrative", category: "Capital", updatedAt: "2026-03-21" },
-    { id: `${prefix}-d5`, title: "Portfolio Valuation Memo (Sample)", category: "Valuation", updatedAt: "2026-05-12" },
+    { id: `${prefix}-d4`, title: "Portfolio Impact Narrative Pack", category: "Impact", updatedAt: "2026-03-21" },
+    { id: `${prefix}-d5`, title: "Community & Jobs Scorecard (Sample)", category: "Impact", updatedAt: "2026-05-12" },
   ];
 }
 
 export const FUNDS_PLATFORM_OVERVIEW: FundsPlatformOverview = {
   totalFunds: 3,
-  totalInvestors: 127,
-  capitalRaisedUsd: 60_800_000,
-  capitalDeployedUsd: 47_200_000,
-  availableCapitalUsd: 13_600_000,
-  portfolioCompanies: 18,
-  countriesRepresented: 12,
+  totalInvestors: 42,
+  capitalCommittedUsd: 113_800_000,
+  capitalRaisedUsd: 113_800_000,
+  capitalDeployedUsd: 83_614_000,
+  availableCapitalUsd: 30_186_000,
+  portfolioCompanies: 19,
+  countriesRepresented: 8,
+  impactHealthScore: 77,
 };
 
 export const TALANTON_FUNDS: Record<FundId, FundDefinition> = {
@@ -187,8 +243,8 @@ export const TALANTON_FUNDS: Record<FundId, FundDefinition> = {
     name: "Impact Fund",
     shortName: "Impact",
     fundSizeUsd: 60_800_000,
-    investorCount: 103,
-    portfolioCompanyCount: 18,
+    investorCount: 18,
+    portfolioCompanyCount: 12,
     deploymentPct: 78,
     capitalRaisedUsd: 60_800_000,
     capitalDeployedUsd: 47_424_000,
@@ -198,13 +254,13 @@ export const TALANTON_FUNDS: Record<FundId, FundDefinition> = {
     summary:
       "Flagship faith-aligned impact vehicle focused on East African growth companies across agriculture, healthcare, clean energy, fintech inclusion, and manufacturing. Illustrative demonstration portfolio only.",
     impactMetrics: [
-      { label: "Jobs Supported", value: "4,820" },
-      { label: "Smallholders Reached", value: "128K" },
-      { label: "tCO₂e Avoided (est.)", value: "62K" },
-      { label: "Women in Leadership", value: "41%" },
+      { label: "People Served", value: "742K" },
+      { label: "Jobs Created", value: "3,120" },
+      { label: "Communities Impacted", value: "186" },
+      { label: "Impact Health Score", value: "79/100" },
     ],
-    investors: buildInvestors("impact", 25, 1),
-    portfolio: portfolioSlice(0, 18, ["Active", "Active", "Follow-on", "Active", "Pipeline"]),
+    investors: buildInvestors("impact", 18, 1),
+    portfolio: portfolioSlice(0, 12, ["Active", "Active", "Follow-on", "Active", "Pipeline"], 3_950_000),
     documents: docs("impact"),
     sectorAllocation: [
       { label: "Agriculture & Food", pct: 22 },
@@ -240,8 +296,8 @@ export const TALANTON_FUNDS: Record<FundId, FundDefinition> = {
     name: "Momentum Fund",
     shortName: "Momentum",
     fundSizeUsd: 35_000_000,
-    investorCount: 54,
-    portfolioCompanyCount: 11,
+    investorCount: 14,
+    portfolioCompanyCount: 8,
     deploymentPct: 71,
     capitalRaisedUsd: 35_000_000,
     capitalDeployedUsd: 24_850_000,
@@ -249,15 +305,15 @@ export const TALANTON_FUNDS: Record<FundId, FundDefinition> = {
     countries: 8,
     status: "Deploying",
     summary:
-      "Growth-oriented companion fund targeting later-stage portfolio companies with proven commercial traction and measurable impact outcomes. Sample data for demonstration.",
+      "Growth-oriented companion fund supporting later-stage portfolio companies with proven commercial traction and measurable community outcomes. Sample data for demonstration.",
     impactMetrics: [
-      { label: "Jobs Supported", value: "2,140" },
-      { label: "Customers Served", value: "910K" },
-      { label: "Revenue Growth (median)", value: "19%" },
-      { label: "Follow-on Ready", value: "6 cos" },
+      { label: "People Served", value: "318K" },
+      { label: "Jobs Created", value: "1,240" },
+      { label: "Communities Impacted", value: "94" },
+      { label: "Impact Health Score", value: "76/100" },
     ],
-    investors: buildInvestors("momentum", 20, 0.55),
-    portfolio: portfolioSlice(3, 11, ["Active", "Follow-on", "Active", "Active"]),
+    investors: buildInvestors("momentum", 14, 0.55),
+    portfolio: portfolioSlice(3, 8, ["Active", "Follow-on", "Active", "Active"], 3_100_000),
     documents: docs("momentum"),
     sectorAllocation: [
       { label: "Fintech & Inclusion", pct: 24 },
@@ -292,8 +348,8 @@ export const TALANTON_FUNDS: Record<FundId, FundDefinition> = {
     name: "Stewards Fund",
     shortName: "Stewards",
     fundSizeUsd: 18_000_000,
-    investorCount: 29,
-    portfolioCompanyCount: 8,
+    investorCount: 12,
+    portfolioCompanyCount: 6,
     deploymentPct: 63,
     capitalRaisedUsd: 18_000_000,
     capitalDeployedUsd: 11_340_000,
@@ -301,15 +357,15 @@ export const TALANTON_FUNDS: Record<FundId, FundDefinition> = {
     countries: 6,
     status: "Deploying",
     summary:
-      "Stewardship-focused vehicle designed for mission-aligned LPs seeking disciplined capital deployment into values-driven African enterprises. Illustrative only.",
+      "Stewardship-focused vehicle for mission-aligned investors seeking disciplined capital deployment into values-driven African enterprises. Illustrative only.",
     impactMetrics: [
-      { label: "Jobs Supported", value: "980" },
-      { label: "Community Programmes", value: "34" },
-      { label: "Governance Score", value: "B+" },
-      { label: "Training Completion", value: "76%" },
+      { label: "People Served", value: "134K" },
+      { label: "Jobs Created", value: "620" },
+      { label: "Communities Impacted", value: "48" },
+      { label: "Impact Health Score", value: "81/100" },
     ],
-    investors: buildInvestors("stewards", 15, 0.32),
-    portfolio: portfolioSlice(8, 8, ["Active", "Active", "Pipeline", "Follow-on"]),
+    investors: buildInvestors("stewards", 12, 0.32),
+    portfolio: portfolioSlice(8, 6, ["Active", "Active", "Pipeline", "Follow-on"], 1_890_000),
     documents: docs("stewards"),
     sectorAllocation: [
       { label: "Agriculture & Food", pct: 28 },
@@ -374,7 +430,7 @@ export function buildFundAiBriefing(fund: FundDefinition): FundAiBriefing {
     .map((p) => p.company)
     .join(", ");
 
-  const performanceSummary = `${fund.name} is an illustrative ${formatFundUsd(fund.fundSizeUsd)} vehicle with ${fund.deploymentPct}% capital deployed (${formatFundUsd(fund.capitalDeployedUsd)} of ${formatFundUsd(fund.capitalRaisedUsd)} raised). Available dry powder stands at ${formatFundUsd(fund.availableCapitalUsd)}. Status: ${fund.status}. This summary is demonstration content only.`;
+  const performanceSummary = `${fund.name} is an illustrative ${formatFundUsd(fund.fundSizeUsd)} stewardship vehicle with ${fund.deploymentPct}% capital deployed (${formatFundUsd(fund.capitalDeployedUsd)} of ${formatFundUsd(fund.capitalRaisedUsd)} committed). Available capital stands at ${formatFundUsd(fund.availableCapitalUsd)}. Status: ${fund.status}. This summary is demonstration content only.`;
 
   const portfolioHighlights = `Portfolio coverage spans ${fund.portfolioCompanyCount} companies across ${fund.countries} countries. Leading sector exposures: ${topSectors}. Geographic concentration leaders: ${topCountries}. Stand-out impact-rated holdings in this sample set include ${highlights || "selected active positions"}.`;
 
@@ -390,14 +446,14 @@ export function buildFundAiBriefing(fund: FundDefinition): FundAiBriefing {
   const recommendations = [
     `Prioritise follow-on diligence on A-rated holdings with clear commercial traction.`,
     `Advance 1–2 diversification opportunities outside the top country concentration over the next two quarters.`,
-    `Maintain LP reporting cadence with impact KPIs alongside financials for steward-aligned capital.`,
-    `Use remaining dry powder selectively for resilience and governance upgrades rather than purely opportunistic expansion.`,
+    `Maintain investor reporting cadence with impact KPIs alongside capital stewardship updates.`,
+    `Use remaining capital selectively for resilience and governance upgrades rather than purely opportunistic expansion.`,
   ].join(" ");
 
   const fullText = [
-    `${fund.name} — AI Fund Briefing (Sample)`,
+    `${fund.name} — Fund Briefing (Sample)`,
     "",
-    "Performance summary",
+    "Stewardship summary",
     performanceSummary,
     "",
     "Portfolio highlights",
@@ -406,7 +462,7 @@ export function buildFundAiBriefing(fund: FundDefinition): FundAiBriefing {
     "Impact highlights",
     impactHighlights,
     "",
-    "Risks",
+    "Watchpoints",
     risks,
     "",
     "Recommendations",
@@ -422,5 +478,226 @@ export function buildFundAiBriefing(fund: FundDefinition): FundAiBriefing {
     risks,
     recommendations,
     fullText,
+  };
+}
+
+const CONTACT_FIRST = [
+  "Ingrid", "David", "Sarah", "Michael", "Grace", "James", "Elena", "Peter",
+  "Ruth", "Andrew", "Naomi", "Thomas", "Hannah", "Daniel", "Claire", "Samuel",
+  "Miriam", "Jonathan",
+];
+const CONTACT_LAST = [
+  "Bergström", "Okonkwo", "Whitfield", "Chen", "Mwangi", "Henderson", "Rossi",
+  "van der Berg", "Adeyemi", "Keller", "Patel", "Svensson", "Njoroge", "Clarke",
+  "Mensah", "Okafor", "Lund", "Brooks",
+];
+
+function buildPlatformInvestors(): PlatformInvestor[] {
+  const byOrg = new Map<string, PlatformInvestor>();
+  for (const fund of listTalantonFunds()) {
+    fund.investors.forEach((inv, index) => {
+      const existing = byOrg.get(inv.name);
+      if (existing) {
+        if (!existing.fundIds.includes(fund.id)) existing.fundIds.push(fund.id);
+        existing.commitmentUsd += inv.commitmentUsd;
+        for (const c of fund.portfolio.slice(0, 2)) {
+          if (!existing.portfolioExposure.includes(c.company)) {
+            existing.portfolioExposure.push(c.company);
+          }
+        }
+        return;
+      }
+      const statusCycle: InvestorStatus[] = ["Active", "Active", "Active", "Committed", "Onboarding"];
+      byOrg.set(inv.name, {
+        id: `pi-${inv.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 28)}`,
+        name: `${CONTACT_FIRST[index % CONTACT_FIRST.length]} ${CONTACT_LAST[index % CONTACT_LAST.length]}`,
+        organisation: inv.name,
+        type: inv.type,
+        country: inv.country,
+        fundIds: [fund.id],
+        commitmentUsd: inv.commitmentUsd,
+        status: statusCycle[index % statusCycle.length]!,
+        joinedDate: inv.joinedDate,
+        portfolioExposure: fund.portfolio.slice(0, 3).map((p) => p.company),
+        communications: [
+          {
+            id: `c-${fund.id}-${index}-1`,
+            date: "2026-07-18",
+            subject: `${fund.shortName} stewardship brief — Q2 portfolio & community outcomes`,
+            channel: "Quarterly Brief",
+          },
+          {
+            id: `c-${fund.id}-${index}-2`,
+            date: "2026-06-12",
+            subject: "Journey Story: Uganda Portfolio Review — Kampala Soft Launch",
+            channel: "Journey Story",
+          },
+          {
+            id: `c-${fund.id}-${index}-3`,
+            date: "2026-05-02",
+            subject: "Investor update — dignity of work across East Africa holdings",
+            channel: "Investor Update",
+          },
+        ],
+        relatedJourneyStoryIds: [
+          "journey-uganda-review-2026",
+          "journey-kenya-founder-2026",
+          "journey-tanzania-impact-2026",
+          "journey-ghana-growth-2026",
+        ].slice(0, 1 + (index % 3)),
+      });
+    });
+  }
+  return [...byOrg.values()].sort((a, b) => b.commitmentUsd - a.commitmentUsd);
+}
+
+let cachedPlatformInvestors: PlatformInvestor[] | null = null;
+
+export function listPlatformInvestors(): PlatformInvestor[] {
+  if (!cachedPlatformInvestors) cachedPlatformInvestors = buildPlatformInvestors();
+  return cachedPlatformInvestors;
+}
+
+export function getPlatformInvestor(id: string): PlatformInvestor | undefined {
+  return listPlatformInvestors().find((i) => i.id === id);
+}
+
+export function listCapitalCommitments(): CapitalCommitment[] {
+  const rows: CapitalCommitment[] = [];
+  for (const fund of listTalantonFunds()) {
+    for (const inv of fund.investors) {
+      const platform = listPlatformInvestors().find((p) => p.organisation === inv.name);
+      rows.push({
+        id: `cc-${fund.id}-${inv.id}`,
+        fundId: fund.id,
+        fundName: fund.name,
+        investorId: platform?.id ?? inv.id,
+        investorName: platform?.name ?? inv.name,
+        organisation: inv.name,
+        amountUsd: inv.commitmentUsd,
+        date: inv.joinedDate,
+        status:
+          inv.remainingCommitmentUsd === 0
+            ? "Fulfilled"
+            : inv.capitalCalledUsd === 0
+              ? "Pending"
+              : "Active",
+      });
+    }
+  }
+  return rows.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+}
+
+export function capitalCommitmentsSummary() {
+  const rows = listCapitalCommitments();
+  const totalCommitted = rows.reduce((s, r) => s + r.amountUsd, 0);
+  const overview = FUNDS_PLATFORM_OVERVIEW;
+  return {
+    totalCommitted,
+    totalDeployed: overview.capitalDeployedUsd,
+    remainingCapital: overview.availableCapitalUsd,
+    commitmentCount: rows.length,
+    byFund: listTalantonFunds().map((f) => ({
+      label: f.name,
+      amountUsd: f.capitalRaisedUsd,
+      pct: Math.round((f.capitalRaisedUsd / overview.capitalCommittedUsd) * 100),
+    })),
+  };
+}
+
+function toChartRows(
+  entries: Array<{ label: string; amountUsd: number }>,
+): CapitalChartRow[] {
+  const total = entries.reduce((s, e) => s + e.amountUsd, 0) || 1;
+  return entries
+    .map((e) => ({
+      label: e.label,
+      amountUsd: e.amountUsd,
+      pct: Math.round((e.amountUsd / total) * 100),
+    }))
+    .sort((a, b) => b.amountUsd - a.amountUsd);
+}
+
+export function buildCapitalByFundChart(): CapitalChartRow[] {
+  return toChartRows(
+    listTalantonFunds().map((f) => ({ label: f.name, amountUsd: f.capitalDeployedUsd })),
+  );
+}
+
+export function buildCapitalByCountryChart(): CapitalChartRow[] {
+  const map = new Map<string, number>();
+  for (const fund of listTalantonFunds()) {
+    for (const row of fund.countryAllocation) {
+      const share = (row.pct / 100) * fund.capitalDeployedUsd;
+      map.set(row.label, (map.get(row.label) ?? 0) + share);
+    }
+  }
+  return toChartRows([...map.entries()].map(([label, amountUsd]) => ({ label, amountUsd })));
+}
+
+export function buildCapitalBySectorChart(): CapitalChartRow[] {
+  const map = new Map<string, number>();
+  for (const fund of listTalantonFunds()) {
+    for (const row of fund.sectorAllocation) {
+      const share = (row.pct / 100) * fund.capitalDeployedUsd;
+      map.set(row.label, (map.get(row.label) ?? 0) + share);
+    }
+  }
+  return toChartRows([...map.entries()].map(([label, amountUsd]) => ({ label, amountUsd })));
+}
+
+export function buildCapitalAllocationChart(): CapitalChartRow[] {
+  const o = FUNDS_PLATFORM_OVERVIEW;
+  return toChartRows([
+    { label: "Capital Deployed", amountUsd: o.capitalDeployedUsd },
+    { label: "Available Capital", amountUsd: o.availableCapitalUsd },
+  ]);
+}
+
+export function fundImpactSummary(fund: FundDefinition) {
+  const people = fund.impactMetrics.find((m) => m.label === "People Served")?.value ?? "—";
+  const jobs = fund.impactMetrics.find((m) => m.label === "Jobs Created")?.value ?? "—";
+  const communities =
+    fund.impactMetrics.find((m) => m.label === "Communities Impacted")?.value ?? "—";
+  const health =
+    fund.impactMetrics.find((m) => m.label === "Impact Health Score")?.value ?? "—";
+  return { people, jobs, communities, health };
+}
+
+export function buildBoardFundSummary() {
+  const o = FUNDS_PLATFORM_OVERVIEW;
+  const investors = listPlatformInvestors();
+  const active = investors.filter((i) => i.status === "Active").length;
+  return {
+    fundCards: listTalantonFunds().map((f) => ({
+      id: f.id,
+      name: f.name,
+      size: formatFundUsd(f.fundSizeUsd),
+      deployed: formatFundUsd(f.capitalDeployedUsd),
+      companies: f.portfolioCompanyCount,
+      deploymentPct: f.deploymentPct,
+    })),
+    capitalOverview: [
+      { label: "Total Capital Committed", value: formatFundUsd(o.capitalCommittedUsd), hint: "Across three funds" },
+      { label: "Capital Deployed", value: formatFundUsd(o.capitalDeployedUsd), hint: "Into portfolio companies" },
+      { label: "Available Capital", value: formatFundUsd(o.availableCapitalUsd), hint: "Ready for stewardship deployment" },
+      { label: "Impact Health Score", value: `${o.impactHealthScore}/100`, hint: "Portfolio impact band" },
+    ],
+    investorSummary: [
+      { label: "Investors", value: String(investors.length), hint: "Demo investor directory" },
+      { label: "Active relationships", value: String(active), hint: "Engaged stewards" },
+      { label: "Funds", value: String(o.totalFunds), hint: "Impact · Momentum · Stewards" },
+      { label: "Countries active", value: String(o.countriesRepresented), hint: "Portfolio footprint" },
+    ],
+    recentCommunications: investors
+      .flatMap((i) =>
+        i.communications.map((c) => ({
+          ...c,
+          investor: i.name,
+          organisation: i.organisation,
+        })),
+      )
+      .sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
+      .slice(0, 5),
   };
 }

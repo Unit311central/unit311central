@@ -26,8 +26,12 @@ import {
   type TiBoardPack,
   type TiBoardPortalSection,
 } from "@/lib/talanton/board-portal-data";
+import { buildBoardFundSummary } from "@/lib/talanton/funds-data";
 import { buildBoardImpactIntelligence } from "@/lib/talanton/board-impact-intelligence";
-import { listJourneyStoriesForBoard } from "@/lib/talanton/journey-stories-store";
+import {
+  listJourneyStoriesForBoard,
+  listJourneyStoriesForInvestors,
+} from "@/lib/talanton/journey-stories-store";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -82,6 +86,11 @@ function BoardDashboard() {
   const snap = useMemo(() => getTiBoardDashboardSnapshot(), []);
   const impact = useMemo(() => buildBoardImpactIntelligence(), []);
   const journeys = useMemo(() => listJourneyStoriesForBoard().slice(0, 4), []);
+  const investorJourneys = useMemo(
+    () => listJourneyStoriesForInvestors().slice(0, 4),
+    [],
+  );
+  const funds = useMemo(() => buildBoardFundSummary(), []);
 
   return (
     <div className="space-y-5">
@@ -93,7 +102,7 @@ function BoardDashboard() {
           Governance at a glance
         </h1>
         <p className="mt-1 text-sm text-white/55">
-          Next meeting, approved packs, actions, risks, impact, and recent decisions.
+          Next meeting, fund stewardship, investor communications, impact, and recent decisions.
         </p>
       </header>
 
@@ -167,9 +176,27 @@ function BoardDashboard() {
           </ul>
         </Card>
 
-        <Card title="Financial snapshot" className="lg:col-span-2">
+        <Card title="Fund Summary" className="lg:col-span-2">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {funds.fundCards.map((f) => (
+              <div
+                key={f.id}
+                className="rounded-xl border border-white/8 bg-black/20 px-3 py-3"
+              >
+                <p className="text-sm font-semibold text-white">{f.name}</p>
+                <p className="mt-2 text-[11px] text-white/45">Fund size · {f.size}</p>
+                <p className="text-[11px] text-white/45">Deployed · {f.deployed}</p>
+                <p className="text-[11px] text-white/45">
+                  {f.companies} portfolio companies · {f.deploymentPct}% deployed
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="Capital Overview" className="lg:col-span-2">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {snap.financialSnapshot.map((f) => (
+            {funds.capitalOverview.map((f) => (
               <div key={f.label} className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
                 <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">{f.label}</p>
                 <p className="mt-1 text-xl font-semibold text-white">{f.value}</p>
@@ -177,6 +204,31 @@ function BoardDashboard() {
               </div>
             ))}
           </div>
+        </Card>
+
+        <Card title="Investor Summary">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {funds.investorSummary.map((f) => (
+              <div key={f.label} className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">{f.label}</p>
+                <p className="mt-1 text-xl font-semibold text-white">{f.value}</p>
+                <p className="mt-0.5 text-xs text-white/45">{f.hint}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="Recent Investor Communications">
+          <ul className="space-y-2">
+            {funds.recentCommunications.map((c) => (
+              <li key={c.id} className="rounded-xl border border-white/8 bg-black/20 px-3 py-2">
+                <p className="text-sm text-white/90">{c.subject}</p>
+                <p className="mt-1 text-xs text-white/45">
+                  {c.date} · {c.channel} · {c.investor} ({c.organisation})
+                </p>
+              </li>
+            ))}
+          </ul>
         </Card>
 
         <Card title="Impact snapshot" className="lg:col-span-2">
@@ -226,9 +278,9 @@ function BoardDashboard() {
           </div>
         </Card>
 
-        <Card title="Latest Journey Stories" className="lg:col-span-2">
+        <Card title="Related Journey Stories" className="lg:col-span-2">
           <ul className="space-y-3">
-            {journeys.map((j) => (
+            {(investorJourneys.length > 0 ? investorJourneys : journeys).map((j) => (
               <li
                 key={j.id}
                 className="rounded-xl border border-white/8 bg-black/20 px-3 py-3"

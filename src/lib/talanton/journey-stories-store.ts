@@ -107,7 +107,7 @@ export const JOURNEY_DISTRIBUTION_TARGETS: {
   { id: "digital-newsletter", label: "Digital Newsletter" },
   { id: "board-portal", label: "Board Portal" },
   { id: "portfolio-company-portals", label: "Portfolio Company Portals" },
-  { id: "investor-email-updates", label: "Investor Email Updates" },
+  { id: "investor-email-updates", label: "Investor Updates" },
   { id: "website-news", label: "Website News" },
 ];
 
@@ -640,6 +640,24 @@ export function listPublishedJourneyStories(): JourneyStory[] {
         s.distributionTargets.includes("marketing-stories") ||
         s.distributionTargets.includes("website-news")),
   );
+}
+
+export function listJourneyStoriesForInvestors(): JourneyStory[] {
+  return listJourneyStories().filter(
+    (s) =>
+      (s.status === "Published" || s.status === "Approved") &&
+      s.distributionTargets.includes("investor-email-updates"),
+  );
+}
+
+export function listJourneyStoriesForInvestorAudience(
+  audience: InvestorAudience,
+): JourneyStory[] {
+  return listJourneyStoriesForInvestors().filter((s) => {
+    if (audience === "all-investors") return true;
+    if (audience === "custom") return s.investorAudience === "custom";
+    return s.investorAudience === audience || s.investorAudience === "all-investors";
+  });
 }
 
 export function listJourneyStoriesForBoard(): JourneyStory[] {

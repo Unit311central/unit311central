@@ -1351,7 +1351,10 @@ export default function InternalOperationsDashboard({
           {(activeView === "funds-dashboard" ||
             activeView === "funds-impact" ||
             activeView === "funds-momentum" ||
-            activeView === "funds-stewards") && (
+            activeView === "funds-stewards" ||
+            activeView === "funds-investors" ||
+            activeView === "funds-commitments" ||
+            activeView === "funds-performance") && (
             <WorkspaceErrorBoundary title="Funds">
               <TalantonFundsWorkspace view={activeView} />
             </WorkspaceErrorBoundary>

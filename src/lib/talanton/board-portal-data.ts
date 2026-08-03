@@ -346,17 +346,17 @@ export function getTiBoardDashboardSnapshot() {
     highRisks,
     recentDecisions,
     strategicTopics: next?.agenda?.slice(0, 5) ?? [
-      "Fund performance & portfolio health",
+      "Fund stewardship & portfolio health",
       "Investment Committee pipeline",
       "East Africa growth opportunities",
-      "LP reporting & capital calls",
+      "Investor communications & Journey Stories",
       "Risk register review",
     ],
     financialSnapshot: [
-      { label: "Fund AUM (demo)", value: "$48m", hint: "Committed capital across funds" },
-      { label: "Active portfolio", value: "19", hint: "Companies under management" },
-      { label: "East Africa exposure", value: "62%", hint: "By invested capital" },
-      { label: "Follow-on reserve", value: "$6.2m", hint: "Board-approved envelope" },
+      { label: "Capital committed", value: "$114m", hint: "Across Impact, Momentum & Stewards" },
+      { label: "Active portfolio", value: "19", hint: "Portfolio companies" },
+      { label: "East Africa exposure", value: "62%", hint: "By deployed capital" },
+      { label: "Available capital", value: "$30m", hint: "Ready for stewardship deployment" },
     ],
     latestApprovedPack: packs[0]!,
   };
