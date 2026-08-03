@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Loader2, Search, Sparkles, Upload } from "lucide-react";
 
+import CourseReviewScreen from "@/components/lms/CourseReviewScreen";
 import {
   TALANTON_COMPLIANCE_COURSES,
   courseTitleById,
@@ -12,6 +13,7 @@ import {
   buildTrainingExecutiveSummary,
   type CompanyLearningRow,
 } from "@/lib/talanton/training-phase2";
+import type { LmsCourseTree } from "@/lib/lms/types";
 import { cn } from "@/lib/utils";
 import {
   TalantonImpactMetric,
@@ -27,6 +29,18 @@ function statusClass(status: CompanyLearningRow["status"]) {
   return "border-rose-400/30 bg-rose-500/10 text-rose-100";
 }
 
+type GenerationSummary = {
+  title: string;
+  durationMinutes: number;
+  moduleCount: number;
+  lessonCount: number;
+  scenarioCount: number;
+  assessmentCount: number;
+  questionCount: number;
+  certificateEnabled: boolean;
+  learningObjectives?: string[];
+};
+
 export default function TalantonPortfolioCoursesWorkspace() {
   const summary = useMemo(() => buildTrainingExecutiveSummary(), []);
   const rows = useMemo(() => buildCompanyLearningRows(), []);
@@ -36,6 +50,44 @@ export default function TalantonPortfolioCoursesWorkspace() {
   const [statusFilter, setStatusFilter] = useState<"all" | CompanyLearningRow["status"]>("all");
   const [certFilter, setCertFilter] = useState<"all" | "has" | "none">("all");
   const [sort, setSort] = useState<"completion-asc" | "completion-desc" | "name">("completion-asc");
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [lastFile, setLastFile] = useState<File | null>(null);
+  const [reviewCourse, setReviewCourse] = useState<LmsCourseTree | null>(null);
+  const [reviewSummary, setReviewSummary] = useState<GenerationSummary | null>(null);
+
+  async function generateFromFile(file: File) {
+    setGenerating(true);
+    setGenError(null);
+    setNotice(null);
+    setLastFile(file);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/lms/generate-from-document", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      const data = (await res.json()) as {
+        course?: LmsCourseTree;
+        summary?: GenerationSummary;
+        error?: string;
+      };
+      if (!res.ok || !data.course || !data.summary) {
+        throw new Error(data.error || "Course generation failed.");
+      }
+      setReviewCourse(data.course);
+      setReviewSummary(data.summary);
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Course generation failed.");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     let list = rows.filter((r) => {
@@ -51,8 +103,9 @@ export default function TalantonPortfolioCoursesWorkspace() {
       return true;
     });
     if (courseFilter !== "all") {
-      // Demo: surface companies with lower completion as needing that course attention
-      list = list.filter((r) => r.completionPct < 95 || courseFilter === TALANTON_COMPLIANCE_COURSES[0]?.id);
+      list = list.filter(
+        (r) => r.completionPct < 95 || courseFilter === TALANTON_COMPLIANCE_COURSES[0]?.id,
+      );
     }
     list = [...list].sort((a, b) => {
       if (sort === "name") return a.company.name.localeCompare(b.company.name);
@@ -69,6 +122,59 @@ export default function TalantonPortfolioCoursesWorkspace() {
         title="Portfolio Courses"
         description="Company-centric learning view across Talanton holdings — assignments, completion, certifications and last activity by portfolio company."
       />
+
+      {notice ? (
+        <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          {notice}
+        </div>
+      ) : null}
+
+      <section className="rounded-3xl border border-emerald-400/25 bg-gradient-to-br from-emerald-500/15 via-transparent to-transparent p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              Talanton Impact AI Course Generator
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-white">
+              Upload a policy — get a complete interactive course
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-white/55">
+              PDF or Word (policies, handbooks, ESG, investment process, portfolio SOPs). AI builds
+              modules, scenarios, assessments, and certificate settings for review.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={generating}
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-500/20 px-4 py-2.5 text-sm font-semibold text-emerald-50 hover:bg-emerald-500/30 disabled:opacity-60"
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+            {generating ? "Building course…" : "Upload PDF / Word"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void generateFromFile(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+        {genError ? (
+          <p className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+            {genError}
+          </p>
+        ) : null}
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <TalantonImpactMetric label="Portfolio companies" value={summary.portfolioCompanies} />
@@ -197,6 +303,30 @@ export default function TalantonPortfolioCoursesWorkspace() {
           </article>
         ))}
       </div>
+
+      {reviewCourse && reviewSummary ? (
+        <CourseReviewScreen
+          course={reviewCourse}
+          summary={reviewSummary}
+          regenerating={generating}
+          onClose={() => {
+            setReviewCourse(null);
+            setReviewSummary(null);
+          }}
+          onRegenerate={
+            lastFile
+              ? () => {
+                  void generateFromFile(lastFile);
+                }
+              : undefined
+          }
+          onPublished={(slug) => {
+            setReviewCourse(null);
+            setReviewSummary(null);
+            setNotice(`“${slug}” published. It is available in the LMS catalogue.`);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
