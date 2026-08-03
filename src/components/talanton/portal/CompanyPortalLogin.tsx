@@ -58,7 +58,7 @@ export function CompanyPortalLogin({
     <div className="flex min-h-screen items-center justify-center bg-[#07111f] px-4 py-10 text-white">
       <div className="w-full max-w-md">
         <div className="mb-6 flex justify-center">
-          <TalantonLogoMark height={48} className="rounded-2xl px-4 py-3" />
+          <TalantonLogoMark height={48} />
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">

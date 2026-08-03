@@ -3,35 +3,52 @@
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { cn } from "@/lib/utils";
 
-/** Full Talanton wordmark (dark text on light ground) — from repo `t.jpg`. */
-export const TALANTON_LOGO_SRC = "/images/workspaces/talantonimpact-t.jpg";
+/**
+ * Official Talanton wordmark from talantonimpact.com —
+ * transparent PNG, white lettering + gradient arcs (for dark surfaces).
+ */
+export const TALANTON_LOGO_SRC = "/images/workspaces/talantonimpact-logo.png";
 
-/** Intrinsic pixel size of t.jpg */
-const LOGO_INTRINSIC_W = 277;
-const LOGO_INTRINSIC_H = 70;
+/** Intrinsic pixel size of talantonimpact-logo.png */
+export const TALANTON_LOGO_INTRINSIC_WIDTH = 1853;
+export const TALANTON_LOGO_INTRINSIC_HEIGHT = 320;
 
 export { isTalantonImpactSlug };
 
 type TalantonLogoMarkProps = {
   className?: string;
+  /** Display height in CSS pixels. Width is derived from the asset aspect ratio. */
   height?: number;
+  /** Optional max width clamp (keeps aspect ratio). */
+  maxWidth?: number;
+  priority?: boolean;
 };
 
 /**
- * Talanton Impact logo for dark surfaces.
- * Uses a plain <img> (not next/image) so the full wordmark is never cropped
- * by the optimizer or a too-narrow max-width.
+ * Canonical Talanton brand mark — transparent PNG, no card / well / padding.
+ * White lettering + gradient arcs for navy sidebars and dark login surfaces.
  */
 export default function TalantonLogoMark({
   className,
   height = 40,
+  maxWidth,
+  priority = false,
 }: TalantonLogoMarkProps) {
-  const width = Math.round((height * LOGO_INTRINSIC_W) / LOGO_INTRINSIC_H);
+  let width = Math.round(
+    (height * TALANTON_LOGO_INTRINSIC_WIDTH) / TALANTON_LOGO_INTRINSIC_HEIGHT,
+  );
+  let displayHeight = height;
+  if (maxWidth != null && width > maxWidth) {
+    width = maxWidth;
+    displayHeight = Math.round(
+      (width * TALANTON_LOGO_INTRINSIC_HEIGHT) / TALANTON_LOGO_INTRINSIC_WIDTH,
+    );
+  }
 
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center overflow-visible rounded-xl bg-white px-3 py-2 shadow-[0_1px_0_rgba(255,255,255,0.35)]",
+        "inline-flex shrink-0 items-center justify-center overflow-visible bg-transparent p-0",
         className,
       )}
     >
@@ -40,14 +57,15 @@ export default function TalantonLogoMark({
         src={TALANTON_LOGO_SRC}
         alt="Talanton Impact"
         width={width}
-        height={height}
+        height={displayHeight}
         decoding="async"
-        className="block object-contain object-left"
+        fetchPriority={priority ? "high" : "auto"}
+        className="block bg-transparent object-contain object-left"
         style={{
-          height,
+          height: displayHeight,
           width,
           minWidth: width,
-          maxWidth: "none",
+          maxWidth: "100%",
         }}
       />
     </span>

@@ -34,7 +34,7 @@ export function TalantonBoardPortalShell({ displayName, children }: Props) {
     <div className="flex min-h-screen bg-[#07111f] text-white">
       <aside className="flex w-64 shrink-0 flex-col border-r border-white/10 bg-[#0a1628] px-4 py-5">
         <div className="mb-6 space-y-3">
-          <TalantonLogoMark height={36} className="rounded-xl" />
+          <TalantonLogoMark height={36} />
           <div>
             <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
               <Shield className="h-3 w-3" />

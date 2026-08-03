@@ -310,7 +310,7 @@ export default function Unit311LoginPage({
           {isCorpCentre ? (
             <CorpCentreLogoMark height={56} className="rounded-2xl px-4 py-3" />
           ) : isTalanton ? (
-            <TalantonLogoMark height={56} className="rounded-2xl px-4 py-3" />
+            <TalantonLogoMark height={56} />
           ) : isAbhi ? (
             <AbhiLogoMark height={50} tone="onDark" priority />
           ) : isCustomer ? (
