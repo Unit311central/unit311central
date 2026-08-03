@@ -7,6 +7,7 @@ import { MapPin, X } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 
 import {
+  AFRICA_INITIAL_VIEW,
   AFRICA_MAP_BOUNDS,
   buildPortfolioMapMarkers,
   type PortfolioMapMarker,
@@ -80,11 +81,30 @@ function MarkerCard({
   );
 }
 
-function FitAfricaBounds() {
+/** Lock the map to an Africa-first viewport (wide cards otherwise show the world). */
+function AfricaViewport() {
   const map = useMap();
 
   useEffect(() => {
-    map.fitBounds(AFRICA_MAP_BOUNDS, { padding: [24, 24], maxZoom: 5, animate: false });
+    const apply = () => {
+      map.invalidateSize({ animate: false });
+      map.setMaxBounds(AFRICA_MAP_BOUNDS);
+      map.setMinZoom(4);
+      map.setView(AFRICA_INITIAL_VIEW.center, AFRICA_INITIAL_VIEW.zoom, { animate: false });
+    };
+
+    map.whenReady(() => {
+      apply();
+      // Layout can settle after first paint (flex/aspect ratio).
+      window.setTimeout(apply, 80);
+      window.setTimeout(apply, 250);
+    });
+
+    const onResize = () => {
+      map.invalidateSize({ animate: false });
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, [map]);
 
   return null;
@@ -182,12 +202,14 @@ export default function PortfolioCompanyMap() {
         </p>
       </header>
 
-      <div className="relative aspect-[16/10] w-full sm:aspect-[21/10]">
+      <div className="relative aspect-[16/11] w-full sm:aspect-[2/1]">
         <MapContainer
-          center={[2, 20]}
-          zoom={4}
-          minZoom={3}
+          center={AFRICA_INITIAL_VIEW.center}
+          zoom={AFRICA_INITIAL_VIEW.zoom}
+          minZoom={4}
           maxZoom={12}
+          maxBounds={AFRICA_MAP_BOUNDS}
+          maxBoundsViscosity={1}
           scrollWheelZoom
           worldCopyJump={false}
           attributionControl
@@ -195,7 +217,7 @@ export default function PortfolioCompanyMap() {
           style={{ background: "#0a1220" }}
         >
           <TileLayer attribution={URBAN_MAP_ATTRIBUTION} url={CARTO_DARK_URL} maxZoom={19} />
-          <FitAfricaBounds />
+          <AfricaViewport />
           <PortfolioMarkers
             markers={markers}
             activeId={activeId}

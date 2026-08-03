@@ -36,11 +36,21 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   "Dar es Salaam": { lat: -6.7924, lng: 39.2083 },
 };
 
-/** Default Africa frame for fitBounds / initial view. */
+/** Default Africa frame for fitBounds / maxBounds (continent + light margin). */
 export const AFRICA_MAP_BOUNDS: [[number, number], [number, number]] = [
-  [-35.5, -18.5],
-  [38.2, 52.5],
+  [-36.5, -20],
+  [38.5, 54],
 ];
+
+/**
+ * Initial viewport tuned for wide dashboard cards.
+ * Full-continent fitBounds on a ~21:10 frame zooms out to a world view;
+ * this frame keeps Africa filling the width.
+ */
+export const AFRICA_INITIAL_VIEW = {
+  center: [1.2, 18.5] as [number, number],
+  zoom: 5,
+};
 
 function purposeFor(company: PortfolioCompany): string {
   const first = company.overview.split(/[.!?]/)[0]?.trim();
