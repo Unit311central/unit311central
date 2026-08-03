@@ -293,6 +293,15 @@ const DEMO_SEO_KEYWORDS = [
   { keyword: "board pack automation", position: 15, change: 1, volume: "410" },
 ] as const;
 
+const TALANTON_SEO_KEYWORDS = [
+  { keyword: "impact investing east africa", position: 5, change: 2, volume: "1.8K" },
+  { keyword: "faith driven investing africa", position: 3, change: 1, volume: "920" },
+  { keyword: "missing middle capital africa", position: 8, change: 3, volume: "740" },
+  { keyword: "talanton impact", position: 1, change: 0, volume: "510" },
+  { keyword: "job creation impact fund", position: 11, change: -1, volume: "680" },
+  { keyword: "sme growth capital kenya", position: 14, change: 2, volume: "430" },
+] as const;
+
 const INTERNAL_PPC_CAMPAIGNS = [
   { name: "Survey leads — ES", spend: "€842", clicks: 312, ctr: "3.8%", cpc: "€2.70", conversions: 14 },
   { name: "Training courses", spend: "€516", clicks: 198, ctr: "4.1%", cpc: "€2.61", conversions: 9 },
@@ -303,6 +312,12 @@ const DEMO_PPC_CAMPAIGNS = [
   { name: "Cloud advisory — UK", spend: "£1,240", clicks: 418, ctr: "4.4%", cpc: "£2.97", conversions: 22 },
   { name: "Transformation webinars", spend: "£680", clicks: 255, ctr: "3.9%", cpc: "£2.67", conversions: 14 },
   { name: "Retarget — case studies", spend: "£390", clicks: 128, ctr: "2.8%", cpc: "£3.05", conversions: 8 },
+] as const;
+
+const TALANTON_PPC_CAMPAIGNS = [
+  { name: "LP awareness — Impact Fund", spend: "$1,180", clicks: 286, ctr: "3.6%", cpc: "$4.13", conversions: 12 },
+  { name: "Faith-driven investor webinars", spend: "$740", clicks: 194, ctr: "4.2%", cpc: "$3.81", conversions: 9 },
+  { name: "Portfolio stories — retarget", spend: "$420", clicks: 108, ctr: "2.9%", cpc: "$3.89", conversions: 6 },
 ] as const;
 
 const INTERNAL_PPC_SUMMARY = {
@@ -321,6 +336,15 @@ const DEMO_PPC_SUMMARY = {
   avgCpc: "£2.88",
   conversions: 44,
   roas: "5.1x",
+} as const;
+
+const TALANTON_PPC_SUMMARY = {
+  spend: "$2,340",
+  impressions: "36.8K",
+  clicks: 588,
+  avgCpc: "$3.98",
+  conversions: 27,
+  roas: "4.6x",
 } as const;
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -351,7 +375,21 @@ function isDemoSocialSurface() {
 
 function SeoRankingsPanel() {
   const isDemo = isDemoSocialSurface();
-  const keywords = isDemo ? DEMO_SEO_KEYWORDS : INTERNAL_SEO_KEYWORDS;
+  const isTalanton = typeof window !== "undefined" && isBrowserTalantonImpactSurface();
+  const keywords = isTalanton
+    ? TALANTON_SEO_KEYWORDS
+    : isDemo
+      ? DEMO_SEO_KEYWORDS
+      : INTERNAL_SEO_KEYWORDS;
+  const domain = isTalanton
+    ? "talantonimpact.com"
+    : isDemo
+      ? "meridianatlas.demo"
+      : "unit311.com";
+  const avgPosition = isTalanton ? "7.0" : isDemo ? "7.5" : "9.5";
+  const top10 = isTalanton ? "4 keywords" : isDemo ? "4 keywords" : "3 keywords";
+  const visibility = isTalanton ? "+16%" : isDemo ? "+18%" : "+12%";
+
   return (
     <article className={panelShellClassName()}>
       <div className="border-b border-white/10 bg-gradient-to-r from-emerald-500/15 to-teal-500/5 px-4 py-4 sm:px-5">
@@ -361,9 +399,7 @@ function SeoRankingsPanel() {
           </div>
           <div>
             <h3 className="text-base font-semibold text-white sm:text-lg">SEO rankings</h3>
-            <p className="text-xs text-white/50">
-              Google positions · {isDemo ? "meridianatlas.demo" : "unit311.com"}
-            </p>
+            <p className="text-xs text-white/50">Google positions · {domain}</p>
           </div>
         </div>
       </div>
@@ -371,19 +407,17 @@ function SeoRankingsPanel() {
       <div className="grid grid-cols-3 gap-2 border-b border-white/10 p-4 sm:p-5">
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Avg. position</p>
-          <p className="mt-1 text-lg font-semibold text-white">{isDemo ? "7.5" : "9.5"}</p>
+          <p className="mt-1 text-lg font-semibold text-white">{avgPosition}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Top 10</p>
-          <p className="mt-1 text-lg font-semibold text-emerald-300">
-            {isDemo ? "4 keywords" : "3 keywords"}
-          </p>
+          <p className="mt-1 text-lg font-semibold text-emerald-300">{top10}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Visibility</p>
           <p className="mt-1 flex items-center gap-1 text-lg font-semibold text-white">
             <TrendingUp className="h-4 w-4 text-emerald-400" />
-            {isDemo ? "+18%" : "+12%"}
+            {visibility}
           </p>
         </div>
       </div>
@@ -440,8 +474,17 @@ function SeoRankingsPanel() {
 
 function PpcStatsPanel() {
   const isDemo = isDemoSocialSurface();
-  const summary = isDemo ? DEMO_PPC_SUMMARY : INTERNAL_PPC_SUMMARY;
-  const campaigns = isDemo ? DEMO_PPC_CAMPAIGNS : INTERNAL_PPC_CAMPAIGNS;
+  const isTalanton = typeof window !== "undefined" && isBrowserTalantonImpactSurface();
+  const summary = isTalanton
+    ? TALANTON_PPC_SUMMARY
+    : isDemo
+      ? DEMO_PPC_SUMMARY
+      : INTERNAL_PPC_SUMMARY;
+  const campaigns = isTalanton
+    ? TALANTON_PPC_CAMPAIGNS
+    : isDemo
+      ? DEMO_PPC_CAMPAIGNS
+      : INTERNAL_PPC_CAMPAIGNS;
   return (
     <article className={panelShellClassName()}>
       <div className="border-b border-white/10 bg-gradient-to-r from-amber-500/15 to-orange-500/5 px-4 py-4 sm:px-5">
