@@ -245,6 +245,7 @@ export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
 
 export const TALANTON_HIDDEN_SECTION_LABELS = new Set([
   "QMS",
+  "External Client Access",
 ]);
 
 export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
@@ -436,19 +437,29 @@ function reshapeTalantonTrainingSection(section: InternalNavSection): InternalNa
         view: "training-dashboard",
       },
       {
-        label: "Staff Courses",
-        icon: "GraduationCap",
-        view: "training",
-      },
-      {
         label: "Portfolio Courses",
         icon: "GraduationCap",
         view: "portfolio-courses",
       },
       {
-        label: "Course Management",
-        icon: "GraduationCap",
-        view: "portfolio-course-management",
+        label: "Learning Library",
+        icon: "FolderOpen",
+        view: "learning-library",
+      },
+      {
+        label: "Certifications",
+        icon: "ClipboardCheck",
+        view: "training-certifications",
+      },
+      {
+        label: "Company Progress",
+        icon: "BarChart3",
+        view: "company-progress",
+      },
+      {
+        label: "Portal Management",
+        icon: "Building2",
+        view: "external-client-access",
       },
     ],
   };

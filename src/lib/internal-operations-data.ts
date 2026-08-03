@@ -134,6 +134,9 @@ export type InternalOperationsView =
   | "funds-stewards"
   | "portfolio-courses"
   | "portfolio-course-management"
+  | "learning-library"
+  | "training-certifications"
+  | "company-progress"
   | "portfolio-my-training"
   | "portfolio-compliance-dashboard"
   | "portfolio-policies"
@@ -351,6 +354,9 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "funds-stewards",
   "portfolio-courses",
   "portfolio-course-management",
+  "learning-library",
+  "training-certifications",
+  "company-progress",
   "portfolio-my-training",
   "portfolio-compliance-dashboard",
   "portfolio-policies",
@@ -1007,8 +1013,8 @@ export const internalViewTitles: Record<
   users: { title: "Internal Users", subtitle: "Tools" },
   "users-external": { title: "External Users", subtitle: "External Client Access" },
   "external-client-access": {
-    title: "External Client Access",
-    subtitle: "External Client Access",
+    title: "Portal Management",
+    subtitle: "Training",
   },
   support: { title: "Support Desk", subtitle: "Business Productivity" },
   "support-mine": { title: "My support tickets", subtitle: "Support Desk" },
@@ -1016,7 +1022,7 @@ export const internalViewTitles: Record<
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },
   sector: { title: "Sector Intelligence", subtitle: "Unit311" },
   training: { title: "Courses", subtitle: "Training" },
-  "training-dashboard": { title: "Dashboard", subtitle: "Training" },
+  "training-dashboard": { title: "Training Dashboard", subtitle: "Training" },
   logistics: { title: "Logistics", subtitle: "Operations" },
   "client-onboarding": { title: "Client Onboarding", subtitle: "Customer Management" },
   "quality-management": { title: "Quality Management System", subtitle: "QMS" },
@@ -1107,6 +1113,9 @@ export const internalViewTitles: Record<
     title: "Course Management",
     subtitle: "Training",
   },
+  "learning-library": { title: "Learning Library", subtitle: "Training" },
+  "training-certifications": { title: "Certifications", subtitle: "Training" },
+  "company-progress": { title: "Company Progress", subtitle: "Training" },
   "portfolio-my-training": { title: "My Training", subtitle: "Portfolio Training" },
   "portfolio-compliance-dashboard": {
     title: "Compliance Dashboard",

@@ -131,6 +131,55 @@ const StoriesMailingListWorkspace = dynamic(
     ssr: false,
   },
 );
+const TalantonMinutesDecisionsWorkspace = dynamic(
+  () => import("./talanton/TalantonMinutesDecisionsWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading minutes & decisions" />,
+    ssr: false,
+  },
+);
+const TalantonTrainingDashboardWorkspace = dynamic(
+  () => import("./talanton/TalantonTrainingDashboardWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading training dashboard" />,
+    ssr: false,
+  },
+);
+const TalantonPortfolioCoursesWorkspace = dynamic(
+  () => import("./talanton/TalantonPortfolioCoursesWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading portfolio courses" />,
+    ssr: false,
+  },
+);
+const TalantonLearningLibraryWorkspace = dynamic(
+  () => import("./talanton/TalantonLearningLibraryWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading learning library" />,
+    ssr: false,
+  },
+);
+const TalantonCertificationsWorkspace = dynamic(
+  () => import("./talanton/TalantonCertificationsWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading certifications" />,
+    ssr: false,
+  },
+);
+const TalantonCompanyProgressWorkspace = dynamic(
+  () => import("./talanton/TalantonCompanyProgressWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading company progress" />,
+    ssr: false,
+  },
+);
+const TalantonPortalManagementWorkspace = dynamic(
+  () => import("./talanton/TalantonPortalManagementWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading portal management" />,
+    ssr: false,
+  },
+);
 const TalantonFundsWorkspace = dynamic(
   () => import("./talanton/TalantonFundsWorkspace"),
   {
@@ -901,7 +950,14 @@ export default function InternalOperationsDashboard({
             ) : (
               <BoardMeetingsWorkspace />
             ))}
-          {activeView === "board-minutes" && <BoardGovernanceWorkspace section="minutes" />}
+          {activeView === "board-minutes" &&
+            (isBrowserTalantonImpactSurface() ? (
+              <WorkspaceErrorBoundary title="Minutes & Decisions">
+                <TalantonMinutesDecisionsWorkspace />
+              </WorkspaceErrorBoundary>
+            ) : (
+              <BoardGovernanceWorkspace section="minutes" />
+            ))}
           {activeView === "board-members" && <BoardGovernanceWorkspace section="members" />}
 
           {activeView === "board-pack" && <BoardPackCustomizerWorkspace />}
@@ -977,7 +1033,11 @@ export default function InternalOperationsDashboard({
           {activeView === "marketing-mailing-list" && <AbhiMailingListWorkspace />}
 
           {activeView === "training-dashboard" &&
-            (isBrowserAbhiSurface() || isBrowserTalantonImpactSurface() ? (
+            (isBrowserTalantonImpactSurface() ? (
+              <WorkspaceErrorBoundary title="Training Dashboard">
+                <TalantonTrainingDashboardWorkspace />
+              </WorkspaceErrorBoundary>
+            ) : isBrowserAbhiSurface() ? (
               <AbhiComplianceTrainingWorkspace mode="dashboard" />
             ) : (
               <TrainingDashboardWorkspace />
@@ -990,7 +1050,38 @@ export default function InternalOperationsDashboard({
             <CapTableWorkspace />
           )}
 
-          {activeView === "external-client-access" && <ExternalClientAccessWorkspace />}
+          {activeView === "external-client-access" &&
+            (isBrowserTalantonImpactSurface() ? (
+              <WorkspaceErrorBoundary title="Portal Management">
+                <TalantonPortalManagementWorkspace />
+              </WorkspaceErrorBoundary>
+            ) : (
+              <ExternalClientAccessWorkspace />
+            ))}
+
+          {activeView === "learning-library" && (
+            <WorkspaceErrorBoundary title="Learning Library">
+              <TalantonLearningLibraryWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "training-certifications" && (
+            <WorkspaceErrorBoundary title="Certifications">
+              <TalantonCertificationsWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "company-progress" && (
+            <WorkspaceErrorBoundary title="Company Progress">
+              <TalantonCompanyProgressWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "portfolio-courses" && isBrowserTalantonImpactSurface() && (
+            <WorkspaceErrorBoundary title="Portfolio Courses">
+              <TalantonPortfolioCoursesWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
 
           {isWarm("messaging") && (
             <WorkspacePane
@@ -1257,7 +1348,7 @@ export default function InternalOperationsDashboard({
             activeView === "portfolio-dashboard" ||
             activeView === "portfolio-directory" ||
             activeView === "portfolio-company" ||
-            activeView === "portfolio-courses" ||
+            (activeView === "portfolio-courses" && !isBrowserTalantonImpactSurface()) ||
             activeView === "portfolio-course-management" ||
             activeView === "portfolio-my-training" ||
             activeView === "portfolio-compliance-dashboard" ||

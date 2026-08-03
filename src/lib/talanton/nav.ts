@@ -21,6 +21,9 @@ export const TALANTON_IMPACT_VIEWS = [
   "funds-stewards",
   "portfolio-courses",
   "portfolio-course-management",
+  "learning-library",
+  "training-certifications",
+  "company-progress",
 ] as const satisfies readonly InternalOperationsView[];
 
 export type TalantonImpactView = (typeof TALANTON_IMPACT_VIEWS)[number];
