@@ -3,13 +3,15 @@
 import { useMemo, useState } from "react";
 import { Check, Filter } from "lucide-react";
 
+import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
 import {
+  IMPACT_CATEGORIES,
   updateStoryStatus,
+  type ImpactCategory,
   type PortfolioStory,
   type StoryStatus,
 } from "@/lib/talanton/marketing-stories-store";
 import { cn } from "@/lib/utils";
-import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
 import {
   TalantonGeneratedPanel,
   TalantonImpactMetric,
@@ -51,6 +53,8 @@ export default function PortfolioStoriesWorkspace() {
   const store = useTalantonMarketingStoriesStore();
   const [statusFilter, setStatusFilter] = useState<StoryStatus | "all">("all");
   const [companyFilter, setCompanyFilter] = useState("all");
+  const [countryFilter, setCountryFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState<ImpactCategory | "all">("all");
 
   const companies = useMemo(() => {
     const map = new Map<string, string>();
@@ -58,12 +62,19 @@ export default function PortfolioStoriesWorkspace() {
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [store.stories]);
 
+  const countries = useMemo(
+    () => [...new Set(store.stories.map((s) => s.country))].sort(),
+    [store.stories],
+  );
+
   const filtered = useMemo(() => {
     return store.stories
       .filter((s) => (statusFilter === "all" ? true : s.status === statusFilter))
       .filter((s) => (companyFilter === "all" ? true : s.companyId === companyFilter))
+      .filter((s) => (countryFilter === "all" ? true : s.country === countryFilter))
+      .filter((s) => (categoryFilter === "all" ? true : s.impactCategory === categoryFilter))
       .sort((a, b) => Date.parse(b.submissionDate) - Date.parse(a.submissionDate));
-  }, [store.stories, statusFilter, companyFilter]);
+  }, [store.stories, statusFilter, companyFilter, countryFilter, categoryFilter]);
 
   const arcCount = store.stories.filter((s) => s.companyId === "ti-co-arc-ride").length;
   const digest = filtered
@@ -78,7 +89,7 @@ export default function PortfolioStoriesWorkspace() {
       <TalantonIntelligenceHeader
         moduleLabel="Marketing & Stories"
         title="Portfolio Stories"
-        description="Stories submitted by portfolio companies (including ARC Ride Stories & Impact) feed Marketing, Media Library, and Digital Newsletter once approved."
+        description="Central repository of stories submitted by portfolio companies — filter by company, country, status, and impact category. Approved stories feed Media Library and Digital Newsletter."
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -91,7 +102,9 @@ export default function PortfolioStoriesWorkspace() {
         />
         <TalantonImpactMetric
           label="Ready for newsletter"
-          value={store.stories.filter((s) => s.status === "Approved" || s.status === "Published").length}
+          value={
+            store.stories.filter((s) => s.status === "Approved" || s.status === "Published").length
+          }
         />
       </div>
 
@@ -100,21 +113,7 @@ export default function PortfolioStoriesWorkspace() {
           <Filter className="h-3.5 w-3.5" />
           Filters
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[11px] text-white/45">Status</span>
-            <select
-              className={selectClass}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as StoryStatus | "all")}
-            >
-              {STATUS_FILTERS.map((s) => (
-                <option key={s} value={s}>
-                  {s === "all" ? "All statuses" : s}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <label className="flex flex-col gap-1.5">
             <span className="text-[11px] text-white/45">Company</span>
             <select
@@ -130,6 +129,50 @@ export default function PortfolioStoriesWorkspace() {
               ))}
             </select>
           </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] text-white/45">Country</span>
+            <select
+              className={selectClass}
+              value={countryFilter}
+              onChange={(e) => setCountryFilter(e.target.value)}
+            >
+              <option value="all">All countries</option>
+              {countries.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] text-white/45">Status</span>
+            <select
+              className={selectClass}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StoryStatus | "all")}
+            >
+              {STATUS_FILTERS.map((s) => (
+                <option key={s} value={s}>
+                  {s === "all" ? "All statuses" : s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] text-white/45">Impact category</span>
+            <select
+              className={selectClass}
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value as ImpactCategory | "all")}
+            >
+              <option value="all">All categories</option>
+              {IMPACT_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </section>
 
@@ -141,9 +184,14 @@ export default function PortfolioStoriesWorkspace() {
               className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={cn("rounded-full border px-2 py-0.5 text-[10px]", statusClass(s.status))}>
+                    <span
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 text-[10px]",
+                        statusClass(s.status),
+                      )}
+                    >
                       {s.status}
                     </span>
                     <span className="text-[10px] uppercase tracking-wide text-white/40">
@@ -153,10 +201,23 @@ export default function PortfolioStoriesWorkspace() {
                   </div>
                   <h3 className="mt-2 text-base font-semibold text-white">{s.title}</h3>
                   <p className="mt-1 text-sm text-white/60">{s.summary}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-white/75">{s.fullStory}</p>
                   <p className="mt-2 text-xs text-white/40">
                     {s.impactCategory} · {s.photos.length} photos · {s.videos.length} videos ·{" "}
                     {s.attachments.length} attachments · by {s.submittedBy}
                   </p>
+                  {(s.photos.length > 0 || s.videos.length > 0 || s.attachments.length > 0) && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[...s.photos, ...s.videos, ...s.attachments].map((m) => (
+                        <span
+                          key={m.id}
+                          className="rounded-lg border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] text-white/55"
+                        >
+                          {m.mediaType}: {m.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <CopyToClipboardButton text={storyCopy(s)} />
               </div>
