@@ -18,7 +18,6 @@ import {
   archiveQuarterlyPortfolioUpdate,
   createQuarterlyPortfolioUpdate,
   deleteQuarterlyPortfolioUpdate,
-  downloadQuarterlyPortfolioUpdatePdf,
   duplicateQuarterlyPortfolioUpdate,
   periodLabel,
   regenerateQuarterlyPortfolioUpdate,
@@ -26,10 +25,10 @@ import {
   type QuarterlyPortfolioUpdate,
   type QuarterlyUpdateStatus,
 } from "@/lib/talanton/quarterly-portfolio-update-store";
+import { downloadQuarterlyPortfolioUpdatePdf } from "@/lib/talanton/quarterly-portfolio-update-pdf";
 import { cn } from "@/lib/utils";
 import {
   TalantonGeneratedPanel,
-  TalantonImpactMetric,
 } from "./talanton-intelligence-ui";
 import { useQuarterlyPortfolioUpdatesStore } from "./useQuarterlyPortfolioUpdatesStore";
 
@@ -45,6 +44,38 @@ const PortfolioCompanyMap = dynamic(() => import("./PortfolioCompanyMap"), {
 type Mode = "dashboard" | "create" | "viewer";
 
 const GREEN = "#1B8A5A";
+
+/** Light-report KPI card — dark ink on white/green (readable on green+white pages). */
+function ReportMetric({
+  label,
+  value,
+  hint,
+  tone = "default",
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  tone?: "default" | "watch" | "good";
+}) {
+  const valueClass =
+    tone === "watch"
+      ? "text-amber-700"
+      : tone === "good"
+        ? "text-[#1B8A5A]"
+        : "text-slate-900";
+
+  return (
+    <div className="rounded-xl border border-[#1B8A5A]/25 bg-white px-4 py-3.5 shadow-sm">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1B8A5A]/80">
+        {label}
+      </p>
+      <p className={cn("mt-2 text-2xl font-semibold tabular-nums tracking-tight", valueClass)}>
+        {value}
+      </p>
+      {hint ? <p className="mt-1 text-[11px] leading-snug text-slate-500">{hint}</p> : null}
+    </div>
+  );
+}
 
 const btnPrimary =
   "inline-flex items-center gap-1.5 rounded-full border border-[#1B8A5A]/40 bg-[#1B8A5A] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#167a4f]";
@@ -282,8 +313,9 @@ function ReportViewer({
             type="button"
             className={btnGhost}
             onClick={() => {
-              downloadQuarterlyPortfolioUpdatePdf(report);
-              flash("Exported portfolio update.");
+              void downloadQuarterlyPortfolioUpdatePdf(report).then(() =>
+                flash("Exported PDF."),
+              );
             }}
           >
             <Download className="h-3.5 w-3.5" />
@@ -348,30 +380,30 @@ function ReportViewer({
           <h2 className="text-2xl font-semibold text-slate-900">Quarter At A Glance</h2>
           <p className="mt-1 text-sm text-slate-500">{period} · Executive KPI summary</p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <TalantonImpactMetric
+            <ReportMetric
               label="Portfolio Companies"
               value={report.glance.portfolioCompanies}
             />
-            <TalantonImpactMetric label="Countries Active" value={report.glance.countriesActive} />
-            <TalantonImpactMetric
+            <ReportMetric label="Countries Active" value={report.glance.countriesActive} />
+            <ReportMetric
               label="Capital Raised"
               value={formatUsd(report.glance.capitalRaisedUsd)}
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Capital Deployed"
               value={formatUsd(report.glance.capitalDeployedUsd)}
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="People Served"
               value={report.glance.peopleServed.toLocaleString()}
               tone="good"
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Jobs Created"
               value={report.glance.jobsCreated.toLocaleString()}
             />
-            <TalantonImpactMetric label="New Investments" value={report.glance.newInvestments} />
-            <TalantonImpactMetric
+            <ReportMetric label="New Investments" value={report.glance.newInvestments} />
+            <ReportMetric
               label="Impact Health Score"
               value={`${report.glance.impactHealthScore}/100`}
               tone="watch"
@@ -473,24 +505,24 @@ function ReportViewer({
         <ReportPageShell page={5} total={total} title="Portfolio Performance">
           <h2 className="text-2xl font-semibold text-slate-900">Portfolio Performance</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <TalantonImpactMetric
+            <ReportMetric
               label="Portfolio Revenue"
               value={formatUsd(report.performance.portfolioRevenueUsd)}
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Revenue Growth"
               value={`${report.performance.revenueGrowthPct}%`}
               tone="good"
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Employee Growth"
               value={`${report.performance.employeeGrowthPct}%`}
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Capital Raised"
               value={formatUsd(report.performance.capitalRaisedUsd)}
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Capital Deployed"
               value={formatUsd(report.performance.capitalDeployedUsd)}
             />
@@ -515,28 +547,28 @@ function ReportViewer({
         <ReportPageShell page={6} total={total} title="Impact Overview">
           <h2 className="text-2xl font-semibold text-slate-900">Impact Overview</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <TalantonImpactMetric
+            <ReportMetric
               label="People Served"
               value={report.impact.peopleServed.toLocaleString()}
               tone="good"
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Jobs Created"
               value={report.impact.jobsCreated.toLocaleString()}
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Jobs Retained"
               value={report.impact.jobsRetained.toLocaleString()}
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Women Impacted"
               value={report.impact.womenImpacted.toLocaleString()}
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Youth Impacted"
               value={report.impact.youthImpacted.toLocaleString()}
             />
-            <TalantonImpactMetric
+            <ReportMetric
               label="Communities Reached"
               value={report.impact.communitiesReached.toLocaleString()}
             />
@@ -1005,8 +1037,9 @@ export default function QuarterlyPortfolioUpdateWorkspace() {
                   type="button"
                   className={btnGhost}
                   onClick={() => {
-                    downloadQuarterlyPortfolioUpdatePdf(r);
-                    flash("Exported PDF pack.");
+                    void downloadQuarterlyPortfolioUpdatePdf(r).then(() =>
+                      flash("Exported PDF."),
+                    );
                   }}
                 >
                   <Download className="h-3.5 w-3.5" />
