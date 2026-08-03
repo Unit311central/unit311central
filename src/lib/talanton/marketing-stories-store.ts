@@ -57,6 +57,11 @@ export type MediaLibraryItem = {
   /** Story that sourced this asset when applicable. */
   storyId: string | null;
   storyTitle: string | null;
+  /** Journey Stories tagging (optional). */
+  journeyStoryId?: string | null;
+  journeyTitle?: string | null;
+  country?: string | null;
+  author?: string | null;
 };
 
 export type NewsletterStatus = "draft" | "scheduled" | "sent";
@@ -69,6 +74,8 @@ export type StoriesNewsletter = {
   htmlBody: string;
   status: NewsletterStatus;
   selectedStoryIds: string[];
+  /** Journey Stories selected as newsletter sources. */
+  selectedJourneyStoryIds?: string[];
   recipientMode: RecipientMode;
   recipientContactIds: string[];
   manualEmails: string[];
@@ -705,6 +712,71 @@ export function ingestCompanyPortalStory(input: {
       : [next, ...state.stories],
   };
   refreshMediaFromStories();
+  emit();
+  return next;
+}
+
+/** Push Journey Story media into Media Library with journey tags. */
+export function ingestJourneyMediaToLibrary(input: {
+  journeyStoryId: string;
+  journeyTitle: string;
+  country: string;
+  author: string;
+  companyId: string;
+  companyName: string;
+  uploadDate: string;
+  assets: Array<{
+    id: string;
+    name: string;
+    mediaType: MediaType;
+    caption: string;
+  }>;
+}) {
+  const existingIds = new Set(
+    state.media.filter((m) => m.journeyStoryId === input.journeyStoryId).map((m) => m.id),
+  );
+  const incoming: MediaLibraryItem[] = input.assets.map((a) => ({
+    id: `journey-media-${a.id}`,
+    name: a.name,
+    mediaType: a.mediaType,
+    sourceCompanyId: input.companyId,
+    sourceCompanyName: input.companyName,
+    uploadDate: input.uploadDate,
+    caption: a.caption,
+    storyId: null,
+    storyTitle: null,
+    journeyStoryId: input.journeyStoryId,
+    journeyTitle: input.journeyTitle,
+    country: input.country,
+    author: input.author,
+  }));
+  const withoutPrior = state.media.filter((m) => m.journeyStoryId !== input.journeyStoryId);
+  const merged = [...incoming, ...withoutPrior].sort(
+    (a, b) => Date.parse(b.uploadDate) - Date.parse(a.uploadDate),
+  );
+  // Keep non-journey media and refreshed journey set
+  void existingIds;
+  state = { ...state, media: merged };
+  emit();
+}
+
+export function addJourneyStoryToNewsletter(journeyStoryId: string, newsletterId?: string) {
+  const target =
+    state.newsletters.find((n) => n.id === newsletterId) ??
+    state.newsletters.find((n) => n.status === "draft") ??
+    state.newsletters[0];
+  if (!target) return null;
+  const ids = new Set(target.selectedJourneyStoryIds ?? []);
+  ids.add(journeyStoryId);
+  const next: StoriesNewsletter = {
+    ...target,
+    selectedJourneyStoryIds: [...ids],
+    updatedAt: nowIso(),
+  };
+  state = {
+    ...state,
+    newsletters: state.newsletters.map((n) => (n.id === next.id ? next : n)),
+  };
   emit();
   return next;
 }

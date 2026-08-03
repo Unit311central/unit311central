@@ -127,7 +127,13 @@ export default function MediaLibraryWorkspace() {
               <p>
                 Source company · <span className="text-white/70">{item.sourceCompanyName}</span>
               </p>
-              {item.storyTitle ? (
+              {item.journeyTitle ? (
+                <p className="mt-1">
+                  Journey · <span className="text-white/65">{item.journeyTitle}</span>
+                  {item.country ? ` · ${item.country}` : ""}
+                  {item.author ? ` · ${item.author}` : ""}
+                </p>
+              ) : item.storyTitle ? (
                 <p className="mt-1">
                   From story · <span className="text-white/65">{item.storyTitle}</span>
                 </p>

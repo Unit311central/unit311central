@@ -14,6 +14,7 @@ import {
   CompanyPortalSharedDocuments,
   CompanyPortalSubmitReport,
   CompanyPortalSubmittedReports,
+  CompanyPortalTalantonUpdates,
   CompanyPortalTemplates,
   CompanyPortalTrainingCertificates,
   CompanyPortalTrainingCompleted,
@@ -196,6 +197,10 @@ export default async function CompanyPortalPage({
         <CompanyPortalStoriesImpact companyId={route.companyId} initialTab="impact-history" />
       </div>
     );
+  }
+
+  if (key === "updates") {
+    return <CompanyPortalTalantonUpdates />;
   }
 
   if (key === "documents") {

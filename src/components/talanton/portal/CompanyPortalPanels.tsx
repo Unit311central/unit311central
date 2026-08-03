@@ -502,3 +502,65 @@ export function CompanyPortalSharedDocuments({ companyId }: { companyId: string 
     </Panel>
   );
 }
+
+export function CompanyPortalTalantonUpdates() {
+  const [stories, setStories] = useState<
+    Array<{
+      id: string;
+      title: string;
+      country: string;
+      startDate: string;
+      summary: string;
+    }>
+  >([]);
+
+  useEffect(() => {
+    void import("@/lib/talanton/journey-stories-store").then((mod) => {
+      setStories(
+        mod.listJourneyStoriesForCompanyPortal().map((s) => ({
+          id: s.id,
+          title: s.title,
+          country: s.country,
+          startDate: s.startDate,
+          summary: s.generated.executiveSummary || s.generated.newsletterArticle,
+        })),
+      );
+    });
+  }, []);
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300/80">
+          Talanton Updates
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold text-white">Latest Journey Stories</h1>
+        <p className="mt-1 text-sm text-white/55">
+          Published field journeys from the Talanton investment team — stewardship updates shared
+          with portfolio companies.
+        </p>
+      </div>
+      <div className="space-y-3">
+        {stories.map((s) => (
+          <article
+            key={s.id}
+            className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
+          >
+            <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wide text-white/40">
+              <span>{s.country}</span>
+              <span>·</span>
+              <span>{s.startDate}</span>
+            </div>
+            <h2 className="mt-2 text-base font-semibold text-white">{s.title}</h2>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-white/60">
+              {s.summary}
+            </p>
+          </article>
+        ))}
+        {stories.length === 0 ? (
+          <p className="text-sm text-white/45">No published Talanton journey updates yet.</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}

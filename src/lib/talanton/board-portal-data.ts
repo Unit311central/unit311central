@@ -14,6 +14,7 @@ export type TiBoardPortalSection =
   | "minutes"
   | "risk"
   | "impact"
+  | "journeys"
   | "members";
 
 export const TI_BOARD_NAV: {
@@ -27,6 +28,7 @@ export const TI_BOARD_NAV: {
   { id: "minutes", label: "Minutes & Decisions", href: "/board/minutes" },
   { id: "risk", label: "Risk Register", href: "/board/risk" },
   { id: "impact", label: "Impact Intelligence", href: "/board/impact" },
+  { id: "journeys", label: "Journey Stories", href: "/board/journeys" },
   { id: "members", label: "Board Members", href: "/board/members" },
 ];
 
@@ -370,6 +372,7 @@ export function parseTiBoardPortalSection(
   if (key === "minutes" || key === "decisions") return "minutes";
   if (key === "risk" || key === "risks") return "risk";
   if (key === "impact" || key === "impact-intelligence") return "impact";
+  if (key === "journeys" || key === "journey-stories" || key === "stories") return "journeys";
   if (key === "members") return "members";
   if (key === "dashboard") return "dashboard";
   return null;

@@ -125,6 +125,7 @@ export type InternalOperationsView =
   | "impact-intelligence-company"
   | "opportunity-intelligence"
   | "portfolio-stories"
+  | "journey-stories"
   | "stories-newsletter"
   | "stories-media-library"
   | "stories-mailing-list"
@@ -345,6 +346,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "impact-intelligence-company",
   "opportunity-intelligence",
   "portfolio-stories",
+  "journey-stories",
   "stories-newsletter",
   "stories-media-library",
   "stories-mailing-list",
@@ -1094,6 +1096,10 @@ export const internalViewTitles: Record<
   },
   "portfolio-stories": {
     title: "Portfolio Stories",
+    subtitle: "Marketing & Stories",
+  },
+  "journey-stories": {
+    title: "Journey Stories",
     subtitle: "Marketing & Stories",
   },
   "stories-newsletter": {

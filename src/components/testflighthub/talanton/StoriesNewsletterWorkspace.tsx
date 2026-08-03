@@ -12,6 +12,7 @@ import {
   type RecipientMode,
   type StoriesNewsletter,
 } from "@/lib/talanton/marketing-stories-store";
+import { listJourneyStoriesForNewsletter } from "@/lib/talanton/journey-stories-store";
 import { cn } from "@/lib/utils";
 import { TalantonIntelligenceHeader } from "./talanton-intelligence-ui";
 import { useTalantonMarketingStoriesStore } from "./useTalantonMarketingStoriesStore";
@@ -22,6 +23,7 @@ type FormState = {
   subject: string;
   htmlBody: string;
   selectedStoryIds: string[];
+  selectedJourneyStoryIds: string[];
   recipientMode: RecipientMode;
   recipientContactIds: string[];
   manualEmailsText: string;
@@ -34,6 +36,7 @@ function emptyForm(): FormState {
     subject: "",
     htmlBody: "",
     selectedStoryIds: [],
+    selectedJourneyStoryIds: [],
     recipientMode: "all",
     recipientContactIds: [],
     manualEmailsText: "",
@@ -47,6 +50,7 @@ function formFromNewsletter(item: StoriesNewsletter): FormState {
     subject: item.subject,
     htmlBody: item.htmlBody,
     selectedStoryIds: item.selectedStoryIds,
+    selectedJourneyStoryIds: item.selectedJourneyStoryIds ?? [],
     recipientMode: item.recipientMode,
     recipientContactIds: item.recipientContactIds,
     manualEmailsText: item.manualEmails.join("\n"),
@@ -88,6 +92,7 @@ export default function StoriesNewsletterWorkspace() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const approvedStories = useMemo(() => listApprovedStoriesForNewsletter(), [store.stories]);
+  const journeySources = useMemo(() => listJourneyStoriesForNewsletter(), []);
 
   const sorted = useMemo(
     () =>
@@ -110,14 +115,48 @@ export default function StoriesNewsletterWorkspace() {
         ? current.selectedStoryIds.filter((id) => id !== storyId)
         : [...current.selectedStoryIds, storyId];
       const selected = approvedStories.filter((s) => selectedStoryIds.includes(s.id));
-      const blocks = selected.map(storyBlockHtml).join("");
+      const journeys = journeySources.filter((j) =>
+        current.selectedJourneyStoryIds.includes(j.id),
+      );
+      const blocks = [
+        ...selected.map(storyBlockHtml),
+        ...journeys.map(
+          (j) =>
+            `<h3>${j.title}</h3><p><em>${j.country} · ${j.startDate} · Journey Story</em></p><p>${j.generated.newsletterArticle.replace(/\n/g, "</p><p>")}</p>`,
+        ),
+      ].join("");
       const intro =
         current.htmlBody.trim().length > 0 && !current.htmlBody.includes("<h3>")
           ? current.htmlBody
-          : "<p>Dear partners,</p><p>Selected portfolio stories for this update:</p>";
+          : "<p>Dear partners,</p><p>Selected portfolio and journey stories for this update:</p>";
       return {
         ...current,
         selectedStoryIds,
+        htmlBody: `${intro}${blocks}<p>With gratitude,<br/>Talanton Impact</p>`,
+      };
+    });
+  }
+
+  function toggleJourney(journeyId: string) {
+    setForm((current) => {
+      const has = current.selectedJourneyStoryIds.includes(journeyId);
+      const selectedJourneyStoryIds = has
+        ? current.selectedJourneyStoryIds.filter((id) => id !== journeyId)
+        : [...current.selectedJourneyStoryIds, journeyId];
+      const selected = approvedStories.filter((s) => current.selectedStoryIds.includes(s.id));
+      const journeys = journeySources.filter((j) => selectedJourneyStoryIds.includes(j.id));
+      const blocks = [
+        ...selected.map(storyBlockHtml),
+        ...journeys.map(
+          (j) =>
+            `<h3>${j.title}</h3><p><em>${j.country} · ${j.startDate} · Journey Story</em></p><p>${j.generated.newsletterArticle.replace(/\n/g, "</p><p>")}</p>`,
+        ),
+      ].join("");
+      const intro =
+        "<p>Dear partners,</p><p>Selected portfolio and journey stories for this update:</p>";
+      return {
+        ...current,
+        selectedJourneyStoryIds,
         htmlBody: `${intro}${blocks}<p>With gratitude,<br/>Talanton Impact</p>`,
       };
     });
@@ -132,6 +171,7 @@ export default function StoriesNewsletterWorkspace() {
       htmlBody: form.htmlBody,
       status: "draft",
       selectedStoryIds: form.selectedStoryIds,
+      selectedJourneyStoryIds: form.selectedJourneyStoryIds,
       recipientMode: form.recipientMode,
       recipientContactIds: form.recipientContactIds,
       manualEmails: form.manualEmailsText
@@ -150,7 +190,7 @@ export default function StoriesNewsletterWorkspace() {
       <TalantonIntelligenceHeader
         moduleLabel="Marketing & Stories"
         title="Digital Newsletter"
-        description="Compose investor and stakeholder updates from approved portfolio stories — browse cleared content, select narratives, and send or save drafts."
+        description="Compose investor and stakeholder updates from Portfolio Stories, Journey Stories, and Impact Intelligence highlights."
         actions={
           <button type="button" className={primaryBtn} onClick={() => setForm(emptyForm())}>
             <Plus className="h-4 w-4" />
@@ -203,7 +243,9 @@ export default function StoriesNewsletterWorkspace() {
                 </div>
                 <p className="mt-1 truncate text-xs text-white/45">{item.subject}</p>
                 <p className="mt-1 text-[11px] text-white/35">
-                  {item.selectedStoryIds.length} stories · {formatWhen(item.updatedAt)}
+                  {item.selectedStoryIds.length} portfolio ·{" "}
+                  {(item.selectedJourneyStoryIds ?? []).length} journeys ·{" "}
+                  {formatWhen(item.updatedAt)}
                 </p>
               </button>
             ))
@@ -271,6 +313,50 @@ export default function StoriesNewsletterWorkspace() {
                           <p className="text-xs font-medium text-white/90">{story.title}</p>
                           <p className="mt-0.5 text-[11px] text-white/45">
                             {story.companyName} · {story.status}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">
+                Journey Stories
+              </p>
+              <p className="mt-1 text-xs text-white/45">
+                Field journeys from Harry and the investment team.
+              </p>
+              <div className="mt-3 grid max-h-48 gap-2 overflow-auto sm:grid-cols-2">
+                {journeySources.map((j) => {
+                  const selected = form.selectedJourneyStoryIds.includes(j.id);
+                  return (
+                    <button
+                      key={j.id}
+                      type="button"
+                      onClick={() => toggleJourney(j.id)}
+                      className={cn(
+                        "rounded-xl border px-3 py-2.5 text-left transition",
+                        selected
+                          ? "border-emerald-400/40 bg-emerald-500/10"
+                          : "border-white/10 bg-black/25 hover:border-white/20",
+                      )}
+                    >
+                      <div className="flex items-start gap-2">
+                        <span
+                          className={cn(
+                            "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                            selected
+                              ? "border-emerald-400/50 bg-emerald-500/30 text-emerald-100"
+                              : "border-white/20",
+                          )}
+                        >
+                          {selected ? <Check className="h-3 w-3" /> : null}
+                        </span>
+                        <div>
+                          <p className="text-xs font-medium text-white/90">{j.title}</p>
+                          <p className="mt-0.5 text-[11px] text-white/45">
+                            {j.country} · {j.author}
                           </p>
                         </div>
                       </div>
@@ -355,6 +441,7 @@ export default function StoriesNewsletterWorkspace() {
                     htmlBody: form.htmlBody,
                     status: "draft",
                     selectedStoryIds: form.selectedStoryIds,
+                    selectedJourneyStoryIds: form.selectedJourneyStoryIds,
                     recipientMode: form.recipientMode,
                     recipientContactIds: form.recipientContactIds,
                     manualEmails: form.manualEmailsText

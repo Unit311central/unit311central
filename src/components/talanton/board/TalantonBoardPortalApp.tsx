@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import BoardImpactIntelligencePage from "@/components/talanton/board/BoardImpactIntelligencePage";
+import BoardJourneyStoriesPage from "@/components/talanton/board/BoardJourneyStoriesPage";
 import { loadAbhiBoardPacks } from "@/lib/abhi/board-pack-record";
 import {
   TI_BOARD_MEETINGS,
@@ -26,6 +27,7 @@ import {
   type TiBoardPortalSection,
 } from "@/lib/talanton/board-portal-data";
 import { buildBoardImpactIntelligence } from "@/lib/talanton/board-impact-intelligence";
+import { listJourneyStoriesForBoard } from "@/lib/talanton/journey-stories-store";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -79,6 +81,7 @@ function Card({
 function BoardDashboard() {
   const snap = useMemo(() => getTiBoardDashboardSnapshot(), []);
   const impact = useMemo(() => buildBoardImpactIntelligence(), []);
+  const journeys = useMemo(() => listJourneyStoriesForBoard().slice(0, 4), []);
 
   return (
     <div className="space-y-5">
@@ -221,6 +224,33 @@ function BoardDashboard() {
               Open Impact Intelligence
             </Link>
           </div>
+        </Card>
+
+        <Card title="Latest Journey Stories" className="lg:col-span-2">
+          <ul className="space-y-3">
+            {journeys.map((j) => (
+              <li
+                key={j.id}
+                className="rounded-xl border border-white/8 bg-black/20 px-3 py-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-white">{j.title}</p>
+                  <span className="text-[10px] uppercase tracking-wide text-white/40">
+                    {j.country} · {j.startDate}
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-xs text-white/55">
+                  {j.generated.executiveSummary}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/board/journeys"
+            className="mt-3 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
+          >
+            Open Journey Stories →
+          </Link>
         </Card>
 
         <Card title="Strategic discussion topics">
@@ -556,6 +586,7 @@ export function TalantonBoardPortalApp({ section }: Props) {
   if (section === "minutes") return <BoardMinutes />;
   if (section === "risk") return <BoardRisk />;
   if (section === "impact") return <BoardImpactIntelligencePage />;
+  if (section === "journeys") return <BoardJourneyStoriesPage />;
   if (section === "members") return <BoardMembers />;
   return <BoardDashboard />;
 }

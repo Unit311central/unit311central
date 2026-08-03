@@ -10,6 +10,7 @@ import {
   HeartHandshake,
   Home,
   LogOut,
+  Sparkles,
 } from "lucide-react";
 
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/training", label: "Training", icon: GraduationCap },
   { href: "/reports", label: "Reports", icon: ClipboardList },
   { href: "/stories-impact", label: "Stories & Impact", icon: HeartHandshake },
+  { href: "/updates", label: "Talanton Updates", icon: Sparkles },
   { href: "/documents", label: "Documents", icon: FileText },
 ] as const;
 

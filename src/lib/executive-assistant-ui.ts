@@ -111,6 +111,15 @@ const CONTEXT_BY_VIEW: Partial<Record<string, ExecutiveAssistantPageContext>> = 
       "What needs editorial review this week?",
     ],
   },
+  "journey-stories": {
+    label: "Journey Stories",
+    suggestedPrompts: [
+      "Summarise the latest Kenya founder visit",
+      "Which journey stories are ready for the board?",
+      "Draft investor update from the Ghana growth visit",
+      "What should we pray for from recent journeys?",
+    ],
+  },
   "stories-newsletter": {
     label: "Digital Newsletter",
     suggestedPrompts: [

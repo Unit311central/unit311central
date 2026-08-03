@@ -12,6 +12,7 @@ export const TALANTON_IMPACT_VIEWS = [
   "impact-intelligence-company",
   "opportunity-intelligence",
   "portfolio-stories",
+  "journey-stories",
   "stories-newsletter",
   "stories-media-library",
   "stories-mailing-list",
@@ -115,6 +116,7 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
     color: "#1B8A5A",
     items: [
       { label: "Portfolio Stories", icon: "PenLine", view: "portfolio-stories" },
+      { label: "Journey Stories", icon: "MapPin", view: "journey-stories" },
       { label: "Digital Newsletter", icon: "Mail", view: "stories-newsletter" },
       { label: "Media Library", icon: "FolderOpen", view: "stories-media-library" },
       { label: "Mailing List Management", icon: "Users", view: "stories-mailing-list" },

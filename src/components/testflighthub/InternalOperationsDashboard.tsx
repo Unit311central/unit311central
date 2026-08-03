@@ -110,6 +110,13 @@ const PortfolioStoriesWorkspace = dynamic(
     ssr: false,
   },
 );
+const JourneyStoriesWorkspace = dynamic(
+  () => import("./talanton/JourneyStoriesWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading journey stories" />,
+    ssr: false,
+  },
+);
 const StoriesNewsletterWorkspace = dynamic(
   () => import("./talanton/StoriesNewsletterWorkspace"),
   {
@@ -1314,6 +1321,12 @@ export default function InternalOperationsDashboard({
           {activeView === "portfolio-stories" && (
             <WorkspaceErrorBoundary title="Portfolio Stories">
               <PortfolioStoriesWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "journey-stories" && (
+            <WorkspaceErrorBoundary title="Journey Stories">
+              <JourneyStoriesWorkspace />
             </WorkspaceErrorBoundary>
           )}
 
