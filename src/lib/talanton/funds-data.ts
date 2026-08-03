@@ -590,10 +590,9 @@ export function listCapitalCommitments(): CapitalCommitment[] {
 
 export function capitalCommitmentsSummary() {
   const rows = listCapitalCommitments();
-  const totalCommitted = rows.reduce((s, r) => s + r.amountUsd, 0);
   const overview = FUNDS_PLATFORM_OVERVIEW;
   return {
-    totalCommitted,
+    totalCommitted: overview.capitalCommittedUsd,
     totalDeployed: overview.capitalDeployedUsd,
     remainingCapital: overview.availableCapitalUsd,
     commitmentCount: rows.length,
