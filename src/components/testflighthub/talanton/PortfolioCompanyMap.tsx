@@ -1,13 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import L from "leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import { MapPin, X } from "lucide-react";
+import "leaflet/dist/leaflet.css";
 
 import {
+  AFRICA_MAP_BOUNDS,
   buildPortfolioMapMarkers,
   type PortfolioMapMarker,
 } from "@/lib/talanton/portfolio-map";
-import { cn } from "@/lib/utils";
+import { URBAN_MAP_ATTRIBUTION } from "@/lib/map-tiles";
+
+const CARTO_DARK_URL =
+  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+function markerIcon(active: boolean) {
+  const size = active ? 16 : 12;
+  const glow = active ? "0 0 16px rgba(52,211,153,0.95)" : "0 0 10px rgba(16,185,129,0.7)";
+  const fill = active ? "#6ee7b7" : "#10b981";
+  return L.divIcon({
+    className: "talanton-portfolio-marker",
+    html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:9999px;background:${fill};border:2px solid rgba(255,255,255,0.92);box-shadow:${glow};"></span>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
 
 function MarkerCard({
   marker,
@@ -17,7 +36,7 @@ function MarkerCard({
   onClose: () => void;
 }) {
   return (
-    <div className="absolute bottom-3 left-3 right-3 z-20 rounded-2xl border border-emerald-400/30 bg-[#07111f]/95 p-4 shadow-xl backdrop-blur sm:left-auto sm:right-3 sm:w-[22rem]">
+    <div className="pointer-events-auto absolute bottom-3 left-3 right-3 z-[500] rounded-2xl border border-emerald-400/30 bg-[#07111f]/95 p-4 shadow-xl backdrop-blur sm:left-auto sm:right-3 sm:w-[22rem]">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300/80">
@@ -61,19 +80,91 @@ function MarkerCard({
   );
 }
 
+function FitAfricaBounds() {
+  const map = useMap();
+
+  useEffect(() => {
+    map.fitBounds(AFRICA_MAP_BOUNDS, { padding: [24, 24], maxZoom: 5, animate: false });
+  }, [map]);
+
+  return null;
+}
+
+function PortfolioMarkers({
+  markers,
+  activeId,
+  onToggle,
+  onHover,
+}: {
+  markers: PortfolioMapMarker[];
+  activeId: string | null;
+  onToggle: (id: string) => void;
+  onHover: (id: string | null) => void;
+}) {
+  const map = useMap();
+  const layerRef = useRef<L.LayerGroup | null>(null);
+  const markerRefs = useRef<Map<string, L.Marker>>(new Map());
+
+  useEffect(() => {
+    layerRef.current?.remove();
+    markerRefs.current.clear();
+
+    const group = L.layerGroup();
+    markers.forEach((marker) => {
+      const pin = L.marker([marker.lat, marker.lng], {
+        icon: markerIcon(false),
+        riseOnHover: true,
+        title: `${marker.company} · ${marker.city}`,
+      });
+      pin.on("click", () => onToggle(marker.id));
+      pin.on("mouseover", () => onHover(marker.id));
+      pin.on("mouseout", () => onHover(null));
+      group.addLayer(pin);
+      markerRefs.current.set(marker.id, pin);
+    });
+
+    group.addTo(map);
+    layerRef.current = group;
+
+    return () => {
+      group.remove();
+      layerRef.current = null;
+      markerRefs.current.clear();
+    };
+  }, [map, markers, onToggle, onHover]);
+
+  useEffect(() => {
+    markerRefs.current.forEach((pin, id) => {
+      pin.setIcon(markerIcon(id === activeId));
+      pin.setZIndexOffset(id === activeId ? 1000 : 0);
+    });
+  }, [activeId, markers]);
+
+  return null;
+}
+
 /** Africa-centred portfolio map for Talanton Executive Home. */
 export default function PortfolioCompanyMap() {
   const markers = useMemo(() => buildPortfolioMapMarkers(), []);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
+  const toggleMarker = useCallback((id: string) => {
+    setActiveId((cur) => (cur === id ? null : id));
+  }, []);
+
   const active =
     markers.find((m) => m.id === activeId) ??
     markers.find((m) => m.id === hoveredId) ??
     null;
 
+  const countries = useMemo(
+    () => [...new Set(markers.map((m) => m.country))].sort().length,
+    [markers],
+  );
+
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#07111f]/60">
+    <section className="talanton-portfolio-map-shell overflow-hidden rounded-2xl border border-white/10 bg-[#07111f]/60">
       <header className="flex flex-wrap items-end justify-between gap-2 border-b border-white/10 px-4 py-3 sm:px-5">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">
@@ -81,7 +172,8 @@ export default function PortfolioCompanyMap() {
           </p>
           <h2 className="mt-0.5 text-lg font-semibold text-white">Portfolio Company Map</h2>
           <p className="mt-1 text-sm text-white/50">
-            {markers.length} holdings across Africa — hover or click a marker for company detail.
+            {markers.length} holdings across {countries} African countries — click a marker for
+            company detail.
           </p>
         </div>
         <p className="inline-flex items-center gap-1.5 text-xs text-white/45">
@@ -91,68 +183,35 @@ export default function PortfolioCompanyMap() {
       </header>
 
       <div className="relative aspect-[16/10] w-full sm:aspect-[21/10]">
-        {/* Atmospheric Africa frame */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse at 45% 48%, rgba(16,185,129,0.18) 0%, transparent 55%), linear-gradient(160deg, #0a1628 0%, #0c1f18 45%, #0a1524 100%)",
-          }}
-        />
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="absolute inset-0 h-full w-full opacity-40"
-          aria-hidden
+        <MapContainer
+          center={[2, 20]}
+          zoom={4}
+          minZoom={3}
+          maxZoom={12}
+          scrollWheelZoom
+          worldCopyJump={false}
+          attributionControl
+          className="absolute inset-0 h-full w-full"
+          style={{ background: "#0a1220" }}
         >
-          <defs>
-            <pattern id="ti-map-grid" width="5" height="5" patternUnits="userSpaceOnUse">
-              <path d="M 5 0 L 0 0 0 5" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.15" />
-            </pattern>
-          </defs>
-          <rect width="100" height="100" fill="url(#ti-map-grid)" />
-          {/* Simplified Africa outline (schematic) */}
-          <path
-            d="M42 12 C48 10 55 12 58 18 C62 22 64 28 63 34 C66 38 68 44 66 52 C64 60 60 66 55 70 C52 78 48 86 42 88 C36 86 32 78 30 70 C26 64 24 56 25 48 C24 40 26 32 30 26 C32 20 36 14 42 12 Z"
-            fill="rgba(16,185,129,0.12)"
-            stroke="rgba(52,211,153,0.35)"
-            strokeWidth="0.4"
+          <TileLayer attribution={URBAN_MAP_ATTRIBUTION} url={CARTO_DARK_URL} maxZoom={19} />
+          <FitAfricaBounds />
+          <PortfolioMarkers
+            markers={markers}
+            activeId={activeId}
+            onToggle={toggleMarker}
+            onHover={setHoveredId}
           />
-        </svg>
-
-        {markers.map((marker) => {
-          const isHot = marker.id === activeId || marker.id === hoveredId;
-          return (
-            <button
-              key={marker.id}
-              type="button"
-              title={`${marker.company} · ${marker.city}`}
-              aria-label={`${marker.company}, ${marker.city}, ${marker.country}`}
-              onMouseEnter={() => setHoveredId(marker.id)}
-              onMouseLeave={() => setHoveredId((id) => (id === marker.id ? null : id))}
-              onFocus={() => setHoveredId(marker.id)}
-              onBlur={() => setHoveredId((id) => (id === marker.id ? null : id))}
-              onClick={() => setActiveId((id) => (id === marker.id ? null : marker.id))}
-              className={cn(
-                "absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full transition-transform",
-                isHot ? "scale-125" : "hover:scale-110",
-              )}
-              style={{ left: `${marker.xPct}%`, top: `${marker.yPct}%` }}
-            >
-              <span
-                className={cn(
-                  "block h-3 w-3 rounded-full border-2 shadow-[0_0_12px_rgba(16,185,129,0.55)]",
-                  isHot
-                    ? "border-white bg-emerald-300"
-                    : "border-emerald-200/80 bg-emerald-500",
-                )}
-              />
-            </button>
-          );
-        })}
+        </MapContainer>
 
         {active ? (
-          <MarkerCard marker={active} onClose={() => setActiveId(null)} />
+          <MarkerCard
+            marker={active}
+            onClose={() => {
+              setActiveId(null);
+              setHoveredId(null);
+            }}
+          />
         ) : null}
       </div>
     </section>

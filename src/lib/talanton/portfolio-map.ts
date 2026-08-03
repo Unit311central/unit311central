@@ -18,34 +18,29 @@ export type PortfolioMapMarker = {
   staff: number;
   revenueLabel: string;
   companyPurpose: string;
-  /** 0–100 within the projected Africa/world map frame */
-  xPct: number;
-  yPct: number;
+  lat: number;
+  lng: number;
 };
 
-/** City → approximate position on an Africa-centred equirectangular frame. */
+/** City → approximate position (WGS84). */
 const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
-  Accra: { lat: 5.6, lng: -0.19 },
-  Nairobi: { lat: -1.29, lng: 36.82 },
-  Bujumbura: { lat: -3.38, lng: 29.36 },
-  Bukavu: { lat: -2.49, lng: 28.84 },
-  Kampala: { lat: 0.35, lng: 32.58 },
-  "Addis Ababa": { lat: 9.03, lng: 38.74 },
-  Eldoret: { lat: 0.51, lng: 35.27 },
-  Rubavu: { lat: -1.68, lng: 29.26 },
-  Masaka: { lat: -0.34, lng: 31.73 },
-  "Dar es Salaam": { lat: -6.79, lng: 39.28 },
+  Accra: { lat: 5.6037, lng: -0.187 },
+  Nairobi: { lat: -1.2921, lng: 36.8219 },
+  Bujumbura: { lat: -3.3614, lng: 29.3599 },
+  Bukavu: { lat: -2.4908, lng: 28.8428 },
+  Kampala: { lat: 0.3476, lng: 32.5825 },
+  "Addis Ababa": { lat: 9.032, lng: 38.7469 },
+  Eldoret: { lat: 0.5143, lng: 35.2698 },
+  Rubavu: { lat: -1.6847, lng: 29.2564 },
+  Masaka: { lat: -0.3411, lng: 31.7341 },
+  "Dar es Salaam": { lat: -6.7924, lng: 39.2083 },
 };
 
-/** Map Africa roughly into the visible frame (lng −20…55, lat −35…38). */
-function project(lat: number, lng: number): { xPct: number; yPct: number } {
-  const xPct = ((lng - -20) / (55 - -20)) * 100;
-  const yPct = ((38 - lat) / (38 - -35)) * 100;
-  return {
-    xPct: Math.min(96, Math.max(4, xPct)),
-    yPct: Math.min(94, Math.max(6, yPct)),
-  };
-}
+/** Default Africa frame for fitBounds / initial view. */
+export const AFRICA_MAP_BOUNDS: [[number, number], [number, number]] = [
+  [-35.5, -18.5],
+  [38.2, 52.5],
+];
 
 function purposeFor(company: PortfolioCompany): string {
   const first = company.overview.split(/[.!?]/)[0]?.trim();
@@ -53,11 +48,13 @@ function purposeFor(company: PortfolioCompany): string {
   return `${company.name} advances ${company.sector.toLowerCase()} outcomes across ${company.country}.`;
 }
 
-function jitter(index: number): { dx: number; dy: number } {
-  // Slight offset so stacked Nairobi markers remain clickable.
-  const ring = index % 7;
-  const angle = (ring / 7) * Math.PI * 2;
-  return { dx: Math.cos(angle) * 1.8, dy: Math.sin(angle) * 1.6 };
+/** Slight geographic offset so stacked city markers remain clickable. */
+function jitter(index: number): { dLat: number; dLng: number } {
+  if (index === 0) return { dLat: 0, dLng: 0 };
+  const ring = ((index - 1) % 8) + 1;
+  const angle = (ring / 8) * Math.PI * 2;
+  const radius = 0.12 + Math.floor((index - 1) / 8) * 0.08;
+  return { dLat: Math.sin(angle) * radius, dLng: Math.cos(angle) * radius };
 }
 
 export function buildPortfolioMapMarkers(): PortfolioMapMarker[] {
@@ -68,8 +65,7 @@ export function buildPortfolioMapMarkers(): PortfolioMapMarker[] {
     const n = cityCounts.get(key) ?? 0;
     cityCounts.set(key, n + 1);
     const coords = CITY_COORDS[company.city] ?? { lat: 0, lng: 25 };
-    const { xPct, yPct } = project(coords.lat, coords.lng);
-    const { dx, dy } = jitter(n);
+    const { dLat, dLng } = jitter(n);
 
     return {
       id: company.id,
@@ -80,8 +76,8 @@ export function buildPortfolioMapMarkers(): PortfolioMapMarker[] {
       staff: company.employeeCount,
       revenueLabel: formatUsd(company.annualRevenueUsd),
       companyPurpose: purposeFor(company),
-      xPct: Math.min(96, Math.max(4, xPct + dx)),
-      yPct: Math.min(94, Math.max(6, yPct + dy)),
+      lat: coords.lat + dLat,
+      lng: coords.lng + dLng,
     };
   });
 }
