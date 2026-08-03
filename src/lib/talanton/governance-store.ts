@@ -344,9 +344,13 @@ let meetings: GovernanceMeeting[] = SEED.map((m) => ({
   actions: m.actions.map((a) => ({ ...a })),
 }));
 
+/** Cached for useSyncExternalStore — must be referentially stable between emits. */
+let snapshot: { meetings: GovernanceMeeting[] } = { meetings };
+
 const listeners = new Set<Listener>();
 
 function emit() {
+  snapshot = { meetings };
   for (const l of listeners) l();
 }
 
@@ -356,7 +360,7 @@ export function subscribeTalantonGovernanceStore(listener: Listener) {
 }
 
 export function getTalantonGovernanceSnapshot() {
-  return { meetings };
+  return snapshot;
 }
 
 export function listMeetings(opts?: { includeArchived?: boolean }) {
