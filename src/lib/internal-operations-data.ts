@@ -124,6 +124,10 @@ export type InternalOperationsView =
   | "impact-intelligence-dashboard"
   | "impact-intelligence-company"
   | "opportunity-intelligence"
+  | "funds-dashboard"
+  | "funds-impact"
+  | "funds-momentum"
+  | "funds-stewards"
   | "portfolio-courses"
   | "portfolio-course-management"
   | "portfolio-my-training"
@@ -333,6 +337,10 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "impact-intelligence-dashboard",
   "impact-intelligence-company",
   "opportunity-intelligence",
+  "funds-dashboard",
+  "funds-impact",
+  "funds-momentum",
+  "funds-stewards",
   "portfolio-courses",
   "portfolio-course-management",
   "portfolio-my-training",
@@ -1062,6 +1070,10 @@ export const internalViewTitles: Record<
     title: "Company Impact",
     subtitle: "Talanton Intelligence · Impact Intelligence",
   },
+  "funds-dashboard": { title: "Fund Dashboard", subtitle: "Funds" },
+  "funds-impact": { title: "Impact Fund", subtitle: "Funds" },
+  "funds-momentum": { title: "Momentum Fund", subtitle: "Funds" },
+  "funds-stewards": { title: "Stewards Fund", subtitle: "Funds" },
   "opportunity-intelligence": {
     title: "Opportunity Intelligence",
     subtitle: "Talanton Intelligence",

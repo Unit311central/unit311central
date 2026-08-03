@@ -11,6 +11,10 @@ export const TALANTON_IMPACT_VIEWS = [
   "impact-intelligence-dashboard",
   "impact-intelligence-company",
   "opportunity-intelligence",
+  "funds-dashboard",
+  "funds-impact",
+  "funds-momentum",
+  "funds-stewards",
   "portfolio-courses",
   "portfolio-course-management",
 ] as const satisfies readonly InternalOperationsView[];
@@ -23,9 +27,21 @@ export function isTalantonImpactView(view: string | null | undefined): view is T
 
 /**
  * Prepended on Talanton host after pin items —
- * Portfolio Companies, Talanton Intelligence, Board.
+ * Funds, Portfolio Companies, Talanton Intelligence, Board.
  */
 export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
+  {
+    kind: "workspace",
+    label: "Funds",
+    icon: "Landmark",
+    color: "#1B8A5A",
+    items: [
+      { label: "Fund Dashboard", icon: "LayoutDashboard", view: "funds-dashboard" },
+      { label: "Impact Fund", icon: "Landmark", view: "funds-impact" },
+      { label: "Momentum Fund", icon: "BarChart3", view: "funds-momentum" },
+      { label: "Stewards Fund", icon: "ShieldCheck", view: "funds-stewards" },
+    ],
+  },
   {
     kind: "workspace",
     label: "Portfolio Companies",

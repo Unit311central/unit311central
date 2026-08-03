@@ -103,6 +103,13 @@ const OpportunityIntelligenceWorkspace = dynamic(
     ssr: false,
   },
 );
+const TalantonFundsWorkspace = dynamic(
+  () => import("./talanton/TalantonFundsWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading funds" />,
+    ssr: false,
+  },
+);
 import {
   AbhiCalendarEventsWorkspace,
   AbhiComplianceTrainingWorkspace,
@@ -1187,6 +1194,15 @@ export default function InternalOperationsDashboard({
           {activeView === "opportunity-intelligence" && (
             <WorkspaceErrorBoundary title="Opportunity Intelligence">
               <OpportunityIntelligenceWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {(activeView === "funds-dashboard" ||
+            activeView === "funds-impact" ||
+            activeView === "funds-momentum" ||
+            activeView === "funds-stewards") && (
+            <WorkspaceErrorBoundary title="Funds">
+              <TalantonFundsWorkspace view={activeView} />
             </WorkspaceErrorBoundary>
           )}
 
