@@ -304,7 +304,7 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvider";
-import { OnwardAirPlaceholderWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
+import { OnwardAirPlaceholderWorkspace, FundraisingDashboardWorkspace, OperationsDashboardWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
   "fleet",
@@ -1229,67 +1229,156 @@ export default function InternalOperationsDashboard({
             <TechnologyPlaceholderWorkspace module="settings" />
           )}
 
+          {activeView === "operations-dashboard" && <OperationsDashboardWorkspace />}
+
+          {activeView === "fundraising-dashboard" && <FundraisingDashboardWorkspace />}
+          {activeView === "fundraising-investors" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Investors"
+              group="Fundraising"
+              description="Investor relationship records, status, and timeline history."
+            />
+          )}
+          {activeView === "fundraising-pipeline" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Pipeline"
+              group="Fundraising"
+              description="Investor progression across fundraising stages — kanban and list views."
+            />
+          )}
+          {activeView === "fundraising-meetings" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Meetings"
+              group="Fundraising"
+              description="Investor meetings, discussion points, actions, and follow-ups."
+            />
+          )}
+          {activeView === "fundraising-pitch-decks" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Pitch Decks"
+              group="Fundraising"
+              description="Pitch deck versions, audiences, and status."
+            />
+          )}
+          {activeView === "fundraising-data-rooms" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Data Rooms"
+              group="Fundraising"
+              description="Investor data room packages and access tracking."
+            />
+          )}
+
+          {activeView === "oa-engineering-overview" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Engineering Overview"
+              group="Engineering"
+              description="Executive engineering status, program health, and key milestones."
+            />
+          )}
+          {activeView === "oa-programs-milestones" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Programs & Milestones"
+              group="Engineering"
+              description="Aircraft and product programs, milestones, gates, and RAG status."
+            />
+          )}
+          {activeView === "oa-team-capacity" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Team & Capacity"
+              group="Engineering"
+              description="Team allocation, resource planning, and capacity tracking."
+            />
+          )}
+          {activeView === "oa-supply-dependencies" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Supply & Dependencies"
+              group="Engineering"
+              description="Suppliers, long-lead items, dependencies, and blockers."
+            />
+          )}
+          {activeView === "oa-assurance-certification" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Assurance & Certification"
+              group="Engineering"
+              description="Certification readiness, evidence tracking, and compliance readiness."
+            />
+          )}
+          {activeView === "oa-engineering-risks" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Engineering Risks"
+              group="Engineering"
+              description="Engineering-scoped risks that feed Board Risk Management."
+            />
+          )}
+          {activeView === "oa-engineering-integrations" && (
+            <OnwardAirPlaceholderWorkspace
+              title="Integrations"
+              group="Engineering"
+              description="Connections to Jira, Azure DevOps, Excel, PLM, and external engineering systems — not a ticket tracker."
+            />
+          )}
+
           {activeView === "oa-test-plans" && (
             <OnwardAirPlaceholderWorkspace
               title="Test Plans"
               group="Engineering"
-              description="Define and maintain product test plans for OnwardAir releases."
+              description="Legacy placeholder retained for compatibility."
             />
           )}
           {activeView === "oa-test-runs" && (
             <OnwardAirPlaceholderWorkspace
               title="Test Runs"
               group="Engineering"
-              description="Execute and record test runs against active plans."
+              description="Legacy placeholder retained for compatibility."
             />
           )}
           {activeView === "oa-defects" && (
             <OnwardAirPlaceholderWorkspace
               title="Defects"
               group="Engineering"
-              description="Track defects discovered during engineering and UAT cycles."
+              description="Legacy placeholder retained for compatibility."
             />
           )}
           {activeView === "oa-uat-tracking" && (
             <OnwardAirPlaceholderWorkspace
               title="UAT Tracking"
               group="Engineering"
-              description="Coordinate user-acceptance testing progress and sign-off."
+              description="Legacy placeholder retained for compatibility."
             />
           )}
           {activeView === "oa-platform-health" && (
             <OnwardAirPlaceholderWorkspace
               title="Platform Health"
               group="Operations"
-              description="High-level health of OnwardAir platform services and dependencies."
+              description="Legacy placeholder retained for compatibility."
             />
           )}
           {activeView === "oa-monitoring" && (
             <OnwardAirPlaceholderWorkspace
               title="Monitoring"
               group="Operations"
-              description="Operational monitoring dashboards and alerting overview."
+              description="Legacy placeholder retained for compatibility."
             />
           )}
           {activeView === "oa-incident-management" && (
             <OnwardAirPlaceholderWorkspace
               title="Incident Management"
               group="Operations"
-              description="Incident intake, triage, and resolution workflow (placeholder)."
+              description="Legacy placeholder retained for compatibility."
             />
           )}
           {activeView === "oa-change-management" && (
             <OnwardAirPlaceholderWorkspace
               title="Change Management"
               group="Operations"
-              description="Change requests and approvals for platform releases."
+              description="Legacy placeholder retained for compatibility."
             />
           )}
           {activeView === "oa-release-tracking" && (
             <OnwardAirPlaceholderWorkspace
               title="Release Tracking"
               group="Operations"
-              description="Track release readiness, rollout, and post-release notes."
+              description="Legacy placeholder retained for compatibility."
             />
           )}
 

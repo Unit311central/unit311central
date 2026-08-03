@@ -827,37 +827,110 @@ const ONWARDAIR_BOARD_NAV_SECTION: InternalNavSection = {
   ],
 };
 
+const ONWARDAIR_FUNDRAISING_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "Fundraising",
+  icon: "Landmark",
+  color: "#F59E0B",
+  items: [
+    { label: "Dashboard", icon: "LayoutDashboard", view: "fundraising-dashboard" as const },
+    { label: "Investors", icon: "Users", view: "fundraising-investors" as const },
+    { label: "Pipeline", icon: "Target", view: "fundraising-pipeline" as const },
+    { label: "Meetings", icon: "CalendarDays", view: "fundraising-meetings" as const },
+    { label: "Pitch Decks", icon: "ScrollText", view: "fundraising-pitch-decks" as const },
+    { label: "Data Rooms", icon: "FolderOpen", view: "fundraising-data-rooms" as const },
+  ],
+};
+
 const ONWARDAIR_ENGINEERING_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Engineering",
   icon: "Cpu",
   color: "#38BDF8",
   items: [
-    { label: "Test Plans", icon: "ClipboardCheck", view: "oa-test-plans" as const },
-    { label: "Test Runs", icon: "FlaskConical", view: "oa-test-runs" as const },
-    { label: "Defects", icon: "AlertTriangle", view: "oa-defects" as const },
-    { label: "UAT Tracking", icon: "Users", view: "oa-uat-tracking" as const },
+    {
+      label: "Engineering Overview",
+      icon: "LayoutDashboard",
+      view: "oa-engineering-overview" as const,
+    },
+    {
+      label: "Programs & Milestones",
+      icon: "Target",
+      view: "oa-programs-milestones" as const,
+    },
+    {
+      label: "Team & Capacity",
+      icon: "Users",
+      view: "oa-team-capacity" as const,
+    },
+    {
+      label: "Supply & Dependencies",
+      icon: "Truck",
+      view: "oa-supply-dependencies" as const,
+    },
+    {
+      label: "Assurance & Certification",
+      icon: "ShieldCheck",
+      view: "oa-assurance-certification" as const,
+    },
+    {
+      label: "Engineering Risks",
+      icon: "AlertTriangle",
+      view: "oa-engineering-risks" as const,
+    },
+    {
+      label: "Integrations",
+      icon: "Plug",
+      view: "oa-engineering-integrations" as const,
+    },
   ],
 };
 
-const ONWARDAIR_OPERATIONS_NAV_SECTION: InternalNavSection = {
-  kind: "workspace",
-  label: "Operations",
-  icon: "Activity",
-  color: "#34D399",
-  items: [
-    { label: "Platform Health", icon: "Activity", view: "oa-platform-health" as const },
-    { label: "Monitoring", icon: "Radio", view: "oa-monitoring" as const },
-    { label: "Incident Management", icon: "AlertTriangle", view: "oa-incident-management" as const },
-    { label: "Change Management", icon: "Layers", view: "oa-change-management" as const },
-    { label: "Release Tracking", icon: "ScrollText", view: "oa-release-tracking" as const },
-  ],
-};
+const ONWARDAIR_TECH_HIDDEN_LABELS = new Set([
+  "Infrastructure & Cloud",
+  "Networks & Domains",
+  "Certificates & Identity",
+  "Security",
+  "Settings",
+]);
+
+function stripOnwardAirPlatformItems(section: InternalNavSection): InternalNavSection {
+  return {
+    ...section,
+    items: section.items
+      .map((item) => {
+        if (item.view === "unit311-details" || item.view === "module-go-live") return null;
+        if (item.label === "Unit311 Details") return null;
+        if (item.children?.length) {
+          const children = item.children.filter(
+            (child) =>
+              child.view !== "unit311-details" &&
+              child.view !== "module-go-live" &&
+              child.label !== "Unit311 Details" &&
+              child.label !== "Module Go-Live",
+          );
+          return { ...item, children };
+        }
+        return item;
+      })
+      .filter((item): item is NonNullable<typeof item> => item != null),
+  };
+}
 
 function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): InternalNavSection[] {
   const out: InternalNavSection[] = [];
   let insertedBoard = false;
+  let insertedFundraising = false;
+  let insertedEngineering = false;
+
   for (const section of sections) {
+    if (section.label === "Financials") {
+      out.push(stripOnwardAirPlatformItems(section));
+      out.push(ONWARDAIR_FUNDRAISING_NAV_SECTION);
+      insertedFundraising = true;
+      continue;
+    }
+
     if (section.label === "Corporate Information") {
       out.push({
         ...section,
@@ -873,31 +946,67 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
       });
       out.push(ONWARDAIR_BOARD_NAV_SECTION);
       insertedBoard = true;
-    } else {
+      continue;
+    }
+
+    if (section.label === "Technology Management") {
       out.push({
         ...section,
-        items: section.items
-          .map((item) => {
-            if (item.view === "unit311-details" || item.view === "module-go-live") return null;
-            if (item.label === "Unit311 Details") return null;
-            if (item.children?.length) {
-              const children = item.children.filter(
-                (child) =>
-                  child.view !== "unit311-details" &&
-                  child.view !== "module-go-live" &&
-                  child.label !== "Unit311 Details" &&
-                  child.label !== "Module Go-Live",
-              );
-              return { ...item, children };
-            }
-            return item;
-          })
-          .filter((item): item is NonNullable<typeof item> => item != null),
+        items: section.items.filter((item) => !ONWARDAIR_TECH_HIDDEN_LABELS.has(item.label)),
       });
+      continue;
+    }
+
+    if (section.label === "Operations") {
+      const cleaned = stripOnwardAirPlatformItems(section);
+      const hasDashboard = cleaned.items.some(
+        (item) => item.view === "operations-dashboard" || item.label === "Dashboard",
+      );
+      out.push({
+        ...cleaned,
+        items: hasDashboard
+          ? cleaned.items
+          : [
+              {
+                label: "Dashboard",
+                icon: "LayoutDashboard",
+                view: "operations-dashboard" as const,
+              },
+              ...cleaned.items,
+            ],
+      });
+      continue;
+    }
+
+    if (section.label === "Settings") {
+      out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
+      insertedEngineering = true;
+      out.push(stripOnwardAirPlatformItems(section));
+      continue;
+    }
+
+    out.push(stripOnwardAirPlatformItems(section));
+  }
+
+  if (!insertedFundraising) {
+    const financialsIdx = out.findIndex((s) => s.label === "Financials");
+    if (financialsIdx >= 0) {
+      out.splice(financialsIdx + 1, 0, ONWARDAIR_FUNDRAISING_NAV_SECTION);
+    } else {
+      out.push(ONWARDAIR_FUNDRAISING_NAV_SECTION);
     }
   }
   if (!insertedBoard) out.push(ONWARDAIR_BOARD_NAV_SECTION);
-  out.push(ONWARDAIR_ENGINEERING_NAV_SECTION, ONWARDAIR_OPERATIONS_NAV_SECTION);
+  if (!insertedEngineering) {
+    const settingsIdx = out.findIndex((s) => s.label === "Settings");
+    if (settingsIdx >= 0) {
+      out.splice(settingsIdx, 0, ONWARDAIR_ENGINEERING_NAV_SECTION);
+    } else {
+      out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
+    }
+  }
+
+  // Single Operations section only — do not append a second OnwardAir Operations overlay.
   return out.filter((section) => section.items.length > 0);
 }
 

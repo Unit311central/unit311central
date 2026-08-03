@@ -503,6 +503,15 @@ export default function EnterprisePlatformSidebar({
               );
               if (dashboard?.view) navigate(dashboard.view);
             }
+            // Operations landing: open Dashboard when present (OnwardAir + future tenants).
+            if (willOpen && section.label === "Operations") {
+              const dashboard = section.items.find(
+                (item) =>
+                  (item.label === "Dashboard" || item.view === "operations-dashboard") &&
+                  item.view,
+              );
+              if (dashboard?.view) navigate(dashboard.view);
+            }
           }}
           className="group flex w-full items-center gap-1.5 text-left"
           style={{ height: WORKSPACE_HEADER_H }}

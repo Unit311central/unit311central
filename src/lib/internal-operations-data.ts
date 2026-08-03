@@ -179,7 +179,21 @@ export type InternalOperationsView =
   | "oa-monitoring"
   | "oa-incident-management"
   | "oa-change-management"
-  | "oa-release-tracking";
+  | "oa-release-tracking"
+  | "operations-dashboard"
+  | "fundraising-dashboard"
+  | "fundraising-investors"
+  | "fundraising-pipeline"
+  | "fundraising-meetings"
+  | "fundraising-pitch-decks"
+  | "fundraising-data-rooms"
+  | "oa-engineering-overview"
+  | "oa-programs-milestones"
+  | "oa-team-capacity"
+  | "oa-supply-dependencies"
+  | "oa-assurance-certification"
+  | "oa-engineering-risks"
+  | "oa-engineering-integrations";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -406,6 +420,20 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "oa-incident-management",
   "oa-change-management",
   "oa-release-tracking",
+  "operations-dashboard",
+  "fundraising-dashboard",
+  "fundraising-investors",
+  "fundraising-pipeline",
+  "fundraising-meetings",
+  "fundraising-pitch-decks",
+  "fundraising-data-rooms",
+  "oa-engineering-overview",
+  "oa-programs-milestones",
+  "oa-team-capacity",
+  "oa-supply-dependencies",
+  "oa-assurance-certification",
+  "oa-engineering-risks",
+  "oa-engineering-integrations",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -435,10 +463,30 @@ export const TECHNOLOGY_NAV_VIEWS = [
 ] as const satisfies readonly InternalOperationsView[];
 
 export const ASSETS_NAV_VIEWS = [
+  "operations-dashboard",
   "assets",
   "inventory-management",
   "procurement",
   "logistics",
+] as const satisfies readonly InternalOperationsView[];
+
+export const FUNDRAISING_NAV_VIEWS = [
+  "fundraising-dashboard",
+  "fundraising-investors",
+  "fundraising-pipeline",
+  "fundraising-meetings",
+  "fundraising-pitch-decks",
+  "fundraising-data-rooms",
+] as const satisfies readonly InternalOperationsView[];
+
+export const OA_ENGINEERING_NAV_VIEWS = [
+  "oa-engineering-overview",
+  "oa-programs-milestones",
+  "oa-team-capacity",
+  "oa-supply-dependencies",
+  "oa-assurance-certification",
+  "oa-engineering-risks",
+  "oa-engineering-integrations",
 ] as const satisfies readonly InternalOperationsView[];
 
 export function isProjectsNavView(view: InternalOperationsView): boolean {
@@ -1210,6 +1258,20 @@ export const internalViewTitles: Record<
   "oa-incident-management": { title: "Incident Management", subtitle: "Operations" },
   "oa-change-management": { title: "Change Management", subtitle: "Operations" },
   "oa-release-tracking": { title: "Release Tracking", subtitle: "Operations" },
+  "operations-dashboard": { title: "Dashboard", subtitle: "Operations" },
+  "fundraising-dashboard": { title: "Dashboard", subtitle: "Fundraising" },
+  "fundraising-investors": { title: "Investors", subtitle: "Fundraising" },
+  "fundraising-pipeline": { title: "Pipeline", subtitle: "Fundraising" },
+  "fundraising-meetings": { title: "Meetings", subtitle: "Fundraising" },
+  "fundraising-pitch-decks": { title: "Pitch Decks", subtitle: "Fundraising" },
+  "fundraising-data-rooms": { title: "Data Rooms", subtitle: "Fundraising" },
+  "oa-engineering-overview": { title: "Engineering Overview", subtitle: "Engineering" },
+  "oa-programs-milestones": { title: "Programs & Milestones", subtitle: "Engineering" },
+  "oa-team-capacity": { title: "Team & Capacity", subtitle: "Engineering" },
+  "oa-supply-dependencies": { title: "Supply & Dependencies", subtitle: "Engineering" },
+  "oa-assurance-certification": { title: "Assurance & Certification", subtitle: "Engineering" },
+  "oa-engineering-risks": { title: "Engineering Risks", subtitle: "Engineering" },
+  "oa-engineering-integrations": { title: "Integrations", subtitle: "Engineering" },
 };
 
 /** Breadcrumb labels for the active internal leaf (section → … → page).
