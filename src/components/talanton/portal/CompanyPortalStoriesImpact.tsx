@@ -120,6 +120,11 @@ export function CompanyPortalStoriesImpact({ companyId, initialTab = "overview" 
   const stories = useMemo(() => listStoryHistory(companyId), [companyId, tick]);
   const reports = useMemo(() => listImpactReportHistory(companyId), [companyId, tick]);
   const trends = useMemo(() => impactReportTrendSeries(companyId), [companyId, tick]);
+  const featuredStory = useMemo(() => {
+    const rank = (s: ImpactStory) =>
+      s.status === "Approved" ? 0 : s.status === "Under Review" ? 1 : s.status === "Submitted" ? 2 : 3;
+    return [...stories].sort((a, b) => rank(a) - rank(b))[0] ?? null;
+  }, [stories]);
 
   const [storyDraft, setStoryDraft] = useState<ImpactStory>(() =>
     blankStory(companyId, companyName),
@@ -290,14 +295,14 @@ export function CompanyPortalStoriesImpact({ companyId, initialTab = "overview" 
             </ul>
           </section>
 
-          {stories[0] ? (
+          {featuredStory ? (
             <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
               <div className="grid gap-0 lg:grid-cols-[1.1fr_1fr]">
-                {stories[0].photos[0] ? (
+                {featuredStory.photos[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={stories[0].photos[0].url}
-                    alt={stories[0].photos[0].name}
+                    src={featuredStory.photos[0].url}
+                    alt={featuredStory.photos[0].name}
                     className="h-56 w-full object-cover lg:h-full"
                   />
                 ) : (
@@ -309,17 +314,19 @@ export function CompanyPortalStoriesImpact({ companyId, initialTab = "overview" 
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300/80">
                     Featured story
                   </p>
-                  <h3 className="mt-1 text-lg font-semibold text-white">{stories[0].title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/60">{stories[0].summary}</p>
+                  <h3 className="mt-1 text-lg font-semibold text-white">{featuredStory.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-white/60">{featuredStory.summary}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <span className={`rounded-full border px-2.5 py-0.5 text-[10px] ${statusClass(stories[0].status)}`}>
-                      {stories[0].status}
+                    <span
+                      className={`rounded-full border px-2.5 py-0.5 text-[10px] ${statusClass(featuredStory.status)}`}
+                    >
+                      {featuredStory.status}
                     </span>
                     <span className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] text-white/55">
-                      {stories[0].community}
+                      {featuredStory.community}
                     </span>
                     <span className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] text-white/55">
-                      {stories[0].impactCategory}
+                      {featuredStory.impactCategory}
                     </span>
                   </div>
                 </div>
