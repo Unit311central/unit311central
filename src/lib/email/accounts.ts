@@ -2,6 +2,7 @@ import type { EmailAccount, EmailAccountId, EmailMailboxFolder } from "@/lib/ema
 import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 
 import { resolveAccountCredentials } from "@/lib/email/credentials-service";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { isPlatformWorkspaceSlug } from "@/lib/workspace-brand";
 
 export const ZOHO_IMAP_HOST = process.env.ZOHO_IMAP_HOST?.trim() || "imap.zoho.eu";
@@ -36,8 +37,21 @@ const ACCOUNT_DEFINITIONS: readonly EmailAccount[] = [
 
 const ALL_ACCOUNT_IDS: readonly EmailAccountId[] = ["info", "paul", "admin", "demo"];
 
+/** Talanton Email shows only the shared demo mailbox (not full platform inboxes). */
+const TALANTON_EMAIL_ACCOUNT_IDS: readonly EmailAccountId[] = ["demo"];
+
 export function listEmailAccountIds(): readonly EmailAccountId[] {
   return ALL_ACCOUNT_IDS;
+}
+
+function accountsForIds(ids: readonly EmailAccountId[]): EmailAccount[] {
+  return ids
+    .map((id) => ACCOUNT_DEFINITIONS.find((account) => account.id === id))
+    .filter((account): account is EmailAccount => Boolean(account))
+    .map((account) => ({
+      ...account,
+      email: resolveAccountEmailFromEnv(account.id) ?? account.email,
+    }));
 }
 
 export function getPublicEmailAccounts(options?: {
@@ -45,18 +59,18 @@ export function getPublicEmailAccounts(options?: {
   workspaceSlug?: string | null;
 }): EmailAccount[] {
   // Platform Zoho mailboxes (info@ / paul@ / admin@ / demo@unit311central.com)
-  // are Internal/Demo only. Customer workspaces must not inherit them.
+  // are Internal/Demo by default. Talanton is allowed the demo mailbox only.
   void options?.demo;
   const slug = String(options?.workspaceSlug ?? "")
     .trim()
     .toLowerCase();
-  if (!isPlatformWorkspaceSlug(slug)) {
-    return [];
+  if (isPlatformWorkspaceSlug(slug)) {
+    return accountsForIds(ALL_ACCOUNT_IDS);
   }
-  return ACCOUNT_DEFINITIONS.map((account) => ({
-    ...account,
-    email: resolveAccountEmailFromEnv(account.id) ?? account.email,
-  }));
+  if (isTalantonImpactSlug(slug)) {
+    return accountsForIds(TALANTON_EMAIL_ACCOUNT_IDS);
+  }
+  return [];
 }
 
 export function getAccountDefinition(id: EmailAccountId): EmailAccount {

@@ -69,6 +69,10 @@ const DEFAULT_MAILBOXES: EmailAccountOption[] = [
   { id: "demo", email: "demo@unit311central.com", name: "Demo", configured: false },
 ];
 
+const TALANTON_MAILBOXES: EmailAccountOption[] = [
+  { id: "demo", email: "demo@unit311central.com", name: "Demo", configured: false },
+];
+
 function defaultMailboxesForHost(): EmailAccountOption[] {
   if (typeof window === "undefined") return [];
   try {
@@ -77,6 +81,13 @@ function defaultMailboxesForHost(): EmailAccountOption[] {
     const surface = resolveRuntimeSurface(window.location.hostname);
     // Platform Zoho mailboxes are Internal/Demo only — never customer tenants.
     if (surface === "internal" || surface === "demo") return DEFAULT_MAILBOXES;
+  } catch {
+    /* fall through */
+  }
+  try {
+    const { isBrowserTalantonImpactSurface } =
+      require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+    if (isBrowserTalantonImpactSurface()) return TALANTON_MAILBOXES;
   } catch {
     /* fall through */
   }
@@ -188,14 +199,26 @@ export default function InfoEmailWorkspace() {
 
   const [accounts, setAccounts] = useState<EmailAccountOption[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
-  const [selectedAccountId, setSelectedAccountId] = useState<EmailAccountId>(
-    deepLinkAccount === "info" ||
+  const [selectedAccountId, setSelectedAccountId] = useState<EmailAccountId>(() => {
+    if (
+      deepLinkAccount === "info" ||
       deepLinkAccount === "paul" ||
       deepLinkAccount === "admin" ||
       deepLinkAccount === "demo"
-      ? deepLinkAccount
-      : "info",
-  );
+    ) {
+      return deepLinkAccount;
+    }
+    try {
+      if (typeof window !== "undefined") {
+        const { isBrowserTalantonImpactSurface } =
+          require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+        if (isBrowserTalantonImpactSurface()) return "demo";
+      }
+    } catch {
+      /* fall through */
+    }
+    return "info";
+  });
   const [mailboxView, setMailboxView] = useState<MailboxView>("inbox");
   const [threads, setThreads] = useState<EmailThread[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -268,17 +291,20 @@ export default function InfoEmailWorkspace() {
         ? await readApiJson<Partial<Record<EmailAccountId, boolean>>>(statusResponse)
         : null;
 
-      // Defense in depth: never surface platform Zoho inboxes on customer hosts
-      // even if the accounts API misbehaves.
+      // Defense in depth: never surface full platform Zoho inboxes on customer hosts
+      // even if the accounts API misbehaves. Talanton is allowed demo@ only.
       const allowedDefaults = defaultMailboxesForHost();
+      const allowedEmails = new Set(
+        allowedDefaults.map((account) => String(account.email ?? "").toLowerCase()),
+      );
       const platformOnly = allowedDefaults.length === 0;
       const merged = filterRemovedMailboxes(
         data
           .filter((account) => {
+            const email = String(account.email ?? "").toLowerCase();
+            if (allowedEmails.size > 0) return allowedEmails.has(email);
             if (!platformOnly) return true;
-            return !String(account.email ?? "")
-              .toLowerCase()
-              .endsWith("@unit311central.com");
+            return !email.endsWith("@unit311central.com");
           })
           .map((account) => ({
             ...account,
