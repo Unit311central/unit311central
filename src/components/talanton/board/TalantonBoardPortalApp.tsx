@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   CalendarDays,
@@ -8,9 +9,11 @@ import {
   Download,
   FileText,
   Search,
+  Sparkles,
   Users,
 } from "lucide-react";
 
+import BoardImpactIntelligencePage from "@/components/talanton/board/BoardImpactIntelligencePage";
 import {
   TI_BOARD_MEETINGS,
   TI_BOARD_MEMBERS,
@@ -20,6 +23,7 @@ import {
   getTiDemoApprovedBoardPacks,
   type TiBoardPortalSection,
 } from "@/lib/talanton/board-portal-data";
+import { buildBoardImpactIntelligence } from "@/lib/talanton/board-impact-intelligence";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -52,6 +56,7 @@ function Card({
 
 function BoardDashboard() {
   const snap = useMemo(() => getTiBoardDashboardSnapshot(), []);
+  const impact = useMemo(() => buildBoardImpactIntelligence(), []);
 
   return (
     <div className="space-y-5">
@@ -63,7 +68,7 @@ function BoardDashboard() {
           Governance at a glance
         </h1>
         <p className="mt-1 text-sm text-white/55">
-          Next meeting, approved packs, actions, risks, and recent decisions.
+          Next meeting, approved packs, actions, risks, impact, and recent decisions.
         </p>
       </header>
 
@@ -146,6 +151,53 @@ function BoardDashboard() {
                 <p className="mt-0.5 text-xs text-white/45">{f.hint}</p>
               </div>
             ))}
+          </div>
+        </Card>
+
+        <Card title="Impact snapshot" className="lg:col-span-2">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/5 px-3 py-3">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-300/70">
+                  Impact Health Score
+                </p>
+                <p className="mt-1 text-xl font-semibold text-white">
+                  {impact.health.score}
+                  <span className="text-sm text-white/40">/100</span>
+                </p>
+                <p className="mt-0.5 text-xs text-white/45">{impact.health.band}</p>
+              </div>
+              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">Jobs Created</p>
+                <p className="mt-1 text-xl font-semibold text-white">
+                  {impact.summary.jobsCreated.toLocaleString()}
+                </p>
+                <p className="mt-0.5 text-xs text-white/45">Across portfolio holdings</p>
+              </div>
+              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">People Served</p>
+                <p className="mt-1 text-xl font-semibold text-white">
+                  {impact.summary.peopleServed.toLocaleString()}
+                </p>
+                <p className="mt-0.5 text-xs text-white/45">Beneficiaries reached</p>
+              </div>
+              <div className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-white/40">
+                  Countries Impacted
+                </p>
+                <p className="mt-1 text-xl font-semibold text-white">
+                  {impact.summary.countriesImpacted}
+                </p>
+                <p className="mt-0.5 text-xs text-white/45">Geographic footprint</p>
+              </div>
+            </div>
+            <Link
+              href="/board/impact"
+              className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:border-emerald-400/50 hover:bg-emerald-500/15"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Open Impact Intelligence
+            </Link>
           </div>
         </Card>
 
@@ -481,6 +533,7 @@ export function TalantonBoardPortalApp({ section }: Props) {
   if (section === "decks") return <BoardDecks />;
   if (section === "minutes") return <BoardMinutes />;
   if (section === "risk") return <BoardRisk />;
+  if (section === "impact") return <BoardImpactIntelligencePage />;
   if (section === "members") return <BoardMembers />;
   return <BoardDashboard />;
 }
