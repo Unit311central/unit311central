@@ -103,6 +103,34 @@ const OpportunityIntelligenceWorkspace = dynamic(
     ssr: false,
   },
 );
+const PortfolioStoriesWorkspace = dynamic(
+  () => import("./talanton/PortfolioStoriesWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading portfolio stories" />,
+    ssr: false,
+  },
+);
+const StoriesNewsletterWorkspace = dynamic(
+  () => import("./talanton/StoriesNewsletterWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading digital newsletter" />,
+    ssr: false,
+  },
+);
+const MediaLibraryWorkspace = dynamic(
+  () => import("./talanton/MediaLibraryWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading media library" />,
+    ssr: false,
+  },
+);
+const StoriesMailingListWorkspace = dynamic(
+  () => import("./talanton/StoriesMailingListWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading mailing list" />,
+    ssr: false,
+  },
+);
 const TalantonFundsWorkspace = dynamic(
   () => import("./talanton/TalantonFundsWorkspace"),
   {
@@ -1194,6 +1222,30 @@ export default function InternalOperationsDashboard({
           {activeView === "opportunity-intelligence" && (
             <WorkspaceErrorBoundary title="Opportunity Intelligence">
               <OpportunityIntelligenceWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "portfolio-stories" && (
+            <WorkspaceErrorBoundary title="Portfolio Stories">
+              <PortfolioStoriesWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "stories-newsletter" && (
+            <WorkspaceErrorBoundary title="Digital Newsletter">
+              <StoriesNewsletterWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "stories-media-library" && (
+            <WorkspaceErrorBoundary title="Media Library">
+              <MediaLibraryWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "stories-mailing-list" && (
+            <WorkspaceErrorBoundary title="Mailing List Management">
+              <StoriesMailingListWorkspace />
             </WorkspaceErrorBoundary>
           )}
 

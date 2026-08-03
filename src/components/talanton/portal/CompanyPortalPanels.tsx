@@ -135,8 +135,8 @@ export function CompanyPortalHome({ companyId }: { companyId: string }) {
       <div>
         <h1 className="text-2xl font-semibold text-white">{company.name}</h1>
         <p className="mt-1 text-sm text-white/55">
-          Complete compliance training, submit quarterly reports, and exchange documents with
-          Talanton.
+          Complete compliance training, submit quarterly reports, share impact stories and metrics,
+          and exchange documents with Talanton.
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">

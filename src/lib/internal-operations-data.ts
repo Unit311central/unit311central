@@ -124,6 +124,10 @@ export type InternalOperationsView =
   | "impact-intelligence-dashboard"
   | "impact-intelligence-company"
   | "opportunity-intelligence"
+  | "portfolio-stories"
+  | "stories-newsletter"
+  | "stories-media-library"
+  | "stories-mailing-list"
   | "funds-dashboard"
   | "funds-impact"
   | "funds-momentum"
@@ -337,6 +341,10 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "impact-intelligence-dashboard",
   "impact-intelligence-company",
   "opportunity-intelligence",
+  "portfolio-stories",
+  "stories-newsletter",
+  "stories-media-library",
+  "stories-mailing-list",
   "funds-dashboard",
   "funds-impact",
   "funds-momentum",
@@ -1077,6 +1085,22 @@ export const internalViewTitles: Record<
   "opportunity-intelligence": {
     title: "Opportunity Intelligence",
     subtitle: "Talanton Intelligence",
+  },
+  "portfolio-stories": {
+    title: "Portfolio Stories",
+    subtitle: "Marketing & Stories",
+  },
+  "stories-newsletter": {
+    title: "Digital Newsletter",
+    subtitle: "Marketing & Stories",
+  },
+  "stories-media-library": {
+    title: "Media Library",
+    subtitle: "Marketing & Stories",
+  },
+  "stories-mailing-list": {
+    title: "Mailing List Management",
+    subtitle: "Marketing & Stories",
   },
   "portfolio-courses": { title: "Portfolio Courses", subtitle: "Training" },
   "portfolio-course-management": {

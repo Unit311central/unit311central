@@ -20,6 +20,7 @@ import {
   CompanyPortalTrainingHub,
   CompanyPortalTrainingInProgress,
 } from "@/components/talanton/portal/CompanyPortalPanels";
+import { CompanyPortalStoriesImpact } from "@/components/talanton/portal/CompanyPortalStoriesImpact";
 import { parseTiBoardPortalSection } from "@/lib/talanton/board-portal-data";
 import { getCompanyPortalByPath } from "@/lib/talanton/company-portal-routes";
 
@@ -50,6 +51,14 @@ const TRAINING_SUBLINKS = [
   { href: "/training/in-progress", label: "In Progress" },
   { href: "/training/completed", label: "Completed" },
   { href: "/training/certificates", label: "Certificates" },
+] as const;
+
+const STORIES_IMPACT_SUBLINKS = [
+  { href: "/stories-impact", label: "Overview" },
+  { href: "/stories-impact/submit-story", label: "Submit Story" },
+  { href: "/stories-impact/story-history", label: "Story History" },
+  { href: "/stories-impact/report-impact", label: "Report Impact" },
+  { href: "/stories-impact/impact-history", label: "Impact History" },
 ] as const;
 
 export default async function CompanyPortalPage({
@@ -146,6 +155,47 @@ export default async function CompanyPortalPage({
   }
   if (key === "reports/submitted") {
     return <CompanyPortalSubmittedReports companyId={route.companyId} />;
+  }
+
+  if (key === "stories-impact") {
+    return (
+      <div>
+        <SubLinks base={base} items={[...STORIES_IMPACT_SUBLINKS]} />
+        <CompanyPortalStoriesImpact companyId={route.companyId} initialTab="overview" />
+      </div>
+    );
+  }
+  if (key === "stories-impact/submit-story") {
+    return (
+      <div>
+        <SubLinks base={base} items={[...STORIES_IMPACT_SUBLINKS]} />
+        <CompanyPortalStoriesImpact companyId={route.companyId} initialTab="story-form" />
+      </div>
+    );
+  }
+  if (key === "stories-impact/story-history") {
+    return (
+      <div>
+        <SubLinks base={base} items={[...STORIES_IMPACT_SUBLINKS]} />
+        <CompanyPortalStoriesImpact companyId={route.companyId} initialTab="story-history" />
+      </div>
+    );
+  }
+  if (key === "stories-impact/report-impact") {
+    return (
+      <div>
+        <SubLinks base={base} items={[...STORIES_IMPACT_SUBLINKS]} />
+        <CompanyPortalStoriesImpact companyId={route.companyId} initialTab="impact-form" />
+      </div>
+    );
+  }
+  if (key === "stories-impact/impact-history") {
+    return (
+      <div>
+        <SubLinks base={base} items={[...STORIES_IMPACT_SUBLINKS]} />
+        <CompanyPortalStoriesImpact companyId={route.companyId} initialTab="impact-history" />
+      </div>
+    );
   }
 
   if (key === "documents") {

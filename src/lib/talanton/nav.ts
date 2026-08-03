@@ -11,6 +11,10 @@ export const TALANTON_IMPACT_VIEWS = [
   "impact-intelligence-dashboard",
   "impact-intelligence-company",
   "opportunity-intelligence",
+  "portfolio-stories",
+  "stories-newsletter",
+  "stories-media-library",
+  "stories-mailing-list",
   "funds-dashboard",
   "funds-impact",
   "funds-momentum",
@@ -27,7 +31,7 @@ export function isTalantonImpactView(view: string | null | undefined): view is T
 
 /**
  * Prepended on Talanton host after pin items —
- * Funds, Portfolio Companies, Talanton Intelligence, Board.
+ * Funds, Portfolio Companies, Talanton Intelligence, Marketing & Stories, Board.
  */
 export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
   {
@@ -99,6 +103,18 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
         icon: "Lightbulb",
         view: "opportunity-intelligence",
       },
+    ],
+  },
+  {
+    kind: "workspace",
+    label: "Marketing & Stories",
+    icon: "PenLine",
+    color: "#1B8A5A",
+    items: [
+      { label: "Portfolio Stories", icon: "PenLine", view: "portfolio-stories" },
+      { label: "Digital Newsletter", icon: "Mail", view: "stories-newsletter" },
+      { label: "Media Library", icon: "FolderOpen", view: "stories-media-library" },
+      { label: "Mailing List Management", icon: "Users", view: "stories-mailing-list" },
     ],
   },
   {

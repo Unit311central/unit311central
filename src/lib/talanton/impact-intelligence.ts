@@ -3,6 +3,7 @@
  * Metrics are executive fixtures derived from holdings (not audited impact statements).
  */
 
+import { getLatestImpactReportForIntelligence } from "@/lib/talanton/company-stories-impact";
 import {
   formatUsd,
   TALANTON_PORTFOLIO_COMPANIES,
@@ -333,16 +334,21 @@ function buildAiCommentary(company: PortfolioCompany, score: number, trend: Impa
 export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfile {
   const company =
     TALANTON_PORTFOLIO_COMPANIES.find((c) => c.id === companyId) ?? TALANTON_PORTFOLIO_COMPANIES[0];
-  const womenPct = womenShare(company);
-  const youthPct = youthShare(company);
-  const jobsCreated = jobsCreatedFor(company);
-  const jobsRetained = jobsRetainedFor(company);
-  const womenEmployed = Math.round(company.employeeCount * womenPct);
-  const youthEmployed = Math.round(company.employeeCount * youthPct);
-  const peopleServed = peopleServedFor(company);
-  const communitiesImpacted = communitiesFor(company);
+  const submitted = getLatestImpactReportForIntelligence(company.id);
+  const womenPct = submitted
+    ? clamp(submitted.womenEmployed / Math.max(company.employeeCount, 1), 0.15, 0.75)
+    : womenShare(company);
+  const youthPct = submitted
+    ? clamp(submitted.youthEmployed / Math.max(company.employeeCount, 1), 0.12, 0.7)
+    : youthShare(company);
+  const jobsCreated = submitted?.jobsCreated ?? jobsCreatedFor(company);
+  const jobsRetained = submitted?.jobsRetained ?? jobsRetainedFor(company);
+  const womenEmployed = submitted?.womenEmployed ?? Math.round(company.employeeCount * womenPct);
+  const youthEmployed = submitted?.youthEmployed ?? Math.round(company.employeeCount * youthPct);
+  const peopleServed = submitted?.peopleServed ?? peopleServedFor(company);
+  const communitiesImpacted = submitted?.communitiesImpacted ?? communitiesFor(company);
   const economicContributionUsd = economicContributionFor(company);
-  const trend = impactTrend(company);
+  const trend = submitted ? ("Improving" as ImpactTrend) : impactTrend(company);
 
   const base = {
     companyId: company.id,
@@ -378,6 +384,9 @@ export function buildCompanyImpactProfile(companyId: string): CompanyImpactProfi
     `People served: ${peopleServed.toLocaleString()}`,
     `Communities impacted: ${communitiesImpacted}`,
     `Economic contribution: ${formatUsd(economicContributionUsd)}`,
+    submitted
+      ? `Source: Company portal impact report (${submitted.reportingPeriod}, ${submitted.status})`
+      : "Source: Portfolio impact model",
   ].join("\n");
 
   const risksText = [

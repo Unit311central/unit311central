@@ -102,6 +102,42 @@ const CONTEXT_BY_VIEW: Partial<Record<string, ExecutiveAssistantPageContext>> = 
       "Draft an opportunity assessment",
     ],
   },
+  "portfolio-stories": {
+    label: "Portfolio Stories",
+    suggestedPrompts: [
+      "Which stories are ready to publish?",
+      "Summarise recent portfolio company submissions",
+      "List stories by impact category",
+      "What needs editorial review this week?",
+    ],
+  },
+  "stories-newsletter": {
+    label: "Digital Newsletter",
+    suggestedPrompts: [
+      "Draft an investor update from approved stories",
+      "Which stories should go in the next newsletter?",
+      "Summarise newsletter send history",
+      "Suggest a subject line for LPs",
+    ],
+  },
+  "stories-media-library": {
+    label: "Media Library",
+    suggestedPrompts: [
+      "What media is available from Kenya holdings?",
+      "List recent video uploads",
+      "Which stories contributed media this quarter?",
+      "Find documents cleared for LP packs",
+    ],
+  },
+  "stories-mailing-list": {
+    label: "Mailing List Management",
+    suggestedPrompts: [
+      "Summarise the investor mailing list",
+      "Draft a supporter campaign",
+      "Who should receive the next LP brief?",
+      "List contacts by segment",
+    ],
+  },
   clients: {
     label: "Clients",
     suggestedPrompts: [

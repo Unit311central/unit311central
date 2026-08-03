@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FileText,
   GraduationCap,
+  HeartHandshake,
   Home,
   LogOut,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const NAV = [
   { href: "", label: "Home", icon: Home },
   { href: "/training", label: "Training", icon: GraduationCap },
   { href: "/reports", label: "Reports", icon: ClipboardList },
+  { href: "/stories-impact", label: "Stories & Impact", icon: HeartHandshake },
   { href: "/documents", label: "Documents", icon: FileText },
 ] as const;
 

@@ -7,6 +7,7 @@ import { Building2 } from "lucide-react";
 import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import { formatUsd } from "@/lib/talanton/portfolio-data";
+import { getLatestImpactReportForIntelligence } from "@/lib/talanton/company-stories-impact";
 import {
   buildCompanyImpactProfile,
   listCompanyImpactOptions,
@@ -41,6 +42,10 @@ export default function CompanyImpactWorkspace() {
 
   const companyId = resolveCompanyImpactId(searchParams.get("companyId"));
   const profile = useMemo(() => buildCompanyImpactProfile(companyId), [companyId]);
+  const portalReport = useMemo(
+    () => getLatestImpactReportForIntelligence(companyId),
+    [companyId],
+  );
 
   const selectCompany = useCallback(
     (nextId: string) => {
@@ -89,10 +94,21 @@ export default function CompanyImpactWorkspace() {
             </div>
             <p className="mt-1.5 text-xs text-white/40">
               {profile.sector} · {profile.country}
+              {portalReport
+                ? ` · Portal report ${portalReport.reportingPeriod} (${portalReport.status})`
+                : ""}
             </p>
           </div>
         }
       />
+
+      {portalReport ? (
+        <div className="rounded-xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          Metrics below incorporate the latest company portal impact submission (
+          {portalReport.reportingPeriod}). Same figures feed Board Portal Impact Intelligence and
+          portfolio analytics.
+        </div>
+      ) : null}
 
       <TalantonGeneratedPanel
         eyebrow="AI generated"
