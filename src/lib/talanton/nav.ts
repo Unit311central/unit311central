@@ -10,6 +10,7 @@ export const TALANTON_IMPACT_VIEWS = [
   "portfolio-intelligence-company",
   "impact-intelligence-dashboard",
   "impact-intelligence-company",
+  "annual-impact-report",
   "opportunity-intelligence",
   "portfolio-stories",
   "journey-stories",
@@ -105,6 +106,10 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
           {
             label: "Company Impact",
             view: "impact-intelligence-company",
+          },
+          {
+            label: "Annual Impact Report",
+            view: "annual-impact-report",
           },
         ],
       },

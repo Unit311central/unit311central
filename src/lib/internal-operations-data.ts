@@ -123,6 +123,7 @@ export type InternalOperationsView =
   | "portfolio-intelligence-company"
   | "impact-intelligence-dashboard"
   | "impact-intelligence-company"
+  | "annual-impact-report"
   | "opportunity-intelligence"
   | "portfolio-stories"
   | "journey-stories"
@@ -347,6 +348,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "portfolio-intelligence-company",
   "impact-intelligence-dashboard",
   "impact-intelligence-company",
+  "annual-impact-report",
   "opportunity-intelligence",
   "portfolio-stories",
   "journey-stories",
@@ -1090,6 +1092,10 @@ export const internalViewTitles: Record<
   },
   "impact-intelligence-company": {
     title: "Company Impact",
+    subtitle: "Talanton Intelligence · Impact Intelligence",
+  },
+  "annual-impact-report": {
+    title: "Annual Impact Report",
     subtitle: "Talanton Intelligence · Impact Intelligence",
   },
   "funds-dashboard": { title: "Fund Dashboard", subtitle: "Funds" },

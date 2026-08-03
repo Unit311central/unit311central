@@ -96,6 +96,13 @@ const CompanyImpactWorkspace = dynamic(
     ssr: false,
   },
 );
+const AnnualImpactReportWorkspace = dynamic(
+  () => import("./talanton/AnnualImpactReportWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading annual impact report" />,
+    ssr: false,
+  },
+);
 const OpportunityIntelligenceWorkspace = dynamic(
   () => import("./talanton/OpportunityIntelligenceWorkspace"),
   {
@@ -1309,6 +1316,12 @@ export default function InternalOperationsDashboard({
           {activeView === "impact-intelligence-company" && (
             <WorkspaceErrorBoundary title="Company Impact">
               <CompanyImpactWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "annual-impact-report" && (
+            <WorkspaceErrorBoundary title="Annual Impact Report">
+              <AnnualImpactReportWorkspace />
             </WorkspaceErrorBoundary>
           )}
 

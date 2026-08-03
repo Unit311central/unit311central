@@ -32,6 +32,11 @@ import {
   listJourneyStoriesForBoard,
   listJourneyStoriesForInvestors,
 } from "@/lib/talanton/journey-stories-store";
+import {
+  impactReportsAsBoardPackRows,
+  listImpactReportsForBoard,
+  periodLabel,
+} from "@/lib/talanton/annual-impact-report-store";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -90,6 +95,7 @@ function BoardDashboard() {
     () => listJourneyStoriesForInvestors().slice(0, 4),
     [],
   );
+  const impactReports = useMemo(() => listImpactReportsForBoard().slice(0, 3), []);
   const funds = useMemo(() => buildBoardFundSummary(), []);
 
   return (
@@ -278,6 +284,37 @@ function BoardDashboard() {
           </div>
         </Card>
 
+        <Card title="Latest Impact Reports" className="lg:col-span-2">
+          <ul className="space-y-3">
+            {impactReports.length === 0 ? (
+              <li className="text-sm text-white/50">No published impact reports yet.</li>
+            ) : (
+              impactReports.map((r) => (
+                <li
+                  key={r.id}
+                  className="rounded-xl border border-white/8 bg-black/20 px-3 py-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-white">{r.title}</p>
+                    <span className="text-[10px] uppercase tracking-wide text-white/40">
+                      {periodLabel(r.period)}
+                    </span>
+                  </div>
+                  <p className="mt-1 line-clamp-3 text-xs text-white/55">
+                    {r.summaries.executiveSummary}
+                  </p>
+                </li>
+              ))
+            )}
+          </ul>
+          <Link
+            href="/board/decks"
+            className="mt-3 inline-flex text-xs font-semibold text-emerald-200 hover:text-emerald-100"
+          >
+            Open Board Decks →
+          </Link>
+        </Card>
+
         <Card title="Related Journey Stories" className="lg:col-span-2">
           <ul className="space-y-3">
             {(investorJourneys.length > 0 ? investorJourneys : journeys).map((j) => (
@@ -422,59 +459,88 @@ function BoardMeetings() {
 
 function BoardDecks() {
   const packs = useApprovedPacks();
+  const impactPacks = useMemo(() => impactReportsAsBoardPackRows(), []);
+  const combined = useMemo(() => {
+    const seen = new Set(packs.map((p) => p.id));
+    const extras = impactPacks
+      .filter((p) => !seen.has(p.id))
+      .map(
+        (p): TiBoardPack => ({
+          id: p.id,
+          packName: p.packName,
+          meetingDate: p.meetingDate,
+          status: "Final",
+          createdAt: p.createdAt,
+          pdfOpenUrl: p.pdfOpenUrl,
+          pptxDownloadUrl: p.pptxDownloadUrl,
+        }),
+      );
+    return [...extras, ...packs];
+  }, [packs, impactPacks]);
 
   return (
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-white">Board Decks</h1>
         <p className="mt-1 text-sm text-white/55">
-          Approved board packs only. Draft packs are not visible to board members.
+          Approved board packs and published Annual Impact Reports. Draft packs are not visible to
+          board members.
         </p>
       </header>
       <div className="space-y-3">
-        {packs.map((pack) => (
-          <article
-            key={pack.id}
-            className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-white">{pack.packName}</h2>
-                <p className="mt-1 text-sm text-white/50">
-                  Meeting {pack.meetingDate} · Generated{" "}
-                  {new Date(pack.createdAt).toLocaleDateString("en-GB")}
-                </p>
+        {combined.map((pack) => {
+          const impactMeta = impactPacks.find((p) => p.id === pack.id);
+          return (
+            <article
+              key={pack.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">{pack.packName}</h2>
+                  <p className="mt-1 text-sm text-white/50">
+                    {impactMeta
+                      ? `Reporting period ${impactMeta.reportingPeriod}`
+                      : `Meeting ${pack.meetingDate}`}{" "}
+                    · Generated {new Date(pack.createdAt).toLocaleDateString("en-GB")}
+                  </p>
+                  {impactMeta ? (
+                    <p className="mt-2 line-clamp-3 text-sm text-white/60">
+                      {impactMeta.executiveSummary}
+                    </p>
+                  ) : null}
+                </div>
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-200">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {impactMeta ? "Impact Report" : "Approved"}
+                </span>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-200">
-                <CheckCircle2 className="h-3 w-3" />
-                Approved
-              </span>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href={pack.pdfOpenUrl || "#"}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Preview PDF
-              </a>
-              <a
-                href={pack.pdfOpenUrl || "#"}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download PDF
-              </a>
-              <a
-                href={pack.pptxDownloadUrl || "#"}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download PowerPoint
-              </a>
-            </div>
-          </article>
-        ))}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a
+                  href={pack.pdfOpenUrl || "#"}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  Preview PDF
+                </a>
+                <a
+                  href={pack.pdfOpenUrl || "#"}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download PDF
+                </a>
+                <a
+                  href={pack.pptxDownloadUrl || "#"}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/80 hover:bg-white/5"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download PowerPoint
+                </a>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </div>
   );

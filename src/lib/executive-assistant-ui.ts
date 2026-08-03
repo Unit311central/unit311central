@@ -93,6 +93,15 @@ const CONTEXT_BY_VIEW: Partial<Record<string, ExecutiveAssistantPageContext>> = 
       "What impact data is still missing?",
     ],
   },
+  "annual-impact-report": {
+    label: "Annual Impact Report",
+    suggestedPrompts: [
+      "Draft an executive summary for the latest annual impact report",
+      "Which portfolio highlights belong in the board pack?",
+      "Summarise country and sector impact for investors",
+      "What should Looking Forward emphasise for next year?",
+    ],
+  },
   "opportunity-intelligence": {
     label: "Opportunity Intelligence",
     suggestedPrompts: [
