@@ -305,7 +305,15 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvider";
-import { OnwardAirPlaceholderWorkspace, FundraisingDashboardWorkspace, OperationsDashboardWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
+import { OnwardAirPlaceholderWorkspace, OperationsDashboardWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
+import {
+  FundraisingDashboardWorkspace,
+  FundraisingDataRoomsWorkspace,
+  FundraisingInvestorsWorkspace,
+  FundraisingMeetingsWorkspace,
+  FundraisingPipelineWorkspace,
+  FundraisingPitchDecksWorkspace,
+} from "@/components/onwardair/FundraisingWorkspaces";
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
 import { OnwardAirCompetitorIntelligenceWorkspace } from "@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace";
 import OnwardAirMarketingEventsWorkspace from "@/components/onwardair/OnwardAirMarketingEventsWorkspace";
@@ -1266,41 +1274,11 @@ export default function InternalOperationsDashboard({
           {activeView === "operations-dashboard" && <OperationsDashboardWorkspace />}
 
           {activeView === "fundraising-dashboard" && <FundraisingDashboardWorkspace />}
-          {activeView === "fundraising-investors" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Investors"
-              group="Fundraising"
-              description="Investor relationship records, status, and timeline history."
-            />
-          )}
-          {activeView === "fundraising-pipeline" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Pipeline"
-              group="Fundraising"
-              description="Investor progression across fundraising stages — kanban and list views."
-            />
-          )}
-          {activeView === "fundraising-meetings" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Meetings"
-              group="Fundraising"
-              description="Investor meetings, discussion points, actions, and follow-ups."
-            />
-          )}
-          {activeView === "fundraising-pitch-decks" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Pitch Decks"
-              group="Fundraising"
-              description="Pitch deck versions, audiences, and status."
-            />
-          )}
-          {activeView === "fundraising-data-rooms" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Data Rooms"
-              group="Fundraising"
-              description="Investor data room packages and access tracking."
-            />
-          )}
+          {activeView === "fundraising-investors" && <FundraisingInvestorsWorkspace />}
+          {activeView === "fundraising-pipeline" && <FundraisingPipelineWorkspace />}
+          {activeView === "fundraising-meetings" && <FundraisingMeetingsWorkspace />}
+          {activeView === "fundraising-pitch-decks" && <FundraisingPitchDecksWorkspace />}
+          {activeView === "fundraising-data-rooms" && <FundraisingDataRoomsWorkspace />}
 
           {activeView === "oa-engineering-overview" && (
             <OnwardAirPlaceholderWorkspace
