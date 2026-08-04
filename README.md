@@ -27,6 +27,12 @@ Do **not** split this into multiple repositories for tenancy.
 - Supabase (Postgres + Storage) — project display name **Unit311 Central**
 - Vercel (hosting, cron, domains)
 
+## Laptop / folder recovery
+
+- **Code** — clone this repo from GitHub.
+- **Secrets (`.env.local`)** — pull from Vercel; never commit env files. See [docs/LOCAL_ENV_RECOVERY.md](./docs/LOCAL_ENV_RECOVERY.md).
+- **Agent chat history** — [backups/cursor-chat-history/](./backups/cursor-chat-history/).
+
 ## Repository map
 
 ```text

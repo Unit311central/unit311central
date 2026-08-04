@@ -13,6 +13,7 @@
 | [GITHUB_ARCHITECTURE.md](./GITHUB_ARCHITECTURE.md) | GitHub repository layout / modules / hygiene (source for generated diagrams) |
 | [TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md) | Debt register and hygiene notes |
 | [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md) | Production ship / rollback / schema baseline |
+| [LOCAL_ENV_RECOVERY.md](./LOCAL_ENV_RECOVERY.md) | Restore `.env.local` from Vercel after a new laptop / wipe |
 | [RELEASE_NOTES_RECOVERY_2026-07.md](./RELEASE_NOTES_RECOVERY_2026-07.md) | Jul 2026 recovery closeout release notes |
 | [diagrams/](./diagrams/) | Generated visuals from the workspace architecture doc |
 
