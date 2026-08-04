@@ -70,7 +70,8 @@ async function resolveRequestOrigin(): Promise<string> {
     const host = getRequestHost({ headers: requestHeaders });
     const slug = parseClientPlatformSubdomainSafe(host);
     if (slug) {
-      return customerWorkspaceOrigin(slug);
+      const origin = customerWorkspaceOrigin(slug);
+      if (origin) return origin;
     }
     if (host) {
       const proto =
