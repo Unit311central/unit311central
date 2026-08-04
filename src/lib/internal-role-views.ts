@@ -981,7 +981,7 @@ const ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION: InternalNavSection = {
   ],
 };
 
-/** Top-level Marketing & Events — placed directly under Operations on OnwardAir. */
+/** Top-level Marketing & Events — own LHS module (not nested under Operations). */
 const ONWARDAIR_MARKETING_EVENTS_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Marketing & Events",
@@ -1022,6 +1022,7 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
   let insertedEngineering = false;
   let insertedProjectManagement = false;
   let insertedIntelligence = false;
+  let insertedMarketing = false;
 
   for (const section of sections) {
     if (section.kind === "pin") {
@@ -1090,6 +1091,9 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
         ...section,
         items: section.items.filter((item) => item.label !== "Social" && item.view !== "social"),
       });
+      // Own top-level module — peer to Business Productivity / Financials, not under Operations.
+      out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
+      insertedMarketing = true;
       continue;
     }
 
@@ -1098,7 +1102,6 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
       const hasDashboard = cleaned.items.some(
         (item) => item.view === "operations-dashboard" || item.label === "Dashboard",
       );
-      // Strip any nested Marketing & Events leftovers; module is top-level below.
       const withoutNestedMarketing = (
         hasDashboard
           ? cleaned.items
@@ -1115,7 +1118,6 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
         ...cleaned,
         items: withoutNestedMarketing,
       });
-      out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
       out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
       insertedEngineering = true;
       continue;
@@ -1133,28 +1135,20 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
     }
   }
   if (!insertedBoard) out.push(ONWARDAIR_BOARD_NAV_SECTION);
+  if (!insertedMarketing) {
+    const productivityIdx = out.findIndex((s) => s.label === "Business Productivity");
+    if (productivityIdx >= 0) {
+      out.splice(productivityIdx + 1, 0, ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
+    } else {
+      out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
+    }
+  }
   if (!insertedEngineering) {
     const operationsIdx = out.findIndex((s) => s.label === "Operations");
     if (operationsIdx >= 0) {
-      const hasMarketing = out.some((s) => s.label === "Marketing & Events");
-      if (!hasMarketing) {
-        out.splice(operationsIdx + 1, 0, ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
-      }
-      const marketingIdx = out.findIndex((s) => s.label === "Marketing & Events");
-      const insertAt = marketingIdx >= 0 ? marketingIdx + 1 : operationsIdx + 1;
-      out.splice(insertAt, 0, ONWARDAIR_ENGINEERING_NAV_SECTION);
+      out.splice(operationsIdx + 1, 0, ONWARDAIR_ENGINEERING_NAV_SECTION);
     } else {
-      if (!out.some((s) => s.label === "Marketing & Events")) {
-        out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
-      }
       out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
-    }
-  } else if (!out.some((s) => s.label === "Marketing & Events")) {
-    const operationsIdx = out.findIndex((s) => s.label === "Operations");
-    if (operationsIdx >= 0) {
-      out.splice(operationsIdx + 1, 0, ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
-    } else {
-      out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
     }
   }
   if (!insertedProjectManagement) {
