@@ -6,17 +6,21 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { token?: string; otp?: string };
+    const body = (await request.json()) as { token?: string; email?: string; otp?: string };
 
-    if (!body.token?.trim() || !body.otp?.trim()) {
+    if (!body.otp?.trim()) {
+      return NextResponse.json({ error: "One-time code is required." }, { status: 400 });
+    }
+    if (!body.token?.trim() && !body.email?.trim()) {
       return NextResponse.json(
-        { error: "Reset token and one-time code are required." },
+        { error: "Reset token or email address is required." },
         { status: 400 },
       );
     }
 
     const result = await verifyPlatformPasswordResetOtp({
       token: body.token,
+      email: body.email,
       otp: body.otp,
     });
 

@@ -71,7 +71,7 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
       </p>
       <p style="margin:0 0 16px;font-size:15px;color:#334155;">
         We received a request to reset the password for ${escapeHtml(accountLabel)}.
-        Use the one-time code below, then open the link to continue.
+        Use the one-time code below on the reset page, or open the link and enter the code there.
         This expires in ${input.expiresInMinutes} minutes.
       </p>
       <p style="margin:0 0 8px;font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">
@@ -86,7 +86,7 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
         </a>
       </p>
       <p style="margin:0 0 16px;font-size:13px;color:#64748b;">
-        After you open the link, enter this code on the page, then choose a new password.
+        Enter this code on the password reset page, or open the link below and enter it there.
         If you did not request this, you can ignore this email.
       </p>
       <p style="margin:0;font-size:12px;color:#94a3b8;word-break:break-all;">
@@ -101,7 +101,7 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
     "",
     `We received a request to reset the password for ${accountLabel}.`,
     `Your one-time code is: ${input.otp}`,
-    `Open this link within ${input.expiresInMinutes} minutes, enter the code, then choose a new password:`,
+    `Enter that code on the reset page, or open this link within ${input.expiresInMinutes} minutes:`,
     input.resetUrl,
     "",
     "If you did not request this, you can ignore this email.",

@@ -43,7 +43,7 @@ function BrandMark({
   }
   if (brand === "talanton") return <TalantonLogoMark height={56} />;
   if (brand === "abhi") return <AbhiLogoMark height={50} tone="onDark" priority />;
-  if (brand === "onwardair") return <OnwardAirLogoMark height={72} maxWidth={400} priority />;
+  if (brand === "onwardair") return <OnwardAirLogoMark height={90} maxWidth={500} priority />;
   if (brand === "customer") {
     return (
       <div className="rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4">
@@ -79,12 +79,12 @@ export default function ResetPasswordPage({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token")?.trim() ?? "";
-  const hasToken = token.length > 0;
+  const tokenFromUrl = searchParams.get("token")?.trim() ?? "";
 
   const [step, setStep] = useState<"email" | "otp" | "password">(
-    hasToken ? "otp" : "email",
+    tokenFromUrl ? "otp" : "email",
   );
+  const [resetToken, setResetToken] = useState(tokenFromUrl);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
@@ -112,13 +112,15 @@ export default function ResetPasswordPage({
 
   const description = useMemo(() => {
     if (step === "otp") {
-      return "We sent a 6-digit code to your authorised email. Enter it below to continue.";
+      return resetToken
+        ? "We sent a 6-digit code to your authorised email. Enter it below to continue."
+        : `Enter the 6-digit code we sent to ${email || "your email"}. You can also open the reset link from that email.`;
     }
     if (step === "password") {
       return PLATFORM_PASSWORD_POLICY_HINT;
     }
-    return `Enter your authorised email address. We will send a one-time code and a link to reset your ${displayName} password.`;
-  }, [step, displayName]);
+    return `Enter your authorised email address. We will send a one-time code so you can reset your ${displayName} password.`;
+  }, [step, displayName, resetToken, email]);
 
   async function handleRequestReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -140,8 +142,10 @@ export default function ResetPasswordPage({
 
       setSuccess(
         data.message ??
-          "If an account matches that email address, we sent a one-time code and reset link.",
+          "If an account matches that email address, we sent a one-time code. Enter it below.",
       );
+      setOtp("");
+      setStep("otp");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to send reset email.");
     } finally {
@@ -159,14 +163,27 @@ export default function ResetPasswordPage({
       const response = await fetch("/api/auth/verify-reset-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, otp }),
+        body: JSON.stringify(
+          resetToken
+            ? { token: resetToken, otp }
+            : { email, otp },
+        ),
       });
 
-      const data = await readApiJson<{ message?: string; error?: string; verified?: boolean }>(
-        response,
-      );
+      const data = await readApiJson<{
+        message?: string;
+        error?: string;
+        verified?: boolean;
+        token?: string;
+      }>(response);
       if (!response.ok) {
         throw new Error(data.error ?? "Unable to verify code.");
+      }
+
+      if (data.token?.trim()) {
+        setResetToken(data.token.trim());
+      } else if (!resetToken) {
+        throw new Error("Unable to continue password reset. Please request a new code.");
       }
 
       setSuccess(data.message ?? "Code verified.");
@@ -188,7 +205,7 @@ export default function ResetPasswordPage({
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password, confirmPassword }),
+        body: JSON.stringify({ token: resetToken, password, confirmPassword }),
       });
 
       const data = await readApiJson<{ message?: string; error?: string }>(response);
@@ -330,6 +347,22 @@ export default function ResetPasswordPage({
               <button type="submit" disabled={busy || otp.length !== 6} className={buttonClass}>
                 {busy ? "Verifying…" : "Submit code"}
               </button>
+
+              {!tokenFromUrl ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setStep("email");
+                    setOtp("");
+                    setError(null);
+                    setSuccess(null);
+                  }}
+                  className="w-full text-center text-sm font-medium text-[#93c5fd]/90 transition-colors hover:text-[#bfdbfe] hover:underline"
+                >
+                  Use a different email
+                </button>
+              ) : null}
             </form>
           ) : (
             <form onSubmit={handleRequestReset} className="space-y-7">

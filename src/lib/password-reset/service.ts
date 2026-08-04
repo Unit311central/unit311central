@@ -258,30 +258,63 @@ export async function requestPlatformPasswordReset(input: { email: string }) {
 }
 
 export async function verifyPlatformPasswordResetOtp(input: {
-  token: string;
+  token?: string;
+  email?: string;
   otp: string;
 }) {
   await ensurePlatformPasswordResetTokensTable();
   await ensureOtpColumns();
 
-  const token = input.token.trim();
   const otp = input.otp.trim();
-  if (!token) throw new Error("Reset link is invalid or has expired.");
   if (!/^\d{6}$/.test(otp)) throw new Error("Enter the 6-digit code from your email.");
 
-  const tokenHash = hashResetToken(token);
+  const token = input.token?.trim() ?? "";
+  const email = normalizeEmail(input.email ?? "");
+  if (!token && !email) {
+    throw new Error("Reset link is invalid or has expired.");
+  }
+
   const otpHash = hashOtp(otp);
 
   return withPlatformPasswordResetTokensTable(async () => {
     const supabase = requireSupabase();
 
-    const { data: tokenRow, error: tokenError } = await supabase
-      .from("platform_password_reset_tokens")
-      .select("id, expires_at, used_at, otp_hash, otp_verified_at, otp_attempts")
-      .eq("token_hash", tokenHash)
-      .maybeSingle();
+    let tokenRow: {
+      id: string;
+      expires_at: string;
+      used_at: string | null;
+      otp_hash: string | null;
+      otp_verified_at: string | null;
+      otp_attempts: number | null;
+      token_hash?: string;
+    } | null = null;
 
-    if (tokenError) throw new Error(tokenError.message);
+    if (token) {
+      const tokenHash = hashResetToken(token);
+      const { data, error: tokenError } = await supabase
+        .from("platform_password_reset_tokens")
+        .select("id, expires_at, used_at, otp_hash, otp_verified_at, otp_attempts, token_hash")
+        .eq("token_hash", tokenHash)
+        .maybeSingle();
+      if (tokenError) throw new Error(tokenError.message);
+      tokenRow = data;
+    } else {
+      const user = await findUserForPasswordResetByEmail(email);
+      if (!user) {
+        throw new Error("That code is incorrect. Check your email and try again.");
+      }
+      const { data, error: tokenError } = await supabase
+        .from("platform_password_reset_tokens")
+        .select("id, expires_at, used_at, otp_hash, otp_verified_at, otp_attempts, token_hash")
+        .eq("platform_user_id", user.id)
+        .is("used_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (tokenError) throw new Error(tokenError.message);
+      tokenRow = data;
+    }
+
     if (!tokenRow || tokenRow.used_at) {
       throw new Error("Reset link is invalid or has expired.");
     }
@@ -289,32 +322,49 @@ export async function verifyPlatformPasswordResetOtp(input: {
       throw new Error("Reset link has expired. Please request a new one.");
     }
 
-    if (tokenRow.otp_verified_at) {
-      return { message: "Code verified. Choose your new password.", verified: true as const };
-    }
-
     const attempts = Number(tokenRow.otp_attempts ?? 0);
     if (attempts >= 5) {
       throw new Error("Too many incorrect codes. Please request a new reset email.");
     }
 
-    if (!tokenRow.otp_hash || String(tokenRow.otp_hash) !== otpHash) {
-      await supabase
-        .from("platform_password_reset_tokens")
-        .update({ otp_attempts: attempts + 1 })
-        .eq("id", tokenRow.id);
-      throw new Error("That code is incorrect. Check your email and try again.");
+    if (!tokenRow.otp_verified_at) {
+      if (!tokenRow.otp_hash || String(tokenRow.otp_hash) !== otpHash) {
+        await supabase
+          .from("platform_password_reset_tokens")
+          .update({ otp_attempts: attempts + 1 })
+          .eq("id", tokenRow.id);
+        throw new Error("That code is incorrect. Check your email and try again.");
+      }
     }
 
+    // Same-page email+OTP flow has no URL token yet — rotate to a continuation token
+    // the client can use for the password step (proves mailbox access via OTP).
+    let continuationToken = token || "";
     const now = new Date().toISOString();
-    const { error: verifyError } = await supabase
-      .from("platform_password_reset_tokens")
-      .update({ otp_verified_at: now, otp_attempts: attempts })
-      .eq("id", tokenRow.id);
+    if (!continuationToken) {
+      continuationToken = createResetTokenValue();
+      const { error: rotateError } = await supabase
+        .from("platform_password_reset_tokens")
+        .update({
+          token_hash: hashResetToken(continuationToken),
+          otp_verified_at: now,
+          otp_attempts: attempts,
+        })
+        .eq("id", tokenRow.id);
+      if (rotateError) throw new Error(rotateError.message);
+    } else if (!tokenRow.otp_verified_at) {
+      const { error: verifyError } = await supabase
+        .from("platform_password_reset_tokens")
+        .update({ otp_verified_at: now, otp_attempts: attempts })
+        .eq("id", tokenRow.id);
+      if (verifyError) throw new Error(verifyError.message);
+    }
 
-    if (verifyError) throw new Error(verifyError.message);
-
-    return { message: "Code verified. Choose your new password.", verified: true as const };
+    return {
+      message: "Code verified. Choose your new password.",
+      verified: true as const,
+      token: continuationToken,
+    };
   });
 }
 
