@@ -97,7 +97,16 @@ async function resolveWorkspaceSlug(workspaceId: string): Promise<string> {
       .select("slug")
       .eq("id", workspaceId)
       .maybeSingle();
-    return String(data?.slug ?? "")
+    const fromDb = String(data?.slug ?? "")
+      .trim()
+      .toLowerCase();
+    if (fromDb) return fromDb;
+  } catch {
+    /* fall through */
+  }
+  try {
+    const { getCurrentWorkspace } = await import("@/lib/workspace-context");
+    return String((await getCurrentWorkspace())?.slug ?? "")
       .trim()
       .toLowerCase();
   } catch {
@@ -360,8 +369,10 @@ export async function getFinancialOverview(
     const allExpenses = expensesResult.ok ? expensesResult.value : [];
 
     // Resolve after GL so we can fall back to Wise GL accounts if Wise API is down.
-    // CorpCentre / ABHI use fixed cash fixtures (not platform Wise).
-    const workspaceSlug = await resolveWorkspaceSlug(workspaceId);
+    // CorpCentre / ABHI / OnwardAir use fixed cash fixtures (not platform Wise).
+    const workspaceSlug =
+      String(scope?.workspaceSlug ?? "").trim().toLowerCase() ||
+      (await resolveWorkspaceSlug(workspaceId));
     if (isAbhiWorkspaceSlug(workspaceSlug)) {
       const abhiRevenue = getAbhiMonthlyRevenueSeries();
       charts = {

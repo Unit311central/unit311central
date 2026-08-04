@@ -1,6 +1,9 @@
 /**
  * OnwardAir Financials seed — USD COA, opening cash, grant AR, supplier AP, staff expenses.
  * OA workspace only. Idempotent via marker journal source_id.
+ *
+ * Core (COA + $1M cash) is fast. Transactional detail is heavier and must not
+ * block the Financials overview API (client aborts at ~20s).
  */
 
 import "server-only";
@@ -9,7 +12,7 @@ import { randomUUID } from "node:crypto";
 
 import { ACCOUNT_CODES, CHART_OF_ACCOUNTS_SEED } from "@/lib/accounting/chart-of-accounts";
 import { createAndPostJournal } from "@/lib/accounting/journal-service";
-import { postExpenseJournal, postInvoiceIssueJournal } from "@/lib/accounting/posting-rules";
+import { postInvoiceIssueJournal } from "@/lib/accounting/posting-rules";
 import {
   ONWARDAIR_CASH_BALANCE_USD,
   ONWARDAIR_CAPITAL_RAISED_USD,
@@ -22,9 +25,10 @@ import {
   isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
 
-export const OA_FINANCIALS_SEED_VERSION = "oa-fin-v1";
-const MARKER_SOURCE_TYPE = "manual";
-const MARKER_SOURCE_ID = OA_FINANCIALS_SEED_VERSION;
+export const OA_FINANCIALS_SEED_VERSION = "oa-fin-v2";
+const CORE_SOURCE_TYPE = "manual";
+const CORE_SOURCE_ID = `${OA_FINANCIALS_SEED_VERSION}-core`;
+const DETAILS_SOURCE_ID = `${OA_FINANCIALS_SEED_VERSION}-details`;
 
 const OA_COA_NAMES: Record<string, { name: string; currency: string | null }> = {
   "1000": { name: "Operating Cash USD", currency: "USD" },
@@ -264,14 +268,14 @@ async function resolveSlug(workspaceId: string): Promise<string> {
     .toLowerCase();
 }
 
-async function hasMarker(workspaceId: string): Promise<boolean> {
+async function hasJournalMarker(workspaceId: string, sourceId: string): Promise<boolean> {
   const supabase = adminClient();
   const { data } = await supabase
     .from("journal_entries")
     .select("id")
     .eq("workspace_id", workspaceId)
-    .eq("source_type", MARKER_SOURCE_TYPE)
-    .eq("source_id", MARKER_SOURCE_ID)
+    .eq("source_type", CORE_SOURCE_TYPE)
+    .eq("source_id", sourceId)
     .maybeSingle();
   return Boolean(data?.id);
 }
@@ -279,7 +283,6 @@ async function hasMarker(workspaceId: string): Promise<boolean> {
 async function wipeWorkspaceFinancials(workspaceId: string): Promise<void> {
   const supabase = adminClient();
 
-  // Expenses may reference journals — clear first.
   await supabase.from("financial_expenses").delete().eq("workspace_id", workspaceId);
   await supabase.from("invoices").delete().eq("workspace_id", workspaceId);
 
@@ -289,7 +292,6 @@ async function wipeWorkspaceFinancials(workspaceId: string): Promise<void> {
     .eq("workspace_id", workspaceId);
   const entryIds = (entries ?? []).map((row) => String(row.id));
   if (entryIds.length > 0) {
-    // Delete in chunks to avoid URL limits.
     for (let i = 0; i < entryIds.length; i += 100) {
       const chunk = entryIds.slice(i, i + 100);
       await supabase.from("journal_lines").delete().in("journal_entry_id", chunk);
@@ -339,8 +341,8 @@ async function seedOpeningCash(workspaceId: string): Promise<void> {
       reference: "OA-OPEN-CASH",
       description: `OnwardAir opening treasury — $${ONWARDAIR_CASH_BALANCE_USD.toLocaleString("en-US")} remaining of $${ONWARDAIR_CAPITAL_RAISED_USD.toLocaleString("en-US")} raised (founded 2023, pre-revenue)`,
       workspaceId,
-      sourceType: MARKER_SOURCE_TYPE,
-      sourceId: MARKER_SOURCE_ID,
+      sourceType: CORE_SOURCE_TYPE,
+      sourceId: CORE_SOURCE_ID,
       journalDate: "2025-08-01",
       lines: [
         {
@@ -405,7 +407,6 @@ async function ensureGrantClients(
     };
     const { error } = await supabase.from("internal_clients").insert(row);
     if (error && !/duplicate/i.test(error.message)) {
-      // Retry without workspace_id if column missing on older schemas.
       const { error: retry } = await supabase.from("internal_clients").insert({
         id: row.id,
         company_name: row.company_name,
@@ -458,7 +459,10 @@ async function seedGrantReceivables(workspaceId: string): Promise<void> {
     };
 
     const { error } = await supabase.from("invoices").insert(insertRow);
-    if (error) throw new Error(`OA AR seed ${grant.reference}: ${error.message}`);
+    if (error && !/duplicate/i.test(error.message)) {
+      throw new Error(`OA AR seed ${grant.reference}: ${error.message}`);
+    }
+    if (error) continue;
 
     await postInvoiceIssueJournal({
       invoiceId,
@@ -498,29 +502,34 @@ async function seedSupplierPayables(workspaceId: string): Promise<void> {
   const { error } = await supabase.from("financial_expenses").insert(rows);
   if (error) throw new Error(`OA AP seed: ${error.message}`);
 
-  for (const row of rows) {
-    try {
-      const journal = await postExpenseJournal({
-        expenseId: row.id,
-        amount: row.amount,
-        currency: "USD",
-        categoryAccountCode: row.category_account_code,
-        description: row.purpose_description,
-        journalDate: row.expense_date,
-        paid: row.paid,
+  // One summary GL journal for unpaid AP (keeps seed fast; UI reads expense rows).
+  const unpaidTotal = rows
+    .filter((row) => !row.paid)
+    .reduce((sum, row) => sum + row.amount, 0);
+  if (unpaidTotal > 0) {
+    await createAndPostJournal(
+      {
+        reference: "OA-AP-SUMMARY",
+        description: "OnwardAir supplier AP summary (seed)",
         workspaceId,
-      });
-      await supabase
-        .from("financial_expenses")
-        .update({ journal_entry_id: journal.id })
-        .eq("id", row.id)
-        .eq("workspace_id", workspaceId);
-    } catch (err) {
-      console.error(
-        `[oa-financials] AP journal ${row.reference}:`,
-        err instanceof Error ? err.message : err,
-      );
-    }
+        sourceType: CORE_SOURCE_TYPE,
+        sourceId: `${OA_FINANCIALS_SEED_VERSION}-ap-summary`,
+        journalDate: isoMonthsAgo(0, 1),
+        lines: [
+          {
+            accountCode: ACCOUNT_CODES.miscExpenses,
+            debit: unpaidTotal,
+            description: "Supplier operating spend (seed summary)",
+          },
+          {
+            accountCode: ACCOUNT_CODES.accountsPayable,
+            credit: unpaidTotal,
+            description: "Accounts payable (seed summary)",
+          },
+        ],
+      },
+      { workspaceId },
+    );
   }
 }
 
@@ -556,56 +565,149 @@ async function seedStaffExpenses(workspaceId: string): Promise<void> {
     }
   }
 
-  // Insert in batches
   for (let i = 0; i < rows.length; i += 40) {
     const chunk = rows.slice(i, i + 40);
     const { error } = await supabase.from("financial_expenses").insert(chunk);
     if (error) throw new Error(`OA EXP seed batch: ${error.message}`);
   }
 
+  // Summary journal by expense account — not 120 individual posts.
+  const byCode = new Map<string, number>();
   for (const row of rows) {
-    try {
-      const journal = await postExpenseJournal({
-        expenseId: String(row.id),
-        amount: Number(row.amount),
-        currency: "USD",
-        categoryAccountCode: String(row.category_account_code),
-        description: String(row.purpose_description),
-        journalDate: String(row.expense_date),
-        paid: Boolean(row.paid),
+    if (row.paid) continue;
+    const code = String(row.category_account_code);
+    byCode.set(code, (byCode.get(code) ?? 0) + Number(row.amount));
+  }
+  const totalUnpaid = [...byCode.values()].reduce((sum, value) => sum + value, 0);
+  if (totalUnpaid > 0) {
+    const journalLines = [
+      ...[...byCode.entries()].map(([code, amount]) => ({
+        accountCode: code,
+        debit: Math.round(amount * 100) / 100,
+        description: `Staff expenses ${code} (seed summary)`,
+      })),
+      {
+        accountCode: ACCOUNT_CODES.accountsPayable,
+        credit: Math.round(totalUnpaid * 100) / 100,
+        description: "Staff expense payables (seed summary)",
+      },
+    ];
+    await createAndPostJournal(
+      {
+        reference: "OA-EXP-SUMMARY",
+        description: "OnwardAir staff expense summary (seed)",
         workspaceId,
-      });
-      await supabase
-        .from("financial_expenses")
-        .update({ journal_entry_id: journal.id })
-        .eq("id", String(row.id))
-        .eq("workspace_id", workspaceId);
-    } catch (err) {
-      console.error(
-        `[oa-financials] EXP journal ${row.reference}:`,
-        err instanceof Error ? err.message : err,
-      );
+        sourceType: CORE_SOURCE_TYPE,
+        sourceId: `${OA_FINANCIALS_SEED_VERSION}-exp-summary`,
+        journalDate: isoMonthsAgo(0, 2),
+        lines: journalLines,
+      },
+      { workspaceId },
+    );
+  }
+}
+
+async function seedDetailsMarker(workspaceId: string): Promise<void> {
+  await createAndPostJournal(
+    {
+      reference: "OA-FIN-DETAILS",
+      description: "OnwardAir financials detail seed marker",
+      workspaceId,
+      sourceType: CORE_SOURCE_TYPE,
+      sourceId: DETAILS_SOURCE_ID,
+      journalDate: isoMonthsAgo(0, 3),
+      lines: [
+        {
+          accountCode: ACCOUNT_CODES.prepaidExpenses,
+          debit: 0.01,
+          description: "Seed marker",
+        },
+        {
+          accountCode: ACCOUNT_CODES.miscExpenses,
+          credit: 0.01,
+          description: "Seed marker",
+        },
+      ],
+    },
+    { workspaceId },
+  );
+}
+
+async function runCoreSeed(workspaceId: string): Promise<void> {
+  if (await hasJournalMarker(workspaceId, CORE_SOURCE_ID)) return;
+  // Also accept v1 marker so we don't wipe a completed v1 seed mid-flight.
+  if (await hasJournalMarker(workspaceId, "oa-fin-v1")) return;
+
+  await wipeWorkspaceFinancials(workspaceId);
+  await seedChartOfAccounts(workspaceId);
+  await seedOpeningCash(workspaceId);
+}
+
+async function runDetailsSeed(workspaceId: string): Promise<void> {
+  if (await hasJournalMarker(workspaceId, DETAILS_SOURCE_ID)) return;
+  // Need core first.
+  if (!(await hasJournalMarker(workspaceId, CORE_SOURCE_ID))) {
+    if (!(await hasJournalMarker(workspaceId, "oa-fin-v1"))) {
+      await runCoreSeed(workspaceId);
     }
+  }
+
+  // Skip if AP already present from a prior partial run.
+  const supabase = adminClient();
+  const { count } = await supabase
+    .from("financial_expenses")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId)
+    .like("reference", "OA-AP-%");
+  if ((count ?? 0) === 0) {
+    await seedGrantReceivables(workspaceId);
+    await seedSupplierPayables(workspaceId);
+    await seedStaffExpenses(workspaceId);
+  }
+  if (!(await hasJournalMarker(workspaceId, DETAILS_SOURCE_ID))) {
+    await seedDetailsMarker(workspaceId);
   }
 }
 
 async function runSeed(workspaceId: string): Promise<void> {
   const slug = await resolveSlug(workspaceId);
   if (!isOnwardAirSlug(slug)) return;
-
-  if (await hasMarker(workspaceId)) return;
-
-  await wipeWorkspaceFinancials(workspaceId);
-  await seedChartOfAccounts(workspaceId);
-  await seedOpeningCash(workspaceId);
-  await seedGrantReceivables(workspaceId);
-  await seedSupplierPayables(workspaceId);
-  await seedStaffExpenses(workspaceId);
+  await runCoreSeed(workspaceId);
+  await runDetailsSeed(workspaceId);
 }
 
 /**
- * Idempotent OA financials seed. Safe to call from Financials API routes.
- * Never touches other tenants.
+ * Fast path for Financials overview — COA + $1M cash only.
+ * Never runs the heavy AR/AP/expense insert on the request critical path.
+ */
+export async function ensureOnwardAirFinancialsCore(workspaceId: string): Promise<void> {
+  const existing = seedLocks.get(`core:${workspaceId}`);
+  if (existing) {
+    await existing;
+    return;
+  }
+  const run = (async () => {
+    const slug = await resolveSlug(workspaceId);
+    if (!isOnwardAirSlug(slug)) return;
+    await runCoreSeed(workspaceId);
+  })()
+    .catch((error) => {
+      console.error(
+        "[oa-financials] core seed failed:",
+        error instanceof Error ? error.message : error,
+      );
+    })
+    .finally(() => {
+      seedLocks.delete(`core:${workspaceId}`);
+    });
+  seedLocks.set(`core:${workspaceId}`, run);
+  await run;
+}
+
+/**
+ * Full idempotent OA financials seed (core + AR/AP/expenses).
+ * Prefer {@link ensureOnwardAirFinancialsCore} on overview; call this from
+ * ledger / invoices / expenses routes (or fire-and-forget after core).
  */
 export async function ensureOnwardAirFinancialsSeeded(workspaceId: string): Promise<void> {
   const existing = seedLocks.get(workspaceId);
@@ -625,4 +727,9 @@ export async function ensureOnwardAirFinancialsSeeded(workspaceId: string): Prom
     });
   seedLocks.set(workspaceId, run);
   await run;
+}
+
+/** Kick off detail seed without blocking the caller. */
+export function kickOnwardAirFinancialsDetails(workspaceId: string): void {
+  void ensureOnwardAirFinancialsSeeded(workspaceId);
 }

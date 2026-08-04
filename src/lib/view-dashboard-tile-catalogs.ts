@@ -141,8 +141,12 @@ export const PROJECTS_DASHBOARD_TILES: DashboardTileDefinition[] = [
 
 function financialsFallbackCurrency(): string {
   try {
-    if (typeof window !== "undefined" && isBrowserOnwardAirSurface()) return "USD";
-    if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) return "AUD";
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes("onwardair") || host === "onward.unit311central.com") return "USD";
+      if (isBrowserOnwardAirSurface()) return "USD";
+      if (isBrowserCorpCentreSurface()) return "AUD";
+    }
   } catch {
     /* SSR */
   }

@@ -35,7 +35,6 @@ import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBa
 import BurnRateOverviewSection from "@/components/testflighthub/BurnRateOverviewSection";
 import {
   DEFAULT_FINANCIALS_TILE_LAYOUT,
-  FINANCIALS_DASHBOARD_TILES,
   buildFinancialsDashboardCatalog,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { cn } from "@/lib/utils";
@@ -618,8 +617,12 @@ export default function FinancialsWorkspace() {
       ) : null}
 
       <DashboardTopTilesBar
-        storageKey="unit311-financials-dashboard-tiles-v3"
-        catalog={tiles.length ? tiles : FINANCIALS_DASHBOARD_TILES}
+        storageKey={
+          isBrowserOnwardAirSurface()
+            ? "oa-financials-dashboard-tiles-v4"
+            : "unit311-financials-dashboard-tiles-v3"
+        }
+        catalog={tiles}
         defaultLayout={DEFAULT_FINANCIALS_TILE_LAYOUT}
         title="Key metrics"
         showCustomizeHint

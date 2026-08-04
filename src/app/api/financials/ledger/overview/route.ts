@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { getFinancialOverview } from "@/lib/accounting/overview-service";
-import { ensureOnwardAirFinancialsSeeded } from "@/lib/onwardair/financials-seed";
+import {
+  ensureOnwardAirFinancialsCore,
+  kickOnwardAirFinancialsDetails,
+} from "@/lib/onwardair/financials-seed";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -13,9 +16,14 @@ export async function GET() {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     if (isOnwardAirSlug(workspace.slug)) {
-      await ensureOnwardAirFinancialsSeeded(workspace.id);
+      // Core only (COA + $1M cash) — never block overview on 100+ expense journals.
+      await ensureOnwardAirFinancialsCore(workspace.id);
+      kickOnwardAirFinancialsDetails(workspace.id);
     }
-    const overview = await getFinancialOverview({ workspaceId: workspace.id });
+    const overview = await getFinancialOverview({
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+    });
     return NextResponse.json({ overview });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load overview.";
