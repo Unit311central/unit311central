@@ -968,17 +968,23 @@ const ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION: InternalNavSection = {
   ],
 };
 
-/** Nested under Operations — Marketing & Events (OA fake data, not ABHI). */
-const ONWARDAIR_MARKETING_EVENTS_NAV_ITEM: InternalNavItem = {
+/** Top-level Marketing & Events — placed directly under Operations on OnwardAir. */
+const ONWARDAIR_MARKETING_EVENTS_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
   label: "Marketing & Events",
   icon: "Share2",
-  children: [
-    { label: "Dashboard", view: "oa-marketing-dashboard" as const },
-    { label: "Social", view: "social" as const },
-    { label: "Digital Newsletter", view: "marketing-newsletter" as const },
-    { label: "External Events", view: "marketing-events" as const },
-    { label: "Event Management", view: "marketing-event-management" as const },
-    { label: "Mailing List Management", view: "marketing-mailing-list" as const },
+  color: "#E11D48",
+  items: [
+    { label: "Dashboard", icon: "LayoutDashboard", view: "oa-marketing-dashboard" as const },
+    { label: "Social", icon: "Share2", view: "social" as const },
+    { label: "Digital Newsletter", icon: "Mail", view: "marketing-newsletter" as const },
+    { label: "External Events", icon: "CalendarDays", view: "marketing-events" as const },
+    { label: "Event Management", icon: "ClipboardCheck", view: "marketing-event-management" as const },
+    {
+      label: "Mailing List Management",
+      icon: "Users",
+      view: "marketing-mailing-list" as const,
+    },
   ],
 };
 
@@ -1065,23 +1071,24 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
       const hasDashboard = cleaned.items.some(
         (item) => item.view === "operations-dashboard" || item.label === "Dashboard",
       );
-      const withDashboard = hasDashboard
-        ? cleaned.items
-        : [
-            {
-              label: "Dashboard",
-              icon: "LayoutDashboard",
-              view: "operations-dashboard" as const,
-            },
-            ...cleaned.items,
-          ];
-      const hasMarketing = withDashboard.some((item) => item.label === "Marketing & Events");
+      // Strip any nested Marketing & Events leftovers; module is top-level below.
+      const withoutNestedMarketing = (
+        hasDashboard
+          ? cleaned.items
+          : [
+              {
+                label: "Dashboard",
+                icon: "LayoutDashboard",
+                view: "operations-dashboard" as const,
+              },
+              ...cleaned.items,
+            ]
+      ).filter((item) => item.label !== "Marketing & Events");
       out.push({
         ...cleaned,
-        items: hasMarketing
-          ? withDashboard
-          : [...withDashboard, ONWARDAIR_MARKETING_EVENTS_NAV_ITEM],
+        items: withoutNestedMarketing,
       });
+      out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
       out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
       insertedEngineering = true;
       continue;
@@ -1102,9 +1109,25 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
   if (!insertedEngineering) {
     const operationsIdx = out.findIndex((s) => s.label === "Operations");
     if (operationsIdx >= 0) {
-      out.splice(operationsIdx + 1, 0, ONWARDAIR_ENGINEERING_NAV_SECTION);
+      const hasMarketing = out.some((s) => s.label === "Marketing & Events");
+      if (!hasMarketing) {
+        out.splice(operationsIdx + 1, 0, ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
+      }
+      const marketingIdx = out.findIndex((s) => s.label === "Marketing & Events");
+      const insertAt = marketingIdx >= 0 ? marketingIdx + 1 : operationsIdx + 1;
+      out.splice(insertAt, 0, ONWARDAIR_ENGINEERING_NAV_SECTION);
     } else {
+      if (!out.some((s) => s.label === "Marketing & Events")) {
+        out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
+      }
       out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
+    }
+  } else if (!out.some((s) => s.label === "Marketing & Events")) {
+    const operationsIdx = out.findIndex((s) => s.label === "Operations");
+    if (operationsIdx >= 0) {
+      out.splice(operationsIdx + 1, 0, ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
+    } else {
+      out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
     }
   }
   if (!insertedProjectManagement) {

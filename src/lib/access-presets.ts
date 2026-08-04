@@ -185,7 +185,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
   {
     id: "onwardair-marketing-events",
     label: "Marketing & Events",
-    section: "Operations",
+    section: "Marketing & Events",
     views: [
       "oa-marketing-dashboard",
       "social",

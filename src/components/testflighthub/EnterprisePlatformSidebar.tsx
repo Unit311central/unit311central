@@ -544,6 +544,14 @@ export default function EnterprisePlatformSidebar({
               );
               if (dashboard?.view) navigate(dashboard.view);
             }
+            if (willOpen && section.label === "Marketing & Events") {
+              const dashboard = section.items.find(
+                (item) =>
+                  (item.label === "Dashboard" || item.view === "oa-marketing-dashboard") &&
+                  item.view,
+              );
+              if (dashboard?.view) navigate(dashboard.view);
+            }
             if (
               willOpen &&
               (section.label === "Fundraising" || section.label === "Fundraising & Cap Table")
