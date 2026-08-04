@@ -280,12 +280,10 @@ export async function middleware(request: NextRequest) {
       return redirectExternal(dest);
     }
 
-    // ABHI / Talanton apex is always the organisation login page.
-    // Never send `/` to /dashboard or /{company} (e.g. /centrak).
-    if (
-      isCompanyPortalSlug(workspaceSlug) &&
-      (pathname === "/" || pathname === "")
-    ) {
+    // Customer-host apex is always the organisation login page.
+    // Never auto-enter /dashboard from a leftover Domain=.unit311central.com session
+    // (e.g. after Demo/ABHI/Talanton/internal login, including Incognito multi-tab).
+    if (pathname === "/" || pathname === "") {
       const bounce = redirectExternal(`${workspaceOrigin}/login${search}`);
       clearPlatformSessionCookie(bounce, request);
       return bounce;
@@ -369,15 +367,18 @@ export async function middleware(request: NextRequest) {
     }
 
     // Customer-host login stays on this origin (tenant branding).
+    // Always render /login — do not bounce signed-in users to /dashboard.
+    // Do NOT clear a valid session on ABHI/Talanton /login (prefetch would wipe
+    // /portals mid-edit); clear only invalid/forbidden cookies.
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+      const response = NextResponse.next({ request: { headers } });
 
-      // ABHI / Talanton: always render the org login page at /login.
-      // Do not bounce signed-in users to /dashboard or /{company}.
-      // Do NOT clear the session here — Next.js Link prefetch of /login would
-      // wipe active /portals (and other) sessions within seconds.
+      if (gate.status === "invalid" || gate.status === "forbidden") {
+        clearPlatformSessionCookie(response, request);
+      }
+
       if (isCompanyPortalSlug(workspaceSlug)) {
-        const response = NextResponse.next({ request: { headers } });
         // Real visits to portals login clear the one-time gate so /portals
         // requires completing the form again. Skip prefetch AND any request
         // that still originates from an open /portals tab (speculative loads
@@ -395,25 +396,15 @@ export async function middleware(request: NextRequest) {
         if (wantsPortals && !isNextPrefetchRequest(request) && !fromPortals) {
           clearAbhiPortalsGateCookie(response, request);
         }
-        for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
-          response.headers.set(key, value);
-        }
-        response.headers.set(
-          "Cache-Control",
-          "private, no-cache, no-store, max-age=0, must-revalidate",
-        );
-        return response;
       }
 
-      if (gate.status === "ok") {
-        const redirect = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
-        return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
-      }
-      const response = NextResponse.next({ request: { headers } });
       for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
         response.headers.set(key, value);
       }
-      response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
       return response;
     }
 
@@ -470,7 +461,11 @@ export async function middleware(request: NextRequest) {
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
 
       if (gate.status === "anonymous" || gate.status === "invalid") {
-        return customerHostLoginRedirect(workspaceOrigin);
+        const bounce = customerHostLoginRedirect(workspaceOrigin);
+        if (gate.status === "invalid") {
+          clearPlatformSessionCookie(bounce, request);
+        }
+        return bounce;
       }
 
       if (gate.status === "workspace_missing") {
@@ -479,14 +474,14 @@ export async function middleware(request: NextRequest) {
       }
 
       if (gate.status === "forbidden") {
-        return customerHostLoginRedirect(workspaceOrigin);
+        const bounce = customerHostLoginRedirect(workspaceOrigin);
+        clearPlatformSessionCookie(bounce, request);
+        return bounce;
       }
 
-      // Apex `/` for normal customer hosts → dashboard when signed in.
-      // ABHI / Talanton apex is handled earlier (always → /login).
+      // Apex `/` already forced /login above. Authenticated /dashboard continues below.
       if (pathname === "/" || pathname === "") {
-        const redirect = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
-        return applyCustomerHostRebindIfNeeded({ request, response: redirect, gate });
+        return customerHostLoginRedirect(workspaceOrigin);
       }
 
       // Talanton / ABHI company-portal externals must not enter the admin shell.
