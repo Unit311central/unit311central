@@ -97,15 +97,58 @@ export async function resolveAccountCredentials(
   id: EmailAccountId,
   scope?: EmailWorkspaceScope,
 ): Promise<MemoryCredential | null> {
-  // Platform env secrets do not need a session/workspace. Resolve workspace only
-  // for memory/DB tenant credentials (Email Settings and similar authenticated flows).
+  // Platform env secrets win first (Internal/Demo + shared Zoho app passwords).
+  // Tenant DB / memory credentials cover customer hosts that persist their own row.
   const envCredential = readEnvCredential(id);
   if (envCredential) return envCredential;
 
-  const workspaceId = await resolveEmailWorkspaceId(scope);
+  let workspaceId: string | null = null;
+  try {
+    workspaceId = await resolveEmailWorkspaceId(scope);
+  } catch {
+    workspaceId = null;
+  }
+  if (!workspaceId) return null;
+
   return (
     readMemoryCredential(workspaceId, id) ?? (await readSupabaseCredential(id, workspaceId))
   );
+}
+
+/**
+ * Persist platform env mailbox secrets into the current workspace DB row when
+ * missing. Makes OnwardAir / Talanton Email (demo@) stay connected without a
+ * one-off “Save & connect” prompt after deploys.
+ */
+export async function ensureWorkspaceMailboxCredentialsFromEnv(
+  ids: readonly EmailAccountId[],
+  scope?: EmailWorkspaceScope,
+): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+
+  let workspaceId: string;
+  try {
+    workspaceId = await resolveEmailWorkspaceId(scope);
+  } catch {
+    return;
+  }
+
+  for (const id of ids) {
+    const envCredential = readEnvCredential(id);
+    if (!envCredential?.password) continue;
+    const existing = await readSupabaseCredential(id, workspaceId);
+    // Refresh when missing or clearly shorter than the live env secret.
+    if (existing?.password && existing.password.length >= envCredential.password.length) {
+      continue;
+    }
+    try {
+      await saveMailboxCredentials(id, envCredential.password, envCredential.email, {
+        workspaceId,
+      });
+    } catch {
+      // Non-fatal — env fallback still serves mail until an operator saves credentials.
+    }
+  }
 }
 
 export async function isAccountConfiguredAsync(

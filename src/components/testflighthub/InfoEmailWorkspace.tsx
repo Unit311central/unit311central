@@ -291,15 +291,22 @@ export default function InfoEmailWorkspace() {
         fetch("/api/email/credentials", { cache: "no-store" }),
       ]);
 
+      if (!accountsResponse.ok) {
+        const failure = await readApiJson<{ error?: string }>(accountsResponse).catch(() => null);
+        throw new Error(failure?.error || "Failed to load mailboxes");
+      }
+
       const data = await readApiJson<EmailAccountOption[]>(accountsResponse);
-      if (!accountsResponse.ok) throw new Error("Failed to load mailboxes");
+      if (!Array.isArray(data)) {
+        throw new Error("Failed to load mailboxes");
+      }
 
       const status = statusResponse.ok
         ? await readApiJson<Partial<Record<EmailAccountId, boolean>>>(statusResponse)
         : null;
 
       // Defense in depth: never surface full platform Zoho inboxes on customer hosts
-      // even if the accounts API misbehaves. Talanton is allowed demo@ only.
+      // even if the accounts API misbehaves. Talanton / OnwardAir are allowed demo@ only.
       const allowedDefaults = defaultMailboxesForHost();
       const allowedEmails = new Set(
         allowedDefaults.map((account) => String(account.email ?? "").toLowerCase()),
@@ -315,18 +322,23 @@ export default function InfoEmailWorkspace() {
           })
           .map((account) => ({
             ...account,
-            configured: account.configured || Boolean(status?.[account.id]),
+            configured: Boolean(account.configured) || Boolean(status?.[account.id]),
           })),
       );
 
       setAccounts(merged);
+      setError(null);
       if (merged.length === 0) {
         // No mailbox available on this workspace — leave selection unset for UI empty state.
       } else if (!merged.some((account) => account.id === selectedAccountId)) {
         setSelectedAccountId(merged[0].id);
       }
     } catch (loadError) {
-      const fallback = filterRemovedMailboxes(defaultMailboxesForHost());
+      const fallback = filterRemovedMailboxes(defaultMailboxesForHost()).map((account) => ({
+        ...account,
+        // Keep the connect panel only when we truly have no server confirmation.
+        configured: false,
+      }));
       setAccounts(fallback);
       if (fallback.length > 0) {
         setSelectedAccountId(fallback[0].id);
