@@ -1,4 +1,4 @@
-import { DEMO_SITE_URL } from "@/lib/app-domains";
+import { resolveSupportLoungeOrigin } from "@/lib/app-domains";
 
 export type ClientIndustry =
   | "Construction"
@@ -575,11 +575,18 @@ type DbInternalClient = {
   updated_at: string;
 };
 
-export function mapInternalClient(row: DbInternalClient): ManagedClient {
+export function mapInternalClient(
+  row: DbInternalClient,
+  options?: { workspaceSlug?: string | null; loungeOrigin?: string | null },
+): ManagedClient {
   const loungeToken = row.support_lounge_token?.trim() || null;
   const fromRegion = parseRegionToLocation(row.region);
   const companyCountry = (row.company_country ?? "").trim() || fromRegion.country || undefined;
   const companyCity = (row.company_city ?? "").trim() || fromRegion.city || undefined;
+  const loungeOrigin = (
+    options?.loungeOrigin?.trim() ||
+    resolveSupportLoungeOrigin(options?.workspaceSlug)
+  ).replace(/\/$/, "");
   return {
     id: row.id,
     companyName: row.company_name,
@@ -610,7 +617,7 @@ export function mapInternalClient(row: DbInternalClient): ManagedClient {
     platformOrganisationId: row.platform_organisation_id ?? undefined,
     supportLoungeToken: loungeToken,
     supportLoungeUrl: loungeToken
-      ? `${DEMO_SITE_URL.replace(/\/$/, "")}/s/${encodeURIComponent(loungeToken)}`
+      ? `${loungeOrigin}/s/${encodeURIComponent(loungeToken)}`
       : null,
     supportLoungeEnabled: row.support_lounge_enabled ?? null,
     subscriptionStatus: (row.subscription_status as ClientSubscriptionStatus | null) ?? null,

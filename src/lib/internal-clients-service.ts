@@ -23,6 +23,8 @@ type DbClient = Parameters<typeof mapInternalClient>[0];
 export type ClientsWorkspaceScope = {
   /** Explicit override for system/provisioning callers. Prefer omit to use session context. */
   workspaceId?: string | null;
+  /** Optional slug so Support Lounge URLs use the tenant host (not demo). */
+  workspaceSlug?: string | null;
 };
 
 function requireClientsSupabase() {
@@ -43,6 +45,30 @@ export async function resolveClientsWorkspaceId(
   if (explicit) return explicit;
   const workspace = await requireCurrentWorkspace();
   return workspace.id;
+}
+
+async function resolveClientMapOptions(
+  scope?: ClientsWorkspaceScope,
+): Promise<{ workspaceSlug?: string | null }> {
+  const explicitSlug = scope?.workspaceSlug?.trim();
+  if (explicitSlug) return { workspaceSlug: explicitSlug };
+  try {
+    const workspace = await requireCurrentWorkspace();
+    if (!scope?.workspaceId || scope.workspaceId === workspace.id) {
+      return { workspaceSlug: workspace.slug };
+    }
+  } catch {
+    // Fall through to workspace lookup when no session context.
+  }
+  const workspaceId = scope?.workspaceId?.trim();
+  if (!workspaceId) return {};
+  const supabase = requireClientsSupabase();
+  const { data } = await supabase
+    .from("workspaces")
+    .select("slug")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  return { workspaceSlug: (data as { slug?: string } | null)?.slug ?? null };
 }
 
 /** PRM-001: CRM lineage lives on crm_lead_id only — strip legacy notes markers. */
@@ -135,6 +161,7 @@ export async function listInternalClients(
   scope?: ClientsWorkspaceScope,
 ): Promise<ManagedClient[]> {
   const workspaceId = await resolveClientsWorkspaceId(scope);
+  const mapOptions = await resolveClientMapOptions(scope);
   // Happy path: query only. Schema ensure/reload runs only if PostgREST reports missing table/columns.
   return withInternalClientsFilesFolderColumns(() =>
     withInternalClientsTable(async () => {
@@ -190,7 +217,9 @@ export async function listInternalClients(
         .order("company_name", { ascending: true });
 
       if (error) throw new Error(error.message);
-      const clients = (data as unknown as DbClient[]).map(mapInternalClient);
+      const clients = (data as unknown as DbClient[]).map((row) =>
+        mapInternalClient(row, mapOptions),
+      );
       return attachDerivedActiveProjects(clients, workspaceId, supabase);
     }),
   );
@@ -233,6 +262,7 @@ export async function getInternalClient(
   scope?: ClientsWorkspaceScope,
 ): Promise<ManagedClient | null> {
   const workspaceId = await resolveClientsWorkspaceId(scope);
+  const mapOptions = await resolveClientMapOptions({ ...scope, workspaceId });
   return withInternalClientsFilesFolderColumns(() =>
     withInternalClientsTable(async () => {
       const supabase = requireClientsSupabase();
@@ -246,7 +276,7 @@ export async function getInternalClient(
       if (error) throw new Error(error.message);
       if (!data) return null;
       const [client] = await attachDerivedActiveProjects(
-        [mapInternalClient(data as DbClient)],
+        [mapInternalClient(data as DbClient, mapOptions)],
         workspaceId,
         supabase,
       );
@@ -274,6 +304,7 @@ export async function createInternalClient(
   const workspaceId = await resolveClientsWorkspaceId({
     workspaceId: input.workspaceId ?? scope?.workspaceId,
   });
+  const mapOptions = await resolveClientMapOptions({ ...scope, workspaceId });
   await ensureInternalClientsTable();
   await ensureInternalClientsSignupProfileColumns().catch(() => false);
   await ensureClientBillingProfileColumns().catch(() => false);
@@ -346,7 +377,7 @@ export async function createInternalClient(
         const { data, error } = await supabase.from("internal_clients").insert(row).select("*").single();
 
         if (!error && data) {
-          const created = mapInternalClient(data as DbClient);
+          const created = mapInternalClient(data as DbClient, mapOptions);
           try {
             const { ensureClientFilesRootFolder } = await import(
               "@/lib/client-files-root"
@@ -388,6 +419,7 @@ export async function updateInternalClient(
   scope?: ClientsWorkspaceScope,
 ): Promise<ManagedClient> {
   const workspaceId = await resolveClientsWorkspaceId(scope);
+  const mapOptions = await resolveClientMapOptions({ ...scope, workspaceId });
   await ensureClientBillingProfileColumns().catch(() => false);
   return withInternalClientsFilesFolderColumns(() =>
     withInternalClientsTable(async () => {
@@ -412,7 +444,7 @@ export async function updateInternalClient(
         .single();
 
       if (error) throw new Error(error.message);
-      return mapInternalClient(data as DbClient);
+      return mapInternalClient(data as DbClient, mapOptions);
     }),
   );
 }

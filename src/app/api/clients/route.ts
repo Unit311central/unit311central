@@ -23,7 +23,10 @@ export async function GET() {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    const clients = await listInternalClients({ workspaceId: workspace.id });
+    const clients = await listInternalClients({
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+    });
     // Talanton portfolio companies are investments (Portfolio Companies), not BC clients.
     const visibleClients =
       workspace.slug === "talantonimpact"
@@ -64,7 +67,10 @@ export async function POST(request: NextRequest) {
     };
 
     await ensureInternalClientsTable();
-    const client = await createInternalClient(body, { workspaceId: workspace.id });
+    const client = await createInternalClient(body, {
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+    });
     return NextResponse.json({ client });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create client";

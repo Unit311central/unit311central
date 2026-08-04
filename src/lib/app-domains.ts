@@ -178,6 +178,17 @@ export function customerWorkspaceOrigin(slug: string): string | null {
 }
 
 /**
+ * Public origin for Support Lounge `/s/{token}` links for a workspace slug.
+ * Customer tenants use `{slug}.unit311central.com` — never the Demo host.
+ */
+export function resolveSupportLoungeOrigin(workspaceSlug: string | null | undefined): string {
+  const slug = (workspaceSlug ?? "").trim().toLowerCase();
+  if (!slug || slug === "demo") return DEMO_SITE_URL;
+  if (slug === "unit311") return INTERNAL_SITE_URL;
+  return customerWorkspaceOrigin(slug) ?? DEMO_SITE_URL;
+}
+
+/**
  * Validate `return_to` for workspace login. Only `https://{slug}.unit311central.com`
  * (optional path/query ignored; origin is returned). Rejects apex, www, internal, reserved.
  */

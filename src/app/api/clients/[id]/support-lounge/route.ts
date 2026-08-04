@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { resolveSupportLoungeOrigin } from "@/lib/app-domains";
 import { ensureSupportLoungeSchema, withSupportLoungeSchema } from "@/lib/internal-db-migrations";
 import { buildLoungeUrl, ensureClientLoungeToken } from "@/lib/support-lounge-service";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -28,7 +29,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }),
     );
 
-    const origin = request.nextUrl.origin;
+    const host = request.nextUrl.host.toLowerCase();
+    const origin =
+      host.includes("unit311central.com") || host.endsWith(".localhost")
+        ? request.nextUrl.origin
+        : resolveSupportLoungeOrigin(workspace.slug);
     return NextResponse.json({
       token: lounge.loungeToken,
       url: buildLoungeUrl(lounge.loungeToken, origin),
