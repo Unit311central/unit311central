@@ -51,6 +51,8 @@ export const ONWARDAIR_MODULE_ACCENTS: Readonly<Record<string, string>> = {
   "Human Resources": "#DB2777",
   /** RGB(8, 145, 178) */
   "Business Productivity": "#0891B2",
+  /** RGB(220, 38, 38) — alert red, not Board crimson / HR pink */
+  "Support Desk": "#DC2626",
   /** RGB(234, 88, 12) */
   "Project Management": "#EA580C",
   /** RGB(124, 58, 237) — violet, not Board crimson */
@@ -61,6 +63,12 @@ export const ONWARDAIR_MODULE_ACCENTS: Readonly<Record<string, string>> = {
   QMS: "#65A30D",
   /** RGB(244, 114, 182) */
   "Marketing & Events": "#F472B6",
+  /** RGB(108, 99, 255) */
+  Tools: "#6C63FF",
+  /** RGB(15, 118, 110) — deep teal, not BP cyan / Ops sky */
+  "External Client Access": "#0F766E",
+  /** RGB(100, 116, 139) — slate, not Tools purple */
+  Settings: "#64748B",
 };
 
 export function canonicalizeOnwardAirSlug(

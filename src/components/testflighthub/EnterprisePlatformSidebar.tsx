@@ -36,6 +36,7 @@ import {
   LogOut,
   Mail,
   MapPin,
+  MessageCircle,
   MessageSquare,
   Network,
   Package,
@@ -50,7 +51,9 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
+  Ticket,
   Truck,
+  UserRound,
   Users,
   Video,
   Wallet,
@@ -119,6 +122,7 @@ const iconMap = {
   Lightbulb,
   Mail,
   MapPin,
+  MessageCircle,
   MessageSquare,
   Network,
   Package,
@@ -134,7 +138,9 @@ const iconMap = {
   ShieldCheck,
   Sparkles,
   Target,
+  Ticket,
   Truck,
+  UserRound,
   Users,
   Video,
   Wallet,
@@ -539,6 +545,15 @@ export default function EnterprisePlatformSidebar({
               );
               if (dashboard?.view) navigate(dashboard.view);
             }
+            // Support Desk landing: open Ticket Overview.
+            if (willOpen && section.label === "Support Desk") {
+              const overview = section.items.find(
+                (item) =>
+                  (item.label === "Ticket Overview" || item.view === "support-overview") &&
+                  item.view,
+              );
+              if (overview?.view) navigate(overview.view);
+            }
             // Operations landing: open Dashboard when present (OnwardAir + future tenants).
             if (willOpen && section.label === "Operations") {
               const dashboard = section.items.find(
@@ -547,6 +562,16 @@ export default function EnterprisePlatformSidebar({
                   item.view,
               );
               if (dashboard?.view) navigate(dashboard.view);
+            }
+            // Engineering landing: open Engineering Overview dashboard.
+            if (willOpen && section.label === "Engineering") {
+              const overview = section.items.find(
+                (item) =>
+                  (item.label === "Engineering Overview" ||
+                    item.view === "oa-engineering-overview") &&
+                  item.view,
+              );
+              if (overview?.view) navigate(overview.view);
             }
             if (willOpen && section.label === "Marketing & Events") {
               const dashboard = section.items.find(

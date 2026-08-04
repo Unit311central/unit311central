@@ -38,6 +38,7 @@ export const ONBOARDING_MODULE_GROUPS: readonly OnboardingModuleGroup[] = [
   { id: "business-central", label: "Business Central", presentation: "section" },
   { id: "assets", label: "Asset & Inventory Management", presentation: "section" },
   { id: "productivity", label: "Business Productivity", presentation: "section" },
+  { id: "support-desk", label: "Support Desk", presentation: "section" },
   { id: "engineering", label: "Engineering and R&D", presentation: "section" },
   { id: "strategy", label: "Strategy", presentation: "section" },
   { id: "training", label: "Training", presentation: "section" },
@@ -138,10 +139,10 @@ export const ONBOARDING_MODULES: readonly OnboardingModule[] = [
   },
   {
     id: "support",
-    label: "Support",
-    groupId: "productivity",
+    label: "Support Desk",
+    groupId: "support-desk",
     description:
-      "Support desk, tickets, and customer issue resolution with optional WhatsApp intake.",
+      "Ticket overview, queue, my tickets, and WhatsApp intake for internal and client support.",
   },
   {
     id: "engineering-rnd",

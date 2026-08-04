@@ -214,16 +214,12 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
   page("productivity", "Business Productivity", "messaging", "Messaging"),
   page("productivity", "Business Productivity", "communications", "Communications"),
   page("productivity", "Business Productivity", "social", "Social"),
-  page("productivity", "Business Productivity", "support", "Tickets", {
-    sectionKey: "support-desk",
-    sectionLabel: "Support Desk",
-    core: true,
-  }),
-  page("productivity", "Business Productivity", "support-mine", "My support tickets", {
-    sectionKey: "support-desk",
-    sectionLabel: "Support Desk",
-  }),
   page("productivity", "Business Productivity", "whiteboard", "Whiteboard"),
+
+  // Support Desk
+  page("support-desk", "Support Desk", "support-overview", "Ticket Overview", { core: true }),
+  page("support-desk", "Support Desk", "support", "Tickets", { core: true }),
+  page("support-desk", "Support Desk", "support-mine", "My support tickets"),
 
   // Operations
   page("operations", "Operations", "assets", "Assets"),

@@ -307,6 +307,15 @@ import {
 import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvider";
 import { OnwardAirPlaceholderWorkspace, OperationsDashboardWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
 import {
+  EngineeringAssuranceWorkspace,
+  EngineeringIntegrationsWorkspace,
+  EngineeringOverviewWorkspace,
+  EngineeringProgramsWorkspace,
+  EngineeringRisksWorkspace,
+  EngineeringSupplyWorkspace,
+  EngineeringTeamWorkspace,
+} from "@/components/onwardair/OnwardAirEngineeringWorkspaces";
+import {
   FundraisingDashboardWorkspace,
   FundraisingDataRoomsWorkspace,
   FundraisingInvestorsWorkspace,
@@ -1212,7 +1221,9 @@ export default function InternalOperationsDashboard({
 
           {activeView === "productivity-dashboard" && <ProductivityDashboardWorkspace />}
 
-          {activeView === "support" && <SupportWorkspace />}
+          {activeView === "support-overview" && <SupportWorkspace scope="overview" />}
+
+          {activeView === "support" && <SupportWorkspace scope="all" />}
 
           {activeView === "support-mine" && <SupportWorkspace scope="mine" />}
 
@@ -1291,55 +1302,13 @@ export default function InternalOperationsDashboard({
           {activeView === "fundraising-pitch-decks" && <FundraisingPitchDecksWorkspace />}
           {activeView === "fundraising-data-rooms" && <FundraisingDataRoomsWorkspace />}
 
-          {activeView === "oa-engineering-overview" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Engineering Overview"
-              group="Engineering"
-              description="Executive engineering status, program health, and key milestones."
-            />
-          )}
-          {activeView === "oa-programs-milestones" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Programs & Milestones"
-              group="Engineering"
-              description="Aircraft and product programs, milestones, gates, and RAG status."
-            />
-          )}
-          {activeView === "oa-team-capacity" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Team & Capacity"
-              group="Engineering"
-              description="Team allocation, resource planning, and capacity tracking."
-            />
-          )}
-          {activeView === "oa-supply-dependencies" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Supply & Dependencies"
-              group="Engineering"
-              description="Suppliers, long-lead items, dependencies, and blockers."
-            />
-          )}
-          {activeView === "oa-assurance-certification" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Assurance & Certification"
-              group="Engineering"
-              description="Certification readiness, evidence tracking, and compliance readiness."
-            />
-          )}
-          {activeView === "oa-engineering-risks" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Engineering Risks"
-              group="Engineering"
-              description="Engineering-scoped risks that feed Board Risk Management."
-            />
-          )}
-          {activeView === "oa-engineering-integrations" && (
-            <OnwardAirPlaceholderWorkspace
-              title="Integrations"
-              group="Engineering"
-              description="Connections to Jira, Azure DevOps, Excel, PLM, and external engineering systems — not a ticket tracker."
-            />
-          )}
+          {activeView === "oa-engineering-overview" && <EngineeringOverviewWorkspace />}
+          {activeView === "oa-programs-milestones" && <EngineeringProgramsWorkspace />}
+          {activeView === "oa-team-capacity" && <EngineeringTeamWorkspace />}
+          {activeView === "oa-supply-dependencies" && <EngineeringSupplyWorkspace />}
+          {activeView === "oa-assurance-certification" && <EngineeringAssuranceWorkspace />}
+          {activeView === "oa-engineering-risks" && <EngineeringRisksWorkspace />}
+          {activeView === "oa-engineering-integrations" && <EngineeringIntegrationsWorkspace />}
 
           {activeView === "oa-test-plans" && (
             <OnwardAirPlaceholderWorkspace

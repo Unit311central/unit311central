@@ -80,6 +80,7 @@ export type InternalOperationsView =
   | "users-external"
   | "external-client-access"
   | "support"
+  | "support-overview"
   | "support-mine"
   | "telemetry"
   | "design-mockups"
@@ -329,6 +330,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "users-external",
   "external-client-access",
   "support",
+  "support-overview",
   "support-mine",
   "telemetry",
   "design-mockups",
@@ -868,16 +870,20 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       { label: "Messaging", icon: "MessageSquare", view: "messaging" as const },
       { label: "Communications", icon: "Video", view: "communications" as const },
       { label: "Social", icon: "Share2", view: "social" as const },
-      {
-        label: "Support Desk",
-        icon: "LifeBuoy",
-        children: [
-          { label: "Tickets", view: "support" as const },
-          { label: "My support tickets", view: "support-mine" as const },
-          { label: "WhatsApp Integration", href: "/whatsapp/support-flow" },
-        ],
-      },
       { label: "Whiteboard", icon: "PenLine", view: "whiteboard" as const },
+    ],
+  },
+  {
+    kind: "workspace",
+    label: "Support Desk",
+    icon: "LifeBuoy",
+    /** Alert red — distinct from BP cyan (#0891B2) and Ops sky (#0284C7). */
+    color: "#DC2626",
+    items: [
+      { label: "Ticket Overview", icon: "BarChart3", view: "support-overview" as const },
+      { label: "Tickets", icon: "Ticket", view: "support" as const },
+      { label: "My support tickets", icon: "UserRound", view: "support-mine" as const },
+      { label: "WhatsApp Integration", icon: "MessageCircle", href: "/whatsapp/support-flow" },
     ],
   },
   {
@@ -976,7 +982,8 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "External Client Access",
     icon: "KeyRound",
-    color: "#8B7CFF",
+    /** Deep teal — not Tools/Settings purple cluster. */
+    color: "#0F766E",
     items: [
       {
         label: "Dashboard",
@@ -990,7 +997,8 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "Settings",
     icon: "Settings",
-    color: "#7AA2FF",
+    /** Slate — not Tools purple (#6C63FF). */
+    color: "#64748B",
     items: [
       { label: "Profile", icon: "Users", view: "profile" as const },
       { label: "General", icon: "Settings", view: "settings" as const },
@@ -1097,7 +1105,8 @@ export const internalViewTitles: Record<
     title: "Portal Management",
     subtitle: "Training",
   },
-  support: { title: "Support Desk", subtitle: "Business Productivity" },
+  support: { title: "Tickets", subtitle: "Support Desk" },
+  "support-overview": { title: "Ticket Overview", subtitle: "Support Desk" },
   "support-mine": { title: "My support tickets", subtitle: "Support Desk" },
   telemetry: { title: "Live Telemetry", subtitle: "Tools" },
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },

@@ -103,8 +103,8 @@ const MODULE_ALIASES: Record<string, string[]> = {
     "calendar",
     "messaging",
     "communications",
-    "support",
   ],
+  "support-desk": ["support", "support desk", "tickets", "helpdesk", "whatsapp"],
   operations: ["ops", "assets", "inventory", "procurement", "logistics", "suppliers", "vendors"],
   training: ["learning", "courses", "education"],
   qms: ["quality", "quality management", "capa", "audits", "iso"],
@@ -121,7 +121,9 @@ const MODULE_DESCRIPTIONS: Record<string, string> = {
   "technology-management":
     "Devices, software, SaaS, telecommunications, infrastructure, cloud, networks, domains, certificates, identity, security, and technology assets.",
   "productivity-and-collaboration":
-    "Files, email, calendar, messaging, communications, and support desk.",
+    "Files, email, calendar, messaging, and communications.",
+  "support-desk":
+    "Ticket overview, open queue, my tickets, and WhatsApp intake.",
   operations: "Assets, inventory, procurement, and logistics.",
   training: "Staff and QMS training courses.",
   qms: "Quality management — document control, CAPA, audits, and management review.",

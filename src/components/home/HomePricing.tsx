@@ -11,7 +11,7 @@ const MONTHLY_PRICE = PROFESSIONAL_MONTHLY_USD;
 const QUARTERLY_PRICE = PROFESSIONAL_QUARTERLY_USD;
 
 const PLAN_FEATURES = [
-  "Many modules including Business Central, AI Executive Assistant, Clients & Projects, Financials, HR & People, Technology & Engineering, Corporate, Operations, Business Productivity and Business App Integrations",
+  "Many modules including Business Central, AI Executive Assistant, Clients & Projects, Financials, HR & People, Technology & Engineering, Corporate, Operations, Business Productivity, Support Desk and Business App Integrations",
   "AI Executive Assistant and board pack / report automation",
   "Professional onboarding and business configuration",
   "Monthly allowance to ask for customization for any module",

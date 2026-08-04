@@ -50,6 +50,7 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "inventory-management": () => import("@/components/testflighthub/InventoryManagementWorkspace"),
   procurement: () => import("@/components/testflighthub/ProcurementWorkspace"),
   support: () => import("@/components/testflighthub/SupportWorkspace"),
+  "support-overview": () => import("@/components/testflighthub/SupportWorkspace"),
   "support-mine": () => import("@/components/testflighthub/SupportWorkspace"),
   logistics: () => import("@/components/testflighthub/LogisticsWorkspace"),
   technology: () => import("@/components/testflighthub/TechnologyDashboardWorkspace"),
@@ -87,6 +88,19 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "oa-ip-search": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
   "oa-competitor-intelligence": () =>
     import("@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace"),
+  "oa-engineering-overview": () =>
+    import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
+  "oa-programs-milestones": () =>
+    import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
+  "oa-team-capacity": () => import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
+  "oa-supply-dependencies": () =>
+    import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
+  "oa-assurance-certification": () =>
+    import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
+  "oa-engineering-risks": () =>
+    import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
+  "oa-engineering-integrations": () =>
+    import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
 };
 
 /**
@@ -122,7 +136,14 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
   "accounts-payable": ["financials", "accounts-receivable"],
   expenses: ["financials"],
   calendar: ["crm-meetings", "communications", "messaging", "projects"],
-  messaging: ["communications", "calendar", "info-email", "support", "support-mine"],
+  messaging: [
+    "communications",
+    "calendar",
+    "info-email",
+    "support-overview",
+    "support",
+    "support-mine",
+  ],
   communications: ["messaging", "calendar", "crm-meetings"],
   "info-email": ["messaging", "crm", "productivity-dashboard"],
   "productivity-dashboard": [
@@ -131,6 +152,7 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
     "calendar",
     "messaging",
     "communications",
+    "support-overview",
     "support",
   ],
   "files-internal": ["files-external", "files-client", "productivity-dashboard"],
@@ -144,6 +166,18 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
   "inventory-management": ["assets", "procurement", "logistics"],
   procurement: ["inventory-management", "assets", "logistics"],
   logistics: ["procurement", "inventory-management", "fleet"],
+  "oa-engineering-overview": [
+    "oa-programs-milestones",
+    "oa-team-capacity",
+    "oa-engineering-risks",
+    "oa-supply-dependencies",
+  ],
+  "oa-programs-milestones": ["oa-engineering-overview", "oa-team-capacity", "oa-engineering-risks"],
+  "oa-team-capacity": ["oa-engineering-overview", "oa-programs-milestones"],
+  "oa-supply-dependencies": ["oa-engineering-overview", "oa-programs-milestones", "procurement"],
+  "oa-assurance-certification": ["oa-engineering-overview", "oa-engineering-risks"],
+  "oa-engineering-risks": ["oa-engineering-overview", "oa-programs-milestones"],
+  "oa-engineering-integrations": ["oa-engineering-overview"],
   technology: [
     "technology-dashboard",
     "technology-devices",

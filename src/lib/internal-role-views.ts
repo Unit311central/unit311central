@@ -1143,7 +1143,12 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
       out.push({
         ...section,
         items: section.items
-          .filter((item) => item.label !== "Social" && item.view !== "social")
+          .filter(
+            (item) =>
+              item.label !== "Social" &&
+              item.view !== "social" &&
+              item.label !== "Support Desk",
+          )
           .map((item) => {
             if (!item.children?.length) return item;
             return {
@@ -1160,9 +1165,6 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
               item.view !== "files-client" && item.label !== "Client Explorer",
           ),
       });
-      // Own top-level module — peer to Business Productivity / Financials, not under Operations.
-      out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
-      insertedMarketing = true;
       continue;
     }
 
@@ -1205,9 +1207,12 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
   }
   if (!insertedBoard) out.push(ONWARDAIR_BOARD_NAV_SECTION);
   if (!insertedMarketing) {
+    // Keep Support Desk directly under Business Productivity; Marketing sits after Support Desk.
+    const supportIdx = out.findIndex((s) => s.label === "Support Desk");
     const productivityIdx = out.findIndex((s) => s.label === "Business Productivity");
-    if (productivityIdx >= 0) {
-      out.splice(productivityIdx + 1, 0, ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
+    const insertAfter = supportIdx >= 0 ? supportIdx : productivityIdx;
+    if (insertAfter >= 0) {
+      out.splice(insertAfter + 1, 0, ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
     } else {
       out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);
     }

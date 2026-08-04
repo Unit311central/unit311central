@@ -174,10 +174,13 @@ function inputClassName() {
 export default function SupportWorkspace({
   scope = "all",
 }: {
-  scope?: "all" | "mine";
+  scope?: "overview" | "all" | "mine";
 }) {
   const searchParams = useSearchParams();
+  const overviewMode = scope === "overview";
   const mineMode = scope === "mine";
+  const showExplorer = !overviewMode;
+  const showAnalytics = overviewMode || mineMode;
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -191,12 +194,13 @@ export default function SupportWorkspace({
   const [assigneeFilter, setAssigneeFilter] = useState(mineMode ? "" : "all");
   const [myAssignee, setMyAssignee] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "closed" | "outstanding" | "in_queue">(
-    mineMode ? "open" : "all",
+    overviewMode ? "all" : "open",
   );
   const [statsPeriod, setStatsPeriod] = useState<SupportStatsPeriod>("month");
   const snapshottedIdRef = useRef<string | null>(null);
   const deepLinkAppliedRef = useRef<string | null>(null);
-  const [analyticsNowMs] = useState(() => Date.now());
+  const [analyticsNowMs, setAnalyticsNowMs] = useState(() => Date.now());
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
   function selectTicket(ticketId: string) {
@@ -463,38 +467,65 @@ export default function SupportWorkspace({
     return !ticketFieldsEqual(selectedTicket, savedSnapshot);
   }, [selectedTicket, savedSnapshot]);
 
-  const loadTickets = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadTickets = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = Boolean(options?.silent);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
 
-    try {
-      const response = await fetch("/api/support/tickets?includeArchived=true", { cache: "no-store" });
-      const data = await readApiJson<{ tickets?: SupportTicket[]; error?: string }>(response);
-      if (!response.ok) throw new Error(data.error ?? "Failed to load support tickets");
+      try {
+        const response = await fetch("/api/support/tickets?includeArchived=true", {
+          cache: "no-store",
+        });
+        const data = await readApiJson<{ tickets?: SupportTicket[]; error?: string }>(response);
+        if (!response.ok) throw new Error(data.error ?? "Failed to load support tickets");
 
-      const nextTickets = data.tickets ?? [];
-      setTickets(nextTickets);
-      setSelectedTicketId((current) => {
-        if (current && nextTickets.some((ticket) => ticket.id === current)) return current;
-        const firstOpen = nextTickets.find((ticket) => !ticket.archived);
-        return firstOpen?.id ?? nextTickets[0]?.id ?? null;
-      });
-      if (nextTickets.length > 0) openDetail();
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to load support tickets");
-      setTickets([]);
-      setSelectedTicketId(null);
-      closeDetail();
-    } finally {
-      setLoading(false);
-    }
-  }, [closeDetail, openDetail]);
+        const nextTickets = data.tickets ?? [];
+        setTickets(nextTickets);
+        setAnalyticsNowMs(Date.now());
+        setLastSyncedAt(new Date());
+
+        if (overviewMode) {
+          setSelectedTicketId(null);
+          closeDetail();
+          return;
+        }
+
+        setSelectedTicketId((current) => {
+          if (current && nextTickets.some((ticket) => ticket.id === current)) return current;
+          const firstOpen = nextTickets.find((ticket) => !ticket.archived);
+          return firstOpen?.id ?? nextTickets[0]?.id ?? null;
+        });
+        if (nextTickets.length > 0) openDetail();
+      } catch (loadError) {
+        if (!silent) {
+          setError(loadError instanceof Error ? loadError.message : "Failed to load support tickets");
+          setTickets([]);
+          setSelectedTicketId(null);
+          closeDetail();
+        }
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [closeDetail, openDetail, overviewMode],
+  );
 
   useEffect(() => {
     startTransition(() => {
       void loadTickets();
     });
   }, [loadTickets]);
+
+  useEffect(() => {
+    if (!overviewMode) return;
+    const intervalId = window.setInterval(() => {
+      void loadTickets({ silent: true });
+    }, 20_000);
+    return () => window.clearInterval(intervalId);
+  }, [loadTickets, overviewMode]);
 
   useEffect(() => {
     const ticketId = searchParams.get("ticketId")?.trim().toUpperCase();
@@ -677,6 +708,37 @@ export default function SupportWorkspace({
 
   return (
     <div className="space-y-6">
+      {overviewMode ? (
+        <section className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/80">
+                Ticket Overview
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-white">Live support desk dashboard</h2>
+              <p className="mt-1 text-sm text-white/55">
+                Connected to open and historic tickets in real time. Use Tickets for the full queue and
+                search.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/35 bg-emerald-500/15 px-3 py-1.5 font-medium text-emerald-100">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-300" />
+                </span>
+                Live
+              </span>
+              {lastSyncedAt ? (
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-white/55">
+                  Synced {formatSupportDate(lastSyncedAt.toISOString())}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {mineMode ? (
         <section className="rounded-2xl border border-sky-400/25 bg-sky-500/10 px-4 py-4 sm:px-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
@@ -686,261 +748,10 @@ export default function SupportWorkspace({
             {myAssignee ? `Assigned to ${myAssignee}` : "Your assigned tickets"}
           </h2>
           <p className="mt-1 text-sm text-white/55">
-            Only tickets assigned to you as a Demo support user. Use Open / Closed filters below.
-            Send client updates from a selected ticket.
+            Work your queue first. Personal analytics for your tickets sit below.
           </p>
         </section>
       ) : null}
-
-      {!loading && (
-        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-sky-300" />
-              <h3 className="text-sm font-semibold text-white">
-                {mineMode ? "My ticket analytics" : "Support analytics"}
-              </h3>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              {mineMode ? (
-                <span className="inline-flex h-8 items-center rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 text-sky-100">
-                  {myAssignee || "…"}
-                </span>
-              ) : (
-                <select
-                  value={assigneeFilter}
-                  onChange={(event) => setAssigneeFilter(event.target.value)}
-                  className={cn(inputClassName(), "mt-0 h-8 min-w-[10rem] py-1 text-xs")}
-                  aria-label="Filter analytics by support user"
-                >
-                  <option value="all">All support users</option>
-                  <option value="unassigned">Unassigned</option>
-                  {assigneeOptions.map((assignee) => (
-                    <option key={`analytics-user-${assignee}`} value={assignee}>
-                      {assignee}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <select
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(
-                    event.target.value as "all" | "open" | "closed" | "outstanding" | "in_queue",
-                  )
-                }
-                className={cn(inputClassName(), "mt-0 h-8 min-w-[9rem] py-1 text-xs")}
-                aria-label="Filter analytics by status"
-              >
-                <option value="all">All statuses</option>
-                <option value="open">Open</option>
-                <option value="outstanding">Outstanding</option>
-                <option value="in_queue">In queue</option>
-                <option value="closed">Closed</option>
-              </select>
-              <span className="rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-sky-200">
-                {openTicketsNow} open now
-              </span>
-              <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-emerald-200">
-                {closedTicketsNow} closed now
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-4 xl:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                Historic volume (6 weeks)
-              </p>
-              <div className="mt-3 h-52">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <LineChart data={historicChartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                    <XAxis
-                      dataKey="week"
-                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "#0b1524",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        borderRadius: 12,
-                        color: "#f8fafc",
-                      }}
-                    />
-                    <Line type="monotone" dataKey="opened" name="Opened" stroke="#38bdf8" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="resolved" name="Resolved" stroke="#34d399" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                  Current state ({STATS_PERIOD_LABELS[statsPeriod]})
-                </p>
-                <select
-                  value={statsPeriod}
-                  onChange={(event) => setStatsPeriod(event.target.value as SupportStatsPeriod)}
-                  className={cn(inputClassName(), "mt-0 w-auto min-w-[10rem]")}
-                >
-                  {(Object.keys(STATS_PERIOD_LABELS) as SupportStatsPeriod[]).map((period) => (
-                    <option key={period} value={period}>
-                      {STATS_PERIOD_LABELS[period]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="mt-3 h-52">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <BarChart data={currentStateChartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "#0b1524",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        borderRadius: 12,
-                        color: "#f8fafc",
-                      }}
-                    />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {currentStateChartData.map((entry) => (
-                        <Cell key={entry.label} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                Assigned per support user ({STATS_PERIOD_LABELS[statsPeriod]})
-              </p>
-              <div className="mt-3 h-52">
-                {assignedPerUserChartData.length === 0 ? (
-                  <p className="pt-16 text-center text-sm text-white/40">No tickets in this period.</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                    <BarChart
-                      data={assignedPerUserChartData}
-                      margin={{ top: 8, right: 8, left: -16, bottom: 8 }}
-                    >
-                      <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
-                        axisLine={false}
-                        tickLine={false}
-                        interval={0}
-                        angle={-15}
-                        textAnchor="end"
-                        height={48}
-                      />
-                      <YAxis
-                        allowDecimals={false}
-                        tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          background: "#0b1524",
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          borderRadius: 12,
-                          color: "#f8fafc",
-                        }}
-                      />
-                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                        {assignedPerUserChartData.map((entry) => (
-                          <Cell key={entry.label} fill={entry.fill} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                Open ticket age (lapsed time)
-              </p>
-              <div className="mt-3 h-52">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <BarChart data={lapsedTimeChartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: "#0b1524",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        borderRadius: 12,
-                        color: "#f8fafc",
-                      }}
-                    />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {lapsedTimeChartData.map((entry) => (
-                        <Cell key={entry.label} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              {avgLapsedByAssignee.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {avgLapsedByAssignee.map((row) => (
-                    <span
-                      key={row.label}
-                      className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-white/65"
-                    >
-                      {row.label}: avg {row.display}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <StatBar label="In queue" count={inQueueCount} max={statsMax} tone="sky" />
-            <StatBar label="Outstanding" count={outstandingCount} max={statsMax} tone="amber" />
-            <StatBar label="Resolved" count={resolvedCount} max={statsMax} tone="emerald" />
-          </div>
-        </section>
-      )}
 
       {error && (
         <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -955,12 +766,21 @@ export default function SupportWorkspace({
         </p>
       )}
 
-      {loading ? (
+      {overviewMode && loading ? (
+        <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-8 text-sm text-white/50">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Connecting to ticket data…
+        </div>
+      ) : null}
+
+      {showExplorer ? (
+        loading ? (
         <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-8 text-sm text-white/50">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading tickets…
         </div>
       ) : (
+        <div>
         <ResponsiveMasterDetail
           showDetail={showDetail}
           onBack={() => {
@@ -974,9 +794,14 @@ export default function SupportWorkspace({
             <section className="flex max-h-[78vh] flex-col rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Support explorer</h2>
+                  <h2 className="text-lg font-semibold text-white">
+                    {mineMode ? "My tickets" : "Tickets"}
+                  </h2>
                   <p className="mt-1 text-xs text-white/45">
-                    {filteredTickets.length} tickets · sorted by latest activity
+                    {filteredTickets.length} tickets ·{" "}
+                    {mineMode
+                      ? "sorted by latest activity"
+                      : "open by default · search or show archived for legacy"}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1426,7 +1251,260 @@ export default function SupportWorkspace({
             )
           }
         />
+        </div>
+      )
+      ) : null}
+
+      {showAnalytics && !loading && (
+        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-sky-300" />
+              <h3 className="text-sm font-semibold text-white">
+                {mineMode ? "My ticket analytics" : "Support analytics"}
+              </h3>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {mineMode ? (
+                <span className="inline-flex h-8 items-center rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 text-sky-100">
+                  {myAssignee || "…"}
+                </span>
+              ) : (
+                <select
+                  value={assigneeFilter}
+                  onChange={(event) => setAssigneeFilter(event.target.value)}
+                  className={cn(inputClassName(), "mt-0 h-8 min-w-[10rem] py-1 text-xs")}
+                  aria-label="Filter analytics by support user"
+                >
+                  <option value="all">All support users</option>
+                  <option value="unassigned">Unassigned</option>
+                  {assigneeOptions.map((assignee) => (
+                    <option key={`analytics-user-${assignee}`} value={assignee}>
+                      {assignee}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value as "all" | "open" | "closed" | "outstanding" | "in_queue",
+                  )
+                }
+                className={cn(inputClassName(), "mt-0 h-8 min-w-[9rem] py-1 text-xs")}
+                aria-label="Filter analytics by status"
+              >
+                <option value="all">All statuses</option>
+                <option value="open">Open</option>
+                <option value="outstanding">Outstanding</option>
+                <option value="in_queue">In queue</option>
+                <option value="closed">Closed</option>
+              </select>
+              <span className="rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 text-sky-200">
+                {openTicketsNow} open now
+              </span>
+              <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-emerald-200">
+                {closedTicketsNow} closed now
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Historic volume (6 weeks)
+              </p>
+              <div className="mt-3 h-52">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <LineChart data={historicChartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <XAxis
+                      dataKey="week"
+                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#0b1524",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 12,
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Line type="monotone" dataKey="opened" name="Opened" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="resolved" name="Resolved" stroke="#34d399" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                  Current state ({STATS_PERIOD_LABELS[statsPeriod]})
+                </p>
+                <select
+                  value={statsPeriod}
+                  onChange={(event) => setStatsPeriod(event.target.value as SupportStatsPeriod)}
+                  className={cn(inputClassName(), "mt-0 w-auto min-w-[10rem]")}
+                >
+                  {(Object.keys(STATS_PERIOD_LABELS) as SupportStatsPeriod[]).map((period) => (
+                    <option key={period} value={period}>
+                      {STATS_PERIOD_LABELS[period]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-3 h-52">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <BarChart data={currentStateChartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#0b1524",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 12,
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      {currentStateChartData.map((entry) => (
+                        <Cell key={entry.label} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Assigned per support user ({STATS_PERIOD_LABELS[statsPeriod]})
+              </p>
+              <div className="mt-3 h-52">
+                {assignedPerUserChartData.length === 0 ? (
+                  <p className="pt-16 text-center text-sm text-white/40">No tickets in this period.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <BarChart
+                      data={assignedPerUserChartData}
+                      margin={{ top: 8, right: 8, left: -16, bottom: 8 }}
+                    >
+                      <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                        interval={0}
+                        angle={-15}
+                        textAnchor="end"
+                        height={48}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#0b1524",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          borderRadius: 12,
+                          color: "#f8fafc",
+                        }}
+                      />
+                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                        {assignedPerUserChartData.map((entry) => (
+                          <Cell key={entry.label} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-[#0b1524]/40 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                Open ticket age (lapsed time)
+              </p>
+              <div className="mt-3 h-52">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <BarChart data={lapsedTimeChartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "#0b1524",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 12,
+                        color: "#f8fafc",
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      {lapsedTimeChartData.map((entry) => (
+                        <Cell key={entry.label} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {avgLapsedByAssignee.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {avgLapsedByAssignee.map((row) => (
+                    <span
+                      key={row.label}
+                      className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] text-white/65"
+                    >
+                      {row.label}: avg {row.display}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <StatBar label="In queue" count={inQueueCount} max={statsMax} tone="sky" />
+            <StatBar label="Outstanding" count={outstandingCount} max={statsMax} tone="amber" />
+            <StatBar label="Resolved" count={resolvedCount} max={statsMax} tone="emerald" />
+          </div>
+        </section>
       )}
+
     </div>
   );
 }

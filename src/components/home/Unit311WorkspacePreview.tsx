@@ -11,6 +11,7 @@ import {
 } from "@/lib/internal-operations-data";
 import { cn } from "@/lib/utils";
 import {
+  BarChart3,
   Binoculars,
   Briefcase,
   Building2,
@@ -31,7 +32,9 @@ import {
   PenLine,
   Settings,
   Share2,
+  Ticket,
   Truck,
+  UserRound,
   Users,
   Video,
   Wallet,
@@ -53,6 +56,9 @@ const iconMap: Record<string, LucideIcon> = {
   MessageSquare,
   Share2,
   LifeBuoy,
+  BarChart3,
+  Ticket,
+  UserRound,
   Compass,
   Binoculars,
   PenLine,
@@ -104,7 +110,14 @@ const DEMO_NAV_SECTIONS: InternalNavSection[] = [
       { label: "Messaging", icon: "MessageSquare", view: "messaging" },
       { label: "Communications", icon: "Video", view: "communications" },
       { label: "Social", icon: "Share2", view: "social" },
-      { label: "Support", icon: "LifeBuoy", view: "support" },
+    ],
+  },
+  {
+    label: "Support Desk",
+    items: [
+      { label: "Ticket Overview", icon: "BarChart3", view: "support-overview" },
+      { label: "Tickets", icon: "Ticket", view: "support" },
+      { label: "My support tickets", icon: "UserRound", view: "support-mine" },
     ],
   },
   {
