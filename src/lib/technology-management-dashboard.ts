@@ -1,21 +1,41 @@
 import { normalizeKpiRow } from "@/lib/dashboard-framework";
 import type { DashboardSectionConfig, WorkspaceDashboardConfig } from "@/lib/dashboard-framework";
-import type { AbhiTechRenewalItem } from "@/lib/abhi-tech-fake-data";
 import { formatSoftwareMoney } from "@/lib/software-assets-data";
 
-export type AbhiTechnologyEstateSummary = {
+export type TechnologyEstateRenewalItem = {
+  id: string;
+  label: string;
+  category: "Software" | "Telecom" | "Device";
+  dueDate: string;
+  cost: number;
+};
+
+/** Expanded tech estate (devices + telecom + renewals) for ABHI / OnwardAir. */
+export type TechnologyEstateSummary = {
+  brandLabel: string;
   devicesCount: number;
-  telecomMonthlyGbp: number;
+  telecomMonthly: number;
+  currency: string;
   spendTrendMomPct: number;
-  spendTrendMomGbp: number;
+  spendTrendMom: number;
   spendTrendLabels: string[];
   spendTrendValues: number[];
-  upcomingRenewals: readonly AbhiTechRenewalItem[];
+  upcomingRenewals: readonly TechnologyEstateRenewalItem[];
 };
+
+/** @deprecated Use TechnologyEstateSummary */
+export type AbhiTechnologyEstateSummary = TechnologyEstateSummary;
+
+function moneySymbol(currency: string) {
+  const code = currency.toUpperCase();
+  if (code === "GBP") return "£";
+  if (code === "EUR") return "€";
+  return "$";
+}
 
 /**
  * Technology Management dashboard — live Software & SaaS register.
- * ABHI surfaces an expanded estate overview (devices, telecom, renewals).
+ * ABHI / OnwardAir surfaces an expanded estate overview (devices, telecom, renewals).
  */
 export function buildTechnologyManagementDashboardConfig(input: {
   softwareCount: number;
@@ -24,7 +44,9 @@ export function buildTechnologyManagementDashboardConfig(input: {
   annualSpend?: number;
   monthlySpend?: number;
   currency?: string;
-  abhiEstate?: AbhiTechnologyEstateSummary;
+  /** @deprecated Prefer `estate` */
+  abhiEstate?: TechnologyEstateSummary;
+  estate?: TechnologyEstateSummary;
 }): WorkspaceDashboardConfig {
   const {
     softwareCount,
@@ -34,48 +56,53 @@ export function buildTechnologyManagementDashboardConfig(input: {
     monthlySpend = 0,
     currency = "USD",
     abhiEstate,
+    estate: estateInput,
   } = input;
-  const isAbhi = Boolean(abhiEstate);
+  const estate = estateInput ?? abhiEstate;
+  const hasEstate = Boolean(estate);
+  const estateCurrency = estate?.currency ?? currency;
+  const sym = moneySymbol(estateCurrency);
   const hasSpend = annualSpend > 0 || monthlySpend > 0;
   const annualLabel = hasSpend ? formatSoftwareMoney(annualSpend, currency) : "—";
   const monthlyLabel = hasSpend ? formatSoftwareMoney(monthlySpend, currency) : "—";
-  const upcomingCount = abhiEstate?.upcomingRenewals.length ?? renewingSoonCount;
-  const upcomingCostGbp =
-    abhiEstate?.upcomingRenewals.reduce((sum, row) => sum + row.costGbp, 0) ?? 0;
-  const totalMonthlyGbp = isAbhi
-    ? Math.round(monthlySpend + (abhiEstate?.telecomMonthlyGbp ?? 0))
+  const upcomingCount = estate?.upcomingRenewals.length ?? renewingSoonCount;
+  const upcomingCost =
+    estate?.upcomingRenewals.reduce((sum, row) => sum + row.cost, 0) ?? 0;
+  const totalMonthly = hasEstate
+    ? Math.round(monthlySpend + (estate?.telecomMonthly ?? 0))
     : 0;
-  const momPct = abhiEstate?.spendTrendMomPct ?? 0;
+  const momPct = estate?.spendTrendMomPct ?? 0;
   const momLabel =
     momPct === 0
       ? "—"
       : `${momPct >= 0 ? "+" : "−"}${Math.abs(momPct).toFixed(1)}%`;
   const momTone = momPct > 0 ? "warning" : momPct < 0 ? "positive" : "neutral";
+  const brand = estate?.brandLabel ?? "Technology";
 
-  const description = isAbhi
-    ? "Executive overview of ABHI devices, software & SaaS, telecommunications, spend trends, and upcoming renewals."
+  const description = hasEstate
+    ? `Executive overview of ${brand} devices, software & SaaS, telecommunications, spend trends, and upcoming renewals.`
     : "Live software and SaaS register. Additional technology registers (devices, telecom, infrastructure) will appear here when they ship.";
 
-  const aiHeadline = isAbhi
-    ? `${abhiEstate!.devicesCount} devices · ${softwareCount} software assets · £${totalMonthlyGbp.toLocaleString("en-GB")}/mo total tech spend`
+  const aiHeadline = hasEstate
+    ? `${estate!.devicesCount} devices · ${softwareCount} software assets · ${sym}${totalMonthly.toLocaleString("en-US")}/mo total tech spend`
     : softwareCount === 0
       ? "No software assets recorded yet."
       : `${softwareCount} software asset${softwareCount === 1 ? "" : "s"} in the live register.`;
 
-  const aiSummary = isAbhi
-    ? `${upcomingCount} renewal${upcomingCount === 1 ? "" : "s"} on the horizon (~£${upcomingCostGbp.toLocaleString("en-GB")}). Telecom run-rate is £${abhiEstate!.telecomMonthlyGbp}/mo. Tech spend moved ${momLabel} month-on-month.`
+  const aiSummary = hasEstate
+    ? `${upcomingCount} renewal${upcomingCount === 1 ? "" : "s"} on the horizon (~${sym}${upcomingCost.toLocaleString("en-US")}). Telecom run-rate is ${sym}${estate!.telecomMonthly}/mo. Tech spend moved ${momLabel} month-on-month.`
     : renewingSoonCount > 0
       ? `${renewingSoonCount} item${renewingSoonCount === 1 ? "" : "s"} need renewal attention soon. Open Software & SaaS to manage contracts and licences.`
       : hasSpend
         ? `Active estate spend is about ${annualLabel}/year (${monthlyLabel}/month, ${currency}). Open Software & SaaS to manage vendors and renewals.`
         : "Open Software & SaaS to add vendors, licences, and renewals. Other technology domains are not available in the sidebar until they are live.";
 
-  const kpis = isAbhi
+  const kpis = hasEstate
     ? normalizeKpiRow([
         {
           id: "devices",
           label: "Devices",
-          value: String(abhiEstate!.devicesCount),
+          value: String(estate!.devicesCount),
           delta: "Physical estate",
           tone: "positive",
           hint: "Laptops, mobiles, monitors",
@@ -90,8 +117,8 @@ export function buildTechnologyManagementDashboardConfig(input: {
         },
         {
           id: "telecom-spend",
-          label: "Telecoms £/mo",
-          value: `£${abhiEstate!.telecomMonthlyGbp}`,
+          label: `Telecoms ${sym}/mo`,
+          value: `${sym}${estate!.telecomMonthly}`,
           delta: "Connectivity & voice",
           tone: "neutral",
           hint: "Mobile, fibre, circuits",
@@ -101,9 +128,9 @@ export function buildTechnologyManagementDashboardConfig(input: {
           label: "Spend trend MoM",
           value: momLabel,
           delta:
-            abhiEstate!.spendTrendMomGbp >= 0
-              ? `+£${Math.abs(abhiEstate!.spendTrendMomGbp)}`
-              : `−£${Math.abs(abhiEstate!.spendTrendMomGbp)}`,
+            estate!.spendTrendMom >= 0
+              ? `+${sym}${Math.abs(estate!.spendTrendMom)}`
+              : `−${sym}${Math.abs(estate!.spendTrendMom)}`,
           tone: momTone,
           hint: "Software + telecom combined",
         },
@@ -152,7 +179,7 @@ export function buildTechnologyManagementDashboardConfig(input: {
           id: "tech-header",
           type: "header",
           workspaceName: "Technology Management",
-          eyebrow: isAbhi ? "Technology estate" : "Software & SaaS",
+          eyebrow: hasEstate ? "Technology estate" : "Software & SaaS",
           description,
         },
       ],
@@ -164,16 +191,19 @@ export function buildTechnologyManagementDashboardConfig(input: {
         {
           id: "tech-ai",
           type: "ai-summary",
-          title: isAbhi ? "Technology estate" : "Software register",
+          title: hasEstate ? "Technology estate" : "Software register",
           headline: aiHeadline,
           summary: aiSummary,
-          nextUp: isAbhi ? "Review upcoming renewals" : "Open Software & SaaS",
-          metrics: isAbhi
+          nextUp: hasEstate ? "Review upcoming renewals" : "Open Software & SaaS",
+          metrics: hasEstate
             ? [
-                { label: "Devices", value: String(abhiEstate!.devicesCount) },
+                { label: "Devices", value: String(estate!.devicesCount) },
                 { label: "Software assets", value: String(softwareCount) },
                 { label: "Upcoming renewals", value: String(upcomingCount) },
-                { label: "Total £/mo", value: `£${totalMonthlyGbp.toLocaleString("en-GB")}` },
+                {
+                  label: `Total ${sym}/mo`,
+                  value: `${sym}${totalMonthly.toLocaleString("en-US")}`,
+                },
               ]
             : [
                 { label: "Software assets", value: String(softwareCount) },
@@ -197,7 +227,7 @@ export function buildTechnologyManagementDashboardConfig(input: {
     },
   ];
 
-  if (isAbhi && abhiEstate) {
+  if (hasEstate && estate) {
     sections.push(
       {
         id: "analytics",
@@ -212,11 +242,11 @@ export function buildTechnologyManagementDashboardConfig(input: {
               {
                 id: "tech-spend",
                 label: "Monthly spend",
-                values: abhiEstate.spendTrendValues,
-                labels: abhiEstate.spendTrendLabels,
+                values: estate.spendTrendValues,
+                labels: estate.spendTrendLabels,
                 format: "currency",
-                currency: "GBP",
-                latestLabel: `£${totalMonthlyGbp.toLocaleString("en-GB")}`,
+                currency: estateCurrency,
+                latestLabel: `${sym}${totalMonthly.toLocaleString("en-US")}`,
               },
             ],
             annotations: [
@@ -225,19 +255,19 @@ export function buildTechnologyManagementDashboardConfig(input: {
                 label: "MoM change",
                 value: momLabel,
                 tone: momTone,
-                hint: `${abhiEstate.spendTrendMomGbp >= 0 ? "+" : "−"}£${Math.abs(abhiEstate.spendTrendMomGbp)} vs prior month`,
+                hint: `${estate.spendTrendMom >= 0 ? "+" : "−"}${sym}${Math.abs(estate.spendTrendMom)} vs prior month`,
               },
               {
                 id: "software",
-                label: "Software £/mo",
+                label: `Software ${sym}/mo`,
                 value: hasSpend ? monthlyLabel : "—",
                 tone: "neutral",
                 hint: "From live register",
               },
               {
                 id: "telecom",
-                label: "Telecom £/mo",
-                value: `£${abhiEstate.telecomMonthlyGbp}`,
+                label: `Telecom ${sym}/mo`,
+                value: `${sym}${estate.telecomMonthly}`,
                 tone: "neutral",
                 hint: "Mobile, fibre, circuits",
               },
@@ -255,10 +285,10 @@ export function buildTechnologyManagementDashboardConfig(input: {
             type: "work-queue",
             title: "Upcoming costs & renewals",
             subtitle: "Licences, contracts, and hardware refresh",
-            items: abhiEstate.upcomingRenewals.map((row) => ({
+            items: estate.upcomingRenewals.map((row) => ({
               id: row.id,
               title: row.label,
-              meta: `${row.category} · £${row.costGbp.toLocaleString("en-GB")}`,
+              meta: `${row.category} · ${sym}${row.cost.toLocaleString("en-US")}`,
               status: row.category,
               dueLabel: row.dueDate,
               priority:
@@ -282,7 +312,7 @@ export function buildTechnologyManagementDashboardConfig(input: {
         id: "tech-actions",
         type: "quick-actions",
         title: "Actions",
-        actions: isAbhi
+        actions: hasEstate
           ? [
               {
                 id: "open-software",

@@ -14,6 +14,14 @@ import {
   sumAbhiTelecomMonthlySpend,
 } from "@/lib/abhi-tech-fake-data";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import {
+  OA_TECH_DEVICES,
+  OA_UPCOMING_TECH_RENEWALS,
+  buildOaTechSpendTrend,
+  loadOaTelecoms,
+  sumOaTelecomMonthlySpend,
+} from "@/lib/onwardair/tech-fake-data";
 import { buildTechnologyManagementDashboardConfig } from "@/lib/technology-management-dashboard";
 
 type SoftwareAssetRow = {
@@ -34,12 +42,14 @@ function daysUntil(iso: string | null | undefined) {
 
 /**
  * Technology Management — Dashboard
- * Live Software & SaaS metrics; ABHI adds devices, telecom, and renewals.
+ * Live Software & SaaS metrics; ABHI / OnwardAir add devices, telecom, and renewals.
  */
 export default function TechnologyDashboardWorkspace() {
   const router = useRouter();
   const basePath = useInternalOperationsBasePath();
   const isAbhi = isBrowserAbhiSurface();
+  const isOa = isBrowserOnwardAirSurface();
+  const hasEstate = isAbhi || isOa;
   const [assets, setAssets] = useState<SoftwareAssetRow[]>([]);
   const [summary, setSummary] = useState<{
     annualSpend?: number;
@@ -48,12 +58,15 @@ export default function TechnologyDashboardWorkspace() {
     renewalsDueIn30Days?: number;
   } | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [telecomMonthlyGbp, setTelecomMonthlyGbp] = useState(0);
+  const [telecomMonthly, setTelecomMonthly] = useState(0);
 
   useEffect(() => {
-    if (!isAbhi) return;
-    setTelecomMonthlyGbp(sumAbhiTelecomMonthlySpend(loadAbhiTelecoms()));
-  }, [isAbhi]);
+    if (isAbhi) {
+      setTelecomMonthly(sumAbhiTelecomMonthlySpend(loadAbhiTelecoms()));
+    } else if (isOa) {
+      setTelecomMonthly(sumOaTelecomMonthlySpend(loadOaTelecoms()));
+    }
+  }, [isAbhi, isOa]);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,23 +114,56 @@ export default function TechnologyDashboardWorkspace() {
         return days != null && days >= 0 && days <= 60;
       }).length;
     const monthlySpend = summary?.monthlySpend ?? 0;
-    const abhiEstate = isAbhi
+
+    const estate = isAbhi
       ? (() => {
           const trend = buildAbhiTechSpendTrend({
             softwareMonthlyGbp: monthlySpend,
-            telecomMonthlyGbp,
+            telecomMonthlyGbp: telecomMonthly,
           });
           return {
+            brandLabel: "ABHI",
             devicesCount: ABHI_TECH_DEVICES.length,
-            telecomMonthlyGbp,
+            telecomMonthly,
+            currency: "GBP",
             spendTrendMomPct: trend.momPct,
-            spendTrendMomGbp: trend.momGbp,
+            spendTrendMom: trend.momGbp,
             spendTrendLabels: trend.labels,
             spendTrendValues: trend.values,
-            upcomingRenewals: ABHI_UPCOMING_TECH_RENEWALS,
+            upcomingRenewals: ABHI_UPCOMING_TECH_RENEWALS.map((row) => ({
+              id: row.id,
+              label: row.label,
+              category: row.category,
+              dueDate: row.dueDate,
+              cost: row.costGbp,
+            })),
           };
         })()
-      : undefined;
+      : isOa
+        ? (() => {
+            const trend = buildOaTechSpendTrend({
+              softwareMonthlyUsd: monthlySpend,
+              telecomMonthlyUsd: telecomMonthly,
+            });
+            return {
+              brandLabel: "OnwardAir",
+              devicesCount: OA_TECH_DEVICES.length,
+              telecomMonthly,
+              currency: "USD",
+              spendTrendMomPct: trend.momPct,
+              spendTrendMom: trend.momUsd,
+              spendTrendLabels: trend.labels,
+              spendTrendValues: trend.values,
+              upcomingRenewals: OA_UPCOMING_TECH_RENEWALS.map((row) => ({
+                id: row.id,
+                label: row.label,
+                category: row.category,
+                dueDate: row.dueDate,
+                cost: row.costUsd,
+              })),
+            };
+          })()
+        : undefined;
 
     return buildTechnologyManagementDashboardConfig({
       softwareCount: assets.length,
@@ -125,16 +171,16 @@ export default function TechnologyDashboardWorkspace() {
       renewingSoonCount,
       annualSpend: summary?.annualSpend,
       monthlySpend,
-      currency: summary?.currency,
-      abhiEstate,
+      currency: summary?.currency ?? (isOa ? "USD" : undefined),
+      estate,
     });
-  }, [assets, summary, isAbhi, telecomMonthlyGbp]);
+  }, [assets, summary, isAbhi, isOa, telecomMonthly]);
 
   return (
     <div className="space-y-3">
       {!loaded ? (
         <p className="text-sm text-white/45">
-          {isAbhi ? "Loading technology estate…" : "Loading software register…"}
+          {hasEstate ? "Loading technology estate…" : "Loading software register…"}
         </p>
       ) : null}
       <WorkspaceDashboard
