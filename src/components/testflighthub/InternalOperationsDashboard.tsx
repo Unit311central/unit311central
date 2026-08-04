@@ -1241,35 +1241,35 @@ export default function InternalOperationsDashboard({
           {activeView === "fundraising-investors" && (
             <OnwardAirPlaceholderWorkspace
               title="Investors"
-              group="Fundraising"
+              group="Fundraising & Cap Table"
               description="Investor relationship records, status, and timeline history."
             />
           )}
           {activeView === "fundraising-pipeline" && (
             <OnwardAirPlaceholderWorkspace
               title="Pipeline"
-              group="Fundraising"
+              group="Fundraising & Cap Table"
               description="Investor progression across fundraising stages — kanban and list views."
             />
           )}
           {activeView === "fundraising-meetings" && (
             <OnwardAirPlaceholderWorkspace
               title="Meetings"
-              group="Fundraising"
+              group="Fundraising & Cap Table"
               description="Investor meetings, discussion points, actions, and follow-ups."
             />
           )}
           {activeView === "fundraising-pitch-decks" && (
             <OnwardAirPlaceholderWorkspace
               title="Pitch Decks"
-              group="Fundraising"
+              group="Fundraising & Cap Table"
               description="Pitch deck versions, audiences, and status."
             />
           )}
           {activeView === "fundraising-data-rooms" && (
             <OnwardAirPlaceholderWorkspace
               title="Data Rooms"
-              group="Fundraising"
+              group="Fundraising & Cap Table"
               description="Investor data room packages and access tracking."
             />
           )}

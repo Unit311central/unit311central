@@ -12,7 +12,7 @@ import {
 
 type PlaceholderProps = {
   title: string;
-  group: "Engineering" | "Operations" | "Fundraising";
+  group: "Engineering" | "Operations" | "Fundraising" | "Fundraising & Cap Table";
   description: string;
 };
 
@@ -20,6 +20,7 @@ const GROUP_ICON = {
   Engineering: Target,
   Operations: LayoutDashboard,
   Fundraising: Landmark,
+  "Fundraising & Cap Table": Landmark,
 } as const;
 
 /**
@@ -170,7 +171,7 @@ export function FundraisingDashboardWorkspace() {
     <div className="mx-auto max-w-5xl space-y-6 px-1 py-6">
       <header className="rounded-2xl border border-white/12 bg-white/[0.03] p-6">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
-          OnwardAir · Fundraising
+          OnwardAir · Fundraising & Cap Table
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Dashboard</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">

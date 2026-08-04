@@ -833,11 +833,16 @@ const ONWARDAIR_BOARD_NAV_SECTION: InternalNavSection = {
 
 const ONWARDAIR_FUNDRAISING_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
-  label: "Fundraising",
+  label: "Fundraising & Cap Table",
   icon: "Landmark",
   color: "#F59E0B",
   items: [
     { label: "Dashboard", icon: "LayoutDashboard", view: "fundraising-dashboard" as const },
+    {
+      label: "Cap Table Management",
+      icon: "Layers",
+      view: "corporate-cap-table" as const,
+    },
     { label: "Investors", icon: "Users", view: "fundraising-investors" as const },
     { label: "Pipeline", icon: "Target", view: "fundraising-pipeline" as const },
     { label: "Meetings", icon: "CalendarDays", view: "fundraising-meetings" as const },
@@ -999,9 +1004,11 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
           item.view !== "board-meetings" &&
           item.view !== "board-pack" &&
           item.view !== "corporate-risk-register" &&
+          item.view !== "corporate-cap-table" &&
           item.view !== "unit311-details" &&
           item.view !== "module-go-live" &&
-          item.label !== "Unit311 Details",
+          item.label !== "Unit311 Details" &&
+          item.label !== "Cap Table Management",
       );
       out.push({
         ...section,

@@ -1271,12 +1271,12 @@ export const internalViewTitles: Record<
   "oa-change-management": { title: "Change Management", subtitle: "Operations" },
   "oa-release-tracking": { title: "Release Tracking", subtitle: "Operations" },
   "operations-dashboard": { title: "Dashboard", subtitle: "Operations" },
-  "fundraising-dashboard": { title: "Dashboard", subtitle: "Fundraising" },
-  "fundraising-investors": { title: "Investors", subtitle: "Fundraising" },
-  "fundraising-pipeline": { title: "Pipeline", subtitle: "Fundraising" },
-  "fundraising-meetings": { title: "Meetings", subtitle: "Fundraising" },
-  "fundraising-pitch-decks": { title: "Pitch Decks", subtitle: "Fundraising" },
-  "fundraising-data-rooms": { title: "Data Rooms", subtitle: "Fundraising" },
+  "fundraising-dashboard": { title: "Dashboard", subtitle: "Fundraising & Cap Table" },
+  "fundraising-investors": { title: "Investors", subtitle: "Fundraising & Cap Table" },
+  "fundraising-pipeline": { title: "Pipeline", subtitle: "Fundraising & Cap Table" },
+  "fundraising-meetings": { title: "Meetings", subtitle: "Fundraising & Cap Table" },
+  "fundraising-pitch-decks": { title: "Pitch Decks", subtitle: "Fundraising & Cap Table" },
+  "fundraising-data-rooms": { title: "Data Rooms", subtitle: "Fundraising & Cap Table" },
   "oa-engineering-overview": { title: "Engineering Overview", subtitle: "Engineering" },
   "oa-programs-milestones": { title: "Programs & Milestones", subtitle: "Engineering" },
   "oa-team-capacity": { title: "Team & Capacity", subtitle: "Engineering" },
@@ -1425,6 +1425,12 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
           return {
             title: base.title,
             subtitle: "Project Management",
+          };
+        }
+        if (activeView === "corporate-cap-table") {
+          return {
+            title: "Cap Table Management",
+            subtitle: "Fundraising & Cap Table",
           };
         }
       }

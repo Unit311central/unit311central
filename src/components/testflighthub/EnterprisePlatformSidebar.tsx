@@ -528,6 +528,14 @@ export default function EnterprisePlatformSidebar({
               );
               if (dashboard?.view) navigate(dashboard.view);
             }
+            if (willOpen && section.label === "Fundraising & Cap Table") {
+              const dashboard = section.items.find(
+                (item) =>
+                  (item.label === "Dashboard" || item.view === "fundraising-dashboard") &&
+                  item.view,
+              );
+              if (dashboard?.view) navigate(dashboard.view);
+            }
           }}
           className="group flex w-full items-center gap-1.5 text-left"
           style={{ height: WORKSPACE_HEADER_H }}
@@ -537,7 +545,14 @@ export default function EnterprisePlatformSidebar({
             style={{ color, opacity: 0.82 }}
             strokeWidth={1.5}
           />
-          <span className="min-w-0 flex-1 text-[10.5px] font-semibold uppercase leading-none tracking-[0.12em] text-white">
+          <span
+            className={cn(
+              "min-w-0 flex-1 whitespace-nowrap font-semibold uppercase leading-none text-white",
+              section.label.length > 18
+                ? "text-[9.5px] tracking-[0.06em]"
+                : "text-[10.5px] tracking-[0.12em]",
+            )}
+          >
             {section.label}
           </span>
           <Chevron
