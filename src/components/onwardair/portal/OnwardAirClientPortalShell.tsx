@@ -51,12 +51,12 @@ export function OnwardAirClientPortalShell({
         <div className="mb-6 space-y-3 px-1">
           <OnwardAirLogoMark height={36} maxWidth={180} />
           {companyLogoSrc ? (
-            <span className="inline-flex w-full items-center justify-center overflow-hidden rounded-lg bg-white px-3 py-2">
+            <span className="inline-flex w-full items-center justify-center overflow-hidden rounded-lg bg-white px-2.5 py-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={companyLogoSrc}
                 alt={companyName}
-                className="h-8 w-auto max-w-full object-contain"
+                className="h-7 w-auto max-w-full object-contain object-center"
                 decoding="async"
               />
             </span>
