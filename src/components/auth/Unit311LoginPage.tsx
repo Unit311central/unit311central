@@ -22,6 +22,8 @@ import { SITE_NAME } from "@/lib/site";
 
 /** Dark engineering/infrastructure background (4K). */
 const LOGIN_BACKGROUND = "/images/login-workspace-bg.webp";
+/** OnwardAir marketing hero (Vertex VTOL on helipad) — subtle login backdrop. */
+const ONWARDAIR_LOGIN_BACKGROUND = "/images/workspaces/onwardair-login-bg.png";
 /** High-resolution Unit311 Central mark (transparent, Retina-ready). */
 const LOGIN_LOGO = "/images/unit311central-login.webp";
 const LOGIN_LOGO_WIDTH = 1462;
@@ -317,10 +319,18 @@ export default function Unit311LoginPage({
 
   return (
     <MarketingPageShell
-      backgroundImage={LOGIN_BACKGROUND}
-      backgroundImageClassName="object-cover object-[center_35%] opacity-80 sm:object-center"
+      backgroundImage={isOnwardAir ? ONWARDAIR_LOGIN_BACKGROUND : LOGIN_BACKGROUND}
+      backgroundImageClassName={
+        isOnwardAir
+          ? "object-cover object-[center_40%] opacity-[0.38] sm:object-center"
+          : "object-cover object-[center_35%] opacity-80 sm:object-center"
+      }
       backgroundImageQuality={92}
-      overlayClassName="absolute inset-0 bg-[#020617]/45"
+      overlayClassName={
+        isOnwardAir
+          ? "absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
+          : "absolute inset-0 bg-[#020617]/45"
+      }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >
       <div className={`flex w-full max-w-[480px] flex-col items-center ${marketingFadeIn}`}>
