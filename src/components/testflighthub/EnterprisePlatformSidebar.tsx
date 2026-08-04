@@ -436,16 +436,17 @@ export default function EnterprisePlatformSidebar({
     );
   }
 
-  function renderPinItem(item: InternalNavItem) {
+  function renderPinItem(item: InternalNavItem, accent?: string) {
     const active = isInternalNavItemActive(pathname, item, activeView, basePath, searchParams);
     const Icon = resolveIcon(item.icon);
+    const color = accent ?? theme.accent;
 
     if (!item.view) return null;
 
     return (
       <div
         key={item.label}
-        className="rounded-[10px] border"
+        className="relative rounded-[10px] border"
         style={{
           ...(active
             ? { background: "#1F4FBF", borderColor: "#1F4FBF" }
@@ -455,6 +456,16 @@ export default function EnterprisePlatformSidebar({
           paddingRight: 6,
         }}
       >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-0 -translate-y-1/2 rounded-[2px]"
+          style={{
+            width: 2,
+            height: "70%",
+            background: color,
+            opacity: active ? 1 : 0.85,
+          }}
+        />
         <button
           type="button"
           aria-current={active ? "page" : undefined}
@@ -644,7 +655,9 @@ export default function EnterprisePlatformSidebar({
 
       <nav className="sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-5">
         <div className="flex flex-col" style={{ gap: CARD_GAP }}>
-          {pinSections.map((section) => section.items.map((item) => renderPinItem(item)))}
+          {pinSections.map((section) =>
+            section.items.map((item) => renderPinItem(item, section.color)),
+          )}
           {workspaceSections.map((section) => renderWorkspace(section))}
         </div>
       </nav>

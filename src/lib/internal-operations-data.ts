@@ -630,6 +630,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
   {
     kind: "pin",
     label: null,
+    color: "#2F80ED",
     items: [{ label: "Home", icon: "LayoutDashboard", view: "home" as const }],
   },
   ...(EXECUTIVE_ASSISTANT_VISIBLE
@@ -637,6 +638,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         {
           kind: "pin" as const,
           label: null,
+          color: "#818CF8",
           items: [
             {
               label: "Executive Assistant",
@@ -1338,7 +1340,7 @@ export function getInternalNavBreadcrumb(
 
 /**
  * Workspace accent colour for the active leaf — matches the LHS module vertical stripe
- * (e.g. Financials green). Pins without a section colour return null.
+ * (e.g. Financials green). Includes pin accents (Home / Executive Assistant).
  */
 export function resolveInternalNavSectionAccent(
   activeView: InternalOperationsView,
@@ -1370,6 +1372,10 @@ export function resolveInternalNavSectionAccent(
       }
     }
   }
+
+  // Fallback for pin views if nav walk misses (e.g. host filter timing).
+  if (activeView === "home") return "#2F80ED";
+  if (activeView === "executive-assistant") return "#818CF8";
 
   return null;
 }
