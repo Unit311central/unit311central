@@ -1336,6 +1336,44 @@ export function getInternalNavBreadcrumb(
   return titles?.subtitle ? [titles.subtitle, pageTitle] : [pageTitle];
 }
 
+/**
+ * Workspace accent colour for the active leaf — matches the LHS module vertical stripe
+ * (e.g. Financials green). Pins without a section colour return null.
+ */
+export function resolveInternalNavSectionAccent(
+  activeView: InternalOperationsView,
+): string | null {
+  let navSections: readonly InternalNavSection[] = internalSurveyNavSections;
+  try {
+    const { filterInternalNavSectionsForDemoSurface } =
+      require("@/lib/internal-role-views") as typeof import("@/lib/internal-role-views");
+    navSections = filterInternalNavSectionsForDemoSurface(internalSurveyNavSections);
+  } catch {
+    /* role-view filter optional at build edges */
+  }
+
+  const sectionLists: Array<readonly InternalNavSection[]> = [navSections];
+  try {
+    const { TALANTON_IMPACT_NAV_SECTIONS } =
+      require("@/lib/talanton/nav") as typeof import("@/lib/talanton/nav");
+    sectionLists.push(TALANTON_IMPACT_NAV_SECTIONS);
+  } catch {
+    /* Talanton nav optional at build edges */
+  }
+
+  for (const sections of sectionLists) {
+    for (const section of sections) {
+      for (const item of section.items) {
+        if (findNavTrailLabels(item, activeView, [])) {
+          return section.color ?? null;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 /** View chrome titles — ABHI renames Clients → Members in the UI shell. */
 export function resolveInternalViewTitles(activeView: InternalOperationsView): {
   title: string;

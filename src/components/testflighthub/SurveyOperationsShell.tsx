@@ -16,6 +16,7 @@ import {
 import {
   getInternalNavBreadcrumb,
   isInternalOperationsView,
+  resolveInternalNavSectionAccent,
   resolveInternalViewTitles,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
@@ -138,6 +139,13 @@ export default function SurveyOperationsShell({
       ? getInternalNavBreadcrumb(activeView)
       : null;
 
+  const sectionAccent =
+    mode === "internal" &&
+    activeView != null &&
+    isInternalOperationsView(activeView)
+      ? resolveInternalNavSectionAccent(activeView)
+      : null;
+
   const shell = (
     <div
       className="flex h-full min-h-0 w-full min-w-0"
@@ -204,9 +212,21 @@ export default function SurveyOperationsShell({
                   <WorkspaceBreadcrumb crumbs={[resolvedSubtitle]} />
                 ) : null}
                 <div className="flex min-w-0 items-center gap-2">
-                  <h1 className="truncate text-base font-semibold tracking-tight text-white sm:text-lg md:text-xl">
-                    {resolvedTitle}
-                  </h1>
+                  <div className="min-w-0">
+                    <h1 className="truncate text-base font-semibold tracking-tight text-white sm:text-lg md:text-xl">
+                      {resolvedTitle}
+                    </h1>
+                    {sectionAccent ? (
+                      <span
+                        className="mt-1.5 block h-[2px] w-11 max-w-full rounded-full sm:w-14"
+                        style={{
+                          background: `linear-gradient(90deg, ${sectionAccent} 0%, ${sectionAccent}99 55%, transparent 100%)`,
+                          boxShadow: `0 0 12px color-mix(in srgb, ${sectionAccent} 35%, transparent)`,
+                        }}
+                        aria-hidden
+                      />
+                    ) : null}
+                  </div>
                   {isDemoHost ? (
                     <span
                       className="shrink-0 rounded border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200"
