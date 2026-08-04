@@ -72,6 +72,10 @@ import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurf
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { isAbsoluteHttpUrl } from "@/lib/clarity";
 import {
+  isBrowserOnwardAirSurface,
+  ONWARDAIR_HOME_ACCENT,
+} from "@/lib/onwardair-surface";
+import {
   getSidebarTheme,
   readSidebarExpandedState,
   readSidebarThemeId,
@@ -439,7 +443,10 @@ export default function EnterprisePlatformSidebar({
   function renderPinItem(item: InternalNavItem, accent?: string) {
     const active = isInternalNavItemActive(pathname, item, activeView, basePath, searchParams);
     const Icon = resolveIcon(item.icon);
-    const color = accent ?? theme.accent;
+    const color =
+      item.view === "home" && isBrowserOnwardAirSurface()
+        ? ONWARDAIR_HOME_ACCENT
+        : (accent ?? theme.accent);
 
     if (!item.view) return null;
 

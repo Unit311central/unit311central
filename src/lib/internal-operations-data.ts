@@ -1352,13 +1352,13 @@ export function getInternalNavBreadcrumb(
 export function resolveInternalNavSectionAccent(
   activeView: InternalOperationsView,
 ): string | null {
-  // Pin accents — OnwardAir Home uses brand teal RGB(38,123,144).
+  // Pin accents — OnwardAir Home uses brand teal RGB(38, 123, 144).
   if (activeView === "home") {
     if (typeof window !== "undefined") {
       try {
-        const { isBrowserOnwardAirSurface } =
+        const { isBrowserOnwardAirSurface, ONWARDAIR_HOME_ACCENT } =
           require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
-        if (isBrowserOnwardAirSurface()) return "#267B90";
+        if (isBrowserOnwardAirSurface()) return ONWARDAIR_HOME_ACCENT;
       } catch {
         /* fall through */
       }

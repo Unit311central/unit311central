@@ -1,5 +1,6 @@
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { normalizePlatformUsername } from "@/lib/platform-auth";
+import { ONWARDAIR_HOME_ACCENT } from "@/lib/onwardair-surface";
 
 import type {
   InternalNavItem,
@@ -1032,7 +1033,7 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
           ? {
               ...section,
               /** OnwardAir brand teal RGB(38, 123, 144) — matches onwardair.tech CTA. */
-              color: "#267B90",
+              color: ONWARDAIR_HOME_ACCENT,
             }
           : section,
       );

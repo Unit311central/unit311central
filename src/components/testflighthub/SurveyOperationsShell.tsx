@@ -22,6 +22,10 @@ import {
 } from "@/lib/internal-operations-data";
 import { isDemoDomainHost, isInternalDomainHost } from "@/lib/app-domains";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import {
+  isBrowserOnwardAirSurface,
+  ONWARDAIR_HOME_ACCENT,
+} from "@/lib/onwardair-surface";
 import { PLATFORM_AI_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
 import { cn } from "@/lib/utils";
 import {
@@ -143,7 +147,9 @@ export default function SurveyOperationsShell({
     mode === "internal" &&
     activeView != null &&
     isInternalOperationsView(activeView)
-      ? resolveInternalNavSectionAccent(activeView)
+      ? activeView === "home" && isBrowserOnwardAirSurface()
+        ? ONWARDAIR_HOME_ACCENT
+        : resolveInternalNavSectionAccent(activeView)
       : null;
 
   const shell = (

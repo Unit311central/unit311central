@@ -12,6 +12,9 @@ export const ONWARDAIR_LOGO_SRC = "/images/workspaces/onwardair-logo.png";
 export const ONWARDAIR_LOGO_INTRINSIC_WIDTH = 155;
 export const ONWARDAIR_LOGO_INTRINSIC_HEIGHT = 40;
 
+/** Home LHS stripe + RHS title accent — RGB(38, 123, 144), matches onwardair.tech CTA. */
+export const ONWARDAIR_HOME_ACCENT = "#267B90";
+
 export function isOnwardAirSlug(slug: string | null | undefined): boolean {
   return (
     String(slug ?? "")
@@ -30,5 +33,8 @@ export function getBrowserOnwardAirWorkspaceSlug(): string {
 }
 
 export function isBrowserOnwardAirSurface(): boolean {
-  return isOnwardAirSlug(getBrowserOnwardAirWorkspaceSlug());
+  if (typeof window === "undefined") return false;
+  if (isOnwardAirSlug(getBrowserOnwardAirWorkspaceSlug())) return true;
+  // Fallback for preview / alternate hosts that still carry the tenant name.
+  return window.location.hostname.toLowerCase().includes("onwardair");
 }
