@@ -272,14 +272,36 @@ export async function findPlatformUserByUsername(username: string) {
   return (data as PlatformUserRecord | null) ?? null;
 }
 
-export async function authenticatePlatformUser(username: string, password: string) {
+export async function authenticatePlatformUser(
+  username: string,
+  password: string,
+  options?: { workspaceSlug?: string | null },
+) {
   const normalized = normalizePlatformUsername(username);
+  const workspaceSlug = String(options?.workspaceSlug ?? "")
+    .trim()
+    .toLowerCase();
 
   // Exact username wins first. Emails can collide across signup-generated
   // usernames (e.g. demo@x / demo@x#abcd); prefer the canonical account.
+  // On a customer host, only keep that match if they can access the workspace.
   const byUsername = await findPlatformUserByUsername(normalized);
   if (byUsername && verifyPlatformPassword(password, byUsername.password_hash)) {
-    return byUsername;
+    if (!workspaceSlug) {
+      return byUsername;
+    }
+    const { findWorkspaceBySlug } = await import("@/lib/workspace-host");
+    const { authorizeUserForWorkspace } = await import("@/lib/workspace-authorization");
+    const workspace = await findWorkspaceBySlug(workspaceSlug);
+    if (workspace) {
+      const decision = await authorizeUserForWorkspace(byUsername.id, workspace.id, {
+        workspace,
+        userTypeHint: byUsername.user_type,
+      });
+      if (decision.allowed) return byUsername;
+    } else {
+      return byUsername;
+    }
   }
 
   if (!normalized.includes("@")) {
@@ -292,6 +314,37 @@ export async function authenticatePlatformUser(username: string, password: strin
   );
   if (passwordMatches.length === 0) {
     return null;
+  }
+
+  if (workspaceSlug) {
+    const { findWorkspaceBySlug } = await import("@/lib/workspace-host");
+    const { authorizeUserForWorkspace } = await import("@/lib/workspace-authorization");
+    const workspace = await findWorkspaceBySlug(workspaceSlug);
+    if (workspace) {
+      const authorized: PlatformUserRecord[] = [];
+      for (const candidate of passwordMatches) {
+        const decision = await authorizeUserForWorkspace(candidate.id, workspace.id, {
+          workspace,
+          userTypeHint: candidate.user_type,
+        });
+        if (decision.allowed) authorized.push(candidate);
+      }
+      if (authorized.length === 1) return authorized[0];
+      if (authorized.length > 1) {
+        authorized.sort((a, b) => {
+          const aExact = normalizePlatformUsername(a.username) === normalized ? 0 : 1;
+          const bExact = normalizePlatformUsername(b.username) === normalized ? 0 : 1;
+          if (aExact !== bExact) return aExact - bExact;
+          const aInternal = a.user_type === "internal" ? 0 : 1;
+          const bInternal = b.user_type === "internal" ? 0 : 1;
+          if (aInternal !== bInternal) return aInternal - bInternal;
+          return String(a.created_at).localeCompare(String(b.created_at));
+        });
+        return authorized[0];
+      }
+      // Password matched account(s) but none may access this workspace.
+      return null;
+    }
   }
 
   passwordMatches.sort((a, b) => {
@@ -334,7 +387,9 @@ export async function loginPlatformUser(
   password: string,
   options?: { workspaceSlug?: string | null },
 ): Promise<LoginPlatformUserResult | null> {
-  const user = await authenticatePlatformUser(username, password);
+  const user = await authenticatePlatformUser(username, password, {
+    workspaceSlug: options?.workspaceSlug,
+  });
   if (!user) {
     return null;
   }

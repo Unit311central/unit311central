@@ -40,4 +40,4 @@ export function validatePlatformSignupPasswordConfirmation(
 }
 
 export const PLATFORM_PASSWORD_POLICY_HINT =
-  "At least 6 characters, with a capital letter, a number, and a special character.";
+  "Passwords must be 6 or more characters, number, alphabet, special character. capital letter";

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -89,6 +90,8 @@ export default function ResetPasswordPage({
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -112,15 +115,15 @@ export default function ResetPasswordPage({
 
   const description = useMemo(() => {
     if (step === "otp") {
-      return resetToken
-        ? "We sent a 6-digit code to your authorised email. Enter it below to continue."
-        : `Enter the 6-digit code we sent to ${email || "your email"}. You can also open the reset link from that email.`;
+      return resetToken && !email
+        ? "We sent a 6-digit code to your authorised email. Paste it below, then you will choose a new password."
+        : `We emailed a 6-digit code to ${email || "your email"}. Paste it below — stay on this page.`;
     }
     if (step === "password") {
-      return PLATFORM_PASSWORD_POLICY_HINT;
+      return `Choose a new password, then confirm it. ${PLATFORM_PASSWORD_POLICY_HINT}`;
     }
-    return `Enter your authorised email address. We will send a one-time code so you can reset your ${displayName} password.`;
-  }, [step, displayName, resetToken, email]);
+    return `Enter your authorised email. We will email a one-time code. Stay on this page to enter it, then set a new password and sign in.`;
+  }, [step, resetToken, email]);
 
   async function handleRequestReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -213,11 +216,14 @@ export default function ResetPasswordPage({
         throw new Error(data.error ?? "Unable to reset password.");
       }
 
-      setSuccess(data.message ?? "Your password has been updated.");
+      setSuccess(
+        data.message ??
+          "Your password has been updated. Check your email for confirmation (it will not include your password), then sign in.",
+      );
       setTimeout(() => {
-        router.push("/login");
+        router.push("/login?passwordReset=1");
         router.refresh();
-      }, 1800);
+      }, 2200);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to reset password.");
     } finally {
@@ -259,18 +265,31 @@ export default function ResetPasswordPage({
                 <label htmlFor="password" className="mb-2.5 block text-[13px] font-medium tracking-[0.01em] text-white/70">
                   New password
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className={inputClass}
-                  placeholder={PLATFORM_PASSWORD_POLICY_HINT}
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    minLength={6}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className={`${inputClass} pr-12`}
+                    placeholder={PLATFORM_PASSWORD_POLICY_HINT}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition-colors hover:text-white/80"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-white/45">
+                  {PLATFORM_PASSWORD_POLICY_HINT}
+                </p>
               </div>
 
               <div>
@@ -280,18 +299,28 @@ export default function ResetPasswordPage({
                 >
                   Confirm new password
                 </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={6}
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  className={inputClass}
-                  placeholder="Enter password again"
-                />
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    className={`${inputClass} pr-12`}
+                    placeholder="Enter password again"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((current) => !current)}
+                    className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-white/45 transition-colors hover:text-white/80"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {error ? (

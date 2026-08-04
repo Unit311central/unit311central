@@ -200,6 +200,7 @@ export default function Unit311LoginPage({
   const [showPassword, setShowPassword] = useState(false);
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetNotice, setResetNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -209,6 +210,18 @@ export default function Unit311LoginPage({
     // Bare /login must not reuse a stale deep-link (e.g. /portals) from an earlier visit.
     if (nextFromUrl) persistNext(nextFromUrl);
     else persistNext(null);
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("passwordReset") === "1") {
+        setResetNotice(
+          "Password updated. Sign in with your new password. A confirmation email was sent (it does not include your password).",
+        );
+        params.delete("passwordReset");
+        const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}${window.location.hash}`;
+        window.history.replaceState({}, "", next);
+      }
+    }
   }, [returnTo, nextPath]);
 
   useEffect(() => {
@@ -461,6 +474,12 @@ export default function Unit311LoginPage({
                   </span>
                 </span>
               </label>
+            ) : null}
+
+            {resetNotice ? (
+              <p className="rounded-xl border border-emerald-400/25 bg-emerald-500/[0.08] px-4 py-3 text-sm text-emerald-200">
+                {resetNotice}
+              </p>
             ) : null}
 
             {error ? (

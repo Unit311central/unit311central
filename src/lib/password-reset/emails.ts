@@ -64,15 +64,15 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
 
   const html = emailShell(
     brand,
-    "Reset your password",
+    "Your one-time reset code",
     `
       <p style="margin:0 0 16px;font-size:15px;color:#334155;">
         Hi ${escapeHtml(firstName)},
       </p>
       <p style="margin:0 0 16px;font-size:15px;color:#334155;">
         We received a request to reset the password for ${escapeHtml(accountLabel)}.
-        Use the one-time code below on the reset page, or open the link and enter the code there.
-        This expires in ${input.expiresInMinutes} minutes.
+        Copy the one-time code below and enter it on the reset page that is already open in your browser.
+        This code expires in ${input.expiresInMinutes} minutes.
       </p>
       <p style="margin:0 0 8px;font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">
         Your one-time code
@@ -80,18 +80,17 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
       <p style="margin:0 0 24px;font-size:32px;font-weight:700;letter-spacing:0.28em;color:#0b2d63;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">
         ${escapeHtml(input.otp)}
       </p>
-      <p style="margin:0 0 24px;">
+      <p style="margin:0 0 16px;font-size:13px;color:#64748b;">
+        Stay on the reset page, paste this code, then choose a new password.
+        If you closed that page, you can reopen it here:
+      </p>
+      <p style="margin:0 0 16px;">
         <a href="${escapeHtml(input.resetUrl)}" style="display:inline-block;background:#0b2d63;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:8px;">
-          Continue password reset
+          Open reset page
         </a>
       </p>
-      <p style="margin:0 0 16px;font-size:13px;color:#64748b;">
-        Enter this code on the password reset page, or open the link below and enter it there.
+      <p style="margin:0;font-size:13px;color:#64748b;">
         If you did not request this, you can ignore this email.
-      </p>
-      <p style="margin:0;font-size:12px;color:#94a3b8;word-break:break-all;">
-        Link not working? Copy and paste this URL into your browser:<br/>
-        <a href="${escapeHtml(input.resetUrl)}" style="color:#2563eb;">${escapeHtml(input.resetUrl)}</a>
       </p>
     `,
   );
@@ -101,10 +100,69 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
     "",
     `We received a request to reset the password for ${accountLabel}.`,
     `Your one-time code is: ${input.otp}`,
-    `Enter that code on the reset page, or open this link within ${input.expiresInMinutes} minutes:`,
+    "Copy that code into the reset page that is already open in your browser.",
+    `If you closed the page, reopen it within ${input.expiresInMinutes} minutes:`,
     input.resetUrl,
     "",
     "If you did not request this, you can ignore this email.",
+  ].join("\n");
+
+  return { subject, html, text };
+}
+
+export type PasswordResetConfirmationEmailInput = {
+  displayName: string;
+  loginUrl: string;
+  brand?: WorkspaceBrand | null;
+};
+
+/** Confirmation only — never includes the new password. */
+export function buildPasswordResetConfirmationEmail(
+  input: PasswordResetConfirmationEmailInput,
+) {
+  const brand = input.brand ?? brandFromWorkspaceClaim({ slug: "unit311", name: "Unit311 Central" });
+  const firstName = input.displayName.trim().split(/\s+/)[0] || "there";
+  const accountLabel = brand.showPlatformBranding
+    ? "your Unit311 account"
+    : `your ${brand.displayName} workspace account`;
+  const subject = brand.showPlatformBranding
+    ? "Your Unit311 password was reset"
+    : `Your ${brand.displayName} password was reset`;
+
+  const html = emailShell(
+    brand,
+    "Password reset complete",
+    `
+      <p style="margin:0 0 16px;font-size:15px;color:#334155;">
+        Hi ${escapeHtml(firstName)},
+      </p>
+      <p style="margin:0 0 16px;font-size:15px;color:#334155;">
+        The password for ${escapeHtml(accountLabel)} has been changed successfully.
+        For your security, this email does not include your new password.
+      </p>
+      <p style="margin:0 0 24px;font-size:15px;color:#334155;">
+        You can now sign in with the password you just chose.
+      </p>
+      <p style="margin:0 0 16px;">
+        <a href="${escapeHtml(input.loginUrl)}" style="display:inline-block;background:#0b2d63;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:8px;">
+          Sign in
+        </a>
+      </p>
+      <p style="margin:0;font-size:13px;color:#64748b;">
+        If you did not make this change, contact support immediately.
+      </p>
+    `,
+  );
+
+  const text = [
+    `Hi ${firstName},`,
+    "",
+    `The password for ${accountLabel} has been changed successfully.`,
+    "For your security, this email does not include your new password.",
+    "You can now sign in with the password you just chose:",
+    input.loginUrl,
+    "",
+    "If you did not make this change, contact support immediately.",
   ].join("\n");
 
   return { subject, html, text };

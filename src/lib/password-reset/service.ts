@@ -13,7 +13,10 @@ import {
   ensurePlatformPasswordResetTokensTable,
   withPlatformPasswordResetTokensTable,
 } from "@/lib/internal-db-migrations";
-import { buildPasswordResetEmail } from "@/lib/password-reset/emails";
+import {
+  buildPasswordResetConfirmationEmail,
+  buildPasswordResetEmail,
+} from "@/lib/password-reset/emails";
 import {
   hashPlatformPasswordForUser,
   normalizePlatformUsername,
@@ -61,23 +64,33 @@ function createOtpCode() {
   return String(randomInt(100000, 999999));
 }
 
-async function buildResetUrl(token: string) {
+async function resolveRequestOrigin(): Promise<string> {
   try {
     const requestHeaders = await headers();
     const host = getRequestHost({ headers: requestHeaders });
     const slug = parseClientPlatformSubdomainSafe(host);
     if (slug) {
-      return `${customerWorkspaceOrigin(slug)}/resetpassword?token=${encodeURIComponent(token)}`;
+      return customerWorkspaceOrigin(slug);
     }
     if (host) {
-      const proto = (requestHeaders.get("x-forwarded-proto") || "https").split(",")[0]?.trim() || "https";
-      return `${proto}://${host}/resetpassword?token=${encodeURIComponent(token)}`;
+      const proto =
+        (requestHeaders.get("x-forwarded-proto") || "https").split(",")[0]?.trim() || "https";
+      return `${proto}://${host}`;
     }
   } catch {
     /* fall through */
   }
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? CENTRAL_SITE_URL).replace(/\/$/, "");
-  return `${baseUrl}/resetpassword?token=${encodeURIComponent(token)}`;
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? CENTRAL_SITE_URL).replace(/\/$/, "");
+}
+
+async function buildResetUrl(token: string) {
+  const origin = await resolveRequestOrigin();
+  return `${origin}/resetpassword?token=${encodeURIComponent(token)}`;
+}
+
+async function buildLoginUrl() {
+  const origin = await resolveRequestOrigin();
+  return `${origin}/login`;
 }
 
 function validateNewPassword(password: string, confirmPassword: string) {
@@ -108,14 +121,65 @@ async function resolveUserEmail(user: PlatformUserRecord): Promise<string | null
   return null;
 }
 
+async function resolveHostWorkspaceSlug(): Promise<string | null> {
+  try {
+    const host = getRequestHost({ headers: await headers() });
+    return parseClientPlatformSubdomainSafe(host);
+  } catch {
+    return null;
+  }
+}
+
 async function findUserForPasswordResetByEmail(
   submittedEmail: string,
 ): Promise<PlatformUserRecord | null> {
   const matches = await findPlatformUsersByEmail(submittedEmail);
+  const emailMatches: PlatformUserRecord[] = [];
   for (const user of matches) {
     if (!user.is_active) continue;
     const accountEmail = await resolveUserEmail(user);
-    if (accountEmail === submittedEmail) return user;
+    if (accountEmail === submittedEmail) emailMatches.push(user);
+  }
+
+  if (emailMatches.length > 0) {
+    const hostSlug = await resolveHostWorkspaceSlug();
+    if (hostSlug) {
+      const workspace = await findWorkspaceBySlug(hostSlug);
+      if (workspace) {
+        const { authorizeUserForWorkspace } = await import("@/lib/workspace-authorization");
+        const authorized: PlatformUserRecord[] = [];
+        for (const candidate of emailMatches) {
+          const decision = await authorizeUserForWorkspace(candidate.id, workspace.id, {
+            workspace,
+            userTypeHint: candidate.user_type,
+          });
+          if (decision.allowed) authorized.push(candidate);
+        }
+        if (authorized.length > 0) {
+          authorized.sort((a, b) => {
+            const aExact = normalizePlatformUsername(a.username) === submittedEmail ? 0 : 1;
+            const bExact = normalizePlatformUsername(b.username) === submittedEmail ? 0 : 1;
+            if (aExact !== bExact) return aExact - bExact;
+            const aInternal = a.user_type === "internal" ? 0 : 1;
+            const bInternal = b.user_type === "internal" ? 0 : 1;
+            if (aInternal !== bInternal) return aInternal - bInternal;
+            return String(a.created_at).localeCompare(String(b.created_at));
+          });
+          return authorized[0];
+        }
+      }
+    }
+
+    emailMatches.sort((a, b) => {
+      const aExact = normalizePlatformUsername(a.username) === submittedEmail ? 0 : 1;
+      const bExact = normalizePlatformUsername(b.username) === submittedEmail ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
+      const aInternal = a.user_type === "internal" ? 0 : 1;
+      const bInternal = b.user_type === "internal" ? 0 : 1;
+      if (aInternal !== bInternal) return aInternal - bInternal;
+      return String(a.created_at).localeCompare(String(b.created_at));
+    });
+    return emailMatches[0];
   }
 
   const supabase = requireSupabase();
@@ -435,8 +499,31 @@ export async function completePlatformPasswordReset(input: {
 
     if (markUsedError) throw new Error(markUsedError.message);
 
+    const accountEmail = await resolveUserEmail(platformUser);
+    if (accountEmail) {
+      const brand = await resolveRequestBrand();
+      const loginUrl = await buildLoginUrl();
+      const confirmation = buildPasswordResetConfirmationEmail({
+        displayName: platformUser.display_name,
+        loginUrl,
+        brand,
+      });
+      try {
+        await sendMailboxEmail({
+          account: "info",
+          to: accountEmail,
+          subject: confirmation.subject,
+          html: confirmation.html,
+          text: confirmation.text,
+        });
+      } catch {
+        // Password already saved — do not fail the reset if confirmation email fails.
+      }
+    }
+
     return {
-      message: "Your password has been updated. You can now sign in with your new password.",
+      message:
+        "Your password has been updated. Check your email for confirmation, then sign in with your new password.",
     };
   });
 }
