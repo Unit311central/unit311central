@@ -37,7 +37,9 @@ import ResponsiveMasterDetail, {
   useMobileDetailPanel,
 } from "@/components/ui/ResponsiveMasterDetail";
 import { resolveAbhiMemberPortalAbsoluteUrl } from "@/lib/abhi/member-portal-routes";
+import { resolveOnwardAirClientPortalAbsoluteUrl } from "@/lib/onwardair/client-portal-routes";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { ExternalLink, FolderOpen, FolderPlus, Link2, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
 
@@ -117,6 +119,7 @@ export default function ClientManagementWorkspace({
   const isCorpCentre =
     typeof window !== "undefined" ? isBrowserCorpCentreSurface() : false;
   const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
+  const isOnwardAir = typeof window !== "undefined" ? isBrowserOnwardAirSurface() : false;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
   const selectedClient = useMemo(
@@ -867,6 +870,21 @@ export default function ClientManagementWorkspace({
                         >
                           <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                           {resolveAbhiMemberPortalAbsoluteUrl(selectedClient)}
+                        </a>
+                      </div>
+                    ) : isOnwardAir && resolveOnwardAirClientPortalAbsoluteUrl(selectedClient) ? (
+                      <div className="w-full rounded-xl border border-teal-400/20 bg-teal-500/5 px-3 py-2 sm:col-span-full">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-200/80">
+                          Client portal URL
+                        </p>
+                        <a
+                          href={resolveOnwardAirClientPortalAbsoluteUrl(selectedClient)!}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 inline-flex items-center gap-1.5 break-all text-xs text-teal-100 underline-offset-2 hover:underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                          {resolveOnwardAirClientPortalAbsoluteUrl(selectedClient)}
                         </a>
                       </div>
                     ) : selectedClient.platformUrl ? (

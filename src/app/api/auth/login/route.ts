@@ -31,6 +31,10 @@ import {
   resolveAbhiMemberPortalSessionRedirect,
 } from "@/lib/abhi/member-portal-login";
 import {
+  resolveOnwardAirClientPortalPostLoginUrl,
+  resolveOnwardAirClientPortalSessionRedirect,
+} from "@/lib/onwardair/client-portal-login";
+import {
   ABHI_DEMO_PLATFORM_USERNAME,
   ABHI_PORTALS_ADMIN_USERNAME,
   ABHI_PORTALS_SHARED_PASSWORD,
@@ -202,6 +206,15 @@ async function resolvePostLoginRedirect(options: {
       username,
     });
     if (abhiPortalUrl) return abhiPortalUrl;
+
+    const onwardAirPortalUrl = resolveOnwardAirClientPortalPostLoginUrl({
+      redirectPath,
+      nextRaw: nextPath ?? nextRaw,
+      returnToRaw,
+      requestHost,
+      username,
+    });
+    if (onwardAirPortalUrl) return onwardAirPortalUrl;
   }
 
   if (loginReturn?.kind === "workspace") {
@@ -548,11 +561,17 @@ export async function POST(request: NextRequest) {
         let token = result.token;
         let storedRedirect = result.redirectPath;
         if (session.userType === "external") {
-          const portalRedirect = resolveAbhiMemberPortalSessionRedirect({
+          const abhiPortalRedirect = resolveAbhiMemberPortalSessionRedirect({
             redirectPath: session.redirectPath || result.redirectPath,
             nextRaw,
             username: session.username,
           });
+          const oaPortalRedirect = resolveOnwardAirClientPortalSessionRedirect({
+            redirectPath: session.redirectPath || result.redirectPath,
+            nextRaw,
+            username: session.username,
+          });
+          const portalRedirect = abhiPortalRedirect ?? oaPortalRedirect;
           if (portalRedirect && portalRedirect !== session.redirectPath) {
             session = { ...session, redirectPath: portalRedirect };
             token = await createPlatformSessionToken(session);

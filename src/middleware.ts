@@ -29,6 +29,8 @@ import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-porta
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
+import { matchOnwardAirClientPortalPathname } from "@/lib/onwardair/client-portal-routes";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
 import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-demo";
 import {
@@ -49,12 +51,18 @@ function canonicalizePortalRedirect(redirectPath: string | null | undefined): st
   if (talanton) return `/${talanton.route.path}`;
   const abhi = matchAbhiMemberPortalPathname(redirectPath);
   if (abhi) return `/${abhi.route.path}`;
+  const onwardair = matchOnwardAirClientPortalPathname(redirectPath);
+  if (onwardair) return `/${onwardair.route.path}`;
   return null;
 }
 
-/** Route-based company/member portal slugs — talantonimpact/talanton and abhi. */
+/** Route-based company/member portal slugs — talantonimpact, abhi, onwardair. */
 function isCompanyPortalSlug(workspaceSlug: string): boolean {
-  return isTalantonImpactSlug(workspaceSlug) || workspaceSlug === ABHI_SLUG;
+  return (
+    isTalantonImpactSlug(workspaceSlug) ||
+    workspaceSlug === ABHI_SLUG ||
+    isOnwardAirSlug(workspaceSlug)
+  );
 }
 
 function isPortalsAllowedUsername(username: string | null | undefined, workspaceSlug: string): boolean {
@@ -77,6 +85,7 @@ function isNextPrefetchRequest(request: NextRequest): boolean {
 function matchPortalPathnameForSlug(workspaceSlug: string, pathname: string) {
   if (isTalantonImpactSlug(workspaceSlug)) return matchTalantonCompanyPortalPathname(pathname);
   if (workspaceSlug === ABHI_SLUG) return matchAbhiMemberPortalPathname(pathname);
+  if (isOnwardAirSlug(workspaceSlug)) return matchOnwardAirClientPortalPathname(pathname);
   return null;
 }
 
@@ -84,6 +93,7 @@ function matchPortalPathnameForSlug(workspaceSlug: string, pathname: string) {
 function portalImplBaseForSlug(workspaceSlug: string): string | null {
   if (isTalantonImpactSlug(workspaceSlug)) return "/portfolio-portal";
   if (workspaceSlug === ABHI_SLUG) return "/member-portal";
+  if (isOnwardAirSlug(workspaceSlug)) return "/client-portal";
   return null;
 }
 

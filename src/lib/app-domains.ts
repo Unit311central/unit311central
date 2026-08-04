@@ -593,7 +593,9 @@ export function isInternalAppPath(pathname: string): boolean {
     pathname === "/member-portal" ||
     pathname.startsWith("/member-portal/") ||
     pathname === "/portfolio-portal" ||
-    pathname.startsWith("/portfolio-portal/")
+    pathname.startsWith("/portfolio-portal/") ||
+    pathname === "/client-portal" ||
+    pathname.startsWith("/client-portal/")
   ) {
     return true;
   }
@@ -609,7 +611,15 @@ export function isInternalAppPath(pathname: string): boolean {
   try {
     const { matchAbhiMemberPortalPathname } =
       require("@/lib/abhi/member-portal-routes") as typeof import("@/lib/abhi/member-portal-routes");
-    return matchAbhiMemberPortalPathname(pathname) != null;
+    if (matchAbhiMemberPortalPathname(pathname) != null) return true;
+  } catch {
+    // ignore
+  }
+
+  try {
+    const { matchOnwardAirClientPortalPathname } =
+      require("@/lib/onwardair/client-portal-routes") as typeof import("@/lib/onwardair/client-portal-routes");
+    return matchOnwardAirClientPortalPathname(pathname) != null;
   } catch {
     return false;
   }

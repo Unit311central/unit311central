@@ -100,19 +100,19 @@ const CLIENTS = [
     primary_contact: "Elena Vargas",
     primary_contact_first_name: "Elena",
     primary_contact_surname: "Vargas",
-    email: "e.vargas@coastalfreight.example",
+    email: "demo@coastalfreightpartners.com",
     phone: "+1 713 555 0176",
     region: "United States",
     company_country: "United States",
     company_city: "Houston",
     company_address: "1200 Port of Houston Blvd, Houston, TX 77029, USA",
     billing_address: "1200 Port of Houston Blvd, Houston, TX 77029, USA",
-    account_status: "Onboarding",
+    account_status: "Active",
     contract_type: "Trial",
     tax_id: "US-26-5588120",
-    active_projects: 0,
+    active_projects: 2,
     notes:
-      "Gulf Coast middle-mile cargo operator. Pilot corridor Houston–Galveston–Corpus Christi for Vertex multi-mission utilization.",
+      "Gulf Coast middle-mile cargo operator. Pilot corridor Houston–Galveston–Corpus Christi for Vertex multi-mission utilization. Client portal: https://onwardair.unit311central.com/coastalfreightpartners.com",
   },
 ];
 
