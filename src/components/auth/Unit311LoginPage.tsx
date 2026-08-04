@@ -320,7 +320,7 @@ export default function Unit311LoginPage({
           ) : isAbhi ? (
             <AbhiLogoMark height={50} tone="onDark" priority />
           ) : isOnwardAir ? (
-            <OnwardAirLogoMark height={72} maxWidth={400} priority />
+            <OnwardAirLogoMark height={90} maxWidth={500} priority />
           ) : isCustomer ? (
             <div className="rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4">
               <p className="text-center text-[1.35rem] font-semibold tracking-tight text-white">
