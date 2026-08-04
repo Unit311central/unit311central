@@ -43,7 +43,7 @@ function BrandMark({
   }
   if (brand === "talanton") return <TalantonLogoMark height={56} />;
   if (brand === "abhi") return <AbhiLogoMark height={50} tone="onDark" priority />;
-  if (brand === "onwardair") return <OnwardAirLogoMark height={48} maxWidth={280} priority />;
+  if (brand === "onwardair") return <OnwardAirLogoMark height={72} maxWidth={400} priority />;
   if (brand === "customer") {
     return (
       <div className="rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4">

@@ -82,7 +82,7 @@ export const FOUNDER_SESSION_FOCUS_OVERVIEW_MIGRATION_PATH =
 export const PLATFORM_PASSWORD_RESET_TOKENS_MIGRATION_PATH =
   "supabase/migrations/040_platform_password_reset_tokens.sql";
 export const PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH =
-  "supabase/migrations/121_platform_password_reset_otp.sql";
+  "supabase/migrations/133_platform_password_reset_otp.sql";
 export const CLIENT_ONBOARDING_MIGRATION_PATH =
   "supabase/migrations/041_client_onboarding_records.sql";
 export const PLATFORM_USERS_LAST_LOGIN_MIGRATION_PATH =
@@ -695,7 +695,7 @@ export function getLastMigrationApiError() {
   return (globalThis as { __lastMigrationApiError?: string }).__lastMigrationApiError ?? null;
 }
 
-async function reloadPostgrestSchema() {
+export async function reloadPostgrestSchema() {
   const token = getSupabaseAccessToken();
   const projectRef = getSupabaseProjectRef();
   if (token && projectRef) {
@@ -2361,8 +2361,21 @@ export async function ensurePlatformPasswordResetTokensTable(): Promise<boolean>
 }
 
 async function ensurePlatformPasswordResetOtpColumns(): Promise<void> {
-  const hasOtp = await columnExistsViaManagementApi("platform_password_reset_tokens", "otp_hash");
-  if (hasOtp === true) return;
+  const hasOtpHash = await columnExistsViaManagementApi(
+    "platform_password_reset_tokens",
+    "otp_hash",
+  );
+  const hasOtpAttempts = await columnExistsViaManagementApi(
+    "platform_password_reset_tokens",
+    "otp_attempts",
+  );
+  const hasOtpVerified = await columnExistsViaManagementApi(
+    "platform_password_reset_tokens",
+    "otp_verified_at",
+  );
+  if (hasOtpHash === true && hasOtpAttempts === true && hasOtpVerified === true) {
+    return;
+  }
 
   const dbUrl = getDatabaseUrl();
   if (dbUrl) {
@@ -2373,10 +2386,12 @@ async function ensurePlatformPasswordResetOtpColumns(): Promise<void> {
     } finally {
       await client.end().catch(() => undefined);
     }
+    await reloadPostgrestSchema();
     return;
   }
 
   await applyMigrationViaManagementApi(PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH);
+  await reloadPostgrestSchema();
 }
 
 export async function withPlatformPasswordResetTokensTable<T>(
@@ -2386,8 +2401,14 @@ export async function withPlatformPasswordResetTokensTable<T>(
     try {
       return await operation();
     } catch (error) {
-      if (!isMissingTableError(error, "platform_password_reset_tokens")) throw error;
+      const missingTable = isMissingTableError(error, "platform_password_reset_tokens");
+      const missingOtpColumn =
+        isMissingColumnError(error, "otp_attempts") ||
+        isMissingColumnError(error, "otp_hash") ||
+        isMissingColumnError(error, "otp_verified_at");
+      if (!missingTable && !missingOtpColumn) throw error;
       const applied = await ensurePlatformPasswordResetTokensTable();
+      await ensurePlatformPasswordResetOtpColumns();
       await reloadPostgrestSchema();
       if (!applied && attempt === 4) {
         throw new Error(

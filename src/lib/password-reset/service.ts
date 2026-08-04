@@ -174,7 +174,19 @@ async function ensureOtpColumns() {
     if (!/does not exist|schema cache/i.test(error.message)) return;
   }
   await ensurePlatformPasswordResetTokensTable();
-  // Best-effort: callers still work if migration applied out-of-band.
+  // Re-probe — surface a clear error if migration still did not land.
+  const { error: after } = await supabase
+    .from("platform_password_reset_tokens")
+    .select("id, otp_hash, otp_verified_at, otp_attempts")
+    .limit(1);
+  if (
+    after &&
+    /otp_hash|otp_verified|otp_attempts|column|schema cache/i.test(after.message)
+  ) {
+    throw new Error(
+      "Password reset is temporarily unavailable (schema update pending). Please try again in a minute.",
+    );
+  }
 }
 
 export async function requestPlatformPasswordReset(input: { email: string }) {
