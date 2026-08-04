@@ -1,5 +1,9 @@
 import type { ProjectTask } from "@/lib/project-detail-data";
 import {
+  getOnwardAirProjectTasks,
+  isOnwardAirProjectTaskId,
+} from "@/lib/onwardair/project-tasks";
+import {
   requireProjectInWorkspace,
   resolveProjectsWorkspaceId,
   updateProject,
@@ -56,6 +60,11 @@ export function averageTaskProgress(tasks: ProjectTask[]): number {
   return Math.round((sum / tasks.length) * 100) / 100;
 }
 
+function portfolioFixtureTasks(projectId: string): ProjectTask[] | null {
+  if (!isOnwardAirProjectTaskId(projectId)) return null;
+  return getOnwardAirProjectTasks(projectId);
+}
+
 async function syncProjectProgressFromTasks(
   projectId: string,
   workspaceId: string,
@@ -68,6 +77,46 @@ async function syncProjectProgressFromTasks(
     // Portfolio / local-only project ids are not in internal_projects — UI still gets progressPct.
   }
   return progressPct;
+}
+
+/** Persist OnwardAir fixture tasks so subsequent edits hit real rows. */
+async function materializeFixtureTasksIfEmpty(
+  projectId: string,
+  workspaceId: string,
+): Promise<boolean> {
+  const fixtures = portfolioFixtureTasks(projectId);
+  if (!fixtures?.length) return false;
+
+  const supabase = requireTasksSupabase();
+  const { count, error: countError } = await supabase
+    .from("internal_project_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId)
+    .eq("workspace_id", workspaceId);
+
+  if (countError) throw new Error(countError.message);
+  if ((count ?? 0) > 0) return false;
+
+  await ensureInternalProjectTasksDescriptionColumn().catch(() => false);
+
+  const rows = fixtures.map((task, index) => ({
+    id: task.id,
+    project_id: projectId,
+    workspace_id: workspaceId,
+    name: task.name,
+    description: task.description || "",
+    start_date: task.startDate,
+    due_date: task.dueDate,
+    progress: task.progress,
+    resource: task.resource,
+    milestone: task.milestone,
+    critical: task.critical,
+    sort_order: index,
+  }));
+
+  const { error } = await supabase.from("internal_project_tasks").insert(rows);
+  if (error) throw new Error(error.message);
+  return true;
 }
 
 export async function listProjectTasks(
@@ -94,7 +143,15 @@ export async function listProjectTasks(
       .order("created_at", { ascending: true });
 
     if (error) throw new Error(error.message);
-    const tasks = ((data ?? []) as DbTask[]).map(mapProjectTask);
+    let tasks = ((data ?? []) as DbTask[]).map(mapProjectTask);
+
+    if (tasks.length === 0) {
+      const fixtures = portfolioFixtureTasks(projectId);
+      if (fixtures?.length) {
+        tasks = fixtures;
+      }
+    }
+
     return { tasks, progressPct: averageTaskProgress(tasks) };
   });
 }
@@ -115,6 +172,7 @@ export async function createProjectTask(
       // Allow tasks for portfolio / session project ids within this workspace.
     }
     const supabase = requireTasksSupabase();
+    await materializeFixtureTasksIfEmpty(projectId, workspaceId);
 
     const { count } = await supabase
       .from("internal_project_tasks")
@@ -183,6 +241,7 @@ export async function updateProjectTask(
       // Allow tasks for portfolio / session project ids within this workspace.
     }
     const supabase = requireTasksSupabase();
+    await materializeFixtureTasksIfEmpty(projectId, workspaceId);
 
     const payload: Record<string, string | number | boolean | null> = {
       updated_at: new Date().toISOString(),
@@ -239,6 +298,7 @@ export async function deleteProjectTask(
       // Allow tasks for portfolio / session project ids within this workspace.
     }
     const supabase = requireTasksSupabase();
+    await materializeFixtureTasksIfEmpty(projectId, workspaceId);
 
     const { error } = await supabase
       .from("internal_project_tasks")
