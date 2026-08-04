@@ -78,6 +78,11 @@ import {
   writeSidebarExpandedState,
   type SidebarThemeTokens,
 } from "@/lib/sidebar-chrome";
+import {
+  applySidebarSectionOrder,
+  loadSidebarNavCustom,
+  SIDEBAR_NAV_CUSTOM_EVENT,
+} from "@/lib/sidebar-nav-custom";
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import { cn } from "@/lib/utils";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
@@ -185,6 +190,7 @@ export default function EnterprisePlatformSidebar({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [theme, setTheme] = useState<SidebarThemeTokens>(() => getSidebarTheme(readSidebarThemeId()));
   const [hydrated, setHydrated] = useState(false);
+  const [sectionOrderTick, setSectionOrderTick] = useState(0);
 
   const [isInternalOpsHost] = useState(() => {
     if (basePath === "/dashboard") return false;
@@ -201,6 +207,16 @@ export default function EnterprisePlatformSidebar({
       setTheme(getSidebarTheme(readSidebarThemeId()));
       setHydrated(true);
     });
+  }, []);
+
+  useEffect(() => {
+    const onCustom = () => setSectionOrderTick((n) => n + 1);
+    window.addEventListener(SIDEBAR_NAV_CUSTOM_EVENT, onCustom);
+    window.addEventListener("storage", onCustom);
+    return () => {
+      window.removeEventListener(SIDEBAR_NAV_CUSTOM_EVENT, onCustom);
+      window.removeEventListener("storage", onCustom);
+    };
   }, []);
 
   useEffect(() => {
@@ -564,15 +580,18 @@ export default function EnterprisePlatformSidebar({
   }
 
   const { allowedViews } = useOperatorEntitlements();
-  const navSections = useMemo(
-    () =>
-      filterInternalNavSectionsForDemoSurface(
-        filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
-        // Host overlays (OA / ABHI / Talanton) only after mount — matches SSR HTML.
-        { allowHostSurfaces: hydrated },
-      ),
-    [allowedViews, hydrated],
-  );
+  const navSections = useMemo(() => {
+    const filtered = filterInternalNavSectionsForDemoSurface(
+      filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
+      // Host overlays (OA / ABHI / Talanton) only after mount — matches SSR HTML.
+      { allowHostSurfaces: hydrated },
+    );
+    if (!hydrated) return filtered;
+    const custom = loadSidebarNavCustom(filtered);
+    return applySidebarSectionOrder(filtered, custom.sectionOrder);
+    // sectionOrderTick forces re-read after Settings saves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowedViews, hydrated, sectionOrderTick]);
 
   const pinSections = navSections.filter((section) => section.kind === "pin");
   const workspaceSections = navSections.filter((section) => section.kind === "workspace");

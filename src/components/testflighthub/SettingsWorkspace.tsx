@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import { filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
@@ -18,12 +18,14 @@ import {
   Activity,
   Bell,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Eye,
   EyeOff,
   Globe,
   Link2,
   Loader2,
+  Lock,
   Mail,
   Menu,
   Plus,
@@ -44,8 +46,22 @@ import { useWebsiteMockStore } from "./useWebsiteMockStore";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { ABHI_LINKEDIN_URL, ABHI_X_URL, isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import type { InternalNavSection } from "@/lib/internal-operations-data";
+import {
+  applySidebarSectionOrder,
+  getNavSectionKey,
+  getNavSectionTitle,
+  isFixedPinSection,
+  isMovableWorkspaceSection,
+  isSettingsSection,
+  listSectionLeafItems,
+  loadSidebarNavCustom,
+  saveSidebarNavCustom,
+  SIDEBAR_NAV_CUSTOM_STORAGE_KEY,
+  type SidebarNavCustomStorage,
+  type SidebarNavLeafItem,
+} from "@/lib/sidebar-nav-custom";
 
-const NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 const MOCK_USERS = createInitialUsers();
 
 type PlatformCredentials = {
@@ -99,19 +115,7 @@ function createIntegrationCredentialsMap<T extends string>(
   ) as Record<T, IntegrationCredentials>;
 }
 
-type NavEditorItem = {
-  id: string;
-  label: string;
-  sectionLabel: string | null;
-  parentLabel?: string;
-  custom?: boolean;
-};
-
-type NavCustomStorage = {
-  order: string[];
-  hidden: Record<string, boolean>;
-  customItems: NavEditorItem[];
-};
+type NavCustomStorage = SidebarNavCustomStorage;
 
 const PLATFORMS: PlatformCredentials[] = [
   {
@@ -226,65 +230,11 @@ function resolveSettingsPlatforms(): PlatformCredentials[] {
 const NOTIFICATION_FUNCTIONS = ["Projects", "Support", "Finance"] as const;
 const NOTIFICATION_FREQUENCIES = ["Immediate", "Hourly digest", "Daily digest", "Weekly summary"] as const;
 
-function buildDefaultNavItems(): NavEditorItem[] {
-  // Match the live LHS: host-filtered sections (Talanton / ABHI / CorpCentre / …).
-  const sections =
-    typeof window !== "undefined"
-      ? filterInternalNavSectionsForDemoSurface(internalSurveyNavSections)
-      : internalSurveyNavSections;
-  const items: NavEditorItem[] = [];
-  sections.forEach((section) => {
-    section.items.forEach((item) => {
-      items.push({
-        id: `nav-${section.label ?? "root"}-${item.label}`,
-        label: item.label,
-        sectionLabel: section.label,
-      });
-      if (item.children) {
-        item.children.forEach((child) => {
-          items.push({
-            id: `nav-${section.label ?? "root"}-${item.label}-${child.label}`,
-            label: child.label,
-            sectionLabel: section.label,
-            parentLabel: item.label,
-          });
-          if (child.children) {
-            child.children.forEach((nested) => {
-              items.push({
-                id: `nav-${section.label ?? "root"}-${item.label}-${child.label}-${nested.label}`,
-                label: nested.label,
-                sectionLabel: section.label,
-                parentLabel: `${item.label} › ${child.label}`,
-              });
-            });
-          }
-        });
-      }
-    });
+function buildLiveNavSections(): InternalNavSection[] {
+  if (typeof window === "undefined") return [...internalSurveyNavSections];
+  return filterInternalNavSectionsForDemoSurface(internalSurveyNavSections, {
+    allowHostSurfaces: true,
   });
-  return items;
-}
-
-function loadNavCustomState(): NavCustomStorage {
-  const defaults = buildDefaultNavItems();
-  if (typeof window === "undefined") {
-    return { order: defaults.map((item) => item.id), hidden: {}, customItems: [] };
-  }
-
-  try {
-    const raw = window.localStorage.getItem(NAV_CUSTOM_STORAGE_KEY);
-    if (!raw) {
-      return { order: defaults.map((item) => item.id), hidden: {}, customItems: [] };
-    }
-    const parsed = JSON.parse(raw) as Partial<NavCustomStorage>;
-    return {
-      order: parsed.order ?? defaults.map((item) => item.id),
-      hidden: parsed.hidden ?? {},
-      customItems: parsed.customItems ?? [],
-    };
-  } catch {
-    return { order: defaults.map((item) => item.id), hidden: {}, customItems: [] };
-  }
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -516,8 +466,14 @@ function ProviderIntegrationSection<T extends string>({
 
 export default function SettingsWorkspace() {
   const [hydrated, setHydrated] = useState(false);
-  const defaultNavItems = useMemo(() => buildDefaultNavItems(), [hydrated]);
-  const [navCustom, setNavCustom] = useState<NavCustomStorage>(() => loadNavCustomState());
+  const liveSections = useMemo(
+    () => (hydrated ? buildLiveNavSections() : [...internalSurveyNavSections]),
+    [hydrated],
+  );
+  const [navCustom, setNavCustom] = useState<NavCustomStorage>(() =>
+    loadSidebarNavCustom(internalSurveyNavSections),
+  );
+  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [customNavLabel, setCustomNavLabel] = useState("");
   const [hideWebsiteCms, setHideWebsiteCms] = useState(false);
 
@@ -669,65 +625,34 @@ export default function SettingsWorkspace() {
     [frameworkConnections],
   );
 
-  const allNavItems = useMemo(() => {
-    const byId = new Map<string, NavEditorItem>();
-    defaultNavItems.forEach((item) => byId.set(item.id, item));
-    navCustom.customItems.forEach((item) => byId.set(item.id, item));
-    const ordered = navCustom.order
-      .map((id) => byId.get(id))
-      .filter((item): item is NavEditorItem => item != null);
-    const missing = [...byId.values()].filter((item) => !navCustom.order.includes(item.id));
-    return [...ordered, ...missing];
-  }, [defaultNavItems, navCustom.customItems, navCustom.order]);
+  const orderedSections = useMemo(
+    () => applySidebarSectionOrder(liveSections, navCustom.sectionOrder),
+    [liveSections, navCustom.sectionOrder],
+  );
 
   const persistNavCustom = useCallback((next: NavCustomStorage) => {
     setNavCustom(next);
-    window.localStorage.setItem(NAV_CUSTOM_STORAGE_KEY, JSON.stringify(next));
+    saveSidebarNavCustom(next);
   }, []);
 
   useEffect(() => {
-    if (defaultNavItems.length === 0) return;
-    const validIds = new Set(defaultNavItems.map((item) => item.id));
-    navCustom.customItems.forEach((item) => validIds.add(item.id));
-    const prunedOrder = navCustom.order.filter((id) => validIds.has(id));
-    const prunedHidden: Record<string, boolean> = {};
-    for (const [id, value] of Object.entries(navCustom.hidden)) {
-      if (validIds.has(id) && value) prunedHidden[id] = true;
-    }
-    const orderStale =
-      navCustom.order.length === 0 ||
-      prunedOrder.length < Math.min(navCustom.order.length, defaultNavItems.length) * 0.5 ||
-      prunedOrder.length === 0;
-    if (orderStale) {
-      startTransition(() => {
-        persistNavCustom({
-          order: defaultNavItems.map((item) => item.id),
-          hidden: {},
-          customItems: navCustom.customItems.filter((item) => item.custom),
-        });
-      });
-      return;
-    }
-    if (
-      prunedOrder.length !== navCustom.order.length ||
-      Object.keys(prunedHidden).length !== Object.keys(navCustom.hidden).length
-    ) {
-      startTransition(() => {
-        persistNavCustom({
-          ...navCustom,
-          order: [...prunedOrder, ...defaultNavItems.map((i) => i.id).filter((id) => !prunedOrder.includes(id))],
-          hidden: prunedHidden,
-        });
-      });
-    }
-  }, [defaultNavItems, navCustom, persistNavCustom]);
+    if (!hydrated) return;
+    const next = loadSidebarNavCustom(liveSections);
+    setNavCustom(next);
+  }, [hydrated, liveSections]);
 
-  function moveNavItem(index: number, direction: -1 | 1) {
+  function moveModule(sectionKey: string, direction: -1 | 1) {
+    const movableKeys = orderedSections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
+    const index = movableKeys.indexOf(sectionKey);
     const target = index + direction;
-    if (target < 0 || target >= allNavItems.length) return;
-    const order = allNavItems.map((item) => item.id);
-    [order[index], order[target]] = [order[target], order[index]];
-    persistNavCustom({ ...navCustom, order });
+    if (index < 0 || target < 0 || target >= movableKeys.length) return;
+    const next = [...movableKeys];
+    [next[index], next[target]] = [next[target], next[index]];
+    persistNavCustom({ ...navCustom, sectionOrder: next });
+  }
+
+  function toggleModuleExpanded(sectionKey: string) {
+    setExpandedModules((current) => ({ ...current, [sectionKey]: !current[sectionKey] }));
   }
 
   function toggleNavHidden(itemId: string) {
@@ -741,15 +666,14 @@ export default function SettingsWorkspace() {
     const label = customNavLabel.trim();
     if (!label) return;
     const id = `nav-custom-${Date.now()}`;
-    const item: NavEditorItem = {
+    const item: SidebarNavLeafItem = {
       id,
       label,
-      sectionLabel: "Custom",
+      sectionKey: "workspace:Custom",
       custom: true,
     };
     persistNavCustom({
       ...navCustom,
-      order: [...navCustom.order, id],
       customItems: [...navCustom.customItems, item],
     });
     setCustomNavLabel("");
@@ -1015,62 +939,154 @@ export default function SettingsWorkspace() {
 
         <SettingsColumn
           title="Sidebar"
-          description="Reorder, hide, or add custom nav items."
+          description="Reorder high-level modules on the left nav. Expand a module to show sub-items. Home, Executive Assistant, and Settings stay fixed."
           icon={<Menu className="h-4 w-4" />}
           accentClass="border-violet-400/20"
         >
           <ul className="space-y-1.5">
-            {allNavItems.map((item, index) => {
-              const hidden = navCustom.hidden[item.id] ?? false;
+            {orderedSections.map((section) => {
+              const sectionKey = getNavSectionKey(section);
+              const title = getNavSectionTitle(section);
+              const movable = isMovableWorkspaceSection(section);
+              const fixedPin = isFixedPinSection(section) || section.kind === "pin";
+              const settingsFixed = isSettingsSection(section);
+              const expanded = Boolean(expandedModules[sectionKey]);
+              const leaves = listSectionLeafItems(section);
+              const customLeaves =
+                settingsFixed || sectionKey === "workspace:Custom"
+                  ? navCustom.customItems
+                  : [];
+              const movableKeys = orderedSections
+                .filter(isMovableWorkspaceSection)
+                .map(getNavSectionKey);
+              const movableIndex = movableKeys.indexOf(sectionKey);
+              const accent = section.color ?? (fixedPin ? "#2F80ED" : settingsFixed ? "#56CCF2" : "#9B51E0");
+
               return (
                 <li
-                  key={item.id}
-                  className={cn(
-                    "rounded-lg border border-white/10 bg-[#0b1524]/60 px-2.5 py-2",
-                    hidden && "opacity-50",
-                  )}
+                  key={sectionKey}
+                  className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/70"
                 >
-                  <div className="flex items-start gap-1.5">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-white/90">
-                        {item.parentLabel ? `${item.parentLabel} › ${item.label}` : item.label}
-                        {item.custom && (
-                          <span className="ml-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-1 py-px text-[9px] text-violet-200">
-                            Custom
+                  <div className="flex items-stretch">
+                    <span
+                      className="w-1 shrink-0 self-stretch"
+                      style={{ background: accent }}
+                      aria-hidden
+                    />
+                    <div className="min-w-0 flex-1 px-2.5 py-2">
+                      <div className="flex items-center gap-1.5">
+                        <p className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-[0.06em] text-white/90">
+                          {title}
+                        </p>
+                        {(fixedPin || settingsFixed) && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/40"
+                            title="Position locked"
+                          >
+                            <Lock className="h-2.5 w-2.5" />
+                            Fixed
                           </span>
                         )}
-                      </p>
-                      <p className="truncate text-[10px] text-white/40">
-                        {item.sectionLabel ?? "General"}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-col gap-0.5">
-                      <button
-                        type="button"
-                        onClick={() => moveNavItem(index, -1)}
-                        disabled={index === 0}
-                        className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                        aria-label="Move up"
-                      >
-                        <ChevronUp className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveNavItem(index, 1)}
-                        disabled={index === allNavItems.length - 1}
-                        className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                        aria-label="Move down"
-                      >
-                        <ChevronDown className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleNavHidden(item.id)}
-                        className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white"
-                        aria-label={hidden ? "Show item" : "Hide item"}
-                      >
-                        {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleModuleExpanded(sectionKey)}
+                          className="rounded border border-white/10 p-1 text-white/55 hover:bg-white/5 hover:text-white"
+                          aria-label={expanded ? `Collapse ${title}` : `Expand ${title}`}
+                          aria-expanded={expanded}
+                        >
+                          {expanded ? (
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                        {movable ? (
+                          <div className="flex flex-col gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => moveModule(sectionKey, -1)}
+                              disabled={movableIndex <= 0}
+                              className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                              aria-label={`Move ${title} up`}
+                            >
+                              <ChevronUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveModule(sectionKey, 1)}
+                              disabled={movableIndex < 0 || movableIndex >= movableKeys.length - 1}
+                              className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
+                              aria-label={`Move ${title} down`}
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {expanded ? (
+                        <ul className="mt-2 space-y-1 border-t border-white/10 pt-2">
+                          {leaves.length === 0 && customLeaves.length === 0 ? (
+                            <li className="px-1 py-1 text-[10px] text-white/35">No sub-modules</li>
+                          ) : null}
+                          {leaves.map((item) => {
+                            const hidden = navCustom.hidden[item.id] ?? false;
+                            return (
+                              <li
+                                key={item.id}
+                                className={cn(
+                                  "flex items-center gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-2 py-1.5",
+                                  hidden && "opacity-45",
+                                )}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-[11px] text-white/85">{item.label}</p>
+                                  {item.parentLabel ? (
+                                    <p className="truncate text-[9px] text-white/35">{item.parentLabel}</p>
+                                  ) : null}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNavHidden(item.id)}
+                                  className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white"
+                                  aria-label={hidden ? "Show item" : "Hide item"}
+                                >
+                                  {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                </button>
+                              </li>
+                            );
+                          })}
+                          {customLeaves.map((item) => {
+                            const hidden = navCustom.hidden[item.id] ?? false;
+                            return (
+                              <li
+                                key={item.id}
+                                className={cn(
+                                  "flex items-center gap-2 rounded-lg border border-violet-400/20 bg-violet-500/5 px-2 py-1.5",
+                                  hidden && "opacity-45",
+                                )}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-[11px] text-white/85">
+                                    {item.label}
+                                    <span className="ml-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-1 py-px text-[9px] text-violet-200">
+                                      Custom
+                                    </span>
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleNavHidden(item.id)}
+                                  className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white"
+                                  aria-label={hidden ? "Show item" : "Hide item"}
+                                >
+                                  {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : null}
                     </div>
                   </div>
                 </li>
@@ -1104,7 +1120,8 @@ export default function SettingsWorkspace() {
               </button>
             </div>
             <p className="text-[10px] text-white/35">
-              Saved to <code className="text-white/50">{NAV_CUSTOM_STORAGE_KEY}</code>
+              Module order saves to <code className="text-white/50">{SIDEBAR_NAV_CUSTOM_STORAGE_KEY}</code> and
+              updates the main left nav immediately.
             </p>
           </div>
         </SettingsColumn>
