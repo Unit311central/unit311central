@@ -13,12 +13,12 @@ export default function ExternalTrainingWorkspace() {
   const [launchCourseId, setLaunchCourseId] = useState<string | null>(null);
 
   const courses = useMemo(() => {
-    const fromStore = store.courses
-      .filter(isOaExternalCourse)
-      .sort((a, b) => a.title.localeCompare(b.title));
-    return fromStore.length > 0
-      ? fromStore
-      : [...OA_EXTERNAL_COURSES].sort((a, b) => a.title.localeCompare(b.title));
+    const created = store.courses.filter(
+      (course) =>
+        isOaExternalCourse(course) &&
+        !OA_EXTERNAL_COURSES.some((fixture) => fixture.id === course.id),
+    );
+    return [...OA_EXTERNAL_COURSES, ...created].sort((a, b) => a.title.localeCompare(b.title));
   }, [store.courses]);
 
   return (

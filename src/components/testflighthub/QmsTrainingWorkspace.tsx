@@ -42,12 +42,12 @@ export default function QmsTrainingWorkspace() {
   );
 
   const qmsCourses = useMemo(() => {
-    const fromStore = store.courses
-      .filter((c) => c.category === "QMS" || isOaQmsCourse(c))
-      .sort((a, b) => a.title.localeCompare(b.title));
-    return fromStore.length > 0
-      ? fromStore
-      : [...OA_QMS_COURSES].sort((a, b) => a.title.localeCompare(b.title));
+    const created = store.courses.filter(
+      (c) =>
+        (c.category === "QMS" || isOaQmsCourse(c)) &&
+        !OA_QMS_COURSES.some((fixture) => fixture.id === c.id),
+    );
+    return [...OA_QMS_COURSES, ...created].sort((a, b) => a.title.localeCompare(b.title));
   }, [store.courses]);
 
   function toggleExpand(pathId: string) {

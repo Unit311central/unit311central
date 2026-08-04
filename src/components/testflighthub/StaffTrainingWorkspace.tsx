@@ -149,13 +149,18 @@ export default function StaffTrainingWorkspace() {
   }, []);
 
   const staffCourses = useMemo(() => {
-    const fromStore = store.courses
-      .filter((course) => (enableAiUpload ? isOaStaffCourse(course) : course.category !== "External"))
-      .sort((a, b) => a.title.localeCompare(b.title));
-    if (enableAiUpload && fromStore.length === 0) {
-      return [...OA_STAFF_COURSES].sort((a, b) => a.title.localeCompare(b.title));
+    // OnwardAir: always show the full fake Staff catalogue (plus any manually created).
+    if (enableAiUpload) {
+      const created = store.courses.filter(
+        (course) =>
+          isOaStaffCourse(course) &&
+          !OA_STAFF_COURSES.some((fixture) => fixture.id === course.id),
+      );
+      return [...OA_STAFF_COURSES, ...created].sort((a, b) => a.title.localeCompare(b.title));
     }
-    return fromStore;
+    return store.courses
+      .filter((course) => course.category !== "External")
+      .sort((a, b) => a.title.localeCompare(b.title));
   }, [store.courses, enableAiUpload]);
 
   const filterOptions = useMemo(

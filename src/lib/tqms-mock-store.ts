@@ -286,6 +286,9 @@ export function getTqmsMockSnapshot(): TqmsMockState {
       if (
         isBrowserOnwardAirSurface() &&
         (!state.courses.some((course) => course.id === "oa-crs-ind-01") ||
+          !state.courses.some((course) => course.id === "oa-crs-fod-01") ||
+          !state.courses.some((course) => course.id === "oa-ext-as9100-01") ||
+          !state.courses.some((course) => course.id === "oa-qms-crs-08") ||
           !state.documents.some((doc) => doc.id === "oa-doc-001") ||
           isNonOnwardAirQmsLeak(state))
       ) {
