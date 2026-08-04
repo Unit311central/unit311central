@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 
 import CourseReviewScreen from "@/components/lms/CourseReviewScreen";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
-import { isOaStaffCourse } from "@/lib/onwardair/training-data";
+import { isOaStaffCourse, OA_STAFF_COURSES } from "@/lib/onwardair/training-data";
 import type { LmsCourseTree } from "@/lib/lms/types";
 import {
   TQMS_LEARNER_STATUSES,
@@ -25,6 +25,7 @@ import {
 } from "@/lib/tqms-mock-store";
 import { cn } from "@/lib/utils";
 import CreateCourseWizard from "./CreateCourseWizard";
+import { OaCourseCatalogueScroller } from "./OaCourseCatalogueScroller";
 import { useTqmsMockStore } from "./useTqmsMockStore";
 import {
   TqmsEmpty,
@@ -141,18 +142,21 @@ export default function StaffTrainingWorkspace() {
   const [genError, setGenError] = useState<string | null>(null);
   const [reviewCourse, setReviewCourse] = useState<LmsCourseTree | null>(null);
   const [reviewSummary, setReviewSummary] = useState<GenerationSummary | null>(null);
+  const [launchCourseId, setLaunchCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     setEnableAiUpload(isBrowserOnwardAirSurface());
   }, []);
 
-  const staffCourses = useMemo(
-    () =>
-      store.courses
-        .filter((course) => (enableAiUpload ? isOaStaffCourse(course) : course.category !== "External"))
-        .sort((a, b) => a.title.localeCompare(b.title)),
-    [store.courses, enableAiUpload],
-  );
+  const staffCourses = useMemo(() => {
+    const fromStore = store.courses
+      .filter((course) => (enableAiUpload ? isOaStaffCourse(course) : course.category !== "External"))
+      .sort((a, b) => a.title.localeCompare(b.title));
+    if (enableAiUpload && fromStore.length === 0) {
+      return [...OA_STAFF_COURSES].sort((a, b) => a.title.localeCompare(b.title));
+    }
+    return fromStore;
+  }, [store.courses, enableAiUpload]);
 
   const filterOptions = useMemo(
     () => ({
@@ -333,53 +337,22 @@ export default function StaffTrainingWorkspace() {
         </section>
       ) : null}
 
-      <TqmsSection
-        title="Staff Courses"
-        subtitle="Internal catalogue for assignment to Houston team members."
-        actions={
-          <button type="button" onClick={handleCreateCourse} className={tqmsPrimaryButtonClass()}>
-            <Plus className="h-3.5 w-3.5" />
-            Manual builder
-          </button>
-        }
-      >
-        {staffCourses.length === 0 ? (
-          <TqmsEmpty message="No staff courses in the catalogue yet." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left text-sm">
-              <thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/45">
-                <tr>
-                  <th className="px-2 py-2 font-semibold">Course</th>
-                  <th className="px-2 py-2 font-semibold">Category</th>
-                  <th className="px-2 py-2 font-semibold">Mandatory</th>
-                  <th className="px-2 py-2 font-semibold">Duration</th>
-                  <th className="px-2 py-2 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {staffCourses.map((course) => (
-                  <tr key={course.id} className="border-b border-white/5 text-white/80">
-                    <td className="px-2 py-3">
-                      <p className="font-medium text-white">{course.title}</p>
-                      <p className="text-[11px] text-white/40">
-                        {course.code} · {course.owner}
-                      </p>
-                    </td>
-                    <td className="px-2 py-3">{course.category}</td>
-                    <td className="px-2 py-3">{course.mandatory ? "Yes" : "No"}</td>
-                    <td className="px-2 py-3 tabular-nums">{course.durationHours}h</td>
-                    <td className="px-2 py-3">
-                      <TqmsStatusPill className={tqmsStatusClass(course.status)}>
-                        {course.status}
-                      </TqmsStatusPill>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <TqmsSection title="Staff Courses" subtitle="Open interactive courses in the LMS scroller — assign below to Houston learners.">
+        <OaCourseCatalogueScroller
+          title="Catalogue"
+          subtitle="Swipe the card strip or launch from the table — same horizontal lesson player as Talanton."
+          courses={staffCourses}
+          emptyMessage="No staff courses in the catalogue yet."
+          launchCourseId={launchCourseId}
+          onLaunch={setLaunchCourseId}
+          onClosePlayer={() => setLaunchCourseId(null)}
+          actions={
+            <button type="button" onClick={handleCreateCourse} className={tqmsPrimaryButtonClass()}>
+              <Plus className="h-3.5 w-3.5" />
+              Manual builder
+            </button>
+          }
+        />
       </TqmsSection>
 
       <TqmsSection

@@ -13,9 +13,10 @@ import {
   UserPlus,
 } from "lucide-react";
 
-import { isOaQmsCourse } from "@/lib/onwardair/training-data";
+import { isOaQmsCourse, OA_QMS_COURSES } from "@/lib/onwardair/training-data";
 import { markLearningPathLessonDone } from "@/lib/tqms-mock-store";
 import { tqmsStatusClass } from "@/lib/tqms-data";
+import { OaCourseCatalogueScroller } from "./OaCourseCatalogueScroller";
 import { useTqmsMockStore } from "./useTqmsMockStore";
 import {
   TqmsEmpty,
@@ -33,16 +34,21 @@ export default function QmsTrainingWorkspace() {
   const store = useTqmsMockStore();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [launchCourseId, setLaunchCourseId] = useState<string | null>(null);
 
   const paths = useMemo(
     () => [...store.learningPaths].sort((a, b) => a.name.localeCompare(b.name)),
     [store.learningPaths],
   );
 
-  const qmsCourses = useMemo(
-    () => store.courses.filter((c) => c.category === "QMS" || isOaQmsCourse(c)),
-    [store.courses],
-  );
+  const qmsCourses = useMemo(() => {
+    const fromStore = store.courses
+      .filter((c) => c.category === "QMS" || isOaQmsCourse(c))
+      .sort((a, b) => a.title.localeCompare(b.title));
+    return fromStore.length > 0
+      ? fromStore
+      : [...OA_QMS_COURSES].sort((a, b) => a.title.localeCompare(b.title));
+  }, [store.courses]);
 
   function toggleExpand(pathId: string) {
     setExpandedId((current) => (current === pathId ? null : pathId));
@@ -73,44 +79,20 @@ export default function QmsTrainingWorkspace() {
         </p>
       ) : null}
 
-      {qmsCourses.length > 0 ? (
-        <TqmsSection
-          title="QMS Courses"
-          subtitle="Quality curriculum items available for assignment."
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/45">
-                <tr>
-                  <th className="px-2 py-2 font-semibold">Course</th>
-                  <th className="px-2 py-2 font-semibold">Owner</th>
-                  <th className="px-2 py-2 font-semibold">Duration</th>
-                  <th className="px-2 py-2 font-semibold">Mandatory</th>
-                  <th className="px-2 py-2 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {qmsCourses.map((course) => (
-                  <tr key={course.id} className="border-b border-white/5 text-white/80">
-                    <td className="px-2 py-3">
-                      <p className="font-medium text-white">{course.title}</p>
-                      <p className="text-[11px] text-white/40">{course.code}</p>
-                    </td>
-                    <td className="px-2 py-3">{course.owner}</td>
-                    <td className="px-2 py-3 tabular-nums">{course.durationHours}h</td>
-                    <td className="px-2 py-3">{course.mandatory ? "Yes" : "No"}</td>
-                    <td className="px-2 py-3">
-                      <TqmsStatusPill className={tqmsStatusClass(course.status)}>
-                        {course.status}
-                      </TqmsStatusPill>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </TqmsSection>
-      ) : null}
+      <TqmsSection
+        title="QMS Courses"
+        subtitle="Quality curriculum — open interactive courses in the LMS scroller."
+      >
+        <OaCourseCatalogueScroller
+          title="QMS catalogue"
+          subtitle="Swipe course cards or launch into the horizontal lesson player."
+          courses={qmsCourses}
+          emptyMessage="No QMS courses seeded for this workspace."
+          launchCourseId={launchCourseId}
+          onLaunch={setLaunchCourseId}
+          onClosePlayer={() => setLaunchCourseId(null)}
+        />
+      </TqmsSection>
 
       <TqmsSection
         title="QMS Learning Paths"

@@ -18,7 +18,10 @@ import type { LmsCourseTree, LmsEnrolment, LmsLesson } from "@/lib/lms/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  courseSlug: string;
+  /** Live LMS slug — fetched from `/api/lms/courses/[slug]`. */
+  courseSlug?: string;
+  /** Client fixture tree — skips API enrol/progress (OnwardAir Training demos). */
+  courseTree?: LmsCourseTree;
   companyPath?: string;
   onClose: () => void;
 };
@@ -40,14 +43,18 @@ function formatTime(totalSeconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props) {
-  const [course, setCourse] = useState<LmsCourseTree | null>(null);
+export default function CoursePlayer({ courseSlug, courseTree, companyPath, onClose }: Props) {
+  const resolvedSlug = courseSlug ?? courseTree?.slug ?? "";
+  const localMode = Boolean(courseTree);
+  const [course, setCourse] = useState<LmsCourseTree | null>(courseTree ?? null);
   const [enrolment, setEnrolment] = useState<LmsEnrolment | null>(null);
   const [lessonIndex, setLessonIndex] = useState(0);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [timeSpent, setTimeSpent] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!courseTree);
+  const [error, setError] = useState<string | null>(
+    !courseTree && !courseSlug ? "Course not found." : null,
+  );
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showCeremony, setShowCeremony] = useState(false);
@@ -96,6 +103,26 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
         lessons[lessonIndexRef.current]?.id ??
         enr.lastLessonId;
 
+      const nextLocal: LmsEnrolment = {
+        ...enr,
+        progressPct: pct,
+        lessonState: {
+          ...(enr.lessonState ?? {}),
+          completedLessonIds: [...completed],
+        },
+        timeSpentSeconds: elapsed,
+        lastLessonId: lastLesson,
+        status: options?.status ?? enr.status,
+        score: options?.score ?? enr.score,
+        completedAt:
+          options?.status === "completed" ? new Date().toISOString() : enr.completedAt,
+      };
+
+      if (localMode) {
+        setEnrolment(nextLocal);
+        return nextLocal;
+      }
+
       setSaving(true);
       try {
         const res = await fetch(`/api/lms/enrolments/${enr.id}/progress`, {
@@ -126,7 +153,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
       }
       return null;
     },
-    [lessons],
+    [lessons, localMode],
   );
 
   useEffect(() => {
@@ -135,7 +162,41 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
       setLoading(true);
       setError(null);
       try {
-        const courseRes = await fetch(`/api/lms/courses/${encodeURIComponent(courseSlug)}`, {
+        if (courseTree) {
+          if (cancelled) return;
+          setCourse(courseTree);
+          const enr: LmsEnrolment = {
+            id: `local-enr-${courseTree.id}`,
+            courseId: courseTree.id,
+            userId: "local",
+            clientId: null,
+            status: "in_progress",
+            progressPct: 0,
+            lessonState: {},
+            timeSpentSeconds: 0,
+            score: null,
+            startedAt: new Date().toISOString(),
+            completedAt: null,
+            lastLessonId: null,
+          };
+          setEnrolment(enr);
+          timeBaseRef.current = 0;
+          sessionStartRef.current = Date.now();
+          setTimeSpent(0);
+          setCompletedIds(new Set());
+          setLessonIndex(0);
+          setShowCeremony(false);
+          setFinalScore(null);
+          setCertificateUrl(null);
+          setCertificateNumber(null);
+          return;
+        }
+
+        if (!resolvedSlug) {
+          throw new Error("Course not found.");
+        }
+
+        const courseRes = await fetch(`/api/lms/courses/${encodeURIComponent(resolvedSlug)}`, {
           credentials: "include",
         });
         const courseData = (await courseRes.json()) as {
@@ -154,7 +215,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            courseSlug,
+            courseSlug: resolvedSlug,
             start: true,
           }),
         });
@@ -197,7 +258,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
     return () => {
       cancelled = true;
     };
-  }, [companyPath, courseSlug]);
+  }, [companyPath, courseTree, resolvedSlug]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -285,26 +346,33 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
         lastLessonId: lesson.id,
         score: meta?.score ?? finalScore,
       });
-      try {
-        const certRes = await fetch("/api/lms/complete", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ courseSlug }),
-        });
-        const certData = (await certRes.json()) as {
-          certificate?: { id: string; certificateNumber: string };
-          error?: string;
-        };
-        if (certData.certificate?.certificateNumber) {
-          const certNumber = certData.certificate.certificateNumber;
-          setCertificateUrl(
-            `/api/lms/certificates/${encodeURIComponent(certNumber)}/pdf`,
-          );
-          setCertificateNumber(certNumber);
+      if (localMode) {
+        setCertificateNumber(
+          `OA-${course.code}-${Date.now().toString(36).toUpperCase()}`,
+        );
+        setCertificateUrl(null);
+      } else {
+        try {
+          const certRes = await fetch("/api/lms/complete", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ courseSlug: resolvedSlug }),
+          });
+          const certData = (await certRes.json()) as {
+            certificate?: { id: string; certificateNumber: string };
+            error?: string;
+          };
+          if (certData.certificate?.certificateNumber) {
+            const certNumber = certData.certificate.certificateNumber;
+            setCertificateUrl(
+              `/api/lms/certificates/${encodeURIComponent(certNumber)}/pdf`,
+            );
+            setCertificateNumber(certNumber);
+          }
+        } catch {
+          /* ceremony still shows */
         }
-      } catch {
-        /* ceremony still shows */
       }
       setShowCeremony(true);
       return;
@@ -336,7 +404,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
     }, 80);
     // Only on initial load completion
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, courseSlug]);
+  }, [loading, resolvedSlug]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#07111f] text-white">
@@ -493,7 +561,7 @@ export default function CoursePlayer({ courseSlug, companyPath, onClose }: Props
                           <LessonRenderer
                             lesson={lesson}
                             courseId={course?.id}
-                            courseSlug={courseSlug}
+                            courseSlug={resolvedSlug}
                             enrolmentId={enrolment?.id}
                             onComplete={(meta) => void handleLessonComplete(lesson, meta)}
                           />
