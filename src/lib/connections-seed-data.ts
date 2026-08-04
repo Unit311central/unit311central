@@ -20,6 +20,17 @@ const SEED_ROWS: Array<Omit<CrmConnection, "id" | "createdAt" | "updatedAt">> = 
 ];
 
 export function createInitialConnections(): CrmConnection[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isOnwardAirBusinessCentralFixtures, getOaConnections } =
+        require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+      if (isOnwardAirBusinessCentralFixtures()) {
+        return getOaConnections().map((row) => ({ ...row }));
+      }
+    } catch {
+      /* fall through */
+    }
+  }
   const now = new Date().toISOString();
   return SEED_ROWS.map((row, index) => {
     const [latitude, longitude] = geocodeConnection(row.city, row.country);

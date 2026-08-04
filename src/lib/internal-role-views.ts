@@ -977,7 +977,7 @@ const ONWARDAIR_IP_PATENTS_NAV_ITEM: InternalNavItem = {
   ],
 };
 
-/** Top-level OnwardAir Intelligence — Competitor Intelligence lives here. */
+/** Top-level OnwardAir Intelligence — Competitor Intelligence + Potential Clients. */
 const ONWARDAIR_INTELLIGENCE_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "OnwardAir Intelligence",
@@ -988,6 +988,11 @@ const ONWARDAIR_INTELLIGENCE_NAV_SECTION: InternalNavSection = {
       label: "Competitor Intelligence",
       icon: "Target",
       view: "oa-competitor-intelligence" as const,
+    },
+    {
+      label: "Potential Clients",
+      icon: "Users",
+      view: "potential-clients" as const,
     },
   ],
 };
@@ -1002,7 +1007,6 @@ const ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION: InternalNavSection = {
     { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" as const },
     { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
     { label: "External Projects", icon: "FolderOpen", view: "projects-external" as const },
-    { label: "Grants", icon: "ScrollText", view: "grants" as const },
   ],
 };
 
@@ -1029,14 +1033,25 @@ const ONWARDAIR_MARKETING_EVENTS_NAV_SECTION: InternalNavSection = {
 function stripOnwardAirBusinessCentralProjects(section: InternalNavSection): InternalNavSection {
   return {
     ...section,
-    items: section.items.filter(
-      (item) =>
-        item.label !== "Projects" &&
-        item.label !== "Project Management" &&
-        item.label !== "OnwardAir Intelligence" &&
-        item.view !== "oa-competitor-intelligence" &&
-        item.label !== "Competitor Intelligence",
-    ),
+    items: section.items
+      .filter(
+        (item) =>
+          item.label !== "Projects" &&
+          item.label !== "Project Management" &&
+          item.label !== "OnwardAir Intelligence" &&
+          item.view !== "oa-competitor-intelligence" &&
+          item.label !== "Competitor Intelligence",
+      )
+      .map((item) => {
+        if (!item.children?.length) return item;
+        return {
+          ...item,
+          children: item.children.filter(
+            (child) =>
+              child.view !== "potential-clients" && child.label !== "Potential Clients",
+          ),
+        };
+      }),
   };
 }
 
@@ -1095,7 +1110,19 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
     }
 
     if (section.label === "Business Central") {
-      out.push(stripOnwardAirBusinessCentralProjects(section));
+      const stripped = stripOnwardAirBusinessCentralProjects(section);
+      out.push({
+        ...stripped,
+        items: [
+          {
+            label: "Dashboard",
+            icon: "LayoutDashboard",
+            view: "business-central-dashboard" as const,
+          },
+          ...stripped.items,
+          { label: "Grants", icon: "ScrollText", view: "grants" as const },
+        ],
+      });
       out.push(ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION);
       out.push(ONWARDAIR_INTELLIGENCE_NAV_SECTION);
       insertedProjectManagement = true;

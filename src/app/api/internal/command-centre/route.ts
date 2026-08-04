@@ -34,6 +34,13 @@ export async function GET() {
     const to = new Date(today);
     to.setDate(to.getDate() + 1);
 
+    const financialsPromise = Promise.race([
+      getFinancialOverview(scope).catch(() => null),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), 2500);
+      }),
+    ]);
+
     const [projects, clients, leads, events, tickets, financials, apiActions, onboardingPipeline] =
       await Promise.all([
         listProjects(scope).catch(() => []),
@@ -41,8 +48,8 @@ export async function GET() {
         listLeads("All", scope).catch(() => []),
         listCalendarEvents(from.toISOString(), to.toISOString(), scope).catch(() => []),
         listSupportTickets(false, scope).catch(() => []),
-        // Same SSOT as Financial Overview / GL / AR / AP / Wise — never null.
-        getFinancialOverview(scope),
+        // Soft-fail / time-box financials so Home KPIs are not blocked by GL/AR fan-out.
+        financialsPromise,
         listOpenActionItems(scope).catch(() => []),
         listClientOnboardingRecords({ status: "in_progress", workspaceId }).catch(() => []),
       ]);

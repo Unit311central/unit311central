@@ -17,8 +17,11 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -31,6 +34,10 @@ import {
   isBrowserAbhiSurface,
 } from "@/lib/abhi-surface";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
+import {
+  getOaClientsDashboardCharts,
+  isOnwardAirBusinessCentralFixtures,
+} from "@/lib/onwardair/business-central-data";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import { type ManagedClient } from "@/lib/client-management-data";
 import {
@@ -80,6 +87,83 @@ const chartTooltipStyle = {
   fontSize: 12,
   color: "#fff",
 } as const;
+
+function OnwardAirClientsChartsSection() {
+  const charts = getOaClientsDashboardCharts();
+  const pieColors = ["#2563EB", "#22D3EE", "#F59E0B", "#84CC16", "#C026D3"];
+
+  return (
+    <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
+            Portfolio analytics
+          </p>
+          <h3 className="mt-0.5 text-base font-semibold text-white">Client mix &amp; growth</h3>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-4 lg:grid-cols-3">
+        <div className="min-w-0">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+            Status mix
+          </p>
+          <div className="h-[200px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={charts.statusPie}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={42}
+                  outerRadius={72}
+                  paddingAngle={2}
+                >
+                  {charts.statusPie.map((_, index) => (
+                    <Cell key={index} fill={pieColors[index % pieColors.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={chartTooltipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="min-w-0">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+            Clients over time
+          </p>
+          <div className="h-[200px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={charts.monthlyTrend}>
+                <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
+                <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} width={28} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Line type="monotone" dataKey="clients" stroke="#38bdf8" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="active" stroke="#34d399" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="min-w-0">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+            By segment
+          </p>
+          <div className="h-[200px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={charts.segmentBars}>
+                <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="segment" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 9 }} />
+                <YAxis tick={{ fill: "rgba(255,255,255,0.35)", fontSize: 10 }} width={28} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Bar dataKey="count" fill="#2563EB" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function AbhiMemberGrowthSection() {
   const growthRows = ABHI_MEMBER_SIGNUP_GROWTH;
@@ -390,6 +474,7 @@ export default function ClientsDashboardWorkspace({
       />
 
       {isBrowserAbhiSurface() ? <AbhiMemberGrowthSection /> : null}
+      {isOnwardAirBusinessCentralFixtures() ? <OnwardAirClientsChartsSection /> : null}
 
       <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-3 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-4">
         <div className="flex flex-wrap items-end justify-between gap-2">

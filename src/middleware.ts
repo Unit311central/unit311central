@@ -188,6 +188,13 @@ export async function middleware(request: NextRequest) {
       );
     }
 
+    // Canonical OnwardAir host is onwardair.*; keep short onward.* bookmarks branded correctly.
+    if (workspaceSlug === "onward") {
+      return redirectExternal(
+        `https://onwardair.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
+      );
+    }
+
     const headers = withHostHeaders(request, { workspaceSlug });
     const workspaceOrigin = `https://${workspaceSlug}.${UNIT311_SITE_HOST}`;
     const workspaceResponseHeaders = {

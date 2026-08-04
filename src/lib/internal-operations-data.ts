@@ -200,7 +200,8 @@ export type InternalOperationsView =
   | "oa-ip-documents"
   | "oa-ip-search"
   | "oa-competitor-intelligence"
-  | "oa-marketing-dashboard";
+  | "oa-marketing-dashboard"
+  | "business-central-dashboard";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -448,6 +449,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "oa-ip-search",
   "oa-competitor-intelligence",
   "oa-marketing-dashboard",
+  "business-central-dashboard",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -1302,6 +1304,10 @@ export const internalViewTitles: Record<
     title: "Dashboard",
     subtitle: "Marketing & Events",
   },
+  "business-central-dashboard": {
+    title: "Dashboard",
+    subtitle: "Business Central",
+  },
 };
 
 /** Breadcrumb labels for the active internal leaf (section → … → page).
@@ -1442,12 +1448,23 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
           activeView === "projects" ||
           activeView === "projects-dashboard" ||
           activeView === "projects-internal" ||
-          activeView === "projects-external" ||
-          activeView === "grants"
+          activeView === "projects-external"
         ) {
           return {
             title: base.title,
             subtitle: "Project Management",
+          };
+        }
+        if (activeView === "grants" || activeView === "business-central-dashboard") {
+          return {
+            title: base.title,
+            subtitle: "Business Central",
+          };
+        }
+        if (activeView === "potential-clients") {
+          return {
+            title: base.title,
+            subtitle: "OnwardAir Intelligence",
           };
         }
         if (activeView === "corporate-cap-table") {

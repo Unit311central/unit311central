@@ -95,7 +95,7 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
 export const VIEW_NEIGHBOR_PREFETCH: Partial<
   Record<InternalOperationsView, InternalOperationsView[]>
 > = {
-  home: ["clients", "financials", "projects", "executive-assistant"],
+  home: ["clients-dashboard", "executive-assistant"],
   clients: ["crm", "clients-dashboard", "client-onboarding", "projects"],
   "clients-dashboard": ["clients", "member-intelligence", "crm", "projects"],
   "member-intelligence": ["clients", "clients-dashboard"],

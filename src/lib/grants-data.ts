@@ -259,12 +259,60 @@ function isDemoGrantsSurface() {
   }
 }
 
+function isOnwardAirGrantsSurface() {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isOnwardAirBusinessCentralFixtures } =
+      require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+    return isOnwardAirBusinessCentralFixtures();
+  } catch {
+    return false;
+  }
+}
+
 export function getGrantApplications(): GrantApplication[] {
+  if (isOnwardAirGrantsSurface()) {
+    const { getOaGrantApplications } =
+      require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+    return getOaGrantApplications();
+  }
   return isDemoGrantsSurface() ? DEMO_GRANT_APPLICATIONS : GRANT_APPLICATIONS;
 }
 
 export function getGrantsByProgramme() {
+  if (isOnwardAirGrantsSurface()) {
+    const { OA_GRANTS_BY_PROGRAMME } =
+      require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+    return OA_GRANTS_BY_PROGRAMME;
+  }
   return isDemoGrantsSurface() ? DEMO_GRANTS_BY_PROGRAMME : GRANTS_BY_PROGRAMME;
+}
+
+export function getGrantsKpis() {
+  if (isOnwardAirGrantsSurface()) {
+    const { getOaGrantsKpis } =
+      require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+    return getOaGrantsKpis();
+  }
+  return GRANTS_KPIS;
+}
+
+export function getGrantsByStatus() {
+  if (isOnwardAirGrantsSurface()) {
+    const { OA_GRANTS_BY_STATUS } =
+      require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+    return OA_GRANTS_BY_STATUS;
+  }
+  return GRANTS_BY_STATUS;
+}
+
+export function getGrantsMonthlySubmissions() {
+  if (isOnwardAirGrantsSurface()) {
+    const { OA_GRANTS_MONTHLY_SUBMISSIONS } =
+      require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+    return OA_GRANTS_MONTHLY_SUBMISSIONS;
+  }
+  return GRANTS_MONTHLY_SUBMISSIONS;
 }
 
 export const STATUS_COLORS: Record<GrantStatus, string> = {
@@ -277,9 +325,11 @@ export const STATUS_COLORS: Record<GrantStatus, string> = {
 };
 
 export function formatGrantAmount(amount: number) {
-  if (amount >= 1_000_000) return `€${(amount / 1_000_000).toFixed(2)}M`;
-  if (amount >= 1_000) return `€${Math.round(amount / 1_000)}k`;
-  return `€${amount}`;
+  const oa = isOnwardAirGrantsSurface();
+  const symbol = oa ? "$" : "€";
+  if (amount >= 1_000_000) return `${symbol}${(amount / 1_000_000).toFixed(2)}M`;
+  if (amount >= 1_000) return `${symbol}${Math.round(amount / 1_000)}k`;
+  return `${symbol}${amount}`;
 }
 
 export function grantStatusClass(status: GrantStatus) {

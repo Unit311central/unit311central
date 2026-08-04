@@ -309,6 +309,7 @@ import { OnwardAirPlaceholderWorkspace, FundraisingDashboardWorkspace, Operation
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
 import { OnwardAirCompetitorIntelligenceWorkspace } from "@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace";
 import OnwardAirMarketingEventsWorkspace from "@/components/onwardair/OnwardAirMarketingEventsWorkspace";
+import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
   "fleet",
@@ -911,6 +912,7 @@ export default function InternalOperationsDashboard({
           )}
 
           {activeView === "grants" && <GrantsWorkspace />}
+          {activeView === "business-central-dashboard" && <OnwardAirBusinessCentralDashboard />}
 
           {activeView === "recent-missions" && <RecentMissionsPanel />}
 

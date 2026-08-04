@@ -66,6 +66,16 @@ export function createInitialRepresentatives(): Representative[] {
     }
 
     try {
+      const { isOnwardAirBusinessCentralFixtures, getOaPartners } =
+        require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+      if (isOnwardAirBusinessCentralFixtures()) {
+        return getOaPartners().map((row) => ({ ...row }));
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {

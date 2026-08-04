@@ -71,21 +71,48 @@ export default function ExecutiveHomeDashboard() {
     void load();
   }, [load]);
 
-  // OnwardAir: ensure weekly competitor brief outside of render (avoids store emit mid-useMemo).
+  // OnwardAir: defer weekly competitor brief until after first paint / idle.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const { isBrowserOnwardAirSurface } = require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
-      if (!isBrowserOnwardAirSurface()) return;
-      const feed = require("@/lib/onwardair/competitor-intelligence-feed-store") as typeof import("@/lib/onwardair/competitor-intelligence-feed-store");
-      const result = feed.ensureWeeklyCompetitorIntelligenceRefresh();
-      if (result.created) {
-        // Re-merge live narrative after feed write so Home alerts update without a full reload.
-        setBundle((current) => (current ? { ...current } : current));
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      try {
+        const { isBrowserOnwardAirSurface } =
+          require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+        if (!isBrowserOnwardAirSurface()) return;
+        const feed =
+          require("@/lib/onwardair/competitor-intelligence-feed-store") as typeof import("@/lib/onwardair/competitor-intelligence-feed-store");
+        const result = feed.ensureWeeklyCompetitorIntelligenceRefresh();
+        if (result.created) {
+          setBundle((current) => (current ? { ...current } : current));
+        }
+      } catch {
+        /* optional */
       }
-    } catch {
-      /* optional */
+    };
+    const ric = (
+      window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+        cancelIdleCallback?: (id: number) => void;
+      }
+    ).requestIdleCallback;
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (typeof ric === "function") {
+      idleId = ric(run, { timeout: 4000 });
+    } else {
+      timeoutId = setTimeout(run, 1500);
     }
+    return () => {
+      cancelled = true;
+      if (idleId != null) {
+        (
+          window as Window & { cancelIdleCallback?: (id: number) => void }
+        ).cancelIdleCallback?.(idleId);
+      }
+      if (timeoutId != null) clearTimeout(timeoutId);
+    };
   }, []);
 
   const config = useMemo(() => {

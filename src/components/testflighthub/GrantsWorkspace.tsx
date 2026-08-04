@@ -4,16 +4,17 @@ import { useMemo, useState } from "react";
 
 import { ChartTooltip } from "@/components/dashboard/ChartTooltip";
 import {
-  GRANTS_BY_STATUS,
-  GRANTS_KPIS,
   getGrantApplications,
   getGrantsByProgramme,
-  GRANTS_MONTHLY_SUBMISSIONS,
+  getGrantsByStatus,
+  getGrantsKpis,
+  getGrantsMonthlySubmissions,
   formatGrantAmount,
   grantStatusClass,
   type GrantApplication,
   type GrantStatus,
 } from "@/lib/grants-data";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { cn } from "@/lib/utils";
 import { LayoutGrid, Plus, TrendingUp, X } from "lucide-react";
 import {
@@ -90,7 +91,11 @@ function panelClassName() {
   return "rounded-2xl border border-white/10 bg-[#0a1422]/80 p-4 shadow-[0_12px_40px_rgba(0,0,0,0.35)] sm:p-5";
 }
 
-function KpiCard({ kpi }: { kpi: (typeof GRANTS_KPIS)[number] }) {
+function KpiCard({
+  kpi,
+}: {
+  kpi: { label: string; value: string; change: string; trend: "up" | "down" | "neutral"; hint: string };
+}) {
   const TrendIcon = TrendingUp;
 
   return (
@@ -174,8 +179,14 @@ function GrantCard({ grant }: { grant: GrantApplication }) {
 }
 
 export default function GrantsWorkspace() {
+  const isOnwardAir = isBrowserOnwardAirSurface();
+  const amountUnit = isOnwardAir ? "$k" : "€k";
+  const amountLabel = isOnwardAir ? "Amount (USD)" : "Amount (EUR)";
   const [grants, setGrants] = useState<GrantApplication[]>(() => [...getGrantApplications()]);
   const programmeBreakdown = useMemo(() => getGrantsByProgramme(), []);
+  const grantsKpis = useMemo(() => getGrantsKpis(), []);
+  const grantsByStatus = useMemo(() => getGrantsByStatus(), []);
+  const monthlySubmissions = useMemo(() => getGrantsMonthlySubmissions(), []);
   const [statusFilter, setStatusFilter] = useState<GrantStatus | "All">("All");
   const [showNewGrantModal, setShowNewGrantModal] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
@@ -193,7 +204,7 @@ export default function GrantsWorkspace() {
     return grants.filter((grant) => grant.status === statusFilter);
   }, [grants, statusFilter]);
 
-  const pipelineChartData = GRANTS_BY_STATUS.map((item) => ({
+  const pipelineChartData = grantsByStatus.map((item) => ({
     name: item.status,
     applications: item.count,
     value: item.value / 1000,
@@ -212,7 +223,7 @@ export default function GrantsWorkspace() {
       title: newGrantDraft.title.trim(),
       programme: newGrantDraft.programme.trim(),
       funder: newGrantDraft.funder.trim() || newGrantDraft.programme.trim(),
-      region: newGrantDraft.region.trim() || "EU",
+      region: newGrantDraft.region.trim() || (isOnwardAir ? "US" : "EU"),
     };
 
     setGrants((current) => [grant, ...current]);
@@ -225,7 +236,7 @@ export default function GrantsWorkspace() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-2xl text-sm text-white/50">
           Track funding programmes, application pipeline, approval rates, and disbursement status
-          across EU, national, and regional schemes.
+          across US federal and agency schemes (USD).
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -277,7 +288,7 @@ export default function GrantsWorkspace() {
 
       {visibleSections.kpis && (
       <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
-        {GRANTS_KPIS.map((kpi) => (
+        {grantsKpis.map((kpi) => (
           <KpiCard key={kpi.id} kpi={kpi} />
         ))}
       </div>
@@ -288,7 +299,9 @@ export default function GrantsWorkspace() {
         {visibleSections.pipelineChart && (
         <div className={panelClassName()}>
           <h3 className="text-sm font-semibold text-white">Pipeline by status</h3>
-          <p className="mt-1 text-xs text-white/45">Application count and value (€k) by stage</p>
+          <p className="mt-1 text-xs text-white/45">
+            Application count and value ({amountUnit}) by stage
+          </p>
           <div className="mt-4 h-52 min-h-[13rem] sm:h-64">
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={pipelineChartData} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
@@ -311,7 +324,12 @@ export default function GrantsWorkspace() {
                 <Tooltip content={<ChartTooltip />} />
                 <Legend wrapperStyle={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }} />
                 <Bar dataKey="applications" name="Applications" fill="#38bdf8" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="value" name="Value (€k)" fill="#34d399" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="value"
+                  name={`Value (${amountUnit})`}
+                  fill="#34d399"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -355,7 +373,7 @@ export default function GrantsWorkspace() {
         <p className="mt-1 text-xs text-white/45">Monthly grant activity — last 6 months</p>
         <div className="mt-4 h-48 min-h-[12rem] sm:h-56">
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <LineChart data={GRANTS_MONTHLY_SUBMISSIONS} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+            <LineChart data={monthlySubmissions} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
               <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
               <XAxis
                 dataKey="month"
@@ -483,12 +501,12 @@ export default function GrantsWorkspace() {
                   onChange={(event) =>
                     setNewGrantDraft((current) => ({ ...current, programme: event.target.value }))
                   }
-                  placeholder="Horizon Europe"
+                  placeholder={isOnwardAir ? "SBIR Phase I" : "Horizon Europe"}
                   className={inputClassName()}
                 />
               </div>
               <div>
-                <FieldLabel>Amount (EUR)</FieldLabel>
+                <FieldLabel>{amountLabel}</FieldLabel>
                 <input
                   type="number"
                   min={0}
@@ -509,7 +527,7 @@ export default function GrantsWorkspace() {
                   onChange={(event) =>
                     setNewGrantDraft((current) => ({ ...current, region: event.target.value }))
                   }
-                  placeholder="EU, Spain, UK…"
+                  placeholder={isOnwardAir ? "US, DoD, NASA…" : "EU, Spain, UK…"}
                   className={inputClassName()}
                 />
               </div>

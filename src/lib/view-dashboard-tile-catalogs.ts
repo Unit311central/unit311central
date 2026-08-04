@@ -6,10 +6,12 @@ import {
 import { formatMoney, withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { inferExpenseCategory, type FinancialExpense } from "@/lib/expenses-data";
 
-function crmReportingCurrency(): "AUD" | "GBP" {
+function crmReportingCurrency(): "AUD" | "GBP" | "USD" {
   try {
+    if (typeof window !== "undefined" && isBrowserOnwardAirSurface()) return "USD";
     if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) return "AUD";
   } catch {
     // SSR / non-browser — keep platform default

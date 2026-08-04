@@ -109,15 +109,30 @@ export default function CrmWorkspace({
 
       const nextLeads = data.leads ?? [];
       const deepLinkLeadId = searchParams.get("leadId");
-      setLeads(nextLeads);
+      let resolved = nextLeads;
+      if (typeof window !== "undefined") {
+        try {
+          const { isOnwardAirBusinessCentralFixtures, getOaPipelineLeads } =
+            require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+          if (isOnwardAirBusinessCentralFixtures()) {
+            resolved = getOaPipelineLeads();
+            if (statusFilter !== "All") {
+              resolved = resolved.filter((lead) => lead.status === statusFilter);
+            }
+          }
+        } catch {
+          /* keep API leads */
+        }
+      }
+      setLeads(resolved);
       setSelectedLeadId((current) => {
-        if (deepLinkLeadId && nextLeads.some((lead) => lead.id === deepLinkLeadId)) {
+        if (deepLinkLeadId && resolved.some((lead) => lead.id === deepLinkLeadId)) {
           return deepLinkLeadId;
         }
-        if (current && nextLeads.some((lead) => lead.id === current)) return current;
-        return nextLeads[0]?.id ?? null;
+        if (current && resolved.some((lead) => lead.id === current)) return current;
+        return resolved[0]?.id ?? null;
       });
-      if (deepLinkLeadId && nextLeads.some((lead) => lead.id === deepLinkLeadId)) {
+      if (deepLinkLeadId && resolved.some((lead) => lead.id === deepLinkLeadId)) {
         openDetail();
       }
     } catch (loadError) {

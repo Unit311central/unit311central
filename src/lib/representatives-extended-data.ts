@@ -54,6 +54,13 @@ export const ABHI_REP_COMMISSIONS: RepCommissionRow[] = [
 function activeRepCommissions(): RepCommissionRow[] {
   if (typeof window !== "undefined") {
     try {
+      const { isOnwardAirBusinessCentralFixtures, getOaPartnerCommissions } =
+        require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+      if (isOnwardAirBusinessCentralFixtures()) return getOaPartnerCommissions();
+    } catch {
+      // Fall through.
+    }
+    try {
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) return ABHI_REP_COMMISSIONS;

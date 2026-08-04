@@ -67,6 +67,17 @@ export default function MeetingsWorkspace() {
       const data = await readApiJson<{ meetings?: MeetingRow[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load meetings");
       let next = data.meetings ?? [];
+      if (typeof window !== "undefined") {
+        try {
+          const { isOnwardAirBusinessCentralFixtures, getOaDiscoveryMeetings } =
+            require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+          if (isOnwardAirBusinessCentralFixtures()) {
+            next = getOaDiscoveryMeetings() as MeetingRow[];
+          }
+        } catch {
+          /* keep API */
+        }
+      }
       if (
         next.length === 0 &&
         typeof window !== "undefined" &&

@@ -181,7 +181,19 @@ export default function ConnectionsWorkspace({ onBackToCrm }: ConnectionsWorkspa
         throw new Error(data.error ?? "Failed to load connections");
       }
 
-      const resolved = data.connections ?? createInitialConnections();
+      const resolved =
+        typeof window !== "undefined"
+          ? (() => {
+              try {
+                const { isOnwardAirBusinessCentralFixtures, getOaConnections } =
+                  require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+                if (isOnwardAirBusinessCentralFixtures()) return getOaConnections();
+              } catch {
+                /* fall through */
+              }
+              return data.connections ?? createInitialConnections();
+            })()
+          : (data.connections ?? createInitialConnections());
       setConnections(resolved);
       setUseLocalFallback(data.source === "local");
       setError(null);

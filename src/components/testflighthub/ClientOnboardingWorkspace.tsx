@@ -132,6 +132,17 @@ export default function ClientOnboardingWorkspace() {
         throw new Error(data.error ?? "Failed to load onboarding records.");
       }
       let next = data.records ?? [];
+      if (typeof window !== "undefined") {
+        try {
+          const { isOnwardAirBusinessCentralFixtures, getOaOnboardingRecords } =
+            require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
+          if (isOnwardAirBusinessCentralFixtures()) {
+            next = getOaOnboardingRecords();
+          }
+        } catch {
+          /* keep API */
+        }
+      }
       if (
         next.length === 0 &&
         typeof window !== "undefined" &&

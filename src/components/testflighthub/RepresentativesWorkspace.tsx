@@ -20,6 +20,7 @@ import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/Re
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import PartnerJobsPanel from "@/components/testflighthub/PartnerJobsPanel";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   ABHI_REPRESENTATIVES_DASHBOARD_TILES,
   DEFAULT_REPRESENTATIVES_TILE_LAYOUT,
@@ -56,12 +57,19 @@ function inputClassName() {
   return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50";
 }
 
-function formatCommissionAmount(amount: number, currency: "GBP" | "EUR") {
-  return new Intl.NumberFormat("en-GB", {
+function formatCommissionAmount(amount: number, currency: "GBP" | "EUR" | "USD") {
+  const locale = currency === "USD" ? "en-US" : "en-GB";
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function commissionCurrencySymbol(currency: "GBP" | "EUR" | "USD") {
+  if (currency === "USD") return "$";
+  if (currency === "GBP") return "£";
+  return "€";
 }
 
 export default function RepresentativesWorkspace({
@@ -72,7 +80,13 @@ export default function RepresentativesWorkspace({
 }: RepresentativesWorkspaceProps) {
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
   const isAbhi = isBrowserAbhiSurface();
-  const commissionCurrency: "GBP" | "EUR" = isAbhi ? "GBP" : "EUR";
+  const isOnwardAir = isBrowserOnwardAirSurface();
+  const commissionCurrency: "GBP" | "EUR" | "USD" = isOnwardAir
+    ? "USD"
+    : isAbhi
+      ? "GBP"
+      : "EUR";
+  const currencySymbol = commissionCurrencySymbol(commissionCurrency);
   const dashboardTiles = isAbhi ? ABHI_REPRESENTATIVES_DASHBOARD_TILES : REPRESENTATIVES_DASHBOARD_TILES;
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [customTerritories, setCustomTerritories] = useState<Record<string, string[]>>({});
@@ -80,6 +94,8 @@ export default function RepresentativesWorkspace({
   const [livePartnerNotes, setLivePartnerNotes] = useState<string[]>([]);
 
   useEffect(() => {
+    // OnwardAir uses static OA partner fixtures — do not merge /api/partners/list.
+    if (isOnwardAir) return;
     let cancelled = false;
     void fetch("/api/partners/list", { cache: "no-store" })
       .then((res) => res.json())
@@ -148,7 +164,7 @@ export default function RepresentativesWorkspace({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once from live Partners signup
-  }, []);
+  }, [isOnwardAir]);
 
   const selectedRepresentative = useMemo(
     () =>
@@ -671,7 +687,9 @@ export default function RepresentativesWorkspace({
                           tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
                           axisLine={false}
                           tickLine={false}
-                          tickFormatter={(value) => `€${Math.round(Number(value) / 1000)}k`}
+                          tickFormatter={(value) =>
+                            `${currencySymbol}${Math.round(Number(value) / 1000)}k`
+                          }
                         />
                         <Tooltip
                           contentStyle={{
