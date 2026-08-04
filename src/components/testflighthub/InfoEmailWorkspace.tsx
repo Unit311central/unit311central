@@ -69,7 +69,7 @@ const DEFAULT_MAILBOXES: EmailAccountOption[] = [
   { id: "demo", email: "demo@unit311central.com", name: "Demo", configured: false },
 ];
 
-const TALANTON_MAILBOXES: EmailAccountOption[] = [
+const DEMO_ONLY_MAILBOXES: EmailAccountOption[] = [
   { id: "demo", email: "demo@unit311central.com", name: "Demo", configured: false },
 ];
 
@@ -87,7 +87,14 @@ function defaultMailboxesForHost(): EmailAccountOption[] {
   try {
     const { isBrowserTalantonImpactSurface } =
       require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
-    if (isBrowserTalantonImpactSurface()) return TALANTON_MAILBOXES;
+    if (isBrowserTalantonImpactSurface()) return DEMO_ONLY_MAILBOXES;
+  } catch {
+    /* fall through */
+  }
+  try {
+    const { isBrowserOnwardAirSurface } =
+      require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+    if (isBrowserOnwardAirSurface()) return DEMO_ONLY_MAILBOXES;
   } catch {
     /* fall through */
   }

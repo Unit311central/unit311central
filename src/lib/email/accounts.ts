@@ -2,6 +2,7 @@ import type { EmailAccount, EmailAccountId, EmailMailboxFolder } from "@/lib/ema
 import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 
 import { resolveAccountCredentials } from "@/lib/email/credentials-service";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { isPlatformWorkspaceSlug } from "@/lib/workspace-brand";
 
@@ -37,8 +38,8 @@ const ACCOUNT_DEFINITIONS: readonly EmailAccount[] = [
 
 const ALL_ACCOUNT_IDS: readonly EmailAccountId[] = ["info", "paul", "admin", "demo"];
 
-/** Talanton Email shows only the shared demo mailbox (not full platform inboxes). */
-const TALANTON_EMAIL_ACCOUNT_IDS: readonly EmailAccountId[] = ["demo"];
+/** Talanton / OnwardAir Email show only the shared demo mailbox (not full platform inboxes). */
+const DEMO_ONLY_EMAIL_ACCOUNT_IDS: readonly EmailAccountId[] = ["demo"];
 
 export function listEmailAccountIds(): readonly EmailAccountId[] {
   return ALL_ACCOUNT_IDS;
@@ -59,7 +60,7 @@ export function getPublicEmailAccounts(options?: {
   workspaceSlug?: string | null;
 }): EmailAccount[] {
   // Platform Zoho mailboxes (info@ / paul@ / admin@ / demo@unit311central.com)
-  // are Internal/Demo by default. Talanton is allowed the demo mailbox only.
+  // are Internal/Demo by default. Talanton + OnwardAir are allowed the demo mailbox only.
   void options?.demo;
   const slug = String(options?.workspaceSlug ?? "")
     .trim()
@@ -67,8 +68,8 @@ export function getPublicEmailAccounts(options?: {
   if (isPlatformWorkspaceSlug(slug)) {
     return accountsForIds(ALL_ACCOUNT_IDS);
   }
-  if (isTalantonImpactSlug(slug)) {
-    return accountsForIds(TALANTON_EMAIL_ACCOUNT_IDS);
+  if (isTalantonImpactSlug(slug) || isOnwardAirSlug(slug)) {
+    return accountsForIds(DEMO_ONLY_EMAIL_ACCOUNT_IDS);
   }
   return [];
 }
