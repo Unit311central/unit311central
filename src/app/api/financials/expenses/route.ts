@@ -19,10 +19,10 @@ export async function GET() {
     const workspace = await requireCurrentWorkspace();
     const { isOnwardAirSlug } = await import("@/lib/onwardair-surface");
     if (isOnwardAirSlug(workspace.slug)) {
-      const { ensureOnwardAirFinancialsSeeded } = await import(
+      const { ensureOnwardAirExpensesReady } = await import(
         "@/lib/onwardair/financials-seed"
       );
-      await ensureOnwardAirFinancialsSeeded(workspace.id);
+      await ensureOnwardAirExpensesReady(workspace.id);
     }
     const expenses = await listExpenses({ workspaceId: workspace.id });
     return NextResponse.json({ expenses });

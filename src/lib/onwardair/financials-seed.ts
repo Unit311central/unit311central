@@ -731,3 +731,30 @@ export async function ensureOnwardAirFinancialsSeeded(workspaceId: string): Prom
 export function kickOnwardAirFinancialsDetails(workspaceId: string): void {
   void ensureOnwardAirFinancialsSeeded(workspaceId);
 }
+
+const expensesReadyCache = new Set<string>();
+
+/**
+ * Fast path for Expenses API — if staff expense rows already exist, return
+ * immediately. Only runs the full seed when the workspace has never been planted.
+ */
+export async function ensureOnwardAirExpensesReady(workspaceId: string): Promise<void> {
+  if (expensesReadyCache.has(workspaceId)) return;
+
+  try {
+    const supabase = adminClient();
+    const { count } = await supabase
+      .from("financial_expenses")
+      .select("id", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .like("reference", "OA-EXP-%");
+    if ((count ?? 0) > 0) {
+      expensesReadyCache.add(workspaceId);
+      return;
+    }
+  } catch {
+    /* fall through to full seed */
+  }
+  await ensureOnwardAirFinancialsSeeded(workspaceId);
+  expensesReadyCache.add(workspaceId);
+}

@@ -34,7 +34,7 @@ export async function listExpenses(
   scope?: ExpensesWorkspaceScope,
 ): Promise<FinancialExpense[]> {
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
-  await ensureFinancialExpensesTable();
+  // Table ensure is memoized; withFinancialExpensesTable retries if missing.
   return withFinancialExpensesTable(async () => {
     const supabase = requireExpensesSupabase();
     const { data, error } = await supabase

@@ -1540,36 +1540,38 @@ export async function withInternalProjectTasksTable<T>(operation: () => Promise<
 }
 
 export async function ensureFinancialExpensesTable(): Promise<boolean> {
-  const exists = await tableExistsViaManagementApi("financial_expenses");
-  if (exists === true) {
-    return true;
-  }
+  return onceEnsured("table:financial_expenses", async () => {
+    const exists = await tableExistsViaManagementApi("financial_expenses");
+    if (exists === true) {
+      return true;
+    }
 
-  const dbUrl = getDatabaseUrl();
-  if (dbUrl) {
-    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    const dbUrl = getDatabaseUrl();
+    if (dbUrl) {
+      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
 
-    try {
-      await client.connect();
-      if (await tableExists(client, "financial_expenses")) {
+      try {
+        await client.connect();
+        if (await tableExists(client, "financial_expenses")) {
+          await reloadPostgrestSchema();
+          return true;
+        }
+        await applyMigration(client, FINANCIAL_EXPENSES_MIGRATION_PATH);
         await reloadPostgrestSchema();
         return true;
+      } finally {
+        await client.end().catch(() => undefined);
       }
-      await applyMigration(client, FINANCIAL_EXPENSES_MIGRATION_PATH);
-      await reloadPostgrestSchema();
-      return true;
-    } finally {
-      await client.end().catch(() => undefined);
     }
-  }
 
-  if (exists === false) {
-    const applied = await applyMigrationViaManagementApi(FINANCIAL_EXPENSES_MIGRATION_PATH);
-    if (applied) await reloadPostgrestSchema();
-    return applied;
-  }
+    if (exists === false) {
+      const applied = await applyMigrationViaManagementApi(FINANCIAL_EXPENSES_MIGRATION_PATH);
+      if (applied) await reloadPostgrestSchema();
+      return applied;
+    }
 
-  return false;
+    return false;
+  });
 }
 
 export async function withFinancialExpensesTable<T>(operation: () => Promise<T>): Promise<T> {
