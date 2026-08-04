@@ -829,12 +829,52 @@ const ABHI_BOARD_NAV_SECTION: InternalNavSection = {
   ],
 };
 
+/**
+ * Unique OnwardAir LHS accents — every module from EA downward must differ.
+ * Home stays ONWARDAIR_HOME_ACCENT (#267B90 / RGB 38,123,144).
+ */
+const ONWARDAIR_SECTION_ACCENTS: Readonly<Record<string, string>> = {
+  "Business Central": "#2563EB",
+  "OnwardAir Intelligence": "#A855F7",
+  Financials: "#15803D",
+  Fundraising: "#D97706",
+  Board: "#0284C7",
+  "Corporate Information": "#B45309",
+  Operations: "#0D9488",
+  "Technology Management": "#64748B",
+  "Human Resources": "#DB2777",
+  "Business Productivity": "#06B6D4",
+  "Project Management": "#1D4ED8",
+  Engineering: "#EA580C",
+  Training: "#CA8A04",
+  QMS: "#65A30D",
+  "Marketing & Events": "#E11D48",
+};
+
+const ONWARDAIR_EA_ACCENT = "#12B886";
+
+function applyOnwardAirSectionColors(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  return sections.map((section) => {
+    if (section.kind === "pin") {
+      const isHome = section.items.some((item) => item.view === "home");
+      const isEa = section.items.some((item) => item.view === "executive-assistant");
+      if (isHome) return { ...section, color: ONWARDAIR_HOME_ACCENT };
+      if (isEa) return { ...section, color: ONWARDAIR_EA_ACCENT };
+      return section;
+    }
+    const accent = section.label ? ONWARDAIR_SECTION_ACCENTS[section.label] : undefined;
+    return accent ? { ...section, color: accent } : section;
+  });
+}
+
 /** OnwardAir BOARD — same capability surface as ABHI, isolated tenant data. */
 const ONWARDAIR_BOARD_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Board",
   icon: "ShieldCheck",
-  color: "#0EA5E9",
+  color: ONWARDAIR_SECTION_ACCENTS.Board,
   items: [
     { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" as const },
     { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" as const },
@@ -849,7 +889,7 @@ const ONWARDAIR_FUNDRAISING_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Fundraising",
   icon: "Landmark",
-  color: "#F59E0B",
+  color: ONWARDAIR_SECTION_ACCENTS.Fundraising,
   items: [
     { label: "Dashboard", icon: "LayoutDashboard", view: "fundraising-dashboard" as const },
     {
@@ -869,7 +909,7 @@ const ONWARDAIR_ENGINEERING_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Engineering",
   icon: "Cpu",
-  color: "#38BDF8",
+  color: ONWARDAIR_SECTION_ACCENTS.Engineering,
   items: [
     {
       label: "Engineering Overview",
@@ -958,7 +998,7 @@ const ONWARDAIR_INTELLIGENCE_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "OnwardAir Intelligence",
   icon: "Sparkles",
-  color: "#6366F1",
+  color: ONWARDAIR_SECTION_ACCENTS["OnwardAir Intelligence"],
   items: [
     {
       label: "Competitor Intelligence",
@@ -973,7 +1013,7 @@ const ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Project Management",
   icon: "FolderKanban",
-  color: "#2F80ED",
+  color: ONWARDAIR_SECTION_ACCENTS["Project Management"],
   items: [
     { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" as const },
     { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
@@ -987,7 +1027,7 @@ const ONWARDAIR_MARKETING_EVENTS_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Marketing & Events",
   icon: "Share2",
-  color: "#E11D48",
+  color: ONWARDAIR_SECTION_ACCENTS["Marketing & Events"],
   items: [
     { label: "Dashboard", icon: "LayoutDashboard", view: "oa-marketing-dashboard" as const },
     { label: "Social", icon: "Share2", view: "social" as const },
@@ -1170,7 +1210,8 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
   }
 
   // Single Operations section only — do not append a second OnwardAir Operations overlay.
-  return out.filter((section) => section.items.length > 0);
+  // Remap every module accent so LHS icons / stripes are unique (no shared blues/golds).
+  return applyOnwardAirSectionColors(out).filter((section) => section.items.length > 0);
 }
 
 function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
