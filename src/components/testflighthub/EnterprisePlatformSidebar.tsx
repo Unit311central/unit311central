@@ -568,8 +568,9 @@ export default function EnterprisePlatformSidebar({
     () =>
       filterInternalNavSectionsForDemoSurface(
         filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
+        // Host overlays (OA / ABHI / Talanton) only after mount — matches SSR HTML.
+        { allowHostSurfaces: hydrated },
       ),
-    // Recompute after mount so host-gated surfaces (ABHI / OnwardAir / Talanton) apply.
     [allowedViews, hydrated],
   );
 

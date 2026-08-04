@@ -71,6 +71,23 @@ export default function ExecutiveHomeDashboard() {
     void load();
   }, [load]);
 
+  // OnwardAir: ensure weekly competitor brief outside of render (avoids store emit mid-useMemo).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const { isBrowserOnwardAirSurface } = require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (!isBrowserOnwardAirSurface()) return;
+      const feed = require("@/lib/onwardair/competitor-intelligence-feed-store") as typeof import("@/lib/onwardair/competitor-intelligence-feed-store");
+      const result = feed.ensureWeeklyCompetitorIntelligenceRefresh();
+      if (result.created) {
+        // Re-merge live narrative after feed write so Home alerts update without a full reload.
+        setBundle((current) => (current ? { ...current } : current));
+      }
+    } catch {
+      /* optional */
+    }
+  }, []);
+
   const config = useMemo(() => {
     const base = !bundle
       ? executiveHomeDashboardConfig

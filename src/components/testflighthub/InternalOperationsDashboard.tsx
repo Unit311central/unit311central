@@ -779,7 +779,9 @@ export default function InternalOperationsDashboard({
           {activeView !== "home" && <NavImplementationNotice view={activeView} />}
           {isWarm("home") && (
             <WorkspacePane view="home" activeView={activeView} keepMounted={isWarm("home")}>
-              <ExecutiveHomeDashboard />
+              <WorkspaceErrorBoundary title="Home">
+                <ExecutiveHomeDashboard />
+              </WorkspaceErrorBoundary>
             </WorkspacePane>
           )}
 
@@ -808,7 +810,9 @@ export default function InternalOperationsDashboard({
 
           {isWarm("clients-dashboard") && (
             <WorkspacePane view="clients-dashboard" activeView={activeView} keepMounted={isWarm("clients-dashboard")}>
-              <ClientsDashboardWorkspace onClientsChange={setClients} />
+              <WorkspaceErrorBoundary title="Clients Dashboard">
+                <ClientsDashboardWorkspace onClientsChange={setClients} />
+              </WorkspaceErrorBoundary>
             </WorkspacePane>
           )}
 

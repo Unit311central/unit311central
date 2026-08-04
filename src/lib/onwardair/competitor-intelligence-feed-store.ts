@@ -217,14 +217,16 @@ function seedHistoricalFeed(): CompetitorIntelItem[] {
   );
 }
 
+const EMPTY_SERVER_SNAPSHOT: CompetitorIntelFeedState = {
+  items: [],
+  lastEnsuredWeekKey: null,
+  lastEnsuredAt: null,
+  updatedAt: "1970-01-01T00:00:00.000Z",
+};
+
 function loadState(): CompetitorIntelFeedState {
   if (typeof window === "undefined") {
-    return {
-      items: [],
-      lastEnsuredWeekKey: null,
-      lastEnsuredAt: null,
-      updatedAt: new Date().toISOString(),
-    };
+    return EMPTY_SERVER_SNAPSHOT;
   }
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -270,6 +272,11 @@ function setState(next: Omit<CompetitorIntelFeedState, "updatedAt"> | Competitor
 
 export function getCompetitorIntelFeedSnapshot(): CompetitorIntelFeedState {
   return getState();
+}
+
+/** Stable server snapshot for useSyncExternalStore (avoids React #185). */
+export function getCompetitorIntelFeedServerSnapshot(): CompetitorIntelFeedState {
+  return EMPTY_SERVER_SNAPSHOT;
 }
 
 export function listCompetitorIntelFeed(): CompetitorIntelItem[] {
@@ -320,11 +327,14 @@ export function ensureWeeklyCompetitorIntelligenceRefresh(options?: {
 
   if (already && !options?.force) {
     if (snap.lastEnsuredWeekKey !== weekKey) {
-      setState({
+      // Update metadata without notify loops during render paths.
+      state = {
         ...snap,
         lastEnsuredWeekKey: weekKey,
         lastEnsuredAt: new Date().toISOString(),
-      });
+        updatedAt: new Date().toISOString(),
+      };
+      persist(state);
     }
     return { created: false, weekKey, newItems: [] };
   }

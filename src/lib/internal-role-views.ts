@@ -1226,22 +1226,27 @@ function stripCustomerPlatformNav(
 
 export function filterInternalNavSectionsForDemoSurface(
   sections: readonly InternalNavSection[],
+  options?: { allowHostSurfaces?: boolean },
 ): InternalNavSection[] {
+  // Host detectors read `window`. Keep them off until the sidebar has hydrated so
+  // SSR HTML and the first client paint match (avoids React hydration crashes).
+  const allowHostSurfaces = options?.allowHostSurfaces !== false;
+
   // Talanton customer host: strip QMS/Website, restore Training, prepend Portfolio Companies.
-  if (isTalantonNavSurface()) {
+  if (allowHostSurfaces && isTalantonNavSurface()) {
     return appendTalantonNavSections(
       filterTalantonBaseNav(stripMemberIntelligenceNavForNonAbhi(sections)),
     );
   }
 
   // ABHI: keep Member Intelligence under Members; inject Marketing & Events.
-  if (isAbhiNavSurface()) {
+  if (allowHostSurfaces && isAbhiNavSurface()) {
     return insertAbhiMarketingSection(sections);
   }
 
   // OnwardAir: BOARD + Engineering/Operations placeholders (clean tenant, no ABHI data).
   // Still strip platform-only modules (Unit311 Details / Module Go-Live).
-  if (isOnwardAirNavSurface()) {
+  if (allowHostSurfaces && isOnwardAirNavSurface()) {
     return insertOnwardAirNavSections(
       stripCustomerPlatformNav(stripMemberIntelligenceNavForNonAbhi(sections)),
     );
@@ -1252,7 +1257,7 @@ export function filterInternalNavSectionsForDemoSurface(
     // Platform-only modules (Unit311 Details / Module Go-Live) stay on Internal/Demo.
     // SSR and customer hosts default to stripped nav so tenants never flash platform chrome.
     let isPlatformHost = false;
-    if (typeof window !== "undefined") {
+    if (allowHostSurfaces && typeof window !== "undefined") {
       try {
         const { resolveRuntimeSurface } =
           require("@/lib/runtime-surface") as typeof import("@/lib/runtime-surface");
@@ -1268,9 +1273,10 @@ export function filterInternalNavSectionsForDemoSurface(
     return injectInternalPlatformAnalytics(base);
   }
 
-  const hideViews = isCorpCentreNavSurface() ? CORPCENTRE_HIDDEN_VIEWS : DEMO_HIDDEN_VIEWS;
-  const hideUnit311Details = isCorpCentreNavSurface();
-  const corpcentre = isCorpCentreNavSurface();
+  const hideViews =
+    allowHostSurfaces && isCorpCentreNavSurface() ? CORPCENTRE_HIDDEN_VIEWS : DEMO_HIDDEN_VIEWS;
+  const hideUnit311Details = allowHostSurfaces && isCorpCentreNavSurface();
+  const corpcentre = allowHostSurfaces && isCorpCentreNavSurface();
 
   const filtered = stripMemberIntelligenceNavForNonAbhi(sections)
     .map((section) => {

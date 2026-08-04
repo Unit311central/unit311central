@@ -1013,7 +1013,8 @@ export function buildExecutiveHomeLiveNarrative(input: {
     });
   }
 
-  // OnwardAir: live Competitor Intelligence weekly feed → Business Alerts.
+  // OnwardAir: Competitor Intelligence feed → Business Alerts (read-only here).
+  // Weekly refresh must run in a client effect — never during render / useMemo.
   try {
     if (typeof window !== "undefined") {
       const { isBrowserOnwardAirSurface } =
@@ -1021,7 +1022,6 @@ export function buildExecutiveHomeLiveNarrative(input: {
       if (isBrowserOnwardAirSurface()) {
         const feed =
           require("@/lib/onwardair/competitor-intelligence-feed-store") as typeof import("@/lib/onwardair/competitor-intelligence-feed-store");
-        feed.ensureWeeklyCompetitorIntelligenceRefresh();
         const ciAlerts = feed.listCompetitorIntelHomeAlerts().slice(0, 3);
         for (const item of ciAlerts) {
           alerts.push({
