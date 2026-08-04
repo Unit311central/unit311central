@@ -10,7 +10,7 @@ import {
 import { getSupportTicket, updateSupportTicket } from "@/lib/support-tickets-service";
 import { withSupportTicketsTable } from "@/lib/internal-db-migrations";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
-import { resolveWorkspaceBinding } from "@/lib/workspace-context";
+import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +22,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const workspace = await resolveWorkspaceBinding({ fallbackInternal: true });
-    if (!workspace) {
-      return NextResponse.json({ error: "Workspace context is required." }, { status: 401 });
-    }
+    const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
 
     const body = (await request.json()) as {

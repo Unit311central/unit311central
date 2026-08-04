@@ -21,8 +21,14 @@ import {
 
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserDemoSurface, getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
+import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import { getInternalNavHref, type InternalOperationsView } from "@/lib/internal-operations-data";
+import { buildOaProductivitySnapshot } from "@/lib/onwardair/productivity-fake-data";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import type { SupportTicket } from "@/lib/support-data";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type ProductivitySnapshot = {
   summary: {
@@ -35,6 +41,7 @@ type ProductivitySnapshot = {
   schedule: Array<{ time: string; title: string; meta: string }>;
   messages: Array<{ channel: string; text: string; time: string }>;
   files: Array<{ name: string; action: string; by: string; time: string }>;
+  communications?: Array<{ title: string; meta: string; time: string }>;
   support: {
     open: number;
     waiting: number;
@@ -143,7 +150,15 @@ const INTERNAL_SNAPSHOT: ProductivitySnapshot = {
   ],
 };
 
-function resolveProductivitySnapshot(): ProductivitySnapshot {
+function resolveProductivitySnapshot(displayName?: string | null): ProductivitySnapshot {
+  if (typeof window !== "undefined" && isBrowserOnwardAirSurface()) {
+    const oa = buildOaProductivitySnapshot(displayName);
+    return {
+      ...oa,
+      social: [],
+      approvals: [],
+    };
+  }
   if (typeof window !== "undefined" && isBrowserAbhiSurface()) {
     return ABHI_SNAPSHOT;
   }
@@ -448,19 +463,46 @@ function AbhiProductivityDashboard({
 }
 
 export default function ProductivityDashboardWorkspace() {
+  const router = useRouter();
+  const basePath = useInternalOperationsBasePath();
   const isAbhi = isBrowserAbhiSurface();
+  const isOa = isBrowserOnwardAirSurface();
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const snapshot = resolveProductivitySnapshot(displayName);
   const {
     summary: SUMMARY,
     emails: EMAILS,
     schedule: TODAY_SCHEDULE,
     messages: MESSAGES,
     files: FILES,
+    communications: COMMUNICATIONS = [],
     support: SUPPORT_FIXTURE,
     social: SOCIAL,
     approvals: APPROVALS,
-  } = resolveProductivitySnapshot();
+  } = snapshot;
 
   const [SUPPORT, setSupport] = useState(SUPPORT_FIXTURE);
+
+  useEffect(() => {
+    if (!isOa) return;
+    let cancelled = false;
+    void fetch("/api/auth/whoami", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as {
+          displayName?: string;
+          username?: string;
+        };
+      })
+      .then((data) => {
+        if (cancelled || !data) return;
+        setDisplayName(data.displayName || data.username || "Admin");
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isOa]);
 
   useEffect(() => {
     if (isAbhi) return;
@@ -504,6 +546,8 @@ export default function ProductivityDashboardWorkspace() {
     };
   }, [isAbhi]);
 
+  const href = (view: InternalOperationsView) => getInternalNavHref(view, basePath);
+
   if (isAbhi) {
     return (
       <AbhiProductivityDashboard
@@ -514,6 +558,233 @@ export default function ProductivityDashboardWorkspace() {
         social={SOCIAL}
         approvals={APPROVALS}
       />
+    );
+  }
+
+  if (isOa) {
+    const tiles: Array<{
+      label: string;
+      hint: string;
+      view: InternalOperationsView;
+      icon: typeof FolderOpen;
+      value: string;
+    }> = [
+      {
+        label: "Major file updates",
+        hint: FILES[0]?.name ?? "Internal Files",
+        view: "files-internal",
+        icon: FolderOpen,
+        value: String(FILES.length),
+      },
+      {
+        label: "Email",
+        hint: `${EMAILS.filter((e) => e.unread).length} unread`,
+        view: "info-email",
+        icon: Mail,
+        value: String(EMAILS.length),
+      },
+      {
+        label: "Calendar",
+        hint: SUMMARY.nextUp,
+        view: "calendar",
+        icon: CalendarDays,
+        value: String(TODAY_SCHEDULE.length),
+      },
+      {
+        label: "Messaging",
+        hint: MESSAGES[0]?.channel ?? "Channels",
+        view: "messaging",
+        icon: MessageSquare,
+        value: String(MESSAGES.length),
+      },
+      {
+        label: "Communications",
+        hint: COMMUNICATIONS[0]?.title ?? "Briefings",
+        view: "communications",
+        icon: Video,
+        value: String(COMMUNICATIONS.length || 3),
+      },
+      {
+        label: "Support Desk",
+        hint: `${SUPPORT.open} open · ${SUPPORT.critical} critical`,
+        view: "support",
+        icon: LifeBuoy,
+        value: String(SUPPORT.open),
+      },
+    ];
+
+    return (
+      <div className="mx-auto max-w-6xl space-y-4 pb-4">
+        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+            OnwardAir · Business Productivity
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
+            {displayName ? `${displayName.split(" ")[0]}'s dashboard` : "Your dashboard"}
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/55">{SUMMARY.headline}</p>
+          <p className="mt-3 flex items-center gap-1.5 text-[12px] text-emerald-200/80">
+            <Clock3 className="h-3.5 w-3.5" strokeWidth={1.6} />
+            Next up: {SUMMARY.nextUp}
+          </p>
+        </section>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {tiles.map((tile) => {
+            const Icon = tile.icon;
+            return (
+              <Link
+                key={tile.label}
+                href={href(tile.view)}
+                className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 transition-colors hover:border-sky-400/35 hover:bg-sky-500/[0.07]"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                    {tile.label}
+                  </p>
+                  <Icon className="h-4 w-4 text-sky-300/80" aria-hidden />
+                </div>
+                <p className="mt-3 text-2xl font-semibold tabular-nums text-white">{tile.value}</p>
+                <p className="mt-1 truncate text-xs text-white/40">{tile.hint}</p>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <section className={cardClass()}>
+            <WidgetHeader icon={FolderOpen} title="Major file updates" meta="Internal" />
+            <ul className="space-y-2.5">
+              {FILES.map((row) => (
+                <li key={row.name} className="min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="truncate text-[13px] text-white/90">{row.name}</p>
+                    <span className="shrink-0 text-[11px] text-white/35">{row.time}</span>
+                  </div>
+                  <p className="truncate text-[12px] text-white/40">
+                    {row.action} · {row.by}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="mt-3 text-[11px] font-semibold text-sky-300 hover:text-sky-200"
+              onClick={() => router.push(href("files-internal"))}
+            >
+              Open Internal Files →
+            </button>
+          </section>
+
+          <section className={cardClass()}>
+            <WidgetHeader icon={Mail} title="Email" meta="Inbox" />
+            <ul className="space-y-2.5">
+              {EMAILS.map((row) => (
+                <li key={row.subject} className="min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p
+                      className={cn(
+                        "truncate text-[13px]",
+                        row.unread ? "font-medium text-white" : "text-white/70",
+                      )}
+                    >
+                      {row.from}
+                    </p>
+                    <span className="shrink-0 text-[11px] text-white/35">{row.time}</span>
+                  </div>
+                  <p className="truncate text-[12px] text-white/45">{row.subject}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className={cardClass()}>
+            <WidgetHeader icon={CalendarDays} title="Calendar" meta="Today" />
+            <ul className="space-y-2">
+              {TODAY_SCHEDULE.map((row) => (
+                <li key={row.title} className="flex gap-3">
+                  <span className="w-11 shrink-0 text-[12px] tabular-nums text-white/45">
+                    {row.time}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] text-white/90">{row.title}</p>
+                    <p className="truncate text-[11px] text-white/40">{row.meta}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className={cardClass()}>
+            <WidgetHeader icon={MessageSquare} title="Messaging" meta="Channels" />
+            <ul className="space-y-2.5">
+              {MESSAGES.map((row) => (
+                <li key={row.channel + row.text} className="min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="truncate text-[13px] font-medium text-white/85">{row.channel}</p>
+                    <span className="shrink-0 text-[11px] text-white/35">{row.time}</span>
+                  </div>
+                  <p className="truncate text-[12px] text-white/45">{row.text}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className={cardClass()}>
+            <WidgetHeader icon={Video} title="Communications" meta="Briefings" />
+            <ul className="space-y-2.5">
+              {COMMUNICATIONS.map((row) => (
+                <li key={row.title} className="min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="truncate text-[13px] text-white/90">{row.title}</p>
+                    <span className="shrink-0 text-[11px] text-white/35">{row.time}</span>
+                  </div>
+                  <p className="truncate text-[12px] text-white/40">{row.meta}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className={cardClass()}>
+            <WidgetHeader icon={LifeBuoy} title="Support Desk" />
+            <div className="mb-3 grid grid-cols-4 gap-1.5">
+              {[
+                { label: "Open", value: SUPPORT.open },
+                { label: "Waiting", value: SUPPORT.waiting },
+                { label: "Resolved", value: SUPPORT.resolvedToday },
+                { label: "Critical", value: SUPPORT.critical },
+              ].map((kpi) => (
+                <div key={kpi.label} className="rounded-md bg-white/[0.03] px-1.5 py-1.5 text-center">
+                  <p className="text-sm font-semibold tabular-nums text-white">{kpi.value}</p>
+                  <p className="text-[9px] text-white/40">{kpi.label}</p>
+                </div>
+              ))}
+            </div>
+            <ul className="space-y-2">
+              {SUPPORT.items.map((row) => (
+                <li key={row.id} className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-[12px] text-white/85">{row.title}</p>
+                    <p className="text-[11px] text-white/35">{row.id}</p>
+                  </div>
+                  <span
+                    className={cn(
+                      "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+                      row.status === "Critical"
+                        ? "bg-rose-500/15 text-rose-200"
+                        : row.status === "Waiting"
+                          ? "bg-amber-500/15 text-amber-200"
+                          : "bg-white/10 text-white/60",
+                    )}
+                  >
+                    {row.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </div>
     );
   }
 

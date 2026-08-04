@@ -24,6 +24,19 @@ import { cn } from "@/lib/utils";
 function supportFlowBrand() {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        return {
+          supportTitle: "OnwardAir Support",
+          infoTitle: "Operator Info Messages",
+          badge: "OA",
+        };
+      }
+    } catch {
+      // Fall through.
+    }
+    try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
@@ -69,8 +82,7 @@ const ASSIGNED_KEY = `${STORAGE_PREFIX}-assigned`;
 const COL3_DELAY_MS = 3000;
 const COL4_DELAY_MS = 2000;
 
-const operators = createInitialUsers();
-const defaultOperator = operators[0];
+const fallbackOperators = createInitialUsers();
 
 function loadStoredLines(key: string): ChatLine[] {
   if (typeof window === "undefined") return [];
@@ -268,6 +280,7 @@ function PanelShell({
 
 export default function WhatsAppSupportFlowPage() {
   const brand = supportFlowBrand();
+  const [operators, setOperators] = useState(fallbackOperators);
   const [lines, setLines] = useState<ChatLine[]>([]);
   const [notifyLines, setNotifyLines] = useState<ChatLine[]>([]);
   const [draft, setDraft] = useState("");
@@ -289,10 +302,28 @@ export default function WhatsAppSupportFlowPage() {
   const revealTimersRef = useRef<number[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const defaultOperator = operators[0];
   const joinedOperator = useMemo(
     () => operators.find((operator) => operator.id === joinedOperatorId),
-    [joinedOperatorId],
+    [joinedOperatorId, operators],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/messaging/operators", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as { users?: typeof fallbackOperators };
+      })
+      .then((data) => {
+        if (cancelled || !data?.users?.length) return;
+        setOperators(data.users);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const inputPlaceholder =
     intakeStep === "idle"

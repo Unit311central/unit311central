@@ -1142,7 +1142,23 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
     if (section.label === "Business Productivity") {
       out.push({
         ...section,
-        items: section.items.filter((item) => item.label !== "Social" && item.view !== "social"),
+        items: section.items
+          .filter((item) => item.label !== "Social" && item.view !== "social")
+          .map((item) => {
+            if (!item.children?.length) return item;
+            return {
+              ...item,
+              children: item.children.filter(
+                (child) =>
+                  child.view !== "files-client" &&
+                  child.label !== "Client Explorer",
+              ),
+            };
+          })
+          .filter(
+            (item) =>
+              item.view !== "files-client" && item.label !== "Client Explorer",
+          ),
       });
       // Own top-level module — peer to Business Productivity / Financials, not under Operations.
       out.push(ONWARDAIR_MARKETING_EVENTS_NAV_SECTION);

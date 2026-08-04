@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { processSupportTicketFromWhatsApp } from "@/lib/support-intake";
 import { logWhatsAppInbound } from "@/lib/whatsapp/inbound-log";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
-import { resolveWorkspaceBinding } from "@/lib/workspace-context";
+import { getCurrentWorkspace, resolveWorkspaceBinding } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
@@ -92,13 +92,33 @@ type InboundPayload = TextMeBotPayload & {
   preview?: boolean;
 };
 
+async function resolveWhatsAppWorkspace() {
+  // Prefer host/session tenancy (customer hosts like onwardair.*).
+  try {
+    const current = await getCurrentWorkspace();
+    if (current) return current;
+  } catch {
+    // Fall through for unauthenticated webhooks.
+  }
+  const envSlug = process.env.WHATSAPP_WORKSPACE_SLUG?.trim().toLowerCase();
+  if (envSlug) {
+    const bound = await resolveWorkspaceBinding({
+      workspaceSlug: envSlug,
+      fallbackInternal: false,
+    });
+    if (bound) return bound;
+  }
+  // Last resort for legacy Unit311 webhook endpoints.
+  return resolveWorkspaceBinding({ fallbackInternal: true });
+}
+
 async function handleInboundText(
   text: string,
   phone?: string | null,
   fromName?: string | null,
   suppressWhatsApp = false,
 ) {
-  const workspace = await resolveWorkspaceBinding({ fallbackInternal: true });
+  const workspace = await resolveWhatsAppWorkspace();
   if (!workspace) {
     return NextResponse.json({ error: "Workspace context is required." }, { status: 401 });
   }
@@ -206,7 +226,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (!text) {
-    const workspace = await resolveWorkspaceBinding({ fallbackInternal: true });
+    const workspace = await resolveWhatsAppWorkspace();
     await logWhatsAppInbound(
       {
         fromPhone: phone,
