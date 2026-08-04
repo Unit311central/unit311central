@@ -15,6 +15,7 @@ import {
   type CompanyDetailsValidationErrors,
   type CompanyStatus,
 } from "@/lib/company-details-data";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { cn } from "@/lib/utils";
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -118,6 +119,7 @@ function toFields(details: CompanyDetails | null): CompanyDetailsFields {
 }
 
 export default function CompanyDetailsWorkspace() {
+  const [isOnwardAir, setIsOnwardAir] = useState(false);
   const [details, setDetails] = useState<CompanyDetails | null>(null);
   const [draft, setDraft] = useState<CompanyDetailsFields>(createBlankCompanyDetailsFields());
   const [savedSnapshot, setSavedSnapshot] = useState<CompanyDetailsFields>(
@@ -131,6 +133,10 @@ export default function CompanyDetailsWorkspace() {
   const [fieldErrors, setFieldErrors] = useState<CompanyDetailsValidationErrors>({});
   const [hasRecord, setHasRecord] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    setIsOnwardAir(isBrowserOnwardAirSurface());
+  }, []);
 
   const isDirty = useMemo(
     () => !companyDetailsFieldsEqual(draft, savedSnapshot),
@@ -549,6 +555,25 @@ export default function CompanyDetailsWorkspace() {
                 <DisplayValue value={draft.sicIndustryClassification} />
               )}
             </div>
+            {isOnwardAir ? (
+              <div className="sm:col-span-2">
+                <FieldLabel htmlFor="generalCompanyDescription">Company description</FieldLabel>
+                {editing ? (
+                  <textarea
+                    id="generalCompanyDescription"
+                    rows={5}
+                    value={draft.generalCompanyDescription}
+                    onChange={(event) =>
+                      updateField("generalCompanyDescription", event.target.value)
+                    }
+                    className={inputClassName()}
+                    disabled={saving}
+                  />
+                ) : (
+                  <DisplayValue value={draft.generalCompanyDescription} multiline />
+                )}
+              </div>
+            ) : null}
           </div>
         </SectionCard>
 
@@ -657,26 +682,28 @@ export default function CompanyDetailsWorkspace() {
           </div>
         </SectionCard>
 
-        <SectionCard
-          title="Company description"
-          description="Short overview of the organisation for internal reference."
-        >
-          <FieldLabel htmlFor="generalCompanyDescription">General Company Description</FieldLabel>
-          {editing ? (
-            <textarea
-              id="generalCompanyDescription"
-              rows={8}
-              value={draft.generalCompanyDescription}
-              onChange={(event) =>
-                updateField("generalCompanyDescription", event.target.value)
-              }
-              className={inputClassName()}
-              disabled={saving}
-            />
-          ) : (
-            <DisplayValue value={draft.generalCompanyDescription} multiline />
-          )}
-        </SectionCard>
+        {!isOnwardAir ? (
+          <SectionCard
+            title="Company description"
+            description="Short overview of the organisation for internal reference."
+          >
+            <FieldLabel htmlFor="generalCompanyDescription">General Company Description</FieldLabel>
+            {editing ? (
+              <textarea
+                id="generalCompanyDescription"
+                rows={8}
+                value={draft.generalCompanyDescription}
+                onChange={(event) =>
+                  updateField("generalCompanyDescription", event.target.value)
+                }
+                className={inputClassName()}
+                disabled={saving}
+              />
+            ) : (
+              <DisplayValue value={draft.generalCompanyDescription} multiline />
+            )}
+          </SectionCard>
+        ) : null}
       </div>
     </div>
   );

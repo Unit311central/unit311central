@@ -45,8 +45,13 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 const SLUG = "onwardair";
 const COMPANY = "OnwardAir";
-const WEBSITE = "https://onwardair.unit311central.com";
+const WEBSITE = "https://onwardair.tech";
 const OWNER_EMAIL = "admin@onwardair.tech";
+const SUPPORT_EMAIL = "support@onwardair.tech";
+const REGISTERED_ADDRESS =
+  "5207 Morningside Drive\\nHouston, TX 77005\\nUnited States";
+const COMPANY_DESCRIPTION =
+  "OnwardAir is developing the Vertex VTOL™ and modular FLEX Pods™ — a patented multi-mission aviation platform designed to maximize aircraft utilization, reduce cost per mile, and unlock new logistics and operational capabilities across middle-mile and specialty missions.";
 const OWNER_PASSWORD = "Houston1999$";
 const FORBIDDEN_TARGET_SLUGS = new Set([
   "demo",
@@ -237,9 +242,9 @@ BEGIN
     primary_telephone, general_company_description, company_status, created_at, updated_at
   ) VALUES (
     gen_random_uuid(), v_target, 'OnwardAir', 'OnwardAir',
-    'United Kingdom', 'United Kingdom', 'United Kingdom',
-    '${WEBSITE}', '${OWNER_EMAIL}', '',
-    'OnwardAir workspace on Unit311 Central — clean tenant, no imported customer data.',
+    '${REGISTERED_ADDRESS}', '${REGISTERED_ADDRESS}', 'United States',
+    '${WEBSITE}', '${SUPPORT_EMAIL}', '',
+    '${COMPANY_DESCRIPTION.replace(/'/g, "''")}',
     'Active', now(), now()
   );
 END;
