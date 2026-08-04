@@ -13,7 +13,10 @@ export const ONWARDAIR_REPORTING_CURRENCY = "USD";
 
 /** Official wordmark — vector SVG (crisp at any size) + matching high-res PNG. */
 export const ONWARDAIR_LOGO_SRC = "/images/workspaces/onwardair-logo.svg";
+/** White wordmark for dark UI chrome. */
 export const ONWARDAIR_LOGO_PNG_SRC = "/images/workspaces/onwardair-logo.png";
+/** Dark navy wordmark for white print / board-pack pages. */
+export const ONWARDAIR_LOGO_DARK_PNG_SRC = "/images/workspaces/onwardair-logo-dark.png";
 export const ONWARDAIR_LOGO_INTRINSIC_WIDTH = 640;
 export const ONWARDAIR_LOGO_INTRINSIC_HEIGHT = 168;
 

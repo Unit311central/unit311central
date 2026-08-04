@@ -43,7 +43,7 @@ import {
 } from "@/lib/onwardair/board-pack-pptx";
 import { OA_BOARD_PACK_STAGES } from "@/lib/onwardair/board-pack-stages";
 import {
-  ONWARDAIR_LOGO_PNG_SRC,
+  ONWARDAIR_LOGO_DARK_PNG_SRC,
   isOnwardAirSlug,
 } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -100,7 +100,7 @@ async function loadLogoDataUrl(slug: string): Promise<string | null> {
   try {
     const relative = (
       isOnwardAirSlug(slug)
-        ? ONWARDAIR_LOGO_PNG_SRC
+        ? ONWARDAIR_LOGO_DARK_PNG_SRC
         : isTalantonImpactSlug(slug)
           ? TALANTON_LOGO_SRC
           : ABHI_LOGO_SRC
