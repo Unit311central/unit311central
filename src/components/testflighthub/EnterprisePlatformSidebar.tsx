@@ -449,7 +449,10 @@ export default function EnterprisePlatformSidebar({
         className="relative rounded-[10px] border"
         style={{
           ...(active
-            ? { background: "#1F4FBF", borderColor: "#1F4FBF" }
+            ? {
+                background: `color-mix(in srgb, ${color} 42%, #0B1524)`,
+                borderColor: `color-mix(in srgb, ${color} 55%, #243347)`,
+              }
             : cardShellStyle(theme)),
           height: WORKSPACE_HEADER_H,
           paddingLeft: CARD_PAD_X,
@@ -460,10 +463,10 @@ export default function EnterprisePlatformSidebar({
           aria-hidden
           className="pointer-events-none absolute top-1/2 left-0 -translate-y-1/2 rounded-[2px]"
           style={{
-            width: 2,
-            height: "70%",
+            width: 3,
+            height: "72%",
             background: color,
-            opacity: active ? 1 : 0.85,
+            opacity: 1,
           }}
         />
         <button
@@ -473,13 +476,15 @@ export default function EnterprisePlatformSidebar({
           onPointerEnter={() => onPrefetchView?.(item.view!)}
           onFocus={() => onPrefetchView?.(item.view!)}
           className={cn(
-            "group flex h-full w-full items-center gap-1.5 text-left text-[10.5px] font-semibold uppercase leading-none tracking-[0.08em] transition-colors duration-75",
+            "group flex h-full w-full items-center gap-1.5 text-left font-semibold uppercase leading-none tracking-[0.08em] transition-colors duration-75",
             active ? "text-white" : "text-white/88 hover:text-white",
           )}
+          style={{ fontSize: 10.5 }}
         >
           <Icon
             className={cn("h-3.5 w-3.5 shrink-0", active ? "text-white" : SUBMENU_ICON)}
             strokeWidth={1.5}
+            style={active ? undefined : { color }}
           />
           <span className="min-w-0 flex-1 truncate whitespace-nowrap">{item.label}</span>
         </button>
@@ -559,7 +564,10 @@ export default function EnterprisePlatformSidebar({
             style={{ color, opacity: 0.82 }}
             strokeWidth={1.5}
           />
-          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[10.5px] font-semibold uppercase leading-none tracking-[0.08em] text-white">
+          <span
+            className="min-w-0 flex-1 truncate whitespace-nowrap font-semibold uppercase leading-none tracking-[0.08em] text-white"
+            style={{ fontSize: 10.5 }}
+          >
             {section.label}
           </span>
           <Chevron

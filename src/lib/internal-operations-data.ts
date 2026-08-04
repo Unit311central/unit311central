@@ -630,18 +630,20 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
   {
     kind: "pin",
     label: null,
+    /** Distinct from Business Central blue — coral for Home only. */
     color: "#FF6B4A",
-    items: [{ label: "Home", icon: "LayoutDashboard", view: "home" as const }],
+    items: [{ label: "HOME", icon: "LayoutDashboard", view: "home" as const }],
   },
   ...(EXECUTIVE_ASSISTANT_VISIBLE
     ? [
         {
           kind: "pin" as const,
           label: null,
+          /** Distinct mint — not used by other modules. */
           color: "#12B886",
           items: [
             {
-              label: "Executive Assistant",
+              label: "EXECUTIVE ASSISTANT",
               icon: "Bot",
               view: "executive-assistant" as const,
             },
@@ -1345,6 +1347,10 @@ export function getInternalNavBreadcrumb(
 export function resolveInternalNavSectionAccent(
   activeView: InternalOperationsView,
 ): string | null {
+  // Pin accents are authoritative — do not inherit Business Central blue.
+  if (activeView === "home") return "#FF6B4A";
+  if (activeView === "executive-assistant") return "#12B886";
+
   let navSections: readonly InternalNavSection[] = internalSurveyNavSections;
   try {
     const { filterInternalNavSectionsForDemoSurface } =
@@ -1372,10 +1378,6 @@ export function resolveInternalNavSectionAccent(
       }
     }
   }
-
-  // Fallback for pin views if nav walk misses (e.g. host filter timing).
-  if (activeView === "home") return "#FF6B4A";
-  if (activeView === "executive-assistant") return "#12B886";
 
   return null;
 }
