@@ -16,6 +16,7 @@ import {
 } from "@/lib/app-domains";
 import { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import { isAbhiSlug } from "@/lib/abhi-surface";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
@@ -62,6 +63,14 @@ export async function generateMetadata({
     return {
       title: "Login | ABHI",
       description: "Secure access to your ABHI workspace.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  if (isOnwardAirSlug(workspaceSlug)) {
+    return {
+      title: "Login | OnwardAir",
+      description: "Secure access to your OnwardAir workspace.",
       robots: { index: false, follow: false },
     };
   }
@@ -119,11 +128,13 @@ export default async function LoginPage({ searchParams }: PageProps) {
       ? "talanton"
       : isAbhiSlug(workspaceSlug)
         ? "abhi"
-        : workspaceSlug
-          ? "customer"
-          : isCentral
-            ? "central"
-            : "default";
+        : isOnwardAirSlug(workspaceSlug)
+          ? "onwardair"
+          : workspaceSlug
+            ? "customer"
+            : isCentral
+              ? "central"
+              : "default";
 
   return (
     <Unit311LoginPage
@@ -131,6 +142,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
         brand === "corpcentre" ||
         brand === "talanton" ||
         brand === "abhi" ||
+        brand === "onwardair" ||
         brand === "customer" ||
         brand === "central"
           ? "central"

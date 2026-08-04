@@ -81,6 +81,8 @@ export const FOUNDER_SESSION_FOCUS_OVERVIEW_MIGRATION_PATH =
   "supabase/migrations/065_founder_session_focus_overview.sql";
 export const PLATFORM_PASSWORD_RESET_TOKENS_MIGRATION_PATH =
   "supabase/migrations/040_platform_password_reset_tokens.sql";
+export const PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH =
+  "supabase/migrations/121_platform_password_reset_otp.sql";
 export const CLIENT_ONBOARDING_MIGRATION_PATH =
   "supabase/migrations/041_client_onboarding_records.sql";
 export const PLATFORM_USERS_LAST_LOGIN_MIGRATION_PATH =
@@ -2321,6 +2323,7 @@ export async function withInternalActionItemsTable<T>(
 export async function ensurePlatformPasswordResetTokensTable(): Promise<boolean> {
   const exists = await tableExistsViaManagementApi("platform_password_reset_tokens");
   if (exists === true) {
+    await ensurePlatformPasswordResetOtpColumns();
     await reloadPostgrestSchema();
     return true;
   }
@@ -2332,10 +2335,12 @@ export async function ensurePlatformPasswordResetTokensTable(): Promise<boolean>
     try {
       await client.connect();
       if (await tableExists(client, "platform_password_reset_tokens")) {
+        await applyMigration(client, PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH);
         await reloadPostgrestSchema();
         return true;
       }
       await applyMigration(client, PLATFORM_PASSWORD_RESET_TOKENS_MIGRATION_PATH);
+      await applyMigration(client, PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH);
       await reloadPostgrestSchema();
       return true;
     } finally {
@@ -2345,11 +2350,33 @@ export async function ensurePlatformPasswordResetTokensTable(): Promise<boolean>
 
   if (exists === false) {
     const applied = await applyMigrationViaManagementApi(PLATFORM_PASSWORD_RESET_TOKENS_MIGRATION_PATH);
-    if (applied) await reloadPostgrestSchema();
+    if (applied) {
+      await applyMigrationViaManagementApi(PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH);
+      await reloadPostgrestSchema();
+    }
     return applied;
   }
 
   return false;
+}
+
+async function ensurePlatformPasswordResetOtpColumns(): Promise<void> {
+  const hasOtp = await columnExistsViaManagementApi("platform_password_reset_tokens", "otp_hash");
+  if (hasOtp === true) return;
+
+  const dbUrl = getDatabaseUrl();
+  if (dbUrl) {
+    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    try {
+      await client.connect();
+      await applyMigration(client, PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH);
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+    return;
+  }
+
+  await applyMigrationViaManagementApi(PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH);
 }
 
 export async function withPlatformPasswordResetTokensTable<T>(

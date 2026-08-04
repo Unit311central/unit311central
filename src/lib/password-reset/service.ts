@@ -1,9 +1,10 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 
 import { headers } from "next/headers";
 
 import {
   CENTRAL_SITE_URL,
+  customerWorkspaceOrigin,
   getRequestHost,
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
@@ -18,6 +19,7 @@ import {
   normalizePlatformUsername,
   type PlatformUserRecord,
 } from "@/lib/platform-auth";
+import { validatePlatformSignupPasswordConfirmation } from "@/lib/platform-password-validation";
 import {
   findPlatformUserByUsername,
   findPlatformUsersByEmail,
@@ -27,9 +29,10 @@ import { resolveWorkspaceBrandFor } from "@/lib/workspace-brand-server";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 export const PASSWORD_RESET_EXPIRY_MINUTES = 60;
+export const PASSWORD_RESET_OTP_LENGTH = 6;
 
 const GENERIC_RESET_MESSAGE =
-  "If an account matches that email address, we sent a password reset link.";
+  "If an account matches that email address, we sent a one-time code and reset link.";
 
 function requireSupabase() {
   if (!isSupabaseConfigured()) {
@@ -46,22 +49,40 @@ function hashResetToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+function hashOtp(otp: string) {
+  return createHash("sha256").update(otp.trim()).digest("hex");
+}
+
 function createResetTokenValue() {
   return randomBytes(32).toString("base64url");
 }
 
-function buildResetUrl(token: string) {
+function createOtpCode() {
+  return String(randomInt(100000, 999999));
+}
+
+async function buildResetUrl(token: string) {
+  try {
+    const requestHeaders = await headers();
+    const host = getRequestHost({ headers: requestHeaders });
+    const slug = parseClientPlatformSubdomainSafe(host);
+    if (slug) {
+      return `${customerWorkspaceOrigin(slug)}/resetpassword?token=${encodeURIComponent(token)}`;
+    }
+    if (host) {
+      const proto = (requestHeaders.get("x-forwarded-proto") || "https").split(",")[0]?.trim() || "https";
+      return `${proto}://${host}/resetpassword?token=${encodeURIComponent(token)}`;
+    }
+  } catch {
+    /* fall through */
+  }
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? CENTRAL_SITE_URL).replace(/\/$/, "");
   return `${baseUrl}/resetpassword?token=${encodeURIComponent(token)}`;
 }
 
 function validateNewPassword(password: string, confirmPassword: string) {
-  if (!password || password.length < 8) {
-    throw new Error("Password must be at least 8 characters.");
-  }
-  if (password !== confirmPassword) {
-    throw new Error("Passwords do not match.");
-  }
+  const error = validatePlatformSignupPasswordConfirmation(password, confirmPassword);
+  if (error) throw new Error(error);
 }
 
 async function resolveUserEmail(user: PlatformUserRecord): Promise<string | null> {
@@ -97,7 +118,6 @@ async function findUserForPasswordResetByEmail(
     if (accountEmail === submittedEmail) return user;
   }
 
-  // Internal operators often store email on internal_operators, not platform_users.
   const supabase = requireSupabase();
   const { data: operator, error } = await supabase
     .from("internal_operators")
@@ -123,8 +143,43 @@ async function findUserForPasswordResetByEmail(
   return null;
 }
 
+async function resolveRequestBrand() {
+  try {
+    const host = getRequestHost({ headers: await headers() });
+    const slug = parseClientPlatformSubdomainSafe(host);
+    if (!slug) return undefined;
+    const workspace = await findWorkspaceBySlug(slug);
+    return resolveWorkspaceBrandFor({
+      workspace: workspace
+        ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+        : null,
+      slug,
+      name: workspace?.name ?? slug,
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+async function ensureOtpColumns() {
+  const supabase = requireSupabase();
+  // Probe by selecting; if columns missing, apply migration SQL via ensure helper path.
+  const { error } = await supabase
+    .from("platform_password_reset_tokens")
+    .select("id, otp_hash, otp_verified_at, otp_attempts")
+    .limit(1);
+  if (!error) return;
+  if (!/otp_hash|otp_verified|otp_attempts|column/i.test(error.message)) {
+    // Table may be empty / RLS — ignore non-column errors here
+    if (!/does not exist|schema cache/i.test(error.message)) return;
+  }
+  await ensurePlatformPasswordResetTokensTable();
+  // Best-effort: callers still work if migration applied out-of-band.
+}
+
 export async function requestPlatformPasswordReset(input: { email: string }) {
   await ensurePlatformPasswordResetTokensTable();
+  await ensureOtpColumns();
 
   const submittedEmail = normalizeEmail(input.email);
 
@@ -144,6 +199,8 @@ export async function requestPlatformPasswordReset(input: { email: string }) {
 
   const token = createResetTokenValue();
   const tokenHash = hashResetToken(token);
+  const otp = createOtpCode();
+  const otpHash = hashOtp(otp);
   const expiresAt = new Date(Date.now() + PASSWORD_RESET_EXPIRY_MINUTES * 60_000).toISOString();
 
   await withPlatformPasswordResetTokensTable(async () => {
@@ -158,33 +215,21 @@ export async function requestPlatformPasswordReset(input: { email: string }) {
     const { error } = await supabase.from("platform_password_reset_tokens").insert({
       platform_user_id: user.id,
       token_hash: tokenHash,
+      otp_hash: otpHash,
+      otp_attempts: 0,
+      otp_verified_at: null,
       expires_at: expiresAt,
     });
 
     if (error) throw new Error(error.message);
   });
 
-  const resetUrl = buildResetUrl(token);
-  let brand = undefined as Awaited<ReturnType<typeof resolveWorkspaceBrandFor>> | undefined;
-  try {
-    const host = getRequestHost({ headers: await headers() });
-    const slug = parseClientPlatformSubdomainSafe(host);
-    if (slug) {
-      const workspace = await findWorkspaceBySlug(slug);
-      brand = await resolveWorkspaceBrandFor({
-        workspace: workspace
-          ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
-          : null,
-        slug,
-        name: workspace?.name ?? slug,
-      });
-    }
-  } catch {
-    brand = undefined;
-  }
+  const resetUrl = await buildResetUrl(token);
+  const brand = await resolveRequestBrand();
   const emailContent = buildPasswordResetEmail({
     displayName: user.display_name,
     resetUrl,
+    otp,
     expiresInMinutes: PASSWORD_RESET_EXPIRY_MINUTES,
     brand,
   });
@@ -200,12 +245,74 @@ export async function requestPlatformPasswordReset(input: { email: string }) {
   return { message: GENERIC_RESET_MESSAGE };
 }
 
+export async function verifyPlatformPasswordResetOtp(input: {
+  token: string;
+  otp: string;
+}) {
+  await ensurePlatformPasswordResetTokensTable();
+  await ensureOtpColumns();
+
+  const token = input.token.trim();
+  const otp = input.otp.trim();
+  if (!token) throw new Error("Reset link is invalid or has expired.");
+  if (!/^\d{6}$/.test(otp)) throw new Error("Enter the 6-digit code from your email.");
+
+  const tokenHash = hashResetToken(token);
+  const otpHash = hashOtp(otp);
+
+  return withPlatformPasswordResetTokensTable(async () => {
+    const supabase = requireSupabase();
+
+    const { data: tokenRow, error: tokenError } = await supabase
+      .from("platform_password_reset_tokens")
+      .select("id, expires_at, used_at, otp_hash, otp_verified_at, otp_attempts")
+      .eq("token_hash", tokenHash)
+      .maybeSingle();
+
+    if (tokenError) throw new Error(tokenError.message);
+    if (!tokenRow || tokenRow.used_at) {
+      throw new Error("Reset link is invalid or has expired.");
+    }
+    if (new Date(String(tokenRow.expires_at)).getTime() < Date.now()) {
+      throw new Error("Reset link has expired. Please request a new one.");
+    }
+
+    if (tokenRow.otp_verified_at) {
+      return { message: "Code verified. Choose your new password.", verified: true as const };
+    }
+
+    const attempts = Number(tokenRow.otp_attempts ?? 0);
+    if (attempts >= 5) {
+      throw new Error("Too many incorrect codes. Please request a new reset email.");
+    }
+
+    if (!tokenRow.otp_hash || String(tokenRow.otp_hash) !== otpHash) {
+      await supabase
+        .from("platform_password_reset_tokens")
+        .update({ otp_attempts: attempts + 1 })
+        .eq("id", tokenRow.id);
+      throw new Error("That code is incorrect. Check your email and try again.");
+    }
+
+    const now = new Date().toISOString();
+    const { error: verifyError } = await supabase
+      .from("platform_password_reset_tokens")
+      .update({ otp_verified_at: now, otp_attempts: attempts })
+      .eq("id", tokenRow.id);
+
+    if (verifyError) throw new Error(verifyError.message);
+
+    return { message: "Code verified. Choose your new password.", verified: true as const };
+  });
+}
+
 export async function completePlatformPasswordReset(input: {
   token: string;
   password: string;
   confirmPassword: string;
 }) {
   await ensurePlatformPasswordResetTokensTable();
+  await ensureOtpColumns();
   validateNewPassword(input.password, input.confirmPassword);
 
   const token = input.token.trim();
@@ -220,7 +327,7 @@ export async function completePlatformPasswordReset(input: {
 
     const { data: tokenRow, error: tokenError } = await supabase
       .from("platform_password_reset_tokens")
-      .select("id, platform_user_id, expires_at, used_at")
+      .select("id, platform_user_id, expires_at, used_at, otp_verified_at, otp_hash")
       .eq("token_hash", tokenHash)
       .maybeSingle();
 
@@ -230,6 +337,10 @@ export async function completePlatformPasswordReset(input: {
     }
     if (new Date(String(tokenRow.expires_at)).getTime() < Date.now()) {
       throw new Error("Reset link has expired. Please request a new one.");
+    }
+    // Require OTP when the challenge includes one (new flow).
+    if (tokenRow.otp_hash && !tokenRow.otp_verified_at) {
+      throw new Error("Enter the one-time code from your email before setting a new password.");
     }
 
     const { data: user, error: userError } = await supabase

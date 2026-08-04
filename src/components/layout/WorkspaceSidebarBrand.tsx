@@ -6,6 +6,7 @@ import CorpCentreLogoMark, {
   isCorpCentreSlug,
 } from "@/components/layout/CorpCentreLogoMark";
 import AbhiLogoMark, { isAbhiSlug } from "@/components/layout/AbhiLogoMark";
+import OnwardAirLogoMark, { isOnwardAirSlug } from "@/components/layout/OnwardAirLogoMark";
 import TalantonLogoMark, {
   isTalantonImpactSlug,
 } from "@/components/layout/TalantonLogoMark";
@@ -39,7 +40,7 @@ function titleCaseSlug(slug: string) {
     .join(" ");
 }
 
-type BrandKind = "unit311" | "corpcentre" | "talanton" | "abhi" | "customer";
+type BrandKind = "unit311" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer";
 
 function resolveBrandKind(slug: string | null): BrandKind {
   if (!slug || slug === "internal" || slug === "unit311" || slug === "demo") {
@@ -48,6 +49,7 @@ function resolveBrandKind(slug: string | null): BrandKind {
   if (isCorpCentreSlug(slug)) return "corpcentre";
   if (isTalantonImpactSlug(slug)) return "talanton";
   if (isAbhiSlug(slug)) return "abhi";
+  if (isOnwardAirSlug(slug)) return "onwardair";
   return "customer";
 }
 
@@ -121,6 +123,8 @@ export default function WorkspaceSidebarBrand({
       <TalantonLogoMark height={36} />
     ) : brand === "abhi" ? (
       <AbhiLogoMark height={32} tone="onDark" />
+    ) : brand === "onwardair" ? (
+      <OnwardAirLogoMark height={28} maxWidth={160} />
     ) : brand === "customer" ? (
       logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -145,9 +149,11 @@ export default function WorkspaceSidebarBrand({
         ? "Talanton Impact home"
         : brand === "abhi"
           ? "ABHI home"
-          : brand === "customer"
-            ? `${customerName} home`
-            : "Unit311 Central home";
+          : brand === "onwardair"
+            ? "OnwardAir home"
+            : brand === "customer"
+              ? `${customerName} home`
+              : "Unit311 Central home";
 
   return (
     <a

@@ -7,6 +7,11 @@ export const ONWARDAIR_SLUG = "onwardair";
 /** OnwardAir reports and displays money in USD across Home, Financials, and modules. */
 export const ONWARDAIR_REPORTING_CURRENCY = "USD";
 
+/** Official wordmark from onwardair.tech (white mark on transparent). */
+export const ONWARDAIR_LOGO_SRC = "/images/workspaces/onwardair-logo.png";
+export const ONWARDAIR_LOGO_INTRINSIC_WIDTH = 155;
+export const ONWARDAIR_LOGO_INTRINSIC_HEIGHT = 40;
+
 export function isOnwardAirSlug(slug: string | null | undefined): boolean {
   return (
     String(slug ?? "")

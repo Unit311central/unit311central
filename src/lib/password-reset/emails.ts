@@ -8,6 +8,8 @@ import {
 export type PasswordResetEmailInput = {
   displayName: string;
   resetUrl: string;
+  /** 6-digit one-time code shown in the email and entered after clicking the link. */
+  otp: string;
   expiresInMinutes: number;
   /** Active workspace brand — defaults to platform when omitted. */
   brand?: WorkspaceBrand | null;
@@ -57,8 +59,8 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
     ? "your Unit311 account"
     : `your ${brand.displayName} workspace account`;
   const subject = brand.showPlatformBranding
-    ? "Reset your Unit311 password"
-    : `Reset your ${brand.displayName} password`;
+    ? `${input.otp} is your Unit311 password reset code`
+    : `${input.otp} is your ${brand.displayName} password reset code`;
 
   const html = emailShell(
     brand,
@@ -68,16 +70,24 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
         Hi ${escapeHtml(firstName)},
       </p>
       <p style="margin:0 0 16px;font-size:15px;color:#334155;">
-        We received a request to reset the password for ${escapeHtml(accountLabel)}. Use the button below to choose a new password.
-        This link expires in ${input.expiresInMinutes} minutes.
+        We received a request to reset the password for ${escapeHtml(accountLabel)}.
+        Use the one-time code below, then open the link to continue.
+        This expires in ${input.expiresInMinutes} minutes.
+      </p>
+      <p style="margin:0 0 8px;font-size:13px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">
+        Your one-time code
+      </p>
+      <p style="margin:0 0 24px;font-size:32px;font-weight:700;letter-spacing:0.28em;color:#0b2d63;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;">
+        ${escapeHtml(input.otp)}
       </p>
       <p style="margin:0 0 24px;">
         <a href="${escapeHtml(input.resetUrl)}" style="display:inline-block;background:#0b2d63;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 28px;border-radius:8px;">
-          Reset password
+          Continue password reset
         </a>
       </p>
       <p style="margin:0 0 16px;font-size:13px;color:#64748b;">
-        If you did not request this, you can ignore this email. Your password will not change until you use the link above.
+        After you open the link, enter this code on the page, then choose a new password.
+        If you did not request this, you can ignore this email.
       </p>
       <p style="margin:0;font-size:12px;color:#94a3b8;word-break:break-all;">
         Link not working? Copy and paste this URL into your browser:<br/>
@@ -90,7 +100,8 @@ export function buildPasswordResetEmail(input: PasswordResetEmailInput) {
     `Hi ${firstName},`,
     "",
     `We received a request to reset the password for ${accountLabel}.`,
-    `Open this link within ${input.expiresInMinutes} minutes to choose a new password:`,
+    `Your one-time code is: ${input.otp}`,
+    `Open this link within ${input.expiresInMinutes} minutes, enter the code, then choose a new password:`,
     input.resetUrl,
     "",
     "If you did not request this, you can ignore this email.",

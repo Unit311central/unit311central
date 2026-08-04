@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import CorpCentreLogoMark from "@/components/layout/CorpCentreLogoMark";
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
+import OnwardAirLogoMark from "@/components/layout/OnwardAirLogoMark";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
 import {
   parseLoginReturnTo,
@@ -29,16 +30,17 @@ const LOGIN_LOGO_HEIGHT = 334;
 const RETURN_TO_STORAGE_KEY = "unit311_workspace_return_to";
 const NEXT_STORAGE_KEY = "unit311_post_login_next";
 const CORPCENTRE_SAVED_LOGIN_KEY = "corpcentre_login_saved_details";
+const ONWARDAIR_SAVED_LOGIN_KEY = "onwardair_login_saved_details";
 
 type SavedLoginDetails = {
   username: string;
   password: string;
 };
 
-function readCorpCentreSavedLogin(): SavedLoginDetails | null {
+function readSavedLogin(storageKey: string): SavedLoginDetails | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(CORPCENTRE_SAVED_LOGIN_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<SavedLoginDetails>;
     const username = typeof parsed.username === "string" ? parsed.username : "";
@@ -50,14 +52,14 @@ function readCorpCentreSavedLogin(): SavedLoginDetails | null {
   }
 }
 
-function writeCorpCentreSavedLogin(details: SavedLoginDetails | null) {
+function writeSavedLogin(storageKey: string, details: SavedLoginDetails | null) {
   if (typeof window === "undefined") return;
   try {
     if (!details || (!details.username && !details.password)) {
-      localStorage.removeItem(CORPCENTRE_SAVED_LOGIN_KEY);
+      localStorage.removeItem(storageKey);
       return;
     }
-    localStorage.setItem(CORPCENTRE_SAVED_LOGIN_KEY, JSON.stringify(details));
+    localStorage.setItem(storageKey, JSON.stringify(details));
   } catch {
     // Ignore quota / private mode failures.
   }
@@ -168,9 +170,9 @@ export default function Unit311LoginPage({
   nextPath = null,
 }: {
   variant?: "default" | "central";
-  /** Tenant login branding. CorpCentre / Talanton / ABHI / customer use workspace branding. */
-  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "customer";
-  /** Display name for generic customer hosts (e.g. OnwardAir). */
+  /** Tenant login branding. CorpCentre / Talanton / ABHI / OnwardAir / customer use workspace branding. */
+  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer";
+  /** Display name for generic customer hosts (e.g. Acme). */
   workspaceName?: string | null;
   /** Validated return origin (`return_to`) for workspace / demo / internal. */
   returnTo?: string | null;
@@ -183,12 +185,16 @@ export default function Unit311LoginPage({
     brand === "corpcentre" ||
     brand === "talanton" ||
     brand === "abhi" ||
+    brand === "onwardair" ||
     brand === "customer";
   const isCorpCentre = brand === "corpcentre";
   const isTalanton = brand === "talanton";
   const isAbhi = brand === "abhi";
+  const isOnwardAir = brand === "onwardair";
   const isCustomer = brand === "customer";
   const customerLabel = workspaceName?.trim() || "Workspace";
+  const canSaveLogin = isCorpCentre || isOnwardAir;
+  const savedLoginKey = isOnwardAir ? ONWARDAIR_SAVED_LOGIN_KEY : CORPCENTRE_SAVED_LOGIN_KEY;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -206,13 +212,13 @@ export default function Unit311LoginPage({
   }, [returnTo, nextPath]);
 
   useEffect(() => {
-    if (!isCorpCentre) return;
-    const saved = readCorpCentreSavedLogin();
+    if (!canSaveLogin) return;
+    const saved = readSavedLogin(savedLoginKey);
     if (!saved) return;
     setUsername(saved.username);
     setPassword(saved.password);
     setSaveForFuture(true);
-  }, [isCorpCentre]);
+  }, [canSaveLogin, savedLoginKey]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -258,11 +264,11 @@ export default function Unit311LoginPage({
         throw new Error(data.error ?? "Invalid username or password.");
       }
 
-      if (isCorpCentre) {
+      if (canSaveLogin) {
         if (saveForFuture) {
-          writeCorpCentreSavedLogin({ username, password });
+          writeSavedLogin(savedLoginKey, { username, password });
         } else {
-          writeCorpCentreSavedLogin(null);
+          writeSavedLogin(savedLoginKey, null);
         }
       }
 
@@ -313,6 +319,8 @@ export default function Unit311LoginPage({
             <TalantonLogoMark height={56} />
           ) : isAbhi ? (
             <AbhiLogoMark height={50} tone="onDark" priority />
+          ) : isOnwardAir ? (
+            <OnwardAirLogoMark height={48} maxWidth={280} priority />
           ) : isCustomer ? (
             <div className="rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4">
               <p className="text-center text-[1.35rem] font-semibold tracking-tight text-white">
@@ -344,9 +352,11 @@ export default function Unit311LoginPage({
                 ? "Talanton Impact"
                 : isAbhi
                   ? "ABHI Login"
-                  : isCustomer
-                    ? `${customerLabel} Login`
-                    : "Workspace Login"}
+                  : isOnwardAir
+                    ? "OnwardAir Login"
+                    : isCustomer
+                      ? `${customerLabel} Login`
+                      : "Workspace Login"}
           </h1>
           <p className="mx-auto mt-3 max-w-[22rem] text-[14px] leading-relaxed text-white/55 sm:mt-3.5 sm:max-w-md sm:text-[15px]">
             {isCorpCentre
@@ -355,9 +365,11 @@ export default function Unit311LoginPage({
                 ? "Portfolio Governance Platform — secure access for impact investing, portfolio oversight and compliance."
                 : isAbhi
                   ? "Secure access to your ABHI workspace"
-                  : isCustomer
-                    ? `Secure access to your ${customerLabel} workspace`
-                    : "Secure Access to your Workspace"}
+                  : isOnwardAir
+                    ? "Secure access to your OnwardAir workspace"
+                    : isCustomer
+                      ? `Secure access to your ${customerLabel} workspace`
+                      : "Secure Access to your Workspace"}
           </p>
           {isTalanton ? (
             <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-white/40">
@@ -389,11 +401,13 @@ export default function Unit311LoginPage({
                     ? "you@corpcentre.com.au"
                     : isTalanton
                       ? "demo@talantonimpact.com"
-                      : isCustomer
-                        ? "you@company.com"
-                        : isCentral
-                          ? "you@unit311central.com"
-                          : "Enter username"
+                      : isOnwardAir
+                        ? "you@onwardair.tech"
+                        : isCustomer
+                          ? "you@company.com"
+                          : isCentral
+                            ? "you@unit311central.com"
+                            : "Enter username"
                 }
               />
             </div>
@@ -428,20 +442,23 @@ export default function Unit311LoginPage({
               </div>
             </div>
 
-            {isCorpCentre ? (
-              <label className="flex cursor-pointer items-center gap-2.5 select-none">
+            {canSaveLogin ? (
+              <label className="flex cursor-pointer items-start gap-2.5 select-none">
                 <input
                   type="checkbox"
                   checked={saveForFuture}
                   onChange={(event) => {
                     const checked = event.target.checked;
                     setSaveForFuture(checked);
-                    if (!checked) writeCorpCentreSavedLogin(null);
+                    if (!checked) writeSavedLogin(savedLoginKey, null);
                   }}
-                  className="h-4 w-4 rounded border-white/25 bg-white/[0.06] text-[#2563eb] focus:ring-[#3b82f6] focus:ring-offset-0"
+                  className="mt-0.5 h-4 w-4 rounded border-white/25 bg-white/[0.06] text-[#2563eb] focus:ring-[#3b82f6] focus:ring-offset-0"
                 />
-                <span className="text-[13px] font-medium tracking-[0.01em] text-white/70">
-                  Save for future
+                <span className="text-[13px] leading-snug text-white/70">
+                  <span className="font-medium tracking-[0.01em]">Save for future login</span>
+                  <span className="mt-0.5 block text-[11px] text-white/40">
+                    Stores email and password on this device. Session uses a secure cookie.
+                  </span>
                 </span>
               </label>
             ) : null}
