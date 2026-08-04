@@ -982,6 +982,50 @@ export function buildExecutiveHomeLiveNarrative(input: {
     });
   }
 
+  // OnwardAir: live Competitor Intelligence weekly feed → Business Alerts.
+  try {
+    if (typeof window !== "undefined") {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const feed =
+          require("@/lib/onwardair/competitor-intelligence-feed-store") as typeof import("@/lib/onwardair/competitor-intelligence-feed-store");
+        feed.ensureWeeklyCompetitorIntelligenceRefresh();
+        const ciAlerts = feed.listCompetitorIntelHomeAlerts().slice(0, 3);
+        for (const item of ciAlerts) {
+          alerts.push({
+            id: `ci-${item.id}`,
+            title: item.title,
+            detail: item.summary.slice(0, 180) + (item.summary.length > 180 ? "…" : ""),
+            severity: item.severity,
+            timeLabel: "Competitor Intel",
+          });
+        }
+        for (const item of feed.listCompetitorIntelFeed().slice(0, 2)) {
+          activity.unshift({
+            id: `ci-act-${item.id}`,
+            title: item.title,
+            meta: `${item.category}${item.competitorName ? ` · ${item.competitorName}` : ""}`,
+            timeLabel: "Intel",
+            category: "Competitor Intelligence",
+          });
+        }
+        if (ciAlerts.length > 0) {
+          queue.unshift({
+            id: "q-ci-weekly",
+            title: "Review Competitor Intelligence weekly brief",
+            meta: "Business Central · Competitor Intelligence",
+            status: "Review",
+            dueLabel: "This week",
+            priority: "medium",
+          });
+        }
+      }
+    }
+  } catch {
+    /* feed optional */
+  }
+
   const needsAttentionCount = abhiHome ? alerts.length : Math.max(attention, queue.length);
   const needsAttentionDetail =
     alerts.length === 0

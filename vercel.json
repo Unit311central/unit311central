@@ -14,6 +14,10 @@
     {
       "path": "/api/cron/wise-payment-reconcile",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/competitor-intelligence-weekly",
+      "schedule": "0 6 * * 1"
     }
   ]
 }

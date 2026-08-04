@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
   Globe,
   Plane,
+  Radio,
+  RefreshCw,
   Search,
   ShieldCheck,
   TrendingUp,
@@ -25,8 +27,16 @@ import {
   type CompetitorProfile,
   type CompetitorSortKey,
 } from "@/lib/onwardair/competitor-intelligence-data";
+import {
+  ensureWeeklyCompetitorIntelligenceRefresh,
+  getCompetitorIntelCadence,
+  markAllCompetitorIntelRead,
+  markCompetitorIntelRead,
+  type CompetitorIntelItem,
+} from "@/lib/onwardair/competitor-intelligence-feed-store";
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
+import { useCompetitorIntelFeed } from "./useCompetitorIntelFeed";
 
 const SKY = "#0EA5E9";
 
@@ -65,12 +75,27 @@ function CompetitorList() {
   const router = useRouter();
   const basePath = useInternalOperationsBasePath();
   const competitors = useMemo(() => listCompetitors(), []);
+  const feedState = useCompetitorIntelFeed();
+  const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState("");
   const [aircraftType, setAircraftType] = useState("");
   const [sortKey, setSortKey] = useState<CompetitorSortKey>("companyName");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  useEffect(() => {
+    ensureWeeklyCompetitorIntelligenceRefresh();
+  }, []);
+
+  const cadence = getCompetitorIntelCadence();
+  const feedItems = useMemo(
+    () =>
+      feedState.items
+        .slice()
+        .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)),
+    [feedState.items],
+  );
 
   const rows = useMemo(() => {
     let list = query.trim() ? searchCompetitors(query) : competitors;
@@ -102,6 +127,16 @@ function CompetitorList() {
     }
   }
 
+  function refreshFeed() {
+    const result = ensureWeeklyCompetitorIntelligenceRefresh({ force: true });
+    setRefreshNotice(
+      result.created
+        ? `Live feed refreshed for ${result.weekKey} · ${result.newItems.length} new item${result.newItems.length === 1 ? "" : "s"}.`
+        : `Feed already current for ${result.weekKey}.`,
+    );
+    window.setTimeout(() => setRefreshNotice(null), 3500);
+  }
+
   return (
     <div className="space-y-5 p-1">
       <header className="relative overflow-hidden rounded-2xl border border-white/12 bg-[radial-gradient(ellipse_at_top_left,_rgba(14,165,233,0.22),_transparent_55%),linear-gradient(135deg,#0b1826_0%,#0a1420_55%,#070d14_100%)] px-5 py-6 sm:px-7 sm:py-7">
@@ -109,27 +144,65 @@ function CompetitorList() {
           aria-hidden
           className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-sky-400/10 blur-3xl"
         />
-        <p className="relative text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/85">
-          OnwardAir · Business Central
-        </p>
-        <h1 className="relative mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-          Competitor Intelligence
-        </h1>
-        <p className="relative mt-2 max-w-2xl text-sm leading-relaxed text-white/60">
-          eVTOL / AAM competitive landscape — aircraft programs, certification status, and public
-          business metrics. Figures are sourced publicly; blank fields mean the data point is not
-          confidently disclosed.
-        </p>
+        <div className="relative flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/85">
+              OnwardAir · Business Central · Live feed
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              Competitor Intelligence
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/60">
+              Weekly competitive brief auto-publishes every Monday. Unread briefs appear on the
+              Executive Dashboard Business Alerts. Landscape profiles stay public-source only —
+              blank fields mean not confidently disclosed.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={refreshFeed}
+            className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/40 bg-sky-500/15 px-3.5 py-2 text-xs font-semibold text-sky-100 transition hover:bg-sky-500/25"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh feed
+          </button>
+        </div>
 
-        <div className="relative mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="relative mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <KpiTile icon={<Radio className="h-4 w-4" />} label="This week" value={cadence.currentWeekKey} />
+          <KpiTile
+            icon={<TrendingUp className="h-4 w-4" />}
+            label="Unread alerts"
+            value={String(cadence.unreadCount)}
+          />
           <KpiTile icon={<Plane className="h-4 w-4" />} label="Tracked Competitors" value={String(competitors.length)} />
           <KpiTile icon={<Globe className="h-4 w-4" />} label="Countries" value={String(countryCount)} />
-          <KpiTile icon={<TrendingUp className="h-4 w-4" />} label="Public Companies" value={String(publicCount)} />
           <KpiTile icon={<ShieldCheck className="h-4 w-4" />} label="Certified / In Production" value={String(certifiedCount)} />
         </div>
+        {refreshNotice ? (
+          <p className="relative mt-3 text-xs font-medium text-emerald-300/90">{refreshNotice}</p>
+        ) : null}
       </header>
 
+      <LiveIntelligenceFeed
+        items={feedItems}
+        cadence={cadence}
+        onOpenCompetitor={openCompetitor}
+        onMarkRead={markCompetitorIntelRead}
+        onMarkAllRead={markAllCompetitorIntelRead}
+      />
+
       <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-4">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-300/80">
+              Competitive landscape
+            </h2>
+            <p className="mt-1 text-xs text-white/45">
+              {publicCount} public companies tracked · click a row for full profile
+            </p>
+          </div>
+        </div>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:w-72">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
@@ -240,6 +313,112 @@ function CompetitorList() {
         </p>
       </section>
     </div>
+  );
+}
+
+function LiveIntelligenceFeed({
+  items,
+  cadence,
+  onOpenCompetitor,
+  onMarkRead,
+  onMarkAllRead,
+}: {
+  items: CompetitorIntelItem[];
+  cadence: ReturnType<typeof getCompetitorIntelCadence>;
+  onOpenCompetitor: (id: string) => void;
+  onMarkRead: (id: string) => void;
+  onMarkAllRead: () => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-sky-400/25 bg-sky-500/[0.06] p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/85">
+            Live intelligence feed
+          </p>
+          <h2 className="mt-1 text-lg font-semibold text-white">Weekly competitive updates</h2>
+          <p className="mt-1 text-sm text-white/55">
+            Week {cadence.currentWeekKey}
+            {cadence.lastEnsuredAt
+              ? ` · last ensured ${new Date(cadence.lastEnsuredAt).toLocaleString("en-GB")}`
+              : ""}
+            {" · "}
+            next cadence {cadence.nextRefreshLabel}
+            {cadence.weeklyRefreshDue ? " · refresh due" : " · current"}
+          </p>
+        </div>
+        {cadence.unreadCount > 0 ? (
+          <button
+            type="button"
+            onClick={onMarkAllRead}
+            className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+          >
+            Mark all read
+          </button>
+        ) : null}
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {items.slice(0, 8).map((item) => (
+          <article
+            key={item.id}
+            className={cn(
+              "rounded-xl border px-4 py-3",
+              item.read
+                ? "border-white/10 bg-black/20"
+                : "border-sky-400/35 bg-sky-500/10",
+            )}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/55">
+                {item.category}
+              </span>
+              {!item.read ? (
+                <span className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                  New
+                </span>
+              ) : null}
+              <span className="text-[11px] text-white/40">
+                {new Date(item.publishedAt).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
+            <h3 className="mt-2 text-sm font-semibold text-white">{item.title}</h3>
+            <p className="mt-1 text-sm leading-relaxed text-white/60">{item.summary}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {item.competitorId ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onMarkRead(item.id);
+                    onOpenCompetitor(item.competitorId!);
+                  }}
+                  className="rounded-full border border-sky-400/40 bg-sky-500/15 px-2.5 py-1 text-[11px] font-semibold text-sky-100"
+                >
+                  Open {item.competitorName ?? "competitor"}
+                </button>
+              ) : null}
+              {!item.read ? (
+                <button
+                  type="button"
+                  onClick={() => onMarkRead(item.id)}
+                  className="rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/70"
+                >
+                  Mark read
+                </button>
+              ) : null}
+              <span className="self-center text-[10px] text-white/35">{item.sourceLabel}</span>
+            </div>
+          </article>
+        ))}
+        {items.length === 0 ? (
+          <p className="py-6 text-center text-sm text-white/45">No intelligence items yet.</p>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
