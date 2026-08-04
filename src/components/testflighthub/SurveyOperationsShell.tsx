@@ -194,7 +194,12 @@ export default function SurveyOperationsShell({
             background: "color-mix(in srgb, var(--platform-surface, #08111F) 82%, transparent)",
           }}
         >
-          <div className="flex h-14 shrink-0 items-center justify-between gap-3 lg:h-14 xl:h-16">
+          <div
+            className={cn(
+              "flex shrink-0 items-center justify-between gap-3",
+              sectionAccent ? "min-h-14 py-2.5 xl:min-h-[4.25rem]" : "h-14 xl:h-16",
+            )}
+          >
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
               <button
                 type="button"
@@ -205,36 +210,36 @@ export default function SurveyOperationsShell({
               >
                 <Menu className="h-4 w-4" />
               </button>
-                <div className="min-w-0">
-                  {breadcrumbCrumbs && breadcrumbCrumbs.length > 0 ? (
-                    <WorkspaceBreadcrumb crumbs={breadcrumbCrumbs} />
-                  ) : resolvedSubtitle ? (
-                    <WorkspaceBreadcrumb crumbs={[resolvedSubtitle]} />
-                  ) : null}
-                  <div className="flex min-w-0 items-center gap-2">
-                    <h1 className="truncate text-base font-semibold tracking-tight text-white sm:text-lg md:text-xl">
-                      {resolvedTitle}
-                    </h1>
-                    {isDemoHost ? (
-                      <span
-                        className="shrink-0 rounded border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200"
-                        title="Demo surface — same build as Internal; curated workspace content"
-                      >
-                        Demo
-                      </span>
-                    ) : null}
-                  </div>
-                  {sectionAccent ? (
+              <div className="min-w-0 flex-1">
+                {breadcrumbCrumbs && breadcrumbCrumbs.length > 0 ? (
+                  <WorkspaceBreadcrumb crumbs={breadcrumbCrumbs} />
+                ) : resolvedSubtitle ? (
+                  <WorkspaceBreadcrumb crumbs={[resolvedSubtitle]} />
+                ) : null}
+                <div className="flex min-w-0 items-center gap-2">
+                  <h1 className="truncate text-base font-semibold tracking-tight text-white sm:text-lg md:text-xl">
+                    {resolvedTitle}
+                  </h1>
+                  {isDemoHost ? (
                     <span
-                      className="mt-2 block h-[2px] w-3/4 max-w-full rounded-full"
-                      style={{
-                        background: `linear-gradient(90deg, ${sectionAccent} 0%, ${sectionAccent}cc 42%, ${sectionAccent}66 68%, transparent 100%)`,
-                        boxShadow: `0 0 14px color-mix(in srgb, ${sectionAccent} 28%, transparent)`,
-                      }}
-                      aria-hidden
-                    />
+                      className="shrink-0 rounded border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200"
+                      title="Demo surface — same build as Internal; curated workspace content"
+                    >
+                      Demo
+                    </span>
                   ) : null}
                 </div>
+                {sectionAccent ? (
+                  <span
+                    className="mt-2 block h-[3px] w-3/4 max-w-full rounded-full"
+                    style={{
+                      background: `linear-gradient(90deg, ${sectionAccent} 0%, ${sectionAccent} 38%, ${sectionAccent}99 62%, transparent 100%)`,
+                      boxShadow: `0 0 16px color-mix(in srgb, ${sectionAccent} 45%, transparent)`,
+                    }}
+                    aria-hidden
+                  />
+                ) : null}
+              </div>
             </div>
 
             <div className="relative flex shrink-0 items-center gap-2">
