@@ -1024,6 +1024,20 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
   let insertedIntelligence = false;
 
   for (const section of sections) {
+    if (section.kind === "pin") {
+      const isHome = section.items.some((item) => item.view === "home");
+      out.push(
+        isHome
+          ? {
+              ...section,
+              /** OnwardAir brand teal RGB(38, 123, 144) — matches onwardair.tech CTA. */
+              color: "#267B90",
+            }
+          : section,
+      );
+      continue;
+    }
+
     if (section.label === "Financials") {
       out.push(stripOnwardAirPlatformItems(section));
       out.push(ONWARDAIR_FUNDRAISING_NAV_SECTION);

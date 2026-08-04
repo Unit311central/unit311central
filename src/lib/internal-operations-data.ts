@@ -632,8 +632,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
   {
     kind: "pin",
     label: null,
-    /** Distinct from Business Central blue — coral for Home only. */
-    color: "#FF6B4A",
+    color: "#2F80ED",
     items: [{ label: "HOME", icon: "LayoutDashboard", view: "home" as const }],
   },
   ...(EXECUTIVE_ASSISTANT_VISIBLE
@@ -1353,8 +1352,18 @@ export function getInternalNavBreadcrumb(
 export function resolveInternalNavSectionAccent(
   activeView: InternalOperationsView,
 ): string | null {
-  // Pin accents are authoritative — do not inherit Business Central blue.
-  if (activeView === "home") return "#FF6B4A";
+  // Pin accents — OnwardAir Home uses brand teal RGB(38,123,144).
+  if (activeView === "home") {
+    if (typeof window !== "undefined") {
+      try {
+        const { isBrowserOnwardAirSurface } =
+          require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+        if (isBrowserOnwardAirSurface()) return "#267B90";
+      } catch {
+        /* fall through */
+      }
+    }
+  }
   if (activeView === "executive-assistant") return "#12B886";
 
   let navSections: readonly InternalNavSection[] = internalSurveyNavSections;
