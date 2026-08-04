@@ -137,10 +137,7 @@ export async function ensureWorkspaceMailboxCredentialsFromEnv(
     const envCredential = readEnvCredential(id);
     if (!envCredential?.password) continue;
     const existing = await readSupabaseCredential(id, workspaceId);
-    // Refresh when missing or clearly shorter than the live env secret.
-    if (existing?.password && existing.password.length >= envCredential.password.length) {
-      continue;
-    }
+    if (existing?.password === envCredential.password) continue;
     try {
       await saveMailboxCredentials(id, envCredential.password, envCredential.email, {
         workspaceId,
