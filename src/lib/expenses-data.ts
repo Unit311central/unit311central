@@ -174,6 +174,19 @@ export function formatExpenseAmount(amount: number, currency: ExpenseCurrency) {
   );
 }
 
+/** Supplier AP seed rows share financial_expenses — hide from Expenses (T&E) views. */
+export function isAccountsPayableSeedExpense(expense: {
+  reference?: string | null;
+  purposeDescription?: string | null;
+}): boolean {
+  const ref = String(expense.reference ?? "").toUpperCase();
+  if (ref.startsWith("OA-AP-") || ref.startsWith("CC-AP-") || ref.startsWith("AP-DME")) {
+    return true;
+  }
+  const purpose = String(expense.purposeDescription ?? "").toLowerCase();
+  return purpose.includes("· oa ap seed") || purpose.includes("· corpcentre ap seed");
+}
+
 export function getInternalUserById(userId: string) {
   return INTERNAL_EXPENSE_USERS.find((user) => user.id === userId) ?? null;
 }

@@ -7,7 +7,7 @@ import { formatMoney, withPreferredCurrencySymbol } from "@/lib/accounting/chart
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
-import { inferExpenseCategory, type FinancialExpense } from "@/lib/expenses-data";
+import { inferExpenseCategory, isAccountsPayableSeedExpense, type FinancialExpense } from "@/lib/expenses-data";
 
 function crmReportingCurrency(): "AUD" | "GBP" | "USD" {
   try {
@@ -371,11 +371,27 @@ function expensesReportingCurrency(expenses: FinancialExpense[]): string {
 function emptyExpensesDashboardTiles(currency: string): DashboardTileDefinition[] {
   const money = (value: number) => formatMoney(value, currency);
   return [
-    { id: "spend-mtd", label: "Spend MTD", value: money(0), hint: "From expense journals" },
+    { id: "spend-mtd", label: "Spend MTD", value: money(0), hint: "Expense claims this month" },
     { id: "pending-approval", label: "Unpaid", value: "0", hint: "Open payables" },
     { id: "travel", label: "Categories", value: "0", hint: "Ledger-linked" },
     { id: "budget-remaining", label: "Posted", value: "0", hint: "With journal links" },
   ];
+}
+
+/** Supplier AP seeds live in financial_expenses too — exclude from Expenses T&E KPIs. */
+function expenseAmountInReportingCurrency(expense: FinancialExpense, reporting: string): number {
+  const amount = Number(expense.amount) || 0;
+  const from = String(expense.currency || reporting).toUpperCase();
+  const to = String(reporting || "GBP").toUpperCase();
+  if (from === to) return amount;
+  // Same GBP pivot as financial overview.
+  const toGbp =
+    from === "GBP" ? amount : from === "USD" ? amount * 0.79 : from === "EUR" ? amount * 0.86 : from === "AUD" ? amount / 1.95 : amount;
+  if (to === "GBP") return Math.round(toGbp * 100) / 100;
+  if (to === "USD") return Math.round((toGbp / 0.79) * 100) / 100;
+  if (to === "EUR") return Math.round((toGbp / 0.86) * 100) / 100;
+  if (to === "AUD") return Math.round(toGbp * 1.95 * 100) / 100;
+  return amount;
 }
 
 export function buildExpensesDashboardCatalog(
@@ -383,33 +399,38 @@ export function buildExpensesDashboardCatalog(
 ): DashboardTileDefinition[] {
   const currency = expensesReportingCurrency(expenses);
   const templates = emptyExpensesDashboardTiles(currency);
-  const now = new Date();
-  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  // UTC month — matches expense_date seeds and AP KPI monthPrefix.
+  const monthPrefix = new Date().toISOString().slice(0, 7);
 
-  const spendMtd = expenses
+  const claimExpenses = expenses.filter((expense) => !isAccountsPayableSeedExpense(expense));
+
+  const spendMtd = claimExpenses
     .filter((expense) => {
-      const date = expense.expenseDate || expense.dateSubmitted;
+      const date = String(expense.expenseDate || expense.dateSubmitted || "");
       return date.slice(0, 7) === monthPrefix;
     })
-    .reduce((sum, expense) => sum + expense.amount, 0);
+    .reduce(
+      (sum, expense) => sum + expenseAmountInReportingCurrency(expense, currency),
+      0,
+    );
 
-  const unpaidCount = expenses.filter((expense) => !expense.paid).length;
+  const unpaidCount = claimExpenses.filter((expense) => !expense.paid).length;
 
   const categories = new Set(
-    expenses.map(
+    claimExpenses.map(
       (expense) =>
         expense.categoryAccountCode ||
         inferExpenseCategory(expense.purposeDescription),
     ),
   );
 
-  const postedCount = expenses.filter((expense) => Boolean(expense.journalEntryId)).length;
+  const postedCount = claimExpenses.filter((expense) => Boolean(expense.journalEntryId)).length;
   const money = (value: number) => formatMoney(value, currency);
 
   return templates.map((tile) => {
     switch (tile.id) {
       case "spend-mtd":
-        return { ...tile, value: money(spendMtd) };
+        return { ...tile, value: money(Math.round(spendMtd * 100) / 100) };
       case "pending-approval":
         return { ...tile, value: String(unpaidCount) };
       case "travel":

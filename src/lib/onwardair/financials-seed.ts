@@ -25,7 +25,7 @@ import {
   isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
 
-export const OA_FINANCIALS_SEED_VERSION = "oa-fin-v2";
+export const OA_FINANCIALS_SEED_VERSION = "oa-fin-v3";
 const CORE_SOURCE_TYPE = "manual";
 const CORE_SOURCE_ID = `${OA_FINANCIALS_SEED_VERSION}-core`;
 const DETAILS_SOURCE_ID = `${OA_FINANCIALS_SEED_VERSION}-details`;
@@ -539,12 +539,13 @@ async function seedStaffExpenses(workspaceId: string): Promise<void> {
   let seq = 1;
 
   for (const staff of OA_STAFF_EXPENSE_OWNERS) {
-    for (let month = 1; month <= 12; month += 1) {
+    // Include month 0 (current) so Expenses "Spend MTD" is populated.
+    for (let month = 0; month < 12; month += 1) {
       const category = staff.categories[month % staff.categories.length]!;
       const jitter = ((month * 17 + seq * 3) % 40) - 20;
       const amount = Math.max(120, Math.round(category.base * (0.85 + (month % 5) * 0.06) + jitter));
       const expenseDate = isoMonthsAgo(month, 5 + (seq % 20));
-      const paid = month >= 10;
+      const paid = month >= 9;
       rows.push({
         id: randomUUID(),
         workspace_id: workspaceId,
@@ -635,8 +636,6 @@ async function seedDetailsMarker(workspaceId: string): Promise<void> {
 
 async function runCoreSeed(workspaceId: string): Promise<void> {
   if (await hasJournalMarker(workspaceId, CORE_SOURCE_ID)) return;
-  // Also accept v1 marker so we don't wipe a completed v1 seed mid-flight.
-  if (await hasJournalMarker(workspaceId, "oa-fin-v1")) return;
 
   await wipeWorkspaceFinancials(workspaceId);
   await seedChartOfAccounts(workspaceId);
@@ -645,14 +644,13 @@ async function runCoreSeed(workspaceId: string): Promise<void> {
 
 async function runDetailsSeed(workspaceId: string): Promise<void> {
   if (await hasJournalMarker(workspaceId, DETAILS_SOURCE_ID)) return;
-  // Need core first.
+
+  // Need core first (current version marker).
   if (!(await hasJournalMarker(workspaceId, CORE_SOURCE_ID))) {
-    if (!(await hasJournalMarker(workspaceId, "oa-fin-v1"))) {
-      await runCoreSeed(workspaceId);
-    }
+    await runCoreSeed(workspaceId);
   }
 
-  // Skip if AP already present from a prior partial run.
+  // Skip if this version already planted AP rows (partial retry).
   const supabase = adminClient();
   const { count } = await supabase
     .from("financial_expenses")

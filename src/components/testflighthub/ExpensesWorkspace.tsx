@@ -12,6 +12,7 @@ import {
   getInternalUserById,
   inferExpenseCategory,
   INTERNAL_EXPENSE_USERS,
+  isAccountsPayableSeedExpense,
   sumOutstandingExpenses,
   type ExpenseCurrency,
   type FinancialExpense,
@@ -250,7 +251,9 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
       const data = await readApiJson<{ expenses?: FinancialExpense[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load expenses");
 
-      const next = data.expenses ?? [];
+      const next = (data.expenses ?? []).filter(
+        (expense) => !isAccountsPayableSeedExpense(expense),
+      );
       setExpenses(next);
       setSelectedId((current) => {
         if (current === "__draft__") return current;
