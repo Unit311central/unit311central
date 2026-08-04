@@ -13,32 +13,50 @@ export const ONWARDAIR_LOGO_PNG_SRC = "/images/workspaces/onwardair-logo.png";
 export const ONWARDAIR_LOGO_INTRINSIC_WIDTH = 640;
 export const ONWARDAIR_LOGO_INTRINSIC_HEIGHT = 168;
 
-/** Home LHS stripe + RHS title accent — exact RGB(38, 123, 144). */
-export const ONWARDAIR_HOME_ACCENT = "rgb(38, 123, 144)";
+/**
+ * Home LHS stripe + RHS title accent — RGB(38, 123, 144).
+ * Must stay hex so CSS `${accent}99` alpha suffixes remain valid.
+ */
+export const ONWARDAIR_HOME_ACCENT = "#267B90";
 
-/** Executive Assistant — mint (unique vs Financials forest green). */
+/** Executive Assistant — mint RGB(18, 184, 134). */
 export const ONWARDAIR_EA_ACCENT = "#12B886";
 
 /**
- * Unique LHS accents for every OnwardAir workspace module.
- * Intentionally spaced hues so blues/golds/greens never collide.
+ * Unique OnwardAir LHS accents — every module a distinct hue (no near-dupes).
+ * Values are hex; RGB equivalents documented in comments.
  */
 export const ONWARDAIR_MODULE_ACCENTS: Readonly<Record<string, string>> = {
+  /** RGB(37, 99, 235) */
   "Business Central": "#2563EB",
+  /** RGB(192, 38, 211) */
   "OnwardAir Intelligence": "#C026D3",
-  Financials: "#15803D",
-  Fundraising: "#F59E0B",
-  Board: "#F43F5E",
-  "Corporate Information": "#A16207",
-  Operations: "#0D9488",
-  "Technology Management": "#8B5CF6",
-  "Human Resources": "#EC4899",
-  "Business Productivity": "#22D3EE",
-  "Project Management": "#F97316",
-  Engineering: "#EF4444",
-  Training: "#EAB308",
-  QMS: "#84CC16",
-  "Marketing & Events": "#E11D48",
+  /** RGB(22, 101, 52) */
+  Financials: "#166534",
+  /** RGB(217, 119, 6) */
+  Fundraising: "#D97706",
+  /** RGB(190, 18, 60) */
+  Board: "#BE123C",
+  /** RGB(120, 113, 108) */
+  "Corporate Information": "#78716C",
+  /** RGB(2, 132, 199) — sky, not Home teal */
+  Operations: "#0284C7",
+  /** RGB(79, 70, 229) */
+  "Technology Management": "#4F46E5",
+  /** RGB(219, 39, 119) */
+  "Human Resources": "#DB2777",
+  /** RGB(8, 145, 178) */
+  "Business Productivity": "#0891B2",
+  /** RGB(234, 88, 12) */
+  "Project Management": "#EA580C",
+  /** RGB(124, 58, 237) — violet, not Board crimson */
+  Engineering: "#7C3AED",
+  /** RGB(202, 138, 4) — gold, not Fundraising amber */
+  Training: "#CA8A04",
+  /** RGB(101, 163, 13) */
+  QMS: "#65A30D",
+  /** RGB(244, 114, 182) */
+  "Marketing & Events": "#F472B6",
 };
 
 export function isOnwardAirSlug(slug: string | null | undefined): boolean {

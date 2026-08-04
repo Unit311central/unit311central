@@ -24,6 +24,7 @@ import { isDemoDomainHost, isInternalDomainHost } from "@/lib/app-domains";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import {
   isBrowserOnwardAirSurface,
+  ONWARDAIR_EA_ACCENT,
   ONWARDAIR_HOME_ACCENT,
 } from "@/lib/onwardair-surface";
 import { PLATFORM_AI_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
@@ -149,7 +150,9 @@ export default function SurveyOperationsShell({
     isInternalOperationsView(activeView)
       ? activeView === "home" && isBrowserOnwardAirSurface()
         ? ONWARDAIR_HOME_ACCENT
-        : resolveInternalNavSectionAccent(activeView)
+        : activeView === "executive-assistant" && isBrowserOnwardAirSurface()
+          ? ONWARDAIR_EA_ACCENT
+          : resolveInternalNavSectionAccent(activeView)
       : null;
 
   const shell = (
@@ -239,7 +242,7 @@ export default function SurveyOperationsShell({
                   <span
                     className="mt-2 block h-[3px] w-3/4 max-w-full rounded-full"
                     style={{
-                      background: `linear-gradient(90deg, ${sectionAccent} 0%, ${sectionAccent} 38%, ${sectionAccent}99 62%, transparent 100%)`,
+                      background: `linear-gradient(90deg, ${sectionAccent} 0%, ${sectionAccent} 38%, color-mix(in srgb, ${sectionAccent} 60%, transparent) 62%, transparent 100%)`,
                       boxShadow: `0 0 16px color-mix(in srgb, ${sectionAccent} 45%, transparent)`,
                     }}
                     aria-hidden
