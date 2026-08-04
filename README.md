@@ -58,7 +58,9 @@ unit311/
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in real values locally only
+# Preferred: pull secrets from Vercel (see docs/LOCAL_ENV_RECOVERY.md)
+vercel link && vercel env pull .env.local
+# Or: cp .env.example .env.local   # then fill values manually
 npm run dev
 ```
 
@@ -73,6 +75,7 @@ Localhost keeps path-based Internal routing (`/internaldashboard`). Host-based r
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Host model, tenancy, app layout |
 | [DEPLOYMENT.md](./DEPLOYMENT.md) | Vercel, domains, DNS, migrations |
 | [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md) | Canonical repo, Git-only prod, rollback |
+| [docs/LOCAL_ENV_RECOVERY.md](./docs/LOCAL_ENV_RECOVERY.md) | Restore `.env.local` from Vercel |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to work in this repo |
 | [docs/WORKSPACE_ARCHITECTURE.md](./docs/WORKSPACE_ARCHITECTURE.md) | Workspace / `workspace_id` technical specification |
 | [docs/TECHNICAL_DEBT.md](./docs/TECHNICAL_DEBT.md) | Known debt and improvement backlog |
