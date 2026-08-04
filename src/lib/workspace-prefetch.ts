@@ -88,6 +88,8 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "oa-ip-search": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
   "oa-competitor-intelligence": () =>
     import("@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace"),
+  "oa-ecosystem-partners": () =>
+    import("@/components/onwardair/OnwardAirEcosystemPartnersWorkspace"),
   "oa-engineering-overview": () =>
     import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
   "oa-programs-milestones": () =>

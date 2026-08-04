@@ -1,9 +1,9 @@
 /**
- * OnwardAir Competitor Intelligence — live weekly feed.
+ * OnwardAir Competitor Intelligence — live weekly feed (certification race).
  *
  * Cadence: one competitive brief per ISO week (auto-created on Home / CI open).
- * Signals are derived from the curated public competitor landscape plus weekly
- * watch themes — not a scraped news API. Blank / unknown fields stay blank.
+ * Themes weighted Certification → Funding runway → Partnerships → cargo vs passenger.
+ * Not a scraped news API. Blank / unknown fields stay blank.
  */
 
 import { COMPETITOR_PROFILES, listCompetitors } from "@/lib/onwardair/competitor-intelligence-data";
@@ -14,8 +14,8 @@ export type CompetitorIntelCategory =
   | "Weekly Brief"
   | "Certification"
   | "Funding"
-  | "Program"
-  | "Market";
+  | "Partnership"
+  | "Program";
 
 export type CompetitorIntelItem = {
   id: string;
@@ -41,7 +41,7 @@ export type CompetitorIntelFeedState = {
 
 type Listener = () => void;
 
-const STORAGE_KEY = "unit311.onwardair.competitor-intelligence-feed.v1";
+const STORAGE_KEY = "unit311.onwardair.competitor-intelligence-feed.v2";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const listeners = new Set<Listener>();
@@ -89,33 +89,39 @@ function nextWeekLabel(from = new Date()): string {
 const WEEKLY_WATCH_THEMES = [
   {
     focusId: "joby-aviation",
-    theme: "FAA certification progress among US air-taxi leaders",
+    theme: "FAA certification stage language among US leaders",
     detail:
-      "Monitor Type Inspection Authorization and stage progression for leading US eVTOL programs.",
-  },
-  {
-    focusId: "archer-aviation",
-    theme: "Launch-partner and manufacturing readiness signals",
-    detail:
-      "Track public manufacturing and airline partnership milestones that compress time-to-service.",
-  },
-  {
-    focusId: "lilium",
-    theme: "European certification and capital runway",
-    detail:
-      "Watch EASA pathway updates and funding disclosures for European eVTOL developers.",
-  },
-  {
-    focusId: "vertical-aerospace",
-    theme: "UK / EASA program credibility",
-    detail:
-      "Assess VX4 test campaign updates and partner commitments against certification timelines.",
+      "Watch TIA / stage progression and how FAA phrases means of compliance — inputs for Vertex pathway planning.",
   },
   {
     focusId: "beta-technologies",
-    theme: "Cargo-first operators vs passenger certification races",
+    theme: "Cargo / utility cert race vs passenger vanity",
     detail:
-      "Compare cargo/utility operators advancing flight hours against passenger eVTOL certification queues.",
+      "Prioritize cargo-first flight hours and dual CTOL/VTOL tracks over passenger seat-count headlines.",
+  },
+  {
+    focusId: "archer-aviation",
+    theme: "Funding runway + manufacturing partnerships",
+    detail:
+      "Capital and OEM/airline partnerships that determine who survives a multi-year FAA slog.",
+  },
+  {
+    focusId: "vertical-aerospace",
+    theme: "EASA SC-VTOL credibility and capital stress",
+    detail:
+      "European dual-path watch: certification target dates only matter if funding runway holds.",
+  },
+  {
+    focusId: "autoflight",
+    theme: "Cargo variant certification ahead of passenger",
+    detail:
+      "CarryAll-style cargo TC signals reinforce middle-mile / utility-first certification strategy.",
+  },
+  {
+    focusId: "volocopter",
+    theme: "Certification without capital runway",
+    detail:
+      "Restructuring / funding stress cases — program credibility collapses when the balance sheet fails.",
   },
 ] as const;
 
@@ -139,11 +145,11 @@ function buildWeeklyBrief(weekKey: string): CompetitorIntelItem {
     publishedAt: weekStartIso(weekKey),
     category: "Weekly Brief",
     severity: "info",
-    title: `Weekly competitive brief · ${weekKey}`,
-    summary: `${competitors.length} tracked AAM/eVTOL competitors · ${inCert.length} in certification · ${certified.length} certified/in production. This week’s watch: ${theme.theme}. Focus: ${focus.companyName} (${focus.aircraftName || "program TBD"}) — ${theme.detail}`,
+    title: `Weekly cert-race brief · ${weekKey}`,
+    summary: `${competitors.length} tracked competitors · ${inCert.length} in certification · ${certified.length} certified/in production. This week’s watch: ${theme.theme}. Focus: ${focus.companyName} (${focus.aircraftName || "program TBD"} · ${focus.certAuthority || "authority TBD"} · ${focus.missionFocus}) — ${theme.detail}`,
     competitorId: focus.id,
     competitorName: focus.companyName,
-    sourceLabel: "OnwardAir Competitor Intelligence · weekly cadence",
+    sourceLabel: "OnwardAir Competitor Intelligence · cert-race cadence",
     read: false,
     notified: false,
   };
@@ -152,10 +158,9 @@ function buildWeeklyBrief(weekKey: string): CompetitorIntelItem {
 function buildSignalItems(weekKey: string): CompetitorIntelItem[] {
   const theme = themeForWeek(weekKey);
   const focus = COMPETITOR_PROFILES.find((c) => c.id === theme.focusId);
-  const inCert = COMPETITOR_PROFILES.filter((c) => c.certificationCategory === "In Certification").slice(
-    0,
-    2,
-  );
+  const cargoMixed = COMPETITOR_PROFILES.filter(
+    (c) => c.missionFocus === "Cargo / Utility" || c.missionFocus === "Mixed",
+  ).slice(0, 2);
   const publishedAt = new Date(weekStartIso(weekKey));
   publishedAt.setUTCHours(10, 0, 0, 0);
 
@@ -169,16 +174,35 @@ function buildSignalItems(weekKey: string): CompetitorIntelItem[] {
       category: "Certification",
       severity: focus.certificationCategory === "In Certification" ? "warning" : "info",
       title: `${focus.companyName} — certification watch`,
-      summary: `${focus.certificationStatus || focus.certificationCategory}. Aircraft: ${focus.aircraftName || "—"}. ${theme.detail}`,
+      summary: `${focus.certAuthority || "Authority TBD"} · ${focus.certificationStatus || focus.certificationCategory}. Next milestone: ${focus.nextCertMilestone || "—"}. OA relevance: ${focus.oaRelevance}`,
       competitorId: focus.id,
       competitorName: focus.companyName,
       sourceLabel: "Public certification / program reporting",
       read: false,
       notified: false,
     });
+
+    if (focus.fundingRaised || focus.keyPartnerships) {
+      const fundingTs = new Date(publishedAt);
+      fundingTs.setUTCHours(14, 0, 0, 0);
+      items.push({
+        id: `signal-funding-${weekKey}-${focus.id}`,
+        weekKey,
+        publishedAt: fundingTs.toISOString(),
+        category: focus.keyPartnerships ? "Partnership" : "Funding",
+        severity: "info",
+        title: `${focus.companyName} — runway & partners`,
+        summary: `Funding: ${focus.fundingRaised || "—"}. Partnerships: ${focus.keyPartnerships || "—"}. Surviving the cert slog matters as much as stage language.`,
+        competitorId: focus.id,
+        competitorName: focus.companyName,
+        sourceLabel: "Public company / industry reporting",
+        read: false,
+        notified: false,
+      });
+    }
   }
 
-  for (const [i, c] of inCert.entries()) {
+  for (const [i, c] of cargoMixed.entries()) {
     if (c.id === focus?.id) continue;
     const ts = new Date(publishedAt);
     ts.setUTCDate(ts.getUTCDate() + i + 1);
@@ -188,8 +212,8 @@ function buildSignalItems(weekKey: string): CompetitorIntelItem[] {
       publishedAt: ts.toISOString(),
       category: "Program",
       severity: "info",
-      title: `${c.companyName} program status`,
-      summary: `${c.aircraftName} · ${c.aircraftType}. Status: ${c.certificationStatus || c.certificationCategory}. HQ: ${c.headquarters || c.country}.`,
+      title: `${c.companyName} — ${c.missionFocus} mission`,
+      summary: `${c.aircraftName || "Program"} · ${c.certAuthority || "authority TBD"}. Status: ${c.certificationStatus || c.certificationCategory}. ${c.oaRelevance}`,
       competitorId: c.id,
       competitorName: c.companyName,
       sourceLabel: "Public company / industry reporting",

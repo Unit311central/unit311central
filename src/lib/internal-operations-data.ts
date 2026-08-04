@@ -203,6 +203,7 @@ export type InternalOperationsView =
   | "oa-ip-documents"
   | "oa-ip-search"
   | "oa-competitor-intelligence"
+  | "oa-ecosystem-partners"
   | "oa-marketing-dashboard"
   | "business-central-dashboard";
 
@@ -454,6 +455,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "oa-ip-documents",
   "oa-ip-search",
   "oa-competitor-intelligence",
+  "oa-ecosystem-partners",
   "oa-marketing-dashboard",
   "business-central-dashboard",
 ];
@@ -1314,6 +1316,10 @@ export const internalViewTitles: Record<
   "oa-ip-search": { title: "IP Search", subtitle: "IP & Patents" },
   "oa-competitor-intelligence": {
     title: "Competitor Intelligence",
+    subtitle: "OnwardAir Intelligence",
+  },
+  "oa-ecosystem-partners": {
+    title: "Ecosystem Partners",
     subtitle: "OnwardAir Intelligence",
   },
   "oa-marketing-dashboard": {

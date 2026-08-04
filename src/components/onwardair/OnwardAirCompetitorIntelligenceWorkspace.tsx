@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Building2,
   Globe,
+  Handshake,
   Plane,
   Radio,
   RefreshCw,
@@ -80,8 +81,9 @@ function CompetitorList() {
 
   const [query, setQuery] = useState("");
   const [country, setCountry] = useState("");
-  const [aircraftType, setAircraftType] = useState("");
-  const [sortKey, setSortKey] = useState<CompetitorSortKey>("companyName");
+  const [missionFocus, setMissionFocus] = useState("");
+  const [certCategory, setCertCategory] = useState("");
+  const [sortKey, setSortKey] = useState<CompetitorSortKey>("certificationCategory");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
@@ -101,16 +103,22 @@ function CompetitorList() {
     let list = query.trim() ? searchCompetitors(query) : competitors;
     list = filterCompetitors(list, {
       country: country || undefined,
-      aircraftType: aircraftType || undefined,
+      missionFocus: missionFocus || undefined,
+      certificationCategory: certCategory || undefined,
     });
     return sortCompetitors(list, sortKey, sortDir);
-  }, [competitors, query, country, aircraftType, sortKey, sortDir]);
+  }, [competitors, query, country, missionFocus, certCategory, sortKey, sortDir]);
 
   const publicCount = competitors.filter((c) => c.fundingRaised.includes("Public")).length;
   const certifiedCount = competitors.filter(
     (c) => c.certificationCategory === "Certified / In Production",
   ).length;
-  const countryCount = new Set(competitors.map((c) => c.country)).size;
+  const inCertCount = competitors.filter(
+    (c) => c.certificationCategory === "In Certification",
+  ).length;
+  const cargoMixedCount = competitors.filter(
+    (c) => c.missionFocus === "Cargo / Utility" || c.missionFocus === "Mixed",
+  ).length;
 
   function openCompetitor(id: string) {
     router.push(
@@ -131,7 +139,7 @@ function CompetitorList() {
     const result = ensureWeeklyCompetitorIntelligenceRefresh({ force: true });
     setRefreshNotice(
       result.created
-        ? `Live feed refreshed for ${result.weekKey} · ${result.newItems.length} new item${result.newItems.length === 1 ? "" : "s"}.`
+        ? `Cert-race feed refreshed for ${result.weekKey} · ${result.newItems.length} new item${result.newItems.length === 1 ? "" : "s"}.`
         : `Feed already current for ${result.weekKey}.`,
     );
     window.setTimeout(() => setRefreshNotice(null), 3500);
@@ -147,15 +155,15 @@ function CompetitorList() {
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/85">
-              OnwardAir · Business Central · Live feed
+              OnwardAir Intelligence · Certification race
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               Competitor Intelligence
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/60">
-              Weekly competitive brief auto-publishes every Monday. Unread briefs appear on the
-              Executive Dashboard Business Alerts. Landscape profiles stay public-source only —
-              blank fields mean not confidently disclosed.
+              Track who is winning the multi-year cert slog: authority posture, funding runway,
+              partnerships, and cargo vs passenger mission. Passenger launch vanity is
+              de-emphasized. Blank fields mean not confidently disclosed.
             </p>
           </div>
           <button
@@ -175,9 +183,9 @@ function CompetitorList() {
             label="Unread alerts"
             value={String(cadence.unreadCount)}
           />
-          <KpiTile icon={<Plane className="h-4 w-4" />} label="Tracked Competitors" value={String(competitors.length)} />
-          <KpiTile icon={<Globe className="h-4 w-4" />} label="Countries" value={String(countryCount)} />
-          <KpiTile icon={<ShieldCheck className="h-4 w-4" />} label="Certified / In Production" value={String(certifiedCount)} />
+          <KpiTile icon={<ShieldCheck className="h-4 w-4" />} label="In certification" value={String(inCertCount)} />
+          <KpiTile icon={<Plane className="h-4 w-4" />} label="Cargo / mixed" value={String(cargoMixedCount)} />
+          <KpiTile icon={<Globe className="h-4 w-4" />} label="Certified / in production" value={String(certifiedCount)} />
         </div>
         {refreshNotice ? (
           <p className="relative mt-3 text-xs font-medium text-emerald-300/90">{refreshNotice}</p>
@@ -196,10 +204,10 @@ function CompetitorList() {
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-300/80">
-              Competitive landscape
+              Certification landscape
             </h2>
             <p className="mt-1 text-xs text-white/45">
-              {publicCount} public companies tracked · click a row for full profile
+              {publicCount} public companies tracked · sorted by cert posture by default
             </p>
           </div>
         </div>
@@ -209,47 +217,38 @@ function CompetitorList() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search competitors, aircraft…"
+              placeholder="Search company, authority, partners…"
               className="w-full rounded-lg border border-white/15 bg-black/30 py-2 pl-9 pr-3 text-sm text-white placeholder:text-white/30 focus:border-sky-400/50 focus:outline-none"
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            <FilterChip
-              label="All countries"
-              active={country === ""}
-              onClick={() => setCountry("")}
-            />
-            {COMPETITOR_FILTERS.countries.map((c) => (
-              <FilterChip key={c} label={c} active={country === c} onClick={() => setCountry(c)} />
+            <FilterChip label="All missions" active={missionFocus === ""} onClick={() => setMissionFocus("")} />
+            {COMPETITOR_FILTERS.missionFocuses.map((m) => (
+              <FilterChip key={m} label={m} active={missionFocus === m} onClick={() => setMissionFocus(m)} />
             ))}
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
-          <FilterChip
-            label="All aircraft types"
-            active={aircraftType === ""}
-            onClick={() => setAircraftType("")}
-          />
-          {COMPETITOR_FILTERS.aircraftTypes.map((t) => (
-            <FilterChip
-              key={t}
-              label={t}
-              active={aircraftType === t}
-              onClick={() => setAircraftType(t)}
-            />
+          <FilterChip label="All cert status" active={certCategory === ""} onClick={() => setCertCategory("")} />
+          {COMPETITOR_FILTERS.certificationCategories.map((c) => (
+            <FilterChip key={c} label={c} active={certCategory === c} onClick={() => setCertCategory(c)} />
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <FilterChip label="All countries" active={country === ""} onClick={() => setCountry("")} />
+          {COMPETITOR_FILTERS.countries.map((c) => (
+            <FilterChip key={c} label={c} active={country === c} onClick={() => setCountry(c)} />
           ))}
         </div>
 
         <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
-          <table className="min-w-[1100px] w-full text-left text-sm">
+          <table className="min-w-[1180px] w-full text-left text-sm">
             <thead className="bg-black/30 text-[10px] uppercase tracking-[0.12em] text-white/40">
               <tr>
                 <SortableTh label="Company" sortKey="companyName" active={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Headquarters" sortKey="headquarters" active={sortKey} dir={sortDir} onClick={toggleSort} />
                 <SortableTh label="Aircraft" sortKey="aircraftName" active={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Capacity" sortKey="passengerCapacity" active={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Range" sortKey="range" active={sortKey} dir={sortDir} onClick={toggleSort} />
-                <SortableTh label="Cruise Speed" sortKey="cruiseSpeed" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Mission" sortKey="missionFocus" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <SortableTh label="Authority" sortKey="certAuthority" active={sortKey} dir={sortDir} onClick={toggleSort} />
                 <SortableTh
                   label="Certification"
                   sortKey="certificationCategory"
@@ -257,7 +256,8 @@ function CompetitorList() {
                   dir={sortDir}
                   onClick={toggleSort}
                 />
-                <Th>Funding</Th>
+                <SortableTh label="Funding" sortKey="fundingRaised" active={sortKey} dir={sortDir} onClick={toggleSort} />
+                <Th>Partnerships</Th>
               </tr>
             </thead>
             <tbody>
@@ -269,19 +269,13 @@ function CompetitorList() {
                 >
                   <td className="px-3 py-2.5 font-medium text-white">{c.companyName}</td>
                   <td className="px-3 py-2.5">
-                    <Field value={c.headquarters} />
-                  </td>
-                  <td className="px-3 py-2.5">
                     <Field value={c.aircraftName} />
                   </td>
                   <td className="px-3 py-2.5">
-                    <Field value={c.passengerCapacity} />
+                    <Field value={c.missionFocus} />
                   </td>
                   <td className="px-3 py-2.5">
-                    <Field value={c.range} />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <Field value={c.cruiseSpeed} />
+                    <Field value={c.certAuthority} />
                   </td>
                   <td className="px-3 py-2.5">
                     <span
@@ -296,11 +290,16 @@ function CompetitorList() {
                   <td className="px-3 py-2.5">
                     <Field value={c.fundingRaised} />
                   </td>
+                  <td className="max-w-[220px] px-3 py-2.5">
+                    <span className={cn("line-clamp-2", c.keyPartnerships ? "text-white/75" : "text-white/30")}>
+                      {c.keyPartnerships || "—"}
+                    </span>
+                  </td>
                 </tr>
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-white/40">
+                  <td colSpan={7} className="px-3 py-8 text-center text-white/40">
                     No competitors match this filter.
                   </td>
                 </tr>
@@ -334,9 +333,9 @@ function LiveIntelligenceFeed({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/85">
-            Live intelligence feed
+            Live cert-race feed
           </p>
-          <h2 className="mt-1 text-lg font-semibold text-white">Weekly competitive updates</h2>
+          <h2 className="mt-1 text-lg font-semibold text-white">Weekly certification updates</h2>
           <p className="mt-1 text-sm text-white/55">
             Week {cadence.currentWeekKey}
             {cadence.lastEnsuredAt
@@ -439,7 +438,11 @@ function CompetitorDetail({ competitor }: { competitor: CompetitorProfile }) {
 
   const provenanceText = [
     `${competitor.companyName} — ${competitor.aircraftName}`,
-    `HQ: ${competitor.headquarters}`,
+    `Authority: ${competitor.certAuthority || "—"}`,
+    `Mission: ${competitor.missionFocus}`,
+    `Cert: ${competitor.certificationStatus || competitor.certificationCategory}`,
+    `Partnerships: ${competitor.keyPartnerships || "—"}`,
+    `OA relevance: ${competitor.oaRelevance}`,
     competitor.dataNotes ? `Data notes: ${competitor.dataNotes}` : null,
     competitor.website ? `Website: ${competitor.website}` : null,
   ]
@@ -467,7 +470,7 @@ function CompetitorDetail({ competitor }: { competitor: CompetitorProfile }) {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/85">
-              Competitor Intelligence
+              Cert-race profile
             </p>
             <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               {competitor.companyName}
@@ -492,7 +495,7 @@ function CompetitorDetail({ competitor }: { competitor: CompetitorProfile }) {
               >
                 {competitors.map((c) => (
                   <option key={c.id} value={c.id} className="bg-[#0a1420] text-white">
-                    {c.companyName} · {c.country}
+                    {c.companyName} · {c.certAuthority || c.country}
                   </option>
                 ))}
               </select>
@@ -510,6 +513,15 @@ function CompetitorDetail({ competitor }: { competitor: CompetitorProfile }) {
             <ShieldCheck className="h-3.5 w-3.5" />
             {competitor.certificationCategory}
           </span>
+          {competitor.certAuthority ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-3 py-1.5">
+              {competitor.certAuthority}
+            </span>
+          ) : null}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-3 py-1.5">
+            <Plane className="h-3.5 w-3.5" />
+            {competitor.missionFocus}
+          </span>
           {competitor.yearsOperating ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-3 py-1.5">
               <Users className="h-3.5 w-3.5" />
@@ -518,6 +530,34 @@ function CompetitorDetail({ competitor }: { competitor: CompetitorProfile }) {
           ) : null}
         </div>
       </header>
+
+      <section className="rounded-2xl border border-sky-400/25 bg-sky-500/[0.06] p-5">
+        <h2 className="text-sm font-semibold text-white">Why it matters to OnwardAir</h2>
+        <p className="mt-2 text-sm leading-relaxed text-white/75">{competitor.oaRelevance}</p>
+      </section>
+
+      <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
+        <h2 className="text-sm font-semibold text-white">Certification pathway</h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <DetailTile label="Authority" value={competitor.certAuthority} />
+          <DetailTile label="Status" value={competitor.certificationCategory} />
+          <DetailTile label="Public status detail" value={competitor.certificationStatus} />
+          <DetailTile label="Next milestone" value={competitor.nextCertMilestone} />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
+        <div className="flex items-center gap-2">
+          <Handshake className="h-4 w-4 text-sky-300/80" />
+          <h2 className="text-sm font-semibold text-white">Funding & partnerships</h2>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <DetailTile label="Funding / capital posture" value={competitor.fundingRaised} />
+          <DetailTile label="Estimated revenue" value={competitor.estimatedRevenue} />
+          <DetailTile label="Key partnerships" value={competitor.keyPartnerships} />
+          <DetailTile label="Employees" value={competitor.employees} />
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
         <div className="flex items-center justify-between gap-3">
@@ -536,7 +576,10 @@ function CompetitorDetail({ competitor }: { competitor: CompetitorProfile }) {
       </section>
 
       <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
-        <h2 className="text-sm font-semibold text-white">Aircraft specifications</h2>
+        <h2 className="text-sm font-semibold text-white">Aircraft (secondary)</h2>
+        <p className="mt-1 text-xs text-white/40">
+          Specs kept for context — not the primary cert-race signal.
+        </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <DetailTile label="Aircraft" value={competitor.aircraftName} />
           <DetailTile label="Type" value={competitor.aircraftType} />
@@ -544,22 +587,6 @@ function CompetitorDetail({ competitor }: { competitor: CompetitorProfile }) {
           <DetailTile label="Range" value={competitor.range} />
           <DetailTile label="Cruise Speed" value={competitor.cruiseSpeed} />
         </div>
-      </section>
-
-      <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
-        <h2 className="text-sm font-semibold text-white">Business metrics</h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <DetailTile label="Funding Raised" value={competitor.fundingRaised} />
-          <DetailTile label="Estimated Revenue" value={competitor.estimatedRevenue} />
-          <DetailTile label="Employees" value={competitor.employees} />
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
-        <h2 className="text-sm font-semibold text-white">Certification</h2>
-        <p className="mt-2 text-sm leading-relaxed text-white/70">
-          {competitor.certificationStatus || "No certification status confidently disclosed."}
-        </p>
       </section>
 
       <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">

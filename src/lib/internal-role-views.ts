@@ -978,7 +978,7 @@ const ONWARDAIR_IP_PATENTS_NAV_ITEM: InternalNavItem = {
   ],
 };
 
-/** Top-level OnwardAir Intelligence — Competitor Intelligence + Potential Clients. */
+/** Top-level OnwardAir Intelligence — cert-race competitors + ecosystem partners. */
 const ONWARDAIR_INTELLIGENCE_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "OnwardAir Intelligence",
@@ -991,9 +991,9 @@ const ONWARDAIR_INTELLIGENCE_NAV_SECTION: InternalNavSection = {
       view: "oa-competitor-intelligence" as const,
     },
     {
-      label: "Potential Clients",
-      icon: "Users",
-      view: "potential-clients" as const,
+      label: "Ecosystem Partners",
+      icon: "Handshake",
+      view: "oa-ecosystem-partners" as const,
     },
   ],
 };
@@ -1041,7 +1041,9 @@ function stripOnwardAirBusinessCentralProjects(section: InternalNavSection): Int
           item.label !== "Project Management" &&
           item.label !== "OnwardAir Intelligence" &&
           item.view !== "oa-competitor-intelligence" &&
-          item.label !== "Competitor Intelligence",
+          item.view !== "oa-ecosystem-partners" &&
+          item.label !== "Competitor Intelligence" &&
+          item.label !== "Ecosystem Partners",
       )
       .map((item) => {
         if (!item.children?.length) return item;
@@ -1049,11 +1051,14 @@ function stripOnwardAirBusinessCentralProjects(section: InternalNavSection): Int
           ...item,
           children: item.children.filter(
             (child) =>
-              child.view !== "potential-clients" && child.label !== "Potential Clients",
+              child.view !== "potential-clients" &&
+              child.view !== "oa-ecosystem-partners" &&
+              child.label !== "Potential Clients" &&
+              child.label !== "Ecosystem Partners",
           ),
         };
       }),
-  };
+};
 }
 
 function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): InternalNavSection[] {

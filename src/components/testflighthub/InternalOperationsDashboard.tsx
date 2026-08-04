@@ -330,6 +330,7 @@ import {
 } from "@/components/onwardair/OnwardAirBoardWorkspaces";
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
 import { OnwardAirCompetitorIntelligenceWorkspace } from "@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace";
+import { OnwardAirEcosystemPartnersWorkspace } from "@/components/onwardair/OnwardAirEcosystemPartnersWorkspace";
 import OnwardAirMarketingEventsWorkspace from "@/components/onwardair/OnwardAirMarketingEventsWorkspace";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 
@@ -1410,6 +1411,11 @@ export default function InternalOperationsDashboard({
           {activeView === "oa-competitor-intelligence" && (
             <WorkspaceErrorBoundary title="Competitor Intelligence">
               <OnwardAirCompetitorIntelligenceWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
+          {activeView === "oa-ecosystem-partners" && (
+            <WorkspaceErrorBoundary title="Ecosystem Partners">
+              <OnwardAirEcosystemPartnersWorkspace />
             </WorkspaceErrorBoundary>
           )}
 

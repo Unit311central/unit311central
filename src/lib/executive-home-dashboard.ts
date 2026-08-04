@@ -1044,7 +1044,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
         if (ciAlerts.length > 0) {
           queue.unshift({
             id: "q-ci-weekly",
-            title: "Review Competitor Intelligence weekly brief",
+            title: "Review cert-race weekly brief",
             meta: "OnwardAir Intelligence · Competitor Intelligence",
             status: "Review",
             dueLabel: "This week",

@@ -1,6 +1,7 @@
 /**
- * OnwardAir Potential Clients — aviation / AAM / middle-mile market snapshots.
- * OA-only overlay; does not replace Unit311 BFS census scrape for other tenants.
+ * @deprecated for OnwardAir Intelligence nav — replaced by Ecosystem Partners
+ * (`src/lib/onwardair/ecosystem-partners-data.ts`). Kept so Potential Clients
+ * workspace OA overlay still compiles if deep-linked; OA nav no longer points here.
  */
 
 import type {
@@ -37,11 +38,7 @@ function buildIndustryMixFromShares(
   });
 }
 
-/**
- * Operator / buyer TAM proxies for Vertex VTOL middle-mile outreach.
- * Primary figures are planning snapshots derived from FAA, NASA AAM, and industry reports —
- * not Unit311 business-formation scrape counts.
- */
+/** @deprecated Use Ecosystem Partners. */
 export const ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES: PotentialClientsCountrySnapshot[] = [
   {
     id: "us",
@@ -58,7 +55,7 @@ export const ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES: PotentialClientsCountrySnaps
       url: "https://www.faa.gov/air-taxis",
     },
     methodologyNote:
-      "Operator TAM proxy for US AAM, cargo UAS, and airport/vertiport buyers. Multi-director and funded counts are planning estimates from FAA/NASA AAM roadmaps and industry capital reports — not Census BFS totals.",
+      "Deprecated TAM proxy. OnwardAir Intelligence now uses Ecosystem Partners.",
   },
   {
     id: "ae",
@@ -74,8 +71,7 @@ export const ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES: PotentialClientsCountrySnaps
       name: "UAE GCAA / Dubai Future Foundation — urban air mobility programmes",
       url: "https://www.gcaa.gov.ae/",
     },
-    methodologyNote:
-      "GCC aviation operator and logistics intermediary TAM for Vertiport + middle-mile partnerships. Secondary metrics are planning estimates aligned to regional AAM pilot programmes.",
+    methodologyNote: "Deprecated TAM proxy.",
   },
   {
     id: "uk",
@@ -91,8 +87,7 @@ export const ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES: PotentialClientsCountrySnaps
       name: "UK CAA — Future of Flight / AAM pathway & MoD logistics modernisation",
       url: "https://www.caa.co.uk/our-work/innovation/future-of-flight/",
     },
-    methodologyNote:
-      "UK defense logistics, airport ops, and Future of Flight operator pool. Counts are AAM-relevant TAM proxies, not Companies House incorporations.",
+    methodologyNote: "Deprecated TAM proxy.",
   },
   {
     id: "de",
@@ -108,8 +103,7 @@ export const ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES: PotentialClientsCountrySnaps
       name: "BMWK / EASA — European U-space & AAM industrial base reports",
       url: "https://www.easa.europa.eu/en/domains/urban-air-mobility-uam",
     },
-    methodologyNote:
-      "German industrial aviation, U-space, and defense logistics buyers. Secondary metrics are planning estimates from EASA UAM and national aerospace SME stock.",
+    methodologyNote: "Deprecated TAM proxy.",
   },
   {
     id: "fr",
@@ -125,18 +119,17 @@ export const ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES: PotentialClientsCountrySnaps
       name: "DGAC / EASA — European AAM and aerospace supplier ecosystem",
       url: "https://www.ecologie.gouv.fr/en/civil-aviation",
     },
-    methodologyNote:
-      "French aerospace OEM suppliers and defense logistics operators relevant to Vertex VTOL middle-mile. Figures are sector TAM proxies, not INSEE business creations.",
+    methodologyNote: "Deprecated TAM proxy.",
   },
 ];
 
 export const DEFAULT_ONWARDAIR_POTENTIAL_CLIENTS_COUNTRY_ID: PotentialClientsCountryId = "us";
 
 export const ONWARDAIR_POTENTIAL_CLIENTS_INTRO = {
-  eyebrow: "Strategy · Operator TAM",
-  title: "Potential Clients",
+  eyebrow: "Deprecated · use Ecosystem Partners",
+  title: "Potential Clients (archived)",
   description:
-    "Vertex VTOL middle-mile and advanced air mobility operator markets. Country tabs size AAM, cargo logistics, and defense buyer pools across the US, Middle East, and Europe — not general business-formation scrape totals.",
+    "Replaced by OnwardAir Intelligence → Ecosystem Partners. This TAM view is no longer linked from OA nav.",
 } as const;
 
 export function isOnwardAirPotentialClientsCountryId(
