@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Pencil, Plus, Search, Trash2, Users, X } from "lucide-react";
 
 import type { BoardDirector } from "@/lib/board-directors-service";
+import { isScottParazynskiBoardMember } from "@/lib/board-directors-service";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   CorporateFieldLabel,
   CorporateKpiTile,
@@ -21,6 +23,7 @@ type DirectorFormState = {
   email: string;
   phone: string;
   notes: string;
+  compensationUsdPerYear: string;
 };
 
 function emptyForm(): DirectorFormState {
@@ -32,6 +35,7 @@ function emptyForm(): DirectorFormState {
     email: "",
     phone: "",
     notes: "",
+    compensationUsdPerYear: "",
   };
 }
 
@@ -44,7 +48,30 @@ function formFromDirector(director: BoardDirector): DirectorFormState {
     email: director.email ?? "",
     phone: director.phone ?? "",
     notes: director.notes,
+    compensationUsdPerYear:
+      director.compensationUsdPerYear === null || director.compensationUsdPerYear === undefined
+        ? ""
+        : String(director.compensationUsdPerYear),
   };
+}
+
+function formatUsdPerYear(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || !Number.isFinite(amount)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function parseCompensationInput(raw: string): number | null {
+  const trimmed = raw.trim().replace(/[$,\s]/g, "");
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error("Compensation must be a non-negative USD amount per year.");
+  }
+  return Math.round(n * 100) / 100;
 }
 
 function Modal({
@@ -77,6 +104,7 @@ function Modal({
 }
 
 export default function BoardDirectorsWorkspace() {
+  const isOnwardAir = isBrowserOnwardAirSurface();
   const [directors, setDirectors] = useState<BoardDirector[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -109,12 +137,21 @@ export default function BoardDirectorsWorkspace() {
     const q = search.trim().toLowerCase();
     if (!q) return directors;
     return directors.filter((d) =>
-      [d.fullName, d.roleTitle, d.organisation, d.email ?? "", d.phone ?? ""]
+      [
+        d.fullName,
+        d.roleTitle,
+        d.organisation,
+        d.email ?? "",
+        d.phone ?? "",
+        d.compensationUsdPerYear === null ? "" : String(d.compensationUsdPerYear),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(q),
     );
   }, [directors, search]);
+
+  const formHidesCompensation = isScottParazynskiBoardMember(form.fullName);
 
   function openCreate() {
     setForm(emptyForm());
@@ -141,6 +178,9 @@ export default function BoardDirectorsWorkspace() {
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
         notes: form.notes.trim(),
+        compensationUsdPerYear: isScottParazynskiBoardMember(form.fullName)
+          ? null
+          : parseCompensationInput(form.compensationUsdPerYear),
       };
       const res = await fetch(
         form.id ? `/api/board-directors/${form.id}` : "/api/board-directors",
@@ -201,8 +241,12 @@ export default function BoardDirectorsWorkspace() {
       ) : null}
 
       <CorporateSection
-        title="Board of Directors"
-        subtitle="Governance board members for this organisation."
+        title={isOnwardAir ? "Board Members" : "Board of Directors"}
+        subtitle={
+          isOnwardAir
+            ? "Governance board members for this organisation. Compensation is USD per year."
+            : "Governance board members for this organisation."
+        }
         actions={
           <button type="button" onClick={openCreate} className={corporatePrimaryButtonClass()}>
             <Plus className="h-3.5 w-3.5" />
@@ -259,17 +303,23 @@ export default function BoardDirectorsWorkspace() {
                   <th className="px-3 py-2.5">Name</th>
                   <th className="px-3 py-2.5">Role / title</th>
                   <th className="px-3 py-2.5">Organisation</th>
+                  <th className="px-3 py-2.5">Compensation (USD / yr)</th>
                   <th className="px-3 py-2.5">Email</th>
                   <th className="px-3 py-2.5">Phone</th>
                   <th className="px-3 py-2.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((d) => (
+                {filtered.map((d) => {
+                  const hideCompensation = isScottParazynskiBoardMember(d.fullName);
+                  return (
                   <tr key={d.id} className="border-t border-white/8 text-white/80">
                     <td className="px-3 py-2.5 font-medium text-white">{d.fullName}</td>
                     <td className="px-3 py-2.5">{d.roleTitle || "—"}</td>
                     <td className="px-3 py-2.5">{d.organisation || "—"}</td>
+                    <td className="px-3 py-2.5 tabular-nums">
+                      {hideCompensation ? "—" : formatUsdPerYear(d.compensationUsdPerYear)}
+                    </td>
                     <td className="px-3 py-2.5">
                       {d.email ? (
                         <a href={`mailto:${d.email}`} className="text-sky-300 hover:text-sky-200">
@@ -309,7 +359,8 @@ export default function BoardDirectorsWorkspace() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -373,6 +424,24 @@ export default function BoardDirectorsWorkspace() {
                 />
               </div>
             </div>
+            {!formHidesCompensation ? (
+              <div>
+                <CorporateFieldLabel>Compensation (USD / year)</CorporateFieldLabel>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={form.compensationUsdPerYear}
+                  onChange={(e) =>
+                    setForm((current) => ({
+                      ...current,
+                      compensationUsdPerYear: e.target.value,
+                    }))
+                  }
+                  className={corporateInputClass()}
+                  placeholder="e.g. 25000"
+                />
+              </div>
+            ) : null}
             <div>
               <CorporateFieldLabel>Notes</CorporateFieldLabel>
               <textarea

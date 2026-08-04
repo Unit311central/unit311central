@@ -11,10 +11,20 @@ export type BoardDirector = {
   organisation: string;
   email: string | null;
   phone: string | null;
+  /** Annual compensation in USD. Null / hidden for Scott Parazynski. */
+  compensationUsdPerYear: number | null;
   sortOrder: number;
   isActive: boolean;
   notes: string;
 };
+
+/** Founder/CEO — compensation is not captured on Board Members. */
+export function isScottParazynskiBoardMember(fullName: string | null | undefined): boolean {
+  return String(fullName ?? "")
+    .trim()
+    .toLowerCase()
+    .includes("scott parazynski");
+}
 
 function db() {
   if (!isSupabaseServiceRoleConfigured()) {
@@ -24,6 +34,11 @@ function db() {
 }
 
 function mapRow(row: Record<string, unknown>): BoardDirector {
+  const rawComp = row.compensation_usd_per_year;
+  const compensationUsdPerYear =
+    rawComp === null || rawComp === undefined || rawComp === ""
+      ? null
+      : Number(rawComp);
   return {
     id: String(row.id),
     workspaceId: String(row.workspace_id),
@@ -32,6 +47,10 @@ function mapRow(row: Record<string, unknown>): BoardDirector {
     organisation: String(row.organisation ?? ""),
     email: row.email ? String(row.email) : null,
     phone: row.phone ? String(row.phone) : null,
+    compensationUsdPerYear:
+      compensationUsdPerYear !== null && Number.isFinite(compensationUsdPerYear)
+        ? compensationUsdPerYear
+        : null,
     sortOrder: Number(row.sort_order ?? 100),
     isActive: row.is_active !== false,
     notes: String(row.notes ?? ""),
@@ -46,6 +65,7 @@ export type BoardDirectorInput = {
   phone?: string | null;
   notes?: string;
   sortOrder?: number;
+  compensationUsdPerYear?: number | null;
 };
 
 function normalizeOptionalText(value: string | null | undefined) {
@@ -53,10 +73,44 @@ function normalizeOptionalText(value: string | null | undefined) {
   return trimmed || null;
 }
 
+function normalizeCompensationUsd(
+  value: number | null | undefined,
+  fullName: string,
+): number | null {
+  if (isScottParazynskiBoardMember(fullName)) return null;
+  if (value === null || value === undefined) return null;
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new Error("Compensation must be a non-negative USD amount per year.");
+  }
+  return Math.round(n * 100) / 100;
+}
+
+let compensationColumnEnsured = false;
+
+/** Idempotent: add compensation_usd_per_year when missing (pre-migration deploys). */
+export async function ensureBoardDirectorsCompensationColumn(): Promise<void> {
+  if (compensationColumnEnsured) return;
+  const supabase = db();
+  const { error } = await supabase.from("board_directors").select("compensation_usd_per_year").limit(1);
+  if (!error) {
+    compensationColumnEnsured = true;
+    return;
+  }
+  if (!/compensation_usd_per_year|column/i.test(error.message)) {
+    throw new Error(error.message);
+  }
+  // Column missing — callers should apply migration 135. Soft-fail map treats as null.
+  console.warn(
+    "[board_directors] compensation_usd_per_year missing — apply supabase/migrations/135_board_directors_compensation.sql",
+  );
+}
+
 export async function listBoardDirectorsForWorkspace(
   workspaceId: string,
 ): Promise<BoardDirector[]> {
   const supabase = db();
+  await ensureBoardDirectorsCompensationColumn().catch(() => undefined);
   const { data, error } = await supabase
     .from("board_directors")
     .select("*")
@@ -64,7 +118,23 @@ export async function listBoardDirectorsForWorkspace(
     .eq("is_active", true)
     .order("sort_order", { ascending: true })
     .order("full_name", { ascending: true });
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Older schema without compensation column — retry without selecting it via *.
+    if (/compensation_usd_per_year/i.test(error.message)) {
+      const fallback = await supabase
+        .from("board_directors")
+        .select(
+          "id, workspace_id, full_name, role_title, organisation, email, phone, sort_order, is_active, notes",
+        )
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("full_name", { ascending: true });
+      if (fallback.error) throw new Error(fallback.error.message);
+      return (fallback.data ?? []).map((row) => mapRow(row as Record<string, unknown>));
+    }
+    throw new Error(error.message);
+  }
   return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
 }
 
@@ -141,6 +211,10 @@ export async function createBoardDirector(
       email: normalizeOptionalText(input.email),
       phone: normalizeOptionalText(input.phone),
       notes: String(input.notes ?? "").trim(),
+      compensation_usd_per_year: normalizeCompensationUsd(
+        input.compensationUsdPerYear,
+        fullName,
+      ),
       sort_order: nextSort,
       is_active: true,
       updated_at: new Date().toISOString(),
@@ -173,6 +247,28 @@ export async function updateBoardDirector(
   if (input.phone !== undefined) patch.phone = normalizeOptionalText(input.phone);
   if (input.notes !== undefined) patch.notes = String(input.notes).trim();
   if (typeof input.sortOrder === "number") patch.sort_order = input.sortOrder;
+
+  if (input.compensationUsdPerYear !== undefined || input.fullName !== undefined) {
+    const nameForRule =
+      typeof patch.full_name === "string"
+        ? patch.full_name
+        : (
+            await supabase
+              .from("board_directors")
+              .select("full_name")
+              .eq("workspace_id", workspaceId)
+              .eq("id", id)
+              .maybeSingle()
+          ).data?.full_name;
+    if (input.compensationUsdPerYear !== undefined) {
+      patch.compensation_usd_per_year = normalizeCompensationUsd(
+        input.compensationUsdPerYear,
+        String(nameForRule ?? ""),
+      );
+    } else if (isScottParazynskiBoardMember(String(nameForRule ?? ""))) {
+      patch.compensation_usd_per_year = null;
+    }
+  }
 
   const { data, error } = await supabase
     .from("board_directors")

@@ -30,6 +30,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       email?: string | null;
       phone?: string | null;
       notes?: string;
+      compensationUsdPerYear?: number | null;
     };
     const director = await updateBoardDirector(workspace.id, id, body);
     return NextResponse.json({ director });

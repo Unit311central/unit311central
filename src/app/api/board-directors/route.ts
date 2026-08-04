@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       email?: string | null;
       phone?: string | null;
       notes?: string;
+      compensationUsdPerYear?: number | null;
     };
     if (!body.fullName?.trim()) {
       return NextResponse.json({ error: "Full name is required." }, { status: 400 });
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
       email: body.email,
       phone: body.phone,
       notes: body.notes,
+      compensationUsdPerYear: body.compensationUsdPerYear,
     });
     return NextResponse.json({ director }, { status: 201 });
   } catch (error) {
