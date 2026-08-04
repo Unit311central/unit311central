@@ -124,7 +124,7 @@ export default function WorkspaceSidebarBrand({
     ) : brand === "abhi" ? (
       <AbhiLogoMark height={32} tone="onDark" />
     ) : brand === "onwardair" ? (
-      <OnwardAirLogoMark height={28} maxWidth={160} />
+      <OnwardAirLogoMark height={32} maxWidth={184} />
     ) : brand === "customer" ? (
       logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
