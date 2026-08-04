@@ -11,6 +11,43 @@ function normalizeName(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/** Drop trailing credentials so "Scott Parazynski, MD" ≈ "Scott Parazynski". */
+function nameKeyVariants(value: string): string[] {
+  const base = normalizeName(value);
+  if (!base) return [];
+  const stripped = base.replace(/,\s*(md|phd|mba|pe|cpa)\.?$/i, "").trim();
+  return stripped && stripped !== base ? [base, stripped] : [base];
+}
+
+function indexEmployeeNames(byName: Map<string, HrEmployee>, employee: HrEmployee) {
+  for (const key of nameKeyVariants(employee.fullName)) {
+    if (!byName.has(key)) byName.set(key, employee);
+  }
+  if (employee.preferredName) {
+    const last = employee.fullName
+      .replace(/,\s*(md|phd|mba|pe|cpa)\.?$/i, "")
+      .trim()
+      .split(/\s+/)
+      .slice(-1)[0];
+    if (last) {
+      for (const key of nameKeyVariants(`${employee.preferredName} ${last}`)) {
+        if (!byName.has(key)) byName.set(key, employee);
+      }
+    }
+  }
+}
+
+function lookupByName(
+  byName: Map<string, HrEmployee>,
+  named: string,
+): HrEmployee | undefined {
+  for (const key of nameKeyVariants(named)) {
+    const match = byName.get(key);
+    if (match) return match;
+  }
+  return undefined;
+}
+
 /** Resolve reporting line: prefer managerEmployeeId, else match manager name. */
 export function resolveManagerId(
   employee: HrEmployee,
@@ -22,7 +59,7 @@ export function resolveManagerId(
   }
   const named = employee.manager?.trim();
   if (!named) return null;
-  const match = byName.get(normalizeName(named));
+  const match = lookupByName(byName, named);
   if (!match || match.id === employee.id) return null;
   return match.id;
 }
@@ -36,11 +73,7 @@ export function buildOrgChartForest(employees: readonly HrEmployee[]): {
   const byId = new Map(active.map((e) => [e.id, e]));
   const byName = new Map<string, HrEmployee>();
   for (const employee of active) {
-    byName.set(normalizeName(employee.fullName), employee);
-    if (employee.preferredName) {
-      const preferred = normalizeName(`${employee.preferredName} ${employee.fullName.split(" ").slice(-1)[0] ?? ""}`);
-      if (!byName.has(preferred)) byName.set(preferred, employee);
-    }
+    indexEmployeeNames(byName, employee);
   }
 
   const childrenByManager = new Map<string, string[]>();
@@ -84,7 +117,14 @@ export function buildOrgChartForest(employees: readonly HrEmployee[]): {
   const rootIds = active
     .filter((e) => !managerOf.get(e.id))
     .map((e) => e.id)
-    .sort((a, b) => (byId.get(a)?.fullName ?? a).localeCompare(byId.get(b)?.fullName ?? b));
+    .sort((a, b) => {
+      const left = byId.get(a);
+      const right = byId.get(b);
+      const leftCeo = /ceo|founder/i.test(left?.role ?? "") ? 0 : 1;
+      const rightCeo = /ceo|founder/i.test(right?.role ?? "") ? 0 : 1;
+      if (leftCeo !== rightCeo) return leftCeo - rightCeo;
+      return (left?.fullName ?? a).localeCompare(right?.fullName ?? b);
+    });
 
   const roots = rootIds
     .map((id) => buildNode(id))

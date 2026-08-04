@@ -571,6 +571,7 @@ export async function createHrEmployee(
  * Seed OnwardAir OUR TEAM staff into hr_employees (OA workspace only).
  * Idempotent by email — never deletes existing employees. Does not reuse
  * stable seed primary keys (those collide across workspaces / retries).
+ * Always syncs reporting lines so Org Chart shows CEO at the top.
  */
 export async function ensureOnwardAirHrEmployeesSeeded(
   workspaceId: string,
@@ -578,59 +579,124 @@ export async function ensureOnwardAirHrEmployeesSeeded(
   const { OA_HR_TEAM_EMPLOYEES } =
     await import("@/lib/onwardair/hr-team-data");
 
-  const existing = await listHrEmployees({ workspaceId, includeArchived: true });
+  let existing = await listHrEmployees({ workspaceId, includeArchived: true });
   const hasScott = existing.some((e) =>
     e.fullName.toLowerCase().includes("scott parazynski"),
   );
 
-  // Only seed when empty or founder missing — do not wipe other rows.
-  if (existing.length > 0 && hasScott) {
-    return listHrEmployees({ workspaceId });
+  if (existing.length === 0 || !hasScott) {
+    const byEmail = new Set(
+      existing.map((e) => e.email.trim().toLowerCase()).filter(Boolean),
+    );
+
+    for (const member of OA_HR_TEAM_EMPLOYEES) {
+      const email = member.email.trim().toLowerCase();
+      if (byEmail.has(email)) continue;
+      try {
+        await createHrEmployee(
+          {
+            // Never pass seed ids — hr_employees.id is globally unique.
+            fullName: member.fullName,
+            preferredName: member.preferredName,
+            email: member.email,
+            phone: member.phone,
+            address: member.address,
+            nationality: member.nationality,
+            employmentStatus: member.employmentStatus,
+            employmentType: member.employmentType,
+            dateJoined: member.dateJoined,
+            location: member.location,
+            role: member.role,
+            department: member.department,
+            manager: member.manager ?? "",
+            currency: member.currency ?? "USD",
+            payFrequency: member.payFrequency ?? "monthly",
+            salaryCurrent: member.salaryCurrent ?? 100_000,
+            salaryPrevious: member.salaryPrevious ?? 100_000,
+            bonus: member.bonus ?? 1_000,
+            holidayCalendar: member.holidayCalendar,
+            vacationDaysPerYear: member.vacationDaysPerYear,
+            vacationDaysTaken: member.vacationDaysTaken ?? 0,
+          },
+          { workspaceId },
+        );
+        byEmail.add(email);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        // Skip collisions (email / pkey) so one bad row does not block the team.
+        if (/duplicate key|unique constraint/i.test(message)) {
+          byEmail.add(email);
+          continue;
+        }
+        throw error;
+      }
+    }
+    existing = await listHrEmployees({ workspaceId, includeArchived: true });
   }
 
-  const byEmail = new Set(
-    existing.map((e) => e.email.trim().toLowerCase()).filter(Boolean),
+  // Sync reporting lines for OA team emails (CEO root → COO / directors → engineering).
+  const byEmail = new Map(
+    existing.map((e) => [e.email.trim().toLowerCase(), e] as const),
   );
 
+  const findByName = (name: string): (typeof existing)[number] | null => {
+    const key = name.trim().toLowerCase().replace(/\s+/g, " ");
+    if (!key) return null;
+    const stripped = key.replace(/,\s*(md|phd|mba|pe|cpa)\.?$/i, "").trim();
+    for (const employee of existing) {
+      const full = employee.fullName.trim().toLowerCase().replace(/\s+/g, " ");
+      const fullStrip = full.replace(/,\s*(md|phd|mba|pe|cpa)\.?$/i, "").trim();
+      if (full === key || fullStrip === stripped || fullStrip === key || full === stripped) {
+        return employee;
+      }
+    }
+    return null;
+  };
+
   for (const member of OA_HR_TEAM_EMPLOYEES) {
-    const email = member.email.trim().toLowerCase();
-    if (byEmail.has(email)) continue;
+    const employee = byEmail.get(member.email.trim().toLowerCase());
+    if (!employee) continue;
+    const managerName = String(member.manager ?? "").trim();
+    const manager = managerName.length > 0 ? findByName(managerName) : null;
+    const nextManagerId = manager?.id ?? null;
+    const nextManagerLabel = manager?.fullName ?? managerName;
+    if (
+      employee.manager === nextManagerLabel &&
+      employee.managerEmployeeId === nextManagerId
+    ) {
+      continue;
+    }
     try {
-      await createHrEmployee(
+      await updateHrEmployee(
+        employee.id,
         {
-          // Never pass seed ids — hr_employees.id is globally unique.
-          fullName: member.fullName,
-          preferredName: member.preferredName,
-          email: member.email,
-          phone: member.phone,
-          address: member.address,
-          nationality: member.nationality,
-          employmentStatus: member.employmentStatus,
-          employmentType: member.employmentType,
-          dateJoined: member.dateJoined,
-          location: member.location,
-          role: member.role,
-          department: member.department,
-          currency: member.currency ?? "USD",
-          payFrequency: member.payFrequency ?? "monthly",
-          salaryCurrent: member.salaryCurrent ?? 100_000,
-          salaryPrevious: member.salaryPrevious ?? 100_000,
-          bonus: member.bonus ?? 1_000,
-          holidayCalendar: member.holidayCalendar,
-          vacationDaysPerYear: member.vacationDaysPerYear,
-          vacationDaysTaken: member.vacationDaysTaken ?? 0,
+          manager: nextManagerLabel,
+          managerEmployeeId: nextManagerId,
         },
         { workspaceId },
       );
-      byEmail.add(email);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      // Skip collisions (email / pkey) so one bad row does not block the team.
-      if (/duplicate key|unique constraint/i.test(message)) {
-        byEmail.add(email);
-        continue;
-      }
-      throw error;
+      console.error(
+        `[hr] Failed to sync manager for ${member.email}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  // Ensure founder has no manager (org-chart root).
+  const refreshed = await listHrEmployees({ workspaceId, includeArchived: true });
+  const scott = refreshed.find((e) =>
+    e.fullName.toLowerCase().includes("scott parazynski"),
+  );
+  if (scott && (scott.manager || scott.managerEmployeeId)) {
+    try {
+      await updateHrEmployee(
+        scott.id,
+        { manager: "", managerEmployeeId: null },
+        { workspaceId },
+      );
+    } catch {
+      /* non-fatal */
     }
   }
 

@@ -43,27 +43,32 @@ const OA_HR_COMMON = {
   archivedAt: null,
 };
 
-/** Stable seed rows — ids oa-hr-01..12. */
+const OA_CEO_NAME = "Scott Parazynski, MD";
+const OA_COO_NAME = "Brian Whiteside";
+
+/** Stable seed rows — ids are labels only; DB inserts use generated ids. */
 export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
   {
     ...OA_HR_COMMON,
     id: "oa-hr-01",
-    fullName: "Scott Parazynski, MD",
+    fullName: OA_CEO_NAME,
     preferredName: "Scott",
     email: "scott.parazynski@onwardair.tech",
     role: "Founder, CEO",
     department: "Leadership",
     dateJoined: "2019-01-15",
+    manager: "",
   },
   {
     ...OA_HR_COMMON,
     id: "oa-hr-02",
-    fullName: "Brian Whiteside",
+    fullName: OA_COO_NAME,
     preferredName: "Brian",
     email: "brian.whiteside@onwardair.tech",
     role: "COO",
     department: "Leadership",
     dateJoined: "2019-06-01",
+    manager: OA_CEO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -74,6 +79,7 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "Comptroller, Program Management",
     department: "Finance",
     dateJoined: "2020-03-01",
+    manager: OA_CEO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -84,6 +90,7 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "Senior Director of Marketing",
     department: "Marketing",
     dateJoined: "2020-08-15",
+    manager: OA_CEO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -94,6 +101,7 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "Director of Supply Chain",
     department: "Operations",
     dateJoined: "2021-02-01",
+    manager: OA_CEO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -104,6 +112,7 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "Senior Mechanical Engineer",
     department: "Engineering",
     dateJoined: "2021-05-01",
+    manager: OA_COO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -114,6 +123,7 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "Senior Electrical Engineer",
     department: "Engineering",
     dateJoined: "2021-07-01",
+    manager: OA_COO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -124,6 +134,7 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "Senior R&D Engineer",
     department: "Engineering",
     dateJoined: "2021-09-01",
+    manager: OA_COO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -134,6 +145,7 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "Senior Aerospace Engineer",
     department: "Engineering",
     dateJoined: "2022-01-15",
+    manager: OA_COO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -144,6 +156,7 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "Senior Software Engineer",
     department: "Engineering",
     dateJoined: "2022-04-01",
+    manager: OA_COO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -154,6 +167,7 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "CFD Analyst and Aerospace Engineer",
     department: "Engineering",
     dateJoined: "2022-08-01",
+    manager: OA_COO_NAME,
   },
   {
     ...OA_HR_COMMON,
@@ -164,7 +178,8 @@ export const OA_HR_TEAM_EMPLOYEES: readonly OnwardAirHrTeamSeed[] = [
     role: "Associate Aerospace / Mechanical Engineer",
     department: "Engineering",
     dateJoined: "2023-02-01",
+    manager: OA_COO_NAME,
   },
 ] as const;
 
-export const OA_HR_FOUNDER_NAME = "Scott Parazynski, MD";
+export const OA_HR_FOUNDER_NAME = OA_CEO_NAME;
