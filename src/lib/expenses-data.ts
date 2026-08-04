@@ -108,6 +108,23 @@ export function createBlankExpenseInput(): Omit<
   } catch {
     // non-browser
   }
+  try {
+    const { isBrowserOnwardAirSurface } =
+      require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+    if (isBrowserOnwardAirSurface()) currency = "USD";
+  } catch {
+    // non-browser
+  }
+  try {
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes("onwardair") || host === "onward.unit311central.com") {
+        currency = "USD";
+      }
+    }
+  } catch {
+    // non-browser
+  }
   return {
     submitterUserId: defaultUser?.id ?? "",
     submitterName: defaultUser?.fullName ?? "",

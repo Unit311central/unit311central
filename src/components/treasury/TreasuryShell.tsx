@@ -49,6 +49,10 @@ type TreasuryShellProps = {
   error: string | null;
   onRefresh: () => void;
   isAdmin?: boolean;
+  /** When true, show DEMO chrome (simulated bank — OA / Demo). */
+  demoMode?: boolean;
+  /** Dashboard totals / charts reporting currency. Defaults to GBP. */
+  reportingCurrency?: "GBP" | "USD" | "EUR";
 };
 
 type SummaryPayload = {
@@ -68,10 +72,19 @@ type SummaryPayload = {
 function StatusBadge({
   connected,
   configured,
+  demoMode,
 }: {
   connected: boolean;
   configured: boolean;
+  demoMode?: boolean;
 }) {
+  if (demoMode) {
+    return (
+      <span className="rounded-lg border border-amber-400/30 bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-100">
+        DEMO
+      </span>
+    );
+  }
   if (!configured) {
     return (
       <span className="rounded-lg border border-amber-400/25 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-200">
@@ -133,6 +146,8 @@ function TreasuryShellContent({
   error,
   onRefresh,
   isAdmin = true,
+  demoMode = false,
+  reportingCurrency = "GBP",
 }: TreasuryShellProps) {
   const { setNotifications } = useTreasuryContext();
   const [view, setView] = useState<TreasuryView>("dashboard");
@@ -247,21 +262,37 @@ function TreasuryShellContent({
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/90">
-                {error?.toLowerCase().includes("not enabled") ? "Bank" : "Treasury Management"}
+                {error?.toLowerCase().includes("not enabled")
+                  ? "Bank"
+                  : demoMode
+                    ? "Bank · DEMO"
+                    : "Treasury Management"}
               </p>
               <h2 className="mt-0.5 text-lg font-semibold text-white">
-                {error?.toLowerCase().includes("not enabled") ? "Connections" : "Wise"}
+                {error?.toLowerCase().includes("not enabled")
+                  ? "Connections"
+                  : demoMode
+                    ? "Demo treasury"
+                    : "Wise"}
               </h2>
               <p className="mt-1 max-w-2xl text-sm text-white/55">
                 {error?.toLowerCase().includes("not enabled")
                   ? "Bank connections are managed per workspace. Contact your administrator if you need access."
-                  : "Live balances, transaction history, transfers, conversions, analytics, and approvals."}
+                  : demoMode
+                    ? `Simulated ${reportingCurrency} balances and activity — example of the Bank module (not a live connection).`
+                    : "Live balances, transaction history, transfers, conversions, analytics, and approvals."}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {status ? <StatusBadge configured={status.configured} connected={status.connected} /> : null}
+            {status ? (
+              <StatusBadge
+                configured={status.configured}
+                connected={status.connected}
+                demoMode={demoMode}
+              />
+            ) : null}
             <button
               type="button"
               onClick={() => navigate("send")}
@@ -364,6 +395,8 @@ function TreasuryShellContent({
               activity={payload.activity}
               balances={payload.balances}
               loading={summaryLoading}
+              reportingCurrency={reportingCurrency}
+              demoMode={demoMode}
               onNavigate={navigate}
               onSendMoney={() => navigate("send")}
             />

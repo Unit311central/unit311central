@@ -345,8 +345,13 @@ export const EXPENSES_DASHBOARD_TILES: DashboardTileDefinition[] = [
 
 function expensesReportingCurrency(expenses: FinancialExpense[]): string {
   try {
-    if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) return "AUD";
-    if (typeof window !== "undefined" && isBrowserAbhiSurface()) return "GBP";
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes("onwardair") || host === "onward.unit311central.com") return "USD";
+      if (isBrowserOnwardAirSurface()) return "USD";
+      if (isBrowserCorpCentreSurface()) return "AUD";
+      if (isBrowserAbhiSurface()) return "GBP";
+    }
   } catch {
     // SSR / non-browser
   }
@@ -357,15 +362,27 @@ function expensesReportingCurrency(expenses: FinancialExpense[]): string {
   const gbp = codes.filter((code) => code === "GBP").length;
   const usd = codes.filter((code) => code === "USD").length;
   const eur = codes.filter((code) => code === "EUR").length;
+  if (usd > 0 && usd >= gbp && usd >= eur) return "USD";
   if (gbp >= usd && gbp >= eur && gbp > 0) return "GBP";
-  if (usd > gbp && usd > eur) return "USD";
   if (eur > gbp && eur > usd) return "EUR";
   return "GBP";
+}
+
+function emptyExpensesDashboardTiles(currency: string): DashboardTileDefinition[] {
+  const money = (value: number) => formatMoney(value, currency);
+  return [
+    { id: "spend-mtd", label: "Spend MTD", value: money(0), hint: "From expense journals" },
+    { id: "pending-approval", label: "Unpaid", value: "0", hint: "Open payables" },
+    { id: "travel", label: "Categories", value: "0", hint: "Ledger-linked" },
+    { id: "budget-remaining", label: "Posted", value: "0", hint: "With journal links" },
+  ];
 }
 
 export function buildExpensesDashboardCatalog(
   expenses: FinancialExpense[],
 ): DashboardTileDefinition[] {
+  const currency = expensesReportingCurrency(expenses);
+  const templates = emptyExpensesDashboardTiles(currency);
   const now = new Date();
   const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -387,11 +404,9 @@ export function buildExpensesDashboardCatalog(
   );
 
   const postedCount = expenses.filter((expense) => Boolean(expense.journalEntryId)).length;
-
-  const currency = expensesReportingCurrency(expenses);
   const money = (value: number) => formatMoney(value, currency);
 
-  return EXPENSES_DASHBOARD_TILES.map((tile) => {
+  return templates.map((tile) => {
     switch (tile.id) {
       case "spend-mtd":
         return { ...tile, value: money(spendMtd) };

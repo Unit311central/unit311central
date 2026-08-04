@@ -15,6 +15,36 @@ export function convertToGbp(amount: number, currency: string) {
   return Math.round(amount * rate * 100) / 100;
 }
 
+/** Convert an amount into the treasury reporting currency via the GBP pivot. */
+export function convertToTreasuryReporting(
+  amount: number,
+  fromCurrency: string,
+  reportingCurrency: string,
+) {
+  const from = String(fromCurrency || "GBP").toUpperCase();
+  const to = String(reportingCurrency || "GBP").toUpperCase();
+  if (from === to) return Math.round(amount * 100) / 100;
+  const gbp = convertToGbp(amount, from);
+  if (to === "GBP") return gbp;
+  const rate = FX_TO_GBP[to];
+  if (!rate) return gbp;
+  return Math.round((gbp / rate) * 100) / 100;
+}
+
+export function sumBalancesInReportingCurrency(
+  balances: Array<{ currency: string; amount: number }>,
+  reportingCurrency: string,
+) {
+  return Math.round(
+    balances.reduce(
+      (sum, balance) =>
+        sum +
+        convertToTreasuryReporting(balance.amount, balance.currency, reportingCurrency),
+      0,
+    ) * 100,
+  ) / 100;
+}
+
 export function maskAccountNumber(value: string | null | undefined) {
   if (!value) return "—";
   const trimmed = value.replace(/\s/g, "");

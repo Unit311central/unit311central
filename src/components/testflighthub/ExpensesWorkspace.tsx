@@ -83,6 +83,10 @@ function sanitizeExpenseAmountInput(value: string) {
 }
 
 function reportingExpenseCurrency(expenses: FinancialExpense[]): ExpenseCurrency {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes("onwardair") || host === "onward.unit311central.com") return "USD";
+  }
   if (isBrowserOnwardAirSurface()) return "USD";
   if (isBrowserCorpCentreSurface()) return "AUD";
   if (isBrowserAbhiSurface()) return "GBP";
@@ -470,7 +474,11 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
   return (
     <div className="space-y-6">
       <DashboardTopTilesBar
-        storageKey="unit311-expenses-dashboard-tiles"
+        storageKey={
+          isBrowserOnwardAirSurface()
+            ? "oa-expenses-dashboard-tiles-v2"
+            : "unit311-expenses-dashboard-tiles"
+        }
         catalog={expensesDashboardCatalog}
         defaultLayout={DEFAULT_EXPENSES_TILE_LAYOUT}
         title="Expenses key details"

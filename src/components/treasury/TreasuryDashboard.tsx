@@ -8,7 +8,10 @@ import {
   formatTreasuryMoney,
   treasuryPanelClassName,
 } from "@/components/treasury/treasury-ui";
-import { convertToGbp } from "@/lib/treasury/treasury-utils";
+import {
+  convertToTreasuryReporting,
+  sumBalancesInReportingCurrency,
+} from "@/lib/treasury/treasury-utils";
 import type {
   TreasuryActivityItem,
   TreasuryAnalytics,
@@ -45,6 +48,8 @@ type TreasuryDashboardProps = {
   onNavigate?: (view: TreasuryView, params?: { balanceId?: number; currency?: string }) => void;
   onSendMoney?: () => void;
   loading?: boolean;
+  reportingCurrency?: "GBP" | "USD" | "EUR";
+  demoMode?: boolean;
 };
 
 function SummaryCard({
@@ -93,16 +98,45 @@ export default function TreasuryDashboard({
   onNavigate,
   onSendMoney,
   loading = false,
+  reportingCurrency = "GBP",
+  demoMode = false,
 }: TreasuryDashboardProps) {
   const cashFlowMini = analytics.monthlyCashFlow.slice(-6).map((entry) => ({
     label: entry.month.slice(5),
-    net: Math.round(entry.net),
+    net: Math.round(
+      convertToTreasuryReporting(entry.net, "GBP", reportingCurrency),
+    ),
   }));
 
   const balanceMini = analytics.balanceHistory.slice(-14).map((entry) => ({
     label: entry.date.slice(8),
-    total: Math.round(entry.GBP + convertToGbp(entry.USD, "USD") + convertToGbp(entry.EUR, "EUR")),
+    total: Math.round(
+      convertToTreasuryReporting(entry.GBP, "GBP", reportingCurrency) +
+        convertToTreasuryReporting(entry.USD, "USD", reportingCurrency) +
+        convertToTreasuryReporting(entry.EUR, "EUR", reportingCurrency),
+    ),
   }));
+
+  const totalTreasury = sumBalancesInReportingCurrency(
+    balances.map((balance) => ({ currency: balance.currency, amount: balance.amount })),
+    reportingCurrency,
+  );
+  const todayIncoming = convertToTreasuryReporting(
+    summary.todayIncoming,
+    "GBP",
+    reportingCurrency,
+  );
+  const todayOutgoing = convertToTreasuryReporting(
+    summary.todayOutgoing,
+    "GBP",
+    reportingCurrency,
+  );
+  const monthVolume = convertToTreasuryReporting(
+    summary.monthVolume,
+    "GBP",
+    reportingCurrency,
+  );
+  const monthFees = convertToTreasuryReporting(summary.monthFees, "GBP", reportingCurrency);
 
   return (
     <div className="space-y-4">
@@ -114,15 +148,22 @@ export default function TreasuryDashboard({
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300/90">
-                Wise Treasury
+                {demoMode ? "Bank · DEMO" : "Wise Treasury"}
               </p>
               <h2 className="mt-0.5 text-lg font-semibold text-white">Dashboard</h2>
               <p className="mt-1 text-sm text-white/55">
-                Live balances, cash flow, and recent treasury activity.
+                {demoMode
+                  ? `Simulated ${reportingCurrency} balances and cash flow.`
+                  : "Live balances, cash flow, and recent treasury activity."}
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {demoMode ? (
+              <span className="rounded-lg border border-amber-400/30 bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-100">
+                DEMO
+              </span>
+            ) : null}
             <TreasuryNotificationCenter />
             <button
               type="button"
@@ -138,34 +179,34 @@ export default function TreasuryDashboard({
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
-          label="Total treasury (GBP)"
+          label={`Total treasury (${reportingCurrency})`}
           icon={TrendingUp}
           tone="accent"
           value={
             <TreasuryAnimatedCounter
-              value={summary.totalTreasuryValueGbp}
-              formatter={(value) => formatTreasuryMoney(value, "GBP")}
+              value={totalTreasury}
+              formatter={(value) => formatTreasuryMoney(value, reportingCurrency)}
             />
           }
-          hint="Combined Wise balance value"
+          hint={demoMode ? "Demo balances (not live)" : "Combined Wise balance value"}
         />
         <SummaryCard
           label="Today incoming"
           icon={ArrowDownLeft}
           tone="incoming"
-          value={formatTreasuryMoney(summary.todayIncoming, "GBP")}
+          value={formatTreasuryMoney(todayIncoming, reportingCurrency)}
         />
         <SummaryCard
           label="Today outgoing"
           icon={ArrowUpRight}
           tone="outgoing"
-          value={formatTreasuryMoney(summary.todayOutgoing, "GBP")}
+          value={formatTreasuryMoney(todayOutgoing, reportingCurrency)}
         />
         <SummaryCard
           label="Month volume"
           icon={BarChart3}
-          value={formatTreasuryMoney(summary.monthVolume, "GBP")}
-          hint={`Fees ${formatTreasuryMoney(summary.monthFees, "GBP")}`}
+          value={formatTreasuryMoney(monthVolume, reportingCurrency)}
+          hint={`Fees ${formatTreasuryMoney(monthFees, reportingCurrency)}`}
         />
       </div>
 
@@ -195,7 +236,9 @@ export default function TreasuryDashboard({
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold text-white">Wise {balance.currency}</p>
+                  <p className="text-sm font-semibold text-white">
+                    {balance.name?.trim() || `${demoMode ? "Demo" : "Wise"} ${balance.currency}`}
+                  </p>
                   <p className="mt-0.5 text-[11px] text-white/45">{balance.regionLabel}</p>
                 </div>
                 <span className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-medium text-white/55">
@@ -214,7 +257,9 @@ export default function TreasuryDashboard({
       <div className="grid gap-4 xl:grid-cols-2">
         <section className={treasuryPanelClassName()}>
           <h3 className="text-base font-semibold text-white">Net cash flow</h3>
-          <p className="mt-1 text-xs text-white/45">Last 6 months (GBP equivalent)</p>
+          <p className="mt-1 text-xs text-white/45">
+            Last 6 months ({reportingCurrency} equivalent)
+          </p>
           <div className="mt-4 h-44">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={cashFlowMini}>
@@ -230,7 +275,9 @@ export default function TreasuryDashboard({
 
         <section className={treasuryPanelClassName()}>
           <h3 className="text-base font-semibold text-white">Balance trend</h3>
-          <p className="mt-1 text-xs text-white/45">Combined GBP value (14 days)</p>
+          <p className="mt-1 text-xs text-white/45">
+            Combined {reportingCurrency} value (14 days)
+          </p>
           <div className="mt-4 h-44">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={balanceMini}>
