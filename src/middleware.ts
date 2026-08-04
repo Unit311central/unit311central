@@ -408,6 +408,25 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
+    // Password reset must stay on the customer host (tenant branding + OTP flow).
+    // Without this, /resetpassword falls through to the /ws/[slug] gateway.
+    if (
+      pathname === "/resetpassword" ||
+      pathname.startsWith("/resetpassword/") ||
+      pathname === "/resetpassowrd" ||
+      pathname.startsWith("/resetpassowrd/")
+    ) {
+      const response = NextResponse.next({ request: { headers } });
+      for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
+        response.headers.set(key, value);
+      }
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return response;
+    }
+
     if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
       // APIs enforce host-authoritative tenancy in workspace-context.
       // Rebind on HTML navigations; APIs resolve active workspace from host + authz.
