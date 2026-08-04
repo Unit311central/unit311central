@@ -262,10 +262,103 @@ const TALANTON_PLATFORMS: PlatformConfig[] = [
   },
 ];
 
+const ONWARDAIR_PLATFORMS: PlatformConfig[] = [
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    handle: "OnwardAir",
+    href: "https://www.linkedin.com/company/onwardair",
+    displayName: "OnwardAir",
+    layout: "wide",
+    avatarLabel: "OA",
+    avatarClassName: "rounded-full border border-sky-400/40 bg-sky-500/30 text-xs font-bold",
+    accent: "from-sky-500/20 to-cyan-500/5",
+    accentBorder: "border-sky-400/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
+        in
+      </span>
+    ),
+    lastPost: {
+      date: "29 Jul 2026 · 14:10",
+      preview:
+        "Another FAA interaction cycle complete — next stop: investor day in Austin and dual-source battery pack acceptance tests.",
+      stats: [
+        { label: "Impressions", value: "11.2K", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Reactions", value: "326", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "41", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Reposts", value: "28", icon: <Repeat2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+  {
+    id: "instagram",
+    name: "Instagram",
+    handle: "@onwardair",
+    displayName: "@onwardair",
+    layout: "square",
+    avatarLabel: "OA",
+    avatarClassName:
+      "rounded-full bg-gradient-to-br from-sky-400 via-cyan-500 to-indigo-500 text-[10px] font-bold",
+    accent: "from-sky-500/20 via-cyan-500/15 to-indigo-500/10",
+    accentBorder: "border-cyan-400/35",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-sky-400 via-cyan-500 to-indigo-500 text-[10px] font-bold text-white">
+        IG
+      </span>
+    ),
+    lastPost: {
+      date: "26 Jul 2026 · 17:45",
+      preview:
+        "Golden-hour taxi tests on the flight campus — certification cameras rolling. Full reel in stories.",
+      stats: [
+        { label: "Reach", value: "18.6K", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Likes", value: "1.1K", icon: <Heart className="h-3.5 w-3.5" /> },
+        { label: "Comments", value: "64", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Saves", value: "89", icon: <Share2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+  {
+    id: "twitter",
+    name: "X",
+    handle: "@OnwardAir",
+    displayName: "OnwardAir",
+    layout: "wide",
+    avatarLabel: "X",
+    avatarClassName: "rounded-full border border-white/20 bg-black text-xs font-bold",
+    accent: "from-white/10 to-white/5",
+    accentBorder: "border-white/20",
+    icon: (
+      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-black text-[10px] font-bold text-white">
+        𝕏
+      </span>
+    ),
+    lastPost: {
+      date: "30 Jul 2026 · 09:05",
+      preview:
+        "Vertiport partnership talks advancing in Dallas & Phoenix. Quiet skies, dense networks — city-first design.",
+      stats: [
+        { label: "Impressions", value: "7.8K", icon: <Eye className="h-3.5 w-3.5" /> },
+        { label: "Likes", value: "194", icon: <Heart className="h-3.5 w-3.5" /> },
+        { label: "Replies", value: "22", icon: <MessageCircle className="h-3.5 w-3.5" /> },
+        { label: "Reposts", value: "37", icon: <Repeat2 className="h-3.5 w-3.5" /> },
+      ],
+    },
+  },
+];
+
 function resolveSocialPlatforms(): PlatformConfig[] {
   if (typeof window === "undefined") return INTERNAL_PLATFORMS;
   if (isBrowserAbhiSurface()) return ABHI_PLATFORMS;
   if (isBrowserTalantonImpactSurface()) return TALANTON_PLATFORMS;
+  try {
+    const { isBrowserOnwardAirSurface } =
+      require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+    if (isBrowserOnwardAirSurface()) return ONWARDAIR_PLATFORMS;
+  } catch {
+    // fall through
+  }
   try {
     const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
     if (isBrowserDemoSurface()) return DEMO_PLATFORMS;

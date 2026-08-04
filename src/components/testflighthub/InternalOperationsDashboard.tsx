@@ -38,6 +38,7 @@ import SurveyOperationsShell from "./SurveyOperationsShell";
 import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   ABHI_HIDDEN_VIEWS,
   CUSTOMER_PLATFORM_HIDDEN_VIEWS,
@@ -307,6 +308,7 @@ import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvide
 import { OnwardAirPlaceholderWorkspace, FundraisingDashboardWorkspace, OperationsDashboardWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
 import { OnwardAirCompetitorIntelligenceWorkspace } from "@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace";
+import OnwardAirMarketingEventsWorkspace from "@/components/onwardair/OnwardAirMarketingEventsWorkspace";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
   "fleet",
@@ -1021,13 +1023,28 @@ export default function InternalOperationsDashboard({
               <StaffTrainingWorkspace />
             ))}
 
-          {activeView === "marketing-newsletter" && <AbhiNewsletterWorkspace />}
+          {activeView === "marketing-newsletter" &&
+            (isBrowserOnwardAirSurface() ? (
+              <OnwardAirMarketingEventsWorkspace page="newsletter" />
+            ) : (
+              <AbhiNewsletterWorkspace />
+            ))}
 
-          {activeView === "marketing-events" && <AbhiEventsWorkspace />}
+          {activeView === "marketing-events" &&
+            (isBrowserOnwardAirSurface() ? (
+              <OnwardAirMarketingEventsWorkspace page="events" />
+            ) : (
+              <AbhiEventsWorkspace />
+            ))}
 
           {activeView === "marketing-abhi-events" && <AbhiCalendarEventsWorkspace />}
 
-          {activeView === "marketing-event-management" && <AbhiEventManagementWorkspace />}
+          {activeView === "marketing-event-management" &&
+            (isBrowserOnwardAirSurface() ? (
+              <OnwardAirMarketingEventsWorkspace page="event-management" />
+            ) : (
+              <AbhiEventManagementWorkspace />
+            ))}
 
           {activeView === "marketing-working-groups" && (
             <AbhiProgrammesWorkspace mode="working-groups" />
@@ -1048,7 +1065,12 @@ export default function InternalOperationsDashboard({
               <StaffTrainingWorkspace />
             ))}
 
-          {activeView === "marketing-mailing-list" && <AbhiMailingListWorkspace />}
+          {activeView === "marketing-mailing-list" &&
+            (isBrowserOnwardAirSurface() ? (
+              <OnwardAirMarketingEventsWorkspace page="mailing-list" />
+            ) : (
+              <AbhiMailingListWorkspace />
+            ))}
 
           {activeView === "training-dashboard" &&
             (isBrowserTalantonImpactSurface() ? (

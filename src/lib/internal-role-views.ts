@@ -968,6 +968,19 @@ const ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION: InternalNavSection = {
   ],
 };
 
+/** Nested under Operations — Marketing & Events (OA fake data, not ABHI). */
+const ONWARDAIR_MARKETING_EVENTS_NAV_ITEM: InternalNavItem = {
+  label: "Marketing & Events",
+  icon: "Share2",
+  children: [
+    { label: "Social", view: "social" as const },
+    { label: "Digital Newsletter", view: "marketing-newsletter" as const },
+    { label: "External Events", view: "marketing-events" as const },
+    { label: "Event Management", view: "marketing-event-management" as const },
+    { label: "Mailing List Management", view: "marketing-mailing-list" as const },
+  ],
+};
+
 function stripOnwardAirBusinessCentralProjects(section: InternalNavSection): InternalNavSection {
   return {
     ...section,
@@ -1038,23 +1051,35 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
       continue;
     }
 
+    if (section.label === "Business Productivity") {
+      out.push({
+        ...section,
+        items: section.items.filter((item) => item.label !== "Social" && item.view !== "social"),
+      });
+      continue;
+    }
+
     if (section.label === "Operations") {
       const cleaned = stripOnwardAirPlatformItems(section);
       const hasDashboard = cleaned.items.some(
         (item) => item.view === "operations-dashboard" || item.label === "Dashboard",
       );
+      const withDashboard = hasDashboard
+        ? cleaned.items
+        : [
+            {
+              label: "Dashboard",
+              icon: "LayoutDashboard",
+              view: "operations-dashboard" as const,
+            },
+            ...cleaned.items,
+          ];
+      const hasMarketing = withDashboard.some((item) => item.label === "Marketing & Events");
       out.push({
         ...cleaned,
-        items: hasDashboard
-          ? cleaned.items
-          : [
-              {
-                label: "Dashboard",
-                icon: "LayoutDashboard",
-                view: "operations-dashboard" as const,
-              },
-              ...cleaned.items,
-            ],
+        items: hasMarketing
+          ? withDashboard
+          : [...withDashboard, ONWARDAIR_MARKETING_EVENTS_NAV_ITEM],
       });
       out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
       insertedEngineering = true;

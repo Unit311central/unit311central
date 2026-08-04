@@ -183,6 +183,18 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     ],
   },
   {
+    id: "onwardair-marketing-events",
+    label: "Marketing & Events",
+    section: "Operations",
+    views: [
+      "social",
+      "marketing-newsletter",
+      "marketing-events",
+      "marketing-event-management",
+      "marketing-mailing-list",
+    ],
+  },
+  {
     id: "operations-assets",
     label: "Assets & Inventory",
     section: "Operations",
