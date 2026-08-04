@@ -1,9 +1,8 @@
 /**
- * OnwardAir Competitor Intelligence — certification-race landscape.
+ * OnwardAir Competitor Intelligence — public cert / programme landscape.
  *
- * Framed for a pre-revenue VTOL company: authority posture, funding runway,
- * partnerships, and cargo vs passenger mission — not passenger-launch vanity.
- * Public sources only; blanks preferred over invention.
+ * Organises public signals for expert review (authority, status, milestones,
+ * funding, partnerships). Does not prescribe strategy. Blanks preferred over invention.
  */
 
 const CURRENT_YEAR = 2026;
@@ -42,7 +41,7 @@ export type CompetitorProfile = {
   missionFocus: CompetitorMissionFocus;
   nextCertMilestone: string;
   keyPartnerships: string;
-  oaRelevance: string;
+  notablePublicFact: string;
   website: string;
   description: string;
   dataNotes?: string;
@@ -74,8 +73,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Passenger",
     nextCertMilestone: "Continue FAA type certification stages toward commercial air taxi ops",
     keyPartnerships: "Delta Air Lines; Toyota; US DoD / AFWERX flight activity reported",
-    oaRelevance:
-      "Sets the US passenger cert pace. Watch FAA stage language that may shape middle-mile / cargo pathways later.",
+    notablePublicFact: "Public reporting: FAA TIA / Stage 4 (as of 2026).",
     website: "https://www.jobyaviation.com",
     description:
       "Developer of the S4 tilt-rotor eVTOL air taxi, pursuing FAA type certification for commercial air taxi service.",
@@ -102,8 +100,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Passenger",
     nextCertMilestone: "Flight-test / conformity work toward FAA type certificate",
     keyPartnerships: "United Airlines; Stellantis manufacturing relationship reported",
-    oaRelevance:
-      "MoC acceptance is a useful comparator for how tightly FAA is locking means of compliance on eVTOL programs.",
+    notablePublicFact: "Public reporting: 100% of FAA MoC accepted (2025/2026).",
     website: "https://www.archer.com",
     description:
       "Developer of the Midnight eVTOL aircraft for urban air mobility, targeting FAA type certification.",
@@ -130,8 +127,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Mixed",
     nextCertMilestone: "Advance dual CTOL/VTOL certification and cargo utility flight hours",
     keyPartnerships: "UPS; US Air Force / logistics and medical evacuation interest reported",
-    oaRelevance:
-      "Closest mission analogue for Vertex middle-mile: cargo/utility first, dual takeoff path — prioritize over pure air-taxi vanity.",
+    notablePublicFact: "Public reporting: dual CTOL/VTOL track; cargo/utility configurations in programme.",
     website: "https://www.beta.team",
     description:
       "Developer of the Alia family of electric aircraft, pursuing both conventional (CX300) and vertical (A250) takeoff and landing certification paths.",
@@ -158,8 +154,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Passenger",
     nextCertMilestone: "EASA SC-VTOL program credibility and test campaign milestones",
     keyPartnerships: "Airline and lessor LOIs reported historically; verify current status before citing",
-    oaRelevance:
-      "EASA SC-VTOL precedent matters if OnwardAir ever dual-paths Europe; funding runway is the survival signal.",
+    notablePublicFact: "Public reporting: EASA SC-VTOL basis; certification target ~2028.",
     website: "https://vertical-aerospace.com",
     description:
       "UK-based developer of the VX4 eVTOL aircraft, certifying under EASA's Special Condition for VTOL aircraft.",
@@ -186,8 +181,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Passenger",
     nextCertMilestone: "Type certification target window (mid-to-late 2020s)",
     keyPartnerships: "Embraer; airline and urban air traffic management service partners reported",
-    oaRelevance:
-      "OEM-backed capital and UATM services stack — watch partnership model more than passenger seat count.",
+    notablePublicFact: "Public reporting: Embraer-backed; eVTOL + UATM services.",
     website: "https://eveairmobility.com",
     description:
       "Embraer-backed eVTOL developer building a lift+cruise air taxi and urban air traffic management services.",
@@ -214,8 +208,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Passenger",
     nextCertMilestone: "Progress against FAA G-1 certification basis for Generation 6",
     keyPartnerships: "Boeing (parent); NASA autonomy / AAM research collaborations reported",
-    oaRelevance:
-      "Autonomy certification basis language from FAA is a long-horizon input for unmanned / reduced-crew cargo concepts.",
+    notablePublicFact: "Public reporting: FAA G-1 certification basis issued for Generation 6.",
     website: "https://wisk.aero",
     description:
       "Boeing-owned developer of autonomous, self-flying air taxis; Generation 6 is its latest certification-track aircraft.",
@@ -242,8 +235,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Passenger",
     nextCertMilestone: "Operational scale under CAAC; limited transferability to FAA/EASA",
     keyPartnerships: "Chinese municipal / tourism operators reported",
-    oaRelevance:
-      "Proof that full type/production/airworthiness stack is achievable — but CAAC path is not a shortcut for FAA.",
+    notablePublicFact: "Public reporting: CAAC TC, PC, and standard airworthiness for EH216-S.",
     website: "https://www.ehang.com",
     description:
       "Chinese autonomous aerial vehicle maker; the EH216-S holds full CAAC certification for passenger-carrying operations.",
@@ -270,8 +262,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Passenger",
     nextCertMilestone: "EASA certification continuity amid restructuring / capital stress",
     keyPartnerships: "Historical European city and airport demo partners; verify current status",
-    oaRelevance:
-      "Capital runway risk case study — certification progress without funding survival is not a win.",
+    notablePublicFact: "Public reporting: EASA path; restructuring / funding stress noted in industry coverage.",
     website: "https://www.volocopter.com",
     description:
       "German eVTOL pioneer developing the VoloCity air taxi. Public reporting has noted restructuring and funding challenges; specific funding totals are not confidently sourced here.",
@@ -299,7 +290,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Passenger",
     nextCertMilestone: "JCAB type certification for domestic commercial service",
     keyPartnerships: "Suzuki; Japanese municipal / Expo-related demo activity reported",
-    oaRelevance: "Non-FAA authority path — secondary watch unless OA expands Asia ops strategy.",
+    notablePublicFact: "Public reporting: JCAB type certification path for SD-05.",
     website: "https://skydrive2020.com",
     description:
       "Japanese eVTOL developer building the SD-05 air taxi, targeting JCAB certification for domestic commercial service.",
@@ -326,8 +317,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Mixed",
     nextCertMilestone: "Passenger Prosperity TC; cargo CarryAll already a reported TC datapoint",
     keyPartnerships: "European presence (Augsburg); cargo operator interest around CarryAll",
-    oaRelevance:
-      "Cargo variant certification reported ahead of passenger — reinforces cargo-first cert strategy relevance for Vertex.",
+    notablePublicFact: "Public reporting: CarryAll cargo variant TC reported; Prosperity passenger TC in progress.",
     website: "https://www.autoflight.com",
     description:
       "China/Germany dual-headquartered eVTOL developer building the Prosperity passenger aircraft and CarryAll cargo eVTOL.",
@@ -354,8 +344,7 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Mixed",
     nextCertMilestone: "",
     keyPartnerships: "",
-    oaRelevance:
-      "Hybrid fixed-wing VTOL efficiency story overlaps middle-mile range needs — keep on watch once cert posture is public.",
+    notablePublicFact: "Public reporting: hybrid fixed-wing VTOL (Cavorite X7); cert posture not confidently sourced.",
     website: "https://www.horizonaircraft.com",
     description:
       "Canadian developer of the Cavorite X7 hybrid fixed-wing VTOL aircraft, designed to fly efficiently in fixed-wing mode after vertical takeoff.",
@@ -382,14 +371,29 @@ export const COMPETITOR_PROFILES: CompetitorProfile[] = [
     missionFocus: "Unknown",
     nextCertMilestone: "Program wound down / IP acquired — no independent cert path",
     keyPartnerships: "IP acquired by Archer Aviation (public 2025 filings)",
-    oaRelevance:
-      "Consolidation signal: IP and talent move to better-capitalized FAA programs under funding pressure.",
+    notablePublicFact: "Public 2025 filings: Archer disclosed acquisition of Overair IP; independent program status uncertain.",
     website: "",
     description:
       "Developer of the Butterfly eVTOL with a tilting ducted-fan design. Archer Aviation publicly disclosed acquisition of Overair's IP in 2025 filings; operating status may be wound down.",
     dataNotes: "Specs, funding, revenue, and employee counts not confidently sourced — left blank.",
   },
 ];
+
+/** Curated shortlist for the CoS home — full landscape stays one click away. */
+export const PRIORITY_WATCH_IDS = [
+  "beta-technologies",
+  "autoflight",
+  "joby-aviation",
+  "archer-aviation",
+  "wisk-aero",
+] as const;
+
+export function listPriorityWatchCompetitors(): CompetitorProfile[] {
+  const byId = new Map(COMPETITOR_PROFILES.map((c) => [c.id, c]));
+  return PRIORITY_WATCH_IDS.map((id) => byId.get(id)).filter(
+    (c): c is CompetitorProfile => Boolean(c),
+  );
+}
 
 export type CompetitorSortKey =
   | "companyName"
@@ -446,7 +450,7 @@ export function searchCompetitors(query: string): CompetitorProfile[] {
       c.certAuthority,
       c.missionFocus,
       c.keyPartnerships,
-      c.oaRelevance,
+      c.notablePublicFact,
       c.description,
     ]
       .join(" ")

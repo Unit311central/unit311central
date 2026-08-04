@@ -1,9 +1,8 @@
 /**
- * OnwardAir Competitor Intelligence — live weekly feed (certification race).
+ * OnwardAir Competitor Intelligence — weekly public-signal feed.
  *
- * Cadence: one competitive brief per ISO week (auto-created on Home / CI open).
- * Themes weighted Certification → Funding runway → Partnerships → cargo vs passenger.
- * Not a scraped news API. Blank / unknown fields stay blank.
+ * Cadence: one brief per ISO week. Content is factual public posture only —
+ * no strategy advice. Not a scraped news API.
  */
 
 import { COMPETITOR_PROFILES, listCompetitors } from "@/lib/onwardair/competitor-intelligence-data";
@@ -41,7 +40,7 @@ export type CompetitorIntelFeedState = {
 
 type Listener = () => void;
 
-const STORAGE_KEY = "unit311.onwardair.competitor-intelligence-feed.v2";
+const STORAGE_KEY = "unit311.onwardair.competitor-intelligence-feed.v3";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const listeners = new Set<Listener>();
@@ -86,43 +85,14 @@ function nextWeekLabel(from = new Date()): string {
   });
 }
 
+/** Rotate focus competitors; copy stays factual. */
 const WEEKLY_WATCH_THEMES = [
-  {
-    focusId: "joby-aviation",
-    theme: "FAA certification stage language among US leaders",
-    detail:
-      "Watch TIA / stage progression and how FAA phrases means of compliance — inputs for Vertex pathway planning.",
-  },
-  {
-    focusId: "beta-technologies",
-    theme: "Cargo / utility cert race vs passenger vanity",
-    detail:
-      "Prioritize cargo-first flight hours and dual CTOL/VTOL tracks over passenger seat-count headlines.",
-  },
-  {
-    focusId: "archer-aviation",
-    theme: "Funding runway + manufacturing partnerships",
-    detail:
-      "Capital and OEM/airline partnerships that determine who survives a multi-year FAA slog.",
-  },
-  {
-    focusId: "vertical-aerospace",
-    theme: "EASA SC-VTOL credibility and capital stress",
-    detail:
-      "European dual-path watch: certification target dates only matter if funding runway holds.",
-  },
-  {
-    focusId: "autoflight",
-    theme: "Cargo variant certification ahead of passenger",
-    detail:
-      "CarryAll-style cargo TC signals reinforce middle-mile / utility-first certification strategy.",
-  },
-  {
-    focusId: "volocopter",
-    theme: "Certification without capital runway",
-    detail:
-      "Restructuring / funding stress cases — program credibility collapses when the balance sheet fails.",
-  },
+  { focusId: "joby-aviation", theme: "FAA stage / TIA public posture" },
+  { focusId: "beta-technologies", theme: "Dual CTOL/VTOL + cargo/utility programme" },
+  { focusId: "archer-aviation", theme: "FAA MoC acceptance + disclosed partners" },
+  { focusId: "vertical-aerospace", theme: "EASA SC-VTOL public target" },
+  { focusId: "autoflight", theme: "Cargo variant TC reporting vs passenger path" },
+  { focusId: "wisk-aero", theme: "FAA G-1 certification basis (Generation 6)" },
 ] as const;
 
 function themeForWeek(weekKey: string) {
@@ -132,10 +102,6 @@ function themeForWeek(weekKey: string) {
 
 function buildWeeklyBrief(weekKey: string): CompetitorIntelItem {
   const competitors = listCompetitors();
-  const inCert = competitors.filter((c) => c.certificationCategory === "In Certification");
-  const certified = competitors.filter(
-    (c) => c.certificationCategory === "Certified / In Production",
-  );
   const theme = themeForWeek(weekKey);
   const focus = competitors.find((c) => c.id === theme.focusId) ?? competitors[0]!;
 
@@ -145,11 +111,11 @@ function buildWeeklyBrief(weekKey: string): CompetitorIntelItem {
     publishedAt: weekStartIso(weekKey),
     category: "Weekly Brief",
     severity: "info",
-    title: `Weekly cert-race brief · ${weekKey}`,
-    summary: `${competitors.length} tracked competitors · ${inCert.length} in certification · ${certified.length} certified/in production. This week’s watch: ${theme.theme}. Focus: ${focus.companyName} (${focus.aircraftName || "program TBD"} · ${focus.certAuthority || "authority TBD"} · ${focus.missionFocus}) — ${theme.detail}`,
+    title: `Public signals · ${weekKey}`,
+    summary: `Focus this week: ${focus.companyName}. ${theme.theme}. ${focus.certificationStatus || focus.certificationCategory}${focus.certAuthority ? ` (${focus.certAuthority})` : ""}.`,
     competitorId: focus.id,
     competitorName: focus.companyName,
-    sourceLabel: "OnwardAir Competitor Intelligence · cert-race cadence",
+    sourceLabel: "Curated public landscape",
     read: false,
     notified: false,
   };
@@ -158,64 +124,52 @@ function buildWeeklyBrief(weekKey: string): CompetitorIntelItem {
 function buildSignalItems(weekKey: string): CompetitorIntelItem[] {
   const theme = themeForWeek(weekKey);
   const focus = COMPETITOR_PROFILES.find((c) => c.id === theme.focusId);
-  const cargoMixed = COMPETITOR_PROFILES.filter(
-    (c) => c.missionFocus === "Cargo / Utility" || c.missionFocus === "Mixed",
-  ).slice(0, 2);
   const publishedAt = new Date(weekStartIso(weekKey));
   publishedAt.setUTCHours(10, 0, 0, 0);
 
   const items: CompetitorIntelItem[] = [];
 
-  if (focus) {
+  if (!focus) return items;
+
+  items.push({
+    id: `signal-cert-${weekKey}-${focus.id}`,
+    weekKey,
+    publishedAt: publishedAt.toISOString(),
+    category: "Certification",
+    severity: "info",
+    title: `${focus.companyName} · certification`,
+    summary: [
+      focus.certAuthority ? `Authority: ${focus.certAuthority}` : null,
+      focus.certificationStatus || focus.certificationCategory,
+      focus.nextCertMilestone ? `Next public milestone: ${focus.nextCertMilestone}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    competitorId: focus.id,
+    competitorName: focus.companyName,
+    sourceLabel: "Public certification / program reporting",
+    read: false,
+    notified: false,
+  });
+
+  if (focus.keyPartnerships || focus.fundingRaised) {
+    const fundingTs = new Date(publishedAt);
+    fundingTs.setUTCHours(14, 0, 0, 0);
     items.push({
-      id: `signal-cert-${weekKey}-${focus.id}`,
+      id: `signal-funding-${weekKey}-${focus.id}`,
       weekKey,
-      publishedAt: publishedAt.toISOString(),
-      category: "Certification",
-      severity: focus.certificationCategory === "In Certification" ? "warning" : "info",
-      title: `${focus.companyName} — certification watch`,
-      summary: `${focus.certAuthority || "Authority TBD"} · ${focus.certificationStatus || focus.certificationCategory}. Next milestone: ${focus.nextCertMilestone || "—"}. OA relevance: ${focus.oaRelevance}`,
+      publishedAt: fundingTs.toISOString(),
+      category: focus.keyPartnerships ? "Partnership" : "Funding",
+      severity: "info",
+      title: `${focus.companyName} · capital & partners`,
+      summary: [
+        focus.fundingRaised ? `Funding: ${focus.fundingRaised}` : null,
+        focus.keyPartnerships ? `Partnerships: ${focus.keyPartnerships}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
       competitorId: focus.id,
       competitorName: focus.companyName,
-      sourceLabel: "Public certification / program reporting",
-      read: false,
-      notified: false,
-    });
-
-    if (focus.fundingRaised || focus.keyPartnerships) {
-      const fundingTs = new Date(publishedAt);
-      fundingTs.setUTCHours(14, 0, 0, 0);
-      items.push({
-        id: `signal-funding-${weekKey}-${focus.id}`,
-        weekKey,
-        publishedAt: fundingTs.toISOString(),
-        category: focus.keyPartnerships ? "Partnership" : "Funding",
-        severity: "info",
-        title: `${focus.companyName} — runway & partners`,
-        summary: `Funding: ${focus.fundingRaised || "—"}. Partnerships: ${focus.keyPartnerships || "—"}. Surviving the cert slog matters as much as stage language.`,
-        competitorId: focus.id,
-        competitorName: focus.companyName,
-        sourceLabel: "Public company / industry reporting",
-        read: false,
-        notified: false,
-      });
-    }
-  }
-
-  for (const [i, c] of cargoMixed.entries()) {
-    if (c.id === focus?.id) continue;
-    const ts = new Date(publishedAt);
-    ts.setUTCDate(ts.getUTCDate() + i + 1);
-    items.push({
-      id: `signal-program-${weekKey}-${c.id}`,
-      weekKey,
-      publishedAt: ts.toISOString(),
-      category: "Program",
-      severity: "info",
-      title: `${c.companyName} — ${c.missionFocus} mission`,
-      summary: `${c.aircraftName || "Program"} · ${c.certAuthority || "authority TBD"}. Status: ${c.certificationStatus || c.certificationCategory}. ${c.oaRelevance}`,
-      competitorId: c.id,
-      competitorName: c.companyName,
       sourceLabel: "Public company / industry reporting",
       read: false,
       notified: false,
@@ -228,7 +182,7 @@ function buildSignalItems(weekKey: string): CompetitorIntelItem[] {
 function seedHistoricalFeed(): CompetitorIntelItem[] {
   const now = new Date();
   const items: CompetitorIntelItem[] = [];
-  for (let i = 3; i >= 1; i--) {
+  for (let i = 2; i >= 1; i--) {
     const d = new Date(now.getTime() - i * WEEK_MS);
     const key = getIsoWeekKey(d);
     const brief = buildWeeklyBrief(key);
@@ -236,9 +190,7 @@ function seedHistoricalFeed(): CompetitorIntelItem[] {
     brief.notified = true;
     items.push(brief, ...buildSignalItems(key).map((s) => ({ ...s, read: true, notified: true })));
   }
-  return items.sort(
-    (a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
-  );
+  return items.sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 }
 
 const EMPTY_SERVER_SNAPSHOT: CompetitorIntelFeedState = {
@@ -313,11 +265,9 @@ export function listUnreadCompetitorIntelNotifications(): CompetitorIntelItem[] 
   return listCompetitorIntelFeed().filter((i) => !i.read);
 }
 
-/** Unread weekly briefs + unread high-signal items for Home alerts. */
+/** Unread weekly briefs for Home alerts — keep sparse. */
 export function listCompetitorIntelHomeAlerts(): CompetitorIntelItem[] {
-  return listCompetitorIntelFeed().filter(
-    (i) => !i.read && (i.category === "Weekly Brief" || i.severity === "warning" || i.severity === "critical"),
-  );
+  return listCompetitorIntelFeed().filter((i) => !i.read && i.category === "Weekly Brief");
 }
 
 export function getCompetitorIntelCadence() {
@@ -336,7 +286,6 @@ export function getCompetitorIntelCadence() {
 
 /**
  * Ensure this ISO week’s live brief + signals exist.
- * Called from Home (exec dashboard) and Competitor Intelligence workspace.
  */
 export function ensureWeeklyCompetitorIntelligenceRefresh(options?: {
   force?: boolean;
@@ -351,7 +300,6 @@ export function ensureWeeklyCompetitorIntelligenceRefresh(options?: {
 
   if (already && !options?.force) {
     if (snap.lastEnsuredWeekKey !== weekKey) {
-      // Update metadata without notify loops during render paths.
       state = {
         ...snap,
         lastEnsuredWeekKey: weekKey,
@@ -363,15 +311,16 @@ export function ensureWeeklyCompetitorIntelligenceRefresh(options?: {
     return { created: false, weekKey, newItems: [] };
   }
 
-  const newItems = options?.force && already
-    ? [
-        {
-          ...buildWeeklyBrief(weekKey),
-          id: `weekly-brief-${weekKey}-refresh-${Date.now().toString(36)}`,
-          publishedAt: new Date().toISOString(),
-        },
-      ]
-    : [buildWeeklyBrief(weekKey), ...buildSignalItems(weekKey)];
+  const newItems =
+    options?.force && already
+      ? [
+          {
+            ...buildWeeklyBrief(weekKey),
+            id: `weekly-brief-${weekKey}-refresh-${Date.now().toString(36)}`,
+            publishedAt: new Date().toISOString(),
+          },
+        ]
+      : [buildWeeklyBrief(weekKey), ...buildSignalItems(weekKey)];
 
   const existingIds = new Set(snap.items.map((i) => i.id));
   const toAdd = newItems.filter((i) => !existingIds.has(i.id));
