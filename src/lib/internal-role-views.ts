@@ -110,6 +110,19 @@ export function isViewAllowedForGrants(
   ) {
     return true;
   }
+  // OnwardAir Marketing & Events ships with the Operations surface.
+  if (
+    (view === "oa-marketing-dashboard" ||
+      view === "marketing-newsletter" ||
+      view === "marketing-events" ||
+      view === "marketing-event-management" ||
+      view === "marketing-mailing-list") &&
+    (allowedViews.includes("operations-dashboard") ||
+      allowedViews.includes("assets") ||
+      allowedViews.includes("oa-marketing-dashboard"))
+  ) {
+    return true;
+  }
   return false;
 }
 
