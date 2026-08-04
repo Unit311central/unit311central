@@ -4,8 +4,10 @@ import {
   CalendarDays,
   ClipboardCheck,
   ExternalLink,
+  LayoutDashboard,
   Mail,
   MapPin,
+  Share2,
   Users,
 } from "lucide-react";
 
@@ -23,6 +25,7 @@ import {
 } from "@/components/testflighthub/tqms-ui";
 
 export type OnwardAirMarketingPage =
+  | "dashboard"
   | "newsletter"
   | "events"
   | "event-management"
@@ -37,6 +40,151 @@ function statusClass(status: string): string {
     return "border-amber-400/30 bg-amber-500/15 text-amber-100";
   }
   return "border-white/15 bg-white/5 text-white/70";
+}
+
+function DashboardPage() {
+  const subscribers = OA_MAILING_LISTS.reduce((sum, l) => sum + l.subscribers, 0);
+  const growth = OA_MAILING_LISTS.reduce((sum, l) => sum + l.growth30d, 0);
+  const registered = OA_MANAGED_EVENTS.reduce((sum, e) => sum + e.registered, 0);
+  const capacity = OA_MANAGED_EVENTS.reduce((sum, e) => sum + e.capacity, 0);
+  const sentNewsletters = OA_NEWSLETTERS.filter((n) => n.status === "sent");
+  const avgOpen =
+    sentNewsletters.length > 0
+      ? sentNewsletters.reduce((sum, n) => sum + (n.openRate ?? 0), 0) / sentNewsletters.length
+      : 0;
+  const upcomingExternal = OA_EXTERNAL_EVENTS.filter((e) => e.status !== "Completed").slice(0, 3);
+  const liveOwned = OA_MANAGED_EVENTS.filter((e) => e.stage === "Live" || e.stage === "Booking");
+  const recentNewsletter = OA_NEWSLETTERS.find((n) => n.status === "sent") ?? OA_NEWSLETTERS[0];
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <TqmsKpiTile
+          label="Newsletter open rate"
+          value={`${avgOpen.toFixed(1)}%`}
+          hint={`${sentNewsletters.length} sent campaigns`}
+        />
+        <TqmsKpiTile
+          label="Mailing subscribers"
+          value={subscribers.toLocaleString()}
+          hint={`+${growth} last 30 days`}
+        />
+        <TqmsKpiTile
+          label="External events"
+          value={String(OA_EXTERNAL_EVENTS.filter((e) => e.status === "Confirmed").length)}
+          hint={`${OA_EXTERNAL_EVENTS.length} on the calendar`}
+        />
+        <TqmsKpiTile
+          label="Hosted event fill"
+          value={`${registered}/${capacity}`}
+          hint={`${OA_MANAGED_EVENTS.length} OnwardAir programmes`}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <TqmsSection title="Pipeline snapshot" subtitle="What needs attention across Marketing & Events.">
+          <ul className="space-y-3">
+            <li className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
+              <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-rose-200/70">
+                <Mail className="h-3.5 w-3.5" /> Newsletter
+              </div>
+              <p className="mt-1.5 text-sm text-white">
+                {OA_NEWSLETTERS.filter((n) => n.status === "draft").length} draft
+                {OA_NEWSLETTERS.filter((n) => n.status === "scheduled").length
+                  ? ` · ${OA_NEWSLETTERS.filter((n) => n.status === "scheduled").length} scheduled`
+                  : ""}
+              </p>
+              {recentNewsletter ? (
+                <p className="mt-1 text-[12px] text-white/45">
+                  Latest: {recentNewsletter.title}
+                  {recentNewsletter.openRate != null
+                    ? ` · ${recentNewsletter.openRate}% open`
+                    : ""}
+                </p>
+              ) : null}
+            </li>
+            <li className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
+              <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-rose-200/70">
+                <Share2 className="h-3.5 w-3.5" /> Social
+              </div>
+              <p className="mt-1.5 text-sm text-white">
+                LinkedIn, Instagram and X channels active for OnwardAir.
+              </p>
+              <p className="mt-1 text-[12px] text-white/45">
+                Last LinkedIn post: certification cycle + Austin investor day.
+              </p>
+            </li>
+            <li className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3">
+              <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-rose-200/70">
+                <Users className="h-3.5 w-3.5" /> Mailing lists
+              </div>
+              <p className="mt-1.5 text-sm text-white">
+                {OA_MAILING_LISTS.filter((l) => l.status === "Active").length} active lists ·{" "}
+                {OA_MAILING_LISTS.filter((l) => l.status === "Paused").length} paused
+              </p>
+              <p className="mt-1 text-[12px] text-white/45">
+                Strongest growth on investor relations (+18 / 30d).
+              </p>
+            </li>
+          </ul>
+        </TqmsSection>
+
+        <TqmsSection title="Upcoming external events" subtitle="Conferences and partner summits.">
+          <div className="space-y-3">
+            {upcomingExternal.map((event) => (
+              <div
+                key={event.id}
+                className="rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-white">{event.name}</p>
+                  <TqmsStatusPill className={statusClass(event.status)}>{event.status}</TqmsStatusPill>
+                </div>
+                <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-white/50">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {event.startDate} → {event.endDate}
+                </p>
+                <p className="mt-1 flex items-center gap-1.5 text-[12px] text-white/50">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {event.city}, {event.country}
+                </p>
+              </div>
+            ))}
+          </div>
+        </TqmsSection>
+      </div>
+
+      <TqmsSection
+        title="OnwardAir-hosted programmes"
+        subtitle="Event management — live and booking stages."
+      >
+        <div className="space-y-3">
+          {liveOwned.map((event) => (
+            <div
+              key={event.id}
+              className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold text-white">{event.name}</p>
+                  <TqmsStatusPill className={statusClass(event.stage)}>{event.stage}</TqmsStatusPill>
+                </div>
+                <p className="mt-1 text-[12px] text-white/45">
+                  {event.date} · {event.venue}
+                </p>
+              </div>
+              <p className="text-sm text-white/80">
+                {event.registered}/{event.capacity} registered
+              </p>
+            </div>
+          ))}
+          {liveOwned.length === 0 ? (
+            <p className="text-sm text-white/45">No hosted events currently in live or booking stage.</p>
+          ) : null}
+        </div>
+      </TqmsSection>
+    </div>
+  );
 }
 
 function NewsletterPage() {
@@ -261,6 +409,11 @@ const PAGE_META: Record<
   OnwardAirMarketingPage,
   { title: string; blurb: string; icon: typeof Mail }
 > = {
+  dashboard: {
+    title: "Dashboard",
+    blurb: "Marketing & Events at a glance — campaigns, audiences, and upcoming programmes.",
+    icon: LayoutDashboard,
+  },
   newsletter: {
     title: "Digital Newsletter",
     blurb: "Campaign drafts, schedules, and engagement for OnwardAir audiences.",
@@ -306,6 +459,7 @@ export default function OnwardAirMarketingEventsWorkspace({
         </div>
       </div>
 
+      {page === "dashboard" ? <DashboardPage /> : null}
       {page === "newsletter" ? <NewsletterPage /> : null}
       {page === "events" ? <ExternalEventsPage /> : null}
       {page === "event-management" ? <EventManagementPage /> : null}

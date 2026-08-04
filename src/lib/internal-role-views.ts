@@ -973,6 +973,7 @@ const ONWARDAIR_MARKETING_EVENTS_NAV_ITEM: InternalNavItem = {
   label: "Marketing & Events",
   icon: "Share2",
   children: [
+    { label: "Dashboard", view: "oa-marketing-dashboard" as const },
     { label: "Social", view: "social" as const },
     { label: "Digital Newsletter", view: "marketing-newsletter" as const },
     { label: "External Events", view: "marketing-events" as const },

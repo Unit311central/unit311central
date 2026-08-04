@@ -187,6 +187,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     label: "Marketing & Events",
     section: "Operations",
     views: [
+      "oa-marketing-dashboard",
       "social",
       "marketing-newsletter",
       "marketing-events",

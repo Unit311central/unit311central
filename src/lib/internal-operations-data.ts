@@ -199,7 +199,8 @@ export type InternalOperationsView =
   | "oa-ip-portfolio"
   | "oa-ip-documents"
   | "oa-ip-search"
-  | "oa-competitor-intelligence";
+  | "oa-competitor-intelligence"
+  | "oa-marketing-dashboard";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -446,6 +447,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "oa-ip-documents",
   "oa-ip-search",
   "oa-competitor-intelligence",
+  "oa-marketing-dashboard",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -1296,6 +1298,10 @@ export const internalViewTitles: Record<
   "oa-competitor-intelligence": {
     title: "Competitor Intelligence",
     subtitle: "OnwardAir Intelligence",
+  },
+  "oa-marketing-dashboard": {
+    title: "Dashboard",
+    subtitle: "Marketing & Events",
   },
 };
 

@@ -1023,6 +1023,10 @@ export default function InternalOperationsDashboard({
               <StaffTrainingWorkspace />
             ))}
 
+          {activeView === "oa-marketing-dashboard" && (
+            <OnwardAirMarketingEventsWorkspace page="dashboard" />
+          )}
+
           {activeView === "marketing-newsletter" &&
             (isBrowserOnwardAirSurface() ? (
               <OnwardAirMarketingEventsWorkspace page="newsletter" />
