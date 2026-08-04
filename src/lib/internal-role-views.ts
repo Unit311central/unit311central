@@ -1,6 +1,10 @@
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { normalizePlatformUsername } from "@/lib/platform-auth";
-import { ONWARDAIR_HOME_ACCENT } from "@/lib/onwardair-surface";
+import {
+  ONWARDAIR_EA_ACCENT,
+  ONWARDAIR_HOME_ACCENT,
+  ONWARDAIR_MODULE_ACCENTS,
+} from "@/lib/onwardair-surface";
 
 import type {
   InternalNavItem,
@@ -831,28 +835,8 @@ const ABHI_BOARD_NAV_SECTION: InternalNavSection = {
 
 /**
  * Unique OnwardAir LHS accents — every module from EA downward must differ.
- * Home stays ONWARDAIR_HOME_ACCENT (#267B90 / RGB 38,123,144).
+ * Home stays ONWARDAIR_HOME_ACCENT (RGB 38,123,144).
  */
-const ONWARDAIR_SECTION_ACCENTS: Readonly<Record<string, string>> = {
-  "Business Central": "#2563EB",
-  "OnwardAir Intelligence": "#A855F7",
-  Financials: "#15803D",
-  Fundraising: "#D97706",
-  Board: "#0284C7",
-  "Corporate Information": "#B45309",
-  Operations: "#0D9488",
-  "Technology Management": "#64748B",
-  "Human Resources": "#DB2777",
-  "Business Productivity": "#06B6D4",
-  "Project Management": "#1D4ED8",
-  Engineering: "#EA580C",
-  Training: "#CA8A04",
-  QMS: "#65A30D",
-  "Marketing & Events": "#E11D48",
-};
-
-const ONWARDAIR_EA_ACCENT = "#12B886";
-
 function applyOnwardAirSectionColors(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
@@ -864,7 +848,7 @@ function applyOnwardAirSectionColors(
       if (isEa) return { ...section, color: ONWARDAIR_EA_ACCENT };
       return section;
     }
-    const accent = section.label ? ONWARDAIR_SECTION_ACCENTS[section.label] : undefined;
+    const accent = section.label ? ONWARDAIR_MODULE_ACCENTS[section.label] : undefined;
     return accent ? { ...section, color: accent } : section;
   });
 }
@@ -874,7 +858,7 @@ const ONWARDAIR_BOARD_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Board",
   icon: "ShieldCheck",
-  color: ONWARDAIR_SECTION_ACCENTS.Board,
+  color: ONWARDAIR_MODULE_ACCENTS.Board,
   items: [
     { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" as const },
     { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" as const },
@@ -889,7 +873,7 @@ const ONWARDAIR_FUNDRAISING_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Fundraising",
   icon: "Landmark",
-  color: ONWARDAIR_SECTION_ACCENTS.Fundraising,
+  color: ONWARDAIR_MODULE_ACCENTS.Fundraising,
   items: [
     { label: "Dashboard", icon: "LayoutDashboard", view: "fundraising-dashboard" as const },
     {
@@ -909,7 +893,7 @@ const ONWARDAIR_ENGINEERING_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Engineering",
   icon: "Cpu",
-  color: ONWARDAIR_SECTION_ACCENTS.Engineering,
+  color: ONWARDAIR_MODULE_ACCENTS.Engineering,
   items: [
     {
       label: "Engineering Overview",
@@ -998,7 +982,7 @@ const ONWARDAIR_INTELLIGENCE_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "OnwardAir Intelligence",
   icon: "Sparkles",
-  color: ONWARDAIR_SECTION_ACCENTS["OnwardAir Intelligence"],
+  color: ONWARDAIR_MODULE_ACCENTS["OnwardAir Intelligence"],
   items: [
     {
       label: "Competitor Intelligence",
@@ -1013,7 +997,7 @@ const ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Project Management",
   icon: "FolderKanban",
-  color: ONWARDAIR_SECTION_ACCENTS["Project Management"],
+  color: ONWARDAIR_MODULE_ACCENTS["Project Management"],
   items: [
     { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" as const },
     { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
@@ -1027,7 +1011,7 @@ const ONWARDAIR_MARKETING_EVENTS_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Marketing & Events",
   icon: "Share2",
-  color: ONWARDAIR_SECTION_ACCENTS["Marketing & Events"],
+  color: ONWARDAIR_MODULE_ACCENTS["Marketing & Events"],
   items: [
     { label: "Dashboard", icon: "LayoutDashboard", view: "oa-marketing-dashboard" as const },
     { label: "Social", icon: "Share2", view: "social" as const },

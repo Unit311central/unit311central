@@ -72,8 +72,7 @@ import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurf
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { isAbsoluteHttpUrl } from "@/lib/clarity";
 import {
-  isBrowserOnwardAirSurface,
-  ONWARDAIR_HOME_ACCENT,
+  resolveOnwardAirNavAccent,
 } from "@/lib/onwardair-surface";
 import {
   getSidebarTheme,
@@ -443,10 +442,7 @@ export default function EnterprisePlatformSidebar({
   function renderPinItem(item: InternalNavItem, accent?: string) {
     const active = isInternalNavItemActive(pathname, item, activeView, basePath, searchParams);
     const Icon = resolveIcon(item.icon);
-    const color =
-      item.view === "home" && isBrowserOnwardAirSurface()
-        ? ONWARDAIR_HOME_ACCENT
-        : (accent ?? theme.accent);
+    const color = accent ?? theme.accent;
 
     if (!item.view) return null;
 
@@ -503,7 +499,8 @@ export default function EnterprisePlatformSidebar({
     const workspaceKey = `workspace::${section.label ?? "workspace"}`;
     const isOpen = hydrated ? Boolean(expanded[workspaceKey]) : false;
     const Icon = resolveIcon(section.icon);
-    const color = section.color ?? theme.accent;
+    const color =
+      resolveOnwardAirNavAccent(section) ?? section.color ?? theme.accent;
     const Chevron = isOpen ? ChevronDown : ChevronRight;
 
     return (
@@ -675,7 +672,9 @@ export default function EnterprisePlatformSidebar({
       <nav className="sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-5">
         <div className="flex flex-col" style={{ gap: CARD_GAP }}>
           {pinSections.map((section) =>
-            section.items.map((item) => renderPinItem(item, section.color)),
+            section.items.map((item) =>
+              renderPinItem(item, resolveOnwardAirNavAccent(section) ?? section.color),
+            ),
           )}
           {workspaceSections.map((section) => renderWorkspace(section))}
         </div>

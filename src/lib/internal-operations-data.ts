@@ -656,7 +656,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "Business Central",
     icon: "Briefcase",
-    color: "#2F80ED",
+    color: "#2563EB",
     items: [
       {
         label: "Clients",
@@ -698,7 +698,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "Financials",
     icon: "Wallet",
-    color: "#27AE60",
+    color: "#15803D",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "financials" as const },
       { label: "General Ledger", icon: "ScrollText", view: "general-ledger" as const },
@@ -717,7 +717,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "Human Resources",
     icon: "Users",
-    color: "#9B51E0",
+    color: "#EC4899",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "hr-dashboard" as const },
       { label: "Employees", icon: "Users", view: "hr" as const },
@@ -749,7 +749,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "Corporate Information",
     icon: "Building2",
-    color: "#F2A900",
+    color: "#A16207",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "corporate-dashboard" as const },
       {
@@ -812,7 +812,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "Technology Management",
     icon: "Cpu",
-    color: "#38BDF8",
+    color: "#8B5CF6",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "technology-dashboard" as const },
       { label: "Devices", icon: "Laptop", view: "technology-devices" as const },
@@ -847,7 +847,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "Business Productivity",
     icon: "MessageSquare",
-    color: "#00B8D9",
+    color: "#22D3EE",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "productivity-dashboard" as const },
       {
@@ -880,7 +880,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "Operations",
     icon: "Package",
-    color: "#00D4C7",
+    color: "#0D9488",
     items: [
       { label: "Assets", icon: "Package", view: "assets" as const },
       {
@@ -900,7 +900,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "Training",
     icon: "GraduationCap",
-    color: "#F2994A",
+    color: "#EAB308",
     items: [
       {
         label: "Dashboard",
@@ -921,7 +921,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     kind: "workspace",
     label: "QMS",
     icon: "ShieldCheck",
-    color: "#7ED321",
+    color: "#84CC16",
     items: [
       {
         label: "Dashboard",
