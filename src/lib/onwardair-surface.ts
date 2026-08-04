@@ -7,10 +7,11 @@ export const ONWARDAIR_SLUG = "onwardair";
 /** OnwardAir reports and displays money in USD across Home, Financials, and modules. */
 export const ONWARDAIR_REPORTING_CURRENCY = "USD";
 
-/** Official wordmark from onwardair.tech (white mark on transparent). */
-export const ONWARDAIR_LOGO_SRC = "/images/workspaces/onwardair-logo.png";
-export const ONWARDAIR_LOGO_INTRINSIC_WIDTH = 155;
-export const ONWARDAIR_LOGO_INTRINSIC_HEIGHT = 40;
+/** Official wordmark — vector SVG (crisp at any size) + matching high-res PNG. */
+export const ONWARDAIR_LOGO_SRC = "/images/workspaces/onwardair-logo.svg";
+export const ONWARDAIR_LOGO_PNG_SRC = "/images/workspaces/onwardair-logo.png";
+export const ONWARDAIR_LOGO_INTRINSIC_WIDTH = 640;
+export const ONWARDAIR_LOGO_INTRINSIC_HEIGHT = 168;
 
 /** Home LHS stripe + RHS title accent — exact RGB(38, 123, 144). */
 export const ONWARDAIR_HOME_ACCENT = "rgb(38, 123, 144)";

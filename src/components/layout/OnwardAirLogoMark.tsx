@@ -19,7 +19,7 @@ type OnwardAirLogoMarkProps = {
 };
 
 /**
- * Canonical OnwardAir wordmark — white mark on transparent (from onwardair.tech).
+ * Canonical OnwardAir wordmark — white mark on transparent (vector SVG).
  */
 export default function OnwardAirLogoMark({
   className,
