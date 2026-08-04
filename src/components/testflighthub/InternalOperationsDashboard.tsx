@@ -1405,8 +1405,13 @@ export default function InternalOperationsDashboard({
             />
           )}
 
+          {activeView === "oa-ip-overview" && (
+            <WorkspaceErrorBoundary title="IP Overview">
+              <OnwardAirIpPatentsWorkspace section="overview" />
+            </WorkspaceErrorBoundary>
+          )}
           {activeView === "oa-ip-dashboard" && (
-            <WorkspaceErrorBoundary title="IP & Patents Dashboard">
+            <WorkspaceErrorBoundary title="Patents Dashboard">
               <OnwardAirIpPatentsWorkspace section="dashboard" />
             </WorkspaceErrorBoundary>
           )}

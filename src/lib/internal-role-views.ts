@@ -969,7 +969,8 @@ const ONWARDAIR_IP_PATENTS_NAV_ITEM: InternalNavItem = {
   label: "IP & Patents",
   icon: "ScrollText",
   children: [
-    { label: "Dashboard", view: "oa-ip-dashboard" as const },
+    { label: "IP Overview", view: "oa-ip-overview" as const },
+    { label: "Patents Dashboard", view: "oa-ip-dashboard" as const },
     { label: "Patent Register", view: "oa-ip-register" as const },
     { label: "Patent Portfolio", view: "oa-ip-portfolio" as const },
     { label: "Patent Documents", view: "oa-ip-documents" as const },

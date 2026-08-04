@@ -267,3 +267,67 @@ export function groupPatentsBySystem(): { system: string; patents: PatentRecord[
   }
   return Array.from(systems.entries()).map(([system, patents]) => ({ system, patents }));
 }
+
+/** Broader corporate IP categories — patents are only one slice. */
+export type IpAssetCategory = {
+  id: string;
+  ipType: string;
+  knownAssets: string;
+};
+
+export const OA_IP_HIGHLIGHTS: readonly string[] = [
+  "25+ issued patents",
+  "Multiple provisional patent filings",
+  "Multiple non-provisional applications in the queue",
+  "30+ new technology areas under advanced development",
+  "Motion control (including patented 4-DoF controller)",
+  "Automated logistics integration",
+  "Surgical robotics applications",
+  "Vertex VTOL™ aircraft platform",
+  "FLEX Pods™ modular payload system",
+] as const;
+
+export const OA_IP_ASSET_SUMMARY: readonly IpAssetCategory[] = [
+  {
+    id: "patents",
+    ipType: "Patents",
+    knownAssets: "25+ issued patents",
+  },
+  {
+    id: "applications",
+    ipType: "Patent Applications",
+    knownAssets: "Multiple provisional and non-provisional filings",
+  },
+  {
+    id: "trademarks",
+    ipType: "Trademarks / Brands",
+    knownAssets: "OnwardAir, Vertex VTOL™, FLEX Pods™",
+  },
+  {
+    id: "trade-secrets",
+    ipType: "Trade Secrets",
+    knownAssets:
+      "Aircraft architecture, logistics systems, autonomy, manufacturing know-how (not publicly disclosed)",
+  },
+  {
+    id: "copyrights",
+    ipType: "Copyrights",
+    knownAssets: "Software, designs, technical documentation, website content",
+  },
+  {
+    id: "know-how",
+    ipType: "Know-how",
+    knownAssets:
+      "Hybrid-electric VTOL engineering, modular cargo systems, logistics integration technology",
+  },
+] as const;
+
+export function getIpOverviewStats() {
+  const patentStats = patentSummaryStats();
+  return {
+    ...patentStats,
+    trademarkBrands: 3,
+    ipCategories: OA_IP_ASSET_SUMMARY.length,
+    techAreasInDevelopment: 30,
+  };
+}

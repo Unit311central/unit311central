@@ -18,8 +18,11 @@ import { getInternalNavHref, type InternalOperationsView } from "@/lib/internal-
 import {
   groupPatentsByFamily,
   groupPatentsBySystem,
+  getIpOverviewStats,
   listPatentDocuments,
   listPatents,
+  OA_IP_ASSET_SUMMARY,
+  OA_IP_HIGHLIGHTS,
   patentSummaryStats,
   searchPatents,
   type PatentRecord,
@@ -28,13 +31,14 @@ import {
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 
-type IpPatentsSection = "dashboard" | "register" | "portfolio" | "documents" | "search";
+type IpPatentsSection = "overview" | "dashboard" | "register" | "portfolio" | "documents" | "search";
 
 type OnwardAirIpPatentsWorkspaceProps = {
   section: IpPatentsSection;
 };
 
 const SECTION_VIEW: Record<IpPatentsSection, InternalOperationsView> = {
+  overview: "oa-ip-overview",
   dashboard: "oa-ip-dashboard",
   register: "oa-ip-register",
   portfolio: "oa-ip-portfolio",
@@ -109,6 +113,8 @@ function SectionLinkChip({
 
 export function OnwardAirIpPatentsWorkspace({ section }: OnwardAirIpPatentsWorkspaceProps) {
   switch (section) {
+    case "overview":
+      return <IpOverview />;
     case "dashboard":
       return <IpDashboard />;
     case "register":
@@ -124,6 +130,112 @@ export function OnwardAirIpPatentsWorkspace({ section }: OnwardAirIpPatentsWorks
   }
 }
 
+function IpOverview() {
+  const stats = useMemo(() => getIpOverviewStats(), []);
+
+  return (
+    <div className="space-y-5 p-1">
+      <SectionHeader
+        eyebrow="OnwardAir · IP"
+        title="IP Overview"
+        description="Corporate intellectual property across patents, trademarks, trade secrets, copyrights, and know-how. Patents remain the detailed legal track under this module."
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Issued patents (claimed)"
+          value="25+"
+          hint="Company-claimed portfolio size"
+          tone="good"
+          icon={<ShieldCheck className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Verified USPTO records"
+          value={String(stats.verified)}
+          hint="Independently confirmed in Patent Register"
+          tone="good"
+          icon={<ScrollText className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Trademark / brands"
+          value={String(stats.trademarkBrands)}
+          hint="OnwardAir · Vertex VTOL™ · FLEX Pods™"
+          tone="default"
+          icon={<Layers className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Tech areas in development"
+          value="30+"
+          hint="Advanced development pipeline"
+          tone="default"
+          icon={<FolderOpen className="h-4 w-4" />}
+        />
+      </div>
+
+      <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
+        <h2 className="text-sm font-semibold text-white">IP highlights</h2>
+        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+          {OA_IP_HIGHLIGHTS.map((item) => (
+            <li
+              key={item}
+              className="flex gap-2 rounded-xl border border-white/8 bg-black/20 px-3 py-2 text-sm text-white/75"
+            >
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-400" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Publicly identifiable IP summary</h2>
+            <p className="mt-1 text-sm text-white/50">
+              From a corporate IP perspective, publicly identifiable IP appears to include:
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <SectionLinkChip
+              label="Patent Register"
+              section="register"
+              icon={<ScrollText className="h-3.5 w-3.5" />}
+            />
+            <SectionLinkChip
+              label="Patents Dashboard"
+              section="dashboard"
+              icon={<ShieldCheck className="h-3.5 w-3.5" />}
+            />
+          </div>
+        </div>
+        <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
+          <table className="min-w-[640px] w-full text-left text-sm">
+            <thead className="bg-black/30 text-[10px] uppercase tracking-[0.12em] text-white/40">
+              <tr>
+                <Th>IP Type</Th>
+                <Th>Known Assets</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {OA_IP_ASSET_SUMMARY.map((row) => (
+                <tr key={row.id} className="border-t border-white/8 text-white/80">
+                  <td className="px-3 py-3 font-medium text-white">{row.ipType}</td>
+                  <td className="px-3 py-3 text-white/70">{row.knownAssets}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-4 text-xs leading-relaxed text-white/45">
+          The website does not publish a complete IP register, patent schedule, trademark schedule,
+          or asset list. Specific patent numbers are recorded only where independently verified;
+          broader claims remain at summary level.
+        </p>
+      </section>
+    </div>
+  );
+}
+
 function IpDashboard() {
   const stats = useMemo(() => patentSummaryStats(), []);
   const patents = useMemo(() => listPatents(), []);
@@ -133,7 +245,7 @@ function IpDashboard() {
     <div className="space-y-5 p-1">
       <SectionHeader
         eyebrow="OnwardAir · IP & Patents"
-        title="IP & Patents Dashboard"
+        title="Patents Dashboard"
         description="Executive view of OnwardAir's patent portfolio — verified USPTO records alongside company-claimed IP awaiting independent verification."
       />
 

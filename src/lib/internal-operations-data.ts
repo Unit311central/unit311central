@@ -194,6 +194,7 @@ export type InternalOperationsView =
   | "oa-assurance-certification"
   | "oa-engineering-risks"
   | "oa-engineering-integrations"
+  | "oa-ip-overview"
   | "oa-ip-dashboard"
   | "oa-ip-register"
   | "oa-ip-portfolio"
@@ -442,6 +443,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "oa-assurance-certification",
   "oa-engineering-risks",
   "oa-engineering-integrations",
+  "oa-ip-overview",
   "oa-ip-dashboard",
   "oa-ip-register",
   "oa-ip-portfolio",
@@ -1291,7 +1293,8 @@ export const internalViewTitles: Record<
   "oa-assurance-certification": { title: "Assurance & Certification", subtitle: "Engineering" },
   "oa-engineering-risks": { title: "Engineering Risks", subtitle: "Engineering" },
   "oa-engineering-integrations": { title: "Integrations", subtitle: "Engineering" },
-  "oa-ip-dashboard": { title: "IP & Patents Dashboard", subtitle: "IP & Patents" },
+  "oa-ip-overview": { title: "IP Overview", subtitle: "IP & Patents" },
+  "oa-ip-dashboard": { title: "Patents Dashboard", subtitle: "IP & Patents" },
   "oa-ip-register": { title: "Patent Register", subtitle: "IP & Patents" },
   "oa-ip-portfolio": { title: "Patent Portfolio", subtitle: "IP & Patents" },
   "oa-ip-documents": { title: "Patent Documents", subtitle: "IP & Patents" },
