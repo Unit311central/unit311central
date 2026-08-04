@@ -473,7 +473,7 @@ export default function EnterprisePlatformSidebar({
           onPointerEnter={() => onPrefetchView?.(item.view!)}
           onFocus={() => onPrefetchView?.(item.view!)}
           className={cn(
-            "group flex h-full w-full items-center gap-1.5 text-left text-[12px] font-medium leading-none tracking-normal transition-colors duration-75",
+            "group flex h-full w-full items-center gap-1.5 text-left text-[10.5px] font-semibold uppercase leading-none tracking-[0.08em] transition-colors duration-75",
             active ? "text-white" : "text-white/88 hover:text-white",
           )}
         >
@@ -481,7 +481,7 @@ export default function EnterprisePlatformSidebar({
             className={cn("h-3.5 w-3.5 shrink-0", active ? "text-white" : SUBMENU_ICON)}
             strokeWidth={1.5}
           />
-          <span className="min-w-0 flex-1 whitespace-nowrap">{item.label}</span>
+          <span className="min-w-0 flex-1 truncate whitespace-nowrap">{item.label}</span>
         </button>
       </div>
     );
@@ -539,7 +539,10 @@ export default function EnterprisePlatformSidebar({
               );
               if (dashboard?.view) navigate(dashboard.view);
             }
-            if (willOpen && section.label === "Fundraising & Cap Table") {
+            if (
+              willOpen &&
+              (section.label === "Fundraising" || section.label === "Fundraising & Cap Table")
+            ) {
               const dashboard = section.items.find(
                 (item) =>
                   (item.label === "Dashboard" || item.view === "fundraising-dashboard") &&
@@ -556,14 +559,7 @@ export default function EnterprisePlatformSidebar({
             style={{ color, opacity: 0.82 }}
             strokeWidth={1.5}
           />
-          <span
-            className={cn(
-              "min-w-0 flex-1 whitespace-nowrap font-semibold uppercase leading-none text-white",
-              (section.label?.length ?? 0) > 18
-                ? "text-[9.5px] tracking-[0.06em]"
-                : "text-[10.5px] tracking-[0.12em]",
-            )}
-          >
+          <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[10.5px] font-semibold uppercase leading-none tracking-[0.08em] text-white">
             {section.label}
           </span>
           <Chevron

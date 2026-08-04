@@ -630,7 +630,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
   {
     kind: "pin",
     label: null,
-    color: "#2F80ED",
+    color: "#FF6B4A",
     items: [{ label: "Home", icon: "LayoutDashboard", view: "home" as const }],
   },
   ...(EXECUTIVE_ASSISTANT_VISIBLE
@@ -638,7 +638,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         {
           kind: "pin" as const,
           label: null,
-          color: "#818CF8",
+          color: "#12B886",
           items: [
             {
               label: "Executive Assistant",
@@ -1273,12 +1273,12 @@ export const internalViewTitles: Record<
   "oa-change-management": { title: "Change Management", subtitle: "Operations" },
   "oa-release-tracking": { title: "Release Tracking", subtitle: "Operations" },
   "operations-dashboard": { title: "Dashboard", subtitle: "Operations" },
-  "fundraising-dashboard": { title: "Dashboard", subtitle: "Fundraising & Cap Table" },
-  "fundraising-investors": { title: "Investors", subtitle: "Fundraising & Cap Table" },
-  "fundraising-pipeline": { title: "Pipeline", subtitle: "Fundraising & Cap Table" },
-  "fundraising-meetings": { title: "Meetings", subtitle: "Fundraising & Cap Table" },
-  "fundraising-pitch-decks": { title: "Pitch Decks", subtitle: "Fundraising & Cap Table" },
-  "fundraising-data-rooms": { title: "Data Rooms", subtitle: "Fundraising & Cap Table" },
+  "fundraising-dashboard": { title: "Dashboard", subtitle: "Fundraising" },
+  "fundraising-investors": { title: "Investors", subtitle: "Fundraising" },
+  "fundraising-pipeline": { title: "Pipeline", subtitle: "Fundraising" },
+  "fundraising-meetings": { title: "Meetings", subtitle: "Fundraising" },
+  "fundraising-pitch-decks": { title: "Pitch Decks", subtitle: "Fundraising" },
+  "fundraising-data-rooms": { title: "Data Rooms", subtitle: "Fundraising" },
   "oa-engineering-overview": { title: "Engineering Overview", subtitle: "Engineering" },
   "oa-programs-milestones": { title: "Programs & Milestones", subtitle: "Engineering" },
   "oa-team-capacity": { title: "Team & Capacity", subtitle: "Engineering" },
@@ -1374,8 +1374,8 @@ export function resolveInternalNavSectionAccent(
   }
 
   // Fallback for pin views if nav walk misses (e.g. host filter timing).
-  if (activeView === "home") return "#2F80ED";
-  if (activeView === "executive-assistant") return "#818CF8";
+  if (activeView === "home") return "#FF6B4A";
+  if (activeView === "executive-assistant") return "#12B886";
 
   return null;
 }
@@ -1436,7 +1436,7 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
         if (activeView === "corporate-cap-table") {
           return {
             title: "Cap Table Management",
-            subtitle: "Fundraising & Cap Table",
+            subtitle: "Fundraising",
           };
         }
       }

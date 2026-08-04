@@ -170,8 +170,8 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
   },
   {
     id: "onwardair-fundraising",
-    label: "Fundraising & Cap Table",
-    section: "Fundraising & Cap Table",
+    label: "Fundraising",
+    section: "Fundraising",
     views: [
       "fundraising-dashboard",
       "corporate-cap-table",

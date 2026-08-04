@@ -833,7 +833,7 @@ const ONWARDAIR_BOARD_NAV_SECTION: InternalNavSection = {
 
 const ONWARDAIR_FUNDRAISING_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
-  label: "Fundraising & Cap Table",
+  label: "Fundraising",
   icon: "Landmark",
   color: "#F59E0B",
   items: [
