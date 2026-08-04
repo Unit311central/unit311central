@@ -17,6 +17,13 @@ export async function GET() {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    const { isOnwardAirSlug } = await import("@/lib/onwardair-surface");
+    if (isOnwardAirSlug(workspace.slug)) {
+      const { ensureOnwardAirFinancialsSeeded } = await import(
+        "@/lib/onwardair/financials-seed"
+      );
+      await ensureOnwardAirFinancialsSeeded(workspace.id);
+    }
     const expenses = await listExpenses({ workspaceId: workspace.id });
     return NextResponse.json({ expenses });
   } catch (error) {

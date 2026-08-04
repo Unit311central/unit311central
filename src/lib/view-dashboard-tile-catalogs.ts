@@ -139,21 +139,43 @@ export const PROJECTS_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "at-risk", label: "At risk", value: "0", hint: "Needs attention" },
 ];
 
-export const FINANCIALS_DASHBOARD_TILES: DashboardTileDefinition[] = [
-  { id: "revenue-ytd", label: "Revenue YTD", value: "£0.00", hint: "From general ledger" },
-  { id: "cash-position", label: "Cash Position", value: "£0.00", hint: "From general ledger cash accounts" },
-  { id: "burn-rate", label: "Burn Rate", value: "£0.00 / month", hint: "Operating spend pace" },
-  { id: "accounts-receivable", label: "Accounts Receivable", value: "£0.00", hint: "Outstanding AR" },
-  { id: "accounts-payable", label: "Accounts Payable", value: "£0.00", hint: "Outstanding AP" },
-  { id: "net-profit", label: "Net Profit", value: "£0.00", hint: "Income − expenses" },
-  { id: "outstanding-invoices", label: "Outstanding Invoices", value: "0", hint: "Open invoice count" },
-  { id: "monthly-revenue", label: "Monthly Revenue", value: "£0.00", hint: "Current month" },
-  { id: "monthly-expenses", label: "Monthly Expenses", value: "£0.00", hint: "Current month" },
-  { id: "annual-revenue", label: "Annual Revenue", value: "£0.00", hint: "Calendar year" },
-  { id: "annual-expenses", label: "Annual Expenses", value: "£0.00", hint: "Calendar year" },
-  { id: "gross-margin", label: "Gross Margin", value: "0%", hint: "From ledger income/expenses" },
-  { id: "forecast", label: "Forecast", value: "£0.00", hint: "Not configured yet" },
-];
+function financialsFallbackCurrency(): string {
+  try {
+    if (typeof window !== "undefined" && isBrowserOnwardAirSurface()) return "USD";
+    if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) return "AUD";
+  } catch {
+    /* SSR */
+  }
+  return "GBP";
+}
+
+function emptyFinancialsDashboardTiles(currency: string): DashboardTileDefinition[] {
+  const money = (value: number) => formatMoney(value, currency);
+  return [
+    { id: "revenue-ytd", label: "Revenue YTD", value: money(0), hint: "From general ledger" },
+    {
+      id: "cash-position",
+      label: "Cash Position",
+      value: money(0),
+      hint: "From general ledger cash accounts",
+    },
+    { id: "burn-rate", label: "Burn Rate", value: `${money(0)} / month`, hint: "Operating spend pace" },
+    { id: "accounts-receivable", label: "Accounts Receivable", value: money(0), hint: "Outstanding AR" },
+    { id: "accounts-payable", label: "Accounts Payable", value: money(0), hint: "Outstanding AP" },
+    { id: "net-profit", label: "Net Profit", value: money(0), hint: "Income − expenses" },
+    { id: "outstanding-invoices", label: "Outstanding Invoices", value: "0", hint: "Open invoice count" },
+    { id: "monthly-revenue", label: "Monthly Revenue", value: money(0), hint: "Current month" },
+    { id: "monthly-expenses", label: "Monthly Expenses", value: money(0), hint: "Current month" },
+    { id: "annual-revenue", label: "Annual Revenue", value: money(0), hint: "Calendar year" },
+    { id: "annual-expenses", label: "Annual Expenses", value: money(0), hint: "Calendar year" },
+    { id: "gross-margin", label: "Gross Margin", value: "0%", hint: "From ledger income/expenses" },
+    { id: "forecast", label: "Forecast", value: money(0), hint: "Not configured yet" },
+  ];
+}
+
+/** Default tile catalog — currency-aware empty state (avoids GBP flash on OA). */
+export const FINANCIALS_DASHBOARD_TILES: DashboardTileDefinition[] =
+  emptyFinancialsDashboardTiles(financialsFallbackCurrency());
 
 function momFromSeries(series: Array<{ amount: number }> | undefined) {
   if (!series || series.length < 2) return null;
@@ -192,11 +214,14 @@ export function buildFinancialsDashboardCatalog(
     };
   } | null,
 ): DashboardTileDefinition[] {
-  const currency = overview?.burnRate?.currency || "GBP";
+  const fallbackCurrency = financialsFallbackCurrency();
+  const currency = overview?.burnRate?.currency || fallbackCurrency;
   const money = (value: number) => formatMoney(value, currency);
   const burnMoney = (value: number, code = currency) => formatMoney(value, code);
 
-  if (!overview) return FINANCIALS_DASHBOARD_TILES;
+  if (!overview) return emptyFinancialsDashboardTiles(fallbackCurrency);
+
+  const tileTemplates = emptyFinancialsDashboardTiles(currency);
 
   const marginBaseExpenses =
     overview.annualExpenses > 0 ? overview.annualExpenses : overview.monthlyExpenses;
@@ -208,7 +233,7 @@ export function buildFinancialsDashboardCatalog(
   const revMom = momFromSeries(overview.charts?.monthlyRevenue);
   const spendMom = momFromSeries(overview.charts?.monthlyOutgoings);
 
-  return FINANCIALS_DASHBOARD_TILES.map((tile) => {
+  return tileTemplates.map((tile) => {
     switch (tile.id) {
       case "revenue-ytd":
         return {

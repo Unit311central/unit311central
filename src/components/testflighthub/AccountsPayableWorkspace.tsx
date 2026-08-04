@@ -6,6 +6,7 @@ import { Loader2, RefreshCw, Receipt } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { cn } from "@/lib/utils";
 
 type PayableRow = {
@@ -102,6 +103,7 @@ export default function AccountsPayableWorkspace() {
   }, [rows, monthPrefix, todayIso]);
 
   const currency = (() => {
+    if (isBrowserOnwardAirSurface()) return "USD";
     if (
       (typeof window !== "undefined" &&
         /corpcentre|corporatecentre/i.test(window.location.hostname)) ||

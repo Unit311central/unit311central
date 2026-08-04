@@ -1,12 +1,15 @@
 /**
- * Server-only Demo Wise simulator detection.
+ * Server-only Demo / OnwardAir Bank simulator detection.
  * Never import this from Client Components.
  */
 
 import "server-only";
 
 import { isDemoDomainHost } from "@/lib/app-domains";
-import { isDemoWiseWorkspaceSlug } from "@/lib/treasury/bank-provider";
+import {
+  isDemoWiseWorkspaceSlug,
+  isOnwardAirBankWorkspaceSlug,
+} from "@/lib/treasury/bank-provider";
 
 /**
  * Demo host / Demo workspace always uses the simulator — never fall through to live Wise.
@@ -31,6 +34,17 @@ export async function shouldUseDemoWiseSimulator(): Promise<boolean> {
     const { getCurrentWorkspace } = await import("@/lib/workspace-context");
     const workspace = await getCurrentWorkspace();
     return isDemoWiseWorkspaceSlug(workspace?.slug ?? null);
+  } catch {
+    return false;
+  }
+}
+
+/** OnwardAir Finance → Bank uses a USD read-only simulator (not live Wise). */
+export async function shouldUseOnwardAirBankSimulator(): Promise<boolean> {
+  try {
+    const { getCurrentWorkspace } = await import("@/lib/workspace-context");
+    const workspace = await getCurrentWorkspace();
+    return isOnwardAirBankWorkspaceSlug(workspace?.slug ?? null);
   } catch {
     return false;
   }

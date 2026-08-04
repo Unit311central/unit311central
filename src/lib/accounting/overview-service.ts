@@ -20,6 +20,11 @@ import {
   getAbhiRevenueForMonth,
   isAbhiWorkspaceSlug,
 } from "@/lib/abhi-financials";
+import {
+  ONWARDAIR_CASH_BALANCE_USD,
+  getOnwardAirMonthlyCashSeries,
+  isOnwardAirWorkspaceSlug,
+} from "@/lib/onwardair-financials";
 import { isOnwardAirSlug, ONWARDAIR_REPORTING_CURRENCY } from "@/lib/onwardair-surface";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import {
@@ -120,10 +125,13 @@ function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-function emptyBurnRate(cashBalance = 0): FinancialOverviewSnapshot["burnRate"] {
+function emptyBurnRate(
+  cashBalance = 0,
+  currency = FINANCIAL_REPORTING_CURRENCY,
+): FinancialOverviewSnapshot["burnRate"] {
   return {
     source: "live",
-    currency: FINANCIAL_REPORTING_CURRENCY,
+    currency,
     monthly: 0,
     quarterly: 0,
     annual: 0,
@@ -163,7 +171,8 @@ export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
         .toLowerCase();
       if (isAbhiWorkspaceSlug(slug)) return ABHI_CASH_BALANCE_GBP;
       if (isCorpCentreWorkspaceSlug(slug)) return CORPCENTRE_CASH_BALANCE_AUD;
-      // Customer workspaces (e.g. OnwardAir): GL cash only — never platform Wise.
+      if (isOnwardAirWorkspaceSlug(slug)) return ONWARDAIR_CASH_BALANCE_USD;
+      // Customer workspaces: GL cash only — never platform Wise.
       if (slug && !isWiseTreasuryWorkspaceSlug(slug)) {
         return roundMoney(glWiseCash);
       }
@@ -206,7 +215,10 @@ export async function resolveTreasuryCash(glWiseCash = 0): Promise<number> {
   }
 }
 
-function emptyOverview(cashPosition = 0): FinancialOverviewSnapshot {
+function emptyOverview(
+  cashPosition = 0,
+  currency = FINANCIAL_REPORTING_CURRENCY,
+): FinancialOverviewSnapshot {
   return {
     revenueYtd: 0,
     cashPosition,
@@ -218,7 +230,7 @@ function emptyOverview(cashPosition = 0): FinancialOverviewSnapshot {
     monthlyExpenses: 0,
     annualRevenue: 0,
     annualExpenses: 0,
-    burnRate: emptyBurnRate(cashPosition),
+    burnRate: emptyBurnRate(cashPosition, currency),
     ar: {
       outstanding: 0,
       overdue: 0,
@@ -371,6 +383,8 @@ export async function getFinancialOverview(
       cashPosition = CORPCENTRE_CASH_BALANCE_AUD;
     } else if (isAbhiWorkspaceSlug(workspaceSlug)) {
       cashPosition = ABHI_CASH_BALANCE_GBP;
+    } else if (isOnwardAirWorkspaceSlug(workspaceSlug)) {
+      cashPosition = ONWARDAIR_CASH_BALANCE_USD;
     } else {
       cashPosition = await resolveTreasuryCash(totals.cashPosition);
       if (reportingCurrency !== "GBP") {
@@ -384,7 +398,7 @@ export async function getFinancialOverview(
       !invoicesResult.ok &&
       !expensesResult.ok
     ) {
-      return emptyOverview(cashPosition);
+      return emptyOverview(cashPosition, reportingCurrency);
     }
 
     const today = new Date();
@@ -476,7 +490,7 @@ export async function getFinancialOverview(
             currency: reportingCurrency,
             allowDemo: false,
           })
-        : emptyBurnRate(cashPosition);
+        : emptyBurnRate(cashPosition, reportingCurrency);
 
     const obligations = obligationsResult.ok
       ? obligationsResult.value
@@ -791,6 +805,8 @@ export async function getFinancialOverview(
         // ABHI uses a GBP operating-cash series so Home MoM is not artificially flat.
         cashPosition: isAbhiWorkspaceSlug(workspaceSlug)
           ? getAbhiMonthlyCashSeries()
+          : isOnwardAirWorkspaceSlug(workspaceSlug)
+            ? getOnwardAirMonthlyCashSeries()
           : isDemoTreasury
             ? (charts.cashPosition.length > 0
                 ? charts.cashPosition

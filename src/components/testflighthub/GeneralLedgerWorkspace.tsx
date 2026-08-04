@@ -17,6 +17,7 @@ import { centralLoginUrl } from "@/lib/app-domains";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { cn } from "@/lib/utils";
 
 function isBrowserCustomerGeneralLedgerCopy(): boolean {
@@ -94,7 +95,7 @@ export default function GeneralLedgerWorkspace() {
 
   const reportingCurrency = isBrowserCorpCentreSurface()
     ? "AUD"
-    : isBrowserDemoSurface()
+    : isBrowserOnwardAirSurface() || isBrowserDemoSurface()
       ? "USD"
       : "GBP";
   const money = (amount: number, _currency?: string | null) =>

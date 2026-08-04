@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   ArrowLeft,
   ChevronDown,
@@ -82,6 +83,7 @@ function sanitizeExpenseAmountInput(value: string) {
 }
 
 function reportingExpenseCurrency(expenses: FinancialExpense[]): ExpenseCurrency {
+  if (isBrowserOnwardAirSurface()) return "USD";
   if (isBrowserCorpCentreSurface()) return "AUD";
   if (isBrowserAbhiSurface()) return "GBP";
   if (isBrowserDemoSurface()) return "USD";

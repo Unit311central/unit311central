@@ -10,6 +10,10 @@ import {
   isAbhiWorkspaceSlug,
 } from "@/lib/abhi-financials";
 import {
+  ONWARDAIR_CASH_BALANCE_USD,
+  isOnwardAirWorkspaceSlug,
+} from "@/lib/onwardair-financials";
+import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
@@ -145,6 +149,8 @@ export async function getTypeTotals(scope?: FinancialsWorkspaceScope) {
       cashPosition = CORPCENTRE_CASH_BALANCE_AUD;
     } else if (isAbhiWorkspaceSlug(String(workspace?.slug ?? ""))) {
       cashPosition = ABHI_CASH_BALANCE_GBP;
+    } else if (isOnwardAirWorkspaceSlug(String(workspace?.slug ?? ""))) {
+      cashPosition = ONWARDAIR_CASH_BALANCE_USD;
     }
   } catch {
     /* keep GL cash */

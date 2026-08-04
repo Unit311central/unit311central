@@ -7,6 +7,7 @@ import { FileText, Loader2, RefreshCw, X } from "lucide-react";
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import type { LedgerInvoice } from "@/lib/accounting/types";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,7 @@ function daysBetween(fromIso: string, toIso: string) {
 }
 
 function reportingCurrency(invoices: LedgerInvoice[] = []) {
+  if (isBrowserOnwardAirSurface()) return "USD";
   if (isBrowserCorpCentreSurface()) return "AUD";
   if (invoices.some((invoice) => String(invoice.currency || "").toUpperCase() === "AUD")) {
     return "AUD";
