@@ -202,6 +202,47 @@ export function createSeedEcaPortals(): EcaPortalConfig[] {
 
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const { ONWARDAIR_CLIENT_PORTAL_ROUTES, ONWARDAIR_CLIENT_PORTAL_ORIGIN } =
+          require("@/lib/onwardair/client-portal-routes") as typeof import("@/lib/onwardair/client-portal-routes");
+        return ONWARDAIR_CLIENT_PORTAL_ROUTES.map((route) => ({
+          id: `portal-oa-${route.path.replace(/\./g, "-")}`,
+          clientId: route.clientId,
+          clientName: route.displayName,
+          portalName: `${route.displayName} Portal`,
+          logoLabel: "CF",
+          brandPrimary: "#0d9488",
+          brandAccent: "#0b1f3a",
+          modules: [
+            "Projects",
+            "Files",
+            "Support",
+            "Documents",
+            "Reports",
+            "Assets",
+            "Training",
+          ] as EcaPortalModule[],
+          landingPage: "Projects",
+          supportContact: route.username,
+          notificationsEnabled: true,
+          documentBranding: "OnwardAir · Coastal Freight letterhead",
+          users: 3,
+          activeSessions: 1,
+          pendingInvites: 0,
+          lockedAccounts: 0,
+          storageGb: 4.8,
+          lastLogin: "2026-08-04T18:22:00Z",
+          portalAccessEnabled: true,
+          portalUrl: `${ONWARDAIR_CLIENT_PORTAL_ORIGIN}/${route.path}`,
+        }));
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserTalantonImpactSurface } =
         require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
       if (isBrowserTalantonImpactSurface()) {
@@ -408,6 +449,57 @@ export function createSeedEcaAudit(): EcaAuditEvent[] {
 
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        return [
+          {
+            id: "aud-oa-1",
+            at: "2026-08-04T18:22:00Z",
+            kind: "Successful Login",
+            actor: "demo@coastalfreightpartners.com",
+            detail: "Portal session started",
+            clientName: "Coastal Freight Partners",
+          },
+          {
+            id: "aud-oa-2",
+            at: "2026-08-03T14:10:00Z",
+            kind: "Portal Activity",
+            actor: "demo@coastalfreightpartners.com",
+            detail: "Viewed Fleet & VTOL · CFP-01 status",
+            clientName: "Coastal Freight Partners",
+          },
+          {
+            id: "aud-oa-3",
+            at: "2026-08-02T11:05:00Z",
+            kind: "Permission Change",
+            actor: "Operations",
+            detail: "Enabled Assets module for Coastal Freight Partners",
+            clientName: "Coastal Freight Partners",
+          },
+          {
+            id: "aud-oa-4",
+            at: "2026-07-30T09:40:00Z",
+            kind: "Invitation",
+            actor: "Operations",
+            detail: "Invited e.vargas@coastalfreightpartners.com as Contributor",
+            clientName: "Coastal Freight Partners",
+          },
+          {
+            id: "aud-oa-5",
+            at: "2026-07-28T16:18:00Z",
+            kind: "Failed Login",
+            actor: "unknown@external.example",
+            detail: "Invalid password (1st attempt)",
+            clientName: "Coastal Freight Partners",
+          },
+        ];
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
         return [
@@ -456,6 +548,35 @@ export function createSeedEcaInvitations(): EcaInvitation[] {
   }
 
   if (typeof window !== "undefined") {
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        return [
+          {
+            id: "inv-oa-1",
+            email: "e.vargas@coastalfreightpartners.com",
+            clientName: "Coastal Freight Partners",
+            role: "Contributor",
+            modules: ["Projects", "Files", "Support", "Assets"],
+            status: "Accepted",
+            createdAt: "2026-07-30",
+          },
+          {
+            id: "inv-oa-2",
+            email: "ops@coastalfreightpartners.com",
+            clientName: "Coastal Freight Partners",
+            role: "Viewer",
+            modules: ["Documents", "Reports"],
+            status: "Sent",
+            createdAt: "2026-08-01",
+          },
+        ];
+      }
+    } catch {
+      // Fall through.
+    }
+
     try {
       const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {

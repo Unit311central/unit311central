@@ -48,6 +48,22 @@ export function getEcaMockSnapshot() {
     } catch {
       // Fall through.
     }
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (
+        isBrowserOnwardAirSurface() &&
+        !state.portals.every((portal) => portal.id.startsWith("portal-oa-"))
+      ) {
+        state = {
+          portals: createSeedEcaPortals(),
+          audit: createSeedEcaAudit(),
+          invitations: createSeedEcaInvitations(),
+        };
+      }
+    } catch {
+      // Fall through.
+    }
   }
   return state;
 }
