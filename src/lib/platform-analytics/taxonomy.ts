@@ -234,6 +234,10 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
     sectionLabel: "Courses",
     core: true,
   }),
+  page("training", "Training", "training-external", "External Courses", {
+    sectionKey: "courses",
+    sectionLabel: "Courses",
+  }),
   page("training", "Training", "qms-training", "QMS Courses", {
     sectionKey: "courses",
     sectionLabel: "Courses",

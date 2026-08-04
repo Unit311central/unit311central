@@ -279,6 +279,7 @@ import {
   SettingsWorkspace,
   SocialWorkspace,
   StaffTrainingWorkspace,
+  ExternalTrainingWorkspace,
   StrategyWorkspace,
   SupportWorkspace,
   TelemetryDashboard,
@@ -1052,6 +1053,8 @@ export default function InternalOperationsDashboard({
             ) : (
               <StaffTrainingWorkspace />
             ))}
+
+          {activeView === "training-external" && <ExternalTrainingWorkspace />}
 
           {activeView === "oa-marketing-dashboard" && (
             <OnwardAirMarketingEventsWorkspace page="dashboard" />

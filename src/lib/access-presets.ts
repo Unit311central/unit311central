@@ -239,7 +239,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     id: "training",
     label: "Training",
     section: "Training",
-    views: ["training", "training-dashboard"],
+    views: ["training", "training-dashboard", "training-external"],
   },
   {
     id: "productivity",

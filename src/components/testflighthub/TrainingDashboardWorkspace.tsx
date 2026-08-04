@@ -97,40 +97,16 @@ export default function TrainingDashboardWorkspace() {
     setNotice("Training report saved to history.");
   };
 
-  const pinnedQuickActions = [
-    {
-      label: "Create Course",
-      href: getInternalNavHref("training", basePath),
-      icon: Plus,
-    },
-    {
-      label: "Assign Training",
-      href: getInternalNavHref("training", basePath),
-      icon: UserPlus,
-    },
-    {
-      label: "Generate Training Report",
-      href: getInternalNavHref("qms-reports", basePath),
-      icon: FileText,
-      onClick: generateReport,
-    },
-    {
-      label: "Add Certification",
-      href: getInternalNavHref("training", basePath),
-      icon: Award,
-    },
-  ];
-
   const quickActions = [
     {
-      label: "Assign Training",
-      href: getInternalNavHref("training", basePath),
-      icon: UserPlus,
-    },
-    {
       label: "Create Course",
       href: getInternalNavHref("training", basePath),
       icon: Plus,
+    },
+    {
+      label: "Assign Training",
+      href: getInternalNavHref("training", basePath),
+      icon: UserPlus,
     },
     {
       label: "Schedule Session",
@@ -148,6 +124,20 @@ export default function TrainingDashboardWorkspace() {
       href: getInternalNavHref("training", basePath),
       icon: Award,
     },
+    ...(!hideQms
+      ? [
+          {
+            label: "QMS Training",
+            href: getInternalNavHref("qms-training", basePath),
+            icon: BookOpen,
+          },
+          {
+            label: "Open QMS",
+            href: getInternalNavHref("quality-management", basePath),
+            icon: ClipboardList,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -158,32 +148,38 @@ export default function TrainingDashboardWorkspace() {
         </p>
       ) : null}
 
-      {isAbhi ? (
-        <section className="flex flex-wrap items-center gap-2">
-          {pinnedQuickActions.map((action) => {
-            const Icon = action.icon;
-            if (action.onClick) {
-              return (
-                <button
-                  key={action.label}
-                  type="button"
-                  onClick={action.onClick}
-                  className={tqmsPrimaryButtonClass()}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {action.label}
-                </button>
-              );
-            }
+      <section className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          if (action.onClick) {
             return (
-              <Link key={action.label} href={action.href} className={tqmsPrimaryButtonClass()}>
+              <button
+                key={action.label}
+                type="button"
+                onClick={action.onClick}
+                className={`${tqmsPrimaryButtonClass()} shrink-0`}
+              >
                 <Icon className="h-3.5 w-3.5" />
                 {action.label}
-              </Link>
+              </button>
             );
-          })}
-        </section>
-      ) : null}
+          }
+          return (
+            <Link
+              key={action.label}
+              href={action.href}
+              className={`${
+                action.label === "Open QMS" || action.label === "QMS Training"
+                  ? tqmsSecondaryButtonClass()
+                  : tqmsPrimaryButtonClass()
+              } shrink-0`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {action.label}
+            </Link>
+          );
+        })}
+      </section>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <TqmsKpiTile label="Total Courses" value={kpis.totalCourses} />
@@ -246,73 +242,19 @@ export default function TrainingDashboardWorkspace() {
         </TqmsSection>
       </div>
 
-      <div className={`grid gap-5 ${isAbhi ? "" : "xl:grid-cols-2"}`}>
-        <TqmsSection title="Recent Activity" subtitle="Latest learning activity across the organisation.">
-          <ul className="space-y-2">
-            {store.activity.slice(0, 8).map((item) => (
-              <li
-                key={item.id}
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
-              >
-                <p className="text-sm font-medium text-white">{item.label}</p>
-                <p className="text-xs text-white/45">{item.detail}</p>
-              </li>
-            ))}
-          </ul>
-        </TqmsSection>
-
-        {!isAbhi ? (
-          <TqmsSection
-            title="Quick Actions"
-            subtitle="Common training operations."
-            actions={
-              hideQms ? undefined : (
-                <Link
-                  href={getInternalNavHref("qms-training", basePath)}
-                  className={tqmsSecondaryButtonClass()}
-                >
-                  <BookOpen className="h-3.5 w-3.5" />
-                  QMS Training
-                </Link>
-              )
-            }
-          >
-            <div className="grid gap-2 sm:grid-cols-2">
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                if (action.onClick) {
-                  return (
-                    <button
-                      key={action.label}
-                      type="button"
-                      onClick={action.onClick}
-                      className={tqmsPrimaryButtonClass()}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {action.label}
-                    </button>
-                  );
-                }
-                return (
-                  <Link key={action.label} href={action.href} className={tqmsPrimaryButtonClass()}>
-                    <Icon className="h-3.5 w-3.5" />
-                    {action.label}
-                  </Link>
-                );
-              })}
-              {!hideQms ? (
-                <Link
-                  href={getInternalNavHref("quality-management", basePath)}
-                  className={tqmsSecondaryButtonClass()}
-                >
-                  <ClipboardList className="h-3.5 w-3.5" />
-                  Open QMS
-                </Link>
-              ) : null}
-            </div>
-          </TqmsSection>
-        ) : null}
-      </div>
+      <TqmsSection title="Recent Activity" subtitle="Latest learning activity across the organisation.">
+        <ul className="space-y-2">
+          {store.activity.slice(0, 8).map((item) => (
+            <li
+              key={item.id}
+              className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
+            >
+              <p className="text-sm font-medium text-white">{item.label}</p>
+              <p className="text-xs text-white/45">{item.detail}</p>
+            </li>
+          ))}
+        </ul>
+      </TqmsSection>
     </div>
   );
 }

@@ -87,6 +87,7 @@ export type InternalOperationsView =
   | "sector"
   | "training"
   | "training-dashboard"
+  | "training-external"
   | "logistics"
   | "client-onboarding"
   | "quality-management"
@@ -337,6 +338,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "sector",
   "training",
   "training-dashboard",
+  "training-external",
   "logistics",
   "client-onboarding",
   "quality-management",
@@ -922,6 +924,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         icon: "GraduationCap",
         children: [
           { label: "Staff Courses", view: "training" as const },
+          { label: "External Courses", view: "training-external" as const },
           { label: "QMS Courses", view: "qms-training" as const },
         ],
       },
@@ -1111,8 +1114,9 @@ export const internalViewTitles: Record<
   telemetry: { title: "Live Telemetry", subtitle: "Tools" },
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },
   sector: { title: "Sector Intelligence", subtitle: "Unit311" },
-  training: { title: "Courses", subtitle: "Training" },
+  training: { title: "Staff Courses", subtitle: "Training" },
   "training-dashboard": { title: "Training Dashboard", subtitle: "Training" },
+  "training-external": { title: "External Courses", subtitle: "Training" },
   logistics: { title: "Logistics", subtitle: "Operations" },
   "client-onboarding": { title: "Client Onboarding", subtitle: "Customer Management" },
   "quality-management": { title: "Quality Management System", subtitle: "QMS" },

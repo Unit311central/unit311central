@@ -1,8 +1,12 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
-import { useMemo, useState, startTransition } from "react";
+import { Loader2, Plus, Search, Sparkles, Upload } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 
+import CourseReviewScreen from "@/components/lms/CourseReviewScreen";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isOaStaffCourse } from "@/lib/onwardair/training-data";
+import type { LmsCourseTree } from "@/lib/lms/types";
 import {
   TQMS_LEARNER_STATUSES,
   TQMS_PANEL_TABS,
@@ -41,6 +45,18 @@ type Filters = {
   manager: string;
   status: string;
   learningPath: string;
+};
+
+type GenerationSummary = {
+  title: string;
+  durationMinutes: number;
+  moduleCount: number;
+  lessonCount: number;
+  scenarioCount: number;
+  assessmentCount: number;
+  questionCount: number;
+  certificateEnabled: boolean;
+  learningObjectives?: string[];
 };
 
 const ALL = "all";
@@ -119,6 +135,24 @@ export default function StaffTrainingWorkspace() {
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
+  const [enableAiUpload, setEnableAiUpload] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [reviewCourse, setReviewCourse] = useState<LmsCourseTree | null>(null);
+  const [reviewSummary, setReviewSummary] = useState<GenerationSummary | null>(null);
+
+  useEffect(() => {
+    setEnableAiUpload(isBrowserOnwardAirSurface());
+  }, []);
+
+  const staffCourses = useMemo(
+    () =>
+      store.courses
+        .filter((course) => (enableAiUpload ? isOaStaffCourse(course) : course.category !== "External"))
+        .sort((a, b) => a.title.localeCompare(b.title)),
+    [store.courses, enableAiUpload],
+  );
 
   const filterOptions = useMemo(
     () => ({
@@ -180,6 +214,7 @@ export default function StaffTrainingWorkspace() {
     ? store.courses.filter(
         (course) =>
           course.status === "Published" &&
+          course.category !== "External" &&
           !selectedStats?.assignments.some((row) => row.courseId === course.id),
       )
     : [];
@@ -212,6 +247,35 @@ export default function StaffTrainingWorkspace() {
     setShowCreateCourse(true);
   }
 
+  async function generateFromFile(file: File) {
+    setGenerating(true);
+    setGenError(null);
+    setNotice(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/lms/generate-from-document", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      const data = (await res.json()) as {
+        course?: LmsCourseTree;
+        summary?: GenerationSummary;
+        error?: string;
+      };
+      if (!res.ok || !data.course || !data.summary) {
+        throw new Error(data.error || "Course generation failed.");
+      }
+      setReviewCourse(data.course);
+      setReviewSummary(data.summary);
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Course generation failed.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       {notice ? (
@@ -220,15 +284,107 @@ export default function StaffTrainingWorkspace() {
         </p>
       ) : null}
 
+      {enableAiUpload ? (
+        <section className="rounded-3xl border border-amber-400/25 bg-gradient-to-br from-amber-500/15 via-transparent to-transparent p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-300">
+                <Sparkles className="h-3.5 w-3.5" />
+                OnwardAir AI Course Generator
+              </p>
+              <h3 className="mt-2 text-lg font-semibold text-white">
+                Upload a policy — get a complete interactive course
+              </h3>
+              <p className="mt-1 max-w-2xl text-sm text-white/55">
+                PDF or Word (SOPs, flight-test procedures, hangar safety, handbooks). AI builds
+                modules, scenarios, assessments, and certificate settings for review.
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={generating}
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-500/20 px-4 py-2.5 text-sm font-semibold text-amber-50 hover:bg-amber-500/30 disabled:opacity-60"
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              {generating ? "Building course…" : "Upload PDF / Word"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void generateFromFile(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          {genError ? (
+            <p className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+              {genError}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
       <TqmsSection
-        title="Staff Training"
-        subtitle="Assign courses, track completion, and manage certifications across the organisation."
+        title="Staff Courses"
+        subtitle="Internal catalogue for assignment to Houston team members."
         actions={
           <button type="button" onClick={handleCreateCourse} className={tqmsPrimaryButtonClass()}>
             <Plus className="h-3.5 w-3.5" />
-            Create Course
+            Manual builder
           </button>
         }
+      >
+        {staffCourses.length === 0 ? (
+          <TqmsEmpty message="No staff courses in the catalogue yet." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-left text-sm">
+              <thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/45">
+                <tr>
+                  <th className="px-2 py-2 font-semibold">Course</th>
+                  <th className="px-2 py-2 font-semibold">Category</th>
+                  <th className="px-2 py-2 font-semibold">Mandatory</th>
+                  <th className="px-2 py-2 font-semibold">Duration</th>
+                  <th className="px-2 py-2 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {staffCourses.map((course) => (
+                  <tr key={course.id} className="border-b border-white/5 text-white/80">
+                    <td className="px-2 py-3">
+                      <p className="font-medium text-white">{course.title}</p>
+                      <p className="text-[11px] text-white/40">
+                        {course.code} · {course.owner}
+                      </p>
+                    </td>
+                    <td className="px-2 py-3">{course.category}</td>
+                    <td className="px-2 py-3">{course.mandatory ? "Yes" : "No"}</td>
+                    <td className="px-2 py-3 tabular-nums">{course.durationHours}h</td>
+                    <td className="px-2 py-3">
+                      <TqmsStatusPill className={tqmsStatusClass(course.status)}>
+                        {course.status}
+                      </TqmsStatusPill>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </TqmsSection>
+
+      <TqmsSection
+        title="Learners"
+        subtitle="Assign courses, track completion, and manage certifications across the organisation."
       >
         <div className="grid gap-2 lg:grid-cols-4 xl:grid-cols-8">
           <label className="relative lg:col-span-2 xl:col-span-2">
@@ -326,7 +482,7 @@ export default function StaffTrainingWorkspace() {
 
       {showCreateCourse ? (
         <CreateCourseWizard
-          suggestedCode={`TRN-${String(store.courses.length + 100).padStart(3, "0")}`}
+          suggestedCode={`OA-${String(staffCourses.length + 1).padStart(3, "0")}`}
           onClose={() => setShowCreateCourse(false)}
           onSubmit={(course) => {
             createCourse(course);
@@ -336,6 +492,23 @@ export default function StaffTrainingWorkspace() {
                 ? "Course published to the catalogue."
                 : "Course draft saved to the catalogue.",
             );
+          }}
+        />
+      ) : null}
+
+      {reviewCourse && reviewSummary ? (
+        <CourseReviewScreen
+          course={reviewCourse}
+          summary={reviewSummary}
+          regenerating={generating}
+          onClose={() => {
+            setReviewCourse(null);
+            setReviewSummary(null);
+          }}
+          onPublished={(slug) => {
+            setReviewCourse(null);
+            setReviewSummary(null);
+            setNotice(`“${slug}” published. It is available in the LMS catalogue.`);
           }}
         />
       ) : null}

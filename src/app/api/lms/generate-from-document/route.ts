@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * ABHI / Talanton Impact staff: upload PDF/DOCX → AI course draft persisted to LMS.
+ * ABHI / Talanton Impact / OnwardAir staff: upload PDF/DOCX → AI course draft persisted to LMS.
  */
 export async function POST(request: NextRequest) {
   const auth = await requireLmsWorkspaceSession();

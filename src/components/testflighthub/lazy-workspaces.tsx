@@ -88,6 +88,7 @@ export const ManagementReviewWorkspace = lazyWorkspace(() => import("./Managemen
 export const TqmsReportsWorkspace = lazyWorkspace(() => import("./TqmsReportsWorkspace"));
 export const TrainingDashboardWorkspace = lazyWorkspace(() => import("./TrainingDashboardWorkspace"));
 export const StaffTrainingWorkspace = lazyWorkspace(() => import("./StaffTrainingWorkspace"));
+export const ExternalTrainingWorkspace = lazyWorkspace(() => import("./ExternalTrainingWorkspace"));
 export const InternalDesignMockups = lazyWorkspace(() => import("./InternalDesignMockups"));
 export const SectorWorkspace = lazyWorkspace(() => import("./SectorWorkspace"));
 export const ProjectsWorkspace = lazyWorkspace(() => import("./ProjectsWorkspace"));
