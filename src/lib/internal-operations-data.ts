@@ -1476,6 +1476,12 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
         if (activeView === "social") {
           return { title: "Social", subtitle: "Marketing & Events" };
         }
+        if (activeView === "board-dashboard") {
+          return {
+            title: "Dashboard",
+            subtitle: "Board",
+          };
+        }
         if (activeView === "board-members" || activeView === "corporate-board-directors") {
           return {
             title: "Board Members",

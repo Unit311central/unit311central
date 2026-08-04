@@ -1,6 +1,10 @@
 "use client";
 
 import { AbhiBoardPortalApp } from "@/components/abhi/board/AbhiBoardPortalApp";
+import {
+  OnwardAirBoardDashboardWorkspace,
+  OnwardAirBoardMinutesWorkspace,
+} from "@/components/onwardair/OnwardAirBoardWorkspaces";
 import { TalantonBoardPortalApp } from "@/components/talanton/board/TalantonBoardPortalApp";
 import type { AbhiBoardPortalSection } from "@/lib/abhi/board-portal-data";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
@@ -21,6 +25,22 @@ export default function BoardGovernanceWorkspace({
   // OnwardAir Board → Board Members uses the same editable Corporate Board of Directors UI.
   if (isOnwardAir && section === "members") {
     return <BoardDirectorsWorkspace />;
+  }
+
+  if (isOnwardAir && section === "dashboard") {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
+        <OnwardAirBoardDashboardWorkspace />
+      </div>
+    );
+  }
+
+  if (isOnwardAir && section === "minutes") {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
+        <OnwardAirBoardMinutesWorkspace />
+      </div>
+    );
   }
 
   return (

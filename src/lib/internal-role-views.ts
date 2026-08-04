@@ -860,7 +860,7 @@ const ONWARDAIR_BOARD_NAV_SECTION: InternalNavSection = {
   icon: "ShieldCheck",
   color: ONWARDAIR_MODULE_ACCENTS.Board,
   items: [
-    { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" as const },
+    { label: "Dashboard", icon: "LayoutDashboard", view: "board-dashboard" as const },
     { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" as const },
     { label: "Board Decks", icon: "ScrollText", view: "board-pack" as const },
     { label: "Minutes & Decisions", icon: "ClipboardCheck", view: "board-minutes" as const },

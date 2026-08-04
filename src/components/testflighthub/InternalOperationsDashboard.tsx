@@ -314,6 +314,10 @@ import {
   FundraisingPipelineWorkspace,
   FundraisingPitchDecksWorkspace,
 } from "@/components/onwardair/FundraisingWorkspaces";
+import {
+  OnwardAirBoardDecksWorkspace,
+  OnwardAirBoardMeetingsWorkspace,
+} from "@/components/onwardair/OnwardAirBoardWorkspaces";
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
 import { OnwardAirCompetitorIntelligenceWorkspace } from "@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace";
 import OnwardAirMarketingEventsWorkspace from "@/components/onwardair/OnwardAirMarketingEventsWorkspace";
@@ -979,6 +983,8 @@ export default function InternalOperationsDashboard({
           {activeView === "board-meetings" &&
             (isBrowserTalantonImpactSurface() ? (
               <BoardGovernanceWorkspace section="meetings" />
+            ) : isBrowserOnwardAirSurface() ? (
+              <OnwardAirBoardMeetingsWorkspace />
             ) : (
               <BoardMeetingsWorkspace />
             ))}
@@ -990,7 +996,12 @@ export default function InternalOperationsDashboard({
             ))}
           {activeView === "board-members" && <BoardGovernanceWorkspace section="members" />}
 
-          {activeView === "board-pack" && <BoardPackCustomizerWorkspace />}
+          {activeView === "board-pack" &&
+            (isBrowserOnwardAirSurface() ? (
+              <OnwardAirBoardDecksWorkspace />
+            ) : (
+              <BoardPackCustomizerWorkspace />
+            ))}
 
           {activeView === "expenses" && <ExpensesWorkspace />}
 
