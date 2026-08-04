@@ -133,6 +133,36 @@ function seedState(): HrMockState {
     }
 
     try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const {
+          buildOnwardAirRecruitmentVacancies,
+          buildOnwardAirLeaveRequests,
+          buildOnwardAirLeaveBalances,
+          buildOnwardAirPublicHolidays,
+          buildOnwardAirPerformanceReviews,
+          buildOnwardAirPerformanceGoals,
+          buildOnwardAirHrReports,
+          buildOnwardAirHrActivity,
+        } = require("@/lib/onwardair/hr-ops-data") as typeof import("@/lib/onwardair/hr-ops-data");
+        return {
+          leaveRequests: buildOnwardAirLeaveRequests(),
+          leaveBalances: buildOnwardAirLeaveBalances(),
+          publicHolidays: buildOnwardAirPublicHolidays(),
+          vacancies: buildOnwardAirRecruitmentVacancies(),
+          candidates: [],
+          reviews: buildOnwardAirPerformanceReviews(),
+          goals: buildOnwardAirPerformanceGoals(),
+          reports: buildOnwardAirHrReports(),
+          activity: buildOnwardAirHrActivity(),
+        };
+      }
+    } catch {
+      // fall through
+    }
+
+    try {
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {
@@ -1833,6 +1863,30 @@ function ensureHrState(): HrMockState {
           state.leaveRequests.some((row) =>
             /elena ruiz|pablo serrano|mar[ií]a garc[ií]a|carlos mendoza|barcelona|madrid/i.test(
               `${row.employeeName} ${row.location} ${row.managerName}`,
+            ),
+          ))
+      ) {
+        state = seedState();
+        seededHost = window.location.hostname;
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (
+        isBrowserOnwardAirSurface() &&
+        (state.vacancies.length === 0 ||
+          state.vacancies.some((row) => !String(row.id).startsWith("oa-vac-")) ||
+          state.leaveRequests.some((row) =>
+            /elena ruiz|pablo serrano|mar[ií]a garc[ií]a|carlos mendoza|hannes weber|barcelona|madrid|london/i.test(
+              `${row.employeeName} ${row.location} ${row.managerName}`,
+            ),
+          ) ||
+          state.reviews.some((row) =>
+            /mar[ií]a garc[ií]a|carlos mendoza|jane lewis|peter ellingworth|barcelona/i.test(
+              `${row.employeeName} ${row.managerName}`,
             ),
           ))
       ) {

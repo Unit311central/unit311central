@@ -98,49 +98,111 @@ export function sampleReportPreview(kind: HrReportKind, filters: HrReportFilters
       ? `Period: ${filters.dateFrom || "…"} to ${filters.dateTo || "…"}`
       : "Period: Current",
   ];
-  const bodies: Record<HrReportKind, string[]> = {
-    employee_directory: [
-      "Employee,Number,Department,Role,Location,Manager,Status",
-      "María García,EMP-0001,Operations,Operations Lead,Barcelona,Paul Fotheringham,Active",
-      "Carlos Mendoza,EMP-0002,Technical,Software Engineer,Barcelona,Hannes Weber,Probation",
-    ],
-    headcount: [
-      "Segment,Count,Share",
-      "Operations,8,29%",
-      "Technical,6,21%",
-      "Customer Success,5,18%",
-    ],
-    performance_summary: [
-      "Status,Count",
-      "Completed,12",
-      "Submitted,4",
-      "Draft,3",
-      "Average rating,4.1",
-    ],
-    leave_summary: [
-      "Type,Approved days,Pending requests",
-      "Annual Leave,86,3",
-      "Sick Leave,14,0",
-      "Training,9,1",
-    ],
-    training_matrix: [
-      "Employee,Course,Status,Due",
-      "Ana Torres,People Partner essentials,Completed,2026-05-01",
-      "Carlos Mendoza,Secure coding,In progress,2026-08-15",
-    ],
-    probation: [
-      "Employee,Joined,Probation end,Manager,Status",
-      "Carlos Mendoza,2026-05-12,2026-08-12,Hannes Weber,In progress",
-    ],
-    contract_expiry: [
-      "Employee,Contract end,Type,Action",
-      "Fixed-term contractor example,2026-09-30,Fixed term,Renewal discussion",
-    ],
-    recruitment: [
-      "Role,Stage,Candidates,Hiring manager",
-      "Senior Full-Stack Engineer,Interview,3,Hannes Weber",
-      "Customer Success Specialist,Offer,2,Ashley Cole",
-    ],
-  };
+
+  let isOnwardAir = false;
+  try {
+    if (typeof window !== "undefined") {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      isOnwardAir = isBrowserOnwardAirSurface();
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const bodies: Record<HrReportKind, string[]> = isOnwardAir
+    ? {
+        employee_directory: [
+          "Employee,Number,Department,Role,Location,Manager,Status",
+          "Scott Parazynski, MD,OA-0001,Leadership,Founder CEO,Houston,—,Active",
+          "Brian Whiteside,OA-0002,Leadership,COO,Houston,Scott Parazynski MD,Active",
+          "Mike Teeter,OA-0006,Engineering,Senior Mechanical Engineer,Houston,Brian Whiteside,Active",
+        ],
+        headcount: [
+          "Segment,Count,Share",
+          "Engineering,6,50%",
+          "Leadership,2,17%",
+          "Operations,1,8%",
+          "Marketing,1,8%",
+          "Finance,1,8%",
+        ],
+        performance_summary: [
+          "Status,Count",
+          "Completed,1",
+          "Submitted,1",
+          "In progress,1",
+          "Average rating,4.5",
+        ],
+        leave_summary: [
+          "Type,Approved days,Pending requests",
+          "Annual Leave,33,1",
+          "Sick Leave,5,0",
+          "Training,3,0",
+        ],
+        training_matrix: [
+          "Employee,Course,Status,Due",
+          "Keven Coates,Battery systems workshop,Completed,2026-08-10",
+          "Mike Teeter,DFMEA essentials,Planned,2026-09-15",
+        ],
+        probation: [
+          "Employee,Joined,Probation end,Manager,Status",
+          "No employees currently in probation at OnwardAir HQ.",
+        ],
+        contract_expiry: [
+          "Employee,Contract end,Type,Action",
+          "No fixed-term contracts ending within 60 days.",
+        ],
+        recruitment: [
+          "Role,Stage,Candidates,Hiring manager",
+          "Senior Flight Controls Engineer,Interview,4,Brian Whiteside",
+          "Battery & Power Systems Engineer,Screening,3,Dan Wax",
+          "FAA Certification Programme Manager,Applications,5,Scott Parazynski, MD",
+        ],
+      }
+    : {
+        employee_directory: [
+          "Employee,Number,Department,Role,Location,Manager,Status",
+          "María García,EMP-0001,Operations,Operations Lead,Barcelona,Paul Fotheringham,Active",
+          "Carlos Mendoza,EMP-0002,Technical,Software Engineer,Barcelona,Hannes Weber,Probation",
+        ],
+        headcount: [
+          "Segment,Count,Share",
+          "Operations,8,29%",
+          "Technical,6,21%",
+          "Customer Success,5,18%",
+        ],
+        performance_summary: [
+          "Status,Count",
+          "Completed,12",
+          "Submitted,4",
+          "Draft,3",
+          "Average rating,4.1",
+        ],
+        leave_summary: [
+          "Type,Approved days,Pending requests",
+          "Annual Leave,86,3",
+          "Sick Leave,14,0",
+          "Training,9,1",
+        ],
+        training_matrix: [
+          "Employee,Course,Status,Due",
+          "Ana Torres,People Partner essentials,Completed,2026-05-01",
+          "Carlos Mendoza,Secure coding,In progress,2026-08-15",
+        ],
+        probation: [
+          "Employee,Joined,Probation end,Manager,Status",
+          "Carlos Mendoza,2026-05-12,2026-08-12,Hannes Weber,In progress",
+        ],
+        contract_expiry: [
+          "Employee,Contract end,Type,Action",
+          "Fixed-term contractor example,2026-09-30,Fixed term,Renewal discussion",
+        ],
+        recruitment: [
+          "Role,Stage,Candidates,Hiring manager",
+          "Senior Full-Stack Engineer,Interview,3,Hannes Weber",
+          "Customer Success Specialist,Offer,2,Ashley Cole",
+        ],
+      };
+
   return [`${HR_REPORT_KIND_LABELS[kind]}`, ...scope, "", ...bodies[kind]];
 }

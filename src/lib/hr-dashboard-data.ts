@@ -114,7 +114,7 @@ function countBy(values: string[]) {
 }
 
 export function countStaffByLocation(employees: HrEmployee[]): StaffByLocation[] {
-  return countBy(employees.map((employee) => employee.location || "Barcelona")).map((row) => ({
+  return countBy(employees.map((employee) => employee.location || "Unspecified")).map((row) => ({
     location: row.label,
     count: row.count,
     share: row.share,
@@ -215,7 +215,7 @@ export function computePeopleOverview(employees: HrEmployee[]) {
     byDepartment: countBy(
       employees.map((employee) => employee.department || HR_DEPARTMENTS[0]!),
     ),
-    byLocation: countBy(employees.map((employee) => employee.location || "Barcelona")),
+    byLocation: countBy(employees.map((employee) => employee.location || "Unspecified")),
     byEmploymentType: countBy(
       employees.map((employee) => {
         const key = employee.employmentType;

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Search, Star, X } from "lucide-react";
 
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   HR_CANDIDATE_PANEL_TABS,
   HR_CANDIDATE_SOURCES,
@@ -83,17 +84,21 @@ type CandidateFormState = {
   notes: string;
 };
 
-const emptyVacancyForm = (): VacancyFormState => ({
-  title: "",
-  department: "Technical",
-  location: "Barcelona",
-  employmentType: "Full time",
-  hiringManager: "",
-  salaryBand: "",
-  description: "",
-  closingDate: isoDateOnly(new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)),
-  status: "open",
-});
+const emptyVacancyForm = (): VacancyFormState => {
+  const isOnwardAir =
+    typeof window !== "undefined" ? isBrowserOnwardAirSurface() : false;
+  return {
+    title: "",
+    department: isOnwardAir ? "Engineering" : "Technical",
+    location: isOnwardAir ? "Houston, TX" : "Barcelona",
+    employmentType: "Full time",
+    hiringManager: "",
+    salaryBand: "",
+    description: "",
+    closingDate: isoDateOnly(new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)),
+    status: "open",
+  };
+};
 
 const emptyCandidateForm = (vacancyId = ""): CandidateFormState => ({
   name: "",
