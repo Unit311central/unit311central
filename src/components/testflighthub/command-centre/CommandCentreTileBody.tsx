@@ -37,7 +37,10 @@ import {
 } from "@/lib/home-executive-dashboard";
 import { getInventoryMockSnapshot } from "@/lib/inventory-mock-store";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
-import { QMS_MODULES, QMS_TRAINING_COURSES } from "@/lib/qms-modules-data";
+import {
+  getQmsModulesForSurface,
+  getQmsTrainingCoursesForSurface,
+} from "@/lib/qms-modules-data";
 import { MODULE_GO_LIVE_CATALOG } from "@/lib/module-go-live-data";
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
@@ -509,8 +512,10 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
   );
   const taskItems = actionItems.filter((item) => item.primaryLabel !== "Approve");
 
-  const qmsOpen = QMS_MODULES.filter((m) => m.status !== "complete").length;
-  const trainingDue = QMS_TRAINING_COURSES.filter((c) => c.progress < 100).length;
+  const qmsModules = getQmsModulesForSurface();
+  const qmsTrainingCourses = getQmsTrainingCoursesForSurface();
+  const qmsOpen = qmsModules.filter((m) => m.status !== "complete").length;
+  const trainingDue = qmsTrainingCourses.filter((c) => c.progress < 100).length;
   const inventoryCount = inventory.assets.length;
   const inventoryDown = inventory.assets.filter(
     (a) => a.status !== "operational",
@@ -1114,7 +1119,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
           label="Quality"
           value={qmsOpen}
           href={hrefs.quality}
-          hint={`${QMS_MODULES.length} QMS modules · open items`}
+          hint={`${qmsModules.length} QMS modules · open items`}
         />
       );
 

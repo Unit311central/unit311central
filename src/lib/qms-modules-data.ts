@@ -65,3 +65,37 @@ export const QMS_TRAINING_COURSES = [
   },
 ] as const;
 
+/** Surface-aware modules for Command Centre / secondary tiles. */
+export function getQmsModulesForSurface(): QmsModule[] {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const { OA_QMS_MODULES } =
+          require("@/lib/onwardair/qms-data") as typeof import("@/lib/onwardair/qms-data");
+        return [...OA_QMS_MODULES];
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  return QMS_MODULES;
+}
+
+export function getQmsTrainingCoursesForSurface() {
+  if (typeof window !== "undefined") {
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const { OA_QMS_TRAINING_COURSES } =
+          require("@/lib/onwardair/qms-data") as typeof import("@/lib/onwardair/qms-data");
+        return [...OA_QMS_TRAINING_COURSES];
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  return [...QMS_TRAINING_COURSES];
+}

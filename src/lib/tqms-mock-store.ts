@@ -123,6 +123,18 @@ function createInitialTqmsState(): TqmsMockState {
     } catch {
       /* fall through */
     }
+
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const { applyOnwardAirTqmsSeed } =
+          require("@/lib/onwardair/training-data") as typeof import("@/lib/onwardair/training-data");
+        return applyOnwardAirTqmsSeed(base);
+      }
+    } catch {
+      /* fall through */
+    }
   }
 
   if (!fixtures) return base;
@@ -260,6 +272,22 @@ export function getTqmsMockSnapshot(): TqmsMockState {
         isBrowserAbhiSurface() &&
         (isNonAbhiTrainingLeak(state.learners) ||
           !state.courses.some((course) => course.id === "abhi-crs-abc"))
+      ) {
+        state = createInitialTqmsState();
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      const { isNonOnwardAirQmsLeak } =
+        require("@/lib/onwardair/qms-data") as typeof import("@/lib/onwardair/qms-data");
+      if (
+        isBrowserOnwardAirSurface() &&
+        (!state.courses.some((course) => course.id === "oa-crs-ind-01") ||
+          !state.documents.some((doc) => doc.id === "oa-doc-001") ||
+          isNonOnwardAirQmsLeak(state))
       ) {
         state = createInitialTqmsState();
       }
