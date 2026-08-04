@@ -17,6 +17,7 @@ import { SITE_NAME } from "@/lib/site";
 
 /** Match Workspace Login visuals. */
 const LOGIN_BACKGROUND = "/images/login-workspace-bg.webp";
+const ONWARDAIR_LOGIN_BACKGROUND = "/images/workspaces/onwardair-login-bg.png";
 const LOGIN_LOGO = "/images/unit311central-login.webp";
 const LOGIN_LOGO_WIDTH = 1462;
 const LOGIN_LOGO_HEIGHT = 334;
@@ -238,10 +239,18 @@ export default function ResetPasswordPage({
 
   return (
     <MarketingPageShell
-      backgroundImage={LOGIN_BACKGROUND}
-      backgroundImageClassName="object-cover object-[center_35%] opacity-80 sm:object-center"
+      backgroundImage={brand === "onwardair" ? ONWARDAIR_LOGIN_BACKGROUND : LOGIN_BACKGROUND}
+      backgroundImageClassName={
+        brand === "onwardair"
+          ? "object-cover object-[center_40%] opacity-[0.38] sm:object-center"
+          : "object-cover object-[center_35%] opacity-80 sm:object-center"
+      }
       backgroundImageQuality={92}
-      overlayClassName="absolute inset-0 bg-[#020617]/45"
+      overlayClassName={
+        brand === "onwardair"
+          ? "absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
+          : "absolute inset-0 bg-[#020617]/45"
+      }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >
       <div className={`flex w-full max-w-[480px] flex-col items-center ${marketingFadeIn}`}>
