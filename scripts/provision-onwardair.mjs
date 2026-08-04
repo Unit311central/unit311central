@@ -194,8 +194,8 @@ async function main() {
   await admin
     .from("workspace_settings")
     .update({
-      timezone: "Europe/London",
-      currency: "GBP",
+      timezone: "America/Chicago",
+      currency: "USD",
       primary_colour: "#0EA5E9",
       secondary_colour: "#0369A1",
       updated_at: new Date().toISOString(),
@@ -227,7 +227,7 @@ BEGIN
 
   DELETE FROM public.accounts WHERE workspace_id = v_target;
   INSERT INTO public.accounts (id, code, name, type, currency, is_active, created_at, updated_at, workspace_id)
-  SELECT gen_random_uuid(), code, name, type, 'GBP', is_active, now(), now(), v_target
+  SELECT gen_random_uuid(), code, name, type, 'USD', is_active, now(), now(), v_target
   FROM public.accounts WHERE workspace_id = v_demo;
 
   DELETE FROM public.company_details WHERE workspace_id = v_target;
@@ -257,7 +257,7 @@ $struct$;
       await admin.from("payroll_settings").delete().eq("workspace_id", workspaceId);
       await admin
         .from("payroll_settings")
-        .insert({ ...rest, workspace_id: workspaceId, currency: "GBP" });
+        .insert({ ...rest, workspace_id: workspaceId, currency: "USD", default_currency: "USD" });
     }
   }
 

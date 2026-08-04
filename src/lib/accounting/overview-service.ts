@@ -20,6 +20,7 @@ import {
   getAbhiRevenueForMonth,
   isAbhiWorkspaceSlug,
 } from "@/lib/abhi-financials";
+import { isOnwardAirSlug, ONWARDAIR_REPORTING_CURRENCY } from "@/lib/onwardair-surface";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import {
   resolveFinancialsWorkspaceId,
@@ -62,6 +63,9 @@ async function resolveReportingCurrency(workspaceId: string): Promise<string> {
       .toLowerCase();
     if (isCorpCentreWorkspaceSlug(slug)) {
       return "AUD";
+    }
+    if (isOnwardAirSlug(slug)) {
+      return ONWARDAIR_REPORTING_CURRENCY;
     }
 
     const currency = String(settings?.currency ?? "")

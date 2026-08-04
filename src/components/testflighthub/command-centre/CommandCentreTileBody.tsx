@@ -20,6 +20,7 @@ import { useCorporateMockStore } from "@/components/testflighthub/useCorporateMo
 import { useHrMockStore } from "@/components/testflighthub/useHrMockStore";
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import type { CommandCentreTileType } from "@/lib/command-centre-layout";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import type { CrmLead } from "@/lib/crm-data";
 import type { ActionPriority } from "@/lib/internal-operations-command-data";
 import {
@@ -452,7 +453,9 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
   }, [data.files, pinnedIds]);
 
   const burnMonthly = data.financialOverview?.burnRate?.monthly ?? null;
-  const reportingCurrency = data.financialOverview?.burnRate?.currency || "GBP";
+  const reportingCurrency =
+    data.financialOverview?.burnRate?.currency ||
+    (isBrowserOnwardAirSurface() ? "USD" : "GBP");
   const revenueYtd = data.financialOverview?.revenueYtd;
   const cashPosition = data.financialOverview?.cashPosition ?? null;
   const openTicketCount = countOpenTickets(data.tickets);

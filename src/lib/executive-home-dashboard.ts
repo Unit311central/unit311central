@@ -165,10 +165,11 @@ function resolveEffectiveOnboardingCount(input: {
 function formatCompactMoney(amount: number, currency = "GBP") {
   const code = String(currency || "GBP").toUpperCase();
   const abs = Math.abs(amount);
+  const locale = code === "AUD" ? "en-AU" : code === "USD" ? "en-US" : "en-GB";
   // Millions keep one decimal so ABHI £4.24M does not collapse to £4M.
   if (abs >= 1_000_000) {
     return withPreferredCurrencySymbol(
-      new Intl.NumberFormat(code === "AUD" ? "en-AU" : "en-GB", {
+      new Intl.NumberFormat(locale, {
         style: "currency",
         currency: code,
         notation: "compact",
@@ -181,7 +182,7 @@ function formatCompactMoney(amount: number, currency = "GBP") {
   // Home KPI tiles should read as whole compact units (e.g. $156k), not $156.06k.
   if (abs >= 10_000) {
     return withPreferredCurrencySymbol(
-      new Intl.NumberFormat(code === "AUD" ? "en-AU" : "en-GB", {
+      new Intl.NumberFormat(locale, {
         style: "currency",
         currency: code,
         notation: "compact",
@@ -192,6 +193,36 @@ function formatCompactMoney(amount: number, currency = "GBP") {
     );
   }
   return formatMoney(amount, code);
+}
+
+function resolveHomeDisplayCurrency(financialCurrency?: string | null): string {
+  const fromFinancials = String(financialCurrency ?? "")
+    .trim()
+    .toUpperCase();
+  if (
+    fromFinancials === "USD" ||
+    fromFinancials === "GBP" ||
+    fromFinancials === "EUR" ||
+    fromFinancials === "AUD"
+  ) {
+    return fromFinancials;
+  }
+  try {
+    if (typeof window !== "undefined") {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) return "USD";
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) return "GBP";
+      const { isBrowserCorpCentreSurface } =
+        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      if (isBrowserCorpCentreSurface()) return "AUD";
+    }
+  } catch {
+    /* ignore */
+  }
+  return "GBP";
 }
 
 function monthDelta(
@@ -385,7 +416,7 @@ export function buildExecutiveHomeLiveKpis(input: {
     return buildTalantonExecutiveHomeKpis();
   }
 
-  const currency = input.financials?.burnRate.currency || "GBP";
+  const currency = resolveHomeDisplayCurrency(input.financials?.burnRate.currency);
   const revenuePeriods = buildRevenuePeriodOptions({ financials: input.financials, currency });
   const revenueYtd = input.financials?.revenueYtd ?? 0;
   const cash = input.financials?.cashPosition ?? 0;
@@ -584,7 +615,7 @@ export function buildExecutiveHomeLiveAnalytics(input: {
     };
   }
 
-  const currency = "GBP";
+  const currency = resolveHomeDisplayCurrency(input.financials?.burnRate?.currency);
   const revenueSeries = input.financials?.charts.monthlyRevenue ?? [];
   const points = alignMonthlySeries(
     revenueSeries,
@@ -723,7 +754,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
   clients: ManagedClient[];
   onboardingPipelineCount?: number;
 }) {
-  const currency = input.financials?.burnRate?.currency || "GBP";
+  const currency = resolveHomeDisplayCurrency(input.financials?.burnRate?.currency);
   const cash = input.financials?.cashPosition ?? 0;
   const overdue = input.financials?.ar.overdue ?? 0;
   const overdueCount =
@@ -1243,13 +1274,13 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
           caption: "Revenue vs operating spend · ledger",
           emptyMessage: "Loading ledger performance…",
           series: [
-            { id: "revenue", label: "Revenue", values: [], format: "currency", currency: "GBP" },
+            { id: "revenue", label: "Revenue", values: [], format: "currency", currency: "USD" },
             {
               id: "spend",
               label: "Operating spend",
               values: [],
               format: "currency",
-              currency: "GBP",
+              currency: "USD",
             },
           ],
         },

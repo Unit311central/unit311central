@@ -4,6 +4,9 @@
 
 export const ONWARDAIR_SLUG = "onwardair";
 
+/** OnwardAir reports and displays money in USD across Home, Financials, and modules. */
+export const ONWARDAIR_REPORTING_CURRENCY = "USD";
+
 export function isOnwardAirSlug(slug: string | null | undefined): boolean {
   return (
     String(slug ?? "")
