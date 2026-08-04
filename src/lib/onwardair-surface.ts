@@ -1,8 +1,12 @@
 /**
  * OnwardAir customer host detection (onwardair.unit311central.com).
+ * Short alias host `onward.unit311central.com` is accepted and canonicalized.
  */
 
 export const ONWARDAIR_SLUG = "onwardair";
+
+/** Accepted host/workspace slugs that map to the OnwardAir tenant. */
+export const ONWARDAIR_SLUG_ALIASES = ["onwardair", "onward"] as const;
 
 /** OnwardAir reports and displays money in USD across Home, Financials, and modules. */
 export const ONWARDAIR_REPORTING_CURRENCY = "USD";
@@ -59,20 +63,38 @@ export const ONWARDAIR_MODULE_ACCENTS: Readonly<Record<string, string>> = {
   "Marketing & Events": "#F472B6",
 };
 
+export function canonicalizeOnwardAirSlug(
+  slug: string | null | undefined,
+): string | null {
+  const normalized = String(slug ?? "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return null;
+  if ((ONWARDAIR_SLUG_ALIASES as readonly string[]).includes(normalized)) {
+    return ONWARDAIR_SLUG;
+  }
+  return null;
+}
+
 export function isOnwardAirSlug(slug: string | null | undefined): boolean {
-  return (
-    String(slug ?? "")
-      .trim()
-      .toLowerCase() === ONWARDAIR_SLUG
-  );
+  return canonicalizeOnwardAirSlug(slug) !== null;
 }
 
 export function getBrowserOnwardAirWorkspaceSlug(): string {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname.toLowerCase();
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
-  if (match?.[1]) return match[1];
-  if (host === "onwardair.localhost" || host.startsWith("onwardair.")) return ONWARDAIR_SLUG;
+  if (match?.[1]) {
+    return canonicalizeOnwardAirSlug(match[1]) ?? match[1];
+  }
+  if (
+    host === "onwardair.localhost" ||
+    host.startsWith("onwardair.") ||
+    host === "onward.localhost" ||
+    host.startsWith("onward.")
+  ) {
+    return ONWARDAIR_SLUG;
+  }
   return "";
 }
 
@@ -80,7 +102,8 @@ export function isBrowserOnwardAirSurface(): boolean {
   if (typeof window === "undefined") return false;
   if (isOnwardAirSlug(getBrowserOnwardAirWorkspaceSlug())) return true;
   // Fallback for preview / alternate hosts that still carry the tenant name.
-  return window.location.hostname.toLowerCase().includes("onwardair");
+  const host = window.location.hostname.toLowerCase();
+  return host.includes("onwardair") || host === "onward.unit311central.com";
 }
 
 /** Resolve the forced OnwardAir LHS accent for a nav section (pins + workspaces). */

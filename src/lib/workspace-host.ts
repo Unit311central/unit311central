@@ -37,9 +37,13 @@ export function parseWorkspaceSlugFromPathname(pathname: string): string | null 
 export async function findWorkspaceBySlug(
   slug: string,
 ): Promise<WorkspaceHostRecord | null> {
-  const normalized = slug.trim().toLowerCase();
-  if (!normalized) return null;
+  const raw = slug.trim().toLowerCase();
+  if (!raw) return null;
   if (!isSupabaseConfigured()) return null;
+
+  // Short host aliases (e.g. onward → onwardair) resolve to the canonical workspace row.
+  const { canonicalizeOnwardAirSlug } = await import("@/lib/onwardair-surface");
+  const normalized = canonicalizeOnwardAirSlug(raw) ?? raw;
 
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
