@@ -1,6 +1,6 @@
 /**
- * OnwardAir Luminary Advisors — sourced from https://onwardair.tech/#team
- * Used to seed Board → Board Members (board_directors) when the workspace is empty.
+ * OnwardAir Board Members seed — Founder/CEO + Luminary Advisors
+ * (https://onwardair.tech/#team). Used for board_directors when workspace is OA.
  */
 
 export type OnwardAirBoardMemberSeed = {
@@ -11,7 +11,17 @@ export type OnwardAirBoardMemberSeed = {
   sortOrder: number;
 };
 
+/** Founder & CEO — always ensure this row exists for OnwardAir. */
+export const ONWARDAIR_BOARD_FOUNDER: OnwardAirBoardMemberSeed = {
+  fullName: "Scott Parazynski, MD",
+  roleTitle: "Founder & CEO / Board Member",
+  organisation: "OnwardAir",
+  notes: "Founder & CEO — onwardair.tech/#team",
+  sortOrder: 1,
+};
+
 export const ONWARDAIR_LUMINARY_ADVISORS: readonly OnwardAirBoardMemberSeed[] = [
+  ONWARDAIR_BOARD_FOUNDER,
   {
     fullName: "Dylan Taylor",
     roleTitle: "Advisor",

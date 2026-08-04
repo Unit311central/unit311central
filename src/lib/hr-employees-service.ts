@@ -483,7 +483,8 @@ export async function createHrEmployee(
   return withHrEmployeesTable(async () => {
     const supabase = requireHrSupabase();
     const blank = createBlankEmployeeInput();
-    const id = `hr-${crypto.randomUUID().slice(0, 8)}`;
+    const requestedId = typeof input.id === "string" ? input.id.trim() : "";
+    const id = requestedId || `hr-${crypto.randomUUID().slice(0, 8)}`;
     const employeeNumber = await allocateEmployeeNumber(workspaceId);
     const status: HrEmploymentStatus =
       input.employmentStatus && isHrEmploymentStatus(input.employmentStatus)
@@ -564,6 +565,66 @@ export async function createHrEmployee(
 
     return (await getHrEmployee(id, { workspaceId })) ?? employee;
   });
+}
+
+/**
+ * Seed OnwardAir OUR TEAM staff into hr_employees (OA workspace only).
+ * Idempotent by email — never deletes existing non-OA employees unless the
+ * caller only runs this when the workspace is empty or Scott is missing.
+ */
+export async function ensureOnwardAirHrEmployeesSeeded(
+  workspaceId: string,
+): Promise<HrEmployee[]> {
+  const { OA_HR_TEAM_EMPLOYEES } =
+    await import("@/lib/onwardair/hr-team-data");
+
+  const existing = await listHrEmployees({ workspaceId, includeArchived: true });
+  const hasScott = existing.some((e) =>
+    e.fullName.toLowerCase().includes("scott parazynski"),
+  );
+
+  // Only seed when empty or founder missing — do not wipe other rows.
+  if (existing.length > 0 && hasScott) {
+    return listHrEmployees({ workspaceId });
+  }
+
+  const byEmail = new Set(
+    existing.map((e) => e.email.trim().toLowerCase()).filter(Boolean),
+  );
+
+  for (const member of OA_HR_TEAM_EMPLOYEES) {
+    const email = member.email.trim().toLowerCase();
+    if (byEmail.has(email)) continue;
+    await createHrEmployee(
+      {
+        id: member.id,
+        fullName: member.fullName,
+        preferredName: member.preferredName,
+        email: member.email,
+        phone: member.phone,
+        address: member.address,
+        nationality: member.nationality,
+        employmentStatus: member.employmentStatus,
+        employmentType: member.employmentType,
+        dateJoined: member.dateJoined,
+        location: member.location,
+        role: member.role,
+        department: member.department,
+        currency: member.currency,
+        payFrequency: member.payFrequency,
+        salaryCurrent: member.salaryCurrent,
+        salaryPrevious: member.salaryPrevious,
+        bonus: member.bonus,
+        holidayCalendar: member.holidayCalendar,
+        vacationDaysPerYear: member.vacationDaysPerYear,
+        vacationDaysTaken: member.vacationDaysTaken ?? 0,
+      },
+      { workspaceId },
+    );
+    byEmail.add(email);
+  }
+
+  return listHrEmployees({ workspaceId });
 }
 
 export type UpdateHrEmployeePatch = Partial<HrEmployee> & {

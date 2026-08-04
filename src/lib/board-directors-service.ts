@@ -69,30 +69,46 @@ export async function listBoardDirectorsForWorkspace(
 }
 
 /**
- * Seed OnwardAir Luminary Advisors into board_directors when the workspace has none.
- * Idempotent — only inserts when active row count is zero.
+ * Seed OnwardAir board members (Founder/CEO + Luminary Advisors).
+ * - Empty board: insert full seed list.
+ * - Non-empty: ensure Scott Parazynski exists (by fullName, case-insensitive); keep advisors.
  */
 export async function ensureOnwardAirBoardDirectorsSeeded(
   workspaceId: string,
 ): Promise<BoardDirector[]> {
   const existing = await listBoardDirectorsForWorkspace(workspaceId);
-  if (existing.length > 0) return existing;
-
-  const { ONWARDAIR_LUMINARY_ADVISORS } =
+  const { ONWARDAIR_BOARD_FOUNDER, ONWARDAIR_LUMINARY_ADVISORS } =
     await import("@/lib/onwardair/board-members-seed");
-  const seeded: BoardDirector[] = [];
-  for (const member of ONWARDAIR_LUMINARY_ADVISORS) {
-    seeded.push(
+
+  const hasScott = existing.some((d) =>
+    d.fullName.toLowerCase().includes("scott parazynski"),
+  );
+
+  if (existing.length === 0) {
+    for (const member of ONWARDAIR_LUMINARY_ADVISORS) {
       await createBoardDirector(workspaceId, {
         fullName: member.fullName,
         roleTitle: member.roleTitle,
         organisation: member.organisation,
         notes: member.notes,
         sortOrder: member.sortOrder,
-      }),
-    );
+      });
+    }
+    return listBoardDirectorsForWorkspace(workspaceId);
   }
-  return seeded;
+
+  if (!hasScott) {
+    await createBoardDirector(workspaceId, {
+      fullName: ONWARDAIR_BOARD_FOUNDER.fullName,
+      roleTitle: ONWARDAIR_BOARD_FOUNDER.roleTitle,
+      organisation: ONWARDAIR_BOARD_FOUNDER.organisation,
+      notes: ONWARDAIR_BOARD_FOUNDER.notes,
+      sortOrder: ONWARDAIR_BOARD_FOUNDER.sortOrder,
+    });
+    return listBoardDirectorsForWorkspace(workspaceId);
+  }
+
+  return existing;
 }
 
 export async function createBoardDirector(

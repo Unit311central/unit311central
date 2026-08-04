@@ -6,7 +6,8 @@ export type PotentialClientsCountryId =
   | "de"
   | "kr"
   | "jp"
-  | "au";
+  | "au"
+  | "ae";
 
 export type PotentialClientsIndustryCategory = {
   id: string;

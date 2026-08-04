@@ -24,6 +24,7 @@ import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   ABHI_REPRESENTATIVES_DASHBOARD_TILES,
   DEFAULT_REPRESENTATIVES_TILE_LAYOUT,
+  ONWARDAIR_REPRESENTATIVES_DASHBOARD_TILES,
   REPRESENTATIVES_DASHBOARD_TILES,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { FileText, Plus, Trash2, Upload, X } from "lucide-react";
@@ -87,7 +88,11 @@ export default function RepresentativesWorkspace({
       ? "GBP"
       : "EUR";
   const currencySymbol = commissionCurrencySymbol(commissionCurrency);
-  const dashboardTiles = isAbhi ? ABHI_REPRESENTATIVES_DASHBOARD_TILES : REPRESENTATIVES_DASHBOARD_TILES;
+  const dashboardTiles = isOnwardAir
+    ? ONWARDAIR_REPRESENTATIVES_DASHBOARD_TILES
+    : isAbhi
+      ? ABHI_REPRESENTATIVES_DASHBOARD_TILES
+      : REPRESENTATIVES_DASHBOARD_TILES;
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [customTerritories, setCustomTerritories] = useState<Record<string, string[]>>({});
   const [customTerritoryInput, setCustomTerritoryInput] = useState("");

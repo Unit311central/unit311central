@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   createHrEmployee,
+  ensureOnwardAirHrEmployeesSeeded,
   listHrEmployees,
 } from "@/lib/hr-employees-service";
 import type { HrEmployee } from "@/lib/hr-data";
 import { ensureHrEmployeesTable } from "@/lib/internal-db-migrations";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -21,6 +23,9 @@ export async function GET(request: NextRequest) {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     await ensureHrEmployeesTable();
+    if (isOnwardAirSlug(workspace.slug)) {
+      await ensureOnwardAirHrEmployeesSeeded(workspace.id);
+    }
     const includeArchived = request.nextUrl.searchParams.get("includeArchived") === "true";
     const employees = await listHrEmployees({
       workspaceId: workspace.id,

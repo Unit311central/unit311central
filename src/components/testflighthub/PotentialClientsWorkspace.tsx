@@ -23,6 +23,13 @@ import {
   type PotentialClientsCountrySnapshot,
   type PotentialClientsIndustryCategory,
 } from "@/lib/potential-clients-data";
+import {
+  DEFAULT_ONWARDAIR_POTENTIAL_CLIENTS_COUNTRY_ID,
+  isOnwardAirPotentialClientsCountryId,
+  ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES,
+  ONWARDAIR_POTENTIAL_CLIENTS_INTRO,
+} from "@/lib/onwardair/potential-clients-data";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { cn } from "@/lib/utils";
 
 type EditableSection = "intro" | "summary" | "country" | "industries" | null;
@@ -146,14 +153,27 @@ function cloneCountries(source: PotentialClientsCountrySnapshot[]) {
 export default function PotentialClientsWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isOnwardAir = isBrowserOnwardAirSurface();
 
-  const [countries, setCountries] = useState(() => cloneCountries(POTENTIAL_CLIENTS_COUNTRIES));
-  const [intro, setIntro] = useState<IntroContent>({
-    eyebrow: "Strategy · Market sizing",
-    title: "Potential Clients",
-    description:
-      "Target markets for Unit311 outreach in English. Use the country tabs below for detail; the summary table compares all eight markets on 2025 formation and SME metrics.",
-  });
+  const [countries, setCountries] = useState(() =>
+    cloneCountries(
+      isOnwardAir ? ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES : POTENTIAL_CLIENTS_COUNTRIES,
+    ),
+  );
+  const [intro, setIntro] = useState<IntroContent>(() =>
+    isOnwardAir
+      ? {
+          eyebrow: ONWARDAIR_POTENTIAL_CLIENTS_INTRO.eyebrow,
+          title: ONWARDAIR_POTENTIAL_CLIENTS_INTRO.title,
+          description: ONWARDAIR_POTENTIAL_CLIENTS_INTRO.description,
+        }
+      : {
+          eyebrow: "Strategy · Market sizing",
+          title: "Potential Clients",
+          description:
+            "Target markets for Unit311 outreach in English. Use the country tabs below for detail; the summary table compares all eight markets on 2025 formation and SME metrics.",
+        },
+  );
 
   const [editingSection, setEditingSection] = useState<EditableSection>(null);
   const [draftIntro, setDraftIntro] = useState<IntroContent | null>(null);
@@ -163,10 +183,14 @@ export default function PotentialClientsWorkspace() {
 
   const selectedCountryId = useMemo(() => {
     const fromUrl = searchParams.get("country");
-    return isPotentialClientsCountryId(fromUrl)
-      ? fromUrl
+    const isValid = isOnwardAir
+      ? isOnwardAirPotentialClientsCountryId(fromUrl)
+      : isPotentialClientsCountryId(fromUrl);
+    if (isValid) return fromUrl as PotentialClientsCountryId;
+    return isOnwardAir
+      ? DEFAULT_ONWARDAIR_POTENTIAL_CLIENTS_COUNTRY_ID
       : DEFAULT_POTENTIAL_CLIENTS_COUNTRY_ID;
-  }, [searchParams]);
+  }, [isOnwardAir, searchParams]);
 
   const selectCountry = useCallback(
     (countryId: PotentialClientsCountryId) => {

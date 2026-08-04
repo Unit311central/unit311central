@@ -124,6 +124,14 @@ export const ABHI_REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "new-leads", label: "Rep-sourced leads", value: "5", hint: "This quarter" },
 ];
 
+/** OnwardAir partners network — USD commissions (OA_PARTNERS ≈ 8). */
+export const ONWARDAIR_REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[] = [
+  { id: "active-reps", label: "Active reps", value: "8", hint: "OA partner network" },
+  { id: "commission-due", label: "Commission due", value: "$48k", hint: "Outstanding USD" },
+  { id: "territories", label: "Territories", value: "5", hint: "US · ME · EU · Defense" },
+  { id: "new-leads", label: "Rep-sourced leads", value: "11", hint: "This quarter" },
+];
+
 export const PROJECTS_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "live-projects", label: "Live projects", value: "0", hint: "In delivery" },
   { id: "upcoming", label: "Upcoming", value: "0", hint: "Mobilising soon" },
