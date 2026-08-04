@@ -569,8 +569,8 @@ export async function createHrEmployee(
 
 /**
  * Seed OnwardAir OUR TEAM staff into hr_employees (OA workspace only).
- * Idempotent by email — never deletes existing non-OA employees unless the
- * caller only runs this when the workspace is empty or Scott is missing.
+ * Idempotent by email — never deletes existing employees. Does not reuse
+ * stable seed primary keys (those collide across workspaces / retries).
  */
 export async function ensureOnwardAirHrEmployeesSeeded(
   workspaceId: string,
@@ -595,33 +595,43 @@ export async function ensureOnwardAirHrEmployeesSeeded(
   for (const member of OA_HR_TEAM_EMPLOYEES) {
     const email = member.email.trim().toLowerCase();
     if (byEmail.has(email)) continue;
-    await createHrEmployee(
-      {
-        id: member.id,
-        fullName: member.fullName,
-        preferredName: member.preferredName,
-        email: member.email,
-        phone: member.phone,
-        address: member.address,
-        nationality: member.nationality,
-        employmentStatus: member.employmentStatus,
-        employmentType: member.employmentType,
-        dateJoined: member.dateJoined,
-        location: member.location,
-        role: member.role,
-        department: member.department,
-        currency: member.currency,
-        payFrequency: member.payFrequency,
-        salaryCurrent: member.salaryCurrent,
-        salaryPrevious: member.salaryPrevious,
-        bonus: member.bonus,
-        holidayCalendar: member.holidayCalendar,
-        vacationDaysPerYear: member.vacationDaysPerYear,
-        vacationDaysTaken: member.vacationDaysTaken ?? 0,
-      },
-      { workspaceId },
-    );
-    byEmail.add(email);
+    try {
+      await createHrEmployee(
+        {
+          // Never pass seed ids — hr_employees.id is globally unique.
+          fullName: member.fullName,
+          preferredName: member.preferredName,
+          email: member.email,
+          phone: member.phone,
+          address: member.address,
+          nationality: member.nationality,
+          employmentStatus: member.employmentStatus,
+          employmentType: member.employmentType,
+          dateJoined: member.dateJoined,
+          location: member.location,
+          role: member.role,
+          department: member.department,
+          currency: member.currency ?? "USD",
+          payFrequency: member.payFrequency ?? "monthly",
+          salaryCurrent: member.salaryCurrent ?? 100_000,
+          salaryPrevious: member.salaryPrevious ?? 100_000,
+          bonus: member.bonus ?? 1_000,
+          holidayCalendar: member.holidayCalendar,
+          vacationDaysPerYear: member.vacationDaysPerYear,
+          vacationDaysTaken: member.vacationDaysTaken ?? 0,
+        },
+        { workspaceId },
+      );
+      byEmail.add(email);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // Skip collisions (email / pkey) so one bad row does not block the team.
+      if (/duplicate key|unique constraint/i.test(message)) {
+        byEmail.add(email);
+        continue;
+      }
+      throw error;
+    }
   }
 
   return listHrEmployees({ workspaceId });

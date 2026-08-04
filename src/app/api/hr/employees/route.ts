@@ -24,7 +24,11 @@ export async function GET(request: NextRequest) {
     const workspace = await requireCurrentWorkspace();
     await ensureHrEmployeesTable();
     if (isOnwardAirSlug(workspace.slug)) {
-      await ensureOnwardAirHrEmployeesSeeded(workspace.id);
+      try {
+        await ensureOnwardAirHrEmployeesSeeded(workspace.id);
+      } catch (seedError) {
+        console.error("[hr/employees] OnwardAir team seed failed:", seedError);
+      }
     }
     const includeArchived = request.nextUrl.searchParams.get("includeArchived") === "true";
     const employees = await listHrEmployees({

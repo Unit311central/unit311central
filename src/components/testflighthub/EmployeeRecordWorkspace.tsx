@@ -242,6 +242,13 @@ export default function EmployeeRecordWorkspace() {
   const operationalPayrollCurrency = useMemo(() => {
     if (typeof window !== "undefined") {
       try {
+        const { isBrowserOnwardAirSurface } =
+          require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+        if (isBrowserOnwardAirSurface()) return "USD";
+      } catch {
+        /* ignore */
+      }
+      try {
         const { isBrowserCorpCentreSurface } =
           require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
         if (isBrowserCorpCentreSurface()) return "AUD";
@@ -252,7 +259,7 @@ export default function EmployeeRecordWorkspace() {
     const currencies = employees
       .map((employee) => String(employee.currency || "").toUpperCase())
       .filter(Boolean);
-    return currencies[0] || "AUD";
+    return currencies[0] || "GBP";
   }, [employees]);
 
   function selectEmployee(id: string) {
