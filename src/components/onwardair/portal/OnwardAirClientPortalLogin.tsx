@@ -9,6 +9,7 @@ type Props = {
   companyName: string;
   suggestedUsername: string;
   companyLogoSrc?: string;
+  portalKind?: "client" | "board";
 };
 
 export function OnwardAirClientPortalLogin({
@@ -16,11 +17,13 @@ export function OnwardAirClientPortalLogin({
   companyName,
   suggestedUsername,
   companyLogoSrc,
+  portalKind = "client",
 }: Props) {
   const [username, setUsername] = useState(suggestedUsername);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const isBoard = portalKind === "board";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -70,14 +73,15 @@ export function OnwardAirClientPortalLogin({
         </div>
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
-            OnwardAir Client Portal
+            {isBoard ? "OnwardAir Board Portal" : "OnwardAir Client Portal"}
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-            {companyName} Portal Login
+            {isBoard ? "Board Member Login" : `${companyName} Portal Login`}
           </h1>
           <p className="mt-2 text-sm text-white/55">
-            Sign in to view your Vertex VTOL™ trial fleet, Gulf Coast corridors, and shared programme
-            documents.
+            {isBoard
+              ? "Sign in to view board packs, meetings, risks, minutes, and governance updates for Vertex VTOL™ / FLEX Pod™."
+              : "Sign in to view your Vertex VTOL™ trial fleet, Gulf Coast corridors, and shared programme documents."}
           </p>
 
           <form className="mt-6 space-y-4" onSubmit={(e) => void handleSubmit(e)}>
@@ -113,12 +117,12 @@ export function OnwardAirClientPortalLogin({
               disabled={busy}
               className="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-500 disabled:opacity-60"
             >
-              {busy ? "Signing in…" : "Sign in to portal"}
+              {busy ? "Signing in…" : isBoard ? "Sign in to board portal" : "Sign in to portal"}
             </button>
           </form>
         </div>
         <p className="mt-4 text-center text-xs text-white/35">
-          OnwardAir · {companyName}
+          OnwardAir · {isBoard ? "Board Portal · Confidential" : companyName}
         </p>
       </div>
     </div>

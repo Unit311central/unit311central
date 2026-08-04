@@ -4,7 +4,7 @@ import { OnwardAirClientPortalLogin } from "@/components/onwardair/portal/Onward
 import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
 
 /**
- * Public OnwardAir client-portal login.
+ * Public OnwardAir client/board portal login.
  * Middleware decides whether this page is served — do not cookie-redirect here.
  */
 export default async function OnwardAirClientPortalLoginPage({
@@ -22,6 +22,7 @@ export default async function OnwardAirClientPortalLoginPage({
       companyName={route.displayName}
       suggestedUsername={route.username}
       companyLogoSrc={route.companyLogoSrc}
+      portalKind={route.portalKind === "board" ? "board" : "client"}
     />
   );
 }

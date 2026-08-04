@@ -1,3 +1,4 @@
+import { OnwardAirBoardPortalShell } from "@/components/onwardair/board/OnwardAirBoardPortalShell";
 import { OnwardAirClientPortalShell } from "@/components/onwardair/portal/OnwardAirClientPortalShell";
 import { requireOnwardAirClientPortalAccess } from "@/lib/onwardair/client-portal-auth";
 
@@ -11,6 +12,12 @@ export default async function OnwardAirClientPortalAppLayout({
   const { company } = await params;
   const { route, session } = await requireOnwardAirClientPortalAccess(company);
   const displayName = session.displayName || session.username;
+
+  if (route.portalKind === "board") {
+    return (
+      <OnwardAirBoardPortalShell displayName={displayName}>{children}</OnwardAirBoardPortalShell>
+    );
+  }
 
   return (
     <OnwardAirClientPortalShell

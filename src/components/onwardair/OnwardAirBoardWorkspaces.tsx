@@ -262,7 +262,7 @@ export function OnwardAirBoardMeetingsWorkspace() {
   );
 }
 
-export function OnwardAirBoardDecksWorkspace() {
+export function OnwardAirBoardDecksWorkspace({ readOnly = false }: { readOnly?: boolean }) {
   const [decks, setDecks] = useState<OaBoardDeck[]>(() => [...OA_BOARD_DECKS]);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -277,16 +277,22 @@ export function OnwardAirBoardDecksWorkspace() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader
           title="Board Decks"
-          subtitle="Approved quarterly board decks for OnwardAir. Generate the next meeting deck with AI."
+          subtitle={
+            readOnly
+              ? "Approved quarterly board decks for OnwardAir."
+              : "Approved quarterly board decks for OnwardAir. Generate the next meeting deck with AI."
+          }
         />
-        <button
-          type="button"
-          className={cn(corporatePrimaryButtonClass(), "shrink-0")}
-          onClick={handleAiCreate}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          AI CREATE BOARD MEETING DECK
-        </button>
+        {!readOnly ? (
+          <button
+            type="button"
+            className={cn(corporatePrimaryButtonClass(), "shrink-0")}
+            onClick={handleAiCreate}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            AI CREATE BOARD MEETING DECK
+          </button>
+        ) : null}
       </div>
 
       {message ? (

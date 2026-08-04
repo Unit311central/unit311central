@@ -11,11 +11,21 @@ export type OnwardAirClientPortalRoute = {
   username: string;
   redirectPath: string;
   companyLogoSrc?: string;
+  /** Client programme portal vs OnwardAir Board governance portal. */
+  portalKind?: "client" | "board";
 };
 
 export const ONWARDAIR_CLIENT_PORTAL_ORIGIN = "https://onwardair.unit311central.com";
 
 export const ONWARDAIR_CLIENT_PORTAL_ROUTES: readonly OnwardAirClientPortalRoute[] = [
+  {
+    path: "board",
+    displayName: "OnwardAir Board",
+    clientId: "oa-cli-board",
+    username: "board@onwardair.tech",
+    redirectPath: "/board",
+    portalKind: "board",
+  },
   {
     path: "coastalfreightpartners.com",
     displayName: "Coastal Freight Partners",
