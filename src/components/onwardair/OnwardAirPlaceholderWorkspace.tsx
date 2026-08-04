@@ -2,6 +2,8 @@
 
 import { Landmark, LayoutDashboard, Target } from "lucide-react";
 
+import OnwardAirOperationsDashboard from "@/components/onwardair/OnwardAirOperationsDashboard";
+
 type PlaceholderProps = {
   title: string;
   group: "Engineering" | "Operations" | "Fundraising" | "Fundraising & Cap Table";
@@ -49,13 +51,7 @@ export function OnwardAirPlaceholderWorkspace({ title, group, description }: Pla
 }
 
 export function OperationsDashboardWorkspace() {
-  return (
-    <OnwardAirPlaceholderWorkspace
-      title="Dashboard"
-      group="Operations"
-      description="Operations overview — assets, inventory, procurement, and logistics at a glance."
-    />
-  );
+  return <OnwardAirOperationsDashboard />;
 }
 
 /** @deprecated Use `@/components/onwardair/FundraisingWorkspaces` */

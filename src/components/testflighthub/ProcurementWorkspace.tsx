@@ -66,6 +66,7 @@ import {
   toggleIntegration,
   uid,
 } from "@/lib/procurement-mock-store";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { downloadPurchaseOrderPdf } from "@/lib/procurement-pdf-service";
 import { cn } from "@/lib/utils";
 import { useProcurementMockStore } from "./useProcurementMockStore";
@@ -103,8 +104,16 @@ const AI_KIND_LABELS: Record<string, string> = {
   supplier_summary: "Supplier summary",
 };
 
-const DEFAULT_DELIVERY = "Workspace delivery address";
-const DEFAULT_BILLING = "Workspace billing address";
+const IS_OA = typeof window !== "undefined" && isBrowserOnwardAirSurface();
+const DEFAULT_CURRENCY = IS_OA ? "USD" : "EUR";
+const DEFAULT_TAX_PCT = IS_OA ? 8.25 : 21;
+const DEFAULT_COST_CENTRE = IS_OA ? "OPS-HOU" : "OPS-BCN";
+const DEFAULT_DELIVERY = IS_OA
+  ? "OnwardAir HQ · Houston, TX 77058"
+  : "Workspace delivery address";
+const DEFAULT_BILLING = IS_OA
+  ? "OnwardAir Finance · Houston, TX"
+  : "Workspace billing address";
 
 function emptyLine(partial?: Partial<ProcurementLineItem>): ProcurementLineItem {
   return {
@@ -116,7 +125,7 @@ function emptyLine(partial?: Partial<ProcurementLineItem>): ProcurementLineItem 
     unit: "ea",
     unitPrice: 0,
     estimatedCost: 0,
-    taxPct: 21,
+    taxPct: DEFAULT_TAX_PCT,
     discountPct: 0,
     preferredSupplierId: "",
     preferredSupplierName: "",
@@ -161,13 +170,19 @@ function advanceLabel(status: RequisitionStatus): string {
 function LineItemsEditor({
   lines,
   onChange,
-  currency = "EUR",
+  currency = DEFAULT_CURRENCY,
 }: {
   lines: ProcurementLineItem[];
   onChange: (lines: ProcurementLineItem[]) => void;
   currency?: string;
 }) {
   const totals = calcPoTotals(lines);
+  const unitHeader =
+    currency.toUpperCase() === "USD"
+      ? "Unit $"
+      : currency.toUpperCase() === "GBP"
+        ? "Unit £"
+        : `Unit ${currency === "EUR" ? "€" : currency}`;
 
   function patch(id: string, patch: Partial<ProcurementLineItem>) {
     onChange(
@@ -191,7 +206,7 @@ function LineItemsEditor({
               <th className="px-3 py-2 font-medium">Item</th>
               <th className="px-3 py-2 font-medium">SKU</th>
               <th className="px-3 py-2 font-medium">Qty</th>
-              <th className="px-3 py-2 font-medium">Unit €</th>
+              <th className="px-3 py-2 font-medium">{unitHeader}</th>
               <th className="px-3 py-2 font-medium">Tax%</th>
               <th className="px-3 py-2 font-medium">Disc%</th>
               <th className="px-3 py-2 font-medium">Total</th>
@@ -340,7 +355,7 @@ export default function ProcurementWorkspace() {
     requestDate: isoDaysFromNow(0),
     requestedBy: "Alex Rivera",
     department: "Operations",
-    costCentre: "OPS-BCN",
+    costCentre: DEFAULT_COST_CENTRE,
     priority: "normal" as ProcurementPriority,
     requiredDate: isoDaysFromNow(14),
     businessJustification: "",
@@ -355,7 +370,7 @@ export default function ProcurementWorkspace() {
     supplierContact: "",
     deliveryAddress: DEFAULT_DELIVERY,
     billingAddress: DEFAULT_BILLING,
-    currency: "EUR",
+    currency: DEFAULT_CURRENCY,
     paymentTerms: "Net 30",
     expectedDelivery: isoDaysFromNow(14),
     status: "draft" as PurchaseOrder["status"],
@@ -415,7 +430,7 @@ export default function ProcurementWorkspace() {
       requestDate: isoDaysFromNow(0),
       requestedBy: "Alex Rivera",
       department: "Operations",
-      costCentre: "OPS-BCN",
+      costCentre: DEFAULT_COST_CENTRE,
       priority: "normal",
       requiredDate: isoDaysFromNow(14),
       businessJustification: "",
@@ -456,7 +471,7 @@ export default function ProcurementWorkspace() {
         : "",
       deliveryAddress: DEFAULT_DELIVERY,
       billingAddress: DEFAULT_BILLING,
-      currency: supplier?.currency ?? "EUR",
+      currency: supplier?.currency ?? DEFAULT_CURRENCY,
       paymentTerms: supplier?.paymentTerms ?? "Net 30",
       expectedDelivery: isoDaysFromNow(14),
       status: "draft",

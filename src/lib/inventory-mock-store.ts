@@ -678,6 +678,18 @@ function seedTalantonInventoryState(): InventoryMockState {
 function seedState(): InventoryMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const { seedOnwardAirInventoryState } =
+          require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
+        return seedOnwardAirInventoryState();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {
@@ -1861,6 +1873,27 @@ export function subscribeInventoryMockStore(listener: Listener) {
 export function getInventoryMockSnapshot(): InventoryMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const hasStale =
+          !state.activity.some((row) => row.id === "act-oa-inv-1") ||
+          state.assets.some(
+            (a) =>
+              /Barcelona|Unit311|Matrice|DJI/i.test(a.location) ||
+              /Barcelona|Unit311|Matrice|DJI/i.test(a.name) ||
+              /Unit311/i.test(a.notes.map((n) => n.text).join(" ")),
+          );
+        if (hasStale) {
+          state = seedState();
+        }
+        return state;
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (
@@ -1897,6 +1930,17 @@ export function getInventoryMockSnapshot(): InventoryMockState {
 
 /** Server-safe inventory seed selection by workspace slug (for EA tools). */
 export function getInventorySnapshotForWorkspace(slug?: string | null): InventoryMockState {
+  try {
+    const { isOnwardAirSlug } =
+      require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+    if (isOnwardAirSlug(slug)) {
+      const { seedOnwardAirInventoryState } =
+        require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
+      return seedOnwardAirInventoryState();
+    }
+  } catch {
+    // fall through
+  }
   try {
     const { isAbhiSlug } = require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
     if (isAbhiSlug(slug)) return seedAbhiInventoryState();

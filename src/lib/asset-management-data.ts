@@ -960,6 +960,18 @@ export function createInitialAssetRegistry(): AssetRegistryState {
 
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const { createOnwardAirAssetRegistry } =
+          require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
+        return createOnwardAirAssetRegistry();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) {

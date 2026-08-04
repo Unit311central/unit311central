@@ -760,6 +760,18 @@ function seedTalantonProcurementState(): ProcurementMockState {
 function seedState(): ProcurementMockState {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const { seedOnwardAirProcurementState } =
+          require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
+        return seedOnwardAirProcurementState();
+      }
+    } catch {
+      // Fall through.
+    }
+
+    try {
       const { isBrowserTalantonImpactSurface } =
         require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
       if (isBrowserTalantonImpactSurface()) {
@@ -1551,6 +1563,28 @@ export function subscribeProcurementMockStore(listener: Listener) {
 
 export function getProcurementMockSnapshot() {
   if (typeof window !== "undefined") {
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        const hasStaleData = state.suppliers.some(
+          (supplier) =>
+            supplier.id === "sup-dji" ||
+            supplier.currency === "EUR" ||
+            supplier.addresses.some((address) => address.city === "Barcelona"),
+        );
+        if (
+          hasStaleData ||
+          !state.suppliers.some((supplier) => supplier.id.startsWith("oa-sup-"))
+        ) {
+          state = seedState();
+        }
+        return state;
+      }
+    } catch {
+      // Fall through.
+    }
+
     try {
       const { isBrowserTalantonImpactSurface } =
         require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");

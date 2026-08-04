@@ -356,6 +356,17 @@ function isTalantonLogisticsSurface() {
   }
 }
 
+function isOnwardAirLogisticsSurface() {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserOnwardAirSurface } =
+      require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+    return isBrowserOnwardAirSurface();
+  } catch {
+    return false;
+  }
+}
+
 const TALANTON_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
   {
     id: "ti-shp-us-docs",
@@ -643,6 +654,11 @@ const CORPCENTRE_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
 ];
 
 export function getLogisticsMockShipments(): LogisticsShipment[] {
+  if (isOnwardAirLogisticsSurface()) {
+    const { ONWARDAIR_LOGISTICS_SHIPMENTS } =
+      require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
+    return ONWARDAIR_LOGISTICS_SHIPMENTS;
+  }
   if (isAbhiLogisticsSurface()) return ABHI_LOGISTICS_SHIPMENTS;
   if (isTalantonLogisticsSurface()) return TALANTON_LOGISTICS_SHIPMENTS;
   if (isCorpCentreLogisticsSurface()) return CORPCENTRE_LOGISTICS_SHIPMENTS;
@@ -650,12 +666,18 @@ export function getLogisticsMockShipments(): LogisticsShipment[] {
 }
 
 export function getFeaturedLogisticsRoute(): FeaturedRouteSnapshot {
+  if (isOnwardAirLogisticsSurface()) {
+    const { FEATURED_HOUSTON_ROUTE } =
+      require("@/lib/onwardair/operations-data") as typeof import("@/lib/onwardair/operations-data");
+    return FEATURED_HOUSTON_ROUTE;
+  }
   if (isAbhiLogisticsSurface()) return FEATURED_LONDON_CAMBRIDGE_ROUTE;
   if (isTalantonLogisticsSurface()) return FEATURED_NAIROBI_NEWYORK_ROUTE;
   return isDemoLogisticsSurface() ? FEATURED_LONDON_NEW_YORK_ROUTE : FEATURED_BARCELONA_LONDON_ROUTE;
 }
 
 export function getLogisticsBrandName() {
+  if (isOnwardAirLogisticsSurface()) return "OnwardAir Logistics";
   if (isAbhiLogisticsSurface()) return "ABHI Logistics";
   if (isTalantonLogisticsSurface()) return "Talanton Logistics";
   if (isDemoLogisticsSurface()) {

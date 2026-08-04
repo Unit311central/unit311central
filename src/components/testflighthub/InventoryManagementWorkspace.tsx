@@ -28,6 +28,7 @@ import {
   type InventoryPanelTab,
   type InventoryStatus,
 } from "@/lib/inventory-data";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   addInventoryDocument,
   addInventoryNote,
@@ -1295,7 +1296,11 @@ export default function InventoryManagementWorkspace() {
 
       <InventorySection
         title="Operational Inventory"
-        subtitle="Track field assets, assignments, maintenance, and certifications across Unit311 sites."
+        subtitle={
+          isBrowserOnwardAirSurface()
+            ? "Track prototype spares, consumables, and certifications across Houston HQ and the flight-test bay."
+            : "Track field assets, assignments, maintenance, and certifications across Unit311 sites."
+        }
       >
         <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           <div className="sm:col-span-2 xl:col-span-2">
