@@ -1005,10 +1005,12 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
           item.view !== "board-pack" &&
           item.view !== "corporate-risk-register" &&
           item.view !== "corporate-cap-table" &&
+          item.view !== "corporate-board-directors" &&
           item.view !== "unit311-details" &&
           item.view !== "module-go-live" &&
           item.label !== "Unit311 Details" &&
-          item.label !== "Cap Table Management",
+          item.label !== "Cap Table Management" &&
+          item.label !== "Board of Directors",
       );
       out.push({
         ...section,

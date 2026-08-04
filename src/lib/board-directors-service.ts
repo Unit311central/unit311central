@@ -68,6 +68,33 @@ export async function listBoardDirectorsForWorkspace(
   return (data ?? []).map((row) => mapRow(row as Record<string, unknown>));
 }
 
+/**
+ * Seed OnwardAir Luminary Advisors into board_directors when the workspace has none.
+ * Idempotent — only inserts when active row count is zero.
+ */
+export async function ensureOnwardAirBoardDirectorsSeeded(
+  workspaceId: string,
+): Promise<BoardDirector[]> {
+  const existing = await listBoardDirectorsForWorkspace(workspaceId);
+  if (existing.length > 0) return existing;
+
+  const { ONWARDAIR_LUMINARY_ADVISORS } =
+    await import("@/lib/onwardair/board-members-seed");
+  const seeded: BoardDirector[] = [];
+  for (const member of ONWARDAIR_LUMINARY_ADVISORS) {
+    seeded.push(
+      await createBoardDirector(workspaceId, {
+        fullName: member.fullName,
+        roleTitle: member.roleTitle,
+        organisation: member.organisation,
+        notes: member.notes,
+        sortOrder: member.sortOrder,
+      }),
+    );
+  }
+  return seeded;
+}
+
 export async function createBoardDirector(
   workspaceId: string,
   input: BoardDirectorInput,

@@ -1441,6 +1441,12 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
             subtitle: "Fundraising",
           };
         }
+        if (activeView === "board-members" || activeView === "corporate-board-directors") {
+          return {
+            title: "Board Members",
+            subtitle: "Board",
+          };
+        }
       }
     } catch {
       /* ignore */

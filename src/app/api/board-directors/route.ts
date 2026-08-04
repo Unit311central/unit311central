@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   createBoardDirector,
+  ensureOnwardAirBoardDirectorsSeeded,
   listBoardDirectorsForWorkspace,
 } from "@/lib/board-directors-service";
+import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 import { getPlatformSession } from "@/lib/platform-session";
 import {
   WorkspaceAccessError,
@@ -20,7 +22,10 @@ export async function GET() {
 
   try {
     const workspace = await requireCurrentWorkspace();
-    const directors = await listBoardDirectorsForWorkspace(workspace.id);
+    const directors =
+      workspace.slug === ONWARDAIR_SLUG
+        ? await ensureOnwardAirBoardDirectorsSeeded(workspace.id)
+        : await listBoardDirectorsForWorkspace(workspace.id);
     return NextResponse.json({ directors });
   } catch (error) {
     if (error instanceof WorkspaceAccessError) {
