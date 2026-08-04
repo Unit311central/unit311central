@@ -205,38 +205,36 @@ export default function SurveyOperationsShell({
               >
                 <Menu className="h-4 w-4" />
               </button>
-              <div className="min-w-0">
-                {breadcrumbCrumbs && breadcrumbCrumbs.length > 0 ? (
-                  <WorkspaceBreadcrumb crumbs={breadcrumbCrumbs} />
-                ) : resolvedSubtitle ? (
-                  <WorkspaceBreadcrumb crumbs={[resolvedSubtitle]} />
-                ) : null}
-                <div className="flex min-w-0 items-center gap-2">
-                  <div className="min-w-0">
+                <div className="min-w-0">
+                  {breadcrumbCrumbs && breadcrumbCrumbs.length > 0 ? (
+                    <WorkspaceBreadcrumb crumbs={breadcrumbCrumbs} />
+                  ) : resolvedSubtitle ? (
+                    <WorkspaceBreadcrumb crumbs={[resolvedSubtitle]} />
+                  ) : null}
+                  <div className="flex min-w-0 items-center gap-2">
                     <h1 className="truncate text-base font-semibold tracking-tight text-white sm:text-lg md:text-xl">
                       {resolvedTitle}
                     </h1>
-                    {sectionAccent ? (
+                    {isDemoHost ? (
                       <span
-                        className="mt-1.5 block h-[2px] w-11 max-w-full rounded-full sm:w-14"
-                        style={{
-                          background: `linear-gradient(90deg, ${sectionAccent} 0%, ${sectionAccent}99 55%, transparent 100%)`,
-                          boxShadow: `0 0 12px color-mix(in srgb, ${sectionAccent} 35%, transparent)`,
-                        }}
-                        aria-hidden
-                      />
+                        className="shrink-0 rounded border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200"
+                        title="Demo surface — same build as Internal; curated workspace content"
+                      >
+                        Demo
+                      </span>
                     ) : null}
                   </div>
-                  {isDemoHost ? (
+                  {sectionAccent ? (
                     <span
-                      className="shrink-0 rounded border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200"
-                      title="Demo surface — same build as Internal; curated workspace content"
-                    >
-                      Demo
-                    </span>
+                      className="mt-2 block h-[2px] w-3/4 max-w-full rounded-full"
+                      style={{
+                        background: `linear-gradient(90deg, ${sectionAccent} 0%, ${sectionAccent}cc 42%, ${sectionAccent}66 68%, transparent 100%)`,
+                        boxShadow: `0 0 14px color-mix(in srgb, ${sectionAccent} 28%, transparent)`,
+                      }}
+                      aria-hidden
+                    />
                   ) : null}
                 </div>
-              </div>
             </div>
 
             <div className="relative flex shrink-0 items-center gap-2">
