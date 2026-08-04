@@ -548,7 +548,7 @@ export default function EnterprisePlatformSidebar({
           <span
             className={cn(
               "min-w-0 flex-1 whitespace-nowrap font-semibold uppercase leading-none text-white",
-              section.label.length > 18
+              (section.label?.length ?? 0) > 18
                 ? "text-[9.5px] tracking-[0.06em]"
                 : "text-[10.5px] tracking-[0.12em]",
             )}
