@@ -21,6 +21,7 @@ import {
   type ProjectPortfolioScope,
 } from "@/lib/project-portfolios";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
@@ -171,10 +172,13 @@ export default function ProjectsWorkspace({
     () => clients.find((client) => client.id === clientFilterId) ?? null,
     [clients, clientFilterId],
   );
-  // CorpCentre Internal Projects use the AU/AUD portfolio fixtures (20 programmes).
-  // External / dashboard keep live API projects so client delivery work stays visible.
+  // Talanton + OnwardAir use tenant portfolio fixtures for all scopes.
+  // CorpCentre Internal Projects use the AU/AUD portfolio fixtures.
+  // Other tenants keep live API projects for delivery work.
   const usesPortfolio =
-    isBrowserTalantonImpactSurface() || (scope === "internal" && isBrowserCorpCentreSurface());
+    isBrowserTalantonImpactSurface() ||
+    isBrowserOnwardAirSurface() ||
+    (scope === "internal" && isBrowserCorpCentreSurface());
   const isPortfolioLayout = scope === "internal" || scope === "external";
   const isCorpCentre = isBrowserCorpCentreSurface();
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel(false);

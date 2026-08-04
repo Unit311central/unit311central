@@ -2,6 +2,11 @@ import type { InternalProject, ProjectPhase } from "@/lib/projects-data";
 import { CORPCENTRE_INTERNAL_PROJECT_PORTFOLIO } from "@/lib/corpcentre-project-portfolios";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import {
+  ONWARDAIR_EXTERNAL_PROJECT_PORTFOLIO,
+  ONWARDAIR_INTERNAL_PROJECT_PORTFOLIO,
+} from "@/lib/onwardair/project-portfolios";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import {
   TALANTON_EXTERNAL_PROJECT_PORTFOLIO,
   TALANTON_INTERNAL_PROJECT_PORTFOLIO,
 } from "@/lib/talanton/project-portfolios";
@@ -900,6 +905,8 @@ const BY_ID = new Map<string, PortfolioProject>(
     ...CORPCENTRE_INTERNAL_PROJECT_PORTFOLIO,
     ...TALANTON_INTERNAL_PROJECT_PORTFOLIO,
     ...TALANTON_EXTERNAL_PROJECT_PORTFOLIO,
+    ...ONWARDAIR_INTERNAL_PROJECT_PORTFOLIO,
+    ...ONWARDAIR_EXTERNAL_PROJECT_PORTFOLIO,
   ].map((entry) => [entry.id, entry]),
 );
 
@@ -923,11 +930,27 @@ function isTalantonPortfolioSurface(): boolean {
   }
 }
 
+function isOnwardAirPortfolioSurface(): boolean {
+  try {
+    return typeof window !== "undefined" && isBrowserOnwardAirSurface();
+  } catch {
+    return false;
+  }
+}
+
 export function getProjectsForScope(scope: ProjectPortfolioScope): PortfolioProject[] {
   if (isTalantonPortfolioSurface()) {
     if (scope === "internal") return TALANTON_INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
     if (scope === "external") return TALANTON_EXTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
     return [...TALANTON_INTERNAL_PROJECT_PORTFOLIO, ...TALANTON_EXTERNAL_PROJECT_PORTFOLIO].map(
+      (entry) => ({ ...entry }),
+    );
+  }
+
+  if (isOnwardAirPortfolioSurface()) {
+    if (scope === "internal") return ONWARDAIR_INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+    if (scope === "external") return ONWARDAIR_EXTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+    return [...ONWARDAIR_INTERNAL_PROJECT_PORTFOLIO, ...ONWARDAIR_EXTERNAL_PROJECT_PORTFOLIO].map(
       (entry) => ({ ...entry }),
     );
   }
