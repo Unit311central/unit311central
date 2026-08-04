@@ -39,6 +39,7 @@ import {
   saveAbhiBoardPack,
 } from "@/lib/abhi/board-pack-record";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { getAbhiBoardMeetingsState } from "@/lib/abhi/board-meetings-store";
 import { getAbhiRiskRegisterState } from "@/lib/abhi/risk-register-store";
@@ -245,7 +246,9 @@ export default function ExecutiveAssistantPanel({
   const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
   const isTalanton =
     typeof window !== "undefined" ? isBrowserTalantonImpactSurface() : false;
-  const supportsBoardPackWorkspace = isAbhi || isTalanton;
+  const isOnwardAir =
+    typeof window !== "undefined" ? isBrowserOnwardAirSurface() : false;
+  const supportsBoardPackWorkspace = isAbhi || isTalanton || isOnwardAir;
   const [assistantTitle, setAssistantTitle] = useState("Executive Assistant");
   useLayoutEffect(() => {
     const name = resolveBrowserWorkspaceDisplayName().trim();

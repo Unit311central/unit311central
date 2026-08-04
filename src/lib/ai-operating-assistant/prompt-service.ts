@@ -6,6 +6,7 @@ import {
   isCorpCentreWorkspaceSlug,
 } from "@/lib/corpcentre-financials";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
 
 function buildCoreInstructions(assistantName: string, workspaceLabel: string) {
@@ -123,6 +124,7 @@ export function buildSystemInstructions(
 
   const isCorpCentre = isCorpCentreWorkspaceSlug(context.workspace.slug);
   const isTalanton = isTalantonImpactSlug(context.workspace.slug);
+  const isOnwardAir = isOnwardAirSlug(context.workspace.slug);
   const brand = brandFromWorkspaceClaim({
     slug: context.workspace.slug,
     name: context.workspace.name,
@@ -133,6 +135,10 @@ export function buildSystemInstructions(
   const talantonToolsHint = isTalanton
     ? `
 Talanton Impact tools: boardpack.generate — create board packs / board decks when explicitly asked; lms.generateCourseFromDocument — create interactive training courses from uploaded PDF/Word policies when explicitly asked.`
+    : "";
+  const onwardAirToolsHint = isOnwardAir
+    ? `
+OnwardAir tools: boardpack.generate — create OnwardAir board decks (Vertex VTOL / FLEX Pod / Seed raise / cash runway) when explicitly asked; lms.generateCourseFromDocument — create interactive training courses from uploaded PDF/Word SOPs when explicitly asked. Prefer queryBusiness / getCashPosition / search* for live module questions (Financials, Fundraising, Engineering, Board, Training, QMS, Projects).`
     : "";
 
   return `${core}
@@ -173,7 +179,7 @@ Active selection: ${selection || "none"}${topicBlock}${memoryBlock}${artifactBlo
 Platform: listPlatformModules / searchApplications.
 Capabilities: listBusinessActions / searchCapabilities / proposeBusinessActionPlan.
 Finance writes: finance.createExpense, finance.chaseOverdueInvoice (then calendar.scheduleMeeting for follow-up).
-Business facts: queryBusiness / getSmartInsights / search* tools. Prefer executing registered capabilities over describing screens when the user wants work done.${talantonToolsHint}`;
+Business facts: queryBusiness / getSmartInsights / search* tools. Prefer executing registered capabilities over describing screens when the user wants work done.${talantonToolsHint}${onwardAirToolsHint}`;
 }
 
 export function buildStructuredJsonHint() {

@@ -1,6 +1,6 @@
 /**
  * Board Pack Generation — EA tool `boardpack.generate`.
- * Available on ABHI and Talanton Impact. Generates PowerPoint + PDF with staged analysis delay.
+ * ABHI, Talanton Impact, and OnwardAir. PowerPoint + PDF with staged analysis delay.
  */
 
 import { readFile } from "node:fs/promises";
@@ -32,19 +32,29 @@ import {
   type AssistantToolResult,
 } from "@/lib/ai-operating-assistant/tool-result";
 import { ABHI_BOARD_PACK_STAGES } from "@/lib/abhi/board-pack-stages";
+import { buildOnwardAirBoardPackData } from "@/lib/onwardair/board-pack-model";
+import {
+  oaBoardPackPdfFileName,
+  buildOnwardAirBoardPackPdf,
+} from "@/lib/onwardair/board-pack-pdf";
+import {
+  oaBoardPackPptxFileName,
+  buildOnwardAirBoardPackPptx,
+} from "@/lib/onwardair/board-pack-pptx";
+import { OA_BOARD_PACK_STAGES } from "@/lib/onwardair/board-pack-stages";
+import {
+  ONWARDAIR_LOGO_PNG_SRC,
+  isOnwardAirSlug,
+} from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 const TALANTON_LOGO_SRC = "/images/workspaces/talantonimpact-t.jpg";
 
 function canGenerateBoardPack(slug: string | null | undefined) {
-  return isAbhiSlug(slug) || isTalantonImpactSlug(slug);
+  return isAbhiSlug(slug) || isTalantonImpactSlug(slug) || isOnwardAirSlug(slug);
 }
 
 const STAGE_MS = [1100, 1000, 1100, 1200, 1100, 900, 1100, 1400, 1000] as const;
-const GENERATION_STAGES = ABHI_BOARD_PACK_STAGES.map((stage, index) => ({
-  ...stage,
-  ms: STAGE_MS[index] ?? 1000,
-}));
 
 function asString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -89,7 +99,11 @@ function parseMeetingDate(raw: string | undefined): string | undefined {
 async function loadLogoDataUrl(slug: string): Promise<string | null> {
   try {
     const relative = (
-      isTalantonImpactSlug(slug) ? TALANTON_LOGO_SRC : ABHI_LOGO_SRC
+      isOnwardAirSlug(slug)
+        ? ONWARDAIR_LOGO_PNG_SRC
+        : isTalantonImpactSlug(slug)
+          ? TALANTON_LOGO_SRC
+          : ABHI_LOGO_SRC
     ).replace(/^\//, "");
     const primaryPath = join(process.cwd(), "public", relative);
     try {
@@ -101,7 +115,7 @@ async function loadLogoDataUrl(slug: string): Promise<string | null> {
           : "image/png";
       return `data:${mime};base64,${bytes.toString("base64")}`;
     } catch {
-      if (isTalantonImpactSlug(slug)) return null;
+      if (isTalantonImpactSlug(slug) || isOnwardAirSlug(slug)) return null;
       const jpgPath = join(
         process.cwd(),
         "public",
@@ -137,10 +151,10 @@ function brandBoardPackForWorkspace(
   };
 }
 
-async function runStagedAnalysis(): Promise<void> {
-  // Keep total delay in the 8–12s demo window while generation work runs in parallel.
-  for (const stage of GENERATION_STAGES) {
-    await sleep(stage.ms);
+async function runStagedAnalysis(slug: string): Promise<void> {
+  const stages = isOnwardAirSlug(slug) ? OA_BOARD_PACK_STAGES : ABHI_BOARD_PACK_STAGES;
+  for (let index = 0; index < stages.length; index += 1) {
+    await sleep(STAGE_MS[index] ?? 1000);
   }
 }
 
@@ -152,29 +166,39 @@ export async function generateBoardPackTool(
   if (!slug || !canGenerateBoardPack(slug)) {
     return toolForbidden(
       "boardpack.generate",
-      "Board Pack Generation is available on the ABHI and Talanton Impact workspaces only.",
+      "Board Pack Generation is available on the ABHI, Talanton Impact, and OnwardAir workspaces only.",
     );
   }
+
+  const isOa = isOnwardAirSlug(slug);
+  const stages = isOa ? OA_BOARD_PACK_STAGES : ABHI_BOARD_PACK_STAGES;
 
   try {
     const meetingDate = parseMeetingDate(
       asString(args.meetingDate) || asString(args.date) || asString(args.when),
     );
-    const data: AbhiBoardPackData = brandBoardPackForWorkspace(
-      buildAbhiBoardPackData(meetingDate),
-      slug,
-    );
+    const data: AbhiBoardPackData = isOa
+      ? buildOnwardAirBoardPackData(meetingDate)
+      : brandBoardPackForWorkspace(buildAbhiBoardPackData(meetingDate), slug);
     const logoDataUrl = await loadLogoDataUrl(slug);
 
-    const analysisPromise = runStagedAnalysis();
+    const analysisPromise = runStagedAnalysis(slug);
     const [pdfBytes, pptxBytes] = await Promise.all([
-      buildAbhiBoardPackPdf(data, logoDataUrl),
-      buildAbhiBoardPackPptx(data, logoDataUrl),
+      isOa
+        ? buildOnwardAirBoardPackPdf(data, logoDataUrl)
+        : buildAbhiBoardPackPdf(data, logoDataUrl),
+      isOa
+        ? buildOnwardAirBoardPackPptx(data, logoDataUrl)
+        : buildAbhiBoardPackPptx(data, logoDataUrl),
     ]);
     await analysisPromise;
 
-    const pdfFilename = abhiBoardPackPdfFileName(data.meetingDate);
-    const pptxFilename = abhiBoardPackPptxFileName(data.meetingDate);
+    const pdfFilename = isOa
+      ? oaBoardPackPdfFileName(data.meetingDate)
+      : abhiBoardPackPdfFileName(data.meetingDate);
+    const pptxFilename = isOa
+      ? oaBoardPackPptxFileName(data.meetingDate)
+      : abhiBoardPackPptxFileName(data.meetingDate);
 
     let pdfArtifact = putAssistantArtifact({
       id: createArtifactId(),
@@ -185,7 +209,7 @@ export async function generateBoardPackTool(
       bytes: Buffer.from(pdfBytes),
       userId: ctx.business.user.id,
       meta: {
-        workspaceSlug: "abhi",
+        workspaceSlug: slug,
         packName: data.packName,
         meetingDate: data.meetingDate,
         status: data.status,
@@ -204,7 +228,7 @@ export async function generateBoardPackTool(
       bytes: Buffer.from(pptxBytes),
       userId: ctx.business.user.id,
       meta: {
-        workspaceSlug: "abhi",
+        workspaceSlug: slug,
         packName: data.packName,
         meetingDate: data.meetingDate,
         status: data.status,
@@ -217,24 +241,26 @@ export async function generateBoardPackTool(
     const pdfDownloadUrl = `/api/executive-assistant/artifacts/${pdfArtifact.id}?disposition=attachment`;
     const pptxDownloadUrl = `/api/executive-assistant/artifacts/${pptxArtifact.id}?disposition=attachment`;
     const boardDeckHref = "/dashboard?view=board-pack";
-    const folderPath = `Corporate Information / Board Deck / ${data.packName}`;
+    const folderPath = isOa
+      ? data.folderPath
+      : `Corporate Information / Board Deck / ${data.packName}`;
 
-    const pageSummaries = [
-      "Cover Page",
-      "Executive Summary",
-      "Previous Meeting",
-      "Risk Register",
-      "KPI Dashboard",
-      "Financial Overview",
-      "Profit & Loss",
-      "Balance Sheet & Cash",
-      "Commercial Performance",
-      "Team & Organisation",
-      "Strategic Discussion & AOB",
-    ];
+    const pageSummaries = data.pageSummaries?.length
+      ? data.pageSummaries
+      : [
+          "Cover Page",
+          "Executive Summary",
+          "Previous Meeting",
+          "Risk Register",
+          "KPI Dashboard",
+          "Financial Overview",
+          "Profit & Loss",
+          "Balance Sheet & Cash",
+          "Commercial Performance",
+          "Team & Organisation",
+          "Strategic Discussion & AOB",
+        ];
 
-    // Never stream file bytes in the tool result — PDF/PPTX base64 blows up the SSE
-    // frame and the client never receives the success card / done event.
     return toolOk(
       "boardpack.generate",
       [
@@ -256,18 +282,29 @@ export async function generateBoardPackTool(
         },
       ],
       {
-        source: [
-          "abhi:board-pack",
-          "abhi:financials",
-          "abhi:membership",
-          "abhi:risk-register",
-          "assistant:pptx",
-          "assistant:pdf",
-        ],
+        source: isOa
+          ? [
+              "onwardair:board-pack",
+              "onwardair:financials",
+              "onwardair:fundraising",
+              "onwardair:board-data",
+              "assistant:pptx",
+              "assistant:pdf",
+            ]
+          : [
+              "abhi:board-pack",
+              "abhi:financials",
+              "abhi:membership",
+              "abhi:risk-register",
+              "assistant:pptx",
+              "assistant:pdf",
+            ],
         pageSize: 2,
         summary: {
           executed: true,
-          message: "Board Pack Generated Successfully",
+          message: isOa
+            ? "OnwardAir Board Deck Generated Successfully"
+            : "Board Pack Generated Successfully",
           artifactId: pdfArtifact.id,
           pdfArtifactId: pdfArtifact.id,
           pptxArtifactId: pptxArtifact.id,
@@ -281,7 +318,7 @@ export async function generateBoardPackTool(
           folderPath,
           boardDeckHref,
           pageSummaries,
-          stages: ABHI_BOARD_PACK_STAGES,
+          stages,
           pdfOpenUrl,
           pdfDownloadUrl,
           pptxDownloadUrl,
@@ -289,14 +326,14 @@ export async function generateBoardPackTool(
         followUpActions: [
           {
             id: "preview_board_pack",
-            label: "Preview Board Pack",
+            label: isOa ? "Preview Board Deck" : "Preview Board Pack",
             kind: "open",
             artifactId: pdfArtifact.id,
             href: pdfOpenUrl,
           },
           {
             id: "edit_board_pack",
-            label: "Edit Board Pack",
+            label: isOa ? "Open Board Decks" : "Edit Board Pack",
             kind: "navigate",
             href: boardDeckHref,
           },
@@ -321,7 +358,7 @@ export async function generateBoardPackTool(
     return toolError(
       "boardpack.generate",
       error instanceof Error ? error.message : "Failed to generate board pack",
-      ["abhi:board-pack"],
+      isOa ? ["onwardair:board-pack"] : ["abhi:board-pack"],
     );
   }
 }

@@ -11,6 +11,7 @@
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 import type { AssistantBusinessContext, AssistantChatMessage } from "./types";
@@ -252,6 +253,36 @@ export async function resolveOrchestrationRoute(
             title: undefined,
           },
           reason: "Talanton Impact AI course generator from document",
+        },
+      };
+    }
+  }
+
+  // OnwardAir — board deck generation (aerospace pack; same NL verbs as ABHI).
+  if (isOnwardAirSlug(business.workspace.slug)) {
+    const boardPack = resolveAbhiBoardPackIntent(message);
+    if (boardPack) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: boardPack.tool,
+          args: boardPack.args,
+          reason: "OnwardAir board deck generation",
+        },
+      };
+    }
+
+    if (resolveAbhiLmsCourseIntent(message)) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: "lms.generateCourseFromDocument",
+          args: {
+            fileId: business.selection?.fileId ?? undefined,
+            fileName: business.selection?.fileName ?? undefined,
+            title: undefined,
+          },
+          reason: "OnwardAir AI course generator from document",
         },
       };
     }

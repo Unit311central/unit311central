@@ -5,9 +5,10 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { ABHI_BOARD_PACK_STAGES } from "@/lib/abhi/board-pack-stages";
+import { OA_BOARD_PACK_STAGES } from "@/lib/onwardair/board-pack-stages";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { cn } from "@/lib/utils";
 
-const STAGES = ABHI_BOARD_PACK_STAGES;
 const TOTAL_MS = 10_500;
 
 type Props = {
@@ -17,6 +18,9 @@ type Props = {
 
 export default function AbhiBoardPackProgress({ active, complete }: Props) {
   const [elapsed, setElapsed] = useState(0);
+  const isOa =
+    typeof window !== "undefined" ? isBrowserOnwardAirSurface() : false;
+  const STAGES = isOa ? OA_BOARD_PACK_STAGES : ABHI_BOARD_PACK_STAGES;
 
   useEffect(() => {
     if (!active || complete) return;
@@ -46,13 +50,21 @@ export default function AbhiBoardPackProgress({ active, complete }: Props) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
-            Board Intelligence
+            {isOa ? "OnwardAir Board Intelligence" : "Board Intelligence"}
           </p>
           <h3 className="mt-1 text-base font-semibold text-white">
-            {complete ? "Board Pack ready" : "Generating Board Pack…"}
+            {complete
+              ? isOa
+                ? "Board Deck ready"
+                : "Board Pack ready"
+              : isOa
+                ? "Generating Board Deck…"
+                : "Generating Board Pack…"}
           </h3>
           <p className="mt-1 text-xs text-white/55">
-            Analysing organisational systems and assembling the executive pack.
+            {isOa
+              ? "Analysing programme systems and assembling the OnwardAir board deck."
+              : "Analysing organisational systems and assembling the executive pack."}
           </p>
         </div>
         <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-center">

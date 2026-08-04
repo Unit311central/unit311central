@@ -390,7 +390,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "boardpack.generate",
     description:
-      "ABHI and Talanton Impact only. Automatically generate a professional multi-slide Board Meeting Pack (PowerPoint + PDF preview) from organisational data — cover, executive summary, previous actions, risk register, KPIs, financials, P&L, balance sheet & cash, commercial/membership, team, and strategic discussion. Invoke whenever the user wants board meeting materials, board papers, a board pack, board deck, board presentation, or board report. Prefer this over generateReportPdf for any board pack/deck/papers request. Meeting date is resolved from the next scheduled Board Meeting; only pass meetingDate when the user gives an explicit YYYY-MM-DD. Never invent dates from tomorrow/next week. If no date can be resolved, the tool asks for one.",
+      "ABHI, Talanton Impact, and OnwardAir. Automatically generate a professional multi-slide Board Meeting Pack / Board Deck (PowerPoint + PDF preview) from organisational data — cover, executive summary, previous actions, risk register, KPIs, financials, programme/fundraising (OnwardAir) or commercial/membership (ABHI), team, and strategic discussion. Invoke whenever the user wants board meeting materials, board papers, a board pack, board deck, board presentation, or board report. Prefer this over generateReportPdf for any board pack/deck/papers request. Meeting date is resolved from the next scheduled Board Meeting; only pass meetingDate when the user gives an explicit YYYY-MM-DD. Never invent dates from tomorrow/next week. If no date can be resolved, the tool asks for one.",
     parameters: {
       type: "object",
       properties: {
