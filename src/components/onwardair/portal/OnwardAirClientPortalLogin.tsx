@@ -54,15 +54,15 @@ export function OnwardAirClientPortalLogin({
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#061018] px-4 py-10 text-white">
       <div className="w-full max-w-md">
-        <div className="mb-7 flex flex-col items-center gap-5">
+        <div className="mb-5 flex flex-col items-center gap-3">
           <OnwardAirLogoMark height={52} maxWidth={280} priority />
           {companyLogoSrc ? (
-            <span className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-5 py-3.5 shadow-[0_1px_0_rgba(255,255,255,0.35)]">
+            <span className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-3 py-1.5 shadow-[0_1px_0_rgba(255,255,255,0.35)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={companyLogoSrc}
                 alt={companyName}
-                className="h-11 w-auto max-w-[220px] object-contain"
+                className="h-9 w-auto max-w-[220px] object-contain object-center"
                 decoding="async"
               />
             </span>
