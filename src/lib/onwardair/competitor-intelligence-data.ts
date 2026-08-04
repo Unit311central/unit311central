@@ -1,5 +1,5 @@
 /**
- * OnwardAir Competitor Intelligence — Business Central module.
+ * OnwardAir Competitor Intelligence — top-level OnwardAir Intelligence module.
  *
  * Populated from public sources (company sites, press releases, industry reporting).
  * Fields are left blank rather than invented where a confident public figure is not

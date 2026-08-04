@@ -1291,7 +1291,7 @@ export const internalViewTitles: Record<
   "oa-ip-search": { title: "IP Search", subtitle: "IP & Patents" },
   "oa-competitor-intelligence": {
     title: "Competitor Intelligence",
-    subtitle: "Business Central",
+    subtitle: "OnwardAir Intelligence",
   },
 };
 
@@ -1405,6 +1405,27 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
         }
         if (activeView === "module-go-live") {
           return { title: "Module Go-Live", subtitle: "ABHI Details" };
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      const { isBrowserOnwardAirSurface } =
+        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+      if (isBrowserOnwardAirSurface()) {
+        if (
+          activeView === "projects" ||
+          activeView === "projects-dashboard" ||
+          activeView === "projects-internal" ||
+          activeView === "projects-external" ||
+          activeView === "grants"
+        ) {
+          return {
+            title: base.title,
+            subtitle: "Project Management",
+          };
         }
       }
     } catch {

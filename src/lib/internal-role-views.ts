@@ -934,11 +934,56 @@ const ONWARDAIR_IP_PATENTS_NAV_ITEM: InternalNavItem = {
   ],
 };
 
+/** Top-level OnwardAir Intelligence — Competitor Intelligence lives here. */
+const ONWARDAIR_INTELLIGENCE_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "OnwardAir Intelligence",
+  icon: "Sparkles",
+  color: "#6366F1",
+  items: [
+    {
+      label: "Competitor Intelligence",
+      icon: "Target",
+      view: "oa-competitor-intelligence" as const,
+    },
+  ],
+};
+
+/** Top-level Project Management — moved out of Business Central for OnwardAir. */
+const ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "Project Management",
+  icon: "FolderKanban",
+  color: "#2F80ED",
+  items: [
+    { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" as const },
+    { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
+    { label: "External Projects", icon: "FolderOpen", view: "projects-external" as const },
+    { label: "Grants", icon: "ScrollText", view: "grants" as const },
+  ],
+};
+
+function stripOnwardAirBusinessCentralProjects(section: InternalNavSection): InternalNavSection {
+  return {
+    ...section,
+    items: section.items.filter(
+      (item) =>
+        item.label !== "Projects" &&
+        item.label !== "Project Management" &&
+        item.label !== "OnwardAir Intelligence" &&
+        item.view !== "oa-competitor-intelligence" &&
+        item.label !== "Competitor Intelligence",
+    ),
+  };
+}
+
 function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): InternalNavSection[] {
   const out: InternalNavSection[] = [];
   let insertedBoard = false;
   let insertedFundraising = false;
   let insertedEngineering = false;
+  let insertedProjectManagement = false;
+  let insertedIntelligence = false;
 
   for (const section of sections) {
     if (section.label === "Financials") {
@@ -968,17 +1013,11 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
     }
 
     if (section.label === "Business Central") {
-      out.push({
-        ...section,
-        items: [
-          ...section.items,
-          {
-            label: "Competitor Intelligence",
-            icon: "Target",
-            view: "oa-competitor-intelligence" as const,
-          },
-        ],
-      });
+      out.push(stripOnwardAirBusinessCentralProjects(section));
+      out.push(ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION);
+      out.push(ONWARDAIR_INTELLIGENCE_NAV_SECTION);
+      insertedProjectManagement = true;
+      insertedIntelligence = true;
       continue;
     }
 
@@ -1031,6 +1070,22 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
       out.splice(operationsIdx + 1, 0, ONWARDAIR_ENGINEERING_NAV_SECTION);
     } else {
       out.push(ONWARDAIR_ENGINEERING_NAV_SECTION);
+    }
+  }
+  if (!insertedProjectManagement) {
+    const bcIdx = out.findIndex((s) => s.label === "Business Central");
+    if (bcIdx >= 0) {
+      out.splice(bcIdx + 1, 0, ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION);
+    } else {
+      out.push(ONWARDAIR_PROJECT_MANAGEMENT_NAV_SECTION);
+    }
+  }
+  if (!insertedIntelligence) {
+    const pmIdx = out.findIndex((s) => s.label === "Project Management");
+    if (pmIdx >= 0) {
+      out.splice(pmIdx + 1, 0, ONWARDAIR_INTELLIGENCE_NAV_SECTION);
+    } else {
+      out.push(ONWARDAIR_INTELLIGENCE_NAV_SECTION);
     }
   }
 

@@ -1045,7 +1045,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
           queue.unshift({
             id: "q-ci-weekly",
             title: "Review Competitor Intelligence weekly brief",
-            meta: "Business Central · Competitor Intelligence",
+            meta: "OnwardAir Intelligence · Competitor Intelligence",
             status: "Review",
             dueLabel: "This week",
             priority: "medium",
