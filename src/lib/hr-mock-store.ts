@@ -138,6 +138,7 @@ function seedState(): HrMockState {
       if (isBrowserOnwardAirSurface()) {
         const {
           buildOnwardAirRecruitmentVacancies,
+          buildOnwardAirRecruitmentCandidates,
           buildOnwardAirLeaveRequests,
           buildOnwardAirLeaveBalances,
           buildOnwardAirPublicHolidays,
@@ -151,7 +152,7 @@ function seedState(): HrMockState {
           leaveBalances: buildOnwardAirLeaveBalances(),
           publicHolidays: buildOnwardAirPublicHolidays(),
           vacancies: buildOnwardAirRecruitmentVacancies(),
-          candidates: [],
+          candidates: buildOnwardAirRecruitmentCandidates(),
           reviews: buildOnwardAirPerformanceReviews(),
           goals: buildOnwardAirPerformanceGoals(),
           reports: buildOnwardAirHrReports(),
@@ -1879,6 +1880,8 @@ function ensureHrState(): HrMockState {
         isBrowserOnwardAirSurface() &&
         (state.vacancies.length === 0 ||
           state.vacancies.some((row) => !String(row.id).startsWith("oa-vac-")) ||
+          state.candidates.length === 0 ||
+          state.candidates.some((row) => !String(row.id).startsWith("oa-cand-")) ||
           state.leaveRequests.some((row) =>
             /elena ruiz|pablo serrano|mar[ií]a garc[ií]a|carlos mendoza|hannes weber|barcelona|madrid|london/i.test(
               `${row.employeeName} ${row.location} ${row.managerName}`,
