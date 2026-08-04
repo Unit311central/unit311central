@@ -326,7 +326,11 @@ export default function InfoEmailWorkspace() {
         setSelectedAccountId(merged[0].id);
       }
     } catch (loadError) {
-      setAccounts(filterRemovedMailboxes(defaultMailboxesForHost()));
+      const fallback = filterRemovedMailboxes(defaultMailboxesForHost());
+      setAccounts(fallback);
+      if (fallback.length > 0) {
+        setSelectedAccountId(fallback[0].id);
+      }
       setError(loadError instanceof Error ? loadError.message : "Failed to load mailboxes");
     } finally {
       setAccountsLoading(false);
