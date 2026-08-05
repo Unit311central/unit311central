@@ -660,11 +660,28 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
         {section === "type" ? (
           <>
             <TextArea
-              label="Header tagline (beside logo)"
+              label="Header tagline"
               value={content.headline}
               onChange={(headline) => onContentChange({ ...content, headline })}
               rows={3}
             />
+            <label className="block text-[11px] text-white/75">
+              <span className="mb-1 block">Tagline placement</span>
+              <select
+                value={style.typography.taglinePlacement}
+                onChange={(e) =>
+                  patch.typography({
+                    taglinePlacement: e.target.value as "beside" | "below",
+                    taglineOffsetX: 0,
+                    taglineOffsetY: 0,
+                  })
+                }
+                className={fieldClass}
+              >
+                <option value="below">Below logo (full width)</option>
+                <option value="beside">Beside logo</option>
+              </select>
+            </label>
             <label className="block text-[11px] text-white/75">
               <span className="mb-1 block">Font family</span>
               <select
