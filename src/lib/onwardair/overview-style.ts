@@ -78,6 +78,11 @@ export type OverviewStyleConfig = {
     headerLetterSpacing: number;
     headerColor: string;
     headerOpacity: number;
+    /** Where the header tagline sits relative to the logos. */
+    taglinePlacement: "beside" | "below";
+    /** Extra offset when dragging the tagline (px). */
+    taglineOffsetX: number;
+    taglineOffsetY: number;
   };
   logos: {
     oaHeight: number;
@@ -169,6 +174,9 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       headerLetterSpacing: 0,
       headerColor: "#ffffff",
       headerOpacity: 0.85,
+      taglinePlacement: "below",
+      taglineOffsetX: 0,
+      taglineOffsetY: 0,
     },
     logos: {
       oaHeight: 44,
@@ -360,6 +368,12 @@ export function sanitizeOverviewStyleConfig(raw: unknown): OverviewStyleConfig {
       ),
       headerColor: asString(typography.headerColor, d.typography.headerColor),
       headerOpacity: asNumber(typography.headerOpacity, d.typography.headerOpacity, 0, 1),
+      taglinePlacement:
+        typography.taglinePlacement === "beside" || typography.taglinePlacement === "below"
+          ? typography.taglinePlacement
+          : d.typography.taglinePlacement,
+      taglineOffsetX: asNumber(typography.taglineOffsetX, d.typography.taglineOffsetX, -400, 800),
+      taglineOffsetY: asNumber(typography.taglineOffsetY, d.typography.taglineOffsetY, -200, 400),
     },
     logos: {
       oaHeight: asNumber(logos.oaHeight, d.logos.oaHeight, 16, 80),

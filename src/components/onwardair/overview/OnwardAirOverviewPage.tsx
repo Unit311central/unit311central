@@ -112,9 +112,16 @@ function HeaderTaglineEditor({
 }) {
   const [showStyle, setShowStyle] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const dragRef = useRef<{
+  const [stylePos, setStylePos] = useState<{ left: number; top: number } | null>(null);
+  const stylePanelRef = useRef<HTMLDivElement | null>(null);
+  const taglineDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+  } | null>(null);
+  const styleDragRef = useRef<{
     pointerId: number;
     startX: number;
     startY: number;
@@ -136,14 +143,46 @@ function HeaderTaglineEditor({
     fontFamily: overviewFontStack(typography.fontFamily),
   };
 
-  function onDragStart(event: ReactPointerEvent<HTMLElement>) {
+  function onTaglineDragStart(event: ReactPointerEvent<HTMLElement>) {
+    event.preventDefault();
+    taglineDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      origX: typography.taglineOffsetX,
+      origY: typography.taglineOffsetY,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function onTaglineDragMove(event: ReactPointerEvent<HTMLElement>) {
+    const drag = taglineDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    onTypographyChange({
+      taglineOffsetX: Math.round(drag.origX + (event.clientX - drag.startX)),
+      taglineOffsetY: Math.round(drag.origY + (event.clientY - drag.startY)),
+    });
+  }
+
+  function onTaglineDragEnd(event: ReactPointerEvent<HTMLElement>) {
+    if (taglineDragRef.current?.pointerId === event.pointerId) {
+      taglineDragRef.current = null;
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  function onStyleDragStart(event: ReactPointerEvent<HTMLElement>) {
     if ((event.target as HTMLElement).closest("button, input, select, textarea, label")) return;
-    const el = panelRef.current;
+    const el = stylePanelRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const left = pos?.left ?? rect.left;
-    const top = pos?.top ?? rect.top;
-    dragRef.current = {
+    const left = stylePos?.left ?? rect.left;
+    const top = stylePos?.top ?? rect.top;
+    styleDragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
@@ -153,24 +192,19 @@ function HeaderTaglineEditor({
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function onDragMove(event: ReactPointerEvent<HTMLElement>) {
-    const drag = dragRef.current;
+  function onStyleDragMove(event: ReactPointerEvent<HTMLElement>) {
+    const drag = styleDragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    const width = panelRef.current?.offsetWidth ?? 420;
-    const nextLeft = Math.max(
-      8,
-      Math.min(window.innerWidth - width - 8, drag.origLeft + (event.clientX - drag.startX)),
-    );
-    const nextTop = Math.max(
-      8,
-      Math.min(window.innerHeight - 80, drag.origTop + (event.clientY - drag.startY)),
-    );
-    setPos({ left: nextLeft, top: nextTop });
+    const width = stylePanelRef.current?.offsetWidth ?? 420;
+    setStylePos({
+      left: Math.max(8, Math.min(window.innerWidth - width - 8, drag.origLeft + (event.clientX - drag.startX))),
+      top: Math.max(8, Math.min(window.innerHeight - 80, drag.origTop + (event.clientY - drag.startY))),
+    });
   }
 
-  function onDragEnd(event: ReactPointerEvent<HTMLElement>) {
-    if (dragRef.current?.pointerId === event.pointerId) {
-      dragRef.current = null;
+  function onStyleDragEnd(event: ReactPointerEvent<HTMLElement>) {
+    if (styleDragRef.current?.pointerId === event.pointerId) {
+      styleDragRef.current = null;
       try {
         event.currentTarget.releasePointerCapture(event.pointerId);
       } catch {
@@ -179,32 +213,49 @@ function HeaderTaglineEditor({
     }
   }
 
-  const panelStyle: CSSProperties = pos
-    ? { left: pos.left, top: pos.top }
+  const stylePanelStyle: CSSProperties = stylePos
+    ? { left: stylePos.left, top: stylePos.top }
     : { left: 24, top: 72 };
 
   const stylePanel =
     showStyle && mounted
       ? createPortal(
           <div
-            ref={panelRef}
+            ref={stylePanelRef}
             className="pointer-events-auto fixed z-[2147483000] flex max-w-[min(100vw-1.5rem,560px)] flex-wrap items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] p-2 shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
-            style={panelStyle}
+            style={stylePanelStyle}
             onPointerDown={(event) => event.stopPropagation()}
           >
             <div
               className="flex cursor-grab items-center gap-1.5 px-1 active:cursor-grabbing"
-              onPointerDown={onDragStart}
-              onPointerMove={onDragMove}
-              onPointerUp={onDragEnd}
-              onPointerCancel={onDragEnd}
-              title="Drag to move"
+              onPointerDown={onStyleDragStart}
+              onPointerMove={onStyleDragMove}
+              onPointerUp={onStyleDragEnd}
+              onPointerCancel={onStyleDragEnd}
+              title="Drag style box"
             >
               <GripHorizontal className="h-4 w-4 text-[#7DD3E8]" aria-hidden />
               <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">
                 Tagline style
               </span>
             </div>
+            <label className="flex items-center gap-1 text-[10px] text-white/70">
+              Place
+              <select
+                value={typography.taglinePlacement}
+                onChange={(event) =>
+                  onTypographyChange({
+                    taglinePlacement: event.target.value as "beside" | "below",
+                    taglineOffsetX: 0,
+                    taglineOffsetY: 0,
+                  })
+                }
+                className="rounded border border-white/20 bg-black/50 px-1.5 py-1 text-[11px] text-white"
+              >
+                <option value="below">Below logo</option>
+                <option value="beside">Beside logo</option>
+              </select>
+            </label>
             <label className="flex items-center gap-1 text-[10px] text-white/70">
               Font
               <select
@@ -278,20 +329,6 @@ function HeaderTaglineEditor({
                 className="h-6 w-8 cursor-pointer rounded border border-white/20 bg-transparent p-0"
               />
             </label>
-            <label className="flex items-center gap-1 text-[10px] text-white/70">
-              Opacity
-              <input
-                type="range"
-                min={0.2}
-                max={1}
-                step={0.05}
-                value={typography.headerOpacity}
-                onChange={(event) =>
-                  onTypographyChange({ headerOpacity: Number(event.target.value) })
-                }
-                className="w-20 accent-[#267B90]"
-              />
-            </label>
             <button
               type="button"
               onClick={() => setShowStyle(false)}
@@ -306,24 +343,45 @@ function HeaderTaglineEditor({
       : null;
 
   return (
-    <div className="relative min-w-0 flex-1">
-      <InlineEdit
-        aria-label="Header tagline"
-        value={value}
-        onChange={onChange}
-        onFocus={() => setShowStyle(true)}
-        className="min-w-0 w-full whitespace-nowrap"
-        style={typeStyle}
-      />
-      {!showStyle ? (
+    <div
+      className="relative min-w-0 w-full"
+      style={{
+        transform: `translate(${typography.taglineOffsetX}px, ${typography.taglineOffsetY}px)`,
+      }}
+    >
+      <div className="flex min-w-0 items-start gap-1.5">
         <button
           type="button"
-          onClick={() => setShowStyle(true)}
-          className="mt-1 text-[10px] font-medium text-[#7DD3E8] underline-offset-2 hover:underline"
+          className="mt-0.5 inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded border border-white/15 bg-white/5 text-[#7DD3E8] hover:bg-white/10 active:cursor-grabbing"
+          title="Drag to move tagline"
+          aria-label="Drag to move tagline"
+          onPointerDown={onTaglineDragStart}
+          onPointerMove={onTaglineDragMove}
+          onPointerUp={onTaglineDragEnd}
+          onPointerCancel={onTaglineDragEnd}
         >
-          Edit tagline size / font
+          <GripHorizontal className="h-4 w-4" />
         </button>
-      ) : null}
+        <div className="min-w-0 flex-1">
+          <InlineEdit
+            aria-label="Header tagline"
+            value={value}
+            onChange={onChange}
+            onFocus={() => setShowStyle(true)}
+            className="min-w-0 w-full"
+            style={typeStyle}
+          />
+          {!showStyle ? (
+            <button
+              type="button"
+              onClick={() => setShowStyle(true)}
+              className="mt-1 text-[10px] font-medium text-[#7DD3E8] underline-offset-2 hover:underline"
+            >
+              Edit tagline size / font
+            </button>
+          ) : null}
+        </div>
+      </div>
       {stylePanel}
     </div>
   );
@@ -628,23 +686,69 @@ export function OnwardAirOverviewPage() {
           paddingBottom: style.page.paddingY,
         }}
       >
-        <header className="flex shrink-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`${OA_LOGO}?v=swap7`}
-              alt="OnwardAir"
-              width={200}
-              height={40}
-              decoding="async"
-              className="block shrink-0 object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-              style={{
-                height: style.logos.oaHeight,
-                width: "auto",
-                maxWidth: style.logos.oaMaxWidth,
-                maxHeight: style.logos.oaHeight,
-              }}
-            />
+        <header className="flex shrink-0 flex-col gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`${OA_LOGO}?v=swap7`}
+                alt="OnwardAir"
+                width={200}
+                height={40}
+                decoding="async"
+                className="block shrink-0 object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+                style={{
+                  height: style.logos.oaHeight,
+                  width: "auto",
+                  maxWidth: style.logos.oaMaxWidth,
+                  maxHeight: style.logos.oaHeight,
+                }}
+              />
+              {style.typography.taglinePlacement === "beside" ? (
+                <HeaderTaglineEditor
+                  value={content.headline}
+                  onChange={(headline) => patchContent({ headline })}
+                  typography={style.typography}
+                  onTypographyChange={(partial) =>
+                    setStyle((prev) => ({
+                      ...prev,
+                      typography: { ...prev.typography, ...partial },
+                    }))
+                  }
+                />
+              ) : null}
+            </div>
+            <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+              <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex h-9 items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`${UNIT311_LOGO}?v=swap7`}
+                  alt="Unit311 Central"
+                  width={100}
+                  height={22}
+                  decoding="async"
+                  className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+                  style={{
+                    height: style.logos.unit311Height,
+                    width: "auto",
+                    maxWidth: style.logos.unit311MaxWidth,
+                    maxHeight: style.logos.unit311Height,
+                  }}
+                />
+              </a>
+              <button
+                type="button"
+                onClick={async () => {
+                  await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+                  window.location.assign("/overview/login");
+                }}
+                className="inline-flex min-h-11 touch-manipulation items-center px-2 text-xs font-medium text-white/70 underline-offset-2 hover:text-white hover:underline sm:min-h-0 sm:text-[11px]"
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+          {style.typography.taglinePlacement === "below" ? (
             <HeaderTaglineEditor
               value={content.headline}
               onChange={(headline) => patchContent({ headline })}
@@ -656,36 +760,7 @@ export function OnwardAirOverviewPage() {
                 }))
               }
             />
-          </div>
-          <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-            <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex h-9 items-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`${UNIT311_LOGO}?v=swap7`}
-                alt="Unit311 Central"
-                width={100}
-                height={22}
-                decoding="async"
-                className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{
-                  height: style.logos.unit311Height,
-                  width: "auto",
-                  maxWidth: style.logos.unit311MaxWidth,
-                  maxHeight: style.logos.unit311Height,
-                }}
-              />
-            </a>
-            <button
-              type="button"
-              onClick={async () => {
-                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-                window.location.assign("/overview/login");
-              }}
-              className="inline-flex min-h-11 touch-manipulation items-center px-2 text-xs font-medium text-white/70 underline-offset-2 hover:text-white hover:underline sm:min-h-0 sm:text-[11px]"
-            >
-              Sign out
-            </button>
-          </div>
+          ) : null}
         </header>
 
         <div
