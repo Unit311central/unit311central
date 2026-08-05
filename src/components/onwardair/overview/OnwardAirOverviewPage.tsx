@@ -111,6 +111,11 @@ export function OnwardAirOverviewPage() {
         setContent({
           ...data.content,
           modules: defaultOnwardAirOverviewContent().modules,
+          highlights: defaultOnwardAirOverviewContent().highlights,
+          highlightsTitle: defaultOnwardAirOverviewContent().highlightsTitle,
+          agenda: defaultOnwardAirOverviewContent().agenda,
+          agendaTitle: defaultOnwardAirOverviewContent().agendaTitle,
+          agendaIntro: defaultOnwardAirOverviewContent().agendaIntro,
         });
       } catch {
         if (!cancelled) setContent(defaultOnwardAirOverviewContent());
@@ -218,25 +223,25 @@ export function OnwardAirOverviewPage() {
         <header className="flex shrink-0 items-center justify-between gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`${OA_LOGO}?v=swap3`}
+            src={`${OA_LOGO}?v=swap4`}
             alt="OnwardAir"
-            width={240}
-            height={52}
+            width={200}
+            height={40}
             decoding="async"
             className="block object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-            style={{ height: 52, width: "auto", maxWidth: 240, maxHeight: 52 }}
+            style={{ height: 40, width: "auto", maxWidth: 200, maxHeight: 40 }}
           />
           <div className="flex items-center gap-3 sm:gap-4">
             <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`${UNIT311_LOGO}?v=swap3`}
+                src={`${UNIT311_LOGO}?v=swap4`}
                 alt="Unit311 Central"
-                width={240}
-                height={52}
+                width={140}
+                height={32}
                 decoding="async"
                 className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 52, width: "auto", maxWidth: 240, maxHeight: 52 }}
+                style={{ height: 32, width: "auto", maxWidth: 140, maxHeight: 32 }}
               />
             </a>
             <button
@@ -253,16 +258,16 @@ export function OnwardAirOverviewPage() {
         </header>
 
         {/* Single row — no white box */}
-        <p className="mt-6 shrink-0 text-[13px] leading-snug text-white/90 sm:mt-8 sm:text-[15px] lg:text-[16px]">
+        <p className="mt-5 shrink-0 text-[13px] leading-snug text-white/90 sm:mt-6 sm:text-[15px] lg:text-[16px]">
           <span className="font-semibold text-white">{content.headline}</span>
           <span className="text-white/45"> — </span>
           <span className="text-white/70">{content.subheadline}</span>
         </p>
 
-        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto sm:mt-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,1.4fr)] lg:gap-3 lg:overflow-hidden">
+        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto sm:mt-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.7fr)_minmax(0,1.35fr)] lg:gap-3 lg:overflow-hidden">
           {/* Column 1 — 3 boxes */}
-          <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto lg:overflow-hidden">
-            <section className="rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
+          <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto lg:overflow-y-auto">
+            <section className="shrink-0 rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
               <ul className="space-y-1.5">
                 {content.questions.map((q, i) => (
                   <li key={`q-${i}`} className="flex gap-2">
@@ -279,7 +284,7 @@ export function OnwardAirOverviewPage() {
               <p className="mt-3 text-[11px] leading-snug text-white/75">{content.questionsIntro}</p>
             </section>
 
-            <section className="rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
+            <section className="shrink-0 rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: "#7DD3E8" }}>
                 {content.highlightsTitle}
               </p>
@@ -292,44 +297,48 @@ export function OnwardAirOverviewPage() {
               </ul>
             </section>
 
-            <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-[#267B90]/20 bg-white/92 p-3 text-[#1B2430] backdrop-blur-[2px] sm:p-3.5">
-              <h2 className="text-[13px] font-semibold tracking-tight text-[#1B2430]">
+            <section className="shrink-0 rounded-xl border border-[#267B90]/25 bg-white p-3.5 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.18)] sm:p-4">
+              <h2 className="text-[14px] font-semibold tracking-tight text-[#1B2430]">
                 {content.agendaTitle}
               </h2>
-              <p className="mt-1 text-[10px] text-[#5B6577]">{content.agendaIntro}</p>
-              <div className="mt-2 space-y-1.5">
+              <p className="mt-1 text-[12px] text-[#5B6577]">{content.agendaIntro}</p>
+              <div className="mt-3 space-y-2">
                 {content.agenda.map((row, i) => (
                   <div
                     key={`a-${i}`}
-                    className="rounded-lg border border-[#267B90]/15 bg-white px-2.5 py-1.5"
+                    className="grid grid-cols-[4.5rem_1fr] gap-x-3 gap-y-0.5 rounded-lg border border-[#267B90]/20 bg-[#F4FAFB] px-3 py-2.5"
                   >
                     <p
-                      className="text-[10px] font-semibold uppercase tracking-wider"
+                      className="text-[11px] font-bold uppercase tracking-wider"
                       style={{ color: ONWARDAIR_HOME_ACCENT }}
                     >
-                      {row.wave} min
+                      {row.wave}
                     </p>
-                    <p className="text-[12px] font-medium text-[#1B2430]">{row.who}</p>
-                    <p className="text-[11px] text-[#5B6577]">{row.why}</p>
+                    <div>
+                      <p className="text-[13px] font-semibold text-[#1B2430]">{row.who}</p>
+                      <p className="text-[12px] text-[#5B6577]">{row.why}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </section>
           </div>
 
-          {/* Column 2 — modules + portals + live drone */}
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/12 bg-[#061018]/75 p-2.5 backdrop-blur-[2px] sm:p-3">
-            <h2 className="mb-2 shrink-0 text-[13px] font-semibold tracking-tight text-white">
+          {/* Column 2 — narrower modules */}
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/12 bg-[#061018]/75 p-2 backdrop-blur-[2px] sm:p-2.5">
+            <h2 className="mb-1.5 shrink-0 text-[12px] font-semibold tracking-tight text-white">
               {content.modulesTitle}
             </h2>
-            <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">{tree.map((node) => renderNode(node, 0))}</ul>
+            <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-0.5 text-[11px]">
+              {tree.map((node) => renderNode(node, 0))}
+            </ul>
 
-            <div className="mt-2 shrink-0 space-y-1.5 border-t border-white/10 pt-2">
+            <div className="mt-2 shrink-0 space-y-1 border-t border-white/10 pt-2">
               <button
                 type="button"
                 onClick={() => setPreviewKind("video-drone")}
                 className={cn(
-                  "w-full rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition",
+                  "w-full rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition",
                   previewKind === "video-drone"
                     ? "bg-[#267B90] text-white"
                     : "bg-white/5 text-white/90 hover:bg-white/10",
@@ -341,7 +350,7 @@ export function OnwardAirOverviewPage() {
                 type="button"
                 onClick={() => setPreviewKind("board-portal")}
                 className={cn(
-                  "w-full rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition",
+                  "w-full rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition",
                   previewKind === "board-portal"
                     ? "bg-[#267B90] text-white"
                     : "bg-white/5 text-white/90 hover:bg-white/10",
@@ -353,7 +362,7 @@ export function OnwardAirOverviewPage() {
                 type="button"
                 onClick={() => setPreviewKind("client-portal")}
                 className={cn(
-                  "w-full rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition",
+                  "w-full rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition",
                   previewKind === "client-portal"
                     ? "bg-[#267B90] text-white"
                     : "bg-white/5 text-white/90 hover:bg-white/10",
@@ -364,38 +373,41 @@ export function OnwardAirOverviewPage() {
             </div>
           </div>
 
-          {/* Column 3 — preview (defaults to Home) */}
-          <section className="relative flex min-h-[240px] flex-col overflow-hidden rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/90 p-3 text-white backdrop-blur-[2px] sm:min-h-[320px] sm:p-3.5 lg:min-h-0">
-            <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
-              <h2 className="text-[13px] font-semibold tracking-tight">{previewLabel}</h2>
-              <span className="text-[10px] text-white/55">Preview</span>
+          {/* Column 3 — soft white preview box */}
+          <section className="relative flex min-h-[240px] flex-col overflow-hidden rounded-xl border border-[#267B90]/15 bg-[#F7FAFC] p-2.5 text-[#1B2430] shadow-[0_8px_28px_rgba(0,0,0,0.16)] sm:min-h-[320px] sm:p-3 lg:min-h-0">
+            <div className="mb-2 flex shrink-0 items-center justify-between gap-2 px-0.5">
+              <h2 className="text-[13px] font-semibold tracking-tight text-[#1B2430]">{previewLabel}</h2>
+              <span className="text-[10px] text-[#5B6577]">Preview</span>
             </div>
             <div className="relative min-h-0 flex-1">
               {previewKind === "video-ea" ? (
-                <VideoSlot src={EA_VIDEO} label="AI Executive Assistant walkthrough" />
+                <div className="h-full overflow-hidden rounded-lg border border-[#267B90]/15 bg-[#061018]">
+                  <VideoSlot src={EA_VIDEO} label="AI Executive Assistant walkthrough" />
+                </div>
               ) : previewKind === "video-drone" ? (
-                <VideoSlot src={DRONE_VIDEO} label="Live drone walkthrough" />
+                <div className="h-full overflow-hidden rounded-lg border border-[#267B90]/15 bg-[#061018]">
+                  <VideoSlot src={DRONE_VIDEO} label="Live drone walkthrough" />
+                </div>
               ) : (
-                <div className="relative h-full min-h-0 overflow-hidden rounded-lg border border-white/15 bg-black/40">
+                <div className="relative flex h-full min-h-0 items-stretch overflow-hidden rounded-lg border border-[#267B90]/15 bg-white">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={previewSrc}
                     alt={`${previewLabel} screenshot`}
-                    className="h-full w-full object-cover object-top"
+                    className="h-full w-full object-contain object-top"
                   />
                 </div>
               )}
               <button
                 type="button"
                 onClick={() => setPreviewFullscreen(true)}
-                className="absolute bottom-2 right-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/25 bg-black/65 text-white shadow-lg backdrop-blur-sm transition hover:bg-[#267B90] hover:border-[#267B90]"
+                className="absolute bottom-2 right-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#267B90]/30 bg-white/95 text-[#1B2430] shadow-md transition hover:bg-[#267B90] hover:text-white"
                 aria-label="View screenshot full screen"
                 title="Full screen"
               >
                 <Maximize2 className="h-4 w-4" />
               </button>
             </div>
-            <p className="mt-2 shrink-0 text-center text-[10px] text-white/55">{content.previewHint}</p>
           </section>
         </div>
 
