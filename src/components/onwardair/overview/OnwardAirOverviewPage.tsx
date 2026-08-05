@@ -30,6 +30,53 @@ const UNIT311_LOGO = "/images/unit311central-login.webp";
 const OA_LOGO = "/images/workspaces/onwardair-logo.png";
 const HERO_BG = "/images/overview-corporate-intelligence-bg.png";
 
+const INLINE_EDIT =
+  "oa-inline-edit w-full min-w-0 rounded border border-dashed border-[#7DD3E8]/35 bg-transparent px-0.5 py-0 outline-none hover:border-[#7DD3E8] hover:bg-[#7DD3E8]/10 focus:border-[#7DD3E8] focus:bg-[#7DD3E8]/10";
+
+function InlineEdit({
+  value,
+  onChange,
+  multiline = false,
+  className = "",
+  style,
+  "aria-label": ariaLabel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  multiline?: boolean;
+  className?: string;
+  style?: CSSProperties;
+  "aria-label"?: string;
+}) {
+  if (multiline) {
+    return (
+      <textarea
+        aria-label={ariaLabel}
+        value={value}
+        rows={2}
+        onChange={(event) => onChange(event.target.value)}
+        onMouseDown={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        className={`${INLINE_EDIT} resize-y leading-snug ${className}`}
+        style={style}
+      />
+    );
+  }
+
+  return (
+    <input
+      aria-label={ariaLabel}
+      type="text"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      onMouseDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+      className={`${INLINE_EDIT} ${className}`}
+      style={style}
+    />
+  );
+}
+
 function OverviewPlatformNav({
   activeView,
   onViewChange,
@@ -114,13 +161,16 @@ export function OnwardAirOverviewPage() {
   }, [activeView]);
 
   const previewSrc = useMemo(() => overviewScreenshotForView(activeView), [activeView]);
-  const headerLine = `${content.headline} – ${content.subheadline}`;
   const layoutCols = `minmax(220px, ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`;
   const visibleLeftCards = style.leftColumnOrder.filter((id) => style[id].visible);
   const leftGridRows =
     visibleLeftCards.length > 0
       ? visibleLeftCards.map((id) => `minmax(0, ${style[id].heightFr}fr)`).join(" ")
       : "1fr";
+
+  function patchContent(partial: Partial<OnwardAirOverviewEditableContent>) {
+    setContent((prev) => ({ ...prev, ...partial }));
+  }
 
   function renderLeftCard(id: OverviewLeftCardId) {
     const chrome = style[id];
@@ -161,12 +211,19 @@ export function OnwardAirOverviewPage() {
                 >
                   {i + 1}
                 </span>
-                <p
+                <InlineEdit
+                  aria-label={`Question ${i + 1}`}
+                  value={q}
+                  multiline
+                  onChange={(next) => {
+                    const questions = content.questions.map((item, index) =>
+                      index === i ? next : item,
+                    );
+                    patchContent({ questions });
+                  }}
                   className="leading-snug"
                   style={{ fontSize: style.questions.textSize, color: style.questions.textColor }}
-                >
-                  {q}
-                </p>
+                />
               </li>
             ))}
           </ul>
@@ -181,21 +238,31 @@ export function OnwardAirOverviewPage() {
           className="flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
           style={boxStyle}
         >
-          <p
+          <InlineEdit
+            aria-label="Highlights title"
+            value={content.highlightsTitle}
+            onChange={(highlightsTitle) => patchContent({ highlightsTitle })}
             className="shrink-0 font-bold uppercase tracking-[0.14em]"
             style={{ fontSize: style.highlights.titleSize, color: style.highlights.titleColor }}
-          >
-            {content.highlightsTitle}
-          </p>
+          />
           <ul className="mt-2 flex min-h-0 flex-1 flex-col justify-evenly gap-1 overflow-y-auto">
             {content.highlights.map((item, i) => (
-              <li
-                key={`h-${i}`}
-                className="leading-snug"
-                style={{ fontSize: style.highlights.itemSize, color: style.highlights.itemColor }}
-              >
-                <span style={{ color: style.highlights.bulletColor }}>• </span>
-                {item}
+              <li key={`h-${i}`} className="flex items-start gap-1 leading-snug">
+                <span className="shrink-0" style={{ color: style.highlights.bulletColor }}>
+                  •
+                </span>
+                <InlineEdit
+                  aria-label={`Highlight ${i + 1}`}
+                  value={item}
+                  multiline
+                  onChange={(next) => {
+                    const highlights = content.highlights.map((row, index) =>
+                      index === i ? next : row,
+                    );
+                    patchContent({ highlights });
+                  }}
+                  style={{ fontSize: style.highlights.itemSize, color: style.highlights.itemColor }}
+                />
               </li>
             ))}
           </ul>
@@ -205,12 +272,13 @@ export function OnwardAirOverviewPage() {
 
     return (
       <section key={id} className="flex min-h-0 flex-col overflow-hidden" style={boxStyle}>
-        <h2
-          className="shrink-0 truncate font-semibold tracking-tight"
+        <InlineEdit
+          aria-label="Agenda title"
+          value={content.agendaTitle}
+          onChange={(agendaTitle) => patchContent({ agendaTitle })}
+          className="shrink-0 font-semibold tracking-tight"
           style={{ fontSize: style.agenda.titleSize, color: style.agenda.titleColor }}
-        >
-          {content.agendaTitle}
-        </h2>
+        />
         <div className="mt-2 flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-y-auto">
           {content.agenda.map((row, i) => (
             <div
@@ -226,25 +294,44 @@ export function OnwardAirOverviewPage() {
               }}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                <p
-                  className="font-bold uppercase tracking-wider"
+                <InlineEdit
+                  aria-label={`Agenda row ${i + 1} time`}
+                  value={row.wave}
+                  onChange={(wave) => {
+                    const agenda = content.agenda.map((item, index) =>
+                      index === i ? { ...item, wave } : item,
+                    );
+                    patchContent({ agenda });
+                  }}
+                  className="max-w-[40%] font-bold uppercase tracking-wider"
                   style={{ fontSize: style.agenda.waveSize, color: style.agenda.waveColor }}
-                >
-                  {row.wave.includes("min") ? row.wave : `${row.wave} min`}
-                </p>
-                <p
-                  className="font-semibold"
+                />
+                <InlineEdit
+                  aria-label={`Agenda row ${i + 1} who`}
+                  value={row.who}
+                  onChange={(who) => {
+                    const agenda = content.agenda.map((item, index) =>
+                      index === i ? { ...item, who } : item,
+                    );
+                    patchContent({ agenda });
+                  }}
+                  className="max-w-[55%] text-right font-semibold"
                   style={{ fontSize: style.agenda.whoSize, color: style.agenda.whoColor }}
-                >
-                  {row.who}
-                </p>
+                />
               </div>
-              <p
+              <InlineEdit
+                aria-label={`Agenda row ${i + 1} why`}
+                value={row.why}
+                multiline
+                onChange={(why) => {
+                  const agenda = content.agenda.map((item, index) =>
+                    index === i ? { ...item, why } : item,
+                  );
+                  patchContent({ agenda });
+                }}
                 className="mt-0.5 leading-snug"
                 style={{ fontSize: style.agenda.whySize, color: style.agenda.whyColor }}
-              >
-                {row.why}
-              </p>
+              />
             </div>
           ))}
         </div>
@@ -296,8 +383,8 @@ export function OnwardAirOverviewPage() {
                 maxHeight: style.logos.oaHeight,
               }}
             />
-            <p
-              className="mt-2 min-w-0 whitespace-nowrap"
+            <div
+              className="mt-2 min-w-0 space-y-1"
               style={{
                 fontSize: style.typography.headerFontSize,
                 lineHeight: 1.3,
@@ -305,8 +392,27 @@ export function OnwardAirOverviewPage() {
                 opacity: style.typography.headerOpacity,
               }}
             >
-              {headerLine}
-            </p>
+              <InlineEdit
+                aria-label="Headline"
+                value={content.headline}
+                onChange={(headline) => patchContent({ headline })}
+                className="font-medium"
+                style={{
+                  fontSize: style.typography.headerFontSize,
+                  color: style.typography.headerColor,
+                }}
+              />
+              <InlineEdit
+                aria-label="Subheadline"
+                value={content.subheadline}
+                multiline
+                onChange={(subheadline) => patchContent({ subheadline })}
+                style={{
+                  fontSize: style.typography.headerFontSize,
+                  color: style.typography.headerColor,
+                }}
+              />
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
             <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex h-9 items-center">

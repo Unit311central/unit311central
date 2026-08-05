@@ -171,8 +171,9 @@ function TextArea({
         value={value}
         rows={rows}
         onChange={(e) => onChange(e.target.value)}
+        onMouseDown={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
-        className={`${fieldClass} resize-y`}
+        className={`${fieldClass} pointer-events-auto resize-y`}
       />
     </label>
   );
@@ -194,8 +195,9 @@ function TextInput({
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onMouseDown={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
-        className={fieldClass}
+        className={`${fieldClass} pointer-events-auto`}
       />
     </label>
   );
@@ -417,7 +419,9 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
           <GripHorizontal className="h-4 w-4 shrink-0 text-[#7DD3E8]" aria-hidden />
           <div className="min-w-0">
             <p className="text-[13px] font-semibold tracking-tight">Quick style edit</p>
-            <p className="text-[10px] text-white/45">Drag to move · live text & style · copy JSON</p>
+            <p className="text-[10px] text-white/45">
+              Click page text to edit · drag panel · copy JSON
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
