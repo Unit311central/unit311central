@@ -173,7 +173,7 @@ function HeaderTaglineEditor({
     opacity: typography.headerOpacity,
     lineHeight: 1.25,
     fontFamily: overviewFontStack(typography.fontFamily),
-    textTransform: "uppercase",
+    textTransform: undefined,
   };
 
   function onTaglineDragStart(event: ReactPointerEvent<HTMLElement>) {
@@ -532,10 +532,17 @@ export function OnwardAirOverviewPage() {
             style={{ gap: scale(style.questions.itemGap) }}
           >
             {content.questions.map((q, i) => (
-              <li key={`q-${i}`} className="flex shrink-0 items-start gap-1.5 leading-snug">
+              <li key={`q-${i}`} className="flex shrink-0 items-start gap-2 leading-snug">
                 <span
-                  className="shrink-0 font-semibold"
-                  style={{ fontSize: scale(style.questions.textSize), color: style.questions.textColor }}
+                  className="mt-0.5 flex shrink-0 items-center justify-center rounded-full border font-bold leading-none"
+                  style={{
+                    width: scale(Math.max(18, style.questions.textSize + 6)),
+                    height: scale(Math.max(18, style.questions.textSize + 6)),
+                    fontSize: scale(Math.max(10, style.questions.textSize - 3)),
+                    color: style.questions.textColor,
+                    borderColor: style.questions.textColor,
+                    background: "transparent",
+                  }}
                   aria-hidden
                 >
                   ?
