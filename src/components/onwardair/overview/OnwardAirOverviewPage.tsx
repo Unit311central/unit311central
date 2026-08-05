@@ -362,8 +362,8 @@ export function OnwardAirOverviewPage() {
           paddingBottom: style.page.paddingY,
         }}
       >
-        <header className="flex shrink-0 items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+        <header className="flex shrink-0 items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`${OA_LOGO}?v=swap7`}
@@ -371,7 +371,7 @@ export function OnwardAirOverviewPage() {
               width={200}
               height={40}
               decoding="async"
-              className="block object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+              className="block shrink-0 object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
               style={{
                 height: style.logos.oaHeight,
                 width: "auto",
@@ -379,36 +379,21 @@ export function OnwardAirOverviewPage() {
                 maxHeight: style.logos.oaHeight,
               }}
             />
-            <div
-              className="mt-2 min-w-0 space-y-1"
+            <InlineEdit
+              aria-label="Header tagline"
+              value={content.headline}
+              onChange={(headline) => patchContent({ headline })}
+              className="min-w-0 flex-1 whitespace-nowrap"
               style={{
                 fontSize: style.typography.headerFontSize,
-                lineHeight: 1.3,
+                fontWeight: style.typography.headerFontWeight,
+                letterSpacing: `${style.typography.headerLetterSpacing}px`,
                 color: style.typography.headerColor,
                 opacity: style.typography.headerOpacity,
+                lineHeight: 1.25,
+                fontFamily: overviewFontStack(style.typography.fontFamily),
               }}
-            >
-              <InlineEdit
-                aria-label="Headline"
-                value={content.headline}
-                onChange={(headline) => patchContent({ headline })}
-                className="font-medium"
-                style={{
-                  fontSize: style.typography.headerFontSize,
-                  color: style.typography.headerColor,
-                }}
-              />
-              <InlineEdit
-                aria-label="Subheadline"
-                value={content.subheadline}
-                multiline
-                onChange={(subheadline) => patchContent({ subheadline })}
-                style={{
-                  fontSize: style.typography.headerFontSize,
-                  color: style.typography.headerColor,
-                }}
-              />
-            </div>
+            />
           </div>
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
             <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex h-9 items-center">

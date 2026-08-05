@@ -467,15 +467,9 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
         {section === "text" ? (
           <>
             <TextInput
-              label="Headline"
+              label="Header tagline (single line beside logo)"
               value={content.headline}
               onChange={(headline) => onContentChange({ ...content, headline })}
-            />
-            <TextArea
-              label="Subheadline"
-              value={content.subheadline}
-              onChange={(subheadline) => onContentChange({ ...content, subheadline })}
-              rows={3}
             />
             <TextInput
               label="Highlights title"
@@ -488,7 +482,7 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
               onChange={(agendaTitle) => onContentChange({ ...content, agendaTitle })}
             />
             <p className="text-[10px] text-white/40">
-              Edit individual question / highlight / agenda lines in those tabs.
+              Click the tagline beside the logo to edit it on-page. Use Type tab for size/font.
             </p>
           </>
         ) : null}
@@ -654,15 +648,10 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
 
         {section === "type" ? (
           <>
-            <TextInput
-              label="Headline"
+            <TextArea
+              label="Header tagline (beside logo)"
               value={content.headline}
               onChange={(headline) => onContentChange({ ...content, headline })}
-            />
-            <TextArea
-              label="Subheadline"
-              value={content.subheadline}
-              onChange={(subheadline) => onContentChange({ ...content, subheadline })}
               rows={3}
             />
             <label className="block text-[11px] text-white/75">
@@ -679,9 +668,45 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                 ))}
               </select>
             </label>
-            <SliderRow label="Header font size" value={style.typography.headerFontSize} min={8} max={22} onChange={(headerFontSize) => patch.typography({ headerFontSize })} />
-            <ColorRow label="Header colour" value={style.typography.headerColor} onChange={(headerColor) => patch.typography({ headerColor })} />
-            <SliderRow label="Header opacity" value={style.typography.headerOpacity} min={0} max={1} step={0.01} unit="op" onChange={(headerOpacity) => patch.typography({ headerOpacity })} />
+            <SliderRow
+              label="Header font size"
+              value={style.typography.headerFontSize}
+              min={8}
+              max={28}
+              onChange={(headerFontSize) => patch.typography({ headerFontSize })}
+            />
+            <SliderRow
+              label="Header font weight"
+              value={style.typography.headerFontWeight}
+              min={300}
+              max={800}
+              step={100}
+              unit=""
+              onChange={(headerFontWeight) => patch.typography({ headerFontWeight })}
+            />
+            <SliderRow
+              label="Letter spacing"
+              value={style.typography.headerLetterSpacing}
+              min={-0.5}
+              max={2}
+              step={0.05}
+              unit="px"
+              onChange={(headerLetterSpacing) => patch.typography({ headerLetterSpacing })}
+            />
+            <ColorRow
+              label="Header colour"
+              value={style.typography.headerColor}
+              onChange={(headerColor) => patch.typography({ headerColor })}
+            />
+            <SliderRow
+              label="Header opacity"
+              value={style.typography.headerOpacity}
+              min={0}
+              max={1}
+              step={0.01}
+              unit="op"
+              onChange={(headerOpacity) => patch.typography({ headerOpacity })}
+            />
           </>
         ) : null}
 

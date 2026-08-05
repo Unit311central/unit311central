@@ -437,9 +437,9 @@ export function overviewScreenshotForView(view: string | null | undefined): stri
 
 export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableContent {
   return {
-    headline: "Demonstration environment",
-    subheadline:
-      "A fully customizable Business Operating System & Intelligence Platform – shaped around OnwardAir",
+    headline:
+      "Demonstration environment – a fully customizable Business Operating and Intelligence Platform – tailored for OnwardAir",
+    subheadline: "",
     questionsTitle: "Questions for thought",
     questionsIntro: "",
     questions: [

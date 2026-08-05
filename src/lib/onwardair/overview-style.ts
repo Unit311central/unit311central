@@ -74,6 +74,8 @@ export type OverviewStyleConfig = {
   typography: {
     fontFamily: OverviewFontId;
     headerFontSize: number;
+    headerFontWeight: number;
+    headerLetterSpacing: number;
     headerColor: string;
     headerOpacity: number;
   };
@@ -163,6 +165,8 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
     typography: {
       fontFamily: "geist",
       headerFontSize: 13,
+      headerFontWeight: 500,
+      headerLetterSpacing: 0,
       headerColor: "#ffffff",
       headerOpacity: 0.85,
     },
@@ -340,7 +344,14 @@ export function sanitizeOverviewStyleConfig(raw: unknown): OverviewStyleConfig {
     },
     typography: {
       fontFamily: asFontId(typography.fontFamily, d.typography.fontFamily),
-      headerFontSize: asNumber(typography.headerFontSize, d.typography.headerFontSize, 8, 28),
+      headerFontSize: asNumber(typography.headerFontSize, d.typography.headerFontSize, 8, 36),
+      headerFontWeight: asNumber(typography.headerFontWeight, d.typography.headerFontWeight, 300, 800),
+      headerLetterSpacing: asNumber(
+        typography.headerLetterSpacing,
+        d.typography.headerLetterSpacing,
+        -1,
+        4,
+      ),
       headerColor: asString(typography.headerColor, d.typography.headerColor),
       headerOpacity: asNumber(typography.headerOpacity, d.typography.headerOpacity, 0, 1),
     },
