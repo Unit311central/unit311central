@@ -18,7 +18,8 @@ export type SidebarNavLeafItem = {
 };
 
 export type SidebarNavCustomStorage = {
-  version: 2;
+  /** v3: one-time reset of append-polluted v2 sectionOrder to canonical defaults. */
+  version: 2 | 3;
   /** Ordered workspace section keys (excludes fixed pins + Settings). */
   sectionOrder: string[];
   hidden: Record<string, boolean>;
@@ -61,11 +62,49 @@ export function defaultSectionOrder(sections: readonly InternalNavSection[]): st
 
 export function emptyNavCustomStorage(sections: readonly InternalNavSection[]): SidebarNavCustomStorage {
   return {
-    version: 2,
+    version: 3,
     sectionOrder: defaultSectionOrder(sections),
     hidden: {},
     customItems: [],
   };
+}
+
+/**
+ * Keep the user's relative order for known keys; slot newly added modules at their
+ * canonical position (beside nearest neighbors) instead of always appending.
+ */
+export function mergeSectionOrder(
+  storedOrder: readonly string[],
+  canonicalOrder: readonly string[],
+): string[] {
+  const known = new Set(canonicalOrder);
+  const stored = storedOrder.filter((key) => known.has(key));
+  if (stored.length === 0) return [...canonicalOrder];
+
+  const result = [...stored];
+  for (const key of canonicalOrder) {
+    if (result.includes(key)) continue;
+    const canonIdx = canonicalOrder.indexOf(key);
+    let insertAt = result.length;
+    for (let i = canonIdx - 1; i >= 0; i--) {
+      const at = result.indexOf(canonicalOrder[i]!);
+      if (at >= 0) {
+        insertAt = at + 1;
+        break;
+      }
+    }
+    if (insertAt === result.length) {
+      for (let i = canonIdx + 1; i < canonicalOrder.length; i++) {
+        const at = result.indexOf(canonicalOrder[i]!);
+        if (at >= 0) {
+          insertAt = at;
+          break;
+        }
+      }
+    }
+    result.splice(insertAt, 0, key);
+  }
+  return result;
 }
 
 export function loadSidebarNavCustom(
@@ -78,12 +117,26 @@ export function loadSidebarNavCustom(
     const raw = window.localStorage.getItem(SIDEBAR_NAV_CUSTOM_STORAGE_KEY);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
-    const known = new Set(defaultSectionOrder(sections));
+    const canonical = defaultSectionOrder(sections);
+    const known = new Set(canonical);
+    const storedVersion = Number(parsed.version ?? 1);
+
+    // v2 and earlier appended brand-new modules at the end whenever OA nav
+    // grew — that permanently scrambled custom order. Reset once to canonical.
+    if (storedVersion < 3) {
+      return {
+        version: 3,
+        sectionOrder: canonical,
+        hidden: parsed.hidden ?? {},
+        customItems: parsed.customItems ?? [],
+        order: parsed.order,
+      };
+    }
+
     const fromStored = (parsed.sectionOrder ?? []).filter((key) => known.has(key));
-    const missing = [...known].filter((key) => !fromStored.includes(key));
     return {
-      version: 2,
-      sectionOrder: [...fromStored, ...missing],
+      version: 3,
+      sectionOrder: mergeSectionOrder(fromStored, canonical),
       hidden: parsed.hidden ?? {},
       customItems: parsed.customItems ?? [],
       order: parsed.order,
@@ -93,10 +146,44 @@ export function loadSidebarNavCustom(
   }
 }
 
+/**
+ * Load merged order and persist when storage is stale (new modules, removed keys,
+ * or previous append-at-end merge). Safe to call from useEffect — not during render.
+ */
+export function reconcileSidebarNavCustom(
+  sections: readonly InternalNavSection[],
+): SidebarNavCustomStorage {
+  const next = loadSidebarNavCustom(sections);
+  if (typeof window === "undefined") return next;
+
+  try {
+    const raw = window.localStorage.getItem(SIDEBAR_NAV_CUSTOM_STORAGE_KEY);
+    if (!raw) {
+      saveSidebarNavCustom(next);
+      return next;
+    }
+    const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
+    const known = new Set(defaultSectionOrder(sections));
+    const prev = parsed.sectionOrder ?? [];
+    const versionStale = Number(parsed.version ?? 1) < 3;
+    const staleKeys = prev.some((key) => !known.has(key));
+    const missingKeys = [...known].some((key) => !prev.includes(key));
+    const orderChanged =
+      prev.length !== next.sectionOrder.length ||
+      next.sectionOrder.some((key, index) => prev[index] !== key);
+    if (versionStale || staleKeys || missingKeys || orderChanged) {
+      saveSidebarNavCustom(next);
+    }
+  } catch {
+    saveSidebarNavCustom(next);
+  }
+  return next;
+}
+
 export function saveSidebarNavCustom(next: SidebarNavCustomStorage) {
   if (typeof window === "undefined") return;
   const payload: SidebarNavCustomStorage = {
-    version: 2,
+    version: 3,
     sectionOrder: next.sectionOrder,
     hidden: next.hidden,
     customItems: next.customItems,

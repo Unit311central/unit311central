@@ -87,6 +87,7 @@ import {
 import {
   applySidebarSectionOrder,
   loadSidebarNavCustom,
+  reconcileSidebarNavCustom,
   SIDEBAR_NAV_CUSTOM_EVENT,
 } from "@/lib/sidebar-nav-custom";
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
@@ -227,6 +228,22 @@ export default function EnterprisePlatformSidebar({
       window.removeEventListener("storage", onCustom);
     };
   }, []);
+
+  const { allowedViews, ready: entitlementsReady } = useOperatorEntitlements();
+
+  // Persist a stable merge once host sections + grants are known (new modules
+  // slot into canonical positions instead of drifting to the bottom).
+  useEffect(() => {
+    if (!hydrated) return;
+    const filtered = filterInternalNavSectionsForDemoSurface(
+      filterInternalNavSectionsByGrants(
+        internalSurveyNavSections,
+        entitlementsReady ? allowedViews : null,
+      ),
+      { allowHostSurfaces: true },
+    );
+    reconcileSidebarNavCustom(filtered);
+  }, [hydrated, allowedViews, entitlementsReady]);
 
   useEffect(() => {
     const onTheme = (event: Event) => {
@@ -646,10 +663,14 @@ export default function EnterprisePlatformSidebar({
     );
   }
 
-  const { allowedViews } = useOperatorEntitlements();
   const navSections = useMemo(() => {
     const filtered = filterInternalNavSectionsForDemoSurface(
-      filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
+      filterInternalNavSectionsByGrants(
+        internalSurveyNavSections,
+        // Hold grants filter until whoami resolves so sections don't vanish then
+        // reappear at the bottom of the custom order.
+        entitlementsReady ? allowedViews : null,
+      ),
       // Host overlays (OA / ABHI / Talanton) only after mount — matches SSR HTML.
       { allowHostSurfaces: hydrated },
     );
@@ -658,10 +679,13 @@ export default function EnterprisePlatformSidebar({
     return applySidebarSectionOrder(filtered, custom.sectionOrder);
     // sectionOrderTick forces re-read after Settings saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowedViews, hydrated, sectionOrderTick]);
+  }, [allowedViews, entitlementsReady, hydrated, sectionOrderTick]);
 
   const pinSections = navSections.filter((section) => section.kind === "pin");
-  const workspaceSections = navSections.filter((section) => section.kind === "workspace");
+  // Avoid flashing the generic (non-host) workspace list before OA/ABHI inject.
+  const workspaceSections = hydrated
+    ? navSections.filter((section) => section.kind === "workspace")
+    : [];
 
   return (
     <aside

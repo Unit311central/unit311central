@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
-import { filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
+import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import {
@@ -61,6 +61,7 @@ import {
   type SidebarNavCustomStorage,
   type SidebarNavLeafItem,
 } from "@/lib/sidebar-nav-custom";
+import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 
 const MOCK_USERS = createInitialUsers();
 
@@ -230,11 +231,14 @@ function resolveSettingsPlatforms(): PlatformCredentials[] {
 const NOTIFICATION_FUNCTIONS = ["Projects", "Support", "Finance"] as const;
 const NOTIFICATION_FREQUENCIES = ["Immediate", "Hourly digest", "Daily digest", "Weekly summary"] as const;
 
-function buildLiveNavSections(): InternalNavSection[] {
+function buildLiveNavSections(
+  allowedViews: Parameters<typeof filterInternalNavSectionsByGrants>[1],
+): InternalNavSection[] {
   if (typeof window === "undefined") return [...internalSurveyNavSections];
-  return filterInternalNavSectionsForDemoSurface(internalSurveyNavSections, {
-    allowHostSurfaces: true,
-  });
+  return filterInternalNavSectionsForDemoSurface(
+    filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
+    { allowHostSurfaces: true },
+  );
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -466,9 +470,13 @@ function ProviderIntegrationSection<T extends string>({
 
 export default function SettingsWorkspace() {
   const [hydrated, setHydrated] = useState(false);
+  const { allowedViews, ready: entitlementsReady } = useOperatorEntitlements();
   const liveSections = useMemo(
-    () => (hydrated ? buildLiveNavSections() : [...internalSurveyNavSections]),
-    [hydrated],
+    () =>
+      hydrated
+        ? buildLiveNavSections(entitlementsReady ? allowedViews : null)
+        : [...internalSurveyNavSections],
+    [hydrated, allowedViews, entitlementsReady],
   );
   const [navCustom, setNavCustom] = useState<NavCustomStorage>(() =>
     loadSidebarNavCustom(internalSurveyNavSections),
