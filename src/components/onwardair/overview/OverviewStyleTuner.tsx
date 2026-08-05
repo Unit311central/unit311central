@@ -63,11 +63,34 @@ function SliderRow({
         ? String(value)
         : `${Number.isInteger(step) || step >= 1 ? Math.round(value) : value.toFixed(2)}${unit}`;
 
+  function nudge(dir: -1 | 1) {
+    const next = Math.min(max, Math.max(min, Number((value + dir * step).toFixed(4))));
+    onChange(next);
+  }
+
   return (
-    <label className="block">
-      <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-white/75">
+    <div className="block">
+      <div className="mb-1.5 flex items-center justify-between gap-2 text-[11px] text-white/75">
         <span>{label}</span>
-        <span className="tabular-nums text-white/55">{display}</span>
+        <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => nudge(-1)}
+            className="inline-flex h-6 w-6 items-center justify-center rounded border border-white/20 bg-white/10 text-white hover:bg-white/20"
+            aria-label={`Decrease ${label}`}
+          >
+            −
+          </button>
+          <span className="min-w-[3.25rem] text-center tabular-nums text-white/80">{display}</span>
+          <button
+            type="button"
+            onClick={() => nudge(1)}
+            className="inline-flex h-6 w-6 items-center justify-center rounded border border-white/20 bg-white/10 text-white hover:bg-white/20"
+            aria-label={`Increase ${label}`}
+          >
+            +
+          </button>
+        </span>
       </div>
       <input
         type="range"
@@ -76,9 +99,10 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-[#267B90]"
+        onPointerDown={(e) => e.stopPropagation()}
+        className="oa-style-slider w-full cursor-pointer"
       />
-    </label>
+    </div>
   );
 }
 
@@ -158,7 +182,7 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-[9999] inline-flex items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] hover:bg-[#267B90]"
+        className="pointer-events-auto fixed bottom-5 right-5 z-[2147483000] inline-flex items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] hover:bg-[#267B90]"
         aria-label="Open style tuner"
       >
         <SlidersHorizontal className="h-4 w-4" />
@@ -166,10 +190,53 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
       </button>
   ) : (
     <div
-      className="fixed bottom-4 right-4 z-[9999] flex max-h-[min(92dvh,680px)] w-[min(100vw-1.5rem,380px)] flex-col overflow-hidden rounded-2xl border-2 border-[#7DD3E8] bg-[#0B1220] text-white shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
+      className="pointer-events-auto fixed bottom-4 right-4 z-[2147483000] flex max-h-[min(92dvh,680px)] w-[min(100vw-1.5rem,380px)] flex-col overflow-hidden rounded-2xl border-2 border-[#7DD3E8] bg-[#0B1220] text-white shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
       role="dialog"
       aria-label="Overview style tuner"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
+      <style>{`
+        .oa-style-slider {
+          -webkit-appearance: none;
+          appearance: none;
+          height: 18px;
+          background: transparent;
+        }
+        .oa-style-slider:focus {
+          outline: none;
+        }
+        .oa-style-slider::-webkit-slider-runnable-track {
+          height: 6px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.18);
+        }
+        .oa-style-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          margin-top: -6px;
+          border-radius: 999px;
+          border: 2px solid #7dd3e8;
+          background: #267b90;
+          cursor: pointer;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+        }
+        .oa-style-slider::-moz-range-track {
+          height: 6px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.18);
+        }
+        .oa-style-slider::-moz-range-thumb {
+          width: 18px;
+          height: 18px;
+          border-radius: 999px;
+          border: 2px solid #7dd3e8;
+          background: #267b90;
+          cursor: pointer;
+        }
+      `}</style>
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2.5">
         <div className="min-w-0">
           <p className="text-[13px] font-semibold tracking-tight">Quick style edit</p>

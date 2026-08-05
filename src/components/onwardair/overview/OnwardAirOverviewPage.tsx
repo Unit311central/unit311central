@@ -121,12 +121,12 @@ export function OnwardAirOverviewPage() {
       style={{ fontFamily: overviewFontStack(style.typography.fontFamily) }}
     >
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${HERO_BG})`, opacity: style.page.heroImageOpacity }}
         aria-hidden
       />
       <div
-        className="absolute inset-0"
+        className="pointer-events-none absolute inset-0"
         style={{
           background: `linear-gradient(to bottom, rgba(2,6,23,${Math.max(0, style.page.overlayOpacity - 0.06)}), rgba(2,6,23,${style.page.overlayOpacity}), rgba(2,6,23,${Math.min(1, style.page.overlayOpacity + 0.1)}))`,
         }}
