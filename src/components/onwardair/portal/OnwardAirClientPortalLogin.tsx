@@ -94,7 +94,7 @@ export function OnwardAirClientPortalLogin({
           <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/images/workspaces/onwardair-logo.png?v=swap2"
+              src="/images/workspaces/onwardair-logo.png?v=swap3"
               alt="OnwardAir"
               width={240}
               height={52}
