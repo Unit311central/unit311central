@@ -214,13 +214,18 @@ export default function EnterprisePlatformSidebar({
   });
 
   useEffect(() => {
-    const saved = readSidebarExpandedState();
     startTransition(() => {
-      setExpanded(saved);
+      // Overview embed: start with every high-level module collapsed (nested shut).
+      // Do not restore dashboard expand preferences into the demo shell.
+      if (overviewEmbed) {
+        setExpanded({});
+      } else {
+        setExpanded(readSidebarExpandedState());
+      }
       setTheme(getSidebarTheme(readSidebarThemeId()));
       setHydrated(true);
     });
-  }, []);
+  }, [overviewEmbed]);
 
   useEffect(() => {
     const onCustom = () => setSectionOrderTick((n) => n + 1);
@@ -266,7 +271,10 @@ export default function EnterprisePlatformSidebar({
   function toggleExpanded(key: string) {
     setExpanded((current) => {
       const next = { ...current, [key]: !current[key] };
-      writeSidebarExpandedState(next);
+      // Keep overview expand/collapse session-local — don't rewrite dashboard prefs.
+      if (!overviewEmbed) {
+        writeSidebarExpandedState(next);
+      }
       return next;
     });
   }
