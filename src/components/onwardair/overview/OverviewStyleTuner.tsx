@@ -1,7 +1,8 @@
 "use client";
 
 import { Check, Copy, RotateCcw, SlidersHorizontal, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { copyTextToClipboard } from "@/lib/clipboard";
 import {
@@ -116,6 +117,11 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
   const [open, setOpen] = useState(true);
   const [section, setSection] = useState<SectionId>("page");
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const patch = useMemo(
     () => ({
@@ -146,23 +152,21 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
     window.setTimeout(() => setCopied(false), 1800);
   }
 
-  if (!open) {
-    return (
+  if (!mounted) return null;
+
+  const ui = !open ? (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 left-4 z-[90] inline-flex items-center gap-2 rounded-xl border border-white/20 bg-[#0B1220]/95 px-3 py-2.5 text-xs font-medium text-white shadow-lg backdrop-blur-md hover:bg-[#267B90]"
+        className="fixed bottom-5 right-5 z-[9999] inline-flex items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] hover:bg-[#267B90]"
         aria-label="Open style tuner"
       >
         <SlidersHorizontal className="h-4 w-4" />
         Tune styles
       </button>
-    );
-  }
-
-  return (
+  ) : (
     <div
-      className="fixed bottom-3 left-3 z-[90] flex max-h-[min(92dvh,640px)] w-[min(100vw-1.5rem,360px)] flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0B1220]/96 text-white shadow-[0_20px_60px_rgba(0,0,0,0.55)] backdrop-blur-md"
+      className="fixed bottom-4 right-4 z-[9999] flex max-h-[min(92dvh,680px)] w-[min(100vw-1.5rem,380px)] flex-col overflow-hidden rounded-2xl border-2 border-[#7DD3E8] bg-[#0B1220] text-white shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
       role="dialog"
       aria-label="Overview style tuner"
     >
@@ -551,4 +555,6 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
       </footer>
     </div>
   );
+
+  return createPortal(ui, document.body);
 }
