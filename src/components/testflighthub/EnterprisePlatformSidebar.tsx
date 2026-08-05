@@ -645,7 +645,7 @@ export default function EnterprisePlatformSidebar({
                 : "truncate whitespace-nowrap",
             )}
             style={{ fontSize: overviewEmbed ? 9.5 : 10.5 }}
-            title={section.label}
+            title={section.label ?? undefined}
           >
             {section.label}
           </span>
