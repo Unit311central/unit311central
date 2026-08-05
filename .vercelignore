@@ -1,0 +1,13 @@
+.tmp*
+.env*
+!.env.example
+# Only ignore loose root media dumps — never exclude public/ site videos
+/*.mp4
+/*.mov
+backups/
+corp.jpg
+.git
+agent-transcripts
+scripts/_*.mjs
+scripts/_*.json
+.env.corporatecentre.runtime
