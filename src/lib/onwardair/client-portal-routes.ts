@@ -47,6 +47,12 @@ export const ONWARDAIR_CLIENT_PORTAL_ROUTES: readonly OnwardAirClientPortalRoute
 const BY_PATH = new Map(ONWARDAIR_CLIENT_PORTAL_ROUTES.map((r) => [r.path, r]));
 const BY_CLIENT_ID = new Map(ONWARDAIR_CLIENT_PORTAL_ROUTES.map((r) => [r.clientId, r]));
 
+/** Short / legacy path aliases → canonical route path. */
+const PATH_ALIASES: Record<string, string> = {
+  // Bookmarks omit ".com"; without this alias, unmatched paths bounce external sessions to /board.
+  coastalfreightpartners: "coastalfreightpartners.com",
+};
+
 export function getOnwardAirClientPortalByPath(
   path: string | null | undefined,
 ): OnwardAirClientPortalRoute | null {
@@ -56,7 +62,8 @@ export function getOnwardAirClientPortalByPath(
     .replace(/^\/+|\/+$/g, "")
     .split("/")[0];
   if (!key) return null;
-  return BY_PATH.get(key) ?? null;
+  const canonical = PATH_ALIASES[key] ?? key;
+  return BY_PATH.get(canonical) ?? null;
 }
 
 export function getOnwardAirClientPortalByClientId(
