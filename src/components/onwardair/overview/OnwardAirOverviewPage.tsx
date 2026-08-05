@@ -170,32 +170,32 @@ export function OnwardAirOverviewPage() {
           {/* Equal-height briefing cards */}
           <aside className="grid h-full min-h-0 grid-rows-3 gap-4 overflow-hidden">
             <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#267B90]/20 bg-white p-3 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:p-3.5">
-              <ul className="flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-y-auto">
+              <ul className="flex min-h-0 flex-1 flex-col justify-evenly gap-2 overflow-y-auto py-0.5">
                 {content.questions.map((q, i) => (
                   <li
                     key={`q-${i}`}
-                    className="oa-overview-question flex gap-2"
+                    className="oa-overview-question flex items-start gap-2.5"
                     style={{ animationDelay: `${i * 0.55}s` }}
                   >
                     <span
-                      className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                      className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white sm:text-[12px]"
                       style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
                     >
                       {i + 1}
                     </span>
-                    <p className="text-[11px] leading-snug text-[#1B2430] sm:text-[12px]">{q}</p>
+                    <p className="text-[13px] leading-snug text-[#1B2430] sm:text-[14px] lg:text-[15px]">{q}</p>
                   </li>
                 ))}
               </ul>
             </section>
 
             <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
-              <p className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] sm:text-[11px]" style={{ color: "#7DD3E8" }}>
+              <p className="shrink-0 text-[12px] font-bold uppercase tracking-[0.14em] sm:text-[13px]" style={{ color: "#7DD3E8" }}>
                 {content.highlightsTitle}
               </p>
-              <ul className="mt-1.5 min-h-0 flex-1 space-y-0.5 overflow-y-auto">
+              <ul className="mt-2 flex min-h-0 flex-1 flex-col justify-evenly gap-1 overflow-y-auto">
                 {content.highlights.map((item, i) => (
-                  <li key={`h-${i}`} className="text-[10px] leading-snug text-white/95 sm:text-[11px]">
+                  <li key={`h-${i}`} className="text-[12px] leading-snug text-white/95 sm:text-[13px] lg:text-[14px]">
                     • {item}
                   </li>
                 ))}
