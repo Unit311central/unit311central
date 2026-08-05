@@ -51,30 +51,30 @@ export function OnwardAirOverviewPage() {
       />
 
       <div className="relative flex min-h-[100dvh] flex-col px-3 py-3 sm:px-5 sm:py-4 lg:px-6 lg:py-4 xl:h-full xl:min-h-0">
-        {/* Top bar — OnwardAir TL · Unit311 + Sign out TR */}
+        {/* Top bar — OnwardAir TL · Unit311 + Sign out TR (equal size) */}
         <header className="flex shrink-0 items-center justify-between gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={OA_LOGO}
+            src={`${OA_LOGO}?v=swap1`}
             alt="OnwardAir"
-            width={220}
-            height={48}
+            width={260}
+            height={56}
             decoding="async"
             className="block object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-            style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
+            style={{ height: 56, width: "auto", maxWidth: 260, maxHeight: 56 }}
           />
 
           <div className="flex items-center gap-3 sm:gap-4">
             <a href="https://unit311central.com" aria-label="Unit311 Central">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={UNIT311_LOGO}
+                src={`${UNIT311_LOGO}?v=swap1`}
                 alt="Unit311 Central"
-                width={220}
-                height={48}
+                width={260}
+                height={56}
                 decoding="async"
                 className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
+                style={{ height: 56, width: "auto", maxWidth: 260, maxHeight: 56 }}
               />
             </a>
             <button
