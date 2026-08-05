@@ -17,7 +17,14 @@ function memoryContent(): OnwardAirOverviewEditableContent {
 }
 
 export async function readOnwardAirOverviewContent(): Promise<OnwardAirOverviewEditableContent> {
-  return sanitizeOverviewContent(memoryContent());
+  // Always prefer the latest module order from defaults for the invite page.
+  // Editable copy (headline/questions/etc.) still comes from memory when present.
+  const stored = sanitizeOverviewContent(memoryContent());
+  const defaults = defaultOnwardAirOverviewContent();
+  return {
+    ...stored,
+    modules: defaults.modules,
+  };
 }
 
 export async function writeOnwardAirOverviewContent(
