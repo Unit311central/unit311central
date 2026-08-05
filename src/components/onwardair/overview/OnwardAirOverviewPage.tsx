@@ -1,7 +1,16 @@
 "use client";
 
-import { Maximize2, X } from "lucide-react";
-import { Suspense, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { GripHorizontal, Maximize2, X } from "lucide-react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import { createPortal } from "react-dom";
 
 import { OverviewStyleTuner } from "@/components/onwardair/overview/OverviewStyleTuner";
 import {
@@ -102,6 +111,20 @@ function HeaderTaglineEditor({
   onTypographyChange: (partial: Partial<OverviewStyleConfig["typography"]>) => void;
 }) {
   const [showStyle, setShowStyle] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    origLeft: number;
+    origTop: number;
+  } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const typeStyle: CSSProperties = {
     fontSize: `${typography.headerFontSize}px`,
@@ -113,6 +136,175 @@ function HeaderTaglineEditor({
     fontFamily: overviewFontStack(typography.fontFamily),
   };
 
+  function onDragStart(event: ReactPointerEvent<HTMLElement>) {
+    if ((event.target as HTMLElement).closest("button, input, select, textarea, label")) return;
+    const el = panelRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const left = pos?.left ?? rect.left;
+    const top = pos?.top ?? rect.top;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      origLeft: left,
+      origTop: top,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function onDragMove(event: ReactPointerEvent<HTMLElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const width = panelRef.current?.offsetWidth ?? 420;
+    const nextLeft = Math.max(
+      8,
+      Math.min(window.innerWidth - width - 8, drag.origLeft + (event.clientX - drag.startX)),
+    );
+    const nextTop = Math.max(
+      8,
+      Math.min(window.innerHeight - 80, drag.origTop + (event.clientY - drag.startY)),
+    );
+    setPos({ left: nextLeft, top: nextTop });
+  }
+
+  function onDragEnd(event: ReactPointerEvent<HTMLElement>) {
+    if (dragRef.current?.pointerId === event.pointerId) {
+      dragRef.current = null;
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  const panelStyle: CSSProperties = pos
+    ? { left: pos.left, top: pos.top }
+    : { left: 24, top: 72 };
+
+  const stylePanel =
+    showStyle && mounted
+      ? createPortal(
+          <div
+            ref={panelRef}
+            className="pointer-events-auto fixed z-[2147483000] flex max-w-[min(100vw-1.5rem,560px)] flex-wrap items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] p-2 shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+            style={panelStyle}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div
+              className="flex cursor-grab items-center gap-1.5 px-1 active:cursor-grabbing"
+              onPointerDown={onDragStart}
+              onPointerMove={onDragMove}
+              onPointerUp={onDragEnd}
+              onPointerCancel={onDragEnd}
+              title="Drag to move"
+            >
+              <GripHorizontal className="h-4 w-4 text-[#7DD3E8]" aria-hidden />
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">
+                Tagline style
+              </span>
+            </div>
+            <label className="flex items-center gap-1 text-[10px] text-white/70">
+              Font
+              <select
+                value={typography.fontFamily}
+                onChange={(event) =>
+                  onTypographyChange({ fontFamily: event.target.value as OverviewFontId })
+                }
+                className="rounded border border-white/20 bg-black/50 px-1.5 py-1 text-[11px] text-white"
+              >
+                {OVERVIEW_FONT_OPTIONS.map((font) => (
+                  <option key={font.id} value={font.id}>
+                    {font.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1 text-[10px] text-white/70">
+              Size
+              <button
+                type="button"
+                className="inline-flex h-6 w-6 items-center justify-center rounded border border-white/20 bg-white/10 text-white hover:bg-white/20"
+                onClick={() =>
+                  onTypographyChange({
+                    headerFontSize: Math.max(8, typography.headerFontSize - 1),
+                  })
+                }
+              >
+                −
+              </button>
+              <span className="min-w-[2rem] text-center tabular-nums text-white">
+                {typography.headerFontSize}px
+              </span>
+              <button
+                type="button"
+                className="inline-flex h-6 w-6 items-center justify-center rounded border border-white/20 bg-white/10 text-white hover:bg-white/20"
+                onClick={() =>
+                  onTypographyChange({
+                    headerFontSize: Math.min(28, typography.headerFontSize + 1),
+                  })
+                }
+              >
+                +
+              </button>
+            </label>
+            <label className="flex items-center gap-1 text-[10px] text-white/70">
+              Weight
+              <select
+                value={typography.headerFontWeight}
+                onChange={(event) =>
+                  onTypographyChange({ headerFontWeight: Number(event.target.value) })
+                }
+                className="rounded border border-white/20 bg-black/50 px-1.5 py-1 text-[11px] text-white"
+              >
+                {[300, 400, 500, 600, 700, 800].map((weight) => (
+                  <option key={weight} value={weight}>
+                    {weight}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1 text-[10px] text-white/70">
+              Colour
+              <input
+                type="color"
+                value={
+                  typography.headerColor.startsWith("#")
+                    ? typography.headerColor.slice(0, 7)
+                    : "#ffffff"
+                }
+                onChange={(event) => onTypographyChange({ headerColor: event.target.value })}
+                className="h-6 w-8 cursor-pointer rounded border border-white/20 bg-transparent p-0"
+              />
+            </label>
+            <label className="flex items-center gap-1 text-[10px] text-white/70">
+              Opacity
+              <input
+                type="range"
+                min={0.2}
+                max={1}
+                step={0.05}
+                value={typography.headerOpacity}
+                onChange={(event) =>
+                  onTypographyChange({ headerOpacity: Number(event.target.value) })
+                }
+                className="w-20 accent-[#267B90]"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowStyle(false)}
+              className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded text-white/50 hover:bg-white/10 hover:text-white"
+              aria-label="Hide tagline style bar"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <div className="relative min-w-0 flex-1">
       <InlineEdit
@@ -123,111 +315,7 @@ function HeaderTaglineEditor({
         className="min-w-0 w-full whitespace-nowrap"
         style={typeStyle}
       />
-      {showStyle ? (
-        <div
-          className="absolute left-0 top-[calc(100%+6px)] z-[60] flex flex-wrap items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] p-2 shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
-          onMouseDown={(event) => event.preventDefault()}
-        >
-          <span className="px-1 text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">
-            Tagline style
-          </span>
-          <label className="flex items-center gap-1 text-[10px] text-white/70">
-            Font
-            <select
-              value={typography.fontFamily}
-              onChange={(event) =>
-                onTypographyChange({ fontFamily: event.target.value as OverviewFontId })
-              }
-              className="rounded border border-white/20 bg-black/50 px-1.5 py-1 text-[11px] text-white"
-            >
-              {OVERVIEW_FONT_OPTIONS.map((font) => (
-                <option key={font.id} value={font.id}>
-                  {font.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex items-center gap-1 text-[10px] text-white/70">
-            Size
-            <button
-              type="button"
-              className="inline-flex h-6 w-6 items-center justify-center rounded border border-white/20 bg-white/10 text-white hover:bg-white/20"
-              onClick={() =>
-                onTypographyChange({
-                  headerFontSize: Math.max(8, typography.headerFontSize - 1),
-                })
-              }
-            >
-              −
-            </button>
-            <span className="min-w-[2rem] text-center tabular-nums text-white">
-              {typography.headerFontSize}px
-            </span>
-            <button
-              type="button"
-              className="inline-flex h-6 w-6 items-center justify-center rounded border border-white/20 bg-white/10 text-white hover:bg-white/20"
-              onClick={() =>
-                onTypographyChange({
-                  headerFontSize: Math.min(28, typography.headerFontSize + 1),
-                })
-              }
-            >
-              +
-            </button>
-          </label>
-          <label className="flex items-center gap-1 text-[10px] text-white/70">
-            Weight
-            <select
-              value={typography.headerFontWeight}
-              onChange={(event) =>
-                onTypographyChange({ headerFontWeight: Number(event.target.value) })
-              }
-              className="rounded border border-white/20 bg-black/50 px-1.5 py-1 text-[11px] text-white"
-            >
-              {[300, 400, 500, 600, 700, 800].map((weight) => (
-                <option key={weight} value={weight}>
-                  {weight}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex items-center gap-1 text-[10px] text-white/70">
-            Colour
-            <input
-              type="color"
-              value={
-                typography.headerColor.startsWith("#")
-                  ? typography.headerColor.slice(0, 7)
-                  : "#ffffff"
-              }
-              onChange={(event) => onTypographyChange({ headerColor: event.target.value })}
-              className="h-6 w-8 cursor-pointer rounded border border-white/20 bg-transparent p-0"
-            />
-          </label>
-          <label className="flex items-center gap-1 text-[10px] text-white/70">
-            Opacity
-            <input
-              type="range"
-              min={0.2}
-              max={1}
-              step={0.05}
-              value={typography.headerOpacity}
-              onChange={(event) =>
-                onTypographyChange({ headerOpacity: Number(event.target.value) })
-              }
-              className="w-20 accent-[#267B90]"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => setShowStyle(false)}
-            className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded text-white/50 hover:bg-white/10 hover:text-white"
-            aria-label="Hide tagline style bar"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ) : (
+      {!showStyle ? (
         <button
           type="button"
           onClick={() => setShowStyle(true)}
@@ -235,7 +323,8 @@ function HeaderTaglineEditor({
         >
           Edit tagline size / font
         </button>
-      )}
+      ) : null}
+      {stylePanel}
     </div>
   );
 }
