@@ -33,7 +33,7 @@ const OA_LOGO = "/images/workspaces/onwardair-logo.png";
 const HERO_BG = "/images/overview-corporate-intelligence-bg.png";
 
 const INLINE_EDIT =
-  "oa-inline-edit w-full min-w-0 rounded border border-dashed border-[#7DD3E8]/35 bg-transparent px-0.5 py-0 outline-none hover:border-[#7DD3E8] hover:bg-[#7DD3E8]/10 focus:border-[#7DD3E8] focus:bg-[#7DD3E8]/10";
+  "oa-inline-edit w-full min-w-0 rounded border border-dashed border-[#7DD3E8]/35 bg-transparent px-0.5 py-0 outline-none hover:border-[#7DD3E8] hover:bg-[#7DD3E8]/10 focus:border-[#7DD3E8] focus:bg-[#7DD3E8]/10 [font:inherit] [font-size:inherit] [font-weight:inherit] [letter-spacing:inherit] [line-height:inherit] [color:inherit] [font-family:inherit]";
 
 function InlineEdit({
   value,
@@ -54,36 +54,35 @@ function InlineEdit({
   onFocus?: () => void;
   onBlur?: () => void;
 }) {
-  if (multiline) {
-    return (
-      <textarea
-        aria-label={ariaLabel}
-        value={value}
-        rows={2}
-        onChange={(event) => onChange(event.target.value)}
-        onFocus={onFocus}
-        onBlur={onBlur}
-        onMouseDown={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-        className={`${INLINE_EDIT} resize-y leading-snug ${className}`}
-        style={style}
-      />
-    );
-  }
-
+  // Apply type styles on a wrapper so Tailwind form resets cannot override live size/font.
   return (
-    <input
-      aria-label={ariaLabel}
-      type="text"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      onMouseDown={(event) => event.stopPropagation()}
-      onPointerDown={(event) => event.stopPropagation()}
-      className={`${INLINE_EDIT} ${className}`}
-      style={style}
-    />
+    <div className={`min-w-0 ${multiline ? "w-full" : "flex-1"}`} style={style}>
+      {multiline ? (
+        <textarea
+          aria-label={ariaLabel}
+          value={value}
+          rows={2}
+          onChange={(event) => onChange(event.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          className={`${INLINE_EDIT} resize-y leading-snug ${className}`}
+        />
+      ) : (
+        <input
+          aria-label={ariaLabel}
+          type="text"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          className={`${INLINE_EDIT} ${className}`}
+        />
+      )}
+    </div>
   );
 }
 
@@ -98,7 +97,17 @@ function HeaderTaglineEditor({
   typography: OverviewStyleConfig["typography"];
   onTypographyChange: (partial: Partial<OverviewStyleConfig["typography"]>) => void;
 }) {
-  const [showStyle, setShowStyle] = useState(false);
+  const [showStyle, setShowStyle] = useState(true);
+
+  const typeStyle: CSSProperties = {
+    fontSize: `${typography.headerFontSize}px`,
+    fontWeight: typography.headerFontWeight,
+    letterSpacing: `${typography.headerLetterSpacing}px`,
+    color: typography.headerColor,
+    opacity: typography.headerOpacity,
+    lineHeight: 1.25,
+    fontFamily: overviewFontStack(typography.fontFamily),
+  };
 
   return (
     <div className="relative min-w-0 flex-1">
@@ -107,19 +116,8 @@ function HeaderTaglineEditor({
         value={value}
         onChange={onChange}
         onFocus={() => setShowStyle(true)}
-        onBlur={() => {
-          window.setTimeout(() => setShowStyle(false), 180);
-        }}
         className="min-w-0 w-full whitespace-nowrap"
-        style={{
-          fontSize: typography.headerFontSize,
-          fontWeight: typography.headerFontWeight,
-          letterSpacing: `${typography.headerLetterSpacing}px`,
-          color: typography.headerColor,
-          opacity: typography.headerOpacity,
-          lineHeight: 1.25,
-          fontFamily: overviewFontStack(typography.fontFamily),
-        }}
+        style={typeStyle}
       />
       {showStyle ? (
         <div
@@ -216,8 +214,24 @@ function HeaderTaglineEditor({
               className="w-20 accent-[#267B90]"
             />
           </label>
+          <button
+            type="button"
+            onClick={() => setShowStyle(false)}
+            className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded text-white/50 hover:bg-white/10 hover:text-white"
+            aria-label="Hide tagline style bar"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
-      ) : null}
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowStyle(true)}
+          className="mt-1 text-[10px] font-medium text-[#7DD3E8] underline-offset-2 hover:underline"
+        >
+          Edit tagline size / font
+        </button>
+      )}
     </div>
   );
 }
@@ -363,7 +377,7 @@ export function OnwardAirOverviewPage() {
                     patchContent({ questions });
                   }}
                   className="leading-snug"
-                  style={{ fontSize: style.questions.textSize, color: style.questions.textColor }}
+                  style={{ fontSize: `${style.questions.textSize}px`, color: style.questions.textColor }}
                 />
               </li>
             ))}
@@ -384,7 +398,7 @@ export function OnwardAirOverviewPage() {
             value={content.highlightsTitle}
             onChange={(highlightsTitle) => patchContent({ highlightsTitle })}
             className="shrink-0 font-bold uppercase tracking-[0.14em]"
-            style={{ fontSize: style.highlights.titleSize, color: style.highlights.titleColor }}
+            style={{ fontSize: `${style.highlights.titleSize}px`, color: style.highlights.titleColor }}
           />
           <ul className="mt-2 flex min-h-0 flex-1 flex-col justify-evenly gap-1 overflow-y-auto">
             {content.highlights.map((item, i) => (
@@ -402,7 +416,7 @@ export function OnwardAirOverviewPage() {
                     );
                     patchContent({ highlights });
                   }}
-                  style={{ fontSize: style.highlights.itemSize, color: style.highlights.itemColor }}
+                  style={{ fontSize: `${style.highlights.itemSize}px`, color: style.highlights.itemColor }}
                 />
               </li>
             ))}
@@ -418,7 +432,7 @@ export function OnwardAirOverviewPage() {
           value={content.agendaTitle}
           onChange={(agendaTitle) => patchContent({ agendaTitle })}
           className="shrink-0 font-semibold tracking-tight"
-          style={{ fontSize: style.agenda.titleSize, color: style.agenda.titleColor }}
+          style={{ fontSize: `${style.agenda.titleSize}px`, color: style.agenda.titleColor }}
         />
         <div className="mt-2 flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-y-auto">
           {content.agenda.map((row, i) => (

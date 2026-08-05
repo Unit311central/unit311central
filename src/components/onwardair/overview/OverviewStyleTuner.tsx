@@ -22,7 +22,9 @@ import {
 
 type Props = {
   style: OverviewStyleConfig;
-  onStyleChange: (next: OverviewStyleConfig) => void;
+  onStyleChange: (
+    next: OverviewStyleConfig | ((prev: OverviewStyleConfig) => OverviewStyleConfig),
+  ) => void;
   content: OnwardAirOverviewEditableContent;
   onContentChange: (next: OnwardAirOverviewEditableContent) => void;
 };
@@ -225,23 +227,32 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
   const patch = useMemo(
     () => ({
       page: (partial: Partial<OverviewStyleConfig["page"]>) =>
-        onStyleChange({ ...style, page: { ...style.page, ...partial } }),
+        onStyleChange((prev) => ({ ...prev, page: { ...prev.page, ...partial } })),
       typography: (partial: Partial<OverviewStyleConfig["typography"]>) =>
-        onStyleChange({ ...style, typography: { ...style.typography, ...partial } }),
+        onStyleChange((prev) => ({
+          ...prev,
+          typography: { ...prev.typography, ...partial },
+        })),
       logos: (partial: Partial<OverviewStyleConfig["logos"]>) =>
-        onStyleChange({ ...style, logos: { ...style.logos, ...partial } }),
+        onStyleChange((prev) => ({ ...prev, logos: { ...prev.logos, ...partial } })),
       cards: (partial: Partial<OverviewStyleConfig["cards"]>) =>
-        onStyleChange({ ...style, cards: { ...style.cards, ...partial } }),
+        onStyleChange((prev) => ({ ...prev, cards: { ...prev.cards, ...partial } })),
       questions: (partial: Partial<OverviewStyleConfig["questions"]>) =>
-        onStyleChange({ ...style, questions: { ...style.questions, ...partial } }),
+        onStyleChange((prev) => ({
+          ...prev,
+          questions: { ...prev.questions, ...partial },
+        })),
       highlights: (partial: Partial<OverviewStyleConfig["highlights"]>) =>
-        onStyleChange({ ...style, highlights: { ...style.highlights, ...partial } }),
+        onStyleChange((prev) => ({
+          ...prev,
+          highlights: { ...prev.highlights, ...partial },
+        })),
       agenda: (partial: Partial<OverviewStyleConfig["agenda"]>) =>
-        onStyleChange({ ...style, agenda: { ...style.agenda, ...partial } }),
+        onStyleChange((prev) => ({ ...prev, agenda: { ...prev.agenda, ...partial } })),
       preview: (partial: Partial<OverviewStyleConfig["preview"]>) =>
-        onStyleChange({ ...style, preview: { ...style.preview, ...partial } }),
+        onStyleChange((prev) => ({ ...prev, preview: { ...prev.preview, ...partial } })),
     }),
-    [onStyleChange, style],
+    [onStyleChange],
   );
 
   function updateQuestion(index: number, value: string) {
