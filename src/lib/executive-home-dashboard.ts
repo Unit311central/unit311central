@@ -9,6 +9,10 @@ import type {
   WorkspaceDashboardConfig,
 } from "@/lib/dashboard-framework";
 import { countLiveProjects } from "@/lib/home-executive-dashboard";
+import {
+  ONWARDAIR_CASH_BALANCE_USD,
+  ONWARDAIR_CASH_PRIOR_MONTH_USD,
+} from "@/lib/onwardair-financials";
 import type { InternalProject } from "@/lib/projects-data";
 
 const OA_COMMERCIAL_CLIENT_IDS = new Set([
@@ -17,17 +21,53 @@ const OA_COMMERCIAL_CLIENT_IDS = new Set([
   "oa-cli-coastal-freight",
 ]);
 
+function isBrowserOnwardAirHome(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserOnwardAirSurface } =
+      require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
+    return isBrowserOnwardAirSurface();
+  } catch {
+    return false;
+  }
+}
+
+/** Detect OA Home payloads even if host helpers fail. */
+function isOnwardAirHomeBundle(clients: ManagedClient[]): boolean {
+  if (isBrowserOnwardAirHome()) return true;
+  return clients.some(
+    (client) =>
+      OA_COMMERCIAL_CLIENT_IDS.has(client.id) ||
+      client.id.startsWith("oa-cli-") ||
+      client.id.startsWith("oa-grant-"),
+  );
+}
+
 /** Only the 3 commercial demo accounts — exclude grant funders + board/overview portal rows. */
 function selectHomeActiveClients(clients: ManagedClient[]): ManagedClient[] {
   const active = clients.filter((client) => client.accountStatus === "Active");
   const commercial = active.filter((client) => OA_COMMERCIAL_CLIENT_IDS.has(client.id));
   if (commercial.length > 0) return commercial;
+  if (!isOnwardAirHomeBundle(clients)) return active;
   return active.filter(
     (client) =>
       !client.id.startsWith("oa-grant-") &&
       client.id !== "oa-cli-board" &&
       client.id !== "oa-cli-overview",
   );
+}
+
+/** Never show $0 cash on OA Home when the ledger path failed to pin the fixture. */
+function resolveHomeCashPosition(
+  financials: FinancialOverviewSnapshot | null,
+  clients: ManagedClient[],
+): number {
+  const live = financials?.cashPosition ?? 0;
+  if (live > 0) return live;
+  if (isOnwardAirHomeBundle(clients) || isBrowserOnwardAirHome()) {
+    return ONWARDAIR_CASH_BALANCE_USD;
+  }
+  return live;
 }
 
 function isBrowserAbhiHome(): boolean {
@@ -435,15 +475,23 @@ export function buildExecutiveHomeLiveKpis(input: {
     return buildTalantonExecutiveHomeKpis();
   }
 
-  const currency = resolveHomeDisplayCurrency(input.financials?.burnRate.currency);
+  const currency = resolveHomeDisplayCurrency(input.financials?.burnRate?.currency);
   const revenuePeriods = buildRevenuePeriodOptions({ financials: input.financials, currency });
   const revenueYtd = input.financials?.revenueYtd ?? 0;
-  const cash = input.financials?.cashPosition ?? 0;
+  const cash = resolveHomeCashPosition(input.financials, input.clients);
   const burn = input.financials?.burnRate;
   const financialsLoaded = input.financials != null;
+  const oaHome = isOnwardAirHomeBundle(input.clients) || isBrowserOnwardAirHome();
   // Prefer closed prior-month burn (current month is usually partial).
-  const burnPrevious =
+  const burnFromLedger =
     burn && burn.previousMonthly > 0 ? burn.previousMonthly : (burn?.monthly ?? 0);
+  // OA demo: cash glide ~$80k/mo (1.08M → 1.0M); never show $0 burn on Home.
+  const burnPrevious =
+    burnFromLedger > 0
+      ? burnFromLedger
+      : oaHome
+        ? Math.max(0, ONWARDAIR_CASH_PRIOR_MONTH_USD - ONWARDAIR_CASH_BALANCE_USD)
+        : 0;
   const activeClients = selectHomeActiveClients(input.clients).length;
   const abhiHome = isBrowserAbhiHome();
   const effectiveOnboarding = resolveEffectiveOnboardingCount({
@@ -458,7 +506,9 @@ export function buildExecutiveHomeLiveKpis(input: {
         : `${effectiveOnboarding} onboarding`
       : abhiHome
         ? "All members active"
-        : "";
+        : oaHome
+          ? "Commercial accounts"
+          : "";
 
   const cashDelta = monthDelta(input.financials?.charts.cashPosition);
   const burnDelta = burnPreviousMonthDelta(burn);
@@ -486,25 +536,35 @@ export function buildExecutiveHomeLiveKpis(input: {
       value: formatCompactMoney(cash, currency),
       delta:
         cashDelta?.label ??
-        (abhiHome ? "Cash at bank" : customerCashLabels ? "Ledger cash" : "Operating cash"),
-      tone: cashDelta?.tone ?? "neutral",
-      hint: abhiHome
-        ? "ABHI operating cash (GBP)"
-        : customerCashLabels
-          ? "Workspace cash from ledger"
-          : "Operating cash position",
+        (oaHome
+          ? `Prior ${formatCompactMoney(ONWARDAIR_CASH_PRIOR_MONTH_USD, currency)}`
+          : abhiHome
+            ? "Cash at bank"
+            : customerCashLabels
+              ? "Ledger cash"
+              : "Operating cash"),
+      tone: cashDelta?.tone ?? (oaHome ? "neutral" : "neutral"),
+      hint: oaHome
+        ? "OnwardAir operating cash (USD)"
+        : abhiHome
+          ? "ABHI operating cash (GBP)"
+          : customerCashLabels
+            ? "Workspace cash from ledger"
+            : "Operating cash position",
     },
     {
       id: "burn",
       label: "Burn Rate",
-      value: financialsLoaded
-        ? `${formatCompactMoney(burnPrevious, currency)} / mo`
-        : "—",
-      delta: financialsLoaded ? burnDelta.label : "Loading ledger…",
-      tone: financialsLoaded ? burnDelta.tone : "neutral",
-      hint: financialsLoaded
-        ? "Previous month operating spend"
-        : "Waiting for financial overview",
+      value:
+        financialsLoaded || oaHome
+          ? `${formatCompactMoney(burnPrevious, currency)} / mo`
+          : "—",
+      delta: financialsLoaded || oaHome ? burnDelta.label : "Loading ledger…",
+      tone: financialsLoaded || oaHome ? burnDelta.tone : "neutral",
+      hint:
+        financialsLoaded || oaHome
+          ? "Previous month operating spend"
+          : "Waiting for financial overview",
     },
     {
       id: "clients",
@@ -779,7 +839,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
   onboardingPipelineCount?: number;
 }) {
   const currency = resolveHomeDisplayCurrency(input.financials?.burnRate?.currency);
-  const cash = input.financials?.cashPosition ?? 0;
+  const cash = resolveHomeCashPosition(input.financials, input.clients);
   const overdue = input.financials?.ar.overdue ?? 0;
   const overdueCount =
     input.financials?.ar.overdueCount ??

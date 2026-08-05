@@ -135,10 +135,32 @@ export async function GET() {
     to.setDate(to.getDate() + 1);
 
     // OA: never soft-timeout financials to null (that zeroes Home cash/burn).
+    // Also force the $1M cash pin when overview returns a zero cash snapshot.
     const financialsPromise = oaSurface
       ? getFinancialOverview(scope)
           .catch(() => null)
-          .then((snapshot) => snapshot ?? oaFinancialsFallback())
+          .then((snapshot) => {
+            const base = snapshot ?? oaFinancialsFallback();
+            if (base.cashPosition > 0) return base;
+            const cash = ONWARDAIR_CASH_BALANCE_USD;
+            return {
+              ...base,
+              cashPosition: cash,
+              burnRate: {
+                ...base.burnRate,
+                cashBalance: cash,
+              },
+              charts: {
+                ...base.charts,
+                cashPosition:
+                  base.charts.cashPosition.length > 0
+                    ? base.charts.cashPosition.map((point, index, arr) =>
+                        index === arr.length - 1 ? { ...point, amount: cash } : point,
+                      )
+                    : [{ month: new Date().toISOString().slice(0, 7), amount: cash }],
+              },
+            };
+          })
       : Promise.race([
           getFinancialOverview(scope).catch(() => null),
           new Promise<null>((resolve) => {
