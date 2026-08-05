@@ -272,8 +272,9 @@ export function overviewScreenshotSrc(slug: string | null | undefined): string {
   return `/images/overview/screenshots/${key}.png?v=live15`;
 }
 
-/** Executive Assistant uses a live demo video instead of a static screenshot. */
+/** Overview RHS videos (replace static screenshots for selected views). */
 export const OVERVIEW_EXECUTIVE_ASSISTANT_VIDEO = "/videos/testingvideo2.mp4";
+export const OVERVIEW_TESTING_VIDEO = "/videos/testingvideo.mp4";
 
 export type OverviewPreviewMedia =
   | { kind: "image"; src: string }
@@ -285,6 +286,9 @@ export function overviewPreviewMediaForView(
   const v = String(view ?? "home").trim().toLowerCase();
   if (v === "executive-assistant") {
     return { kind: "video", src: OVERVIEW_EXECUTIVE_ASSISTANT_VIDEO };
+  }
+  if (v === "testing") {
+    return { kind: "video", src: OVERVIEW_TESTING_VIDEO };
   }
   return { kind: "image", src: overviewScreenshotForView(v) };
 }

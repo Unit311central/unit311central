@@ -836,12 +836,12 @@ export function OnwardAirOverviewPage() {
                   <video
                     key={previewMedia.src}
                     src={previewMedia.src}
-                    className="absolute inset-0 h-full w-full object-contain object-top"
+                    className="absolute inset-0 h-full w-full object-contain object-center"
                     autoPlay
                     muted
                     loop
                     playsInline
-                    preload="metadata"
+                    preload="auto"
                     aria-label={`${previewTitle} demo video`}
                   />
                 ) : (
