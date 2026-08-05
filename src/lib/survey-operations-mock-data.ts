@@ -134,6 +134,7 @@ export const recentMissions = [
 export type SurveyOperationsBasePath =
   | "/"
   | "/dashboard"
+  | "/overview"
   | "/testflighthub"
   | "/internaldashboard"
   | "/internaldashboard_grants";
@@ -143,6 +144,7 @@ export const DEFAULT_SURVEY_OPERATIONS_BASE_PATH: SurveyOperationsBasePath = "/t
 export const SURVEY_OPERATIONS_BASE_PATHS: SurveyOperationsBasePath[] = [
   "/",
   "/dashboard",
+  "/overview",
   "/testflighthub",
   "/internaldashboard",
   "/internaldashboard_grants",

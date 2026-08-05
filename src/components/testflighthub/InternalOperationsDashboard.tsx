@@ -485,7 +485,8 @@ export default function InternalOperationsDashboard({
   const [isInternalHost] = useState(() => {
     // Customer workspace hosts use /dashboard; Internal ops use / (canonical).
     // Demo ops also use / but must NOT get Internal-only platform billing.
-    if (resolvedBasePath === "/dashboard") return false;
+    // /overview embeds the same customer shell for the private invite page.
+    if (resolvedBasePath === "/dashboard" || resolvedBasePath === "/overview") return false;
     if (typeof window !== "undefined") {
       if (isDemoDomainHost(window.location.hostname)) return false;
       if (isInternalDomainHost(window.location.hostname)) return true;

@@ -1,109 +1,33 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Maximize2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import { Suspense, useEffect, useState } from "react";
 
 import { ONWARDAIR_HOME_ACCENT } from "@/lib/onwardair-surface";
 import {
   type OnwardAirOverviewEditableContent,
-  type PortalsModuleRow,
   defaultOnwardAirOverviewContent,
-  overviewScreenshotForModuleId,
-  overviewScreenshotSrc,
-  portalsRowIndent,
 } from "@/lib/onwardair/overview-demo";
-import { cn } from "@/lib/utils";
+import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
+import SurveyOperationsSimulatorProvider from "@/components/testflighthub/SurveyOperationsSimulatorProvider";
 
 const UNIT311_LOGO = "/images/unit311central-login.webp";
 const OA_LOGO = "/images/workspaces/onwardair-logo.png";
 const HERO_BG = "/images/overview-corporate-intelligence-bg.png";
-/** Drop files here when ready — RHS shows a player once present. */
-const EA_VIDEO = "/videos/onwardair-overview-exec-assistant.mp4";
-const DRONE_VIDEO = "/videos/onwardair-overview-live-drone.mp4";
 
-type PreviewKind = "module" | "video-ea" | "video-drone" | "board-portal" | "client-portal";
-
-type ModuleNode = {
-  row: PortalsModuleRow;
-  index: number;
-  children: ModuleNode[];
-};
-
-function buildModuleTree(rows: PortalsModuleRow[]): ModuleNode[] {
-  const roots: ModuleNode[] = [];
-  let current0: ModuleNode | null = null;
-  let current1: ModuleNode | null = null;
-
-  for (let index = 0; index < rows.length; index += 1) {
-    const row = rows[index]!;
-    const indent = portalsRowIndent(row);
-    const node: ModuleNode = { row, index, children: [] };
-
-    if (indent === 0) {
-      roots.push(node);
-      current0 = node;
-      current1 = null;
-      continue;
-    }
-    if (indent === 1) {
-      if (current0) {
-        current0.children.push(node);
-        current1 = node;
-      } else {
-        roots.push(node);
-        current0 = node;
-        current1 = null;
-      }
-      continue;
-    }
-    if (current1) current1.children.push(node);
-    else if (current0) current0.children.push(node);
-    else roots.push(node);
-  }
-  return roots;
-}
-
-function VideoSlot({ src, label }: { src: string; label: string }) {
-  return (
-    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/15 bg-black/50">
-      <video className="h-full min-h-[200px] w-full flex-1 bg-black object-contain" controls playsInline preload="metadata">
-        <source src={src} type="video/mp4" />
-      </video>
-      <p className="shrink-0 px-2 py-2 text-center text-[10px] text-white/55">
-        {label} — video TBD (upload when ready)
-      </p>
-    </div>
-  );
-}
+const InternalOperationsDashboard = dynamic(
+  () => import("@/components/testflighthub/InternalOperationsDashboard"),
+  {
+    ssr: false,
+    loading: () => <WorkspaceLoadingFallback variant="page" label="Loading OnwardAir platform" />,
+  },
+);
 
 export function OnwardAirOverviewPage() {
   const [content, setContent] = useState<OnwardAirOverviewEditableContent>(() =>
     defaultOnwardAirOverviewContent(),
   );
   const [loading, setLoading] = useState(true);
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({
-    m5: true,
-    m19: true,
-    m22: true,
-    m22a: true,
-  });
-  const [previewKind, setPreviewKind] = useState<PreviewKind>("module");
-  const [selectedModuleId, setSelectedModuleId] = useState("m1");
-  const [previewFullscreen, setPreviewFullscreen] = useState(false);
-
-  useEffect(() => {
-    if (!previewFullscreen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPreviewFullscreen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [previewFullscreen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,18 +37,18 @@ export function OnwardAirOverviewPage() {
         if (!res.ok) throw new Error("load failed");
         const data = (await res.json()) as { content: OnwardAirOverviewEditableContent };
         if (cancelled) return;
+        const defaults = defaultOnwardAirOverviewContent();
         setContent({
           ...data.content,
-          modules: defaultOnwardAirOverviewContent().modules,
-          highlights: defaultOnwardAirOverviewContent().highlights,
-          highlightsTitle: defaultOnwardAirOverviewContent().highlightsTitle,
-          agenda: defaultOnwardAirOverviewContent().agenda,
-          agendaTitle: defaultOnwardAirOverviewContent().agendaTitle,
-          agendaIntro: defaultOnwardAirOverviewContent().agendaIntro,
-          questionsIntro: defaultOnwardAirOverviewContent().questionsIntro,
-          questions: defaultOnwardAirOverviewContent().questions,
-          headline: defaultOnwardAirOverviewContent().headline,
-          subheadline: defaultOnwardAirOverviewContent().subheadline,
+          headline: defaults.headline,
+          subheadline: defaults.subheadline,
+          questionsIntro: defaults.questionsIntro,
+          questions: defaults.questions,
+          highlights: defaults.highlights,
+          highlightsTitle: defaults.highlightsTitle,
+          agenda: defaults.agenda,
+          agendaTitle: defaults.agendaTitle,
+          agendaIntro: defaults.agendaIntro,
         });
       } catch {
         if (!cancelled) setContent(defaultOnwardAirOverviewContent());
@@ -137,128 +61,20 @@ export function OnwardAirOverviewPage() {
     };
   }, []);
 
-  const tree = useMemo(() => buildModuleTree(content.modules), [content.modules]);
-
-  const previewLabel = useMemo(() => {
-    if (previewKind === "video-ea") return "AI Executive Assistant";
-    if (previewKind === "video-drone") return "Live drone";
-    if (previewKind === "board-portal") return "Board portal";
-    if (previewKind === "client-portal") return "Client portal — Coastal Freight Partners";
-    return content.modules.find((row) => row.id === selectedModuleId)?.text ?? "Home";
-  }, [previewKind, selectedModuleId, content.modules]);
-
-  const previewSrc = useMemo(() => {
-    if (previewKind === "board-portal") return overviewScreenshotSrc("board-portal");
-    if (previewKind === "client-portal") return overviewScreenshotSrc("client-portal");
-    return overviewScreenshotForModuleId(selectedModuleId);
-  }, [previewKind, selectedModuleId]);
-
-  function selectModule(id: string) {
-    if (id === "m2") {
-      setPreviewKind("video-ea");
-      setSelectedModuleId(id);
-      return;
-    }
-    if (id === "m22b") {
-      setPreviewKind("video-drone");
-      setSelectedModuleId(id);
-      return;
-    }
-    if (id === "m19c") {
-      setPreviewKind("board-portal");
-      setSelectedModuleId(id);
-      return;
-    }
-    if (id === "m19d") {
-      setPreviewKind("client-portal");
-      setSelectedModuleId(id);
-      return;
-    }
-    setPreviewKind("module");
-    setSelectedModuleId(id);
-  }
-
-  function toggleExpanded(id: string) {
-    setExpandedIds((current) => ({ ...current, [id]: !current[id] }));
-  }
-
-  function renderNode(node: ModuleNode, depth: 0 | 1 | 2) {
-    const hasChildren = node.children.length > 0;
-    const open = Boolean(expandedIds[node.row.id]);
-    const selected =
-      selectedModuleId === node.row.id &&
-      (previewKind === "module" ||
-        previewKind === "video-ea" ||
-        previewKind === "video-drone" ||
-        previewKind === "board-portal" ||
-        previewKind === "client-portal");
-    const ExpandIcon = open ? ChevronDown : ChevronRight;
-    const pad = depth === 0 ? "pl-0" : depth === 1 ? "pl-4" : "pl-8";
-
-    return (
-      <li key={node.row.id} className="space-y-0.5">
-        <div className={cn("flex items-center gap-1", pad)}>
-          {depth === 0 ? (
-            hasChildren ? (
-              <button
-                type="button"
-                onClick={() => toggleExpanded(node.row.id)}
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white"
-                aria-expanded={open}
-                aria-label={open ? "Collapse" : "Expand"}
-              >
-                <ExpandIcon className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <span className="inline-flex h-6 w-6 shrink-0" aria-hidden />
-            )
-          ) : hasChildren ? (
-            <button
-              type="button"
-              onClick={() => toggleExpanded(node.row.id)}
-              className="inline-flex h-6 w-5 shrink-0 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white"
-              aria-expanded={open}
-              aria-label={open ? "Collapse" : "Expand"}
-            >
-              <ExpandIcon className="h-3 w-3" />
-            </button>
-          ) : (
-            <span className="inline-flex h-6 w-3 shrink-0" aria-hidden />
-          )}
-          <button
-            type="button"
-            onClick={() => selectModule(node.row.id)}
-            className={cn(
-              "min-w-0 flex-1 rounded-md px-2 py-1.5 text-left text-[11px] leading-snug transition sm:text-[12px]",
-              selected
-                ? "bg-[#267B90] font-semibold text-white"
-                : "text-white/85 hover:bg-white/10 hover:text-white",
-            )}
-          >
-            {node.row.text || "Untitled"}
-          </button>
-        </div>
-        {hasChildren && open
-          ? node.children.map((child) => renderNode(child, Math.min(depth + 1, 2) as 0 | 1 | 2))
-          : null}
-      </li>
-    );
-  }
-
   return (
-    <div className="oa-overview relative min-h-[100dvh] text-white xl:h-dvh xl:max-h-dvh xl:overflow-hidden">
+    <div className="oa-overview relative flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden text-white">
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.48]"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.42]"
         style={{ backgroundImage: `url(${HERO_BG})` }}
         aria-hidden
       />
       <div
-        className="absolute inset-0 bg-gradient-to-b from-[#020617]/70 via-[#020617]/76 to-[#020617]/86"
+        className="absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
         aria-hidden
       />
 
-      <div className="relative flex min-h-[100dvh] flex-col px-3 py-3 sm:px-5 sm:py-4 lg:px-6 lg:py-4 xl:h-full xl:min-h-0">
-        {/* Row 1: OA logo + headline (single line) | Unit311 + sign out */}
+      <div className="relative flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-4 sm:py-3 lg:px-5 lg:py-3">
+        {/* Row 1: OA logo + demo headline (single line) | Unit311 + sign out */}
         <header className="flex shrink-0 items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -304,14 +120,14 @@ export function OnwardAirOverviewPage() {
           </div>
         </header>
 
-        {/* Row 2: customisable OS line */}
-        <p className="mt-2 shrink-0 whitespace-nowrap text-[11px] leading-snug text-white/65 sm:mt-2.5 sm:text-[12px]">
+        {/* Row 2: OS tagline */}
+        <p className="mt-2 shrink-0 whitespace-nowrap text-[11px] leading-snug text-white/65 sm:text-[12px]">
           {content.questionsIntro}
         </p>
 
-        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto sm:mt-3.5 lg:grid-cols-[minmax(0,1.15fr)_minmax(180px,0.48fr)_minmax(0,1.75fr)] lg:gap-3 lg:overflow-hidden">
-          {/* Column 1 — questions + highlights only (no scroll) */}
-          <div className="flex min-h-0 flex-col gap-2.5 lg:overflow-hidden">
+        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 lg:grid-cols-[minmax(240px,0.72fr)_minmax(0,2.4fr)] lg:gap-3">
+          {/* Briefing column */}
+          <aside className="flex min-h-0 flex-col gap-2.5 overflow-hidden lg:overflow-hidden">
             <section className="shrink-0 rounded-xl border border-[#267B90]/20 bg-white p-3.5 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:p-4">
               <ul className="space-y-2">
                 {content.questions.map((q, i) => (
@@ -332,7 +148,7 @@ export function OnwardAirOverviewPage() {
               </ul>
             </section>
 
-            <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
+            <section className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: "#7DD3E8" }}>
                 {content.highlightsTitle}
               </p>
@@ -344,130 +160,51 @@ export function OnwardAirOverviewPage() {
                 ))}
               </ul>
             </section>
-          </div>
-
-          {/* Column 2 — modules (Live drone under Tools → Testing) */}
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/12 bg-[#061018]/75 p-2 backdrop-blur-[2px]">
-            <h2 className="mb-1.5 shrink-0 text-[11px] font-semibold tracking-tight text-white">
-              {content.modulesTitle}
-            </h2>
-            <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-0.5">
-              {tree.map((node) => renderNode(node, 0))}
-            </ul>
-          </div>
-
-          {/* Column 3 — preview + agenda underneath */}
-          <div className="flex min-h-0 flex-col gap-2.5">
-            <section className="relative flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-xl border border-[#D7E3EA] bg-[#F8FBFD] p-2.5 text-[#1B2430] shadow-[0_10px_30px_rgba(0,0,0,0.14)] sm:min-h-[320px] lg:min-h-0">
-              <div className="mb-2 flex shrink-0 items-center justify-between gap-2 px-0.5">
-                <h2 className="text-[13px] font-semibold tracking-tight text-[#1B2430]">{previewLabel}</h2>
-                <span className="text-[10px] uppercase tracking-wide text-[#5B6577]">Preview</span>
-              </div>
-              <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-[#E2EBF1] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-                {previewKind === "video-ea" ? (
-                  <div className="absolute inset-0 overflow-hidden bg-[#061018]">
-                    <VideoSlot src={EA_VIDEO} label="AI Executive Assistant walkthrough" />
-                  </div>
-                ) : previewKind === "video-drone" ? (
-                  <div className="absolute inset-0 overflow-hidden bg-[#061018]">
-                    <VideoSlot src={DRONE_VIDEO} label="Live drone walkthrough" />
-                  </div>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={previewSrc}
-                    alt={`${previewLabel} screenshot`}
-                    className="absolute inset-0 h-full w-full object-cover object-top"
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setPreviewFullscreen(true)}
-                  className="absolute bottom-2.5 right-2.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#267B90]/30 bg-white/95 text-[#1B2430] shadow-md transition hover:bg-[#267B90] hover:text-white"
-                  aria-label="View screenshot full screen"
-                  title="Full screen"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </button>
-              </div>
-            </section>
 
             <section className="shrink-0 rounded-xl border border-[#267B90]/25 bg-white p-3 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.18)] sm:p-3.5">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h2 className="text-[14px] font-semibold tracking-tight text-[#1B2430]">
-                  {content.agendaTitle}
-                </h2>
-                <p className="text-[11px] text-[#5B6577]">{content.agendaIntro}</p>
-              </div>
-              <div className="mt-2.5 grid gap-2 sm:grid-cols-3">
+              <h2 className="text-[14px] font-semibold tracking-tight text-[#1B2430]">
+                {content.agendaTitle}
+              </h2>
+              <p className="mt-0.5 text-[11px] text-[#5B6577]">{content.agendaIntro}</p>
+              <div className="mt-2.5 space-y-2">
                 {content.agenda.map((row, i) => (
                   <div
                     key={`a-${i}`}
                     className="rounded-lg border border-[#267B90]/20 bg-[#F4FAFB] px-2.5 py-2"
                   >
-                    <p
-                      className="text-[10px] font-bold uppercase tracking-wider"
-                      style={{ color: ONWARDAIR_HOME_ACCENT }}
-                    >
-                      {row.wave.includes("min") ? row.wave : `${row.wave} min`}
-                    </p>
-                    <p className="mt-0.5 text-[12px] font-semibold leading-snug text-[#1B2430]">{row.who}</p>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                      <p
+                        className="text-[10px] font-bold uppercase tracking-wider"
+                        style={{ color: ONWARDAIR_HOME_ACCENT }}
+                      >
+                        {row.wave.includes("min") ? row.wave : `${row.wave} min`}
+                      </p>
+                      <p className="text-[12px] font-semibold text-[#1B2430]">{row.who}</p>
+                    </div>
                     <p className="mt-0.5 text-[11px] leading-snug text-[#5B6577]">{row.why}</p>
                   </div>
                 ))}
               </div>
             </section>
-          </div>
+          </aside>
+
+          {/* Live interactive platform — sidebar + content, single view */}
+          <section className="relative min-h-[420px] min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#050B16] shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0">
+            <SurveyOperationsSimulatorProvider>
+              <Suspense
+                fallback={<WorkspaceLoadingFallback variant="page" label="Loading OnwardAir platform" />}
+              >
+                <InternalOperationsDashboard basePath="/overview" initialView="home" />
+              </Suspense>
+            </SurveyOperationsSimulatorProvider>
+          </section>
         </div>
 
-        <footer className="mt-2 shrink-0 text-center text-[9px] text-white/40 sm:text-[10px]">
+        <footer className="mt-1.5 shrink-0 text-center text-[9px] text-white/35 sm:text-[10px]">
           OnwardAir · Unit311 Central · Private overview
           {loading ? " · Loading…" : null}
         </footer>
       </div>
-
-      {previewFullscreen ? (
-        <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/92 p-3 sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${previewLabel} full screen`}
-          onClick={() => setPreviewFullscreen(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setPreviewFullscreen(false)}
-            className="absolute right-4 top-4 z-[81] inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20"
-            aria-label="Close full screen"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <div
-            className="relative flex h-full w-full max-w-[1600px] flex-col"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <p className="mb-2 shrink-0 text-center text-sm font-medium text-white/80">{previewLabel}</p>
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/15 bg-black">
-              {previewKind === "video-ea" ? (
-                <video className="h-full w-full object-contain" controls autoPlay playsInline>
-                  <source src={EA_VIDEO} type="video/mp4" />
-                </video>
-              ) : previewKind === "video-drone" ? (
-                <video className="h-full w-full object-contain" controls autoPlay playsInline>
-                  <source src={DRONE_VIDEO} type="video/mp4" />
-                </video>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={previewSrc}
-                  alt={`${previewLabel} full screen`}
-                  className="h-full w-full object-contain object-center"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

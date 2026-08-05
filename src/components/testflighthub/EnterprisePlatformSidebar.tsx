@@ -202,7 +202,7 @@ export default function EnterprisePlatformSidebar({
   const [sectionOrderTick, setSectionOrderTick] = useState(0);
 
   const [isInternalOpsHost] = useState(() => {
-    if (basePath === "/dashboard") return false;
+    if (basePath === "/dashboard" || basePath === "/overview") return false;
     if (typeof window !== "undefined" && isInternalDomainHost(window.location.hostname)) {
       return true;
     }
