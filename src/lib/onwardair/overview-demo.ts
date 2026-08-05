@@ -269,7 +269,7 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live11`;
+  return `/images/overview/screenshots/${key}.png?v=live12`;
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {
@@ -385,12 +385,13 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   calendar: "calendar",
   messaging: "messaging",
   communications: "communications",
-  whiteboard: "communications",
+  whiteboard: "whiteboard",
   "support-desk": "support",
   "support-tickets": "support",
   "support-overview": "support-overview",
   support: "support",
   "support-mine": "support-mine",
+  "whatsapp-integration": "whatsapp-integration",
   "training-dashboard": "training-dashboard",
   training: "training",
   "training-external": "training-external",
@@ -418,7 +419,7 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   billing: "billing",
   appearance: "appearance",
   testing: "testing",
-  telemetry: "testing",
+  telemetry: "telemetry",
   productivity: "productivity-dashboard",
 };
 

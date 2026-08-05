@@ -262,7 +262,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     id: "support-desk",
     label: "Support Desk",
     section: "Support Desk",
-    views: ["support-overview", "support", "support-mine"],
+    views: ["support-overview", "support", "support-mine", "whatsapp-integration"],
   },
   {
     id: "technology",

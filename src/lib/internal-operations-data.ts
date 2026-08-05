@@ -82,6 +82,7 @@ export type InternalOperationsView =
   | "support"
   | "support-overview"
   | "support-mine"
+  | "whatsapp-integration"
   | "telemetry"
   | "design-mockups"
   | "sector"
@@ -334,6 +335,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "support",
   "support-overview",
   "support-mine",
+  "whatsapp-integration",
   "telemetry",
   "design-mockups",
   "sector",
@@ -572,6 +574,28 @@ export function legacyCorporateViewToTab(
   }
 }
 
+/** Map Corporate Information tab → leaf view id (for chrome titles / breadcrumbs). */
+export function corporateTabToLegacyView(
+  tab: CorporateInformationTab,
+): InternalOperationsView {
+  switch (tab) {
+    case "company-details":
+      return "corporate-company-details";
+    case "office-locations":
+      return "office-locations";
+    case "bank-accounts":
+      return "corporate-bank-accounts";
+    case "professional-advisors":
+      return "corporate-advisers";
+    case "board-directors":
+      return "corporate-board-directors";
+    case "contracts":
+      return "corporate-contracts";
+    case "cap-table":
+      return "corporate-cap-table";
+  }
+}
+
 export function normalizeInternalOperationsView(value: string | null): InternalOperationsView {
   if (value === "live-projects") return "projects";
   if (value === "sector-mining") return "sector";
@@ -588,7 +612,7 @@ export function normalizeInternalOperationsView(value: string | null): InternalO
   }
   if (value === "technology") return "technology-dashboard";
   if (value === "portfolio-companies") return "portfolio-dashboard";
-  if (legacyCorporateViewToTab(value)) return "corporate-information";
+  // Keep corporate leaf ids (company details, offices, …) so breadcrumbs/titles stay correct.
   return isInternalOperationsView(value) ? value : "home";
 }
 
@@ -825,7 +849,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     color: "#4F46E5",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "technology-dashboard" as const },
-      { label: "Devices", icon: "Laptop", view: "technology-devices" as const },
+      { label: "Technology Assets", icon: "Laptop", view: "technology-devices" as const },
       { label: "Software & SaaS", icon: "KeyRound", view: "technology-software" as const },
       {
         label: "Telecommunications",
@@ -848,7 +872,6 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         view: "technology-infrastructure" as const,
       },
       { label: "Security", icon: "ShieldCheck", view: "technology-reports" as const },
-      { label: "Technology Assets", icon: "HardDrive", view: "technology-devices" as const },
       { label: "Reports", icon: "ScrollText", view: "technology-reports" as const },
       { label: "Settings", icon: "Settings", view: "technology-settings" as const },
     ],
@@ -887,7 +910,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       { label: "Ticket Overview", icon: "BarChart3", view: "support-overview" as const },
       { label: "Tickets", icon: "Ticket", view: "support" as const },
       { label: "My support tickets", icon: "UserRound", view: "support-mine" as const },
-      { label: "WhatsApp Integration", icon: "MessageCircle", href: "/whatsapp/support-flow" },
+      { label: "WhatsApp Integration", icon: "MessageCircle", view: "whatsapp-integration" as const },
     ],
   },
   {
@@ -1038,7 +1061,7 @@ export const internalViewTitles: Record<
   representatives: { title: "Partners", subtitle: "Business Central" },
   "office-locations": { title: "Office Locations", subtitle: "Corporate Information" },
   "corporate-dashboard": { title: "Dashboard", subtitle: "Corporate Information" },
-  "corporate-information": { title: "Corporate Information", subtitle: "Corporate Information" },
+  "corporate-information": { title: "Company Details", subtitle: "Corporate Information" },
   "corporate-company-details": { title: "Company Details", subtitle: "Corporate Information" },
   "corporate-cap-table": { title: "Cap Table Management", subtitle: "Corporate Information" },
   "corporate-bank-accounts": { title: "Bank Accounts", subtitle: "Corporate Information" },
@@ -1113,6 +1136,7 @@ export const internalViewTitles: Record<
   support: { title: "Tickets", subtitle: "Support Desk" },
   "support-overview": { title: "Ticket Overview", subtitle: "Support Desk" },
   "support-mine": { title: "My support tickets", subtitle: "Support Desk" },
+  "whatsapp-integration": { title: "WhatsApp Integration", subtitle: "Support Desk" },
   telemetry: { title: "Live Telemetry", subtitle: "Tools" },
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },
   sector: { title: "Sector Intelligence", subtitle: "Unit311" },
@@ -1148,7 +1172,7 @@ export const internalViewTitles: Record<
   "engineering-capacity": { title: "Capacity Planning", subtitle: "Technology Management" },
   technology: { title: "Technology Management", subtitle: "Technology Management" },
   "technology-dashboard": { title: "Dashboard", subtitle: "Technology Management" },
-  "technology-devices": { title: "Devices", subtitle: "Technology Management" },
+  "technology-devices": { title: "Technology Assets", subtitle: "Technology Management" },
   "technology-software": { title: "Software", subtitle: "Technology Management" },
   "technology-telecommunications": {
     title: "Telecommunications",

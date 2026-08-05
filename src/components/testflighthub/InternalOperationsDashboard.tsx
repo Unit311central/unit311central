@@ -23,9 +23,11 @@ import {
   internalViewTitles,
   isCorporateInformationTab,
   isInternalOperationsView,
+  corporateTabToLegacyView,
   legacyCorporateViewToTab,
   normalizeInternalOperationsView,
   resolveInternalOperationsBasePath,
+  type CorporateInformationTab,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import {
@@ -282,6 +284,7 @@ import {
   ExternalTrainingWorkspace,
   StrategyWorkspace,
   SupportWorkspace,
+  WhatsAppIntegrationWorkspace,
   TelemetryDashboard,
   TestingWeatherPanel,
   TechnologyDashboardWorkspace,
@@ -634,13 +637,14 @@ export default function InternalOperationsDashboard({
 
   useEffect(() => {
     const viewParam = searchParams.get("view");
-    const legacyTab = legacyCorporateViewToTab(viewParam);
-    if (legacyTab) {
-      const url = new URL(window.location.href);
-      url.searchParams.set("view", "corporate-information");
-      url.searchParams.set("tab", legacyTab);
-      window.history.replaceState({}, "", url.toString());
-      startTransition(() => setActiveView("corporate-information"));
+    // Legacy combined URL: ?view=corporate-information&tab=office-locations
+    if (viewParam === "corporate-information") {
+      const tab = searchParams.get("tab");
+      const leaf =
+        isCorporateInformationTab(tab) && tab !== "cap-table"
+          ? corporateTabToLegacyView(tab)
+          : "corporate-company-details";
+      startTransition(() => setActiveView(leaf));
       return;
     }
 
@@ -713,12 +717,6 @@ export default function InternalOperationsDashboard({
       url.searchParams.delete("view");
       url.searchParams.delete("country");
       url.searchParams.delete("tab");
-    } else if (activeView === "corporate-information") {
-      url.searchParams.set("view", "corporate-information");
-      if (!isCorporateInformationTab(url.searchParams.get("tab"))) {
-        url.searchParams.set("tab", "company-details");
-      }
-      url.searchParams.delete("country");
     } else {
       url.searchParams.set("view", activeView);
       url.searchParams.delete("tab");
@@ -760,17 +758,6 @@ export default function InternalOperationsDashboard({
   }, [activeView]);
 
   const handleViewChange = useCallback((view: InternalOperationsView) => {
-    const legacyTab = legacyCorporateViewToTab(view);
-    if (legacyTab) {
-      prefetchViewOnIntent("corporate-information");
-      const url = new URL(window.location.href);
-      url.searchParams.set("view", "corporate-information");
-      url.searchParams.set("tab", legacyTab);
-      url.searchParams.delete("country");
-      window.history.replaceState({}, "", url.toString());
-      setActiveView("corporate-information");
-      return;
-    }
     const normalized = normalizeInternalOperationsView(view);
     prefetchViewOnIntent(normalized);
     setActiveView(normalized);
@@ -1124,7 +1111,17 @@ export default function InternalOperationsDashboard({
 
           {activeView === "corporate-dashboard" && <CorporateDashboardWorkspace />}
 
-          {activeView === "corporate-information" && <CorporateInformationWorkspace />}
+          {(activeView === "corporate-information" ||
+            Boolean(legacyCorporateViewToTab(activeView))) && (
+            <CorporateInformationWorkspace
+              tab={
+                legacyCorporateViewToTab(activeView) ??
+                (isCorporateInformationTab(searchParams.get("tab"))
+                  ? (searchParams.get("tab") as CorporateInformationTab)
+                  : "company-details")
+              }
+            />
+          )}
           {activeView === "corporate-cap-table" && !isBrowserAbhiSurface() && (
             <CapTableWorkspace />
           )}
@@ -1231,6 +1228,12 @@ export default function InternalOperationsDashboard({
           {activeView === "support" && <SupportWorkspace scope="all" />}
 
           {activeView === "support-mine" && <SupportWorkspace scope="mine" />}
+
+          {activeView === "whatsapp-integration" && (
+            <WorkspaceErrorBoundary title="WhatsApp Integration">
+              <WhatsAppIntegrationWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
 
           {activeView === "users" && <UserManagementWorkspace onUsersChange={setUsers} />}
 

@@ -107,6 +107,9 @@ export const WiseWorkspace = lazyWorkspace(() => import("./WiseWorkspace"));
 export const WhiteboardWorkspace = lazyWorkspace(() => import("./WhiteboardWorkspace"));
 export const TestingWeatherPanel = lazyWorkspace(() => import("./TestingWeatherPanel"));
 export const SupportWorkspace = lazyWorkspace(() => import("./SupportWorkspace"));
+export const WhatsAppIntegrationWorkspace = lazyWorkspace(
+  () => import("./WhatsAppIntegrationWorkspace"),
+);
 export const ExternalUsersWorkspace = lazyWorkspace(() => import("./ExternalUsersWorkspace"));
 export const UserManagementWorkspace = lazyWorkspace(() => import("./UserManagementWorkspace"));
 export const EngineeringDashboardWorkspace = lazyWorkspace(() => import("./EngineeringDashboardWorkspace"));

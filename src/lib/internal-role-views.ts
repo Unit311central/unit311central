@@ -1564,8 +1564,8 @@ export function filterInternalNavSectionsForDemoSurface(
             if (!hideUnit311Details && item.label === "Unit311 Details") {
               return { ...item, label: "Company Details" };
             }
-            if (item.href?.includes("/whatsapp/support-flow")) {
-              return { ...item, label: "Support Messaging" };
+            if (item.view === "whatsapp-integration" || item.href?.includes("/whatsapp/support-flow")) {
+              return { ...item, label: "WhatsApp Integration", view: "whatsapp-integration" as const, href: undefined };
             }
             return item;
           })

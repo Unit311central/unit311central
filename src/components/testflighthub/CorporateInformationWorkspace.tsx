@@ -17,7 +17,11 @@ import ContractsWorkspace from "./ContractsWorkspace";
 import OfficeLocationsWorkspace from "./OfficeLocationsWorkspace";
 import ProfessionalAdvisorsWorkspace from "./ProfessionalAdvisorsWorkspace";
 
-function resolveTab(searchParams: URLSearchParams): CorporateInformationTab {
+function resolveTab(
+  searchParams: URLSearchParams,
+  forcedTab?: CorporateInformationTab,
+): CorporateInformationTab {
+  if (forcedTab) return forcedTab;
   const fromTab = searchParams.get("tab");
   if (isCorporateInformationTab(fromTab)) return fromTab;
   const fromView = legacyCorporateViewToTab(searchParams.get("view"));
@@ -29,13 +33,19 @@ function resolveTab(searchParams: URLSearchParams): CorporateInformationTab {
  * Navigation is sidebar-only — no duplicate horizontal tabs.
  * Software Licences now lives under Technology Management.
  */
-export default function CorporateInformationWorkspace() {
+export default function CorporateInformationWorkspace({
+  tab: forcedTab,
+}: {
+  tab?: CorporateInformationTab;
+}) {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<CorporateInformationTab>(() => resolveTab(searchParams));
+  const [tab, setTab] = useState<CorporateInformationTab>(() =>
+    resolveTab(searchParams, forcedTab),
+  );
 
   useEffect(() => {
-    setTab(resolveTab(searchParams));
-  }, [searchParams]);
+    setTab(resolveTab(searchParams, forcedTab));
+  }, [searchParams, forcedTab]);
 
   return (
     <div className="space-y-4">
