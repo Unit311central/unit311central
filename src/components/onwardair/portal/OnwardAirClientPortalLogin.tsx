@@ -94,24 +94,24 @@ export function OnwardAirClientPortalLogin({
           <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/images/workspaces/onwardair-logo.png"
+              src="/images/workspaces/onwardair-logo.png?v=swap1"
               alt="OnwardAir"
-              width={220}
-              height={48}
+              width={260}
+              height={56}
               decoding="async"
               className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-              style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
+              style={{ height: 56, width: "auto", maxWidth: 260, maxHeight: 56 }}
             />
             <a href="https://unit311central.com" aria-label="Unit311 Central">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/images/unit311central-login.webp"
+                src="/images/unit311central-login.webp?v=swap1"
                 alt="Unit311 Central"
-                width={220}
-                height={48}
+                width={260}
+                height={56}
                 decoding="async"
                 className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
+                style={{ height: 56, width: "auto", maxWidth: 260, maxHeight: 56 }}
               />
             </a>
           </header>
