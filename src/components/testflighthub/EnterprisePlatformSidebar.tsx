@@ -524,10 +524,8 @@ export default function EnterprisePlatformSidebar({
           />
           <span
             className={cn(
-              "min-w-0 flex-1",
-              overviewEmbed
-                ? "whitespace-normal break-words leading-[1.15] line-clamp-2"
-                : "truncate whitespace-nowrap",
+              "min-w-0 flex-1 truncate whitespace-nowrap",
+              overviewEmbed && "leading-none",
             )}
           >
             {item.label}
@@ -639,10 +637,8 @@ export default function EnterprisePlatformSidebar({
           />
           <span
             className={cn(
-              "min-w-0 flex-1 font-semibold uppercase leading-none tracking-[0.08em] text-white",
-              overviewEmbed
-                ? "whitespace-normal break-words leading-[1.15] line-clamp-2"
-                : "truncate whitespace-nowrap",
+              "min-w-0 flex-1 truncate whitespace-nowrap font-semibold uppercase leading-none tracking-[0.08em] text-white",
+              overviewEmbed && "leading-none",
             )}
             style={{ fontSize: overviewEmbed ? 9.5 : 10.5 }}
             title={section.label ?? undefined}
@@ -720,9 +716,9 @@ export default function EnterprisePlatformSidebar({
       aria-label={mobileOpen ? "Navigation menu" : undefined}
       className={cn(
         "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(320px,94vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:shrink-0 lg:translate-x-0 lg:pt-0",
-        // Overview invite: narrower nav so the RHS preview survives laptop/Mac widths.
+        // Overview invite: wide enough for module titles on one line.
         overviewEmbed
-          ? "lg:w-[200px] xl:w-[224px] 2xl:w-[248px]"
+          ? "lg:w-[280px] xl:w-[300px] 2xl:w-[320px]"
           : "lg:w-[320px]",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
       )}

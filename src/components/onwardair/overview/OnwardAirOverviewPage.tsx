@@ -927,7 +927,7 @@ export function OnwardAirOverviewPage() {
               }}
             >
               <OperatorEntitlementsProvider>
-                <Suspense fallback={<div className="w-[200px] shrink-0 bg-[#07111F] xl:w-[224px] 2xl:w-[248px]" />}>
+                <Suspense fallback={<div className="w-[280px] shrink-0 bg-[#07111F] xl:w-[300px] 2xl:w-[320px]" />}>
                   <OverviewPlatformNav activeView={activeView} onViewChange={setActiveView} />
                 </Suspense>
               </OperatorEntitlementsProvider>
