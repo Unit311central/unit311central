@@ -3,7 +3,7 @@
 import { ONWARDAIR_HOME_ACCENT } from "@/lib/onwardair-surface";
 
 const UNIT311_LOGO = "/images/unit311central-login.webp";
-const OA_LOGO = "/images/workspaces/onwardair-logo-dark.png";
+const OA_LOGO = "/images/workspaces/onwardair-logo.png";
 const HERO_BG = "/images/workspaces/onwardair-login-bg.png";
 /** Drop the walkthrough file here — column is ready. */
 const WALKTHROUGH_VIDEO = "/videos/onwardair-overview-walkthrough.mp4";
@@ -37,39 +37,31 @@ const INVITE = [
 
 export function OnwardAirOverviewPage() {
   return (
-    <div className="oa-overview relative h-dvh max-h-dvh overflow-hidden text-[#1B2430]">
-      {/* Same hero image as OnwardAir / overview login */}
+    <div className="oa-overview relative min-h-[100dvh] text-white xl:h-dvh xl:max-h-dvh xl:overflow-hidden">
+      {/* Same backdrop treatment as onwardair.unit311central.com/login */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-[center_40%] bg-no-repeat opacity-[0.38] sm:bg-center"
         style={{ backgroundImage: `url(${HERO_BG})` }}
         aria-hidden
       />
       <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(160deg, rgba(255,255,255,0.72) 0%, rgba(244,250,251,0.68) 45%, rgba(255,255,255,0.78) 100%)",
-        }}
+        className="absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
         aria-hidden
       />
 
-      <div className="relative flex h-full flex-col px-3 py-2.5 sm:px-5 sm:py-3 lg:px-6 lg:py-3.5">
+      <div className="relative flex min-h-[100dvh] flex-col px-3 py-2.5 sm:px-5 sm:py-3 lg:px-6 lg:py-3.5 xl:h-full xl:min-h-0">
         {/* Top bar — Unit311 TL · OnwardAir + Sign out TR */}
         <header className="flex shrink-0 items-center justify-between gap-2">
-          <a
-            href="https://unit311central.com"
-            className="inline-flex items-center rounded-md bg-[#061018] px-1.5 py-1 shadow-sm"
-            aria-label="Unit311 Central"
-          >
+          <a href="https://unit311central.com" aria-label="Unit311 Central">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={UNIT311_LOGO}
               alt="Unit311 Central"
-              width={72}
-              height={22}
+              width={64}
+              height={16}
               decoding="async"
-              className="block object-contain object-left"
-              style={{ height: 18, width: "auto", maxWidth: 72, maxHeight: 18 }}
+              className="block object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+              style={{ height: 16, width: "auto", maxWidth: 64, maxHeight: 16 }}
             />
           </a>
 
@@ -78,11 +70,11 @@ export function OnwardAirOverviewPage() {
             <img
               src={OA_LOGO}
               alt="OnwardAir"
-              width={96}
-              height={24}
+              width={88}
+              height={16}
               decoding="async"
-              className="block object-contain object-right"
-              style={{ height: 18, width: "auto", maxWidth: 96, maxHeight: 18 }}
+              className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+              style={{ height: 16, width: "auto", maxWidth: 88, maxHeight: 16 }}
             />
             <button
               type="button"
@@ -90,7 +82,7 @@ export function OnwardAirOverviewPage() {
                 await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
                 window.location.assign("/overview/login");
               }}
-              className="text-[10px] font-medium text-[#5B6577] underline-offset-2 hover:text-[#267B90] hover:underline sm:text-[11px]"
+              className="inline-flex min-h-11 touch-manipulation items-center px-2 text-xs font-medium text-white/70 underline-offset-2 hover:text-white hover:underline sm:min-h-0 sm:text-[11px]"
             >
               Sign out
             </button>
@@ -99,7 +91,7 @@ export function OnwardAirOverviewPage() {
 
         {/* Row 1 — brand headline */}
         <div className="mt-2 shrink-0 sm:mt-2.5">
-          <h1 className="text-[1.45rem] font-semibold leading-[1.12] tracking-tight sm:text-[1.85rem] lg:text-[2.1rem]">
+          <h1 className="text-[1.45rem] font-semibold leading-[1.12] tracking-tight text-white sm:text-[1.85rem] lg:text-[2.1rem]">
             Your business.{" "}
             <span style={{ color: ONWARDAIR_HOME_ACCENT }}>Connected. Intelligent.</span>
           </h1>
@@ -107,13 +99,13 @@ export function OnwardAirOverviewPage() {
             className="mt-1.5 h-[2px] w-14 rounded-full sm:w-16"
             style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
           />
-          <p className="mt-1.5 max-w-3xl text-[12px] leading-snug text-[#5B6577] sm:text-[13px]">
+          <p className="mt-1.5 max-w-3xl text-[12px] leading-snug text-white/65 sm:text-[13px]">
             Cash, Seed, Vertex / FLEX, and a board view — without another stack of apps.
           </p>
         </div>
 
         {/* Row 2 — five columns (true one-pager body) */}
-        <div className="mt-2.5 grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-hidden sm:mt-3 sm:grid-cols-2 sm:gap-2.5 xl:grid-cols-5 xl:gap-2.5">
+        <div className="mt-2.5 grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-y-auto sm:mt-3 sm:grid-cols-2 sm:gap-2.5 xl:grid-cols-5 xl:gap-2.5 xl:overflow-hidden">
           {/* Col 1 — questions */}
           <section className="flex min-h-0 flex-col rounded-xl border border-[#267B90]/20 bg-white/85 p-2.5 backdrop-blur-[2px] sm:p-3">
             <h2 className="shrink-0 text-[12px] font-semibold leading-snug tracking-tight text-[#1B2430] sm:text-[13px]">
@@ -234,7 +226,7 @@ export function OnwardAirOverviewPage() {
           </section>
         </div>
 
-        <footer className="mt-1.5 shrink-0 text-center text-[9px] text-[#5B6577]/80 sm:mt-2 sm:text-[10px]">
+        <footer className="mt-1.5 shrink-0 text-center text-[9px] text-white/40 sm:mt-2 sm:text-[10px]">
           OnwardAir · Unit311 Central · Private overview
         </footer>
       </div>

@@ -75,135 +75,97 @@ export function OnwardAirClientPortalLogin({
     <div
       className={
         isOverview
-          ? "relative flex min-h-screen items-center justify-center px-4 py-10 text-[#1B2430]"
+          ? "relative flex min-h-[100dvh] items-center justify-center px-4 py-10 text-white"
           : "flex min-h-screen items-center justify-center bg-[#061018] px-4 py-10 text-white"
       }
     >
       {isOverview ? (
         <>
+          {/* Same treatment as onwardair.unit311central.com/login */}
           <div
-            className="absolute inset-0 bg-cover bg-center"
+            className="absolute inset-0 bg-cover bg-[center_40%] bg-no-repeat opacity-[0.38] sm:bg-center"
             style={{ backgroundImage: "url(/images/workspaces/onwardair-login-bg.png)" }}
             aria-hidden
           />
           <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(160deg, rgba(255,255,255,0.92) 0%, rgba(244,250,251,0.88) 50%, rgba(255,255,255,0.94) 100%)",
-            }}
+            className="absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
             aria-hidden
           />
-        </>
-      ) : null}
-      <div className="relative w-full max-w-md">
-        <div className="mb-5 flex flex-col items-center gap-3">
-          {isOverview ? (
-            <>
+          <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-3 sm:px-6">
+            <a href="https://unit311central.com" aria-label="Unit311 Central">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/unit311central-login.webp"
                 alt="Unit311 Central"
-                className="h-9 w-auto max-w-[200px] object-contain"
+                width={64}
+                height={16}
                 decoding="async"
+                className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+                style={{ height: 16, width: "auto", maxWidth: 64, maxHeight: 16 }}
               />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/workspaces/onwardair-logo-dark.png"
-                alt="OnwardAir"
-                className="h-11 w-auto max-w-[260px] object-contain"
-                decoding="async"
-              />
-            </>
-          ) : (
+            </a>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/workspaces/onwardair-logo.png"
+              alt="OnwardAir"
+              width={88}
+              height={16}
+              decoding="async"
+              className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+              style={{ height: 16, width: "auto", maxWidth: 88, maxHeight: 16 }}
+            />
+          </header>
+        </>
+      ) : null}
+      <div className="relative w-full max-w-md">
+        {!isOverview ? (
+          <div className="mb-5 flex flex-col items-center gap-3">
             <OnwardAirLogoMark height={52} maxWidth={280} priority />
-          )}
-          {companyLogoSrc ? (
-            <span className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-3 py-1.5 shadow-[0_1px_0_rgba(255,255,255,0.35)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={companyLogoSrc}
-                alt={companyName}
-                className="h-9 w-auto max-w-[220px] object-contain object-center"
-                decoding="async"
-              />
-            </span>
-          ) : null}
-        </div>
-        <div
-          className={
-            isOverview
-              ? "rounded-2xl border border-[#267B90]/25 bg-white px-6 py-7 shadow-[0_12px_40px_rgba(38,123,144,0.12)]"
-              : "rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
-          }
-        >
-          <p
-            className={
-              isOverview
-                ? "text-[10px] font-semibold uppercase tracking-[0.18em] text-[#267B90]"
-                : "text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70"
-            }
-          >
+            {companyLogoSrc ? (
+              <span className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-3 py-1.5 shadow-[0_1px_0_rgba(255,255,255,0.35)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={companyLogoSrc}
+                  alt={companyName}
+                  className="h-9 w-auto max-w-[220px] object-contain object-center"
+                  decoding="async"
+                />
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-[2px]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
             {eyebrow}
           </p>
-          <h1
-            className={
-              isOverview
-                ? "mt-2 text-2xl font-semibold tracking-tight text-[#1B2430]"
-                : "mt-2 text-2xl font-semibold tracking-tight text-white"
-            }
-          >
-            {title}
-          </h1>
-          <p
-            className={
-              isOverview
-                ? "mt-2 text-sm text-[#5B6577]"
-                : "mt-2 text-sm text-white/65"
-            }
-          >
-            {blurb}
-          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">{title}</h1>
+          <p className="mt-2 text-sm text-white/65">{blurb}</p>
 
           <form className="mt-6 space-y-4" onSubmit={(e) => void handleSubmit(e)}>
             <label className="block text-sm">
-              <span className={isOverview ? "text-[#5B6577]" : "text-white/55"}>Email</span>
+              <span className="text-white/55">Email</span>
               <input
                 type="email"
                 required
                 autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className={
-                  isOverview
-                    ? "mt-1 w-full rounded-lg border border-[#267B90]/25 bg-white px-3 py-2.5 text-[#1B2430] outline-none focus:border-[#267B90]"
-                    : "mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-teal-400/60"
-                }
+                className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-teal-400/60"
               />
             </label>
             <label className="block text-sm">
-              <span className={isOverview ? "text-[#5B6577]" : "text-white/55"}>Password</span>
+              <span className="text-white/55">Password</span>
               <input
                 type="password"
                 required
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={
-                  isOverview
-                    ? "mt-1 w-full rounded-lg border border-[#267B90]/25 bg-white px-3 py-2.5 text-[#1B2430] outline-none focus:border-[#267B90]"
-                    : "mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-teal-400/60"
-                }
+                className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-teal-400/60"
               />
             </label>
             {error ? (
-              <p
-                className={
-                  isOverview
-                    ? "rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-700"
-                    : "rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200"
-                }
-              >
+              <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
                 {error}
               </p>
             ) : null}
@@ -226,13 +188,7 @@ export function OnwardAirClientPortalLogin({
             </button>
           </form>
         </div>
-        <p
-          className={
-            isOverview
-              ? "mt-4 text-center text-xs text-[#5B6577]"
-              : "mt-4 text-center text-xs text-white/35"
-          }
-        >
+        <p className="mt-4 text-center text-xs text-white/35">
           OnwardAir ·{" "}
           {isOverview
             ? "Private overview · Unit311 Central"
