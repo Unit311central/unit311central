@@ -66,7 +66,7 @@ export function OnwardAirClientPortalLogin({
       ? "Board Member Login"
       : `${companyName} Portal Login`;
   const blurb = isOverview
-    ? "Sign in to view the OnwardAir overview prepared for Scott and the team."
+    ? "Sign in to view the private OnwardAir overview."
     : isBoard
       ? "Sign in to access board materials, meetings, and governance views."
       : `Sign in to the ${companyName} client portal.`;
@@ -75,20 +75,46 @@ export function OnwardAirClientPortalLogin({
     <div
       className={
         isOverview
-          ? "flex min-h-screen items-center justify-center bg-[#F4FAFB] px-4 py-10 text-[#1B2430]"
+          ? "relative flex min-h-screen items-center justify-center px-4 py-10 text-[#1B2430]"
           : "flex min-h-screen items-center justify-center bg-[#061018] px-4 py-10 text-white"
       }
     >
-      <div className="w-full max-w-md">
+      {isOverview ? (
+        <>
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: "url(/images/workspaces/onwardair-login-bg.png)" }}
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(160deg, rgba(255,255,255,0.92) 0%, rgba(244,250,251,0.88) 50%, rgba(255,255,255,0.94) 100%)",
+            }}
+            aria-hidden
+          />
+        </>
+      ) : null}
+      <div className="relative w-full max-w-md">
         <div className="mb-5 flex flex-col items-center gap-3">
           {isOverview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src="/images/workspaces/onwardair-logo-dark.png"
-              alt="OnwardAir"
-              className="h-12 w-auto max-w-[280px] object-contain"
-              decoding="async"
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/unit311central-login.webp"
+                alt="Unit311 Central"
+                className="h-9 w-auto max-w-[200px] object-contain"
+                decoding="async"
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/workspaces/onwardair-logo-dark.png"
+                alt="OnwardAir"
+                className="h-11 w-auto max-w-[260px] object-contain"
+                decoding="async"
+              />
+            </>
           ) : (
             <OnwardAirLogoMark height={52} maxWidth={280} priority />
           )}

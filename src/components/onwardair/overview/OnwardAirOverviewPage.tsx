@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
-
 import { ONWARDAIR_HOME_ACCENT } from "@/lib/onwardair-surface";
 
 const UNIT311_LOGO = "/images/unit311central-login.webp";
+const OA_LOGO = "/images/workspaces/onwardair-logo-dark.png";
 const HERO_BG = "/images/workspaces/onwardair-login-bg.png";
 
 const QUESTIONS = [
@@ -15,305 +14,197 @@ const QUESTIONS = [
   "Do you have complete visibility of projects, people, and finances?",
 ] as const;
 
+const PILLARS = [
+  "Consolidate applications where it makes sense",
+  "Connect the systems you already rely on",
+  "Turn business information into insight",
+] as const;
+
 const FOCUS = [
-  {
-    title: "Exec view",
-    detail: "Cash, Seed progress, and runway in one glance — not another spreadsheet hunt.",
-  },
-  {
-    title: "Board portal",
-    detail: "Give advisors a secure board view without building a separate pack every quarter.",
-  },
-  {
-    title: "Engineering + finance",
-    detail: "Vertex / FLEX gates and programme risk next to the numbers leadership already watches.",
-  },
-  {
-    title: "Role-based access",
-    detail: "CEO, finance, engineering, and board each see what they need — nothing more.",
-  },
+  { title: "Exec view", detail: "Cash, Seed, runway — one glance." },
+  { title: "Board portal", detail: "Advisor-safe view without pack scramble." },
+  { title: "Eng + finance", detail: "Vertex / FLEX risk next to numbers." },
+  { title: "Role-based", detail: "CEO, finance, eng, board — each their view." },
 ] as const;
 
 const INVITE = [
-  { wave: "First 25 min", who: "Scott · Brian · Monte", why: "Leadership picture & offer" },
-  { wave: "Next 20 min", who: "+ Engineering leads", why: "Programmes, risk, day-to-day tools" },
-  { wave: "Last 15 min", who: "Core three", why: "6-month build plan & next steps" },
+  { wave: "0–25", who: "Scott · Brian · Monte", why: "Leadership picture" },
+  { wave: "25–45", who: "+ Eng leads", why: "Programmes & tools" },
+  { wave: "45–60", who: "Core three", why: "Build plan" },
 ] as const;
 
 export function OnwardAirOverviewPage() {
   return (
-    <div className="oa-overview min-h-screen bg-white text-[#1B2430]">
-      <style>{`
-        @keyframes oaFadeUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes oaDrawLine {
-          from { transform: scaleX(0); }
-          to { transform: scaleX(1); }
-        }
-        @keyframes oaHubPulse {
-          0%, 100% { opacity: 0.35; }
-          50% { opacity: 0.7; }
-        }
-        .oa-overview .fade-up {
-          animation: oaFadeUp 0.7s ease-out both;
-        }
-        .oa-overview .fade-up-d1 { animation-delay: 0.08s; }
-        .oa-overview .fade-up-d2 { animation-delay: 0.16s; }
-        .oa-overview .fade-up-d3 { animation-delay: 0.24s; }
-        .oa-overview .fade-up-d4 { animation-delay: 0.32s; }
-        .oa-overview .accent-line {
-          transform-origin: left center;
-          animation: oaDrawLine 0.9s ease-out 0.2s both;
-        }
-        .oa-overview .hub-pulse {
-          animation: oaHubPulse 3.2s ease-in-out infinite;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .oa-overview .fade-up,
-          .oa-overview .accent-line,
-          .oa-overview .hub-pulse {
-            animation: none !important;
-            opacity: 1 !important;
-            transform: none !important;
-          }
-        }
-      `}</style>
+    <div className="oa-overview relative h-dvh max-h-dvh overflow-hidden text-[#1B2430]">
+      {/* Full-bleed login hero background */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${HERO_BG})` }}
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(160deg, rgba(255,255,255,0.94) 0%, rgba(244,250,251,0.90) 40%, rgba(255,255,255,0.92) 100%)",
+        }}
+        aria-hidden
+      />
 
-      <header className="relative overflow-hidden border-b border-[#267B90]/20">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-[0.14]"
-          style={{ backgroundImage: `url(${HERO_BG})` }}
-          aria-hidden
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(165deg, rgba(255,255,255,0.92) 0%, rgba(238,248,250,0.88) 45%, rgba(255,255,255,0.96) 100%)",
-          }}
-          aria-hidden
-        />
-        <div className="relative mx-auto flex max-w-3xl flex-col gap-8 px-5 pb-14 pt-8 sm:px-8 sm:pb-16 sm:pt-10">
-          <div className="fade-up flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/workspaces/onwardair-logo-dark.png"
-                alt="OnwardAir"
-                className="h-10 w-auto max-w-[200px] object-contain"
-                decoding="async"
-              />
-              <span className="hidden h-8 w-px bg-[#267B90]/30 sm:block" aria-hidden />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={UNIT311_LOGO}
-                alt="Unit311 Central"
-                className="h-8 w-auto max-w-[140px] object-contain"
-                decoding="async"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={async () => {
-                await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-                window.location.assign("/overview/login");
-              }}
-              className="text-xs font-medium text-[#5B6577] underline-offset-2 hover:text-[#267B90] hover:underline"
-            >
-              Sign out
-            </button>
-          </div>
-
-          <div className="fade-up fade-up-d1 max-w-xl">
-            <p
-              className="text-[11px] font-semibold uppercase tracking-[0.2em]"
-              style={{ color: ONWARDAIR_HOME_ACCENT }}
-            >
-              For Scott &amp; the OnwardAir team
-            </p>
-            <h1 className="mt-3 text-[2rem] font-semibold leading-[1.15] tracking-tight text-[#1B2430] sm:text-[2.6rem]">
-              Your business.
-              <br />
-              <span style={{ color: ONWARDAIR_HOME_ACCENT }}>Connected. Intelligent.</span>
-            </h1>
-            <div
-              className="accent-line mt-5 h-[3px] w-24 rounded-full"
-              style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
+      <div className="relative flex h-full flex-col px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-5">
+        {/* Top bar — small logos left, sign out right */}
+        <header className="flex shrink-0 items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={OA_LOGO}
+              alt="OnwardAir"
+              className="h-6 w-auto max-w-[120px] object-contain sm:h-7 sm:max-w-[140px]"
+              decoding="async"
             />
-            <p className="mt-5 text-base leading-relaxed text-[#5B6577] sm:text-lg">
-              A short look at a platform shaped around how OnwardAir actually runs — cash, Seed,
-              Vertex / FLEX, and a board view your advisors can use — without another stack of
-              apps.
-            </p>
+            <span className="h-5 w-px bg-[#267B90]/30" aria-hidden />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={UNIT311_LOGO}
+              alt="Unit311 Central"
+              className="h-5 w-auto max-w-[100px] object-contain sm:h-6 sm:max-w-[120px]"
+              decoding="async"
+            />
           </div>
-
-          <svg
-            className="hub-pulse fade-up fade-up-d2 pointer-events-none absolute -right-6 top-24 hidden h-40 w-40 sm:block md:right-8"
-            viewBox="0 0 120 120"
-            fill="none"
-            aria-hidden
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+              window.location.assign("/overview/login");
+            }}
+            className="text-[11px] font-medium text-[#5B6577] underline-offset-2 hover:text-[#267B90] hover:underline"
           >
-            <circle cx="60" cy="60" r="10" fill={ONWARDAIR_HOME_ACCENT} opacity="0.9" />
-            {[0, 60, 120, 180, 240, 300].map((deg) => {
-              const rad = (deg * Math.PI) / 180;
-              const x = 60 + Math.cos(rad) * 42;
-              const y = 60 + Math.sin(rad) * 42;
-              return (
-                <g key={deg}>
-                  <line
-                    x1="60"
-                    y1="60"
-                    x2={x}
-                    y2={y}
-                    stroke={ONWARDAIR_HOME_ACCENT}
-                    strokeWidth="1.5"
-                    opacity="0.45"
-                  />
-                  <circle cx={x} cy={y} r="5" fill={ONWARDAIR_HOME_ACCENT} opacity="0.55" />
-                </g>
-              );
-            })}
-          </svg>
+            Sign out
+          </button>
+        </header>
+
+        {/* Row 1 — brand headline */}
+        <div className="mt-3 shrink-0 sm:mt-4">
+          <h1 className="text-[1.65rem] font-semibold leading-[1.12] tracking-tight sm:text-[2.1rem] lg:text-[2.35rem]">
+            Your business.{" "}
+            <span style={{ color: ONWARDAIR_HOME_ACCENT }}>Connected. Intelligent.</span>
+          </h1>
+          <div
+            className="mt-2 h-[2px] w-16 rounded-full sm:mt-2.5 sm:w-20"
+            style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
+          />
+          <p className="mt-2 max-w-3xl text-[13px] leading-snug text-[#5B6577] sm:text-sm">
+            Cash, Seed, Vertex / FLEX, and a board view — without another stack of apps.
+          </p>
         </div>
-      </header>
 
-      <main className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
-        <section className="fade-up fade-up-d2">
-          <h2 className="text-lg font-semibold tracking-tight text-[#1B2430] sm:text-xl">
-            Could your business be operating more effectively?
-          </h2>
-          <ul className="mt-6 space-y-0">
-            {QUESTIONS.map((q, i) => (
-              <li
-                key={q}
-                className="flex gap-4 border-b border-[#267B90]/15 py-4 first:border-t"
-                style={{ animationDelay: `${0.28 + i * 0.06}s` }}
-              >
-                <span
-                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                  style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
+        {/* Row 2 — four columns (true one-pager body) */}
+        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-hidden sm:mt-4 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4 lg:gap-3">
+          {/* Col 1 — questions */}
+          <section className="flex min-h-0 flex-col rounded-xl border border-[#267B90]/20 bg-white/80 p-3 backdrop-blur-[2px] sm:p-3.5">
+            <h2 className="shrink-0 text-[13px] font-semibold leading-snug tracking-tight text-[#1B2430] sm:text-sm">
+              Could your business be operating more effectively?
+            </h2>
+            <ul className="mt-2.5 min-h-0 flex-1 space-y-1.5 overflow-hidden">
+              {QUESTIONS.map((q, i) => (
+                <li key={q} className="flex gap-2">
+                  <span
+                    className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                    style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
+                  >
+                    {i + 1}
+                  </span>
+                  <p className="text-[11px] leading-snug text-[#1B2430] sm:text-[12px]">{q}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* Col 2 — what it is */}
+          <section className="flex min-h-0 flex-col rounded-xl border border-[#267B90]/20 bg-white/80 p-3 backdrop-blur-[2px] sm:p-3.5">
+            <h2 className="shrink-0 text-[13px] font-semibold tracking-tight text-[#1B2430] sm:text-sm">
+              What Unit311 Central is
+            </h2>
+            <p className="mt-2 text-[11px] leading-snug text-[#5B6577] sm:text-[12px]">
+              Intelligent operations for growing companies — consolidate where it makes sense,
+              connect what you keep, one trusted place for information.
+            </p>
+            <ul className="mt-2.5 space-y-1.5">
+              {PILLARS.map((item) => (
+                <li
+                  key={item}
+                  className="rounded-lg border border-[#267B90]/20 bg-[#F4FAFB]/90 px-2.5 py-2 text-[11px] leading-snug text-[#1B2430] sm:text-[12px]"
                 >
-                  {i + 1}
-                </span>
-                <p className="text-[15px] leading-snug text-[#1B2430] sm:text-base">{q}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-auto pt-2 text-[10px] leading-snug text-[#5B6577] sm:text-[11px]">
+              Prior SME: 30+ apps as CTO. This would have cut that stack ~75%.
+            </p>
+          </section>
 
-        <section className="fade-up fade-up-d3 mt-14">
-          <h2 className="text-lg font-semibold tracking-tight text-[#1B2430] sm:text-xl">
-            What Unit311 Central is
-          </h2>
-          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#5B6577]">
-            An intelligent operations platform for growing companies — consolidate day-to-day
-            operations where it makes sense, connect the specialist systems you keep, and give
-            every person trusted information from one place.
-          </p>
-          <ul className="mt-6 grid gap-3 sm:grid-cols-3">
-            {[
-              "Consolidate applications where it makes sense",
-              "Connect the systems you already rely on",
-              "Turn business information into insight",
-            ].map((item) => (
-              <li
-                key={item}
-                className="rounded-xl border border-[#267B90]/25 bg-[#F4FAFB] px-4 py-4 text-sm leading-snug text-[#1B2430]"
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-5 text-sm leading-relaxed text-[#5B6577]">
-            In a previous SME, even as a CTO for 25+ years, I lived with 30+ applications — each
-            with its own sign-on, little interoperability. Unit311 Central would have cut that
-            stack by at least 75%.
-          </p>
-        </section>
+          {/* Col 3 — built around OA */}
+          <section className="flex min-h-0 flex-col rounded-xl border border-[#267B90]/20 bg-white/80 p-3 backdrop-blur-[2px] sm:p-3.5">
+            <h2 className="shrink-0 text-[13px] font-semibold tracking-tight text-[#1B2430] sm:text-sm">
+              Built around how OnwardAir runs
+            </h2>
+            <p className="mt-1.5 text-[10px] text-[#5B6577] sm:text-[11px]">
+              Worth an hour — not a module catalogue.
+            </p>
+            <div className="mt-2.5 grid min-h-0 flex-1 grid-cols-1 gap-1.5 content-start">
+              {FOCUS.map((card) => (
+                <article
+                  key={card.title}
+                  className="rounded-lg border border-[#267B90]/15 bg-white/90 px-2.5 py-2"
+                >
+                  <div
+                    className="mb-1 h-0.5 w-6 rounded-full"
+                    style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
+                  />
+                  <h3 className="text-[12px] font-semibold text-[#1B2430]">{card.title}</h3>
+                  <p className="mt-0.5 text-[11px] leading-snug text-[#5B6577]">{card.detail}</p>
+                </article>
+              ))}
+            </div>
+          </section>
 
-        <section className="fade-up fade-up-d4 mt-14">
-          <h2 className="text-lg font-semibold tracking-tight text-[#1B2430] sm:text-xl">
-            Built around how OnwardAir runs
-          </h2>
-          <p className="mt-2 text-sm text-[#5B6577]">
-            Four things worth an hour of your time — not a module catalogue.
-          </p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {FOCUS.map((card) => (
-              <article
-                key={card.title}
-                className="rounded-2xl border border-[#267B90]/20 bg-white p-5 shadow-[0_1px_0_rgba(38,123,144,0.08)]"
-              >
+          {/* Col 4 — 60 min session */}
+          <section className="flex min-h-0 flex-col rounded-xl border border-[#267B90]/20 bg-white/80 p-3 backdrop-blur-[2px] sm:p-3.5">
+            <h2 className="shrink-0 text-[13px] font-semibold tracking-tight text-[#1B2430] sm:text-sm">
+              60-minute working session
+            </h2>
+            <p className="mt-1.5 text-[10px] text-[#5B6577] sm:text-[11px]">
+              Live walkthrough — then decide if it&apos;s for you.
+            </p>
+            <div className="mt-2.5 space-y-1.5">
+              {INVITE.map((row) => (
                 <div
-                  className="mb-3 h-1 w-10 rounded-full"
-                  style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
-                />
-                <h3 className="text-base font-semibold text-[#1B2430]">{card.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#5B6577]">{card.detail}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+                  key={row.wave}
+                  className="rounded-lg border border-[#267B90]/15 bg-white/90 px-2.5 py-2"
+                >
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-wider"
+                    style={{ color: ONWARDAIR_HOME_ACCENT }}
+                  >
+                    {row.wave} min
+                  </p>
+                  <p className="text-[12px] font-medium text-[#1B2430]">{row.who}</p>
+                  <p className="text-[11px] text-[#5B6577]">{row.why}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-auto pt-2 text-[10px] leading-snug text-[#5B6577] sm:text-[11px]">
+              Full workspace opens ~24h before we meet — not before. This page is only the
+              invitation.
+            </p>
+          </section>
+        </div>
 
-        <section
-          className="mt-14 rounded-2xl px-5 py-8 text-white sm:px-8"
-          style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
-        >
-          <h2 className="text-lg font-semibold tracking-tight sm:text-xl">The offer</h2>
-          <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-white/90">
-            Six months free. We build it with you — around Vertex, FLEX, Seed, Houston ops, and
-            the way your team already works. Not a generic trial.
-          </p>
-        </section>
-
-        <section className="mt-14">
-          <h2 className="text-lg font-semibold tracking-tight text-[#1B2430] sm:text-xl">
-            60-minute working session
-          </h2>
-          <p className="mt-2 text-sm text-[#5B6577]">
-            Not a slide deck. A live walkthrough — then we decide if it&apos;s for you.
-          </p>
-          <div className="mt-6 space-y-3">
-            {INVITE.map((row) => (
-              <div
-                key={row.wave}
-                className="flex flex-col gap-1 rounded-xl border border-[#267B90]/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-              >
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#267B90]">
-                  {row.wave}
-                </p>
-                <p className="text-sm font-medium text-[#1B2430] sm:flex-1">{row.who}</p>
-                <p className="text-sm text-[#5B6577]">{row.why}</p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-6 rounded-xl border border-dashed border-[#267B90]/35 bg-[#F4FAFB] px-4 py-3 text-sm text-[#5B6577]">
-            Full workspace access opens about 24 hours before we meet — not before. This page is
-            only the invitation.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <a
-              href="mailto:paul@unit311central.com?subject=OnwardAir%2060-minute%20session&body=Scott%20—%20happy%20to%20lock%20a%2060-minute%20slot.%20Please%20include%20Brian%20and%20Monte%20if%20you%20can."
-              className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold text-white transition hover:opacity-95"
-              style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
-            >
-              Reply to book 60 minutes
-            </a>
-            <Link
-              href="https://unit311central.com"
-              className="text-center text-sm font-medium text-[#5B6577] underline-offset-2 hover:text-[#267B90] hover:underline sm:text-left"
-            >
-              unit311central.com
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      <footer className="border-t border-[#267B90]/15 px-5 py-8 text-center text-xs text-[#5B6577] sm:px-8">
-        OnwardAir · Unit311 Central · Private overview · Not a live demo login
-      </footer>
+        <footer className="mt-2 shrink-0 text-center text-[10px] text-[#5B6577]/80 sm:mt-3">
+          OnwardAir · Unit311 Central · Private overview
+        </footer>
+      </div>
     </div>
   );
 }
