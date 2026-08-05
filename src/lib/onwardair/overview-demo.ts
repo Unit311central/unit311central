@@ -269,7 +269,7 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live6`;
+  return `/images/overview/screenshots/${key}.png?v=live7`;
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {
@@ -417,12 +417,12 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
     agenda: [
       {
         wave: "0–25",
-        who: "+Leadership · +Management",
+        who: "+Leadership +Management",
         why: "Leadership picture",
       },
       {
         wave: "25–40",
-        who: "+Engineering leads · +Operation leads",
+        who: "+Engineering leads +Operation leads",
         why: "Programmes, tools & operating rhythm",
       },
       {

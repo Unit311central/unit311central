@@ -13,9 +13,9 @@ const ORIGIN = "https://onwardair.unit311central.com";
 const USERNAME = "admin@onwardair.tech";
 const PASSWORD = "Houston1999$";
 const OUT = path.join(process.cwd(), "public", "images", "overview", "screenshots");
-const VIEWPORT = { width: 1440, height: 900 };
-/** Match EnterprisePlatformSidebar xl width — crop this from captures. */
-const SIDEBAR_W = 252;
+const VIEWPORT = { width: 1600, height: 1000 };
+/** Match EnterprisePlatformSidebar lg width (320) + a little slack. */
+const SIDEBAR_W = 328;
 
 /**
  * One capture per live platform view id (filename = view id).
@@ -216,8 +216,8 @@ async function captureView(page, view) {
     },
   });
   await sharp(rawPath)
-    .resize({ width: 1280, withoutEnlargement: true })
-    .png({ compressionLevel: 9, palette: true })
+    .resize({ width: 1920, withoutEnlargement: true })
+    .png({ compressionLevel: 8, palette: false, effort: 7 })
     .toFile(outPath);
   fs.unlinkSync(rawPath);
   const size = fs.statSync(outPath).size;
@@ -227,7 +227,7 @@ async function captureView(page, view) {
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
   viewport: VIEWPORT,
-  deviceScaleFactor: 1,
+  deviceScaleFactor: 2,
 });
 const page = await context.newPage();
 
