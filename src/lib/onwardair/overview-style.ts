@@ -39,9 +39,9 @@ export const OVERVIEW_LEFT_CARD_IDS = ["questions", "highlights", "agenda"] as c
 export type OverviewLeftCardId = (typeof OVERVIEW_LEFT_CARD_IDS)[number];
 
 export const OVERVIEW_LEFT_CARD_LABELS: Record<OverviewLeftCardId, string> = {
-  questions: "Questions (top)",
-  highlights: "Highlights (middle)",
-  agenda: "Agenda (bottom)",
+  questions: "Questions",
+  highlights: "Highlights",
+  agenda: "Agenda",
 };
 
 /** Per-box chrome — size, border, shadow, visibility, relative height. */
@@ -151,7 +151,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
   return {
     version: OVERVIEW_STYLE_VERSION,
     accent: "#267B90",
-    leftColumnOrder: ["questions", "highlights", "agenda"],
+    leftColumnOrder: ["questions", "agenda", "highlights"],
     page: {
       paddingX: 16,
       paddingY: 12,
