@@ -42,7 +42,7 @@ const OA_LOGO = "/images/workspaces/onwardair-logo.png";
 const HERO_BG = "/images/overview-corporate-intelligence-bg.png";
 
 const INLINE_EDIT =
-  "oa-inline-edit w-full min-w-0 rounded border border-dashed border-transparent bg-transparent px-0.5 py-0 outline-none hover:border-[#7DD3E8]/50 hover:bg-black/5 focus:border-[#7DD3E8] focus:bg-black/5 [font:inherit] [font-size:inherit] [font-weight:inherit] [letter-spacing:inherit] [line-height:inherit] [color:inherit] [font-family:inherit]";
+  "oa-inline-edit w-full min-w-0 rounded border border-dashed border-transparent bg-transparent px-0.5 py-0 outline-none hover:border-[#7DD3E8]/50 hover:bg-black/5 focus:border-[#7DD3E8] focus:bg-black/5";
 
 function InlineEdit({
   value,
@@ -68,8 +68,17 @@ function InlineEdit({
   onFocus?: () => void;
   onBlur?: () => void;
 }) {
+  // Put color/size on the control itself — page has text-white, and form
+  // controls do not reliably inherit color from a wrapper.
+  const controlStyle: CSSProperties = {
+    resize: "none",
+    fieldSizing: "content",
+    minHeight: 0,
+    ...style,
+  };
+
   return (
-    <div className={`min-w-0 ${fill ? (multiline ? "w-full" : "flex-1") : "w-auto max-w-full"}`} style={style}>
+    <div className={`min-w-0 ${fill ? (multiline ? "w-full" : "flex-1") : "w-auto max-w-full"}`}>
       {multiline ? (
         <textarea
           aria-label={ariaLabel}
@@ -80,7 +89,8 @@ function InlineEdit({
           onBlur={onBlur}
           onMouseDown={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
-          className={`${INLINE_EDIT} resize-none leading-snug ${className}`}
+          className={`${INLINE_EDIT} leading-snug ${className}`}
+          style={controlStyle}
         />
       ) : (
         <input
@@ -93,6 +103,7 @@ function InlineEdit({
           onMouseDown={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
           className={`${INLINE_EDIT} ${className}`}
+          style={controlStyle}
         />
       )}
     </div>
@@ -510,7 +521,7 @@ export function OnwardAirOverviewPage() {
           style={boxStyle}
         >
           <ul
-            className="flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
+            className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto py-0.5"
             style={{ gap: style.questions.itemGap }}
           >
             {content.questions.map((q, i) => (
@@ -561,7 +572,7 @@ export function OnwardAirOverviewPage() {
             className="shrink-0 font-bold uppercase tracking-[0.14em]"
             style={{ fontSize: `${style.highlights.titleSize}px`, color: style.highlights.titleColor }}
           />
-          <ul className="mt-2 flex min-h-0 flex-1 flex-col justify-evenly gap-1 overflow-y-auto">
+          <ul className="mt-2 flex min-h-0 flex-1 flex-col justify-start gap-1.5 overflow-y-auto">
             {content.highlights.map((item, i) => (
               <li key={`h-${i}`} className="flex items-start gap-1 leading-snug">
                 <span className="shrink-0" style={{ color: style.highlights.bulletColor }}>
@@ -588,7 +599,11 @@ export function OnwardAirOverviewPage() {
     }
 
     return (
-      <section key={id} className="flex min-h-0 flex-col overflow-hidden" style={boxStyle}>
+      <section
+        key={id}
+        className="flex min-h-0 flex-col overflow-hidden text-[#1B2430]"
+        style={boxStyle}
+      >
         <InlineEdit
           aria-label="Agenda title"
           value={content.agendaTitle}
@@ -596,7 +611,7 @@ export function OnwardAirOverviewPage() {
           className="shrink-0 font-semibold tracking-tight"
           style={{ fontSize: `${style.agenda.titleSize}px`, color: style.agenda.titleColor }}
         />
-        <div className="mt-2 flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-y-auto">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col justify-start gap-1.5 overflow-y-auto">
           {content.agenda.map((row, i) => (
             <div
               key={`a-${i}`}
