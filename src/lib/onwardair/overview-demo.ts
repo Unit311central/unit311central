@@ -481,7 +481,7 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
       "Understand your Operations",
       "Enginering & Project Mgt Advanced ",
     ],
-    agendaTitle: "45 Min Working Session",
+    agendaTitle: "45 MIN WORKING SESSION",
     agendaIntro: "",
     agenda: [
       {

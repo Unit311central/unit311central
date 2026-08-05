@@ -702,7 +702,11 @@ export default function EnterprisePlatformSidebar({
       role={mobileOpen ? "dialog" : undefined}
       aria-label={mobileOpen ? "Navigation menu" : undefined}
       className={cn(
-        "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(320px,94vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:w-[320px] lg:shrink-0 lg:translate-x-0 lg:pt-0",
+        "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(320px,94vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:shrink-0 lg:translate-x-0 lg:pt-0",
+        // Overview invite: narrower nav so the RHS preview survives laptop/Mac widths.
+        overviewEmbed
+          ? "lg:w-[188px] xl:w-[208px] 2xl:w-[228px]"
+          : "lg:w-[320px]",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
       )}
       style={{
@@ -711,13 +715,16 @@ export default function EnterprisePlatformSidebar({
       }}
     >
       <div
-        className="relative flex shrink-0 items-center justify-center px-5 pt-5"
-        style={{ paddingBottom: 20 }}
+        className={cn(
+          "relative flex shrink-0 items-center justify-center",
+          overviewEmbed ? "px-2.5 pt-3 pb-3 xl:px-3 xl:pt-4 xl:pb-4" : "px-5 pt-5",
+        )}
+        style={overviewEmbed ? undefined : { paddingBottom: 20 }}
       >
         {overviewEmbed ? (
           <p
-            className="w-full max-w-none whitespace-nowrap px-0 text-center font-bold uppercase leading-none tracking-[0.06em] text-white"
-            style={{ fontSize: 13 }}
+            className="w-full max-w-none px-0 text-center font-bold uppercase leading-tight tracking-[0.06em] text-white xl:whitespace-nowrap"
+            style={{ fontSize: "clamp(10px, 0.85vw, 13px)" }}
           >
             CLICK BELOW TO VIEW
           </p>
@@ -735,8 +742,13 @@ export default function EnterprisePlatformSidebar({
         </button>
       </div>
 
-      <nav className="sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-5">
-        <div className="flex flex-col" style={{ gap: CARD_GAP }}>
+      <nav
+        className={cn(
+          "sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain",
+          overviewEmbed ? "px-2 xl:px-2.5 2xl:px-3" : "px-5",
+        )}
+      >
+        <div className="flex flex-col" style={{ gap: overviewEmbed ? 8 : CARD_GAP }}>
           {pinSections.map((section) =>
             section.items.map((item) =>
               renderPinItem(item, resolveOnwardAirNavAccent(section) ?? section.color),

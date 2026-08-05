@@ -166,7 +166,7 @@ function HeaderTaglineEditor({
   }, []);
 
   const typeStyle: CSSProperties = {
-    fontSize: `${typography.headerFontSize}px`,
+    fontSize: `calc(${typography.headerFontSize}px * var(--oa-scale, 1))`,
     fontWeight: typography.headerFontWeight,
     letterSpacing: `${typography.headerLetterSpacing}px`,
     color: typography.headerColor,
@@ -492,8 +492,9 @@ export function OnwardAirOverviewPage() {
   }, [activeView]);
 
   const previewMedia = useMemo(() => overviewPreviewMediaForView(activeView), [activeView]);
-  const layoutCols = `minmax(220px, ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`;
+  const layoutCols = `minmax(min(100%, max(160px, 18vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`;
   const visibleLeftCards = style.leftColumnOrder.filter((id) => style[id].visible);
+  const scale = (px: number) => `calc(${px}px * var(--oa-scale, 1))`;
   const leftGridRows =
     visibleLeftCards.length > 0
       ? visibleLeftCards.map((id) => `minmax(0, ${style[id].heightFr}fr)`).join(" ")
@@ -512,7 +513,7 @@ export function OnwardAirOverviewPage() {
     const shadow = overviewCardShadow(chrome.shadowOpacity);
     const boxStyle: CSSProperties = {
       background: chrome.bg,
-      padding: chrome.padding,
+      padding: scale(chrome.padding),
       borderRadius: chrome.radius,
       border,
       boxShadow: shadow,
@@ -527,7 +528,7 @@ export function OnwardAirOverviewPage() {
         >
           <ul
             className="flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
-            style={{ gap: style.questions.itemGap }}
+            style={{ gap: scale(style.questions.itemGap) }}
           >
             {content.questions.map((q, i) => (
               <li key={`q-${i}`} className="flex shrink-0 items-start leading-snug">
@@ -543,7 +544,7 @@ export function OnwardAirOverviewPage() {
                   }}
                   className="leading-snug"
                   style={{
-                    fontSize: `${style.questions.textSize}px`,
+                    fontSize: scale(style.questions.textSize),
                     color: style.questions.textColor,
                     height: "auto",
                     minHeight: "1.35em",
@@ -563,7 +564,7 @@ export function OnwardAirOverviewPage() {
           className="flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
           style={boxStyle}
         >
-          <div className="shrink-0" style={{ marginBottom: style.highlights.titleGap }}>
+          <div className="shrink-0" style={{ marginBottom: scale(style.highlights.titleGap) }}>
             <InlineEdit
               aria-label="Highlights title"
               value={content.highlightsTitle}
@@ -571,11 +572,11 @@ export function OnwardAirOverviewPage() {
               onChange={(highlightsTitle) => patchContent({ highlightsTitle })}
               fill={false}
               className="font-bold uppercase tracking-[0.14em]"
-              style={{ fontSize: `${style.highlights.titleSize}px`, color: style.highlights.titleColor }}
+              style={{ fontSize: scale(style.highlights.titleSize), color: style.highlights.titleColor }}
             />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <ul className="m-0 flex list-none flex-col p-0" style={{ gap: style.highlights.itemGap }}>
+            <ul className="m-0 flex list-none flex-col p-0" style={{ gap: scale(style.highlights.itemGap) }}>
               {content.highlights.map((item, i) => (
                 <li key={`h-${i}`} className="flex shrink-0 items-start gap-1 leading-snug">
                   <span className="shrink-0" style={{ color: style.highlights.bulletColor }}>
@@ -591,7 +592,7 @@ export function OnwardAirOverviewPage() {
                       );
                       patchContent({ highlights });
                     }}
-                    style={{ fontSize: `${style.highlights.itemSize}px`, color: style.highlights.itemColor }}
+                    style={{ fontSize: scale(style.highlights.itemSize), color: style.highlights.itemColor }}
                   />
                 </li>
               ))}
@@ -607,35 +608,50 @@ export function OnwardAirOverviewPage() {
         className="flex min-h-0 flex-col overflow-hidden text-[#1B2430]"
         style={boxStyle}
       >
-        <div className="shrink-0" style={{ marginBottom: style.agenda.titleGap }}>
-          <InlineEdit
-            aria-label="Agenda title"
-            value={content.agendaTitle}
-            editable={tuneMode}
-            onChange={(agendaTitle) => patchContent({ agendaTitle })}
-            fill
-            className="oa-agenda-title !font-bold tracking-tight text-center"
-            style={{
-              fontSize: `${style.agenda.titleSize}px`,
-              fontWeight: 800,
-              color: style.agenda.titleColor,
-              height: "auto",
-              minHeight: "1.45em",
-              lineHeight: 1.3,
-              textAlign: "center",
-              width: "100%",
-            }}
-          />
+        <div className="shrink-0" style={{ marginBottom: scale(style.agenda.titleGap) }}>
+          {tuneMode ? (
+            <InlineEdit
+              aria-label="Agenda title"
+              value={content.agendaTitle}
+              editable
+              onChange={(agendaTitle) => patchContent({ agendaTitle })}
+              fill
+              className="oa-agenda-title !font-bold tracking-tight text-center"
+              style={{
+                fontSize: scale(style.agenda.titleSize),
+                fontWeight: 800,
+                color: style.agenda.titleColor,
+                height: "auto",
+                minHeight: "1.45em",
+                lineHeight: 1.3,
+                textAlign: "center",
+                width: "100%",
+              }}
+            />
+          ) : (
+            <p
+              className="oa-agenda-title m-0 w-full text-center font-extrabold tracking-tight"
+              style={{
+                fontSize: scale(style.agenda.titleSize),
+                fontWeight: 800,
+                color: style.agenda.titleColor,
+                lineHeight: 1.3,
+                textAlign: "center",
+              }}
+            >
+              45 MIN WORKING SESSION
+            </p>
+          )}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="flex flex-col" style={{ gap: style.agenda.rowGap }}>
+          <div className="flex flex-col" style={{ gap: scale(style.agenda.rowGap) }}>
             {content.agenda.map((row, i) => (
               <div
                 key={`a-${i}`}
                 className="shrink-0"
                 style={{
                   background: style.agenda.rowBg,
-                  padding: `${style.agenda.rowPaddingY}px ${style.agenda.rowPaddingX}px`,
+                  padding: `${scale(style.agenda.rowPaddingY)} ${scale(style.agenda.rowPaddingX)}`,
                   borderRadius: style.agenda.rowRadius,
                   border: overviewCardBorder({
                     borderColor: style.agenda.rowBorderColor,
@@ -656,7 +672,7 @@ export function OnwardAirOverviewPage() {
                       patchContent({ agenda });
                     }}
                     className="font-bold uppercase tracking-wider"
-                    style={{ fontSize: `${style.agenda.waveSize}px`, color: style.agenda.waveColor }}
+                    style={{ fontSize: scale(style.agenda.waveSize), color: style.agenda.waveColor }}
                   />
                   <InlineEdit
                     aria-label={`Agenda row ${i + 1} who`}
@@ -670,7 +686,7 @@ export function OnwardAirOverviewPage() {
                       patchContent({ agenda });
                     }}
                     className="text-right font-semibold"
-                    style={{ fontSize: `${style.agenda.whoSize}px`, color: style.agenda.whoColor }}
+                    style={{ fontSize: scale(style.agenda.whoSize), color: style.agenda.whoColor }}
                   />
                 </div>
                 <InlineEdit
@@ -685,7 +701,7 @@ export function OnwardAirOverviewPage() {
                   }}
                   className="oa-agenda-why mt-0.5 !font-bold leading-snug"
                   style={{
-                    fontSize: `${style.agenda.whySize}px`,
+                    fontSize: scale(style.agenda.whySize),
                     fontWeight: 700,
                     color: style.agenda.whyColor,
                     height: "auto",
@@ -702,9 +718,72 @@ export function OnwardAirOverviewPage() {
 
   return (
     <div
-      className="oa-overview relative flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden text-white"
+      className="oa-overview relative flex min-h-[100dvh] flex-col overflow-x-hidden text-white lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden"
       style={{ fontFamily: overviewFontStack(style.typography.fontFamily) }}
     >
+      <style>{`
+        .oa-overview {
+          --oa-scale: 1;
+          --oa-pad-x: ${style.page.paddingX}px;
+          --oa-pad-y: ${style.page.paddingY}px;
+          --oa-col-gap: ${style.page.columnGap}px;
+          --oa-card-gap: ${style.page.cardGap}px;
+          --oa-layout-cols: ${layoutCols};
+          --oa-preview-min-h: ${style.preview.minHeight}px;
+        }
+        @media (max-width: 1511px) {
+          .oa-overview { --oa-scale: 0.94; }
+        }
+        @media (max-width: 1365px) {
+          .oa-overview {
+            --oa-scale: 0.88;
+            --oa-pad-x: max(10px, ${Math.round(style.page.paddingX * 0.75)}px);
+            --oa-pad-y: max(8px, ${Math.round(style.page.paddingY * 0.75)}px);
+            --oa-col-gap: max(10px, ${Math.round(style.page.columnGap * 0.75)}px);
+            --oa-card-gap: max(10px, ${Math.round(style.page.cardGap * 0.75)}px);
+          }
+        }
+        @media (max-width: 1279px) {
+          .oa-overview {
+            --oa-scale: 0.82;
+            --oa-preview-min-h: 0px;
+          }
+        }
+        @media (max-width: 1099px) {
+          .oa-overview {
+            --oa-scale: 0.9;
+            --oa-pad-x: 12px;
+            --oa-pad-y: 10px;
+          }
+          .oa-overview-layout {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: minmax(220px, 38vh) minmax(320px, 1fr);
+            overflow: visible;
+          }
+          .oa-overview-left {
+            grid-template-rows: repeat(var(--oa-left-count, 3), minmax(0, 1fr)) !important;
+            max-height: 38vh;
+          }
+          .oa-overview-preview {
+            min-height: 320px !important;
+          }
+        }
+        @media (min-width: 1100px) {
+          .oa-overview-layout {
+            grid-template-columns: var(--oa-layout-cols);
+          }
+        }
+        @media (max-height: 820px) and (min-width: 1100px) {
+          .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 0px; }
+        }
+        @media (max-height: 720px) {
+          .oa-overview {
+            height: auto !important;
+            max-height: none !important;
+            overflow: auto !important;
+          }
+        }
+      `}</style>
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${HERO_BG})`, opacity: style.page.heroImageOpacity }}
@@ -721,10 +800,10 @@ export function OnwardAirOverviewPage() {
       <div
         className="relative flex min-h-0 flex-1 flex-col"
         style={{
-          paddingLeft: style.page.paddingX,
-          paddingRight: style.page.paddingX,
-          paddingTop: style.page.paddingY,
-          paddingBottom: style.page.paddingY,
+          paddingLeft: "var(--oa-pad-x)",
+          paddingRight: "var(--oa-pad-x)",
+          paddingTop: "var(--oa-pad-y)",
+          paddingBottom: "var(--oa-pad-y)",
         }}
       >
         <header className="flex shrink-0 flex-col gap-2">
@@ -739,10 +818,10 @@ export function OnwardAirOverviewPage() {
                 decoding="async"
                 className="block shrink-0 object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
                 style={{
-                  height: style.logos.oaHeight,
+                  height: scale(style.logos.oaHeight),
                   width: "auto",
-                  maxWidth: style.logos.oaMaxWidth,
-                  maxHeight: style.logos.oaHeight,
+                  maxWidth: scale(style.logos.oaMaxWidth),
+                  maxHeight: scale(style.logos.oaHeight),
                 }}
               />
               {style.typography.taglinePlacement === "beside" ? (
@@ -771,10 +850,10 @@ export function OnwardAirOverviewPage() {
                   decoding="async"
                   className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
                   style={{
-                    height: style.logos.unit311Height,
+                    height: scale(style.logos.unit311Height),
                     width: "auto",
-                    maxWidth: style.logos.unit311MaxWidth,
-                    maxHeight: style.logos.unit311Height,
+                    maxWidth: scale(style.logos.unit311MaxWidth),
+                    maxHeight: scale(style.logos.unit311Height),
                   }}
                 />
               </a>
@@ -797,25 +876,18 @@ export function OnwardAirOverviewPage() {
         </header>
 
         <div
-          className="oa-overview-layout mt-5 grid min-h-0 flex-1 grid-cols-1 lg:items-stretch"
+          className="oa-overview-layout mt-3 grid min-h-0 flex-1 grid-cols-1 lg:mt-5 lg:items-stretch"
           style={
             {
-              gap: style.page.columnGap,
-              ["--oa-layout-cols" as string]: layoutCols,
+              gap: "var(--oa-col-gap)",
+              ["--oa-left-count" as string]: String(visibleLeftCards.length || 1),
             } as CSSProperties
           }
         >
-          <style>{`
-            @media (min-width: 1024px) {
-              .oa-overview-layout {
-                grid-template-columns: var(--oa-layout-cols);
-              }
-            }
-          `}</style>
             <aside
-              className="grid h-full min-h-0 overflow-hidden"
+              className="oa-overview-left grid h-full min-h-0 overflow-hidden"
               style={{
-                gap: style.page.cardGap,
+                gap: "var(--oa-card-gap)",
                 gridTemplateRows: leftGridRows,
               }}
             >
@@ -823,10 +895,10 @@ export function OnwardAirOverviewPage() {
             </aside>
 
             <section
-              className="flex min-w-0 overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0"
+              className="oa-overview-preview flex min-w-0 overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0"
               style={{
                 borderRadius: style.preview.radius,
-                minHeight: style.preview.minHeight,
+                minHeight: "var(--oa-preview-min-h)",
                 background: style.preview.bg,
                 border: overviewCardBorder({
                   borderColor: style.preview.borderColor,
@@ -835,7 +907,7 @@ export function OnwardAirOverviewPage() {
               }}
             >
               <OperatorEntitlementsProvider>
-                <Suspense fallback={<div className="w-[240px] shrink-0 bg-[#07111F]" />}>
+                <Suspense fallback={<div className="w-[188px] shrink-0 bg-[#07111F] xl:w-[208px] 2xl:w-[228px]" />}>
                   <OverviewPlatformNav activeView={activeView} onViewChange={setActiveView} />
                 </Suspense>
               </OperatorEntitlementsProvider>
