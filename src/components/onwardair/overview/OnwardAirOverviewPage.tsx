@@ -189,14 +189,16 @@ export function OnwardAirOverviewPage() {
           </aside>
 
           {/* Live interactive platform — sidebar + content, single view */}
-          <section className="relative min-h-[420px] min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#050B16] shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0">
-            <SurveyOperationsSimulatorProvider>
-              <Suspense
-                fallback={<WorkspaceLoadingFallback variant="page" label="Loading OnwardAir platform" />}
-              >
-                <InternalOperationsDashboard basePath="/overview" initialView="home" />
-              </Suspense>
-            </SurveyOperationsSimulatorProvider>
+          <section className="relative flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#050B16] shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0">
+            <div className="relative h-full min-h-0 flex-1">
+              <SurveyOperationsSimulatorProvider>
+                <Suspense
+                  fallback={<WorkspaceLoadingFallback variant="page" label="Loading OnwardAir platform" />}
+                >
+                  <InternalOperationsDashboard basePath="/overview" initialView="home" />
+                </Suspense>
+              </SurveyOperationsSimulatorProvider>
+            </div>
           </section>
         </div>
 
