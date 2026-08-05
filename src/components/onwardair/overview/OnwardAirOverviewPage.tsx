@@ -10,6 +10,8 @@ import {
   overviewScreenshotForView,
 } from "@/lib/onwardair/overview-demo";
 import {
+  OVERVIEW_FONT_OPTIONS,
+  type OverviewFontId,
   type OverviewLeftCardId,
   type OverviewStyleConfig,
   defaultOverviewStyleConfig,
@@ -40,6 +42,8 @@ function InlineEdit({
   className = "",
   style,
   "aria-label": ariaLabel,
+  onFocus,
+  onBlur,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -47,6 +51,8 @@ function InlineEdit({
   className?: string;
   style?: CSSProperties;
   "aria-label"?: string;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }) {
   if (multiline) {
     return (
@@ -55,6 +61,8 @@ function InlineEdit({
         value={value}
         rows={2}
         onChange={(event) => onChange(event.target.value)}
+        onFocus={onFocus}
+        onBlur={onBlur}
         onMouseDown={(event) => event.stopPropagation()}
         onPointerDown={(event) => event.stopPropagation()}
         className={`${INLINE_EDIT} resize-y leading-snug ${className}`}
@@ -69,11 +77,148 @@ function InlineEdit({
       type="text"
       value={value}
       onChange={(event) => onChange(event.target.value)}
+      onFocus={onFocus}
+      onBlur={onBlur}
       onMouseDown={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
       className={`${INLINE_EDIT} ${className}`}
       style={style}
     />
+  );
+}
+
+function HeaderTaglineEditor({
+  value,
+  onChange,
+  typography,
+  onTypographyChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  typography: OverviewStyleConfig["typography"];
+  onTypographyChange: (partial: Partial<OverviewStyleConfig["typography"]>) => void;
+}) {
+  const [showStyle, setShowStyle] = useState(false);
+
+  return (
+    <div className="relative min-w-0 flex-1">
+      <InlineEdit
+        aria-label="Header tagline"
+        value={value}
+        onChange={onChange}
+        onFocus={() => setShowStyle(true)}
+        onBlur={() => {
+          window.setTimeout(() => setShowStyle(false), 180);
+        }}
+        className="min-w-0 w-full whitespace-nowrap"
+        style={{
+          fontSize: typography.headerFontSize,
+          fontWeight: typography.headerFontWeight,
+          letterSpacing: `${typography.headerLetterSpacing}px`,
+          color: typography.headerColor,
+          opacity: typography.headerOpacity,
+          lineHeight: 1.25,
+          fontFamily: overviewFontStack(typography.fontFamily),
+        }}
+      />
+      {showStyle ? (
+        <div
+          className="absolute left-0 top-[calc(100%+6px)] z-[60] flex flex-wrap items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] p-2 shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          <span className="px-1 text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">
+            Tagline style
+          </span>
+          <label className="flex items-center gap-1 text-[10px] text-white/70">
+            Font
+            <select
+              value={typography.fontFamily}
+              onChange={(event) =>
+                onTypographyChange({ fontFamily: event.target.value as OverviewFontId })
+              }
+              className="rounded border border-white/20 bg-black/50 px-1.5 py-1 text-[11px] text-white"
+            >
+              {OVERVIEW_FONT_OPTIONS.map((font) => (
+                <option key={font.id} value={font.id}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-1 text-[10px] text-white/70">
+            Size
+            <button
+              type="button"
+              className="inline-flex h-6 w-6 items-center justify-center rounded border border-white/20 bg-white/10 text-white hover:bg-white/20"
+              onClick={() =>
+                onTypographyChange({
+                  headerFontSize: Math.max(8, typography.headerFontSize - 1),
+                })
+              }
+            >
+              −
+            </button>
+            <span className="min-w-[2rem] text-center tabular-nums text-white">
+              {typography.headerFontSize}px
+            </span>
+            <button
+              type="button"
+              className="inline-flex h-6 w-6 items-center justify-center rounded border border-white/20 bg-white/10 text-white hover:bg-white/20"
+              onClick={() =>
+                onTypographyChange({
+                  headerFontSize: Math.min(28, typography.headerFontSize + 1),
+                })
+              }
+            >
+              +
+            </button>
+          </label>
+          <label className="flex items-center gap-1 text-[10px] text-white/70">
+            Weight
+            <select
+              value={typography.headerFontWeight}
+              onChange={(event) =>
+                onTypographyChange({ headerFontWeight: Number(event.target.value) })
+              }
+              className="rounded border border-white/20 bg-black/50 px-1.5 py-1 text-[11px] text-white"
+            >
+              {[300, 400, 500, 600, 700, 800].map((weight) => (
+                <option key={weight} value={weight}>
+                  {weight}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-1 text-[10px] text-white/70">
+            Colour
+            <input
+              type="color"
+              value={
+                typography.headerColor.startsWith("#")
+                  ? typography.headerColor.slice(0, 7)
+                  : "#ffffff"
+              }
+              onChange={(event) => onTypographyChange({ headerColor: event.target.value })}
+              className="h-6 w-8 cursor-pointer rounded border border-white/20 bg-transparent p-0"
+            />
+          </label>
+          <label className="flex items-center gap-1 text-[10px] text-white/70">
+            Opacity
+            <input
+              type="range"
+              min={0.2}
+              max={1}
+              step={0.05}
+              value={typography.headerOpacity}
+              onChange={(event) =>
+                onTypographyChange({ headerOpacity: Number(event.target.value) })
+              }
+              className="w-20 accent-[#267B90]"
+            />
+          </label>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -379,20 +524,16 @@ export function OnwardAirOverviewPage() {
                 maxHeight: style.logos.oaHeight,
               }}
             />
-            <InlineEdit
-              aria-label="Header tagline"
+            <HeaderTaglineEditor
               value={content.headline}
               onChange={(headline) => patchContent({ headline })}
-              className="min-w-0 flex-1 whitespace-nowrap"
-              style={{
-                fontSize: style.typography.headerFontSize,
-                fontWeight: style.typography.headerFontWeight,
-                letterSpacing: `${style.typography.headerLetterSpacing}px`,
-                color: style.typography.headerColor,
-                opacity: style.typography.headerOpacity,
-                lineHeight: 1.25,
-                fontFamily: overviewFontStack(style.typography.fontFamily),
-              }}
+              typography={style.typography}
+              onTypographyChange={(partial) =>
+                setStyle((prev) => ({
+                  ...prev,
+                  typography: { ...prev.typography, ...partial },
+                }))
+              }
             />
           </div>
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
