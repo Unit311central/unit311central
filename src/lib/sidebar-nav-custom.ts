@@ -22,8 +22,11 @@ export type SidebarNavLeafItem = {
 };
 
 export type SidebarNavCustomStorage = {
-  /** v3: one-time reset of append-polluted v2 sectionOrder to canonical defaults. */
-  version: 2 | 3;
+  /**
+   * v3: reset append-polluted orders.
+   * v4: reset to corrected OnwardAir locked LHS order (Tools → External Client Access → Settings).
+   */
+  version: 2 | 3 | 4;
   /** Ordered workspace section keys (excludes fixed pins + Settings). */
   sectionOrder: string[];
   hidden: Record<string, boolean>;
@@ -73,7 +76,7 @@ export function defaultSectionOrder(sections: readonly InternalNavSection[]): st
 
 export function emptyNavCustomStorage(sections: readonly InternalNavSection[]): SidebarNavCustomStorage {
   return {
-    version: 3,
+    version: 4,
     sectionOrder: defaultSectionOrder(sections),
     hidden: {},
     customItems: [],
@@ -151,11 +154,10 @@ export function loadSidebarNavCustom(
     const storedVersion = Number(parsed.version ?? 1);
     const storedOrder = parsed.sectionOrder ?? [];
 
-    // v2 and earlier appended brand-new modules at the end whenever OA nav
-    // grew — that permanently scrambled custom order. Reset once to canonical.
-    if (storedVersion < 3) {
+    // v3 and earlier: reset to the corrected locked OnwardAir order (or host default).
+    if (storedVersion < 4) {
       return {
-        version: 3,
+        version: 4,
         sectionOrder: canonical,
         hidden: parsed.hidden ?? {},
         customItems: parsed.customItems ?? [],
@@ -164,7 +166,7 @@ export function loadSidebarNavCustom(
     }
 
     return {
-      version: 3,
+      version: 4,
       sectionOrder: resolveSectionOrderForSections(storedOrder, sections),
       hidden: parsed.hidden ?? {},
       customItems: parsed.customItems ?? [],
@@ -176,9 +178,9 @@ export function loadSidebarNavCustom(
 }
 
 /**
- * Persist only when storage is missing, needs the v3 migration, or brand-new
- * module keys must be recorded. Never rewrite the user's order just because the
- * current render filtered a different section subset.
+ * Persist only when storage is missing, needs the v4 locked-order migration, or
+ * brand-new module keys must be recorded. Never rewrite the user's order just
+ * because the current render filtered a different section subset.
  */
 export function reconcileSidebarNavCustom(
   sections: readonly InternalNavSection[],
@@ -194,7 +196,7 @@ export function reconcileSidebarNavCustom(
     }
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
     const storedVersion = Number(parsed.version ?? 1);
-    if (storedVersion < 3) {
+    if (storedVersion < 4) {
       saveSidebarNavCustom(next);
       return next;
     }
@@ -208,7 +210,7 @@ export function reconcileSidebarNavCustom(
     const mergedActive = mergeSectionOrder(prev, canonical);
     const extras = prev.filter((key) => !mergedActive.includes(key));
     const payload: SidebarNavCustomStorage = {
-      version: 3,
+      version: 4,
       sectionOrder: [...mergedActive, ...extras],
       hidden: parsed.hidden ?? {},
       customItems: parsed.customItems ?? [],
@@ -223,7 +225,7 @@ export function reconcileSidebarNavCustom(
 export function saveSidebarNavCustom(next: SidebarNavCustomStorage) {
   if (typeof window === "undefined") return;
   const payload: SidebarNavCustomStorage = {
-    version: 3,
+    version: 4,
     sectionOrder: next.sectionOrder,
     hidden: next.hidden,
     customItems: next.customItems,

@@ -479,7 +479,7 @@ export default function SettingsWorkspace() {
     [hydrated, allowedViews, entitlementsReady],
   );
   const [navCustom, setNavCustom] = useState<NavCustomStorage>(() => ({
-    version: 3,
+    version: 4,
     sectionOrder: [],
     hidden: {},
     customItems: [],
