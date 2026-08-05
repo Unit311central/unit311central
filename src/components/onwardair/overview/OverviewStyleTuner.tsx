@@ -891,6 +891,8 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
             <SliderRow label="Border opacity" value={style.highlights.borderOpacity} min={0} max={1} step={0.01} unit="op" onChange={(borderOpacity) => patch.highlights({ borderOpacity })} />
             <ColorRow label="Title colour" value={style.highlights.titleColor} onChange={(titleColor) => patch.highlights({ titleColor })} />
             <SliderRow label="Title size" value={style.highlights.titleSize} min={9} max={20} onChange={(titleSize) => patch.highlights({ titleSize })} />
+            <SliderRow label="Space under title" value={style.highlights.titleGap} min={0} max={40} onChange={(titleGap) => patch.highlights({ titleGap })} />
+            <SliderRow label="Item gap" value={style.highlights.itemGap} min={0} max={20} onChange={(itemGap) => patch.highlights({ itemGap })} />
             <ColorRow label="Item colour" value={style.highlights.itemColor} onChange={(itemColor) => patch.highlights({ itemColor })} />
             <ColorRow label="Bullet colour" value={style.highlights.bulletColor} onChange={(bulletColor) => patch.highlights({ bulletColor })} />
             <SliderRow label="Item size" value={style.highlights.itemSize} min={9} max={20} onChange={(itemSize) => patch.highlights({ itemSize })} />
@@ -941,6 +943,8 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
             <SliderRow label="Border opacity" value={style.agenda.borderOpacity} min={0} max={1} step={0.01} unit="op" onChange={(borderOpacity) => patch.agenda({ borderOpacity })} />
             <ColorRow label="Title colour" value={style.agenda.titleColor} onChange={(titleColor) => patch.agenda({ titleColor })} />
             <SliderRow label="Title size" value={style.agenda.titleSize} min={9} max={20} onChange={(titleSize) => patch.agenda({ titleSize })} />
+            <SliderRow label="Space under title" value={style.agenda.titleGap} min={0} max={40} onChange={(titleGap) => patch.agenda({ titleGap })} />
+            <SliderRow label="Row gap" value={style.agenda.rowGap} min={0} max={20} onChange={(rowGap) => patch.agenda({ rowGap })} />
             <ColorRow label="Row background" value={style.agenda.rowBg} onChange={(rowBg) => patch.agenda({ rowBg })} />
             <ColorRow label="Row border colour" value={style.agenda.rowBorderColor} onChange={(rowBorderColor) => patch.agenda({ rowBorderColor })} />
             <SliderRow label="Row border opacity" value={style.agenda.rowBorderOpacity} min={0} max={1} step={0.01} unit="op" onChange={(rowBorderOpacity) => patch.agenda({ rowBorderOpacity })} />

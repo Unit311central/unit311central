@@ -569,10 +569,14 @@ export function OnwardAirOverviewPage() {
             aria-label="Highlights title"
             value={content.highlightsTitle}
             onChange={(highlightsTitle) => patchContent({ highlightsTitle })}
+            fill={false}
             className="shrink-0 font-bold uppercase tracking-[0.14em]"
             style={{ fontSize: `${style.highlights.titleSize}px`, color: style.highlights.titleColor }}
           />
-          <ul className="mt-2 flex min-h-0 flex-1 flex-col justify-start gap-1.5 overflow-y-auto">
+          <ul
+            className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto"
+            style={{ marginTop: style.highlights.titleGap, gap: style.highlights.itemGap }}
+          >
             {content.highlights.map((item, i) => (
               <li key={`h-${i}`} className="flex items-start gap-1 leading-snug">
                 <span className="shrink-0" style={{ color: style.highlights.bulletColor }}>
@@ -608,10 +612,14 @@ export function OnwardAirOverviewPage() {
           aria-label="Agenda title"
           value={content.agendaTitle}
           onChange={(agendaTitle) => patchContent({ agendaTitle })}
+          fill={false}
           className="shrink-0 font-semibold tracking-tight"
           style={{ fontSize: `${style.agenda.titleSize}px`, color: style.agenda.titleColor }}
         />
-        <div className="mt-2 flex min-h-0 flex-1 flex-col justify-start gap-1.5 overflow-y-auto">
+        <div
+          className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto"
+          style={{ marginTop: style.agenda.titleGap, gap: style.agenda.rowGap }}
+        >
           {content.agenda.map((row, i) => (
             <div
               key={`a-${i}`}

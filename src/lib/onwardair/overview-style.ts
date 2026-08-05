@@ -108,14 +108,21 @@ export type OverviewStyleConfig = {
     bg: string;
     titleSize: number;
     titleColor: string;
+    /** Space between title and first highlight. */
+    titleGap: number;
     itemSize: number;
     itemColor: string;
     bulletColor: string;
+    itemGap: number;
   };
   agenda: OverviewCardChrome & {
     bg: string;
     titleSize: number;
     titleColor: string;
+    /** Space between title and first agenda row. */
+    titleGap: number;
+    /** Space between agenda rows. */
+    rowGap: number;
     rowPaddingX: number;
     rowPaddingY: number;
     rowRadius: number;
@@ -219,9 +226,11 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       bg: "rgba(11, 58, 74, 0.85)",
       titleSize: 20,
       titleColor: "#7DD3E8",
+      titleGap: 8,
       itemSize: 16,
       itemColor: "rgba(255, 255, 255, 0.95)",
       bulletColor: "#7DD3E8",
+      itemGap: 6,
     },
     agenda: {
       ...defaultChrome({
@@ -236,6 +245,8 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       bg: "#ffffff",
       titleSize: 16,
       titleColor: "#1B2430",
+      titleGap: 8,
+      rowGap: 6,
       rowPaddingX: 9,
       rowPaddingY: 10,
       rowRadius: 8,
@@ -400,15 +411,19 @@ export function sanitizeOverviewStyleConfig(raw: unknown): OverviewStyleConfig {
       bg: asString(highlights.bg, d.highlights.bg),
       titleSize: asNumber(highlights.titleSize, d.highlights.titleSize, 9, 22),
       titleColor: asString(highlights.titleColor, d.highlights.titleColor),
+      titleGap: asNumber(highlights.titleGap, d.highlights.titleGap, 0, 48),
       itemSize: asNumber(highlights.itemSize, d.highlights.itemSize, 9, 22),
       itemColor: asString(highlights.itemColor, d.highlights.itemColor),
       bulletColor: asString(highlights.bulletColor, d.highlights.bulletColor),
+      itemGap: asNumber(highlights.itemGap, d.highlights.itemGap, 0, 24),
     },
     agenda: {
       ...aChrome,
       bg: asString(agenda.bg, d.agenda.bg),
       titleSize: asNumber(agenda.titleSize, d.agenda.titleSize, 9, 22),
       titleColor: asString(agenda.titleColor, d.agenda.titleColor),
+      titleGap: asNumber(agenda.titleGap, d.agenda.titleGap, 0, 48),
+      rowGap: asNumber(agenda.rowGap, d.agenda.rowGap, 0, 24),
       rowPaddingX: asNumber(agenda.rowPaddingX, d.agenda.rowPaddingX, 0, 28),
       rowPaddingY: asNumber(agenda.rowPaddingY, d.agenda.rowPaddingY, 0, 24),
       rowRadius: asNumber(agenda.rowRadius, d.agenda.rowRadius, 0, 24),
