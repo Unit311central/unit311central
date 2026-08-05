@@ -478,9 +478,12 @@ export default function SettingsWorkspace() {
         : [...internalSurveyNavSections],
     [hydrated, allowedViews, entitlementsReady],
   );
-  const [navCustom, setNavCustom] = useState<NavCustomStorage>(() =>
-    loadSidebarNavCustom(internalSurveyNavSections),
-  );
+  const [navCustom, setNavCustom] = useState<NavCustomStorage>(() => ({
+    version: 3,
+    sectionOrder: [],
+    hidden: {},
+    customItems: [],
+  }));
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [customNavLabel, setCustomNavLabel] = useState("");
   const [hideWebsiteCms, setHideWebsiteCms] = useState(false);
@@ -489,6 +492,13 @@ export default function SettingsWorkspace() {
     setHydrated(true);
     setHideWebsiteCms(isBrowserCorpCentreSurface());
   }, []);
+
+  // Load once host sections are ready — never seed from the generic (non-OA) nav
+  // list, which used to shrink/overwrite a full custom order on refresh.
+  useEffect(() => {
+    if (!hydrated || !entitlementsReady) return;
+    setNavCustom(loadSidebarNavCustom(liveSections));
+  }, [hydrated, entitlementsReady, liveSections]);
 
   const [financeProvider, setFinanceProvider] = useState<FinanceProvider | "">("");
   const [logisticsProvider, setLogisticsProvider] = useState<LogisticsProvider | "">("");
@@ -642,12 +652,6 @@ export default function SettingsWorkspace() {
     setNavCustom(next);
     saveSidebarNavCustom(next);
   }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    const next = loadSidebarNavCustom(liveSections);
-    setNavCustom(next);
-  }, [hydrated, liveSections]);
 
   function moveModule(sectionKey: string, direction: -1 | 1) {
     const movableKeys = orderedSections.filter(isMovableWorkspaceSection).map(getNavSectionKey);

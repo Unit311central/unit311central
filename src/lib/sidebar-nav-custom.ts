@@ -107,6 +107,25 @@ export function mergeSectionOrder(
   return result;
 }
 
+/**
+ * Merge for display: apply canonical inserts for the current section set, but keep
+ * any stored keys that are temporarily filtered out (grants / host gating) so a
+ * later full load does not treat them as brand-new and shove them to defaults.
+ */
+export function resolveSectionOrderForSections(
+  storedOrder: readonly string[],
+  sections: readonly InternalNavSection[],
+): string[] {
+  const canonical = defaultSectionOrder(sections);
+  const known = new Set(canonical);
+  const active = mergeSectionOrder(
+    storedOrder.filter((key) => known.has(key)),
+    canonical,
+  );
+  const extras = storedOrder.filter((key) => !known.has(key) && !active.includes(key));
+  return [...active, ...extras];
+}
+
 export function loadSidebarNavCustom(
   sections: readonly InternalNavSection[],
 ): SidebarNavCustomStorage {
@@ -118,8 +137,8 @@ export function loadSidebarNavCustom(
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
     const canonical = defaultSectionOrder(sections);
-    const known = new Set(canonical);
     const storedVersion = Number(parsed.version ?? 1);
+    const storedOrder = parsed.sectionOrder ?? [];
 
     // v2 and earlier appended brand-new modules at the end whenever OA nav
     // grew — that permanently scrambled custom order. Reset once to canonical.
@@ -133,10 +152,9 @@ export function loadSidebarNavCustom(
       };
     }
 
-    const fromStored = (parsed.sectionOrder ?? []).filter((key) => known.has(key));
     return {
       version: 3,
-      sectionOrder: mergeSectionOrder(fromStored, canonical),
+      sectionOrder: resolveSectionOrderForSections(storedOrder, sections),
       hidden: parsed.hidden ?? {},
       customItems: parsed.customItems ?? [],
       order: parsed.order,
@@ -147,8 +165,9 @@ export function loadSidebarNavCustom(
 }
 
 /**
- * Load merged order and persist when storage is stale (new modules, removed keys,
- * or previous append-at-end merge). Safe to call from useEffect — not during render.
+ * Persist only when storage is missing, needs the v3 migration, or brand-new
+ * module keys must be recorded. Never rewrite the user's order just because the
+ * current render filtered a different section subset.
  */
 export function reconcileSidebarNavCustom(
   sections: readonly InternalNavSection[],
@@ -163,21 +182,31 @@ export function reconcileSidebarNavCustom(
       return next;
     }
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
-    const known = new Set(defaultSectionOrder(sections));
-    const prev = parsed.sectionOrder ?? [];
-    const versionStale = Number(parsed.version ?? 1) < 3;
-    const staleKeys = prev.some((key) => !known.has(key));
-    const missingKeys = [...known].some((key) => !prev.includes(key));
-    const orderChanged =
-      prev.length !== next.sectionOrder.length ||
-      next.sectionOrder.some((key, index) => prev[index] !== key);
-    if (versionStale || staleKeys || missingKeys || orderChanged) {
+    const storedVersion = Number(parsed.version ?? 1);
+    if (storedVersion < 3) {
       saveSidebarNavCustom(next);
+      return next;
     }
+
+    const canonical = defaultSectionOrder(sections);
+    const prev = parsed.sectionOrder ?? [];
+    const missingKeys = canonical.some((key) => !prev.includes(key));
+    if (!missingKeys) return next;
+
+    // Insert only — keep extras that are not in the current section set.
+    const mergedActive = mergeSectionOrder(prev, canonical);
+    const extras = prev.filter((key) => !mergedActive.includes(key));
+    const payload: SidebarNavCustomStorage = {
+      version: 3,
+      sectionOrder: [...mergedActive, ...extras],
+      hidden: parsed.hidden ?? {},
+      customItems: parsed.customItems ?? [],
+    };
+    saveSidebarNavCustom(payload);
+    return payload;
   } catch {
-    saveSidebarNavCustom(next);
+    return next;
   }
-  return next;
 }
 
 export function saveSidebarNavCustom(next: SidebarNavCustomStorage) {

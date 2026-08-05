@@ -231,15 +231,12 @@ export default function EnterprisePlatformSidebar({
 
   const { allowedViews, ready: entitlementsReady } = useOperatorEntitlements();
 
-  // Persist a stable merge once host sections + grants are known (new modules
-  // slot into canonical positions instead of drifting to the bottom).
+  // Only migrate / insert brand-new module keys. Do not rewrite storage when
+  // entitlements or host filters change — that was wiping Settings reorders.
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !entitlementsReady) return;
     const filtered = filterInternalNavSectionsForDemoSurface(
-      filterInternalNavSectionsByGrants(
-        internalSurveyNavSections,
-        entitlementsReady ? allowedViews : null,
-      ),
+      filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
       { allowHostSurfaces: true },
     );
     reconcileSidebarNavCustom(filtered);
