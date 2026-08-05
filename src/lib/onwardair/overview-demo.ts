@@ -269,12 +269,114 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live3`;
+  return `/images/overview/screenshots/${key}.png?v=live4`;
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {
   const slug = OVERVIEW_SCREENSHOT_BY_MODULE_ID[String(moduleId ?? "")] ?? "generic";
   return overviewScreenshotSrc(slug);
+}
+
+/** Map live platform `?view=` ids → overview screenshot slug. */
+export function overviewScreenshotSlugForView(view: string | null | undefined): string {
+  const v = String(view ?? "home").trim().toLowerCase();
+  if (!v || v === "home") return "home";
+  if (v.includes("executive-assistant")) return "executive-assistant";
+  if (
+    v.includes("competitor") ||
+    v.includes("ecosystem") ||
+    v === "potential-clients" ||
+    v.includes("oa-competitor") ||
+    v.includes("oa-ecosystem")
+  ) {
+    return "intelligence";
+  }
+  if (
+    v.startsWith("business-central") ||
+    v === "clients" ||
+    v.startsWith("clients-") ||
+    v.startsWith("crm") ||
+    v.includes("client-onboarding") ||
+    v === "representatives" ||
+    v === "grants" ||
+    v === "member-intelligence"
+  ) {
+    return "business-central";
+  }
+  if (v.startsWith("projects") || v.includes("project-management")) return "project-management";
+  if (v.includes("engineering") || v.includes("programs-milestone") || v.includes("assurance")) {
+    return "engineering";
+  }
+  if (v.includes("ip") || v.includes("patent")) return "ip-patents";
+  if (v.includes("fundraising") || v.includes("pitch") || v.includes("data-room")) return "fundraising";
+  if (v.includes("board-portal")) return "board-portal";
+  if (v.includes("board")) return "board";
+  if (
+    v.includes("financial") ||
+    v.includes("ledger") ||
+    v.includes("receivable") ||
+    v.includes("payable") ||
+    v.includes("expense") ||
+    v.includes("bank") ||
+    v.includes("cash") ||
+    v.includes("burn")
+  ) {
+    return "financials";
+  }
+  if (v.startsWith("hr") || v.includes("employee") || v.includes("payroll") || v.includes("recruit") || v.includes("org-chart")) {
+    return "hr";
+  }
+  if (v.includes("marketing") || v.includes("social") || v.includes("newsletter") || v.includes("events")) {
+    return "marketing";
+  }
+  if (v.includes("corporate") || v.includes("office") || v.includes("company-detail") || v.includes("cap-table")) {
+    return "corporate";
+  }
+  if (v.includes("technology") || v.includes("device") || v.includes("saas") || v.includes("software")) {
+    return "technology";
+  }
+  if (
+    v.includes("email") ||
+    v.includes("calendar") ||
+    v.includes("messaging") ||
+    v.includes("productivity") ||
+    v.includes("support")
+  ) {
+    return "productivity";
+  }
+  if (
+    v.includes("operation") ||
+    v.includes("asset") ||
+    v.includes("inventory") ||
+    v.includes("procurement") ||
+    v.includes("logistic")
+  ) {
+    return "operations";
+  }
+  if (v.includes("training") || v.includes("course") || v.includes("lms")) return "training";
+  if (v.includes("qms") || v.includes("capa") || v.includes("audit") || v.includes("document-control")) {
+    return "qms";
+  }
+  if (v.includes("client-portal") || v.includes("coastal")) return "client-portal";
+  if (v.includes("client-access") || v.includes("external-user") || v.includes("external-client")) {
+    return "client-access";
+  }
+  if (
+    v.includes("setting") ||
+    v.includes("profile") ||
+    v.includes("users") ||
+    v.includes("tool") ||
+    v.includes("testing") ||
+    v.includes("telemetry") ||
+    v.includes("drone")
+  ) {
+    return "settings";
+  }
+  return "generic";
+}
+
+export function overviewScreenshotForView(view: string | null | undefined): string {
+  return overviewScreenshotSrc(overviewScreenshotSlugForView(view));
 }
 
 export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableContent {

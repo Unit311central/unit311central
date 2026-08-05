@@ -1,33 +1,53 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { Suspense, useEffect, useState } from "react";
+import { Maximize2, X } from "lucide-react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { ONWARDAIR_HOME_ACCENT } from "@/lib/onwardair-surface";
 import {
   type OnwardAirOverviewEditableContent,
   defaultOnwardAirOverviewContent,
+  overviewScreenshotForView,
 } from "@/lib/onwardair/overview-demo";
-import WorkspaceLoadingFallback from "@/components/testflighthub/WorkspaceLoadingFallback";
-import SurveyOperationsSimulatorProvider from "@/components/testflighthub/SurveyOperationsSimulatorProvider";
+import {
+  isInternalOperationsView,
+  resolveInternalViewTitles,
+  type InternalOperationsView,
+} from "@/lib/internal-operations-data";
+import type { SurveyOperationsView } from "@/lib/survey-operations-mock-data";
+import { OperatorEntitlementsProvider } from "@/components/testflighthub/OperatorEntitlementsProvider";
+import SurveyOperationsSidebar from "@/components/testflighthub/SurveyOperationsSidebar";
 
 const UNIT311_LOGO = "/images/unit311central-login.webp";
 const OA_LOGO = "/images/workspaces/onwardair-logo.png";
 const HERO_BG = "/images/overview-corporate-intelligence-bg.png";
 
-const InternalOperationsDashboard = dynamic(
-  () => import("@/components/testflighthub/InternalOperationsDashboard"),
-  {
-    ssr: false,
-    loading: () => <WorkspaceLoadingFallback variant="page" label="Loading OnwardAir platform" />,
-  },
-);
+function OverviewPlatformNav({
+  activeView,
+  onViewChange,
+}: {
+  activeView: InternalOperationsView;
+  onViewChange: (view: InternalOperationsView) => void;
+}) {
+  return (
+    <SurveyOperationsSidebar
+      mode="internal"
+      activeView={activeView}
+      basePath="/overview"
+      onViewChange={(view: SurveyOperationsView | InternalOperationsView) => {
+        if (isInternalOperationsView(view)) onViewChange(view);
+      }}
+    />
+  );
+}
 
 export function OnwardAirOverviewPage() {
   const [content, setContent] = useState<OnwardAirOverviewEditableContent>(() =>
     defaultOnwardAirOverviewContent(),
   );
   const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState<InternalOperationsView>("home");
+  const [previewFullscreen, setPreviewFullscreen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +81,30 @@ export function OnwardAirOverviewPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!previewFullscreen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [previewFullscreen]);
+
+  const previewTitle = useMemo(() => {
+    try {
+      return resolveInternalViewTitles(activeView).title;
+    } catch {
+      return "Home";
+    }
+  }, [activeView]);
+
+  const previewSrc = useMemo(() => overviewScreenshotForView(activeView), [activeView]);
+
   return (
     <div className="oa-overview relative flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden text-white">
       <div
@@ -74,7 +118,6 @@ export function OnwardAirOverviewPage() {
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-4 sm:py-3 lg:px-5 lg:py-3">
-        {/* Row 1: OA logo + demo headline (single line) | Unit311 + sign out */}
         <header className="flex shrink-0 items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -120,14 +163,13 @@ export function OnwardAirOverviewPage() {
           </div>
         </header>
 
-        {/* Row 2: OS tagline */}
         <p className="mt-2 shrink-0 whitespace-nowrap text-[11px] leading-snug text-white/65 sm:text-[12px]">
           {content.questionsIntro}
         </p>
 
-        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 lg:grid-cols-[minmax(240px,0.72fr)_minmax(0,2.4fr)] lg:gap-3">
+        <div className="mt-6 grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,2.45fr)] lg:gap-3.5">
           {/* Briefing column */}
-          <aside className="flex min-h-0 flex-col gap-2.5 overflow-hidden lg:overflow-hidden">
+          <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto lg:overflow-hidden">
             <section className="shrink-0 rounded-xl border border-[#267B90]/20 bg-white p-3.5 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:p-4">
               <ul className="space-y-2">
                 {content.questions.map((q, i) => (
@@ -148,11 +190,11 @@ export function OnwardAirOverviewPage() {
               </ul>
             </section>
 
-            <section className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
+            <section className="max-h-[34vh] shrink-0 overflow-y-auto rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:max-h-[30vh] sm:p-3.5">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: "#7DD3E8" }}>
                 {content.highlightsTitle}
               </p>
-              <ul className="mt-2 space-y-1">
+              <ul className="mt-1.5 space-y-0.5">
                 {content.highlights.map((item, i) => (
                   <li key={`h-${i}`} className="text-[11px] leading-snug text-white/95">
                     • {item}
@@ -188,16 +230,36 @@ export function OnwardAirOverviewPage() {
             </section>
           </aside>
 
-          {/* Live interactive platform — sidebar + content, single view */}
-          <section className="relative flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#050B16] shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0">
-            <div className="relative h-full min-h-0 flex-1">
-              <SurveyOperationsSimulatorProvider>
-                <Suspense
-                  fallback={<WorkspaceLoadingFallback variant="page" label="Loading OnwardAir platform" />}
+          {/* Platform nav (interactive) + static screenshot preview */}
+          <section className="flex min-h-[420px] min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#050B16] shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0">
+            <OperatorEntitlementsProvider>
+              <Suspense fallback={<div className="w-[240px] shrink-0 bg-[#07111F]" />}>
+                <OverviewPlatformNav activeView={activeView} onViewChange={setActiveView} />
+              </Suspense>
+            </OperatorEntitlementsProvider>
+
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-[#F8FBFD] p-2.5 text-[#1B2430]">
+              <div className="mb-2 flex shrink-0 items-center justify-between gap-2 px-0.5">
+                <h2 className="text-[13px] font-semibold tracking-tight text-[#1B2430]">{previewTitle}</h2>
+                <span className="text-[10px] uppercase tracking-wide text-[#5B6577]">Preview</span>
+              </div>
+              <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-[#E2EBF1] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewSrc}
+                  alt={`${previewTitle} screenshot`}
+                  className="absolute inset-0 h-full w-full object-cover object-top"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPreviewFullscreen(true)}
+                  className="absolute bottom-2.5 right-2.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#267B90]/30 bg-white/95 text-[#1B2430] shadow-md transition hover:bg-[#267B90] hover:text-white"
+                  aria-label="View screenshot full screen"
+                  title="Full screen"
                 >
-                  <InternalOperationsDashboard basePath="/overview" initialView="home" />
-                </Suspense>
-              </SurveyOperationsSimulatorProvider>
+                  <Maximize2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </section>
         </div>
@@ -207,6 +269,39 @@ export function OnwardAirOverviewPage() {
           {loading ? " · Loading…" : null}
         </footer>
       </div>
+
+      {previewFullscreen ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/92 p-3 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${previewTitle} full screen`}
+          onClick={() => setPreviewFullscreen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewFullscreen(false)}
+            className="absolute right-4 top-4 z-[81] inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20"
+            aria-label="Close full screen"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div
+            className="relative flex h-full w-full max-w-[1600px] flex-col"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="mb-2 shrink-0 text-center text-sm font-medium text-white/80">{previewTitle}</p>
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/15 bg-black">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewSrc}
+                alt={`${previewTitle} full screen`}
+                className="h-full w-full object-contain object-center"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
