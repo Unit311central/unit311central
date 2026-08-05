@@ -420,7 +420,6 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   testing: "testing",
   telemetry: "testing",
   productivity: "productivity-dashboard",
-  inventory: "inventory-management",
 };
 
 /** Map live platform `?view=` ids → overview screenshot slug (exact first page). */
