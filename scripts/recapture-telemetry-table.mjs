@@ -63,70 +63,87 @@ const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor
 const page = await context.newPage();
 await login(context, page);
 
-// Testing — scroll video into view
-await page.goto(`${ORIGIN}/dashboard?view=testing`, {
-  waitUntil: "domcontentloaded",
-  timeout: 90000,
-});
-await page.waitForSelector("text=Flight Video", { timeout: 60000 });
-await page.waitForTimeout(2000);
-await page.locator("text=Flight Video").first().scrollIntoViewIfNeeded();
-await page.waitForTimeout(1500);
-await page.locator("video").first().waitFor({ state: "visible", timeout: 30000 }).catch(() => null);
-await page.waitForTimeout(2000);
-await save(page, "testing");
-
-// Telemetry — Live Telemetry Table (scroll page-main, clip to table card)
 await page.goto(`${ORIGIN}/dashboard?view=telemetry`, {
   waitUntil: "domcontentloaded",
   timeout: 90000,
 });
 await page.waitForSelector("text=Live Telemetry Table", { timeout: 60000 });
 await page.waitForSelector("tbody tr", { timeout: 60000 });
+// Wait for map/tiles so layout height settles, then scroll the main pane.
 await page.waitForTimeout(5000);
-await page.evaluate(() => {
+
+const scrolled = await page.evaluate(() => {
   const heading = Array.from(document.querySelectorAll("h3")).find((el) =>
     el.textContent?.includes("Live Telemetry Table"),
   );
   const section = heading?.closest("section");
-  const main = document.querySelector('[data-ai-target="page-main"]');
-  if (!section || !main) return;
+  if (!section) return { ok: false, reason: "no section" };
+
+  const main =
+    document.querySelector('[data-ai-target="page-main"]') ||
+    Array.from(document.querySelectorAll("div")).find((el) => {
+      const st = getComputedStyle(el);
+      return /(auto|scroll)/.test(st.overflowY) && el.scrollHeight > el.clientHeight + 40;
+    });
+
+  if (!main) {
+    section.scrollIntoView({ block: "start", behavior: "instant" });
+    return { ok: true, mode: "scrollIntoView-only" };
+  }
+
   const mainRect = main.getBoundingClientRect();
   const sectionRect = section.getBoundingClientRect();
-  main.scrollTop = Math.max(0, main.scrollTop + (sectionRect.top - mainRect.top) - 8);
-});
-await page.waitForTimeout(1000);
-{
-  const tableBox = await page.locator("h3", { hasText: "Live Telemetry Table" }).first().evaluate((heading) => {
-    const section = heading.closest("section");
-    if (!section) return null;
-    const r = section.getBoundingClientRect();
-    return { x: r.x, y: r.y, width: r.width, height: r.height };
-  });
-  if (tableBox) {
-    const raw = path.join(OUT, "telemetry.raw.png");
-    const out = path.join(OUT, "telemetry.png");
-    const clipY = Math.max(0, tableBox.y - 8);
-    const clipH = Math.min(VIEWPORT.height - clipY, Math.max(tableBox.height + 16, 720));
-    await page.screenshot({
-      path: raw,
-      clip: {
-        x: Math.max(SIDEBAR_W, Math.floor(tableBox.x)),
-        y: Math.floor(clipY),
-        width: Math.min(VIEWPORT.width - SIDEBAR_W, Math.ceil(tableBox.width)),
-        height: Math.floor(clipH),
-      },
-    });
-    await sharp(raw)
-      .resize({ width: 1440, withoutEnlargement: true })
-      .png({ compressionLevel: 9, palette: true, effort: 10, quality: 80 })
-      .toFile(out);
-    fs.unlinkSync(raw);
-    console.log("saved", "telemetry", `${Math.round(fs.statSync(out).size / 1024)}KB`);
-  } else {
-    await save(page, "telemetry");
+  // Pull table card to the top of the main pane (map fully off-screen).
+  const nextTop = main.scrollTop + (sectionRect.top - mainRect.top) - 8;
+  main.scrollTop = Math.max(0, nextTop);
+  // If a sliver of map remains, nudge further.
+  const after = section.getBoundingClientRect().top - mainRect.top;
+  if (after > 24) {
+    main.scrollTop += after - 8;
   }
-}
+  return {
+    ok: true,
+    mode: "main-scroll",
+    scrollTop: main.scrollTop,
+    scrollHeight: main.scrollHeight,
+    clientHeight: main.clientHeight,
+    sectionTopInMain: section.getBoundingClientRect().top - main.getBoundingClientRect().top,
+  };
+});
+console.log("scroll", scrolled);
+await page.waitForTimeout(1000);
 
+// Crop the screenshot to the table card only if map still peeks in.
+const tableBox = await page.locator("h3", { hasText: "Live Telemetry Table" }).first().evaluate((heading) => {
+  const section = heading.closest("section");
+  if (!section) return null;
+  const r = section.getBoundingClientRect();
+  return { x: r.x, y: r.y, width: r.width, height: r.height };
+});
+console.log("tableBox", tableBox);
+
+if (tableBox && tableBox.height > 200) {
+  const raw = path.join(OUT, "telemetry.raw.png");
+  const out = path.join(OUT, "telemetry.png");
+  const clipY = Math.max(0, tableBox.y - 8);
+  const clipH = Math.min(VIEWPORT.height - clipY, Math.max(tableBox.height + 16, 720));
+  await page.screenshot({
+    path: raw,
+    clip: {
+      x: Math.max(SIDEBAR_W, Math.floor(tableBox.x)),
+      y: Math.floor(clipY),
+      width: Math.min(VIEWPORT.width - SIDEBAR_W, Math.ceil(tableBox.width)),
+      height: Math.floor(clipH),
+    },
+  });
+  await sharp(raw)
+    .resize({ width: 1440, withoutEnlargement: true })
+    .png({ compressionLevel: 9, palette: true, effort: 10, quality: 80 })
+    .toFile(out);
+  fs.unlinkSync(raw);
+  console.log("saved telemetry (table-clip)", `${Math.round(fs.statSync(out).size / 1024)}KB`);
+} else {
+  await save(page, "telemetry");
+}
 await browser.close();
 console.log("Done");
