@@ -92,18 +92,6 @@ export function OnwardAirClientPortalLogin({
             aria-hidden
           />
           <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
-            <a href="https://unit311central.com" aria-label="Unit311 Central">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/unit311central-login.webp"
-                alt="Unit311 Central"
-                width={180}
-                height={44}
-                decoding="async"
-                className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 40, width: "auto", maxWidth: 180, maxHeight: 40 }}
-              />
-            </a>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/workspaces/onwardair-logo.png"
@@ -114,6 +102,18 @@ export function OnwardAirClientPortalLogin({
               className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
               style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
             />
+            <a href="https://unit311central.com" aria-label="Unit311 Central">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/unit311central-login.webp"
+                alt="Unit311 Central"
+                width={220}
+                height={48}
+                decoding="async"
+                className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+                style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
+              />
+            </a>
           </header>
         </>
       ) : null}
