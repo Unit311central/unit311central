@@ -269,7 +269,7 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live9`;
+  return `/images/overview/screenshots/${key}.png?v=live10`;
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {
