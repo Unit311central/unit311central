@@ -731,16 +731,6 @@ export function OnwardAirOverviewPage() {
                   }}
                 />
               </a>
-              <button
-                type="button"
-                onClick={async () => {
-                  await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-                  window.location.assign("/overview/login");
-                }}
-                className="inline-flex min-h-11 touch-manipulation items-center px-2 text-xs font-medium text-white/70 underline-offset-2 hover:text-white hover:underline sm:min-h-0 sm:text-[11px]"
-              >
-                Sign out
-              </button>
             </div>
           </div>
           {style.typography.taglinePlacement === "below" ? (
@@ -828,7 +818,7 @@ export function OnwardAirOverviewPage() {
                         const img = event.currentTarget;
                         if (img.dataset.fallbackApplied === "1") return;
                         img.dataset.fallbackApplied = "1";
-                        img.src = "/images/overview/screenshots/generic.png?v=live15";
+                        img.src = "/images/overview/screenshots/generic.png?v=live16";
                       }}
                     />
                   </>
