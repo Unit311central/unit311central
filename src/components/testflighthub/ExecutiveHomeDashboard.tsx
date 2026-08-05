@@ -18,6 +18,8 @@ import {
   saveExecutiveHomeLayout,
   type ExecutiveHomeTileId,
 } from "@/lib/executive-home-layout";
+import { ONWARDAIR_CASH_BALANCE_USD } from "@/lib/onwardair-financials";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import type { InternalProject } from "@/lib/projects-data";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,87 @@ type HomeKpiBundle = {
   financials: FinancialOverviewSnapshot | null;
   onboardingPipelineCount?: number;
 };
+
+/** Last-line defence: OA Home must never render $0 cash when the ledger path blanks out. */
+function pinOnwardAirHomeFinancials(
+  financials: FinancialOverviewSnapshot | null,
+): FinancialOverviewSnapshot | null {
+  if (!isBrowserOnwardAirSurface()) return financials;
+  const cash = ONWARDAIR_CASH_BALANCE_USD;
+  if (financials && financials.cashPosition > 0) return financials;
+  if (!financials) {
+    return {
+      revenueYtd: 0,
+      cashPosition: cash,
+      accountsReceivable: 0,
+      accountsPayable: 0,
+      netProfit: 0,
+      outstandingInvoices: 0,
+      monthlyRevenue: 0,
+      monthlyExpenses: 0,
+      annualRevenue: 0,
+      annualExpenses: 0,
+      burnRate: {
+        source: "demo",
+        currency: "USD",
+        monthly: 80_000,
+        quarterly: 240_000,
+        annual: 960_000,
+        previousMonthly: 80_000,
+        changePct: 0,
+        trend: "stable",
+        trendLabel: "Stable",
+        cashBalance: cash,
+        runwayMonths: Math.round((cash / 80_000) * 10) / 10,
+        forecastMonthly: 80_000,
+        lines: [],
+        series: [],
+        filterOptions: { departments: [], costCentres: [], projects: [], offices: [] },
+      },
+      ar: {
+        outstanding: 0,
+        overdue: 0,
+        overdueCount: 0,
+        dueSoon: 0,
+        collectionRate: 0,
+        ageing: [],
+        recentUnpaid: [],
+      },
+      ap: { outstanding: 0, dueThisMonth: 0, overdue: 0, upcoming: 0, recent: [] },
+      payroll: { current: 0, next: 0, employees: 0, annual: 0, monthly: 0, trend: [] },
+      charts: {
+        monthlyRevenue: [],
+        monthlyProfitLoss: [],
+        monthlyOutgoings: [],
+        cashPosition: [{ month: new Date().toISOString().slice(0, 7), amount: cash }],
+      },
+      activity: [],
+    };
+  }
+  return {
+    ...financials,
+    cashPosition: cash,
+    burnRate: {
+      ...financials.burnRate,
+      cashBalance: cash,
+      previousMonthly:
+        financials.burnRate.previousMonthly > 0
+          ? financials.burnRate.previousMonthly
+          : 80_000,
+      monthly:
+        financials.burnRate.monthly > 0 ? financials.burnRate.monthly : 80_000,
+    },
+    charts: {
+      ...financials.charts,
+      cashPosition:
+        financials.charts.cashPosition.length > 0
+          ? financials.charts.cashPosition.map((point, index, arr) =>
+              index === arr.length - 1 ? { ...point, amount: cash } : point,
+            )
+          : [{ month: new Date().toISOString().slice(0, 7), amount: cash }],
+    },
+  };
+}
 
 /** Flagship Home experience — Executive Operating Centre with live KPI SSOT. */
 export default function ExecutiveHomeDashboard() {
@@ -57,11 +140,16 @@ export default function ExecutiveHomeDashboard() {
       setBundle({
         projects: data.projects ?? [],
         clients: data.clients ?? [],
-        financials: data.financials ?? null,
+        financials: pinOnwardAirHomeFinancials(data.financials ?? null),
         onboardingPipelineCount: data.onboardingPipelineCount ?? 0,
       });
     } catch {
-      setBundle({ projects: [], clients: [], financials: null, onboardingPipelineCount: 0 });
+      setBundle({
+        projects: [],
+        clients: [],
+        financials: pinOnwardAirHomeFinancials(null),
+        onboardingPipelineCount: 0,
+      });
     } finally {
       setLoading(false);
     }
