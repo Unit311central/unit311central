@@ -1,5 +1,7 @@
 /**
- * Capture real OnwardAir dashboard screenshots for /overview module previews.
+ * Capture OnwardAir dashboard screenshots for /overview RHS previews.
+ * Crops out the LHS platform nav so the overview page can show content only.
+ *
  * Usage: node scripts/capture-onwardair-overview-screenshots.mjs
  */
 import { chromium } from "playwright";
@@ -11,30 +13,113 @@ const ORIGIN = "https://onwardair.unit311central.com";
 const USERNAME = "admin@onwardair.tech";
 const PASSWORD = "Houston1999$";
 const OUT = path.join(process.cwd(), "public", "images", "overview", "screenshots");
+const VIEWPORT = { width: 1440, height: 900 };
+/** Match EnterprisePlatformSidebar xl width — crop this from captures. */
+const SIDEBAR_W = 252;
 
-/** slug → dashboard view query */
+/**
+ * One capture per live platform view id (filename = view id).
+ * First page of each nav item the overview sidebar can open.
+ */
 const SHOTS = [
-  { slug: "home", view: "home" },
-  { slug: "executive-assistant", view: "executive-assistant" },
-  { slug: "intelligence", view: "oa-competitor-intelligence" },
-  { slug: "fundraising", view: "fundraising-pipeline" },
-  { slug: "board", view: "board-dashboard" },
-  { slug: "engineering", view: "oa-engineering-overview" },
-  { slug: "project-management", view: "projects-dashboard" },
-  { slug: "financials", view: "financials" },
-  { slug: "business-central", view: "clients" },
-  { slug: "ip-patents", view: "oa-ip-dashboard" },
-  { slug: "hr", view: "hr-dashboard" },
-  { slug: "marketing", view: "oa-marketing-dashboard" },
-  { slug: "corporate", view: "company-details" },
-  { slug: "technology", view: "devices" },
-  { slug: "productivity", view: "email" },
-  { slug: "operations", view: "assets" },
-  { slug: "training", view: "training-dashboard" },
-  { slug: "qms", view: "document-control" },
-  { slug: "client-access", view: "external-client-access" },
-  { slug: "settings", view: "settings-profile" },
+  { view: "home" },
+  { view: "executive-assistant" },
+  { view: "business-central-dashboard" },
+  { view: "clients-dashboard" },
+  { view: "clients" },
+  { view: "crm" },
+  { view: "crm-meetings" },
+  { view: "client-onboarding" },
+  { view: "representatives" },
+  { view: "grants" },
+  { view: "projects-dashboard" },
+  { view: "projects-internal" },
+  { view: "projects-external" },
+  { view: "oa-competitor-intelligence" },
+  { view: "oa-ecosystem-partners" },
+  { view: "financials" },
+  { view: "general-ledger" },
+  { view: "accounts-receivable" },
+  { view: "accounts-payable" },
+  { view: "expenses" },
+  { view: "wise" },
+  { view: "financial-reports" },
+  { view: "fundraising-dashboard" },
+  { view: "fundraising-pipeline" },
+  { view: "fundraising-meetings" },
+  { view: "fundraising-pitch-decks" },
+  { view: "fundraising-data-rooms" },
+  { view: "fundraising-investors" },
+  { view: "corporate-cap-table" },
+  { view: "board-dashboard" },
+  { view: "board-meetings" },
+  { view: "board-pack" },
+  { view: "board-minutes" },
+  { view: "corporate-risk-register" },
+  { view: "board-members" },
+  { view: "company-details" },
+  { view: "office-locations" },
+  { view: "oa-ip-overview" },
+  { view: "oa-ip-dashboard" },
+  { view: "oa-ip-register" },
+  { view: "oa-ip-portfolio" },
+  { view: "oa-engineering-overview" },
+  { view: "oa-programs-milestones" },
+  { view: "oa-assurance-certification" },
+  { view: "oa-engineering-risks" },
+  { view: "operations-dashboard" },
+  { view: "assets" },
+  { view: "inventory" },
+  { view: "procurement" },
+  { view: "oa-marketing-dashboard" },
+  { view: "social" },
+  { view: "marketing-newsletter" },
+  { view: "marketing-events" },
+  { view: "devices" },
+  { view: "software-saas" },
+  { view: "hr-dashboard" },
+  { view: "employees" },
+  { view: "org-chart" },
+  { view: "recruitment" },
+  { view: "payroll" },
+  { view: "email" },
+  { view: "calendar" },
+  { view: "messaging" },
+  { view: "support-desk" },
+  { view: "training-dashboard" },
+  { view: "document-control" },
+  { view: "capa" },
+  { view: "internal-audits" },
+  { view: "external-client-access" },
+  { view: "settings-profile" },
+  { view: "settings-users" },
+  { view: "settings-general" },
+  { view: "testing" },
 ];
+
+/** Legacy section aliases → copy from a captured view after the run. */
+const LEGACY_ALIASES = {
+  "business-central": "clients",
+  intelligence: "oa-competitor-intelligence",
+  fundraising: "fundraising-pipeline",
+  board: "board-dashboard",
+  engineering: "oa-engineering-overview",
+  "project-management": "projects-dashboard",
+  "ip-patents": "oa-ip-dashboard",
+  hr: "hr-dashboard",
+  marketing: "oa-marketing-dashboard",
+  corporate: "company-details",
+  technology: "devices",
+  productivity: "email",
+  operations: "assets",
+  training: "training-dashboard",
+  qms: "document-control",
+  "client-access": "external-client-access",
+  settings: "settings-profile",
+  "executive-assistant": "executive-assistant",
+  home: "home",
+  generic: "home",
+};
 
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -69,9 +154,7 @@ async function loginCookies() {
     throw new Error(`Login failed ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);
   }
   const setCookie = res.headers.getSetCookie?.() ?? [];
-  // Node fetch may expose getSetCookie; fallback to raw header unavailable in undici sometimes.
   if (!setCookie.length) {
-    // Playwright form login fallback handled by caller.
     return { cookies: [], redirectPath: body.redirectPath ?? "/dashboard" };
   }
   return {
@@ -91,7 +174,6 @@ async function ensureSession(page, context) {
     if (!page.url().includes("/login")) return;
   }
 
-  // Form login fallback
   await page.goto(`${ORIGIN}/login`, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForTimeout(800);
   const email = page.locator('input[type="email"], input[name="username"], input[autocomplete="username"]').first();
@@ -108,23 +190,33 @@ async function ensureSession(page, context) {
   }
 }
 
-async function captureView(page, slug, view) {
+async function captureView(page, view) {
+  const slug = view;
   const url = `${ORIGIN}/dashboard?view=${encodeURIComponent(view)}`;
-  console.log(`→ ${slug} (${view})`);
+  console.log(`→ ${slug}`);
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForLoadState("networkidle", { timeout: 45000 }).catch(() => null);
-  await page.waitForTimeout(slug === "home" ? 10000 : 6000);
+  await page.waitForTimeout(view === "home" || view === "executive-assistant" ? 9000 : 4500);
   for (let i = 0; i < 8; i += 1) {
     const pulsing = await page.locator(".animate-pulse").count().catch(() => 0);
     if (pulsing === 0) break;
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(1200);
   }
   await page.locator('button:has-text("Accept")').first().click({ timeout: 800 }).catch(() => null);
+
   const rawPath = path.join(OUT, `${slug}.raw.png`);
   const outPath = path.join(OUT, `${slug}.png`);
-  await page.screenshot({ path: rawPath, fullPage: false });
+  await page.screenshot({
+    path: rawPath,
+    clip: {
+      x: SIDEBAR_W,
+      y: 0,
+      width: VIEWPORT.width - SIDEBAR_W,
+      height: VIEWPORT.height,
+    },
+  });
   await sharp(rawPath)
-    .resize({ width: 1440, withoutEnlargement: true })
+    .resize({ width: 1280, withoutEnlargement: true })
     .png({ compressionLevel: 9, palette: true })
     .toFile(outPath);
   fs.unlinkSync(rawPath);
@@ -134,7 +226,7 @@ async function captureView(page, slug, view) {
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({
-  viewport: { width: 1440, height: 900 },
+  viewport: VIEWPORT,
   deviceScaleFactor: 1,
 });
 const page = await context.newPage();
@@ -145,16 +237,24 @@ try {
 
   for (const shot of SHOTS) {
     try {
-      await captureView(page, shot.slug, shot.view);
+      await captureView(page, shot.view);
     } catch (error) {
-      console.warn(`  FAIL ${shot.slug}: ${error instanceof Error ? error.message : error}`);
+      console.warn(`  FAIL ${shot.view}: ${error instanceof Error ? error.message : error}`);
     }
   }
 
-  // Keep generic as a copy of home for any unmapped modules
-  const home = path.join(OUT, "home.png");
-  const generic = path.join(OUT, "generic.png");
-  if (fs.existsSync(home)) fs.copyFileSync(home, generic);
+  for (const [alias, source] of Object.entries(LEGACY_ALIASES)) {
+    const src = path.join(OUT, `${source}.png`);
+    const dest = path.join(OUT, `${alias}.png`);
+    if (!fs.existsSync(src)) continue;
+    if (path.resolve(src) === path.resolve(dest)) continue;
+    try {
+      fs.copyFileSync(src, dest);
+      console.log(`  alias ${alias}.png ← ${source}.png`);
+    } catch (error) {
+      console.warn(`  alias FAIL ${alias}: ${error instanceof Error ? error.message : error}`);
+    }
+  }
 } finally {
   await browser.close();
 }

@@ -269,7 +269,7 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live4`;
+  return `/images/overview/screenshots/${key}.png?v=live5`;
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {
@@ -277,102 +277,107 @@ export function overviewScreenshotForModuleId(moduleId: string | null | undefine
   return overviewScreenshotSrc(slug);
 }
 
-/** Map live platform `?view=` ids → overview screenshot slug. */
+/**
+ * Prefer exact platform view id as screenshot filename.
+ * Fallbacks cover older section-level captures when a view-specific file is missing from the map.
+ */
+const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
+  home: "home",
+  "executive-assistant": "executive-assistant",
+  "business-central-dashboard": "business-central-dashboard",
+  "clients-dashboard": "clients-dashboard",
+  clients: "clients",
+  crm: "crm",
+  "crm-meetings": "crm-meetings",
+  "client-onboarding": "client-onboarding",
+  representatives: "representatives",
+  grants: "grants",
+  "member-intelligence": "clients",
+  "projects-dashboard": "projects-dashboard",
+  "projects-internal": "projects-internal",
+  "projects-external": "projects-external",
+  projects: "projects-dashboard",
+  "oa-competitor-intelligence": "oa-competitor-intelligence",
+  "oa-ecosystem-partners": "oa-ecosystem-partners",
+  "potential-clients": "oa-competitor-intelligence",
+  financials: "financials",
+  "general-ledger": "general-ledger",
+  "accounts-receivable": "accounts-receivable",
+  "accounts-payable": "accounts-payable",
+  expenses: "expenses",
+  wise: "wise",
+  "financial-reports": "financial-reports",
+  "fundraising-dashboard": "fundraising-dashboard",
+  "fundraising-pipeline": "fundraising-pipeline",
+  "fundraising-meetings": "fundraising-meetings",
+  "fundraising-pitch-decks": "fundraising-pitch-decks",
+  "fundraising-data-rooms": "fundraising-data-rooms",
+  "fundraising-investors": "fundraising-investors",
+  "corporate-cap-table": "corporate-cap-table",
+  "board-dashboard": "board-dashboard",
+  "board-meetings": "board-meetings",
+  "board-pack": "board-pack",
+  "board-minutes": "board-minutes",
+  "corporate-risk-register": "corporate-risk-register",
+  "board-members": "board-members",
+  "company-details": "company-details",
+  "office-locations": "office-locations",
+  "oa-ip-overview": "oa-ip-overview",
+  "oa-ip-dashboard": "oa-ip-dashboard",
+  "oa-ip-register": "oa-ip-register",
+  "oa-ip-portfolio": "oa-ip-portfolio",
+  "oa-ip-documents": "oa-ip-dashboard",
+  "oa-ip-search": "oa-ip-dashboard",
+  "oa-engineering-overview": "oa-engineering-overview",
+  "oa-programs-milestones": "oa-programs-milestones",
+  "oa-assurance-certification": "oa-assurance-certification",
+  "oa-engineering-risks": "oa-engineering-risks",
+  "oa-team-capacity": "oa-engineering-overview",
+  "oa-supply-dependencies": "oa-engineering-overview",
+  "oa-engineering-integrations": "oa-engineering-overview",
+  "operations-dashboard": "operations-dashboard",
+  assets: "assets",
+  inventory: "inventory",
+  procurement: "procurement",
+  "oa-marketing-dashboard": "oa-marketing-dashboard",
+  social: "social",
+  "marketing-newsletter": "marketing-newsletter",
+  "marketing-events": "marketing-events",
+  "marketing-event-management": "marketing-events",
+  "marketing-mailing-list": "oa-marketing-dashboard",
+  devices: "devices",
+  "software-saas": "software-saas",
+  "hr-dashboard": "hr-dashboard",
+  employees: "employees",
+  "org-chart": "org-chart",
+  recruitment: "recruitment",
+  payroll: "payroll",
+  email: "email",
+  calendar: "calendar",
+  messaging: "messaging",
+  "support-desk": "support-desk",
+  "support-tickets": "support-desk",
+  "training-dashboard": "training-dashboard",
+  training: "training-dashboard",
+  "document-control": "document-control",
+  capa: "capa",
+  "internal-audits": "internal-audits",
+  "external-client-access": "external-client-access",
+  "settings-profile": "settings-profile",
+  "settings-users": "settings-users",
+  "settings-general": "settings-general",
+  settings: "settings-profile",
+  testing: "testing",
+  telemetry: "testing",
+};
+
+/** Map live platform `?view=` ids → overview screenshot slug (exact first page). */
 export function overviewScreenshotSlugForView(view: string | null | undefined): string {
   const v = String(view ?? "home").trim().toLowerCase();
-  if (!v || v === "home") return "home";
-  if (v.includes("executive-assistant")) return "executive-assistant";
-  if (
-    v.includes("competitor") ||
-    v.includes("ecosystem") ||
-    v === "potential-clients" ||
-    v.includes("oa-competitor") ||
-    v.includes("oa-ecosystem")
-  ) {
-    return "intelligence";
-  }
-  if (
-    v.startsWith("business-central") ||
-    v === "clients" ||
-    v.startsWith("clients-") ||
-    v.startsWith("crm") ||
-    v.includes("client-onboarding") ||
-    v === "representatives" ||
-    v === "grants" ||
-    v === "member-intelligence"
-  ) {
-    return "business-central";
-  }
-  if (v.startsWith("projects") || v.includes("project-management")) return "project-management";
-  if (v.includes("engineering") || v.includes("programs-milestone") || v.includes("assurance")) {
-    return "engineering";
-  }
-  if (v.includes("ip") || v.includes("patent")) return "ip-patents";
-  if (v.includes("fundraising") || v.includes("pitch") || v.includes("data-room")) return "fundraising";
-  if (v.includes("board-portal")) return "board-portal";
-  if (v.includes("board")) return "board";
-  if (
-    v.includes("financial") ||
-    v.includes("ledger") ||
-    v.includes("receivable") ||
-    v.includes("payable") ||
-    v.includes("expense") ||
-    v.includes("bank") ||
-    v.includes("cash") ||
-    v.includes("burn")
-  ) {
-    return "financials";
-  }
-  if (v.startsWith("hr") || v.includes("employee") || v.includes("payroll") || v.includes("recruit") || v.includes("org-chart")) {
-    return "hr";
-  }
-  if (v.includes("marketing") || v.includes("social") || v.includes("newsletter") || v.includes("events")) {
-    return "marketing";
-  }
-  if (v.includes("corporate") || v.includes("office") || v.includes("company-detail") || v.includes("cap-table")) {
-    return "corporate";
-  }
-  if (v.includes("technology") || v.includes("device") || v.includes("saas") || v.includes("software")) {
-    return "technology";
-  }
-  if (
-    v.includes("email") ||
-    v.includes("calendar") ||
-    v.includes("messaging") ||
-    v.includes("productivity") ||
-    v.includes("support")
-  ) {
-    return "productivity";
-  }
-  if (
-    v.includes("operation") ||
-    v.includes("asset") ||
-    v.includes("inventory") ||
-    v.includes("procurement") ||
-    v.includes("logistic")
-  ) {
-    return "operations";
-  }
-  if (v.includes("training") || v.includes("course") || v.includes("lms")) return "training";
-  if (v.includes("qms") || v.includes("capa") || v.includes("audit") || v.includes("document-control")) {
-    return "qms";
-  }
-  if (v.includes("client-portal") || v.includes("coastal")) return "client-portal";
-  if (v.includes("client-access") || v.includes("external-user") || v.includes("external-client")) {
-    return "client-access";
-  }
-  if (
-    v.includes("setting") ||
-    v.includes("profile") ||
-    v.includes("users") ||
-    v.includes("tool") ||
-    v.includes("testing") ||
-    v.includes("telemetry") ||
-    v.includes("drone")
-  ) {
-    return "settings";
-  }
-  return "generic";
+  if (!v) return "home";
+  if (OVERVIEW_VIEW_SCREENSHOT_FALLBACK[v]) return OVERVIEW_VIEW_SCREENSHOT_FALLBACK[v];
+  // Unknown views: use the view id as filename (capture script names files that way).
+  return v;
 }
 
 export function overviewScreenshotForView(view: string | null | undefined): string {

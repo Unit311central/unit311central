@@ -167,9 +167,9 @@ export function OnwardAirOverviewPage() {
           {content.questionsIntro}
         </p>
 
-        <div className="mt-6 grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,2.45fr)] lg:gap-3.5">
-          {/* Briefing column */}
-          <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto lg:overflow-hidden">
+        <div className="mt-6 grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,2.45fr)] lg:gap-3.5 lg:items-stretch">
+          {/* Briefing column — fills full height to match platform column */}
+          <aside className="flex h-full min-h-0 flex-col gap-6 overflow-hidden">
             <section className="shrink-0 rounded-xl border border-[#267B90]/20 bg-white p-3.5 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:p-4">
               <ul className="space-y-2">
                 {content.questions.map((q, i) => (
@@ -190,7 +190,7 @@ export function OnwardAirOverviewPage() {
               </ul>
             </section>
 
-            <section className="max-h-[34vh] shrink-0 overflow-y-auto rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:max-h-[30vh] sm:p-3.5">
+            <section className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: "#7DD3E8" }}>
                 {content.highlightsTitle}
               </p>
@@ -230,7 +230,7 @@ export function OnwardAirOverviewPage() {
             </section>
           </aside>
 
-          {/* Platform nav (interactive) + static screenshot preview */}
+          {/* Platform nav (interactive) + content-only screenshot (no white chrome / no nested LHS) */}
           <section className="flex min-h-[420px] min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#050B16] shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0">
             <OperatorEntitlementsProvider>
               <Suspense fallback={<div className="w-[240px] shrink-0 bg-[#07111F]" />}>
@@ -238,28 +238,23 @@ export function OnwardAirOverviewPage() {
               </Suspense>
             </OperatorEntitlementsProvider>
 
-            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-[#F8FBFD] p-2.5 text-[#1B2430]">
-              <div className="mb-2 flex shrink-0 items-center justify-between gap-2 px-0.5">
-                <h2 className="text-[13px] font-semibold tracking-tight text-[#1B2430]">{previewTitle}</h2>
-                <span className="text-[10px] uppercase tracking-wide text-[#5B6577]">Preview</span>
-              </div>
-              <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-[#E2EBF1] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={previewSrc}
-                  alt={`${previewTitle} screenshot`}
-                  className="absolute inset-0 h-full w-full object-cover object-top"
-                />
-                <button
-                  type="button"
-                  onClick={() => setPreviewFullscreen(true)}
-                  className="absolute bottom-2.5 right-2.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#267B90]/30 bg-white/95 text-[#1B2430] shadow-md transition hover:bg-[#267B90] hover:text-white"
-                  aria-label="View screenshot full screen"
-                  title="Full screen"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </button>
-              </div>
+            <div className="relative min-h-0 min-w-0 flex-1 bg-[#020617]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                key={previewSrc}
+                src={previewSrc}
+                alt={`${previewTitle} screenshot`}
+                className="absolute inset-0 h-full w-full object-contain object-top"
+              />
+              <button
+                type="button"
+                onClick={() => setPreviewFullscreen(true)}
+                className="absolute bottom-2.5 right-2.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-black/55 text-white shadow-md transition hover:bg-[#267B90]"
+                aria-label="View screenshot full screen"
+                title="Full screen"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
             </div>
           </section>
         </div>
