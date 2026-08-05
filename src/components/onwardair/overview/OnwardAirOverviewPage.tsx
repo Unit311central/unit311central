@@ -50,6 +50,7 @@ function InlineEdit({
   multiline = false,
   rows = 1,
   fill = true,
+  editable = true,
   className = "",
   style,
   "aria-label": ariaLabel,
@@ -62,6 +63,8 @@ function InlineEdit({
   rows?: number;
   /** When false, field sizes to content instead of stretching. */
   fill?: boolean;
+  /** When false, render static text (invite presentation mode). */
+  editable?: boolean;
   className?: string;
   style?: CSSProperties;
   "aria-label"?: string;
@@ -76,6 +79,20 @@ function InlineEdit({
     height: multiline ? undefined : "1.25em",
     ...style,
   };
+
+  if (!editable) {
+    return (
+      <div className={`min-w-0 shrink-0 ${fill ? (multiline ? "w-full" : "flex-1") : "w-auto max-w-full"}`}>
+        <p
+          aria-label={ariaLabel}
+          className={`m-0 block w-full min-w-0 leading-snug ${className}`}
+          style={controlStyle}
+        >
+          {value}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -117,11 +134,13 @@ function HeaderTaglineEditor({
   onChange,
   typography,
   onTypographyChange,
+  editable = true,
 }: {
   value: string;
   onChange: (value: string) => void;
   typography: OverviewStyleConfig["typography"];
   onTypographyChange: (partial: Partial<OverviewStyleConfig["typography"]>) => void;
+  editable?: boolean;
 }) {
   const [showStyle, setShowStyle] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -362,40 +381,46 @@ function HeaderTaglineEditor({
         transform: `translate(${typography.taglineOffsetX}px, ${typography.taglineOffsetY}px)`,
       }}
     >
-      <div className="flex min-w-0 items-start gap-1.5">
-        <button
-          type="button"
-          className="mt-0.5 inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded border border-white/15 bg-white/5 text-[#7DD3E8] hover:bg-white/10 active:cursor-grabbing"
-          title="Drag to move tagline"
-          aria-label="Drag to move tagline"
-          onPointerDown={onTaglineDragStart}
-          onPointerMove={onTaglineDragMove}
-          onPointerUp={onTaglineDragEnd}
-          onPointerCancel={onTaglineDragEnd}
-        >
-          <GripHorizontal className="h-4 w-4" />
-        </button>
-        <div className="min-w-0 flex-1">
-          <InlineEdit
-            aria-label="Header tagline"
-            value={value}
-            onChange={onChange}
-            onFocus={() => setShowStyle(true)}
-            className="min-w-0 w-full"
-            style={typeStyle}
-          />
-          {!showStyle ? (
-            <button
-              type="button"
-              onClick={() => setShowStyle(true)}
-              className="mt-1 text-[10px] font-medium text-[#7DD3E8] underline-offset-2 hover:underline"
-            >
-              Edit tagline size / font
-            </button>
-          ) : null}
+      {!editable ? (
+        <p className="m-0 min-w-0 w-full leading-snug" style={typeStyle}>
+          {value}
+        </p>
+      ) : (
+        <div className="flex min-w-0 items-start gap-1.5">
+          <button
+            type="button"
+            className="mt-0.5 inline-flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded border border-white/15 bg-white/5 text-[#7DD3E8] hover:bg-white/10 active:cursor-grabbing"
+            title="Drag to move tagline"
+            aria-label="Drag to move tagline"
+            onPointerDown={onTaglineDragStart}
+            onPointerMove={onTaglineDragMove}
+            onPointerUp={onTaglineDragEnd}
+            onPointerCancel={onTaglineDragEnd}
+          >
+            <GripHorizontal className="h-4 w-4" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <InlineEdit
+              aria-label="Header tagline"
+              value={value}
+              onChange={onChange}
+              onFocus={() => setShowStyle(true)}
+              className="min-w-0 w-full"
+              style={typeStyle}
+            />
+            {!showStyle ? (
+              <button
+                type="button"
+                onClick={() => setShowStyle(true)}
+                className="mt-1 text-[10px] font-medium text-[#7DD3E8] underline-offset-2 hover:underline"
+              >
+                Edit tagline size / font
+              </button>
+            ) : null}
+          </div>
         </div>
-      </div>
-      {stylePanel}
+      )}
+      {editable ? stylePanel : null}
     </div>
   );
 }
@@ -428,6 +453,8 @@ export function OnwardAirOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<InternalOperationsView>("home");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
+  /** Live style popup + inline editors — only with ?tune=1 */
+  const [tuneMode, setTuneMode] = useState(false);
 
   // Always ship the committed tuner defaults (style + invite copy). Do not let a
   // warm API memory blob or an old in-tab session hide the latest deploy.
@@ -435,6 +462,11 @@ export function OnwardAirOverviewPage() {
     setStyle(defaultOverviewStyleConfig());
     setContent(defaultOnwardAirOverviewContent());
     setLoading(false);
+    try {
+      setTuneMode(new URLSearchParams(window.location.search).get("tune") === "1");
+    } catch {
+      setTuneMode(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -502,6 +534,7 @@ export function OnwardAirOverviewPage() {
                 <InlineEdit
                   aria-label={`Question ${i + 1}`}
                   value={q}
+                  editable={tuneMode}
                   onChange={(next) => {
                     const questions = content.questions.map((item, index) =>
                       index === i ? next : item,
@@ -534,6 +567,7 @@ export function OnwardAirOverviewPage() {
             <InlineEdit
               aria-label="Highlights title"
               value={content.highlightsTitle}
+              editable={tuneMode}
               onChange={(highlightsTitle) => patchContent({ highlightsTitle })}
               fill={false}
               className="font-bold uppercase tracking-[0.14em]"
@@ -550,6 +584,7 @@ export function OnwardAirOverviewPage() {
                   <InlineEdit
                     aria-label={`Highlight ${i + 1}`}
                     value={item}
+                    editable={tuneMode}
                     onChange={(next) => {
                       const highlights = content.highlights.map((row, index) =>
                         index === i ? next : row,
@@ -576,6 +611,7 @@ export function OnwardAirOverviewPage() {
           <InlineEdit
             aria-label="Agenda title"
             value={content.agendaTitle}
+            editable={tuneMode}
             onChange={(agendaTitle) => patchContent({ agendaTitle })}
             fill
             className="oa-agenda-title !font-bold tracking-tight"
@@ -609,6 +645,7 @@ export function OnwardAirOverviewPage() {
                   <InlineEdit
                     aria-label={`Agenda row ${i + 1} time`}
                     value={row.wave}
+                    editable={tuneMode}
                     fill={false}
                     onChange={(wave) => {
                       const agenda = content.agenda.map((item, index) =>
@@ -622,6 +659,7 @@ export function OnwardAirOverviewPage() {
                   <InlineEdit
                     aria-label={`Agenda row ${i + 1} who`}
                     value={row.who}
+                    editable={tuneMode}
                     fill={false}
                     onChange={(who) => {
                       const agenda = content.agenda.map((item, index) =>
@@ -636,6 +674,7 @@ export function OnwardAirOverviewPage() {
                 <InlineEdit
                   aria-label={`Agenda row ${i + 1} why`}
                   value={row.why}
+                  editable={tuneMode}
                   onChange={(why) => {
                     const agenda = content.agenda.map((item, index) =>
                       index === i ? { ...item, why } : item,
@@ -707,6 +746,7 @@ export function OnwardAirOverviewPage() {
               {style.typography.taglinePlacement === "beside" ? (
                 <HeaderTaglineEditor
                   value={content.headline}
+                  editable={tuneMode}
                   onChange={(headline) => patchContent({ headline })}
                   typography={style.typography}
                   onTypographyChange={(partial) =>
@@ -741,6 +781,7 @@ export function OnwardAirOverviewPage() {
           {style.typography.taglinePlacement === "below" ? (
             <HeaderTaglineEditor
               value={content.headline}
+              editable={tuneMode}
               onChange={(headline) => patchContent({ headline })}
               typography={style.typography}
               onTypographyChange={(partial) =>
@@ -900,12 +941,14 @@ export function OnwardAirOverviewPage() {
         </div>
       ) : null}
 
-      <OverviewStyleTuner
-        style={style}
-        onStyleChange={setStyle}
-        content={content}
-        onContentChange={setContent}
-      />
+      {tuneMode ? (
+        <OverviewStyleTuner
+          style={style}
+          onStyleChange={setStyle}
+          content={content}
+          onContentChange={setContent}
+        />
+      ) : null}
     </div>
   );
 }
