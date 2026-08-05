@@ -165,7 +165,7 @@ type EnterprisePlatformSidebarProps = {
   onViewChange?: (view: InternalOperationsView) => void;
   basePath?: SurveyOperationsBasePath;
   onPrefetchView?: (view: InternalOperationsView) => void;
-  /** Overview invite: hide brand/logout; show “click below to view”. */
+  /** Overview invite: hide brand/logout; show “VIEW EXAMPLE MODULES”. */
   overviewEmbed?: boolean;
 };
 
@@ -715,8 +715,8 @@ export default function EnterprisePlatformSidebar({
         style={{ paddingBottom: 20 }}
       >
         {overviewEmbed ? (
-          <p className="w-full max-w-none px-0 text-left text-[12px] font-semibold uppercase leading-snug tracking-[0.04em] text-white sm:text-[13px]">
-            click below to view
+          <p className="w-full max-w-none px-0 text-left text-[15px] font-bold uppercase leading-snug tracking-[0.04em] text-white sm:text-[16px]">
+            VIEW EXAMPLE MODULES
           </p>
         ) : (
           <WorkspaceSidebarBrand href={basePath} />

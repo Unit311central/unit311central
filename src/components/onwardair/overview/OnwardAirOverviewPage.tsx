@@ -586,8 +586,12 @@ export function OnwardAirOverviewPage() {
             value={content.agendaTitle}
             onChange={(agendaTitle) => patchContent({ agendaTitle })}
             fill={false}
-            className="font-semibold tracking-tight"
-            style={{ fontSize: `${style.agenda.titleSize}px`, color: style.agenda.titleColor }}
+            className="font-bold tracking-tight"
+            style={{
+              fontSize: `${style.agenda.titleSize}px`,
+              fontWeight: 700,
+              color: style.agenda.titleColor,
+            }}
           />
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
