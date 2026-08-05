@@ -265,7 +265,7 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live1`;
+  return `/images/overview/screenshots/${key}.png?v=live3`;
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {
@@ -304,9 +304,21 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
     agendaTitle: "60-minute working session",
     agendaIntro: "Live walkthrough — then decide if it's for you.",
     agenda: [
-      { wave: "0–25", who: "Scott · Brian · Monte", why: "Leadership picture" },
-      { wave: "25–45", who: "+ Eng leads", why: "Programmes & tools" },
-      { wave: "45–60", who: "Core three", why: "Build plan" },
+      {
+        wave: "0–25",
+        who: "Scott · Brian · Monte",
+        why: "Leadership picture — how OnwardAir runs today across the platform.",
+      },
+      {
+        wave: "25–45",
+        who: "+ Engineering leads",
+        why: "Programmes, tools & operating rhythm — dig into the modules that matter.",
+      },
+      {
+        wave: "45–60",
+        who: "Core three",
+        why: "Decide fit and next steps — outline the build plan together.",
+      },
     ],
     agendaNote: "",
     modulesTitle: "Major Modules",

@@ -81,7 +81,10 @@ export function OnwardAirOverviewPage() {
     defaultOnwardAirOverviewContent(),
   );
   const [loading, setLoading] = useState(true);
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({ m19: true });
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({
+    m19: true,
+    m5: true,
+  });
   const [previewKind, setPreviewKind] = useState<PreviewKind>("module");
   const [selectedModuleId, setSelectedModuleId] = useState("m1");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
@@ -171,9 +174,12 @@ export function OnwardAirOverviewPage() {
   function renderNode(node: ModuleNode, depth: 0 | 1 | 2) {
     const hasChildren = node.children.length > 0;
     const open = Boolean(expandedIds[node.row.id]);
-    const selected = previewKind === "module" || previewKind === "video-ea"
-      ? selectedModuleId === node.row.id
-      : false;
+    const selected =
+      selectedModuleId === node.row.id &&
+      (previewKind === "module" ||
+        previewKind === "video-ea" ||
+        previewKind === "board-portal" ||
+        previewKind === "client-portal");
     const ExpandIcon = open ? ChevronDown : ChevronRight;
     const pad = depth === 0 ? "pl-0" : depth === 1 ? "pl-4" : "pl-8";
 
@@ -233,25 +239,25 @@ export function OnwardAirOverviewPage() {
         <header className="flex shrink-0 items-center justify-between gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`${OA_LOGO}?v=swap4`}
+            src={`${OA_LOGO}?v=swap6`}
             alt="OnwardAir"
             width={200}
             height={40}
             decoding="async"
             className="block object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-            style={{ height: 40, width: "auto", maxWidth: 200, maxHeight: 40 }}
+            style={{ height: 40, width: "auto", maxWidth: 180, maxHeight: 40 }}
           />
           <div className="flex items-center gap-3 sm:gap-4">
-            <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex items-center">
+            <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex h-10 items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`${UNIT311_LOGO}?v=swap4`}
+                src={`${UNIT311_LOGO}?v=swap6`}
                 alt="Unit311 Central"
-                width={140}
-                height={32}
+                width={100}
+                height={22}
                 decoding="async"
                 className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 32, width: "auto", maxWidth: 140, maxHeight: 32 }}
+                style={{ height: 22, width: "auto", maxWidth: 100, maxHeight: 22 }}
               />
             </a>
             <button
@@ -274,10 +280,10 @@ export function OnwardAirOverviewPage() {
           <span className="text-white/70">{content.subheadline}</span>
         </p>
 
-        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto sm:mt-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.7fr)_minmax(0,1.35fr)] lg:gap-3 lg:overflow-hidden">
-          {/* Column 1 — 3 boxes */}
-          <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto lg:overflow-y-auto">
-            <section className="shrink-0 rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
+        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto sm:mt-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(180px,0.48fr)_minmax(0,1.7fr)] lg:gap-3 lg:overflow-hidden">
+          {/* Column 1 — 3 boxes: white / teal / white */}
+          <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto">
+            <section className="shrink-0 rounded-xl border border-[#267B90]/20 bg-white p-3.5 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:p-4">
               <ul className="space-y-1.5">
                 {content.questions.map((q, i) => (
                   <li key={`q-${i}`} className="flex gap-2">
@@ -287,11 +293,11 @@ export function OnwardAirOverviewPage() {
                     >
                       {i + 1}
                     </span>
-                    <p className="text-[11px] leading-snug text-white/95">{q}</p>
+                    <p className="text-[12px] leading-snug text-[#1B2430]">{q}</p>
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-[11px] leading-snug text-white/75">{content.questionsIntro}</p>
+              <p className="mt-3 text-[12px] leading-snug text-[#5B6577]">{content.questionsIntro}</p>
             </section>
 
             <section className="shrink-0 rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
@@ -308,26 +314,26 @@ export function OnwardAirOverviewPage() {
             </section>
 
             <section className="shrink-0 rounded-xl border border-[#267B90]/25 bg-white p-3.5 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.18)] sm:p-4">
-              <h2 className="text-[14px] font-semibold tracking-tight text-[#1B2430]">
+              <h2 className="text-[15px] font-semibold tracking-tight text-[#1B2430]">
                 {content.agendaTitle}
               </h2>
-              <p className="mt-1 text-[12px] text-[#5B6577]">{content.agendaIntro}</p>
+              <p className="mt-1 text-[12px] leading-snug text-[#5B6577]">{content.agendaIntro}</p>
               <div className="mt-3 space-y-2">
                 {content.agenda.map((row, i) => (
                   <div
                     key={`a-${i}`}
-                    className="grid grid-cols-[4.5rem_1fr] gap-x-3 gap-y-0.5 rounded-lg border border-[#267B90]/20 bg-[#F4FAFB] px-3 py-2.5"
+                    className="rounded-lg border border-[#267B90]/20 bg-[#F4FAFB] px-3 py-2.5"
                   >
-                    <p
-                      className="text-[11px] font-bold uppercase tracking-wider"
-                      style={{ color: ONWARDAIR_HOME_ACCENT }}
-                    >
-                      {row.wave}
-                    </p>
-                    <div>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                      <p
+                        className="text-[11px] font-bold uppercase tracking-wider"
+                        style={{ color: ONWARDAIR_HOME_ACCENT }}
+                      >
+                        {row.wave.includes("min") ? row.wave : `${row.wave} min`}
+                      </p>
                       <p className="text-[13px] font-semibold text-[#1B2430]">{row.who}</p>
-                      <p className="text-[12px] text-[#5B6577]">{row.why}</p>
                     </div>
+                    <p className="mt-1 text-[13px] leading-snug text-[#5B6577]">{row.why}</p>
                   </div>
                 ))}
               </div>
@@ -335,15 +341,15 @@ export function OnwardAirOverviewPage() {
           </div>
 
           {/* Column 2 — narrower modules */}
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/12 bg-[#061018]/75 p-2 backdrop-blur-[2px] sm:p-2.5">
-            <h2 className="mb-1.5 shrink-0 text-[12px] font-semibold tracking-tight text-white">
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/12 bg-[#061018]/75 p-2 backdrop-blur-[2px]">
+            <h2 className="mb-1.5 shrink-0 text-[11px] font-semibold tracking-tight text-white">
               {content.modulesTitle}
             </h2>
-            <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-0.5 text-[11px]">
+            <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-0.5">
               {tree.map((node) => renderNode(node, 0))}
             </ul>
 
-            <div className="mt-2 shrink-0 space-y-1 border-t border-white/10 pt-2">
+            <div className="mt-2 shrink-0 border-t border-white/10 pt-2">
               <button
                 type="button"
                 onClick={() => setPreviewKind("video-drone")}
@@ -356,62 +362,36 @@ export function OnwardAirOverviewPage() {
               >
                 Live drone
               </button>
-              <button
-                type="button"
-                onClick={() => setPreviewKind("board-portal")}
-                className={cn(
-                  "w-full rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition",
-                  previewKind === "board-portal"
-                    ? "bg-[#267B90] text-white"
-                    : "bg-white/5 text-white/90 hover:bg-white/10",
-                )}
-              >
-                Board portal access
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreviewKind("client-portal")}
-                className={cn(
-                  "w-full rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition",
-                  previewKind === "client-portal"
-                    ? "bg-[#267B90] text-white"
-                    : "bg-white/5 text-white/90 hover:bg-white/10",
-                )}
-              >
-                Client portal access
-              </button>
             </div>
           </div>
 
-          {/* Column 3 — soft white preview box */}
-          <section className="relative flex min-h-[240px] flex-col overflow-hidden rounded-xl border border-[#267B90]/15 bg-[#F7FAFC] p-2.5 text-[#1B2430] shadow-[0_8px_28px_rgba(0,0,0,0.16)] sm:min-h-[320px] sm:p-3 lg:min-h-0">
+          {/* Column 3 — soft white panel; screenshot fills height */}
+          <section className="relative flex min-h-[320px] flex-col overflow-hidden rounded-xl border border-[#D7E3EA] bg-[#F8FBFD] p-2.5 text-[#1B2430] shadow-[0_10px_30px_rgba(0,0,0,0.14)] sm:min-h-[380px] lg:min-h-0">
             <div className="mb-2 flex shrink-0 items-center justify-between gap-2 px-0.5">
               <h2 className="text-[13px] font-semibold tracking-tight text-[#1B2430]">{previewLabel}</h2>
-              <span className="text-[10px] text-[#5B6577]">Preview</span>
+              <span className="text-[10px] uppercase tracking-wide text-[#5B6577]">Preview</span>
             </div>
-            <div className="relative min-h-0 flex-1">
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-[#E2EBF1] bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
               {previewKind === "video-ea" ? (
-                <div className="h-full overflow-hidden rounded-lg border border-[#267B90]/15 bg-[#061018]">
+                <div className="absolute inset-0 overflow-hidden bg-[#061018]">
                   <VideoSlot src={EA_VIDEO} label="AI Executive Assistant walkthrough" />
                 </div>
               ) : previewKind === "video-drone" ? (
-                <div className="h-full overflow-hidden rounded-lg border border-[#267B90]/15 bg-[#061018]">
+                <div className="absolute inset-0 overflow-hidden bg-[#061018]">
                   <VideoSlot src={DRONE_VIDEO} label="Live drone walkthrough" />
                 </div>
               ) : (
-                <div className="relative flex h-full min-h-0 items-stretch overflow-hidden rounded-lg border border-[#267B90]/15 bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={previewSrc}
-                    alt={`${previewLabel} screenshot`}
-                    className="h-full w-full object-contain object-top"
-                  />
-                </div>
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previewSrc}
+                  alt={`${previewLabel} screenshot`}
+                  className="absolute inset-0 h-full w-full object-cover object-top"
+                />
               )}
               <button
                 type="button"
                 onClick={() => setPreviewFullscreen(true)}
-                className="absolute bottom-2 right-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#267B90]/30 bg-white/95 text-[#1B2430] shadow-md transition hover:bg-[#267B90] hover:text-white"
+                className="absolute bottom-2.5 right-2.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#267B90]/30 bg-white/95 text-[#1B2430] shadow-md transition hover:bg-[#267B90] hover:text-white"
                 aria-label="View screenshot full screen"
                 title="Full screen"
               >
