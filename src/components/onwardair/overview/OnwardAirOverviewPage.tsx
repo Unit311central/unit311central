@@ -585,12 +585,15 @@ export function OnwardAirOverviewPage() {
             aria-label="Agenda title"
             value={content.agendaTitle}
             onChange={(agendaTitle) => patchContent({ agendaTitle })}
-            fill={false}
-            className="font-bold tracking-tight"
+            fill
+            className="oa-agenda-title !font-bold tracking-tight"
             style={{
               fontSize: `${style.agenda.titleSize}px`,
-              fontWeight: 700,
+              fontWeight: 800,
               color: style.agenda.titleColor,
+              height: "auto",
+              minHeight: "1.45em",
+              lineHeight: 1.3,
             }}
           />
         </div>

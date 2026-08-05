@@ -155,6 +155,12 @@ svg {
   background-color: rgba(186, 230, 253, 0.42);
 }
 
+/* Overview invite: force agenda title weight (inputs often ignore utility font-weight). */
+.oa-overview .oa-inline-edit.oa-agenda-title {
+  font-weight: 800 !important;
+  font-synthesis: weight;
+}
+
 /* Command Centre density: compress chrome on short laptop viewports. */
 @media (max-height: 860px) {
   .cc-tile-header {

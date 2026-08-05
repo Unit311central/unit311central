@@ -939,7 +939,7 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
               </button>
             </div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Spacing</p>
-            <SliderRow label="Space under title" value={style.agenda.titleGap} min={0} max={48} onChange={(titleGap) => patch.agenda({ titleGap })} />
+            <SliderRow label="Space under title" value={style.agenda.titleGap} min={0} max={80} onChange={(titleGap) => patch.agenda({ titleGap })} />
             <SliderRow label="Row gap" value={style.agenda.rowGap} min={0} max={24} onChange={(rowGap) => patch.agenda({ rowGap })} />
             <SliderRow label="Card padding" value={style.agenda.padding} min={4} max={36} onChange={(padding) => patch.agenda({ padding })} />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Box + type</p>
