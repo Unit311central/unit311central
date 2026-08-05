@@ -120,23 +120,26 @@ const WORKSPACE_SHELLS: WorkspaceShell[] = [
   },
 ];
 
-const WORKSPACES: Workspace[] = MARKETING_WORKSPACE_COPY.map((copy) => {
+const WORKSPACES: Workspace[] = MARKETING_WORKSPACE_COPY.flatMap((copy) => {
   const shell = WORKSPACE_SHELLS.find((item) => item.id === copy.id);
   if (!shell) {
-    throw new Error(`Missing workspace shell for ${copy.id}`);
+    console.error(`Missing workspace shell for ${copy.id}`);
+    return [];
   }
 
-  return {
-    id: copy.id,
-    title: copy.title,
-    outcome: copy.outcome,
-    description: copy.description,
-    icon: shell.icon,
-    visual: shell.visual,
-    accent: shell.accent,
-    capabilities: copy.capabilities,
-    integrationCategories: copy.integrationCategories,
-  };
+  return [
+    {
+      id: copy.id,
+      title: copy.title,
+      outcome: copy.outcome,
+      description: copy.description,
+      icon: shell.icon,
+      visual: shell.visual,
+      accent: shell.accent,
+      capabilities: copy.capabilities,
+      integrationCategories: copy.integrationCategories,
+    },
+  ];
 });
 
 function accentStyle(accent: WorkspaceAccent): CSSProperties {
