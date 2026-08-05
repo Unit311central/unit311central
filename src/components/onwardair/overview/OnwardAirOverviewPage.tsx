@@ -81,7 +81,7 @@ export function OnwardAirOverviewPage() {
     defaultOnwardAirOverviewContent(),
   );
   const [loading, setLoading] = useState(true);
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({ m19: true });
   const [previewKind, setPreviewKind] = useState<PreviewKind>("module");
   const [selectedModuleId, setSelectedModuleId] = useState("m1");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
@@ -147,6 +147,16 @@ export function OnwardAirOverviewPage() {
   function selectModule(id: string) {
     if (id === "m2") {
       setPreviewKind("video-ea");
+      setSelectedModuleId(id);
+      return;
+    }
+    if (id === "m19c") {
+      setPreviewKind("board-portal");
+      setSelectedModuleId(id);
+      return;
+    }
+    if (id === "m19d") {
+      setPreviewKind("client-portal");
       setSelectedModuleId(id);
       return;
     }

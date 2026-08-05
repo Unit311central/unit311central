@@ -115,6 +115,8 @@ export const DEFAULT_OVERVIEW_MODULES: PortalsModuleRow[] = [
   row("m19", "External Client Access"),
   row("m19a", "Dashboard", 1),
   row("m19b", "External Users", 1),
+  row("m19c", "Board Portal access", 1),
+  row("m19d", "Client Portal Access", 1),
 
   row("m20", "Settings"),
   row("m20a", "Profile", 1),
@@ -225,6 +227,8 @@ export const OVERVIEW_SCREENSHOT_BY_MODULE_ID: Record<string, string> = {
   m19: "client-access",
   m19a: "client-access",
   m19b: "client-access",
+  m19c: "board-portal",
+  m19d: "client-portal",
   m20: "settings",
   m20a: "settings",
   m20b: "settings",
