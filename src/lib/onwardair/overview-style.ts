@@ -181,7 +181,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       headerLetterSpacing: 0,
       headerColor: "#ffffff",
       headerOpacity: 0.85,
-      taglinePlacement: "below",
+      taglinePlacement: "beside",
       taglineOffsetX: 0,
       taglineOffsetY: 0,
     },
