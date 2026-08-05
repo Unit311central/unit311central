@@ -51,32 +51,32 @@ export function OnwardAirOverviewPage() {
       />
 
       <div className="relative flex min-h-[100dvh] flex-col px-3 py-3 sm:px-5 sm:py-4 lg:px-6 lg:py-4 xl:h-full xl:min-h-0">
-        {/* Top bar — Unit311 TL · OnwardAir + Sign out TR */}
+        {/* Top bar — OnwardAir TL · Unit311 + Sign out TR */}
         <header className="flex shrink-0 items-center justify-between gap-3">
-          <a href="https://unit311central.com" aria-label="Unit311 Central">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={UNIT311_LOGO}
-              alt="Unit311 Central"
-              width={180}
-              height={44}
-              decoding="async"
-              className="block object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-              style={{ height: 40, width: "auto", maxWidth: 180, maxHeight: 40 }}
-            />
-          </a>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={OA_LOGO}
+            alt="OnwardAir"
+            width={220}
+            height={48}
+            decoding="async"
+            className="block object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+            style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
+          />
 
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={OA_LOGO}
-              alt="OnwardAir"
-              width={220}
-              height={48}
-              decoding="async"
-              className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-              style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
-            />
+            <a href="https://unit311central.com" aria-label="Unit311 Central">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={UNIT311_LOGO}
+                alt="Unit311 Central"
+                width={220}
+                height={48}
+                decoding="async"
+                className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+                style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
+              />
+            </a>
             <button
               type="button"
               onClick={async () => {
