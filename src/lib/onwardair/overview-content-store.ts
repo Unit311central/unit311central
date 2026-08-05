@@ -17,17 +17,15 @@ function memoryContent(): OnwardAirOverviewEditableContent {
 }
 
 export async function readOnwardAirOverviewContent(): Promise<OnwardAirOverviewEditableContent> {
-  const stored = sanitizeOverviewContent(memoryContent());
+  // Always prefer shipped defaults for invite-page copy so deploys are not stuck
+  // behind a warm serverless memory blob from an older revision.
   const defaults = defaultOnwardAirOverviewContent();
+  const stored = sanitizeOverviewContent(memoryContent());
   return {
-    ...stored,
+    ...defaults,
+    // Keep only non-invite fields from memory if ever needed later.
     modules: defaults.modules,
-    highlights: defaults.highlights,
-    highlightsTitle: defaults.highlightsTitle,
-    highlightsIntro: defaults.highlightsIntro,
-    agenda: defaults.agenda,
-    agendaTitle: defaults.agendaTitle,
-    agendaIntro: defaults.agendaIntro,
+    previewHint: stored.previewHint || defaults.previewHint,
   };
 }
 

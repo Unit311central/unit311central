@@ -3,7 +3,7 @@
  * Tuned in-browser via OverviewStyleTuner; paste the exported JSON back to Cursor to persist.
  */
 
-export const OVERVIEW_STYLE_VERSION = 2 as const;
+export const OVERVIEW_STYLE_VERSION = 3 as const;
 
 export const OVERVIEW_FONT_OPTIONS = [
   {

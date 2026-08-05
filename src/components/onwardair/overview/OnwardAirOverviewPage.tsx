@@ -429,41 +429,12 @@ export function OnwardAirOverviewPage() {
   const [activeView, setActiveView] = useState<InternalOperationsView>("home");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
 
-  // Always re-apply shipped defaults on load so deploy updates are not stuck behind an old in-session look.
+  // Always ship the committed tuner defaults (style + invite copy). Do not let a
+  // warm API memory blob or an old in-tab session hide the latest deploy.
   useEffect(() => {
     setStyle(defaultOverviewStyleConfig());
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/onwardair/overview-content", { credentials: "include" });
-        if (!res.ok) throw new Error("load failed");
-        const data = (await res.json()) as { content: OnwardAirOverviewEditableContent };
-        if (cancelled) return;
-        const defaults = defaultOnwardAirOverviewContent();
-        setContent({
-          ...data.content,
-          headline: defaults.headline,
-          subheadline: defaults.subheadline,
-          questionsIntro: defaults.questionsIntro,
-          questions: defaults.questions,
-          highlights: defaults.highlights,
-          highlightsTitle: defaults.highlightsTitle,
-          agenda: defaults.agenda,
-          agendaTitle: defaults.agendaTitle,
-          agendaIntro: defaults.agendaIntro,
-        });
-      } catch {
-        if (!cancelled) setContent(defaultOnwardAirOverviewContent());
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setContent(defaultOnwardAirOverviewContent());
+    setLoading(false);
   }, []);
 
   useEffect(() => {
