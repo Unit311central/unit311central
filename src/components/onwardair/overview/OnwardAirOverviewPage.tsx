@@ -195,11 +195,7 @@ export function OnwardAirOverviewPage() {
             style={{ gap: style.questions.itemGap }}
           >
             {content.questions.map((q, i) => (
-              <li
-                key={`q-${i}`}
-                className="oa-overview-question flex items-start gap-2.5"
-                style={{ animationDelay: `${i * 0.55}s` }}
-              >
+              <li key={`q-${i}`} className="flex items-start gap-2.5">
                 <span
                   className="mt-0.5 flex shrink-0 items-center justify-center rounded-full font-bold text-white"
                   style={{

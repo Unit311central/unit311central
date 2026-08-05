@@ -1444,30 +1444,8 @@ svg {
   .workspace-showcase-fade,
   .workspace-panel-fade,
   .workspace-showcase-tab,
-  .workspace-showcase-card-accent,
-  .oa-overview-question {
+  .workspace-showcase-card-accent {
     animation: none !important;
     transition: none !important;
   }
-
-  .oa-overview-question {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-}
-
-@keyframes oaOverviewQuestionIn {
-  from {
-    opacity: 0;
-    transform: translateX(-22px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.oa-overview-question {
-  opacity: 0;
-  animation: oaOverviewQuestionIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
