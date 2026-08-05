@@ -94,24 +94,24 @@ export function OnwardAirClientPortalLogin({
           <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/images/workspaces/onwardair-logo.png?v=swap1"
+              src="/images/workspaces/onwardair-logo.png?v=swap2"
               alt="OnwardAir"
-              width={260}
-              height={56}
+              width={240}
+              height={52}
               decoding="async"
               className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-              style={{ height: 56, width: "auto", maxWidth: 260, maxHeight: 56 }}
+              style={{ height: 52, width: "auto", maxWidth: 240, maxHeight: 52 }}
             />
-            <a href="https://unit311central.com" aria-label="Unit311 Central">
+            <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/images/unit311central-login.webp?v=swap1"
+                src="/images/unit311central-login.webp?v=swap2"
                 alt="Unit311 Central"
-                width={260}
-                height={56}
+                width={280}
+                height={70}
                 decoding="async"
                 className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 56, width: "auto", maxWidth: 260, maxHeight: 56 }}
+                style={{ height: 70, width: "auto", maxWidth: 280, maxHeight: 70 }}
               />
             </a>
           </header>
