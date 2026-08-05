@@ -459,7 +459,7 @@ export function OnwardAirOverviewPage() {
                     patchContent({ agenda });
                   }}
                   className="max-w-[40%] font-bold uppercase tracking-wider"
-                  style={{ fontSize: style.agenda.waveSize, color: style.agenda.waveColor }}
+                  style={{ fontSize: `${style.agenda.waveSize}px`, color: style.agenda.waveColor }}
                 />
                 <InlineEdit
                   aria-label={`Agenda row ${i + 1} who`}
@@ -471,7 +471,7 @@ export function OnwardAirOverviewPage() {
                     patchContent({ agenda });
                   }}
                   className="max-w-[55%] text-right font-semibold"
-                  style={{ fontSize: style.agenda.whoSize, color: style.agenda.whoColor }}
+                  style={{ fontSize: `${style.agenda.whoSize}px`, color: style.agenda.whoColor }}
                 />
               </div>
               <InlineEdit
@@ -485,7 +485,7 @@ export function OnwardAirOverviewPage() {
                   patchContent({ agenda });
                 }}
                 className="mt-0.5 leading-snug"
-                style={{ fontSize: style.agenda.whySize, color: style.agenda.whyColor }}
+                style={{ fontSize: `${style.agenda.whySize}px`, color: style.agenda.whyColor }}
               />
             </div>
           ))}
