@@ -4,7 +4,8 @@ import { ONWARDAIR_HOME_ACCENT } from "@/lib/onwardair-surface";
 
 const UNIT311_LOGO = "/images/unit311central-login.webp";
 const OA_LOGO = "/images/workspaces/onwardair-logo.png";
-const HERO_BG = "/images/workspaces/onwardair-login-bg.png";
+/** Generic corporate / AI / BI backdrop — not the OA aircraft login hero. */
+const HERO_BG = "/images/overview-corporate-intelligence-bg.png";
 /** Drop the walkthrough file here — column is ready. */
 const WALKTHROUGH_VIDEO = "/videos/onwardair-overview-walkthrough.mp4";
 
@@ -38,14 +39,14 @@ const INVITE = [
 export function OnwardAirOverviewPage() {
   return (
     <div className="oa-overview relative min-h-[100dvh] text-white xl:h-dvh xl:max-h-dvh xl:overflow-hidden">
-      {/* Same backdrop treatment as onwardair.unit311central.com/login */}
+      {/* Corporate / AI / BI backdrop (login keeps the OA aircraft hero) */}
       <div
-        className="absolute inset-0 bg-cover bg-[center_40%] bg-no-repeat opacity-[0.38] sm:bg-center"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.48]"
         style={{ backgroundImage: `url(${HERO_BG})` }}
         aria-hidden
       />
       <div
-        className="absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
+        className="absolute inset-0 bg-gradient-to-b from-[#020617]/70 via-[#020617]/76 to-[#020617]/86"
         aria-hidden
       />
 
