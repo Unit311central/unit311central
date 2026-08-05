@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { OnwardAirBoardPortalApp } from "@/components/onwardair/board/OnwardAirBoardPortalApp";
 import { OnwardAirClientPortalApp } from "@/components/onwardair/portal/OnwardAirClientPortalApp";
+import { OnwardAirOverviewPage } from "@/components/onwardair/overview/OnwardAirOverviewPage";
 import { parseOaBoardPortalSection } from "@/lib/onwardair/board-portal-data";
 import { parseOaClientPortalSection } from "@/lib/onwardair/client-portal-data";
 import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
@@ -14,6 +15,10 @@ export default async function OnwardAirClientPortalPage({
   const { company, section = [] } = await params;
   const route = getOnwardAirClientPortalByPath(company);
   if (!route) notFound();
+
+  if (route.portalKind === "overview") {
+    return <OnwardAirOverviewPage />;
+  }
 
   if (route.portalKind === "board") {
     const boardSection = parseOaBoardPortalSection(section);

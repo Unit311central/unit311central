@@ -22,7 +22,13 @@ export default async function OnwardAirClientPortalLoginPage({
       companyName={route.displayName}
       suggestedUsername={route.username}
       companyLogoSrc={route.companyLogoSrc}
-      portalKind={route.portalKind === "board" ? "board" : "client"}
+      portalKind={
+        route.portalKind === "board"
+          ? "board"
+          : route.portalKind === "overview"
+            ? "overview"
+            : "client"
+      }
     />
   );
 }

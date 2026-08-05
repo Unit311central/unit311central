@@ -207,7 +207,9 @@ export function createSeedEcaPortals(): EcaPortalConfig[] {
       if (isBrowserOnwardAirSurface()) {
         const { ONWARDAIR_CLIENT_PORTAL_ROUTES, ONWARDAIR_CLIENT_PORTAL_ORIGIN } =
           require("@/lib/onwardair/client-portal-routes") as typeof import("@/lib/onwardair/client-portal-routes");
-        return ONWARDAIR_CLIENT_PORTAL_ROUTES.map((route) => ({
+        return ONWARDAIR_CLIENT_PORTAL_ROUTES.filter(
+          (route) => route.portalKind !== "board" && route.portalKind !== "overview",
+        ).map((route) => ({
           id: `portal-oa-${route.path.replace(/\./g, "-")}`,
           clientId: route.clientId,
           clientName: route.displayName,
