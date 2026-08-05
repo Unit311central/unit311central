@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronDown, ChevronRight, Loader2, Save } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ONWARDAIR_HOME_ACCENT } from "@/lib/onwardair-surface";
 import {
@@ -17,6 +17,11 @@ import { cn } from "@/lib/utils";
 const UNIT311_LOGO = "/images/unit311central-login.webp";
 const OA_LOGO = "/images/workspaces/onwardair-logo.png";
 const HERO_BG = "/images/overview-corporate-intelligence-bg.png";
+/** Drop files here when ready — RHS shows a player once present. */
+const EA_VIDEO = "/videos/onwardair-overview-exec-assistant.mp4";
+const DRONE_VIDEO = "/videos/onwardair-overview-live-drone.mp4";
+
+type PreviewKind = "module" | "video-ea" | "video-drone" | "board-portal" | "client-portal";
 
 type ModuleNode = {
   row: PortalsModuleRow;
@@ -58,49 +63,16 @@ function buildModuleTree(rows: PortalsModuleRow[]): ModuleNode[] {
   return roots;
 }
 
-function EditableText({
-  value,
-  canEdit,
-  onChange,
-  className,
-  multiline = false,
-}: {
-  value: string;
-  canEdit: boolean;
-  onChange: (next: string) => void;
-  className?: string;
-  multiline?: boolean;
-}) {
-  if (!canEdit) {
-    return multiline ? (
-      <p className={className}>{value}</p>
-    ) : (
-      <span className={className}>{value}</span>
-    );
-  }
-  if (multiline) {
-    return (
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        rows={3}
-        className={cn(
-          "w-full resize-y rounded-md border border-[#267B90]/30 bg-white/90 px-2 py-1.5 outline-none focus:border-[#267B90]",
-          className,
-        )}
-      />
-    );
-  }
+function VideoSlot({ src, label }: { src: string; label: string }) {
   return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={cn(
-        "w-full rounded-md border border-[#267B90]/30 bg-white/90 px-2 py-1 outline-none focus:border-[#267B90]",
-        className,
-      )}
-    />
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-white/15 bg-black/50">
+      <video className="h-full min-h-[200px] w-full flex-1 bg-black object-contain" controls playsInline preload="metadata">
+        <source src={src} type="video/mp4" />
+      </video>
+      <p className="shrink-0 px-2 py-2 text-center text-[10px] text-white/55">
+        {label} — video TBD (upload when ready)
+      </p>
+    </div>
   );
 }
 
@@ -108,11 +80,9 @@ export function OnwardAirOverviewPage() {
   const [content, setContent] = useState<OnwardAirOverviewEditableContent>(() =>
     defaultOnwardAirOverviewContent(),
   );
-  const [canEdit, setCanEdit] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [previewKind, setPreviewKind] = useState<PreviewKind>("module");
   const [selectedModuleId, setSelectedModuleId] = useState("m1");
 
   useEffect(() => {
@@ -121,13 +91,12 @@ export function OnwardAirOverviewPage() {
       try {
         const res = await fetch("/api/onwardair/overview-content", { credentials: "include" });
         if (!res.ok) throw new Error("load failed");
-        const data = (await res.json()) as {
-          content: OnwardAirOverviewEditableContent;
-          canEdit?: boolean;
-        };
+        const data = (await res.json()) as { content: OnwardAirOverviewEditableContent };
         if (cancelled) return;
-        setContent(data.content);
-        setCanEdit(Boolean(data.canEdit));
+        setContent({
+          ...data.content,
+          modules: defaultOnwardAirOverviewContent().modules,
+        });
       } catch {
         if (!cancelled) setContent(defaultOnwardAirOverviewContent());
       } finally {
@@ -140,34 +109,29 @@ export function OnwardAirOverviewPage() {
   }, []);
 
   const tree = useMemo(() => buildModuleTree(content.modules), [content.modules]);
-  const previewSrc = overviewScreenshotForModuleId(selectedModuleId);
-  const selectedLabel =
-    content.modules.find((row) => row.id === selectedModuleId)?.text ?? "Home dashboard";
 
-  const patch = useCallback((partial: Partial<OnwardAirOverviewEditableContent>) => {
-    setContent((current) => ({ ...current, ...partial }));
-  }, []);
+  const previewLabel = useMemo(() => {
+    if (previewKind === "video-ea") return "AI Executive Assistant";
+    if (previewKind === "video-drone") return "Live drone";
+    if (previewKind === "board-portal") return "Board portal";
+    if (previewKind === "client-portal") return "Client portal — Coastal Freight Partners";
+    return content.modules.find((row) => row.id === selectedModuleId)?.text ?? "Home";
+  }, [previewKind, selectedModuleId, content.modules]);
 
-  async function handleSave() {
-    setSaving(true);
-    setSaveMsg(null);
-    try {
-      const res = await fetch("/api/onwardair/overview-content", {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-      const data = (await res.json()) as { content?: OnwardAirOverviewEditableContent; error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Save failed");
-      if (data.content) setContent(data.content);
-      setSaveMsg("Saved");
-      window.setTimeout(() => setSaveMsg(null), 2000);
-    } catch (error) {
-      setSaveMsg(error instanceof Error ? error.message : "Save failed");
-    } finally {
-      setSaving(false);
+  const previewSrc = useMemo(() => {
+    if (previewKind === "board-portal") return overviewScreenshotSrc("board-portal");
+    if (previewKind === "client-portal") return overviewScreenshotSrc("client-portal");
+    return overviewScreenshotForModuleId(selectedModuleId);
+  }, [previewKind, selectedModuleId]);
+
+  function selectModule(id: string) {
+    if (id === "m2") {
+      setPreviewKind("video-ea");
+      setSelectedModuleId(id);
+      return;
     }
+    setPreviewKind("module");
+    setSelectedModuleId(id);
   }
 
   function toggleExpanded(id: string) {
@@ -177,9 +141,11 @@ export function OnwardAirOverviewPage() {
   function renderNode(node: ModuleNode, depth: 0 | 1 | 2) {
     const hasChildren = node.children.length > 0;
     const open = Boolean(expandedIds[node.row.id]);
-    const selected = selectedModuleId === node.row.id;
+    const selected = previewKind === "module" || previewKind === "video-ea"
+      ? selectedModuleId === node.row.id
+      : false;
     const ExpandIcon = open ? ChevronDown : ChevronRight;
-    const pad = depth === 0 ? "pl-0" : depth === 1 ? "pl-5" : "pl-9";
+    const pad = depth === 0 ? "pl-0" : depth === 1 ? "pl-4" : "pl-8";
 
     return (
       <li key={node.row.id} className="space-y-0.5">
@@ -189,7 +155,7 @@ export function OnwardAirOverviewPage() {
               <button
                 type="button"
                 onClick={() => toggleExpanded(node.row.id)}
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#267B90]/25 text-[#1B2430]/70 hover:bg-[#267B90]/10"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white"
                 aria-expanded={open}
                 aria-label={open ? "Collapse" : "Expand"}
               >
@@ -203,21 +169,19 @@ export function OnwardAirOverviewPage() {
           )}
           <button
             type="button"
-            onClick={() => setSelectedModuleId(node.row.id)}
+            onClick={() => selectModule(node.row.id)}
             className={cn(
               "min-w-0 flex-1 rounded-md px-2 py-1.5 text-left text-[11px] leading-snug transition sm:text-[12px]",
               selected
                 ? "bg-[#267B90] font-semibold text-white"
-                : "text-[#1B2430] hover:bg-[#267B90]/10",
+                : "text-white/85 hover:bg-white/10 hover:text-white",
             )}
           >
             {node.row.text || "Untitled"}
           </button>
         </div>
         {hasChildren && open
-          ? node.children.map((child) =>
-              renderNode(child, Math.min(depth + 1, 2) as 0 | 1 | 2),
-            )
+          ? node.children.map((child) => renderNode(child, Math.min(depth + 1, 2) as 0 | 1 | 2))
           : null}
       </li>
     );
@@ -239,7 +203,7 @@ export function OnwardAirOverviewPage() {
         <header className="flex shrink-0 items-center justify-between gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`${OA_LOGO}?v=swap2`}
+            src={`${OA_LOGO}?v=swap3`}
             alt="OnwardAir"
             width={240}
             height={52}
@@ -247,29 +211,17 @@ export function OnwardAirOverviewPage() {
             className="block object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
             style={{ height: 52, width: "auto", maxWidth: 240, maxHeight: 52 }}
           />
-
           <div className="flex items-center gap-3 sm:gap-4">
-            {canEdit ? (
-              <button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={saving || loading}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[#267B90] px-2.5 py-1.5 text-[11px] font-semibold text-white hover:opacity-95 disabled:opacity-60"
-              >
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                {saveMsg ?? "Save"}
-              </button>
-            ) : null}
             <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`${UNIT311_LOGO}?v=swap2`}
+                src={`${UNIT311_LOGO}?v=swap3`}
                 alt="Unit311 Central"
-                width={280}
-                height={70}
+                width={240}
+                height={52}
                 decoding="async"
                 className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 70, width: "auto", maxWidth: 280, maxHeight: 70 }}
+                style={{ height: 52, width: "auto", maxWidth: 240, maxHeight: 52 }}
               />
             </a>
             <button
@@ -285,52 +237,18 @@ export function OnwardAirOverviewPage() {
           </div>
         </header>
 
-        {/* Single-row demo headline */}
-        <div className="mt-6 shrink-0 sm:mt-8">
-          {canEdit ? (
-            <div className="space-y-1.5">
-              <EditableText
-                value={content.headline}
-                canEdit={canEdit}
-                onChange={(headline) => patch({ headline })}
-                className="text-[1.25rem] font-semibold tracking-tight text-[#1B2430] sm:text-[1.5rem]"
-              />
-              <EditableText
-                value={content.subheadline}
-                canEdit={canEdit}
-                onChange={(subheadline) => patch({ subheadline })}
-                className="text-[12px] text-[#1B2430]/80 sm:text-[13px]"
-              />
-            </div>
-          ) : (
-            <div className="leading-snug">
-              <h1 className="text-[1.25rem] font-semibold tracking-tight text-white sm:text-[1.55rem] lg:text-[1.75rem]">
-                {content.headline}
-              </h1>
-              <p className="mt-1 text-[12px] text-white/70 sm:text-[13px]">{content.subheadline}</p>
-            </div>
-          )}
-        </div>
+        {/* Single row — no white box */}
+        <p className="mt-6 shrink-0 text-[13px] leading-snug text-white/90 sm:mt-8 sm:text-[15px] lg:text-[16px]">
+          <span className="font-semibold text-white">{content.headline}</span>
+          <span className="text-white/45"> — </span>
+          <span className="text-white/70">{content.subheadline}</span>
+        </p>
 
-        {/* 3 columns */}
-        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto sm:mt-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)_minmax(0,1.35fr)] lg:gap-3 lg:overflow-hidden">
-          {/* Column 1 */}
+        <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto sm:mt-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,1.4fr)] lg:gap-3 lg:overflow-hidden">
+          {/* Column 1 — 3 boxes */}
           <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto lg:overflow-hidden">
             <section className="rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
-              <EditableText
-                value={content.questionsTitle}
-                canEdit={canEdit}
-                onChange={(questionsTitle) => patch({ questionsTitle })}
-                className="text-[13px] font-semibold tracking-tight"
-              />
-              <EditableText
-                value={content.questionsIntro}
-                canEdit={canEdit}
-                onChange={(questionsIntro) => patch({ questionsIntro })}
-                multiline
-                className="mt-1.5 text-[11px] leading-snug text-white/80"
-              />
-              <ul className="mt-2.5 space-y-1.5">
+              <ul className="space-y-1.5">
                 {content.questions.map((q, i) => (
                   <li key={`q-${i}`} className="flex gap-2">
                     <span
@@ -339,193 +257,119 @@ export function OnwardAirOverviewPage() {
                     >
                       {i + 1}
                     </span>
-                    {canEdit ? (
-                      <input
-                        type="text"
-                        value={q}
-                        onChange={(e) => {
-                          const questions = [...content.questions];
-                          questions[i] = e.target.value;
-                          patch({ questions });
-                        }}
-                        className="w-full rounded border border-white/20 bg-white/10 px-1.5 py-0.5 text-[11px] text-white outline-none"
-                      />
-                    ) : (
-                      <p className="text-[11px] leading-snug text-white/95">{q}</p>
-                    )}
+                    <p className="text-[11px] leading-snug text-white/95">{q}</p>
                   </li>
                 ))}
               </ul>
+              <p className="mt-3 text-[11px] leading-snug text-white/75">{content.questionsIntro}</p>
             </section>
 
             <section className="rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
-              <EditableText
-                value={content.highlightsIntro}
-                canEdit={canEdit}
-                onChange={(highlightsIntro) => patch({ highlightsIntro })}
-                multiline
-                className="text-[11px] leading-snug text-white/80"
-              />
-              <p
-                className="mt-2 text-[11px] font-bold uppercase tracking-[0.14em]"
-                style={{ color: "#7DD3E8" }}
-              >
-                {canEdit ? (
-                  <input
-                    type="text"
-                    value={content.highlightsTitle}
-                    onChange={(e) => patch({ highlightsTitle: e.target.value })}
-                    className="w-full rounded border border-white/20 bg-white/10 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#7DD3E8] outline-none"
-                  />
-                ) : (
-                  content.highlightsTitle
-                )}
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: "#7DD3E8" }}>
+                {content.highlightsTitle}
               </p>
               <ul className="mt-2 space-y-1">
                 {content.highlights.map((item, i) => (
                   <li key={`h-${i}`} className="text-[11px] leading-snug text-white/95">
-                    {canEdit ? (
-                      <input
-                        type="text"
-                        value={item}
-                        onChange={(e) => {
-                          const highlights = [...content.highlights];
-                          highlights[i] = e.target.value;
-                          patch({ highlights });
-                        }}
-                        className="w-full rounded border border-white/20 bg-white/10 px-1.5 py-0.5 text-[11px] text-white outline-none"
-                      />
-                    ) : (
-                      <>• {item}</>
-                    )}
+                    • {item}
                   </li>
                 ))}
               </ul>
             </section>
 
-            <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-[#267B90]/20 bg-white/90 p-3 text-[#1B2430] backdrop-blur-[2px] sm:p-3.5">
-              <EditableText
-                value={content.agendaTitle}
-                canEdit={canEdit}
-                onChange={(agendaTitle) => patch({ agendaTitle })}
-                className="text-[13px] font-semibold tracking-tight text-[#1B2430]"
-              />
-              <EditableText
-                value={content.agendaIntro}
-                canEdit={canEdit}
-                onChange={(agendaIntro) => patch({ agendaIntro })}
-                className="mt-1 text-[10px] text-[#5B6577]"
-              />
+            <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-[#267B90]/20 bg-white/92 p-3 text-[#1B2430] backdrop-blur-[2px] sm:p-3.5">
+              <h2 className="text-[13px] font-semibold tracking-tight text-[#1B2430]">
+                {content.agendaTitle}
+              </h2>
+              <p className="mt-1 text-[10px] text-[#5B6577]">{content.agendaIntro}</p>
               <div className="mt-2 space-y-1.5">
                 {content.agenda.map((row, i) => (
                   <div
                     key={`a-${i}`}
                     className="rounded-lg border border-[#267B90]/15 bg-white px-2.5 py-1.5"
                   >
-                    {canEdit ? (
-                      <div className="space-y-1">
-                        <input
-                          type="text"
-                          value={row.wave}
-                          onChange={(e) => {
-                            const agenda = content.agenda.map((entry, idx) =>
-                              idx === i ? { ...entry, wave: e.target.value } : entry,
-                            );
-                            patch({ agenda });
-                          }}
-                          className="w-full rounded border border-[#267B90]/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase outline-none"
-                          style={{ color: ONWARDAIR_HOME_ACCENT }}
-                        />
-                        <input
-                          type="text"
-                          value={row.who}
-                          onChange={(e) => {
-                            const agenda = content.agenda.map((entry, idx) =>
-                              idx === i ? { ...entry, who: e.target.value } : entry,
-                            );
-                            patch({ agenda });
-                          }}
-                          className="w-full rounded border border-[#267B90]/20 px-1.5 py-0.5 text-[11px] font-medium outline-none"
-                        />
-                        <input
-                          type="text"
-                          value={row.why}
-                          onChange={(e) => {
-                            const agenda = content.agenda.map((entry, idx) =>
-                              idx === i ? { ...entry, why: e.target.value } : entry,
-                            );
-                            patch({ agenda });
-                          }}
-                          className="w-full rounded border border-[#267B90]/20 px-1.5 py-0.5 text-[10px] text-[#5B6577] outline-none"
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <p
-                          className="text-[10px] font-semibold uppercase tracking-wider"
-                          style={{ color: ONWARDAIR_HOME_ACCENT }}
-                        >
-                          {row.wave} min
-                        </p>
-                        <p className="text-[12px] font-medium text-[#1B2430]">{row.who}</p>
-                        <p className="text-[11px] text-[#5B6577]">{row.why}</p>
-                      </>
-                    )}
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: ONWARDAIR_HOME_ACCENT }}
+                    >
+                      {row.wave} min
+                    </p>
+                    <p className="text-[12px] font-medium text-[#1B2430]">{row.who}</p>
+                    <p className="text-[11px] text-[#5B6577]">{row.why}</p>
                   </div>
                 ))}
               </div>
-              <EditableText
-                value={content.agendaNote}
-                canEdit={canEdit}
-                onChange={(agendaNote) => patch({ agendaNote })}
-                className="mt-auto pt-2 text-[10px] text-[#5B6577]"
-              />
             </section>
           </div>
 
-          {/* Column 2 */}
-          <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto lg:overflow-hidden">
-            <section className="shrink-0 overflow-hidden rounded-xl border border-[#267B90]/20 bg-white/90 p-2 backdrop-blur-[2px]">
-              <p className="mb-1.5 px-1 text-[11px] font-semibold text-[#1B2430]">Home view</p>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={overviewScreenshotSrc("home")}
-                alt="OnwardAir home dashboard"
-                className="h-auto w-full rounded-lg border border-[#267B90]/15 object-cover object-top"
-                style={{ maxHeight: 220 }}
-              />
-            </section>
+          {/* Column 2 — modules + portals + live drone */}
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-white/12 bg-[#061018]/75 p-2.5 backdrop-blur-[2px] sm:p-3">
+            <h2 className="mb-2 shrink-0 text-[13px] font-semibold tracking-tight text-white">
+              {content.modulesTitle}
+            </h2>
+            <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">{tree.map((node) => renderNode(node, 0))}</ul>
 
-            <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[#267B90]/20 bg-white/90 p-2.5 backdrop-blur-[2px] sm:p-3">
-              <EditableText
-                value={content.modulesTitle}
-                canEdit={canEdit}
-                onChange={(modulesTitle) => patch({ modulesTitle })}
-                className="mb-2 shrink-0 text-[13px] font-semibold text-[#1B2430]"
-              />
-              <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">
-                {tree.map((node) => renderNode(node, 0))}
-              </ul>
-            </section>
+            <div className="mt-2 shrink-0 space-y-1.5 border-t border-white/10 pt-2">
+              <button
+                type="button"
+                onClick={() => setPreviewKind("video-drone")}
+                className={cn(
+                  "w-full rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition",
+                  previewKind === "video-drone"
+                    ? "bg-[#267B90] text-white"
+                    : "bg-white/5 text-white/90 hover:bg-white/10",
+                )}
+              >
+                Live drone
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewKind("board-portal")}
+                className={cn(
+                  "w-full rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition",
+                  previewKind === "board-portal"
+                    ? "bg-[#267B90] text-white"
+                    : "bg-white/5 text-white/90 hover:bg-white/10",
+                )}
+              >
+                Board portal access
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewKind("client-portal")}
+                className={cn(
+                  "w-full rounded-md px-2.5 py-2 text-left text-[12px] font-medium transition",
+                  previewKind === "client-portal"
+                    ? "bg-[#267B90] text-white"
+                    : "bg-white/5 text-white/90 hover:bg-white/10",
+                )}
+              >
+                Client portal access
+              </button>
+            </div>
           </div>
 
-          {/* Column 3 — preview */}
+          {/* Column 3 — preview (defaults to Home) */}
           <section className="flex min-h-[240px] flex-col overflow-hidden rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/90 p-3 text-white backdrop-blur-[2px] sm:min-h-[320px] sm:p-3.5 lg:min-h-0">
             <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
-              <h2 className="text-[13px] font-semibold tracking-tight">{selectedLabel}</h2>
+              <h2 className="text-[13px] font-semibold tracking-tight">{previewLabel}</h2>
               <span className="text-[10px] text-white/55">Preview</span>
             </div>
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-white/15 bg-black/40">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={previewSrc}
-                alt={`${selectedLabel} screenshot`}
-                className="h-full w-full object-cover object-top"
-              />
-            </div>
-            <p className="mt-2 shrink-0 text-center text-[10px] text-white/60">
-              {content.previewHint}
-            </p>
+            {previewKind === "video-ea" ? (
+              <VideoSlot src={EA_VIDEO} label="AI Executive Assistant walkthrough" />
+            ) : previewKind === "video-drone" ? (
+              <VideoSlot src={DRONE_VIDEO} label="Live drone walkthrough" />
+            ) : (
+              <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-white/15 bg-black/40">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewSrc}
+                  alt={`${previewLabel} screenshot`}
+                  className="h-full w-full object-cover object-top"
+                />
+              </div>
+            )}
+            <p className="mt-2 shrink-0 text-center text-[10px] text-white/55">{content.previewHint}</p>
           </section>
         </div>
 

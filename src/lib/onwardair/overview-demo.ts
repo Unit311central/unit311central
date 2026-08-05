@@ -284,7 +284,7 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
       "Do you know where your biggest business risks are?",
     ],
     highlightsTitle: "KEY HIGHLIGHTS",
-    highlightsIntro: "Summary of major functions I thought would be useful for you and your team.",
+    highlightsIntro: "",
     highlights: [
       "AI Executive Assistant",
       "OnwardAir Intelligence (competitors + ecosystem)",
@@ -298,16 +298,16 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
       "Client portal — Coastal Freight Partners",
     ],
     agendaTitle: "60-minute working session",
-    agendaIntro: "Live walkthrough — then decide if it's for you. Who should join:",
+    agendaIntro: "Live walkthrough — then decide if it's for you.",
     agenda: [
-      { wave: "0–25", who: "Scott · Brian · Monte", why: "Leadership picture & offer" },
-      { wave: "25–45", who: "+ Eng leads", why: "Programmes, risk, day-to-day tools" },
-      { wave: "45–60", who: "Core three", why: "6-month build plan & next steps" },
+      { wave: "0–25", who: "Scott · Brian · Monte", why: "Leadership picture" },
+      { wave: "25–45", who: "+ Eng leads", why: "Programmes & tools" },
+      { wave: "45–60", who: "Core three", why: "Build plan" },
     ],
-    agendaNote: "Full workspace opens ~24h before we meet — not before.",
+    agendaNote: "",
     modulesTitle: "Major Modules",
     modules: DEFAULT_OVERVIEW_MODULES.map((entry) => ({ ...entry })),
-    previewHint: "Highlight a module — screenshot appears here.",
+    previewHint: "Select a module — preview appears here.",
   };
 }
 

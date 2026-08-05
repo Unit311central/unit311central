@@ -105,13 +105,13 @@ export function OnwardAirClientPortalLogin({
             <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/images/unit311central-login.webp?v=swap2"
+                src="/images/unit311central-login.webp?v=swap3"
                 alt="Unit311 Central"
-                width={280}
-                height={70}
+                width={240}
+                height={52}
                 decoding="async"
                 className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 70, width: "auto", maxWidth: 280, maxHeight: 70 }}
+                style={{ height: 52, width: "auto", maxWidth: 240, maxHeight: 52 }}
               />
             </a>
           </header>
