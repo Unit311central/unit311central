@@ -173,6 +173,7 @@ function HeaderTaglineEditor({
     opacity: typography.headerOpacity,
     lineHeight: 1.25,
     fontFamily: overviewFontStack(typography.fontFamily),
+    textTransform: "uppercase",
   };
 
   function onTaglineDragStart(event: ReactPointerEvent<HTMLElement>) {
@@ -608,7 +609,13 @@ export function OnwardAirOverviewPage() {
         className="flex min-h-0 flex-col overflow-hidden text-[#1B2430]"
         style={boxStyle}
       >
-        <div className="shrink-0" style={{ marginBottom: scale(style.agenda.titleGap) }}>
+        <div
+          className="shrink-0"
+          style={{
+            marginTop: scale(style.agenda.titleTopGap),
+            marginBottom: scale(style.agenda.titleGap),
+          }}
+        >
           {tuneMode ? (
             <InlineEdit
               aria-label="Agenda title"
@@ -630,7 +637,7 @@ export function OnwardAirOverviewPage() {
             />
           ) : (
             <p
-              className="oa-agenda-title m-0 w-full text-center font-extrabold tracking-tight"
+              className="oa-agenda-title m-0 w-full text-center font-extrabold uppercase tracking-tight"
               style={{
                 fontSize: scale(style.agenda.titleSize),
                 fontWeight: 800,
@@ -643,7 +650,7 @@ export function OnwardAirOverviewPage() {
             </p>
           )}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto">
           <div className="flex flex-col" style={{ gap: scale(style.agenda.rowGap) }}>
             {content.agenda.map((row, i) => (
               <div

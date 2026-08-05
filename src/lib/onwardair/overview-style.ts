@@ -119,6 +119,8 @@ export type OverviewStyleConfig = {
     bg: string;
     titleSize: number;
     titleColor: string;
+    /** Space above the agenda title inside the card. */
+    titleTopGap: number;
     /** Space between title and first agenda row. */
     titleGap: number;
     /** Space between agenda rows. */
@@ -226,7 +228,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       bg: "rgba(11, 58, 74, 0.85)",
       titleSize: 20,
       titleColor: "#7DD3E8",
-      titleGap: 8,
+      titleGap: 18,
       itemSize: 16,
       itemColor: "rgba(255, 255, 255, 0.95)",
       bulletColor: "#7DD3E8",
@@ -245,7 +247,8 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       bg: "#ffffff",
       titleSize: 17,
       titleColor: "#1B2430",
-      titleGap: 12,
+      titleTopGap: 22,
+      titleGap: 10,
       rowGap: 6,
       rowPaddingX: 22,
       rowPaddingY: 10,
@@ -422,6 +425,7 @@ export function sanitizeOverviewStyleConfig(raw: unknown): OverviewStyleConfig {
       bg: asString(agenda.bg, d.agenda.bg),
       titleSize: asNumber(agenda.titleSize, d.agenda.titleSize, 9, 22),
       titleColor: asString(agenda.titleColor, d.agenda.titleColor),
+      titleTopGap: asNumber(agenda.titleTopGap, d.agenda.titleTopGap, 0, 80),
       titleGap: asNumber(agenda.titleGap, d.agenda.titleGap, 0, 80),
       rowGap: asNumber(agenda.rowGap, d.agenda.rowGap, 0, 24),
       rowPaddingX: asNumber(agenda.rowPaddingX, d.agenda.rowPaddingX, 0, 28),
