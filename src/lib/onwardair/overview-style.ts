@@ -245,7 +245,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       bg: "#ffffff",
       titleSize: 17,
       titleColor: "#1B2430",
-      titleGap: 44,
+      titleGap: 64,
       rowGap: 6,
       rowPaddingX: 22,
       rowPaddingY: 10,
