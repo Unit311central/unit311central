@@ -990,9 +990,9 @@ const commissionPipelineUsd = OA_PARTNER_COMMISSIONS.filter(
 ).reduce((sum, row) => sum + row.amountEur, 0);
 
 export const OA_BC_DASHBOARD_SUMMARY: OaBcDashboardSummary = {
-  clientsCount: 28,
-  activeClients: 19,
-  arrUsd: 4_850_000,
+  clientsCount: 3,
+  activeClients: 3,
+  arrUsd: 1_250_000,
   pipelineValueUsd,
   pipelineByStage: buildPipelineByStage(OA_PIPELINE_LEADS),
   discoveryCount: OA_DISCOVERY_MEETINGS.length,
@@ -1008,27 +1008,25 @@ export const OA_BC_DASHBOARD_SUMMARY: OaBcDashboardSummary = {
 
 export const OA_CLIENTS_DASHBOARD_CHARTS: OaClientsDashboardCharts = {
   statusPie: [
-    { name: "Active", value: 19 },
-    { name: "Onboarding", value: 5 },
-    { name: "Dormant", value: 3 },
-    { name: "Archived", value: 1 },
+    { name: "Active", value: 3 },
+    { name: "Onboarding", value: 0 },
+    { name: "Dormant", value: 0 },
+    { name: "Archived", value: 0 },
   ],
   monthlyTrend: [
-    { month: "Jan", clients: 18, active: 12 },
-    { month: "Feb", clients: 19, active: 13 },
-    { month: "Mar", clients: 21, active: 14 },
-    { month: "Apr", clients: 22, active: 15 },
-    { month: "May", clients: 24, active: 16 },
-    { month: "Jun", clients: 25, active: 17 },
-    { month: "Jul", clients: 27, active: 18 },
-    { month: "Aug", clients: 28, active: 19 },
+    { month: "Jan", clients: 1, active: 1 },
+    { month: "Feb", clients: 1, active: 1 },
+    { month: "Mar", clients: 2, active: 2 },
+    { month: "Apr", clients: 2, active: 2 },
+    { month: "May", clients: 3, active: 3 },
+    { month: "Jun", clients: 3, active: 3 },
+    { month: "Jul", clients: 3, active: 3 },
+    { month: "Aug", clients: 3, active: 3 },
   ],
   segmentBars: [
-    { segment: "Defense / DoD", count: 8 },
-    { segment: "Airport ops", count: 6 },
-    { segment: "Gulf operators", count: 5 },
-    { segment: "UN missions", count: 4 },
-    { segment: "OEM / MRO", count: 5 },
+    { segment: "Defense / DoD", count: 1 },
+    { segment: "Healthcare logistics", count: 1 },
+    { segment: "Gulf freight", count: 1 },
   ],
 };
 

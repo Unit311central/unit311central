@@ -11,6 +11,25 @@ import type {
 import { countLiveProjects } from "@/lib/home-executive-dashboard";
 import type { InternalProject } from "@/lib/projects-data";
 
+const OA_COMMERCIAL_CLIENT_IDS = new Set([
+  "oa-cli-gulf-defense",
+  "oa-cli-medireach",
+  "oa-cli-coastal-freight",
+]);
+
+/** Only the 3 commercial demo accounts — exclude grant funders + board/overview portal rows. */
+function selectHomeActiveClients(clients: ManagedClient[]): ManagedClient[] {
+  const active = clients.filter((client) => client.accountStatus === "Active");
+  const commercial = active.filter((client) => OA_COMMERCIAL_CLIENT_IDS.has(client.id));
+  if (commercial.length > 0) return commercial;
+  return active.filter(
+    (client) =>
+      !client.id.startsWith("oa-grant-") &&
+      client.id !== "oa-cli-board" &&
+      client.id !== "oa-cli-overview",
+  );
+}
+
 function isBrowserAbhiHome(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -421,10 +440,11 @@ export function buildExecutiveHomeLiveKpis(input: {
   const revenueYtd = input.financials?.revenueYtd ?? 0;
   const cash = input.financials?.cashPosition ?? 0;
   const burn = input.financials?.burnRate;
+  const financialsLoaded = input.financials != null;
   // Prefer closed prior-month burn (current month is usually partial).
   const burnPrevious =
     burn && burn.previousMonthly > 0 ? burn.previousMonthly : (burn?.monthly ?? 0);
-  const activeClients = input.clients.filter((client) => client.accountStatus === "Active").length;
+  const activeClients = selectHomeActiveClients(input.clients).length;
   const abhiHome = isBrowserAbhiHome();
   const effectiveOnboarding = resolveEffectiveOnboardingCount({
     clients: input.clients,
@@ -477,10 +497,14 @@ export function buildExecutiveHomeLiveKpis(input: {
     {
       id: "burn",
       label: "Burn Rate",
-      value: `${formatCompactMoney(burnPrevious, currency)} / mo`,
-      delta: burnDelta.label,
-      tone: burnDelta.tone,
-      hint: "Previous month operating spend",
+      value: financialsLoaded
+        ? `${formatCompactMoney(burnPrevious, currency)} / mo`
+        : "—",
+      delta: financialsLoaded ? burnDelta.label : "Loading ledger…",
+      tone: financialsLoaded ? burnDelta.tone : "neutral",
+      hint: financialsLoaded
+        ? "Previous month operating spend"
+        : "Waiting for financial overview",
     },
     {
       id: "clients",
@@ -765,7 +789,7 @@ export function buildExecutiveHomeLiveNarrative(input: {
   const atRisk = input.projects.filter(
     (project) => project.phase === "live" && project.progressPct > 0 && project.progressPct < 40,
   );
-  const activeClients = input.clients.filter((client) => client.accountStatus === "Active");
+  const activeClients = selectHomeActiveClients(input.clients);
   const onboarding = input.clients.filter((client) =>
     ONBOARDING_ACCOUNT_STATUSES.has(client.accountStatus),
   );

@@ -685,7 +685,7 @@ export default function EnterprisePlatformSidebar({
         <WorkspaceSidebarBrand href={basePath} />
         <button
           type="button"
-          className="absolute top-1/2 right-5 flex h-8 w-8 -translate-y-1/2 shrink-0 touch-manipulation items-center justify-center rounded-[7px] border text-white/55 transition-colors duration-75 hover:text-white lg:hidden"
+          className="absolute top-1/2 right-5 flex h-11 w-11 -translate-y-1/2 shrink-0 touch-manipulation items-center justify-center rounded-xl border text-white/55 transition-colors duration-75 hover:text-white lg:hidden"
           style={{ borderColor: theme.cardBorder }}
           aria-label="Close menu"
           onClick={onClose}

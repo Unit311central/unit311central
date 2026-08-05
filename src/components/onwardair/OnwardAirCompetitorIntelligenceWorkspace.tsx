@@ -126,7 +126,7 @@ function CompetitorHome() {
           <button
             type="button"
             onClick={refreshFeed}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/[0.08]"
+            className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 hover:bg-white/[0.08] sm:min-h-0"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             Refresh
@@ -358,7 +358,7 @@ function LandscapeTable({ onOpen }: { onOpen: (id: string) => void }) {
         ))}
       </div>
 
-      <div className="mt-3 overflow-x-auto rounded-xl border border-white/10">
+      <div className="mt-3 hidden overflow-x-auto rounded-xl border border-white/10 md:block">
         <table className="min-w-[1000px] w-full text-left text-sm">
           <thead className="bg-black/30 text-[10px] uppercase tracking-[0.12em] text-white/40">
             <tr>
@@ -412,6 +412,40 @@ function LandscapeTable({ onOpen }: { onOpen: (id: string) => void }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-3 space-y-2.5 md:hidden">
+        {rows.map((c) => (
+          <button
+            key={`${c.id}-mobile`}
+            type="button"
+            onClick={() => onOpen(c.id)}
+            className="flex w-full touch-manipulation flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3.5 text-left transition hover:border-sky-400/30 hover:bg-sky-500/10"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="min-w-0 text-sm font-semibold text-white">{c.companyName}</p>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                  certificationTone(c.certificationCategory),
+                )}
+              >
+                {c.certificationCategory}
+              </span>
+            </div>
+            <p className="text-xs text-white/60">
+              <Field value={c.missionFocus} />
+            </p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/45">
+              <span>
+                Auth: <Field value={c.certAuthority} />
+              </span>
+              <span>
+                Funding: <Field value={c.fundingRaised} />
+              </span>
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -590,7 +624,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "rounded-full border px-2.5 py-1 text-[11px] font-medium transition",
+        "min-h-11 touch-manipulation rounded-full border px-3 py-2 text-xs font-medium transition sm:min-h-0 sm:px-2.5 sm:py-1.5 sm:text-[11px]",
         active
           ? "border-sky-400/50 bg-sky-500/20 text-sky-100"
           : "border-white/12 bg-black/20 text-white/60 hover:border-white/25 hover:text-white",

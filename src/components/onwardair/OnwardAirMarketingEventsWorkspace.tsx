@@ -320,7 +320,7 @@ function EventManagementPage() {
         title="OnwardAir-hosted events"
         subtitle="Internal event delivery — venues, capacity, and stage."
       >
-        <div className="overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[640px] text-left text-[13px]">
             <thead className="text-[11px] uppercase tracking-[0.08em] text-white/40">
               <tr className="border-b border-white/10">
@@ -349,6 +349,24 @@ function EventManagementPage() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="space-y-2.5 md:hidden">
+          {OA_MANAGED_EVENTS.map((event) => (
+            <article
+              key={`${event.id}-mobile`}
+              className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 text-sm font-semibold text-white">{event.name}</p>
+                <TqmsStatusPill className={statusClass(event.stage)}>{event.stage}</TqmsStatusPill>
+              </div>
+              <p className="mt-1 text-xs text-white/55">{event.date}</p>
+              <p className="mt-1 text-xs text-white/45">{event.venue}</p>
+              <p className="mt-2 text-[11px] text-white/40">
+                {event.registered}/{event.capacity} · {event.owner}
+              </p>
+            </article>
+          ))}
         </div>
       </TqmsSection>
     </div>

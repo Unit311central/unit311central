@@ -208,7 +208,7 @@ function IpOverview() {
             />
           </div>
         </div>
-        <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
+        <div className="mt-4 hidden overflow-x-auto rounded-xl border border-white/10 md:block">
           <table className="min-w-[640px] w-full text-left text-sm">
             <thead className="bg-black/30 text-[10px] uppercase tracking-[0.12em] text-white/40">
               <tr>
@@ -225,6 +225,17 @@ function IpOverview() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="mt-4 space-y-2.5 md:hidden">
+          {OA_IP_ASSET_SUMMARY.map((row) => (
+            <article
+              key={`${row.id}-mobile`}
+              className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5"
+            >
+              <p className="text-sm font-semibold text-white">{row.ipType}</p>
+              <p className="mt-1 text-xs leading-relaxed text-white/65">{row.knownAssets}</p>
+            </article>
+          ))}
         </div>
         <p className="mt-4 text-xs leading-relaxed text-white/45">
           The website does not publish a complete IP register, patent schedule, trademark schedule,
@@ -296,7 +307,7 @@ function IpDashboard() {
             icon={<ScrollText className="h-3.5 w-3.5" />}
           />
         </div>
-        <div className="mt-3 overflow-x-auto rounded-xl border border-white/10">
+        <div className="mt-3 hidden overflow-x-auto rounded-xl border border-white/10 md:block">
           <table className="min-w-[820px] w-full text-left text-sm">
             <thead className="bg-black/30 text-[10px] uppercase tracking-[0.12em] text-white/40">
               <tr>
@@ -324,6 +335,21 @@ function IpDashboard() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="mt-3 space-y-2.5 md:hidden">
+          {patents.map((patent) => (
+            <article
+              key={`${patent.id}-mobile`}
+              className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 text-sm font-semibold text-white">{patent.title}</p>
+                <VerificationBadge status={patent.verificationStatus} />
+              </div>
+              <p className="mt-1 text-xs text-white/55">{patent.patentNumber}</p>
+              <p className="mt-1 text-xs text-white/45">{patent.aircraftSystem}</p>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -455,7 +481,7 @@ function IpRegister() {
           />
         </div>
 
-        <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
+        <div className="mt-4 hidden overflow-x-auto rounded-xl border border-white/10 md:block">
           <table className="min-w-[1000px] w-full text-left text-sm">
             <thead className="bg-black/30 text-[10px] uppercase tracking-[0.12em] text-white/40">
               <tr>
@@ -496,6 +522,31 @@ function IpRegister() {
             </tbody>
           </table>
         </div>
+        <div className="mt-4 space-y-2.5 md:hidden">
+          {filtered.map((patent) => (
+            <button
+              key={`${patent.id}-mobile`}
+              type="button"
+              onClick={() => openPatent(patent.id)}
+              className="flex w-full touch-manipulation flex-col gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] p-3.5 text-left transition hover:border-sky-400/30 hover:bg-sky-500/10"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 text-sm font-semibold text-white">{patent.title}</p>
+                <VerificationBadge status={patent.verificationStatus} />
+              </div>
+              <p className="text-xs text-white/55">{patent.patentNumber}</p>
+              <p className="text-[11px] text-white/40">
+                {patent.aircraftSystem}
+                {patent.jurisdiction ? ` · ${patent.jurisdiction}` : ""}
+              </p>
+            </button>
+          ))}
+          {filtered.length === 0 ? (
+            <p className="rounded-xl border border-white/10 px-3 py-8 text-center text-sm text-white/40">
+              No patents match this filter.
+            </p>
+          ) : null}
+        </div>
         <p className="mt-2 text-[11px] text-white/35">
           Showing {filtered.length} of {patents.length} records · click a row for full detail
         </p>
@@ -519,7 +570,7 @@ function PatentDetailModal({ patent, onClose }: { patent: PatentRecord; onClose:
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-white/15 bg-white/5 p-1.5 text-white/60 hover:text-white"
+            className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/60 hover:text-white"
             aria-label="Close"
           >
             <X className="h-4 w-4" />

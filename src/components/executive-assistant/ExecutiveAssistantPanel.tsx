@@ -736,7 +736,7 @@ export default function ExecutiveAssistantPanel({
             setMessages((current) =>
               current.map((entry) =>
                 entry.id === assistantId
-                  ? { ...entry, content: "Generating Board Packâ€¦" }
+                  ? { ...entry, content: "Generating Board Pack…" }
                   : entry,
               ),
             );
@@ -779,7 +779,7 @@ export default function ExecutiveAssistantPanel({
                   pdfDownloadUrl,
                   pptxDownloadUrl,
                 });
-                // Show the success card immediately â€” do not wait for a later
+                // Show the success card immediately — do not wait for a later
                 // done event that historically never arrived after large payloads.
                 setMessages((current) =>
                   current.map((entry) =>
@@ -1184,7 +1184,7 @@ export default function ExecutiveAssistantPanel({
                     </p>
                     <p className="mt-0.5 text-[10px] text-white/35">
                       {formatConversationDate(conversation.createdAt)}
-                      {" Â· "}
+                      {" · "}
                       Updated {formatConversationDate(conversation.updatedAt)}
                     </p>
                   </button>
@@ -1258,7 +1258,7 @@ export default function ExecutiveAssistantPanel({
               </p>
             ) : (
               <p className="mt-0.5 text-[11px] text-white/45">
-                Context-aware Â· decisions and follow-ups
+                Context-aware · decisions and follow-ups
               </p>
             )}
           </div>
@@ -1295,7 +1295,7 @@ export default function ExecutiveAssistantPanel({
         <div ref={threadRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
           {messages.length === 0 && embedded && !sending ? (
             <p className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-3.5 py-3 text-[12px] leading-relaxed text-white/40">
-              Start with a quick prompt, or type below â€” I already have live business context.
+              Start with a quick prompt, or type below — I already have live business context.
             </p>
           ) : null}
           {messages.map((entry) => (
@@ -1310,7 +1310,7 @@ export default function ExecutiveAssistantPanel({
             >
               {entry.artifacts?.length || entry.executionCards?.length ? null : (
                 <p className="whitespace-pre-wrap">
-                  {entry.content || (sending ? "â€¦" : "")}
+                  {entry.content || (sending ? "…" : "")}
                 </p>
               )}
               {entry.role === "assistant" && entry.executionCards?.length ? (
@@ -1364,7 +1364,7 @@ export default function ExecutiveAssistantPanel({
           {sending && !boardPackProgress.active ? (
             <p className="inline-flex items-center gap-2 text-[11px] text-white/45">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Workingâ€¦
+              Working…
             </p>
           ) : null}
           {notice ? (
@@ -1513,7 +1513,7 @@ export default function ExecutiveAssistantPanel({
                       );
                     }
                   } catch (error) {
-                    console.error("[EA] EXCEPTION â€” Browser Approve");
+                    console.error("[EA] EXCEPTION — Browser Approve");
                     console.error(`- correlationId: ${correlationId}`);
                     console.error(
                       `- message: ${error instanceof Error ? error.message : String(error)}`,
@@ -1578,7 +1578,7 @@ export default function ExecutiveAssistantPanel({
                       }),
                     });
                   } catch (error) {
-                    console.error("[EA] EXCEPTION â€” Browser Cancel");
+                    console.error("[EA] EXCEPTION — Browser Cancel");
                     console.error(error instanceof Error ? error.stack : error);
                   } finally {
                     setPlanViewer(null);
@@ -1707,7 +1707,7 @@ export default function ExecutiveAssistantPanel({
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               rows={2}
-              placeholder="Ask your Executive Assistantâ€¦"
+              placeholder="Ask your Executive Assistant…"
               className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-sky-400/40"
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
@@ -1747,7 +1747,7 @@ export default function ExecutiveAssistantPanel({
             </button>
           </div>
           <p className="mt-2 text-[10px] text-white/30">
-            Voice shortcut: CTRL + Q Â· Esc ends voice mode
+            Voice shortcut: CTRL + Q · Esc ends voice mode
           </p>
         </form>
 

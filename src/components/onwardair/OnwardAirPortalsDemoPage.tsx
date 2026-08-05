@@ -634,9 +634,9 @@ export default function OnwardAirPortalsDemoPage() {
   return (
     <div className={cn(body.className, "min-h-[100dvh] bg-[#07111f] text-white")}>
       <div className="relative z-10 mx-auto flex w-full max-w-[1280px] flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <header className="relative flex items-center justify-between gap-4">
+        <header className="relative flex flex-wrap items-center justify-between gap-3 sm:gap-4">
           <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
-            <div className="relative h-9 w-[160px] sm:h-10 sm:w-[190px]">
+            <div className="relative h-9 w-[140px] sm:h-10 sm:w-[190px]">
               <Image
                 src={UNIT311_LOGO}
                 alt={SITE_NAME}
@@ -647,21 +647,22 @@ export default function OnwardAirPortalsDemoPage() {
               />
             </div>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
             {username ? (
-              <p className="hidden text-[11px] text-white/50 sm:block">{username}</p>
+              <p className="hidden max-w-[10rem] truncate text-[11px] text-white/50 md:block">{username}</p>
             ) : null}
             {canEdit ? (
               <>
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100">
+                <span className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100 sm:min-h-0">
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                  {saveMessage ?? "Auto-save on"}
+                  <span className="hidden sm:inline">{saveMessage ?? "Auto-save on"}</span>
+                  <span className="sm:hidden">{saving ? "Saving…" : "Saved"}</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => void saveContent()}
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/40 bg-sky-500/20 px-3 py-1.5 text-[11px] font-semibold text-sky-50 hover:bg-sky-500/30 disabled:opacity-50"
+                  className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded-lg border border-sky-400/40 bg-sky-500/20 px-3 py-1.5 text-[11px] font-semibold text-sky-50 hover:bg-sky-500/30 disabled:opacity-50 sm:min-h-0"
                 >
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                   Save
@@ -671,12 +672,15 @@ export default function OnwardAirPortalsDemoPage() {
             <button
               type="button"
               onClick={() => void handleLogout()}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] text-white/70 hover:bg-white/[0.04] hover:text-white"
+              className="inline-flex min-h-11 touch-manipulation items-center gap-1 rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] text-white/70 hover:bg-white/[0.04] hover:text-white sm:min-h-0"
             >
               <LogOut className="h-3.5 w-3.5" />
-              Sign out
+              <span className="hidden sm:inline">Sign out</span>
+              <span className="sm:hidden">Out</span>
             </button>
-            <OnwardAirLogoMark height={36} />
+            <div className="hidden sm:block">
+              <OnwardAirLogoMark height={36} />
+            </div>
           </div>
         </header>
 

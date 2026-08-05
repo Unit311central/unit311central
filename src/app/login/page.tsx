@@ -33,7 +33,7 @@ function workspaceSlugFromReturnTo(returnTo: string | null | undefined): string 
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<{ return_to?: string }>;
+  searchParams: Promise<{ return_to?: string; next?: string }>;
 }): Promise<Metadata> {
   const host = getRequestHost({ headers: await headers() });
   const params = await searchParams;
@@ -41,6 +41,10 @@ export async function generateMetadata({
     parseClientPlatformSubdomainSafe(host) ?? workspaceSlugFromReturnTo(params.return_to);
   const isCentral = isCentralDomainHost(host);
   const isDemo = isDemoDomainHost(host);
+  const nextPath = parseSafePostLoginNext(params.next);
+  const isPortalsNext =
+    nextPath === "/portals" ||
+    Boolean(nextPath?.startsWith("/portals/") || nextPath?.startsWith("/portals?"));
 
   if (isCorpCentreSlug(workspaceSlug)) {
     return {
@@ -68,6 +72,13 @@ export async function generateMetadata({
   }
 
   if (isOnwardAirSlug(workspaceSlug)) {
+    if (isPortalsNext) {
+      return {
+        title: "OnwardAir Demo Information Page",
+        description: "Secure access to your OnwardAir demo portal page.",
+        robots: { index: false, follow: false },
+      };
+    }
     return {
       title: "Login | OnwardAir",
       description: "Secure access to your OnwardAir workspace.",

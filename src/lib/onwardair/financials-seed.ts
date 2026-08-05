@@ -25,7 +25,7 @@ import {
   isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
 
-export const OA_FINANCIALS_SEED_VERSION = "oa-fin-v3";
+export const OA_FINANCIALS_SEED_VERSION = "oa-fin-v4";
 const CORE_SOURCE_TYPE = "manual";
 const CORE_SOURCE_ID = `${OA_FINANCIALS_SEED_VERSION}-core`;
 const DETAILS_SOURCE_ID = `${OA_FINANCIALS_SEED_VERSION}-details`;
@@ -502,35 +502,42 @@ async function seedSupplierPayables(workspaceId: string): Promise<void> {
   const { error } = await supabase.from("financial_expenses").insert(rows);
   if (error) throw new Error(`OA AP seed: ${error.message}`);
 
-  // One summary GL journal for unpaid AP (keeps seed fast; UI reads expense rows).
-  const unpaidTotal = rows
-    .filter((row) => !row.paid)
-    .reduce((sum, row) => sum + row.amount, 0);
-  if (unpaidTotal > 0) {
+  // Monthly GL journals for unpaid AP (avoids dumping all spend into the current month).
+  const unpaidByMonth = new Map<string, number>();
+  for (const row of rows) {
+    if (row.paid) continue;
+    const monthKey = String(row.expense_date).slice(0, 7);
+    unpaidByMonth.set(monthKey, (unpaidByMonth.get(monthKey) ?? 0) + row.amount);
+  }
+  let apMonthIndex = 0;
+  for (const [monthKey, unpaidTotal] of unpaidByMonth) {
+    if (unpaidTotal <= 0) continue;
     await createAndPostJournal(
       {
-        reference: "OA-AP-SUMMARY",
-        description: "OnwardAir supplier AP summary (seed)",
+        reference: `OA-AP-SUMMARY-${monthKey}`,
+        description: `OnwardAir supplier AP summary ${monthKey} (seed)`,
         workspaceId,
         sourceType: CORE_SOURCE_TYPE,
-        sourceId: `${OA_FINANCIALS_SEED_VERSION}-ap-summary`,
-        journalDate: isoMonthsAgo(0, 1),
+        sourceId: `${OA_FINANCIALS_SEED_VERSION}-ap-summary-${monthKey}`,
+        journalDate: `${monthKey}-01`,
         lines: [
           {
             accountCode: ACCOUNT_CODES.miscExpenses,
             debit: unpaidTotal,
-            description: "Supplier operating spend (seed summary)",
+            description: `Supplier operating spend ${monthKey} (seed summary)`,
           },
           {
             accountCode: ACCOUNT_CODES.accountsPayable,
             credit: unpaidTotal,
-            description: "Accounts payable (seed summary)",
+            description: `Accounts payable ${monthKey} (seed summary)`,
           },
         ],
       },
       { workspaceId },
     );
+    apMonthIndex += 1;
   }
+  void apMonthIndex;
 }
 
 async function seedStaffExpenses(workspaceId: string): Promise<void> {
@@ -572,35 +579,39 @@ async function seedStaffExpenses(workspaceId: string): Promise<void> {
     if (error) throw new Error(`OA EXP seed batch: ${error.message}`);
   }
 
-  // Summary journal by expense account — not 120 individual posts.
-  const byCode = new Map<string, number>();
+  // Monthly staff-expense summary journals — not one current-month lump.
+  const unpaidByMonth = new Map<string, Map<string, number>>();
   for (const row of rows) {
     if (row.paid) continue;
+    const monthKey = String(row.expense_date).slice(0, 7);
     const code = String(row.category_account_code);
+    const byCode = unpaidByMonth.get(monthKey) ?? new Map<string, number>();
     byCode.set(code, (byCode.get(code) ?? 0) + Number(row.amount));
+    unpaidByMonth.set(monthKey, byCode);
   }
-  const totalUnpaid = [...byCode.values()].reduce((sum, value) => sum + value, 0);
-  if (totalUnpaid > 0) {
+  for (const [monthKey, byCode] of unpaidByMonth) {
+    const totalUnpaid = [...byCode.values()].reduce((sum, value) => sum + value, 0);
+    if (totalUnpaid <= 0) continue;
     const journalLines = [
       ...[...byCode.entries()].map(([code, amount]) => ({
         accountCode: code,
         debit: Math.round(amount * 100) / 100,
-        description: `Staff expenses ${code} (seed summary)`,
+        description: `Staff expenses ${code} ${monthKey} (seed summary)`,
       })),
       {
         accountCode: ACCOUNT_CODES.accountsPayable,
         credit: Math.round(totalUnpaid * 100) / 100,
-        description: "Staff expense payables (seed summary)",
+        description: `Staff expense payables ${monthKey} (seed summary)`,
       },
     ];
     await createAndPostJournal(
       {
-        reference: "OA-EXP-SUMMARY",
-        description: "OnwardAir staff expense summary (seed)",
+        reference: `OA-EXP-SUMMARY-${monthKey}`,
+        description: `OnwardAir staff expense summary ${monthKey} (seed)`,
         workspaceId,
         sourceType: CORE_SOURCE_TYPE,
-        sourceId: `${OA_FINANCIALS_SEED_VERSION}-exp-summary`,
-        journalDate: isoMonthsAgo(0, 2),
+        sourceId: `${OA_FINANCIALS_SEED_VERSION}-exp-summary-${monthKey}`,
+        journalDate: `${monthKey}-02`,
         lines: journalLines,
       },
       { workspaceId },

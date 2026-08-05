@@ -77,6 +77,16 @@ scripts/find-usable-secrets.mjs
 scripts/probe-*.mjs
 body.json
 
+# local agent / smoke dumps at repo root (never commit; also slows Cursor)
+.tmp*
+.tmp-*/
+*.tmp
+
+# large local media dropped at repo root
+/*.mp4
+/*.mov
+/*.xlsx
+
 # OS / trash
 $RECYCLE.BIN/
 Desktop.ini
