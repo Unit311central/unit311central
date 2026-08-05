@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Maximize2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { ONWARDAIR_HOME_ACCENT } from "@/lib/onwardair-surface";
@@ -84,6 +84,21 @@ export function OnwardAirOverviewPage() {
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [previewKind, setPreviewKind] = useState<PreviewKind>("module");
   const [selectedModuleId, setSelectedModuleId] = useState("m1");
+  const [previewFullscreen, setPreviewFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!previewFullscreen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [previewFullscreen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -350,25 +365,36 @@ export function OnwardAirOverviewPage() {
           </div>
 
           {/* Column 3 — preview (defaults to Home) */}
-          <section className="flex min-h-[240px] flex-col overflow-hidden rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/90 p-3 text-white backdrop-blur-[2px] sm:min-h-[320px] sm:p-3.5 lg:min-h-0">
+          <section className="relative flex min-h-[240px] flex-col overflow-hidden rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/90 p-3 text-white backdrop-blur-[2px] sm:min-h-[320px] sm:p-3.5 lg:min-h-0">
             <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
               <h2 className="text-[13px] font-semibold tracking-tight">{previewLabel}</h2>
               <span className="text-[10px] text-white/55">Preview</span>
             </div>
-            {previewKind === "video-ea" ? (
-              <VideoSlot src={EA_VIDEO} label="AI Executive Assistant walkthrough" />
-            ) : previewKind === "video-drone" ? (
-              <VideoSlot src={DRONE_VIDEO} label="Live drone walkthrough" />
-            ) : (
-              <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-white/15 bg-black/40">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={previewSrc}
-                  alt={`${previewLabel} screenshot`}
-                  className="h-full w-full object-cover object-top"
-                />
-              </div>
-            )}
+            <div className="relative min-h-0 flex-1">
+              {previewKind === "video-ea" ? (
+                <VideoSlot src={EA_VIDEO} label="AI Executive Assistant walkthrough" />
+              ) : previewKind === "video-drone" ? (
+                <VideoSlot src={DRONE_VIDEO} label="Live drone walkthrough" />
+              ) : (
+                <div className="relative h-full min-h-0 overflow-hidden rounded-lg border border-white/15 bg-black/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewSrc}
+                    alt={`${previewLabel} screenshot`}
+                    className="h-full w-full object-cover object-top"
+                  />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setPreviewFullscreen(true)}
+                className="absolute bottom-2 right-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/25 bg-black/65 text-white shadow-lg backdrop-blur-sm transition hover:bg-[#267B90] hover:border-[#267B90]"
+                aria-label="View screenshot full screen"
+                title="Full screen"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
+            </div>
             <p className="mt-2 shrink-0 text-center text-[10px] text-white/55">{content.previewHint}</p>
           </section>
         </div>
@@ -378,6 +404,49 @@ export function OnwardAirOverviewPage() {
           {loading ? " · Loading…" : null}
         </footer>
       </div>
+
+      {previewFullscreen ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/92 p-3 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${previewLabel} full screen`}
+          onClick={() => setPreviewFullscreen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewFullscreen(false)}
+            className="absolute right-4 top-4 z-[81] inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20"
+            aria-label="Close full screen"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div
+            className="relative flex h-full w-full max-w-[1600px] flex-col"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="mb-2 shrink-0 text-center text-sm font-medium text-white/80">{previewLabel}</p>
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/15 bg-black">
+              {previewKind === "video-ea" ? (
+                <video className="h-full w-full object-contain" controls autoPlay playsInline>
+                  <source src={EA_VIDEO} type="video/mp4" />
+                </video>
+              ) : previewKind === "video-drone" ? (
+                <video className="h-full w-full object-contain" controls autoPlay playsInline>
+                  <source src={DRONE_VIDEO} type="video/mp4" />
+                </video>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previewSrc}
+                  alt={`${previewLabel} full screen`}
+                  className="h-full w-full object-contain object-center"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
