@@ -161,6 +161,11 @@ svg {
   font-synthesis: weight;
 }
 
+.oa-overview .oa-inline-edit.oa-agenda-why {
+  font-weight: 700 !important;
+  font-synthesis: weight;
+}
+
 /* Command Centre density: compress chrome on short laptop viewports. */
 @media (max-height: 860px) {
   .cc-tile-header {

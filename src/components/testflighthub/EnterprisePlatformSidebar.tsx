@@ -716,8 +716,8 @@ export default function EnterprisePlatformSidebar({
       >
         {overviewEmbed ? (
           <p
-            className="w-full max-w-none px-0 text-center font-bold uppercase leading-tight tracking-[0.04em] text-white"
-            style={{ fontSize: 22, lineHeight: 1.2 }}
+            className="w-full max-w-none whitespace-nowrap px-0 text-center font-bold uppercase leading-none tracking-[0.06em] text-white"
+            style={{ fontSize: 13 }}
           >
             CLICK BELOW TO VIEW
           </p>

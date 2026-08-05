@@ -650,8 +650,14 @@ export function OnwardAirOverviewPage() {
                     );
                     patchContent({ agenda });
                   }}
-                  className="mt-0.5 leading-snug"
-                  style={{ fontSize: `${style.agenda.whySize}px`, color: style.agenda.whyColor }}
+                  className="oa-agenda-why mt-0.5 !font-bold leading-snug"
+                  style={{
+                    fontSize: `${style.agenda.whySize}px`,
+                    fontWeight: 700,
+                    color: style.agenda.whyColor,
+                    height: "auto",
+                    minHeight: "1.35em",
+                  }}
                 />
               </div>
             ))}

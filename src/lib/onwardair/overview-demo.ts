@@ -492,7 +492,7 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
       {
         wave: "20–35 mins",
         who: "+Engineering & Ops Leads",
-        why: "Programmes, tools & operating, qns",
+        why: "Programmes, tools & operating, qms",
       },
       {
         wave: "35-45 mins",
