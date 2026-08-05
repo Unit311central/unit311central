@@ -269,7 +269,7 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live7`;
+  return `/images/overview/screenshots/${key}.png?v=live9`;
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {
@@ -280,6 +280,7 @@ export function overviewScreenshotForModuleId(moduleId: string | null | undefine
 /**
  * Prefer exact platform view id as screenshot filename.
  * Fallbacks cover older section-level captures when a view-specific file is missing from the map.
+ * Keep sibling pages on distinct slugs so overview previews don't look identical.
  */
 const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   home: "home",
@@ -314,6 +315,12 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   "fundraising-data-rooms": "fundraising-data-rooms",
   "fundraising-investors": "fundraising-investors",
   "corporate-cap-table": "corporate-cap-table",
+  "corporate-dashboard": "corporate-dashboard",
+  "corporate-company-details": "corporate-company-details",
+  "corporate-bank-accounts": "corporate-bank-accounts",
+  "corporate-advisers": "corporate-advisers",
+  "corporate-contracts": "corporate-contracts",
+  "corporate-board-directors": "corporate-board-directors",
   "board-dashboard": "board-dashboard",
   "board-meetings": "board-meetings",
   "board-pack": "board-pack",
@@ -326,47 +333,88 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   "oa-ip-dashboard": "oa-ip-dashboard",
   "oa-ip-register": "oa-ip-register",
   "oa-ip-portfolio": "oa-ip-portfolio",
-  "oa-ip-documents": "oa-ip-dashboard",
-  "oa-ip-search": "oa-ip-dashboard",
+  "oa-ip-documents": "oa-ip-documents",
+  "oa-ip-search": "oa-ip-search",
   "oa-engineering-overview": "oa-engineering-overview",
   "oa-programs-milestones": "oa-programs-milestones",
   "oa-assurance-certification": "oa-assurance-certification",
   "oa-engineering-risks": "oa-engineering-risks",
-  "oa-team-capacity": "oa-engineering-overview",
-  "oa-supply-dependencies": "oa-engineering-overview",
-  "oa-engineering-integrations": "oa-engineering-overview",
+  "oa-team-capacity": "oa-team-capacity",
+  "oa-supply-dependencies": "oa-supply-dependencies",
+  "oa-engineering-integrations": "oa-engineering-integrations",
   "operations-dashboard": "operations-dashboard",
   assets: "assets",
   inventory: "inventory",
+  "inventory-management": "inventory-management",
   procurement: "procurement",
+  logistics: "logistics",
   "oa-marketing-dashboard": "oa-marketing-dashboard",
   social: "social",
   "marketing-newsletter": "marketing-newsletter",
   "marketing-events": "marketing-events",
-  "marketing-event-management": "marketing-events",
-  "marketing-mailing-list": "oa-marketing-dashboard",
+  "marketing-event-management": "marketing-event-management",
+  "marketing-mailing-list": "marketing-mailing-list",
   devices: "devices",
   "software-saas": "software-saas",
+  "technology-dashboard": "technology-dashboard",
+  "technology-devices": "technology-devices",
+  "technology-software": "technology-software",
+  "technology-telecommunications": "technology-telecommunications",
+  "technology-infrastructure": "technology-infrastructure",
+  "technology-reports": "technology-reports",
+  "technology-settings": "technology-settings",
   "hr-dashboard": "hr-dashboard",
+  hr: "employees",
+  "hr-org-chart": "hr-org-chart",
+  "hr-recruitment": "hr-recruitment",
+  "hr-leave": "hr-leave",
+  "hr-payroll": "hr-payroll",
+  "hr-performance": "hr-performance",
+  "hr-reports": "hr-reports",
   employees: "employees",
   "org-chart": "org-chart",
   recruitment: "recruitment",
   payroll: "payroll",
+  "productivity-dashboard": "productivity-dashboard",
+  "info-email": "info-email",
   email: "email",
+  "files-internal": "files-internal",
+  "files-external": "files-external",
+  "files-client": "files-client",
   calendar: "calendar",
   messaging: "messaging",
+  communications: "communications",
+  whiteboard: "whiteboard",
   "support-desk": "support-desk",
   "support-tickets": "support-desk",
+  "support-overview": "support-overview",
+  support: "support",
+  "support-mine": "support-mine",
   "training-dashboard": "training-dashboard",
-  training: "training-dashboard",
+  training: "training",
+  "training-external": "training-external",
+  "qms-training": "qms-training",
   "document-control": "document-control",
   capa: "capa",
   "internal-audits": "internal-audits",
+  "quality-management": "quality-management",
+  "qms-document-control": "qms-document-control",
+  "qms-capa": "qms-capa",
+  "qms-internal-audits": "qms-internal-audits",
+  "qms-management-review": "qms-management-review",
+  "qms-reports": "qms-reports",
   "external-client-access": "external-client-access",
+  "users-external": "users-external",
+  "website-management": "website-management",
+  integrations: "integrations",
+  users: "users",
   "settings-profile": "settings-profile",
   "settings-users": "settings-users",
   "settings-general": "settings-general",
-  settings: "settings-profile",
+  settings: "settings-general",
+  profile: "profile",
+  billing: "billing",
+  appearance: "appearance",
   testing: "testing",
   telemetry: "testing",
 };
@@ -376,8 +424,8 @@ export function overviewScreenshotSlugForView(view: string | null | undefined): 
   const v = String(view ?? "home").trim().toLowerCase();
   if (!v) return "home";
   if (OVERVIEW_VIEW_SCREENSHOT_FALLBACK[v]) return OVERVIEW_VIEW_SCREENSHOT_FALLBACK[v];
-  // Unknown views: use the view id as filename (capture script names files that way).
-  return v;
+  // Unknown views: prefer generic over a broken image.
+  return "generic";
 }
 
 export function overviewScreenshotForView(view: string | null | undefined): string {

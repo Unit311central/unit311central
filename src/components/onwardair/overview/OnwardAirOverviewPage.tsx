@@ -243,6 +243,12 @@ export function OnwardAirOverviewPage() {
                 alt={`${previewTitle} screenshot`}
                 className="absolute inset-0 h-full w-full object-contain object-top"
                 decoding="async"
+                onError={(event) => {
+                  const img = event.currentTarget;
+                  if (img.dataset.fallbackApplied === "1") return;
+                  img.dataset.fallbackApplied = "1";
+                  img.src = "/images/overview/screenshots/generic.png?v=live9";
+                }}
               />
               <button
                 type="button"
