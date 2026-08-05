@@ -176,7 +176,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
     },
     typography: {
       fontFamily: "geist",
-      headerFontSize: 13,
+      headerFontSize: 20,
       headerFontWeight: 500,
       headerLetterSpacing: 0,
       headerColor: "#ffffff",
@@ -198,7 +198,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
     },
     questions: {
       ...defaultChrome({
-        padding: 21,
+        padding: 24,
         radius: 13,
         borderColor: "#267B90",
         borderOpacity: 0.21,
@@ -207,11 +207,11 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
         visible: true,
       }),
       bg: "rgba(11, 58, 74, 0.85)",
-      textSize: 18,
+      textSize: 10,
       textColor: "rgba(255, 255, 255, 0.98)",
       badgeSize: 23,
       badgeColor: "#7DD3E8",
-      itemGap: 0,
+      itemGap: 3,
     },
     highlights: {
       ...defaultChrome({
@@ -234,7 +234,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
     },
     agenda: {
       ...defaultChrome({
-        padding: 21,
+        padding: 4,
         radius: 13,
         borderColor: "#267B90",
         borderOpacity: 0.21,
@@ -243,11 +243,11 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
         visible: true,
       }),
       bg: "#ffffff",
-      titleSize: 16,
+      titleSize: 17,
       titleColor: "#1B2430",
       titleGap: 8,
       rowGap: 6,
-      rowPaddingX: 9,
+      rowPaddingX: 22,
       rowPaddingY: 10,
       rowRadius: 8,
       rowBg: "#F4FAFB",
