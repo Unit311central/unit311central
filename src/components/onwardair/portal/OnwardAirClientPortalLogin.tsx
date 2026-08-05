@@ -61,12 +61,12 @@ export function OnwardAirClientPortalLogin({
       ? "OnwardAir Board Portal"
       : "OnwardAir Client Portal";
   const title = isOverview
-    ? "Overview Login"
+    ? "Private overview of UNIT311 Central for OnwardAir"
     : isBoard
       ? "Board Member Login"
       : `${companyName} Portal Login`;
   const blurb = isOverview
-    ? "Sign in to view the private OnwardAir overview."
+    ? "Sign in to view this private overview."
     : isBoard
       ? "Sign in to access board materials, meetings, and governance views."
       : `Sign in to the ${companyName} client portal.`;
@@ -91,28 +91,28 @@ export function OnwardAirClientPortalLogin({
             className="absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
             aria-hidden
           />
-          <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-3 sm:px-6">
+          <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
             <a href="https://unit311central.com" aria-label="Unit311 Central">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/unit311central-login.webp"
                 alt="Unit311 Central"
-                width={64}
-                height={16}
+                width={180}
+                height={44}
                 decoding="async"
                 className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 16, width: "auto", maxWidth: 64, maxHeight: 16 }}
+                style={{ height: 40, width: "auto", maxWidth: 180, maxHeight: 40 }}
               />
             </a>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/workspaces/onwardair-logo.png"
               alt="OnwardAir"
-              width={88}
-              height={16}
+              width={220}
+              height={48}
               decoding="async"
               className="block object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-              style={{ height: 16, width: "auto", maxWidth: 88, maxHeight: 16 }}
+              style={{ height: 44, width: "auto", maxWidth: 220, maxHeight: 44 }}
             />
           </header>
         </>
@@ -135,10 +135,20 @@ export function OnwardAirClientPortalLogin({
           </div>
         ) : null}
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-[2px]">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
-            {eyebrow}
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">{title}</h1>
+          {!isOverview ? (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
+              {eyebrow}
+            </p>
+          ) : null}
+          <h1
+            className={
+              isOverview
+                ? "text-[1.35rem] font-semibold leading-snug tracking-tight text-white sm:text-2xl"
+                : "mt-2 text-2xl font-semibold tracking-tight text-white"
+            }
+          >
+            {title}
+          </h1>
           <p className="mt-2 text-sm text-white/65">{blurb}</p>
 
           <form className="mt-6 space-y-4" onSubmit={(e) => void handleSubmit(e)}>
