@@ -427,40 +427,47 @@ const FlightHubSandbox = forwardRef<FlightHubSandboxHandle, FlightHubSandboxProp
               </p>
             </div>
 
-            <div
-              className={`mt-4 grid gap-4 ${isRunning ? "lg:grid-cols-[minmax(0,1fr)_240px] lg:items-stretch" : ""}`}
-            >
-              <div className="relative min-h-[min(52vh,480px)]">
-                {takeoffToken > 0 && (
-                  <DroneTakeoffOverlay key={takeoffToken} onComplete={handleTakeoffComplete} />
-                )}
-                <FlightPathMap
-                  position={toLatLng(telemetry)}
-                  path={flightPath}
-                  plannedOrbit={plannedOrbit.length > 0 ? plannedOrbit : undefined}
-                  homePosition={mapHomePosition ?? undefined}
-                  startPosition={[
-                    activeProfile.startPosition.latitude,
-                    activeProfile.startPosition.longitude,
-                  ]}
-                  followCenter={followMapCenter}
-                  satelliteTerrainOverlay
-                  mapHeightClassName="h-[min(52vh,480px)]"
-                />
-              </div>
-
-              {isRunning && (
-                <SimulatedLiveVideoView
-                  key={activeProfile.id}
-                  sessionKey={activeProfile.id}
-                  telemetry={telemetry}
-                  compact
-                  terrainStyle={mapTerrainStyle}
-                />
+            <div className="relative mt-4 min-h-[min(52vh,480px)]">
+              {takeoffToken > 0 && (
+                <DroneTakeoffOverlay key={takeoffToken} onComplete={handleTakeoffComplete} />
               )}
+              <FlightPathMap
+                position={toLatLng(telemetry)}
+                path={flightPath}
+                plannedOrbit={plannedOrbit.length > 0 ? plannedOrbit : undefined}
+                homePosition={mapHomePosition ?? undefined}
+                startPosition={[
+                  activeProfile.startPosition.latitude,
+                  activeProfile.startPosition.longitude,
+                ]}
+                followCenter={followMapCenter}
+                satelliteTerrainOverlay
+                mapHeightClassName="h-[min(52vh,480px)]"
+              />
             </div>
           </section>
         )}
+
+        <section className="space-y-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
+              Test Recording
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-white">Flight Video</h2>
+            <p className="mt-1 text-sm text-white/55">
+              OnwardAir test flight recording — plays alongside the live simulator session.
+            </p>
+          </div>
+          <div className="mx-auto w-full max-w-5xl">
+            <SimulatedLiveVideoView
+              key={hasTelemetry ? activeProfile.id : "idle"}
+              sessionKey={hasTelemetry ? activeProfile.id : "idle"}
+              telemetry={telemetry}
+              compact={false}
+              terrainStyle={mapTerrainStyle}
+            />
+          </div>
+        </section>
       </>
     );
   },

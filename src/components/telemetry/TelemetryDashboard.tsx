@@ -267,6 +267,40 @@ export default function TelemetryDashboard() {
           <StatCard label="Average Battery" value={`${stats.averageBattery.toFixed(1)}%`} />
         </div>
 
+        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
+                Map View
+              </p>
+              <h3 className="mt-1 text-lg font-semibold text-white">Selected Drone Position</h3>
+            </div>
+            {selectedRecord && (
+              <p className="font-mono text-sm text-white/70">
+                {selectedRecord.drone_id} · {formatTelemetryTimestamp(selectedRecord.timestamp)}
+              </p>
+            )}
+          </div>
+
+          {selectedRecord ? (
+            <div className="mt-4">
+              <FlightPathMap
+                position={[selectedRecord.latitude, selectedRecord.longitude]}
+                path={
+                  (selectedPath.length > 0
+                    ? selectedPath.slice(-48)
+                    : [[selectedRecord.latitude, selectedRecord.longitude]]) as LatLng[]
+                }
+                followCenter
+              />
+            </div>
+          ) : (
+            <p className="mt-6 text-sm text-white/50">
+              Select a telemetry row to display the latest drone position on the map.
+            </p>
+          )}
+        </section>
+
         <section className="overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
           <div className="flex flex-col gap-4 border-b border-white/10 p-4 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
@@ -416,39 +450,6 @@ export default function TelemetryDashboard() {
               </button>
             </div>
           </div>
-        </section>
-
-        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-8">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
-                Map View
-              </p>
-              <h3 className="mt-1 text-lg font-semibold text-white">Selected Drone Position</h3>
-            </div>
-            {selectedRecord && (
-              <p className="font-mono text-sm text-white/70">
-                {selectedRecord.drone_id} · {formatTelemetryTimestamp(selectedRecord.timestamp)}
-              </p>
-            )}
-          </div>
-
-          {selectedRecord ? (
-            <div className="mt-4">
-              <FlightPathMap
-                position={[selectedRecord.latitude, selectedRecord.longitude]}
-                path={
-                  selectedPath.length > 0
-                    ? selectedPath
-                    : [[selectedRecord.latitude, selectedRecord.longitude]]
-                }
-              />
-            </div>
-          ) : (
-            <p className="mt-6 text-sm text-white/50">
-              Select a telemetry row to display the latest drone position on the map.
-            </p>
-          )}
         </section>
       </div>
     </div>
