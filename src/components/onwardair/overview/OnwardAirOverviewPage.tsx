@@ -642,8 +642,8 @@ export function OnwardAirOverviewPage() {
                 fontWeight: 800,
                 color: style.agenda.titleColor,
                 height: "auto",
-                minHeight: "1.45em",
-                lineHeight: 1.3,
+                minHeight: "1.2em",
+                lineHeight: 1.2,
                 textAlign: "center",
                 width: "100%",
               }}
@@ -655,7 +655,7 @@ export function OnwardAirOverviewPage() {
                 fontSize: scale(style.agenda.titleSize),
                 fontWeight: 800,
                 color: style.agenda.titleColor,
-                lineHeight: 1.3,
+                lineHeight: 1.2,
                 textAlign: "center",
               }}
             >
@@ -663,7 +663,7 @@ export function OnwardAirOverviewPage() {
             </p>
           )}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col justify-end overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto">
           <div className="flex flex-col" style={{ gap: scale(style.agenda.rowGap) }}>
             {content.agenda.map((row, i) => (
               <div
@@ -796,11 +796,88 @@ export function OnwardAirOverviewPage() {
         @media (max-height: 820px) and (min-width: 1100px) {
           .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 0px; }
         }
-        @media (max-height: 720px) {
+        @media (max-height: 720px) and (min-width: 768px) {
           .oa-overview {
             height: auto !important;
             max-height: none !important;
             overflow: auto !important;
+          }
+        }
+        /* Phones — Android + iPhone */
+        @media (max-width: 767px) {
+          .oa-overview {
+            --oa-scale: 0.95;
+            --oa-pad-x: max(12px, env(safe-area-inset-left, 0px));
+            --oa-pad-y: max(10px, env(safe-area-inset-top, 0px));
+            --oa-col-gap: 12px;
+            --oa-card-gap: 10px;
+            --oa-preview-min-h: 0px;
+            height: auto !important;
+            max-height: none !important;
+            min-height: 100dvh;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+          }
+          .oa-overview-layout {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto auto !important;
+            gap: 12px !important;
+          }
+          .oa-overview-left {
+            display: flex !important;
+            flex-direction: column !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            gap: 10px !important;
+          }
+          .oa-overview-left > * {
+            flex: 0 0 auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+          }
+          .oa-overview-preview {
+            flex-direction: column !important;
+            min-height: 0 !important;
+            height: auto !important;
+          }
+          .oa-overview-nav {
+            max-height: min(38vh, 260px) !important;
+            width: 100% !important;
+          }
+          .oa-preview-stage {
+            position: relative !important;
+            width: 100%;
+            min-height: 220px !important;
+            aspect-ratio: 4 / 3;
+            flex: none !important;
+          }
+          .oa-overview-header-row {
+            flex-wrap: wrap;
+            row-gap: 8px;
+          }
+          .oa-overview-tagline-beside {
+            flex: 1 1 100%;
+            order: 3;
+            max-width: 100% !important;
+          }
+          .oa-overview-tagline-beside p,
+          .oa-overview-tagline-beside input,
+          .oa-overview-tagline-beside textarea {
+            text-align: left !important;
+            font-size: calc(14px * var(--oa-scale, 1)) !important;
+            line-height: 1.35 !important;
+          }
+        }
+        @media (max-width: 430px) {
+          .oa-overview {
+            --oa-scale: 0.92;
+            --oa-pad-x: max(10px, env(safe-area-inset-left, 0px));
+          }
+          .oa-preview-stage {
+            aspect-ratio: 3 / 4;
+            min-height: 240px !important;
           }
         }
       `}</style>
@@ -827,7 +904,7 @@ export function OnwardAirOverviewPage() {
         }}
       >
         <header className="flex shrink-0 flex-col gap-2">
-          <div className="flex items-center justify-between gap-3">
+          <div className="oa-overview-header-row flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -845,18 +922,20 @@ export function OnwardAirOverviewPage() {
                 }}
               />
               {style.typography.taglinePlacement === "beside" ? (
-                <HeaderTaglineEditor
-                  value={content.headline}
-                  editable={tuneMode}
-                  onChange={(headline) => patchContent({ headline })}
-                  typography={style.typography}
-                  onTypographyChange={(partial) =>
-                    setStyle((prev) => ({
-                      ...prev,
-                      typography: { ...prev.typography, ...partial },
-                    }))
-                  }
-                />
+                <div className="oa-overview-tagline-beside min-w-0 flex-1">
+                  <HeaderTaglineEditor
+                    value={content.headline}
+                    editable={tuneMode}
+                    onChange={(headline) => patchContent({ headline })}
+                    typography={style.typography}
+                    onTypographyChange={(partial) =>
+                      setStyle((prev) => ({
+                        ...prev,
+                        typography: { ...prev.typography, ...partial },
+                      }))
+                    }
+                  />
+                </div>
               ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-3 sm:gap-4">
@@ -905,7 +984,7 @@ export function OnwardAirOverviewPage() {
           }
         >
             <aside
-              className="oa-overview-left grid h-full min-h-0 overflow-hidden"
+              className="oa-overview-left grid h-full min-h-0 overflow-hidden md:overflow-hidden"
               style={{
                 gap: "var(--oa-card-gap)",
                 gridTemplateRows: leftGridRows,
@@ -915,7 +994,7 @@ export function OnwardAirOverviewPage() {
             </aside>
 
             <section
-              className="oa-overview-preview flex min-w-0 overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0"
+              className="oa-overview-preview flex min-w-0 flex-col overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0 lg:flex-row"
               style={{
                 borderRadius: style.preview.radius,
                 minHeight: "var(--oa-preview-min-h)",
@@ -927,12 +1006,12 @@ export function OnwardAirOverviewPage() {
               }}
             >
               <OperatorEntitlementsProvider>
-                <Suspense fallback={<div className="w-[280px] shrink-0 bg-[#07111F] xl:w-[300px] 2xl:w-[320px]" />}>
+                <Suspense fallback={<div className="h-[180px] w-full shrink-0 bg-[#07111F] lg:h-auto lg:w-[280px] xl:w-[300px] 2xl:w-[320px]" />}>
                   <OverviewPlatformNav activeView={activeView} onViewChange={setActiveView} />
                 </Suspense>
               </OperatorEntitlementsProvider>
 
-              <div className="relative min-h-0 min-w-0 flex-1 bg-[#020617]">
+              <div className="oa-preview-stage relative min-h-0 min-w-0 flex-1 bg-[#020617]">
                 {previewMedia.kind === "video" ? (
                   <video
                     key={previewMedia.src}
@@ -966,7 +1045,7 @@ export function OnwardAirOverviewPage() {
                 <button
                   type="button"
                   onClick={() => setPreviewFullscreen(true)}
-                  className="absolute bottom-2.5 right-2.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-black/55 text-white shadow-md transition hover:bg-[#267B90]"
+                  className="absolute bottom-[max(0.625rem,env(safe-area-inset-bottom))] right-2.5 z-10 inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg border border-white/20 bg-black/55 text-white shadow-md transition hover:bg-[#267B90] sm:h-9 sm:w-9"
                   aria-label={
                     previewMedia.kind === "video"
                       ? "View video full screen"
@@ -980,7 +1059,7 @@ export function OnwardAirOverviewPage() {
             </section>
         </div>
 
-        <footer className="mt-1.5 shrink-0 text-center text-[9px] text-white/35 sm:text-[10px]">
+        <footer className="mt-1.5 shrink-0 pb-[max(0px,env(safe-area-inset-bottom))] text-center text-[9px] text-white/35 sm:text-[10px]">
           OnwardAir · Unit311 Central · Private overview
           {loading ? " · Loading…" : null}
         </footer>
