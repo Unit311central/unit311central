@@ -711,26 +711,34 @@ export default function EnterprisePlatformSidebar({
   return (
     <aside
       data-ai-target="platform-nav"
-      aria-modal={mobileOpen ? true : undefined}
-      role={mobileOpen ? "dialog" : undefined}
-      aria-label={mobileOpen ? "Navigation menu" : undefined}
-      className={cn(
-        "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(320px,94vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:shrink-0 lg:translate-x-0 lg:pt-0",
-        // Overview invite: wide enough for module titles on one line.
+      data-overview-embed={overviewEmbed ? "1" : undefined}
+      aria-modal={!overviewEmbed && mobileOpen ? true : undefined}
+      role={!overviewEmbed && mobileOpen ? "dialog" : undefined}
+      aria-label={
         overviewEmbed
-          ? "lg:w-[280px] xl:w-[300px] 2xl:w-[320px]"
-          : "lg:w-[320px]",
-        mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          ? "Overview module navigation"
+          : mobileOpen
+            ? "Navigation menu"
+            : undefined
+      }
+      className={cn(
+        overviewEmbed
+          ? // Invite: always visible — stacked above the preview on phones, side rail on desktop.
+            "oa-overview-nav relative z-auto flex max-h-[min(42vh,280px)] w-full shrink-0 flex-col overflow-hidden border-b pt-0 lg:static lg:z-auto lg:h-full lg:max-h-full lg:w-[280px] lg:shrink-0 lg:border-b-0 xl:w-[300px] 2xl:w-[320px]"
+          : "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(320px,94vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:w-[320px] lg:shrink-0 lg:translate-x-0 lg:pt-0",
+        !overviewEmbed && (mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"),
       )}
       style={{
         background: theme.sidebar,
-        borderRight: `1px solid ${theme.border}`,
+        borderRight: overviewEmbed ? undefined : `1px solid ${theme.border}`,
+        borderBottom: overviewEmbed ? `1px solid ${theme.border}` : undefined,
+        borderColor: theme.border,
       }}
     >
       <div
         className={cn(
           "relative flex shrink-0 items-center justify-center",
-          overviewEmbed ? "px-2.5 pt-3 pb-3 xl:px-3 xl:pt-4 xl:pb-4" : "px-5 pt-5",
+          overviewEmbed ? "px-2.5 pt-2.5 pb-2 xl:px-3 xl:pt-4 xl:pb-4" : "px-5 pt-5",
         )}
         style={overviewEmbed ? undefined : { paddingBottom: 20 }}
       >
@@ -744,21 +752,23 @@ export default function EnterprisePlatformSidebar({
         ) : (
           <WorkspaceSidebarBrand href={basePath} />
         )}
-        <button
-          type="button"
-          className="absolute top-1/2 right-5 flex h-11 w-11 -translate-y-1/2 shrink-0 touch-manipulation items-center justify-center rounded-xl border text-white/55 transition-colors duration-75 hover:text-white lg:hidden"
-          style={{ borderColor: theme.cardBorder }}
-          aria-label="Close menu"
-          onClick={onClose}
-        >
-          <X className="h-3.5 w-3.5" strokeWidth={1.5} />
-        </button>
+        {overviewEmbed ? null : (
+          <button
+            type="button"
+            className="absolute top-1/2 right-5 flex h-11 w-11 -translate-y-1/2 shrink-0 touch-manipulation items-center justify-center rounded-xl border text-white/55 transition-colors duration-75 hover:text-white lg:hidden"
+            style={{ borderColor: theme.cardBorder }}
+            aria-label="Close menu"
+            onClick={onClose}
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </button>
+        )}
       </div>
 
       <nav
         className={cn(
           "sidebar-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain",
-          overviewEmbed ? "px-2 xl:px-2.5 2xl:px-3" : "px-5",
+          overviewEmbed ? "px-2 pb-2 xl:px-2.5 2xl:px-3" : "px-5",
         )}
       >
         <div className="flex flex-col" style={{ gap: overviewEmbed ? 8 : CARD_GAP }}>
