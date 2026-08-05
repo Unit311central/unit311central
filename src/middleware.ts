@@ -754,6 +754,7 @@ export const config = {
   matcher: [
     // Explicitly include `/` — catch-all patterns do not match the site root.
     "/",
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)",
+    // Skip static media so tenant hosts serve /videos/*.mp4 (and similar) as files, not HTML.
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|mp4|webm|mov|mp3|wav|ogg)$).*)",
   ],
 };
