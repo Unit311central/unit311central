@@ -764,15 +764,15 @@ export function OnwardAirOverviewPage() {
           }
           .oa-overview-layout {
             grid-template-columns: 1fr !important;
-            grid-template-rows: minmax(220px, 38vh) minmax(320px, 1fr);
+            grid-template-rows: minmax(240px, 42vh) minmax(360px, 1fr);
             overflow: visible;
           }
           .oa-overview-left {
             grid-template-rows: repeat(var(--oa-left-count, 3), minmax(0, 1fr)) !important;
-            max-height: 38vh;
+            max-height: 42vh;
           }
           .oa-overview-preview {
-            min-height: 320px !important;
+            min-height: 360px !important;
           }
         }
         @media (min-width: 1100px) {
@@ -914,7 +914,7 @@ export function OnwardAirOverviewPage() {
               }}
             >
               <OperatorEntitlementsProvider>
-                <Suspense fallback={<div className="w-[188px] shrink-0 bg-[#07111F] xl:w-[208px] 2xl:w-[228px]" />}>
+                <Suspense fallback={<div className="w-[200px] shrink-0 bg-[#07111F] xl:w-[224px] 2xl:w-[248px]" />}>
                   <OverviewPlatformNav activeView={activeView} onViewChange={setActiveView} />
                 </Suspense>
               </OperatorEntitlementsProvider>

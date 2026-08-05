@@ -488,8 +488,9 @@ export default function EnterprisePlatformSidebar({
                 borderColor: `color-mix(in srgb, ${color} 55%, #243347)`,
               }
             : cardShellStyle(theme)),
-          height: WORKSPACE_HEADER_H,
-          paddingLeft: CARD_PAD_X,
+          height: overviewEmbed ? 40 : WORKSPACE_HEADER_H,
+          minHeight: overviewEmbed ? 40 : WORKSPACE_HEADER_H,
+          paddingLeft: overviewEmbed ? 6 : CARD_PAD_X,
           paddingRight: 6,
         }}
       >
@@ -513,14 +514,24 @@ export default function EnterprisePlatformSidebar({
             "group flex h-full w-full items-center gap-1.5 text-left font-semibold uppercase leading-none tracking-[0.08em] transition-colors duration-75",
             active ? "text-white" : "text-white/88 hover:text-white",
           )}
-          style={{ fontSize: 10.5 }}
+          style={{ fontSize: overviewEmbed ? 9.5 : 10.5 }}
+          title={item.label}
         >
           <Icon
             className={cn("h-3.5 w-3.5 shrink-0", active ? "text-white" : SUBMENU_ICON)}
             strokeWidth={1.5}
             style={active ? undefined : { color }}
           />
-          <span className="min-w-0 flex-1 truncate whitespace-nowrap">{item.label}</span>
+          <span
+            className={cn(
+              "min-w-0 flex-1",
+              overviewEmbed
+                ? "whitespace-normal break-words leading-[1.15] line-clamp-2"
+                : "truncate whitespace-nowrap",
+            )}
+          >
+            {item.label}
+          </span>
         </button>
       </div>
     );
@@ -619,7 +630,7 @@ export default function EnterprisePlatformSidebar({
             }
           }}
           className="group flex w-full items-center gap-1.5 text-left"
-          style={{ height: WORKSPACE_HEADER_H }}
+          style={{ height: overviewEmbed ? 40 : WORKSPACE_HEADER_H, minHeight: overviewEmbed ? 40 : WORKSPACE_HEADER_H }}
         >
           <Icon
             className="h-3.5 w-3.5 shrink-0"
@@ -627,8 +638,14 @@ export default function EnterprisePlatformSidebar({
             strokeWidth={1.5}
           />
           <span
-            className="min-w-0 flex-1 truncate whitespace-nowrap font-semibold uppercase leading-none tracking-[0.08em] text-white"
-            style={{ fontSize: 10.5 }}
+            className={cn(
+              "min-w-0 flex-1 font-semibold uppercase leading-none tracking-[0.08em] text-white",
+              overviewEmbed
+                ? "whitespace-normal break-words leading-[1.15] line-clamp-2"
+                : "truncate whitespace-nowrap",
+            )}
+            style={{ fontSize: overviewEmbed ? 9.5 : 10.5 }}
+            title={section.label}
           >
             {section.label}
           </span>
@@ -705,7 +722,7 @@ export default function EnterprisePlatformSidebar({
         "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(320px,94vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:shrink-0 lg:translate-x-0 lg:pt-0",
         // Overview invite: narrower nav so the RHS preview survives laptop/Mac widths.
         overviewEmbed
-          ? "lg:w-[188px] xl:w-[208px] 2xl:w-[228px]"
+          ? "lg:w-[200px] xl:w-[224px] 2xl:w-[248px]"
           : "lg:w-[320px]",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
       )}
