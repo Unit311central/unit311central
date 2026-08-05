@@ -614,7 +614,7 @@ export function OnwardAirOverviewPage() {
             editable={tuneMode}
             onChange={(agendaTitle) => patchContent({ agendaTitle })}
             fill
-            className="oa-agenda-title !font-bold tracking-tight"
+            className="oa-agenda-title !font-bold tracking-tight text-center"
             style={{
               fontSize: `${style.agenda.titleSize}px`,
               fontWeight: 800,
@@ -622,6 +622,8 @@ export function OnwardAirOverviewPage() {
               height: "auto",
               minHeight: "1.45em",
               lineHeight: 1.3,
+              textAlign: "center",
+              width: "100%",
             }}
           />
         </div>

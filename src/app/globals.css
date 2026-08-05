@@ -156,9 +156,11 @@ svg {
 }
 
 /* Overview invite: force agenda title weight (inputs often ignore utility font-weight). */
-.oa-overview .oa-inline-edit.oa-agenda-title {
+.oa-overview .oa-inline-edit.oa-agenda-title,
+.oa-overview .oa-agenda-title {
   font-weight: 800 !important;
   font-synthesis: weight;
+  text-align: center;
 }
 
 .oa-overview .oa-inline-edit.oa-agenda-why {
