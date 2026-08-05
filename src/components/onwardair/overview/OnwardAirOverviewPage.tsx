@@ -494,27 +494,14 @@ export function OnwardAirOverviewPage() {
           style={boxStyle}
         >
           <ul
-            className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto py-0.5"
+            className="flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
             style={{ gap: style.questions.itemGap }}
           >
             {content.questions.map((q, i) => (
-              <li key={`q-${i}`} className="flex items-start gap-2.5">
-                <span
-                  className="mt-0.5 flex shrink-0 items-center justify-center rounded-full font-bold text-[#0B3A4A]"
-                  style={{
-                    backgroundColor: style.questions.badgeColor,
-                    width: style.questions.badgeSize,
-                    height: style.questions.badgeSize,
-                    fontSize: Math.round(style.questions.badgeSize * 0.55),
-                  }}
-                >
-                  {i + 1}
-                </span>
+              <li key={`q-${i}`} className="flex shrink-0 items-start leading-snug">
                 <InlineEdit
                   aria-label={`Question ${i + 1}`}
                   value={q}
-                  multiline
-                  rows={2}
                   onChange={(next) => {
                     const questions = content.questions.map((item, index) =>
                       index === i ? next : item,
@@ -522,7 +509,12 @@ export function OnwardAirOverviewPage() {
                     patchContent({ questions });
                   }}
                   className="leading-snug"
-                  style={{ fontSize: `${style.questions.textSize}px`, color: style.questions.textColor }}
+                  style={{
+                    fontSize: `${style.questions.textSize}px`,
+                    color: style.questions.textColor,
+                    height: "auto",
+                    minHeight: "1.35em",
+                  }}
                 />
               </li>
             ))}

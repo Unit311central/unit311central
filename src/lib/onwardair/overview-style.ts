@@ -207,11 +207,11 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
         visible: true,
       }),
       bg: "rgba(11, 58, 74, 0.85)",
-      textSize: 11,
+      textSize: 16,
       textColor: "rgba(255, 255, 255, 0.98)",
       badgeSize: 23,
       badgeColor: "#7DD3E8",
-      itemGap: 3,
+      itemGap: 8,
     },
     highlights: {
       ...defaultChrome({
