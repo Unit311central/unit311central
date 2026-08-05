@@ -33,12 +33,14 @@ const OA_LOGO = "/images/workspaces/onwardair-logo.png";
 const HERO_BG = "/images/overview-corporate-intelligence-bg.png";
 
 const INLINE_EDIT =
-  "oa-inline-edit w-full min-w-0 rounded border border-dashed border-[#7DD3E8]/35 bg-transparent px-0.5 py-0 outline-none hover:border-[#7DD3E8] hover:bg-[#7DD3E8]/10 focus:border-[#7DD3E8] focus:bg-[#7DD3E8]/10 [font:inherit] [font-size:inherit] [font-weight:inherit] [letter-spacing:inherit] [line-height:inherit] [color:inherit] [font-family:inherit]";
+  "oa-inline-edit w-full min-w-0 rounded border border-dashed border-transparent bg-transparent px-0.5 py-0 outline-none hover:border-[#7DD3E8]/50 hover:bg-black/5 focus:border-[#7DD3E8] focus:bg-black/5 [font:inherit] [font-size:inherit] [font-weight:inherit] [letter-spacing:inherit] [line-height:inherit] [color:inherit] [font-family:inherit]";
 
 function InlineEdit({
   value,
   onChange,
   multiline = false,
+  rows = 1,
+  fill = true,
   className = "",
   style,
   "aria-label": ariaLabel,
@@ -48,26 +50,28 @@ function InlineEdit({
   value: string;
   onChange: (value: string) => void;
   multiline?: boolean;
+  rows?: number;
+  /** When false, field sizes to content instead of stretching. */
+  fill?: boolean;
   className?: string;
   style?: CSSProperties;
   "aria-label"?: string;
   onFocus?: () => void;
   onBlur?: () => void;
 }) {
-  // Apply type styles on a wrapper so Tailwind form resets cannot override live size/font.
   return (
-    <div className={`min-w-0 ${multiline ? "w-full" : "flex-1"}`} style={style}>
+    <div className={`min-w-0 ${fill ? (multiline ? "w-full" : "flex-1") : "w-auto max-w-full"}`} style={style}>
       {multiline ? (
         <textarea
           aria-label={ariaLabel}
           value={value}
-          rows={2}
+          rows={rows}
           onChange={(event) => onChange(event.target.value)}
           onFocus={onFocus}
           onBlur={onBlur}
           onMouseDown={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
-          className={`${INLINE_EDIT} resize-y leading-snug ${className}`}
+          className={`${INLINE_EDIT} resize-none leading-snug ${className}`}
         />
       ) : (
         <input
@@ -97,7 +101,7 @@ function HeaderTaglineEditor({
   typography: OverviewStyleConfig["typography"];
   onTypographyChange: (partial: Partial<OverviewStyleConfig["typography"]>) => void;
 }) {
-  const [showStyle, setShowStyle] = useState(true);
+  const [showStyle, setShowStyle] = useState(false);
 
   const typeStyle: CSSProperties = {
     fontSize: `${typography.headerFontSize}px`,
@@ -265,6 +269,11 @@ export function OnwardAirOverviewPage() {
   const [activeView, setActiveView] = useState<InternalOperationsView>("home");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
 
+  // Always re-apply shipped defaults on load so deploy updates are not stuck behind an old in-session look.
+  useEffect(() => {
+    setStyle(defaultOverviewStyleConfig());
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -348,7 +357,11 @@ export function OnwardAirOverviewPage() {
 
     if (id === "questions") {
       return (
-        <section key={id} className="flex min-h-0 flex-col overflow-hidden" style={boxStyle}>
+        <section
+          key={id}
+          className="flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
+          style={boxStyle}
+        >
           <ul
             className="flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
             style={{ gap: style.questions.itemGap }}
@@ -356,7 +369,7 @@ export function OnwardAirOverviewPage() {
             {content.questions.map((q, i) => (
               <li key={`q-${i}`} className="flex items-start gap-2.5">
                 <span
-                  className="mt-0.5 flex shrink-0 items-center justify-center rounded-full font-bold text-white"
+                  className="mt-0.5 flex shrink-0 items-center justify-center rounded-full font-bold text-[#0B3A4A]"
                   style={{
                     backgroundColor: style.questions.badgeColor,
                     width: style.questions.badgeSize,
@@ -370,6 +383,7 @@ export function OnwardAirOverviewPage() {
                   aria-label={`Question ${i + 1}`}
                   value={q}
                   multiline
+                  rows={2}
                   onChange={(next) => {
                     const questions = content.questions.map((item, index) =>
                       index === i ? next : item,
@@ -410,6 +424,7 @@ export function OnwardAirOverviewPage() {
                   aria-label={`Highlight ${i + 1}`}
                   value={item}
                   multiline
+                  rows={1}
                   onChange={(next) => {
                     const highlights = content.highlights.map((row, index) =>
                       index === i ? next : row,
@@ -448,29 +463,31 @@ export function OnwardAirOverviewPage() {
                 }),
               }}
             >
-              <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+              <div className="flex items-baseline justify-between gap-2">
                 <InlineEdit
                   aria-label={`Agenda row ${i + 1} time`}
                   value={row.wave}
+                  fill={false}
                   onChange={(wave) => {
                     const agenda = content.agenda.map((item, index) =>
                       index === i ? { ...item, wave } : item,
                     );
                     patchContent({ agenda });
                   }}
-                  className="max-w-[40%] font-bold uppercase tracking-wider"
+                  className="font-bold uppercase tracking-wider"
                   style={{ fontSize: `${style.agenda.waveSize}px`, color: style.agenda.waveColor }}
                 />
                 <InlineEdit
                   aria-label={`Agenda row ${i + 1} who`}
                   value={row.who}
+                  fill={false}
                   onChange={(who) => {
                     const agenda = content.agenda.map((item, index) =>
                       index === i ? { ...item, who } : item,
                     );
                     patchContent({ agenda });
                   }}
-                  className="max-w-[55%] text-right font-semibold"
+                  className="text-right font-semibold"
                   style={{ fontSize: `${style.agenda.whoSize}px`, color: style.agenda.whoColor }}
                 />
               </div>
@@ -478,6 +495,7 @@ export function OnwardAirOverviewPage() {
                 aria-label={`Agenda row ${i + 1} why`}
                 value={row.why}
                 multiline
+                rows={1}
                 onChange={(why) => {
                   const agenda = content.agenda.map((item, index) =>
                     index === i ? { ...item, why } : item,
