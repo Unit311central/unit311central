@@ -68,17 +68,19 @@ function InlineEdit({
   onFocus?: () => void;
   onBlur?: () => void;
 }) {
-  // Put color/size on the control itself — page has text-white, and form
-  // controls do not reliably inherit color from a wrapper.
+  // Color/size on the control itself — page uses text-white and form controls
+  // do not reliably inherit color from a wrapper.
   const controlStyle: CSSProperties = {
     resize: "none",
-    fieldSizing: "content",
-    minHeight: 0,
+    minHeight: multiline ? undefined : "1.25em",
+    height: multiline ? undefined : "1.25em",
     ...style,
   };
 
   return (
-    <div className={`min-w-0 ${fill ? (multiline ? "w-full" : "flex-1") : "w-auto max-w-full"}`}>
+    <div
+      className={`min-w-0 shrink-0 ${fill ? (multiline ? "w-full" : "flex-1") : "w-auto max-w-full"}`}
+    >
       {multiline ? (
         <textarea
           aria-label={ariaLabel}
@@ -89,7 +91,7 @@ function InlineEdit({
           onBlur={onBlur}
           onMouseDown={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
-          className={`${INLINE_EDIT} leading-snug ${className}`}
+          className={`${INLINE_EDIT} block leading-snug ${className}`}
           style={controlStyle}
         />
       ) : (
@@ -102,7 +104,7 @@ function InlineEdit({
           onBlur={onBlur}
           onMouseDown={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
-          className={`${INLINE_EDIT} ${className}`}
+          className={`${INLINE_EDIT} block ${className}`}
           style={controlStyle}
         />
       )}
@@ -565,39 +567,38 @@ export function OnwardAirOverviewPage() {
           className="flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
           style={boxStyle}
         >
-          <InlineEdit
-            aria-label="Highlights title"
-            value={content.highlightsTitle}
-            onChange={(highlightsTitle) => patchContent({ highlightsTitle })}
-            fill={false}
-            className="shrink-0 font-bold uppercase tracking-[0.14em]"
-            style={{ fontSize: `${style.highlights.titleSize}px`, color: style.highlights.titleColor }}
-          />
-          <ul
-            className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto"
-            style={{ marginTop: style.highlights.titleGap, gap: style.highlights.itemGap }}
-          >
-            {content.highlights.map((item, i) => (
-              <li key={`h-${i}`} className="flex items-start gap-1 leading-snug">
-                <span className="shrink-0" style={{ color: style.highlights.bulletColor }}>
-                  •
-                </span>
-                <InlineEdit
-                  aria-label={`Highlight ${i + 1}`}
-                  value={item}
-                  multiline
-                  rows={1}
-                  onChange={(next) => {
-                    const highlights = content.highlights.map((row, index) =>
-                      index === i ? next : row,
-                    );
-                    patchContent({ highlights });
-                  }}
-                  style={{ fontSize: `${style.highlights.itemSize}px`, color: style.highlights.itemColor }}
-                />
-              </li>
-            ))}
-          </ul>
+          <div className="shrink-0" style={{ marginBottom: style.highlights.titleGap }}>
+            <InlineEdit
+              aria-label="Highlights title"
+              value={content.highlightsTitle}
+              onChange={(highlightsTitle) => patchContent({ highlightsTitle })}
+              fill={false}
+              className="font-bold uppercase tracking-[0.14em]"
+              style={{ fontSize: `${style.highlights.titleSize}px`, color: style.highlights.titleColor }}
+            />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ul className="m-0 flex list-none flex-col p-0" style={{ gap: style.highlights.itemGap }}>
+              {content.highlights.map((item, i) => (
+                <li key={`h-${i}`} className="flex shrink-0 items-start gap-1 leading-snug">
+                  <span className="shrink-0" style={{ color: style.highlights.bulletColor }}>
+                    •
+                  </span>
+                  <InlineEdit
+                    aria-label={`Highlight ${i + 1}`}
+                    value={item}
+                    onChange={(next) => {
+                      const highlights = content.highlights.map((row, index) =>
+                        index === i ? next : row,
+                      );
+                      patchContent({ highlights });
+                    }}
+                    style={{ fontSize: `${style.highlights.itemSize}px`, color: style.highlights.itemColor }}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       );
     }
@@ -608,75 +609,75 @@ export function OnwardAirOverviewPage() {
         className="flex min-h-0 flex-col overflow-hidden text-[#1B2430]"
         style={boxStyle}
       >
-        <InlineEdit
-          aria-label="Agenda title"
-          value={content.agendaTitle}
-          onChange={(agendaTitle) => patchContent({ agendaTitle })}
-          fill={false}
-          className="shrink-0 font-semibold tracking-tight"
-          style={{ fontSize: `${style.agenda.titleSize}px`, color: style.agenda.titleColor }}
-        />
-        <div
-          className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto"
-          style={{ marginTop: style.agenda.titleGap, gap: style.agenda.rowGap }}
-        >
-          {content.agenda.map((row, i) => (
-            <div
-              key={`a-${i}`}
-              style={{
-                background: style.agenda.rowBg,
-                padding: `${style.agenda.rowPaddingY}px ${style.agenda.rowPaddingX}px`,
-                borderRadius: style.agenda.rowRadius,
-                border: overviewCardBorder({
-                  borderColor: style.agenda.rowBorderColor,
-                  borderOpacity: style.agenda.rowBorderOpacity,
-                }),
-              }}
-            >
-              <div className="flex items-baseline justify-between gap-2">
+        <div className="shrink-0" style={{ marginBottom: style.agenda.titleGap }}>
+          <InlineEdit
+            aria-label="Agenda title"
+            value={content.agendaTitle}
+            onChange={(agendaTitle) => patchContent({ agendaTitle })}
+            fill={false}
+            className="font-semibold tracking-tight"
+            style={{ fontSize: `${style.agenda.titleSize}px`, color: style.agenda.titleColor }}
+          />
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="flex flex-col" style={{ gap: style.agenda.rowGap }}>
+            {content.agenda.map((row, i) => (
+              <div
+                key={`a-${i}`}
+                className="shrink-0"
+                style={{
+                  background: style.agenda.rowBg,
+                  padding: `${style.agenda.rowPaddingY}px ${style.agenda.rowPaddingX}px`,
+                  borderRadius: style.agenda.rowRadius,
+                  border: overviewCardBorder({
+                    borderColor: style.agenda.rowBorderColor,
+                    borderOpacity: style.agenda.rowBorderOpacity,
+                  }),
+                }}
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <InlineEdit
+                    aria-label={`Agenda row ${i + 1} time`}
+                    value={row.wave}
+                    fill={false}
+                    onChange={(wave) => {
+                      const agenda = content.agenda.map((item, index) =>
+                        index === i ? { ...item, wave } : item,
+                      );
+                      patchContent({ agenda });
+                    }}
+                    className="font-bold uppercase tracking-wider"
+                    style={{ fontSize: `${style.agenda.waveSize}px`, color: style.agenda.waveColor }}
+                  />
+                  <InlineEdit
+                    aria-label={`Agenda row ${i + 1} who`}
+                    value={row.who}
+                    fill={false}
+                    onChange={(who) => {
+                      const agenda = content.agenda.map((item, index) =>
+                        index === i ? { ...item, who } : item,
+                      );
+                      patchContent({ agenda });
+                    }}
+                    className="text-right font-semibold"
+                    style={{ fontSize: `${style.agenda.whoSize}px`, color: style.agenda.whoColor }}
+                  />
+                </div>
                 <InlineEdit
-                  aria-label={`Agenda row ${i + 1} time`}
-                  value={row.wave}
-                  fill={false}
-                  onChange={(wave) => {
+                  aria-label={`Agenda row ${i + 1} why`}
+                  value={row.why}
+                  onChange={(why) => {
                     const agenda = content.agenda.map((item, index) =>
-                      index === i ? { ...item, wave } : item,
+                      index === i ? { ...item, why } : item,
                     );
                     patchContent({ agenda });
                   }}
-                  className="font-bold uppercase tracking-wider"
-                  style={{ fontSize: `${style.agenda.waveSize}px`, color: style.agenda.waveColor }}
-                />
-                <InlineEdit
-                  aria-label={`Agenda row ${i + 1} who`}
-                  value={row.who}
-                  fill={false}
-                  onChange={(who) => {
-                    const agenda = content.agenda.map((item, index) =>
-                      index === i ? { ...item, who } : item,
-                    );
-                    patchContent({ agenda });
-                  }}
-                  className="text-right font-semibold"
-                  style={{ fontSize: `${style.agenda.whoSize}px`, color: style.agenda.whoColor }}
+                  className="mt-0.5 leading-snug"
+                  style={{ fontSize: `${style.agenda.whySize}px`, color: style.agenda.whyColor }}
                 />
               </div>
-              <InlineEdit
-                aria-label={`Agenda row ${i + 1} why`}
-                value={row.why}
-                multiline
-                rows={1}
-                onChange={(why) => {
-                  const agenda = content.agenda.map((item, index) =>
-                    index === i ? { ...item, why } : item,
-                  );
-                  patchContent({ agenda });
-                }}
-                className="mt-0.5 leading-snug"
-                style={{ fontSize: `${style.agenda.whySize}px`, color: style.agenda.whyColor }}
-              />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
     );

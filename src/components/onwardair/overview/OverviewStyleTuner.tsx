@@ -885,18 +885,19 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                 <Plus className="h-3.5 w-3.5" /> Add highlight
               </button>
             </div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Spacing</p>
+            <SliderRow label="Space under title" value={style.highlights.titleGap} min={0} max={48} onChange={(titleGap) => patch.highlights({ titleGap })} />
+            <SliderRow label="Item gap" value={style.highlights.itemGap} min={0} max={24} onChange={(itemGap) => patch.highlights({ itemGap })} />
+            <SliderRow label="Card padding" value={style.highlights.padding} min={4} max={36} onChange={(padding) => patch.highlights({ padding })} />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Box + type</p>
             <ColorRow label="Background" value={style.highlights.bg} onChange={(bg) => patch.highlights({ bg })} />
             <ColorRow label="Border colour" value={style.highlights.borderColor} onChange={(borderColor) => patch.highlights({ borderColor })} />
             <SliderRow label="Border opacity" value={style.highlights.borderOpacity} min={0} max={1} step={0.01} unit="op" onChange={(borderOpacity) => patch.highlights({ borderOpacity })} />
             <ColorRow label="Title colour" value={style.highlights.titleColor} onChange={(titleColor) => patch.highlights({ titleColor })} />
             <SliderRow label="Title size" value={style.highlights.titleSize} min={9} max={20} onChange={(titleSize) => patch.highlights({ titleSize })} />
-            <SliderRow label="Space under title" value={style.highlights.titleGap} min={0} max={40} onChange={(titleGap) => patch.highlights({ titleGap })} />
-            <SliderRow label="Item gap" value={style.highlights.itemGap} min={0} max={20} onChange={(itemGap) => patch.highlights({ itemGap })} />
             <ColorRow label="Item colour" value={style.highlights.itemColor} onChange={(itemColor) => patch.highlights({ itemColor })} />
             <ColorRow label="Bullet colour" value={style.highlights.bulletColor} onChange={(bulletColor) => patch.highlights({ bulletColor })} />
             <SliderRow label="Item size" value={style.highlights.itemSize} min={9} max={20} onChange={(itemSize) => patch.highlights({ itemSize })} />
-            <SliderRow label="Padding" value={style.highlights.padding} min={4} max={36} onChange={(padding) => patch.highlights({ padding })} />
             <SliderRow label="Radius" value={style.highlights.radius} min={0} max={28} onChange={(radius) => patch.highlights({ radius })} />
             <SliderRow label="Shadow" value={style.highlights.shadowOpacity} min={0} max={0.6} step={0.01} unit="op" onChange={(shadowOpacity) => patch.highlights({ shadowOpacity })} />
           </>
@@ -937,14 +938,16 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                 <Plus className="h-3.5 w-3.5" /> Add agenda row
               </button>
             </div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Spacing</p>
+            <SliderRow label="Space under title" value={style.agenda.titleGap} min={0} max={48} onChange={(titleGap) => patch.agenda({ titleGap })} />
+            <SliderRow label="Row gap" value={style.agenda.rowGap} min={0} max={24} onChange={(rowGap) => patch.agenda({ rowGap })} />
+            <SliderRow label="Card padding" value={style.agenda.padding} min={4} max={36} onChange={(padding) => patch.agenda({ padding })} />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Box + type</p>
             <ColorRow label="Card background" value={style.agenda.bg} onChange={(bg) => patch.agenda({ bg })} />
             <ColorRow label="Border colour" value={style.agenda.borderColor} onChange={(borderColor) => patch.agenda({ borderColor })} />
             <SliderRow label="Border opacity" value={style.agenda.borderOpacity} min={0} max={1} step={0.01} unit="op" onChange={(borderOpacity) => patch.agenda({ borderOpacity })} />
             <ColorRow label="Title colour" value={style.agenda.titleColor} onChange={(titleColor) => patch.agenda({ titleColor })} />
             <SliderRow label="Title size" value={style.agenda.titleSize} min={9} max={20} onChange={(titleSize) => patch.agenda({ titleSize })} />
-            <SliderRow label="Space under title" value={style.agenda.titleGap} min={0} max={40} onChange={(titleGap) => patch.agenda({ titleGap })} />
-            <SliderRow label="Row gap" value={style.agenda.rowGap} min={0} max={20} onChange={(rowGap) => patch.agenda({ rowGap })} />
             <ColorRow label="Row background" value={style.agenda.rowBg} onChange={(rowBg) => patch.agenda({ rowBg })} />
             <ColorRow label="Row border colour" value={style.agenda.rowBorderColor} onChange={(rowBorderColor) => patch.agenda({ rowBorderColor })} />
             <SliderRow label="Row border opacity" value={style.agenda.rowBorderOpacity} min={0} max={1} step={0.01} unit="op" onChange={(rowBorderOpacity) => patch.agenda({ rowBorderOpacity })} />
@@ -957,7 +960,6 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
             <SliderRow label="Who size" value={style.agenda.whoSize} min={8} max={18} onChange={(whoSize) => patch.agenda({ whoSize })} />
             <ColorRow label="Why colour" value={style.agenda.whyColor} onChange={(whyColor) => patch.agenda({ whyColor })} />
             <SliderRow label="Why size" value={style.agenda.whySize} min={8} max={16} onChange={(whySize) => patch.agenda({ whySize })} />
-            <SliderRow label="Padding" value={style.agenda.padding} min={4} max={36} onChange={(padding) => patch.agenda({ padding })} />
             <SliderRow label="Radius" value={style.agenda.radius} min={0} max={28} onChange={(radius) => patch.agenda({ radius })} />
             <SliderRow label="Shadow" value={style.agenda.shadowOpacity} min={0} max={0.6} step={0.01} unit="op" onChange={(shadowOpacity) => patch.agenda({ shadowOpacity })} />
           </>
