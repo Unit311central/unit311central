@@ -105,32 +105,34 @@ export function OnwardAirOverviewPage() {
           </p>
         </div>
 
-        {/* Row 2 — 2 content cols + wider video */}
+        {/* Row 2 — 2 stacked-box cols + wider video */}
         <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-y-auto sm:mt-4 sm:grid-cols-2 sm:gap-3 xl:mt-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.85fr)] xl:gap-3 xl:overflow-hidden">
-          {/* Col 1 — questions + Unit311 tile */}
-          <section className="flex min-h-0 flex-col gap-2 overflow-y-auto rounded-xl border border-[#267B90]/20 bg-white/85 p-2.5 backdrop-blur-[2px] sm:p-3">
-            <h2 className="shrink-0 text-[12px] font-semibold leading-snug tracking-tight text-[#1B2430] sm:text-[13px]">
-              Could your business be operating more effectively?
-            </h2>
-            <ul className="space-y-1">
-              {QUESTIONS.map((q, i) => (
-                <li key={q} className="flex gap-1.5">
-                  <span
-                    className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white"
-                    style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
-                  >
-                    {i + 1}
-                  </span>
-                  <p className="text-[10px] leading-snug text-[#1B2430] sm:text-[11px]">{q}</p>
-                </li>
-              ))}
-            </ul>
+          {/* Col 1 — questions (top) + Unit311 (bottom) */}
+          <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto xl:overflow-hidden">
+            <section className="flex shrink-0 flex-col rounded-xl border border-[#267B90]/20 bg-white/85 p-2.5 backdrop-blur-[2px] sm:p-3">
+              <h2 className="text-[12px] font-semibold leading-snug tracking-tight text-[#1B2430] sm:text-[13px]">
+                Could your business be operating more effectively?
+              </h2>
+              <ul className="mt-2 space-y-1">
+                {QUESTIONS.map((q, i) => (
+                  <li key={q} className="flex gap-1.5">
+                    <span
+                      className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                      style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
+                    >
+                      {i + 1}
+                    </span>
+                    <p className="text-[10px] leading-snug text-[#1B2430] sm:text-[11px]">{q}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-            <div className="mt-1 rounded-lg border border-[#267B90]/25 bg-[#F4FAFB]/95 p-2.5 sm:p-3">
-              <h3 className="text-[12px] font-semibold tracking-tight text-[#1B2430] sm:text-[13px]">
+            <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-[#267B90]/20 bg-white/85 p-2.5 backdrop-blur-[2px] sm:p-3">
+              <h2 className="shrink-0 text-[12px] font-semibold tracking-tight text-[#1B2430] sm:text-[13px]">
                 What Unit311 Central is
-              </h3>
-              <p className="mt-1 text-[10px] leading-snug text-[#5B6577] sm:text-[11px]">
+              </h2>
+              <p className="mt-1.5 text-[10px] leading-snug text-[#5B6577] sm:text-[11px]">
                 Intelligent operations for growing companies — consolidate where it makes sense,
                 connect what you keep, one trusted place for information.
               </p>
@@ -138,46 +140,48 @@ export function OnwardAirOverviewPage() {
                 {PILLARS.map((item) => (
                   <li
                     key={item}
-                    className="rounded-md border border-[#267B90]/20 bg-white/90 px-2 py-1.5 text-[10px] leading-snug text-[#1B2430] sm:text-[11px]"
+                    className="rounded-lg border border-[#267B90]/20 bg-[#F4FAFB]/90 px-2 py-1.5 text-[10px] leading-snug text-[#1B2430] sm:text-[11px]"
                   >
                     {item}
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-[9px] leading-snug text-[#5B6577] sm:text-[10px]">
+              <p className="mt-auto pt-2 text-[9px] leading-snug text-[#5B6577] sm:text-[10px]">
                 Prior SME: 30+ apps as CTO. This would have cut that stack ~75%.
               </p>
-            </div>
-          </section>
+            </section>
+          </div>
 
-          {/* Col 2 — built around OA + 60 min tile */}
-          <section className="flex min-h-0 flex-col gap-2 overflow-y-auto rounded-xl border border-[#267B90]/20 bg-white/85 p-2.5 backdrop-blur-[2px] sm:p-3">
-            <h2 className="shrink-0 text-[12px] font-semibold tracking-tight text-[#1B2430] sm:text-[13px]">
-              Built around how OnwardAir runs
-            </h2>
-            <p className="text-[9px] text-[#5B6577] sm:text-[10px]">
-              Worth an hour — not a module catalogue.
-            </p>
-            <div className="grid grid-cols-1 gap-1 content-start sm:grid-cols-2">
-              {FOCUS.map((card) => (
-                <article
-                  key={card.title}
-                  className="rounded-lg border border-[#267B90]/15 bg-white/90 px-2 py-1.5"
-                >
-                  <div
-                    className="mb-0.5 h-0.5 w-5 rounded-full"
-                    style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
-                  />
-                  <h3 className="text-[11px] font-semibold text-[#1B2430]">{card.title}</h3>
-                  <p className="mt-0.5 text-[10px] leading-snug text-[#5B6577]">{card.detail}</p>
-                </article>
-              ))}
-            </div>
+          {/* Col 2 — built around (top) + 60 min (bottom) */}
+          <div className="flex min-h-0 flex-col gap-2.5 overflow-y-auto xl:overflow-hidden">
+            <section className="flex shrink-0 flex-col rounded-xl border border-[#267B90]/20 bg-white/85 p-2.5 backdrop-blur-[2px] sm:p-3">
+              <h2 className="text-[12px] font-semibold tracking-tight text-[#1B2430] sm:text-[13px]">
+                Built around how OnwardAir runs
+              </h2>
+              <p className="mt-1 text-[9px] text-[#5B6577] sm:text-[10px]">
+                Worth an hour — not a module catalogue.
+              </p>
+              <div className="mt-2 grid grid-cols-1 gap-1 content-start sm:grid-cols-2">
+                {FOCUS.map((card) => (
+                  <article
+                    key={card.title}
+                    className="rounded-lg border border-[#267B90]/15 bg-white/90 px-2 py-1.5"
+                  >
+                    <div
+                      className="mb-0.5 h-0.5 w-5 rounded-full"
+                      style={{ backgroundColor: ONWARDAIR_HOME_ACCENT }}
+                    />
+                    <h3 className="text-[11px] font-semibold text-[#1B2430]">{card.title}</h3>
+                    <p className="mt-0.5 text-[10px] leading-snug text-[#5B6577]">{card.detail}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
 
-            <div className="mt-1 rounded-lg border border-[#267B90]/25 bg-[#F4FAFB]/95 p-2.5 sm:p-3">
-              <h3 className="text-[12px] font-semibold tracking-tight text-[#1B2430] sm:text-[13px]">
+            <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-[#267B90]/20 bg-white/85 p-2.5 backdrop-blur-[2px] sm:p-3">
+              <h2 className="shrink-0 text-[12px] font-semibold tracking-tight text-[#1B2430] sm:text-[13px]">
                 60-minute working session
-              </h3>
+              </h2>
               <p className="mt-1 text-[9px] text-[#5B6577] sm:text-[10px]">
                 Live walkthrough — then decide if it&apos;s for you.
               </p>
@@ -185,7 +189,7 @@ export function OnwardAirOverviewPage() {
                 {INVITE.map((row) => (
                   <div
                     key={row.wave}
-                    className="rounded-md border border-[#267B90]/15 bg-white/90 px-2 py-1.5"
+                    className="rounded-lg border border-[#267B90]/15 bg-white/90 px-2 py-1.5"
                   >
                     <p
                       className="text-[9px] font-semibold uppercase tracking-wider"
@@ -198,11 +202,11 @@ export function OnwardAirOverviewPage() {
                   </div>
                 ))}
               </div>
-              <p className="mt-2 text-[9px] leading-snug text-[#5B6577] sm:text-[10px]">
+              <p className="mt-auto pt-2 text-[9px] leading-snug text-[#5B6577] sm:text-[10px]">
                 Full workspace opens ~24h before we meet — not before.
               </p>
-            </div>
-          </section>
+            </section>
+          </div>
 
           {/* Col 3 — wider video */}
           <section className="flex min-h-[220px] flex-col rounded-xl border border-[#267B90]/20 bg-white/85 p-2.5 backdrop-blur-[2px] sm:col-span-2 sm:min-h-[280px] sm:p-3 xl:col-span-1 xl:min-h-0">
