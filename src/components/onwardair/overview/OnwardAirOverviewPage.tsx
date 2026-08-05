@@ -258,36 +258,37 @@ export function OnwardAirOverviewPage() {
       />
 
       <div className="relative flex min-h-[100dvh] flex-col px-3 py-3 sm:px-5 sm:py-4 lg:px-6 lg:py-4 xl:h-full xl:min-h-0">
-        {/* Row 1: OA logo + headline | Unit311 + sign out */}
-        <header className="flex shrink-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`${OA_LOGO}?v=swap6`}
-              alt="OnwardAir"
-              width={200}
-              height={40}
-              decoding="async"
-              className="block shrink-0 object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-              style={{ height: 40, width: "auto", maxWidth: 180, maxHeight: 40 }}
-            />
-            <p className="min-w-0 truncate text-[12px] leading-snug text-white/90 sm:text-[13px] lg:text-[14px]">
-              <span className="font-semibold text-white">{content.headline}</span>
-              <span className="text-white/45"> — </span>
-              <span className="text-white/70">{content.subheadline}</span>
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-            <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex h-10 items-center">
+        {/* Row 1: OA logo + headline (single line) | Unit311 + sign out */}
+        <header className="flex shrink-0 items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`${OA_LOGO}?v=swap7`}
+            alt="OnwardAir"
+            width={200}
+            height={40}
+            decoding="async"
+            className="block shrink-0 object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+            style={{ height: 36, width: "auto", maxWidth: 160, maxHeight: 36 }}
+          />
+          <p
+            className="min-w-0 flex-1 whitespace-nowrap text-white/90"
+            style={{ fontSize: "clamp(10px, 1.05vw, 14px)", lineHeight: 1.25 }}
+          >
+            <span className="font-semibold text-white">{content.headline}</span>
+            <span className="text-white/45"> — </span>
+            <span className="text-white/70">{content.subheadline}</span>
+          </p>
+          <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4">
+            <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex h-9 items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`${UNIT311_LOGO}?v=swap6`}
+                src={`${UNIT311_LOGO}?v=swap7`}
                 alt="Unit311 Central"
                 width={100}
                 height={22}
                 decoding="async"
                 className="block object-contain object-right drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-                style={{ height: 22, width: "auto", maxWidth: 100, maxHeight: 22 }}
+                style={{ height: 20, width: "auto", maxWidth: 92, maxHeight: 20 }}
               />
             </a>
             <button
@@ -304,7 +305,7 @@ export function OnwardAirOverviewPage() {
         </header>
 
         {/* Row 2: customisable OS line */}
-        <p className="mt-2 shrink-0 truncate text-[11px] leading-snug text-white/65 sm:mt-2.5 sm:text-[12px]">
+        <p className="mt-2 shrink-0 whitespace-nowrap text-[11px] leading-snug text-white/65 sm:mt-2.5 sm:text-[12px]">
           {content.questionsIntro}
         </p>
 
