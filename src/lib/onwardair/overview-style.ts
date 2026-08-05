@@ -3,7 +3,7 @@
  * Tuned in-browser via OverviewStyleTuner; paste the exported JSON back to Cursor to persist.
  */
 
-export const OVERVIEW_STYLE_VERSION = 1 as const;
+export const OVERVIEW_STYLE_VERSION = 2 as const;
 
 export const OVERVIEW_FONT_OPTIONS = [
   {
@@ -35,9 +35,32 @@ export const OVERVIEW_FONT_OPTIONS = [
 
 export type OverviewFontId = (typeof OVERVIEW_FONT_OPTIONS)[number]["id"];
 
+export const OVERVIEW_LEFT_CARD_IDS = ["questions", "highlights", "agenda"] as const;
+export type OverviewLeftCardId = (typeof OVERVIEW_LEFT_CARD_IDS)[number];
+
+export const OVERVIEW_LEFT_CARD_LABELS: Record<OverviewLeftCardId, string> = {
+  questions: "Questions (top)",
+  highlights: "Highlights (middle)",
+  agenda: "Agenda (bottom)",
+};
+
+/** Per-box chrome — size, border, shadow, visibility, relative height. */
+export type OverviewCardChrome = {
+  padding: number;
+  radius: number;
+  borderColor: string;
+  borderOpacity: number;
+  shadowOpacity: number;
+  /** Relative row height in the left column (CSS fr). */
+  heightFr: number;
+  visible: boolean;
+};
+
 export type OverviewStyleConfig = {
   version: typeof OVERVIEW_STYLE_VERSION;
   accent: string;
+  /** Render order of the three left-column boxes. */
+  leftColumnOrder: OverviewLeftCardId[];
   page: {
     paddingX: number;
     paddingY: number;
@@ -60,26 +83,29 @@ export type OverviewStyleConfig = {
     unit311Height: number;
     unit311MaxWidth: number;
   };
+  /** Shared defaults still used as fallbacks; prefer per-box chrome. */
   cards: {
     padding: number;
     radius: number;
     borderOpacity: number;
   };
-  questions: {
+  questions: OverviewCardChrome & {
     bg: string;
     textSize: number;
     textColor: string;
     badgeSize: number;
+    badgeColor: string;
     itemGap: number;
   };
-  highlights: {
+  highlights: OverviewCardChrome & {
     bg: string;
     titleSize: number;
     titleColor: string;
     itemSize: number;
     itemColor: string;
+    bulletColor: string;
   };
-  agenda: {
+  agenda: OverviewCardChrome & {
     bg: string;
     titleSize: number;
     titleColor: string;
@@ -87,8 +113,12 @@ export type OverviewStyleConfig = {
     rowPaddingY: number;
     rowRadius: number;
     rowBg: string;
+    rowBorderColor: string;
+    rowBorderOpacity: number;
     waveSize: number;
+    waveColor: string;
     whoSize: number;
+    whoColor: string;
     whySize: number;
     whyColor: string;
   };
@@ -96,14 +126,30 @@ export type OverviewStyleConfig = {
     radius: number;
     minHeight: number;
     borderOpacity: number;
+    borderColor: string;
+    bg: string;
   };
 };
+
+function defaultChrome(partial?: Partial<OverviewCardChrome>): OverviewCardChrome {
+  return {
+    padding: 14,
+    radius: 12,
+    borderColor: "#267B90",
+    borderOpacity: 0.22,
+    shadowOpacity: 0.14,
+    heightFr: 1,
+    visible: true,
+    ...partial,
+  };
+}
 
 /** Matches the current hardcoded overview layout (baseline before tuning). */
 export function defaultOverviewStyleConfig(): OverviewStyleConfig {
   return {
     version: OVERVIEW_STYLE_VERSION,
     accent: "#267B90",
+    leftColumnOrder: ["questions", "highlights", "agenda"],
     page: {
       paddingX: 16,
       paddingY: 12,
@@ -132,20 +178,25 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       borderOpacity: 0.22,
     },
     questions: {
+      ...defaultChrome({ borderColor: "#267B90", shadowOpacity: 0.14 }),
       bg: "#ffffff",
       textSize: 14,
       textColor: "#1B2430",
       badgeSize: 20,
+      badgeColor: "#267B90",
       itemGap: 8,
     },
     highlights: {
+      ...defaultChrome({ borderColor: "#267B90", borderOpacity: 0.25, shadowOpacity: 0.1 }),
       bg: "rgba(11, 58, 74, 0.85)",
       titleSize: 13,
       titleColor: "#7DD3E8",
       itemSize: 13,
       itemColor: "rgba(255, 255, 255, 0.95)",
+      bulletColor: "#7DD3E8",
     },
     agenda: {
+      ...defaultChrome({ borderColor: "#267B90", borderOpacity: 0.25, shadowOpacity: 0.18 }),
       bg: "#ffffff",
       titleSize: 13,
       titleColor: "#1B2430",
@@ -153,8 +204,12 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       rowPaddingY: 6,
       rowRadius: 8,
       rowBg: "#F4FAFB",
+      rowBorderColor: "#267B90",
+      rowBorderOpacity: 0.2,
       waveSize: 10,
+      waveColor: "#267B90",
       whoSize: 12,
+      whoColor: "#1B2430",
       whySize: 11,
       whyColor: "#5B6577",
     },
@@ -162,6 +217,8 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       radius: 12,
       minHeight: 420,
       borderOpacity: 0.1,
+      borderColor: "#ffffff",
+      bg: "#050B16",
     },
   };
 }
@@ -170,55 +227,15 @@ export function overviewFontStack(id: OverviewFontId): string {
   return OVERVIEW_FONT_OPTIONS.find((f) => f.id === id)?.stack ?? OVERVIEW_FONT_OPTIONS[0].stack;
 }
 
-/** CSS custom properties applied to the overview root for live preview. */
-export function overviewStyleToCssVars(style: OverviewStyleConfig): Record<string, string> {
-  const font = overviewFontStack(style.typography.fontFamily);
-  return {
-    "--oa-font": font,
-    "--oa-accent": style.accent,
-    "--oa-page-px": `${style.page.paddingX}px`,
-    "--oa-page-py": `${style.page.paddingY}px`,
-    "--oa-col-gap": `${style.page.columnGap}px`,
-    "--oa-left-fr": String(style.page.leftColumnFr),
-    "--oa-right-fr": String(style.page.rightColumnFr),
-    "--oa-card-gap": `${style.page.cardGap}px`,
-    "--oa-hero-opacity": String(style.page.heroImageOpacity),
-    "--oa-overlay-opacity": String(style.page.overlayOpacity),
-    "--oa-header-size": `${style.typography.headerFontSize}px`,
-    "--oa-header-color": style.typography.headerColor,
-    "--oa-header-opacity": String(style.typography.headerOpacity),
-    "--oa-logo-oa-h": `${style.logos.oaHeight}px`,
-    "--oa-logo-oa-mw": `${style.logos.oaMaxWidth}px`,
-    "--oa-logo-u311-h": `${style.logos.unit311Height}px`,
-    "--oa-logo-u311-mw": `${style.logos.unit311MaxWidth}px`,
-    "--oa-card-pad": `${style.cards.padding}px`,
-    "--oa-card-radius": `${style.cards.radius}px`,
-    "--oa-card-border-opacity": String(style.cards.borderOpacity),
-    "--oa-q-bg": style.questions.bg,
-    "--oa-q-size": `${style.questions.textSize}px`,
-    "--oa-q-color": style.questions.textColor,
-    "--oa-q-badge": `${style.questions.badgeSize}px`,
-    "--oa-q-gap": `${style.questions.itemGap}px`,
-    "--oa-hl-bg": style.highlights.bg,
-    "--oa-hl-title-size": `${style.highlights.titleSize}px`,
-    "--oa-hl-title-color": style.highlights.titleColor,
-    "--oa-hl-item-size": `${style.highlights.itemSize}px`,
-    "--oa-hl-item-color": style.highlights.itemColor,
-    "--oa-ag-bg": style.agenda.bg,
-    "--oa-ag-title-size": `${style.agenda.titleSize}px`,
-    "--oa-ag-title-color": style.agenda.titleColor,
-    "--oa-ag-row-px": `${style.agenda.rowPaddingX}px`,
-    "--oa-ag-row-py": `${style.agenda.rowPaddingY}px`,
-    "--oa-ag-row-radius": `${style.agenda.rowRadius}px`,
-    "--oa-ag-row-bg": style.agenda.rowBg,
-    "--oa-ag-wave-size": `${style.agenda.waveSize}px`,
-    "--oa-ag-who-size": `${style.agenda.whoSize}px`,
-    "--oa-ag-why-size": `${style.agenda.whySize}px`,
-    "--oa-ag-why-color": style.agenda.whyColor,
-    "--oa-preview-radius": `${style.preview.radius}px`,
-    "--oa-preview-min-h": `${style.preview.minHeight}px`,
-    "--oa-preview-border-opacity": String(style.preview.borderOpacity),
-  };
+export function overviewCardBorder(opts: {
+  borderColor: string;
+  borderOpacity: number;
+}): string {
+  return `1px solid color-mix(in srgb, ${opts.borderColor} ${Math.round(opts.borderOpacity * 100)}%, transparent)`;
+}
+
+export function overviewCardShadow(opacity: number): string {
+  return `0 8px 24px rgba(0,0,0,${opacity})`;
 }
 
 function asNumber(value: unknown, fallback: number, min?: number, max?: number): number {
@@ -234,28 +251,65 @@ function asString(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
+function asBool(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
 function asFontId(value: unknown, fallback: OverviewFontId): OverviewFontId {
   const id = typeof value === "string" ? value : "";
   return OVERVIEW_FONT_OPTIONS.some((f) => f.id === id) ? (id as OverviewFontId) : fallback;
+}
+
+function sanitizeChrome(
+  raw: Partial<OverviewCardChrome> | undefined,
+  fallback: OverviewCardChrome,
+): OverviewCardChrome {
+  const body = raw ?? {};
+  return {
+    padding: asNumber(body.padding, fallback.padding, 0, 48),
+    radius: asNumber(body.radius, fallback.radius, 0, 40),
+    borderColor: asString(body.borderColor, fallback.borderColor),
+    borderOpacity: asNumber(body.borderOpacity, fallback.borderOpacity, 0, 1),
+    shadowOpacity: asNumber(body.shadowOpacity, fallback.shadowOpacity, 0, 1),
+    heightFr: asNumber(body.heightFr, fallback.heightFr, 0.35, 3),
+    visible: asBool(body.visible, fallback.visible),
+  };
+}
+
+function sanitizeLeftColumnOrder(raw: unknown): OverviewLeftCardId[] {
+  const d = defaultOverviewStyleConfig().leftColumnOrder;
+  if (!Array.isArray(raw)) return d;
+  const cleaned = raw.filter((id): id is OverviewLeftCardId =>
+    OVERVIEW_LEFT_CARD_IDS.includes(id as OverviewLeftCardId),
+  );
+  const missing = OVERVIEW_LEFT_CARD_IDS.filter((id) => !cleaned.includes(id));
+  return [...cleaned, ...missing];
 }
 
 /** Merge pasted / partial JSON onto defaults so Cursor can apply incomplete exports safely. */
 export function sanitizeOverviewStyleConfig(raw: unknown): OverviewStyleConfig {
   const d = defaultOverviewStyleConfig();
   if (!raw || typeof raw !== "object") return d;
-  const body = raw as Partial<OverviewStyleConfig>;
-  const page = (body.page ?? {}) as Partial<OverviewStyleConfig["page"]>;
-  const typography = (body.typography ?? {}) as Partial<OverviewStyleConfig["typography"]>;
-  const logos = (body.logos ?? {}) as Partial<OverviewStyleConfig["logos"]>;
-  const cards = (body.cards ?? {}) as Partial<OverviewStyleConfig["cards"]>;
-  const questions = (body.questions ?? {}) as Partial<OverviewStyleConfig["questions"]>;
-  const highlights = (body.highlights ?? {}) as Partial<OverviewStyleConfig["highlights"]>;
-  const agenda = (body.agenda ?? {}) as Partial<OverviewStyleConfig["agenda"]>;
-  const preview = (body.preview ?? {}) as Partial<OverviewStyleConfig["preview"]>;
+  const body = raw as Partial<OverviewStyleConfig> & { style?: Partial<OverviewStyleConfig> };
+  // Accept either bare style object or tuner export `{ style, content }`.
+  const root = (body.style && typeof body.style === "object" ? body.style : body) as Partial<OverviewStyleConfig>;
+  const page = (root.page ?? {}) as Partial<OverviewStyleConfig["page"]>;
+  const typography = (root.typography ?? {}) as Partial<OverviewStyleConfig["typography"]>;
+  const logos = (root.logos ?? {}) as Partial<OverviewStyleConfig["logos"]>;
+  const cards = (root.cards ?? {}) as Partial<OverviewStyleConfig["cards"]>;
+  const questions = (root.questions ?? {}) as Partial<OverviewStyleConfig["questions"]>;
+  const highlights = (root.highlights ?? {}) as Partial<OverviewStyleConfig["highlights"]>;
+  const agenda = (root.agenda ?? {}) as Partial<OverviewStyleConfig["agenda"]>;
+  const preview = (root.preview ?? {}) as Partial<OverviewStyleConfig["preview"]>;
+
+  const qChrome = sanitizeChrome(questions, d.questions);
+  const hChrome = sanitizeChrome(highlights, d.highlights);
+  const aChrome = sanitizeChrome(agenda, d.agenda);
 
   return {
     version: OVERVIEW_STYLE_VERSION,
-    accent: asString(body.accent, d.accent),
+    accent: asString(root.accent, d.accent),
+    leftColumnOrder: sanitizeLeftColumnOrder(root.leftColumnOrder),
     page: {
       paddingX: asNumber(page.paddingX, d.page.paddingX, 0, 64),
       paddingY: asNumber(page.paddingY, d.page.paddingY, 0, 64),
@@ -284,20 +338,25 @@ export function sanitizeOverviewStyleConfig(raw: unknown): OverviewStyleConfig {
       borderOpacity: asNumber(cards.borderOpacity, d.cards.borderOpacity, 0, 1),
     },
     questions: {
+      ...qChrome,
       bg: asString(questions.bg, d.questions.bg),
       textSize: asNumber(questions.textSize, d.questions.textSize, 10, 24),
       textColor: asString(questions.textColor, d.questions.textColor),
       badgeSize: asNumber(questions.badgeSize, d.questions.badgeSize, 14, 36),
+      badgeColor: asString(questions.badgeColor, d.questions.badgeColor),
       itemGap: asNumber(questions.itemGap, d.questions.itemGap, 0, 24),
     },
     highlights: {
+      ...hChrome,
       bg: asString(highlights.bg, d.highlights.bg),
       titleSize: asNumber(highlights.titleSize, d.highlights.titleSize, 9, 22),
       titleColor: asString(highlights.titleColor, d.highlights.titleColor),
       itemSize: asNumber(highlights.itemSize, d.highlights.itemSize, 9, 22),
       itemColor: asString(highlights.itemColor, d.highlights.itemColor),
+      bulletColor: asString(highlights.bulletColor, d.highlights.bulletColor),
     },
     agenda: {
+      ...aChrome,
       bg: asString(agenda.bg, d.agenda.bg),
       titleSize: asNumber(agenda.titleSize, d.agenda.titleSize, 9, 22),
       titleColor: asString(agenda.titleColor, d.agenda.titleColor),
@@ -305,8 +364,12 @@ export function sanitizeOverviewStyleConfig(raw: unknown): OverviewStyleConfig {
       rowPaddingY: asNumber(agenda.rowPaddingY, d.agenda.rowPaddingY, 0, 24),
       rowRadius: asNumber(agenda.rowRadius, d.agenda.rowRadius, 0, 24),
       rowBg: asString(agenda.rowBg, d.agenda.rowBg),
+      rowBorderColor: asString(agenda.rowBorderColor, d.agenda.rowBorderColor),
+      rowBorderOpacity: asNumber(agenda.rowBorderOpacity, d.agenda.rowBorderOpacity, 0, 1),
       waveSize: asNumber(agenda.waveSize, d.agenda.waveSize, 8, 18),
+      waveColor: asString(agenda.waveColor, d.agenda.waveColor),
       whoSize: asNumber(agenda.whoSize, d.agenda.whoSize, 8, 20),
+      whoColor: asString(agenda.whoColor, d.agenda.whoColor),
       whySize: asNumber(agenda.whySize, d.agenda.whySize, 8, 18),
       whyColor: asString(agenda.whyColor, d.agenda.whyColor),
     },
@@ -314,6 +377,8 @@ export function sanitizeOverviewStyleConfig(raw: unknown): OverviewStyleConfig {
       radius: asNumber(preview.radius, d.preview.radius, 0, 32),
       minHeight: asNumber(preview.minHeight, d.preview.minHeight, 200, 800),
       borderOpacity: asNumber(preview.borderOpacity, d.preview.borderOpacity, 0, 1),
+      borderColor: asString(preview.borderColor, d.preview.borderColor),
+      bg: asString(preview.bg, d.preview.bg),
     },
   };
 }
@@ -347,7 +412,7 @@ export function overviewTunerExportToClipboardJson(
   return JSON.stringify(
     {
       _note: "OnwardAir overview tuner export — paste into Cursor to persist style + text & deploy",
-      style,
+      style: sanitizeOverviewStyleConfig(style),
       content: {
         headline: content.headline,
         subheadline: content.subheadline,
@@ -363,4 +428,19 @@ export function overviewTunerExportToClipboardJson(
     null,
     2,
   );
+}
+
+export function moveLeftColumnCard(
+  order: OverviewLeftCardId[],
+  id: OverviewLeftCardId,
+  direction: -1 | 1,
+): OverviewLeftCardId[] {
+  const index = order.indexOf(id);
+  if (index < 0) return order;
+  const next = index + direction;
+  if (next < 0 || next >= order.length) return order;
+  const copy = [...order];
+  const [item] = copy.splice(index, 1);
+  copy.splice(next, 0, item);
+  return copy;
 }

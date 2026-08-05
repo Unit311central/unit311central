@@ -10,8 +10,11 @@ import {
   overviewScreenshotForView,
 } from "@/lib/onwardair/overview-demo";
 import {
+  type OverviewLeftCardId,
   type OverviewStyleConfig,
   defaultOverviewStyleConfig,
+  overviewCardBorder,
+  overviewCardShadow,
   overviewFontStack,
 } from "@/lib/onwardair/overview-style";
 import {
@@ -112,8 +115,142 @@ export function OnwardAirOverviewPage() {
 
   const previewSrc = useMemo(() => overviewScreenshotForView(activeView), [activeView]);
   const headerLine = `${content.headline} – ${content.subheadline}`;
-  const cardBorder = `1px solid color-mix(in srgb, ${style.accent} ${Math.round(style.cards.borderOpacity * 100)}%, transparent)`;
   const layoutCols = `minmax(220px, ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`;
+  const visibleLeftCards = style.leftColumnOrder.filter((id) => style[id].visible);
+  const leftGridRows =
+    visibleLeftCards.length > 0
+      ? visibleLeftCards.map((id) => `minmax(0, ${style[id].heightFr}fr)`).join(" ")
+      : "1fr";
+
+  function renderLeftCard(id: OverviewLeftCardId) {
+    const chrome = style[id];
+    const border = overviewCardBorder({
+      borderColor: chrome.borderColor,
+      borderOpacity: chrome.borderOpacity,
+    });
+    const shadow = overviewCardShadow(chrome.shadowOpacity);
+    const boxStyle: CSSProperties = {
+      background: chrome.bg,
+      padding: chrome.padding,
+      borderRadius: chrome.radius,
+      border,
+      boxShadow: shadow,
+    };
+
+    if (id === "questions") {
+      return (
+        <section key={id} className="flex min-h-0 flex-col overflow-hidden" style={boxStyle}>
+          <ul
+            className="flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
+            style={{ gap: style.questions.itemGap }}
+          >
+            {content.questions.map((q, i) => (
+              <li
+                key={`q-${i}`}
+                className="oa-overview-question flex items-start gap-2.5"
+                style={{ animationDelay: `${i * 0.55}s` }}
+              >
+                <span
+                  className="mt-0.5 flex shrink-0 items-center justify-center rounded-full font-bold text-white"
+                  style={{
+                    backgroundColor: style.questions.badgeColor,
+                    width: style.questions.badgeSize,
+                    height: style.questions.badgeSize,
+                    fontSize: Math.round(style.questions.badgeSize * 0.55),
+                  }}
+                >
+                  {i + 1}
+                </span>
+                <p
+                  className="leading-snug"
+                  style={{ fontSize: style.questions.textSize, color: style.questions.textColor }}
+                >
+                  {q}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    }
+
+    if (id === "highlights") {
+      return (
+        <section
+          key={id}
+          className="flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
+          style={boxStyle}
+        >
+          <p
+            className="shrink-0 font-bold uppercase tracking-[0.14em]"
+            style={{ fontSize: style.highlights.titleSize, color: style.highlights.titleColor }}
+          >
+            {content.highlightsTitle}
+          </p>
+          <ul className="mt-2 flex min-h-0 flex-1 flex-col justify-evenly gap-1 overflow-y-auto">
+            {content.highlights.map((item, i) => (
+              <li
+                key={`h-${i}`}
+                className="leading-snug"
+                style={{ fontSize: style.highlights.itemSize, color: style.highlights.itemColor }}
+              >
+                <span style={{ color: style.highlights.bulletColor }}>• </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+      );
+    }
+
+    return (
+      <section key={id} className="flex min-h-0 flex-col overflow-hidden" style={boxStyle}>
+        <h2
+          className="shrink-0 truncate font-semibold tracking-tight"
+          style={{ fontSize: style.agenda.titleSize, color: style.agenda.titleColor }}
+        >
+          {content.agendaTitle}
+        </h2>
+        <div className="mt-2 flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-y-auto">
+          {content.agenda.map((row, i) => (
+            <div
+              key={`a-${i}`}
+              style={{
+                background: style.agenda.rowBg,
+                padding: `${style.agenda.rowPaddingY}px ${style.agenda.rowPaddingX}px`,
+                borderRadius: style.agenda.rowRadius,
+                border: overviewCardBorder({
+                  borderColor: style.agenda.rowBorderColor,
+                  borderOpacity: style.agenda.rowBorderOpacity,
+                }),
+              }}
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                <p
+                  className="font-bold uppercase tracking-wider"
+                  style={{ fontSize: style.agenda.waveSize, color: style.agenda.waveColor }}
+                >
+                  {row.wave.includes("min") ? row.wave : `${row.wave} min`}
+                </p>
+                <p
+                  className="font-semibold"
+                  style={{ fontSize: style.agenda.whoSize, color: style.agenda.whoColor }}
+                >
+                  {row.who}
+                </p>
+              </div>
+              <p
+                className="mt-0.5 leading-snug"
+                style={{ fontSize: style.agenda.whySize, color: style.agenda.whyColor }}
+              >
+                {row.why}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <div
@@ -219,136 +356,25 @@ export function OnwardAirOverviewPage() {
             }
           `}</style>
             <aside
-              className="grid h-full min-h-0 grid-rows-3 overflow-hidden"
-              style={{ gap: style.page.cardGap }}
+              className="grid h-full min-h-0 overflow-hidden"
+              style={{
+                gap: style.page.cardGap,
+                gridTemplateRows: leftGridRows,
+              }}
             >
-              <section
-                className="flex min-h-0 flex-col overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.14)]"
-                style={{
-                  background: style.questions.bg,
-                  padding: style.cards.padding,
-                  borderRadius: style.cards.radius,
-                  border: cardBorder,
-                }}
-              >
-                <ul
-                  className="flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
-                  style={{ gap: style.questions.itemGap }}
-                >
-                  {content.questions.map((q, i) => (
-                    <li
-                      key={`q-${i}`}
-                      className="oa-overview-question flex items-start gap-2.5"
-                      style={{ animationDelay: `${i * 0.55}s` }}
-                    >
-                      <span
-                        className="mt-0.5 flex shrink-0 items-center justify-center rounded-full font-bold text-white"
-                        style={{
-                          backgroundColor: style.accent,
-                          width: style.questions.badgeSize,
-                          height: style.questions.badgeSize,
-                          fontSize: Math.round(style.questions.badgeSize * 0.55),
-                        }}
-                      >
-                        {i + 1}
-                      </span>
-                      <p
-                        className="leading-snug"
-                        style={{ fontSize: style.questions.textSize, color: style.questions.textColor }}
-                      >
-                        {q}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <section
-                className="flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
-                style={{
-                  background: style.highlights.bg,
-                  padding: style.cards.padding,
-                  borderRadius: style.cards.radius,
-                  border: cardBorder,
-                }}
-              >
-                <p
-                  className="shrink-0 font-bold uppercase tracking-[0.14em]"
-                  style={{ fontSize: style.highlights.titleSize, color: style.highlights.titleColor }}
-                >
-                  {content.highlightsTitle}
-                </p>
-                <ul className="mt-2 flex min-h-0 flex-1 flex-col justify-evenly gap-1 overflow-y-auto">
-                  {content.highlights.map((item, i) => (
-                    <li
-                      key={`h-${i}`}
-                      className="leading-snug"
-                      style={{ fontSize: style.highlights.itemSize, color: style.highlights.itemColor }}
-                    >
-                      • {item}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <section
-                className="flex min-h-0 flex-col overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
-                style={{
-                  background: style.agenda.bg,
-                  padding: style.cards.padding,
-                  borderRadius: style.cards.radius,
-                  border: cardBorder,
-                }}
-              >
-                <h2
-                  className="shrink-0 truncate font-semibold tracking-tight"
-                  style={{ fontSize: style.agenda.titleSize, color: style.agenda.titleColor }}
-                >
-                  {content.agendaTitle}
-                </h2>
-                <div className="mt-2 flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-y-auto">
-                  {content.agenda.map((row, i) => (
-                    <div
-                      key={`a-${i}`}
-                      style={{
-                        background: style.agenda.rowBg,
-                        padding: `${style.agenda.rowPaddingY}px ${style.agenda.rowPaddingX}px`,
-                        borderRadius: style.agenda.rowRadius,
-                        border: cardBorder,
-                      }}
-                    >
-                      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                        <p
-                          className="font-bold uppercase tracking-wider"
-                          style={{ fontSize: style.agenda.waveSize, color: style.accent }}
-                        >
-                          {row.wave.includes("min") ? row.wave : `${row.wave} min`}
-                        </p>
-                        <p
-                          className="font-semibold"
-                          style={{ fontSize: style.agenda.whoSize, color: style.agenda.titleColor }}
-                        >
-                          {row.who}
-                        </p>
-                      </div>
-                      <p
-                        className="mt-0.5 leading-snug"
-                        style={{ fontSize: style.agenda.whySize, color: style.agenda.whyColor }}
-                      >
-                        {row.why}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              {visibleLeftCards.map((id) => renderLeftCard(id))}
             </aside>
 
             <section
-              className="flex min-w-0 overflow-hidden bg-[#050B16] shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0"
+              className="flex min-w-0 overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0"
               style={{
                 borderRadius: style.preview.radius,
                 minHeight: style.preview.minHeight,
-                border: `1px solid rgba(255,255,255,${style.preview.borderOpacity})`,
+                background: style.preview.bg,
+                border: overviewCardBorder({
+                  borderColor: style.preview.borderColor,
+                  borderOpacity: style.preview.borderOpacity,
+                }),
               }}
             >
               <OperatorEntitlementsProvider>
