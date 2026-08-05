@@ -424,7 +424,12 @@ export function OnwardAirOverviewPage() {
         </div>
       ) : null}
 
-      <OverviewStyleTuner style={style} onChange={setStyle} />
+      <OverviewStyleTuner
+        style={style}
+        onStyleChange={setStyle}
+        content={content}
+        onContentChange={setContent}
+      />
     </div>
   );
 }

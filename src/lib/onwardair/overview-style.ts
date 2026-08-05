@@ -328,3 +328,39 @@ export function overviewStyleConfigToClipboardJson(style: OverviewStyleConfig): 
     2,
   );
 }
+
+/** Combined style + editable copy for Cursor paste-back. */
+export function overviewTunerExportToClipboardJson(
+  style: OverviewStyleConfig,
+  content: {
+    headline: string;
+    subheadline: string;
+    questionsTitle: string;
+    questions: string[];
+    highlightsTitle: string;
+    highlights: string[];
+    agendaTitle: string;
+    agenda: Array<{ wave: string; who: string; why: string }>;
+    agendaNote?: string;
+  },
+): string {
+  return JSON.stringify(
+    {
+      _note: "OnwardAir overview tuner export — paste into Cursor to persist style + text & deploy",
+      style,
+      content: {
+        headline: content.headline,
+        subheadline: content.subheadline,
+        questionsTitle: content.questionsTitle,
+        questions: content.questions,
+        highlightsTitle: content.highlightsTitle,
+        highlights: content.highlights,
+        agendaTitle: content.agendaTitle,
+        agenda: content.agenda,
+        agendaNote: content.agendaNote ?? "",
+      },
+    },
+    null,
+    2,
+  );
+}

@@ -1,24 +1,32 @@
 "use client";
 
-import { Check, Copy, RotateCcw, SlidersHorizontal, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Check, Copy, GripHorizontal, Plus, RotateCcw, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 
 import { copyTextToClipboard } from "@/lib/clipboard";
+import {
+  type OnwardAirOverviewEditableContent,
+  type OverviewInviteRow,
+  defaultOnwardAirOverviewContent,
+} from "@/lib/onwardair/overview-demo";
 import {
   OVERVIEW_FONT_OPTIONS,
   type OverviewFontId,
   type OverviewStyleConfig,
   defaultOverviewStyleConfig,
-  overviewStyleConfigToClipboardJson,
+  overviewTunerExportToClipboardJson,
 } from "@/lib/onwardair/overview-style";
 
 type Props = {
   style: OverviewStyleConfig;
-  onChange: (next: OverviewStyleConfig) => void;
+  onStyleChange: (next: OverviewStyleConfig) => void;
+  content: OnwardAirOverviewEditableContent;
+  onContentChange: (next: OnwardAirOverviewEditableContent) => void;
 };
 
 type SectionId =
+  | "text"
   | "page"
   | "type"
   | "logos"
@@ -29,6 +37,7 @@ type SectionId =
   | "preview";
 
 const SECTIONS: { id: SectionId; label: string }[] = [
+  { id: "text", label: "Text" },
   { id: "page", label: "Page" },
   { id: "type", label: "Type" },
   { id: "logos", label: "Logos" },
@@ -38,6 +47,9 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "agenda", label: "Agenda" },
   { id: "preview", label: "Preview" },
 ];
+
+const fieldClass =
+  "w-full rounded-lg border border-white/15 bg-black/40 px-2 py-1.5 text-[12px] text-white placeholder:text-white/30 focus:border-[#7DD3E8] focus:outline-none";
 
 function SliderRow({
   label,
@@ -137,11 +149,68 @@ function ColorRow({
   );
 }
 
-export function OverviewStyleTuner({ style, onChange }: Props) {
+function TextArea({
+  label,
+  value,
+  onChange,
+  rows = 2,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+}) {
+  return (
+    <label className="block text-[11px] text-white/75">
+      <span className="mb-1 block">{label}</span>
+      <textarea
+        value={value}
+        rows={rows}
+        onChange={(e) => onChange(e.target.value)}
+        onPointerDown={(e) => e.stopPropagation()}
+        className={`${fieldClass} resize-y`}
+      />
+    </label>
+  );
+}
+
+function TextInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block text-[11px] text-white/75">
+      <span className="mb-1 block">{label}</span>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onPointerDown={(e) => e.stopPropagation()}
+        className={fieldClass}
+      />
+    </label>
+  );
+}
+
+export function OverviewStyleTuner({ style, onStyleChange, content, onContentChange }: Props) {
   const [open, setOpen] = useState(true);
-  const [section, setSection] = useState<SectionId>("page");
+  const [section, setSection] = useState<SectionId>("text");
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    origLeft: number;
+    origTop: number;
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -150,47 +219,144 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
   const patch = useMemo(
     () => ({
       page: (partial: Partial<OverviewStyleConfig["page"]>) =>
-        onChange({ ...style, page: { ...style.page, ...partial } }),
+        onStyleChange({ ...style, page: { ...style.page, ...partial } }),
       typography: (partial: Partial<OverviewStyleConfig["typography"]>) =>
-        onChange({ ...style, typography: { ...style.typography, ...partial } }),
+        onStyleChange({ ...style, typography: { ...style.typography, ...partial } }),
       logos: (partial: Partial<OverviewStyleConfig["logos"]>) =>
-        onChange({ ...style, logos: { ...style.logos, ...partial } }),
+        onStyleChange({ ...style, logos: { ...style.logos, ...partial } }),
       cards: (partial: Partial<OverviewStyleConfig["cards"]>) =>
-        onChange({ ...style, cards: { ...style.cards, ...partial } }),
+        onStyleChange({ ...style, cards: { ...style.cards, ...partial } }),
       questions: (partial: Partial<OverviewStyleConfig["questions"]>) =>
-        onChange({ ...style, questions: { ...style.questions, ...partial } }),
+        onStyleChange({ ...style, questions: { ...style.questions, ...partial } }),
       highlights: (partial: Partial<OverviewStyleConfig["highlights"]>) =>
-        onChange({ ...style, highlights: { ...style.highlights, ...partial } }),
+        onStyleChange({ ...style, highlights: { ...style.highlights, ...partial } }),
       agenda: (partial: Partial<OverviewStyleConfig["agenda"]>) =>
-        onChange({ ...style, agenda: { ...style.agenda, ...partial } }),
+        onStyleChange({ ...style, agenda: { ...style.agenda, ...partial } }),
       preview: (partial: Partial<OverviewStyleConfig["preview"]>) =>
-        onChange({ ...style, preview: { ...style.preview, ...partial } }),
+        onStyleChange({ ...style, preview: { ...style.preview, ...partial } }),
     }),
-    [onChange, style],
+    [onStyleChange, style],
   );
 
+  function updateQuestion(index: number, value: string) {
+    const questions = content.questions.map((q, i) => (i === index ? value : q));
+    onContentChange({ ...content, questions });
+  }
+
+  function addQuestion() {
+    onContentChange({ ...content, questions: [...content.questions, "New question"] });
+  }
+
+  function removeQuestion(index: number) {
+    if (content.questions.length <= 1) return;
+    onContentChange({
+      ...content,
+      questions: content.questions.filter((_, i) => i !== index),
+    });
+  }
+
+  function updateHighlight(index: number, value: string) {
+    const highlights = content.highlights.map((h, i) => (i === index ? value : h));
+    onContentChange({ ...content, highlights });
+  }
+
+  function addHighlight() {
+    onContentChange({ ...content, highlights: [...content.highlights, "New highlight"] });
+  }
+
+  function removeHighlight(index: number) {
+    if (content.highlights.length <= 1) return;
+    onContentChange({
+      ...content,
+      highlights: content.highlights.filter((_, i) => i !== index),
+    });
+  }
+
+  function updateAgendaRow(index: number, partial: Partial<OverviewInviteRow>) {
+    const agenda = content.agenda.map((row, i) => (i === index ? { ...row, ...partial } : row));
+    onContentChange({ ...content, agenda });
+  }
+
+  function addAgendaRow() {
+    onContentChange({
+      ...content,
+      agenda: [...content.agenda, { wave: "10", who: "Who", why: "Why this matters" }],
+    });
+  }
+
+  function removeAgendaRow(index: number) {
+    if (content.agenda.length <= 1) return;
+    onContentChange({
+      ...content,
+      agenda: content.agenda.filter((_, i) => i !== index),
+    });
+  }
+
   async function handleCopy() {
-    const ok = await copyTextToClipboard(overviewStyleConfigToClipboardJson(style));
+    const ok = await copyTextToClipboard(overviewTunerExportToClipboardJson(style, content));
     if (!ok) return;
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   }
 
+  function onDragStart(e: ReactPointerEvent<HTMLElement>) {
+    if ((e.target as HTMLElement).closest("button, input, textarea, select, a")) return;
+    const el = panelRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const left = pos?.left ?? rect.left;
+    const top = pos?.top ?? rect.top;
+    dragRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      origLeft: left,
+      origTop: top,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onDragMove(e: ReactPointerEvent<HTMLElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    const width = panelRef.current?.offsetWidth ?? 380;
+    const nextLeft = Math.max(8, Math.min(window.innerWidth - width - 8, drag.origLeft + (e.clientX - drag.startX)));
+    const nextTop = Math.max(8, Math.min(window.innerHeight - 80, drag.origTop + (e.clientY - drag.startY)));
+    setPos({ left: nextLeft, top: nextTop });
+  }
+
+  function onDragEnd(e: ReactPointerEvent<HTMLElement>) {
+    if (dragRef.current?.pointerId === e.pointerId) {
+      dragRef.current = null;
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   if (!mounted) return null;
 
+  const panelStyle: CSSProperties = pos
+    ? { left: pos.left, top: pos.top, right: "auto", bottom: "auto" }
+    : { right: 16, bottom: 16 };
+
   const ui = !open ? (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="pointer-events-auto fixed bottom-5 right-5 z-[2147483000] inline-flex items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] hover:bg-[#267B90]"
-        aria-label="Open style tuner"
-      >
-        <SlidersHorizontal className="h-4 w-4" />
-        Tune styles
-      </button>
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="pointer-events-auto fixed bottom-5 right-5 z-[2147483000] inline-flex items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] hover:bg-[#267B90]"
+      aria-label="Open style tuner"
+    >
+      <SlidersHorizontal className="h-4 w-4" />
+      Tune styles
+    </button>
   ) : (
     <div
-      className="pointer-events-auto fixed bottom-4 right-4 z-[2147483000] flex max-h-[min(92dvh,680px)] w-[min(100vw-1.5rem,380px)] flex-col overflow-hidden rounded-2xl border-2 border-[#7DD3E8] bg-[#0B1220] text-white shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
+      ref={panelRef}
+      className="pointer-events-auto fixed z-[2147483000] flex max-h-[min(92dvh,720px)] w-[min(100vw-1.5rem,400px)] flex-col overflow-hidden rounded-2xl border-2 border-[#7DD3E8] bg-[#0B1220] text-white shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
+      style={panelStyle}
       role="dialog"
       aria-label="Overview style tuner"
       onPointerDown={(e) => e.stopPropagation()}
@@ -203,9 +369,7 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
           height: 18px;
           background: transparent;
         }
-        .oa-style-slider:focus {
-          outline: none;
-        }
+        .oa-style-slider:focus { outline: none; }
         .oa-style-slider::-webkit-slider-runnable-track {
           height: 6px;
           border-radius: 999px;
@@ -237,17 +401,30 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
           cursor: pointer;
         }
       `}</style>
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2.5">
-        <div className="min-w-0">
-          <p className="text-[13px] font-semibold tracking-tight">Quick style edit</p>
-          <p className="text-[10px] text-white/45">Live preview · copy JSON for Cursor</p>
+
+      <header
+        className="flex shrink-0 cursor-grab items-center justify-between gap-2 border-b border-white/10 px-3 py-2.5 active:cursor-grabbing"
+        onPointerDown={onDragStart}
+        onPointerMove={onDragMove}
+        onPointerUp={onDragEnd}
+        onPointerCancel={onDragEnd}
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <GripHorizontal className="h-4 w-4 shrink-0 text-[#7DD3E8]" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold tracking-tight">Quick style edit</p>
+            <p className="text-[10px] text-white/45">Drag to move · live text & style · copy JSON</p>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => onChange(defaultOverviewStyleConfig())}
+            onClick={() => {
+              onStyleChange(defaultOverviewStyleConfig());
+              onContentChange(defaultOnwardAirOverviewContent());
+            }}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
-            title="Reset to defaults"
+            title="Reset style + text to defaults"
             aria-label="Reset to defaults"
           >
             <RotateCcw className="h-3.5 w-3.5" />
@@ -279,86 +456,68 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
       </div>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+        {section === "text" ? (
+          <>
+            <TextInput
+              label="Headline"
+              value={content.headline}
+              onChange={(headline) => onContentChange({ ...content, headline })}
+            />
+            <TextArea
+              label="Subheadline"
+              value={content.subheadline}
+              onChange={(subheadline) => onContentChange({ ...content, subheadline })}
+              rows={3}
+            />
+            <TextInput
+              label="Highlights title"
+              value={content.highlightsTitle}
+              onChange={(highlightsTitle) => onContentChange({ ...content, highlightsTitle })}
+            />
+            <TextInput
+              label="Agenda title"
+              value={content.agendaTitle}
+              onChange={(agendaTitle) => onContentChange({ ...content, agendaTitle })}
+            />
+            <p className="text-[10px] text-white/40">
+              Edit individual question / highlight / agenda lines in those tabs.
+            </p>
+          </>
+        ) : null}
+
         {section === "page" ? (
           <>
-            <SliderRow
-              label="Page padding X"
-              value={style.page.paddingX}
-              min={0}
-              max={48}
-              onChange={(paddingX) => patch.page({ paddingX })}
-            />
-            <SliderRow
-              label="Page padding Y"
-              value={style.page.paddingY}
-              min={0}
-              max={48}
-              onChange={(paddingY) => patch.page({ paddingY })}
-            />
-            <SliderRow
-              label="Column gap"
-              value={style.page.columnGap}
-              min={0}
-              max={40}
-              onChange={(columnGap) => patch.page({ columnGap })}
-            />
-            <SliderRow
-              label="Left column width"
-              value={style.page.leftColumnFr}
-              min={0.4}
-              max={1.4}
-              step={0.05}
-              unit="fr"
-              onChange={(leftColumnFr) => patch.page({ leftColumnFr })}
-            />
-            <SliderRow
-              label="Right column width"
-              value={style.page.rightColumnFr}
-              min={1}
-              max={3.5}
-              step={0.05}
-              unit="fr"
-              onChange={(rightColumnFr) => patch.page({ rightColumnFr })}
-            />
-            <SliderRow
-              label="Card stack gap"
-              value={style.page.cardGap}
-              min={0}
-              max={40}
-              onChange={(cardGap) => patch.page({ cardGap })}
-            />
-            <SliderRow
-              label="Hero image opacity"
-              value={style.page.heroImageOpacity}
-              min={0}
-              max={1}
-              step={0.01}
-              unit="op"
-              onChange={(heroImageOpacity) => patch.page({ heroImageOpacity })}
-            />
-            <SliderRow
-              label="Dark overlay opacity"
-              value={style.page.overlayOpacity}
-              min={0}
-              max={1}
-              step={0.01}
-              unit="op"
-              onChange={(overlayOpacity) => patch.page({ overlayOpacity })}
-            />
-            <ColorRow label="Accent" value={style.accent} onChange={(accent) => onChange({ ...style, accent })} />
+            <SliderRow label="Page padding X" value={style.page.paddingX} min={0} max={48} onChange={(paddingX) => patch.page({ paddingX })} />
+            <SliderRow label="Page padding Y" value={style.page.paddingY} min={0} max={48} onChange={(paddingY) => patch.page({ paddingY })} />
+            <SliderRow label="Column gap" value={style.page.columnGap} min={0} max={40} onChange={(columnGap) => patch.page({ columnGap })} />
+            <SliderRow label="Left column width" value={style.page.leftColumnFr} min={0.4} max={1.4} step={0.05} unit="fr" onChange={(leftColumnFr) => patch.page({ leftColumnFr })} />
+            <SliderRow label="Right column width" value={style.page.rightColumnFr} min={1} max={3.5} step={0.05} unit="fr" onChange={(rightColumnFr) => patch.page({ rightColumnFr })} />
+            <SliderRow label="Card stack gap" value={style.page.cardGap} min={0} max={40} onChange={(cardGap) => patch.page({ cardGap })} />
+            <SliderRow label="Hero image opacity" value={style.page.heroImageOpacity} min={0} max={1} step={0.01} unit="op" onChange={(heroImageOpacity) => patch.page({ heroImageOpacity })} />
+            <SliderRow label="Dark overlay opacity" value={style.page.overlayOpacity} min={0} max={1} step={0.01} unit="op" onChange={(overlayOpacity) => patch.page({ overlayOpacity })} />
+            <ColorRow label="Accent" value={style.accent} onChange={(accent) => onStyleChange({ ...style, accent })} />
           </>
         ) : null}
 
         {section === "type" ? (
           <>
+            <TextInput
+              label="Headline"
+              value={content.headline}
+              onChange={(headline) => onContentChange({ ...content, headline })}
+            />
+            <TextArea
+              label="Subheadline"
+              value={content.subheadline}
+              onChange={(subheadline) => onContentChange({ ...content, subheadline })}
+              rows={3}
+            />
             <label className="block text-[11px] text-white/75">
               <span className="mb-1 block">Font family</span>
               <select
                 value={style.typography.fontFamily}
-                onChange={(e) =>
-                  patch.typography({ fontFamily: e.target.value as OverviewFontId })
-                }
-                className="w-full rounded-lg border border-white/15 bg-black/40 px-2 py-1.5 text-[12px] text-white"
+                onChange={(e) => patch.typography({ fontFamily: e.target.value as OverviewFontId })}
+                className={fieldClass}
               >
                 {OVERVIEW_FONT_OPTIONS.map((f) => (
                   <option key={f.id} value={f.id}>
@@ -367,245 +526,170 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
                 ))}
               </select>
             </label>
-            <SliderRow
-              label="Header font size"
-              value={style.typography.headerFontSize}
-              min={8}
-              max={22}
-              onChange={(headerFontSize) => patch.typography({ headerFontSize })}
-            />
-            <ColorRow
-              label="Header colour"
-              value={style.typography.headerColor}
-              onChange={(headerColor) => patch.typography({ headerColor })}
-            />
-            <SliderRow
-              label="Header opacity"
-              value={style.typography.headerOpacity}
-              min={0}
-              max={1}
-              step={0.01}
-              unit="op"
-              onChange={(headerOpacity) => patch.typography({ headerOpacity })}
-            />
+            <SliderRow label="Header font size" value={style.typography.headerFontSize} min={8} max={22} onChange={(headerFontSize) => patch.typography({ headerFontSize })} />
+            <ColorRow label="Header colour" value={style.typography.headerColor} onChange={(headerColor) => patch.typography({ headerColor })} />
+            <SliderRow label="Header opacity" value={style.typography.headerOpacity} min={0} max={1} step={0.01} unit="op" onChange={(headerOpacity) => patch.typography({ headerOpacity })} />
           </>
         ) : null}
 
         {section === "logos" ? (
           <>
-            <SliderRow
-              label="OnwardAir logo height"
-              value={style.logos.oaHeight}
-              min={18}
-              max={64}
-              onChange={(oaHeight) => patch.logos({ oaHeight })}
-            />
-            <SliderRow
-              label="OnwardAir max width"
-              value={style.logos.oaMaxWidth}
-              min={80}
-              max={280}
-              onChange={(oaMaxWidth) => patch.logos({ oaMaxWidth })}
-            />
-            <SliderRow
-              label="Unit311 logo height"
-              value={style.logos.unit311Height}
-              min={12}
-              max={40}
-              onChange={(unit311Height) => patch.logos({ unit311Height })}
-            />
-            <SliderRow
-              label="Unit311 max width"
-              value={style.logos.unit311MaxWidth}
-              min={48}
-              max={180}
-              onChange={(unit311MaxWidth) => patch.logos({ unit311MaxWidth })}
-            />
+            <SliderRow label="OnwardAir logo height" value={style.logos.oaHeight} min={18} max={64} onChange={(oaHeight) => patch.logos({ oaHeight })} />
+            <SliderRow label="OnwardAir max width" value={style.logos.oaMaxWidth} min={80} max={280} onChange={(oaMaxWidth) => patch.logos({ oaMaxWidth })} />
+            <SliderRow label="Unit311 logo height" value={style.logos.unit311Height} min={12} max={40} onChange={(unit311Height) => patch.logos({ unit311Height })} />
+            <SliderRow label="Unit311 max width" value={style.logos.unit311MaxWidth} min={48} max={180} onChange={(unit311MaxWidth) => patch.logos({ unit311MaxWidth })} />
           </>
         ) : null}
 
         {section === "cards" ? (
           <>
-            <SliderRow
-              label="Card padding"
-              value={style.cards.padding}
-              min={4}
-              max={32}
-              onChange={(padding) => patch.cards({ padding })}
-            />
-            <SliderRow
-              label="Card corner radius"
-              value={style.cards.radius}
-              min={0}
-              max={28}
-              onChange={(radius) => patch.cards({ radius })}
-            />
-            <SliderRow
-              label="Card border opacity"
-              value={style.cards.borderOpacity}
-              min={0}
-              max={1}
-              step={0.01}
-              unit="op"
-              onChange={(borderOpacity) => patch.cards({ borderOpacity })}
-            />
+            <SliderRow label="Card padding" value={style.cards.padding} min={4} max={32} onChange={(padding) => patch.cards({ padding })} />
+            <SliderRow label="Card corner radius" value={style.cards.radius} min={0} max={28} onChange={(radius) => patch.cards({ radius })} />
+            <SliderRow label="Card border opacity" value={style.cards.borderOpacity} min={0} max={1} step={0.01} unit="op" onChange={(borderOpacity) => patch.cards({ borderOpacity })} />
           </>
         ) : null}
 
         {section === "questions" ? (
           <>
+            <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">Edit questions</p>
+              {content.questions.map((q, i) => (
+                <div key={`q-edit-${i}`} className="flex items-start gap-1.5">
+                  <span className="mt-2 w-4 shrink-0 text-center text-[10px] text-white/40">{i + 1}</span>
+                  <textarea
+                    value={q}
+                    rows={2}
+                    onChange={(e) => updateQuestion(i, e.target.value)}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className={`${fieldClass} resize-y`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeQuestion(i)}
+                    className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-white/40 hover:bg-white/10 hover:text-red-300"
+                    aria-label={`Remove question ${i + 1}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addQuestion}
+                className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1.5 text-[11px] text-white/70 hover:bg-white/10"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add question
+              </button>
+            </div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Style</p>
             <ColorRow label="Background" value={style.questions.bg} onChange={(bg) => patch.questions({ bg })} />
-            <ColorRow
-              label="Text colour"
-              value={style.questions.textColor}
-              onChange={(textColor) => patch.questions({ textColor })}
-            />
-            <SliderRow
-              label="Text size"
-              value={style.questions.textSize}
-              min={10}
-              max={22}
-              onChange={(textSize) => patch.questions({ textSize })}
-            />
-            <SliderRow
-              label="Badge size"
-              value={style.questions.badgeSize}
-              min={14}
-              max={32}
-              onChange={(badgeSize) => patch.questions({ badgeSize })}
-            />
-            <SliderRow
-              label="Item gap"
-              value={style.questions.itemGap}
-              min={0}
-              max={20}
-              onChange={(itemGap) => patch.questions({ itemGap })}
-            />
+            <ColorRow label="Text colour" value={style.questions.textColor} onChange={(textColor) => patch.questions({ textColor })} />
+            <SliderRow label="Text size" value={style.questions.textSize} min={10} max={22} onChange={(textSize) => patch.questions({ textSize })} />
+            <SliderRow label="Badge size" value={style.questions.badgeSize} min={14} max={32} onChange={(badgeSize) => patch.questions({ badgeSize })} />
+            <SliderRow label="Item gap" value={style.questions.itemGap} min={0} max={20} onChange={(itemGap) => patch.questions({ itemGap })} />
           </>
         ) : null}
 
         {section === "highlights" ? (
           <>
+            <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">Edit highlights</p>
+              <TextInput
+                label="Title"
+                value={content.highlightsTitle}
+                onChange={(highlightsTitle) => onContentChange({ ...content, highlightsTitle })}
+              />
+              {content.highlights.map((item, i) => (
+                <div key={`h-edit-${i}`} className="flex items-start gap-1.5">
+                  <textarea
+                    value={item}
+                    rows={2}
+                    onChange={(e) => updateHighlight(i, e.target.value)}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className={`${fieldClass} resize-y`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeHighlight(i)}
+                    className="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-white/40 hover:bg-white/10 hover:text-red-300"
+                    aria-label={`Remove highlight ${i + 1}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addHighlight}
+                className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1.5 text-[11px] text-white/70 hover:bg-white/10"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add highlight
+              </button>
+            </div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Style</p>
             <ColorRow label="Background" value={style.highlights.bg} onChange={(bg) => patch.highlights({ bg })} />
-            <ColorRow
-              label="Title colour"
-              value={style.highlights.titleColor}
-              onChange={(titleColor) => patch.highlights({ titleColor })}
-            />
-            <SliderRow
-              label="Title size"
-              value={style.highlights.titleSize}
-              min={9}
-              max={20}
-              onChange={(titleSize) => patch.highlights({ titleSize })}
-            />
-            <ColorRow
-              label="Item colour"
-              value={style.highlights.itemColor}
-              onChange={(itemColor) => patch.highlights({ itemColor })}
-            />
-            <SliderRow
-              label="Item size"
-              value={style.highlights.itemSize}
-              min={9}
-              max={20}
-              onChange={(itemSize) => patch.highlights({ itemSize })}
-            />
+            <ColorRow label="Title colour" value={style.highlights.titleColor} onChange={(titleColor) => patch.highlights({ titleColor })} />
+            <SliderRow label="Title size" value={style.highlights.titleSize} min={9} max={20} onChange={(titleSize) => patch.highlights({ titleSize })} />
+            <ColorRow label="Item colour" value={style.highlights.itemColor} onChange={(itemColor) => patch.highlights({ itemColor })} />
+            <SliderRow label="Item size" value={style.highlights.itemSize} min={9} max={20} onChange={(itemSize) => patch.highlights({ itemSize })} />
           </>
         ) : null}
 
         {section === "agenda" ? (
           <>
+            <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">Edit agenda</p>
+              <TextInput
+                label="Title"
+                value={content.agendaTitle}
+                onChange={(agendaTitle) => onContentChange({ ...content, agendaTitle })}
+              />
+              {content.agenda.map((row, i) => (
+                <div key={`a-edit-${i}`} className="space-y-1.5 rounded-md border border-white/10 p-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-white/45">Row {i + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAgendaRow(i)}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded text-white/40 hover:bg-white/10 hover:text-red-300"
+                      aria-label={`Remove agenda row ${i + 1}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <TextInput label="Time / wave" value={row.wave} onChange={(wave) => updateAgendaRow(i, { wave })} />
+                  <TextInput label="Who" value={row.who} onChange={(who) => updateAgendaRow(i, { who })} />
+                  <TextArea label="Why" value={row.why} onChange={(why) => updateAgendaRow(i, { why })} rows={2} />
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addAgendaRow}
+                className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1.5 text-[11px] text-white/70 hover:bg-white/10"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add agenda row
+              </button>
+            </div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Style</p>
             <ColorRow label="Card background" value={style.agenda.bg} onChange={(bg) => patch.agenda({ bg })} />
-            <ColorRow
-              label="Title colour"
-              value={style.agenda.titleColor}
-              onChange={(titleColor) => patch.agenda({ titleColor })}
-            />
-            <SliderRow
-              label="Title size"
-              value={style.agenda.titleSize}
-              min={9}
-              max={20}
-              onChange={(titleSize) => patch.agenda({ titleSize })}
-            />
+            <ColorRow label="Title colour" value={style.agenda.titleColor} onChange={(titleColor) => patch.agenda({ titleColor })} />
+            <SliderRow label="Title size" value={style.agenda.titleSize} min={9} max={20} onChange={(titleSize) => patch.agenda({ titleSize })} />
             <ColorRow label="Row background" value={style.agenda.rowBg} onChange={(rowBg) => patch.agenda({ rowBg })} />
-            <SliderRow
-              label="Row padding X"
-              value={style.agenda.rowPaddingX}
-              min={0}
-              max={24}
-              onChange={(rowPaddingX) => patch.agenda({ rowPaddingX })}
-            />
-            <SliderRow
-              label="Row padding Y"
-              value={style.agenda.rowPaddingY}
-              min={0}
-              max={20}
-              onChange={(rowPaddingY) => patch.agenda({ rowPaddingY })}
-            />
-            <SliderRow
-              label="Row radius"
-              value={style.agenda.rowRadius}
-              min={0}
-              max={20}
-              onChange={(rowRadius) => patch.agenda({ rowRadius })}
-            />
-            <SliderRow
-              label="Wave / time size"
-              value={style.agenda.waveSize}
-              min={8}
-              max={16}
-              onChange={(waveSize) => patch.agenda({ waveSize })}
-            />
-            <SliderRow
-              label="Who size"
-              value={style.agenda.whoSize}
-              min={8}
-              max={18}
-              onChange={(whoSize) => patch.agenda({ whoSize })}
-            />
-            <SliderRow
-              label="Why size"
-              value={style.agenda.whySize}
-              min={8}
-              max={16}
-              onChange={(whySize) => patch.agenda({ whySize })}
-            />
-            <ColorRow
-              label="Why colour"
-              value={style.agenda.whyColor}
-              onChange={(whyColor) => patch.agenda({ whyColor })}
-            />
+            <SliderRow label="Row padding X" value={style.agenda.rowPaddingX} min={0} max={24} onChange={(rowPaddingX) => patch.agenda({ rowPaddingX })} />
+            <SliderRow label="Row padding Y" value={style.agenda.rowPaddingY} min={0} max={20} onChange={(rowPaddingY) => patch.agenda({ rowPaddingY })} />
+            <SliderRow label="Row radius" value={style.agenda.rowRadius} min={0} max={20} onChange={(rowRadius) => patch.agenda({ rowRadius })} />
+            <SliderRow label="Wave / time size" value={style.agenda.waveSize} min={8} max={16} onChange={(waveSize) => patch.agenda({ waveSize })} />
+            <SliderRow label="Who size" value={style.agenda.whoSize} min={8} max={18} onChange={(whoSize) => patch.agenda({ whoSize })} />
+            <SliderRow label="Why size" value={style.agenda.whySize} min={8} max={16} onChange={(whySize) => patch.agenda({ whySize })} />
+            <ColorRow label="Why colour" value={style.agenda.whyColor} onChange={(whyColor) => patch.agenda({ whyColor })} />
           </>
         ) : null}
 
         {section === "preview" ? (
           <>
-            <SliderRow
-              label="Panel radius"
-              value={style.preview.radius}
-              min={0}
-              max={28}
-              onChange={(radius) => patch.preview({ radius })}
-            />
-            <SliderRow
-              label="Min height (mobile)"
-              value={style.preview.minHeight}
-              min={240}
-              max={720}
-              step={10}
-              onChange={(minHeight) => patch.preview({ minHeight })}
-            />
-            <SliderRow
-              label="Border opacity"
-              value={style.preview.borderOpacity}
-              min={0}
-              max={1}
-              step={0.01}
-              unit="op"
-              onChange={(borderOpacity) => patch.preview({ borderOpacity })}
-            />
+            <SliderRow label="Panel radius" value={style.preview.radius} min={0} max={28} onChange={(radius) => patch.preview({ radius })} />
+            <SliderRow label="Min height (mobile)" value={style.preview.minHeight} min={240} max={720} step={10} onChange={(minHeight) => patch.preview({ minHeight })} />
+            <SliderRow label="Border opacity" value={style.preview.borderOpacity} min={0} max={1} step={0.01} unit="op" onChange={(borderOpacity) => patch.preview({ borderOpacity })} />
           </>
         ) : null}
       </div>
@@ -617,7 +701,7 @@ export function OverviewStyleTuner({ style, onChange }: Props) {
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#267B90] px-3 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#2f93ab]"
         >
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          {copied ? "Copied JSON — paste into Cursor" : "Copy style JSON to clipboard"}
+          {copied ? "Copied JSON — paste into Cursor" : "Copy style + text JSON"}
         </button>
       </footer>
     </div>
