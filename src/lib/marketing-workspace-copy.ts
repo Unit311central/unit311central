@@ -321,30 +321,9 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
         label: "Calendar & Collaboration",
         detail: "Coordinate schedules and work without leaving context.",
       },
-    ],
-  },
-  {
-    id: "support-desk",
-    title: "Support Desk",
-    outcome: "Resolve internal and client requests from one live operating queue.",
-    description:
-      "Ticket overview, open queue, personal assignments, and WhatsApp intake—connected in real time.",
-    capabilities: [
       {
-        label: "Ticket Overview",
-        detail: "Live dashboard of volume, age, and assignee load.",
-      },
-      {
-        label: "Tickets",
-        detail: "Search and work the full open and legacy ticket queue.",
-      },
-      {
-        label: "My support tickets",
-        detail: "Focus on tickets assigned to you, with personal analytics below.",
-      },
-      {
-        label: "WhatsApp Integration",
-        detail: "Intake and update cases from WhatsApp without leaving Support Desk.",
+        label: "Support Desk",
+        detail: "Handle internal and external requests in one operating layer.",
       },
     ],
   },
