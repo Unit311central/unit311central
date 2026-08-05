@@ -269,7 +269,24 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live14`;
+  return `/images/overview/screenshots/${key}.png?v=live15`;
+}
+
+/** Executive Assistant uses a live demo video instead of a static screenshot. */
+export const OVERVIEW_EXECUTIVE_ASSISTANT_VIDEO = "/videos/testingvideo2.mp4";
+
+export type OverviewPreviewMedia =
+  | { kind: "image"; src: string }
+  | { kind: "video"; src: string };
+
+export function overviewPreviewMediaForView(
+  view: string | null | undefined,
+): OverviewPreviewMedia {
+  const v = String(view ?? "home").trim().toLowerCase();
+  if (v === "executive-assistant") {
+    return { kind: "video", src: OVERVIEW_EXECUTIVE_ASSISTANT_VIDEO };
+  }
+  return { kind: "image", src: overviewScreenshotForView(v) };
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {

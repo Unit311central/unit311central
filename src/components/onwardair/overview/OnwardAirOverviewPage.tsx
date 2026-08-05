@@ -16,7 +16,7 @@ import { OverviewStyleTuner } from "@/components/onwardair/overview/OverviewStyl
 import {
   type OnwardAirOverviewEditableContent,
   defaultOnwardAirOverviewContent,
-  overviewScreenshotForView,
+  overviewPreviewMediaForView,
 } from "@/lib/onwardair/overview-demo";
 import {
   OVERVIEW_FONT_OPTIONS,
@@ -488,7 +488,7 @@ export function OnwardAirOverviewPage() {
     }
   }, [activeView]);
 
-  const previewSrc = useMemo(() => overviewScreenshotForView(activeView), [activeView]);
+  const previewMedia = useMemo(() => overviewPreviewMediaForView(activeView), [activeView]);
   const layoutCols = `minmax(220px, ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`;
   const visibleLeftCards = style.leftColumnOrder.filter((id) => style[id].visible);
   const leftGridRows =
@@ -832,25 +832,45 @@ export function OnwardAirOverviewPage() {
               </OperatorEntitlementsProvider>
 
               <div className="relative min-h-0 min-w-0 flex-1 bg-[#020617]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  key={previewSrc}
-                  src={previewSrc}
-                  alt={`${previewTitle} screenshot`}
-                  className="absolute inset-0 h-full w-full object-contain object-top"
-                  decoding="async"
-                  onError={(event) => {
-                    const img = event.currentTarget;
-                    if (img.dataset.fallbackApplied === "1") return;
-                    img.dataset.fallbackApplied = "1";
-                    img.src = "/images/overview/screenshots/generic.png?v=live9";
-                  }}
-                />
+                {previewMedia.kind === "video" ? (
+                  <video
+                    key={previewMedia.src}
+                    src={previewMedia.src}
+                    className="absolute inset-0 h-full w-full object-contain object-top"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    aria-label={`${previewTitle} demo video`}
+                  />
+                ) : (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      key={previewMedia.src}
+                      src={previewMedia.src}
+                      alt={`${previewTitle} screenshot`}
+                      className="absolute inset-0 h-full w-full object-contain object-top"
+                      decoding="async"
+                      onError={(event) => {
+                        const img = event.currentTarget;
+                        if (img.dataset.fallbackApplied === "1") return;
+                        img.dataset.fallbackApplied = "1";
+                        img.src = "/images/overview/screenshots/generic.png?v=live15";
+                      }}
+                    />
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => setPreviewFullscreen(true)}
                   className="absolute bottom-2.5 right-2.5 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 bg-black/55 text-white shadow-md transition hover:bg-[#267B90]"
-                  aria-label="View screenshot full screen"
+                  aria-label={
+                    previewMedia.kind === "video"
+                      ? "View video full screen"
+                      : "View screenshot full screen"
+                  }
                   title="Full screen"
                 >
                   <Maximize2 className="h-4 w-4" />
@@ -887,12 +907,28 @@ export function OnwardAirOverviewPage() {
           >
             <p className="mb-2 shrink-0 text-center text-sm font-medium text-white/80">{previewTitle}</p>
             <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/15 bg-black">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={previewSrc}
-                alt={`${previewTitle} full screen`}
-                className="h-full w-full object-contain object-center"
-              />
+              {previewMedia.kind === "video" ? (
+                <video
+                  src={previewMedia.src}
+                  className="h-full w-full object-contain object-center"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls
+                  preload="metadata"
+                  aria-label={`${previewTitle} full screen video`}
+                />
+              ) : (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewMedia.src}
+                    alt={`${previewTitle} full screen`}
+                    className="h-full w-full object-contain object-center"
+                  />
+                </>
+              )}
             </div>
           </div>
         </div>
