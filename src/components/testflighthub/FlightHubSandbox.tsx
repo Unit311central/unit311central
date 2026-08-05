@@ -377,6 +377,27 @@ const FlightHubSandbox = forwardRef<FlightHubSandboxHandle, FlightHubSandboxProp
           </div>
         </section>
 
+        <section className="space-y-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
+              Test Recording
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-white">Flight Video</h2>
+            <p className="mt-1 text-sm text-white/55">
+              OnwardAir test flight recording — plays alongside the live simulator session.
+            </p>
+          </div>
+          <div className="mx-auto w-full max-w-5xl">
+            <SimulatedLiveVideoView
+              key={hasTelemetry ? activeProfile.id : "idle"}
+              sessionKey={hasTelemetry ? activeProfile.id : "idle"}
+              telemetry={telemetry}
+              compact={false}
+              terrainStyle={mapTerrainStyle}
+            />
+          </div>
+        </section>
+
         <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -447,27 +468,6 @@ const FlightHubSandbox = forwardRef<FlightHubSandboxHandle, FlightHubSandboxProp
             </div>
           </section>
         )}
-
-        <section className="space-y-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
-              Test Recording
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-white">Flight Video</h2>
-            <p className="mt-1 text-sm text-white/55">
-              OnwardAir test flight recording — plays alongside the live simulator session.
-            </p>
-          </div>
-          <div className="mx-auto w-full max-w-5xl">
-            <SimulatedLiveVideoView
-              key={hasTelemetry ? activeProfile.id : "idle"}
-              sessionKey={hasTelemetry ? activeProfile.id : "idle"}
-              telemetry={telemetry}
-              compact={false}
-              terrainStyle={mapTerrainStyle}
-            />
-          </div>
-        </section>
       </>
     );
   },
