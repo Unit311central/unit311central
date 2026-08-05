@@ -173,7 +173,6 @@ function HeaderTaglineEditor({
     opacity: typography.headerOpacity,
     lineHeight: 1.25,
     fontFamily: overviewFontStack(typography.fontFamily),
-    textTransform: undefined,
   };
 
   function onTaglineDragStart(event: ReactPointerEvent<HTMLElement>) {
