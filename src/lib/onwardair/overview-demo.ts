@@ -269,7 +269,7 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live10`;
+  return `/images/overview/screenshots/${key}.png?v=live11`;
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {
@@ -344,7 +344,7 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   "oa-engineering-integrations": "oa-engineering-integrations",
   "operations-dashboard": "operations-dashboard",
   assets: "assets",
-  inventory: "inventory",
+  inventory: "inventory-management",
   "inventory-management": "inventory-management",
   procurement: "procurement",
   logistics: "logistics",
@@ -354,8 +354,9 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   "marketing-events": "marketing-events",
   "marketing-event-management": "marketing-event-management",
   "marketing-mailing-list": "marketing-mailing-list",
-  devices: "devices",
-  "software-saas": "software-saas",
+  devices: "technology-devices",
+  "software-saas": "technology-software",
+  technology: "technology-dashboard",
   "technology-dashboard": "technology-dashboard",
   "technology-devices": "technology-devices",
   "technology-software": "technology-software",
@@ -384,9 +385,9 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   calendar: "calendar",
   messaging: "messaging",
   communications: "communications",
-  whiteboard: "whiteboard",
-  "support-desk": "support-desk",
-  "support-tickets": "support-desk",
+  whiteboard: "communications",
+  "support-desk": "support",
+  "support-tickets": "support",
   "support-overview": "support-overview",
   support: "support",
   "support-mine": "support-mine",
@@ -394,9 +395,10 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   training: "training",
   "training-external": "training-external",
   "qms-training": "qms-training",
-  "document-control": "document-control",
-  capa: "capa",
-  "internal-audits": "internal-audits",
+  "document-control": "qms-document-control",
+  capa: "qms-capa",
+  "internal-audits": "qms-internal-audits",
+  qms: "quality-management",
   "quality-management": "quality-management",
   "qms-document-control": "qms-document-control",
   "qms-capa": "qms-capa",
@@ -411,12 +413,14 @@ const OVERVIEW_VIEW_SCREENSHOT_FALLBACK: Record<string, string> = {
   "settings-profile": "settings-profile",
   "settings-users": "settings-users",
   "settings-general": "settings-general",
-  settings: "settings-general",
+  settings: "settings",
   profile: "profile",
   billing: "billing",
   appearance: "appearance",
   testing: "testing",
   telemetry: "testing",
+  productivity: "productivity-dashboard",
+  inventory: "inventory-management",
 };
 
 /** Map live platform `?view=` ids → overview screenshot slug (exact first page). */

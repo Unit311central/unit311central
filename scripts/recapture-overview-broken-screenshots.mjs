@@ -171,9 +171,10 @@ async function captureView(page, view) {
       height: VIEWPORT.height,
     },
   });
+  // Keep overview assets small enough for Vercel "Deploying outputs" / disk limits.
   await sharp(rawPath)
-    .resize({ width: 1920, withoutEnlargement: true })
-    .png({ compressionLevel: 8, palette: false, effort: 7 })
+    .resize({ width: 1440, withoutEnlargement: true })
+    .png({ compressionLevel: 9, palette: true, effort: 10, quality: 80 })
     .toFile(outPath);
   fs.unlinkSync(rawPath);
   console.log(`  saved ${view}.png (${Math.round(fs.statSync(outPath).size / 1024)} KB) url=${page.url()}`);
