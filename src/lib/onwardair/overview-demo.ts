@@ -269,7 +269,7 @@ export type OverviewScreenshotSlug = (typeof OVERVIEW_SCREENSHOT_SLUGS)[number];
 export function overviewScreenshotSrc(slug: string | null | undefined): string {
   const key = String(slug ?? "home").trim().toLowerCase() || "home";
   // Cache-bust when swapping mockups → live captures.
-  return `/images/overview/screenshots/${key}.png?v=live5`;
+  return `/images/overview/screenshots/${key}.png?v=live6`;
 }
 
 export function overviewScreenshotForModuleId(moduleId: string | null | undefined): string {
@@ -386,11 +386,11 @@ export function overviewScreenshotForView(view: string | null | undefined): stri
 
 export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableContent {
   return {
-    headline: "OnwardAir Demonstration Environment",
-    subheadline: "Built using publicly available information relating to OnwardAir.",
+    headline: "Demonstration environment",
+    subheadline:
+      "A fully customizable Business Operating System & Intelligence Platform – shaped around OnwardAir",
     questionsTitle: "Questions for thought",
-    questionsIntro:
-      "A fully customisable business operating system — shaped around how OnwardAir actually runs.",
+    questionsIntro: "",
     questions: [
       "Can you see the health of your business in real time?",
       "Can you get a trusted answer to a question about your business — rapidly?",
@@ -412,23 +412,23 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
       "Marketing and events",
       "IP & Patents register",
     ],
-    agendaTitle: "60-minute working session",
-    agendaIntro: "Live walkthrough — then decide if it's for you.",
+    agendaTitle: "60 minute working session & live walkthrough",
+    agendaIntro: "",
     agenda: [
       {
         wave: "0–25",
-        who: "Scott · Brian · Monte",
-        why: "Leadership picture — how OnwardAir runs today across the platform.",
+        who: "+Leadership · +Management",
+        why: "Leadership picture",
       },
       {
-        wave: "25–45",
-        who: "+ Engineering leads",
-        why: "Programmes, tools & operating rhythm — dig into the modules that matter.",
+        wave: "25–40",
+        who: "+Engineering leads · +Operation leads",
+        why: "Programmes, tools & operating rhythm",
       },
       {
-        wave: "45–60",
+        wave: "40–60",
         who: "Core three",
-        why: "Decide fit and next steps — outline the build plan together.",
+        why: "Decide fit and next steps — outline the build plan together",
       },
     ],
     agendaNote: "",

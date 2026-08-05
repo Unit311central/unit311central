@@ -34,6 +34,7 @@ function OverviewPlatformNav({
       mode="internal"
       activeView={activeView}
       basePath="/overview"
+      overviewEmbed
       onViewChange={(view: SurveyOperationsView | InternalOperationsView) => {
         if (isInternalOperationsView(view)) onViewChange(view);
       }}
@@ -105,6 +106,8 @@ export function OnwardAirOverviewPage() {
 
   const previewSrc = useMemo(() => overviewScreenshotForView(activeView), [activeView]);
 
+  const headerLine = `${content.headline} – ${content.subheadline}`;
+
   return (
     <div className="oa-overview relative flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden text-white">
       <div
@@ -118,26 +121,26 @@ export function OnwardAirOverviewPage() {
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-4 sm:py-3 lg:px-5 lg:py-3">
-        <header className="flex shrink-0 items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`${OA_LOGO}?v=swap7`}
-            alt="OnwardAir"
-            width={200}
-            height={40}
-            decoding="async"
-            className="block shrink-0 object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
-            style={{ height: 36, width: "auto", maxWidth: 160, maxHeight: 36 }}
-          />
-          <p
-            className="min-w-0 flex-1 whitespace-nowrap text-white/90"
-            style={{ fontSize: "clamp(10px, 1.05vw, 14px)", lineHeight: 1.25 }}
-          >
-            <span className="font-semibold text-white">{content.headline}</span>
-            <span className="text-white/45"> — </span>
-            <span className="text-white/70">{content.subheadline}</span>
-          </p>
-          <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4">
+        <header className="flex shrink-0 items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`${OA_LOGO}?v=swap7`}
+              alt="OnwardAir"
+              width={200}
+              height={40}
+              decoding="async"
+              className="block object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
+              style={{ height: 36, width: "auto", maxWidth: 160, maxHeight: 36 }}
+            />
+            <p
+              className="mt-2 min-w-0 whitespace-nowrap text-white/85"
+              style={{ fontSize: "clamp(10px, 1.05vw, 13.5px)", lineHeight: 1.3 }}
+            >
+              {headerLine}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3 sm:gap-4">
             <a href="https://unit311central.com" aria-label="Unit311 Central" className="inline-flex h-9 items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -163,15 +166,11 @@ export function OnwardAirOverviewPage() {
           </div>
         </header>
 
-        <p className="mt-2 shrink-0 whitespace-nowrap text-[11px] leading-snug text-white/65 sm:text-[12px]">
-          {content.questionsIntro}
-        </p>
-
-        <div className="mt-6 grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,2.45fr)] lg:gap-3.5 lg:items-stretch">
-          {/* Briefing column — fills full height to match platform column */}
-          <aside className="flex h-full min-h-0 flex-col gap-6 overflow-hidden">
-            <section className="shrink-0 rounded-xl border border-[#267B90]/20 bg-white p-3.5 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:p-4">
-              <ul className="space-y-2">
+        <div className="mt-5 grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,0.7fr)_minmax(0,2.45fr)] lg:gap-3.5 lg:items-stretch">
+          {/* Equal-height briefing cards */}
+          <aside className="grid h-full min-h-0 grid-rows-3 gap-4 overflow-hidden">
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#267B90]/20 bg-white p-3 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:p-3.5">
+              <ul className="flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-y-auto">
                 {content.questions.map((q, i) => (
                   <li
                     key={`q-${i}`}
@@ -184,53 +183,51 @@ export function OnwardAirOverviewPage() {
                     >
                       {i + 1}
                     </span>
-                    <p className="text-[12px] leading-snug text-[#1B2430]">{q}</p>
+                    <p className="text-[11px] leading-snug text-[#1B2430] sm:text-[12px]">{q}</p>
                   </li>
                 ))}
               </ul>
             </section>
 
-            <section className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: "#7DD3E8" }}>
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#267B90]/25 bg-[#0B3A4A]/85 p-3 text-white backdrop-blur-[2px] sm:p-3.5">
+              <p className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] sm:text-[11px]" style={{ color: "#7DD3E8" }}>
                 {content.highlightsTitle}
               </p>
-              <ul className="mt-1.5 space-y-0.5">
+              <ul className="mt-1.5 min-h-0 flex-1 space-y-0.5 overflow-y-auto">
                 {content.highlights.map((item, i) => (
-                  <li key={`h-${i}`} className="text-[11px] leading-snug text-white/95">
+                  <li key={`h-${i}`} className="text-[10px] leading-snug text-white/95 sm:text-[11px]">
                     • {item}
                   </li>
                 ))}
               </ul>
             </section>
 
-            <section className="shrink-0 rounded-xl border border-[#267B90]/25 bg-white p-3 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.18)] sm:p-3.5">
-              <h2 className="text-[14px] font-semibold tracking-tight text-[#1B2430]">
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#267B90]/25 bg-white p-3 text-[#1B2430] shadow-[0_8px_24px_rgba(0,0,0,0.18)] sm:p-3.5">
+              <h2 className="shrink-0 truncate text-[12px] font-semibold tracking-tight text-[#1B2430] sm:text-[13px]">
                 {content.agendaTitle}
               </h2>
-              <p className="mt-0.5 text-[11px] text-[#5B6577]">{content.agendaIntro}</p>
-              <div className="mt-2.5 space-y-2">
+              <div className="mt-2 flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-y-auto">
                 {content.agenda.map((row, i) => (
                   <div
                     key={`a-${i}`}
-                    className="rounded-lg border border-[#267B90]/20 bg-[#F4FAFB] px-2.5 py-2"
+                    className="rounded-lg border border-[#267B90]/20 bg-[#F4FAFB] px-2.5 py-1.5"
                   >
                     <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
                       <p
-                        className="text-[10px] font-bold uppercase tracking-wider"
+                        className="text-[9px] font-bold uppercase tracking-wider sm:text-[10px]"
                         style={{ color: ONWARDAIR_HOME_ACCENT }}
                       >
                         {row.wave.includes("min") ? row.wave : `${row.wave} min`}
                       </p>
-                      <p className="text-[12px] font-semibold text-[#1B2430]">{row.who}</p>
+                      <p className="text-[11px] font-semibold text-[#1B2430] sm:text-[12px]">{row.who}</p>
                     </div>
-                    <p className="mt-0.5 text-[11px] leading-snug text-[#5B6577]">{row.why}</p>
+                    <p className="mt-0.5 text-[10px] leading-snug text-[#5B6577] sm:text-[11px]">{row.why}</p>
                   </div>
                 ))}
               </div>
             </section>
           </aside>
 
-          {/* Platform nav (interactive) + content-only screenshot (no white chrome / no nested LHS) */}
           <section className="flex min-h-[420px] min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#050B16] shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0">
             <OperatorEntitlementsProvider>
               <Suspense fallback={<div className="w-[240px] shrink-0 bg-[#07111F]" />}>
@@ -245,6 +242,7 @@ export function OnwardAirOverviewPage() {
                 src={previewSrc}
                 alt={`${previewTitle} screenshot`}
                 className="absolute inset-0 h-full w-full object-contain object-top"
+                decoding="async"
               />
               <button
                 type="button"

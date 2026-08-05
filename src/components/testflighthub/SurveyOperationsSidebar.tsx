@@ -188,6 +188,7 @@ type SurveyOperationsSidebarProps = {
   onViewChange?: (view: SurveyOperationsView | InternalOperationsView) => void;
   basePath?: SurveyOperationsBasePath;
   onPrefetchView?: (view: InternalOperationsView) => void;
+  overviewEmbed?: boolean;
 };
 
 export default function SurveyOperationsSidebar({
@@ -198,6 +199,7 @@ export default function SurveyOperationsSidebar({
   onViewChange,
   basePath = "/testflighthub",
   onPrefetchView,
+  overviewEmbed = false,
 }: SurveyOperationsSidebarProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -570,6 +572,7 @@ export default function SurveyOperationsSidebar({
         onViewChange={onViewChange as ((view: InternalOperationsView) => void) | undefined}
         basePath={basePath}
         onPrefetchView={onPrefetchView}
+        overviewEmbed={overviewEmbed}
       />
     );
   }

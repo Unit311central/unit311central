@@ -165,6 +165,8 @@ type EnterprisePlatformSidebarProps = {
   onViewChange?: (view: InternalOperationsView) => void;
   basePath?: SurveyOperationsBasePath;
   onPrefetchView?: (view: InternalOperationsView) => void;
+  /** Overview invite: hide brand/logout; show “VIEW EXAMPLE MODULES”. */
+  overviewEmbed?: boolean;
 };
 
 function resolveIcon(name?: string) {
@@ -194,6 +196,7 @@ export default function EnterprisePlatformSidebar({
   onViewChange,
   basePath = "/internaldashboard",
   onPrefetchView,
+  overviewEmbed = false,
 }: EnterprisePlatformSidebarProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
@@ -703,7 +706,13 @@ export default function EnterprisePlatformSidebar({
         className="relative flex shrink-0 items-center justify-center px-5 pt-5"
         style={{ paddingBottom: 20 }}
       >
-        <WorkspaceSidebarBrand href={basePath} />
+        {overviewEmbed ? (
+          <p className="w-full px-0.5 text-center text-[11px] font-bold uppercase leading-tight tracking-[0.06em] text-white sm:text-[12px]">
+            VIEW EXAMPLE MODULES
+          </p>
+        ) : (
+          <WorkspaceSidebarBrand href={basePath} />
+        )}
         <button
           type="button"
           className="absolute top-1/2 right-5 flex h-11 w-11 -translate-y-1/2 shrink-0 touch-manipulation items-center justify-center rounded-xl border text-white/55 transition-colors duration-75 hover:text-white lg:hidden"
@@ -726,38 +735,40 @@ export default function EnterprisePlatformSidebar({
         </div>
       </nav>
 
-      <div
-        className="shrink-0 border-t px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-        style={{ borderColor: theme.border }}
-      >
-        <button
-          type="button"
-          className="flex w-full touch-manipulation items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-white/70 transition-colors duration-75 hover:bg-white/[0.06] hover:text-white"
-          onClick={() => {
-            void (async () => {
-              try {
-                const response = await fetch("/api/auth/logout", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    returnTo:
-                      typeof window !== "undefined" ? window.location.origin : undefined,
-                  }),
-                });
-                const data = (await response.json().catch(() => null)) as {
-                  loginUrl?: string;
-                } | null;
-                window.location.assign(data?.loginUrl || "/login");
-              } catch {
-                window.location.assign("/login");
-              }
-            })();
-          }}
+      {overviewEmbed ? null : (
+        <div
+          className="shrink-0 border-t px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+          style={{ borderColor: theme.border }}
         >
-          <LogOut className="h-4 w-4 shrink-0 opacity-80" strokeWidth={1.75} />
-          Log out
-        </button>
-      </div>
+          <button
+            type="button"
+            className="flex w-full touch-manipulation items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-white/70 transition-colors duration-75 hover:bg-white/[0.06] hover:text-white"
+            onClick={() => {
+              void (async () => {
+                try {
+                  const response = await fetch("/api/auth/logout", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      returnTo:
+                        typeof window !== "undefined" ? window.location.origin : undefined,
+                    }),
+                  });
+                  const data = (await response.json().catch(() => null)) as {
+                    loginUrl?: string;
+                  } | null;
+                  window.location.assign(data?.loginUrl || "/login");
+                } catch {
+                  window.location.assign("/login");
+                }
+              })();
+            }}
+          >
+            <LogOut className="h-4 w-4 shrink-0 opacity-80" strokeWidth={1.75} />
+            Log out
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
