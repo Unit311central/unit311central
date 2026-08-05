@@ -5,6 +5,10 @@
  */
 
 import type { InternalNavSection } from "@/lib/internal-operations-data";
+import {
+  isOnwardAirLockedSectionBundle,
+  ONWARDAIR_LOCKED_SECTION_ORDER_KEYS,
+} from "@/lib/onwardair-nav-order";
 
 export const SIDEBAR_NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 export const SIDEBAR_NAV_CUSTOM_EVENT = "unit311-nav-custom-changed";
@@ -57,7 +61,14 @@ export function isMovableWorkspaceSection(section: InternalNavSection): boolean 
 }
 
 export function defaultSectionOrder(sections: readonly InternalNavSection[]): string[] {
-  return sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
+  const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
+  if (!isOnwardAirLockedSectionBundle(sections)) return movable;
+
+  // OnwardAir: locked production order is canonical. Unknown new modules append.
+  const known = new Set(movable);
+  const locked = ONWARDAIR_LOCKED_SECTION_ORDER_KEYS.filter((key) => known.has(key));
+  const extras = movable.filter((key) => !locked.includes(key));
+  return [...locked, ...extras];
 }
 
 export function emptyNavCustomStorage(sections: readonly InternalNavSection[]): SidebarNavCustomStorage {

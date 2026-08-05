@@ -5,6 +5,7 @@ import {
   ONWARDAIR_HOME_ACCENT,
   ONWARDAIR_MODULE_ACCENTS,
 } from "@/lib/onwardair-surface";
+import { ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/onwardair-nav-order";
 
 import type {
   InternalNavItem,
@@ -1249,7 +1250,46 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
 
   // Single Operations section only — do not append a second OnwardAir Operations overlay.
   // Remap every module accent so LHS icons / stripes are unique (no shared blues/golds).
-  return applyOnwardAirSectionColors(out).filter((section) => section.items.length > 0);
+  // Final order is the locked Settings order — never reshuffle unless the user reorders.
+  return sortOnwardAirSectionsByLockedOrder(
+    applyOnwardAirSectionColors(out).filter((section) => section.items.length > 0),
+  );
+}
+
+/** Pins first, then locked workspace order, Settings last; unknown modules before Settings. */
+function sortOnwardAirSectionsByLockedOrder(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  const pins: InternalNavSection[] = [];
+  const movable: InternalNavSection[] = [];
+  let settings: InternalNavSection | null = null;
+
+  for (const section of sections) {
+    if (section.kind === "pin") {
+      pins.push(section);
+      continue;
+    }
+    if (section.label === "Settings") {
+      settings = section;
+      continue;
+    }
+    movable.push(section);
+  }
+
+  const byLabel = new Map(
+    movable.map((section) => [String(section.label ?? ""), section] as const),
+  );
+  const ordered: InternalNavSection[] = [];
+  for (const label of ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER) {
+    const section = byLabel.get(label);
+    if (section) {
+      ordered.push(section);
+      byLabel.delete(label);
+    }
+  }
+  for (const section of byLabel.values()) ordered.push(section);
+
+  return [...pins, ...ordered, ...(settings ? [settings] : [])];
 }
 
 function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
