@@ -41,12 +41,19 @@ import {
   isAbhiPortalsAllowedUsername,
 } from "@/lib/abhi/portals-demo";
 import {
+  ONWARDAIR_DEMO_PLATFORM_USERNAME,
+  ONWARDAIR_PORTALS_ADMIN_USERNAME,
+  ONWARDAIR_PORTALS_SHARED_PASSWORD,
+  isOnwardAirPortalsAllowedUsername,
+} from "@/lib/onwardair/portals-demo";
+import {
   TALANTON_DEMO_PLATFORM_USERNAME,
   TALANTON_PORTALS_ADMIN_USERNAME,
   TALANTON_PORTALS_SHARED_PASSWORD,
   isTalantonPortalsAllowedUsername,
 } from "@/lib/talanton/portals-demo";
 import { isAbhiSlug } from "@/lib/abhi-surface";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import {
   canonicalizeTalantonImpactSlug,
   isTalantonImpactSlug,
@@ -122,7 +129,8 @@ function applyPortalsGateIfNeeded(
   if (
     wantsAbhiPortalsNext(options.nextRaw) &&
     (isAbhiPortalsAllowedUsername(options.username) ||
-      isTalantonPortalsAllowedUsername(options.username)) &&
+      isTalantonPortalsAllowedUsername(options.username) ||
+      isOnwardAirPortalsAllowedUsername(options.username)) &&
     options.userType !== "external"
   ) {
     applyAbhiPortalsGateCookie(response, request);
@@ -148,7 +156,9 @@ async function resolvePostLoginRedirect(options: {
   const nextPath = parseSafePostLoginNext(nextRaw);
   const wantsPortalsNext = wantsAbhiPortalsNext(nextRaw);
   const portalsAllowed =
-    isAbhiPortalsAllowedUsername(username) || isTalantonPortalsAllowedUsername(username);
+    isAbhiPortalsAllowedUsername(username) ||
+    isTalantonPortalsAllowedUsername(username) ||
+    isOnwardAirPortalsAllowedUsername(username);
 
   // Prefer /portals whenever the deep-link asked for it (demo/admin only).
   // Do this before the generic workspace → dashboard default.
@@ -163,14 +173,18 @@ async function resolvePostLoginRedirect(options: {
       : null;
     const origin =
       (fromReturn &&
-      (isAbhiSlug(fromReturnSlug) || isTalantonImpactSlug(fromReturnSlug))
+      (isAbhiSlug(fromReturnSlug) ||
+        isTalantonImpactSlug(fromReturnSlug) ||
+        isOnwardAirSlug(fromReturnSlug))
         ? fromReturn
         : null) ||
       (isAbhiSlug(hostSlug)
         ? customerWorkspaceOrigin(hostSlug!)
         : isTalantonImpactSlug(hostSlug)
           ? customerWorkspaceOrigin(hostSlug!)
-          : null);
+          : isOnwardAirSlug(hostSlug)
+            ? customerWorkspaceOrigin(hostSlug!)
+            : null);
     if (origin) {
       return `${origin.replace(/\/$/, "")}/portals`;
     }
@@ -456,6 +470,69 @@ async function createTalantonPortalsCredentialLoginResponse(
   return response;
 }
 
+async function createOnwardAirPortalsCredentialLoginResponse(
+  request: NextRequest,
+  usernameRaw: string,
+  returnToRaw: string | null,
+  nextRaw: string | null,
+  workspaceSlug: string | null,
+) {
+  const username = normalizePlatformUsername(usernameRaw);
+  if (!isOnwardAirSlug(workspaceSlug) || !isOnwardAirPortalsAllowedUsername(username)) {
+    return null;
+  }
+
+  const workspace = await resolveWorkspaceBinding({
+    workspaceSlug,
+    fallbackInternal: false,
+  });
+
+  const displayName =
+    username === ONWARDAIR_PORTALS_ADMIN_USERNAME
+      ? "OnwardAir Portals Admin"
+      : "OnwardAir Demo";
+  const session: PlatformSession = withSessionWorkspace(
+    {
+      sub:
+        username === ONWARDAIR_PORTALS_ADMIN_USERNAME
+          ? "00000000-0000-4000-8000-00000000oa01"
+          : "00000000-0000-4000-8000-00000000oa02",
+      username,
+      displayName,
+      userType: "internal",
+      redirectPath: "/dashboard",
+      exp: Date.now() + PLATFORM_SESSION_MAX_AGE_SECONDS * 1000,
+    },
+    workspace,
+  );
+
+  const redirectPath = await resolvePostLoginRedirect({
+    redirectPath: "/dashboard",
+    requestHost: getRequestHost(request),
+    returnToRaw,
+    nextRaw,
+    userType: "internal",
+    username,
+  });
+
+  const response = NextResponse.json({
+    redirectPath,
+    userType: session.userType,
+    displayName: session.displayName,
+    workspace: workspace
+      ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+      : null,
+  });
+
+  applyPlatformSessionCookie(response, await createPlatformSessionToken(session), request);
+  applyPortalsGateIfNeeded(response, request, {
+    nextRaw,
+    username,
+    userType: "internal",
+  });
+  return response;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
@@ -549,6 +626,20 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        if (
+          isOnwardAirSlug(workspaceSlug) &&
+          result.session.userType !== "external" &&
+          wantsAbhiPortalsNext(nextRaw) &&
+          !isOnwardAirPortalsAllowedUsername(result.session.username)
+        ) {
+          return NextResponse.json(
+            {
+              error: `OnwardAir portals login is limited to ${ONWARDAIR_DEMO_PLATFORM_USERNAME} and ${ONWARDAIR_PORTALS_ADMIN_USERNAME}.`,
+            },
+            { status: 403 },
+          );
+        }
+
         try {
           await recordPlatformUserLogin(result.session.sub);
         } catch {
@@ -632,6 +723,17 @@ export async function POST(request: NextRequest) {
 
     if (body.password === TALANTON_PORTALS_SHARED_PASSWORD) {
       const portalsLogin = await createTalantonPortalsCredentialLoginResponse(
+        request,
+        body.username,
+        returnToRaw,
+        nextRaw,
+        workspaceSlug,
+      );
+      if (portalsLogin) return portalsLogin;
+    }
+
+    if (body.password === ONWARDAIR_PORTALS_SHARED_PASSWORD) {
+      const portalsLogin = await createOnwardAirPortalsCredentialLoginResponse(
         request,
         body.username,
         returnToRaw,

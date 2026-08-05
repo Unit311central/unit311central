@@ -3,9 +3,11 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import AbhiPortalsDemoPage from "@/components/abhi/AbhiPortalsDemoPage";
+import OnwardAirPortalsDemoPage from "@/components/onwardair/OnwardAirPortalsDemoPage";
 import TalantonPortalsDemoPage from "@/components/talanton/TalantonPortalsDemoPage";
 import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
 import { isAbhiSlug } from "@/lib/abhi-surface";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 export const metadata: Metadata = {
@@ -21,6 +23,10 @@ export default async function PortalsPage() {
 
   if (workspaceSlug && isTalantonImpactSlug(workspaceSlug)) {
     return <TalantonPortalsDemoPage />;
+  }
+
+  if (workspaceSlug && isOnwardAirSlug(workspaceSlug)) {
+    return <OnwardAirPortalsDemoPage />;
   }
 
   // Page is intended for ABHI (and local/dev without slug).

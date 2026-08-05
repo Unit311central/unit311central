@@ -32,6 +32,7 @@ import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { matchOnwardAirClientPortalPathname } from "@/lib/onwardair/client-portal-routes";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
+import { isOnwardAirPortalsAllowedUsername } from "@/lib/onwardair/portals-demo";
 import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-demo";
 import {
   ABHI_PORTALS_GATE_COOKIE,
@@ -68,6 +69,7 @@ function isCompanyPortalSlug(workspaceSlug: string): boolean {
 function isPortalsAllowedUsername(username: string | null | undefined, workspaceSlug: string): boolean {
   if (workspaceSlug === ABHI_SLUG) return isAbhiPortalsAllowedUsername(username);
   if (isTalantonImpactSlug(workspaceSlug)) return isTalantonPortalsAllowedUsername(username);
+  if (isOnwardAirSlug(workspaceSlug)) return isOnwardAirPortalsAllowedUsername(username);
   return false;
 }
 
@@ -306,10 +308,12 @@ export async function middleware(request: NextRequest) {
       return bounce;
     }
 
-    // ABHI / Talanton pre-demo portals briefing — requires an explicit portals login.
+    // ABHI / Talanton / OnwardAir pre-demo portals briefing — requires an explicit portals login.
     // A normal platform session alone must not skip the portals login page.
     if (
-      (workspaceSlug === ABHI_SLUG || isTalantonImpactSlug(workspaceSlug)) &&
+      (workspaceSlug === ABHI_SLUG ||
+        isTalantonImpactSlug(workspaceSlug) ||
+        isOnwardAirSlug(workspaceSlug)) &&
       (pathname === "/portals" || pathname.startsWith("/portals/"))
     ) {
       const loginUrl = `${workspaceOrigin}/login?next=${encodeURIComponent("/portals")}`;
