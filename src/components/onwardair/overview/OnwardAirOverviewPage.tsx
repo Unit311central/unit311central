@@ -532,7 +532,14 @@ export function OnwardAirOverviewPage() {
             style={{ gap: scale(style.questions.itemGap) }}
           >
             {content.questions.map((q, i) => (
-              <li key={`q-${i}`} className="flex shrink-0 items-start leading-snug">
+              <li key={`q-${i}`} className="flex shrink-0 items-start gap-1.5 leading-snug">
+                <span
+                  className="shrink-0 font-semibold"
+                  style={{ fontSize: scale(style.questions.textSize), color: style.questions.textColor }}
+                  aria-hidden
+                >
+                  ?
+                </span>
                 <InlineEdit
                   aria-label={`Question ${i + 1}`}
                   value={q}
