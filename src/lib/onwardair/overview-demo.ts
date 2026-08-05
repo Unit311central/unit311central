@@ -111,6 +111,8 @@ export const DEFAULT_OVERVIEW_MODULES: PortalsModuleRow[] = [
   row("m18c", "Internal Audits", 1),
 
   row("m22", "Tools"),
+  row("m22a", "Testing", 1),
+  row("m22b", "Live drone", 2),
 
   row("m19", "External Client Access"),
   row("m19a", "Dashboard", 1),
@@ -235,6 +237,8 @@ export const OVERVIEW_SCREENSHOT_BY_MODULE_ID: Record<string, string> = {
   m20c: "settings",
   m21: "productivity",
   m22: "settings",
+  m22a: "settings",
+  m22b: "settings",
 };
 
 export const OVERVIEW_SCREENSHOT_SLUGS = [
