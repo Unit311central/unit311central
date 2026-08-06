@@ -1,0 +1,36 @@
+---
+description: OnwardAir /overview invite page is client-approved — do not change layout or copy without explicit owner request.
+globs:
+  - src/components/onwardair/overview/**
+  - src/lib/onwardair/overview-*.ts
+  - src/lib/onwardair/overview-demo.ts
+  - src/components/testflighthub/EnterprisePlatformSidebar.tsx
+alwaysApply: false
+---
+
+# Overview invite page — frozen for client (Aug 2026)
+
+The production invite at `https://onwardair.unit311central.com/overview` is **client-approved**. Treat it as locked unless the user explicitly asks to change it in chat.
+
+## Do not change without explicit sign-off
+
+- Left column: 3 boxes (Questions → 45 min session → KEY HIGHLIGHTS), order, sizes, copy
+- `defaultOverviewStyleConfig()` / `defaultOnwardAirOverviewContent()` in `overview-style.ts` and `overview-demo.ts`
+- Responsive CSS in `OnwardAirOverviewPage.tsx` (media queries, grid/flex left column)
+- Overview embed nav row height in `EnterprisePlatformSidebar.tsx` (`OVERVIEW_EMBED_*` constants)
+- Edit mode defaults: **off** for clients (`?tune=1` only for internal editing)
+
+## Safe changes (when needed)
+
+- Auth / security / login gate fixes that do not alter visible layout
+- Bug fixes that restore the approved snapshot (run `npm run prove:overview-client` first)
+
+## Before any overview layout/style change
+
+1. Ask or confirm the user wants to break the client freeze
+2. Run `npm run prove:overview-client` and keep it passing
+3. Update `OVERVIEW_CLIENT_LAYOUT_FINGERPRINT` in `overview-style.ts` only with owner approval
+
+## Client URL (share this)
+
+`https://onwardair.unit311central.com/overview` — no query params. Requires login.
