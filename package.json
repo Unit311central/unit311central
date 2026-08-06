@@ -29,6 +29,7 @@
     "diagram:vercel-architecture": "node --experimental-strip-types scripts/generate-vercel-architecture-diagram.mjs",
     "diagram:github-architecture": "node --experimental-strip-types scripts/generate-github-architecture-diagram.mjs",
     "guard:canonical-repo": "node scripts/assert-canonical-unit311-repo.mjs",
+    "prove:overview-client": "node scripts/prove-overview-client-frozen.mjs",
     "deploy:prod": "node scripts/assert-canonical-unit311-repo.mjs && node -e \"console.error('BLOCKED: Use Git deploys from Unit311central/unit311central. See docs/PRODUCTION_DEPLOYMENT.md'); process.exit(1)\"",
     "demo:refresh": "node scripts/demo-enterprise/run.mjs",
     "demo:enterprise:seed": "node scripts/demo-enterprise/run.mjs",
