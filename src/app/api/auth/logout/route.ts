@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { workspaceLoginUrl, parseValidWorkspaceReturnTo } from "@/lib/app-domains";
 import {
   clearAbhiPortalsGateCookie,
+  clearOverviewGateCookie,
   clearPlatformSessionCookie,
 } from "@/lib/platform-session-cookie";
 import { getPlatformSession } from "@/lib/platform-session";
@@ -43,5 +44,6 @@ export async function POST(request: NextRequest) {
   });
   clearPlatformSessionCookie(response, request);
   clearAbhiPortalsGateCookie(response, request);
+  clearOverviewGateCookie(response, request);
   return response;
 }

@@ -6,7 +6,7 @@ import {
   normalizePlatformUsername,
   type PlatformSession,
 } from "@/lib/platform-auth";
-import { applyPlatformSessionCookie, applyAbhiPortalsGateCookie } from "@/lib/platform-session-cookie";
+import { applyPlatformSessionCookie, applyAbhiPortalsGateCookie, applyOverviewEntryGateCookie } from "@/lib/platform-session-cookie";
 import {
   DEMO_WORKSPACE_SLUG,
   DEMO_SITE_URL,
@@ -34,6 +34,7 @@ import {
   resolveOnwardAirClientPortalPostLoginUrl,
   resolveOnwardAirClientPortalSessionRedirect,
 } from "@/lib/onwardair/client-portal-login";
+import { matchOnwardAirClientPortalPathname } from "@/lib/onwardair/client-portal-routes";
 import {
   ABHI_DEMO_PLATFORM_USERNAME,
   ABHI_PORTALS_ADMIN_USERNAME,
@@ -134,6 +135,39 @@ function applyPortalsGateIfNeeded(
     options.userType !== "external"
   ) {
     applyAbhiPortalsGateCookie(response, request);
+  }
+}
+
+function wantsOverviewPortalNext(nextRaw: string | null | undefined): boolean {
+  const nextPath = parseSafePostLoginNext(nextRaw);
+  const match = matchOnwardAirClientPortalPathname(nextPath ?? "");
+  return match?.route.portalKind === "overview";
+}
+
+function applyOverviewEntryGateIfNeeded(
+  response: NextResponse,
+  request: NextRequest,
+  options: {
+    nextRaw: string | null;
+    redirectPath: string;
+    userType: string;
+    username?: string | null;
+  },
+) {
+  if (options.userType !== "external") return;
+
+  const overviewRoute = resolveOnwardAirClientPortalSessionRedirect({
+    redirectPath: options.redirectPath,
+    nextRaw: options.nextRaw,
+    username: options.username,
+  });
+  const isOverviewLogin =
+    overviewRoute === "/overview" ||
+    wantsOverviewPortalNext(options.nextRaw) ||
+    options.redirectPath === "/overview";
+
+  if (isOverviewLogin) {
+    applyOverviewEntryGateCookie(response, request);
   }
 }
 
@@ -698,6 +732,12 @@ export async function POST(request: NextRequest) {
           nextRaw,
           username: result.session.username,
           userType: result.session.userType,
+        });
+        applyOverviewEntryGateIfNeeded(response, request, {
+          nextRaw,
+          redirectPath: session.redirectPath,
+          username: session.username,
+          userType: session.userType,
         });
         return response;
       }

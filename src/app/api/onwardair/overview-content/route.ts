@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
 import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
+import { isOverviewPortalAccessAllowed } from "@/lib/onwardair/overview-gate";
 import {
   readOnwardAirOverviewContent,
   writeOnwardAirOverviewContent,
@@ -32,7 +34,12 @@ function json(body: unknown, status = 200) {
 
 export async function GET(_request: NextRequest) {
   const session = await getPlatformSession();
-  if (!session || !isOverviewSession(session)) {
+  const jar = await cookies();
+  if (
+    !session ||
+    !isOverviewSession(session) ||
+    !isOverviewPortalAccessAllowed({ cookies: jar }, { isFreshEntry: false })
+  ) {
     return json({ error: "Authentication required." }, 401);
   }
 
@@ -46,7 +53,12 @@ export async function GET(_request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const session = await getPlatformSession();
-  if (!session || !isOverviewSession(session)) {
+  const jar = await cookies();
+  if (
+    !session ||
+    !isOverviewSession(session) ||
+    !isOverviewPortalAccessAllowed({ cookies: jar }, { isFreshEntry: false })
+  ) {
     return json({ error: "Authentication required." }, 401);
   }
 

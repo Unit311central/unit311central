@@ -30,6 +30,7 @@ import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { matchOnwardAirClientPortalPathname, getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
+import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation } from "@/lib/onwardair/overview-gate";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
 import { isOnwardAirPortalsAllowedUsername } from "@/lib/onwardair/portals-demo";
@@ -38,7 +39,9 @@ import {
   ABHI_PORTALS_GATE_COOKIE,
   ABHI_PORTALS_VIEW_COOKIE,
   applyAbhiPortalsViewCookie,
+  applyOverviewViewCookie,
   clearAbhiPortalsGateCookie,
+  clearOverviewGateCookie,
   clearPlatformSessionCookie,
 } from "@/lib/platform-session-cookie";
 import {
@@ -244,6 +247,7 @@ export async function middleware(request: NextRequest) {
           portalMatch.rest === "/login" || portalMatch.rest.startsWith("/login/");
 
         const portalLoginPublicUrl = `${workspaceOrigin}/${portalMatch.route.path}/login${search}`;
+        const isOverviewPortal = portalMatch.route.portalKind === "overview";
 
         const companyPortalLoginRewrite = () =>
           rewriteTo(
@@ -263,10 +267,18 @@ export async function middleware(request: NextRequest) {
           if (!isLoginRest) {
             const response = redirectExternal(portalLoginPublicUrl);
             if (clearSession) clearPlatformSessionCookie(response, request);
+            if (isOverviewPortal) clearOverviewGateCookie(response, request);
             return response;
           }
           const response = companyPortalLoginRewrite();
           if (clearSession) clearPlatformSessionCookie(response, request);
+          if (
+            isOverviewPortal &&
+            isFreshOverviewDocumentNavigation(request) &&
+            !isNextPrefetchRequest(request)
+          ) {
+            clearOverviewGateCookie(response, request);
+          }
           return response;
         };
 
@@ -306,14 +318,26 @@ export async function middleware(request: NextRequest) {
 
         // Matching external users hitting /{company}/login go to the portal home.
         if (isLoginRest) {
+          if (isOverviewPortal && !isOverviewPortalAccessAllowed(request)) {
+            return companyPortalLoginGate();
+          }
           const bounce = redirectExternal(`${workspaceOrigin}/${portalMatch.route.path}`);
           return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
         }
+
+        if (isOverviewPortal && !isOverviewPortalAccessAllowed(request)) {
+          return companyPortalLoginGate();
+        }
+
         const internalPath = `${portalImplBase}/${portalMatch.route.path}${portalMatch.rest}`;
         const response = rewriteTo(request, internalPath, headers, {
           ...workspaceResponseHeaders,
           "x-unit311-company-portal": portalMatch.route.path,
         });
+        if (isOverviewPortal) {
+          clearOverviewGateCookie(response, request);
+          applyOverviewViewCookie(response, request);
+        }
         return applyCustomerHostRebindIfNeeded({ request, response, gate });
       }
     }

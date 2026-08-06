@@ -19,8 +19,18 @@ export const ABHI_PORTALS_VIEW_COOKIE = "abhi_portals_view";
 
 const ABHI_PORTALS_GATE_COOKIE_LEGACY = ["abhi_portals_gate", "abhi_portals_access"] as const;
 
+/**
+ * One-time entry ticket set only by an explicit /overview login.
+ * Prevents a leftover Domain=.unit311central.com JWT from skipping the invite login.
+ */
+export const OA_OVERVIEW_ENTRY_COOKIE = "oa_overview_entry";
+
+/** Short-lived cookie that keeps an open /overview tab working after entry is consumed. */
+export const OA_OVERVIEW_VIEW_COOKIE = "oa_overview_view";
+
 /** View cookie lifetime — long enough for a demo, not a permanent skip-login pass. */
 const ABHI_PORTALS_VIEW_MAX_AGE_SECONDS = 60 * 60 * 2;
+const OA_OVERVIEW_VIEW_MAX_AGE_SECONDS = 60 * 60 * 2;
 
 /** Shared session cookie options for apex ↔ internal.* (and future workspace hosts). */
 export function getPlatformSessionCookieOptions(request?: NextRequest | Request) {
@@ -47,6 +57,18 @@ export function getAbhiPortalsViewCookieOptions(request?: NextRequest | Request)
   return {
     ...getPlatformSessionCookieOptions(request),
     maxAge: ABHI_PORTALS_VIEW_MAX_AGE_SECONDS,
+  };
+}
+
+export function getOverviewEntryGateCookieOptions(request?: NextRequest | Request) {
+  const { maxAge: _maxAge, ...options } = getPlatformSessionCookieOptions(request);
+  return options;
+}
+
+export function getOverviewViewCookieOptions(request?: NextRequest | Request) {
+  return {
+    ...getPlatformSessionCookieOptions(request),
+    maxAge: OA_OVERVIEW_VIEW_MAX_AGE_SECONDS,
   };
 }
 
@@ -112,6 +134,37 @@ export function clearAbhiPortalsGateCookie(
   for (const legacy of ABHI_PORTALS_GATE_COOKIE_LEGACY) {
     response.cookies.set(legacy, "", expired);
   }
+}
+
+export function applyOverviewEntryGateCookie(
+  response: NextResponse,
+  request?: NextRequest | Request,
+) {
+  response.cookies.set(
+    OA_OVERVIEW_ENTRY_COOKIE,
+    "1",
+    getOverviewEntryGateCookieOptions(request),
+  );
+}
+
+export function applyOverviewViewCookie(
+  response: NextResponse,
+  request?: NextRequest | Request,
+) {
+  response.cookies.set(
+    OA_OVERVIEW_VIEW_COOKIE,
+    "1",
+    getOverviewViewCookieOptions(request),
+  );
+}
+
+export function clearOverviewGateCookie(
+  response: NextResponse,
+  request?: NextRequest | Request,
+) {
+  const expired = expiredCookieOptions(request);
+  response.cookies.set(OA_OVERVIEW_ENTRY_COOKIE, "", expired);
+  response.cookies.set(OA_OVERVIEW_VIEW_COOKIE, "", expired);
 }
 
 /** Clear the shared platform session cookie (logout). */
