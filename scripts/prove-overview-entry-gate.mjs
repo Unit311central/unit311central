@@ -19,7 +19,7 @@ const browser = await chromium.launch({ headless: true, channel: "chrome" });
 await test("fresh visit shows login only", async () => {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
-  await page.goto(`${BASE}/overview`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`${BASE}/overview`, { waitUntil: "domcontentloaded", timeout: 60000 });
   const text = await page.innerText("body");
   if (!/Sign in to view|View overview|password/i.test(text)) throw new Error("no login UI");
   if (/Demonstration environment|45 MIN WORKING SESSION/i.test(text)) throw new Error("overview leaked");
@@ -39,7 +39,7 @@ await test("session without entry gate still requires login", async () => {
   if (!session) throw new Error("no session after login");
   await ctx.clearCookies();
   await ctx.addCookies([session]);
-  await page.goto(`${BASE}/overview`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`${BASE}/overview`, { waitUntil: "domcontentloaded", timeout: 60000 });
   const url = page.url();
   const text = await page.innerText("body");
   if (!url.includes("/login") && /Demonstration environment/i.test(text)) {
