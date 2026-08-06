@@ -42,7 +42,7 @@ const OA_LOGO = "/images/workspaces/onwardair-logo.png";
 const HERO_BG = "/images/overview-corporate-intelligence-bg.png";
 
 const INLINE_EDIT =
-  "oa-inline-edit w-full min-w-0 rounded border border-dashed border-transparent bg-transparent px-0.5 py-0 outline-none hover:border-[#7DD3E8]/50 hover:bg-black/5 focus:border-[#7DD3E8] focus:bg-black/5";
+  "oa-inline-edit w-full min-w-0 rounded border border-dashed border-[#7DD3E8]/45 bg-transparent px-0.5 py-0 outline-none hover:border-[#7DD3E8] hover:bg-black/5 focus:border-[#7DD3E8] focus:bg-black/5";
 
 function InlineEdit({
   value,
@@ -475,19 +475,15 @@ export function OnwardAirOverviewPage() {
           return;
         }
         if (cancelled) return;
-        const payload = (await response.json()) as {
-          canEdit?: boolean;
-        };
+        await response.json();
         setStyle(defaultOverviewStyleConfig());
         setContent(defaultOnwardAirOverviewContent());
         try {
-          const params = new URLSearchParams(window.location.search);
-          const tuneParam = params.get("tune");
-          const canEdit = payload.canEdit === true;
-          // Edit mode on by default for overview editors; use ?tune=0 to preview as invitee.
-          setTuneMode(tuneParam === "0" ? false : tuneParam === "1" ? true : canEdit);
+          const tuneParam = new URLSearchParams(window.location.search).get("tune");
+          // Edit mode on for every authenticated overview visit unless ?tune=0.
+          setTuneMode(tuneParam !== "0");
         } catch {
-          setTuneMode(false);
+          setTuneMode(true);
         }
         setAuthReady(true);
         setLoading(false);
@@ -1187,28 +1183,26 @@ export function OnwardAirOverviewPage() {
       ) : null}
 
       {tuneMode ? (
-        <OverviewStyleTuner
-          style={style}
-          onStyleChange={handleStyleChange}
-          content={content}
-          onContentChange={handleContentChange}
-        />
+        <>
+          <div className="pointer-events-none fixed inset-x-0 top-0 z-[2147482000] flex justify-center px-3 pt-[max(0.5rem,env(safe-area-inset-top))]">
+            <div className="pointer-events-auto rounded-full border border-[#7DD3E8]/60 bg-[#0B1220]/95 px-4 py-1.5 text-center text-xs font-semibold text-[#7DD3E8] shadow-lg backdrop-blur-sm">
+              Edit mode on — click any text to change it · style panel top-right
+            </div>
+          </div>
+          <OverviewStyleTuner
+            style={style}
+            onStyleChange={handleStyleChange}
+            content={content}
+            onContentChange={handleContentChange}
+          />
+        </>
       ) : (
         <button
           type="button"
-          onClick={() => {
-            setTuneMode(true);
-            try {
-              const url = new URL(window.location.href);
-              url.searchParams.delete("tune");
-              window.history.replaceState(null, "", url.toString());
-            } catch {
-              /* ignore */
-            }
-          }}
-          className="fixed bottom-4 right-4 z-[70] rounded-lg border border-white/20 bg-black/70 px-3 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-sm hover:bg-[#267B90]"
+          onClick={() => setTuneMode(true)}
+          className="fixed top-4 right-4 z-[2147482000] rounded-lg border-2 border-[#7DD3E8] bg-[#0B1220] px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-[#267B90]"
         >
-          Edit page
+          Turn on edit mode
         </button>
       )}
     </div>

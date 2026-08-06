@@ -357,13 +357,13 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
 
   const panelStyle: CSSProperties = pos
     ? { left: pos.left, top: pos.top, right: "auto", bottom: "auto" }
-    : { right: 16, bottom: 16 };
+    : { right: 16, top: 56, bottom: "auto" };
 
   const ui = !open ? (
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="pointer-events-auto fixed bottom-5 right-5 z-[2147483000] inline-flex items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] hover:bg-[#267B90]"
+      className="pointer-events-auto fixed top-5 right-5 z-[2147483000] inline-flex items-center gap-2 rounded-xl border-2 border-[#7DD3E8] bg-[#0B1220] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] hover:bg-[#267B90]"
       aria-label="Open style tuner"
     >
       <SlidersHorizontal className="h-4 w-4" />
