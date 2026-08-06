@@ -155,6 +155,13 @@ svg {
   background-color: rgba(186, 230, 253, 0.42);
 }
 
+.oa-overview .oa-overview-nav > nav.sidebar-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.oa-overview .oa-overview-nav > nav.sidebar-scrollbar {
+  scrollbar-color: rgba(125, 211, 232, 0.45) transparent;
+}
+
 /* Overview invite: force agenda title weight + centre (inputs/paragraphs). */
 .oa-overview .oa-inline-edit.oa-agenda-title,
 .oa-overview .oa-agenda-title {

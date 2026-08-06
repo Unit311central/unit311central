@@ -871,6 +871,23 @@ export function OnwardAirOverviewPage() {
           .oa-overview-layout {
             grid-template-columns: var(--oa-layout-cols);
           }
+          .oa-overview-preview {
+            height: clamp(var(--oa-preview-min-h), calc(100dvh - 6.25rem), 720px);
+            max-height: clamp(var(--oa-preview-min-h), calc(100dvh - 6.25rem), 720px);
+          }
+          .oa-overview-nav {
+            height: 100% !important;
+            max-height: 100% !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+          }
+          .oa-overview-nav > nav.sidebar-scrollbar {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto !important;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+          }
         }
         @media (min-width: 768px) and (min-height: 901px) {
           .oa-overview-layout {
@@ -878,6 +895,10 @@ export function OnwardAirOverviewPage() {
           }
           .oa-overview-left {
             height: 100%;
+          }
+          .oa-overview-preview {
+            height: 100%;
+            max-height: 100%;
           }
         }
         @media (max-height: 820px) and (min-width: 768px) {

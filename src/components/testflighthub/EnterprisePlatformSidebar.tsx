@@ -724,7 +724,7 @@ export default function EnterprisePlatformSidebar({
       className={cn(
         overviewEmbed
           ? // Invite: always visible — stacked above the preview on phones, side rail on desktop.
-            "oa-overview-nav relative z-auto flex max-h-[min(42vh,280px)] w-full shrink-0 flex-col overflow-hidden border-b pt-0 md:static md:z-auto md:h-full md:max-h-full md:w-[240px] md:shrink-0 md:border-b-0 lg:w-[280px] xl:w-[300px] 2xl:w-[320px]"
+            "oa-overview-nav relative z-auto flex max-h-[min(42vh,280px)] w-full shrink-0 flex-col overflow-hidden border-b pt-0 md:static md:z-auto md:h-full md:min-h-0 md:max-h-full md:w-[240px] md:shrink-0 md:border-b-0 lg:w-[280px] xl:w-[300px] 2xl:w-[320px]"
           : "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(320px,94vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:w-[320px] lg:shrink-0 lg:translate-x-0 lg:pt-0",
         !overviewEmbed && (mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"),
       )}
