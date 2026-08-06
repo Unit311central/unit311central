@@ -1367,7 +1367,7 @@ export function OnwardAirOverviewPage() {
         <>
           <div className="pointer-events-none fixed inset-x-0 top-0 z-[2147482000] flex justify-center px-3 pt-[max(0.5rem,env(safe-area-inset-top))]">
             <div className="pointer-events-auto rounded-full border border-[#7DD3E8]/60 bg-[#0B1220]/95 px-4 py-1.5 text-center text-xs font-semibold text-[#7DD3E8] shadow-lg backdrop-blur-sm">
-              Edit mode on — click any text to change it · style panel top-right
+              Edit mode on — Box size tab in panel · drag cyan bars on cards · click text to edit
             </div>
           </div>
           <OverviewStyleTuner

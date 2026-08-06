@@ -33,6 +33,7 @@ type Props = {
 type SectionId =
   | "text"
   | "layout"
+  | "size"
   | "page"
   | "type"
   | "logos"
@@ -43,6 +44,7 @@ type SectionId =
   | "preview";
 
 const SECTIONS: { id: SectionId; label: string }[] = [
+  { id: "size", label: "Box size" },
   { id: "text", label: "Text" },
   { id: "layout", label: "Layout" },
   { id: "page", label: "Page" },
@@ -214,18 +216,27 @@ function TextInput({
 function LeftCardDimensionSliders({
   card,
   onChange,
+  title,
 }: {
   card: OverviewCardChrome;
   onChange: (partial: Partial<OverviewCardChrome>) => void;
+  title?: string;
 }) {
+  const widthPercent = card.widthPercent ?? 100;
+  const heightPx = card.heightPx ?? 0;
+  const minHeight = card.minHeight ?? 0;
+  const maxHeight = card.maxHeight ?? 0;
+  const heightFr = card.heightFr ?? 1;
+
   return (
-    <>
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">
-        Box size
+    <div className="rounded-lg border-2 border-[#7DD3E8]/45 bg-[#7DD3E8]/[0.06] p-2.5">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#7DD3E8]">
+        {title ?? "Box size — width & height"}
       </p>
+      <div className="space-y-3">
       <SliderRow
         label="Width"
-        value={card.widthPercent}
+        value={widthPercent}
         min={50}
         max={100}
         step={1}
@@ -234,7 +245,7 @@ function LeftCardDimensionSliders({
       />
       <SliderRow
         label="Height"
-        value={card.heightPx}
+        value={heightPx}
         min={0}
         max={600}
         step={4}
@@ -243,7 +254,7 @@ function LeftCardDimensionSliders({
       />
       <SliderRow
         label="Min height"
-        value={card.minHeight}
+        value={minHeight}
         min={0}
         max={480}
         step={4}
@@ -252,7 +263,7 @@ function LeftCardDimensionSliders({
       />
       <SliderRow
         label="Max height"
-        value={card.maxHeight}
+        value={maxHeight}
         min={0}
         max={600}
         step={4}
@@ -261,27 +272,29 @@ function LeftCardDimensionSliders({
       />
       <SliderRow
         label="Height weight"
-        value={card.heightFr}
+        value={heightFr}
         min={0.25}
         max={4}
         step={0.05}
         unit="fr"
         onChange={(heightFr) => onChange({ heightFr })}
       />
-      <p className="text-[10px] text-white/40">
-        Or drag the cyan bars on the bottom / right edge of each card on the page.
+      <p className="text-[10px] text-white/45">
+        Tip: drag the cyan bars on the bottom / right edge of each card on the page.
       </p>
-    </>
+      </div>
+    </div>
   );
 }
 
 export function OverviewStyleTuner({ style, onStyleChange, content, onContentChange }: Props) {
   const [open, setOpen] = useState(true);
-  const [section, setSection] = useState<SectionId>("text");
+  const [section, setSection] = useState<SectionId>("size");
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const contentScrollRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -293,6 +306,10 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    contentScrollRef.current?.scrollTo(0, 0);
+  }, [section]);
 
   const patch = useMemo(
     () => ({
@@ -544,7 +561,31 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+      <div ref={contentScrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+        {section === "size" ? (
+          <>
+            <p className="text-[11px] text-white/60">
+              Resize each left-column card. Use <strong className="text-white/80">Width</strong> and{" "}
+              <strong className="text-white/80">Height</strong> first — or drag the cyan bars on the cards.
+            </p>
+            <LeftCardDimensionSliders
+              title="1. Questions box"
+              card={style.questions}
+              onChange={(partial) => patch.questions(partial)}
+            />
+            <LeftCardDimensionSliders
+              title="2. Agenda box (45 min session)"
+              card={style.agenda}
+              onChange={(partial) => patch.agenda(partial)}
+            />
+            <LeftCardDimensionSliders
+              title="3. Key highlights box"
+              card={style.highlights}
+              onChange={(partial) => patch.highlights(partial)}
+            />
+          </>
+        ) : null}
+
         {section === "text" ? (
           <>
             <TextInput
@@ -669,6 +710,7 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                       </div>
                     </div>
                     <LeftCardDimensionSliders
+                      title={`${index + 1}. ${short} box`}
                       card={card}
                       onChange={(partial) =>
                         onStyleChange({ ...style, [id]: { ...card, ...partial } })
@@ -902,6 +944,11 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
 
         {section === "questions" ? (
           <>
+            <LeftCardDimensionSliders
+              title="Questions box"
+              card={style.questions}
+              onChange={(partial) => patch.questions(partial)}
+            />
             <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">Edit questions</p>
               {content.questions.map((q, i) => (
@@ -932,10 +979,6 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                 <Plus className="h-3.5 w-3.5" /> Add question
               </button>
             </div>
-            <LeftCardDimensionSliders
-              card={style.questions}
-              onChange={(partial) => patch.questions(partial)}
-            />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Box + type</p>
             <ColorRow label="Background" value={style.questions.bg} onChange={(bg) => patch.questions({ bg })} />
             <ColorRow label="Border colour" value={style.questions.borderColor} onChange={(borderColor) => patch.questions({ borderColor })} />
@@ -953,6 +996,11 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
 
         {section === "highlights" ? (
           <>
+            <LeftCardDimensionSliders
+              title="Key highlights box"
+              card={style.highlights}
+              onChange={(partial) => patch.highlights(partial)}
+            />
             <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">Edit highlights</p>
               <TextInput
@@ -987,10 +1035,6 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                 <Plus className="h-3.5 w-3.5" /> Add highlight
               </button>
             </div>
-            <LeftCardDimensionSliders
-              card={style.highlights}
-              onChange={(partial) => patch.highlights(partial)}
-            />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Spacing</p>
             <SliderRow label="Space under title" value={style.highlights.titleGap} min={0} max={48} onChange={(titleGap) => patch.highlights({ titleGap })} />
             <SliderRow label="Item gap" value={style.highlights.itemGap} min={0} max={24} onChange={(itemGap) => patch.highlights({ itemGap })} />
@@ -1011,6 +1055,11 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
 
         {section === "agenda" ? (
           <>
+            <LeftCardDimensionSliders
+              title="Agenda box (45 min session)"
+              card={style.agenda}
+              onChange={(partial) => patch.agenda(partial)}
+            />
             <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-2">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">Edit agenda</p>
               <TextInput
@@ -1044,10 +1093,6 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                 <Plus className="h-3.5 w-3.5" /> Add agenda row
               </button>
             </div>
-            <LeftCardDimensionSliders
-              card={style.agenda}
-              onChange={(partial) => patch.agenda(partial)}
-            />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Spacing</p>
             <SliderRow label="Space above title" value={style.agenda.titleTopGap} min={0} max={80} onChange={(titleTopGap) => patch.agenda({ titleTopGap })} />
             <SliderRow label="Space under title" value={style.agenda.titleGap} min={0} max={80} onChange={(titleGap) => patch.agenda({ titleGap })} />
