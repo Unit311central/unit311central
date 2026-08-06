@@ -75,8 +75,11 @@ function InlineEdit({
   // do not reliably inherit color from a wrapper.
   const controlStyle: CSSProperties = {
     resize: "none",
-    minHeight: multiline ? undefined : "1.25em",
-    height: multiline ? undefined : "1.25em",
+    ...(multiline
+      ? {}
+      : editable
+        ? { minHeight: "1.25em", height: "1.25em" }
+        : { minHeight: 0, height: "auto" }),
     ...style,
   };
 
@@ -560,11 +563,11 @@ export function OnwardAirOverviewPage() {
       return (
         <section
           key={id}
-          className="flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
+          className="oa-left-card flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
           style={boxStyle}
         >
           <ul
-            className="flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
+            className="oa-left-card-body flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
             style={{ gap: scale(style.questions.itemGap) }}
           >
             {content.questions.map((q, i) => (
@@ -612,7 +615,7 @@ export function OnwardAirOverviewPage() {
       return (
         <section
           key={id}
-          className="flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
+          className="oa-left-card flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
           style={boxStyle}
         >
           <div className="shrink-0" style={{ marginBottom: scale(style.highlights.titleGap) }}>
@@ -626,11 +629,11 @@ export function OnwardAirOverviewPage() {
               style={{ fontSize: scale(style.highlights.titleSize), color: style.highlights.titleColor }}
             />
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="oa-left-card-body min-h-0 flex-1 overflow-y-auto">
             <ul className="m-0 flex list-none flex-col p-0" style={{ gap: scale(style.highlights.itemGap) }}>
               {content.highlights.map((item, i) => (
-                <li key={`h-${i}`} className="flex shrink-0 items-start gap-1 leading-snug">
-                  <span className="shrink-0" style={{ color: style.highlights.bulletColor }}>
+                <li key={`h-${i}`} className="flex shrink-0 items-start gap-1.5 leading-snug">
+                  <span className="mt-0.5 shrink-0" style={{ color: style.highlights.bulletColor }}>
                     •
                   </span>
                   <InlineEdit
@@ -643,7 +646,13 @@ export function OnwardAirOverviewPage() {
                       );
                       patchContent({ highlights });
                     }}
-                    style={{ fontSize: scale(style.highlights.itemSize), color: style.highlights.itemColor }}
+                    className="leading-snug"
+                    style={{
+                      fontSize: scale(style.highlights.itemSize),
+                      color: style.highlights.itemColor,
+                      height: "auto",
+                      minHeight: 0,
+                    }}
                   />
                 </li>
               ))}
@@ -656,7 +665,7 @@ export function OnwardAirOverviewPage() {
     return (
       <section
         key={id}
-        className="flex min-h-0 flex-col overflow-hidden text-[#1B2430]"
+        className="oa-left-card flex min-h-0 flex-col overflow-hidden text-[#1B2430]"
         style={boxStyle}
       >
         <div
@@ -700,7 +709,7 @@ export function OnwardAirOverviewPage() {
             </p>
           )}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto">
+        <div className="oa-left-card-body flex min-h-0 flex-1 flex-col justify-start overflow-y-auto">
           <div className="flex flex-col" style={{ gap: scale(style.agenda.rowGap) }}>
             {content.agenda.map((row, i) => (
               <div
@@ -795,7 +804,7 @@ export function OnwardAirOverviewPage() {
 
   return (
     <div
-      className="oa-overview relative flex min-h-[100dvh] flex-col overflow-x-hidden text-white lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden"
+      className="oa-overview relative flex min-h-[100dvh] flex-col overflow-x-hidden text-white min-[1100px]:h-[100dvh] min-[1100px]:max-h-[100dvh] min-[1100px]:overflow-hidden"
       style={{ fontFamily: overviewFontStack(style.typography.fontFamily) }}
     >
       <style>{`
@@ -826,36 +835,18 @@ export function OnwardAirOverviewPage() {
             --oa-preview-min-h: 320px;
           }
         }
-        @media (min-width: 768px) {
+        @media (min-width: 1100px) {
           .oa-overview-layout {
             grid-template-columns: var(--oa-layout-cols);
           }
         }
-        @media (max-height: 820px) and (min-width: 768px) {
-          .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 280px; }
-        }
-        @media (max-height: 720px) and (min-width: 768px) {
+        /* Tablet + phone — stack left cards above preview; no crushed side column */
+        @media (max-width: 1099px) {
           .oa-overview {
             height: auto !important;
             max-height: none !important;
-            overflow: auto !important;
-          }
-        }
-        /* Phones — Android + iPhone */
-        @media (max-width: 767px) {
-          .oa-overview {
-            --oa-scale: 0.95;
-            --oa-pad-x: max(12px, env(safe-area-inset-left, 0px));
-            --oa-pad-y: max(10px, env(safe-area-inset-top, 0px));
-            --oa-col-gap: 12px;
-            --oa-card-gap: 10px;
-            --oa-preview-min-h: 0px;
-            height: auto !important;
-            max-height: none !important;
-            min-height: 100dvh;
             overflow-x: hidden !important;
             overflow-y: auto !important;
-            padding-bottom: env(safe-area-inset-bottom, 0px);
           }
           .oa-overview-layout {
             grid-template-columns: 1fr !important;
@@ -869,11 +860,19 @@ export function OnwardAirOverviewPage() {
             max-height: none !important;
             overflow: visible !important;
             gap: 10px !important;
+            grid-template-rows: none !important;
           }
-          .oa-overview-left > * {
+          .oa-overview-left .oa-left-card {
             flex: 0 0 auto !important;
-            min-height: 0 !important;
+            height: auto !important;
             max-height: none !important;
+            overflow: visible !important;
+          }
+          .oa-overview-left .oa-left-card-body {
+            flex: none !important;
+            min-height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
           }
           .oa-overview-preview {
             flex-direction: column !important;
@@ -881,7 +880,7 @@ export function OnwardAirOverviewPage() {
             height: auto !important;
           }
           .oa-overview-nav {
-            max-height: min(38vh, 260px) !important;
+            max-height: min(42vh, 320px) !important;
             width: 100% !important;
           }
           .oa-preview-stage {
@@ -906,6 +905,35 @@ export function OnwardAirOverviewPage() {
             text-align: left !important;
             font-size: calc(14px * var(--oa-scale, 1)) !important;
             line-height: 1.35 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            white-space: normal !important;
+          }
+        }
+        @media (max-height: 820px) and (min-width: 768px) {
+          .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 280px; }
+        }
+        @media (max-height: 720px) and (min-width: 768px) {
+          .oa-overview {
+            height: auto !important;
+            max-height: none !important;
+            overflow: auto !important;
+          }
+        }
+        /* Phones — tighter padding */
+        @media (max-width: 767px) {
+          .oa-overview {
+            --oa-scale: 0.95;
+            --oa-pad-x: max(12px, env(safe-area-inset-left, 0px));
+            --oa-pad-y: max(10px, env(safe-area-inset-top, 0px));
+            --oa-col-gap: 12px;
+            --oa-card-gap: 10px;
+            --oa-preview-min-h: 0px;
+            min-height: 100dvh;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+          }
+          .oa-overview-nav {
+            max-height: min(38vh, 260px) !important;
           }
         }
         @media (max-width: 430px) {
@@ -1013,7 +1041,7 @@ export function OnwardAirOverviewPage() {
         </header>
 
         <div
-          className="oa-overview-layout mt-3 grid min-h-0 flex-1 grid-cols-1 lg:mt-5 lg:items-stretch"
+          className="oa-overview-layout mt-3 grid min-h-0 flex-1 grid-cols-1 min-[1100px]:mt-5 min-[1100px]:items-stretch"
           style={
             {
               gap: "var(--oa-col-gap)",

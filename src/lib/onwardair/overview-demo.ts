@@ -476,7 +476,7 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
     highlights: [
       "A REAL AI Executive Assistant",
       "OnwardAir Intelligence",
-      "Fundraising & Board Management inc Portal",
+      "Fundraising & Board Management incl. Portal",
       "Financials & cash runway view",
       "Understand your Operations",
       "Engineering & Project Management",
