@@ -580,10 +580,10 @@ export function OnwardAirOverviewPage() {
         setContent(defaultOnwardAirOverviewContent());
         try {
           const tuneParam = new URLSearchParams(window.location.search).get("tune");
-          // Edit mode on for every authenticated overview visit unless ?tune=0.
-          setTuneMode(tuneParam !== "0");
+          // Invitee view: edit off. Add ?tune=1 to open the style editor.
+          setTuneMode(tuneParam === "1");
         } catch {
-          setTuneMode(true);
+          setTuneMode(false);
         }
         setAuthReady(true);
         setLoading(false);
@@ -1378,15 +1378,7 @@ export function OnwardAirOverviewPage() {
             onContentChange={handleContentChange}
           />
         </>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setTuneMode(true)}
-          className="fixed top-4 right-4 z-[2147482000] rounded-lg border-2 border-[#7DD3E8] bg-[#0B1220] px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-[#267B90]"
-        >
-          Turn on edit mode
-        </button>
-      )}
+      ) : null}
     </div>
   );
 }

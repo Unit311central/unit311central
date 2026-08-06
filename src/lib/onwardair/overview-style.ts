@@ -224,7 +224,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
         visible: true,
       }),
       bg: "rgba(11, 58, 74, 0.85)",
-      textSize: 15,
+      textSize: 13,
       textColor: "rgba(255, 255, 255, 0.98)",
       badgeSize: 23,
       badgeColor: "#7DD3E8",
