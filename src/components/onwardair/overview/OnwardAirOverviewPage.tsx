@@ -455,7 +455,7 @@ export function OnwardAirOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<InternalOperationsView>("home");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
-  /** Live style popup + inline editors — only with ?tune=1 */
+  /** Live style popup + inline editors — on for overview editors; ?tune=0 hides for invitee preview. */
   const [tuneMode, setTuneMode] = useState(false);
 
   // Never render invite content until the overview session is verified.
@@ -475,10 +475,17 @@ export function OnwardAirOverviewPage() {
           return;
         }
         if (cancelled) return;
+        const payload = (await response.json()) as {
+          canEdit?: boolean;
+        };
         setStyle(defaultOverviewStyleConfig());
         setContent(defaultOnwardAirOverviewContent());
         try {
-          setTuneMode(new URLSearchParams(window.location.search).get("tune") === "1");
+          const params = new URLSearchParams(window.location.search);
+          const tuneParam = params.get("tune");
+          const canEdit = payload.canEdit === true;
+          // Edit mode on by default for overview editors; use ?tune=0 to preview as invitee.
+          setTuneMode(tuneParam === "0" ? false : tuneParam === "1" ? true : canEdit);
         } catch {
           setTuneMode(false);
         }
@@ -1186,7 +1193,24 @@ export function OnwardAirOverviewPage() {
           content={content}
           onContentChange={handleContentChange}
         />
-      ) : null}
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setTuneMode(true);
+            try {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("tune");
+              window.history.replaceState(null, "", url.toString());
+            } catch {
+              /* ignore */
+            }
+          }}
+          className="fixed bottom-4 right-4 z-[70] rounded-lg border border-white/20 bg-black/70 px-3 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-sm hover:bg-[#267B90]"
+        >
+          Edit page
+        </button>
+      )}
     </div>
   );
 }
