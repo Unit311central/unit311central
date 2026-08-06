@@ -519,10 +519,14 @@ export function OnwardAirOverviewPage() {
     [activeView, style, content],
   );
   const layoutCols = style
-    ? `minmax(min(100%, max(220px, 24vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
+    ? `minmax(min(100%, max(160px, 18vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
     : "";
   const visibleLeftCards = style ? style.leftColumnOrder.filter((id) => style[id].visible) : [];
   const scale = (px: number) => `calc(${px}px * var(--oa-scale, 1))`;
+  const leftGridRows =
+    style && visibleLeftCards.length > 0
+      ? visibleLeftCards.map((id) => `minmax(0, ${style[id].heightFr}fr)`).join(" ")
+      : "1fr";
 
   function patchContent(partial: Partial<OnwardAirOverviewEditableContent>) {
     if (!content) return;
@@ -560,7 +564,7 @@ export function OnwardAirOverviewPage() {
           style={boxStyle}
         >
           <ul
-            className="flex min-h-0 flex-1 flex-col justify-evenly overflow-hidden py-0.5"
+            className="flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
             style={{ gap: scale(style.questions.itemGap) }}
           >
             {content.questions.map((q, i) => (
@@ -622,7 +626,7 @@ export function OnwardAirOverviewPage() {
               style={{ fontSize: scale(style.highlights.titleSize), color: style.highlights.titleColor }}
             />
           </div>
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <ul className="m-0 flex list-none flex-col p-0" style={{ gap: scale(style.highlights.itemGap) }}>
               {content.highlights.map((item, i) => (
                 <li key={`h-${i}`} className="flex shrink-0 items-start gap-1 leading-snug">
@@ -696,7 +700,7 @@ export function OnwardAirOverviewPage() {
             </p>
           )}
         </div>
-        <div className="flex min-h-0 flex-1 flex-col justify-start overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col justify-start overflow-y-auto">
           <div className="flex flex-col" style={{ gap: scale(style.agenda.rowGap) }}>
             {content.agenda.map((row, i) => (
               <div
@@ -830,16 +834,6 @@ export function OnwardAirOverviewPage() {
         @media (max-height: 820px) and (min-width: 768px) {
           .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 280px; }
         }
-        @media (max-height: 900px) and (min-width: 768px) {
-          .oa-overview {
-            height: auto !important;
-            max-height: none !important;
-            overflow: auto !important;
-          }
-          .oa-overview-left > * {
-            overflow: visible !important;
-          }
-        }
         @media (max-height: 720px) and (min-width: 768px) {
           .oa-overview {
             height: auto !important;
@@ -947,7 +941,7 @@ export function OnwardAirOverviewPage() {
           paddingBottom: "var(--oa-pad-y)",
         }}
       >
-        <header className="flex shrink-0 flex-col gap-2 pt-[max(2px,env(safe-area-inset-top))]">
+        <header className="flex shrink-0 flex-col gap-2">
           <div className="oa-overview-header-row flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1028,18 +1022,13 @@ export function OnwardAirOverviewPage() {
           }
         >
             <aside
-              className="oa-overview-left flex h-full min-h-0 flex-col overflow-hidden md:overflow-hidden"
-              style={{ gap: "var(--oa-card-gap)" }}
+              className="oa-overview-left grid h-full min-h-0 overflow-hidden md:overflow-hidden"
+              style={{
+                gap: "var(--oa-card-gap)",
+                gridTemplateRows: leftGridRows,
+              }}
             >
-              {visibleLeftCards.map((id) => (
-                <div
-                  key={id}
-                  className="min-h-0"
-                  style={{ flex: `${style[id].heightFr} 1 0%` }}
-                >
-                  {renderLeftCard(id)}
-                </div>
-              ))}
+              {visibleLeftCards.map((id) => renderLeftCard(id))}
             </aside>
 
             <section
