@@ -528,8 +528,8 @@ export function OnwardAirOverviewPage() {
   const scale = (px: number) => `calc(${px}px * var(--oa-scale, 1))`;
   const leftGridRows =
     style && visibleLeftCards.length > 0
-      ? visibleLeftCards.map((id) => `minmax(0, ${style[id].heightFr}fr)`).join(" ")
-      : "1fr";
+      ? visibleLeftCards.map((id) => `minmax(auto, ${style[id].heightFr}fr)`).join(" ")
+      : "auto";
 
   function patchContent(partial: Partial<OnwardAirOverviewEditableContent>) {
     if (!content) return;
@@ -544,8 +544,11 @@ export function OnwardAirOverviewPage() {
     );
   }
 
+  const pageStyle = style;
+  const pageContent = content;
+
   const renderLeftCard = (id: OverviewLeftCardId) => {
-    const chrome = style[id];
+    const chrome = pageStyle[id];
     const border = overviewCardBorder({
       borderColor: chrome.borderColor,
       borderOpacity: chrome.borderOpacity,
@@ -563,23 +566,23 @@ export function OnwardAirOverviewPage() {
       return (
         <section
           key={id}
-          className="oa-left-card flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
+          className="flex flex-col overflow-visible text-white backdrop-blur-[2px]"
           style={boxStyle}
         >
           <ul
-            className="oa-left-card-body flex min-h-0 flex-1 flex-col justify-evenly overflow-y-auto py-0.5"
-            style={{ gap: scale(style.questions.itemGap) }}
+            className="flex flex-col justify-evenly py-0.5"
+            style={{ gap: scale(pageStyle.questions.itemGap) }}
           >
-            {content.questions.map((q, i) => (
+            {pageContent.questions.map((q, i) => (
               <li key={`q-${i}`} className="flex shrink-0 items-start gap-2 leading-snug">
                 <span
                   className="mt-0.5 flex shrink-0 items-center justify-center rounded-full border font-bold leading-none"
                   style={{
-                    width: scale(Math.max(18, style.questions.textSize + 6)),
-                    height: scale(Math.max(18, style.questions.textSize + 6)),
-                    fontSize: scale(Math.max(10, style.questions.textSize - 3)),
-                    color: style.questions.textColor,
-                    borderColor: style.questions.textColor,
+                    width: scale(Math.max(18, pageStyle.questions.textSize + 6)),
+                    height: scale(Math.max(18, pageStyle.questions.textSize + 6)),
+                    fontSize: scale(Math.max(10, pageStyle.questions.textSize - 3)),
+                    color: pageStyle.questions.textColor,
+                    borderColor: pageStyle.questions.textColor,
                     background: "transparent",
                   }}
                   aria-hidden
@@ -591,15 +594,15 @@ export function OnwardAirOverviewPage() {
                   value={q}
                   editable={tuneMode}
                   onChange={(next) => {
-                    const questions = content.questions.map((item, index) =>
+                    const questions = pageContent.questions.map((item, index) =>
                       index === i ? next : item,
                     );
                     patchContent({ questions });
                   }}
                   className="leading-snug"
                   style={{
-                    fontSize: scale(style.questions.textSize),
-                    color: style.questions.textColor,
+                    fontSize: scale(pageStyle.questions.textSize),
+                    color: pageStyle.questions.textColor,
                     height: "auto",
                     minHeight: "1.35em",
                   }}
@@ -615,25 +618,25 @@ export function OnwardAirOverviewPage() {
       return (
         <section
           key={id}
-          className="oa-left-card flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
+          className="flex flex-col overflow-visible text-white backdrop-blur-[2px]"
           style={boxStyle}
         >
-          <div className="shrink-0" style={{ marginBottom: scale(style.highlights.titleGap) }}>
+          <div className="shrink-0" style={{ marginBottom: scale(pageStyle.highlights.titleGap) }}>
             <InlineEdit
               aria-label="Highlights title"
-              value={content.highlightsTitle}
+              value={pageContent.highlightsTitle}
               editable={tuneMode}
               onChange={(highlightsTitle) => patchContent({ highlightsTitle })}
               fill={false}
               className="font-bold uppercase tracking-[0.14em]"
-              style={{ fontSize: scale(style.highlights.titleSize), color: style.highlights.titleColor }}
+              style={{ fontSize: scale(pageStyle.highlights.titleSize), color: pageStyle.highlights.titleColor }}
             />
           </div>
-          <div className="oa-left-card-body min-h-0 flex-1 overflow-y-auto">
-            <ul className="m-0 flex list-none flex-col p-0" style={{ gap: scale(style.highlights.itemGap) }}>
-              {content.highlights.map((item, i) => (
+          <div>
+            <ul className="m-0 flex list-none flex-col p-0" style={{ gap: scale(pageStyle.highlights.itemGap) }}>
+              {pageContent.highlights.map((item, i) => (
                 <li key={`h-${i}`} className="flex shrink-0 items-start gap-1.5 leading-snug">
-                  <span className="mt-0.5 shrink-0" style={{ color: style.highlights.bulletColor }}>
+                  <span className="mt-0.5 shrink-0" style={{ color: pageStyle.highlights.bulletColor }}>
                     •
                   </span>
                   <InlineEdit
@@ -641,15 +644,15 @@ export function OnwardAirOverviewPage() {
                     value={item}
                     editable={tuneMode}
                     onChange={(next) => {
-                      const highlights = content.highlights.map((row, index) =>
+                      const highlights = pageContent.highlights.map((row, index) =>
                         index === i ? next : row,
                       );
                       patchContent({ highlights });
                     }}
                     className="leading-snug"
                     style={{
-                      fontSize: scale(style.highlights.itemSize),
-                      color: style.highlights.itemColor,
+                      fontSize: scale(pageStyle.highlights.itemSize),
+                      color: pageStyle.highlights.itemColor,
                       height: "auto",
                       minHeight: 0,
                     }}
@@ -665,28 +668,28 @@ export function OnwardAirOverviewPage() {
     return (
       <section
         key={id}
-        className="oa-left-card flex min-h-0 flex-col overflow-hidden text-[#1B2430]"
+        className="flex flex-col overflow-visible text-[#1B2430]"
         style={boxStyle}
       >
         <div
           className="shrink-0"
           style={{
-            marginTop: scale(style.agenda.titleTopGap),
-            marginBottom: scale(style.agenda.titleGap),
+            marginTop: scale(pageStyle.agenda.titleTopGap),
+            marginBottom: scale(pageStyle.agenda.titleGap),
           }}
         >
           {tuneMode ? (
             <InlineEdit
               aria-label="Agenda title"
-              value={content.agendaTitle}
+              value={pageContent.agendaTitle}
               editable
               onChange={(agendaTitle) => patchContent({ agendaTitle })}
               fill
               className="oa-agenda-title !font-bold tracking-tight text-center"
               style={{
-                fontSize: scale(style.agenda.titleSize),
+                fontSize: scale(pageStyle.agenda.titleSize),
                 fontWeight: 800,
-                color: style.agenda.titleColor,
+                color: pageStyle.agenda.titleColor,
                 height: "auto",
                 minHeight: "1.2em",
                 lineHeight: 1.2,
@@ -698,9 +701,9 @@ export function OnwardAirOverviewPage() {
             <p
               className="oa-agenda-title m-0 w-full text-center font-extrabold uppercase tracking-tight"
               style={{
-                fontSize: scale(style.agenda.titleSize),
+                fontSize: scale(pageStyle.agenda.titleSize),
                 fontWeight: 800,
-                color: style.agenda.titleColor,
+                color: pageStyle.agenda.titleColor,
                 lineHeight: 1.2,
                 textAlign: "center",
               }}
@@ -709,19 +712,19 @@ export function OnwardAirOverviewPage() {
             </p>
           )}
         </div>
-        <div className="oa-left-card-body flex min-h-0 flex-1 flex-col justify-start overflow-y-auto">
-          <div className="flex flex-col" style={{ gap: scale(style.agenda.rowGap) }}>
-            {content.agenda.map((row, i) => (
+        <div className="flex flex-col justify-start">
+          <div className="flex flex-col" style={{ gap: scale(pageStyle.agenda.rowGap) }}>
+            {pageContent.agenda.map((row, i) => (
               <div
                 key={`a-${i}`}
                 className="shrink-0"
                 style={{
-                  background: style.agenda.rowBg,
-                  padding: `${scale(style.agenda.rowPaddingY)} ${scale(style.agenda.rowPaddingX)}`,
-                  borderRadius: style.agenda.rowRadius,
+                  background: pageStyle.agenda.rowBg,
+                  padding: `${scale(pageStyle.agenda.rowPaddingY)} ${scale(pageStyle.agenda.rowPaddingX)}`,
+                  borderRadius: pageStyle.agenda.rowRadius,
                   border: overviewCardBorder({
-                    borderColor: style.agenda.rowBorderColor,
-                    borderOpacity: style.agenda.rowBorderOpacity,
+                    borderColor: pageStyle.agenda.rowBorderColor,
+                    borderOpacity: pageStyle.agenda.rowBorderOpacity,
                   }),
                 }}
               >
@@ -732,13 +735,13 @@ export function OnwardAirOverviewPage() {
                     editable={tuneMode}
                     fill={false}
                     onChange={(wave) => {
-                      const agenda = content.agenda.map((item, index) =>
+                      const agenda = pageContent.agenda.map((item, index) =>
                         index === i ? { ...item, wave } : item,
                       );
                       patchContent({ agenda });
                     }}
                     className="font-bold uppercase tracking-wider"
-                    style={{ fontSize: scale(style.agenda.waveSize), color: style.agenda.waveColor }}
+                    style={{ fontSize: scale(pageStyle.agenda.waveSize), color: pageStyle.agenda.waveColor }}
                   />
                   <InlineEdit
                     aria-label={`Agenda row ${i + 1} who`}
@@ -746,13 +749,13 @@ export function OnwardAirOverviewPage() {
                     editable={tuneMode}
                     fill={false}
                     onChange={(who) => {
-                      const agenda = content.agenda.map((item, index) =>
+                      const agenda = pageContent.agenda.map((item, index) =>
                         index === i ? { ...item, who } : item,
                       );
                       patchContent({ agenda });
                     }}
                     className="text-right font-semibold"
-                    style={{ fontSize: scale(style.agenda.whoSize), color: style.agenda.whoColor }}
+                    style={{ fontSize: scale(pageStyle.agenda.whoSize), color: pageStyle.agenda.whoColor }}
                   />
                 </div>
                 <InlineEdit
@@ -760,16 +763,16 @@ export function OnwardAirOverviewPage() {
                   value={row.why}
                   editable={tuneMode}
                   onChange={(why) => {
-                    const agenda = content.agenda.map((item, index) =>
+                    const agenda = pageContent.agenda.map((item, index) =>
                       index === i ? { ...item, why } : item,
                     );
                     patchContent({ agenda });
                   }}
                   className="oa-agenda-why mt-0.5 !font-bold leading-snug"
                   style={{
-                    fontSize: scale(style.agenda.whySize),
+                    fontSize: scale(pageStyle.agenda.whySize),
                     fontWeight: 700,
-                    color: style.agenda.whyColor,
+                    color: pageStyle.agenda.whyColor,
                     height: "auto",
                     minHeight: "1.35em",
                   }}
@@ -804,7 +807,7 @@ export function OnwardAirOverviewPage() {
 
   return (
     <div
-      className="oa-overview relative flex min-h-[100dvh] flex-col overflow-x-hidden text-white min-[1100px]:h-[100dvh] min-[1100px]:max-h-[100dvh] min-[1100px]:overflow-hidden"
+      className="oa-overview relative flex min-h-[100dvh] flex-col overflow-x-hidden text-white"
       style={{ fontFamily: overviewFontStack(style.typography.fontFamily) }}
     >
       <style>{`
@@ -835,18 +838,48 @@ export function OnwardAirOverviewPage() {
             --oa-preview-min-h: 320px;
           }
         }
-        @media (min-width: 1100px) {
+        @media (min-width: 768px) {
           .oa-overview-layout {
             grid-template-columns: var(--oa-layout-cols);
           }
         }
-        /* Tablet + phone — stack left cards above preview; no crushed side column */
-        @media (max-width: 1099px) {
+        @media (min-width: 768px) and (min-height: 901px) {
+          .oa-overview-layout {
+            min-height: calc(100dvh - 7rem);
+          }
+          .oa-overview-left {
+            height: 100%;
+          }
+        }
+        @media (max-height: 820px) and (min-width: 768px) {
+          .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 280px; }
+        }
+        @media (max-height: 900px) and (min-width: 768px) {
           .oa-overview {
             height: auto !important;
             max-height: none !important;
+            overflow: visible !important;
+          }
+          .oa-overview-left {
+            height: auto !important;
+            overflow: visible !important;
+          }
+        }
+        /* Phones — Android + iPhone */
+        @media (max-width: 767px) {
+          .oa-overview {
+            --oa-scale: 0.95;
+            --oa-pad-x: max(12px, env(safe-area-inset-left, 0px));
+            --oa-pad-y: max(10px, env(safe-area-inset-top, 0px));
+            --oa-col-gap: 12px;
+            --oa-card-gap: 10px;
+            --oa-preview-min-h: 0px;
+            height: auto !important;
+            max-height: none !important;
+            min-height: 100dvh;
             overflow-x: hidden !important;
             overflow-y: auto !important;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
           }
           .oa-overview-layout {
             grid-template-columns: 1fr !important;
@@ -860,19 +893,11 @@ export function OnwardAirOverviewPage() {
             max-height: none !important;
             overflow: visible !important;
             gap: 10px !important;
-            grid-template-rows: none !important;
           }
-          .oa-overview-left .oa-left-card {
+          .oa-overview-left > * {
             flex: 0 0 auto !important;
-            height: auto !important;
+            min-height: 0 !important;
             max-height: none !important;
-            overflow: visible !important;
-          }
-          .oa-overview-left .oa-left-card-body {
-            flex: none !important;
-            min-height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
           }
           .oa-overview-preview {
             flex-direction: column !important;
@@ -880,7 +905,7 @@ export function OnwardAirOverviewPage() {
             height: auto !important;
           }
           .oa-overview-nav {
-            max-height: min(42vh, 320px) !important;
+            max-height: min(38vh, 260px) !important;
             width: 100% !important;
           }
           .oa-preview-stage {
@@ -908,32 +933,6 @@ export function OnwardAirOverviewPage() {
             height: auto !important;
             min-height: 0 !important;
             white-space: normal !important;
-          }
-        }
-        @media (max-height: 820px) and (min-width: 768px) {
-          .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 280px; }
-        }
-        @media (max-height: 720px) and (min-width: 768px) {
-          .oa-overview {
-            height: auto !important;
-            max-height: none !important;
-            overflow: auto !important;
-          }
-        }
-        /* Phones — tighter padding */
-        @media (max-width: 767px) {
-          .oa-overview {
-            --oa-scale: 0.95;
-            --oa-pad-x: max(12px, env(safe-area-inset-left, 0px));
-            --oa-pad-y: max(10px, env(safe-area-inset-top, 0px));
-            --oa-col-gap: 12px;
-            --oa-card-gap: 10px;
-            --oa-preview-min-h: 0px;
-            min-height: 100dvh;
-            padding-bottom: env(safe-area-inset-bottom, 0px);
-          }
-          .oa-overview-nav {
-            max-height: min(38vh, 260px) !important;
           }
         }
         @media (max-width: 430px) {
@@ -1041,7 +1040,7 @@ export function OnwardAirOverviewPage() {
         </header>
 
         <div
-          className="oa-overview-layout mt-3 grid min-h-0 flex-1 grid-cols-1 min-[1100px]:mt-5 min-[1100px]:items-stretch"
+          className="oa-overview-layout mt-3 grid min-h-0 flex-1 grid-cols-1 lg:mt-5 lg:items-stretch"
           style={
             {
               gap: "var(--oa-col-gap)",
@@ -1050,7 +1049,7 @@ export function OnwardAirOverviewPage() {
           }
         >
             <aside
-              className="oa-overview-left grid h-full min-h-0 overflow-hidden md:overflow-hidden"
+              className="oa-overview-left grid min-h-0 overflow-visible md:overflow-visible"
               style={{
                 gap: "var(--oa-card-gap)",
                 gridTemplateRows: leftGridRows,

@@ -97,7 +97,7 @@ async function measure(page) {
     const preview = document.querySelector(".oa-overview-preview");
     const nav = document.querySelector('[data-ai-target="platform-nav"]');
     const stage = document.querySelector(".oa-preview-stage");
-    const leftCards = document.querySelectorAll(".oa-overview-left .oa-left-card");
+    const leftCards = document.querySelectorAll(".oa-overview-left > section");
     const cardScrollbars = Array.from(leftCards).filter((card) => {
       const body = card.querySelector(".oa-left-card-body");
       const el = body ?? card;
@@ -133,7 +133,7 @@ async function measure(page) {
       leftH: Math.round(leftRect?.height || 0),
       previewH: Math.round(previewRect?.height || 0),
       stageH: Math.round(stageRect?.height || 0),
-      leftContentSignals: left?.querySelectorAll(".oa-left-card").length ?? 0,
+      leftContentSignals: left?.querySelectorAll("section").length ?? 0,
       cardScrollbars,
       headlineClipped,
       stacked,
@@ -149,8 +149,8 @@ function verdict(m) {
   if (m.navH < 80) issues.push(`nav-too-short(${m.navH})`);
   if (m.leftH < 120) issues.push(`left-too-short(${m.leftH})`);
   if (m.stageH < 180) issues.push(`stage-too-short(${m.stageH})`);
-  if (m.viewport.w <= 1099 && m.previewFlexDir !== "column") issues.push(`preview-not-column(${m.previewFlexDir})`);
-  if (m.viewport.w <= 1099 && !m.stacked) issues.push("expected-stacked");
+  if (m.viewport.w <= 767 && m.previewFlexDir !== "column") issues.push(`preview-not-column(${m.previewFlexDir})`);
+  if (m.viewport.w <= 767 && !m.stacked) issues.push("expected-stacked");
   if (m.leftContentSignals < 3) issues.push("left-cards-likely-clipped");
   if (m.cardScrollbars > 0) issues.push(`left-card-scrollbars(${m.cardScrollbars})`);
   if (m.headlineClipped) issues.push("headline-clipped");
