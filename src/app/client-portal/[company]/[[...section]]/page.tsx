@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { OnwardAirBoardPortalApp } from "@/components/onwardair/board/OnwardAirBoardPortalApp";
 import { OnwardAirClientPortalApp } from "@/components/onwardair/portal/OnwardAirClientPortalApp";
@@ -6,7 +6,10 @@ import { OnwardAirOverviewPage } from "@/components/onwardair/overview/OnwardAir
 import { parseOaBoardPortalSection } from "@/lib/onwardair/board-portal-data";
 import { requireOnwardAirClientPortalAccess } from "@/lib/onwardair/client-portal-auth";
 import { parseOaClientPortalSection } from "@/lib/onwardair/client-portal-data";
-import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
+import {
+  ONWARDAIR_CLIENT_PORTAL_ORIGIN,
+  getOnwardAirClientPortalByPath,
+} from "@/lib/onwardair/client-portal-routes";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +23,9 @@ export default async function OnwardAirClientPortalPage({
   if (!route) notFound();
 
   if (route.portalKind === "overview") {
+    if (section.length > 0) {
+      redirect(`${ONWARDAIR_CLIENT_PORTAL_ORIGIN}/${route.path}/login`);
+    }
     await requireOnwardAirClientPortalAccess(company);
     return <OnwardAirOverviewPage />;
   }

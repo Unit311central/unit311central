@@ -19,7 +19,7 @@ export function OnwardAirClientPortalLogin({
   companyLogoSrc,
   portalKind = "client",
 }: Props) {
-  const [username, setUsername] = useState(suggestedUsername);
+  const [username, setUsername] = useState(isOverview ? "" : suggestedUsername);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -160,6 +160,7 @@ export function OnwardAirClientPortalLogin({
                 autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                placeholder={isOverview ? suggestedUsername : undefined}
                 className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-teal-400/60"
               />
             </label>

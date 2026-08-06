@@ -118,7 +118,12 @@ function withHostHeaders(
 }
 
 function redirectExternal(url: string, status: 307 | 308 = 307) {
-  return NextResponse.redirect(url, status);
+  const response = NextResponse.redirect(url, status);
+  response.headers.set(
+    "Cache-Control",
+    "private, no-cache, no-store, max-age=0, must-revalidate",
+  );
+  return response;
 }
 
 /** Permanent redirect for deprecated browser URLs (bookmarks / old links). */

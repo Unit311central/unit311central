@@ -446,27 +446,50 @@ function OverviewPlatformNav({
 }
 
 export function OnwardAirOverviewPage() {
-  const [content, setContent] = useState<OnwardAirOverviewEditableContent>(() =>
-    defaultOnwardAirOverviewContent(),
-  );
-  const [style, setStyle] = useState<OverviewStyleConfig>(() => defaultOverviewStyleConfig());
+  const [authReady, setAuthReady] = useState(false);
+  const [content, setContent] = useState<OnwardAirOverviewEditableContent | null>(null);
+  const [style, setStyle] = useState<OverviewStyleConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<InternalOperationsView>("home");
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   /** Live style popup + inline editors — only with ?tune=1 */
   const [tuneMode, setTuneMode] = useState(false);
 
-  // Always ship the committed tuner defaults (style + invite copy). Do not let a
-  // warm API memory blob or an old in-tab session hide the latest deploy.
+  // Never render invite content until the overview session is verified.
+  // Server layout auth can be bypassed by client-side router hydration.
   useEffect(() => {
-    setStyle(defaultOverviewStyleConfig());
-    setContent(defaultOnwardAirOverviewContent());
-    setLoading(false);
-    try {
-      setTuneMode(new URLSearchParams(window.location.search).get("tune") === "1");
-    } catch {
-      setTuneMode(false);
+    let cancelled = false;
+
+    async function loadAuthenticatedOverview() {
+      try {
+        const response = await fetch("/api/onwardair/overview-content", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          const next = `${window.location.pathname}${window.location.search}`;
+          window.location.replace(`/overview/login?next=${encodeURIComponent(next)}`);
+          return;
+        }
+        if (cancelled) return;
+        setStyle(defaultOverviewStyleConfig());
+        setContent(defaultOnwardAirOverviewContent());
+        try {
+          setTuneMode(new URLSearchParams(window.location.search).get("tune") === "1");
+        } catch {
+          setTuneMode(false);
+        }
+        setAuthReady(true);
+        setLoading(false);
+      } catch {
+        window.location.replace("/overview/login");
+      }
     }
+
+    void loadAuthenticatedOverview();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -491,17 +514,31 @@ export function OnwardAirOverviewPage() {
     }
   }, [activeView]);
 
-  const previewMedia = useMemo(() => overviewPreviewMediaForView(activeView), [activeView]);
-  const layoutCols = `minmax(min(100%, max(160px, 18vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`;
-  const visibleLeftCards = style.leftColumnOrder.filter((id) => style[id].visible);
+  const previewMedia = useMemo(
+    () => (style && content ? overviewPreviewMediaForView(activeView) : null),
+    [activeView, style, content],
+  );
+  const layoutCols = style
+    ? `minmax(min(100%, max(160px, 18vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
+    : "";
+  const visibleLeftCards = style ? style.leftColumnOrder.filter((id) => style[id].visible) : [];
   const scale = (px: number) => `calc(${px}px * var(--oa-scale, 1))`;
   const leftGridRows =
-    visibleLeftCards.length > 0
+    style && visibleLeftCards.length > 0
       ? visibleLeftCards.map((id) => `minmax(0, ${style[id].heightFr}fr)`).join(" ")
       : "1fr";
 
   function patchContent(partial: Partial<OnwardAirOverviewEditableContent>) {
-    setContent((prev) => ({ ...prev, ...partial }));
+    if (!content) return;
+    setContent((prev) => (prev ? { ...prev, ...partial } : prev));
+  }
+
+  if (!authReady || !style || !content || !previewMedia) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[#020617] px-4 text-sm text-white/55">
+        Checking access…
+      </div>
+    );
   }
 
   function renderLeftCard(id: OverviewLeftCardId) {
