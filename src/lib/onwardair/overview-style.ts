@@ -10,7 +10,7 @@ export const OVERVIEW_STYLE_VERSION = 5 as const;
  * Do not change defaults or layout CSS without owner sign-off and updating this string.
  * Run `npm run prove:overview-client` before deploy.
  */
-export const OVERVIEW_CLIENT_LAYOUT_FINGERPRINT = "overview-client-v8-2026-08-06" as const;
+export const OVERVIEW_CLIENT_LAYOUT_FINGERPRINT = "overview-client-v9-2026-08-06" as const;
 
 export const OVERVIEW_FONT_OPTIONS = [
   {
@@ -191,9 +191,9 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       paddingX: 16,
       paddingY: 12,
       columnGap: 14,
-      leftColumnFr: 0.7,
-      leftColumnMinWidth: 160,
-      rightColumnFr: 2.45,
+      leftColumnFr: 1.05,
+      leftColumnMinWidth: 300,
+      rightColumnFr: 2.2,
       cardGap: 16,
       heroImageOpacity: 0.42,
       overlayOpacity: 0.78,

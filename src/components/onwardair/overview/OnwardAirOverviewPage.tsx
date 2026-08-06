@@ -88,10 +88,10 @@ function InlineEdit({
 
   if (!editable) {
     return (
-      <div className={`min-w-0 shrink-0 ${fill ? (multiline ? "w-full" : "flex-1") : "w-auto max-w-full"}`}>
+      <div className={`min-w-0 ${fill ? (multiline ? "w-full" : "flex-1") : "w-auto max-w-full shrink-0"}`}>
         <p
           aria-label={ariaLabel}
-          className={`m-0 block w-full min-w-0 leading-snug ${className}`}
+          className={`m-0 block min-w-0 leading-snug ${fill ? "w-full" : "w-auto whitespace-nowrap"} ${className}`}
           style={controlStyle}
         >
           {value}
@@ -631,7 +631,7 @@ export function OnwardAirOverviewPage() {
     [activeView, style, content],
   );
   const layoutCols = style
-    ? `minmax(min(100%, max(${style.page.leftColumnMinWidth}px, 18vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
+    ? `minmax(min(100%, max(${style.page.leftColumnMinWidth}px, 26vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
     : "";
   const visibleLeftCards = style ? style.leftColumnOrder.filter((id) => style[id].visible) : [];
   const scale = (px: number) => `calc(${px}px * var(--oa-scale, 1))`;
@@ -719,7 +719,7 @@ export function OnwardAirOverviewPage() {
             style={{ gap: scale(pageStyle.questions.itemGap) }}
           >
             {pageContent.questions.map((q, i) => (
-              <li key={`q-${i}`} className="oa-question-row flex items-center gap-2 leading-snug">
+              <li key={`q-${i}`} className="oa-question-row flex flex-nowrap items-center gap-2">
                 <span
                   className="oa-question-badge inline-flex shrink-0 items-center justify-center rounded-full border font-bold leading-none"
                   style={{
@@ -738,18 +738,20 @@ export function OnwardAirOverviewPage() {
                   aria-label={`Question ${i + 1}`}
                   value={q}
                   editable={tuneMode}
+                  fill={false}
                   onChange={(next) => {
                     const questions = pageContent.questions.map((item, index) =>
                       index === i ? next : item,
                     );
                     patchContent({ questions });
                   }}
-                  className="leading-snug"
+                  className="oa-question-text leading-snug"
                   style={{
                     fontSize: scale(pageStyle.questions.textSize),
                     color: pageStyle.questions.textColor,
                     height: "auto",
-                    minHeight: "1.35em",
+                    minHeight: 0,
+                    lineHeight: 1.35,
                   }}
                 />
               </li>
@@ -1017,6 +1019,10 @@ export function OnwardAirOverviewPage() {
           }
           .oa-question-row {
             align-items: center;
+            flex-wrap: nowrap;
+          }
+          .oa-question-text {
+            white-space: nowrap;
           }
           .oa-highlight-row {
             align-items: flex-start;
@@ -1109,6 +1115,12 @@ export function OnwardAirOverviewPage() {
             flex: 0 0 auto !important;
             min-height: 0 !important;
             max-height: none !important;
+          }
+          .oa-question-text {
+            white-space: normal !important;
+          }
+          .oa-question-row {
+            flex-wrap: wrap !important;
           }
           .oa-overview-preview {
             flex-direction: column !important;

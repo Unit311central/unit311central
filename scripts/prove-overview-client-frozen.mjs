@@ -11,7 +11,7 @@ const LOCAL = "http://127.0.0.1:3000";
 const ORIGIN_ARG = process.argv[2]?.replace(/\/$/, "");
 const USERNAME = "overview@onwardair.tech";
 const PASSWORD = "Overview4141&";
-const FINGERPRINT = "overview-client-v8-2026-08-06";
+const FINGERPRINT = "overview-client-v9-2026-08-06";
 
 const VIEWPORTS = [
   { name: "laptop-13", width: 1280, height: 800 },
