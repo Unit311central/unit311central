@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
+import {
+  isOverviewAuthBypassEnabled,
+  isOverviewPortalAccessAllowed,
+} from "@/lib/onwardair/overview-gate";
 import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
-import { isOverviewPortalAccessAllowed } from "@/lib/onwardair/overview-gate";
 import {
   readOnwardAirOverviewContent,
   writeOnwardAirOverviewContent,
@@ -33,6 +36,16 @@ function json(body: unknown, status = 200) {
 }
 
 export async function GET(_request: NextRequest) {
+  if (isOverviewAuthBypassEnabled()) {
+    const content = await readOnwardAirOverviewContent();
+    return json({
+      content,
+      canEdit: false,
+      username: null,
+      publicPreview: true,
+    });
+  }
+
   const session = await getPlatformSession();
   const jar = await cookies();
   if (
@@ -52,6 +65,10 @@ export async function GET(_request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  if (isOverviewAuthBypassEnabled()) {
+    return json({ error: "Overview is in public preview mode; saving is disabled." }, 403);
+  }
+
   const session = await getPlatformSession();
   const jar = await cookies();
   if (

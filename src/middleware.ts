@@ -30,7 +30,7 @@ import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { matchOnwardAirClientPortalPathname, getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
-import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation } from "@/lib/onwardair/overview-gate";
+import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
 import { isOnwardAirPortalsAllowedUsername } from "@/lib/onwardair/portals-demo";
@@ -281,6 +281,18 @@ export async function middleware(request: NextRequest) {
           }
           return response;
         };
+
+        // TEMP: public overview preview (Screenfly / responsive QA) — no login required.
+        if (isOverviewPortal && isOverviewAuthBypassEnabled()) {
+          if (isLoginRest) {
+            return redirectExternal(`${workspaceOrigin}/${portalMatch.route.path}${search}`);
+          }
+          const internalPath = `${portalImplBase}/${portalMatch.route.path}${portalMatch.rest}`;
+          return rewriteTo(request, internalPath, headers, {
+            ...workspaceResponseHeaders,
+            "x-unit311-company-portal": portalMatch.route.path,
+          });
+        }
 
         // Anonymous: branded portal login at /{company}/login.
         if (gate.status === "anonymous") {

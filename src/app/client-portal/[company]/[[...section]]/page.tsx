@@ -4,6 +4,7 @@ import { OnwardAirBoardPortalApp } from "@/components/onwardair/board/OnwardAirB
 import { OnwardAirClientPortalApp } from "@/components/onwardair/portal/OnwardAirClientPortalApp";
 import { OnwardAirOverviewPage } from "@/components/onwardair/overview/OnwardAirOverviewPage";
 import { parseOaBoardPortalSection } from "@/lib/onwardair/board-portal-data";
+import { isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 import { requireOnwardAirClientPortalAccess } from "@/lib/onwardair/client-portal-auth";
 import { parseOaClientPortalSection } from "@/lib/onwardair/client-portal-data";
 import {
@@ -24,9 +25,11 @@ export default async function OnwardAirClientPortalPage({
 
   if (route.portalKind === "overview") {
     if (section.length > 0) {
-      redirect(`${ONWARDAIR_CLIENT_PORTAL_ORIGIN}/${route.path}/login`);
+      redirect(`${ONWARDAIR_CLIENT_PORTAL_ORIGIN}/${route.path}`);
     }
-    await requireOnwardAirClientPortalAccess(company);
+    if (!isOverviewAuthBypassEnabled()) {
+      await requireOnwardAirClientPortalAccess(company);
+    }
     return <OnwardAirOverviewPage />;
   }
 

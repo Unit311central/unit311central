@@ -21,6 +21,9 @@ import {
   overviewPreviewMediaForView,
 } from "@/lib/onwardair/overview-demo";
 import {
+  isOverviewAuthBypassEnabled,
+} from "@/lib/onwardair/overview-gate";
+import {
   OVERVIEW_FONT_OPTIONS,
   type OverviewCardChrome,
   type OverviewFontId,
@@ -571,6 +574,21 @@ export function OnwardAirOverviewPage() {
 
     async function loadAuthenticatedOverview() {
       try {
+        if (isOverviewAuthBypassEnabled()) {
+          if (cancelled) return;
+          setStyle(defaultOverviewStyleConfig());
+          setContent(defaultOnwardAirOverviewContent());
+          try {
+            const tuneParam = new URLSearchParams(window.location.search).get("tune");
+            setTuneMode(tuneParam === "1");
+          } catch {
+            setTuneMode(false);
+          }
+          setAuthReady(true);
+          setLoading(false);
+          return;
+        }
+
         const response = await fetch("/api/onwardair/overview-content", {
           credentials: "include",
           cache: "no-store",

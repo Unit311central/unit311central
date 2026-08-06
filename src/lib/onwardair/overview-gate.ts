@@ -5,6 +5,19 @@ import {
   OA_OVERVIEW_VIEW_COOKIE,
 } from "@/lib/platform-session-cookie";
 
+/**
+ * TEMPORARY — flip to `false` before sending the overview invite to the client.
+ * Allows public access (e.g. Screenfly responsive testing) without login.
+ * Can also enable via env `OVERVIEW_PUBLIC_PREVIEW=1` when this flag is false.
+ */
+export const OVERVIEW_AUTH_BYPASS_FOR_PREVIEW = true;
+
+export function isOverviewAuthBypassEnabled(): boolean {
+  if (OVERVIEW_AUTH_BYPASS_FOR_PREVIEW) return true;
+  const v = process.env.OVERVIEW_PUBLIC_PREVIEW?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
 /** Address-bar / bookmark opens must complete the login form even with a valid JWT. */
 export function isFreshOverviewDocumentNavigation(request: NextRequest): boolean {
   const fetchMode = (request.headers.get("sec-fetch-mode") ?? "").toLowerCase();
@@ -21,6 +34,7 @@ export function isFreshOverviewDocumentNavigation(request: NextRequest): boolean
 export function isOverviewDocumentAccessAllowed(
   request: NextRequest,
 ): boolean {
+  if (isOverviewAuthBypassEnabled()) return true;
   const { entry, view } = readOverviewGateCookies(request);
   if (isFreshOverviewDocumentNavigation(request)) return entry;
   return entry || view;
@@ -29,6 +43,7 @@ export function isOverviewDocumentAccessAllowed(
 export function isOverviewApiAccessAllowed(
   request: NextRequest | { cookies: { get: (name: string) => { value?: string } | undefined } },
 ): boolean {
+  if (isOverviewAuthBypassEnabled()) return true;
   const { entry, view } = readOverviewGateCookies(request);
   return entry || view;
 }
