@@ -266,7 +266,7 @@ export async function middleware(request: NextRequest) {
         const companyPortalLoginGate = (clearSession = false) => {
           if (!isLoginRest) {
             const response = redirectExternal(portalLoginPublicUrl);
-            if (clearSession) clearPlatformSessionCookie(response, request);
+            if (clearSession || isOverviewPortal) clearPlatformSessionCookie(response, request);
             if (isOverviewPortal) clearOverviewGateCookie(response, request);
             return response;
           }
@@ -326,7 +326,7 @@ export async function middleware(request: NextRequest) {
         }
 
         if (isOverviewPortal && !isOverviewPortalAccessAllowed(request)) {
-          return companyPortalLoginGate();
+          return companyPortalLoginGate(true);
         }
 
         const internalPath = `${portalImplBase}/${portalMatch.route.path}${portalMatch.rest}`;

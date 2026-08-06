@@ -10,7 +10,27 @@ export function isFreshOverviewDocumentNavigation(request: NextRequest): boolean
   const fetchMode = (request.headers.get("sec-fetch-mode") ?? "").toLowerCase();
   const fetchSite = (request.headers.get("sec-fetch-site") ?? "").toLowerCase();
   const isDocumentNav = fetchMode === "navigate" || fetchMode === "";
+  const hasFetchMetadata = Boolean(
+    request.headers.get("sec-fetch-mode") || request.headers.get("sec-fetch-site"),
+  );
+  // Some browsers / edge requests omit Sec-Fetch-* — treat as a fresh open (strict invite gate).
+  if (!hasFetchMetadata) return isDocumentNav;
   return isDocumentNav && (fetchSite === "none" || fetchSite === "cross-site");
+}
+
+export function isOverviewDocumentAccessAllowed(
+  request: NextRequest,
+): boolean {
+  const { entry, view } = readOverviewGateCookies(request);
+  if (isFreshOverviewDocumentNavigation(request)) return entry;
+  return entry || view;
+}
+
+export function isOverviewApiAccessAllowed(
+  request: NextRequest | { cookies: { get: (name: string) => { value?: string } | undefined } },
+): boolean {
+  const { entry, view } = readOverviewGateCookies(request);
+  return entry || view;
 }
 
 export function readOverviewGateCookies(request: NextRequest | { cookies: { get: (name: string) => { value?: string } | undefined } }) {
@@ -21,11 +41,14 @@ export function readOverviewGateCookies(request: NextRequest | { cookies: { get:
 
 export function isOverviewPortalAccessAllowed(
   request: NextRequest | { cookies: { get: (name: string) => { value?: string } | undefined } },
-  options?: { isFreshEntry?: boolean },
+  options?: { isFreshEntry?: boolean; forDocument?: boolean },
 ): boolean {
-  const { entry, view } = readOverviewGateCookies(request);
-  const isFresh =
-    options?.isFreshEntry ??
-    ("headers" in request ? isFreshOverviewDocumentNavigation(request) : false);
-  return isFresh ? entry : entry || view;
+  if ("headers" in request && options?.forDocument !== false) {
+    if (options?.isFreshEntry != null) {
+      const { entry, view } = readOverviewGateCookies(request);
+      return options.isFreshEntry ? entry : entry || view;
+    }
+    return isOverviewDocumentAccessAllowed(request);
+  }
+  return isOverviewApiAccessAllowed(request);
 }

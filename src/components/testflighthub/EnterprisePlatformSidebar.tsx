@@ -488,8 +488,8 @@ export default function EnterprisePlatformSidebar({
                 borderColor: `color-mix(in srgb, ${color} 55%, #243347)`,
               }
             : cardShellStyle(theme)),
-          height: overviewEmbed ? 40 : WORKSPACE_HEADER_H,
-          minHeight: overviewEmbed ? 40 : WORKSPACE_HEADER_H,
+          height: overviewEmbed ? 36 : WORKSPACE_HEADER_H,
+          minHeight: overviewEmbed ? 36 : WORKSPACE_HEADER_H,
           paddingLeft: overviewEmbed ? 6 : CARD_PAD_X,
           paddingRight: 6,
         }}

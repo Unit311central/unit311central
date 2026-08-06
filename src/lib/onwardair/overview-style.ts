@@ -168,10 +168,10 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
     leftColumnOrder: ["questions", "agenda", "highlights"],
     page: {
       paddingX: 16,
-      paddingY: 12,
+      paddingY: 14,
       columnGap: 14,
-      leftColumnFr: 0.7,
-      rightColumnFr: 2.45,
+      leftColumnFr: 0.88,
+      rightColumnFr: 2.35,
       cardGap: 16,
       heroImageOpacity: 0.42,
       overlayOpacity: 0.78,

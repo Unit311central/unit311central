@@ -38,7 +38,7 @@ export async function GET(_request: NextRequest) {
   if (
     !session ||
     !isOverviewSession(session) ||
-    !isOverviewPortalAccessAllowed({ cookies: jar }, { isFreshEntry: false })
+    !isOverviewPortalAccessAllowed({ cookies: jar }, { forDocument: false })
   ) {
     return json({ error: "Authentication required." }, 401);
   }
@@ -57,7 +57,7 @@ export async function PUT(request: NextRequest) {
   if (
     !session ||
     !isOverviewSession(session) ||
-    !isOverviewPortalAccessAllowed({ cookies: jar }, { isFreshEntry: false })
+    !isOverviewPortalAccessAllowed({ cookies: jar }, { forDocument: false })
   ) {
     return json({ error: "Authentication required." }, 401);
   }
