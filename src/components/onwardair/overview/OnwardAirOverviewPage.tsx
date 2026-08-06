@@ -782,7 +782,10 @@ export function OnwardAirOverviewPage() {
               style={{ fontSize: scale(pageStyle.highlights.titleSize), color: pageStyle.highlights.titleColor }}
             />
           </div>
-          <ul className="m-0 flex list-none flex-col p-0" style={{ gap: scale(pageStyle.highlights.itemGap) }}>
+          <ul
+            className="oa-highlights-list m-0 flex min-h-0 flex-1 list-none flex-col justify-evenly p-0"
+            style={{ gap: scale(pageStyle.highlights.itemGap) }}
+          >
             {pageContent.highlights.map((item, i) => (
               <li key={`h-${i}`} className="oa-highlight-row flex gap-2 leading-snug">
                 <span

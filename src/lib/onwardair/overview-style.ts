@@ -10,7 +10,7 @@ export const OVERVIEW_STYLE_VERSION = 5 as const;
  * Do not change defaults or layout CSS without owner sign-off and updating this string.
  * Run `npm run prove:overview-client` before deploy.
  */
-export const OVERVIEW_CLIENT_LAYOUT_FINGERPRINT = "overview-client-v9-2026-08-06" as const;
+export const OVERVIEW_CLIENT_LAYOUT_FINGERPRINT = "overview-client-v10-2026-08-06" as const;
 
 export const OVERVIEW_FONT_OPTIONS = [
   {
@@ -250,13 +250,13 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
         visible: true,
       }),
       bg: "rgba(11, 58, 74, 0.85)",
-      titleSize: 18,
+      titleSize: 20,
       titleColor: "#7DD3E8",
-      titleGap: 14,
-      itemSize: 14,
+      titleGap: 16,
+      itemSize: 17,
       itemColor: "rgba(255, 255, 255, 0.95)",
       bulletColor: "#7DD3E8",
-      itemGap: 4,
+      itemGap: 10,
     },
     agenda: {
       ...defaultChrome({
