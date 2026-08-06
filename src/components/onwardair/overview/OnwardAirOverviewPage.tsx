@@ -511,17 +511,23 @@ function OverviewLeftCard({
   boxStyle,
   className,
   onPatch,
+  fillRemaining = false,
   children,
 }: {
   tuneMode: boolean;
   boxStyle: CSSProperties;
   className: string;
   onPatch: (partial: Partial<OverviewCardChrome>) => void;
+  fillRemaining?: boolean;
   children: ReactNode;
 }) {
   const cardRef = useRef<HTMLElement>(null);
   return (
-    <section ref={cardRef} className={`oa-left-card relative ${className}`} style={boxStyle}>
+    <section
+      ref={cardRef}
+      className={`oa-left-card relative ${fillRemaining ? "oa-left-card--fill " : ""}${className}`}
+      style={boxStyle}
+    >
       {children}
       {tuneMode ? <LeftCardResizeHandles cardRef={cardRef} onPatch={onPatch} /> : null}
     </section>
@@ -629,48 +635,32 @@ export function OnwardAirOverviewPage() {
     : "";
   const visibleLeftCards = style ? style.leftColumnOrder.filter((id) => style[id].visible) : [];
   const scale = (px: number) => `calc(${px}px * var(--oa-scale, 1))`;
-  const leftGridRows =
-    style && visibleLeftCards.length > 0
-      ? visibleLeftCards
-          .map((id) => {
-            const chrome = style[id];
-            if (chrome.heightPx > 0) {
-              return `calc(${chrome.heightPx}px * var(--oa-scale, 1))`;
-            }
-            if (chrome.heightFr <= 0.55) {
-              return "auto";
-            }
-            const min =
-              chrome.minHeight > 0
-                ? `calc(${chrome.minHeight}px * var(--oa-scale, 1))`
-                : "auto";
-            return `minmax(${min}, ${chrome.heightFr}fr)`;
-          })
-          .join(" ")
-      : "auto";
 
-  function leftCardDimensionStyle(chrome: OverviewStyleConfig[OverviewLeftCardId]): CSSProperties {
-    const contentSized = chrome.heightPx <= 0 && chrome.heightFr <= 0.55;
+  function leftCardDimensionStyle(
+    id: OverviewLeftCardId,
+    chrome: OverviewStyleConfig[OverviewLeftCardId],
+  ): CSSProperties {
+    const fillRemaining = id === "highlights";
     const dims: CSSProperties = {
-      ["--oa-card-flex-grow" as string]: contentSized ? "0" : String(chrome.heightFr),
-      width: chrome.widthPercent >= 100 ? "100%" : `${chrome.widthPercent}%`,
-      alignSelf: chrome.widthPercent >= 100 ? "stretch" : "flex-start",
+      width: "100%",
+      alignSelf: "stretch",
       overflow: "visible",
     };
+    if (chrome.widthPercent < 100) {
+      dims.width = `${chrome.widthPercent}%`;
+      dims.alignSelf = "flex-start";
+    }
     if (chrome.heightPx > 0) {
       const h = scale(chrome.heightPx);
       dims.height = h;
       dims.minHeight = h;
       dims.maxHeight = h;
       dims.overflowY = "auto";
-    } else {
-      if (chrome.minHeight > 0) {
-        dims.minHeight = scale(chrome.minHeight);
-      }
-      if (contentSized) {
-        dims.height = "fit-content";
-        dims.alignSelf = "start";
-      }
+    } else if (chrome.minHeight > 0) {
+      dims.minHeight = scale(chrome.minHeight);
+    }
+    if (!fillRemaining && chrome.heightPx <= 0) {
+      dims.flex = "0 0 auto";
     }
     return dims;
   }
@@ -711,10 +701,11 @@ export function OnwardAirOverviewPage() {
       borderRadius: chrome.radius,
       border,
       boxShadow: shadow,
-      ...leftCardDimensionStyle(chrome),
+      ...leftCardDimensionStyle(id, chrome),
     };
 
     if (id === "questions") {
+      const qBadge = scale(Math.max(16, pageStyle.questions.textSize + 4));
       return (
         <OverviewLeftCard
           key={id}
@@ -724,17 +715,17 @@ export function OnwardAirOverviewPage() {
           onPatch={(partial) => patchCard(id, partial)}
         >
           <ul
-            className="flex flex-col justify-evenly py-0.5"
+            className="flex flex-col py-0.5"
             style={{ gap: scale(pageStyle.questions.itemGap) }}
           >
             {pageContent.questions.map((q, i) => (
-              <li key={`q-${i}`} className="flex shrink-0 items-start gap-2 leading-snug">
+              <li key={`q-${i}`} className="oa-question-row flex items-center gap-2 leading-snug">
                 <span
-                  className="mt-0.5 flex shrink-0 items-center justify-center rounded-full border font-bold leading-none"
+                  className="oa-question-badge inline-flex shrink-0 items-center justify-center rounded-full border font-bold leading-none"
                   style={{
-                    width: scale(Math.max(18, pageStyle.questions.textSize + 6)),
-                    height: scale(Math.max(18, pageStyle.questions.textSize + 6)),
-                    fontSize: scale(Math.max(10, pageStyle.questions.textSize - 3)),
+                    width: qBadge,
+                    height: qBadge,
+                    fontSize: scale(Math.max(9, pageStyle.questions.textSize - 3)),
                     color: pageStyle.questions.textColor,
                     borderColor: pageStyle.questions.textColor,
                     background: "transparent",
@@ -773,7 +764,8 @@ export function OnwardAirOverviewPage() {
         <OverviewLeftCard
           key={id}
           tuneMode={tuneMode}
-          className="flex flex-col overflow-visible text-white backdrop-blur-[2px]"
+          fillRemaining
+          className="flex min-h-0 flex-col overflow-visible text-white backdrop-blur-[2px]"
           boxStyle={boxStyle}
           onPatch={(partial) => patchCard(id, partial)}
         >
@@ -788,35 +780,42 @@ export function OnwardAirOverviewPage() {
               style={{ fontSize: scale(pageStyle.highlights.titleSize), color: pageStyle.highlights.titleColor }}
             />
           </div>
-          <div>
-            <ul className="m-0 flex list-none flex-col p-0" style={{ gap: scale(pageStyle.highlights.itemGap) }}>
-              {pageContent.highlights.map((item, i) => (
-                <li key={`h-${i}`} className="flex shrink-0 items-start gap-1.5 leading-snug">
-                  <span className="mt-0.5 shrink-0" style={{ color: pageStyle.highlights.bulletColor }}>
-                    •
-                  </span>
-                  <InlineEdit
-                    aria-label={`Highlight ${i + 1}`}
-                    value={item}
-                    editable={tuneMode}
-                    onChange={(next) => {
-                      const highlights = pageContent.highlights.map((row, index) =>
-                        index === i ? next : row,
-                      );
-                      patchContent({ highlights });
-                    }}
-                    className="leading-snug"
-                    style={{
-                      fontSize: scale(pageStyle.highlights.itemSize),
-                      color: pageStyle.highlights.itemColor,
-                      height: "auto",
-                      minHeight: 0,
-                    }}
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
+          <ul className="m-0 flex list-none flex-col p-0" style={{ gap: scale(pageStyle.highlights.itemGap) }}>
+            {pageContent.highlights.map((item, i) => (
+              <li key={`h-${i}`} className="oa-highlight-row flex gap-2 leading-snug">
+                <span
+                  className="oa-highlight-bullet inline-flex shrink-0 items-center justify-center leading-none"
+                  style={{
+                    width: scale(14),
+                    height: scale(Math.round(pageStyle.highlights.itemSize * 1.35)),
+                    fontSize: scale(pageStyle.highlights.itemSize),
+                    color: pageStyle.highlights.bulletColor,
+                  }}
+                  aria-hidden
+                >
+                  •
+                </span>
+                <InlineEdit
+                  aria-label={`Highlight ${i + 1}`}
+                  value={item}
+                  editable={tuneMode}
+                  onChange={(next) => {
+                    const highlights = pageContent.highlights.map((row, index) =>
+                      index === i ? next : row,
+                    );
+                    patchContent({ highlights });
+                  }}
+                  className="min-w-0 flex-1 leading-snug"
+                  style={{
+                    fontSize: scale(pageStyle.highlights.itemSize),
+                    color: pageStyle.highlights.itemColor,
+                    height: "auto",
+                    minHeight: 0,
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
         </OverviewLeftCard>
       );
     }
@@ -999,6 +998,28 @@ export function OnwardAirOverviewPage() {
         @media (min-width: 768px) {
           .oa-overview-layout {
             grid-template-columns: var(--oa-layout-cols);
+            align-items: stretch;
+          }
+          .oa-overview-left {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            height: 100%;
+            width: 100%;
+          }
+          .oa-left-card {
+            flex: 0 0 auto;
+            width: 100%;
+          }
+          .oa-left-card--fill {
+            flex: 1 1 0;
+            min-height: 0;
+          }
+          .oa-question-row {
+            align-items: center;
+          }
+          .oa-highlight-row {
+            align-items: flex-start;
           }
           .oa-overview-preview {
             height: clamp(var(--oa-preview-min-h), calc(100dvh - 6.25rem), 720px);
@@ -1042,12 +1063,17 @@ export function OnwardAirOverviewPage() {
           .oa-overview-left {
             display: flex !important;
             flex-direction: column !important;
-            height: auto !important;
+            height: 100% !important;
+            min-height: clamp(var(--oa-preview-min-h), calc(100dvh - 6.25rem), 720px);
             overflow: visible !important;
           }
           .oa-left-card {
-            flex: var(--oa-card-flex-grow, 1) 1 auto;
-            min-height: var(--oa-card-min-h, auto);
+            flex: 0 0 auto !important;
+            width: 100% !important;
+          }
+          .oa-left-card--fill {
+            flex: 1 1 0 !important;
+            min-height: 0 !important;
           }
         }
         /* Phones — Android + iPhone */
@@ -1234,11 +1260,8 @@ export function OnwardAirOverviewPage() {
           }
         >
             <aside
-              className="oa-overview-left grid min-h-0 overflow-visible md:overflow-visible"
-              style={{
-                gap: "var(--oa-card-gap)",
-                gridTemplateRows: leftGridRows,
-              }}
+              className="oa-overview-left min-h-0 overflow-visible md:overflow-visible"
+              style={{ gap: "var(--oa-card-gap)" }}
             >
               {visibleLeftCards.map((id) => renderLeftCard(id))}
             </aside>
