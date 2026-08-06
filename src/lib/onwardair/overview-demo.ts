@@ -479,7 +479,7 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
       "Fundraising & Board Management inc Portal",
       "Financials & cash runway view",
       "Understand your Operations",
-      "Enginering & Project Mgt Advanced ",
+      "Engineering & Project Management",
     ],
     agendaTitle: "45 MIN WORKING SESSION",
     agendaIntro: "",
@@ -487,7 +487,7 @@ export function defaultOnwardAirOverviewContent(): OnwardAirOverviewEditableCont
       {
         wave: "0–20 mins",
         who: "+Leadership +Mgmt",
-        why: "Plafform avantages for Leadership",
+        why: "Platform advantages for Leadership",
       },
       {
         wave: "20–35 mins",

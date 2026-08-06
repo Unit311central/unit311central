@@ -803,35 +803,16 @@ export function OnwardAirOverviewPage() {
         @media (max-width: 1279px) {
           .oa-overview {
             --oa-scale: 0.82;
-            --oa-preview-min-h: 0px;
+            --oa-preview-min-h: 320px;
           }
         }
-        @media (max-width: 1099px) {
-          .oa-overview {
-            --oa-scale: 0.9;
-            --oa-pad-x: 12px;
-            --oa-pad-y: 10px;
-          }
-          .oa-overview-layout {
-            grid-template-columns: 1fr !important;
-            grid-template-rows: minmax(240px, 42vh) minmax(360px, 1fr);
-            overflow: visible;
-          }
-          .oa-overview-left {
-            grid-template-rows: repeat(var(--oa-left-count, 3), minmax(0, 1fr)) !important;
-            max-height: 42vh;
-          }
-          .oa-overview-preview {
-            min-height: 360px !important;
-          }
-        }
-        @media (min-width: 1100px) {
+        @media (min-width: 768px) {
           .oa-overview-layout {
             grid-template-columns: var(--oa-layout-cols);
           }
         }
-        @media (max-height: 820px) and (min-width: 1100px) {
-          .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 0px; }
+        @media (max-height: 820px) and (min-width: 768px) {
+          .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 280px; }
         }
         @media (max-height: 720px) and (min-width: 768px) {
           .oa-overview {
@@ -1031,7 +1012,7 @@ export function OnwardAirOverviewPage() {
             </aside>
 
             <section
-              className="oa-overview-preview flex min-w-0 flex-col overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.35)] lg:min-h-0 lg:flex-row"
+              className="oa-overview-preview flex min-w-0 flex-col overflow-hidden shadow-[0_12px_36px_rgba(0,0,0,0.35)] md:min-h-0 md:flex-row"
               style={{
                 borderRadius: style.preview.radius,
                 minHeight: "var(--oa-preview-min-h)",
@@ -1043,7 +1024,7 @@ export function OnwardAirOverviewPage() {
               }}
             >
               <OperatorEntitlementsProvider>
-                <Suspense fallback={<div className="h-[180px] w-full shrink-0 bg-[#07111F] lg:h-auto lg:w-[280px] xl:w-[300px] 2xl:w-[320px]" />}>
+                <Suspense fallback={<div className="h-[180px] w-full shrink-0 bg-[#07111F] md:h-auto md:w-[240px] lg:w-[280px] xl:w-[300px] 2xl:w-[320px]" />}>
                   <OverviewPlatformNav activeView={activeView} onViewChange={setActiveView} />
                 </Suspense>
               </OperatorEntitlementsProvider>
