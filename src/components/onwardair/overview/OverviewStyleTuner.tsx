@@ -64,6 +64,7 @@ function SliderRow({
   max,
   step = 1,
   unit = "px",
+  zeroLabel,
   onChange,
 }: {
   label: string;
@@ -72,14 +73,18 @@ function SliderRow({
   max: number;
   step?: number;
   unit?: string;
+  /** When value is 0, show this instead of "0px" (e.g. auto / none). */
+  zeroLabel?: string;
   onChange: (v: number) => void;
 }) {
   const display =
-    unit === "op" || unit === "fr"
-      ? value.toFixed(2)
-      : unit === ""
-        ? String(value)
-        : `${Number.isInteger(step) || step >= 1 ? Math.round(value) : value.toFixed(2)}${unit}`;
+    value === 0 && zeroLabel
+      ? zeroLabel
+      : unit === "op" || unit === "fr"
+        ? value.toFixed(2)
+        : unit === ""
+          ? String(value)
+          : `${Number.isInteger(step) || step >= 1 ? Math.round(value) : value.toFixed(2)}${unit}`;
 
   function nudge(dir: -1 | 1) {
     const next = Math.min(max, Math.max(min, Number((value + dir * step).toFixed(4))));
@@ -501,10 +506,40 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
         {section === "layout" ? (
           <>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">
-              Left column order
+              Left column
             </p>
             <p className="text-[10px] text-white/45">
-              Move Questions / Highlights / Agenda up or down. Toggle visibility and relative height.
+              Column width and spacing. Per-box min / max height and weight below.
+            </p>
+            <SliderRow
+              label="Column width"
+              value={style.page.leftColumnFr}
+              min={0.4}
+              max={1.6}
+              step={0.05}
+              unit="fr"
+              onChange={(leftColumnFr) => patch.page({ leftColumnFr })}
+            />
+            <SliderRow
+              label="Column min width"
+              value={style.page.leftColumnMinWidth}
+              min={100}
+              max={420}
+              step={4}
+              onChange={(leftColumnMinWidth) => patch.page({ leftColumnMinWidth })}
+            />
+            <SliderRow
+              label="Gap between boxes"
+              value={style.page.cardGap}
+              min={0}
+              max={48}
+              onChange={(cardGap) => patch.page({ cardGap })}
+            />
+            <p className="pt-1 text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">
+              Box order & size
+            </p>
+            <p className="text-[10px] text-white/45">
+              Move Questions / Highlights / Agenda up or down. Set min height, max height, and height weight.
             </p>
             <div className="space-y-2">
               {style.leftColumnOrder.map((id, index) => {
@@ -568,17 +603,45 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                         </button>
                       </div>
                     </div>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+                      Dimensions
+                    </p>
                     <SliderRow
-                      label="Relative height"
+                      label="Min height"
+                      value={card.minHeight}
+                      min={0}
+                      max={480}
+                      step={4}
+                      zeroLabel="auto"
+                      onChange={(minHeight) =>
+                        onStyleChange({ ...style, [id]: { ...card, minHeight } })
+                      }
+                    />
+                    <SliderRow
+                      label="Max height"
+                      value={card.maxHeight}
+                      min={0}
+                      max={600}
+                      step={4}
+                      zeroLabel="none"
+                      onChange={(maxHeight) =>
+                        onStyleChange({ ...style, [id]: { ...card, maxHeight } })
+                      }
+                    />
+                    <SliderRow
+                      label="Height weight"
                       value={card.heightFr}
-                      min={0.4}
-                      max={2.5}
+                      min={0.25}
+                      max={4}
                       step={0.05}
                       unit="fr"
                       onChange={(heightFr) =>
                         onStyleChange({ ...style, [id]: { ...card, heightFr } })
                       }
                     />
+                    <p className="mb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+                      Chrome
+                    </p>
                     <ColorRow
                       label="Box background"
                       value={card.bg}

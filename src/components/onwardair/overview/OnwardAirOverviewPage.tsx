@@ -525,14 +525,36 @@ export function OnwardAirOverviewPage() {
     [activeView, style, content],
   );
   const layoutCols = style
-    ? `minmax(min(100%, max(160px, 18vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
+    ? `minmax(min(100%, max(${style.page.leftColumnMinWidth}px, 18vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
     : "";
   const visibleLeftCards = style ? style.leftColumnOrder.filter((id) => style[id].visible) : [];
   const scale = (px: number) => `calc(${px}px * var(--oa-scale, 1))`;
   const leftGridRows =
     style && visibleLeftCards.length > 0
-      ? visibleLeftCards.map((id) => `minmax(auto, ${style[id].heightFr}fr)`).join(" ")
+      ? visibleLeftCards
+          .map((id) => {
+            const chrome = style[id];
+            const min =
+              chrome.minHeight > 0
+                ? `calc(${chrome.minHeight}px * var(--oa-scale, 1))`
+                : "auto";
+            return `minmax(${min}, ${chrome.heightFr}fr)`;
+          })
+          .join(" ")
       : "auto";
+
+  function leftCardDimensionStyle(chrome: OverviewStyleConfig[OverviewLeftCardId]): CSSProperties {
+    const dims: CSSProperties = {
+      ["--oa-card-flex-grow" as string]: String(chrome.heightFr),
+    };
+    if (chrome.minHeight > 0) {
+      dims.minHeight = scale(chrome.minHeight);
+    }
+    if (chrome.maxHeight > 0) {
+      dims.maxHeight = scale(chrome.maxHeight);
+    }
+    return dims;
+  }
 
   function patchContent(partial: Partial<OnwardAirOverviewEditableContent>) {
     if (!content) return;
@@ -563,13 +585,14 @@ export function OnwardAirOverviewPage() {
       borderRadius: chrome.radius,
       border,
       boxShadow: shadow,
+      ...leftCardDimensionStyle(chrome),
     };
 
     if (id === "questions") {
       return (
         <section
           key={id}
-          className="flex flex-col overflow-visible text-white backdrop-blur-[2px]"
+          className="oa-left-card flex flex-col overflow-visible text-white backdrop-blur-[2px]"
           style={boxStyle}
         >
           <ul
@@ -621,7 +644,7 @@ export function OnwardAirOverviewPage() {
       return (
         <section
           key={id}
-          className="flex flex-col overflow-visible text-white backdrop-blur-[2px]"
+          className="oa-left-card flex flex-col overflow-visible text-white backdrop-blur-[2px]"
           style={boxStyle}
         >
           <div className="shrink-0" style={{ marginBottom: scale(pageStyle.highlights.titleGap) }}>
@@ -671,7 +694,7 @@ export function OnwardAirOverviewPage() {
     return (
       <section
         key={id}
-        className="flex flex-col overflow-visible text-[#1B2430]"
+        className="oa-left-card flex flex-col overflow-visible text-[#1B2430]"
         style={boxStyle}
       >
         <div
@@ -864,8 +887,14 @@ export function OnwardAirOverviewPage() {
             overflow: visible !important;
           }
           .oa-overview-left {
+            display: flex !important;
+            flex-direction: column !important;
             height: auto !important;
             overflow: visible !important;
+          }
+          .oa-left-card {
+            flex: var(--oa-card-flex-grow, 1) 1 auto;
+            min-height: var(--oa-card-min-h, auto);
           }
         }
         /* Phones — Android + iPhone */

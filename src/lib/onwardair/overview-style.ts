@@ -3,7 +3,7 @@
  * Tuned in-browser via OverviewStyleTuner; paste the exported JSON back to Cursor to persist.
  */
 
-export const OVERVIEW_STYLE_VERSION = 3 as const;
+export const OVERVIEW_STYLE_VERSION = 4 as const;
 
 export const OVERVIEW_FONT_OPTIONS = [
   {
@@ -51,7 +51,11 @@ export type OverviewCardChrome = {
   borderColor: string;
   borderOpacity: number;
   shadowOpacity: number;
-  /** Relative row height in the left column (CSS fr). */
+  /** Minimum box height in px (0 = content-driven). */
+  minHeight: number;
+  /** Maximum box height in px (0 = no cap). */
+  maxHeight: number;
+  /** Relative row height in the left column (CSS fr / flex-grow weight). */
   heightFr: number;
   visible: boolean;
 };
@@ -66,6 +70,8 @@ export type OverviewStyleConfig = {
     paddingY: number;
     columnGap: number;
     leftColumnFr: number;
+    /** Floor width for the left column in px (used in minmax). */
+    leftColumnMinWidth: number;
     rightColumnFr: number;
     cardGap: number;
     heroImageOpacity: number;
@@ -154,6 +160,8 @@ function defaultChrome(partial?: Partial<OverviewCardChrome>): OverviewCardChrom
     borderColor: "#267B90",
     borderOpacity: 0.22,
     shadowOpacity: 0.14,
+    minHeight: 0,
+    maxHeight: 0,
     heightFr: 1,
     visible: true,
     ...partial,
@@ -171,6 +179,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
       paddingY: 12,
       columnGap: 14,
       leftColumnFr: 0.7,
+      leftColumnMinWidth: 160,
       rightColumnFr: 2.45,
       cardGap: 16,
       heroImageOpacity: 0.42,
@@ -321,7 +330,9 @@ function sanitizeChrome(
     borderColor: asString(body.borderColor, fallback.borderColor),
     borderOpacity: asNumber(body.borderOpacity, fallback.borderOpacity, 0, 1),
     shadowOpacity: asNumber(body.shadowOpacity, fallback.shadowOpacity, 0, 1),
-    heightFr: asNumber(body.heightFr, fallback.heightFr, 0.35, 3),
+    minHeight: asNumber(body.minHeight, fallback.minHeight, 0, 720),
+    maxHeight: asNumber(body.maxHeight, fallback.maxHeight, 0, 720),
+    heightFr: asNumber(body.heightFr, fallback.heightFr, 0.25, 4),
     visible: asBool(body.visible, fallback.visible),
   };
 }
@@ -365,6 +376,7 @@ export function sanitizeOverviewStyleConfig(raw: unknown): OverviewStyleConfig {
       paddingY: asNumber(page.paddingY, d.page.paddingY, 0, 64),
       columnGap: asNumber(page.columnGap, d.page.columnGap, 0, 48),
       leftColumnFr: asNumber(page.leftColumnFr, d.page.leftColumnFr, 0.3, 2),
+      leftColumnMinWidth: asNumber(page.leftColumnMinWidth, d.page.leftColumnMinWidth, 100, 420),
       rightColumnFr: asNumber(page.rightColumnFr, d.page.rightColumnFr, 0.5, 4),
       cardGap: asNumber(page.cardGap, d.page.cardGap, 0, 48),
       heroImageOpacity: asNumber(page.heroImageOpacity, d.page.heroImageOpacity, 0, 1),
