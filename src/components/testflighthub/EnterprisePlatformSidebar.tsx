@@ -157,6 +157,10 @@ const EXPAND_MS = 110;
 const WORKSPACE_HEADER_H = 36;
 const CARD_PAD_X = 8;
 const CARD_GAP = 10;
+/** Compact module rows on /overview “CLICK BELOW TO VIEW” rail. */
+const OVERVIEW_EMBED_ITEM_H = 30;
+const OVERVIEW_EMBED_GAP = 5;
+const OVERVIEW_EMBED_FONT_PX = 9;
 
 type EnterprisePlatformSidebarProps = {
   mobileOpen?: boolean;
@@ -488,9 +492,9 @@ export default function EnterprisePlatformSidebar({
                 borderColor: `color-mix(in srgb, ${color} 55%, #243347)`,
               }
             : cardShellStyle(theme)),
-          height: overviewEmbed ? 40 : WORKSPACE_HEADER_H,
-          minHeight: overviewEmbed ? 40 : WORKSPACE_HEADER_H,
-          paddingLeft: overviewEmbed ? 6 : CARD_PAD_X,
+          height: overviewEmbed ? OVERVIEW_EMBED_ITEM_H : WORKSPACE_HEADER_H,
+          minHeight: overviewEmbed ? OVERVIEW_EMBED_ITEM_H : WORKSPACE_HEADER_H,
+          paddingLeft: overviewEmbed ? 5 : CARD_PAD_X,
           paddingRight: 6,
         }}
       >
@@ -514,11 +518,15 @@ export default function EnterprisePlatformSidebar({
             "group flex h-full w-full items-center gap-1.5 text-left font-semibold uppercase leading-none tracking-[0.08em] transition-colors duration-75",
             active ? "text-white" : "text-white/88 hover:text-white",
           )}
-          style={{ fontSize: overviewEmbed ? 9.5 : 10.5 }}
+          style={{ fontSize: overviewEmbed ? OVERVIEW_EMBED_FONT_PX : 10.5 }}
           title={item.label}
         >
           <Icon
-            className={cn("h-3.5 w-3.5 shrink-0", active ? "text-white" : SUBMENU_ICON)}
+            className={cn(
+              overviewEmbed ? "h-3 w-3" : "h-3.5 w-3.5",
+              "shrink-0",
+              active ? "text-white" : SUBMENU_ICON,
+            )}
             strokeWidth={1.5}
             style={active ? undefined : { color }}
           />
@@ -628,10 +636,13 @@ export default function EnterprisePlatformSidebar({
             }
           }}
           className="group flex w-full items-center gap-1.5 text-left"
-          style={{ height: overviewEmbed ? 40 : WORKSPACE_HEADER_H, minHeight: overviewEmbed ? 40 : WORKSPACE_HEADER_H }}
+          style={{
+            height: overviewEmbed ? OVERVIEW_EMBED_ITEM_H : WORKSPACE_HEADER_H,
+            minHeight: overviewEmbed ? OVERVIEW_EMBED_ITEM_H : WORKSPACE_HEADER_H,
+          }}
         >
           <Icon
-            className="h-3.5 w-3.5 shrink-0"
+            className={cn("shrink-0", overviewEmbed ? "h-3 w-3" : "h-3.5 w-3.5")}
             style={{ color, opacity: 0.82 }}
             strokeWidth={1.5}
           />
@@ -640,13 +651,16 @@ export default function EnterprisePlatformSidebar({
               "min-w-0 flex-1 truncate whitespace-nowrap font-semibold uppercase leading-none tracking-[0.08em] text-white",
               overviewEmbed && "leading-none",
             )}
-            style={{ fontSize: overviewEmbed ? 9.5 : 10.5 }}
+            style={{ fontSize: overviewEmbed ? OVERVIEW_EMBED_FONT_PX : 10.5 }}
             title={section.label ?? undefined}
           >
             {section.label}
           </span>
           <Chevron
-            className="h-2.5 w-2.5 shrink-0 text-white/35 group-hover:text-white/55"
+            className={cn(
+              "shrink-0 text-white/35 group-hover:text-white/55",
+              overviewEmbed ? "h-2 w-2" : "h-2.5 w-2.5",
+            )}
             strokeWidth={1.75}
           />
         </button>
@@ -738,7 +752,7 @@ export default function EnterprisePlatformSidebar({
       <div
         className={cn(
           "relative flex shrink-0 items-center justify-center",
-          overviewEmbed ? "px-2.5 pt-2.5 pb-2 xl:px-3 xl:pt-4 xl:pb-4" : "px-5 pt-5",
+          overviewEmbed ? "px-2 pt-2 pb-1.5 xl:px-2.5 xl:pt-3 xl:pb-2" : "px-5 pt-5",
         )}
         style={overviewEmbed ? undefined : { paddingBottom: 20 }}
       >
@@ -771,7 +785,7 @@ export default function EnterprisePlatformSidebar({
           overviewEmbed ? "px-2 pb-2 xl:px-2.5 2xl:px-3" : "px-5",
         )}
       >
-        <div className="flex flex-col" style={{ gap: overviewEmbed ? 8 : CARD_GAP }}>
+        <div className="flex flex-col" style={{ gap: overviewEmbed ? OVERVIEW_EMBED_GAP : CARD_GAP }}>
           {pinSections.map((section) =>
             section.items.map((item) =>
               renderPinItem(item, resolveOnwardAirNavAccent(section) ?? section.color),
