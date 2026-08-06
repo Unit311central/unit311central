@@ -625,29 +625,10 @@ export function OnwardAirOverviewPage() {
     [activeView, style, content],
   );
   const layoutCols = style
-    ? `minmax(min(100%, max(${style.page.leftColumnMinWidth}px, 18vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
+    ? `minmax(${style.page.leftColumnMinWidth}px, ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
     : "";
   const visibleLeftCards = style ? style.leftColumnOrder.filter((id) => style[id].visible) : [];
   const scale = (px: number) => `calc(${px}px * var(--oa-scale, 1))`;
-  const leftGridRows =
-    style && visibleLeftCards.length > 0
-      ? visibleLeftCards
-          .map((id) => {
-            const chrome = style[id];
-            if (chrome.heightPx > 0) {
-              return `calc(${chrome.heightPx}px * var(--oa-scale, 1))`;
-            }
-            if (chrome.heightFr <= 0.55) {
-              return "auto";
-            }
-            const min =
-              chrome.minHeight > 0
-                ? `calc(${chrome.minHeight}px * var(--oa-scale, 1))`
-                : "auto";
-            return `minmax(${min}, ${chrome.heightFr}fr)`;
-          })
-          .join(" ")
-      : "auto";
 
   function leftCardDimensionStyle(chrome: OverviewStyleConfig[OverviewLeftCardId]): CSSProperties {
     const contentSized = chrome.heightPx <= 0 && chrome.heightFr <= 0.55;
@@ -970,39 +951,49 @@ export function OnwardAirOverviewPage() {
     >
       <style>{`
         .oa-overview {
-          --oa-scale: 1;
+          --oa-scale: clamp(0.84, 0.78 + 0.22 * (100vw / 1920), 1);
           --oa-pad-x: ${style.page.paddingX}px;
           --oa-pad-y: ${style.page.paddingY}px;
           --oa-col-gap: ${style.page.columnGap}px;
           --oa-card-gap: ${style.page.cardGap}px;
           --oa-layout-cols: ${layoutCols};
           --oa-preview-min-h: ${style.preview.minHeight}px;
-        }
-        @media (max-width: 1511px) {
-          .oa-overview { --oa-scale: 0.94; }
+          --oa-preview-h: clamp(360px, calc(100dvh - 6.5rem), 780px);
         }
         @media (max-width: 1365px) {
           .oa-overview {
-            --oa-scale: 0.88;
-            --oa-pad-x: max(10px, ${Math.round(style.page.paddingX * 0.75)}px);
-            --oa-pad-y: max(8px, ${Math.round(style.page.paddingY * 0.75)}px);
-            --oa-col-gap: max(10px, ${Math.round(style.page.columnGap * 0.75)}px);
-            --oa-card-gap: max(10px, ${Math.round(style.page.cardGap * 0.75)}px);
+            --oa-pad-x: max(10px, ${Math.round(style.page.paddingX * 0.85)}px);
+            --oa-pad-y: max(8px, ${Math.round(style.page.paddingY * 0.85)}px);
+            --oa-col-gap: max(10px, ${Math.round(style.page.columnGap * 0.85)}px);
+            --oa-card-gap: max(10px, ${Math.round(style.page.cardGap * 0.85)}px);
+            --oa-preview-min-h: min(${style.preview.minHeight}px, 360px);
           }
         }
         @media (max-width: 1279px) {
           .oa-overview {
-            --oa-scale: 0.82;
-            --oa-preview-min-h: 320px;
+            --oa-preview-min-h: min(${style.preview.minHeight}px, 320px);
           }
         }
         @media (min-width: 768px) {
           .oa-overview-layout {
             grid-template-columns: var(--oa-layout-cols);
+            align-items: start;
+          }
+          .oa-overview-left {
+            display: flex !important;
+            flex-direction: column !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            gap: var(--oa-card-gap);
+          }
+          .oa-overview-left > * {
+            flex: 0 0 auto !important;
           }
           .oa-overview-preview {
-            height: clamp(var(--oa-preview-min-h), calc(100dvh - 6.25rem), 720px);
-            max-height: clamp(var(--oa-preview-min-h), calc(100dvh - 6.25rem), 720px);
+            height: var(--oa-preview-h);
+            max-height: var(--oa-preview-h);
+            min-height: max(var(--oa-preview-min-h), 360px);
           }
           .oa-overview-nav {
             height: 100% !important;
@@ -1018,36 +1009,10 @@ export function OnwardAirOverviewPage() {
             -webkit-overflow-scrolling: touch;
           }
         }
-        @media (min-width: 768px) and (min-height: 901px) {
-          .oa-overview-layout {
-            min-height: calc(100dvh - 7rem);
-          }
-          .oa-overview-left {
-            height: 100%;
-          }
-          .oa-overview-preview {
-            height: 100%;
-            max-height: 100%;
-          }
-        }
         @media (max-height: 820px) and (min-width: 768px) {
-          .oa-overview { --oa-scale: 0.86; --oa-preview-min-h: 280px; }
-        }
-        @media (max-height: 900px) and (min-width: 768px) {
           .oa-overview {
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-          }
-          .oa-overview-left {
-            display: flex !important;
-            flex-direction: column !important;
-            height: auto !important;
-            overflow: visible !important;
-          }
-          .oa-left-card {
-            flex: var(--oa-card-flex-grow, 1) 1 auto;
-            min-height: var(--oa-card-min-h, auto);
+            --oa-preview-h: clamp(300px, calc(100dvh - 5.75rem), 680px);
+            --oa-preview-min-h: 280px;
           }
         }
         /* Phones — Android + iPhone */
@@ -1234,11 +1199,8 @@ export function OnwardAirOverviewPage() {
           }
         >
             <aside
-              className="oa-overview-left grid min-h-0 overflow-visible md:overflow-visible"
-              style={{
-                gap: "var(--oa-card-gap)",
-                gridTemplateRows: leftGridRows,
-              }}
+              className="oa-overview-left flex min-h-0 flex-col overflow-visible"
+              style={{ gap: "var(--oa-card-gap)" }}
             >
               {visibleLeftCards.map((id) => renderLeftCard(id))}
             </aside>

@@ -543,6 +543,41 @@ export default function EnterprisePlatformSidebar({
     );
   }
 
+  function navigateWorkspaceLanding(section: InternalNavSection) {
+    const label = section.label ?? "";
+    const pick = (...predicates: Array<(item: InternalNavItem) => boolean>) => {
+      for (const pred of predicates) {
+        const hit = section.items.find((item) => item.view && pred(item));
+        if (hit?.view) return hit.view;
+      }
+      return undefined;
+    };
+
+    let view: InternalOperationsView | undefined;
+    if (label === "Business Productivity") {
+      view = pick((item) => item.label === "Dashboard");
+    } else if (label === "Support Desk") {
+      view = pick(
+        (item) => item.label === "Ticket Overview" || item.view === "support-overview",
+      );
+    } else if (label === "Operations") {
+      view = pick((item) => item.label === "Dashboard" || item.view === "operations-dashboard");
+    } else if (label === "Engineering") {
+      view = pick(
+        (item) => item.label === "Engineering Overview" || item.view === "oa-engineering-overview",
+      );
+    } else if (label === "Marketing & Events") {
+      view = pick((item) => item.label === "Dashboard" || item.view === "oa-marketing-dashboard");
+    } else if (label === "Fundraising" || label === "Fundraising & Cap Table") {
+      view = pick((item) => item.label === "Dashboard" || item.view === "fundraising-dashboard");
+    } else if (label === "Business Central") {
+      view = pick((item) => item.label === "Dashboard" || item.view === "business-central-dashboard");
+    } else {
+      view = section.items.find((item) => item.view)?.view;
+    }
+    if (view) navigate(view);
+  }
+
   function renderWorkspace(section: InternalNavSection) {
     const workspaceKey = `workspace::${section.label ?? "workspace"}`;
     const isOpen = hydrated ? Boolean(expanded[workspaceKey]) : false;
@@ -576,64 +611,15 @@ export default function EnterprisePlatformSidebar({
         {/* Compact section header — not a large control */}
         <button
           type="button"
-          aria-expanded={isOpen}
+          aria-expanded={overviewEmbed ? false : isOpen}
           onClick={() => {
+            if (overviewEmbed) {
+              navigateWorkspaceLanding(section);
+              return;
+            }
             const willOpen = !(hydrated && expanded[workspaceKey]);
             toggleExpanded(workspaceKey);
-            // Business Productivity landing: open its Dashboard (never File Explorer).
-            if (willOpen && section.label === "Business Productivity") {
-              const dashboard = section.items.find(
-                (item) => item.label === "Dashboard" && item.view,
-              );
-              if (dashboard?.view) navigate(dashboard.view);
-            }
-            // Support Desk landing: open Ticket Overview.
-            if (willOpen && section.label === "Support Desk") {
-              const overview = section.items.find(
-                (item) =>
-                  (item.label === "Ticket Overview" || item.view === "support-overview") &&
-                  item.view,
-              );
-              if (overview?.view) navigate(overview.view);
-            }
-            // Operations landing: open Dashboard when present (OnwardAir + future tenants).
-            if (willOpen && section.label === "Operations") {
-              const dashboard = section.items.find(
-                (item) =>
-                  (item.label === "Dashboard" || item.view === "operations-dashboard") &&
-                  item.view,
-              );
-              if (dashboard?.view) navigate(dashboard.view);
-            }
-            // Engineering landing: open Engineering Overview dashboard.
-            if (willOpen && section.label === "Engineering") {
-              const overview = section.items.find(
-                (item) =>
-                  (item.label === "Engineering Overview" ||
-                    item.view === "oa-engineering-overview") &&
-                  item.view,
-              );
-              if (overview?.view) navigate(overview.view);
-            }
-            if (willOpen && section.label === "Marketing & Events") {
-              const dashboard = section.items.find(
-                (item) =>
-                  (item.label === "Dashboard" || item.view === "oa-marketing-dashboard") &&
-                  item.view,
-              );
-              if (dashboard?.view) navigate(dashboard.view);
-            }
-            if (
-              willOpen &&
-              (section.label === "Fundraising" || section.label === "Fundraising & Cap Table")
-            ) {
-              const dashboard = section.items.find(
-                (item) =>
-                  (item.label === "Dashboard" || item.view === "fundraising-dashboard") &&
-                  item.view,
-              );
-              if (dashboard?.view) navigate(dashboard.view);
-            }
+            if (willOpen) navigateWorkspaceLanding(section);
           }}
           className="group flex w-full items-center gap-1.5 text-left"
           style={{
@@ -656,15 +642,15 @@ export default function EnterprisePlatformSidebar({
           >
             {section.label}
           </span>
-          <Chevron
-            className={cn(
-              "shrink-0 text-white/35 group-hover:text-white/55",
-              overviewEmbed ? "h-2 w-2" : "h-2.5 w-2.5",
-            )}
-            strokeWidth={1.75}
-          />
+          {overviewEmbed ? null : (
+            <Chevron
+              className="h-2.5 w-2.5 shrink-0 text-white/35 group-hover:text-white/55"
+              strokeWidth={1.75}
+            />
+          )}
         </button>
 
+        {overviewEmbed ? null : (
         <div
           className={expandPanelClass(isOpen)}
           style={{ transitionDuration: `${EXPAND_MS}ms` }}
@@ -694,6 +680,7 @@ export default function EnterprisePlatformSidebar({
             </div>
           </div>
         </div>
+        )}
       </div>
     );
   }
