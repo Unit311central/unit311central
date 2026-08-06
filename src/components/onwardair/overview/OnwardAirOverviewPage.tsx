@@ -637,7 +637,7 @@ export function OnwardAirOverviewPage() {
             if (chrome.heightPx > 0) {
               return `calc(${chrome.heightPx}px * var(--oa-scale, 1))`;
             }
-            if (chrome.maxHeight > 0 && chrome.heightFr <= 0.6) {
+            if (chrome.heightFr <= 0.55) {
               return "auto";
             }
             const min =
@@ -650,10 +650,12 @@ export function OnwardAirOverviewPage() {
       : "auto";
 
   function leftCardDimensionStyle(chrome: OverviewStyleConfig[OverviewLeftCardId]): CSSProperties {
+    const contentSized = chrome.heightPx <= 0 && chrome.heightFr <= 0.55;
     const dims: CSSProperties = {
-      ["--oa-card-flex-grow" as string]: String(chrome.heightFr),
+      ["--oa-card-flex-grow" as string]: contentSized ? "0" : String(chrome.heightFr),
       width: chrome.widthPercent >= 100 ? "100%" : `${chrome.widthPercent}%`,
       alignSelf: chrome.widthPercent >= 100 ? "stretch" : "flex-start",
+      overflow: "visible",
     };
     if (chrome.heightPx > 0) {
       const h = scale(chrome.heightPx);
@@ -665,9 +667,8 @@ export function OnwardAirOverviewPage() {
       if (chrome.minHeight > 0) {
         dims.minHeight = scale(chrome.minHeight);
       }
-      if (chrome.maxHeight > 0) {
-        dims.maxHeight = scale(chrome.maxHeight);
-        dims.overflowY = "auto";
+      if (contentSized) {
+        dims.height = "fit-content";
         dims.alignSelf = "start";
       }
     }
