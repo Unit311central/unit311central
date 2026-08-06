@@ -295,6 +295,7 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const contentScrollRef = useRef<HTMLDivElement | null>(null);
+  const tabStripRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -305,6 +306,7 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
 
   useEffect(() => {
     setMounted(true);
+    tabStripRef.current?.scrollTo(0, 0);
   }, []);
 
   useEffect(() => {
@@ -518,8 +520,9 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
           <div className="min-w-0">
             <p className="text-[13px] font-semibold tracking-tight">Quick style edit</p>
             <p className="text-[10px] text-white/45">
-              Click page text to edit · drag panel · copy JSON
+              Start on <span className="text-[#7DD3E8]">Box size</span> tab · width & height per card
             </p>
+            <p className="text-[9px] text-white/30">Editor v{style.version}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -546,7 +549,7 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
         </div>
       </header>
 
-      <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/10 px-2 py-2">
+      <div ref={tabStripRef} className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/10 px-2 py-2">
         {SECTIONS.map((s) => (
           <button
             key={s.id}
@@ -645,7 +648,7 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
               Box order & size
             </p>
             <p className="text-[10px] text-white/45">
-              Move Questions / Highlights / Agenda up or down. Set min height, max height, and height weight.
+              Move boxes up/down. Width & height are on the <span className="text-[#7DD3E8]">Box size</span> tab.
             </p>
             <div className="space-y-2">
               {style.leftColumnOrder.map((id, index) => {
@@ -709,13 +712,6 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                         </button>
                       </div>
                     </div>
-                    <LeftCardDimensionSliders
-                      title={`${index + 1}. ${short} box`}
-                      card={card}
-                      onChange={(partial) =>
-                        onStyleChange({ ...style, [id]: { ...card, ...partial } })
-                      }
-                    />
                     <p className="mb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">
                       Chrome
                     </p>
