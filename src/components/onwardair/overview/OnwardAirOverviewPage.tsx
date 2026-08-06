@@ -541,7 +541,7 @@ export function OnwardAirOverviewPage() {
     );
   }
 
-  function renderLeftCard(id: OverviewLeftCardId) {
+  const renderLeftCard = (id: OverviewLeftCardId) => {
     const chrome = style[id];
     const border = overviewCardBorder({
       borderColor: chrome.borderColor,
@@ -771,7 +771,27 @@ export function OnwardAirOverviewPage() {
         </div>
       </section>
     );
-  }
+  };
+
+  const handleStyleChange = (
+    next: OverviewStyleConfig | ((prev: OverviewStyleConfig) => OverviewStyleConfig),
+  ) => {
+    setStyle((prev) => {
+      const base = prev ?? defaultOverviewStyleConfig();
+      return typeof next === "function" ? next(base) : next;
+    });
+  };
+
+  const handleContentChange = (
+    next:
+      | OnwardAirOverviewEditableContent
+      | ((prev: OnwardAirOverviewEditableContent) => OnwardAirOverviewEditableContent),
+  ) => {
+    setContent((prev) => {
+      const base = prev ?? defaultOnwardAirOverviewContent();
+      return typeof next === "function" ? next(base) : next;
+    });
+  };
 
   return (
     <div
@@ -947,10 +967,11 @@ export function OnwardAirOverviewPage() {
                     onChange={(headline) => patchContent({ headline })}
                     typography={style.typography}
                     onTypographyChange={(partial) =>
-                      setStyle((prev) => ({
-                        ...prev,
-                        typography: { ...prev.typography, ...partial },
-                      }))
+                      setStyle((prev) =>
+                        prev
+                          ? { ...prev, typography: { ...prev.typography, ...partial } }
+                          : prev,
+                      )
                     }
                   />
                 </div>
@@ -983,10 +1004,9 @@ export function OnwardAirOverviewPage() {
               onChange={(headline) => patchContent({ headline })}
               typography={style.typography}
               onTypographyChange={(partial) =>
-                setStyle((prev) => ({
-                  ...prev,
-                  typography: { ...prev.typography, ...partial },
-                }))
+                setStyle((prev) =>
+                  prev ? { ...prev, typography: { ...prev.typography, ...partial } } : prev,
+                )
               }
             />
           ) : null}
@@ -1135,9 +1155,9 @@ export function OnwardAirOverviewPage() {
       {tuneMode ? (
         <OverviewStyleTuner
           style={style}
-          onStyleChange={setStyle}
+          onStyleChange={handleStyleChange}
           content={content}
-          onContentChange={setContent}
+          onContentChange={handleContentChange}
         />
       ) : null}
     </div>

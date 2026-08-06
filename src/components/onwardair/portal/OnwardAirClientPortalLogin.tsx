@@ -19,12 +19,12 @@ export function OnwardAirClientPortalLogin({
   companyLogoSrc,
   portalKind = "client",
 }: Props) {
+  const isBoard = portalKind === "board";
+  const isOverview = portalKind === "overview";
   const [username, setUsername] = useState(isOverview ? "" : suggestedUsername);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const isBoard = portalKind === "board";
-  const isOverview = portalKind === "overview";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
