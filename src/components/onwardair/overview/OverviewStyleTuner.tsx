@@ -14,6 +14,7 @@ import {
   OVERVIEW_FONT_OPTIONS,
   OVERVIEW_LEFT_CARD_LABELS,
   type OverviewFontId,
+  type OverviewCardChrome,
   type OverviewStyleConfig,
   defaultOverviewStyleConfig,
   moveLeftColumnCard,
@@ -207,6 +208,70 @@ function TextInput({
         className={`${fieldClass} pointer-events-auto`}
       />
     </label>
+  );
+}
+
+function LeftCardDimensionSliders({
+  card,
+  onChange,
+}: {
+  card: OverviewCardChrome;
+  onChange: (partial: Partial<OverviewCardChrome>) => void;
+}) {
+  return (
+    <>
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[#7DD3E8]">
+        Box size
+      </p>
+      <SliderRow
+        label="Width"
+        value={card.widthPercent}
+        min={50}
+        max={100}
+        step={1}
+        unit="%"
+        onChange={(widthPercent) => onChange({ widthPercent })}
+      />
+      <SliderRow
+        label="Height"
+        value={card.heightPx}
+        min={0}
+        max={600}
+        step={4}
+        zeroLabel="auto"
+        onChange={(heightPx) => onChange({ heightPx })}
+      />
+      <SliderRow
+        label="Min height"
+        value={card.minHeight}
+        min={0}
+        max={480}
+        step={4}
+        zeroLabel="auto"
+        onChange={(minHeight) => onChange({ minHeight })}
+      />
+      <SliderRow
+        label="Max height"
+        value={card.maxHeight}
+        min={0}
+        max={600}
+        step={4}
+        zeroLabel="none"
+        onChange={(maxHeight) => onChange({ maxHeight })}
+      />
+      <SliderRow
+        label="Height weight"
+        value={card.heightFr}
+        min={0.25}
+        max={4}
+        step={0.05}
+        unit="fr"
+        onChange={(heightFr) => onChange({ heightFr })}
+      />
+      <p className="text-[10px] text-white/40">
+        Or drag the cyan bars on the bottom / right edge of each card on the page.
+      </p>
+    </>
   );
 }
 
@@ -603,40 +668,10 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                         </button>
                       </div>
                     </div>
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">
-                      Dimensions
-                    </p>
-                    <SliderRow
-                      label="Min height"
-                      value={card.minHeight}
-                      min={0}
-                      max={480}
-                      step={4}
-                      zeroLabel="auto"
-                      onChange={(minHeight) =>
-                        onStyleChange({ ...style, [id]: { ...card, minHeight } })
-                      }
-                    />
-                    <SliderRow
-                      label="Max height"
-                      value={card.maxHeight}
-                      min={0}
-                      max={600}
-                      step={4}
-                      zeroLabel="none"
-                      onChange={(maxHeight) =>
-                        onStyleChange({ ...style, [id]: { ...card, maxHeight } })
-                      }
-                    />
-                    <SliderRow
-                      label="Height weight"
-                      value={card.heightFr}
-                      min={0.25}
-                      max={4}
-                      step={0.05}
-                      unit="fr"
-                      onChange={(heightFr) =>
-                        onStyleChange({ ...style, [id]: { ...card, heightFr } })
+                    <LeftCardDimensionSliders
+                      card={card}
+                      onChange={(partial) =>
+                        onStyleChange({ ...style, [id]: { ...card, ...partial } })
                       }
                     />
                     <p className="mb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">
@@ -897,6 +932,10 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                 <Plus className="h-3.5 w-3.5" /> Add question
               </button>
             </div>
+            <LeftCardDimensionSliders
+              card={style.questions}
+              onChange={(partial) => patch.questions(partial)}
+            />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Box + type</p>
             <ColorRow label="Background" value={style.questions.bg} onChange={(bg) => patch.questions({ bg })} />
             <ColorRow label="Border colour" value={style.questions.borderColor} onChange={(borderColor) => patch.questions({ borderColor })} />
@@ -948,10 +987,11 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                 <Plus className="h-3.5 w-3.5" /> Add highlight
               </button>
             </div>
+            <LeftCardDimensionSliders
+              card={style.highlights}
+              onChange={(partial) => patch.highlights(partial)}
+            />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Spacing</p>
-            <SliderRow label="Min height" value={style.highlights.minHeight} min={0} max={480} step={4} zeroLabel="auto" onChange={(minHeight) => patch.highlights({ minHeight })} />
-            <SliderRow label="Max height" value={style.highlights.maxHeight} min={0} max={600} step={4} zeroLabel="none" onChange={(maxHeight) => patch.highlights({ maxHeight })} />
-            <SliderRow label="Height weight" value={style.highlights.heightFr} min={0.25} max={4} step={0.05} unit="fr" onChange={(heightFr) => patch.highlights({ heightFr })} />
             <SliderRow label="Space under title" value={style.highlights.titleGap} min={0} max={48} onChange={(titleGap) => patch.highlights({ titleGap })} />
             <SliderRow label="Item gap" value={style.highlights.itemGap} min={0} max={24} onChange={(itemGap) => patch.highlights({ itemGap })} />
             <SliderRow label="Card padding" value={style.highlights.padding} min={4} max={36} onChange={(padding) => patch.highlights({ padding })} />
@@ -1004,6 +1044,10 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
                 <Plus className="h-3.5 w-3.5" /> Add agenda row
               </button>
             </div>
+            <LeftCardDimensionSliders
+              card={style.agenda}
+              onChange={(partial) => patch.agenda(partial)}
+            />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Spacing</p>
             <SliderRow label="Space above title" value={style.agenda.titleTopGap} min={0} max={80} onChange={(titleTopGap) => patch.agenda({ titleTopGap })} />
             <SliderRow label="Space under title" value={style.agenda.titleGap} min={0} max={80} onChange={(titleGap) => patch.agenda({ titleGap })} />

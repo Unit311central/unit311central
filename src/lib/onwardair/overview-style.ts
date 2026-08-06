@@ -3,7 +3,7 @@
  * Tuned in-browser via OverviewStyleTuner; paste the exported JSON back to Cursor to persist.
  */
 
-export const OVERVIEW_STYLE_VERSION = 4 as const;
+export const OVERVIEW_STYLE_VERSION = 5 as const;
 
 export const OVERVIEW_FONT_OPTIONS = [
   {
@@ -51,6 +51,10 @@ export type OverviewCardChrome = {
   borderColor: string;
   borderOpacity: number;
   shadowOpacity: number;
+  /** Box width as % of the left column (100 = full width). */
+  widthPercent: number;
+  /** Fixed box height in px (0 = auto — use min/max/weight). */
+  heightPx: number;
   /** Minimum box height in px (0 = content-driven). */
   minHeight: number;
   /** Maximum box height in px (0 = no cap). */
@@ -160,6 +164,8 @@ function defaultChrome(partial?: Partial<OverviewCardChrome>): OverviewCardChrom
     borderColor: "#267B90",
     borderOpacity: 0.22,
     shadowOpacity: 0.14,
+    widthPercent: 100,
+    heightPx: 0,
     minHeight: 0,
     maxHeight: 0,
     heightFr: 1,
@@ -331,6 +337,8 @@ function sanitizeChrome(
     borderColor: asString(body.borderColor, fallback.borderColor),
     borderOpacity: asNumber(body.borderOpacity, fallback.borderOpacity, 0, 1),
     shadowOpacity: asNumber(body.shadowOpacity, fallback.shadowOpacity, 0, 1),
+    widthPercent: asNumber(body.widthPercent, fallback.widthPercent, 50, 100),
+    heightPx: asNumber(body.heightPx, fallback.heightPx, 0, 720),
     minHeight: asNumber(body.minHeight, fallback.minHeight, 0, 720),
     maxHeight: asNumber(body.maxHeight, fallback.maxHeight, 0, 720),
     heightFr: asNumber(body.heightFr, fallback.heightFr, 0.25, 4),

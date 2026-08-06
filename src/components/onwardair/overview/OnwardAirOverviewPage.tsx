@@ -9,6 +9,8 @@ import {
   useState,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+  type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -20,6 +22,7 @@ import {
 } from "@/lib/onwardair/overview-demo";
 import {
   OVERVIEW_FONT_OPTIONS,
+  type OverviewCardChrome,
   type OverviewFontId,
   type OverviewLeftCardId,
   type OverviewStyleConfig,
@@ -428,6 +431,103 @@ function HeaderTaglineEditor({
   );
 }
 
+function LeftCardResizeHandles({
+  cardRef,
+  onPatch,
+}: {
+  cardRef: RefObject<HTMLElement | null>;
+  onPatch: (partial: Partial<OverviewCardChrome>) => void;
+}) {
+  function startHeightDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const el = cardRef.current;
+    if (!el) return;
+    const startY = event.clientY;
+    const startH = el.getBoundingClientRect().height;
+
+    function onMove(ev: PointerEvent) {
+      const next = Math.round(Math.max(72, Math.min(720, startH + (ev.clientY - startY))));
+      onPatch({ heightPx: next });
+    }
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  function startWidthDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const el = cardRef.current;
+    const parent = el?.parentElement;
+    if (!el || !parent) return;
+    const startX = event.clientX;
+    const startW = el.getBoundingClientRect().width;
+    const parentW = parent.getBoundingClientRect().width;
+    const startPct = Math.round((startW / parentW) * 100);
+
+    function onMove(ev: PointerEvent) {
+      const deltaPct = ((ev.clientX - startX) / parentW) * 100;
+      const next = Math.round(Math.max(50, Math.min(100, startPct + deltaPct)));
+      onPatch({ widthPercent: next });
+    }
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  return (
+    <>
+      <div
+        role="separator"
+        aria-label="Drag to resize card height"
+        title="Drag to resize height"
+        className="absolute inset-x-2 bottom-0 z-20 flex h-3 cursor-ns-resize items-end justify-center pb-0.5"
+        onPointerDown={startHeightDrag}
+      >
+        <span className="h-1 w-10 rounded-full bg-[#7DD3E8]/70" />
+      </div>
+      <div
+        role="separator"
+        aria-label="Drag to resize card width"
+        title="Drag to resize width"
+        className="absolute inset-y-2 right-0 z-20 flex w-3 cursor-ew-resize items-center justify-end pr-0.5"
+        onPointerDown={startWidthDrag}
+      >
+        <span className="h-10 w-1 rounded-full bg-[#7DD3E8]/70" />
+      </div>
+    </>
+  );
+}
+
+function OverviewLeftCard({
+  tuneMode,
+  boxStyle,
+  className,
+  onPatch,
+  children,
+}: {
+  tuneMode: boolean;
+  boxStyle: CSSProperties;
+  className: string;
+  onPatch: (partial: Partial<OverviewCardChrome>) => void;
+  children: ReactNode;
+}) {
+  const cardRef = useRef<HTMLElement>(null);
+  return (
+    <section ref={cardRef} className={`oa-left-card relative ${className}`} style={boxStyle}>
+      {children}
+      {tuneMode ? <LeftCardResizeHandles cardRef={cardRef} onPatch={onPatch} /> : null}
+    </section>
+  );
+}
+
 function OverviewPlatformNav({
   activeView,
   onViewChange,
@@ -534,6 +634,9 @@ export function OnwardAirOverviewPage() {
       ? visibleLeftCards
           .map((id) => {
             const chrome = style[id];
+            if (chrome.heightPx > 0) {
+              return `calc(${chrome.heightPx}px * var(--oa-scale, 1))`;
+            }
             if (chrome.maxHeight > 0 && chrome.heightFr <= 0.6) {
               return "auto";
             }
@@ -549,14 +652,33 @@ export function OnwardAirOverviewPage() {
   function leftCardDimensionStyle(chrome: OverviewStyleConfig[OverviewLeftCardId]): CSSProperties {
     const dims: CSSProperties = {
       ["--oa-card-flex-grow" as string]: String(chrome.heightFr),
+      width: chrome.widthPercent >= 100 ? "100%" : `${chrome.widthPercent}%`,
+      alignSelf: chrome.widthPercent >= 100 ? "stretch" : "flex-start",
     };
-    if (chrome.minHeight > 0) {
-      dims.minHeight = scale(chrome.minHeight);
-    }
-    if (chrome.maxHeight > 0) {
-      dims.maxHeight = scale(chrome.maxHeight);
+    if (chrome.heightPx > 0) {
+      const h = scale(chrome.heightPx);
+      dims.height = h;
+      dims.minHeight = h;
+      dims.maxHeight = h;
+      dims.overflowY = "auto";
+    } else {
+      if (chrome.minHeight > 0) {
+        dims.minHeight = scale(chrome.minHeight);
+      }
+      if (chrome.maxHeight > 0) {
+        dims.maxHeight = scale(chrome.maxHeight);
+        dims.overflowY = "auto";
+        dims.alignSelf = "start";
+      }
     }
     return dims;
+  }
+
+  function patchCard(
+    id: OverviewLeftCardId,
+    partial: Partial<OverviewStyleConfig[OverviewLeftCardId]>,
+  ) {
+    setStyle((prev) => (prev ? { ...prev, [id]: { ...prev[id], ...partial } } : prev));
   }
 
   function patchContent(partial: Partial<OnwardAirOverviewEditableContent>) {
@@ -593,10 +715,12 @@ export function OnwardAirOverviewPage() {
 
     if (id === "questions") {
       return (
-        <section
+        <OverviewLeftCard
           key={id}
-          className="oa-left-card flex flex-col overflow-visible text-white backdrop-blur-[2px]"
-          style={boxStyle}
+          tuneMode={tuneMode}
+          className="flex flex-col overflow-visible text-white backdrop-blur-[2px]"
+          boxStyle={boxStyle}
+          onPatch={(partial) => patchCard(id, partial)}
         >
           <ul
             className="flex flex-col justify-evenly py-0.5"
@@ -639,16 +763,18 @@ export function OnwardAirOverviewPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </OverviewLeftCard>
       );
     }
 
     if (id === "highlights") {
       return (
-        <section
+        <OverviewLeftCard
           key={id}
-          className="oa-left-card flex flex-col overflow-visible text-white backdrop-blur-[2px]"
-          style={{ ...boxStyle, alignSelf: "start" }}
+          tuneMode={tuneMode}
+          className="flex flex-col overflow-visible text-white backdrop-blur-[2px]"
+          boxStyle={boxStyle}
+          onPatch={(partial) => patchCard(id, partial)}
         >
           <div className="shrink-0" style={{ marginBottom: scale(pageStyle.highlights.titleGap) }}>
             <InlineEdit
@@ -690,15 +816,17 @@ export function OnwardAirOverviewPage() {
               ))}
             </ul>
           </div>
-        </section>
+        </OverviewLeftCard>
       );
     }
 
     return (
-      <section
+      <OverviewLeftCard
         key={id}
-        className="oa-left-card flex flex-col overflow-visible text-[#1B2430]"
-        style={boxStyle}
+        tuneMode={tuneMode}
+        className="flex flex-col overflow-visible text-[#1B2430]"
+        boxStyle={boxStyle}
+        onPatch={(partial) => patchCard(id, partial)}
       >
         <div
           className="shrink-0"
@@ -810,7 +938,7 @@ export function OnwardAirOverviewPage() {
             ))}
           </div>
         </div>
-      </section>
+      </OverviewLeftCard>
     );
   };
 
