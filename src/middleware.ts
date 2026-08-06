@@ -29,7 +29,7 @@ import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-porta
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
-import { matchOnwardAirClientPortalPathname } from "@/lib/onwardair/client-portal-routes";
+import { matchOnwardAirClientPortalPathname, getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
 import { isOnwardAirPortalsAllowedUsername } from "@/lib/onwardair/portals-demo";
@@ -214,6 +214,20 @@ export async function middleware(request: NextRequest) {
       "x-unit311-workspace-slug": workspaceSlug,
     };
 
+    // OnwardAir: never expose /client-portal/* implementation URLs on the customer host.
+    if (
+      isOnwardAirSlug(workspaceSlug) &&
+      (pathname === "/client-portal" || pathname.startsWith("/client-portal/"))
+    ) {
+      const parts = pathname.split("/").filter(Boolean);
+      const route = getOnwardAirClientPortalByPath(parts[1] ?? "");
+      if (route) {
+        const rest = parts.length > 2 ? `/${parts.slice(2).join("/")}` : "";
+        return redirectExternal(`${workspaceOrigin}/${route.path}${rest}${search}`);
+      }
+      return redirectExternal(`${workspaceOrigin}/login${search}`);
+    }
+
     // Route-based company/member portals: /{company}/... on talantonimpact and abhi hosts only.
     // These URLs must NEVER fall through to the admin /internaldashboard shell.
     if (isCompanyPortalSlug(workspaceSlug)) {
@@ -223,6 +237,8 @@ export async function middleware(request: NextRequest) {
         const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
         const isLoginRest =
           portalMatch.rest === "/login" || portalMatch.rest.startsWith("/login/");
+
+        const portalLoginPublicUrl = `${workspaceOrigin}/${portalMatch.route.path}/login${search}`;
 
         const companyPortalLoginRewrite = () =>
           rewriteTo(
@@ -235,9 +251,23 @@ export async function middleware(request: NextRequest) {
             },
           );
 
-        // Anonymous: branded portal login (URL stays /{company} or /{company}/login).
+        // Send unauthenticated visitors to /{company}/login in the address bar.
+        // Rewriting /{company} → login while keeping the URL caused the client
+        // router to hydrate the authenticated portal route at /{company}.
+        const companyPortalLoginGate = (clearSession = false) => {
+          if (!isLoginRest) {
+            const response = redirectExternal(portalLoginPublicUrl);
+            if (clearSession) clearPlatformSessionCookie(response, request);
+            return response;
+          }
+          const response = companyPortalLoginRewrite();
+          if (clearSession) clearPlatformSessionCookie(response, request);
+          return response;
+        };
+
+        // Anonymous: branded portal login at /{company}/login.
         if (gate.status === "anonymous") {
-          return companyPortalLoginRewrite();
+          return companyPortalLoginGate();
         }
 
         // Invalid / forbidden / missing workspace: MUST clear the shared
@@ -249,30 +279,24 @@ export async function middleware(request: NextRequest) {
           gate.status === "forbidden" ||
           gate.status === "workspace_missing"
         ) {
-          const response = companyPortalLoginRewrite();
-          clearPlatformSessionCookie(response, request);
-          return response;
+          return companyPortalLoginGate(true);
         }
 
         // Member portals are external-only. Internal ABHI/Talanton staff sessions
         // must still see the branded login (not skip straight into the portal view).
         if (gate.session.userType !== "external") {
-          return companyPortalLoginRewrite();
+          return companyPortalLoginGate();
         }
 
         const allowed = canonicalizePortalRedirect(gate.session.redirectPath);
         if (!allowed) {
           // Member with no company portal assignment — do not enter portal app.
-          const response = companyPortalLoginRewrite();
-          clearPlatformSessionCookie(response, request);
-          return response;
+          return companyPortalLoginGate(true);
         }
         // Wrong portal (e.g. board session on /centrak): show this company's
         // login — never hijack the browser to a different member portal.
         if (allowed !== `/${portalMatch.route.path}` && !pathname.startsWith(`${allowed}/`) && pathname !== allowed) {
-          const response = companyPortalLoginRewrite();
-          clearPlatformSessionCookie(response, request);
-          return response;
+          return companyPortalLoginGate(true);
         }
 
         // Matching external users hitting /{company}/login go to the portal home.

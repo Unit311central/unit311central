@@ -4,8 +4,11 @@ import { OnwardAirBoardPortalApp } from "@/components/onwardair/board/OnwardAirB
 import { OnwardAirClientPortalApp } from "@/components/onwardair/portal/OnwardAirClientPortalApp";
 import { OnwardAirOverviewPage } from "@/components/onwardair/overview/OnwardAirOverviewPage";
 import { parseOaBoardPortalSection } from "@/lib/onwardair/board-portal-data";
+import { requireOnwardAirClientPortalAccess } from "@/lib/onwardair/client-portal-auth";
 import { parseOaClientPortalSection } from "@/lib/onwardair/client-portal-data";
 import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
+
+export const dynamic = "force-dynamic";
 
 export default async function OnwardAirClientPortalPage({
   params,
@@ -17,6 +20,7 @@ export default async function OnwardAirClientPortalPage({
   if (!route) notFound();
 
   if (route.portalKind === "overview") {
+    await requireOnwardAirClientPortalAccess(company);
     return <OnwardAirOverviewPage />;
   }
 

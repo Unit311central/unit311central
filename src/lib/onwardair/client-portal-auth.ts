@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
+  ONWARDAIR_CLIENT_PORTAL_ORIGIN,
   getOnwardAirClientPortalByPath,
   type OnwardAirClientPortalRoute,
 } from "@/lib/onwardair/client-portal-routes";
@@ -17,7 +18,7 @@ export type OnwardAirClientPortalSession = {
 };
 
 function portalLoginPath(path: string) {
-  return `/${path}/login`;
+  return `${ONWARDAIR_CLIENT_PORTAL_ORIGIN}/${path}/login`;
 }
 
 export async function requireOnwardAirClientPortalAccess(

@@ -3,6 +3,8 @@ import { OnwardAirClientPortalShell } from "@/components/onwardair/portal/Onward
 import { OnwardAirOverviewShell } from "@/components/onwardair/overview/OnwardAirOverviewShell";
 import { requireOnwardAirClientPortalAccess } from "@/lib/onwardair/client-portal-auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function OnwardAirClientPortalAppLayout({
   children,
   params,
