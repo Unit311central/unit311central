@@ -10,7 +10,7 @@ export const OVERVIEW_STYLE_VERSION = 5 as const;
  * Do not change defaults or layout CSS without owner sign-off and updating this string.
  * Run `npm run prove:overview-client` before deploy.
  */
-export const OVERVIEW_CLIENT_LAYOUT_FINGERPRINT = "overview-client-v6-2026-08-06" as const;
+export const OVERVIEW_CLIENT_LAYOUT_FINGERPRINT = "overview-client-v7-2026-08-06" as const;
 
 export const OVERVIEW_FONT_OPTIONS = [
   {
@@ -231,7 +231,7 @@ export function defaultOverviewStyleConfig(): OverviewStyleConfig {
         visible: true,
       }),
       bg: "rgba(11, 58, 74, 0.85)",
-      textSize: 13,
+      textSize: 16,
       textColor: "rgba(255, 255, 255, 0.98)",
       badgeSize: 23,
       badgeColor: "#7DD3E8",
