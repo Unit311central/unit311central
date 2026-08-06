@@ -534,6 +534,9 @@ export function OnwardAirOverviewPage() {
       ? visibleLeftCards
           .map((id) => {
             const chrome = style[id];
+            if (chrome.maxHeight > 0 && chrome.heightFr <= 0.6) {
+              return "auto";
+            }
             const min =
               chrome.minHeight > 0
                 ? `calc(${chrome.minHeight}px * var(--oa-scale, 1))`
@@ -645,7 +648,7 @@ export function OnwardAirOverviewPage() {
         <section
           key={id}
           className="oa-left-card flex flex-col overflow-visible text-white backdrop-blur-[2px]"
-          style={boxStyle}
+          style={{ ...boxStyle, alignSelf: "start" }}
         >
           <div className="shrink-0" style={{ marginBottom: scale(pageStyle.highlights.titleGap) }}>
             <InlineEdit

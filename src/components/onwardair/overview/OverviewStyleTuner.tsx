@@ -949,6 +949,9 @@ export function OverviewStyleTuner({ style, onStyleChange, content, onContentCha
               </button>
             </div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">Spacing</p>
+            <SliderRow label="Min height" value={style.highlights.minHeight} min={0} max={480} step={4} zeroLabel="auto" onChange={(minHeight) => patch.highlights({ minHeight })} />
+            <SliderRow label="Max height" value={style.highlights.maxHeight} min={0} max={600} step={4} zeroLabel="none" onChange={(maxHeight) => patch.highlights({ maxHeight })} />
+            <SliderRow label="Height weight" value={style.highlights.heightFr} min={0.25} max={4} step={0.05} unit="fr" onChange={(heightFr) => patch.highlights({ heightFr })} />
             <SliderRow label="Space under title" value={style.highlights.titleGap} min={0} max={48} onChange={(titleGap) => patch.highlights({ titleGap })} />
             <SliderRow label="Item gap" value={style.highlights.itemGap} min={0} max={24} onChange={(itemGap) => patch.highlights({ itemGap })} />
             <SliderRow label="Card padding" value={style.highlights.padding} min={4} max={36} onChange={(padding) => patch.highlights({ padding })} />
