@@ -27,7 +27,7 @@ export function TalantonEaTestingWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [deckError, setDeckError] = useState<string | null>(null);
   const [meetingDate, setMeetingDate] = useState("tomorrow");
-  const [deckMeta, setDeckMeta] = useState<{ packName: string; pageCount: number } | null>(null);
+  const [deckMeta, setDeckMeta] = useState<{ packName: string; pageCount: number; build: string } | null>(null);
   const [deckPdfUrl, setDeckPdfUrl] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
@@ -64,7 +64,7 @@ export function TalantonEaTestingWorkspace() {
     setDeckPdfUrl(null);
     setDeckMeta(null);
     try {
-      const response = await fetch("/api/talanton/board-deck", {
+      const response = await fetch(`/api/talanton/board-deck?b=${Date.now()}`, {
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
@@ -80,6 +80,7 @@ export function TalantonEaTestingWorkspace() {
       setDeckMeta({
         packName: response.headers.get("X-Talanton-Pack-Name") ?? "Talanton Board Deck",
         pageCount: Number(response.headers.get("X-Talanton-Page-Count") ?? 10),
+        build: response.headers.get("X-Talanton-Deck-Build") ?? "unknown",
       });
       setDeckState("ready");
     } catch (err) {
@@ -159,7 +160,8 @@ export function TalantonEaTestingWorkspace() {
             <div className="mt-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-sm text-white/70">
                 <span>
-                  {deckMeta.packName} · {deckMeta.pageCount} slides
+                  {deckMeta.packName} · {deckMeta.pageCount} slides · build{" "}
+                  <span className="font-mono text-emerald-300">{deckMeta.build}</span>
                 </span>
                 <a
                   href={deckPdfUrl}

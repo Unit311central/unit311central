@@ -40,6 +40,7 @@ import {
   loadTalantonBoardPackAssets,
   type TalantonBoardPackAssets,
 } from "@/lib/talanton/board-pack-assets";
+import { TALANTON_BOARD_DECK_BUILD } from "@/lib/talanton/board-deck-generator";
 import {
   drawConcernCards,
   drawDonutChart,
@@ -88,6 +89,14 @@ function header(doc: jsPDF, title: string, logoDataUrl: string | null, subtitle?
     margin: MARGIN,
     colors: C,
   });
+}
+
+function footer(doc: jsPDF, packName: string, slideNumber: number) {
+  drawFooter(doc, packName, slideNumber);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(5);
+  setText(doc, C.muted);
+  doc.text(`Build ${TALANTON_BOARD_DECK_BUILD}`, SLIDE_W - MARGIN, SLIDE_H - 1, { align: "right" });
 }
 
 function lastHeldMeeting() {
@@ -182,7 +191,7 @@ export async function buildTalantonBoardPackPdf(
       doc.text(person.role, MARGIN + 70, y);
       y += 5.5;
     }
-    drawFooter(doc, data.packName, 1);
+    footer(doc, data.packName, 1);
   }
 
   // 2 — Executive Summary (visual dashboard)
@@ -351,7 +360,7 @@ export async function buildTalantonBoardPackPdf(
       decisions: data.boardDecisions,
       colors: C,
     });
-    drawFooter(doc, data.packName, 2);
+    footer(doc, data.packName, 2);
   }
 
   // 3 — Previous minutes & decisions
@@ -458,7 +467,7 @@ export async function buildTalantonBoardPackPdf(
       ay += 15;
     }
 
-    drawFooter(doc, data.packName, 3);
+    footer(doc, data.packName, 3);
   }
 
   // 4 — Risk Register
@@ -537,7 +546,7 @@ export async function buildTalantonBoardPackPdf(
       ],
       colors: C,
     });
-    drawFooter(doc, data.packName, 4);
+    footer(doc, data.packName, 4);
   }
 
   // 5 — Fund performance
@@ -647,7 +656,7 @@ export async function buildTalantonBoardPackPdf(
       fill: C.green,
       track: C.soft,
     });
-    drawFooter(doc, data.packName, 5);
+    footer(doc, data.packName, 5);
   }
 
   // 6 — Portfolio companies
@@ -745,7 +754,7 @@ export async function buildTalantonBoardPackPdf(
       MARGIN + 4,
       144,
     );
-    drawFooter(doc, data.packName, 6);
+    footer(doc, data.packName, 6);
   }
 
   // 7 — Impact Intelligence & external access
@@ -841,7 +850,7 @@ export async function buildTalantonBoardPackPdf(
       const lines = doc.splitTextToSize(`• ${item}`, CONTENT_W - 10);
       doc.text(lines.slice(0, 2), MARGIN + 4, 103 + index * 8);
     });
-    drawFooter(doc, data.packName, 7);
+    footer(doc, data.packName, 7);
   }
 
   // 8 — Journey & impact stories
@@ -892,7 +901,7 @@ export async function buildTalantonBoardPackPdf(
       setText(doc, C.muted);
       doc.text("No published journey stories for the board portal yet.", MARGIN, 80);
     }
-    drawFooter(doc, data.packName, 8);
+    footer(doc, data.packName, 8);
   }
 
   // 9 — Training update
@@ -970,7 +979,7 @@ export async function buildTalantonBoardPackPdf(
       );
       y += 10;
     }
-    drawFooter(doc, data.packName, 9);
+    footer(doc, data.packName, 9);
   }
 
   // 10 — Strategic discussion & AOB
@@ -1007,7 +1016,7 @@ export async function buildTalantonBoardPackPdf(
     setText(doc, C.text);
     const aob = doc.splitTextToSize(data.aob, CONTENT_W - 10);
     doc.text(aob, MARGIN + 4, 107);
-    drawFooter(doc, data.packName, 10);
+    footer(doc, data.packName, 10);
   }
 
   return new Uint8Array(doc.output("arraybuffer"));

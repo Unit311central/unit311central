@@ -8,7 +8,8 @@ import { buildTalantonBoardPackPdf } from "@/lib/talanton/board-pack-pdf";
 import { loadTalantonBoardPackAssets } from "@/lib/talanton/board-pack-assets";
 import { listJourneyStoriesForBoard } from "@/lib/talanton/journey-stories-store";
 
-const TALANTON_LOGO_PATH = join(process.cwd(), "public", "images", "workspaces", "talantonimpact-logo.png");
+/** Bump when board deck layout changes — shown in PDF footer and /testing UI. */
+export const TALANTON_BOARD_DECK_BUILD = "2026-08-08-v3";
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -41,7 +42,9 @@ export function parseTalantonBoardMeetingDate(raw: string | undefined): string |
   return toIso(new Date(parsed));
 }
 
-async function loadTalantonLogoDataUrl(): Promise<string | null> {
+const TALANTON_LOGO_PATH = join(process.cwd(), "public", "images", "workspaces", "talantonimpact-logo.png");
+
+export async function loadTalantonLogoDataUrl(): Promise<string | null> {
   try {
     const png = await sharp(TALANTON_LOGO_PATH)
       .resize({ width: 1200, withoutEnlargement: false })
@@ -58,6 +61,7 @@ export type TalantonBoardDeckResult = {
   pdfBytes: Uint8Array;
   filename: string;
   pageCount: number;
+  build: string;
 };
 
 export async function generateTalantonBoardDeck(meetingDate?: string): Promise<TalantonBoardDeckResult> {
@@ -74,5 +78,6 @@ export async function generateTalantonBoardDeck(meetingDate?: string): Promise<T
     pdfBytes,
     filename: talantonBoardPackPdfFileName(data.meetingDate),
     pageCount: data.pageSummaries?.length ?? 10,
+    build: TALANTON_BOARD_DECK_BUILD,
   };
 }

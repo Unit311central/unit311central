@@ -47,6 +47,7 @@ import {
   ONWARDAIR_LOGO_DARK_PNG_SRC,
   isOnwardAirSlug,
 } from "@/lib/onwardair-surface";
+import { generateTalantonBoardDeck } from "@/lib/talanton/board-deck-generator";
 import {
   buildTalantonBoardPackData,
   isTalantonBoardPackData,
@@ -54,8 +55,6 @@ import {
   talantonBoardPackPptxFileName,
 } from "@/lib/talanton/board-pack-model";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
-
-const TALANTON_LOGO_SRC = "/images/workspaces/talantonimpact-t.jpg";
 
 function canGenerateBoardPack(slug: string | null | undefined) {
   return isAbhiSlug(slug) || isTalantonImpactSlug(slug) || isOnwardAirSlug(slug);
@@ -109,7 +108,7 @@ async function loadLogoDataUrl(slug: string): Promise<string | null> {
       isOnwardAirSlug(slug)
         ? ONWARDAIR_LOGO_DARK_PNG_SRC
         : isTalantonImpactSlug(slug)
-          ? TALANTON_LOGO_SRC
+          ? "/images/workspaces/talantonimpact-logo.png"
           : ABHI_LOGO_SRC
     ).replace(/^\//, "");
     const primaryPath = join(process.cwd(), "public", relative);
@@ -180,7 +179,9 @@ export async function generateBoardPackTool(
     const [pdfBytes, pptxBytes] = await Promise.all([
       isOa
         ? buildOnwardAirBoardPackPdf(data, logoDataUrl)
-        : buildAbhiBoardPackPdf(data, logoDataUrl),
+        : isTi
+          ? generateTalantonBoardDeck(meetingDate).then((r) => r.pdfBytes)
+          : buildAbhiBoardPackPdf(data, logoDataUrl),
       isOa
         ? buildOnwardAirBoardPackPptx(data, logoDataUrl)
         : buildAbhiBoardPackPptx(data, logoDataUrl),

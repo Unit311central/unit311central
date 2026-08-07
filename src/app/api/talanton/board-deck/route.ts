@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
         "X-Talanton-Pack-Name": asciiHeaderValue(result.data.packName),
         "X-Talanton-Meeting-Date": result.data.meetingDate,
         "X-Talanton-Page-Count": String(result.pageCount),
+        "X-Talanton-Deck-Build": result.build,
       },
     });
   } catch (error) {
