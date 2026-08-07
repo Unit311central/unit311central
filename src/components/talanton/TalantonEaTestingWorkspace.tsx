@@ -52,9 +52,9 @@ export function TalantonEaTestingWorkspace() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b10] text-white">
+    <div className="relative h-full min-h-0 overflow-y-auto bg-[#070b10] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.08),_transparent_55%)]" />
-      <div className="relative mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="relative mx-auto max-w-5xl px-4 py-8 pb-12 sm:px-6 lg:px-8">
         <header className="mb-8 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400/80">
