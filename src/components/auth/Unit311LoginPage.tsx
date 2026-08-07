@@ -176,6 +176,7 @@ export default function Unit311LoginPage({
   workspaceName = null,
   returnTo = null,
   nextPath = null,
+  portalsLogin = false,
 }: {
   variant?: "default" | "central";
   /** Tenant login branding. CorpCentre / Talanton / ABHI / OnwardAir / customer use workspace branding. */
@@ -186,6 +187,8 @@ export default function Unit311LoginPage({
   returnTo?: string | null;
   /** Canonical deep-link path (`next`), e.g. `/?view=clients`. */
   nextPath?: string | null;
+  /** Talanton /portals/login — dedicated overview portal entry (not main org login). */
+  portalsLogin?: boolean;
 }) {
   const router = useRouter();
   const isCentral =
@@ -204,6 +207,7 @@ export default function Unit311LoginPage({
   const portalsNext =
     nextPath === "/portals" ||
     Boolean(nextPath?.startsWith("/portals/") || nextPath?.startsWith("/portals?"));
+  const isTalantonPortalsLogin = isTalanton && (portalsLogin || portalsNext);
   const isOnwardAirPortalsLogin = isOnwardAir && portalsNext;
   const canSaveLogin = isCorpCentre || isOnwardAir;
   const savedLoginKey = isOnwardAir ? ONWARDAIR_SAVED_LOGIN_KEY : CORPCENTRE_SAVED_LOGIN_KEY;
@@ -391,9 +395,11 @@ export default function Unit311LoginPage({
           <h1 className="text-[1.75rem] font-semibold tracking-[-0.035em] text-white sm:text-[2.125rem]">
             {isCorpCentre
               ? "Corp.Centre Login"
-              : isTalanton
-                ? "Talanton Impact"
-                : isAbhi
+              : isTalantonPortalsLogin
+                ? "Talantom Impact Overview Portal"
+                : isTalanton
+                  ? "Talanton Impact"
+                  : isAbhi
                   ? "ABHI Login"
                   : isOnwardAirPortalsLogin
                     ? "OnwardAir Demo Information Page"
@@ -406,9 +412,11 @@ export default function Unit311LoginPage({
           <p className="mx-auto mt-3 max-w-[22rem] text-[14px] leading-relaxed text-white/55 sm:mt-3.5 sm:max-w-lg sm:text-[15px]">
             {isCorpCentre
               ? "Secure access to your Corp.Centre workspace"
-              : isTalanton
-                ? "Talanton & Portfolio Business Operating and Intelligence Platform"
-                : isAbhi
+              : isTalantonPortalsLogin
+                ? "A Overview portals page for Harry Turner for Unit311 Central customised Talanton Impact Platform."
+                : isTalanton
+                  ? "Talanton & Portfolio Business Operating and Intelligence Platform"
+                  : isAbhi
                   ? "Secure access to your ABHI workspace"
                   : isOnwardAirPortalsLogin
                     ? "Secure access to your OnwardAir demo portal page"

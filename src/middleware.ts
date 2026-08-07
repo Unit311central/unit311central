@@ -375,13 +375,18 @@ export async function middleware(request: NextRequest) {
 
     // ABHI / Talanton / OnwardAir pre-demo portals briefing — requires an explicit portals login.
     // A normal platform session alone must not skip the portals login page.
+    const isPortalsLoginPath =
+      pathname === "/portals/login" || pathname.startsWith("/portals/login/");
     if (
       (workspaceSlug === ABHI_SLUG ||
         isTalantonImpactSlug(workspaceSlug) ||
         isOnwardAirSlug(workspaceSlug)) &&
-      (pathname === "/portals" || pathname.startsWith("/portals/"))
+      (pathname === "/portals" || pathname.startsWith("/portals/")) &&
+      !isPortalsLoginPath
     ) {
-      const loginUrl = `${workspaceOrigin}/login?next=${encodeURIComponent("/portals")}`;
+      const loginUrl = isTalantonImpactSlug(workspaceSlug)
+        ? `${workspaceOrigin}/portals/login`
+        : `${workspaceOrigin}/login?next=${encodeURIComponent("/portals")}`;
       const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
       const session = token ? await readPlatformSessionToken(token) : null;
       const portalsEntry = request.cookies.get(ABHI_PORTALS_GATE_COOKIE)?.value === "1";
@@ -456,7 +461,21 @@ export async function middleware(request: NextRequest) {
     // Always render /login — do not bounce signed-in users to /dashboard.
     // Do NOT clear a valid session on ABHI/Talanton /login (prefetch would wipe
     // /portals mid-edit); clear only invalid/forbidden cookies.
-    if (pathname === "/login" || pathname.startsWith("/login/")) {
+    if (
+      pathname === "/login" ||
+      pathname.startsWith("/login/") ||
+      (isPortalsLoginPath && isTalantonImpactSlug(workspaceSlug))
+    ) {
+      if (
+        isTalantonImpactSlug(workspaceSlug) &&
+        (pathname === "/login" || pathname.startsWith("/login/"))
+      ) {
+        const nextParam = request.nextUrl.searchParams.get("next");
+        if (nextParam === "/portals" || nextParam?.startsWith("/portals")) {
+          return redirectExternal(`${workspaceOrigin}/portals/login`);
+        }
+      }
+
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       const response = NextResponse.next({ request: { headers } });
 
@@ -471,7 +490,9 @@ export async function middleware(request: NextRequest) {
         // often omit prefetch headers and were clearing the gate mid-edit).
         const nextParam = request.nextUrl.searchParams.get("next");
         const wantsPortals =
-          nextParam === "/portals" || Boolean(nextParam?.startsWith("/portals"));
+          isPortalsLoginPath ||
+          nextParam === "/portals" ||
+          Boolean(nextParam?.startsWith("/portals"));
         const referer = request.headers.get("referer") ?? "";
         let fromPortals = false;
         try {

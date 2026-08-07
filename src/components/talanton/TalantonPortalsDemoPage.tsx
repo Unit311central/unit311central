@@ -510,7 +510,7 @@ export default function TalantonPortalsDemoPage() {
         // Initial auth failure â†’ login. Silent polls / locked admin editors must
         // not bounce mid-edit on a transient cookie glitch.
         if (!silent && !adminLockRef.current) {
-          window.location.assign("/login?next=%2Fportals");
+          window.location.assign("/portals/login");
         }
         return;
       }
@@ -621,7 +621,7 @@ export default function TalantonPortalsDemoPage() {
     } catch {
       // Continue to login regardless.
     }
-    window.location.assign("/login?next=%2Fportals");
+    window.location.assign("/portals/login");
   }
 
   return (
