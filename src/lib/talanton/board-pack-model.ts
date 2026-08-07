@@ -37,7 +37,7 @@ export function formatTalantonBoardUsd(value: number, compact = false): string {
   if (compact) {
     if (abs >= 1_000_000) {
       const m = abs / 1_000_000;
-      return `${sign}$${m >= 10 ? Math.round(m) : m.toFixed(1)}M`;
+      return `${sign}$${m.toFixed(1)}M`;
     }
     if (abs >= 1_000) return `${sign}$${Math.round(abs / 1_000)}k`;
   }

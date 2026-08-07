@@ -25,6 +25,86 @@ function polar(cx: number, cy: number, r: number, deg: number) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
+function drawDonutSegment(
+  doc: jsPDF,
+  cx: number,
+  cy: number,
+  innerR: number,
+  outerR: number,
+  startDeg: number,
+  endDeg: number,
+  color: Rgb,
+) {
+  const steps = Math.max(18, Math.ceil((endDeg - startDeg) / 2));
+  for (let i = 0; i < steps; i += 1) {
+    const a0 = startDeg + ((endDeg - startDeg) * i) / steps;
+    const a1 = startDeg + ((endDeg - startDeg) * (i + 1)) / steps;
+    const p0o = polar(cx, cy, outerR, a0);
+    const p1o = polar(cx, cy, outerR, a1);
+    const p0i = polar(cx, cy, innerR, a0);
+    const p1i = polar(cx, cy, innerR, a1);
+    setFill(doc, color);
+    doc.triangle(p0o.x, p0o.y, p1o.x, p1o.y, p0i.x, p0i.y, "F");
+    doc.triangle(p1o.x, p1o.y, p1i.x, p1i.y, p0i.x, p0i.y, "F");
+  }
+}
+
+export function drawSectionPanel(
+  doc: jsPDF,
+  opts: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    title: string;
+    colors: { white: Rgb; line: Rgb; navy: Rgb };
+  },
+) {
+  const { x, y, w, h, title, colors } = opts;
+  setFill(doc, colors.white);
+  setDraw(doc, colors.line);
+  doc.roundedRect(x, y, w, h, 1.5, 1.5, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  setText(doc, colors.navy);
+  doc.text(title, x + 4, y + 7);
+}
+
+export function drawMetricRow(
+  doc: jsPDF,
+  opts: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    label: string;
+    value: string;
+    sub?: string;
+    accent: Rgb;
+    colors: { white: Rgb; line: Rgb; navy: Rgb; muted: Rgb; text: Rgb };
+  },
+) {
+  const { x, y, w, h, label, value, sub, accent, colors } = opts;
+  setFill(doc, colors.white);
+  setDraw(doc, colors.line);
+  doc.roundedRect(x, y, w, h, 1.2, 1.2, "FD");
+  setFill(doc, accent);
+  doc.roundedRect(x, y, 2, h, 1.2, 0, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  setText(doc, colors.muted);
+  doc.text(label.toUpperCase(), x + 5, y + 6);
+  doc.setFontSize(12);
+  setText(doc, colors.navy);
+  doc.text(value, x + 5, y + 13);
+  if (sub) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    setText(doc, colors.text);
+    doc.text(sub, x + 5, y + 18);
+  }
+}
+
 /** Donut chart with legend beneath. */
 export function drawDonutChart(
   doc: jsPDF,
@@ -70,23 +150,7 @@ export function drawDonutChart(
   for (const segment of segments) {
     const sweep = (segment.value / total) * 360;
     const end = angle + sweep;
-    const startPt = polar(cx, cy, outerR, angle);
-    doc.setFillColor(segment.color[0], segment.color[1], segment.color[2]);
-    const path: Array<[string, number, number]> = [["M", startPt.x, startPt.y]];
-    const steps = Math.max(8, Math.ceil(sweep / 8));
-    for (let i = 1; i <= steps; i += 1) {
-      const pt = polar(cx, cy, outerR, angle + (sweep * i) / steps);
-      path.push(["L", pt.x, pt.y]);
-    }
-    const innerEnd = polar(cx, cy, innerR, end);
-    path.push(["L", innerEnd.x, innerEnd.y]);
-    for (let i = steps - 1; i >= 0; i -= 1) {
-      const pt = polar(cx, cy, innerR, angle + (sweep * i) / steps);
-      path.push(["L", pt.x, pt.y]);
-    }
-    path.push(["Z", 0, 0]);
-    // @ts-ignore jspdf path API
-    doc.path(path, "F");
+    drawDonutSegment(doc, cx, cy, innerR, outerR, angle, end, segment.color);
     angle = end;
   }
 
@@ -94,29 +158,33 @@ export function drawDonutChart(
   doc.circle(cx, cy, innerR - 0.2, "F");
 
   if (legendBelow) {
-    let legendY = cy + outerR + 5;
+    let legendY = cy + outerR + 4;
+    const legendW = outerR * 2;
     const legendX = cx - outerR;
-    for (const segment of segments) {
-      setFill(doc, segment.color);
-      doc.roundedRect(legendX, legendY - 3, 3, 3, 0.5, 0.5, "F");
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      setText(doc, textColor);
+    const legendCols = segments.length <= 2 ? segments.length : 1;
+    const colW = legendW / Math.max(legendCols, 1);
+    segments.forEach((segment, index) => {
       const pct = Math.round((segment.value / total) * 100);
-      doc.text(`${segment.label} (${pct}%)`, legendX + 5, legendY);
-      legendY += 5;
-    }
+      const lx = legendCols > 1 ? legendX + index * colW : legendX;
+      setFill(doc, segment.color);
+      doc.roundedRect(lx, legendY - 3, 3, 3, 0.5, 0.5, "F");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      setText(doc, textColor);
+      doc.text(`${segment.label} (${pct}%)`, lx + 5, legendY);
+    });
   }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(centerLabel && centerLabel.length > 8 ? 11 : 14);
+  const labelSize = centerLabel && centerLabel.length > 10 ? 10 : 12;
+  doc.setFontSize(labelSize);
   setText(doc, titleColor);
-  doc.text(centerLabel ?? String(Math.round(total)), cx, cy + (centerSubLabel ? 0 : 2), { align: "center" });
+  doc.text(centerLabel ?? String(Math.round(total)), cx, cy - 1, { align: "center" });
   if (centerSubLabel) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     setText(doc, mutedColor);
-    doc.text(centerSubLabel, cx, cy + 6, { align: "center" });
+    doc.text(centerSubLabel, cx, cy + 5, { align: "center" });
   } else if (!centerLabel) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
@@ -205,11 +273,11 @@ export function drawConcernCards(
     y: number;
     width: number;
     cards: Array<{ title: string; detail: string }>;
+    cardH?: number;
     colors: { white: Rgb; line: Rgb; navy: Rgb; amber: Rgb; text: Rgb };
   },
 ) {
-  const { x, y, width, cards, colors } = opts;
-  const cardH = 18;
+  const { x, y, width, cards, cardH = 18, colors } = opts;
   cards.forEach((card, index) => {
     const cy = y + index * (cardH + 3);
     setFill(doc, colors.white);
@@ -218,14 +286,14 @@ export function drawConcernCards(
     setFill(doc, colors.amber);
     doc.roundedRect(x, cy, 3, cardH, 1.5, 0, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(cardH <= 14 ? 7 : 8);
     setText(doc, colors.navy);
-    doc.text(card.title, x + 7, cy + 7);
+    doc.text(card.title, x + 7, cy + (cardH <= 14 ? 5 : 7));
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(cardH <= 14 ? 7 : 8);
     setText(doc, colors.text);
     const lines = doc.splitTextToSize(card.detail, width - 12);
-    doc.text(lines.slice(0, 2), x + 7, cy + 12);
+    doc.text(lines.slice(0, cardH <= 14 ? 1 : 2), x + 7, cy + (cardH <= 14 ? 10 : 12));
   });
 }
 

@@ -50,8 +50,10 @@ import {
   drawDonutChart,
   drawHorizontalBarChart,
   drawLegendRow,
+  drawMetricRow,
   drawPhotoCard,
   drawQuotePanel,
+  drawSectionPanel,
   drawSlideBackdrop,
   drawStatTile,
   drawVerticalBarChart,
@@ -187,28 +189,45 @@ export async function buildTalantonBoardPackPdf(
     });
     drawHeader(doc, "Executive Summary", logoDataUrl);
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setText(doc, C.navy);
-    doc.text("Agenda", MARGIN, 28);
+    const bodyTop = 28;
+    const bodyH = 94;
+    const colGap = 4;
+    const col1W = 74;
+    const col2W = 92;
+    const col3W = CONTENT_W - col1W - col2W - colGap * 2;
+    const col1X = MARGIN;
+    const col2X = col1X + col1W + colGap;
+    const col3X = col2X + col2W + colGap;
+    const panelColors = { white: C.white, line: C.line, navy: C.navy };
+
+    drawSectionPanel(doc, { x: col1X, y: bodyTop, w: col1W, h: bodyH, title: "Agenda", colors: panelColors });
     data.agenda.forEach((item, index) => {
-      const y = 34 + index * 5.2;
+      const y = bodyTop + 14 + index * 8.2;
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       setText(doc, C.navy);
-      doc.text(String(index + 1), MARGIN, y);
+      doc.text(String(index + 1), col1X + 4, y);
       doc.setFont("helvetica", "normal");
       setText(doc, C.text);
-      const label = doc.splitTextToSize(item, 62);
-      doc.text(label.slice(0, 1), MARGIN + 4, y);
+      const label = doc.splitTextToSize(item, col1W - 12);
+      doc.text(label.slice(0, 2), col1X + 8, y);
     });
 
-    drawDonutChart(doc, {
-      cx: MARGIN + 98,
-      cy: 88,
-      outerR: 24,
-      innerR: 14,
+    drawSectionPanel(doc, {
+      x: col2X,
+      y: bodyTop,
+      w: col2W,
+      h: bodyH,
       title: "Capital deployment",
+      colors: panelColors,
+    });
+    const donutCx = col2X + 26;
+    const donutCy = bodyTop + 30;
+    drawDonutChart(doc, {
+      cx: donutCx,
+      cy: donutCy,
+      outerR: 15,
+      innerR: 9,
       centerLabel: money(funds.capitalCommittedUsd, true),
       centerSubLabel: "committed",
       segments: [
@@ -218,57 +237,104 @@ export async function buildTalantonBoardPackPdf(
       titleColor: C.navy,
       mutedColor: C.muted,
       textColor: C.text,
+      legendBelow: false,
+    });
+    const capTextX = col2X + 52;
+    let capY = bodyTop + 26;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    setText(doc, C.muted);
+    doc.text("DEPLOYED", capTextX, capY);
+    doc.setFontSize(12);
+    setText(doc, C.green);
+    doc.text(money(funds.capitalDeployedUsd, true), capTextX, capY + 6);
+    capY += 13;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    setText(doc, C.muted);
+    doc.text("AVAILABLE", capTextX, capY);
+    doc.setFontSize(12);
+    setText(doc, C.amber);
+    doc.text(money(funds.availableCapitalUsd, true), capTextX, capY + 6);
+    const legendY = donutCy + 18;
+    let legendX = col2X + 6;
+    for (const [label, color, value] of [
+      ["Deployed", C.green, funds.capitalDeployedUsd],
+      ["Available", C.amber, funds.availableCapitalUsd],
+    ] as const) {
+      const pct = Math.round((value / funds.capitalCommittedUsd) * 100);
+      setFill(doc, color);
+      doc.roundedRect(legendX, legendY - 3, 3, 3, 0.5, 0.5, "F");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      setText(doc, C.text);
+      doc.text(`${label} (${pct}%)`, legendX + 5, legendY);
+      legendX += 36;
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    setText(doc, C.navy);
+    doc.text("Key concerns", col2X + 4, bodyTop + 66);
+    drawConcernCards(doc, {
+      x: col2X + 3,
+      y: bodyTop + 70,
+      width: col2W - 6,
+      cardH: 13,
+      cards: data.concernCards.slice(0, 2).map((card) => ({
+        title: card.title,
+        detail: card.detail,
+      })),
+      colors: { white: C.white, line: C.line, navy: C.navy, amber: C.amber, text: C.text },
     });
 
-    const tileW = 52;
-    const tileX = MARGIN + 148;
-    drawStatTile(doc, {
-      x: tileX,
-      y: 28,
-      w: tileW,
-      h: 26,
+    drawSectionPanel(doc, {
+      x: col3X,
+      y: bodyTop,
+      w: col3W,
+      h: bodyH,
+      title: "Portfolio impact",
+      colors: panelColors,
+    });
+    const metricH = 24;
+    const metricGap = 4;
+    const metricX = col3X + 3;
+    const metricW = col3W - 6;
+    let metricY = bodyTop + 12;
+    drawMetricRow(doc, {
+      x: metricX,
+      y: metricY,
+      w: metricW,
+      h: metricH,
       label: "Jobs created last quarter",
       value: `+${jobsLastQuarter.toLocaleString()}`,
       sub: "Net new across portfolio",
       accent: C.green,
       colors: statColors,
     });
-    drawStatTile(doc, {
-      x: tileX + tileW + 4,
-      y: 28,
-      w: tileW,
-      h: 26,
+    metricY += metricH + metricGap;
+    drawMetricRow(doc, {
+      x: metricX,
+      y: metricY,
+      w: metricW,
+      h: metricH,
       label: "People served (Q2)",
-      value: `+${peopleLastQuarter.toLocaleString()}`,
+      value: `+${(peopleLastQuarter / 1000).toFixed(1)}k`,
       sub: "Quarter-on-quarter uplift",
       accent: C.navy,
       colors: statColors,
     });
-    drawStatTile(doc, {
-      x: tileX,
-      y: 58,
-      w: tileW * 2 + 4,
-      h: 26,
+    metricY += metricH + metricGap;
+    drawMetricRow(doc, {
+      x: metricX,
+      y: metricY,
+      w: metricW,
+      h: metricH,
       label: "Portfolio reach",
       value: `${funds.portfolioCompanies} companies`,
-      sub: `${funds.countriesRepresented} countries · ${money(funds.capitalDeployedUsd, true)} deployed`,
+      sub: `${funds.countriesRepresented} countries`,
       accent: C.amber,
       colors: statColors,
-    });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setText(doc, C.navy);
-    doc.text("Key concerns", tileX, 90);
-    drawConcernCards(doc, {
-      x: tileX,
-      y: 94,
-      width: tileW * 2 + 4,
-      cards: data.concernCards.slice(0, 2).map((card) => ({
-        title: card.title,
-        detail: card.detail,
-      })),
-      colors: { white: C.white, line: C.line, navy: C.navy, amber: C.amber, text: C.text },
     });
 
     setFill(doc, C.navy);
