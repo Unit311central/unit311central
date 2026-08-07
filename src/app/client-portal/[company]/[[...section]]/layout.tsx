@@ -1,7 +1,11 @@
+import { notFound } from "next/navigation";
+
 import { OnwardAirBoardPortalShell } from "@/components/onwardair/board/OnwardAirBoardPortalShell";
 import { OnwardAirClientPortalShell } from "@/components/onwardair/portal/OnwardAirClientPortalShell";
 import { OnwardAirOverviewShell } from "@/components/onwardair/overview/OnwardAirOverviewShell";
 import { requireOnwardAirClientPortalAccess } from "@/lib/onwardair/client-portal-auth";
+import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
+import { isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +17,14 @@ export default async function OnwardAirClientPortalAppLayout({
   params: Promise<{ company: string }>;
 }) {
   const { company } = await params;
-  const { route, session } = await requireOnwardAirClientPortalAccess(company);
+  const route = getOnwardAirClientPortalByPath(company);
+  if (!route) notFound();
+
+  if (route.portalKind === "overview" && isOverviewAuthBypassEnabled()) {
+    return <OnwardAirOverviewShell>{children}</OnwardAirOverviewShell>;
+  }
+
+  const { session } = await requireOnwardAirClientPortalAccess(company);
   const displayName = session.displayName || session.username;
 
   if (route.portalKind === "overview") {
