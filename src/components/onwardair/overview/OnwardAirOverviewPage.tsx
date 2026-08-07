@@ -737,7 +737,7 @@ export function OnwardAirOverviewPage() {
             style={{ gap: scale(pageStyle.questions.itemGap) }}
           >
             {pageContent.questions.map((q, i) => (
-              <li key={`q-${i}`} className="oa-question-row flex flex-nowrap items-center gap-2">
+              <li key={`q-${i}`} className="oa-question-row flex flex-nowrap items-start gap-2">
                 <span
                   className="oa-question-badge inline-flex shrink-0 items-center justify-center rounded-full border font-bold leading-none"
                   style={{
@@ -1040,7 +1040,7 @@ export function OnwardAirOverviewPage() {
             min-height: 0;
           }
           .oa-question-row {
-            align-items: center;
+            align-items: flex-start;
             flex-wrap: nowrap;
             min-width: 0;
             max-width: 100%;
@@ -1048,9 +1048,10 @@ export function OnwardAirOverviewPage() {
           .oa-question-text,
           .oa-question-text p,
           .oa-question-text input {
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            overflow-wrap: anywhere;
             max-width: 100%;
           }
           .oa-highlight-row {

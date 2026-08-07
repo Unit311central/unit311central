@@ -10,7 +10,7 @@ export const OVERVIEW_STYLE_VERSION = 5 as const;
  * Do not change defaults or layout CSS without owner sign-off and updating this string.
  * Run `npm run prove:overview-client` before deploy.
  */
-export const OVERVIEW_CLIENT_LAYOUT_FINGERPRINT = "overview-client-v10-2026-08-06" as const;
+export const OVERVIEW_CLIENT_LAYOUT_FINGERPRINT = "overview-client-v11-2026-08-07" as const;
 
 export const OVERVIEW_FONT_OPTIONS = [
   {
