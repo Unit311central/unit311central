@@ -24,6 +24,9 @@ import {
   TALANTON_LOGIN_BACKGROUND_CLASS,
   TALANTON_LOGIN_BACKGROUND_QUALITY,
   TALANTON_LOGIN_OVERLAY_CLASS,
+  TALANTON_PORTALS_LOGIN_BACKGROUND,
+  TALANTON_PORTALS_LOGIN_BACKGROUND_CLASS,
+  TALANTON_PORTALS_LOGIN_OVERLAY_CLASS,
 } from "@/lib/talanton/login-branding";
 
 /** Dark engineering/infrastructure background (4K). */
@@ -336,24 +339,30 @@ export default function Unit311LoginPage({
       backgroundImage={
         isOnwardAir
           ? ONWARDAIR_LOGIN_BACKGROUND
-          : isTalanton
-            ? TALANTON_LOGIN_BACKGROUND
-            : LOGIN_BACKGROUND
+          : isTalantonPortalsLogin
+            ? TALANTON_PORTALS_LOGIN_BACKGROUND
+            : isTalanton
+              ? TALANTON_LOGIN_BACKGROUND
+              : LOGIN_BACKGROUND
       }
       backgroundImageClassName={
         isOnwardAir
           ? "object-cover object-[center_40%] opacity-[0.38] sm:object-center"
-          : isTalanton
-            ? TALANTON_LOGIN_BACKGROUND_CLASS
-            : "object-cover object-[center_35%] opacity-80 sm:object-center"
+          : isTalantonPortalsLogin
+            ? TALANTON_PORTALS_LOGIN_BACKGROUND_CLASS
+            : isTalanton
+              ? TALANTON_LOGIN_BACKGROUND_CLASS
+              : "object-cover object-[center_35%] opacity-80 sm:object-center"
       }
       backgroundImageQuality={isTalanton ? TALANTON_LOGIN_BACKGROUND_QUALITY : 92}
       overlayClassName={
         isOnwardAir
           ? "absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
-          : isTalanton
-            ? TALANTON_LOGIN_OVERLAY_CLASS
-            : "absolute inset-0 bg-[#020617]/45"
+          : isTalantonPortalsLogin
+            ? TALANTON_PORTALS_LOGIN_OVERLAY_CLASS
+            : isTalanton
+              ? TALANTON_LOGIN_OVERLAY_CLASS
+              : "absolute inset-0 bg-[#020617]/45"
       }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >
@@ -409,7 +418,7 @@ export default function Unit311LoginPage({
                         ? `${customerLabel} Login`
                         : "Workspace Login"}
           </h1>
-          <p className="mx-auto mt-3 max-w-[22rem] text-[14px] leading-relaxed text-white/55 sm:mt-3.5 sm:max-w-lg sm:text-[15px]">
+          <p className="mx-auto mt-3 max-w-[22rem] text-[14px] leading-relaxed text-white/55 sm:mt-3.5 sm:max-w-xl sm:text-[15px]">
             {isCorpCentre
               ? "Secure access to your Corp.Centre workspace"
               : isTalantonPortalsLogin
