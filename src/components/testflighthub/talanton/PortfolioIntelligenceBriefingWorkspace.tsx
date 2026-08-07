@@ -10,7 +10,6 @@ import {
   FileText,
   GraduationCap,
   ShieldAlert,
-  Sparkles,
   Target,
 } from "lucide-react";
 
@@ -181,29 +180,6 @@ export default function PortfolioIntelligenceBriefingWorkspace() {
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               Executive Briefing
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/60">
-              Prepared for {briefing.preparedFor}. Focused on what requires attention across the
-              portfolio right now — not analytics theatre.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-white/55">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-3 py-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
-              AI briefing · {formatShortDate(briefing.asOf)}
-            </span>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium",
-                briefing.health.posture === "Stable"
-                  ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-                  : briefing.health.posture === "Watch"
-                    ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
-                    : "border-rose-400/30 bg-rose-500/10 text-rose-100",
-              )}
-            >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {briefing.health.posture} posture
-            </span>
           </div>
         </div>
       </header>
@@ -217,18 +193,6 @@ export default function PortfolioIntelligenceBriefingWorkspace() {
           {briefing.health.postureReason}
         </p>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <HealthMetric
-            label="Portfolio Health Score"
-            value={`${briefing.health.portfolioHealthScore}/100`}
-            hint={briefing.health.posture}
-            tone={
-              briefing.health.portfolioHealthScore >= 78
-                ? "good"
-                : briefing.health.portfolioHealthScore >= 65
-                  ? "watch"
-                  : "alert"
-            }
-          />
           <HealthMetric
             label="Companies Requiring Attention"
             value={briefing.health.companiesRequiringAttention}
@@ -267,20 +231,12 @@ export default function PortfolioIntelligenceBriefingWorkspace() {
         title="AI Executive Briefing"
         copyText={briefing.briefingText}
       >
-        <div className="space-y-5 text-sm leading-relaxed text-white/75">
-          <BriefingBlock heading="Overall portfolio status" body={briefing.overallStatus} />
-          <BriefingList heading="Significant changes" items={briefing.significantChanges} />
-          <BriefingList
-            heading="Companies requiring attention"
-            items={briefing.companiesRequiringAttentionNarrative}
-            ordered
-          />
-          <BriefingList heading="Compliance concerns" items={briefing.complianceConcerns} />
-          <BriefingList heading="Reporting concerns" items={briefing.reportingConcerns} />
-          <BriefingList
-            heading="Recommended actions"
-            items={briefing.recommendedActionsNarrative}
-            ordered
+        <div className="grid gap-4 lg:grid-cols-3">
+          <OverallStatusPanel health={briefing.health} bullets={briefing.overallStatusBullets} />
+          <SignificantChangesPanel items={briefing.significantChangeItems} />
+          <AttentionSummaryPanel
+            companies={briefing.attentionCompanies}
+            basePath={basePath}
           />
         </div>
       </GeneratedPanel>
@@ -453,39 +409,138 @@ export default function PortfolioIntelligenceBriefingWorkspace() {
   );
 }
 
-function BriefingBlock({ heading, body }: { heading: string; body: string }) {
+function postureTone(posture: "Stable" | "Watch" | "Elevated") {
+  switch (posture) {
+    case "Stable":
+      return {
+        border: "border-emerald-400/25",
+        bg: "bg-emerald-500/10",
+        label: "text-emerald-200",
+        icon: CheckCircle2,
+      };
+    case "Watch":
+      return {
+        border: "border-amber-400/25",
+        bg: "bg-amber-500/10",
+        label: "text-amber-100",
+        icon: AlertTriangle,
+      };
+    default:
+      return {
+        border: "border-rose-400/25",
+        bg: "bg-rose-500/10",
+        label: "text-rose-100",
+        icon: AlertTriangle,
+      };
+  }
+}
+
+function OverallStatusPanel({
+  health,
+  bullets,
+}: {
+  health: ReturnType<typeof buildPortfolioExecutiveBriefing>["health"];
+  bullets: string[];
+}) {
+  const tone = postureTone(health.posture);
+  const Icon = tone.icon;
   return (
-    <div>
+    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
       <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">
-        {heading}
+        Overall portfolio status
       </h3>
-      <p className="mt-2 text-white/75">{body}</p>
+      <div
+        className={cn(
+          "mt-3 flex items-start gap-3 rounded-lg border px-3 py-3",
+          tone.border,
+          tone.bg,
+        )}
+      >
+        <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", tone.label)} />
+        <div className="min-w-0">
+          <p className={cn("text-sm font-semibold", tone.label)}>{health.posture} posture</p>
+          <p className="mt-1 text-xs leading-relaxed text-white/65">{health.postureReason}</p>
+        </div>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {bullets.map((line) => (
+          <li key={line} className="flex gap-2 text-sm leading-snug text-white/70">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-emerald-400/80" />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
-function BriefingList({
-  heading,
+function SignificantChangesPanel({
   items,
-  ordered = false,
 }: {
-  heading: string;
-  items: string[];
-  ordered?: boolean;
+  items: ReturnType<typeof buildPortfolioExecutiveBriefing>["significantChangeItems"];
 }) {
-  const ListTag = ordered ? "ol" : "ul";
   return (
-    <div>
+    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
       <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">
-        {heading}
+        Significant changes
       </h3>
-      <ListTag className={cn("mt-2 space-y-2", ordered ? "list-decimal pl-5" : "list-disc pl-5")}>
+      <div className="mt-3 space-y-2">
         {items.map((item) => (
-          <li key={item} className="text-white/75">
-            {item}
-          </li>
+          <div
+            key={item.title}
+            className="rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2.5"
+          >
+            <p className="text-sm font-medium text-white">{item.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-white/55">{item.detail}</p>
+          </div>
         ))}
-      </ListTag>
+      </div>
+    </div>
+  );
+}
+
+function AttentionSummaryPanel({
+  companies,
+  basePath,
+}: {
+  companies: ReturnType<typeof buildPortfolioExecutiveBriefing>["attentionCompanies"];
+  basePath: ReturnType<typeof useInternalOperationsBasePath>;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300/75">
+        Companies requiring attention
+      </h3>
+      <div className="mt-3 space-y-2">
+        {companies.slice(0, 5).map((company) => {
+          const companyHref = getInternalNavHref("portfolio-intelligence-company", basePath, {
+            companyId: company.companyId,
+          });
+          return (
+            <Link
+              key={company.companyId}
+              href={companyHref}
+              className="block rounded-lg border border-white/8 bg-white/[0.03] px-3 py-2.5 transition hover:border-emerald-400/20 hover:bg-emerald-500/[0.04]"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-medium text-white">{company.companyName}</p>
+                <span
+                  className={cn(
+                    "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                    priorityClass(company.priority),
+                  )}
+                >
+                  {company.priority}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-white/50">{company.reason}</p>
+              <p className="mt-1 text-[11px] leading-snug text-emerald-200/80">
+                {company.recommendedAction}
+              </p>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

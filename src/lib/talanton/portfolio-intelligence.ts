@@ -73,12 +73,19 @@ export type PortfolioHealthSummary = {
   postureReason: string;
 };
 
+export type BriefingChangeItem = {
+  title: string;
+  detail: string;
+};
+
 export type PortfolioExecutiveBriefing = {
   asOf: string;
   preparedFor: string;
   health: PortfolioHealthSummary;
   overallStatus: string;
+  overallStatusBullets: string[];
   significantChanges: string[];
+  significantChangeItems: BriefingChangeItem[];
   companiesRequiringAttentionNarrative: string[];
   complianceConcerns: string[];
   reportingConcerns: string[];
@@ -402,7 +409,7 @@ function formatBriefingText(input: {
   asOf: string;
   preparedFor: string;
   health: PortfolioHealthSummary;
-  overallStatus: string;
+  overallStatusBullets: string[];
   significantChanges: string[];
   companiesRequiringAttentionNarrative: string[];
   complianceConcerns: string[];
@@ -415,7 +422,7 @@ function formatBriefingText(input: {
     `As of ${formatDisplayDate(input.asOf)}`,
     "",
     "Overall portfolio status",
-    input.overallStatus,
+    ...input.overallStatusBullets.map((line) => `• ${line}`),
     "",
     "Significant changes",
     ...input.significantChanges.map((line) => `• ${line}`),
@@ -449,29 +456,39 @@ export function buildPortfolioExecutiveBriefing(asOf?: string | null): Portfolio
     (r) => r.status !== "Closed" && (r.rating === "High" || r.rating === "Critical"),
   );
 
-  const overallStatus = [
-    `The Talanton Impact portfolio of ${health.totalPortfolioCompanies} companies is in a ${health.posture} posture (health score ${health.portfolioHealthScore}/100).`,
-    health.postureReason,
-    `${health.companiesRequiringAttention} companies require leadership attention, with ${health.reportsOutstanding} reporting items outstanding and ${health.highRiskCompanies} companies rated High or Critical.`,
-  ].join(" ");
-
-  const significantChanges = [
-    `${TALANTON_QUARTERLY_REPORTS.filter((r) => r.status === "Submitted").length} companies have submitted Q2 2026 packs; ${overdueReports.length} remain overdue.`,
-    openHighRisks.length
-      ? `${openHighRisks[0]!.title} at ${openHighRisks[0]!.companyId ? companyNameById(openHighRisks[0]!.companyId) : "portfolio level"} remains the top open risk item.`
-      : "No critical open risks are currently escalated.",
-    `Average portfolio compliance stands near ${Math.round(
-      TALANTON_PORTFOLIO_COMPANIES.reduce((s, c) => s + c.compliancePct, 0) /
-        TALANTON_PORTFOLIO_COMPANIES.length,
-    )}%, with concentrated gaps in AML, procurement, and modern slavery modules.`,
-    dueSoonReports.length
-      ? `${dueSoonReports.length} quarterly reports are due soon and should be cleared before the next board materials cycle.`
-      : "No additional quarterly reports are marked due soon this week.",
+  const overallStatusBullets = [
+    `${health.companiesRequiringAttention} of ${health.totalPortfolioCompanies} companies need leadership follow-up.`,
+    `${health.reportsOutstanding} quarterly reports are overdue or due soon.`,
+    `${health.highRiskCompanies} holdings are rated High or Critical risk.`,
+    `${health.complianceIssues} open compliance items across the portfolio.`,
   ];
 
+  const overallStatus = overallStatusBullets.join(" ");
+
+  const significantChangeItems: BriefingChangeItem[] = [
+    {
+      title: "Q2 reporting cadence",
+      detail: `${TALANTON_QUARTERLY_REPORTS.filter((r) => r.status === "Submitted").length} packs submitted; ${overdueReports.length} overdue${dueSoonReports.length ? `; ${dueSoonReports.length} due soon` : ""}.`,
+    },
+    {
+      title: "Top open risk",
+      detail: openHighRisks.length
+        ? `${openHighRisks[0]!.title} at ${openHighRisks[0]!.companyId ? companyNameById(openHighRisks[0]!.companyId) : "portfolio level"} — owner ${openHighRisks[0]!.owner}.`
+        : "No critical risks escalated this cycle.",
+    },
+    {
+      title: "Compliance coverage",
+      detail: `Portfolio average near ${Math.round(
+        TALANTON_PORTFOLIO_COMPANIES.reduce((s, c) => s + c.compliancePct, 0) /
+          TALANTON_PORTFOLIO_COMPANIES.length,
+      )}% — gaps concentrated in AML, procurement, and modern slavery.`,
+    },
+  ];
+
+  const significantChanges = significantChangeItems.map((item) => `${item.title}: ${item.detail}`);
+
   const companiesRequiringAttentionNarrative = attentionCompanies.map(
-    (c) =>
-      `${c.companyName} (${c.country}) — ${c.reason}. Health ${c.healthScore}/100, risk ${c.riskRating}. ${c.detail}`,
+    (c) => `${c.companyName} — ${c.reason}. ${c.recommendedAction}`,
   );
 
   const complianceConcerns = [
@@ -502,7 +519,7 @@ export function buildPortfolioExecutiveBriefing(asOf?: string | null): Portfolio
     asOf: date,
     preparedFor: "Harry Turner and Talanton leadership",
     health,
-    overallStatus,
+    overallStatusBullets,
     significantChanges,
     companiesRequiringAttentionNarrative,
     complianceConcerns:
@@ -514,7 +531,6 @@ export function buildPortfolioExecutiveBriefing(asOf?: string | null): Portfolio
 
   const healthSummaryText = [
     "Portfolio Health Summary",
-    `Portfolio Health Score: ${health.portfolioHealthScore}/100`,
     `Posture: ${health.posture} — ${health.postureReason}`,
     `Companies Requiring Attention: ${health.companiesRequiringAttention}`,
     `Reports Outstanding: ${health.reportsOutstanding}`,
@@ -544,7 +560,9 @@ export function buildPortfolioExecutiveBriefing(asOf?: string | null): Portfolio
     preparedFor: "Harry Turner and Talanton leadership",
     health,
     overallStatus,
+    overallStatusBullets,
     significantChanges,
+    significantChangeItems,
     companiesRequiringAttentionNarrative,
     complianceConcerns:
       complianceConcerns.length > 0 ? complianceConcerns : ["No material compliance escalations this cycle."],
