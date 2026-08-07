@@ -13,6 +13,8 @@ export const OVERVIEW_AUTH_BYPASS_FOR_PREVIEW = false;
 
 export function isOverviewAuthBypassEnabled(): boolean {
   if (OVERVIEW_AUTH_BYPASS_FOR_PREVIEW) return true;
+  // Never allow env-only bypass on production (Vercel may still set OVERVIEW_PUBLIC_PREVIEW).
+  if (process.env.NODE_ENV === "production") return false;
   const v = process.env.OVERVIEW_PUBLIC_PREVIEW?.trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
 }
