@@ -6,11 +6,11 @@ import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
 import { marketingFadeIn, MARKETING_CONTENT_CLASS } from "@/lib/marketing-ui";
 import {
-  TALANTON_BOARD_LOGIN_BACKGROUND,
-  TALANTON_BOARD_LOGIN_BACKGROUND_CLASS,
-  TALANTON_BOARD_LOGIN_OVERLAY_CLASS,
-  TALANTON_LOGIN_BACKGROUND_QUALITY,
-} from "@/lib/talanton/login-branding";
+  BOARD_PORTAL_LOGIN_BACKGROUND,
+  BOARD_PORTAL_LOGIN_BACKGROUND_CLASS,
+  BOARD_PORTAL_LOGIN_BACKGROUND_QUALITY,
+  BOARD_PORTAL_LOGIN_OVERLAY_CLASS,
+} from "@/lib/board-portal-login-branding";
 
 type Props = {
   companyPath: string;
@@ -125,10 +125,10 @@ export function CompanyPortalLogin({
   if (isBoard) {
     return (
       <MarketingPageShell
-        backgroundImage={TALANTON_BOARD_LOGIN_BACKGROUND}
-        backgroundImageClassName={TALANTON_BOARD_LOGIN_BACKGROUND_CLASS}
-        backgroundImageQuality={TALANTON_LOGIN_BACKGROUND_QUALITY}
-        overlayClassName={TALANTON_BOARD_LOGIN_OVERLAY_CLASS}
+        backgroundImage={BOARD_PORTAL_LOGIN_BACKGROUND}
+        backgroundImageClassName={BOARD_PORTAL_LOGIN_BACKGROUND_CLASS}
+        backgroundImageQuality={BOARD_PORTAL_LOGIN_BACKGROUND_QUALITY}
+        overlayClassName={BOARD_PORTAL_LOGIN_OVERLAY_CLASS}
         contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] items-center justify-center px-4 py-10 text-white`}
       >
         {formCard}
