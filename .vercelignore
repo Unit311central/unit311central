@@ -8,6 +8,10 @@ backups/
 corp.jpg
 .git
 agent-transcripts
+docs/qa/
+mobile-android/
+tmp/
+overview-incognito-test.png
 scripts/_*.mjs
 scripts/_*.json
 .env.corporatecentre.runtime

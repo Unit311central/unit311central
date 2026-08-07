@@ -5,6 +5,7 @@ import type { NextConfig } from "next";
  * Production host routing (apex → internal.*, clean internal URLs) lives in middleware.
  */
 const nextConfig: NextConfig = {
+  productionBrowserSourceMaps: false,
   async redirects() {
     // Public destinations must be /dashboard?... so customer-host middleware can
     // authenticate and keep Talanton externals out of the admin shell.
@@ -69,6 +70,15 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "date-fns"],
+  },
+  outputFileTracingExcludes: {
+    "*": [
+      "node_modules/playwright/**",
+      "node_modules/@playwright/**",
+      "node_modules/@esbuild/**",
+      "node_modules/webpack/**",
+      "node_modules/terser/**",
+    ],
   },
 };
 
