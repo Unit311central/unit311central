@@ -4,6 +4,8 @@ import { browseClientFiles } from "@/lib/client-files-root";
 import { filesApiErrorStatus, requireInternalFilesAccess } from "@/lib/files-api-auth";
 import { browseFolder } from "@/lib/internal-files-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { ensureTalantonFilesSeeded } from "@/lib/talanton/files-seed";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,10 @@ export async function GET(request: NextRequest) {
   if ("error" in auth) return auth.error;
 
   try {
+    if (isTalantonImpactSlug(auth.workspace.slug)) {
+      await ensureTalantonFilesSeeded(auth.workspace.id).catch(() => undefined);
+    }
+
     const folderId = request.nextUrl.searchParams.get("folderId");
     const query = request.nextUrl.searchParams.get("q") ?? undefined;
     const categoryId = request.nextUrl.searchParams.get("categoryId");

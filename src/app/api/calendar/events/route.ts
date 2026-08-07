@@ -12,6 +12,8 @@ import { createCalendarEvent, listCalendarEvents } from "@/lib/internal-calendar
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { ensureTalantonCalendarSeeded } from "@/lib/talanton/calendar-seed";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,9 @@ export async function GET(request: NextRequest) {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    if (isTalantonImpactSlug(workspace.slug)) {
+      await ensureTalantonCalendarSeeded(workspace.id).catch(() => undefined);
+    }
     const from = request.nextUrl.searchParams.get("from") ?? undefined;
     const to = request.nextUrl.searchParams.get("to") ?? undefined;
     const events = await listCalendarEvents(from, to, { workspaceId: workspace.id });

@@ -142,6 +142,7 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
       { label: "Digital Newsletter", icon: "Mail", view: "stories-newsletter" },
       { label: "Media Library", icon: "FolderOpen", view: "stories-media-library" },
       { label: "Mailing List Management", icon: "Users", view: "stories-mailing-list" },
+      { label: "Social", icon: "Share2", view: "social" },
     ],
   },
   {

@@ -23,6 +23,7 @@ import { KeyRound, Loader2, Plus, Save, Shield, Trash2, X } from "lucide-react";
 import AddUserAccessWizard from "./AddUserAccessWizard";
 import { setCachedJson, PLATFORM_CACHE_KEYS } from "@/lib/platform-fetch-cache";
 import { validatePlatformSignupPasswordConfirmation } from "@/lib/platform-password-validation";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -70,6 +71,8 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
     () => users.find((user) => user.id === selectedUserId) ?? users[0] ?? null,
     [users, selectedUserId],
   );
+
+  const isTalantonUsers = isBrowserTalantonImpactSurface();
 
   const isDirty = useMemo(() => {
     if (!selectedUser) return false;
@@ -155,6 +158,8 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
           departments: user.departments,
           status: user.status,
           region: user.region,
+          city: user.city,
+          country: user.country,
           licenseId: user.licenseId,
           notes: user.notes,
           allowedViews: user.allowedViews,
@@ -651,22 +656,43 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                       })}
                     </div>
                   </div>
-                  <div>
-                    <FieldLabel>Region</FieldLabel>
-                    <select
-                      className={inputClassName()}
-                      value={selectedUser.region}
-                      onChange={(event) =>
-                        patchSelected({ region: event.target.value as ManagedUser["region"] })
-                      }
-                    >
-                      {USER_REGION_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {isTalantonUsers ? (
+                    <>
+                      <div>
+                        <FieldLabel>City</FieldLabel>
+                        <input
+                          className={inputClassName()}
+                          value={selectedUser.city ?? ""}
+                          onChange={(event) => patchSelected({ city: event.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>Country</FieldLabel>
+                        <input
+                          className={inputClassName()}
+                          value={selectedUser.country ?? ""}
+                          onChange={(event) => patchSelected({ country: event.target.value })}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <FieldLabel>Region</FieldLabel>
+                      <select
+                        className={inputClassName()}
+                        value={selectedUser.region}
+                        onChange={(event) =>
+                          patchSelected({ region: event.target.value as ManagedUser["region"] })
+                        }
+                      >
+                        {USER_REGION_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <FieldLabel>Status</FieldLabel>
                     <select

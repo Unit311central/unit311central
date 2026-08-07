@@ -19,6 +19,8 @@ import {
   type ScheduledCall,
 } from "@/lib/internal-messaging-data";
 import { CLIENT_MESSAGING_OPTIONS } from "@/lib/client-messaging-config";
+import { TALANTON_CLIENT_MESSAGING_OPTIONS } from "@/lib/talanton/messaging-config";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import {
   getInternalNavHref,
   resolveInternalOperationsBasePath,
@@ -259,6 +261,14 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
       typeof window === "undefined"
         ? "/"
         : resolveInternalOperationsBasePath(window.location.hostname),
+    [],
+  );
+
+  const clientMessagingOptions = useMemo(
+    () =>
+      isBrowserTalantonImpactSurface()
+        ? TALANTON_CLIENT_MESSAGING_OPTIONS
+        : CLIENT_MESSAGING_OPTIONS,
     [],
   );
 
@@ -975,7 +985,7 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
 
     const selectedClient =
       newChannelType === "client"
-        ? CLIENT_MESSAGING_OPTIONS.find((client) => client.key === newChannelClientKey)
+        ? clientMessagingOptions.find((client) => client.key === newChannelClientKey)
         : null;
 
     setCreatingChannel(true);
@@ -1023,7 +1033,7 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
       setNewChannelDescription("");
       setNewChannelPrivate(false);
       setNewChannelType("internal");
-      setNewChannelClientKey(CLIENT_MESSAGING_OPTIONS[0]?.key ?? "venturi");
+      setNewChannelClientKey(clientMessagingOptions[0]?.key ?? "venturi");
       setNewChannelMembers(activeOperators.map((operator) => operator.id));
       setShowCreateChannel(false);
       selectChannel(data.channel.room);
@@ -1414,7 +1424,7 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
   function renderChannelButton(channel: MessageChannel) {
     const clientLabel =
       channel.channelType === "client"
-        ? CLIENT_MESSAGING_OPTIONS.find((client) => client.key === channel.clientKey)?.label
+        ? clientMessagingOptions.find((client) => client.key === channel.clientKey)?.label
         : null;
 
     return (
@@ -1579,7 +1589,7 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
               onChange={(event) => setNewChannelClientKey(event.target.value)}
               className={cn(inputClassName(), "mt-2")}
             >
-              {CLIENT_MESSAGING_OPTIONS.map((client) => (
+              {clientMessagingOptions.map((client) => (
                 <option key={client.key} value={client.key}>
                   {client.label}
                 </option>
@@ -1973,7 +1983,7 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
                     <p className="text-xs text-white/45">
                       {[
                         ...channelMembers.map((member) => member.fullName),
-                        CLIENT_MESSAGING_OPTIONS.find(
+                        clientMessagingOptions.find(
                           (client) => client.key === activeChannel.clientKey,
                         )?.label ?? "Client",
                       ].join(" · ") || "No members"}

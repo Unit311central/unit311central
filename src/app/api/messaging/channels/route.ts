@@ -18,6 +18,8 @@ import {
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { ensureTalantonMessagingChannelsSeeded } from "@/lib/talanton/messaging-seed";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,10 @@ export async function GET(request: NextRequest) {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
+
+    if (isTalantonImpactSlug(workspace.slug) && isSupabaseConfigured()) {
+      await ensureTalantonMessagingChannelsSeeded(workspace.id).catch(() => undefined);
+    }
 
     const viewerType = request.nextUrl.searchParams.get("viewerType");
     const operatorId = request.nextUrl.searchParams.get("operatorId") ?? undefined;

@@ -526,7 +526,9 @@ function reshapeTalantonCorporateSection(section: InternalNavSection): InternalN
 /** Ensure File Explorer stays with Internal + External only (no Client Explorer). */
 function reshapeTalantonProductivitySection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Business Productivity") return section;
-  const items = section.items.map((item) => {
+  const items = section.items
+    .filter((item) => item.label !== "Social" && item.view !== "social")
+    .map((item) => {
     if (item.label !== "File Explorer") return item;
     const children = (item.children ?? []).filter(
       (child) =>

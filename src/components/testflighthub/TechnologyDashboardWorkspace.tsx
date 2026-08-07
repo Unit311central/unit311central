@@ -22,6 +22,14 @@ import {
   loadOaTelecoms,
   sumOaTelecomMonthlySpend,
 } from "@/lib/onwardair/tech-fake-data";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import {
+  TI_TECH_DEVICES,
+  TI_UPCOMING_TECH_RENEWALS,
+  buildTiTechSpendTrend,
+  loadTiTelecoms,
+  sumTiTelecomMonthlySpend,
+} from "@/lib/talanton/tech-fake-data";
 import { buildTechnologyManagementDashboardConfig } from "@/lib/technology-management-dashboard";
 
 type SoftwareAssetRow = {
@@ -49,7 +57,8 @@ export default function TechnologyDashboardWorkspace() {
   const basePath = useInternalOperationsBasePath();
   const isAbhi = isBrowserAbhiSurface();
   const isOa = isBrowserOnwardAirSurface();
-  const hasEstate = isAbhi || isOa;
+  const isTi = isBrowserTalantonImpactSurface();
+  const hasEstate = isAbhi || isOa || isTi;
   const [assets, setAssets] = useState<SoftwareAssetRow[]>([]);
   const [summary, setSummary] = useState<{
     annualSpend?: number;
@@ -63,10 +72,12 @@ export default function TechnologyDashboardWorkspace() {
   useEffect(() => {
     if (isAbhi) {
       setTelecomMonthly(sumAbhiTelecomMonthlySpend(loadAbhiTelecoms()));
+    } else if (isTi) {
+      setTelecomMonthly(sumTiTelecomMonthlySpend(loadTiTelecoms()));
     } else if (isOa) {
       setTelecomMonthly(sumOaTelecomMonthlySpend(loadOaTelecoms()));
     }
-  }, [isAbhi, isOa]);
+  }, [isAbhi, isOa, isTi]);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,7 +150,31 @@ export default function TechnologyDashboardWorkspace() {
             })),
           };
         })()
-      : isOa
+      : isTi
+        ? (() => {
+            const trend = buildTiTechSpendTrend({
+              softwareMonthlyUsd: monthlySpend,
+              telecomMonthlyUsd: telecomMonthly,
+            });
+            return {
+              brandLabel: "Talanton Impact",
+              devicesCount: TI_TECH_DEVICES.length,
+              telecomMonthly,
+              currency: "USD",
+              spendTrendMomPct: trend.momPct,
+              spendTrendMom: trend.momUsd,
+              spendTrendLabels: trend.labels,
+              spendTrendValues: trend.values,
+              upcomingRenewals: TI_UPCOMING_TECH_RENEWALS.map((row) => ({
+                id: row.id,
+                label: row.label,
+                category: row.category,
+                dueDate: row.dueDate,
+                cost: row.costUsd,
+              })),
+            };
+          })()
+        : isOa
         ? (() => {
             const trend = buildOaTechSpendTrend({
               softwareMonthlyUsd: monthlySpend,
@@ -171,10 +206,10 @@ export default function TechnologyDashboardWorkspace() {
       renewingSoonCount,
       annualSpend: summary?.annualSpend,
       monthlySpend,
-      currency: summary?.currency ?? (isOa ? "USD" : undefined),
+      currency: summary?.currency ?? (isOa || isTi ? "USD" : undefined),
       estate,
     });
-  }, [assets, summary, isAbhi, isOa, telecomMonthly]);
+  }, [assets, summary, isAbhi, isOa, isTi, telecomMonthly]);
 
   return (
     <div className="space-y-3">

@@ -46,6 +46,9 @@ export type ManagedUser = {
   departments: UserDepartment[];
   status: UserStatus;
   region: UserRegion;
+  /** Talanton Users — primary office city (replaces region label in UI). */
+  city?: string;
+  country?: string;
   licenseId: string;
   notes: string;
   /** null = unrestricted (legacy). Explicit list = enforced grants. */
@@ -386,6 +389,8 @@ export function userFieldsEqual(a: ManagedUser, b: ManagedUser) {
     JSON.stringify(a.departments) === JSON.stringify(b.departments) &&
     a.status === b.status &&
     a.region === b.region &&
+    a.city === b.city &&
+    a.country === b.country &&
     a.licenseId === b.licenseId &&
     a.notes === b.notes &&
     JSON.stringify(a.allowedViews) === JSON.stringify(b.allowedViews) &&

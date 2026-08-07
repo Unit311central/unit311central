@@ -35,6 +35,15 @@ import {
   saveOaTelecoms,
   sumOaTelecomMonthlySpend,
 } from "@/lib/onwardair/tech-fake-data";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import {
+  TI_TECH_ASSETS,
+  TI_TECH_DEVICES,
+  TI_TECH_REPORTS,
+  loadTiTelecoms,
+  saveTiTelecoms,
+  sumTiTelecomMonthlySpend,
+} from "@/lib/talanton/tech-fake-data";
 import { cn } from "@/lib/utils";
 import { WsEmpty, WsSection } from "./domain-workspace-ui";
 
@@ -200,9 +209,19 @@ function AbhiDevicesRegister() {
 }
 
 function OaDevicesRegister() {
+  const isTi = isBrowserTalantonImpactSurface();
+  const devices = isTi ? TI_TECH_DEVICES : OA_TECH_DEVICES;
+  const assets = isTi ? TI_TECH_ASSETS : OA_TECH_ASSETS;
+  const subtitle = isTi
+    ? "Talanton Impact Nairobi & Newtown Square technology estate"
+    : "OnwardAir Houston physical technology estate";
+  const assetsSubtitle = isTi
+    ? "Tagged Talanton IT estate · USD"
+    : "Tagged OnwardAir IT estate · USD";
+
   return (
     <div className="space-y-4">
-      <WsSection title="Devices" subtitle="OnwardAir Houston physical technology estate">
+      <WsSection title="Devices" subtitle={subtitle}>
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-white/[0.04] text-[11px] uppercase tracking-wide text-white/45">
@@ -216,7 +235,7 @@ function OaDevicesRegister() {
               </tr>
             </thead>
             <tbody>
-              {OA_TECH_DEVICES.map((row) => (
+              {devices.map((row) => (
                 <tr key={row.id} className="border-t border-white/8 text-white/80">
                   <td className="px-3 py-2.5 font-medium text-white">{row.name}</td>
                   <td className="px-3 py-2.5">{row.type}</td>
@@ -234,9 +253,9 @@ function OaDevicesRegister() {
           </table>
         </div>
       </WsSection>
-      <WsSection title="Technology Assets" subtitle="Tagged OnwardAir IT estate · USD">
+      <WsSection title="Technology Assets" subtitle={assetsSubtitle}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {OA_TECH_ASSETS.map((asset) => (
+          {assets.map((asset) => (
             <div
               key={asset.id}
               className="rounded-xl border border-white/10 bg-[#0b1524]/80 px-3 py-3"
@@ -258,14 +277,17 @@ function OaDevicesRegister() {
 }
 
 function OaReportsRegister() {
+  const isTi = isBrowserTalantonImpactSurface();
+  const reports = isTi ? TI_TECH_REPORTS : OA_TECH_REPORTS;
+  const subtitle = isTi
+    ? "Talanton technology estate reporting · Nairobi & US · USD"
+    : "OnwardAir technology estate reporting · Houston / USD";
+
   return (
     <div className="space-y-4">
-      <WsSection
-        title="Reports"
-        subtitle="OnwardAir technology estate reporting · Houston / USD"
-      >
+      <WsSection title="Reports" subtitle={subtitle}>
         <div className="grid gap-3">
-          {OA_TECH_REPORTS.map((report) => (
+          {reports.map((report) => (
             <div
               key={report.id}
               className="rounded-xl border border-white/10 bg-[#0b1524]/80 px-4 py-3"
@@ -633,6 +655,7 @@ const EMPTY_OA_TELECOM_FORM: Omit<OaTechTelecom, "id"> = {
 };
 
 function OaTelecomsRegister() {
+  const isTi = isBrowserTalantonImpactSurface();
   const [rows, setRows] = useState<OaTechTelecom[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -640,16 +663,23 @@ function OaTelecomsRegister() {
   const [form, setForm] = useState(EMPTY_OA_TELECOM_FORM);
 
   useEffect(() => {
-    setRows(loadOaTelecoms());
+    setRows(isTi ? loadTiTelecoms() : loadOaTelecoms());
     setHydrated(true);
-  }, []);
+  }, [isTi]);
 
-  const persist = useCallback((next: OaTechTelecom[]) => {
-    setRows(next);
-    saveOaTelecoms(next);
-  }, []);
+  const persist = useCallback(
+    (next: OaTechTelecom[]) => {
+      setRows(next);
+      if (isTi) saveTiTelecoms(next);
+      else saveOaTelecoms(next);
+    },
+    [isTi],
+  );
 
-  const monthly = useMemo(() => sumOaTelecomMonthlySpend(rows), [rows]);
+  const monthly = useMemo(
+    () => (isTi ? sumTiTelecomMonthlySpend(rows) : sumOaTelecomMonthlySpend(rows)),
+    [isTi, rows],
+  );
   const isMobile = isOaMobileTelecomService(form.service);
 
   function openCreate() {
@@ -715,7 +745,11 @@ function OaTelecomsRegister() {
     <div className="space-y-4">
       <WsSection
         title="Telecommunications"
-        subtitle="OnwardAir Houston connectivity & voice · USD"
+        subtitle={
+          isTi
+            ? "Talanton Impact Nairobi & US connectivity · USD"
+            : "OnwardAir Houston connectivity & voice · USD"
+        }
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-100">
@@ -932,11 +966,12 @@ export default function TechnologyPlaceholderWorkspace({
 }: TechnologyPlaceholderWorkspaceProps) {
   const isAbhi = isBrowserAbhiSurface();
   const isOa = isBrowserOnwardAirSurface();
+  const isTi = isBrowserTalantonImpactSurface();
   if (isAbhi && module === "devices") return <AbhiDevicesRegister />;
   if (isAbhi && module === "telecommunications") return <AbhiTelecomsRegister />;
-  if (isOa && module === "devices") return <OaDevicesRegister />;
-  if (isOa && module === "telecommunications") return <OaTelecomsRegister />;
-  if (isOa && module === "reports") return <OaReportsRegister />;
+  if ((isOa || isTi) && module === "devices") return <OaDevicesRegister />;
+  if ((isOa || isTi) && module === "telecommunications") return <OaTelecomsRegister />;
+  if ((isOa || isTi) && module === "reports") return <OaReportsRegister />;
 
   const copy = MODULE_COPY[module];
   const Icon = copy.icon;

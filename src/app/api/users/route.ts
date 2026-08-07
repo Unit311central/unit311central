@@ -6,6 +6,8 @@ import {
 } from "@/lib/internal-admin-auth";
 import { createInternalOperator, listInternalOperators } from "@/lib/internal-operators-service";
 import { listWorkspaceTenantUsers } from "@/lib/platform-users-service";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { listTalantonTenantUsers } from "@/lib/talanton/users-data";
 import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
 import type {
   UserDashboardPrefs,
@@ -39,7 +41,9 @@ export async function GET() {
 
   try {
     if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
-      const users = await listWorkspaceTenantUsers(auth.workspace.id);
+      const users = isTalantonImpactSlug(auth.workspace.slug)
+        ? listTalantonTenantUsers()
+        : await listWorkspaceTenantUsers(auth.workspace.id);
       return NextResponse.json({ users });
     }
 
