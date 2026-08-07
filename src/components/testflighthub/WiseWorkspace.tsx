@@ -78,7 +78,7 @@ export default function WiseWorkspace() {
       onRefresh={() => void loadStatus("refresh")}
       isAdmin
       demoMode={demoMode}
-      reportingCurrency={reportingCurrency}
+      reportingCurrency={reportingCurrency as "GBP" | "USD" | "EUR"}
     />
   );
 }

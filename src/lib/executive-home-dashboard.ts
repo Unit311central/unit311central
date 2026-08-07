@@ -267,17 +267,9 @@ function resolveHomeDisplayCurrency(financialCurrency?: string | null): string {
     return fromFinancials;
   }
   try {
-    if (typeof window !== "undefined") {
-      const { isBrowserOnwardAirSurface } =
-        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
-      if (isBrowserOnwardAirSurface()) return "USD";
-      const { isBrowserAbhiSurface } =
-        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
-      if (isBrowserAbhiSurface()) return "GBP";
-      const { isBrowserCorpCentreSurface } =
-        require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
-      if (isBrowserCorpCentreSurface()) return "AUD";
-    }
+    const { resolveBrowserReportingCurrency } =
+      require("@/lib/financial-reporting-currency") as typeof import("@/lib/financial-reporting-currency");
+    return resolveBrowserReportingCurrency();
   } catch {
     /* ignore */
   }

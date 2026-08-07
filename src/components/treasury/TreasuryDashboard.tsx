@@ -8,7 +8,6 @@ import {
   formatTreasuryMoney,
   treasuryPanelClassName,
 } from "@/components/treasury/treasury-ui";
-import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 import {
   convertToTreasuryReporting,
   sumBalancesInReportingCurrency,
@@ -49,7 +48,7 @@ type TreasuryDashboardProps = {
   onNavigate?: (view: TreasuryView, params?: { balanceId?: number; currency?: string }) => void;
   onSendMoney?: () => void;
   loading?: boolean;
-  reportingCurrency?: ReportingCurrency;
+  reportingCurrency?: "GBP" | "USD" | "EUR";
   demoMode?: boolean;
 };
 

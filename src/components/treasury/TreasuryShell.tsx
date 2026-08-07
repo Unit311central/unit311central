@@ -27,7 +27,6 @@ import {
   buildBalanceSnapshotAnalytics,
   computeTreasurySummary,
 } from "@/lib/treasury/treasury-analytics";
-import type { ReportingCurrency } from "@/lib/financial-reporting-currency";
 import type { WiseBalance, WiseConnectionStatus } from "@/lib/wise-service";
 import { cn } from "@/lib/utils";
 import {
@@ -53,7 +52,7 @@ type TreasuryShellProps = {
   /** When true, show DEMO chrome (simulated bank — OA / Demo). */
   demoMode?: boolean;
   /** Dashboard totals / charts reporting currency. Defaults to GBP. */
-  reportingCurrency?: ReportingCurrency;
+  reportingCurrency?: "GBP" | "USD" | "EUR";
 };
 
 type SummaryPayload = {
