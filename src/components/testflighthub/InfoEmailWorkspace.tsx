@@ -557,7 +557,6 @@ export default function InfoEmailWorkspace() {
       const response = await fetch("/api/email/credentials", {
         method: "POST",
         credentials: "same-origin",
-        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           account: selectedAccountId,
