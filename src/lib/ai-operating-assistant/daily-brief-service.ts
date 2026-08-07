@@ -15,6 +15,8 @@ import {
   resolveExecutivePersona,
 } from "./role-awareness";
 import { workflowsForPermissions } from "./workflow-registry";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { buildTalantonDailyExecutiveBrief } from "@/lib/talanton/daily-executive-brief";
 
 export { briefDateKey } from "./date-keys";
 
@@ -26,6 +28,10 @@ export async function buildDailyExecutiveBrief(
   context: AssistantBusinessContext,
   precomputed?: { insights: Awaited<ReturnType<typeof analysePlatformInsights>>["insights"]; dataGaps: string[] },
 ): Promise<DailyExecutiveBrief> {
+  if (isTalantonImpactSlug(context.workspace.slug)) {
+    return buildTalantonDailyExecutiveBrief(context);
+  }
+
   const persona = resolveExecutivePersona(
     context.permissions.roleView,
     context.user.displayName,

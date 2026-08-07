@@ -439,7 +439,9 @@ function formatExecutiveIntelligenceReply(
     toolName === "talanton.getBoardInsights" ||
     toolName === "talanton.queryPortfolio" ||
     toolName === "talanton.queryFunds" ||
-    toolName === "talanton.queryImpact"
+    toolName === "talanton.queryImpact" ||
+    toolName === "talanton.queryStories" ||
+    toolName === "talanton.generateStoriesReport"
   ) {
     const prose =
       (typeof summary?.message === "string" && summary.message) ||

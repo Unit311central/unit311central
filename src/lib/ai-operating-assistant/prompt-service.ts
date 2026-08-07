@@ -164,7 +164,7 @@ ${JSON.stringify(
       workspace: {
         name: context.workspace.name,
         slug: context.workspace.slug,
-        reportingCurrency: isCorpCentre ? "AUD" : undefined,
+        reportingCurrency: isCorpCentre ? "AUD" : isTalanton ? "USD" : undefined,
       },
       page: context.page,
       selection: context.selection,

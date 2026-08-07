@@ -10,6 +10,12 @@ import { getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service"
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import { resolveTalantonExecutiveIntelligenceIntent } from "@/lib/talanton/executive-intelligence-intent";
 import {
+  resolveTalantonStoriesRoute,
+  resolveTalantonViewAwareTool,
+} from "@/lib/talanton/executive-stories-intent";
+import { queryTalantonStories } from "@/lib/talanton/executive-stories-intelligence";
+import { buildTalantonDailyExecutiveBrief } from "@/lib/talanton/daily-executive-brief";
+import {
   assessTalantonOrgHealth,
   buildTalantonBoardInsights,
   buildTalantonExecutiveBriefing,
@@ -248,6 +254,60 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
     if (overdue.actions.length < 0) throw new Error("invalid actions");
   }, `count=${queryTalantonActionCentre("overdue").actions.length}`);
 
+  const stories = new SectionRunner("Stories intelligence");
+  sections.push(stories);
+  await stories.run("Stories query returns rows", () => {
+    const result = queryTalantonStories({
+      companyIds: "all",
+      storyTypes: "both",
+      statusFilter: "include_review",
+      categories: "all",
+      outputFormat: "narrative",
+    });
+    if (result.rows.length < 1) throw new Error("expected story rows");
+    if (result.counts.portfolio + result.counts.journey < 1) throw new Error("expected counts");
+    assertNoForbiddenTalantonCopy(result.prose, "stories query prose");
+  }, `rows=${queryTalantonStories({ companyIds: "all", storyTypes: "both", statusFilter: "include_review", categories: "all", outputFormat: "narrative" }).rows.length}`);
+
+  await stories.run("Vague report request → clarify", () => {
+    const route = resolveTalantonStoriesRoute("Create an impact stories report");
+    if (!route || route.kind !== "clarify") throw new Error("expected clarify route");
+    if (!route.message.includes("companies")) throw new Error("missing companies prompt");
+    if (route.followUpActions.length < 2) throw new Error("expected follow-up actions");
+  });
+
+  await stories.run("Scoped report → generateStoriesReport", () => {
+    const route = resolveTalantonStoriesRoute(
+      "All companies, all impact areas, approved only, PDF impact stories report",
+    );
+    if (!route || route.kind !== "tool") throw new Error("expected tool route");
+    if (route.tool !== "talanton.generateStoriesReport") {
+      throw new Error(`expected generateStoriesReport, got ${route.tool}`);
+    }
+  });
+
+  await stories.run("Narrative stories query route", () => {
+    const route = resolveTalantonStoriesRoute("Summarise portfolio impact stories for ARC Ride");
+    if (!route || route.kind !== "tool") throw new Error("expected tool route");
+    if (route.tool !== "talanton.queryStories") throw new Error("expected queryStories");
+  });
+
+  const dailyBrief = new SectionRunner("Daily executive brief");
+  sections.push(dailyBrief);
+  await dailyBrief.run("Talanton daily brief sections", () => {
+    const brief = buildTalantonDailyExecutiveBrief(talantonBusiness());
+    if (!/Talanton stewardship/i.test(brief.headline)) throw new Error("wrong headline");
+    const sectionIds = brief.sections.map((s) => s.id);
+    for (const id of ["portfolio", "funds", "impact", "stories", "governance"]) {
+      if (!sectionIds.includes(id)) throw new Error(`missing section ${id}`);
+    }
+    if (brief.followUpActions.length < 3) throw new Error("expected follow-up actions");
+    assertNoForbiddenTalantonCopy(
+      [brief.headline, brief.narrative, ...brief.priorities].join("\n"),
+      "daily brief",
+    );
+  });
+
   const packModel = new SectionRunner("Board pack model");
   sections.push(packModel);
   await packModel.run("Talanton board pack data", () => {
@@ -366,6 +426,8 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
       "talanton.queryPortfolio",
       "talanton.queryFunds",
       "talanton.queryImpact",
+      "talanton.queryStories",
+      "talanton.generateStoriesReport",
     ]) {
       if (!tiTools.includes(name)) throw new Error(`missing ${name}`);
     }
@@ -387,6 +449,33 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
     if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
     if (route.intent.tool !== "talanton.queryPortfolio") {
       throw new Error(`expected talanton.queryPortfolio, got ${route.intent.tool}`);
+    }
+  });
+
+  await orchestration.run("Vague stories report → need_info", async () => {
+    const route = await resolveOrchestrationRoute(
+      "Create an impact stories report",
+      [],
+      talantonBusiness(),
+    );
+    if (route.kind !== "need_info") throw new Error(`expected need_info, got ${route.kind}`);
+    if (!route.message.includes("companies")) throw new Error("missing clarification");
+  });
+
+  await orchestration.run("View-aware portfolio-stories route", async () => {
+    const ctx = talantonBusiness();
+    ctx.page = { activeView: "portfolio-stories", label: "Portfolio Stories" };
+    const route = await resolveOrchestrationRoute("Summarise this page", [], ctx);
+    if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
+    if (route.intent.tool !== "talanton.queryStories") {
+      throw new Error(`expected queryStories, got ${route.intent.tool}`);
+    }
+  });
+
+  await orchestration.run("View-aware funds page route", () => {
+    const mapped = resolveTalantonViewAwareTool("What should I know here?", "funds");
+    if (!mapped || mapped.tool !== "talanton.queryFunds") {
+      throw new Error("expected funds view mapping");
     }
   });
 
