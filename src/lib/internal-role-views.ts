@@ -12,6 +12,7 @@ import type {
   InternalNavSection,
   InternalOperationsView,
 } from "./internal-operations-data";
+import { internalSurveyNavSections } from "./internal-operations-data";
 
 export type InternalRoleView = "admin" | "c-suite" | "manager" | "staff";
 
@@ -385,16 +386,28 @@ function isTalantonNavSurface(): boolean {
   }
 }
 
+/** Server-safe Talanton LHS nav — same shape as the live customer sidebar. */
+export function buildTalantonImpactNavSections(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  const { TALANTON_IMPACT_NAV_SECTIONS } =
+    require("@/lib/talanton/nav") as typeof import("@/lib/talanton/nav");
+  const pins = sections.filter((section) => section.kind === "pin");
+  const rest = sections.filter((section) => section.kind !== "pin");
+  const withPortfolio = [...pins, ...TALANTON_IMPACT_NAV_SECTIONS, ...rest];
+  return insertTalantonBoardSection(withPortfolio);
+}
+
+export function getTalantonImpactNavSections(): InternalNavSection[] {
+  return buildTalantonImpactNavSections(
+    filterTalantonBaseNav(stripMemberIntelligenceNavForNonAbhi(internalSurveyNavSections)),
+  );
+}
+
 function appendTalantonNavSections(sections: InternalNavSection[]): InternalNavSection[] {
   if (!isTalantonNavSurface()) return sections;
   try {
-    const { TALANTON_IMPACT_NAV_SECTIONS } =
-      require("@/lib/talanton/nav") as typeof import("@/lib/talanton/nav");
-    // Portfolio platform sections lead the workspace nav (after pin items like Home).
-    const pins = sections.filter((section) => section.kind === "pin");
-    const rest = sections.filter((section) => section.kind !== "pin");
-    const withPortfolio = [...pins, ...TALANTON_IMPACT_NAV_SECTIONS, ...rest];
-    return insertTalantonBoardSection(withPortfolio);
+    return buildTalantonImpactNavSections(sections);
   } catch {
     return insertTalantonBoardSection(sections);
   }

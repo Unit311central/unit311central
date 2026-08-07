@@ -1,5 +1,7 @@
 /** Talanton Impact pre-demo portals page — auth helpers + editable content defaults. */
 
+import { buildTalantonPortalsMajorModules } from "@/lib/talanton/portals-nav-sync";
+
 export const TALANTON_DEMO_PLATFORM_USERNAME = "demo@talantonimpact.com";
 export const TALANTON_PORTALS_ADMIN_USERNAME = "admin@talantonimpact.com";
 export const TALANTON_PORTALS_SHARED_PASSWORD = "Africa1999$";
@@ -22,121 +24,6 @@ function row(id: string, text: string, indent: PortalsIndent = 0): PortalsModule
   return { id, text, indent };
 }
 
-export const DEFAULT_MAJOR_MODULES: PortalsModuleRow[] = [
-  row("m1", "Home dashboard"),
-  row("m2", "AI Executive Assistant"),
-
-  row("m3", "Funds"),
-  row("m3a", "Fund Dashboard", 1),
-  row("m3b", "Impact Fund", 1),
-  row("m3c", "Momentum Fund", 1),
-  row("m3d", "Stewards Fund", 1),
-
-  row("m4", "Portfolio Companies"),
-  row("m4a", "Dashboard", 1),
-  row("m4b", "Directory", 1),
-
-  row("m5", "Talanton Intelligence"),
-  row("m5a", "Portfolio Intelligence", 1),
-  row("m5b", "Executive Briefing", 2),
-  row("m5c", "Company Intelligence", 2),
-  row("m5d", "Impact Intelligence", 1),
-  row("m5e", "Impact Dashboard", 2),
-  row("m5f", "Company Impact", 2),
-  row("m5g", "Opportunity Intelligence", 1),
-
-  row("m6", "Marketing & Stories"),
-  row("m6a", "Portfolio Stories", 1),
-  row("m6b", "Digital Newsletter", 1),
-  row("m6c", "Media Library", 1),
-  row("m6d", "Mailing List Management", 1),
-
-  row("m7", "Board"),
-  row("m7a", "Board Dashboard", 1),
-  row("m7b", "Board Meetings", 1),
-  row("m7c", "Board Decks", 1),
-  row("m7e", "Risk Register", 1),
-  row("m7f", "Board Members", 1),
-
-  row("m8", "Business Central"),
-  row("m8a", "Projects", 1),
-  row("m8b", "Internal Projects", 2),
-  row("m8c", "External Projects", 2),
-
-  row("m9", "Financials"),
-  row("m9a", "Dashboard", 1),
-  row("m9b", "General Ledger", 1),
-  row("m9c", "Accounts Receivable", 1),
-  row("m9d", "Accounts Payable", 1),
-  row("m9e", "Expenses", 1),
-  row("m9f", "Bank", 1),
-  row("m9g", "Financial Reports", 1),
-
-  row("m10", "Human Resources"),
-  row("m10a", "Dashboard", 1),
-  row("m10b", "Employees", 1),
-  row("m10c", "Org Chart", 1),
-  row("m10d", "Recruitment", 1),
-  row("m10e", "Time & Attendance", 1),
-  row("m10f", "Payroll", 1),
-  row("m10g", "Performance", 1),
-  row("m10h", "HR Reports", 1),
-
-  row("m11", "Corporate Information"),
-  row("m11a", "Dashboard", 1),
-  row("m11b", "Cap Table Management", 1),
-  row("m11c", "Company Details", 1),
-  row("m11d", "Office Locations", 1),
-  row("m11e", "Bank Accounts", 1),
-  row("m11f", "Board of Directors", 1),
-  row("m11g", "Professional Advisors", 1),
-  row("m11h", "Contracts", 1),
-  row("m11i", "Risk Register", 1),
-
-  row("m12", "Technology Management"),
-  row("m12a", "Dashboard", 1),
-  row("m12b", "Devices", 1),
-  row("m12c", "Software & SaaS", 1),
-  row("m12d", "Telecommunications", 1),
-  row("m12e", "Technology Assets", 1),
-
-  row("m13", "Business Productivity"),
-  row("m13a", "Dashboard", 1),
-  row("m13b", "Email", 1),
-  row("m13c", "Calendar", 1),
-  row("m13d", "Messaging", 1),
-  row("m13e", "Communications", 1),
-  row("m13f", "Social", 1),
-  row("m13g", "Support Desk", 1),
-  row("m13h", "Whiteboard", 1),
-
-  row("m14", "Operations"),
-  row("m14a", "Assets", 1),
-  row("m14b", "Inventory", 1),
-  row("m14c", "Procurement", 1),
-  row("m14d", "Logistics", 1),
-
-  row("m15", "Training"),
-  row("m15a", "Dashboard", 1),
-  row("m15b", "Staff Courses", 1),
-  row("m15c", "Portfolio Courses", 1),
-  row("m15d", "Course Management", 1),
-
-  row("m16", "Tools"),
-  row("m16a", "Integrations", 1),
-  row("m16b", "Users", 1),
-
-  row("m17", "External Client Access"),
-  row("m17a", "Dashboard", 1),
-  row("m17b", "External Users", 1),
-
-  row("m18", "Settings"),
-  row("m18a", "Profile", 1),
-  row("m18b", "General", 1),
-  row("m18c", "Billing", 1),
-  row("m18d", "Appearance", 1),
-];
-
 export const DEFAULT_CUSTOM_MODULES: PortalsModuleRow[] = [
   row("c1", "Portfolio Intelligence (Executive Briefing + Company Intelligence)"),
   row("c2", "Impact Intelligence (portfolio + company)"),
@@ -157,7 +44,7 @@ export const DEFAULT_CUSTOM_MODULES: PortalsModuleRow[] = [
 
 export function defaultTalantonPortalsContent(): TalantonPortalsEditableContent {
   return {
-    majorModules: DEFAULT_MAJOR_MODULES.map((entry) => ({ ...entry })),
+    majorModules: buildTalantonPortalsMajorModules().map((entry) => ({ ...entry })),
     customModules: DEFAULT_CUSTOM_MODULES.map((entry) => ({ ...entry })),
   };
 }
@@ -204,8 +91,8 @@ export function sanitizePortalsContent(raw: unknown): TalantonPortalsEditableCon
   if (!raw || typeof raw !== "object") return fallback;
   const body = raw as Partial<TalantonPortalsEditableContent>;
 
-  function cleanRows(value: unknown, prefix: string): PortalsModuleRow[] {
-    if (!Array.isArray(value)) return fallback[prefix === "m" ? "majorModules" : "customModules"];
+  function cleanRows(value: unknown, kind: "customModules"): PortalsModuleRow[] {
+    if (!Array.isArray(value)) return fallback[kind];
     const rows: PortalsModuleRow[] = [];
     for (const entry of value) {
       if (!entry || typeof entry !== "object") continue;
@@ -215,16 +102,14 @@ export function sanitizePortalsContent(raw: unknown): TalantonPortalsEditableCon
       const id =
         typeof (entry as PortalsModuleRow).id === "string" && (entry as PortalsModuleRow).id
           ? String((entry as PortalsModuleRow).id)
-          : newPortalsRowId(prefix);
+          : newPortalsRowId("c");
       rows.push({ id, text, indent });
     }
-    return rows.length > 0
-      ? rows
-      : fallback[prefix === "m" ? "majorModules" : "customModules"];
+    return rows.length > 0 ? rows : fallback[kind];
   }
 
   return {
-    majorModules: cleanRows(body.majorModules, "m"),
-    customModules: cleanRows(body.customModules, "c"),
+    majorModules: buildTalantonPortalsMajorModules(),
+    customModules: cleanRows(body.customModules, "customModules"),
   };
 }
