@@ -45,15 +45,16 @@ export function formatTalantonBoardUsd(value: number, compact = false): string {
 }
 
 const TI_AGENDA = [
+  "Cover Page",
   "Executive Summary",
-  "Previous Actions",
-  "Risk Register",
-  "Portfolio & Fund KPIs",
-  "Financial Overview",
-  "Funds & Capital Deployment",
-  "Impact Stewardship",
-  "Team & Organisation",
-  "Strategic Discussion & AOB",
+  "Board Previous Minutes and Decisions",
+  "Board Risk Register",
+  "Fund Performance Update",
+  "Portfolio Companies Summary",
+  "Impact Intelligence & External Access",
+  "Latest Journey and Impact Stories",
+  "Training Update",
+  "Strategic Discussion and AOB",
 ] as const;
 
 function pad(n: number) {
@@ -108,7 +109,7 @@ function mapRisks(): AbhiBoardRisk[] {
 
 export function buildTalantonBoardPackData(meetingDateIso?: string): AbhiBoardPackData {
   const meetingDate = resolveMeetingDate(meetingDateIso);
-  const packName = `Talanton Impact Board Pack — ${meetingDate.slice(0, 7)}`;
+  const packName = `Talanton Impact Board Deck — ${meetingDate.slice(0, 7)}`;
   const portfolio = buildPortfolioExecutiveBriefing(meetingDate);
   const impact = buildPortfolioImpactBriefing();
   const funds = FUNDS_PLATFORM_OVERVIEW;
@@ -385,15 +386,16 @@ export function buildTalantonBoardPackData(meetingDateIso?: string): AbhiBoardPa
     strategicTopics,
     aob: "LP reporting calendar · East Africa site visit summary · Annual impact report timeline.",
     pageSummaries: [
-      "Cover — Talanton Impact Board Pack.",
+      "Cover Page — Talanton Impact Board Deck.",
       "Executive Summary — Portfolio, funds, impact, and decisions required.",
-      "Previous Actions — Governance action register.",
-      "Risk Register — Corporate and portfolio risks.",
-      "Portfolio & Fund KPIs — Health, deployment, and impact metrics.",
-      "Financial Overview — Management company financials (USD).",
-      "Funds & Capital Deployment — Committed, deployed, and available capital.",
-      "Impact Stewardship — Jobs, communities, and impact health.",
-      "Strategic Discussion & AOB — Board decisions and follow-ups.",
+      "Board Previous Minutes and Decisions — Prior meeting record and carried actions.",
+      "Board Risk Register — Corporate and portfolio risks.",
+      "Fund Performance Update — Committed, deployed, and fund-by-fund snapshot.",
+      "Portfolio Companies Summary — Performance highlights and new companies.",
+      "Impact Intelligence & External Access — Impact metrics and portal surfaces.",
+      "Latest Journey and Impact Stories — Field evidence for board narrative.",
+      "Training Update — Portfolio compliance and mandatory learning.",
+      "Strategic Discussion and AOB — Board decisions and follow-ups.",
     ],
     folderPath: `Corporate Information / Board Deck / ${packName}`,
   };

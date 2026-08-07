@@ -32,6 +32,7 @@ import {
   type AssistantToolResult,
 } from "@/lib/ai-operating-assistant/tool-result";
 import { ABHI_BOARD_PACK_STAGES } from "@/lib/abhi/board-pack-stages";
+import { TALANTON_BOARD_PACK_STAGES } from "@/lib/talanton/board-pack-stages";
 import { buildOnwardAirBoardPackData } from "@/lib/onwardair/board-pack-model";
 import {
   oaBoardPackPdfFileName,
@@ -138,7 +139,11 @@ async function loadLogoDataUrl(slug: string): Promise<string | null> {
 }
 
 async function runStagedAnalysis(slug: string): Promise<void> {
-  const stages = isOnwardAirSlug(slug) ? OA_BOARD_PACK_STAGES : ABHI_BOARD_PACK_STAGES;
+  const stages = isOnwardAirSlug(slug)
+    ? OA_BOARD_PACK_STAGES
+    : isTalantonImpactSlug(slug)
+      ? TALANTON_BOARD_PACK_STAGES
+      : ABHI_BOARD_PACK_STAGES;
   for (let index = 0; index < stages.length; index += 1) {
     await sleep(STAGE_MS[index] ?? 1000);
   }
@@ -157,7 +162,8 @@ export async function generateBoardPackTool(
   }
 
   const isOa = isOnwardAirSlug(slug);
-  const stages = isOa ? OA_BOARD_PACK_STAGES : ABHI_BOARD_PACK_STAGES;
+  const isTi = isTalantonImpactSlug(slug);
+  const stages = isOa ? OA_BOARD_PACK_STAGES : isTi ? TALANTON_BOARD_PACK_STAGES : ABHI_BOARD_PACK_STAGES;
 
   try {
     const meetingDate = parseMeetingDate(
@@ -296,7 +302,9 @@ export async function generateBoardPackTool(
           executed: true,
           message: isOa
             ? "OnwardAir Board Deck Generated Successfully"
-            : "Board Pack Generated Successfully",
+            : isTi
+              ? "Talanton Board Deck Generated Successfully"
+              : "Board Pack Generated Successfully",
           artifactId: pdfArtifact.id,
           pdfArtifactId: pdfArtifact.id,
           pptxArtifactId: pptxArtifact.id,

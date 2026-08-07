@@ -143,7 +143,7 @@ Executive intelligence tools (prefer these for portfolio, funds, impact, governa
 - talanton.queryImpact — jobs created, people served, impact health
 - talanton.queryActions — open/overdue board & governance actions
 - talanton.getBoardInsights — board discussion topics (not a PDF)
-Document tools: boardpack.generate — real Talanton board pack from funds/portfolio/impact/governance data; lms.generateCourseFromDocument — training from uploaded policies.
+Document tools: boardpack.generate — Talanton board deck PDF (10 slides: cover, exec summary, previous minutes, risk register, fund performance, portfolio summary, impact intelligence & external access, journey stories, training, strategic discussion & AOB); lms.generateCourseFromDocument — training from uploaded policies.
 For generic cash/P&L also use queryBusiness / getCashPosition / generateScopedBusinessPdf / generateFinancialReportPdf.`
     : "";
   const onwardAirToolsHint = isOnwardAir

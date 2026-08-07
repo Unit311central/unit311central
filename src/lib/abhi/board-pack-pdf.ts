@@ -196,6 +196,16 @@ function addSlide(doc: jsPDF) {
   paintBackground(doc);
 }
 
+export const BOARD_PACK_SLIDE_W = SLIDE_W;
+export const BOARD_PACK_SLIDE_H = SLIDE_H;
+export const BOARD_PACK_MARGIN = MARGIN;
+export const BOARD_PACK_CONTENT_W = CONTENT_W;
+export const BOARD_PACK_COLORS = C;
+export const BOARD_PACK_LOGO_W = LOGO_W;
+export const BOARD_PACK_LOGO_H = LOGO_H;
+
+export { paintBackground, drawHeader, drawFooter, addSlide, drawStatusPill, drawProgressBar, actionChip, boardAttentionForRisk, logoImageFormat };
+
 export async function buildAbhiBoardPackPdf(
   data: AbhiBoardPackData,
   logoDataUrl: string | null,
@@ -204,6 +214,11 @@ export async function buildAbhiBoardPackPdf(
     "@/lib/abhi/board-pack-validate"
   );
   data = validateAndSanitizeAbhiBoardPackData(data).data;
+
+  if (isTalantonBoardPackData(data)) {
+    const { buildTalantonBoardPackPdf } = await import("@/lib/talanton/board-pack-pdf");
+    return buildTalantonBoardPackPdf(data, logoDataUrl);
+  }
 
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [SLIDE_W, SLIDE_H] });
   doc.deletePage(1);

@@ -254,6 +254,9 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
     const pack = buildTalantonBoardPackData("2026-08-20");
     if (!isTalantonBoardPackData(pack)) throw new Error("not Talanton pack");
     if (!/Talanton Impact/i.test(pack.packName)) throw new Error("wrong pack name");
+    if (!pack.pageSummaries || pack.pageSummaries.length !== 10) {
+      throw new Error(`expected 10 deck pages, got ${pack.pageSummaries?.length ?? 0}`);
+    }
     const packText = [...pack.highlights, ...pack.concerns, pack.packName].join("\n");
     assertNoForbiddenTalantonCopy(packText, "board pack narrative");
     if (pack.risks.some((r) => /^R-0[1-6]$/.test(r.id))) throw new Error("ABHI risk ids found");
