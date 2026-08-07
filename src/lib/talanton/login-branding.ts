@@ -1,5 +1,5 @@
 /** Full-screen hi-res backdrop for Talanton workspace login + password reset. */
-export const TALANTON_LOGIN_BACKGROUND = "/images/workspaces/talanton-login-bg.png";
+export const TALANTON_LOGIN_BACKGROUND = "/images/workspaces/talanton-portfolio-login-bg.png";
 
 /** Full-bleed cover — production-line photo reads clearly behind the login card. */
 export const TALANTON_LOGIN_BACKGROUND_CLASS =
