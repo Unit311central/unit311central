@@ -1,10 +1,30 @@
-/** Talanton Impact pre-demo portals page — auth helpers + editable content defaults. */
+/** Talanton Impact pre-demo portals page — editable content defaults. */
 
-import { buildTalantonPortalsMajorModules } from "@/lib/talanton/portals-nav-sync";
+import {
+  TALANTON_DEMO_PLATFORM_USERNAME,
+  TALANTON_PORTALS_ADMIN_USERNAME,
+  TALANTON_PORTALS_SHARED_PASSWORD,
+  isTalantonDemoPlatformUsername,
+  isTalantonPortalsAdminUsername,
+  isTalantonPortalsAllowedUsername,
+  normalizeUsername,
+} from "@/lib/talanton/portals-auth";
 
-export const TALANTON_DEMO_PLATFORM_USERNAME = "demo@talantonimpact.com";
-export const TALANTON_PORTALS_ADMIN_USERNAME = "admin@talantonimpact.com";
-export const TALANTON_PORTALS_SHARED_PASSWORD = "Africa1999$";
+export {
+  TALANTON_DEMO_PLATFORM_USERNAME,
+  TALANTON_PORTALS_ADMIN_USERNAME,
+  TALANTON_PORTALS_SHARED_PASSWORD,
+  isTalantonDemoPlatformUsername,
+  isTalantonPortalsAdminUsername,
+  isTalantonPortalsAllowedUsername,
+  normalizeUsername,
+};
+
+function loadTalantonPortalsMajorModules() {
+  const { buildTalantonPortalsMajorModules } =
+    require("@/lib/talanton/portals-nav-sync") as typeof import("@/lib/talanton/portals-nav-sync");
+  return buildTalantonPortalsMajorModules();
+}
 
 export type PortalsIndent = 0 | 1 | 2;
 
@@ -44,28 +64,9 @@ export const DEFAULT_CUSTOM_MODULES: PortalsModuleRow[] = [
 
 export function defaultTalantonPortalsContent(): TalantonPortalsEditableContent {
   return {
-    majorModules: buildTalantonPortalsMajorModules().map((entry) => ({ ...entry })),
+    majorModules: loadTalantonPortalsMajorModules().map((entry) => ({ ...entry })),
     customModules: DEFAULT_CUSTOM_MODULES.map((entry) => ({ ...entry })),
   };
-}
-
-export function normalizeUsername(username: string | null | undefined): string {
-  return String(username ?? "")
-    .trim()
-    .toLowerCase();
-}
-
-export function isTalantonDemoPlatformUsername(username: string | null | undefined): boolean {
-  return normalizeUsername(username) === TALANTON_DEMO_PLATFORM_USERNAME;
-}
-
-export function isTalantonPortalsAdminUsername(username: string | null | undefined): boolean {
-  return normalizeUsername(username) === TALANTON_PORTALS_ADMIN_USERNAME;
-}
-
-/** Platform users allowed onto /portals (Talanton demo/admin). */
-export function isTalantonPortalsAllowedUsername(username: string | null | undefined): boolean {
-  return isTalantonDemoPlatformUsername(username) || isTalantonPortalsAdminUsername(username);
 }
 
 export function newPortalsRowId(prefix: string) {
@@ -109,7 +110,7 @@ export function sanitizePortalsContent(raw: unknown): TalantonPortalsEditableCon
   }
 
   return {
-    majorModules: buildTalantonPortalsMajorModules(),
+    majorModules: loadTalantonPortalsMajorModules(),
     customModules: cleanRows(body.customModules, "customModules"),
   };
 }

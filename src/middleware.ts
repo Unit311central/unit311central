@@ -34,7 +34,7 @@ import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOve
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
 import { isOnwardAirPortalsAllowedUsername } from "@/lib/onwardair/portals-demo";
-import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-demo";
+import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-auth";
 import {
   ABHI_PORTALS_GATE_COOKIE,
   ABHI_PORTALS_VIEW_COOKIE,
