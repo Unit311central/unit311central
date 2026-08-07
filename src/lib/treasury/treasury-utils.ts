@@ -8,6 +8,7 @@ const FX_TO_GBP: Record<string, number> = {
   GBP: 1,
   USD: 0.79,
   EUR: 0.86,
+  AUD: 0.52,
 };
 
 export function convertToGbp(amount: number, currency: string) {

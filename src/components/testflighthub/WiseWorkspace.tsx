@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useState, startTransition } from "reac
 import TreasuryShell from "@/components/treasury/TreasuryShell";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
-import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import type { WiseConnectionStatus } from "@/lib/wise-service";
 
 async function readApiJson<T>(response: Response): Promise<T> {

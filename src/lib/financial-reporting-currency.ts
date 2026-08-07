@@ -11,7 +11,7 @@ export function resolveSlugReportingCurrency(slug: string | null | undefined): R
 
   try {
     const { isCorpCentreWorkspaceSlug } =
-      require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
+      require("@/lib/corpcentre-financials") as typeof import("@/lib/corpcentre-financials");
     if (isCorpCentreWorkspaceSlug(normalized)) return "AUD";
   } catch {
     /* optional at build edges */
