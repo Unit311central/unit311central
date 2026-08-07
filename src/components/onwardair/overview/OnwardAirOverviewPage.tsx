@@ -649,7 +649,7 @@ export function OnwardAirOverviewPage() {
     [activeView, style, content],
   );
   const layoutCols = style
-    ? `minmax(min(100%, max(${style.page.leftColumnMinWidth}px, 26vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
+    ? `minmax(min(100%, max(${style.page.leftColumnMinWidth}px, 18vw)), ${style.page.leftColumnFr}fr) minmax(0, ${style.page.rightColumnFr}fr)`
     : "";
   const visibleLeftCards = style ? style.leftColumnOrder.filter((id) => style[id].visible) : [];
   const scale = (px: number) => `calc(${px}px * var(--oa-scale, 1))`;
@@ -728,7 +728,7 @@ export function OnwardAirOverviewPage() {
         <OverviewLeftCard
           key={id}
           tuneMode={tuneMode}
-          className="flex flex-col overflow-visible text-white backdrop-blur-[2px]"
+          className="flex flex-col overflow-hidden text-white backdrop-blur-[2px]"
           boxStyle={boxStyle}
           onPatch={(partial) => patchCard(id, partial)}
         >
@@ -756,14 +756,14 @@ export function OnwardAirOverviewPage() {
                   aria-label={`Question ${i + 1}`}
                   value={q}
                   editable={tuneMode}
-                  fill={false}
+                  fill
                   onChange={(next) => {
                     const questions = pageContent.questions.map((item, index) =>
                       index === i ? next : item,
                     );
                     patchContent({ questions });
                   }}
-                  className="oa-question-text leading-snug"
+                  className="oa-question-text min-w-0 flex-1 leading-snug"
                   style={{
                     fontSize: scale(pageStyle.questions.textSize),
                     color: pageStyle.questions.textColor,
@@ -785,7 +785,7 @@ export function OnwardAirOverviewPage() {
           key={id}
           tuneMode={tuneMode}
           fillRemaining
-          className="flex min-h-0 flex-col overflow-visible text-white backdrop-blur-[2px]"
+          className="flex min-h-0 flex-col overflow-hidden text-white backdrop-blur-[2px]"
           boxStyle={boxStyle}
           onPatch={(partial) => patchCard(id, partial)}
         >
@@ -801,11 +801,11 @@ export function OnwardAirOverviewPage() {
             />
           </div>
           <ul
-            className="oa-highlights-list m-0 flex min-h-0 flex-1 list-none flex-col justify-evenly p-0"
+            className="oa-highlights-list m-0 flex min-h-0 flex-1 list-none flex-col justify-evenly overflow-hidden p-0"
             style={{ gap: scale(pageStyle.highlights.itemGap) }}
           >
             {pageContent.highlights.map((item, i) => (
-              <li key={`h-${i}`} className="oa-highlight-row flex gap-2 leading-snug">
+              <li key={`h-${i}`} className="oa-highlight-row flex min-w-0 flex-nowrap items-center gap-2 leading-snug">
                 <span
                   className="oa-highlight-bullet inline-flex shrink-0 items-center justify-center leading-none"
                   style={{
@@ -822,13 +822,14 @@ export function OnwardAirOverviewPage() {
                   aria-label={`Highlight ${i + 1}`}
                   value={item}
                   editable={tuneMode}
+                  fill
                   onChange={(next) => {
                     const highlights = pageContent.highlights.map((row, index) =>
                       index === i ? next : row,
                     );
                     patchContent({ highlights });
                   }}
-                  className="min-w-0 flex-1 leading-snug"
+                  className="oa-highlight-text min-w-0 flex-1 leading-snug"
                   style={{
                     fontSize: scale(pageStyle.highlights.itemSize),
                     color: pageStyle.highlights.itemColor,
@@ -1041,16 +1042,41 @@ export function OnwardAirOverviewPage() {
           .oa-question-row {
             align-items: center;
             flex-wrap: nowrap;
+            min-width: 0;
+            max-width: 100%;
           }
-          .oa-question-text {
-            white-space: nowrap;
+          .oa-question-text,
+          .oa-question-text p,
+          .oa-question-text input {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100%;
           }
           .oa-highlight-row {
-            align-items: flex-start;
+            align-items: center;
+            flex-wrap: nowrap;
+            min-width: 0;
+            max-width: 100%;
+          }
+          .oa-highlight-text,
+          .oa-highlight-text p,
+          .oa-highlight-text input {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100%;
+          }
+          .oa-highlights-list {
+            overflow: hidden;
           }
           .oa-overview-preview {
-            height: clamp(var(--oa-preview-min-h), calc(100dvh - 6.25rem), 720px);
-            max-height: clamp(var(--oa-preview-min-h), calc(100dvh - 6.25rem), 720px);
+            height: clamp(var(--oa-preview-min-h), calc(100dvh - 5.5rem), 920px);
+            max-height: clamp(var(--oa-preview-min-h), calc(100dvh - 5.5rem), 920px);
+          }
+          .oa-preview-stage video,
+          .oa-preview-stage img {
+            pointer-events: none;
           }
           .oa-overview-nav {
             height: 100% !important;
@@ -1312,17 +1338,17 @@ export function OnwardAirOverviewPage() {
               }}
             >
               <OperatorEntitlementsProvider>
-                <Suspense fallback={<div className="h-[180px] w-full shrink-0 bg-[#07111F] md:h-auto md:w-[240px] lg:w-[280px] xl:w-[300px] 2xl:w-[320px]" />}>
+                <Suspense fallback={<div className="h-[180px] w-full shrink-0 bg-[#07111F] md:h-auto md:w-[220px] lg:w-[240px] xl:w-[260px] 2xl:w-[280px]" />}>
                   <OverviewPlatformNav activeView={activeView} onViewChange={setActiveView} />
                 </Suspense>
               </OperatorEntitlementsProvider>
 
-              <div className="oa-preview-stage relative min-h-0 min-w-0 flex-1 bg-[#020617]">
+            <div className="oa-preview-stage relative min-h-0 min-w-0 flex-1 overflow-hidden bg-[#020617]">
                 {previewMedia.kind === "video" ? (
                   <video
                     key={previewMedia.src}
                     src={previewMedia.src}
-                    className="absolute inset-0 h-full w-full object-contain object-center"
+                    className="pointer-events-none absolute inset-0 h-full w-full object-contain object-center"
                     autoPlay
                     muted
                     loop
@@ -1337,7 +1363,7 @@ export function OnwardAirOverviewPage() {
                       key={previewMedia.src}
                       src={previewMedia.src}
                       alt={`${previewTitle} screenshot`}
-                      className="absolute inset-0 h-full w-full object-contain object-top"
+                      className="pointer-events-none absolute inset-0 h-full w-full object-contain object-top"
                       decoding="async"
                       onError={(event) => {
                         const img = event.currentTarget;
@@ -1388,15 +1414,15 @@ export function OnwardAirOverviewPage() {
             <X className="h-5 w-5" />
           </button>
           <div
-            className="relative flex h-full w-full max-w-[1600px] flex-col"
+            className="relative flex h-full w-full max-w-[min(96vw,1800px)] flex-col"
             onClick={(event) => event.stopPropagation()}
           >
             <p className="mb-2 shrink-0 text-center text-sm font-medium text-white/80">{previewTitle}</p>
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-white/15 bg-black">
+            <div className="relative min-h-0 flex-1 overflow-auto rounded-xl border border-white/15 bg-black">
               {previewMedia.kind === "video" ? (
                 <video
                   src={previewMedia.src}
-                  className="h-full w-full object-contain object-center"
+                  className="mx-auto block h-full max-h-[calc(100dvh-5rem)] w-full object-contain object-center"
                   autoPlay
                   muted
                   loop
@@ -1411,7 +1437,7 @@ export function OnwardAirOverviewPage() {
                   <img
                     src={previewMedia.src}
                     alt={`${previewTitle} full screen`}
-                    className="h-full w-full object-contain object-center"
+                    className="mx-auto block h-auto w-full max-w-none object-contain object-top"
                   />
                 </>
               )}

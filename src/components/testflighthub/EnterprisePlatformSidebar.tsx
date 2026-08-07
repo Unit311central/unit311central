@@ -161,7 +161,7 @@ const CARD_GAP = 10;
 /** Compact module rows on /overview “CLICK BELOW TO VIEW” rail. */
 const OVERVIEW_EMBED_ITEM_H = 30;
 const OVERVIEW_EMBED_GAP = 5;
-const OVERVIEW_EMBED_FONT_PX = 9;
+const OVERVIEW_EMBED_FONT_PX = 8.5;
 
 type EnterprisePlatformSidebarProps = {
   mobileOpen?: boolean;
@@ -518,7 +518,8 @@ export default function EnterprisePlatformSidebar({
           onPointerEnter={() => onPrefetchView?.(item.view!)}
           onFocus={() => onPrefetchView?.(item.view!)}
           className={cn(
-            "group flex h-full w-full items-center gap-1.5 text-left font-semibold uppercase leading-none tracking-[0.08em] transition-colors duration-75",
+            "group flex h-full w-full items-center gap-1.5 text-left font-semibold uppercase leading-none transition-colors duration-75",
+            overviewEmbed ? "tracking-[0.03em]" : "tracking-[0.08em]",
             active ? "text-white" : "text-white/88 hover:text-white",
           )}
           style={{ fontSize: overviewEmbed ? OVERVIEW_EMBED_FONT_PX : 10.5 }}
@@ -651,8 +652,8 @@ export default function EnterprisePlatformSidebar({
           />
           <span
             className={cn(
-              "min-w-0 flex-1 truncate whitespace-nowrap font-semibold uppercase leading-none tracking-[0.08em] text-white",
-              overviewEmbed && "leading-none",
+              "min-w-0 flex-1 truncate whitespace-nowrap font-semibold uppercase leading-none tracking-[0.04em] text-white",
+              overviewEmbed && "leading-none tracking-[0.03em]",
             )}
             style={{ fontSize: overviewEmbed ? OVERVIEW_EMBED_FONT_PX : 10.5 }}
             title={section.label ?? undefined}
@@ -741,7 +742,7 @@ export default function EnterprisePlatformSidebar({
       className={cn(
         overviewEmbed
           ? // Invite: always visible — stacked above the preview on phones, side rail on desktop.
-            "oa-overview-nav relative z-auto flex max-h-[min(42vh,280px)] w-full shrink-0 flex-col overflow-hidden border-b pt-0 md:static md:z-auto md:h-full md:min-h-0 md:max-h-full md:w-[240px] md:shrink-0 md:border-b-0 lg:w-[280px] xl:w-[300px] 2xl:w-[320px]"
+            "oa-overview-nav relative z-auto flex max-h-[min(42vh,280px)] w-full shrink-0 flex-col overflow-hidden border-b pt-0 md:static md:z-auto md:h-full md:min-h-0 md:max-h-full md:w-[220px] md:shrink-0 md:border-b-0 lg:w-[240px] xl:w-[260px] 2xl:w-[280px]"
           : "safe-area-px fixed inset-y-0 left-0 z-50 flex h-dvh max-h-dvh w-[min(320px,94vw)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] transition-transform duration-300 ease-out lg:static lg:z-auto lg:h-full lg:max-h-full lg:w-[320px] lg:shrink-0 lg:translate-x-0 lg:pt-0",
         !overviewEmbed && (mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"),
       )}
