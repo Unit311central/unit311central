@@ -77,6 +77,7 @@ import { isAbsoluteHttpUrl } from "@/lib/clarity";
 import {
   resolveOnwardAirNavAccent,
 } from "@/lib/onwardair-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import {
   getSidebarTheme,
   readSidebarExpandedState,
@@ -216,12 +217,15 @@ export default function EnterprisePlatformSidebar({
     }
     return basePath === "/" || basePath === "/internaldashboard" || basePath === "/internaldashboard_grants";
   });
+  const [isTalantonSurface] = useState(
+    () => typeof window !== "undefined" && isBrowserTalantonImpactSurface(),
+  );
+  /** Talanton + overview embed: every load starts with modules collapsed; prefs stay session-local. */
+  const sessionOnlyExpand = overviewEmbed || isTalantonSurface;
 
   useEffect(() => {
     startTransition(() => {
-      // Overview embed: start with every high-level module collapsed (nested shut).
-      // Do not restore dashboard expand preferences into the demo shell.
-      if (overviewEmbed) {
+      if (sessionOnlyExpand) {
         setExpanded({});
       } else {
         setExpanded(readSidebarExpandedState());
@@ -229,7 +233,7 @@ export default function EnterprisePlatformSidebar({
       setTheme(getSidebarTheme(readSidebarThemeId()));
       setHydrated(true);
     });
-  }, [overviewEmbed]);
+  }, [sessionOnlyExpand]);
 
   useEffect(() => {
     const onCustom = () => setSectionOrderTick((n) => n + 1);
@@ -275,8 +279,7 @@ export default function EnterprisePlatformSidebar({
   function toggleExpanded(key: string) {
     setExpanded((current) => {
       const next = { ...current, [key]: !current[key] };
-      // Keep overview expand/collapse session-local — don't rewrite dashboard prefs.
-      if (!overviewEmbed) {
+      if (!sessionOnlyExpand) {
         writeSidebarExpandedState(next);
       }
       return next;
