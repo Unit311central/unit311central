@@ -19,6 +19,12 @@ import {
 import { marketingFadeIn, MARKETING_CONTENT_CLASS } from "@/lib/marketing-ui";
 import { navigateRedirectPath } from "@/lib/navigate-redirect";
 import { SITE_NAME } from "@/lib/site";
+import {
+  TALANTON_LOGIN_BACKGROUND,
+  TALANTON_LOGIN_BACKGROUND_CLASS,
+  TALANTON_LOGIN_BACKGROUND_QUALITY,
+  TALANTON_LOGIN_OVERLAY_CLASS,
+} from "@/lib/talanton/login-branding";
 
 /** Dark engineering/infrastructure background (4K). */
 const LOGIN_BACKGROUND = "/images/login-workspace-bg.webp";
@@ -323,17 +329,27 @@ export default function Unit311LoginPage({
 
   return (
     <MarketingPageShell
-      backgroundImage={isOnwardAir ? ONWARDAIR_LOGIN_BACKGROUND : LOGIN_BACKGROUND}
+      backgroundImage={
+        isOnwardAir
+          ? ONWARDAIR_LOGIN_BACKGROUND
+          : isTalanton
+            ? TALANTON_LOGIN_BACKGROUND
+            : LOGIN_BACKGROUND
+      }
       backgroundImageClassName={
         isOnwardAir
           ? "object-cover object-[center_40%] opacity-[0.38] sm:object-center"
-          : "object-cover object-[center_35%] opacity-80 sm:object-center"
+          : isTalanton
+            ? TALANTON_LOGIN_BACKGROUND_CLASS
+            : "object-cover object-[center_35%] opacity-80 sm:object-center"
       }
-      backgroundImageQuality={92}
+      backgroundImageQuality={isTalanton ? TALANTON_LOGIN_BACKGROUND_QUALITY : 92}
       overlayClassName={
         isOnwardAir
           ? "absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
-          : "absolute inset-0 bg-[#020617]/45"
+          : isTalanton
+            ? TALANTON_LOGIN_OVERLAY_CLASS
+            : "absolute inset-0 bg-[#020617]/45"
       }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >
