@@ -11,6 +11,7 @@ import {
   BOARD_PORTAL_LOGIN_BACKGROUND_QUALITY,
   BOARD_PORTAL_LOGIN_OVERLAY_CLASS,
 } from "@/lib/board-portal-login-branding";
+import { getCompanyPortalLoginBrand } from "@/lib/talanton/company-portal-login-branding";
 
 type Props = {
   companyPath: string;
@@ -26,6 +27,7 @@ export function CompanyPortalLogin({
   portalKind = "company",
 }: Props) {
   const isBoard = portalKind === "board";
+  const companyBrand = !isBoard ? getCompanyPortalLoginBrand(companyPath) : null;
   const [username, setUsername] = useState(suggestedUsername);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +131,20 @@ export function CompanyPortalLogin({
         backgroundImageClassName={BOARD_PORTAL_LOGIN_BACKGROUND_CLASS}
         backgroundImageQuality={BOARD_PORTAL_LOGIN_BACKGROUND_QUALITY}
         overlayClassName={BOARD_PORTAL_LOGIN_OVERLAY_CLASS}
+        contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] items-center justify-center px-4 py-10 text-white`}
+      >
+        {formCard}
+      </MarketingPageShell>
+    );
+  }
+
+  if (companyBrand) {
+    return (
+      <MarketingPageShell
+        backgroundImage={companyBrand.backgroundImage}
+        backgroundImageClassName={companyBrand.backgroundImageClassName}
+        backgroundImageQuality={companyBrand.backgroundImageQuality}
+        overlayClassName={companyBrand.overlayClassName}
         contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] items-center justify-center px-4 py-10 text-white`}
       >
         {formCard}
