@@ -13,9 +13,78 @@ import {
   isTalantonLockedSectionBundle,
   TALANTON_LOCKED_SECTION_ORDER_KEYS,
 } from "@/lib/talanton-nav-order";
+import { canonicalizeTalantonImpactSlug } from "@/lib/talanton-surface";
 
 export const SIDEBAR_NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 export const SIDEBAR_NAV_CUSTOM_EVENT = "unit311-nav-custom-changed";
+
+const LEGACY_SIDEBAR_NAV_CUSTOM_STORAGE_KEY = SIDEBAR_NAV_CUSTOM_STORAGE_KEY;
+
+/** Host slug for per-workspace sidebar order (Talanton vs OnwardAir vs internal). */
+export function resolveSidebarNavWorkspaceSlug(): string {
+  if (typeof window === "undefined") return "";
+  const host = window.location.hostname.toLowerCase();
+  const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
+  if (match?.[1] && !["www", "app", "login"].includes(match[1])) {
+    return canonicalizeTalantonImpactSlug(match[1]) ?? match[1];
+  }
+  if (host.endsWith(".localhost") && host !== "localhost") {
+    const slug = host.split(".")[0] || "";
+    return canonicalizeTalantonImpactSlug(slug) ?? slug;
+  }
+  if (host === "internal.unit311central.com" || host === "internal.localhost") return "internal";
+  if (host === "demo.unit311central.com" || host === "demo.localhost") return "demo";
+  return "";
+}
+
+export function sidebarNavCustomStorageKey(workspaceSlug?: string | null): string {
+  const slug = (workspaceSlug ?? resolveSidebarNavWorkspaceSlug()).trim().toLowerCase();
+  return slug ? `${SIDEBAR_NAV_CUSTOM_STORAGE_KEY}:${slug}` : LEGACY_SIDEBAR_NAV_CUSTOM_STORAGE_KEY;
+}
+
+function readSidebarNavCustomRaw(workspaceSlug?: string | null): string | null {
+  if (typeof window === "undefined") return null;
+  const scopedKey = sidebarNavCustomStorageKey(workspaceSlug);
+  return window.localStorage.getItem(scopedKey);
+}
+
+function migrateLegacySidebarNavCustom(
+  sections: readonly InternalNavSection[],
+  workspaceSlug?: string | null,
+): string | null {
+  if (typeof window === "undefined") return null;
+  const slug = (workspaceSlug ?? resolveSidebarNavWorkspaceSlug()).trim().toLowerCase();
+  if (!slug) return readSidebarNavCustomRaw();
+
+  const scopedKey = sidebarNavCustomStorageKey(slug);
+  const scoped = window.localStorage.getItem(scopedKey);
+  if (scoped) return scoped;
+
+  const legacy = window.localStorage.getItem(LEGACY_SIDEBAR_NAV_CUSTOM_STORAGE_KEY);
+  if (!legacy) return null;
+
+  try {
+    const parsed = JSON.parse(legacy) as Partial<SidebarNavCustomStorage>;
+    const storedOrder = parsed.sectionOrder ?? [];
+    if (!legacyOrderMatchesWorkspace(storedOrder, sections)) return null;
+    window.localStorage.setItem(scopedKey, legacy);
+    return legacy;
+  } catch {
+    return null;
+  }
+}
+
+/** Skip migrating a shared legacy blob when it clearly belongs to another workspace. */
+function legacyOrderMatchesWorkspace(
+  storedOrder: readonly string[],
+  sections: readonly InternalNavSection[],
+): boolean {
+  if (storedOrder.length === 0) return true;
+  const canonical = defaultSectionOrder(sections);
+  if (canonical.length === 0) return true;
+  const overlap = storedOrder.filter((key) => canonical.includes(key)).length;
+  return overlap >= Math.min(4, Math.ceil(canonical.length * 0.35));
+}
 
 export type SidebarNavLeafItem = {
   id: string;
@@ -183,7 +252,7 @@ export function loadSidebarNavCustom(
   if (typeof window === "undefined") return fallback;
 
   try {
-    const raw = window.localStorage.getItem(SIDEBAR_NAV_CUSTOM_STORAGE_KEY);
+    const raw = migrateLegacySidebarNavCustom(sections) ?? readSidebarNavCustomRaw();
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
     const canonical = defaultSectionOrder(sections);
@@ -194,7 +263,10 @@ export function loadSidebarNavCustom(
     if (storedVersion < 4) {
       return {
         version: targetVersion,
-        sectionOrder: canonical,
+        sectionOrder:
+          storedOrder.length > 0
+            ? resolveSectionOrderForSections(storedOrder, sections)
+            : canonical,
         hidden: parsed.hidden ?? {},
         customItems: parsed.customItems ?? [],
         order: parsed.order,
@@ -204,7 +276,10 @@ export function loadSidebarNavCustom(
     if (isTalantonLockedSectionBundle(sections) && storedVersion < 5) {
       return {
         version: 5,
-        sectionOrder: canonical,
+        sectionOrder:
+          storedOrder.length > 0
+            ? resolveSectionOrderForSections(storedOrder, sections)
+            : canonical,
         hidden: parsed.hidden ?? {},
         customItems: parsed.customItems ?? [],
         order: parsed.order,
@@ -235,7 +310,7 @@ export function reconcileSidebarNavCustom(
   if (typeof window === "undefined") return next;
 
   try {
-    const raw = window.localStorage.getItem(SIDEBAR_NAV_CUSTOM_STORAGE_KEY);
+    const raw = migrateLegacySidebarNavCustom(sections) ?? readSidebarNavCustomRaw();
     if (!raw) {
       saveSidebarNavCustom(next);
       return next;
@@ -276,7 +351,7 @@ export function saveSidebarNavCustom(next: SidebarNavCustomStorage) {
     hidden: next.hidden,
     customItems: next.customItems,
   };
-  window.localStorage.setItem(SIDEBAR_NAV_CUSTOM_STORAGE_KEY, JSON.stringify(payload));
+  window.localStorage.setItem(sidebarNavCustomStorageKey(), JSON.stringify(payload));
   window.dispatchEvent(new CustomEvent(SIDEBAR_NAV_CUSTOM_EVENT));
 }
 

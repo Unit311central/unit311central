@@ -57,7 +57,7 @@ import {
   listSectionLeafItems,
   loadSidebarNavCustom,
   saveSidebarNavCustom,
-  SIDEBAR_NAV_CUSTOM_STORAGE_KEY,
+  sidebarNavCustomStorageKey,
   type SidebarNavCustomStorage,
   type SidebarNavLeafItem,
 } from "@/lib/sidebar-nav-custom";
@@ -1132,7 +1132,7 @@ export default function SettingsWorkspace() {
               </button>
             </div>
             <p className="text-[10px] text-white/35">
-              Module order saves to <code className="text-white/50">{SIDEBAR_NAV_CUSTOM_STORAGE_KEY}</code> and
+              Module order saves to <code className="text-white/50">{sidebarNavCustomStorageKey()}</code> and
               updates the main left nav immediately.
             </p>
           </div>
