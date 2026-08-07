@@ -703,6 +703,153 @@ export async function ensureOnwardAirHrEmployeesSeeded(
   return listHrEmployees({ workspaceId });
 }
 
+/**
+ * Seed Talanton OUR TEAM staff into hr_employees (talantonimpact workspace only).
+ * Idempotent by email — never deletes existing employees.
+ * Syncs reporting lines and $50k annual / monthly / no-bonus compensation.
+ */
+export async function ensureTalantonHrEmployeesSeeded(
+  workspaceId: string,
+): Promise<HrEmployee[]> {
+  const { TALANTON_HR_TEAM_EMPLOYEES } =
+    await import("@/lib/talanton/hr-team-data");
+
+  let existing = await listHrEmployees({ workspaceId, includeArchived: true });
+  const hasDavid = existing.some((e) =>
+    e.fullName.toLowerCase().includes("david simms"),
+  );
+
+  if (existing.length === 0 || !hasDavid) {
+    const byEmail = new Set(
+      existing.map((e) => e.email.trim().toLowerCase()).filter(Boolean),
+    );
+
+    for (const member of TALANTON_HR_TEAM_EMPLOYEES) {
+      const email = member.email.trim().toLowerCase();
+      if (byEmail.has(email)) continue;
+      try {
+        await createHrEmployee(
+          {
+            fullName: member.fullName,
+            preferredName: member.preferredName,
+            email: member.email,
+            phone: member.phone,
+            address: member.address,
+            nationality: member.nationality,
+            employmentStatus: member.employmentStatus,
+            employmentType: member.employmentType,
+            dateJoined: member.dateJoined,
+            location: member.location,
+            role: member.role,
+            department: member.department,
+            manager: member.manager ?? "",
+            currency: member.currency ?? "USD",
+            payFrequency: member.payFrequency ?? "monthly",
+            salaryCurrent: member.salaryCurrent ?? 50_000,
+            salaryPrevious: member.salaryPrevious ?? 50_000,
+            bonus: member.bonus ?? 0,
+            holidayCalendar: member.holidayCalendar,
+            vacationDaysPerYear: member.vacationDaysPerYear,
+            vacationDaysTaken: member.vacationDaysTaken ?? 0,
+          },
+          { workspaceId },
+        );
+        byEmail.add(email);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (/duplicate key|unique constraint/i.test(message)) {
+          byEmail.add(email);
+          continue;
+        }
+        throw error;
+      }
+    }
+    existing = await listHrEmployees({ workspaceId, includeArchived: true });
+  }
+
+  const byEmail = new Map(
+    existing.map((e) => [e.email.trim().toLowerCase(), e] as const),
+  );
+
+  const findByName = (name: string): (typeof existing)[number] | null => {
+    const key = name.trim().toLowerCase().replace(/\s+/g, " ");
+    if (!key) return null;
+    const stripped = key.replace(/,\s*(cfa|md|phd|mba|pe|cpa)\.?$/i, "").trim();
+    for (const employee of existing) {
+      const full = employee.fullName.trim().toLowerCase().replace(/\s+/g, " ");
+      const fullStrip = full.replace(/,\s*(cfa|md|phd|mba|pe|cpa)\.?$/i, "").trim();
+      if (full === key || fullStrip === stripped || fullStrip === key || full === stripped) {
+        return employee;
+      }
+    }
+    return null;
+  };
+
+  for (const member of TALANTON_HR_TEAM_EMPLOYEES) {
+    const employee = byEmail.get(member.email.trim().toLowerCase());
+    if (!employee) continue;
+
+    const managerName = String(member.manager ?? "").trim();
+    const manager = managerName.length > 0 ? findByName(managerName) : null;
+    const nextManagerId = manager?.id ?? null;
+    const nextManagerLabel = manager?.fullName ?? managerName;
+
+    const needsCompSync =
+      employee.salaryCurrent !== 50_000 ||
+      employee.bonus !== 0 ||
+      employee.payFrequency !== "monthly" ||
+      employee.currency !== "USD";
+    const needsManagerSync =
+      employee.manager !== nextManagerLabel ||
+      employee.managerEmployeeId !== nextManagerId;
+
+    if (!needsCompSync && !needsManagerSync) continue;
+
+    try {
+      await updateHrEmployee(
+        employee.id,
+        {
+          manager: nextManagerLabel,
+          managerEmployeeId: nextManagerId,
+          ...(needsCompSync
+            ? {
+                salaryCurrent: 50_000,
+                salaryPrevious: 50_000,
+                bonus: 0,
+                payFrequency: "monthly",
+                currency: "USD",
+                compensationReason: "Talanton demo compensation sync",
+                compensationApprovedBy: "system",
+              }
+            : {}),
+        },
+        { workspaceId },
+      );
+    } catch (error) {
+      console.error(
+        `[hr] Failed to sync Talanton employee ${member.email}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  const refreshed = await listHrEmployees({ workspaceId, includeArchived: true });
+  const david = refreshed.find((e) => e.fullName.toLowerCase().includes("david simms"));
+  if (david && (david.manager || david.managerEmployeeId)) {
+    try {
+      await updateHrEmployee(
+        david.id,
+        { manager: "", managerEmployeeId: null },
+        { workspaceId },
+      );
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  return listHrEmployees({ workspaceId });
+}
+
 export type UpdateHrEmployeePatch = Partial<HrEmployee> & {
   offboarding?: Partial<HrOffboarding>;
   compensationReason?: string;

@@ -3,11 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createHrEmployee,
   ensureOnwardAirHrEmployeesSeeded,
+  ensureTalantonHrEmployeesSeeded,
   listHrEmployees,
 } from "@/lib/hr-employees-service";
 import type { HrEmployee } from "@/lib/hr-data";
 import { ensureHrEmployeesTable } from "@/lib/internal-db-migrations";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -28,6 +30,13 @@ export async function GET(request: NextRequest) {
         await ensureOnwardAirHrEmployeesSeeded(workspace.id);
       } catch (seedError) {
         console.error("[hr/employees] OnwardAir team seed failed:", seedError);
+      }
+    }
+    if (isTalantonImpactSlug(workspace.slug)) {
+      try {
+        await ensureTalantonHrEmployeesSeeded(workspace.id);
+      } catch (seedError) {
+        console.error("[hr/employees] Talanton team seed failed:", seedError);
       }
     }
     const includeArchived = request.nextUrl.searchParams.get("includeArchived") === "true";

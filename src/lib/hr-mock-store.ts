@@ -479,6 +479,37 @@ function seedState(): HrMockState {
     }
 
     try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (isBrowserTalantonImpactSurface()) {
+        const {
+          buildTalantonRecruitmentVacancies,
+          buildTalantonRecruitmentCandidates,
+          buildTalantonLeaveRequests,
+          buildTalantonLeaveBalances,
+          buildTalantonPublicHolidays,
+          buildTalantonPerformanceReviews,
+          buildTalantonPerformanceGoals,
+          buildTalantonHrReports,
+          buildTalantonHrActivity,
+        } = require("@/lib/talanton/hr-ops-data") as typeof import("@/lib/talanton/hr-ops-data");
+        return {
+          leaveRequests: buildTalantonLeaveRequests(),
+          leaveBalances: buildTalantonLeaveBalances(),
+          publicHolidays: buildTalantonPublicHolidays(),
+          vacancies: buildTalantonRecruitmentVacancies(),
+          candidates: buildTalantonRecruitmentCandidates(),
+          reviews: buildTalantonPerformanceReviews(),
+          goals: buildTalantonPerformanceGoals(),
+          reports: buildTalantonHrReports(),
+          activity: buildTalantonHrActivity(),
+        };
+      }
+    } catch {
+      // fall through
+    }
+
+    try {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
@@ -1889,6 +1920,32 @@ function ensureHrState(): HrMockState {
           ) ||
           state.reviews.some((row) =>
             /mar[ií]a garc[ií]a|carlos mendoza|jane lewis|peter ellingworth|barcelona/i.test(
+              `${row.employeeName} ${row.managerName}`,
+            ),
+          ))
+      ) {
+        state = seedState();
+        seededHost = window.location.hostname;
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      const { isBrowserTalantonImpactSurface } =
+        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+      if (
+        isBrowserTalantonImpactSurface() &&
+        (state.vacancies.length === 0 ||
+          state.vacancies.some((row) => !String(row.id).startsWith("ti-vac-")) ||
+          state.candidates.length === 0 ||
+          state.candidates.some((row) => !String(row.id).startsWith("ti-cand-")) ||
+          state.leaveRequests.some((row) =>
+            /mar[ií]a garc[ií]a|carlos mendoza|pablo serrano|barcelona|madrid/i.test(
+              `${row.employeeName} ${row.location} ${row.managerName}`,
+            ),
+          ) ||
+          state.reviews.some((row) =>
+            /mar[ií]a garc[ií]a|carlos mendoza|peter ellingworth|barcelona/i.test(
               `${row.employeeName} ${row.managerName}`,
             ),
           ))
