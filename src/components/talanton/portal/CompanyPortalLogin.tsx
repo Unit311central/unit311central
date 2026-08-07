@@ -2,7 +2,15 @@
 
 import { FormEvent, useState } from "react";
 
+import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
+import { marketingFadeIn, MARKETING_CONTENT_CLASS } from "@/lib/marketing-ui";
+import {
+  TALANTON_BOARD_LOGIN_BACKGROUND,
+  TALANTON_BOARD_LOGIN_BACKGROUND_CLASS,
+  TALANTON_BOARD_LOGIN_OVERLAY_CLASS,
+  TALANTON_LOGIN_BACKGROUND_QUALITY,
+} from "@/lib/talanton/login-branding";
 
 type Props = {
   companyPath: string;
@@ -46,7 +54,6 @@ export function CompanyPortalLogin({
       if (!response.ok || !data.redirectPath) {
         throw new Error(data.error ?? "Invalid username or password.");
       }
-      // Always land on this company portal after a successful portal login.
       window.location.assign(`/${companyPath}`);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to sign in.");
@@ -54,66 +61,84 @@ export function CompanyPortalLogin({
     }
   }
 
+  const formCard = (
+    <div className={`w-full max-w-md ${marketingFadeIn}`}>
+      <div className="mb-6 flex justify-center">
+        <TalantonLogoMark height={48} />
+      </div>
+      <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+          {isBoard ? "Board Portal" : "Portfolio Company Portal"}
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+          {isBoard ? "Board Portal Login" : `${companyName} Portal Login`}
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-white/55">
+          {isBoard
+            ? "Sign in with your assigned board account to access governance materials, meetings, decks, and the risk register."
+            : "Sign in with your assigned company portal account to access training, reports and documents."}
+        </p>
+
+        <form className="mt-6 space-y-4" onSubmit={(e) => void handleSubmit(e)}>
+          <label className="block text-sm">
+            <span className="text-white/55">Email</span>
+            <input
+              type="email"
+              required
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-emerald-400/50"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-white/55">Password</span>
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-emerald-400/50"
+            />
+          </label>
+          {error ? (
+            <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+              {error}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
+          >
+            {busy ? "Signing in…" : isBoard ? "Sign in to Board Portal" : "Sign in to portal"}
+          </button>
+        </form>
+      </div>
+      <p className="mt-4 text-center text-xs text-white/35">
+        Talanton Impact · {isBoard ? "Board" : companyName}
+      </p>
+    </div>
+  );
+
+  if (isBoard) {
+    return (
+      <MarketingPageShell
+        backgroundImage={TALANTON_BOARD_LOGIN_BACKGROUND}
+        backgroundImageClassName={TALANTON_BOARD_LOGIN_BACKGROUND_CLASS}
+        backgroundImageQuality={TALANTON_LOGIN_BACKGROUND_QUALITY}
+        overlayClassName={TALANTON_BOARD_LOGIN_OVERLAY_CLASS}
+        contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] items-center justify-center px-4 py-10 text-white`}
+      >
+        {formCard}
+      </MarketingPageShell>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#07111f] px-4 py-10 text-white">
-      <div className="w-full max-w-md">
-        <div className="mb-6 flex justify-center">
-          <TalantonLogoMark height={48} />
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
-            {isBoard ? "Board Portal" : "Portfolio Company Portal"}
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-            {isBoard ? "Board Portal Login" : `${companyName} Portal Login`}
-          </h1>
-          <p className="mt-2 text-sm text-white/55">
-            {isBoard
-              ? "Sign in with your assigned board account to access governance materials, meetings, decks, and the risk register."
-              : "Sign in with your assigned company portal account to access training, reports and documents."}
-          </p>
-
-          <form className="mt-6 space-y-4" onSubmit={(e) => void handleSubmit(e)}>
-            <label className="block text-sm">
-              <span className="text-white/55">Email</span>
-              <input
-                type="email"
-                required
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-emerald-400/50"
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="text-white/55">Password</span>
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-emerald-400/50"
-              />
-            </label>
-            {error ? (
-              <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-                {error}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-60"
-            >
-              {busy ? "Signing in…" : isBoard ? "Sign in to Board Portal" : "Sign in to portal"}
-            </button>
-          </form>
-        </div>
-        <p className="mt-4 text-center text-xs text-white/35">
-          Talanton Impact · {isBoard ? "Board" : companyName}
-        </p>
-      </div>
+      {formCard}
     </div>
   );
 }
