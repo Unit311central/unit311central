@@ -290,12 +290,20 @@ export function drawSlideBackdrop(
   doc: jsPDF,
   opts: { w: number; h: number; margin?: number; imageDataUrl?: string | null; tint?: Rgb },
 ) {
-  const { w, h, margin = 16, imageDataUrl, tint = [245, 247, 250] } = opts;
+  const { w, h, margin = 16, imageDataUrl, tint = [255, 255, 255] } = opts;
   if (imageDataUrl) {
     addImageSafe(doc, imageDataUrl, "JPEG", 0, 0, w, h);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const GState = (doc as any).GState;
+    if (GState) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (doc as any).setGState(new GState({ opacity: 0.86 }));
+      setFill(doc, tint);
+      doc.rect(0, 0, w, h, "F");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (doc as any).setGState(new GState({ opacity: 1 }));
+    }
   }
-  setFill(doc, tint);
-  doc.rect(0, 0, w, h, "F");
   setFill(doc, [255, 255, 255]);
   doc.rect(margin, 22, w - margin * 2, h - 30, "F");
 }
