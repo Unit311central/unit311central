@@ -159,19 +159,16 @@ export function drawDonutChart(
 
   if (legendBelow) {
     let legendY = cy + outerR + 4;
-    const legendW = outerR * 2;
     const legendX = cx - outerR;
-    const legendCols = segments.length <= 2 ? segments.length : 1;
-    const colW = legendW / Math.max(legendCols, 1);
     segments.forEach((segment, index) => {
       const pct = Math.round((segment.value / total) * 100);
-      const lx = legendCols > 1 ? legendX + index * colW : legendX;
       setFill(doc, segment.color);
-      doc.roundedRect(lx, legendY - 3, 3, 3, 0.5, 0.5, "F");
+      doc.roundedRect(legendX, legendY - 3, 3, 3, 0.5, 0.5, "F");
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       setText(doc, textColor);
-      doc.text(`${segment.label} (${pct}%)`, lx + 5, legendY);
+      doc.text(`${segment.label} (${pct}%)`, legendX + 5, legendY);
+      legendY += 5;
     });
   }
 
@@ -552,6 +549,55 @@ export function drawPhotoCard(
   setText(doc, colors.text);
   const lines = doc.splitTextToSize(body, textW);
   doc.text(lines.slice(0, 4), textX, y + 19);
+}
+
+export function drawJourneyCard(
+  doc: jsPDF,
+  opts: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    imageDataUrl: string | null;
+    imageFormat: "JPEG" | "PNG";
+    country: string;
+    title: string;
+    subtitle: string;
+    body: string;
+    colors: { navy: Rgb; muted: Rgb; text: Rgb; line: Rgb; white: Rgb; green: Rgb };
+  },
+) {
+  const { x, y, w, h, imageDataUrl, imageFormat, country, title, subtitle, body, colors } = opts;
+  setDraw(doc, colors.line);
+  setFill(doc, colors.white);
+  doc.roundedRect(x, y, w, h, 2, 2, "FD");
+  const heroH = h * 0.42;
+  const placed = addImageSafe(doc, imageDataUrl, imageFormat, x + 2, y + 2, w - 4, heroH);
+  if (!placed) {
+    setFill(doc, colors.line);
+    doc.roundedRect(x + 2, y + 2, w - 4, heroH, 1, 1, "F");
+  }
+  setFill(doc, colors.green);
+  doc.roundedRect(x + 5, y + heroH - 6, 18, 5, 1, 1, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6);
+  setText(doc, colors.white);
+  doc.text(country.toUpperCase(), x + 14, y + heroH - 2.5, { align: "center" });
+  const textX = x + 5;
+  const textW = w - 10;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  setText(doc, colors.navy);
+  const titleLines = doc.splitTextToSize(title, textW);
+  doc.text(titleLines.slice(0, 2), textX, y + heroH + 7);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  setText(doc, colors.muted);
+  doc.text(subtitle, textX, y + heroH + 14);
+  doc.setFontSize(7.5);
+  setText(doc, colors.text);
+  const bodyLines = doc.splitTextToSize(body, textW);
+  doc.text(bodyLines.slice(0, 3), textX, y + heroH + 19);
 }
 
 export function drawQuotePanel(

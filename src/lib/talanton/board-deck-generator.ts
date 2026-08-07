@@ -1,5 +1,6 @@
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+
+import sharp from "sharp";
 
 import type { AbhiBoardPackData } from "@/lib/abhi/board-pack-model";
 import { buildTalantonBoardPackData, talantonBoardPackPdfFileName } from "@/lib/talanton/board-pack-model";
@@ -7,7 +8,7 @@ import { buildTalantonBoardPackPdf } from "@/lib/talanton/board-pack-pdf";
 import { loadTalantonBoardPackAssets } from "@/lib/talanton/board-pack-assets";
 import { listJourneyStoriesForBoard } from "@/lib/talanton/journey-stories-store";
 
-const TALANTON_LOGO_SRC = "/images/workspaces/talantonimpact-t.jpg";
+const TALANTON_LOGO_PATH = join(process.cwd(), "public", "images", "workspaces", "talantonimpact-logo.png");
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -42,9 +43,11 @@ export function parseTalantonBoardMeetingDate(raw: string | undefined): string |
 
 async function loadTalantonLogoDataUrl(): Promise<string | null> {
   try {
-    const relative = TALANTON_LOGO_SRC.replace(/^\//, "");
-    const bytes = await readFile(join(process.cwd(), "public", relative));
-    return `data:image/jpeg;base64,${bytes.toString("base64")}`;
+    const png = await sharp(TALANTON_LOGO_PATH)
+      .resize({ width: 1200, withoutEnlargement: false })
+      .png({ compressionLevel: 6 })
+      .toBuffer();
+    return `data:image/png;base64,${png.toString("base64")}`;
   } catch {
     return null;
   }
