@@ -30,7 +30,12 @@ export type ScopedPdfMetricId =
   | "hot_leads"
   | "open_leads"
   | "open_vacancies"
-  | "pending_leave";
+  | "pending_leave"
+  | "portfolio_capital"
+  | "fund_deployment"
+  | "impact_health"
+  | "jobs_created"
+  | "portfolio_health";
 
 export type ScopedPdfMetricDef = {
   id: ScopedPdfMetricId;
@@ -243,6 +248,51 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
       "awaiting leave approval",
     ],
     permission: "hr",
+  },
+  {
+    id: "portfolio_capital",
+    label: "Portfolio capital committed",
+    match: /\b(portfolio\s+capital|capital\s+committed|total\s+capital|funds?\s+committed)\b/i,
+    phrases: [
+      "portfolio capital",
+      "capital committed",
+      "total capital committed",
+      "funds committed",
+    ],
+    permission: "any",
+  },
+  {
+    id: "fund_deployment",
+    label: "Fund deployment",
+    match: /\b(fund\s+deployment|capital\s+deployed|deployment\s+rate|deployed\s+capital)\b/i,
+    phrases: [
+      "fund deployment",
+      "capital deployed",
+      "deployment rate",
+      "deployed capital",
+    ],
+    permission: "any",
+  },
+  {
+    id: "impact_health",
+    label: "Impact health score",
+    match: /\b(impact\s+health|impact\s+score|impact\s+health\s+score)\b/i,
+    phrases: ["impact health", "impact score", "impact health score"],
+    permission: "any",
+  },
+  {
+    id: "jobs_created",
+    label: "Jobs created",
+    match: /\b(jobs\s+created|employment\s+created|jobs\s+supported)\b/i,
+    phrases: ["jobs created", "employment created", "jobs supported"],
+    permission: "any",
+  },
+  {
+    id: "portfolio_health",
+    label: "Portfolio health score",
+    match: /\b(portfolio\s+health|portfolio\s+health\s+score|holdings?\s+health)\b/i,
+    phrases: ["portfolio health", "portfolio health score", "holdings health"],
+    permission: "any",
   },
 ];
 

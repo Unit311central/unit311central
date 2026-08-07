@@ -24,12 +24,16 @@ import {
   resolveExecutivePersona,
 } from "./role-awareness";
 import { buildHighlightAction, buildStartTourAction } from "./guided-learning";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 /**
  * Proactive Executive tools — registered alongside existing search/guide tools.
  */
 
-function resolveSnapshotDomain(raw: string | null): BusinessSnapshotDomain {
+function resolveSnapshotDomain(
+  raw: string | null,
+  workspaceSlug?: string | null,
+): BusinessSnapshotDomain {
   const value = (raw || "all").toLowerCase();
   if (
     value === "overview" ||
@@ -42,6 +46,13 @@ function resolveSnapshotDomain(raw: string | null): BusinessSnapshotDomain {
     value === "all"
   ) {
     return value;
+  }
+  // Talanton: portfolio companies are not generic delivery projects.
+  if (
+    isTalantonImpactSlug(workspaceSlug) &&
+    /\b(portfolio\s+compan|holdings?|fund|impact|governance|stewardship)\b/.test(value)
+  ) {
+    return "overview";
   }
   // Physical Assets / fleet / inventory BEFORE finance “balance” / generic matches.
   if (
@@ -61,7 +72,8 @@ function resolveSnapshotDomain(raw: string | null): BusinessSnapshotDomain {
     return "finance";
   }
   if (/client|customer/.test(value)) return "clients";
-  if (/project|delivery|portfolio/.test(value)) return "projects";
+  if (/project|delivery/.test(value)) return "projects";
+  if (/\bportfolio\b/.test(value) && !isTalantonImpactSlug(workspaceSlug)) return "projects";
   if (/hr|employee|staff|people|leave/.test(value)) return "hr";
   if (/crm|lead|pipeline|sales/.test(value)) return "crm";
   if (/inventory|logistics|shipment/.test(value)) return "assets";
@@ -80,8 +92,9 @@ export async function queryBusinessTool(
     const question = asString(args.question) || "";
     const domainArg = asString(args.domain);
     const topic = asString(args.topic);
-    const fromQuestion = resolveSnapshotDomain(question);
-    const fromArgs = resolveSnapshotDomain(domainArg || topic || null);
+    const slug = ctx.business.workspace.slug;
+    const fromQuestion = resolveSnapshotDomain(question, slug);
+    const fromArgs = resolveSnapshotDomain(domainArg || topic || null, slug);
     // Prefer a specific domain inferred from the user question over a generic all/overview arg.
     const domain =
       fromQuestion !== "all" && fromQuestion !== "overview"

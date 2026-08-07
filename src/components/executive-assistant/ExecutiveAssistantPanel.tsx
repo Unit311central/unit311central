@@ -43,6 +43,8 @@ import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { getAbhiBoardMeetingsState } from "@/lib/abhi/board-meetings-store";
 import { getAbhiRiskRegisterState } from "@/lib/abhi/risk-register-store";
+import { getTalantonGovernanceSnapshot } from "@/lib/talanton/governance-store";
+import { getTiRiskRegisterState } from "@/lib/talanton/risk-register-store";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { saveFileToFolderPath } from "@/lib/pdf-file-storage";
 import { cn } from "@/lib/utils";
@@ -708,6 +710,14 @@ export default function ExecutiveAssistantPanel({
                 abhiOrgState: {
                   meetings: getAbhiBoardMeetingsState(),
                   risks: getAbhiRiskRegisterState(),
+                },
+              }
+            : {}),
+          ...(isBrowserTalantonImpactSurface()
+            ? {
+                talantonOrgState: {
+                  governance: getTalantonGovernanceSnapshot(),
+                  risks: getTiRiskRegisterState(),
                 },
               }
             : {}),

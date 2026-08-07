@@ -20,6 +20,10 @@ import {
   type AbhiBoardRisk,
   type AbhiKpiIndicator,
 } from "@/lib/abhi/board-pack-model";
+import {
+  formatTalantonBoardUsd,
+  isTalantonBoardPackData,
+} from "@/lib/talanton/board-pack-model";
 
 const SLIDE_W = 297;
 const SLIDE_H = 167;
@@ -798,7 +802,15 @@ export async function buildAbhiBoardPackPdf(
   // Slide 9 — Commercial Performance (growth / pipeline visuals)
   {
     addSlide(doc);
-    drawHeader(doc, "Commercial Performance", logoDataUrl, "Growth · Pipeline · Momentum");
+    const isTalanton = isTalantonBoardPackData(data);
+    const money = (value: number, compact = false) =>
+      isTalanton ? formatTalantonBoardUsd(value, compact) : formatAbhiBoardGbp(value, compact);
+    drawHeader(
+      doc,
+      isTalanton ? "Funds & Impact Stewardship" : "Commercial Performance",
+      logoDataUrl,
+      isTalanton ? "Capital · Portfolio · Impact" : "Growth · Pipeline · Momentum",
+    );
     const colW = (CONTENT_W - 8) / 3;
     const colH = 124;
     const colY = 24;
@@ -813,13 +825,13 @@ export async function buildAbhiBoardPackPdf(
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       setText(doc, C.navy);
-      doc.text("MEMBERSHIP", x + 5, colY + 12);
+      doc.text(isTalanton ? "PORTFOLIO" : "MEMBERSHIP", x + 5, colY + 12);
       doc.setFontSize(32);
       doc.text(String(m.total), x + 5, colY + 36);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       setText(doc, C.muted);
-      doc.text("Active members", x + 5, colY + 46);
+      doc.text(isTalanton ? "Portfolio companies" : "Active members", x + 5, colY + 46);
       drawStatusPill(doc, x + 5, colY + 54, colW - 10, 10, "+18 YTD growth", "green");
       drawStatusPill(doc, x + 5, colY + 68, colW - 10, 10, "11 at risk", "amber");
       doc.setFont("helvetica", "normal");
@@ -847,13 +859,13 @@ export async function buildAbhiBoardPackPdf(
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       setText(doc, C.navy);
-      doc.text("SPONSORSHIP", x + 5, colY + 12);
+      doc.text(isTalanton ? "CAPITAL DEPLOYED" : "SPONSORSHIP", x + 5, colY + 12);
       doc.setFontSize(26);
-      doc.text(formatAbhiBoardGbp(s.actual, true), x + 5, colY + 34);
+      doc.text(money(s.actual, true), x + 5, colY + 34);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       setText(doc, C.muted);
-      doc.text(`of ${formatAbhiBoardGbp(s.budget, true)} target`, x + 5, colY + 44);
+      doc.text(`of ${money(s.budget, true)} ${isTalanton ? "committed" : "target"}`, x + 5, colY + 44);
       drawProgressBar(doc, x + 5, colY + 52, colW - 10, 6, progress, C.amber);
       doc.setFontSize(9);
       setText(doc, C.text);

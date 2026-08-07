@@ -32,6 +32,9 @@ import { listHrEmployees } from "@/lib/hr-employees-service";
 import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { calculateLivePayrollSnapshot } from "@/lib/payroll/payroll-service";
+import { FUNDS_PLATFORM_OVERVIEW, formatFundUsd } from "@/lib/talanton/funds-data";
+import { buildPortfolioExecutiveBriefing } from "@/lib/talanton/portfolio-intelligence";
+import { buildPortfolioImpactBriefing } from "@/lib/talanton/impact-intelligence";
 
 export type ScopedPdfRow = { label: string; value: string };
 
@@ -499,6 +502,80 @@ export async function loadScopedPdfBundle(input: {
           metricId,
           heading,
           rows: [{ label: "Overdue projects", value: String(overdue.length) }],
+        });
+        break;
+      }
+      case "portfolio_capital": {
+        const o = FUNDS_PLATFORM_OVERVIEW;
+        sources.add("talanton:funds-data");
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            { label: "Capital committed", value: formatFundUsd(o.capitalCommittedUsd) },
+            { label: "Portfolio companies", value: String(o.portfolioCompanies) },
+            { label: "Countries", value: String(o.countriesRepresented) },
+          ],
+        });
+        break;
+      }
+      case "fund_deployment": {
+        const o = FUNDS_PLATFORM_OVERVIEW;
+        const pct = Math.round((o.capitalDeployedUsd / o.capitalCommittedUsd) * 100);
+        sources.add("talanton:funds-data");
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            { label: "Capital deployed", value: formatFundUsd(o.capitalDeployedUsd) },
+            { label: "Available capital", value: formatFundUsd(o.availableCapitalUsd) },
+            { label: "Deployment rate", value: `${pct}%` },
+          ],
+        });
+        break;
+      }
+      case "impact_health": {
+        const impact = buildPortfolioImpactBriefing();
+        sources.add("talanton:impact-intelligence");
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            { label: "Impact health score", value: `${impact.health.score}/100` },
+            { label: "Band", value: impact.health.band },
+            { label: "People served", value: impact.summary.peopleServed.toLocaleString() },
+          ],
+        });
+        break;
+      }
+      case "jobs_created": {
+        const impact = buildPortfolioImpactBriefing();
+        sources.add("talanton:impact-intelligence");
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            { label: "Jobs created", value: impact.summary.jobsCreated.toLocaleString() },
+            { label: "Jobs retained", value: impact.summary.jobsRetained.toLocaleString() },
+            { label: "Women employed", value: impact.summary.womenEmployed.toLocaleString() },
+          ],
+        });
+        break;
+      }
+      case "portfolio_health": {
+        const portfolio = buildPortfolioExecutiveBriefing();
+        sources.add("talanton:portfolio-intelligence");
+        sections.push({
+          metricId,
+          heading,
+          rows: [
+            { label: "Portfolio health score", value: `${portfolio.health.portfolioHealthScore}/100` },
+            { label: "Posture", value: portfolio.health.posture },
+            {
+              label: "Companies requiring attention",
+              value: String(portfolio.health.companiesRequiringAttention),
+            },
+          ],
         });
         break;
       }

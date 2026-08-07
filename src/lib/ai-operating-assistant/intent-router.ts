@@ -41,7 +41,18 @@ export type DirectAssistantIntent = {
     | "proposeBusinessActionPlan"
     | "listBusinessActions"
     | "searchCapabilities"
-    | "planBusinessGoal";
+    | "planBusinessGoal"
+    | "abhi.getExecutiveBriefing"
+    | "abhi.getOrgHealth"
+    | "abhi.queryActions"
+    | "abhi.getBoardInsights"
+    | "talanton.getExecutiveBriefing"
+    | "talanton.getOrgHealth"
+    | "talanton.queryActions"
+    | "talanton.getBoardInsights"
+    | "talanton.queryPortfolio"
+    | "talanton.queryFunds"
+    | "talanton.queryImpact";
   args: Record<string, unknown>;
   reason: string;
 };

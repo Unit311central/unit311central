@@ -21,6 +21,25 @@ import {
 import { generateBoardPackTool } from "./boardpack-tools";
 import { generateLmsCourseFromDocumentTool } from "./lms-course-tools";
 import {
+  getAbhiBoardInsightsTool,
+  getAbhiExecutiveBriefingTool,
+  getAbhiOrgHealthTool,
+  queryAbhiActionsTool,
+} from "./abhi-executive-tools";
+import {
+  ABHI_EXECUTIVE_TOOL_DEFINITIONS,
+  TALANTON_EXECUTIVE_TOOL_DEFINITIONS,
+  getTalantonBoardInsightsTool,
+  getTalantonExecutiveBriefingTool,
+  getTalantonOrgHealthTool,
+  queryTalantonActionsTool,
+  queryTalantonFundsTool,
+  queryTalantonImpactTool,
+  queryTalantonPortfolioTool,
+} from "./talanton-executive-tools";
+import { isAbhiSlug } from "@/lib/abhi-surface";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import {
   getPageGuideTool,
   highlightUiTarget,
   listPageGuidesTool,
@@ -891,6 +910,17 @@ const handlers: Record<string, ContextualToolHandler> = {
   proposeBusinessActionPlan: proposeBusinessActionPlanTool,
   planBusinessGoal: planBusinessGoalTool,
   executeGoalPlan: executeGoalPlanTool,
+  "abhi.getExecutiveBriefing": getAbhiExecutiveBriefingTool,
+  "abhi.getOrgHealth": getAbhiOrgHealthTool,
+  "abhi.queryActions": queryAbhiActionsTool,
+  "abhi.getBoardInsights": getAbhiBoardInsightsTool,
+  "talanton.getExecutiveBriefing": getTalantonExecutiveBriefingTool,
+  "talanton.getOrgHealth": getTalantonOrgHealthTool,
+  "talanton.queryActions": queryTalantonActionsTool,
+  "talanton.getBoardInsights": getTalantonBoardInsightsTool,
+  "talanton.queryPortfolio": queryTalantonPortfolioTool,
+  "talanton.queryFunds": queryTalantonFundsTool,
+  "talanton.queryImpact": queryTalantonImpactTool,
 };
 
 /** @deprecated Prefer contextual handlers — kept for registerAssistantTool compatibility. */
@@ -900,8 +930,13 @@ export function registerAssistantTool(name: string, handler: ContextualToolHandl
   handlers[name] = handler;
 }
 
-export function getOpenAIToolSchemas() {
-  return ASSISTANT_TOOL_DEFINITIONS.map((tool) => ({
+export function getOpenAIToolSchemas(workspaceSlug?: string | null) {
+  const slug = workspaceSlug?.trim().toLowerCase() ?? "";
+  const extra = [
+    ...(isAbhiSlug(slug) ? ABHI_EXECUTIVE_TOOL_DEFINITIONS : []),
+    ...(isTalantonImpactSlug(slug) ? TALANTON_EXECUTIVE_TOOL_DEFINITIONS : []),
+  ];
+  return [...ASSISTANT_TOOL_DEFINITIONS, ...extra].map((tool) => ({
     type: "function" as const,
     name: tool.name,
     description: tool.description,

@@ -99,6 +99,12 @@ export type AssistantAbhiOrgStatePayload = {
   risks?: { risks: unknown[] } | null;
 };
 
+/** Browser Talanton governance + risk register snapshot for EA server tools. */
+export type AssistantTalantonOrgStatePayload = {
+  governance?: { meetings: unknown[] } | null;
+  risks?: { risks: unknown[] } | null;
+};
+
 export type AssistantChatRequest = {
   conversationId?: string | null;
   message: string;
@@ -112,6 +118,8 @@ export type AssistantChatRequest = {
   structuredJson?: boolean;
   /** ABHI-only: client org state so EA matches Board Meetings / Risk Register UI. */
   abhiOrgState?: AssistantAbhiOrgStatePayload | null;
+  /** Talanton-only: governance meetings + risk register from the browser. */
+  talantonOrgState?: AssistantTalantonOrgStatePayload | null;
 };
 
 export type AssistantStreamEvent =

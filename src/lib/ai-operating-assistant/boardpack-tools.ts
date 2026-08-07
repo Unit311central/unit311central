@@ -46,6 +46,12 @@ import {
   ONWARDAIR_LOGO_DARK_PNG_SRC,
   isOnwardAirSlug,
 } from "@/lib/onwardair-surface";
+import {
+  buildTalantonBoardPackData,
+  isTalantonBoardPackData,
+  talantonBoardPackPdfFileName,
+  talantonBoardPackPptxFileName,
+} from "@/lib/talanton/board-pack-model";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 const TALANTON_LOGO_SRC = "/images/workspaces/talantonimpact-t.jpg";
@@ -131,26 +137,6 @@ async function loadLogoDataUrl(slug: string): Promise<string | null> {
   }
 }
 
-function brandBoardPackForWorkspace(
-  data: AbhiBoardPackData,
-  slug: string,
-): AbhiBoardPackData {
-  if (!isTalantonImpactSlug(slug)) return data;
-  const rebrand = (value: string) =>
-    value
-      .replace(/\bABHI\b/g, "Talanton Impact")
-      .replace(/Association of British HealthTech Industries/gi, "Talanton Impact");
-  return {
-    ...data,
-    packName: rebrand(data.packName).replace(
-      /Talanton Impact Board Meeting Pack/i,
-      "Talanton Impact Board Pack",
-    ),
-    folderPath: rebrand(data.folderPath),
-    pageSummaries: data.pageSummaries?.map(rebrand),
-  };
-}
-
 async function runStagedAnalysis(slug: string): Promise<void> {
   const stages = isOnwardAirSlug(slug) ? OA_BOARD_PACK_STAGES : ABHI_BOARD_PACK_STAGES;
   for (let index = 0; index < stages.length; index += 1) {
@@ -179,7 +165,9 @@ export async function generateBoardPackTool(
     );
     const data: AbhiBoardPackData = isOa
       ? buildOnwardAirBoardPackData(meetingDate)
-      : brandBoardPackForWorkspace(buildAbhiBoardPackData(meetingDate), slug);
+      : isTalantonImpactSlug(slug)
+        ? buildTalantonBoardPackData(meetingDate)
+        : buildAbhiBoardPackData(meetingDate);
     const logoDataUrl = await loadLogoDataUrl(slug);
 
     const analysisPromise = runStagedAnalysis(slug);
@@ -195,10 +183,14 @@ export async function generateBoardPackTool(
 
     const pdfFilename = isOa
       ? oaBoardPackPdfFileName(data.meetingDate)
-      : abhiBoardPackPdfFileName(data.meetingDate);
+      : isTalantonBoardPackData(data)
+        ? talantonBoardPackPdfFileName(data.meetingDate)
+        : abhiBoardPackPdfFileName(data.meetingDate);
     const pptxFilename = isOa
       ? oaBoardPackPptxFileName(data.meetingDate)
-      : abhiBoardPackPptxFileName(data.meetingDate);
+      : isTalantonBoardPackData(data)
+        ? talantonBoardPackPptxFileName(data.meetingDate)
+        : abhiBoardPackPptxFileName(data.meetingDate);
 
     let pdfArtifact = putAssistantArtifact({
       id: createArtifactId(),

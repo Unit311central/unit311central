@@ -432,14 +432,23 @@ function formatExecutiveIntelligenceReply(
     toolName === "abhi.getExecutiveBriefing" ||
     toolName === "abhi.getOrgHealth" ||
     toolName === "abhi.queryActions" ||
-    toolName === "abhi.getBoardInsights"
+    toolName === "abhi.getBoardInsights" ||
+    toolName === "talanton.getExecutiveBriefing" ||
+    toolName === "talanton.getOrgHealth" ||
+    toolName === "talanton.queryActions" ||
+    toolName === "talanton.getBoardInsights" ||
+    toolName === "talanton.queryPortfolio" ||
+    toolName === "talanton.queryFunds" ||
+    toolName === "talanton.queryImpact"
   ) {
     const prose =
       (typeof summary?.message === "string" && summary.message) ||
       (typeof items?.[0]?.prose === "string" && items[0].prose) ||
       null;
     if (prose) return prose;
-    return "I could not complete that ABHI executive analysis.";
+    return toolName.startsWith("talanton.")
+      ? "I could not complete that Talanton executive analysis."
+      : "I could not complete that ABHI executive analysis.";
   }
 
   return null;
@@ -802,8 +811,16 @@ export async function* runAssistantTurn(input: {
     iterateWithAbhiRequestOrgState,
     parseAbhiClientOrgState,
   } = await import("@/lib/abhi/abhi-request-org-state");
+  const {
+    iterateWithTalantonRequestOrgState,
+    parseTalantonClientOrgState,
+  } = await import("@/lib/talanton/talanton-request-org-state");
   const abhiOrgState = parseAbhiClientOrgState(input.request.abhiOrgState);
-  yield* iterateWithAbhiRequestOrgState(abhiOrgState, runAssistantTurnInner(input));
+  const talantonOrgState = parseTalantonClientOrgState(input.request.talantonOrgState);
+  yield* iterateWithAbhiRequestOrgState(
+    abhiOrgState,
+    iterateWithTalantonRequestOrgState(talantonOrgState, runAssistantTurnInner(input)),
+  );
 }
 
 async function* runAssistantTurnInner(input: {
@@ -876,7 +893,7 @@ async function* runAssistantTurnInner(input: {
   const turnStartedAt = Date.now();
   let recordedDataGaps = 0;
 
-  const tools = getOpenAIToolSchemas();
+  const tools = getOpenAIToolSchemas(context.workspace.slug);
   let inputItems: EasyInputMessage[] = toInputMessages(resolved.history, message);
   let assistantText = "";
   let toolLoops = 0;

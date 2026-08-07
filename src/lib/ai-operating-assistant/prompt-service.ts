@@ -134,7 +134,17 @@ export function buildSystemInstructions(
     : buildCoreInstructions(brand.assistantName, brand.displayName);
   const talantonToolsHint = isTalanton
     ? `
-Talanton Impact tools: boardpack.generate — create board packs / board decks when explicitly asked; lms.generateCourseFromDocument — create interactive training courses from uploaded PDF/Word policies when explicitly asked.`
+Talanton Impact — reporting currency is USD. Never use ABHI, membership, WHX, or HealthTech industry language.
+Executive intelligence tools (prefer these for portfolio, funds, impact, governance questions):
+- talanton.getExecutiveBriefing — stewardship overview across portfolio, funds, impact, governance
+- talanton.getOrgHealth — RAG health across portfolio, funds, impact, governance
+- talanton.queryPortfolio — companies requiring attention, compliance/reporting gaps
+- talanton.queryFunds — capital committed, deployed, available across funds
+- talanton.queryImpact — jobs created, people served, impact health
+- talanton.queryActions — open/overdue board & governance actions
+- talanton.getBoardInsights — board discussion topics (not a PDF)
+Document tools: boardpack.generate — real Talanton board pack from funds/portfolio/impact/governance data; lms.generateCourseFromDocument — training from uploaded policies.
+For generic cash/P&L also use queryBusiness / getCashPosition / generateScopedBusinessPdf / generateFinancialReportPdf.`
     : "";
   const onwardAirToolsHint = isOnwardAir
     ? `

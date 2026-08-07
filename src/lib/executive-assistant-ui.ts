@@ -332,9 +332,22 @@ export const HOME_SUGGESTED_ACTIONS = [
   "Generate project report",
 ] as const;
 
+const TALANTON_HOME_PROMPTS = [
+  "Give me an executive briefing",
+  "What requires attention across the portfolio?",
+  "Summarise fund capital deployment",
+  "Summarise portfolio impact",
+  "Create Board Pack",
+  "What board actions are overdue?",
+  "Explain cash position in USD",
+] as const;
+
 export function getHomeSuggestedActions(): readonly string[] {
   if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) {
     return CORPCENTRE_HOME_PROMPTS;
+  }
+  if (typeof window !== "undefined" && isBrowserTalantonImpactSurface()) {
+    return TALANTON_HOME_PROMPTS;
   }
   return HOME_SUGGESTED_ACTIONS;
 }
@@ -417,10 +430,7 @@ function withTalantonPrompts(
     return { ...context, suggestedPrompts: [...TALANTON_BOARD_PACK_PROMPTS] };
   }
   if (activeView === "home" || activeView === "executive-assistant") {
-    const prompts = context.suggestedPrompts.includes("Create Board Pack")
-      ? context.suggestedPrompts
-      : ["Create Board Pack", ...context.suggestedPrompts];
-    return { ...context, suggestedPrompts: prompts.slice(0, 7) };
+    return { ...context, suggestedPrompts: [...TALANTON_HOME_PROMPTS] };
   }
   return context;
 }

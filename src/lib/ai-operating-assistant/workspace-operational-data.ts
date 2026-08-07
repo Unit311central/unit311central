@@ -9,6 +9,11 @@ import { buildAbhiPerformanceReviews } from "@/lib/abhi-hr-performance";
 import { buildAbhiRecruitmentVacancies } from "@/lib/abhi-hr-recruitment";
 import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
 import { buildCorpCentrePerformanceReviews } from "@/lib/corpcentre-hr-performance";
+import {
+  buildTalantonLeaveRequests,
+  buildTalantonPerformanceReviews,
+} from "@/lib/talanton/hr-ops-data";
+import { isTalantonWorkspaceSlug } from "@/lib/talanton-financials";
 import type { HrLeaveRequest } from "@/lib/hr-leave-data";
 import type { HrPerformanceReview } from "@/lib/hr-performance-data";
 import type { HrVacancy } from "@/lib/hr-recruitment-data";
@@ -31,12 +36,14 @@ function todayIso() {
 
 export function loadWorkspaceLeaveRequests(slug?: string | null): HrLeaveRequest[] {
   if (isAbhiSlug(slug)) return buildAbhiLeaveRequests();
+  if (isTalantonWorkspaceSlug(slug)) return buildTalantonLeaveRequests();
   return listLeaveRequests();
 }
 
 export function loadWorkspacePerformanceReviews(slug?: string | null): HrPerformanceReview[] {
   if (isAbhiSlug(slug)) return buildAbhiPerformanceReviews();
   if (isCorpCentreWorkspaceSlug(slug)) return buildCorpCentrePerformanceReviews();
+  if (isTalantonWorkspaceSlug(slug)) return buildTalantonPerformanceReviews();
   return listPerformanceReviews();
 }
 

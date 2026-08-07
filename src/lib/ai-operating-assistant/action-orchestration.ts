@@ -9,10 +9,12 @@
  */
 
 import { isAbhiSlug } from "@/lib/abhi-surface";
+import { resolveAbhiExecutiveIntelligenceIntent } from "@/lib/abhi/executive-intelligence-intent";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { resolveTalantonExecutiveIntelligenceIntent } from "@/lib/talanton/executive-intelligence-intent";
 
 import type { AssistantBusinessContext, AssistantChatMessage } from "./types";
 import type { DirectAssistantIntent } from "./intent-router";
@@ -200,6 +202,18 @@ export async function resolveOrchestrationRoute(
 
   // ABHI flagship — Board Pack Generation (PowerPoint + PDF). Workspace-gated.
   if (isAbhiSlug(business.workspace.slug)) {
+    const execIntel = resolveAbhiExecutiveIntelligenceIntent(message);
+    if (execIntel) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: execIntel.tool,
+          args: execIntel.args,
+          reason: execIntel.reason,
+        },
+      };
+    }
+
     const boardPack = resolveAbhiBoardPackIntent(message);
     if (boardPack) {
       return {
@@ -228,8 +242,20 @@ export async function resolveOrchestrationRoute(
     }
   }
 
-  // Talanton Impact — board pack + AI training course from document.
+  // Talanton Impact — executive intelligence, board pack, AI training course.
   if (isTalantonImpactSlug(business.workspace.slug)) {
+    const execIntel = resolveTalantonExecutiveIntelligenceIntent(message);
+    if (execIntel) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: execIntel.tool,
+          args: execIntel.args,
+          reason: execIntel.reason,
+        },
+      };
+    }
+
     const boardPack = resolveAbhiBoardPackIntent(message);
     if (boardPack) {
       return {

@@ -7,6 +7,7 @@ import ExecutiveAssistantPanel from "@/components/executive-assistant/ExecutiveA
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 import type { AssistantFollowUpAction } from "@/lib/ai-operating-assistant/tool-result";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { cn } from "@/lib/utils";
 
 type ProactiveBundle = {
@@ -35,6 +36,15 @@ const CORPCENTRE_QUICK_PROMPTS = [
   "Review today's priorities",
   "Explain cash position in AUD",
   "What needs attention today?",
+] as const;
+
+const TALANTON_QUICK_PROMPTS = [
+  "Give me an executive briefing",
+  "What requires attention across the portfolio?",
+  "Summarise fund capital deployment",
+  "Summarise portfolio impact metrics",
+  "What board actions are overdue?",
+  "Create Board Pack",
 ] as const;
 
 const PINNED_CONVERSATIONS = [
@@ -223,7 +233,9 @@ export default function ExecutiveOperatingCentre() {
           <div className="flex flex-wrap gap-1.5">
             {(typeof window !== "undefined" && isBrowserCorpCentreSurface()
               ? CORPCENTRE_QUICK_PROMPTS
-              : QUICK_PROMPTS
+              : typeof window !== "undefined" && isBrowserTalantonImpactSurface()
+                ? TALANTON_QUICK_PROMPTS
+                : QUICK_PROMPTS
             ).map((prompt) => (
               <button
                 key={prompt}
