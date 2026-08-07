@@ -32,6 +32,13 @@ function isDocumentGenerateAsk(lower: string) {
 }
 
 function resolveActionQuery(lower: string): TalantonActionCentreQuery | null {
+  if (
+    /\b(who\s+owns\s+the\s+most|owns\s+the\s+most\s+actions|action\s+owners?|ownership\s+of\s+actions)\b/.test(
+      lower,
+    )
+  ) {
+    return "by_owner";
+  }
   if (/\boverdue\b/.test(lower) && /\baction/.test(lower)) return "overdue";
   if (/\bdue\s+this\s+week\b/.test(lower) && /\baction/.test(lower)) return "due_this_week";
   if (/\bby\s+owner\b/.test(lower) && /\baction/.test(lower)) return "by_owner";
@@ -111,7 +118,8 @@ export function resolveTalantonExecutiveIntelligenceIntent(
 
   if (
     /\bfunds?\s+(overview|summary|performance|deployment)\b/.test(lower) ||
-    /\bcapital\s+(committed|deployed|available)\b/.test(lower) ||
+    /\bfund\s+capital\b/.test(lower) ||
+    /\bcapital\s+(committed|deployed|available|deployment)\b/.test(lower) ||
     /\blp\s+(update|reporting)\b/.test(lower)
   ) {
     return {
