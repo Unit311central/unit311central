@@ -550,6 +550,47 @@ export async function middleware(request: NextRequest) {
       );
     }
 
+    // Talanton EA test suite GUI (Talanton host only).
+    if (pathname === "/testing" || pathname.startsWith("/testing/")) {
+      if (!isTalantonImpactSlug(workspaceSlug)) {
+        return redirectExternal(`${workspaceOrigin}/dashboard`);
+      }
+
+      if (isTalantonImpactSlug(workspaceSlug)) {
+        const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
+        const session = token ? await readPlatformSessionToken(token) : null;
+        if (session && isPortalsAllowedUsername(session.username, workspaceSlug)) {
+          return rewriteTo(request, "/testing", headers, workspaceResponseHeaders);
+        }
+      }
+
+      const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
+      if (gate.status === "anonymous" || gate.status === "invalid") {
+        const bounce = customerHostLoginRedirect(workspaceOrigin);
+        if (gate.status === "invalid") {
+          clearPlatformSessionCookie(bounce, request);
+        }
+        return bounce;
+      }
+
+      if (gate.status === "workspace_missing") {
+        const gatewayPath = `${WORKSPACE_HOST_ROUTE_PREFIX}/${encodeURIComponent(workspaceSlug)}`;
+        return rewriteTo(request, gatewayPath, headers, workspaceResponseHeaders);
+      }
+
+      if (gate.status === "forbidden") {
+        const bounce = customerHostLoginRedirect(workspaceOrigin);
+        clearPlatformSessionCookie(bounce, request);
+        return bounce;
+      }
+
+      return applyCustomerHostRebindIfNeeded({
+        request,
+        response: rewriteTo(request, "/testing", headers, workspaceResponseHeaders),
+        gate,
+      });
+    }
+
     const requiresAuthenticatedApp =
       pathname === "/dashboard" ||
       pathname.startsWith("/dashboard/") ||
