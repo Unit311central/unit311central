@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, startTransition } from "reac
 
 import TreasuryShell from "@/components/treasury/TreasuryShell";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import type { WiseConnectionStatus } from "@/lib/wise-service";
 
@@ -34,15 +35,12 @@ export default function WiseWorkspace() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isOnwardAir = useMemo(
-    () => isOnwardAirHost() || isBrowserOnwardAirSurface(),
-    [],
-  );
+  const reportingCurrency = resolveBrowserReportingCurrency();
+  const isUsdWorkspace = reportingCurrency === "USD";
   const demoMode = useMemo(
-    () => isOnwardAir || isBrowserDemoSurface() || Boolean(status?.demoMode),
-    [isOnwardAir, status?.demoMode],
+    () => isUsdWorkspace || isBrowserDemoSurface() || Boolean(status?.demoMode),
+    [isUsdWorkspace, status?.demoMode],
   );
-  const reportingCurrency = isOnwardAir ? ("USD" as const) : ("GBP" as const);
 
   const loadStatus = useCallback(async (mode: "initial" | "refresh" = "initial") => {
     if (mode === "refresh") setRefreshing(true);

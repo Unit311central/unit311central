@@ -26,6 +26,7 @@ import {
   isOnwardAirWorkspaceSlug,
 } from "@/lib/onwardair-financials";
 import { isOnwardAirSlug, ONWARDAIR_REPORTING_CURRENCY } from "@/lib/onwardair-surface";
+import { isTalantonImpactSlug, TALANTON_REPORTING_CURRENCY } from "@/lib/talanton-surface";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import {
   resolveFinancialsWorkspaceId,
@@ -71,6 +72,9 @@ async function resolveReportingCurrency(workspaceId: string): Promise<string> {
     }
     if (isOnwardAirSlug(slug)) {
       return ONWARDAIR_REPORTING_CURRENCY;
+    }
+    if (isTalantonImpactSlug(slug)) {
+      return TALANTON_REPORTING_CURRENCY;
     }
 
     const currency = String(settings?.currency ?? "")

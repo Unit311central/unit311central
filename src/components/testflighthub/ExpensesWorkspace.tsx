@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   ArrowLeft,
@@ -84,14 +85,9 @@ function sanitizeExpenseAmountInput(value: string) {
 }
 
 function reportingExpenseCurrency(expenses: FinancialExpense[]): ExpenseCurrency {
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname.toLowerCase();
-    if (host.includes("onwardair") || host === "onward.unit311central.com") return "USD";
-  }
-  if (isBrowserOnwardAirSurface()) return "USD";
-  if (isBrowserCorpCentreSurface()) return "AUD";
+  const workspaceCurrency = resolveBrowserReportingCurrency();
+  if (workspaceCurrency === "AUD" || workspaceCurrency === "USD") return workspaceCurrency;
   if (isBrowserAbhiSurface()) return "GBP";
-  if (isBrowserDemoSurface()) return "USD";
   const codes = expenses.map((expense) => String(expense.currency || "").toUpperCase());
   const usdCount = codes.filter((code) => code === "USD").length;
   const gbpCount = codes.filter((code) => code === "GBP").length;

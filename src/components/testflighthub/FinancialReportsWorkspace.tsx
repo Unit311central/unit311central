@@ -21,6 +21,7 @@ import {
 
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise/surface";
+import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
 import {
   buildReportFromDraft,
   createBlankReportDraft,
@@ -132,10 +133,14 @@ const WIZARD_STEPS = [
 
 export default function FinancialReportsWorkspace() {
   const isDemo = isBrowserDemoSurface();
+  const workspaceCurrency = resolveBrowserReportingCurrency();
   const reportOrganisations = getFinancialReportOrganisations(isDemo);
-  const [reports, setReports] = useState<FinancialReportRecord[]>(() => [
-    ...getSeedFinancialReports(isBrowserDemoSurface()),
-  ]);
+  const [reports, setReports] = useState<FinancialReportRecord[]>(() =>
+    getSeedFinancialReports(isBrowserDemoSurface()).map((report) => ({
+      ...report,
+      currency: workspaceCurrency === "GBP" ? report.currency : workspaceCurrency,
+    })),
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [rowMenuId, setRowMenuId] = useState<string | null>(null);
@@ -150,9 +155,10 @@ export default function FinancialReportsWorkspace() {
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
-  const [draft, setDraft] = useState<CreateReportDraft>(() =>
-    createBlankReportDraft(isBrowserDemoSurface()),
-  );
+  const [draft, setDraft] = useState<CreateReportDraft>(() => {
+    const base = createBlankReportDraft(isBrowserDemoSurface());
+    return workspaceCurrency === "GBP" ? base : { ...base, currency: workspaceCurrency };
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {

@@ -116,9 +116,19 @@ export function createBlankExpenseInput(): Omit<
     // non-browser
   }
   try {
+    const { isBrowserTalantonImpactSurface } =
+      require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+    if (isBrowserTalantonImpactSurface()) currency = "USD";
+  } catch {
+    // non-browser
+  }
+  try {
     if (typeof window !== "undefined") {
       const host = window.location.hostname.toLowerCase();
       if (host.includes("onwardair") || host === "onward.unit311central.com") {
+        currency = "USD";
+      }
+      if (host.includes("talantonimpact") || host.includes("talanton.")) {
         currency = "USD";
       }
     }

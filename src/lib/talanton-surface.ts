@@ -33,6 +33,9 @@ export function canonicalizeTalantonImpactSlug(
   return isTalantonImpactSlug(slug) ? TALANTON_IMPACT_SLUG : null;
 }
 
+/** Talanton reports and displays money in USD across Home, Financials, and modules. */
+export const TALANTON_REPORTING_CURRENCY = "USD";
+
 export function isBrowserTalantonImpactSurface(): boolean {
   return isTalantonImpactSlug(getBrowserWorkspaceSlug());
 }
