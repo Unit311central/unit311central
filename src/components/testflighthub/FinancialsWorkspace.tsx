@@ -28,7 +28,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-import { formatMoney } from "@/lib/accounting/chart-of-accounts";
+import { formatReportingMoney } from "@/lib/financial-reporting-currency";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
@@ -71,14 +71,14 @@ function seriesDelta(series: Array<{ amount: number }> | undefined) {
 
 function formatCompact(amount: number, currency: string) {
   try {
-    return new Intl.NumberFormat(currency === "AUD" ? "en-AU" : "en-GB", {
+    return new Intl.NumberFormat(currency === "AUD" ? "en-AU" : currency === "USD" ? "en-US" : "en-GB", {
       style: "currency",
       currency,
       notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(amount);
+      maximumFractionDigits: currency === "USD" || currency === "AUD" ? 0 : 1,
+    }).format(Math.ceil(amount));
   } catch {
-    return formatMoney(amount, currency);
+    return formatReportingMoney(amount, currency);
   }
 }
 
@@ -227,7 +227,7 @@ export default function FinancialsWorkspace() {
 
   const reportingCurrency = useWorkspaceReportingCurrency(overview?.burnRate?.currency);
   const money = (amount: number, currency?: string) =>
-    formatMoney(amount, currency ?? reportingCurrency);
+    formatReportingMoney(amount, currency ?? reportingCurrency);
 
   const load = useCallback(async () => {
     setLoading(true);

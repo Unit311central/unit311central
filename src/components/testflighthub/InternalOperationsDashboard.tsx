@@ -211,6 +211,20 @@ const TalantonFundsWorkspace = dynamic(
     ssr: false,
   },
 );
+const TalantonMinutesDecisionsWorkspace = dynamic(
+  () => import("./talanton/TalantonMinutesDecisionsWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading minutes & decisions" />,
+    ssr: false,
+  },
+);
+const TalantonRiskRegisterWorkspace = dynamic(
+  () => import("./talanton/TalantonRiskRegisterWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading risk register" />,
+    ssr: false,
+  },
+);
 import {
   AbhiCalendarEventsWorkspace,
   AbhiComplianceTrainingWorkspace,
@@ -981,7 +995,7 @@ export default function InternalOperationsDashboard({
 
           {activeView === "corporate-risk-register" &&
             (isBrowserTalantonImpactSurface() ? (
-              <BoardGovernanceWorkspace section="risk" />
+              <TalantonRiskRegisterWorkspace />
             ) : (
               <RiskRegisterWorkspace />
             ))}
@@ -996,7 +1010,7 @@ export default function InternalOperationsDashboard({
             ))}
           {activeView === "board-minutes" &&
             (isBrowserTalantonImpactSurface() ? (
-              <BoardGovernanceWorkspace section="meetings" />
+              <TalantonMinutesDecisionsWorkspace />
             ) : (
               <BoardGovernanceWorkspace section="minutes" />
             ))}

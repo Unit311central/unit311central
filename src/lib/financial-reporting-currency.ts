@@ -78,3 +78,25 @@ export function resolveBrowserReportingCurrency(): ReportingCurrency {
 export function isUsdReportingBrowserSurface(): boolean {
   return resolveBrowserReportingCurrency() === "USD";
 }
+
+/** Dashboard / Financials display — whole currency units, rounded up (no .00). */
+export function formatReportingMoney(
+  amount: number,
+  currency?: ReportingCurrency | string | null,
+): string {
+  const code = String(currency ?? resolveBrowserReportingCurrency()).toUpperCase();
+  const rounded = Math.ceil(Number(amount) || 0);
+  const locale = code === "USD" ? "en-US" : code === "AUD" ? "en-AU" : "en-GB";
+  const noDecimals = code === "USD" || code === "AUD";
+  const formatted = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: code,
+    minimumFractionDigits: noDecimals ? 0 : 2,
+    maximumFractionDigits: noDecimals ? 0 : 2,
+  }).format(rounded);
+
+  if (code === "AUD") {
+    return formatted.replace(/(^|[^A-Z])A\$/g, "$1AU$").replace(/^(\s*)\$/, "$1AU$");
+  }
+  return formatted;
+}

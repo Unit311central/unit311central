@@ -18,9 +18,8 @@ import {
 import { useCommandCentreData } from "@/components/testflighthub/CommandCentreDataProvider";
 import { useCorporateMockStore } from "@/components/testflighthub/useCorporateMockStore";
 import { useHrMockStore } from "@/components/testflighthub/useHrMockStore";
-import { formatMoney } from "@/lib/accounting/chart-of-accounts";
+import { formatReportingMoney, resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
 import type { CommandCentreTileType } from "@/lib/command-centre-layout";
-import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
 import type { CrmLead } from "@/lib/crm-data";
 import type { ActionPriority } from "@/lib/internal-operations-command-data";
 import {
@@ -495,7 +494,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
 
   const moneyOrZero = (value: number | null | undefined, loading: boolean) => {
     if (loading) return "…";
-    return formatMoney(value ?? 0, reportingCurrency);
+    return formatReportingMoney(value ?? 0, reportingCurrency);
   };
 
   const upcomingEvents = useMemo(() => {
@@ -786,7 +785,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
       return (
         <MetricCard
           label="Revenue"
-          value={formatMoney(revenueYtd ?? 0, reportingCurrency)}
+          value={formatReportingMoney(revenueYtd ?? 0, reportingCurrency)}
           href={hrefs.financials}
           loading={data.loading.financials}
           hint="YTD from ledger"
@@ -797,7 +796,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
       return (
         <MetricCard
           label="Cash Flow"
-          value={formatMoney(cashPosition ?? 0, reportingCurrency)}
+          value={formatReportingMoney(cashPosition ?? 0, reportingCurrency)}
           href={hrefs.financials}
           loading={data.loading.financials}
           hint="Ledger cash"
@@ -808,7 +807,7 @@ export function CommandCentreTileBody({ type }: { type: CommandCentreTileType })
       return (
         <MetricCard
           label="Burn Rate"
-          value={formatMoney(burnMonthly ?? 0, reportingCurrency)}
+          value={formatReportingMoney(burnMonthly ?? 0, reportingCurrency)}
           href={hrefs.financials}
           loading={data.loading.financials}
           hint="Monthly operating burn"

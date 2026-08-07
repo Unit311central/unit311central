@@ -6,6 +6,7 @@ import {
   ONWARDAIR_MODULE_ACCENTS,
 } from "@/lib/onwardair-surface";
 import { ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/onwardair-nav-order";
+import { TALANTON_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/talanton-nav-order";
 
 import type {
   InternalNavItem,
@@ -395,7 +396,7 @@ export function buildTalantonImpactNavSections(
   const pins = sections.filter((section) => section.kind === "pin");
   const rest = sections.filter((section) => section.kind !== "pin");
   const withPortfolio = [...pins, ...TALANTON_IMPACT_NAV_SECTIONS, ...rest];
-  return insertTalantonBoardSection(withPortfolio);
+  return sortTalantonSectionsByLockedOrder(insertTalantonBoardSection(withPortfolio));
 }
 
 export function getTalantonImpactNavSections(): InternalNavSection[] {
@@ -422,10 +423,47 @@ const TALANTON_BOARD_NAV_SECTION: InternalNavSection = {
     { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" as const },
     { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" as const },
     { label: "Board Decks", icon: "ScrollText", view: "board-pack" as const },
+    { label: "Minutes & Decisions", icon: "ClipboardCheck", view: "board-minutes" as const },
     { label: "Risk Register", icon: "AlertTriangle", view: "corporate-risk-register" as const },
     { label: "Board Members", icon: "Users", view: "board-members" as const },
   ],
 };
+
+/** Pins first, then locked Talanton workspace order, Settings last. */
+function sortTalantonSectionsByLockedOrder(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  const pins: InternalNavSection[] = [];
+  const movable: InternalNavSection[] = [];
+  let settings: InternalNavSection | null = null;
+
+  for (const section of sections) {
+    if (section.kind === "pin") {
+      pins.push(section);
+      continue;
+    }
+    if (section.label === "Settings") {
+      settings = section;
+      continue;
+    }
+    movable.push(section);
+  }
+
+  const byLabel = new Map(
+    movable.map((section) => [String(section.label ?? ""), section] as const),
+  );
+  const ordered: InternalNavSection[] = [];
+  for (const label of TALANTON_LOCKED_WORKSPACE_SECTION_ORDER) {
+    const section = byLabel.get(label);
+    if (section) {
+      ordered.push(section);
+      byLabel.delete(label);
+    }
+  }
+  for (const section of byLabel.values()) ordered.push(section);
+
+  return [...pins, ...ordered, ...(settings ? [settings] : [])];
+}
 
 function insertTalantonBoardSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
   if (sections.some((s) => s.label === "Board")) return [...sections];

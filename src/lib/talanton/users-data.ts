@@ -1,6 +1,5 @@
 import {
   defaultAllowedViewsForRoles,
-  defaultHomeTilesForRoles,
 } from "@/lib/access-presets";
 import {
   primaryUserRole,
@@ -74,7 +73,7 @@ export function listTalantonTenantUsers(): ManagedUser[] {
       licenseId: "",
       notes: member.role,
       allowedViews: defaultAllowedViewsForRoles(roles, departments),
-      dashboardPrefs: { homeTiles: defaultHomeTilesForRoles(roles, departments) },
+      dashboardPrefs: null,
     } satisfies ManagedUser;
   });
 }

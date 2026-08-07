@@ -9,6 +9,10 @@ import {
   isOnwardAirLockedSectionBundle,
   ONWARDAIR_LOCKED_SECTION_ORDER_KEYS,
 } from "@/lib/onwardair-nav-order";
+import {
+  isTalantonLockedSectionBundle,
+  TALANTON_LOCKED_SECTION_ORDER_KEYS,
+} from "@/lib/talanton-nav-order";
 
 export const SIDEBAR_NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 export const SIDEBAR_NAV_CUSTOM_EVENT = "unit311-nav-custom-changed";
@@ -25,8 +29,9 @@ export type SidebarNavCustomStorage = {
   /**
    * v3: reset append-polluted orders.
    * v4: reset to corrected OnwardAir locked LHS order (Tools → External Client Access → Settings).
+   * v5: reset to Talanton locked LHS order when Funds / Talanton Intelligence present.
    */
-  version: 2 | 3 | 4;
+  version: 2 | 3 | 4 | 5;
   /** Ordered workspace section keys (excludes fixed pins + Settings). */
   sectionOrder: string[];
   hidden: Record<string, boolean>;
@@ -65,18 +70,24 @@ export function isMovableWorkspaceSection(section: InternalNavSection): boolean 
 
 export function defaultSectionOrder(sections: readonly InternalNavSection[]): string[] {
   const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
-  if (!isOnwardAirLockedSectionBundle(sections)) return movable;
-
-  // OnwardAir: locked production order is canonical. Unknown new modules append.
-  const known = new Set(movable);
-  const locked = ONWARDAIR_LOCKED_SECTION_ORDER_KEYS.filter((key) => known.has(key));
-  const extras = movable.filter((key) => !locked.includes(key));
-  return [...locked, ...extras];
+  if (isOnwardAirLockedSectionBundle(sections)) {
+    const known = new Set(movable);
+    const locked = ONWARDAIR_LOCKED_SECTION_ORDER_KEYS.filter((key) => known.has(key));
+    const extras = movable.filter((key) => !locked.includes(key));
+    return [...locked, ...extras];
+  }
+  if (isTalantonLockedSectionBundle(sections)) {
+    const known = new Set(movable);
+    const locked = TALANTON_LOCKED_SECTION_ORDER_KEYS.filter((key) => known.has(key));
+    const extras = movable.filter((key) => !locked.includes(key));
+    return [...locked, ...extras];
+  }
+  return movable;
 }
 
 export function emptyNavCustomStorage(sections: readonly InternalNavSection[]): SidebarNavCustomStorage {
   return {
-    version: 4,
+    version: isTalantonLockedSectionBundle(sections) ? 5 : 4,
     sectionOrder: defaultSectionOrder(sections),
     hidden: {},
     customItems: [],
@@ -178,11 +189,21 @@ export function loadSidebarNavCustom(
     const canonical = defaultSectionOrder(sections);
     const storedVersion = Number(parsed.version ?? 1);
     const storedOrder = parsed.sectionOrder ?? [];
+    const targetVersion = isTalantonLockedSectionBundle(sections) ? 5 : 4;
 
-    // v3 and earlier: reset to the corrected locked OnwardAir order (or host default).
     if (storedVersion < 4) {
       return {
-        version: 4,
+        version: targetVersion,
+        sectionOrder: canonical,
+        hidden: parsed.hidden ?? {},
+        customItems: parsed.customItems ?? [],
+        order: parsed.order,
+      };
+    }
+
+    if (isTalantonLockedSectionBundle(sections) && storedVersion < 5) {
+      return {
+        version: 5,
         sectionOrder: canonical,
         hidden: parsed.hidden ?? {},
         customItems: parsed.customItems ?? [],
@@ -191,7 +212,7 @@ export function loadSidebarNavCustom(
     }
 
     return {
-      version: 4,
+      version: targetVersion,
       sectionOrder: resolveSectionOrderForSections(storedOrder, sections),
       hidden: parsed.hidden ?? {},
       customItems: parsed.customItems ?? [],
@@ -221,7 +242,8 @@ export function reconcileSidebarNavCustom(
     }
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
     const storedVersion = Number(parsed.version ?? 1);
-    if (storedVersion < 4) {
+    const targetVersion = isTalantonLockedSectionBundle(sections) ? 5 : 4;
+    if (storedVersion < 4 || (isTalantonLockedSectionBundle(sections) && storedVersion < 5)) {
       saveSidebarNavCustom(next);
       return next;
     }
@@ -231,11 +253,10 @@ export function reconcileSidebarNavCustom(
     const missingKeys = canonical.some((key) => !prev.includes(key));
     if (!missingKeys) return next;
 
-    // Insert only — keep extras that are not in the current section set.
     const mergedActive = mergeSectionOrder(prev, canonical);
     const extras = prev.filter((key) => !mergedActive.includes(key));
     const payload: SidebarNavCustomStorage = {
-      version: 4,
+      version: targetVersion,
       sectionOrder: [...mergedActive, ...extras],
       hidden: parsed.hidden ?? {},
       customItems: parsed.customItems ?? [],
@@ -250,7 +271,7 @@ export function reconcileSidebarNavCustom(
 export function saveSidebarNavCustom(next: SidebarNavCustomStorage) {
   if (typeof window === "undefined") return;
   const payload: SidebarNavCustomStorage = {
-    version: 4,
+    version: next.version,
     sectionOrder: next.sectionOrder,
     hidden: next.hidden,
     customItems: next.customItems,

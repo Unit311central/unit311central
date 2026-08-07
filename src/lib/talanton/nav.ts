@@ -154,6 +154,7 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
       { label: "Board Dashboard", icon: "LayoutDashboard", view: "board-dashboard" },
       { label: "Board Meetings", icon: "CalendarDays", view: "board-meetings" },
       { label: "Board Decks", icon: "ScrollText", view: "board-pack" },
+      { label: "Minutes & Decisions", icon: "ClipboardCheck", view: "board-minutes" },
       { label: "Risk Register", icon: "AlertTriangle", view: "corporate-risk-register" },
       { label: "Board Members", icon: "Users", view: "board-members" },
     ],

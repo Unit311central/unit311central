@@ -1,4 +1,5 @@
 import { formatMoney, withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
+import { formatReportingMoney } from "@/lib/financial-reporting-currency";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { normalizeKpiRow } from "@/lib/dashboard-framework";
@@ -223,22 +224,22 @@ function resolveEffectiveOnboardingCount(input: {
 
 function formatCompactMoney(amount: number, currency = "GBP") {
   const code = String(currency || "GBP").toUpperCase();
-  const abs = Math.abs(amount);
+  const rounded = Math.ceil(Number(amount) || 0);
+  const abs = Math.abs(rounded);
   const locale = code === "AUD" ? "en-AU" : code === "USD" ? "en-US" : "en-GB";
-  // Millions keep one decimal so ABHI £4.24M does not collapse to £4M.
+  const noDecimals = code === "USD" || code === "AUD";
   if (abs >= 1_000_000) {
     return withPreferredCurrencySymbol(
       new Intl.NumberFormat(locale, {
         style: "currency",
         currency: code,
         notation: "compact",
-        maximumFractionDigits: 2,
+        maximumFractionDigits: noDecimals ? 0 : 1,
         minimumFractionDigits: 0,
-      }).format(amount),
+      }).format(rounded),
       code,
     );
   }
-  // Home KPI tiles should read as whole compact units (e.g. $156k), not $156.06k.
   if (abs >= 10_000) {
     return withPreferredCurrencySymbol(
       new Intl.NumberFormat(locale, {
@@ -247,11 +248,14 @@ function formatCompactMoney(amount: number, currency = "GBP") {
         notation: "compact",
         maximumFractionDigits: 0,
         minimumFractionDigits: 0,
-      }).format(amount),
+      }).format(rounded),
       code,
     );
   }
-  return formatMoney(amount, code);
+  if (noDecimals) {
+    return formatReportingMoney(rounded, code);
+  }
+  return formatMoney(rounded, code);
 }
 
 function resolveHomeDisplayCurrency(financialCurrency?: string | null): string {

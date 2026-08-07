@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 
+import TalantonRiskRegisterWorkspace from "@/components/testflighthub/talanton/TalantonRiskRegisterWorkspace";
 import BoardImpactIntelligencePage from "@/components/talanton/board/BoardImpactIntelligencePage";
 import BoardJourneyStoriesPage from "@/components/talanton/board/BoardJourneyStoriesPage";
 import { loadAbhiBoardPacks } from "@/lib/abhi/board-pack-record";
@@ -373,7 +374,113 @@ function BoardDashboard() {
           </ul>
         </Card>
       </div>
+
+      <BoardMinutesDecisionsPanel />
     </div>
+  );
+}
+
+function BoardMinutesDecisionsPanel() {
+  const records = useMemo(() => buildTiMinutesFromMeetings(), []);
+  const [q, setQ] = useState("");
+  const filtered = records.filter((r) => {
+    const hay =
+      `${r.title} ${r.minutesSummary} ${r.decisions.map((d) => d.text).join(" ")} ${r.resolutions.join(" ")} ${r.actions.map((a) => `${a.owner} ${a.title}`).join(" ")}`.toLowerCase();
+    return hay.includes(q.trim().toLowerCase());
+  });
+
+  return (
+    <section className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">
+            Minutes &amp; Decisions
+          </h2>
+          <p className="mt-1 text-sm text-white/55">
+            Held Talanton board meetings — minutes, resolutions, and action owners.
+          </p>
+        </div>
+        <Link
+          href="/internaldashboard?view=board-minutes"
+          className="text-xs font-semibold text-emerald-200 hover:text-emerald-100"
+        >
+          Open full register →
+        </Link>
+      </div>
+      <label className="relative block max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search minutes, decisions, owners…"
+          className="w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-emerald-400/50"
+        />
+      </label>
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <p className="text-sm text-white/50">No held meetings match your search.</p>
+        ) : (
+          filtered.map((r) => (
+            <article
+              key={r.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">{r.title}</h3>
+                  <p className="text-sm text-white/45">{r.meetingDate}</p>
+                </div>
+                <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase text-emerald-200">
+                  {r.status}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-white/70">{r.minutesSummary}</p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Decisions / resolutions
+                  </p>
+                  <ul className="mt-2 space-y-1.5 text-sm text-white/70">
+                    {r.decisions.length === 0 ? (
+                      <li className="text-white/45">No decisions recorded.</li>
+                    ) : (
+                      r.decisions.map((d) => (
+                        <li key={d.id}>
+                          • {d.text}
+                          {d.resolution ? (
+                            <span className="text-white/45"> — {d.resolution}</span>
+                          ) : null}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Action items
+                  </p>
+                  <ul className="mt-2 space-y-1.5 text-sm text-white/70">
+                    {r.actions.length === 0 ? (
+                      <li className="text-white/45">No actions.</li>
+                    ) : (
+                      r.actions.map((a) => (
+                        <li key={a.id}>
+                          • {a.title}
+                          <span className="text-white/45">
+                            {" "}
+                            — {a.owner}, due {a.dueDate}
+                          </span>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -893,7 +1000,7 @@ function BoardMembers() {
 export function TalantonBoardPortalApp({ section }: Props) {
   if (section === "meetings") return <BoardMeetings />;
   if (section === "decks") return <BoardDecks />;
-  if (section === "risk") return <BoardRisk />;
+  if (section === "risk") return <TalantonRiskRegisterWorkspace />;
   if (section === "impact") return <BoardImpactIntelligencePage />;
   if (section === "journeys") return <BoardJourneyStoriesPage />;
   if (section === "members") return <BoardMembers />;
