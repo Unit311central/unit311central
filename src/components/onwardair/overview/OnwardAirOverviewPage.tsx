@@ -801,7 +801,7 @@ export function OnwardAirOverviewPage() {
             />
           </div>
           <ul
-            className="oa-highlights-list m-0 flex min-h-0 flex-1 list-none flex-col justify-evenly overflow-hidden p-0"
+            className="oa-highlights-list m-0 flex min-h-0 flex-1 list-none flex-col justify-start overflow-hidden p-0"
             style={{ gap: scale(pageStyle.highlights.itemGap) }}
           >
             {pageContent.highlights.map((item, i) => (

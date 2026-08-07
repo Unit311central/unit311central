@@ -1,0 +1,87 @@
+[
+  {
+    "viewport": "laptop-13",
+    "size": "1280x800",
+    "note": "13\" laptop — baseline (should look good)",
+    "itemCount": 6,
+    "gapsPx": [
+      40,
+      40,
+      40,
+      40,
+      40
+    ],
+    "listHeightPx": 240,
+    "cardHeightPx": 310,
+    "trailingSpacePx": 27,
+    "justifyContent": "space-evenly"
+  },
+  {
+    "viewport": "laptop-15",
+    "size": "1440x900",
+    "note": "15\" laptop",
+    "itemCount": 6,
+    "gapsPx": [
+      48,
+      48,
+      48,
+      48,
+      48
+    ],
+    "listHeightPx": 292,
+    "cardHeightPx": 369,
+    "trailingSpacePx": 34,
+    "justifyContent": "space-evenly"
+  },
+  {
+    "viewport": "desktop-1080p",
+    "size": "1920x1080",
+    "note": "24\" 1080p — highlights gap issue reported here",
+    "itemCount": 6,
+    "gapsPx": [
+      66,
+      66,
+      66,
+      66,
+      66
+    ],
+    "listHeightPx": 421,
+    "cardHeightPx": 503,
+    "trailingSpacePx": 52,
+    "justifyContent": "space-evenly"
+  },
+  {
+    "viewport": "desktop-1440p",
+    "size": "2560x1440",
+    "note": "27\" 1440p — tall left column",
+    "itemCount": 6,
+    "gapsPx": [
+      118,
+      118,
+      118,
+      118,
+      118
+    ],
+    "listHeightPx": 781,
+    "cardHeightPx": 863,
+    "trailingSpacePx": 103,
+    "justifyContent": "space-evenly"
+  },
+  {
+    "viewport": "desktop-ultrawide",
+    "size": "3440x1440",
+    "note": "Ultrawide",
+    "itemCount": 6,
+    "gapsPx": [
+      118,
+      118,
+      118,
+      118,
+      118
+    ],
+    "listHeightPx": 781,
+    "cardHeightPx": 863,
+    "trailingSpacePx": 103,
+    "justifyContent": "space-evenly"
+  }
+]
