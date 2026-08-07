@@ -6,11 +6,10 @@ import {
 } from "@/lib/platform-session-cookie";
 
 /**
- * TEMPORARY — flip to `false` before sending the overview invite to the client.
- * Allows public access (e.g. Screenfly responsive testing) without login.
+ * Flip to `true` only for Screenfly / responsive QA (no login).
  * Can also enable via env `OVERVIEW_PUBLIC_PREVIEW=1` when this flag is false.
  */
-export const OVERVIEW_AUTH_BYPASS_FOR_PREVIEW = true;
+export const OVERVIEW_AUTH_BYPASS_FOR_PREVIEW = false;
 
 export function isOverviewAuthBypassEnabled(): boolean {
   if (OVERVIEW_AUTH_BYPASS_FOR_PREVIEW) return true;
