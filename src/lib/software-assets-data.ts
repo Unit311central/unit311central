@@ -117,6 +117,9 @@ export const SOFTWARE_CURRENCY_OPTIONS = ["AUD", "USD", "GBP", "EUR", "AED", "ZA
 export function defaultSoftwareCurrencyForSurface(): string {
   if (typeof window === "undefined") return SOFTWARE_DEFAULT_CURRENCY;
   try {
+    const { isBrowserTalantonImpactSurface } =
+      require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+    if (isBrowserTalantonImpactSurface()) return "USD";
     const { isBrowserCorpCentreSurface } =
       require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
     if (isBrowserCorpCentreSurface()) return "AUD";

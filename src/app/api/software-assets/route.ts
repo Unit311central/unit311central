@@ -9,6 +9,8 @@ import {
 import type { SoftwareAsset } from "@/lib/software-assets-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { ensureTalantonSoftwareAssetsSeeded } from "@/lib/talanton/software-assets-seed";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +23,13 @@ export async function GET() {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     await ensureSoftwareAssetRegisterTables();
+    if (isTalantonImpactSlug(workspace.slug)) {
+      await ensureTalantonSoftwareAssetsSeeded(workspace.id).catch(() => undefined);
+    }
     const { assets, summary } = await getSoftwareAssetsSummary({ workspaceId: workspace.id });
+    if (isTalantonImpactSlug(workspace.slug)) {
+      summary.currency = "USD";
+    }
     return NextResponse.json({
       assets,
       summary,

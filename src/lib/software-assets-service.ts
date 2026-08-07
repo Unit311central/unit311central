@@ -613,8 +613,9 @@ async function countActiveEmployees(workspaceId?: string): Promise<number | null
 export async function getSoftwareAssetsSummary(
   scope?: SoftwareWorkspaceScope,
 ): Promise<{ assets: SoftwareAsset[]; summary: SoftwareAssetsSummary }> {
-  const assets = await listSoftwareAssets(scope);
-  const employeeCount = await countActiveEmployees();
+  const workspaceId = await resolveWorkspaceId(scope);
+  const assets = await listSoftwareAssets({ workspaceId });
+  const employeeCount = await countActiveEmployees(workspaceId);
   return {
     assets,
     summary: computeSoftwareAssetsSummary(assets, employeeCount),
