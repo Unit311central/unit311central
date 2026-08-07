@@ -11,7 +11,6 @@ import {
   ChevronUp,
   Copy,
   Loader2,
-  LogOut,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -641,9 +640,6 @@ export default function TalantonPortalsDemoPage() {
             </div>
           </Link>
           <div className="flex items-center gap-3">
-            {username ? (
-              <p className="hidden text-[11px] text-white/50 sm:block">{username}</p>
-            ) : null}
             {canEdit ? (
               <>
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100">
@@ -661,29 +657,17 @@ export default function TalantonPortalsDemoPage() {
                 </button>
               </>
             ) : null}
-            <button
-              type="button"
-              onClick={() => void handleLogout()}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] text-white/70 hover:bg-white/[0.04] hover:text-white"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
-            </button>
             <TalantonLogoMark height={36} />
           </div>
         </header>
 
         <section className="relative mt-8 max-w-3xl sm:mt-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/90">
-            Pre-demo briefing
-          </p>
-          <h1 className="mt-2 text-[2rem] font-semibold leading-[1.1] tracking-tight text-white sm:text-[2.5rem]">
-            Talanton Impact on Unit311 Central
+          <h1 className="text-[1.75rem] font-semibold leading-[1.1] tracking-tight text-white whitespace-nowrap sm:text-[2.25rem]">
+            Talantom Impact Overview Portal
           </h1>
           <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-white/65 sm:text-[15px]">
-            Credential and capability overview for your demonstration. Sign in with{" "}
-            <span className="text-white/90">demo@talantonimpact.com</span> to view, or{" "}
-            <span className="text-white/90">admin@talantonimpact.com</span> to edit columns 2 and 3.
+            A Overview portals page for Harry Turner for Unit311 Central customised Talanton Impact
+            Platform.
           </p>
           {canEdit ? (
             <p className="mt-2 text-[12px] text-emerald-200/80">
