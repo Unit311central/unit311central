@@ -7,6 +7,7 @@ import {
   ZOHO_IMAP_HOST,
   ZOHO_IMAP_PORT,
 } from "@/lib/email/accounts";
+import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 import { EmailServiceError, type EmailAccountId, type EmailAttachmentMeta, type EmailMailboxFolder, type EmailMessage } from "@/lib/email/types";
 
 const DEFAULT_FETCH_LIMIT = 50;
@@ -92,10 +93,11 @@ function logImapConnectionError(accountId: EmailAccountId, username: string, err
 async function withImapClient<T>(
   accountId: EmailAccountId,
   fn: (client: ImapFlow, mailboxEmail: string) => Promise<T>,
+  scope?: EmailWorkspaceScope,
 ): Promise<T> {
   let credentials;
   try {
-    credentials = await getAccountCredentials(accountId);
+    credentials = await getAccountCredentials(accountId, scope);
   } catch {
     throw new EmailServiceError("Mailbox credentials are not configured.", "NOT_CONFIGURED");
   }
@@ -212,6 +214,7 @@ export async function fetchMailboxMessages(
   accountId: EmailAccountId,
   limit = DEFAULT_FETCH_LIMIT,
   folder: EmailMailboxFolder = "inbox",
+  scope?: EmailWorkspaceScope,
 ): Promise<EmailMessage[]> {
   return withImapClient(accountId, async (client, mailboxEmail) => {
     const folderPath = await resolveImapFolderPath(client, folder);
@@ -249,13 +252,14 @@ export async function fetchMailboxMessages(
     } finally {
       lock.release();
     }
-  });
+  }, scope);
 }
 
 export async function fetchMailboxMessageById(
   accountId: EmailAccountId,
   messageId: string,
   folder: EmailMailboxFolder = "inbox",
+  scope?: EmailWorkspaceScope,
 ): Promise<EmailMessage> {
   const uid = Number(messageId);
   if (!Number.isFinite(uid) || uid <= 0) {
@@ -285,7 +289,7 @@ export async function fetchMailboxMessageById(
     } finally {
       lock.release();
     }
-  });
+  }, scope);
 }
 
 export async function fetchAttachmentContent(
@@ -293,8 +297,9 @@ export async function fetchAttachmentContent(
   messageId: string,
   partId: string,
   folder: EmailMailboxFolder = "inbox",
+  scope?: EmailWorkspaceScope,
 ): Promise<{ filename: string; contentType: string; content: Buffer }> {
-  const message = await fetchMailboxMessageById(accountId, messageId, folder);
+  const message = await fetchMailboxMessageById(accountId, messageId, folder, scope);
   const index = Number(partId);
   const attachment = message.attachments[index];
   if (!attachment) {
@@ -321,7 +326,7 @@ export async function fetchAttachmentContent(
     } finally {
       lock.release();
     }
-  });
+  }, scope);
 }
 
 export function getMailboxLabel(accountId: EmailAccountId) {

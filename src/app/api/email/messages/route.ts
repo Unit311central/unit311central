@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const scope = { workspaceId: workspace.id };
 
     // Demo uses the same live Zoho mailboxes as Internal (info@/paul@/admin@/demo@).
-    const messages = await fetchMailboxMessages(account, undefined, folder);
+    const messages = await fetchMailboxMessages(account, undefined, folder, scope);
     if (account === "info" && folder === "inbox") {
       void processInfoMailboxWhatsAppNotifications(messages, scope).catch((error) => {
         console.error("[email/whatsapp] notification check failed", error);

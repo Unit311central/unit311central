@@ -31,9 +31,10 @@ export async function GET(request: NextRequest) {
 
   try {
     await requirePlatformSession();
-    await requireCurrentWorkspace();
+    const workspace = await requireCurrentWorkspace();
+    const scope = { workspaceId: workspace.id };
 
-    const attachment = await fetchAttachmentContent(account, messageId, partId, folder);
+    const attachment = await fetchAttachmentContent(account, messageId, partId, folder, scope);
     return new NextResponse(new Uint8Array(attachment.content), {
       headers: {
         "Content-Type": attachment.contentType,

@@ -274,7 +274,7 @@ export default function InfoEmailWorkspace() {
     }
 
     try {
-      const response = await fetch("/api/email/notifications/whatsapp", { cache: "no-store" });
+      const response = await fetch("/api/email/notifications/whatsapp", { cache: "no-store", credentials: "same-origin" });
       const data = await readApiJson<WhatsAppStatus>(response);
       if (!response.ok) throw new Error("Failed to load WhatsApp status");
       setWhatsappStatus(data);
@@ -287,8 +287,8 @@ export default function InfoEmailWorkspace() {
     setAccountsLoading(true);
     try {
       const [accountsResponse, statusResponse] = await Promise.all([
-        fetch("/api/email/accounts", { cache: "no-store" }),
-        fetch("/api/email/credentials", { cache: "no-store" }),
+        fetch("/api/email/accounts", { cache: "no-store", credentials: "same-origin" }),
+        fetch("/api/email/credentials", { cache: "no-store", credentials: "same-origin" }),
       ]);
 
       if (!accountsResponse.ok) {
@@ -384,7 +384,7 @@ export default function InfoEmailWorkspace() {
         if (mailboxView === "calendar") {
           const response = await fetch(
             `/api/email/calendar?account=${encodeURIComponent(selectedAccountId)}`,
-            { cache: "no-store" },
+            { cache: "no-store", credentials: "same-origin" },
           );
           const data = await readApiJson<ZohoCalendarPayload | { error?: string }>(response);
           if (!response.ok) {
@@ -402,7 +402,7 @@ export default function InfoEmailWorkspace() {
 
         const response = await fetch(
           `/api/email/messages?account=${encodeURIComponent(selectedAccountId)}&folder=${mailFolder}`,
-          { cache: "no-store" },
+          { cache: "no-store", credentials: "same-origin" },
         );
         const data = await readApiJson<EmailMessage[] | { error?: string; code?: string }>(
           response,
@@ -556,6 +556,8 @@ export default function InfoEmailWorkspace() {
     try {
       const response = await fetch("/api/email/credentials", {
         method: "POST",
+        credentials: "same-origin",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           account: selectedAccountId,
@@ -586,6 +588,7 @@ export default function InfoEmailWorkspace() {
       const nextEnabled = !(whatsappStatus?.enabled ?? false);
       const response = await fetch("/api/email/notifications/whatsapp", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: nextEnabled ? "enable" : "disable" }),
       });
@@ -612,6 +615,7 @@ export default function InfoEmailWorkspace() {
     try {
       const response = await fetch("/api/email/notifications/whatsapp", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "test" }),
       });
@@ -654,6 +658,7 @@ export default function InfoEmailWorkspace() {
     try {
       const response = await fetch("/api/email/reply", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           account: selectedAccountId,
@@ -707,6 +712,7 @@ export default function InfoEmailWorkspace() {
     try {
       const response = await fetch("/api/email/send", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           account: selectedAccountId,
