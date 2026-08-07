@@ -41,6 +41,18 @@ import {
   TALANTON_PORTFOLIO_COMPANIES,
 } from "@/lib/talanton/portfolio-data";
 import { buildPortfolioExecutiveBriefing } from "@/lib/talanton/portfolio-intelligence";
+import {
+  HARRY_TURNER_QUOTE,
+  loadTalantonBoardPackAssets,
+  type TalantonBoardPackAssets,
+} from "@/lib/talanton/board-pack-assets";
+import {
+  drawDonutChart,
+  drawGauge,
+  drawHorizontalBarChart,
+  drawPhotoCard,
+  drawQuotePanel,
+} from "@/lib/talanton/board-pack-charts";
 
 type PillTone = "green" | "amber" | "red" | "navy";
 
@@ -90,11 +102,13 @@ function topPortfolioPerformers() {
 export async function buildTalantonBoardPackPdf(
   data: AbhiBoardPackData,
   logoDataUrl: string | null,
+  assetsInput?: TalantonBoardPackAssets,
 ): Promise<Uint8Array> {
   const funds = FUNDS_PLATFORM_OVERVIEW;
   const fundList = listTalantonFunds();
   const impactIntel = buildBoardImpactIntelligence();
-  const journeys = listJourneyStoriesForBoard().slice(0, 4);
+  const journeys = listJourneyStoriesForBoard().slice(0, 2);
+  const assets = assetsInput ?? (await loadTalantonBoardPackAssets(journeys));
   const heldMeeting = lastHeldMeeting();
   const performers = topPortfolioPerformers();
   const newcomers = newPortfolioCompanies();
@@ -153,78 +167,100 @@ export async function buildTalantonBoardPackPdf(
     drawFooter(doc, data.packName, 1);
   }
 
-  // 2 — Executive Summary
+  // 2 — Executive Summary (visual dashboard)
   {
     addSlide(doc);
     drawHeader(doc, "Executive Summary", logoDataUrl);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    setText(doc, C.muted);
-    doc.text("Organisation Status", 230, 8);
+
     const statusColor =
       data.orgStatus === "Green" ? C.green : data.orgStatus === "Red" ? C.subtleRed : C.amber;
-    setFill(doc, statusColor);
-    doc.circle(232, 14, 2.2, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setText(doc, C.text);
-    doc.text(data.orgStatus, 237, 15.5);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    setText(doc, C.navy);
-    doc.text("Agenda", MARGIN, 28);
-    data.agenda.forEach((item, index) => {
-      const y = 34 + index * 5.8;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      setText(doc, C.navy);
-      doc.text(String(index + 1), MARGIN, y);
-      doc.setFont("helvetica", "normal");
-      setText(doc, C.text);
-      doc.text(item, MARGIN + 6, y);
+    drawGauge(doc, {
+      cx: SLIDE_W - MARGIN - 22,
+      cy: 38,
+      radius: 14,
+      value: impactIntel.health.score,
+      max: 100,
+      label: `Impact health · ${data.orgStatus}`,
+      fill: statusColor,
+      textColor: C.navy,
+      mutedColor: C.muted,
     });
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    setText(doc, C.green);
-    doc.text("Key Highlights", 78, 28);
-    data.highlightCards.forEach((card, index) => {
-      const y = 32 + index * 14.5;
+    doc.setFontSize(10);
+    setText(doc, C.navy);
+    doc.text("Agenda", MARGIN, 28);
+    data.agenda.forEach((item, index) => {
+      const col = index < 5 ? 0 : 1;
+      const row = index % 5;
+      const x = MARGIN + col * 68;
+      const y = 34 + row * 5.4;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      setText(doc, C.navy);
+      doc.text(String(index + 1), x, y);
+      doc.setFont("helvetica", "normal");
+      setText(doc, C.text);
+      const label = doc.splitTextToSize(item, 60);
+      doc.text(label.slice(0, 1), x + 4, y);
+    });
+
+    drawDonutChart(doc, {
+      cx: MARGIN + 92,
+      cy: 72,
+      outerR: 22,
+      innerR: 13,
+      title: "Capital deployment ($M)",
+      segments: [
+        { value: funds.capitalDeployedUsd / 1_000_000, color: C.green, label: "Deployed" },
+        { value: funds.availableCapitalUsd / 1_000_000, color: C.amber, label: "Available" },
+      ],
+      titleColor: C.navy,
+      mutedColor: C.muted,
+      textColor: C.text,
+    });
+
+    const kpiX = MARGIN + 138;
+    const kpiW = 48;
+    data.highlightCards.slice(0, 4).forEach((card, index) => {
+      const col = index % 2;
+      const row = Math.floor(index / 2);
+      const x = kpiX + col * (kpiW + 4);
+      const y = 30 + row * 24;
       setFill(doc, C.white);
       setDraw(doc, C.line);
-      doc.roundedRect(78, y, 95, 13, 1.2, 1.2, "FD");
+      doc.roundedRect(x, y, kpiW, 20, 1.2, 1.2, "FD");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7);
       setText(doc, C.muted);
-      doc.text(card.title, 81, y + 4);
+      doc.text(card.title, x + 3, y + 6);
       doc.setFontSize(11);
       setText(doc, C.navy);
-      doc.text(card.primary, 81, y + 8.5);
+      doc.text(card.primary, x + 3, y + 12);
       if (card.secondary) {
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
+        doc.setFontSize(7);
         setText(doc, C.text);
-        doc.text(card.secondary, 81, y + 11.5);
+        doc.text(card.secondary, x + 3, y + 17);
       }
     });
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     setText(doc, C.amber);
-    doc.text("Key Concerns", 182, 28);
-    data.concernCards.forEach((card, index) => {
-      const y = 32 + index * 14.5;
+    doc.text("Key concerns", MARGIN + 138, 82);
+    data.concernCards.slice(0, 2).forEach((card, index) => {
+      const y = 88 + index * 12;
       setFill(doc, C.white);
       setDraw(doc, C.line);
-      doc.roundedRect(182, y, 103, 13, 1.2, 1.2, "FD");
+      doc.roundedRect(MARGIN + 138, y, CONTENT_W - 138, 10, 1, 1, "FD");
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(7);
-      setText(doc, C.muted);
-      doc.text(card.title, 185, y + 4.5);
-      doc.setFontSize(11);
+      doc.setFontSize(8);
+      setText(doc, C.navy);
+      doc.text(card.title, MARGIN + 141, y + 4);
+      doc.setFont("helvetica", "normal");
       setText(doc, C.text);
-      doc.text(card.detail, 185, y + 9.5);
+      doc.text(card.detail, MARGIN + 141, y + 8);
     });
 
     setFill(doc, C.navy);
@@ -360,6 +396,34 @@ export async function buildTalantonBoardPackPdf(
       drawRiskRow(doc, risk, colX, colW, y, index);
       y += 14;
     }
+
+    drawDonutChart(doc, {
+      cx: SLIDE_W - MARGIN - 28,
+      cy: 40,
+      outerR: 16,
+      innerR: 9,
+      title: "Risk profile",
+      segments: [
+        {
+          value: sorted.filter((r) => r.impact === "H").length,
+          color: C.subtleRed,
+          label: "High impact",
+        },
+        {
+          value: sorted.filter((r) => r.impact === "M").length,
+          color: C.amber,
+          label: "Medium",
+        },
+        {
+          value: sorted.filter((r) => r.impact === "L").length,
+          color: C.green,
+          label: "Low",
+        },
+      ],
+      titleColor: C.navy,
+      mutedColor: C.muted,
+      textColor: C.text,
+    });
     drawFooter(doc, data.packName, 4);
   }
 
@@ -367,52 +431,54 @@ export async function buildTalantonBoardPackPdf(
   {
     addSlide(doc);
     drawHeader(doc, "Fund Performance Update", logoDataUrl, "Committed · deployed · available capital");
-    const metricW = (CONTENT_W - 8) / 3;
-    const metrics = [
-      { label: "Capital committed", value: formatFundUsd(funds.capitalCommittedUsd), tone: "navy" as const },
-      { label: "Capital deployed", value: formatFundUsd(funds.capitalDeployedUsd), tone: "green" as const },
-      { label: "Available capital", value: formatFundUsd(funds.availableCapitalUsd), tone: "amber" as const },
-    ];
-    metrics.forEach((metric, index) => {
-      const x = MARGIN + index * (metricW + 4);
-      setFill(doc, C.white);
-      setDraw(doc, C.line);
-      doc.roundedRect(x, 24, metricW, 28, 1.2, 1.2, "FD");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      setText(doc, C.muted);
-      doc.text(metric.label, x + 4, 31);
-      doc.setFontSize(20);
-      setText(doc, C.navy);
-      doc.text(metric.value, x + 4, 42);
-    });
-    drawStatusPill(doc, MARGIN, 56, 52, 9, `${deploymentPct}% deployed`, "green");
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setText(doc, C.navy);
-    doc.text("Fund-by-fund snapshot", MARGIN, 72);
-    const colX = [MARGIN, MARGIN + 72, MARGIN + 132, MARGIN + 182, MARGIN + 232];
-    let y = 78;
+    drawDonutChart(doc, {
+      cx: MARGIN + 36,
+      cy: 78,
+      outerR: 28,
+      innerR: 16,
+      title: "Platform capital ($M)",
+      segments: [
+        { value: funds.capitalDeployedUsd / 1_000_000, color: C.green, label: "Deployed" },
+        { value: funds.availableCapitalUsd / 1_000_000, color: C.amber, label: "Available" },
+      ],
+      titleColor: C.navy,
+      mutedColor: C.muted,
+      textColor: C.text,
+    });
+    drawStatusPill(doc, MARGIN + 8, 118, 56, 9, `${deploymentPct}% deployed`, "green");
+
+    drawHorizontalBarChart(doc, {
+      x: MARGIN + 88,
+      y: 28,
+      width: CONTENT_W - 96,
+      rowHeight: 14,
+      title: "Fund deployment by vehicle",
+      bars: fundList.map((fund, index) => ({
+        label: fund.shortName || fund.name,
+        value: fund.capitalDeployedUsd,
+        color: index === 0 ? C.navy : index === 1 ? C.green : C.amber,
+        display: formatFundUsd(fund.capitalDeployedUsd),
+      })),
+      maxValue: Math.max(...fundList.map((f) => f.capitalDeployedUsd), 1),
+      titleColor: C.navy,
+      labelColor: C.text,
+      trackColor: C.soft,
+    });
+
     setFill(doc, C.navy);
-    doc.rect(MARGIN, y - 4, CONTENT_W, 7, "F");
+    doc.roundedRect(MARGIN, 128, CONTENT_W, 22, 1.2, 1.2, "F");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     setText(doc, C.white);
-    ["Fund", "Committed", "Deployed", "Companies", "Status"].forEach((h, i) => doc.text(h, colX[i]!, y));
-    y += 8;
-    for (const [index, fund] of fundList.slice(0, 5).entries()) {
-      setFill(doc, index % 2 ? C.soft : C.white);
-      doc.rect(MARGIN, y - 4, CONTENT_W, 11, "F");
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      setText(doc, C.text);
-      doc.text(fund.name, colX[0]!, y);
-      doc.text(formatFundUsd(fund.capitalRaisedUsd), colX[1]!, y);
-      doc.text(formatFundUsd(fund.capitalDeployedUsd), colX[2]!, y);
-      doc.text(String(fund.portfolioCompanyCount), colX[3]!, y);
-      doc.text(fund.status, colX[4]!, y);
-      y += 11;
-    }
+    doc.text("Stewardship headline", MARGIN + 4, 136);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(
+      `${formatFundUsd(funds.capitalCommittedUsd)} committed · ${formatFundUsd(funds.capitalDeployedUsd)} deployed · ${funds.portfolioCompanies} portfolio companies · ${funds.countriesRepresented} countries`,
+      MARGIN + 4,
+      144,
+    );
     drawFooter(doc, data.packName, 5);
   }
 
@@ -425,64 +491,84 @@ export async function buildTalantonBoardPackPdf(
       logoDataUrl,
       "Performance highlights and recent additions",
     );
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setText(doc, C.navy);
-    doc.text("Top performers", MARGIN, 28);
-    let y = 34;
-    for (const company of performers) {
-      setFill(doc, C.white);
-      setDraw(doc, C.line);
-      doc.roundedRect(MARGIN, y - 3, CONTENT_W * 0.58, 10, 1, 1, "FD");
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      setText(doc, C.text);
-      doc.text(
-        `${company.companyName} · ${company.country} · Health ${company.healthScore}/100 · ${company.revenueGrowthPct >= 0 ? "+" : ""}${company.revenueGrowthPct}% revenue`,
-        MARGIN + 3,
-        y + 2,
-      );
-      y += 11;
-    }
 
-    const rightX = MARGIN + CONTENT_W * 0.62;
+    drawHorizontalBarChart(doc, {
+      x: MARGIN,
+      y: 28,
+      width: CONTENT_W * 0.58,
+      rowHeight: 13,
+      title: "Revenue growth — top performers (%)",
+      bars: performers.map((company, index) => ({
+        label: company.companyName,
+        value: Math.max(company.revenueGrowthPct, 0),
+        color: index === 0 ? C.green : index === 1 ? C.navy : C.amber,
+        display: `${company.revenueGrowthPct >= 0 ? "+" : ""}${company.revenueGrowthPct}%`,
+      })),
+      maxValue: Math.max(...performers.map((c) => c.revenueGrowthPct), 1),
+      titleColor: C.navy,
+      labelColor: C.text,
+      trackColor: C.soft,
+    });
+
+    const portfolioBrief = buildPortfolioExecutiveBriefing();
+    drawDonutChart(doc, {
+      cx: MARGIN + CONTENT_W * 0.78,
+      cy: 62,
+      outerR: 24,
+      innerR: 14,
+      title: "Portfolio health",
+      segments: [
+        {
+          value: funds.portfolioCompanies - portfolioBrief.health.companiesRequiringAttention,
+          color: C.green,
+          label: "On track",
+        },
+        {
+          value: portfolioBrief.health.companiesRequiringAttention,
+          color: C.amber,
+          label: "Attention",
+        },
+      ],
+      titleColor: C.navy,
+      mutedColor: C.muted,
+      textColor: C.text,
+    });
+
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     setText(doc, C.navy);
-    doc.text("New / recently reviewed", rightX, 28);
-    let ny = 34;
-    for (const company of newcomers) {
+    doc.text("New / recently reviewed", MARGIN, 98);
+    let ny = 104;
+    for (const company of newcomers.slice(0, 3)) {
       setFill(doc, C.white);
       setDraw(doc, C.line);
-      doc.roundedRect(rightX, ny - 3, CONTENT_W * 0.38, 12, 1, 1, "FD");
+      doc.roundedRect(MARGIN, ny - 3, CONTENT_W * 0.58, 11, 1, 1, "FD");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
       setText(doc, C.navy);
-      doc.text(company.name, rightX + 3, ny + 1);
+      doc.text(company.name, MARGIN + 3, ny + 2);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
       setText(doc, C.muted);
       doc.text(
         `${company.country} · ${company.sector} · ${money(company.investmentAmountUsd, true)} invested`,
-        rightX + 3,
-        ny + 6,
+        MARGIN + 3,
+        ny + 7,
       );
-      ny += 13;
+      ny += 12;
     }
 
     setFill(doc, C.navy);
-    doc.roundedRect(MARGIN, 118, CONTENT_W, 24, 1.2, 1.2, "F");
+    doc.roundedRect(MARGIN, 128, CONTENT_W, 22, 1.2, 1.2, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     setText(doc, C.white);
-    doc.text("Portfolio headline", MARGIN + 4, 126);
+    doc.text("Portfolio headline", MARGIN + 4, 136);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    const portfolioBrief = buildPortfolioExecutiveBriefing();
     doc.text(
       `${funds.portfolioCompanies} companies · ${portfolioBrief.health.companiesRequiringAttention} require attention · ${portfolioBrief.health.reportsOutstanding} quarterly reports outstanding`,
       MARGIN + 4,
-      134,
+      144,
     );
     drawFooter(doc, data.packName, 6);
   }
@@ -496,58 +582,58 @@ export async function buildTalantonBoardPackPdf(
       logoDataUrl,
       "Board oversight · portfolio portals · shared intelligence",
     );
-    const leftW = CONTENT_W * 0.58;
-    setFill(doc, C.white);
-    setDraw(doc, C.line);
-    doc.roundedRect(MARGIN, 24, leftW, 72, 1.2, 1.2, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setText(doc, C.navy);
-    doc.text("Impact Intelligence", MARGIN + 4, 31);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    setText(doc, C.text);
-    const impactLines = [
-      `Impact health: ${impactIntel.health.score}/100 (${impactIntel.health.band})`,
-      `Jobs created: ${impactIntel.summary.jobsCreated.toLocaleString()}`,
-      `People served: ${impactIntel.summary.peopleServed.toLocaleString()}`,
-      `Countries impacted: ${impactIntel.summary.countriesImpacted}`,
-      ...impactIntel.keyAchievements.slice(0, 2).map((x) => `• ${x}`),
-    ];
-    impactLines.forEach((line, index) => doc.text(line, MARGIN + 4, 38 + index * 6));
 
-    const rightX = MARGIN + leftW + 6;
-    const rightW = CONTENT_W - leftW - 6;
-    setFill(doc, C.white);
-    setDraw(doc, C.line);
-    doc.roundedRect(rightX, 24, rightW, 72, 1.2, 1.2, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setText(doc, C.navy);
-    doc.text("External access surfaces", rightX + 4, 31);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    setText(doc, C.text);
-    const accessLines = [
-      `Board portal — ${data.attendees.length} directors`,
-      `Portfolio company portals — ${TALANTON_PORTFOLIO_COMPANIES.length} companies`,
-      `Journey stories (board) — ${journeys.length} published`,
-      `Impact dashboards — portfolio & company views`,
-      `External client access — governed file sharing`,
-    ];
-    accessLines.forEach((line, index) => doc.text(line, rightX + 4, 38 + index * 6));
+    drawDonutChart(doc, {
+      cx: MARGIN + 34,
+      cy: 72,
+      outerR: 26,
+      innerR: 15,
+      title: "Impact outcomes (index)",
+      segments: [
+        { value: impactIntel.summary.jobsCreated, color: C.green, label: "Jobs created" },
+        { value: Math.round(impactIntel.summary.peopleServed / 1000), color: C.navy, label: "People served (k)" },
+        { value: impactIntel.summary.communitiesImpacted, color: C.amber, label: "Communities" },
+      ],
+      titleColor: C.navy,
+      mutedColor: C.muted,
+      textColor: C.text,
+    });
+
+    drawHorizontalBarChart(doc, {
+      x: MARGIN + 82,
+      y: 28,
+      width: CONTENT_W - 90,
+      rowHeight: 12,
+      title: "External access surfaces",
+      bars: [
+        { label: "Board portal", value: data.attendees.length, color: C.navy, display: `${data.attendees.length} directors` },
+        {
+          label: "Portfolio company portals",
+          value: TALANTON_PORTFOLIO_COMPANIES.length,
+          color: C.green,
+          display: `${TALANTON_PORTFOLIO_COMPANIES.length} companies`,
+        },
+        { label: "Journey stories (board)", value: journeys.length, color: C.amber, display: `${journeys.length} published` },
+        { label: "Impact dashboards", value: impactIntel.summary.countriesImpacted, color: C.navy, display: "Live" },
+        { label: "External client access", value: 1, color: C.green, display: "Governed" },
+      ],
+      maxValue: TALANTON_PORTFOLIO_COMPANIES.length,
+      titleColor: C.navy,
+      labelColor: C.text,
+      trackColor: C.soft,
+    });
 
     setFill(doc, C.soft);
-    doc.roundedRect(MARGIN, 102, CONTENT_W, 40, 1.2, 1.2, "F");
+    doc.roundedRect(MARGIN, 108, CONTENT_W, 34, 1.2, 1.2, "F");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     setText(doc, C.navy);
-    doc.text("Board attention", MARGIN + 4, 109);
+    doc.text("Board attention", MARGIN + 4, 115);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     setText(doc, C.text);
     impactIntel.areasRequiringBoardAttention.slice(0, 3).forEach((item, index) => {
-      doc.text(`• ${item}`, MARGIN + 4, 115 + index * 5);
+      doc.text(`• ${item}`, MARGIN + 4, 121 + index * 5);
     });
     drawFooter(doc, data.packName, 7);
   }
@@ -556,36 +642,44 @@ export async function buildTalantonBoardPackPdf(
   {
     addSlide(doc);
     drawHeader(doc, "Latest Journey and Impact Stories", logoDataUrl, "Field evidence for board and LP narrative");
-    let y = 28;
-    for (const [index, story] of journeys.entries()) {
-      setFill(doc, index % 2 ? C.soft : C.white);
-      doc.rect(MARGIN, y - 3, CONTENT_W, 18, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      setText(doc, C.navy);
-      doc.text(story.title, MARGIN + 3, y + 2);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      setText(doc, C.muted);
-      doc.text(
-        `${story.country} · ${story.companyNames.join(", ")} · ${story.startDate}`,
-        MARGIN + 3,
-        y + 7,
-      );
-      doc.setFontSize(9);
-      setText(doc, C.text);
-      const summary = doc.splitTextToSize(
-        story.generated.boardSummary || story.generated.executiveSummary || story.purpose,
-        CONTENT_W - 8,
-      );
-      doc.text(summary.slice(0, 2), MARGIN + 3, y + 12);
-      y += 19;
-    }
+
+    drawQuotePanel(doc, {
+      x: MARGIN,
+      y: 24,
+      w: CONTENT_W,
+      h: 34,
+      imageDataUrl: assets.harryTurnerPhoto,
+      imageFormat: "JPEG",
+      name: "Harry Turner",
+      role: "Partner, Talanton Impact",
+      quote: HARRY_TURNER_QUOTE,
+      colors: { navy: C.navy, muted: C.muted, text: C.text, soft: C.soft, white: C.white },
+    });
+
+    const cardH = 44;
+    const cardW = (CONTENT_W - 6) / Math.max(journeys.length, 1);
+    journeys.forEach((story, index) => {
+      const x = MARGIN + index * (cardW + 6);
+      const y = 64;
+      drawPhotoCard(doc, {
+        x,
+        y,
+        w: cardW,
+        h: cardH,
+        imageDataUrl: assets.journeyPhotos.get(story.id) ?? null,
+        imageFormat: "JPEG",
+        title: story.title,
+        subtitle: `${story.country} · ${story.companyNames.slice(0, 2).join(", ")} · ${story.startDate}`,
+        body: story.generated.boardSummary || story.generated.executiveSummary || story.purpose,
+        colors: { navy: C.navy, muted: C.muted, text: C.text, line: C.line, white: C.white },
+      });
+    });
+
     if (journeys.length === 0) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       setText(doc, C.muted);
-      doc.text("No published journey stories for the board portal yet.", MARGIN, 40);
+      doc.text("No published journey stories for the board portal yet.", MARGIN, 80);
     }
     drawFooter(doc, data.packName, 8);
   }
@@ -594,66 +688,59 @@ export async function buildTalantonBoardPackPdf(
   {
     addSlide(doc);
     drawHeader(doc, "Training Update", logoDataUrl, "Portfolio compliance and mandatory learning");
-    const tileW = (CONTENT_W - 8) / 3;
-    [
-      { label: "Completed", value: String(trainingCompleted), tone: "green" as const },
-      { label: "In progress", value: String(trainingInProgress), tone: "amber" as const },
-      { label: "Overdue", value: String(trainingOverdue), tone: "red" as const },
-    ].forEach((tile, index) => {
-      const x = MARGIN + index * (tileW + 4);
-      setFill(doc, C.white);
-      setDraw(doc, C.line);
-      doc.roundedRect(x, 24, tileW, 24, 1.2, 1.2, "FD");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      setText(doc, C.muted);
-      doc.text(tile.label, x + 4, 31);
-      doc.setFontSize(22);
-      setText(doc, C.navy);
-      doc.text(tile.value, x + 4, 42);
-      drawStatusPill(doc, x + 4, 44, tileW - 8, 7, tile.label, tile.tone);
+
+    drawDonutChart(doc, {
+      cx: MARGIN + 30,
+      cy: 72,
+      outerR: 24,
+      innerR: 14,
+      title: "Learner status",
+      segments: [
+        { value: trainingCompleted, color: C.green, label: "Completed" },
+        { value: trainingInProgress, color: C.amber, label: "In progress" },
+        { value: trainingOverdue, color: C.subtleRed, label: "Overdue" },
+      ],
+      titleColor: C.navy,
+      mutedColor: C.muted,
+      textColor: C.text,
+    });
+
+    drawHorizontalBarChart(doc, {
+      x: MARGIN + 68,
+      y: 28,
+      width: CONTENT_W - 76,
+      rowHeight: 11,
+      title: "Mandatory course completion (%)",
+      bars: TALANTON_COMPLIANCE_COURSES.slice(0, 6).map((course, index) => ({
+        label: course.title,
+        value: course.completionPct,
+        color: course.completionPct >= 80 ? C.green : course.completionPct >= 70 ? C.amber : C.subtleRed,
+        display: `${course.completionPct}%`,
+      })),
+      maxValue: 100,
+      titleColor: C.navy,
+      labelColor: C.text,
+      trackColor: C.soft,
     });
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setText(doc, C.navy);
-    doc.text("Mandatory courses", MARGIN, 56);
-    const colX = [MARGIN, MARGIN + 118, MARGIN + 198, MARGIN + 238];
-    let y = 62;
-    setFill(doc, C.navy);
-    doc.rect(MARGIN, y - 4, CONTENT_W, 7, "F");
-    doc.setFontSize(9);
-    setText(doc, C.white);
-    ["Course", "Assigned cos.", "Completion", "Renewal"].forEach((h, i) => doc.text(h, colX[i]!, y));
-    y += 8;
-    for (const [index, course] of TALANTON_COMPLIANCE_COURSES.slice(0, 6).entries()) {
-      setFill(doc, index % 2 ? C.soft : C.white);
-      doc.rect(MARGIN, y - 4, CONTENT_W, 10, "F");
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      setText(doc, C.text);
-      doc.text(course.title, colX[0]!, y);
-      doc.text(String(course.assignedCompanies), colX[1]!, y);
-      doc.text(`${course.completionPct}%`, colX[2]!, y);
-      doc.text(`${course.renewEveryMonths} mo`, colX[3]!, y);
-      y += 10;
-    }
-
-    doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     setText(doc, C.navy);
-    doc.text("Priority learners", MARGIN, y + 6);
-    y += 12;
-    for (const row of TALANTON_MY_TRAINING.filter((t) => t.status === "Overdue" || t.status === "In Progress").slice(0, 4)) {
+    doc.text("Priority learners", MARGIN, 118);
+    let y = 124;
+    for (const row of TALANTON_MY_TRAINING.filter((t) => t.status === "Overdue" || t.status === "In Progress").slice(0, 3)) {
+      setFill(doc, C.white);
+      setDraw(doc, C.line);
+      doc.roundedRect(MARGIN, y - 3, CONTENT_W, 9, 1, 1, "FD");
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       setText(doc, C.text);
       doc.text(
         `${row.learnerName} · ${companyNameById(row.companyId)} · ${courseTitleById(row.courseId)} · ${row.status} (${row.progress}%)`,
-        MARGIN,
-        y,
+        MARGIN + 3,
+        y + 2,
       );
-      y += 6;
+      y += 10;
     }
     drawFooter(doc, data.packName, 9);
   }

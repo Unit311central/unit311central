@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import type { EaTestSuiteReport } from "@/lib/talanton/ea-test-suite";
 
 type RunState = "idle" | "running" | "done" | "error";
+type DeckState = "idle" | "generating" | "ready" | "error";
 
 function StatusBadge({ ok }: { ok: boolean }) {
   return (
@@ -21,8 +22,13 @@ function StatusBadge({ ok }: { ok: boolean }) {
 
 export function TalantonEaTestingWorkspace() {
   const [state, setState] = useState<RunState>("idle");
+  const [deckState, setDeckState] = useState<DeckState>("idle");
   const [report, setReport] = useState<EaTestSuiteReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deckError, setDeckError] = useState<string | null>(null);
+  const [meetingDate, setMeetingDate] = useState("tomorrow");
+  const [deckMeta, setDeckMeta] = useState<{ packName: string; pageCount: number } | null>(null);
+  const [deckPdfUrl, setDeckPdfUrl] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const runSuite = useCallback(async () => {
@@ -51,6 +57,37 @@ export function TalantonEaTestingWorkspace() {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const generateDeck = useCallback(async () => {
+    setDeckState("generating");
+    setDeckError(null);
+    if (deckPdfUrl) URL.revokeObjectURL(deckPdfUrl);
+    setDeckPdfUrl(null);
+    setDeckMeta(null);
+    try {
+      const response = await fetch("/api/talanton/board-deck", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ when: meetingDate.trim() || "tomorrow" }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setDeckPdfUrl(url);
+      setDeckMeta({
+        packName: response.headers.get("X-Talanton-Pack-Name") ?? "Talanton Board Deck",
+        pageCount: Number(response.headers.get("X-Talanton-Page-Count") ?? 10),
+      });
+      setDeckState("ready");
+    } catch (err) {
+      setDeckError(err instanceof Error ? err.message : "Failed to generate board deck.");
+      setDeckState("error");
+    }
+  }, [deckPdfUrl, meetingDate]);
+
   return (
     <div className="relative h-full min-h-0 overflow-y-auto bg-[#070b10] text-white">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.08),_transparent_55%)]" />
@@ -64,9 +101,7 @@ export function TalantonEaTestingWorkspace() {
               Executive Assistant Test Suite
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-white/60">
-              Intent routing, analysis outputs, board pack guards, org-state overlay, scoped PDF metrics,
-              tool registry, and orchestration — same checks as{" "}
-              <code className="rounded bg-white/5 px-1.5 py-0.5 text-emerald-200/90">npm run prove:talanton-ea</code>.
+              EA checks plus board deck PDF generation with charts, journey imagery, and leadership quote.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -86,6 +121,62 @@ export function TalantonEaTestingWorkspace() {
             </button>
           </div>
         </header>
+
+        <section className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Board deck PDF preview</h2>
+              <p className="mt-1 max-w-2xl text-sm text-white/55">
+                Generate the 10-slide Talanton board deck with charts, journey photos, and Harry Turner leadership quote.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-1 text-xs text-white/50">
+                Meeting date
+                <input
+                  value={meetingDate}
+                  onChange={(e) => setMeetingDate(e.target.value)}
+                  placeholder="tomorrow"
+                  className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none ring-emerald-500/40 focus:ring-2"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void generateDeck()}
+                disabled={deckState === "generating"}
+                className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20 disabled:opacity-60"
+              >
+                {deckState === "generating" ? "Generating…" : "Generate board deck"}
+              </button>
+            </div>
+          </div>
+
+          {deckState === "generating" && (
+            <p className="mt-4 text-sm text-white/60">Building PDF with charts and field imagery…</p>
+          )}
+          {deckError && <p className="mt-4 text-sm text-rose-300">{deckError}</p>}
+          {deckMeta && deckPdfUrl && (
+            <div className="mt-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-sm text-white/70">
+                <span>
+                  {deckMeta.packName} · {deckMeta.pageCount} slides
+                </span>
+                <a
+                  href={deckPdfUrl}
+                  download
+                  className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/5"
+                >
+                  Download PDF
+                </a>
+              </div>
+              <iframe
+                title="Talanton board deck preview"
+                src={deckPdfUrl}
+                className="h-[min(70vh,720px)] w-full rounded-lg border border-white/10 bg-white"
+              />
+            </div>
+          )}
+        </section>
 
         {state === "running" && (
           <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
