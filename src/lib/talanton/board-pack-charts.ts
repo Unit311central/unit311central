@@ -38,6 +38,9 @@ export function drawDonutChart(
     titleColor?: Rgb;
     mutedColor?: Rgb;
     textColor?: Rgb;
+    centerLabel?: string;
+    centerSubLabel?: string;
+    legendBelow?: boolean;
   },
 ) {
   const {
@@ -50,6 +53,9 @@ export function drawDonutChart(
     titleColor = [0, 43, 92],
     mutedColor = [91, 101, 119],
     textColor = [27, 36, 48],
+    centerLabel,
+    centerSubLabel,
+    legendBelow = true,
   } = opts;
   const total = segments.reduce((sum, s) => sum + Math.max(0, s.value), 0) || 1;
   let angle = -90;
@@ -87,27 +93,211 @@ export function drawDonutChart(
   setFill(doc, [255, 255, 255]);
   doc.circle(cx, cy, innerR - 0.2, "F");
 
-  let legendY = cy + outerR + 5;
-  const legendX = cx - outerR;
-  for (const segment of segments) {
-    setFill(doc, segment.color);
-    doc.roundedRect(legendX, legendY - 3, 3, 3, 0.5, 0.5, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    setText(doc, textColor);
-    const pct = Math.round((segment.value / total) * 100);
-    doc.text(`${segment.label} (${pct}%)`, legendX + 5, legendY);
-    legendY += 5;
+  if (legendBelow) {
+    let legendY = cy + outerR + 5;
+    const legendX = cx - outerR;
+    for (const segment of segments) {
+      setFill(doc, segment.color);
+      doc.roundedRect(legendX, legendY - 3, 3, 3, 0.5, 0.5, "F");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      setText(doc, textColor);
+      const pct = Math.round((segment.value / total) * 100);
+      doc.text(`${segment.label} (${pct}%)`, legendX + 5, legendY);
+      legendY += 5;
+    }
   }
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
+  doc.setFontSize(centerLabel && centerLabel.length > 8 ? 11 : 14);
   setText(doc, titleColor);
-  doc.text(String(total), cx, cy + 2, { align: "center" });
-  doc.setFont("helvetica", "normal");
+  doc.text(centerLabel ?? String(Math.round(total)), cx, cy + (centerSubLabel ? 0 : 2), { align: "center" });
+  if (centerSubLabel) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    setText(doc, mutedColor);
+    doc.text(centerSubLabel, cx, cy + 6, { align: "center" });
+  } else if (!centerLabel) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    setText(doc, mutedColor);
+    doc.text("total", cx, cy + 6, { align: "center" });
+  }
+}
+
+/** Horizontal legend row (e.g. risk profile at slide bottom). */
+export function drawLegendRow(
+  doc: jsPDF,
+  opts: {
+    x: number;
+    y: number;
+    width: number;
+    title: string;
+    segments: ChartSegment[];
+    titleColor?: Rgb;
+    textColor?: Rgb;
+    bg?: Rgb;
+  },
+) {
+  const { x, y, width, title, segments, titleColor = [0, 43, 92], textColor = [27, 36, 48], bg = [255, 255, 255] } =
+    opts;
+  const total = segments.reduce((sum, s) => sum + Math.max(0, s.value), 0) || 1;
+  setFill(doc, bg);
+  setDraw(doc, [213, 220, 230]);
+  doc.roundedRect(x, y, width, 14, 1.2, 1.2, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  setText(doc, titleColor);
+  doc.text(title, x + 4, y + 9);
+  let chipX = x + 52;
+  for (const segment of segments) {
+    const pct = Math.round((segment.value / total) * 100);
+    setFill(doc, segment.color);
+    doc.roundedRect(chipX, y + 4, 3, 6, 0.5, 0.5, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    setText(doc, textColor);
+    const label = `${segment.label} ${pct}%`;
+    doc.text(label, chipX + 5, y + 9);
+    chipX += doc.getTextWidth(label) + 14;
+  }
+}
+
+export function drawStatTile(
+  doc: jsPDF,
+  opts: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    label: string;
+    value: string;
+    sub?: string;
+    accent: Rgb;
+    colors: { white: Rgb; line: Rgb; navy: Rgb; muted: Rgb; text: Rgb };
+  },
+) {
+  const { x, y, w, h, label, value, sub, accent, colors } = opts;
+  setFill(doc, colors.white);
+  setDraw(doc, colors.line);
+  doc.roundedRect(x, y, w, h, 1.5, 1.5, "FD");
+  setFill(doc, accent);
+  doc.roundedRect(x, y, 2.5, h, 1.5, 0, "F");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
-  setText(doc, mutedColor);
-  doc.text("total", cx, cy + 6, { align: "center" });
+  setText(doc, colors.muted);
+  doc.text(label.toUpperCase(), x + 6, y + 7);
+  doc.setFontSize(16);
+  setText(doc, colors.navy);
+  doc.text(value, x + 6, y + 16);
+  if (sub) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    setText(doc, colors.text);
+    doc.text(sub, x + 6, y + 22);
+  }
+}
+
+export function drawConcernCards(
+  doc: jsPDF,
+  opts: {
+    x: number;
+    y: number;
+    width: number;
+    cards: Array<{ title: string; detail: string }>;
+    colors: { white: Rgb; line: Rgb; navy: Rgb; amber: Rgb; text: Rgb };
+  },
+) {
+  const { x, y, width, cards, colors } = opts;
+  const cardH = 18;
+  cards.forEach((card, index) => {
+    const cy = y + index * (cardH + 3);
+    setFill(doc, colors.white);
+    setDraw(doc, colors.line);
+    doc.roundedRect(x, cy, width, cardH, 1.5, 1.5, "FD");
+    setFill(doc, colors.amber);
+    doc.roundedRect(x, cy, 3, cardH, 1.5, 0, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    setText(doc, colors.navy);
+    doc.text(card.title, x + 7, cy + 7);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    setText(doc, colors.text);
+    const lines = doc.splitTextToSize(card.detail, width - 12);
+    doc.text(lines.slice(0, 2), x + 7, cy + 12);
+  });
+}
+
+export function drawVerticalBarChart(
+  doc: jsPDF,
+  opts: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    bars: Array<{ label: string; value: number; color: Rgb; display?: string }>;
+    maxValue?: number;
+    title?: string;
+    titleColor?: Rgb;
+    labelColor?: Rgb;
+    trackColor?: Rgb;
+  },
+) {
+  const {
+    x,
+    y,
+    width,
+    height,
+    bars,
+    maxValue = Math.max(...bars.map((b) => b.value), 1),
+    title,
+    titleColor = [0, 43, 92],
+    labelColor = [27, 36, 48],
+    trackColor = [238, 241, 245],
+  } = opts;
+  if (title) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    setText(doc, titleColor);
+    doc.text(title, x, y - 2);
+  }
+  const chartY = y + 4;
+  const chartH = height - 16;
+  const barW = Math.min(28, (width - 8) / bars.length - 6);
+  const gap = (width - barW * bars.length) / (bars.length + 1);
+  bars.forEach((bar, index) => {
+    const bx = x + gap + index * (barW + gap);
+    const ratio = Math.max(0, Math.min(1, bar.value / maxValue));
+    const barH = Math.max(2, chartH * ratio);
+    setFill(doc, trackColor);
+    doc.roundedRect(bx, chartY, barW, chartH, 1.2, 1.2, "F");
+    setFill(doc, bar.color);
+    doc.roundedRect(bx, chartY + chartH - barH, barW, barH, 1.2, 1.2, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    setText(doc, labelColor);
+    doc.text(bar.display ?? String(bar.value), bx + barW / 2, chartY + chartH - barH - 2, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    setText(doc, labelColor);
+    const label = doc.splitTextToSize(bar.label, barW + 4);
+    doc.text(label.slice(0, 2), bx + barW / 2, chartY + chartH + 5, { align: "center" });
+  });
+}
+
+export function drawSlideBackdrop(
+  doc: jsPDF,
+  opts: { w: number; h: number; margin?: number; imageDataUrl?: string | null; tint?: Rgb },
+) {
+  const { w, h, margin = 16, imageDataUrl, tint = [245, 247, 250] } = opts;
+  if (imageDataUrl) {
+    addImageSafe(doc, imageDataUrl, "JPEG", 0, 0, w, h);
+  }
+  setFill(doc, tint);
+  doc.rect(0, 0, w, h, "F");
+  setFill(doc, [255, 255, 255]);
+  doc.rect(margin, 22, w - margin * 2, h - 30, "F");
 }
 
 export function drawHorizontalBarChart(

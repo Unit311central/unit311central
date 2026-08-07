@@ -45,7 +45,6 @@ export function formatTalantonBoardUsd(value: number, compact = false): string {
 }
 
 const TI_AGENDA = [
-  "Cover Page",
   "Executive Summary",
   "Board Previous Minutes and Decisions",
   "Board Risk Register",

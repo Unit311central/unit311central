@@ -10,9 +10,21 @@ export const HARRY_TURNER_QUOTE =
 
 const HARRY_TURNER_PHOTO_PATH = join(process.cwd(), "public", "images", "talanton", "harry-turner.jpg");
 
+const SLIDE_BACKDROP_URLS = {
+  executive:
+    "https://images.unsplash.com/photo-1521737711862-e3b97375f902?auto=format&fit=crop&w=1600&q=80",
+  minutes:
+    "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1600&q=80",
+  risk: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=80",
+  funds: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1600&q=80",
+  portfolio:
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80",
+} as const;
+
 export type TalantonBoardPackAssets = {
   harryTurnerPhoto: string | null;
   journeyPhotos: Map<string, string | null>;
+  slideBackdrops: Record<keyof typeof SLIDE_BACKDROP_URLS, string | null>;
 };
 
 async function toJpegDataUrl(bytes: Buffer): Promise<string> {
@@ -48,7 +60,7 @@ function storyPhotoUrl(story: JourneyStory): string | null {
 }
 
 export async function loadTalantonBoardPackAssets(stories: JourneyStory[]): Promise<TalantonBoardPackAssets> {
-  const [harryTurnerPhoto, ...journeyResults] = await Promise.all([
+  const [harryTurnerPhoto, ...rest] = await Promise.all([
     loadHarryTurnerPhoto(),
     ...stories.map(async (story) => {
       const url = storyPhotoUrl(story);
@@ -56,8 +68,21 @@ export async function loadTalantonBoardPackAssets(stories: JourneyStory[]): Prom
       const dataUrl = await fetchImageAsJpegDataUrl(url);
       return [story.id, dataUrl] as const;
     }),
+    ...Object.entries(SLIDE_BACKDROP_URLS).map(async ([key, url]) => {
+      const dataUrl = await fetchImageAsJpegDataUrl(url);
+      return [key, dataUrl] as const;
+    }),
   ]);
 
+  const journeyResults = rest.slice(0, stories.length) as Array<readonly [string, string | null]>;
+  const backdropResults = rest.slice(stories.length) as Array<
+    readonly [keyof typeof SLIDE_BACKDROP_URLS, string | null]
+  >;
+
   const journeyPhotos = new Map<string, string | null>(journeyResults);
-  return { harryTurnerPhoto, journeyPhotos };
+  const slideBackdrops = Object.fromEntries(backdropResults) as Record<
+    keyof typeof SLIDE_BACKDROP_URLS,
+    string | null
+  >;
+  return { harryTurnerPhoto, journeyPhotos, slideBackdrops };
 }

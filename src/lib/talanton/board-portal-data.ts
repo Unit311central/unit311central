@@ -193,7 +193,11 @@ export const TI_BOARD_MEETINGS: TiBoardMeeting[] = [
         status: "Underway",
       },
     ],
-    notes: "Quorum achieved. Minutes approved for prior meeting.",
+    notes:
+      "Board convened at 09:00 with quorum of seven directors. Minutes from the February 2026 meeting were approved without amendment.\n\n" +
+      "Fund NAV and capital call schedule were reviewed. LP engagement on the East Africa pipeline was strong; IC confirmed follow-on reserves for top-quartile holdings.\n\n" +
+      "Portfolio deep-dives covered ARC Ride (mobility), Burn Manufacturing (clean cookstoves), and Pezesha (fintech). Management reported improving quarterly reporting compliance across the portfolio.\n\n" +
+      "Governance: conflicts register reviewed with no new declarations. Risk register updates noted FX and key-person dependencies. Meeting closed at 12:45.",
     resolutions: [
       "Follow-on allocation framework approved",
       "IC reporting cadence confirmed for H2 2026",
