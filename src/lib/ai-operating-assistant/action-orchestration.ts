@@ -15,6 +15,10 @@ import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { resolveTalantonExecutiveIntelligenceIntent } from "@/lib/talanton/executive-intelligence-intent";
+import {
+  resolveTalantonStoriesRoute,
+  resolveTalantonViewAwareTool,
+} from "@/lib/talanton/executive-stories-intent";
 
 import type { AssistantBusinessContext, AssistantChatMessage } from "./types";
 import type { DirectAssistantIntent } from "./intent-router";
@@ -244,6 +248,40 @@ export async function resolveOrchestrationRoute(
 
   // Talanton Impact — executive intelligence, board pack, AI training course.
   if (isTalantonImpactSlug(business.workspace.slug)) {
+    const viewTool = resolveTalantonViewAwareTool(message, business.page.activeView);
+    if (viewTool) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: viewTool.tool as DirectAssistantIntent["tool"],
+          args: viewTool.args,
+          reason: viewTool.reason,
+        },
+      };
+    }
+
+    const storiesRoute = resolveTalantonStoriesRoute(message, business.page.activeView);
+    if (storiesRoute?.kind === "clarify") {
+      return {
+        kind: "need_info",
+        message: storiesRoute.message,
+        actionId: "talanton.storiesScope",
+        missingFields: ["companies", "categories"],
+        input: {},
+        executionCards: [],
+      };
+    }
+    if (storiesRoute?.kind === "tool") {
+      return {
+        kind: "tool",
+        intent: {
+          tool: storiesRoute.tool,
+          args: storiesRoute.args,
+          reason: storiesRoute.reason,
+        },
+      };
+    }
+
     const execIntel = resolveTalantonExecutiveIntelligenceIntent(message);
     if (execIntel) {
       return {

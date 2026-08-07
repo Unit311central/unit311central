@@ -19,6 +19,22 @@ import {
   type TalantonBoardInsightsFocus,
 } from "@/lib/talanton/executive-intelligence";
 import {
+  queryTalantonStories,
+  type StoriesScope,
+  type StoryStatusFilter,
+  type StoryTypeFilter,
+} from "@/lib/talanton/executive-stories-intelligence";
+import type { ImpactCategory } from "@/lib/talanton/marketing-stories-store";
+import {
+  buildTalantonStoriesReportPdf,
+  talantonStoriesReportFilename,
+} from "@/lib/talanton/executive-stories-pdf";
+import {
+  createArtifactId,
+  persistArtifactToStorage,
+  putAssistantArtifact,
+} from "@/lib/ai-operating-assistant/artifact-store";
+import {
   toolForbidden,
   toolOk,
   type AssistantToolExecutionContext,
@@ -47,6 +63,7 @@ const FOLLOW_UPS = [
   { id: "fu_ti_health", label: "Organisation health assessment", kind: "generate" as const },
   { id: "fu_ti_portfolio", label: "What requires attention across the portfolio?", kind: "generate" as const },
   { id: "fu_ti_impact", label: "Summarise portfolio impact", kind: "generate" as const },
+  { id: "fu_ti_stories", label: "Summarise impact stories across the portfolio", kind: "generate" as const },
   { id: "fu_ti_pack", label: "Create a board pack for the next meeting", kind: "generate" as const },
 ];
 
@@ -242,6 +259,144 @@ export async function queryTalantonImpactTool(
   });
 }
 
+function parseStoryTypeFilter(raw: string): StoryTypeFilter {
+  if (raw === "portfolio" || raw === "journey" || raw === "both") return raw;
+  return "both";
+}
+
+function parseStoryStatusFilter(raw: string): StoryStatusFilter {
+  if (raw === "approved_only" || raw === "include_review" || raw === "all") return raw;
+  return "include_review";
+}
+
+function parseStoriesScopeArgs(args: Record<string, unknown>): StoriesScope {
+  const companyRaw = args.companyIds;
+  let companyIds: StoriesScope["companyIds"] = "all";
+  if (companyRaw === "all") companyIds = "all";
+  else if (Array.isArray(companyRaw)) {
+    companyIds = companyRaw.map((v) => String(v));
+  } else if (typeof companyRaw === "string" && companyRaw.trim()) {
+    companyIds = companyRaw === "all" ? "all" : [companyRaw];
+  }
+
+  let categories: StoriesScope["categories"] = "all";
+  const catRaw = args.categories;
+  if (catRaw === "all") categories = "all";
+  else if (Array.isArray(catRaw)) categories = catRaw as ImpactCategory[];
+
+  return {
+    companyIds,
+    storyTypes: parseStoryTypeFilter(asString(args.storyTypes) || "both"),
+    statusFilter: parseStoryStatusFilter(asString(args.statusFilter) || "include_review"),
+    categories,
+    outputFormat:
+      asString(args.outputFormat) === "pdf"
+        ? "pdf"
+        : asString(args.outputFormat) === "newsletter"
+          ? "newsletter"
+          : "narrative",
+    periodFrom: asString(args.periodFrom) || undefined,
+    periodTo: asString(args.periodTo) || undefined,
+  };
+}
+
+const STORY_FOLLOW_UPS = [
+  { id: "fu_stories_report", label: "Generate impact stories PDF — all companies", kind: "generate" as const },
+  { id: "fu_stories_approved", label: "Approved stories only", kind: "generate" as const },
+  { id: "fu_stories_journey", label: "Journey field visits summary", kind: "generate" as const },
+];
+
+export async function queryTalantonStoriesTool(
+  args: Record<string, unknown>,
+  ctx: AssistantToolExecutionContext,
+): Promise<AssistantToolResult> {
+  const blocked = talantonOnly("talanton.queryStories", ctx);
+  if (blocked) return blocked;
+
+  const scope = parseStoriesScopeArgs(args);
+  scope.outputFormat = "narrative";
+  const result = queryTalantonStories(scope);
+
+  return toolOk("talanton.queryStories", [{ ...result }], {
+    source: ["talanton:marketing-stories", "talanton:journey-stories"],
+    page: 1,
+    pageSize: 1,
+    summary: {
+      message: result.prose,
+      storyCount: result.rows.length,
+      portfolioCount: result.counts.portfolio,
+      journeyCount: result.counts.journey,
+    },
+    followUpActions: STORY_FOLLOW_UPS,
+    appliedContext: { activeView: ctx.business.page.activeView },
+  });
+}
+
+export async function generateTalantonStoriesReportTool(
+  args: Record<string, unknown>,
+  ctx: AssistantToolExecutionContext,
+): Promise<AssistantToolResult> {
+  const blocked = talantonOnly("talanton.generateStoriesReport", ctx);
+  if (blocked) return blocked;
+
+  const scope = parseStoriesScopeArgs(args);
+  scope.outputFormat = "pdf";
+  const result = queryTalantonStories(scope);
+  const pdfBytes = await buildTalantonStoriesReportPdf(result, ctx.business.organisation.name);
+  const filename = talantonStoriesReportFilename();
+
+  let artifact = putAssistantArtifact({
+    id: createArtifactId(),
+    kind: "pdf",
+    title: "Impact Stories Report",
+    filename,
+    mimeType: "application/pdf",
+    bytes: Buffer.from(pdfBytes),
+    userId: ctx.business.user.id,
+    meta: {
+      workspaceSlug: ctx.business.workspace.slug,
+      storyCount: result.rows.length,
+      scope: result.scope,
+    },
+  });
+  artifact = await persistArtifactToStorage(artifact);
+
+  const openUrl = `/api/executive-assistant/artifacts/${artifact.id}?disposition=inline`;
+  const downloadUrl = `/api/executive-assistant/artifacts/${artifact.id}?disposition=attachment`;
+  const prose = `${result.prose}\n\nPDF report generated (${result.rows.length} stories).`;
+
+  return toolOk(
+    "talanton.generateStoriesReport",
+    [
+      {
+        ...result,
+        prose,
+        artifactId: artifact.id,
+        title: artifact.title,
+        filename: artifact.filename,
+        openUrl,
+        downloadUrl,
+        kind: "pdf",
+      },
+    ],
+    {
+      source: ["talanton:marketing-stories", "talanton:journey-stories", "assistant:stories-pdf"],
+      page: 1,
+      pageSize: 1,
+      summary: {
+        message: prose,
+        storyCount: result.rows.length,
+        artifactId: artifact.id,
+        openUrl,
+        downloadUrl,
+        executed: true,
+      },
+      followUpActions: FOLLOW_UPS,
+      appliedContext: { activeView: ctx.business.page.activeView },
+    },
+  );
+}
+
 export const TALANTON_EXECUTIVE_TOOL_DEFINITIONS = [
   {
     name: "talanton.getExecutiveBriefing",
@@ -332,6 +487,57 @@ export const TALANTON_EXECUTIVE_TOOL_DEFINITIONS = [
     parameters: {
       type: "object",
       properties: { question: { type: "string" } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "talanton.queryStories",
+    description:
+      "Talanton Impact only. Query portfolio impact story submissions and journey field visits from Marketing & Stories and Journey Stories. Use for story lists, summaries, newsletter picks, and narrative briefings. For PDF export use talanton.generateStoriesReport.",
+    parameters: {
+      type: "object",
+      properties: {
+        companyIds: {
+          type: "string",
+          description: "all or omit for entire portfolio, or company id(s) when scoped",
+        },
+        storyTypes: {
+          type: "string",
+          enum: ["portfolio", "journey", "both"],
+        },
+        statusFilter: {
+          type: "string",
+          enum: ["approved_only", "include_review", "all"],
+        },
+        categories: {
+          type: "string",
+          description: "all or comma-separated impact categories",
+        },
+        question: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "talanton.generateStoriesReport",
+    description:
+      "Talanton Impact only. Generate a PDF impact stories report from portfolio submissions and journey visits. Ask which companies and impact areas if the user did not specify.",
+    parameters: {
+      type: "object",
+      properties: {
+        companyIds: { type: "string" },
+        storyTypes: {
+          type: "string",
+          enum: ["portfolio", "journey", "both"],
+        },
+        statusFilter: {
+          type: "string",
+          enum: ["approved_only", "include_review", "all"],
+        },
+        categories: { type: "string" },
+        outputFormat: { type: "string", enum: ["pdf", "narrative", "newsletter"] },
+        question: { type: "string" },
+      },
       additionalProperties: false,
     },
   },

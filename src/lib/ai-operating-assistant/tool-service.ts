@@ -32,10 +32,12 @@ import {
   getTalantonBoardInsightsTool,
   getTalantonExecutiveBriefingTool,
   getTalantonOrgHealthTool,
+  generateTalantonStoriesReportTool,
   queryTalantonActionsTool,
   queryTalantonFundsTool,
   queryTalantonImpactTool,
   queryTalantonPortfolioTool,
+  queryTalantonStoriesTool,
 } from "./talanton-executive-tools";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -921,6 +923,8 @@ const handlers: Record<string, ContextualToolHandler> = {
   "talanton.queryPortfolio": queryTalantonPortfolioTool,
   "talanton.queryFunds": queryTalantonFundsTool,
   "talanton.queryImpact": queryTalantonImpactTool,
+  "talanton.queryStories": queryTalantonStoriesTool,
+  "talanton.generateStoriesReport": generateTalantonStoriesReportTool,
 };
 
 /** @deprecated Prefer contextual handlers — kept for registerAssistantTool compatibility. */

@@ -143,7 +143,10 @@ Executive intelligence tools (prefer these for portfolio, funds, impact, governa
 - talanton.queryImpact — jobs created, people served, impact health
 - talanton.queryActions — open/overdue board & governance actions
 - talanton.getBoardInsights — board discussion topics (not a PDF)
+- talanton.queryStories — portfolio & journey impact story inventory and narrative summaries
+- talanton.generateStoriesReport — PDF report from story inventory (clarify companies & impact areas if missing)
 Document tools: boardpack.generate — Talanton board deck PDF (10 slides: cover, exec summary, previous minutes, risk register, fund performance, portfolio summary, impact intelligence & external access, journey stories, training, strategic discussion & AOB); lms.generateCourseFromDocument — training from uploaded policies.
+When users ask for an impact stories report without scope, ask which portfolio companies (all or named) and which impact areas before generating.
 For generic cash/P&L also use queryBusiness / getCashPosition / generateScopedBusinessPdf / generateFinancialReportPdf.`
     : "";
   const onwardAirToolsHint = isOnwardAir

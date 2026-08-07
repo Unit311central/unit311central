@@ -52,7 +52,9 @@ export type DirectAssistantIntent = {
     | "talanton.getBoardInsights"
     | "talanton.queryPortfolio"
     | "talanton.queryFunds"
-    | "talanton.queryImpact";
+    | "talanton.queryImpact"
+    | "talanton.queryStories"
+    | "talanton.generateStoriesReport";
   args: Record<string, unknown>;
   reason: string;
 };
