@@ -27,7 +27,7 @@ export default function MarketingPageShell({
 }: MarketingPageShellProps) {
   return (
     <section className={`relative min-h-[100dvh] overflow-x-hidden bg-[#020617] ${className}`}>
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <Image
           src={backgroundImage}
           alt=""

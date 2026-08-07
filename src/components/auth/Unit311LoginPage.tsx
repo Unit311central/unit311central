@@ -403,11 +403,11 @@ export default function Unit311LoginPage({
                         ? `${customerLabel} Login`
                         : "Workspace Login"}
           </h1>
-          <p className="mx-auto mt-3 max-w-[22rem] text-[14px] leading-relaxed text-white/55 sm:mt-3.5 sm:max-w-md sm:text-[15px]">
+          <p className="mx-auto mt-3 max-w-[22rem] text-[14px] leading-relaxed text-white/55 sm:mt-3.5 sm:max-w-lg sm:text-[15px]">
             {isCorpCentre
               ? "Secure access to your Corp.Centre workspace"
               : isTalanton
-                ? "Portfolio Governance Platform — secure access for impact investing, portfolio oversight and compliance."
+                ? "Talanton & Portfolio Business Operating and Intelligence Platform"
                 : isAbhi
                   ? "Secure access to your ABHI workspace"
                   : isOnwardAirPortalsLogin
@@ -418,11 +418,6 @@ export default function Unit311LoginPage({
                         ? `Secure access to your ${customerLabel} workspace`
                         : "Secure Access to your Workspace"}
           </p>
-          {isTalanton ? (
-            <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-white/40">
-              Manage portfolio companies, quarterly reporting, training and governance in one workspace.
-            </p>
-          ) : null}
         </div>
 
         <div className="mt-9 w-full rounded-[26px] border border-white/[0.1] bg-gradient-to-b from-white/[0.1] to-white/[0.035] p-8 shadow-[0_40px_120px_rgba(0,0,0,0.5)] backdrop-blur-xl sm:mt-11 sm:rounded-[30px] sm:p-10">
