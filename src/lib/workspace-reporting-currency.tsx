@@ -28,6 +28,9 @@ export function useWorkspaceReportingCurrency(
   apiCurrency?: string | null,
 ): ReportingCurrency {
   const fromContext = useContext(WorkspaceReportingCurrencyContext);
+  // Server-resolved workspace currency (internaldashboard provider) — avoids GBP flash on customer hosts.
+  if (fromContext) return fromContext;
+
   const fromApi = String(apiCurrency ?? "")
     .trim()
     .toUpperCase();
@@ -39,7 +42,6 @@ export function useWorkspaceReportingCurrency(
   ) {
     return fromApi;
   }
-  if (fromContext) return fromContext;
   if (typeof window === "undefined") return DEFAULT_REPORTING_CURRENCY;
   const { resolveBrowserReportingCurrency } =
     require("@/lib/financial-reporting-currency") as typeof import("@/lib/financial-reporting-currency");

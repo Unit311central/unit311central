@@ -7,6 +7,7 @@ import { formatMoney, withPreferredCurrencySymbol } from "@/lib/accounting/chart
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { inferExpenseCategory, isAccountsPayableSeedExpense, type FinancialExpense } from "@/lib/expenses-data";
 
 function crmReportingCurrency(): "AUD" | "GBP" | "USD" {
@@ -144,7 +145,9 @@ function financialsFallbackCurrency(): string {
     if (typeof window !== "undefined") {
       const host = window.location.hostname.toLowerCase();
       if (host.includes("onwardair") || host === "onward.unit311central.com") return "USD";
+      if (host.includes("talantonimpact") || host === "talanton.unit311central.com") return "USD";
       if (isBrowserOnwardAirSurface()) return "USD";
+      if (isBrowserTalantonImpactSurface()) return "USD";
       if (isBrowserCorpCentreSurface()) return "AUD";
     }
   } catch {
@@ -348,7 +351,9 @@ function expensesReportingCurrency(expenses: FinancialExpense[]): string {
     if (typeof window !== "undefined") {
       const host = window.location.hostname.toLowerCase();
       if (host.includes("onwardair") || host === "onward.unit311central.com") return "USD";
+      if (host.includes("talantonimpact") || host === "talanton.unit311central.com") return "USD";
       if (isBrowserOnwardAirSurface()) return "USD";
+      if (isBrowserTalantonImpactSurface()) return "USD";
       if (isBrowserCorpCentreSurface()) return "AUD";
       if (isBrowserAbhiSurface()) return "GBP";
     }

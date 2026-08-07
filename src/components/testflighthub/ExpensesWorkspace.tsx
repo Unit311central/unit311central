@@ -29,6 +29,7 @@ import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import {
   ArrowLeft,
   ChevronDown,
@@ -89,6 +90,7 @@ function reportingExpenseCurrency(
   workspaceCurrency: ReturnType<typeof useWorkspaceReportingCurrency>,
 ): ExpenseCurrency {
   if (workspaceCurrency === "AUD" || workspaceCurrency === "USD") return workspaceCurrency;
+  if (isBrowserTalantonImpactSurface()) return "USD";
   if (isBrowserAbhiSurface()) return "GBP";
   const codes = expenses.map((expense) => String(expense.currency || "").toUpperCase());
   const usdCount = codes.filter((code) => code === "USD").length;
