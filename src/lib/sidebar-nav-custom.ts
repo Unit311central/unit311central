@@ -126,17 +126,42 @@ export function mergeSectionOrder(
  * any stored keys that are temporarily filtered out (grants / host gating) so a
  * later full load does not treat them as brand-new and shove them to defaults.
  */
+/** Preserve sidebar order when a host renames a module (e.g. Talanton Business Central → Project Management). */
+function migrateRenamedSectionKeys(
+  storedOrder: readonly string[],
+  canonicalOrder: readonly string[],
+): string[] {
+  const renames: Record<string, string> = {};
+  if (
+    canonicalOrder.includes("workspace:Project Management") &&
+    !canonicalOrder.includes("workspace:Business Central")
+  ) {
+    renames["workspace:Business Central"] = "workspace:Project Management";
+  }
+  if (Object.keys(renames).length === 0) return [...storedOrder];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const key of storedOrder) {
+    const next = renames[key] ?? key;
+    if (seen.has(next)) continue;
+    seen.add(next);
+    out.push(next);
+  }
+  return out;
+}
+
 export function resolveSectionOrderForSections(
   storedOrder: readonly string[],
   sections: readonly InternalNavSection[],
 ): string[] {
   const canonical = defaultSectionOrder(sections);
+  const migrated = migrateRenamedSectionKeys(storedOrder, canonical);
   const known = new Set(canonical);
   const active = mergeSectionOrder(
-    storedOrder.filter((key) => known.has(key)),
+    migrated.filter((key) => known.has(key)),
     canonical,
   );
-  const extras = storedOrder.filter((key) => !known.has(key) && !active.includes(key));
+  const extras = migrated.filter((key) => !known.has(key) && !active.includes(key));
   return [...active, ...extras];
 }
 

@@ -548,6 +548,20 @@ function reshapeTalantonProductivitySection(section: InternalNavSection): Intern
   return { ...section, items: next };
 }
 
+function reshapeTalantonBusinessCentralSection(section: InternalNavSection): InternalNavSection {
+  if (section.label !== "Business Central") return section;
+  return {
+    ...section,
+    label: "Project Management",
+    icon: "FolderKanban",
+    items: [
+      { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" as const },
+      { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
+      { label: "External Projects", icon: "FolderOpen", view: "projects-external" as const },
+    ],
+  };
+}
+
 function filterTalantonBaseNav(sections: readonly InternalNavSection[]): InternalNavSection[] {
   return sections
     .map((section) => {
@@ -574,7 +588,9 @@ function filterTalantonBaseNav(sections: readonly InternalNavSection[]): Interna
           .filter((item): item is NonNullable<typeof item> => item != null),
       };
       return reshapeTalantonProductivitySection(
-        reshapeTalantonCorporateSection(reshapeTalantonTrainingSection(filtered)),
+        reshapeTalantonCorporateSection(
+          reshapeTalantonTrainingSection(reshapeTalantonBusinessCentralSection(filtered)),
+        ),
       );
     })
     .filter((section) => section.items.length > 0);

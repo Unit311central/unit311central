@@ -289,6 +289,7 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
   }),
   page("portfolio", "Portfolio Companies", "portfolio-dashboard", "Dashboard"),
   page("portfolio", "Portfolio Companies", "portfolio-directory", "Directory"),
+  page("portfolio", "Portfolio Companies", "portfolio-portal-overview", "Portfolio Portal Overview"),
   page("portfolio", "Portfolio Companies", "portfolio-company", "Company portal"),
 
   // Marketing (ABHI)

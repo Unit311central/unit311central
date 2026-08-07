@@ -197,6 +197,13 @@ const TalantonPortalManagementWorkspace = dynamic(
     ssr: false,
   },
 );
+const TalantonPortfolioPortalOverviewWorkspace = dynamic(
+  () => import("./talanton/TalantonPortfolioPortalOverviewWorkspace"),
+  {
+    loading: () => <WorkspaceLoadingFallback label="Loading portfolio portal overview" />,
+    ssr: false,
+  },
+);
 const TalantonFundsWorkspace = dynamic(
   () => import("./talanton/TalantonFundsWorkspace"),
   {
@@ -1124,6 +1131,12 @@ export default function InternalOperationsDashboard({
           )}
           {activeView === "corporate-cap-table" && !isBrowserAbhiSurface() && (
             <CapTableWorkspace />
+          )}
+
+          {activeView === "portfolio-portal-overview" && isBrowserTalantonImpactSurface() && (
+            <WorkspaceErrorBoundary title="Portfolio Portal Overview">
+              <TalantonPortfolioPortalOverviewWorkspace />
+            </WorkspaceErrorBoundary>
           )}
 
           {activeView === "external-client-access" &&

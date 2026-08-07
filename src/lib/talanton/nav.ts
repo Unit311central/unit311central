@@ -4,6 +4,7 @@ import type { InternalNavSection, InternalOperationsView } from "@/lib/internal-
 export const TALANTON_IMPACT_VIEWS = [
   "portfolio-dashboard",
   "portfolio-directory",
+  "portfolio-portal-overview",
   "portfolio-company",
   "portfolio-companies",
   "portfolio-intelligence-briefing",
@@ -73,6 +74,11 @@ export const TALANTON_IMPACT_NAV_SECTIONS: InternalNavSection[] = [
         label: "Directory",
         icon: "Building2",
         view: "portfolio-directory",
+      },
+      {
+        label: "Portfolio Portal Overview",
+        icon: "Globe",
+        view: "portfolio-portal-overview",
       },
     ],
   },
