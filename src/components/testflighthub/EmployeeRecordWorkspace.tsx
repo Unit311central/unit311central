@@ -249,6 +249,13 @@ export default function EmployeeRecordWorkspace() {
         /* ignore */
       }
       try {
+        const { isBrowserTalantonImpactSurface } =
+          require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
+        if (isBrowserTalantonImpactSurface()) return "USD";
+      } catch {
+        /* ignore */
+      }
+      try {
         const { isBrowserCorpCentreSurface } =
           require("@/lib/corpcentre-surface") as typeof import("@/lib/corpcentre-surface");
         if (isBrowserCorpCentreSurface()) return "AUD";
