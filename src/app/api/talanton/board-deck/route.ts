@@ -14,6 +14,14 @@ const NO_STORE_HEADERS = {
   Vary: "Cookie",
 } as const;
 
+/** HTTP response headers must be ByteString (Latin-1). Pack names use em dashes in PDF copy. */
+function asciiHeaderValue(value: string): string {
+  return value
+    .replace(/\u2014/g, " - ")
+    .replace(/\u2013/g, "-")
+    .replace(/[^\u0020-\u007E]/g, "");
+}
+
 async function assertTalantonEaAccess(): Promise<NextResponse | null> {
   const session = await getPlatformSession();
   if (!session) {
@@ -62,7 +70,7 @@ export async function POST(request: NextRequest) {
         ...NO_STORE_HEADERS,
         "Content-Type": "application/pdf",
         "Content-Disposition": `${disposition}; filename="${result.filename}"`,
-        "X-Talanton-Pack-Name": result.data.packName,
+        "X-Talanton-Pack-Name": asciiHeaderValue(result.data.packName),
         "X-Talanton-Meeting-Date": result.data.meetingDate,
         "X-Talanton-Page-Count": String(result.pageCount),
       },
