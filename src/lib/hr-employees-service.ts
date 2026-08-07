@@ -703,6 +703,47 @@ export async function ensureOnwardAirHrEmployeesSeeded(
   return listHrEmployees({ workspaceId });
 }
 
+const TALANTON_COMP_ANNUAL = 50_000;
+
+function talantonEmployeeCompensationReady(
+  employee: Pick<HrEmployee, "salaryCurrent" | "bonus" | "payFrequency" | "currency">,
+): boolean {
+  return (
+    Number(employee.salaryCurrent) === TALANTON_COMP_ANNUAL &&
+    Number(employee.bonus) === 0 &&
+    String(employee.payFrequency ?? "").trim().toLowerCase() === "monthly" &&
+    String(employee.currency ?? "").trim().toUpperCase() === "USD"
+  );
+}
+
+function talantonWorkforceCompensationReady(employees: HrEmployee[]): boolean {
+  const active = employees.filter(
+    (employee) =>
+      employee.employmentStatus !== "former_employee" &&
+      employee.employmentStatus !== "archived",
+  );
+  if (active.length === 0) return false;
+  return active.every((employee) => talantonEmployeeCompensationReady(employee));
+}
+
+async function syncTalantonCompensationBulk(workspaceId: string): Promise<void> {
+  const supabase = requireHrSupabase();
+  const { error } = await supabase
+    .from("hr_employees")
+    .update({
+      salary_current: TALANTON_COMP_ANNUAL,
+      salary_previous: TALANTON_COMP_ANNUAL,
+      bonus: 0,
+      pay_frequency: "monthly",
+      currency: "USD",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("workspace_id", workspaceId)
+    .not("employment_status", "eq", "former_employee")
+    .not("employment_status", "eq", "archived");
+  if (error) throw new Error(error.message);
+}
+
 /**
  * Seed Talanton OUR TEAM staff into hr_employees (talantonimpact workspace only).
  * Idempotent by email — never deletes existing employees.
@@ -718,6 +759,22 @@ export async function ensureTalantonHrEmployeesSeeded(
   const hasDavid = existing.some((e) =>
     e.fullName.toLowerCase().includes("david simms"),
   );
+
+  if (hasDavid && talantonWorkforceCompensationReady(existing)) {
+    return listHrEmployees({ workspaceId });
+  }
+
+  if (hasDavid && !talantonWorkforceCompensationReady(existing)) {
+    try {
+      await syncTalantonCompensationBulk(workspaceId);
+    } catch (error) {
+      console.error(
+        "[hr] Talanton bulk compensation sync failed:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+    return listHrEmployees({ workspaceId });
+  }
 
   if (existing.length === 0 || !hasDavid) {
     const byEmail = new Set(
@@ -795,16 +852,11 @@ export async function ensureTalantonHrEmployeesSeeded(
     const nextManagerId = manager?.id ?? null;
     const nextManagerLabel = manager?.fullName ?? managerName;
 
-    const needsCompSync =
-      employee.salaryCurrent !== 50_000 ||
-      employee.bonus !== 0 ||
-      employee.payFrequency !== "monthly" ||
-      employee.currency !== "USD";
     const needsManagerSync =
       employee.manager !== nextManagerLabel ||
       employee.managerEmployeeId !== nextManagerId;
 
-    if (!needsCompSync && !needsManagerSync) continue;
+    if (!needsManagerSync) continue;
 
     try {
       await updateHrEmployee(
@@ -812,23 +864,12 @@ export async function ensureTalantonHrEmployeesSeeded(
         {
           manager: nextManagerLabel,
           managerEmployeeId: nextManagerId,
-          ...(needsCompSync
-            ? {
-                salaryCurrent: 50_000,
-                salaryPrevious: 50_000,
-                bonus: 0,
-                payFrequency: "monthly",
-                currency: "USD",
-                compensationReason: "Talanton demo compensation sync",
-                compensationApprovedBy: "system",
-              }
-            : {}),
         },
         { workspaceId },
       );
     } catch (error) {
       console.error(
-        `[hr] Failed to sync Talanton employee ${member.email}:`,
+        `[hr] Failed to sync Talanton manager for ${member.email}:`,
         error instanceof Error ? error.message : error,
       );
     }
@@ -848,79 +889,15 @@ export async function ensureTalantonHrEmployeesSeeded(
     }
   }
 
-  // Every active Talanton employee — $50k/year, monthly pay, no bonus (demo SSOT).
-  refreshed = await listHrEmployees({ workspaceId, includeArchived: true });
-  for (const employee of refreshed) {
-    if (
-      employee.employmentStatus === "former_employee" ||
-      employee.employmentStatus === "archived"
-    ) {
-      continue;
-    }
-    const needsCompSync =
-      employee.salaryCurrent !== 50_000 ||
-      employee.bonus !== 0 ||
-      employee.payFrequency !== "monthly" ||
-      employee.currency !== "USD";
-    if (!needsCompSync) continue;
+  if (!talantonWorkforceCompensationReady(refreshed)) {
     try {
-      await updateHrEmployee(
-        employee.id,
-        {
-          salaryCurrent: 50_000,
-          salaryPrevious: 50_000,
-          bonus: 0,
-          payFrequency: "monthly",
-          currency: "USD",
-          compensationReason: "Talanton demo compensation sync",
-          compensationApprovedBy: "system",
-        },
-        { workspaceId },
-      );
+      await syncTalantonCompensationBulk(workspaceId);
     } catch (error) {
       console.error(
-        `[hr] Failed to sync Talanton compensation for ${employee.fullName}:`,
+        "[hr] Talanton bulk compensation sync failed:",
         error instanceof Error ? error.message : error,
       );
     }
-  }
-
-  try {
-    const { upsertEmployeePayrollProfile } =
-      await import("@/lib/payroll/payroll-service");
-    const { roundPayrollMoney } = await import("@/lib/payroll/types");
-    const payrollReady = await listHrEmployees({ workspaceId });
-    for (const employee of payrollReady) {
-      if (
-        employee.employmentStatus === "former_employee" ||
-        employee.employmentStatus === "archived"
-      ) {
-        continue;
-      }
-      try {
-        await upsertEmployeePayrollProfile(
-          employee.id,
-          {
-            annualSalary: 50_000,
-            monthlySalary: roundPayrollMoney(50_000 / 12),
-            bonus: 0,
-            payrollFrequency: "monthly",
-            currency: "USD",
-          },
-          { workspaceId },
-        );
-      } catch (error) {
-        console.error(
-          `[hr] Failed to sync Talanton payroll profile for ${employee.fullName}:`,
-          error instanceof Error ? error.message : error,
-        );
-      }
-    }
-  } catch (error) {
-    console.error(
-      "[hr] Talanton payroll profile sync skipped:",
-      error instanceof Error ? error.message : error,
-    );
   }
 
   return listHrEmployees({ workspaceId });
