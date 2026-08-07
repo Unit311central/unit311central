@@ -132,17 +132,23 @@ export type CreateReportDraft = {
   name: string;
 };
 
-export function createBlankReportDraft(demo = false): CreateReportDraft {
+export function createBlankReportDraft(options?: { demo?: boolean; talanton?: boolean }): CreateReportDraft {
+  const demo = options?.demo ?? false;
+  const talanton = options?.talanton ?? false;
   return {
     reportType: null,
     periodKind: "Monthly",
     periodLabel: "June 2026",
     dateFrom: "2026-06-01",
     dateTo: "2026-06-30",
-    organisation: demo ? "Meridian Atlas Group" : "Unit311 Central",
+    organisation: talanton
+      ? "Talanton Impact Fund"
+      : demo
+        ? "Meridian Atlas Group"
+        : "Unit311 Central",
     department: "Finance",
     project: "All projects",
-    currency: demo ? "GBP" : "EUR",
+    currency: talanton ? "USD" : demo ? "GBP" : "EUR",
     includeCharts: true,
     includeNotes: true,
     maturity: "Final",
@@ -597,11 +603,182 @@ export const SEED_FINANCIAL_REPORTS: FinancialReportRecord[] = [
   },
 ];
 
-export function getFinancialReportOrganisations(demo = false) {
-  return demo ? DEMO_FINANCIAL_REPORT_ORGANISATIONS : FINANCIAL_REPORT_ORGANISATIONS;
+export const TALANTON_FINANCIAL_REPORT_ORGANISATIONS = [
+  "Talanton Impact Fund",
+  "Talanton Impact GP",
+  "All entities",
+] as const;
+
+export const TALANTON_SEED_FINANCIAL_REPORTS: FinancialReportRecord[] = [
+  {
+    id: "ti-rpt-pl-q2-2026",
+    name: "Fund Profit & Loss",
+    category: "Profit & Loss",
+    reportType: "Profit & Loss",
+    periodKind: "Quarterly",
+    periodLabel: "Q2 2026",
+    createdBy: "Andy Moore",
+    lastGenerated: "Today",
+    formats: ["PDF", "Excel"],
+    primaryFormat: "PDF",
+    status: "Ready",
+    description:
+      "Quarterly fund P&L — management fees, fund expenses, and net investment income in USD.",
+    organisation: "Talanton Impact Fund",
+    department: "Finance",
+    project: "All projects",
+    currency: "USD",
+    includeCharts: true,
+    includeNotes: true,
+    maturity: "Final",
+    dateFrom: "2026-04-01",
+    dateTo: "2026-06-30",
+    history: [
+      {
+        id: "ti-h-pl-1",
+        generatedAt: "2026-07-08T14:00:00.000Z",
+        generatedBy: "Andy Moore",
+        format: "PDF",
+        status: "Ready",
+      },
+    ],
+  },
+  {
+    id: "ti-rpt-bs-jun-2026",
+    name: "Fund Balance Sheet",
+    category: "Balance Sheet",
+    reportType: "Balance Sheet",
+    periodKind: "Monthly",
+    periodLabel: "June 2026",
+    createdBy: "Mercy Nelima",
+    lastGenerated: "Today",
+    formats: ["PDF", "Excel"],
+    primaryFormat: "PDF",
+    status: "Ready",
+    description: "Statement of financial position — cash, investments, and fund liabilities.",
+    organisation: "Talanton Impact Fund",
+    department: "Finance",
+    project: "All projects",
+    currency: "USD",
+    includeCharts: false,
+    includeNotes: true,
+    maturity: "Final",
+    dateFrom: "2026-06-01",
+    dateTo: "2026-06-30",
+    history: [
+      {
+        id: "ti-h-bs-1",
+        generatedAt: "2026-07-05T11:30:00.000Z",
+        generatedBy: "Mercy Nelima",
+        format: "PDF",
+        status: "Ready",
+      },
+    ],
+  },
+  {
+    id: "ti-rpt-cf-q2-2026",
+    name: "Fund Cash Flow",
+    category: "Cash Flow",
+    reportType: "Cash Flow",
+    periodKind: "Quarterly",
+    periodLabel: "Q2 2026",
+    createdBy: "Carol Rubiro",
+    lastGenerated: "Today",
+    formats: ["PDF"],
+    primaryFormat: "PDF",
+    status: "Ready",
+    description: "Operating, investing, and financing cash flows for the impact fund.",
+    organisation: "Talanton Impact Fund",
+    department: "Fund Operations",
+    project: "All projects",
+    currency: "USD",
+    includeCharts: true,
+    includeNotes: false,
+    maturity: "Final",
+    dateFrom: "2026-04-01",
+    dateTo: "2026-06-30",
+    history: [
+      {
+        id: "ti-h-cf-1",
+        generatedAt: "2026-07-10T09:00:00.000Z",
+        generatedBy: "Carol Rubiro",
+        format: "PDF",
+        status: "Ready",
+      },
+    ],
+  },
+  {
+    id: "ti-rpt-mgmt-fees-2026",
+    name: "Management Fee & Operating Expense Report",
+    category: "Expenses",
+    reportType: "Expense Report",
+    periodKind: "Yearly",
+    periodLabel: "FY 2026",
+    createdBy: "Andy Moore",
+    lastGenerated: null,
+    formats: ["PDF", "Excel"],
+    primaryFormat: "Excel",
+    status: "Draft",
+    description:
+      "YTD management fees, fund administration, and GP operating expenses for LP reporting.",
+    organisation: "Talanton Impact GP",
+    department: "Finance",
+    project: "All projects",
+    currency: "USD",
+    includeCharts: true,
+    includeNotes: true,
+    maturity: "Draft",
+    dateFrom: "2026-01-01",
+    dateTo: "2026-06-30",
+    history: [],
+  },
+  {
+    id: "ti-rpt-lp-capital",
+    name: "LP Capital Account Summary",
+    category: "Custom",
+    reportType: "Custom Report",
+    periodKind: "Quarterly",
+    periodLabel: "Q2 2026",
+    createdBy: "Michelle Ochieng",
+    lastGenerated: "Today",
+    formats: ["PDF"],
+    primaryFormat: "PDF",
+    status: "Ready",
+    description: "Limited partner capital accounts, contributions, and distributions summary.",
+    organisation: "Talanton Impact Fund",
+    department: "Investor Relations",
+    project: "All projects",
+    currency: "USD",
+    includeCharts: false,
+    includeNotes: true,
+    maturity: "Final",
+    dateFrom: "2026-04-01",
+    dateTo: "2026-06-30",
+    history: [
+      {
+        id: "ti-h-lp-1",
+        generatedAt: "2026-07-15T16:45:00.000Z",
+        generatedBy: "Michelle Ochieng",
+        format: "PDF",
+        status: "Ready",
+      },
+    ],
+  },
+];
+
+export function getFinancialReportOrganisations(options?: { demo?: boolean; talanton?: boolean }) {
+  if (options?.talanton) return TALANTON_FINANCIAL_REPORT_ORGANISATIONS;
+  if (options?.demo) return DEMO_FINANCIAL_REPORT_ORGANISATIONS;
+  return FINANCIAL_REPORT_ORGANISATIONS;
 }
 
-export function getSeedFinancialReports(demo = false): FinancialReportRecord[] {
+export function getSeedFinancialReports(options?: {
+  demo?: boolean;
+  talanton?: boolean;
+}): FinancialReportRecord[] {
+  const demo = options?.demo ?? false;
+  const talanton = options?.talanton ?? false;
+  if (talanton) return TALANTON_SEED_FINANCIAL_REPORTS;
   if (!demo) return SEED_FINANCIAL_REPORTS;
   return SEED_FINANCIAL_REPORTS.map((report) => ({
     ...report,

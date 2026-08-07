@@ -31,7 +31,7 @@ import {
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
-import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import BurnRateOverviewSection from "@/components/testflighthub/BurnRateOverviewSection";
 import {
@@ -225,9 +225,9 @@ export default function FinancialsWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [burnDrillOpen, setBurnDrillOpen] = useState(false);
 
-  const reportingCurrency =
-    overview?.burnRate?.currency || resolveBrowserReportingCurrency();
-  const money = (amount: number, currency = reportingCurrency) => formatMoney(amount, currency);
+  const reportingCurrency = useWorkspaceReportingCurrency(overview?.burnRate?.currency);
+  const money = (amount: number, currency?: string) =>
+    formatMoney(amount, currency ?? reportingCurrency);
 
   const load = useCallback(async () => {
     setLoading(true);

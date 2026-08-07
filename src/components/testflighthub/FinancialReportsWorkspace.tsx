@@ -21,7 +21,8 @@ import {
 
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise/surface";
-import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
+import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import {
   buildReportFromDraft,
   createBlankReportDraft,
@@ -133,10 +134,11 @@ const WIZARD_STEPS = [
 
 export default function FinancialReportsWorkspace() {
   const isDemo = isBrowserDemoSurface();
-  const workspaceCurrency = resolveBrowserReportingCurrency();
-  const reportOrganisations = getFinancialReportOrganisations(isDemo);
+  const isTalanton = isBrowserTalantonImpactSurface();
+  const workspaceCurrency = useWorkspaceReportingCurrency();
+  const reportOrganisations = getFinancialReportOrganisations({ demo: isDemo, talanton: isTalanton });
   const [reports, setReports] = useState<FinancialReportRecord[]>(() =>
-    getSeedFinancialReports(isBrowserDemoSurface()).map((report) => ({
+    getSeedFinancialReports({ demo: isDemo, talanton: isTalanton }).map((report) => ({
       ...report,
       currency: workspaceCurrency === "GBP" ? report.currency : workspaceCurrency,
     })),
@@ -156,7 +158,7 @@ export default function FinancialReportsWorkspace() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
   const [draft, setDraft] = useState<CreateReportDraft>(() => {
-    const base = createBlankReportDraft(isBrowserDemoSurface());
+    const base = createBlankReportDraft({ demo: isDemo, talanton: isTalanton });
     return workspaceCurrency === "GBP" ? base : { ...base, currency: workspaceCurrency };
   });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -268,7 +270,7 @@ export default function FinancialReportsWorkspace() {
 
   function openCreate() {
     setEditingId(null);
-    setDraft(createBlankReportDraft(isDemo));
+    setDraft(createBlankReportDraft({ demo: isDemo, talanton: isTalanton }));
     setWizardStep(0);
     setWizardOpen(true);
     setRowMenuId(null);
@@ -300,7 +302,7 @@ export default function FinancialReportsWorkspace() {
   function closeWizard() {
     setWizardOpen(false);
     setEditingId(null);
-    setDraft(createBlankReportDraft(isDemo));
+    setDraft(createBlankReportDraft({ demo: isDemo, talanton: isTalanton }));
     setWizardStep(0);
   }
 

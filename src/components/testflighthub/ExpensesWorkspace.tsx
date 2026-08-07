@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
-import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
+import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   ArrowLeft,
@@ -84,8 +84,10 @@ function sanitizeExpenseAmountInput(value: string) {
   return value.replace(/[^\d.]/g, "");
 }
 
-function reportingExpenseCurrency(expenses: FinancialExpense[]): ExpenseCurrency {
-  const workspaceCurrency = resolveBrowserReportingCurrency();
+function reportingExpenseCurrency(
+  expenses: FinancialExpense[],
+  workspaceCurrency: ReturnType<typeof useWorkspaceReportingCurrency>,
+): ExpenseCurrency {
   if (workspaceCurrency === "AUD" || workspaceCurrency === "USD") return workspaceCurrency;
   if (isBrowserAbhiSurface()) return "GBP";
   const codes = expenses.map((expense) => String(expense.currency || "").toUpperCase());
@@ -183,6 +185,7 @@ type ExpensesWorkspaceProps = {
 };
 
 export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorkspaceProps) {
+  const workspaceCurrency = useWorkspaceReportingCurrency();
   const [expenses, setExpenses] = useState<FinancialExpense[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -214,7 +217,10 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
 
   const totalOutstanding = useMemo(() => sumOutstandingExpenses(expenses), [expenses]);
 
-  const reportCurrency = useMemo(() => reportingExpenseCurrency(expenses), [expenses]);
+  const reportCurrency = useMemo(
+    () => reportingExpenseCurrency(expenses, workspaceCurrency),
+    [expenses, workspaceCurrency],
+  );
 
   const reportData = useMemo(
     () => buildExpenseReport(expenses, reportMode),

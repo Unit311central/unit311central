@@ -13,6 +13,8 @@ import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
+import { TALANTON_EXPENSE_FIXTURES } from "@/lib/talanton/expenses-fixtures";
+import { isTalantonWorkspaceSlug } from "@/lib/talanton-financials";
 import {
   ensureFinancialExpensesTable,
   withFinancialExpensesTable,
@@ -34,6 +36,20 @@ export async function listExpenses(
   scope?: ExpensesWorkspaceScope,
 ): Promise<FinancialExpense[]> {
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
+  let workspaceSlug = String(scope?.workspaceSlug ?? "").trim().toLowerCase();
+  if (!workspaceSlug) {
+    try {
+      const supabase = requireExpensesSupabase();
+      const { data } = await supabase
+        .from("workspaces")
+        .select("slug")
+        .eq("id", workspaceId)
+        .maybeSingle();
+      workspaceSlug = String(data?.slug ?? "").trim().toLowerCase();
+    } catch {
+      workspaceSlug = "";
+    }
+  }
   // Table ensure is memoized; withFinancialExpensesTable retries if missing.
   return withFinancialExpensesTable(async () => {
     const supabase = requireExpensesSupabase();
@@ -44,7 +60,15 @@ export async function listExpenses(
       .order("date_submitted", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return (data as DbExpense[]).map(mapFinancialExpense);
+    const rows = (data as DbExpense[]).map(mapFinancialExpense);
+    if (isTalantonWorkspaceSlug(workspaceSlug)) {
+      const talantonOnly = rows.filter(
+        (expense) => String(expense.currency || "").toUpperCase() === "USD",
+      );
+      if (talantonOnly.length > 0) return talantonOnly;
+      return TALANTON_EXPENSE_FIXTURES;
+    }
+    return rows;
   });
 }
 

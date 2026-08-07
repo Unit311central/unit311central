@@ -25,6 +25,12 @@ import {
   getOnwardAirMonthlyCashSeries,
   isOnwardAirWorkspaceSlug,
 } from "@/lib/onwardair-financials";
+import {
+  getTalantonFixturePayrollObligation,
+  getTalantonMonthlyCashSeries,
+  isTalantonWorkspaceSlug,
+  TALANTON_CASH_BALANCE_USD,
+} from "@/lib/talanton-financials";
 import { isOnwardAirSlug, ONWARDAIR_REPORTING_CURRENCY } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug, TALANTON_REPORTING_CURRENCY } from "@/lib/talanton-surface";
 import { listExpenses } from "@/lib/financial-expenses-service";
@@ -400,6 +406,8 @@ export async function getFinancialOverview(
       cashPosition = ABHI_CASH_BALANCE_GBP;
     } else if (isOnwardAirWorkspaceSlug(workspaceSlug)) {
       cashPosition = ONWARDAIR_CASH_BALANCE_USD;
+    } else if (isTalantonWorkspaceSlug(workspaceSlug)) {
+      cashPosition = TALANTON_CASH_BALANCE_USD;
     } else {
       cashPosition = await resolveTreasuryCash(totals.cashPosition);
       if (reportingCurrency !== "GBP") {
@@ -550,12 +558,18 @@ export async function getFinancialOverview(
     const glSoftwareMonthly = payrollPoint?.software ?? 0;
 
     // Payroll engine (HR salaries + tax settings) is the SSOT when employees exist.
+    const talantonFixturePayroll = isTalantonWorkspaceSlug(workspaceSlug)
+      ? getTalantonFixturePayrollObligation()
+      : null;
+
     const payrollMonthly =
       payrollLive && payrollLive.employeeCount > 0
         ? toReporting(payrollLive.monthlyGross, payrollLive.currency)
         : obligations.payroll.employees > 0
           ? toReporting(obligations.payroll.monthly, obligations.payroll.currency)
-          : glPayrollMonthly;
+          : talantonFixturePayroll
+            ? talantonFixturePayroll.monthly
+            : glPayrollMonthly;
     const payrollLiability =
       payrollLive && payrollLive.employeeCount > 0
         ? toReporting(
@@ -564,9 +578,14 @@ export async function getFinancialOverview(
           )
         : obligations.payroll.employees > 0
           ? toReporting(obligations.payroll.liability, obligations.payroll.currency)
-          : 0;
+          : talantonFixturePayroll && talantonFixturePayroll.employees > 0
+            ? talantonFixturePayroll.monthly
+            : 0;
     const payrollEmployees =
-      payrollLive?.employeeCount || obligations.payroll.employees || 0;
+      payrollLive?.employeeCount ||
+      obligations.payroll.employees ||
+      talantonFixturePayroll?.employees ||
+      0;
     const payrollNextDate =
       payrollLive?.nextPayrollDate || obligations.payroll.nextPayrollDate || todayIso;
     const softwareMonthly =
@@ -600,14 +619,17 @@ export async function getFinancialOverview(
             payrollLive.monthlyGross + payrollLive.employerTax,
             payrollLive.currency,
           )
-        : payrollMonthly;
+        : talantonFixturePayroll && payrollEmployees > 0
+          ? talantonFixturePayroll.monthly
+          : payrollMonthly;
 
     const glBurnBase =
       burnRate.lines.length > 0 ? burnRate.monthly : (monthlyExpensePoint?.amount ?? 0);
-    // ABHI: burn is staff payroll employment cost only for now (ignore one-shot GL accruals).
-    const monthlyBurn = isAbhiWorkspaceSlug(workspaceSlug)
-      ? roundMoney(payrollBurn)
-      : isDemoTreasury
+    // ABHI / Talanton: burn is staff payroll employment cost (SSOT when HR registers are sparse).
+    const monthlyBurn =
+      isAbhiWorkspaceSlug(workspaceSlug) || isTalantonWorkspaceSlug(workspaceSlug)
+        ? roundMoney(payrollBurn)
+        : isDemoTreasury
         ? roundMoney(payrollBurn + softwareMonthly + vendorExpenseRunRate)
         : roundMoney(
             Math.max(0, glBurnBase - glPayrollMonthly - glSoftwareMonthly) +
@@ -622,9 +644,10 @@ export async function getFinancialOverview(
     })();
     const priorVendor =
       vendorExpenseByMonth.get(priorMonthPrefix) ?? vendorExpenseRunRate;
-    const previousMonthlyBurn = isAbhiWorkspaceSlug(workspaceSlug)
-      ? roundMoney(payrollBurn)
-      : isDemoTreasury
+    const previousMonthlyBurn =
+      isAbhiWorkspaceSlug(workspaceSlug) || isTalantonWorkspaceSlug(workspaceSlug)
+        ? roundMoney(payrollBurn)
+        : isDemoTreasury
         ? roundMoney(payrollBurn + softwareMonthly + priorVendor)
         : roundMoney(
             burnRate.previousMonthly > 0
@@ -720,6 +743,33 @@ export async function getFinancialOverview(
           ]
         : [];
 
+    const talantonBurnSeries =
+      isTalantonWorkspaceSlug(workspaceSlug) && payrollMonthly > 0
+        ? burnRate.series.length > 0
+          ? burnRate.series.map((point, index, array) =>
+              index === array.length - 1
+                ? {
+                    ...point,
+                    payroll: payrollMonthly,
+                    total: Math.max(point.total, payrollMonthly),
+                  }
+                : point,
+            )
+          : [
+              {
+                month: monthPrefix,
+                total: payrollMonthly,
+                payroll: payrollMonthly,
+                contractors: 0,
+                software: 0,
+                office: 0,
+                marketing: 0,
+                travel: 0,
+                other: 0,
+              },
+            ]
+        : burnRate.series;
+
     return {
       revenueYtd,
       cashPosition,
@@ -733,6 +783,7 @@ export async function getFinancialOverview(
       annualExpenses: roundMoney(annualExpenses + softwareMonthly * 12),
       burnRate: {
         ...burnRate,
+        series: talantonBurnSeries,
         monthly: roundMoney(monthlyBurn),
         quarterly: roundMoney(monthlyBurn * 3),
         annual: roundMoney(monthlyBurn * 12),
@@ -744,7 +795,9 @@ export async function getFinancialOverview(
         currency: reportingCurrency,
         trendLabel: isAbhiWorkspaceSlug(workspaceSlug)
           ? "Staff payroll"
-          : isDemoTreasury
+          : isTalantonWorkspaceSlug(workspaceSlug)
+            ? "Staff payroll"
+            : isDemoTreasury
             ? "Payroll + software + vendor opex"
             : burnRate.lines.length > 0
               ? burnRate.trendLabel
@@ -822,6 +875,8 @@ export async function getFinancialOverview(
           ? getAbhiMonthlyCashSeries()
           : isOnwardAirWorkspaceSlug(workspaceSlug)
             ? getOnwardAirMonthlyCashSeries()
+            : isTalantonWorkspaceSlug(workspaceSlug)
+              ? getTalantonMonthlyCashSeries()
           : isDemoTreasury
             ? (charts.cashPosition.length > 0
                 ? charts.cashPosition
