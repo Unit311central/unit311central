@@ -366,7 +366,9 @@ export default function Unit311LoginPage({
       }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >
-      <div className={`flex w-full max-w-[480px] flex-col items-center ${marketingFadeIn}`}>
+      <div
+        className={`flex w-full flex-col items-center ${isTalantonPortalsLogin ? "max-w-[640px]" : "max-w-[480px]"} ${marketingFadeIn}`}
+      >
         {/* Fixed aspect logo slot — compact mark above the card */}
         <div className="flex w-full items-center justify-center px-2">
           {isCorpCentre ? (
@@ -401,7 +403,13 @@ export default function Unit311LoginPage({
         </div>
 
         <div className="mt-10 w-full text-center sm:mt-12">
-          <h1 className="text-[1.75rem] font-semibold tracking-[-0.035em] text-white sm:text-[2.125rem]">
+          <h1
+            className={
+              isTalantonPortalsLogin
+                ? "whitespace-nowrap text-[1.15rem] font-semibold tracking-[-0.04em] text-white min-[400px]:text-[1.45rem] sm:text-[1.85rem] md:text-[2.125rem]"
+                : "text-[1.75rem] font-semibold tracking-[-0.035em] text-white sm:text-[2.125rem]"
+            }
+          >
             {isCorpCentre
               ? "Corp.Centre Login"
               : isTalantonPortalsLogin
