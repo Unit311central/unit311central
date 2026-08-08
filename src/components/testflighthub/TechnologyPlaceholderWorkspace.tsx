@@ -18,6 +18,7 @@ import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import {
   ABHI_TECH_ASSETS,
   ABHI_TECH_DEVICES,
+  ABHI_TECH_REPORTS,
   type AbhiTechTelecom,
   isAbhiMobileTelecomService,
   loadAbhiTelecoms,
@@ -267,6 +268,51 @@ function OaDevicesRegister() {
               </p>
               <p className="mt-2 text-sm tabular-nums text-white/80">
                 ${asset.valueUsd.toLocaleString("en-US")}
+              </p>
+            </div>
+          ))}
+        </div>
+      </WsSection>
+    </div>
+  );
+}
+
+function AbhiReportsRegister() {
+  return (
+    <div className="space-y-4">
+      <WsSection
+        title="Reports"
+        subtitle="ABHI technology estate reporting · London HQ · GBP"
+      >
+        <div className="grid gap-3">
+          {ABHI_TECH_REPORTS.map((report) => (
+            <div
+              key={report.id}
+              className="rounded-xl border border-white/10 bg-[#0b1524]/80 px-4 py-3"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white">{report.title}</p>
+                  <p className="mt-1 text-xs text-white/45">
+                    {report.category} · {report.period} · {report.owner}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "rounded-md px-2 py-0.5 text-[11px] font-medium",
+                    report.status === "Ready"
+                      ? "bg-emerald-500/15 text-emerald-200"
+                      : report.status === "Scheduled"
+                        ? "bg-sky-500/15 text-sky-200"
+                        : "bg-amber-500/15 text-amber-100",
+                  )}
+                >
+                  {report.status}
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-white/65">{report.summary}</p>
+              <p className="mt-2 text-[11px] tabular-nums text-white/35">
+                Generated {report.generatedAt}
               </p>
             </div>
           ))}
@@ -969,6 +1015,7 @@ export default function TechnologyPlaceholderWorkspace({
   const isTi = isBrowserTalantonImpactSurface();
   if (isAbhi && module === "devices") return <AbhiDevicesRegister />;
   if (isAbhi && module === "telecommunications") return <AbhiTelecomsRegister />;
+  if (isAbhi && module === "reports") return <AbhiReportsRegister />;
   if ((isOa || isTi) && module === "devices") return <OaDevicesRegister />;
   if ((isOa || isTi) && module === "telecommunications") return <OaTelecomsRegister />;
   if ((isOa || isTi) && module === "reports") return <OaReportsRegister />;

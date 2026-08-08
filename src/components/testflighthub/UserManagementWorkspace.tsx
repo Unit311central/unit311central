@@ -23,6 +23,7 @@ import { KeyRound, Loader2, Plus, Save, Shield, Trash2, X } from "lucide-react";
 import AddUserAccessWizard from "./AddUserAccessWizard";
 import { setCachedJson, PLATFORM_CACHE_KEYS } from "@/lib/platform-fetch-cache";
 import { validatePlatformSignupPasswordConfirmation } from "@/lib/platform-password-validation";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -73,6 +74,8 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
   );
 
   const isTalantonUsers = isBrowserTalantonImpactSurface();
+  const isAbhiUsers = isBrowserAbhiSurface();
+  const showCityCountry = isTalantonUsers || isAbhiUsers;
 
   const isDirty = useMemo(() => {
     if (!selectedUser) return false;
@@ -656,7 +659,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                       })}
                     </div>
                   </div>
-                  {isTalantonUsers ? (
+                  {showCityCountry ? (
                     <>
                       <div>
                         <FieldLabel>City</FieldLabel>

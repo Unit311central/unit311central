@@ -286,3 +286,73 @@ export const ABHI_TECH_ASSETS: AbhiTechAsset[] = [
     valueGbp: 999,
   },
 ];
+
+export type AbhiTechReport = {
+  id: string;
+  title: string;
+  category: string;
+  period: string;
+  owner: string;
+  status: "Ready" | "Draft" | "Scheduled";
+  summary: string;
+  generatedAt: string;
+};
+
+/** Five IT-ready reports for ABHI Technology Management — London HQ · GBP. */
+export const ABHI_TECH_REPORTS: AbhiTechReport[] = [
+  {
+    id: "abhi-rpt-1",
+    title: "Device utilisation — London HQ estate",
+    category: "Devices",
+    period: "Q2 2026",
+    owner: "Technology Desk",
+    status: "Ready",
+    summary:
+      "In-use vs spare vs repair across laptops, mobiles, and event AV kit. Spare pool healthy; one iPad in repair after WHX briefing tour.",
+    generatedAt: "2026-07-28",
+  },
+  {
+    id: "abhi-rpt-2",
+    title: "M365 licence compliance & seat waste",
+    category: "Software",
+    period: "Jul 2026",
+    owner: "Jane Lewis",
+    status: "Ready",
+    summary:
+      "Seat allocation vs purchase for M365, Teams Phone, and Adobe Creative Cloud. Flags unused seats and upcoming renewals in GBP.",
+    generatedAt: "2026-07-30",
+  },
+  {
+    id: "abhi-rpt-3",
+    title: "Telecom spend forecast (GBP)",
+    category: "Telecom",
+    period: "FY2026 H2",
+    owner: "Jane Lewis",
+    status: "Ready",
+    summary:
+      "Run-rate for fibre, mobile plans, conference bridge, and roaming for international events. Projects ~£4.2k/mo combined with software.",
+    generatedAt: "2026-08-01",
+  },
+  {
+    id: "abhi-rpt-4",
+    title: "Technology renewal calendar",
+    category: "Renewals",
+    period: "Next 6 months",
+    owner: "Technology Desk",
+    status: "Scheduled",
+    summary:
+      "M365, Ubiquiti stack, CEO laptop warranty, and event AV kit refresh windows with estimated GBP costs.",
+    generatedAt: "2026-08-02",
+  },
+  {
+    id: "abhi-rpt-5",
+    title: "Member CRM & backup health",
+    category: "Infrastructure",
+    period: "Aug 2026",
+    owner: "Phil Brown",
+    status: "Draft",
+    summary:
+      "Dynamics member data sync uptime, nightly backup RPO for membership CRM, and event registration API availability.",
+    generatedAt: "2026-08-03",
+  },
+];

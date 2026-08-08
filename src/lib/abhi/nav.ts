@@ -101,6 +101,11 @@ export const ABHI_MARKETING_NAV_SECTION: InternalNavSection = {
       view: "marketing-newsletter",
     },
     {
+      label: "Social",
+      icon: "Share2",
+      view: "social",
+    },
+    {
       label: "External Events",
       icon: "CalendarDays",
       view: "marketing-events",

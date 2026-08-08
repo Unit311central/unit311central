@@ -2,6 +2,7 @@
  * ABHI-only internal staff training fixtures — current ABHI employees only.
  * Course catalogue matches Talanton Assigned Courses (compliance programme).
  */
+import { applyAbhiQmsOpsSeed } from "@/lib/abhi/qms-data";
 import { ABHI_COMPLIANCE_COURSES } from "@/lib/abhi-training-courses";
 import type {
   TqmsAssignment,
@@ -305,7 +306,7 @@ export function applyAbhiTqmsSeed<T extends {
   assessments: TqmsAssessment[];
   learningPaths: TqmsLearningPath[];
 }>(base: T): T {
-  return {
+  const withTraining = {
     ...base,
     courses: createAbhiTqmsCourses(),
     learners: createAbhiTqmsLearners(),
@@ -314,6 +315,7 @@ export function applyAbhiTqmsSeed<T extends {
     assessments: createAbhiTqmsAssessments(),
     learningPaths: createAbhiTqmsLearningPaths(),
   };
+  return applyAbhiQmsOpsSeed(withTraining) as T;
 }
 
 export function isNonAbhiTrainingLeak(learners: TqmsLearner[]): boolean {

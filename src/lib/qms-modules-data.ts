@@ -76,6 +76,13 @@ export function getQmsModulesForSurface(): QmsModule[] {
           require("@/lib/onwardair/qms-data") as typeof import("@/lib/onwardair/qms-data");
         return [...OA_QMS_MODULES];
       }
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        const { ABHI_QMS_MODULES } =
+          require("@/lib/abhi/qms-data") as typeof import("@/lib/abhi/qms-data");
+        return [...ABHI_QMS_MODULES];
+      }
     } catch {
       /* fall through */
     }
@@ -92,6 +99,13 @@ export function getQmsTrainingCoursesForSurface() {
         const { OA_QMS_TRAINING_COURSES } =
           require("@/lib/onwardair/qms-data") as typeof import("@/lib/onwardair/qms-data");
         return [...OA_QMS_TRAINING_COURSES];
+      }
+      const { isBrowserAbhiSurface } =
+        require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+      if (isBrowserAbhiSurface()) {
+        const { ABHI_QMS_TRAINING_COURSES } =
+          require("@/lib/abhi/qms-data") as typeof import("@/lib/abhi/qms-data");
+        return [...ABHI_QMS_TRAINING_COURSES];
       }
     } catch {
       /* fall through */

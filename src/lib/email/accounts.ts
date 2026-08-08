@@ -2,6 +2,7 @@ import type { EmailAccount, EmailAccountId, EmailMailboxFolder } from "@/lib/ema
 import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 
 import { resolveAccountCredentials } from "@/lib/email/credentials-service";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { isPlatformWorkspaceSlug } from "@/lib/workspace-brand";
@@ -68,7 +69,7 @@ export function getPublicEmailAccounts(options?: {
   if (isPlatformWorkspaceSlug(slug)) {
     return accountsForIds(ALL_ACCOUNT_IDS);
   }
-  if (isTalantonImpactSlug(slug) || isOnwardAirSlug(slug)) {
+  if (isTalantonImpactSlug(slug) || isOnwardAirSlug(slug) || isAbhiSlug(slug)) {
     return accountsForIds(DEMO_ONLY_EMAIL_ACCOUNT_IDS);
   }
   return [];

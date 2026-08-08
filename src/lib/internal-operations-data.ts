@@ -1487,6 +1487,9 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
         if (activeView === "module-go-live") {
           return { title: "Module Go-Live", subtitle: "ABHI Details" };
         }
+        if (activeView === "social") {
+          return { title: "Social", subtitle: "Marketing & Events" };
+        }
       }
     } catch {
       /* ignore */
