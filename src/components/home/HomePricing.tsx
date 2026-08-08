@@ -3,62 +3,101 @@ import type { ReactNode } from "react";
 import { Check } from "lucide-react";
 import HomeSectionTitle from "./HomeSectionTitle";
 import {
-  PROFESSIONAL_MONTHLY_USD,
-  PROFESSIONAL_QUARTERLY_USD,
+  formatProfessionalUsd,
+  MARKETING_ANNUAL_PREPAY_DISCOUNT,
+  MARKETING_CORE_MONTHLY_FROM_USD,
+  MARKETING_ENTERPRISE_MONTHLY_FROM_USD,
+  MARKETING_IMPLEMENTATION_HIGH_USD,
+  MARKETING_IMPLEMENTATION_LOW_USD,
+  MARKETING_OPERATOR_MONTHLY_FROM_USD,
 } from "@/lib/platform-pricing";
 
-const MONTHLY_PRICE = PROFESSIONAL_MONTHLY_USD;
-const QUARTERLY_PRICE = PROFESSIONAL_QUARTERLY_USD;
+type Tier = {
+  id: string;
+  name: string;
+  monthlyFrom: number;
+  description: string;
+  features: readonly string[];
+  highlighted?: boolean;
+  ctaHref: string;
+  ctaLabel: string;
+};
 
-const PLAN_FEATURES = [
-  "Many modules including Business Central, AI Executive Assistant, Clients & Projects, Financials, HR & People, Technology & Engineering, Corporate, Operations, Business Productivity, Support Desk and Business App Integrations",
-  "AI Executive Assistant and board pack / report automation",
-  "Professional onboarding and business configuration",
-  "Monthly allowance to ask for customization for any module",
-  "Integration with your existing business applications",
-  "Designed for growing businesses",
-  "Fixed implementation proposal before every project",
-  "High Touch High Care Support at all times",
-] as const;
+const TIERS: Tier[] = [
+  {
+    id: "core",
+    name: "Core",
+    monthlyFrom: MARKETING_CORE_MONTHLY_FROM_USD,
+    description: "Growing SME — standard workspaces, light integrations.",
+    features: [
+      "Business Central, Clients & Projects, HR & People, Operations",
+      "Professional onboarding and configuration",
+      "Up to 2 business-app integrations",
+      "Standard support",
+    ],
+    ctaHref: "/book",
+    ctaLabel: "Book a demo",
+  },
+  {
+    id: "operator",
+    name: "Operator",
+    monthlyFrom: MARKETING_OPERATOR_MONTHLY_FROM_USD,
+    description: "Full platform — AI, reporting and priority support.",
+    highlighted: true,
+    features: [
+      "All Core modules plus Financials, Corporate, Technology, Support Desk",
+      "AI Executive Assistant and board pack automation",
+      "Monthly change budget for module customization",
+      "Broader integrations and priority support",
+    ],
+    ctaHref: "/book",
+    ctaLabel: "Book a demo",
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    monthlyFrom: MARKETING_ENTERPRISE_MONTHLY_FROM_USD,
+    description: "Heavy custom, multi-workspace or white-label deployments.",
+    features: [
+      "Dedicated rollout and solution architecture",
+      "Advanced integrations and automation",
+      "Multi-entity or tenant-scale configuration",
+      "Scoped proposal for your operating model",
+    ],
+    ctaHref: "/contact",
+    ctaLabel: "Contact us",
+  },
+];
 
 const IMPLEMENTATION_INCLUDES = [
-  "Business configuration",
-  "User & permission setup",
-  "Data migration",
-  "Existing system integrations",
-  "Team training",
-  "Go-live assistance",
-  "If you are interested in more advanced AI functionality to automate your Support Desk, please contact us",
+  "Business configuration and permissions",
+  "Data migration and system integrations",
+  "Team training and go-live assistance",
 ] as const;
 
-function PricingCardShell({ children }: { children: ReactNode }) {
+function TierCardShell({
+  highlighted,
+  children,
+}: {
+  highlighted?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#3b82f6]/25 bg-gradient-to-b from-white/[0.07] to-white/[0.03] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
+    <article
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-gradient-to-b from-white/[0.07] to-white/[0.03] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl ${
+        highlighted
+          ? "border-[#3b82f6]/40 ring-1 ring-[#3b82f6]/20"
+          : "border-[#3b82f6]/25"
+      }`}
+    >
       {children}
     </article>
   );
 }
 
-function PricingCardBody({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex h-full flex-1 flex-col px-5 py-7 sm:px-8 sm:py-10">{children}</div>
-  );
-}
-
-function PricingCardAction({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <div className="mt-auto pt-8">
-      <Link
-        href={href}
-        className="flex h-11 w-full items-center justify-center rounded-lg bg-white px-5 text-sm font-semibold text-[#0b2d63] transition-colors hover:bg-[#f8fafc]"
-      >
-        {children}
-      </Link>
-    </div>
-  );
-}
-
 export default function HomePricing() {
+  const annualDiscountPct = Math.round(MARKETING_ANNUAL_PREPAY_DISCOUNT * 100);
+
   return (
     <section
       id="pricing"
@@ -74,63 +113,78 @@ export default function HomePricing() {
       />
 
       <div className="relative mx-auto max-w-[1760px] px-4 sm:px-8 lg:px-10">
-        <HomeSectionTitle>Simple Transparent Pricing</HomeSectionTitle>
+        <HomeSectionTitle>Transparent pricing, scoped to you</HomeSectionTitle>
+        <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-relaxed text-white/55 sm:text-[15px]">
+          From {formatProfessionalUsd(MARKETING_CORE_MONTHLY_FROM_USD)}/month — fixed subscription,
+          implementation quoted before you commit. Annual prepay saves {annualDiscountPct}%.
+        </p>
 
         <div className="mx-auto mt-8 grid max-w-6xl gap-4 sm:mt-12 lg:grid-cols-3 lg:gap-5">
-          <PricingCardShell>
-            <PricingCardBody>
-              <div className="text-left">
+          {TIERS.map((tier) => (
+            <TierCardShell key={tier.id} highlighted={tier.highlighted}>
+              <div className="flex h-full flex-1 flex-col px-5 py-7 sm:px-8 sm:py-10">
+                {tier.highlighted ? (
+                  <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#93c5fd]">
+                    Most common for SMEs
+                  </p>
+                ) : null}
                 <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#93c5fd]">
-                  What does it cost
+                  {tier.name}
                 </h3>
-                <p className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-[2.75rem]">
-                  US${MONTHLY_PRICE.toLocaleString("en-US")}
-                  <span className="text-lg font-semibold text-white/50 sm:text-xl"> / month</span>
+                <p className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-[2.25rem]">
+                  From {formatProfessionalUsd(tier.monthlyFrom)}
+                  <span className="text-base font-semibold text-white/50 sm:text-lg"> / month</span>
                 </p>
-                <p className="mt-3 text-sm font-medium text-white/70">Billed quarterly</p>
-                <p className="mt-1 text-sm text-white/45">
-                  US${QUARTERLY_PRICE.toLocaleString("en-US")} every 3 months
-                </p>
-                <p className="mt-6 flex flex-wrap gap-x-1 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-white/55 sm:mt-6 sm:inline-flex sm:px-4 sm:text-xs">
-                  Initial commitment: <span className="font-semibold text-white/80">3 months</span>
-                </p>
+                <p className="mt-3 text-sm leading-relaxed text-white/55">{tier.description}</p>
+                <ul className="mt-6 space-y-3">
+                  {tier.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-3 text-sm text-white/75">
+                      <Check
+                        className="mt-0.5 h-4 w-4 shrink-0 text-[#3b82f6]"
+                        strokeWidth={2.5}
+                      />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-8">
+                  <Link
+                    href={tier.ctaHref}
+                    className={`flex h-11 w-full items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors ${
+                      tier.highlighted
+                        ? "bg-white text-[#0b2d63] hover:bg-[#f8fafc]"
+                        : "border border-white/15 bg-white/[0.06] text-white hover:bg-white/[0.1]"
+                    }`}
+                  >
+                    {tier.ctaLabel}
+                  </Link>
+                </div>
               </div>
-              <PricingCardAction href="/signup">Get started</PricingCardAction>
-            </PricingCardBody>
-          </PricingCardShell>
+            </TierCardShell>
+          ))}
+        </div>
 
-          <PricingCardShell>
-            <PricingCardBody>
+        <div className="mx-auto mt-6 max-w-6xl rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-6 sm:px-8 sm:py-8">
+          <div className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-start">
+            <div>
               <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#93c5fd]">
-                What is included
-              </h3>
-              <ul className="mt-6 space-y-3">
-                {PLAN_FEATURES.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 text-sm text-white/75">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#3b82f6]" strokeWidth={2.5} />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </PricingCardBody>
-          </PricingCardShell>
-
-          <PricingCardShell>
-            <PricingCardBody>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#93c5fd]">
-                Launch & Implementation
+                Launch & implementation
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-white/50">
-                Every organisation is different. Before your project begins, we&apos;ll provide a fixed
-                implementation proposal based on your business, existing systems and rollout
-                requirements.
+                Every organisation is different. We issue a fixed implementation proposal before your
+                project begins — no hourly billing, no surprise invoices.
               </p>
-              <p className="mt-5 text-sm font-medium text-white/70">Typical implementation investment:</p>
+              <p className="mt-5 text-sm font-medium text-white/70">
+                Typical implementation investment:
+              </p>
               <p className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-[1.75rem]">
-                USD $1,000 to $5,000
+                {formatProfessionalUsd(MARKETING_IMPLEMENTATION_LOW_USD)} to{" "}
+                {formatProfessionalUsd(MARKETING_IMPLEMENTATION_HIGH_USD)}
               </p>
-              <p className="mt-1 text-sm text-white/45">Depending on complexity.</p>
-              <p className="mt-5 text-sm font-medium text-white/70">Implementation may include:</p>
+              <p className="mt-1 text-sm text-white/45">Scoped to your systems and rollout.</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white/70">Implementation includes:</p>
               <ul className="mt-3 space-y-3">
                 {IMPLEMENTATION_INCLUDES.map((item) => (
                   <li key={item} className="flex items-start gap-3 text-sm text-white/75">
@@ -139,12 +193,12 @@ export default function HomePricing() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-6 text-sm leading-relaxed text-white/50">
-                No hourly billing. No hidden costs.
+              <p className="mt-5 text-sm text-white/45">
+                Billed quarterly by default. Initial commitment: 3 months. Annual prepay:{" "}
+                {annualDiscountPct}% discount.
               </p>
-              <PricingCardAction href="/contact">Contact us</PricingCardAction>
-            </PricingCardBody>
-          </PricingCardShell>
+            </div>
+          </div>
         </div>
 
         <div className="mt-14 px-2 text-center sm:mt-20 sm:px-0">
@@ -154,6 +208,9 @@ export default function HomePricing() {
           >
             Book a free demo and intro session
           </Link>
+          <p className="mt-4 text-sm text-white/40">
+            Pricing confirmed in your proposal — demos are the right first step for most teams.
+          </p>
         </div>
       </div>
     </section>

@@ -99,8 +99,8 @@ export default function WhoWeWorkWith() {
         <HomeSectionTitle>Who we help accelerate and scale</HomeSectionTitle>
 
         <p className="mx-auto mt-4 max-w-3xl text-balance text-center text-sm leading-relaxed text-white/60 sm:mt-6 sm:text-[15px] md:text-[17px]">
-          Unit311 Central supports any type of business — from first-time founders to established operators.
-          These are just a few examples of the sectors we work with.
+          From first-time founders to established operators — any industry where software sprawl is
+          slowing the business down.
         </p>
 
         <div className="mt-10 sm:mt-14 md:mt-16">

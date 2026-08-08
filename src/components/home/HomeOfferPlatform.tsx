@@ -1,7 +1,6 @@
 import HomeSectionTitle from "./HomeSectionTitle";
 import HomeWorkspaceExplorer from "./HomeWorkspaceExplorer";
 import HomeExecutiveDemoVideo from "./HomeExecutiveDemoVideo";
-import WorkspaceDemoLoopVideo from "./WorkspaceDemoLoopVideo";
 
 export default function HomeOfferPlatform() {
   return (
@@ -41,55 +40,28 @@ export default function HomeOfferPlatform() {
       </div>
 
       <div className="relative mx-auto max-w-[1760px] px-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10">
-        <HomeSectionTitle singleLine>
-          Explore everything Unit311 Central has to offer
-        </HomeSectionTitle>
+        <HomeSectionTitle singleLine>Full platform depth</HomeSectionTitle>
 
         <div className="mx-auto mt-10 max-w-[900px] text-center sm:mt-12">
           <h2 className="text-balance text-[1.35rem] font-semibold leading-snug tracking-[-0.025em] text-white sm:text-[1.55rem] md:text-[1.75rem] md:leading-[1.25]">
-            Built by people who&apos;ve done it before.
+            Built by operators who&apos;ve shipped at scale.
           </h2>
           <p className="mx-auto mt-4 max-w-[860px] text-balance text-sm leading-relaxed text-white/58 sm:mt-5 sm:text-[15px] md:text-[17px] md:leading-relaxed">
-            Unit311 Central is developed by senior technology executives and architects, each bringing
-            more than 25 years of experience designing, building and delivering technology solutions
-            across global enterprises, launching successful venture-backed startups, and helping growing
-            SMEs solve complex business challenges.
-          </p>
-          <p className="mx-auto mt-4 max-w-[860px] text-balance text-sm leading-relaxed text-white/58 sm:mt-5 sm:text-[15px] md:text-[17px] md:leading-relaxed">
-            That experience is reflected throughout every part of Unit311 Central.
+            Senior technology executives and architects — 25+ years across enterprise, venture-backed
+            startups and growing SMEs. The platform reflects that depth; explore every workspace below.
           </p>
         </div>
 
         <div className="mx-auto mt-10 w-full sm:mt-12">
-          <p className="mx-auto max-w-[900px] text-balance text-center text-[15px] font-medium leading-relaxed text-white/72 sm:text-[16px] md:text-[18px] md:leading-relaxed">
-            Unit311 Central brings together every major business function into a single intelligent
-            platform.
-          </p>
-
           <HomeExecutiveDemoVideo />
 
           <p className="mx-auto mt-12 max-w-[900px] text-balance text-center text-sm leading-relaxed text-white/55 sm:mt-14 sm:text-[15px] md:mt-16 md:text-[17px] md:leading-relaxed">
-            Explore each workspace below to discover how Unit311 Central helps manage your
-            organisation, connect your existing business systems, and automate the way you work.
+            Every major business function in one system — click through to see how each workspace works.
           </p>
         </div>
 
-        <HomeWorkspaceExplorer />
-
-        <div id="platform" className="mt-16 scroll-mt-24 sm:mt-20 sm:scroll-mt-28 md:mt-24 lg:mt-28">
-          <HomeSectionTitle>Unit311 Central Workspace</HomeSectionTitle>
-
-          <div className="mt-8 w-full sm:mt-10">
-            <div className="mx-auto w-full max-w-full sm:max-w-[92%] lg:max-w-[1200px]">
-              <div className="overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.14] to-white/[0.06] p-2 shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:rounded-[28px] sm:p-4 lg:rounded-[32px]">
-                <WorkspaceDemoLoopVideo
-                  className="w-full"
-                  src="/videos/overview.mp4"
-                  poster={null}
-                />
-              </div>
-            </div>
-          </div>
+        <div id="platform" className="scroll-mt-24 sm:scroll-mt-28">
+          <HomeWorkspaceExplorer />
         </div>
       </div>
     </section>
