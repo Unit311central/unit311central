@@ -33,32 +33,57 @@ export function isAbhiRegulatoryView(view: string | null | undefined): view is A
   return (ABHI_REGULATORY_VIEWS as readonly string[]).includes(String(view ?? ""));
 }
 
-/** Inserted on ABHI host after Business Central. */
+const ABHI_REGULATORY_NAV_ITEMS: InternalNavSection["items"] = [
+  {
+    label: "Dashboard",
+    icon: "LayoutDashboard",
+    view: "regulatory-dashboard",
+  },
+  {
+    label: "Regulatory Updates",
+    icon: "ScrollText",
+    view: "regulatory-updates",
+  },
+  {
+    label: "Impact Assessments",
+    icon: "AlertTriangle",
+    view: "regulatory-impact",
+  },
+  {
+    label: "Member Alerts",
+    icon: "Users",
+    view: "regulatory-alerts",
+  },
+];
+
+/** Legacy standalone section — items now live under ABHI Intelligence. */
 export const ABHI_REGULATORY_NAV_SECTION: InternalNavSection = {
   kind: "workspace",
   label: "Regulatory Intelligence",
   icon: "Landmark",
   color: "#C2185B",
+  items: ABHI_REGULATORY_NAV_ITEMS,
+};
+
+/** ABHI Intelligence — Member + Regulatory (inserted after Executive Assistant on ABHI host). */
+export const ABHI_INTELLIGENCE_NAV_SECTION: InternalNavSection = {
+  kind: "workspace",
+  label: "ABHI Intelligence",
+  icon: "Sparkles",
+  color: "#C2185B",
   items: [
     {
-      label: "Dashboard",
-      icon: "LayoutDashboard",
-      view: "regulatory-dashboard",
-    },
-    {
-      label: "Regulatory Updates",
-      icon: "ScrollText",
-      view: "regulatory-updates",
-    },
-    {
-      label: "Impact Assessments",
-      icon: "AlertTriangle",
-      view: "regulatory-impact",
-    },
-    {
-      label: "Member Alerts",
+      label: "Member Intelligence",
       icon: "Users",
-      view: "regulatory-alerts",
+      view: "member-intelligence",
+    },
+    {
+      label: "Regulatory Intelligence",
+      icon: "Landmark",
+      children: ABHI_REGULATORY_NAV_ITEMS.map((item) => ({
+        label: item.label,
+        view: item.view!,
+      })),
     },
   ],
 };

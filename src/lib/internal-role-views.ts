@@ -850,7 +850,7 @@ function filterAbhiHiddenNavItems(section: InternalNavSection): InternalNavSecti
   };
 }
 
-function injectAbhiMemberIntelligenceNav(section: InternalNavSection): InternalNavSection {
+function stripAbhiMemberIntelligenceFromMembers(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Business Central") return section;
   return {
     ...section,
@@ -860,25 +860,17 @@ function injectAbhiMemberIntelligenceNav(section: InternalNavSection): InternalN
         item.label === "Members" ||
         item.children?.some((child) => child.view === "clients");
       if (!isMembersGroup || !item.children?.length) return item;
-      if (item.children.some((child) => child.view === "member-intelligence")) return item;
-      const directoryIdx = item.children.findIndex((child) => child.view === "clients");
-      const intelligenceChild = {
-        label: "Member Intelligence",
-        view: "member-intelligence" as const,
+      return {
+        ...item,
+        children: item.children.filter((child) => child.view !== "member-intelligence"),
       };
-      if (directoryIdx < 0) {
-        return { ...item, children: [...item.children, intelligenceChild] };
-      }
-      const children = [...item.children];
-      children.splice(directoryIdx + 1, 0, intelligenceChild);
-      return { ...item, children };
     }),
   };
 }
 
 function reshapeAbhiNavSection(section: InternalNavSection): InternalNavSection {
   return renameAbhiClientNavLabels(
-    injectAbhiMemberIntelligenceNav(
+    stripAbhiMemberIntelligenceFromMembers(
       filterAbhiHiddenNavItems(
         reshapeAbhiProductivitySection(
           reshapeAbhiCorporateSection(reshapeAbhiTrainingSection(section)),
@@ -1363,13 +1355,16 @@ function sortOnwardAirSectionsByLockedOrder(
 
 function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): InternalNavSection[] {
   try {
-    const { ABHI_MARKETING_NAV_SECTION, ABHI_REGULATORY_NAV_SECTION } =
+    const { ABHI_MARKETING_NAV_SECTION, ABHI_INTELLIGENCE_NAV_SECTION } =
       require("@/lib/abhi/nav") as typeof import("@/lib/abhi/nav");
     const out: InternalNavSection[] = [];
     let insertedMarketing = false;
-    let insertedRegulatory = false;
+    let insertedIntelligence = false;
     let insertedBoard = false;
     for (const section of sections) {
+      if (section.label === "Regulatory Intelligence" || section.label === "ABHI Intelligence") {
+        continue;
+      }
       const next = reshapeAbhiNavSection(section);
       // Drop Board Meetings / Board deck / Risk from Corporate Information when BOARD section exists.
       if (next.label === "Corporate Information") {
@@ -1385,9 +1380,12 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
       } else {
         out.push(next);
       }
-      if (section.label === "Business Central") {
-        out.push(ABHI_REGULATORY_NAV_SECTION);
-        insertedRegulatory = true;
+      const isEaPin =
+        next.kind === "pin" &&
+        next.items.some((item) => item.view === "executive-assistant");
+      if (isEaPin && !insertedIntelligence) {
+        out.push(ABHI_INTELLIGENCE_NAV_SECTION);
+        insertedIntelligence = true;
       }
       if (section.label === "Human Resources") {
         out.push(ABHI_MARKETING_NAV_SECTION);
@@ -1398,7 +1396,22 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
         insertedBoard = true;
       }
     }
-    if (!insertedRegulatory) out.push(ABHI_REGULATORY_NAV_SECTION);
+    if (!insertedIntelligence) {
+      const eaIdx = out.findIndex(
+        (section) =>
+          section.kind === "pin" &&
+          section.items.some((item) => item.view === "executive-assistant"),
+      );
+      if (eaIdx >= 0) {
+        out.splice(eaIdx + 1, 0, ABHI_INTELLIGENCE_NAV_SECTION);
+      } else {
+        const homeIdx = out.findIndex(
+          (section) =>
+            section.kind === "pin" && section.items.some((item) => item.view === "home"),
+        );
+        out.splice(homeIdx >= 0 ? homeIdx + 1 : 0, 0, ABHI_INTELLIGENCE_NAV_SECTION);
+      }
+    }
     if (!insertedMarketing) out.push(ABHI_MARKETING_NAV_SECTION);
     if (!insertedBoard) out.push(ABHI_BOARD_NAV_SECTION);
     return out.filter((section) => section.items.length > 0);
@@ -1562,7 +1575,7 @@ export function filterInternalNavSectionsForDemoSurface(
     );
   }
 
-  // ABHI: keep Member Intelligence under Members; inject Marketing & Events.
+  // ABHI: ABHI Intelligence after EA; Marketing & Events after HR.
   if (allowHostSurfaces && isAbhiNavSurface()) {
     return insertAbhiMarketingSection(sections);
   }
