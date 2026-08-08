@@ -766,18 +766,10 @@ export default function AbhiPortalsDemoPage() {
           </div>
         )}
 
-        <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5 text-[11px] text-white/40">
+        <footer className="mt-10 border-t border-white/10 pt-5 text-[11px] text-white/40">
           <p>
             {SITE_NAME} · Confidential demonstration material for ABHI
           </p>
-          <button
-            type="button"
-            onClick={() => void handleLogout()}
-            className="inline-flex items-center gap-1 font-medium text-sky-300/80 transition hover:text-sky-200"
-          >
-            Switch account
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </button>
         </footer>
       </div>
     </div>
