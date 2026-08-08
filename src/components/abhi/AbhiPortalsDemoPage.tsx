@@ -700,16 +700,16 @@ export default function AbhiPortalsDemoPage() {
         </header>
 
         <section className="relative mt-8 max-w-3xl sm:mt-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#F48FB1]">
-            Pre-demo briefing
-          </p>
-          <h1 className="mt-2 text-[2rem] font-semibold leading-[1.1] tracking-tight text-white sm:text-[2.5rem]">
-            ABHI on Unit311 Central
+          <h1 className="text-[1.75rem] font-semibold leading-[1.1] tracking-tight text-white whitespace-nowrap sm:text-[2.25rem]">
+            ABHI Overview Portal
           </h1>
           <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-white/65 sm:text-[15px]">
-            Credential and capability overview for your demonstration. Sign in with{" "}
-            <span className="text-white/90">demo@abhi.org.uk</span> to view, or{" "}
-            <span className="text-white/90">admin@abhi.org.uk</span> to edit columns 2 and 3.
+            An overview portal page for Peter Ellingworth for Unit311 Central customised ABHI
+            Platform.
+          </p>
+          <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-white/50">
+            Sign in with <span className="text-white/75">demo@abhi.org.uk</span> to view, or{" "}
+            <span className="text-white/75">admin@abhi.org.uk</span> to edit columns 2 and 3.
           </p>
           {canEdit ? (
             <p className="mt-2 text-[12px] text-emerald-200/80">
