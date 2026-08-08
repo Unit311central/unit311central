@@ -13,7 +13,7 @@ import type { PortalsIndent, PortalsModuleRow } from "@/lib/abhi/portals-demo";
 
 const PIN_DISPLAY_LABELS: Record<string, string> = {
   HOME: "Home dashboard",
-  "EXECUTIVE ASSISTANT": "AI Executive Assistant",
+  "EXECUTIVE ASSISTANT": "Executive Assistant",
 };
 
 function slugPart(text: string): string {

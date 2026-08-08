@@ -456,9 +456,12 @@ function EditableRows({
           ) : (
             <p
               className={cn(
-                "min-w-0 flex-1 py-0.5 leading-snug",
-                depth === 0 ? "text-[13px] text-white/90" : "",
-                depth === 1 ? "text-[12px] text-white/55" : "text-[11px] text-white/45",
+                "min-w-0 flex-1 rounded-lg px-1 py-1 leading-snug",
+                depth === 0
+                  ? "text-[13px] font-medium text-white/90"
+                  : depth === 1
+                    ? "text-[12px] text-white/55"
+                    : "text-[11px] text-white/45",
               )}
             >
               {node.row.text}
