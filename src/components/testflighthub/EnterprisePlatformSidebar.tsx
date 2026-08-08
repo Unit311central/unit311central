@@ -724,9 +724,11 @@ export default function EnterprisePlatformSidebar({
       // Host overlays: available on first client paint for customer hosts.
       { allowHostSurfaces: hydrated || customerHostNav },
     );
-    if (!hydrated) return filtered;
-    const custom = loadSidebarNavCustom(filtered);
-    return applySidebarSectionOrder(filtered, custom.sectionOrder);
+    if (typeof window !== "undefined" && (hydrated || customerHostNav)) {
+      const custom = loadSidebarNavCustom(filtered);
+      return applySidebarSectionOrder(filtered, custom);
+    }
+    return filtered;
     // sectionOrderTick forces re-read after Settings saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowedViews, entitlementsReady, hydrated, sectionOrderTick]);

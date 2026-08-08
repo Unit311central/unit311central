@@ -466,8 +466,9 @@ export default function SettingsWorkspace() {
     [hydrated, allowedViews, entitlementsReady],
   );
   const [navCustom, setNavCustom] = useState<NavCustomStorage>(() => ({
-    version: 4,
+    version: 6,
     sectionOrder: [],
+    customized: false,
     hidden: {},
     customItems: [],
   }));
@@ -631,8 +632,8 @@ export default function SettingsWorkspace() {
   );
 
   const orderedSections = useMemo(
-    () => applySidebarSectionOrder(liveSections, navCustom.sectionOrder),
-    [liveSections, navCustom.sectionOrder],
+    () => applySidebarSectionOrder(liveSections, navCustom),
+    [liveSections, navCustom],
   );
 
   const persistNavCustom = useCallback((next: NavCustomStorage) => {

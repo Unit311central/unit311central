@@ -1,6 +1,7 @@
 /**
- * Locked Talanton Impact LHS workspace module order.
- * DO NOT change unless the user explicitly asks or reorders via Settings.
+ * Factory-default Talanton Impact LHS workspace module order.
+ * Used for new users until they reorder in Settings → General → Sidebar.
+ * DO NOT change unless the owner explicitly asks in chat.
  */
 
 export const TALANTON_LOCKED_WORKSPACE_SECTION_ORDER = [

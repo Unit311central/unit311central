@@ -2,6 +2,9 @@
  * Settings → General → Sidebar customisation.
  * Reorders high-level LHS modules (workspace sections). Pins (Home / EA) stay fixed;
  * Settings stays last.
+ *
+ * Talanton / OnwardAir factory order lives in *-nav-order.ts and is used only until
+ * the user reorders in Settings (`customized: true`). After that, stored order wins.
  */
 
 import type { InternalNavSection } from "@/lib/internal-operations-data";
@@ -19,6 +22,16 @@ export const SIDEBAR_NAV_CUSTOM_STORAGE_KEY = "unit311-nav-custom";
 export const SIDEBAR_NAV_CUSTOM_EVENT = "unit311-nav-custom-changed";
 
 const LEGACY_SIDEBAR_NAV_CUSTOM_STORAGE_KEY = SIDEBAR_NAV_CUSTOM_STORAGE_KEY;
+
+function isLockedHostSectionBundle(
+  sections: readonly { kind?: string; label?: string | null }[],
+): boolean {
+  return isTalantonLockedSectionBundle(sections) || isOnwardAirLockedSectionBundle(sections);
+}
+
+function targetStorageVersion(sections: readonly InternalNavSection[]): 4 | 6 {
+  return isLockedHostSectionBundle(sections) ? 6 : 4;
+}
 
 /** Host slug for per-workspace sidebar order (Talanton vs OnwardAir vs internal). */
 export function resolveSidebarNavWorkspaceSlug(): string {
@@ -96,13 +109,15 @@ export type SidebarNavLeafItem = {
 
 export type SidebarNavCustomStorage = {
   /**
-   * v3: reset append-polluted orders.
-   * v4: reset to corrected OnwardAir locked LHS order (Tools → External Client Access → Settings).
-   * v5: reset to Talanton locked LHS order when Funds / Talanton Intelligence present.
+   * v4: OnwardAir locked factory order.
+   * v5: Talanton locked factory order (superseded by v6 user-order flag).
+   * v6: `customized` — when true, Settings order is authoritative and never re-sorted.
    */
-  version: 2 | 3 | 4 | 5;
+  version: 2 | 3 | 4 | 5 | 6;
   /** Ordered workspace section keys (excludes fixed pins + Settings). */
   sectionOrder: string[];
+  /** User explicitly reordered in Settings → General → Sidebar. */
+  customized: boolean;
   hidden: Record<string, boolean>;
   customItems: SidebarNavLeafItem[];
   /** Legacy flat item order — kept for migration / ignored for section sort. */
@@ -137,6 +152,7 @@ export function isMovableWorkspaceSection(section: InternalNavSection): boolean 
   return section.kind !== "pin" && !isSettingsSection(section);
 }
 
+/** Factory default order for Talanton / OnwardAir (used until user customizes in Settings). */
 export function defaultSectionOrder(sections: readonly InternalNavSection[]): string[] {
   const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
   if (isOnwardAirLockedSectionBundle(sections)) {
@@ -156,8 +172,9 @@ export function defaultSectionOrder(sections: readonly InternalNavSection[]): st
 
 export function emptyNavCustomStorage(sections: readonly InternalNavSection[]): SidebarNavCustomStorage {
   return {
-    version: isTalantonLockedSectionBundle(sections) ? 5 : 4,
+    version: targetStorageVersion(sections),
     sectionOrder: defaultSectionOrder(sections),
+    customized: false,
     hidden: {},
     customItems: [],
   };
@@ -166,6 +183,7 @@ export function emptyNavCustomStorage(sections: readonly InternalNavSection[]): 
 /**
  * Keep the user's relative order for known keys; slot newly added modules at their
  * canonical position (beside nearest neighbors) instead of always appending.
+ * Only used for factory (non-customized) order when new modules ship.
  */
 export function mergeSectionOrder(
   storedOrder: readonly string[],
@@ -201,11 +219,6 @@ export function mergeSectionOrder(
   return result;
 }
 
-/**
- * Merge for display: apply canonical inserts for the current section set, but keep
- * any stored keys that are temporarily filtered out (grants / host gating) so a
- * later full load does not treat them as brand-new and shove them to defaults.
- */
 /** Preserve sidebar order when a host renames a module (e.g. Talanton Business Central → Project Management). */
 function migrateRenamedSectionKeys(
   storedOrder: readonly string[],
@@ -230,6 +243,7 @@ function migrateRenamedSectionKeys(
   return out;
 }
 
+/** Factory order: locked baseline + insert newly shipped modules at factory positions. */
 export function resolveSectionOrderForSections(
   storedOrder: readonly string[],
   sections: readonly InternalNavSection[],
@@ -245,6 +259,48 @@ export function resolveSectionOrderForSections(
   return [...active, ...extras];
 }
 
+/** User-customized order: keep exact sequence; append brand-new modules at the end only. */
+function appendNewSectionKeys(
+  storedOrder: readonly string[],
+  sections: readonly InternalNavSection[],
+): string[] {
+  const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
+  const known = new Set(movable);
+  const migrated = migrateRenamedSectionKeys(storedOrder, movable);
+  const kept = migrated.filter((key) => known.has(key));
+  const missing = movable.filter((key) => !kept.includes(key));
+  const retired = migrated.filter((key) => !known.has(key));
+  return [...kept, ...missing, ...retired];
+}
+
+function resolveEffectiveSectionOrder(
+  sections: readonly InternalNavSection[],
+  sectionOrder: readonly string[],
+  customized: boolean,
+): string[] {
+  const canonical = defaultSectionOrder(sections);
+  if (customized) {
+    return appendNewSectionKeys(sectionOrder, sections);
+  }
+  return resolveSectionOrderForSections(canonical, sections);
+}
+
+function buildNavCustomPayload(
+  sections: readonly InternalNavSection[],
+  parsed: Partial<SidebarNavCustomStorage>,
+  customized: boolean,
+): SidebarNavCustomStorage {
+  const storedOrder = parsed.sectionOrder ?? [];
+  return {
+    version: targetStorageVersion(sections),
+    customized,
+    sectionOrder: resolveEffectiveSectionOrder(sections, storedOrder, customized),
+    hidden: parsed.hidden ?? {},
+    customItems: parsed.customItems ?? [],
+    order: parsed.order,
+  };
+}
+
 export function loadSidebarNavCustom(
   sections: readonly InternalNavSection[],
 ): SidebarNavCustomStorage {
@@ -255,40 +311,30 @@ export function loadSidebarNavCustom(
     const raw = migrateLegacySidebarNavCustom(sections) ?? readSidebarNavCustomRaw();
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
-    const canonical = defaultSectionOrder(sections);
     const storedVersion = Number(parsed.version ?? 1);
-    const storedOrder = parsed.sectionOrder ?? [];
-    const targetVersion = isTalantonLockedSectionBundle(sections) ? 5 : 4;
+    const targetVersion = targetStorageVersion(sections);
+    const lockedHost = isLockedHostSectionBundle(sections);
+
+    if (lockedHost && storedVersion < 6) {
+      return buildNavCustomPayload(sections, parsed, parsed.customized === true);
+    }
 
     if (storedVersion < 4) {
-      return {
-        version: targetVersion,
-        sectionOrder:
-          storedOrder.length > 0
-            ? resolveSectionOrderForSections(storedOrder, sections)
-            : canonical,
-        hidden: parsed.hidden ?? {},
-        customItems: parsed.customItems ?? [],
-        order: parsed.order,
-      };
+      return buildNavCustomPayload(sections, parsed, false);
     }
 
     if (isTalantonLockedSectionBundle(sections) && storedVersion < 5) {
-      return {
-        version: 5,
-        sectionOrder:
-          storedOrder.length > 0
-            ? resolveSectionOrderForSections(storedOrder, sections)
-            : canonical,
-        hidden: parsed.hidden ?? {},
-        customItems: parsed.customItems ?? [],
-        order: parsed.order,
-      };
+      return buildNavCustomPayload(sections, parsed, false);
     }
 
     return {
       version: targetVersion,
-      sectionOrder: resolveSectionOrderForSections(storedOrder, sections),
+      customized: parsed.customized === true,
+      sectionOrder: resolveEffectiveSectionOrder(
+        sections,
+        parsed.sectionOrder ?? [],
+        parsed.customized === true,
+      ),
       hidden: parsed.hidden ?? {},
       customItems: parsed.customItems ?? [],
       order: parsed.order,
@@ -299,9 +345,8 @@ export function loadSidebarNavCustom(
 }
 
 /**
- * Persist only when storage is missing, needs the v4 locked-order migration, or
- * brand-new module keys must be recorded. Never rewrite the user's order just
- * because the current render filtered a different section subset.
+ * Persist only when storage is missing, needs migration, or brand-new module keys appear.
+ * Never re-sort a user-customized order toward the factory baseline.
  */
 export function reconcileSidebarNavCustom(
   sections: readonly InternalNavSection[],
@@ -317,24 +362,27 @@ export function reconcileSidebarNavCustom(
     }
     const parsed = JSON.parse(raw) as Partial<SidebarNavCustomStorage>;
     const storedVersion = Number(parsed.version ?? 1);
-    const targetVersion = isTalantonLockedSectionBundle(sections) ? 5 : 4;
-    if (storedVersion < 4 || (isTalantonLockedSectionBundle(sections) && storedVersion < 5)) {
+    const lockedHost = isLockedHostSectionBundle(sections);
+
+    if (
+      storedVersion < 4 ||
+      (isTalantonLockedSectionBundle(sections) && storedVersion < 5) ||
+      (lockedHost && storedVersion < 6)
+    ) {
       saveSidebarNavCustom(next);
       return next;
     }
 
-    const canonical = defaultSectionOrder(sections);
+    const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
     const prev = parsed.sectionOrder ?? [];
-    const missingKeys = canonical.some((key) => !prev.includes(key));
-    if (!missingKeys) return next;
+    const missingKeys = movable.filter((key) => !prev.includes(key));
+    if (missingKeys.length === 0) return next;
 
-    const mergedActive = mergeSectionOrder(prev, canonical);
-    const extras = prev.filter((key) => !mergedActive.includes(key));
     const payload: SidebarNavCustomStorage = {
-      version: targetVersion,
-      sectionOrder: [...mergedActive, ...extras],
-      hidden: parsed.hidden ?? {},
-      customItems: parsed.customItems ?? [],
+      ...next,
+      sectionOrder: next.customized
+        ? appendNewSectionKeys(prev, sections)
+        : resolveSectionOrderForSections(defaultSectionOrder(sections), sections),
     };
     saveSidebarNavCustom(payload);
     return payload;
@@ -348,6 +396,7 @@ export function saveSidebarNavCustom(next: SidebarNavCustomStorage) {
   const payload: SidebarNavCustomStorage = {
     version: next.version,
     sectionOrder: next.sectionOrder,
+    customized: next.customized === true,
     hidden: next.hidden,
     customItems: next.customItems,
   };
@@ -355,10 +404,27 @@ export function saveSidebarNavCustom(next: SidebarNavCustomStorage) {
   window.dispatchEvent(new CustomEvent(SIDEBAR_NAV_CUSTOM_EVENT));
 }
 
+/** Mark storage as user-owned (call from Settings when the user reorders). */
+export function saveUserSidebarSectionOrder(
+  sections: readonly InternalNavSection[],
+  sectionOrder: readonly string[],
+  current: Pick<SidebarNavCustomStorage, "hidden" | "customItems">,
+): SidebarNavCustomStorage {
+  const payload: SidebarNavCustomStorage = {
+    version: targetStorageVersion(sections),
+    customized: true,
+    sectionOrder: [...sectionOrder],
+    hidden: current.hidden,
+    customItems: current.customItems,
+  };
+  saveSidebarNavCustom(payload);
+  return payload;
+}
+
 /** Reorder movable workspace sections; pins stay first, Settings stays last. */
 export function applySidebarSectionOrder(
   sections: readonly InternalNavSection[],
-  sectionOrder: readonly string[],
+  custom: Pick<SidebarNavCustomStorage, "sectionOrder" | "customized">,
 ): InternalNavSection[] {
   const pins: InternalNavSection[] = [];
   const movable: InternalNavSection[] = [];
@@ -376,7 +442,11 @@ export function applySidebarSectionOrder(
     movable.push(section);
   }
 
-  const effectiveOrder = resolveSectionOrderForSections(sectionOrder, sections);
+  const effectiveOrder = resolveEffectiveSectionOrder(
+    sections,
+    custom.sectionOrder,
+    custom.customized === true,
+  );
 
   const byKey = new Map(movable.map((section) => [getNavSectionKey(section), section]));
   const ordered: InternalNavSection[] = [];

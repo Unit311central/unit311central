@@ -396,7 +396,8 @@ export function buildTalantonImpactNavSections(
   const pins = sections.filter((section) => section.kind === "pin");
   const rest = sections.filter((section) => section.kind !== "pin");
   const withPortfolio = [...pins, ...TALANTON_IMPACT_NAV_SECTIONS, ...rest];
-  return sortTalantonSectionsByLockedOrder(insertTalantonBoardSection(withPortfolio));
+  // Module order is applied from Settings / localStorage — do not pre-sort here.
+  return insertTalantonBoardSection(withPortfolio);
 }
 
 export function getTalantonImpactNavSections(): InternalNavSection[] {
@@ -1309,12 +1310,8 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
     }
   }
 
-  // Single Operations section only — do not append a second OnwardAir Operations overlay.
-  // Remap every module accent so LHS icons / stripes are unique (no shared blues/golds).
-  // Final order is the locked Settings order — never reshuffle unless the user reorders.
-  return sortOnwardAirSectionsByLockedOrder(
-    applyOnwardAirSectionColors(out).filter((section) => section.items.length > 0),
-  );
+  // Module order is applied from Settings / localStorage — do not pre-sort here.
+  return applyOnwardAirSectionColors(out).filter((section) => section.items.length > 0);
 }
 
 /** Pins first, then locked workspace order, Settings last; unknown modules before Settings. */
