@@ -1,50 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-auth";
 import { generateAbhiBoardDeck } from "@/lib/abhi/board-deck-generator";
-import { isAbhiSlug } from "@/lib/abhi-surface";
-import { getPlatformSession } from "@/lib/platform-session";
-import { requireCurrentWorkspace } from "@/lib/workspace-context";
+import {
+  ABHI_EA_NO_STORE_HEADERS,
+  assertAbhiEaAccess,
+  redirectAbhiEaApiToTesting,
+} from "@/lib/abhi/ea-testing-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const NO_STORE_HEADERS = {
-  "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
-  Vary: "Cookie",
-} as const;
 
 function asciiHeaderValue(value: string): string {
   return value
     .replace(/\u2014/g, " - ")
     .replace(/\u2013/g, "-")
     .replace(/[^\u0020-\u007E]/g, "");
-}
-
-async function assertAbhiEaAccess(): Promise<NextResponse | null> {
-  const session = await getPlatformSession();
-  if (!session) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401, headers: NO_STORE_HEADERS });
-  }
-
-  try {
-    const workspace = await requireCurrentWorkspace();
-    if (!isAbhiSlug(workspace.slug)) {
-      return NextResponse.json(
-        { error: "ABHI workspace required." },
-        { status: 403, headers: NO_STORE_HEADERS },
-      );
-    }
-    return null;
-  } catch {
-    if (isAbhiPortalsAllowedUsername(session.username)) {
-      return null;
-    }
-    return NextResponse.json(
-      { error: "ABHI workspace required." },
-      { status: 403, headers: NO_STORE_HEADERS },
-    );
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -66,7 +36,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse(Buffer.from(result.pdfBytes), {
       status: 200,
       headers: {
-        ...NO_STORE_HEADERS,
+        ...ABHI_EA_NO_STORE_HEADERS,
         "Content-Type": "application/pdf",
         "Content-Disposition": `${disposition}; filename="${result.filename}"`,
         "X-Abhi-Pack-Name": asciiHeaderValue(result.data.packName),
@@ -78,11 +48,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to generate board deck." },
-      { status: 500, headers: NO_STORE_HEADERS },
+      { status: 500, headers: ABHI_EA_NO_STORE_HEADERS },
     );
   }
 }
 
 export async function GET(request: NextRequest) {
+  const redirect = redirectAbhiEaApiToTesting(request);
+  if (redirect) return redirect;
   return POST(request);
 }
