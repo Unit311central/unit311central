@@ -5,6 +5,7 @@ import {
   getTypeTotals,
 } from "@/lib/accounting/balances";
 import { buildBurnRateSnapshot } from "@/lib/accounting/burn-rate";
+import { roundReportingPercent } from "@/lib/financial-reporting-currency";
 import { getOperatingObligations } from "@/lib/accounting/operating-obligations";
 import { listInvoices } from "@/lib/accounting/invoices-service";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
@@ -677,7 +678,9 @@ export async function getFinancialOverview(
     const burnChangePct =
       previousMonthlyBurn <= 0
         ? 0
-        : Math.round(((monthlyBurn - previousMonthlyBurn) / previousMonthlyBurn) * 1000) / 10;
+        : roundReportingPercent(
+            ((monthlyBurn - previousMonthlyBurn) / previousMonthlyBurn) * 100,
+          );
     const burnTrend: FinancialOverviewSnapshot["burnRate"]["trend"] =
       burnChangePct <= -2 ? "improving" : burnChangePct >= 2 ? "increasing" : "stable";
 

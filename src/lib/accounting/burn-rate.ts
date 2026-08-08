@@ -4,6 +4,7 @@
  */
 
 import { ACCOUNT_CODES, withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
+import { roundReportingPercent } from "@/lib/financial-reporting-currency";
 
 export const BURN_CATEGORIES = [
   "payroll",
@@ -213,7 +214,7 @@ export function computeBurnMetrics(
   const changePct =
     previousMonthly <= 0
       ? 0
-      : Math.round(((monthly - previousMonthly) / previousMonthly) * 1000) / 10;
+      : roundReportingPercent(((monthly - previousMonthly) / previousMonthly) * 100);
   const { trend, trendLabel } = classifyBurnTrend(changePct);
 
   const recentAvg =

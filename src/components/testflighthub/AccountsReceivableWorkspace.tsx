@@ -194,10 +194,10 @@ export default function AccountsReceivableWorkspace() {
     { label: "Outstanding", value: money(kpis.outstanding) },
     { label: "Overdue", value: money(kpis.overdue) },
     { label: "Paid This Month", value: money(kpis.paidThisMonth) },
-    { label: "Collection Rate", value: `${kpis.collectionRate.toFixed(1)}%` },
+    { label: "Collection Rate", value: `${Math.ceil(kpis.collectionRate)}%` },
     {
       label: "Average Days To Payment",
-      value: kpis.averageDaysToPayment.toFixed(1),
+      value: String(Math.ceil(kpis.averageDaysToPayment)),
     },
   ];
 

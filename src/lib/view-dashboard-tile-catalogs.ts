@@ -1,4 +1,4 @@
-import type { DashboardTileDefinition } from "@/lib/dashboard-view-tiles";
+import { roundReportingPercent } from "@/lib/financial-reporting-currency";
 import {
   isClientPreActiveStatus,
   type ManagedClient,
@@ -189,7 +189,7 @@ function momFromSeries(series: Array<{ amount: number }> | undefined) {
   const curr = series[series.length - 1]!.amount;
   const prev = series[series.length - 2]!.amount;
   if (prev === 0) return curr === 0 ? 0 : 100;
-  return Math.round(((curr - prev) / Math.abs(prev)) * 1000) / 10;
+  return roundReportingPercent(((curr - prev) / Math.abs(prev)) * 100);
 }
 
 export function buildFinancialsDashboardCatalog(
@@ -235,7 +235,7 @@ export function buildFinancialsDashboardCatalog(
   const marginPct =
     overview.revenueYtd <= 0
       ? 0
-      : Math.round(((overview.revenueYtd - marginBaseExpenses) / overview.revenueYtd) * 1000) / 10;
+      : Math.round(((overview.revenueYtd - marginBaseExpenses) / overview.revenueYtd) * 100);
   const cashMom = momFromSeries(overview.charts?.cashPosition);
   const revMom = momFromSeries(overview.charts?.monthlyRevenue);
   const spendMom = momFromSeries(overview.charts?.monthlyOutgoings);

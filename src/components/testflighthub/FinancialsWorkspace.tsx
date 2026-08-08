@@ -28,7 +28,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-import { formatReportingMoney } from "@/lib/financial-reporting-currency";
+import { formatReportingMoney, roundReportingPercent } from "@/lib/financial-reporting-currency";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
@@ -66,7 +66,8 @@ function seriesDelta(series: Array<{ amount: number }> | undefined) {
   if (prev === 0) {
     return { abs, pct: curr === 0 ? 0 : 100, up: abs >= 0 };
   }
-  return { abs, pct: (abs / Math.abs(prev)) * 100, up: abs >= 0 };
+  const rawPct = (abs / Math.abs(prev)) * 100;
+  return { abs, pct: roundReportingPercent(rawPct), up: abs >= 0 };
 }
 
 function formatCompact(amount: number, currency: string) {
@@ -75,7 +76,7 @@ function formatCompact(amount: number, currency: string) {
       style: "currency",
       currency,
       notation: "compact",
-      maximumFractionDigits: currency === "USD" || currency === "AUD" ? 0 : 1,
+      maximumFractionDigits: 0,
     }).format(Math.ceil(amount));
   } catch {
     return formatReportingMoney(amount, currency);
@@ -112,7 +113,7 @@ function DeltaBadge({
     >
       {delta.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
       {delta.pct > 0 ? "+" : ""}
-      {delta.pct.toFixed(1)}% {suffix}
+      {delta.pct}% {suffix}
     </span>
   );
 }
@@ -315,7 +316,7 @@ export default function FinancialsWorkspace() {
     if (!overview || overview.revenueYtd <= 0) return 0;
     const base =
       overview.annualExpenses > 0 ? overview.annualExpenses : overview.monthlyExpenses;
-    return Math.round(((overview.revenueYtd - base) / overview.revenueYtd) * 1000) / 10;
+    return Math.round(((overview.revenueYtd - base) / overview.revenueYtd) * 100);
   }, [overview]);
 
   return (
@@ -377,12 +378,14 @@ export default function FinancialsWorkspace() {
             <HeroKpi
               label="Accounts receivable"
               value={money(overview.accountsReceivable)}
-              hint={`${overview.ar.overdueCount} invoices overdue · ${overview.ar.collectionRate.toFixed(0)}% collected`}
+              hint={`${overview.ar.overdueCount} invoices overdue · ${Math.round(overview.ar.collectionRate)}% collected`}
               delta={
                 overview.ar.outstanding > 0
                   ? {
                       abs: overview.ar.overdue,
-                      pct: (overview.ar.overdue / overview.ar.outstanding) * 100,
+                      pct: roundReportingPercent(
+                        (overview.ar.overdue / overview.ar.outstanding) * 100,
+                      ),
                       up: true,
                     }
                   : null
@@ -401,7 +404,7 @@ export default function FinancialsWorkspace() {
                 overview.burnRate
                   ? {
                       abs: overview.burnRate.changePct,
-                      pct: overview.burnRate.changePct,
+                      pct: roundReportingPercent(overview.burnRate.changePct),
                       up: overview.burnRate.trend === "increasing",
                     }
                   : expenseDelta
@@ -660,7 +663,7 @@ export default function FinancialsWorkspace() {
                 <div className="flex justify-between gap-3">
                   <dt className="text-white/50">Collection rate</dt>
                   <dd className="tabular-nums text-emerald-200">
-                    {overview.ar.collectionRate.toFixed(1)}%
+                    {Math.round(overview.ar.collectionRate)}%
                   </dd>
                 </div>
               </dl>

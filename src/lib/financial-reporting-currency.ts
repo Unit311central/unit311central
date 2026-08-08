@@ -79,6 +79,17 @@ export function isUsdReportingBrowserSurface(): boolean {
   return resolveBrowserReportingCurrency() === "USD";
 }
 
+/** Round percentage deltas to whole numbers (round up away from zero). */
+export function roundReportingPercent(value: number): number {
+  const n = Number(value) || 0;
+  return n >= 0 ? Math.ceil(n) : Math.floor(n);
+}
+
+export function formatReportingPercent(value: number): string {
+  const rounded = roundReportingPercent(value);
+  return `${rounded > 0 ? "+" : ""}${rounded}`;
+}
+
 /** Dashboard / Financials display — whole currency units, rounded up (no .00). */
 export function formatReportingMoney(
   amount: number,
@@ -87,12 +98,11 @@ export function formatReportingMoney(
   const code = String(currency ?? resolveBrowserReportingCurrency()).toUpperCase();
   const rounded = Math.ceil(Number(amount) || 0);
   const locale = code === "USD" ? "en-US" : code === "AUD" ? "en-AU" : "en-GB";
-  const noDecimals = code === "USD" || code === "AUD";
   const formatted = new Intl.NumberFormat(locale, {
     style: "currency",
     currency: code,
-    minimumFractionDigits: noDecimals ? 0 : 2,
-    maximumFractionDigits: noDecimals ? 0 : 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(rounded);
 
   if (code === "AUD") {
