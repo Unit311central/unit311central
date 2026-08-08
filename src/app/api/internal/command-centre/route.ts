@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 
 import { getFinancialOverview } from "@/lib/accounting/overview-service";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
+import {
+  ABHI_CASH_BALANCE_GBP,
+  buildAbhiHomeFinancialOverviewFallback,
+  isAbhiWorkspaceSlug,
+} from "@/lib/abhi-financials";
 import { listLeads } from "@/lib/crm-leads-service";
 import { listOpenActionItems } from "@/lib/internal-action-items-service";
 import { listCalendarEvents } from "@/lib/internal-calendar-service";
@@ -36,6 +41,64 @@ function filterOaHomeClients<T extends { id: string }>(clients: T[]): T[] {
       c.id !== "oa-cli-board" &&
       c.id !== "oa-cli-overview",
   );
+}
+
+function pinAbhiFinancials(snapshot: FinancialOverviewSnapshot | null): FinancialOverviewSnapshot {
+  const fallback = buildAbhiHomeFinancialOverviewFallback();
+  const base = snapshot ?? fallback;
+  if (base.cashPosition > 0 && base.burnRate.previousMonthly > 0) {
+    return {
+      ...base,
+      charts: {
+        ...base.charts,
+        cashPosition:
+          base.charts.cashPosition.length > 0
+            ? base.charts.cashPosition
+            : fallback.charts.cashPosition,
+        monthlyRevenue:
+          base.charts.monthlyRevenue.length > 0
+            ? base.charts.monthlyRevenue
+            : fallback.charts.monthlyRevenue,
+        monthlyOutgoings:
+          base.charts.monthlyOutgoings.length > 0
+            ? base.charts.monthlyOutgoings
+            : fallback.charts.monthlyOutgoings,
+      },
+      revenueYtd: base.revenueYtd > 0 ? base.revenueYtd : fallback.revenueYtd,
+    };
+  }
+  return {
+    ...fallback,
+    ...base,
+    cashPosition: ABHI_CASH_BALANCE_GBP,
+    revenueYtd: base.revenueYtd > 0 ? base.revenueYtd : fallback.revenueYtd,
+    burnRate: {
+      ...fallback.burnRate,
+      ...base.burnRate,
+      previousMonthly:
+        base.burnRate.previousMonthly > 0
+          ? base.burnRate.previousMonthly
+          : fallback.burnRate.previousMonthly,
+      monthly: base.burnRate.monthly > 0 ? base.burnRate.monthly : fallback.burnRate.monthly,
+      cashBalance: ABHI_CASH_BALANCE_GBP,
+    },
+    charts: {
+      ...fallback.charts,
+      ...base.charts,
+      cashPosition:
+        base.charts.cashPosition.length > 0
+          ? base.charts.cashPosition
+          : fallback.charts.cashPosition,
+      monthlyRevenue:
+        base.charts.monthlyRevenue.length > 0
+          ? base.charts.monthlyRevenue
+          : fallback.charts.monthlyRevenue,
+      monthlyOutgoings:
+        base.charts.monthlyOutgoings.length > 0
+          ? base.charts.monthlyOutgoings
+          : fallback.charts.monthlyOutgoings,
+    },
+  };
 }
 
 function oaFinancialsFallback(): FinancialOverviewSnapshot {
@@ -121,6 +184,7 @@ export async function GET() {
     const workspace = await requireCurrentWorkspace();
     const workspaceId = workspace.id;
     const oaSurface = isOnwardAirSlug(workspace.slug);
+    const abhiSurface = isAbhiWorkspaceSlug(workspace.slug);
     const scope = { workspaceId, workspaceSlug: workspace.slug };
 
     if (oaSurface) {
@@ -161,7 +225,11 @@ export async function GET() {
               },
             };
           })
-      : Promise.race([
+      : abhiSurface
+        ? getFinancialOverview(scope)
+            .catch(() => null)
+            .then((snapshot) => pinAbhiFinancials(snapshot))
+        : Promise.race([
           getFinancialOverview(scope).catch(() => null),
           new Promise<null>((resolve) => {
             setTimeout(() => resolve(null), 2500);

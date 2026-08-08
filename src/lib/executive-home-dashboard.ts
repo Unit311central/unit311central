@@ -1,5 +1,10 @@
+import {
+  ABHI_CASH_BALANCE_GBP,
+  ABHI_CASH_PRIOR_MONTH_GBP,
+  ABHI_MONTHLY_BURN_PRIOR_GBP,
+} from "@/lib/abhi-financials";
 import { formatMoney, withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
-import { formatReportingMoney } from "@/lib/financial-reporting-currency";
+import { formatReportingMoney, roundReportingPercent } from "@/lib/financial-reporting-currency";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { normalizeKpiRow } from "@/lib/dashboard-framework";
@@ -67,6 +72,9 @@ function resolveHomeCashPosition(
   if (live > 0) return live;
   if (isOnwardAirHomeBundle(clients) || isBrowserOnwardAirHome()) {
     return ONWARDAIR_CASH_BALANCE_USD;
+  }
+  if (isBrowserAbhiHome()) {
+    return ABHI_CASH_BALANCE_GBP;
   }
   return live;
 }
@@ -227,7 +235,7 @@ function formatCompactMoney(amount: number, currency = "GBP") {
   const rounded = Math.ceil(Number(amount) || 0);
   const abs = Math.abs(rounded);
   const locale = code === "AUD" ? "en-AU" : code === "USD" ? "en-US" : "en-GB";
-  const noDecimals = code === "USD" || code === "AUD";
+  const noDecimals = code === "USD" || code === "AUD" || code === "GBP";
   if (abs >= 1_000_000) {
     return withPreferredCurrencySymbol(
       new Intl.NumberFormat(locale, {
@@ -310,10 +318,10 @@ function pctChangeLabel(
     if (current === 0) return { label: `No prior ${priorLabel}`, tone: "neutral" };
     return { label: `New vs prior ${priorLabel}`, tone: "positive" };
   }
-  const pct = ((current - prior) / Math.abs(prior)) * 100;
+  const pct = roundReportingPercent(((current - prior) / Math.abs(prior)) * 100);
   const sign = pct >= 0 ? "+" : "−";
   return {
-    label: `${sign}${Math.abs(pct).toFixed(1)}% vs prior ${priorLabel}`,
+    label: `${sign}${Math.abs(pct)}% vs prior ${priorLabel}`,
     tone: pct >= 0 ? "positive" : "warning",
   };
 }
@@ -455,7 +463,7 @@ function burnPreviousMonthDelta(
   }
   const sign = changePct > 0 ? "+" : "−";
   return {
-    label: `${monthLabel} · ${sign}${Math.abs(changePct).toFixed(1)}% vs prior`,
+    label: `${monthLabel} · ${sign}${Math.abs(roundReportingPercent(changePct))}% vs prior`,
     tone: burn.trend === "increasing" ? "warning" : burn.trend === "improving" ? "positive" : "neutral",
   };
 }
@@ -478,6 +486,7 @@ export function buildExecutiveHomeLiveKpis(input: {
   const burn = input.financials?.burnRate;
   const financialsLoaded = input.financials != null;
   const oaHome = isOnwardAirHomeBundle(input.clients) || isBrowserOnwardAirHome();
+  const abhiHome = isBrowserAbhiHome();
   // Prefer closed prior-month burn (current month is usually partial).
   const burnFromLedger =
     burn && burn.previousMonthly > 0 ? burn.previousMonthly : (burn?.monthly ?? 0);
@@ -487,9 +496,10 @@ export function buildExecutiveHomeLiveKpis(input: {
       ? burnFromLedger
       : oaHome
         ? Math.max(0, ONWARDAIR_CASH_PRIOR_MONTH_USD - ONWARDAIR_CASH_BALANCE_USD)
-        : 0;
+        : abhiHome
+          ? ABHI_MONTHLY_BURN_PRIOR_GBP
+          : 0;
   const activeClients = selectHomeActiveClients(input.clients).length;
-  const abhiHome = isBrowserAbhiHome();
   const effectiveOnboarding = resolveEffectiveOnboardingCount({
     clients: input.clients,
     onboardingPipelineCount: input.onboardingPipelineCount,
@@ -535,7 +545,7 @@ export function buildExecutiveHomeLiveKpis(input: {
         (oaHome
           ? `Prior ${formatCompactMoney(ONWARDAIR_CASH_PRIOR_MONTH_USD, currency)}`
           : abhiHome
-            ? "Cash at bank"
+            ? `Prior ${formatCompactMoney(ABHI_CASH_PRIOR_MONTH_GBP, currency)}`
             : customerCashLabels
               ? "Ledger cash"
               : "Operating cash"),
@@ -552,13 +562,13 @@ export function buildExecutiveHomeLiveKpis(input: {
       id: "burn",
       label: "Burn Rate",
       value:
-        financialsLoaded || oaHome
+        financialsLoaded || oaHome || abhiHome
           ? `${formatCompactMoney(burnPrevious, currency)} / mo`
           : "—",
-      delta: financialsLoaded || oaHome ? burnDelta.label : "Loading ledger…",
-      tone: financialsLoaded || oaHome ? burnDelta.tone : "neutral",
+      delta: financialsLoaded || oaHome || abhiHome ? burnDelta.label : "Loading ledger…",
+      tone: financialsLoaded || oaHome || abhiHome ? burnDelta.tone : "neutral",
       hint:
-        financialsLoaded || oaHome
+        financialsLoaded || oaHome || abhiHome
           ? "Previous month operating spend"
           : "Waiting for financial overview",
     },

@@ -20,6 +20,8 @@ import {
 } from "@/lib/executive-home-layout";
 import { ONWARDAIR_CASH_BALANCE_USD } from "@/lib/onwardair-financials";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { buildAbhiHomeFinancialOverviewFallback } from "@/lib/abhi-financials";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import type { InternalProject } from "@/lib/projects-data";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { cn } from "@/lib/utils";
@@ -112,6 +114,77 @@ function pinOnwardAirHomeFinancials(
   };
 }
 
+/** Last-line defence: ABHI Home must never render £0 cash when the ledger path blanks out. */
+function pinAbhiHomeFinancials(
+  financials: FinancialOverviewSnapshot | null,
+): FinancialOverviewSnapshot | null {
+  if (!isBrowserAbhiSurface()) return financials;
+  const fallback = buildAbhiHomeFinancialOverviewFallback();
+  if (!financials) return fallback;
+  if (financials.cashPosition > 0 && financials.burnRate.previousMonthly > 0) {
+    return {
+      ...financials,
+      revenueYtd: financials.revenueYtd > 0 ? financials.revenueYtd : fallback.revenueYtd,
+      charts: {
+        ...financials.charts,
+        cashPosition:
+          financials.charts.cashPosition.length > 0
+            ? financials.charts.cashPosition
+            : fallback.charts.cashPosition,
+        monthlyRevenue:
+          financials.charts.monthlyRevenue.length > 0
+            ? financials.charts.monthlyRevenue
+            : fallback.charts.monthlyRevenue,
+        monthlyOutgoings:
+          financials.charts.monthlyOutgoings.length > 0
+            ? financials.charts.monthlyOutgoings
+            : fallback.charts.monthlyOutgoings,
+      },
+    };
+  }
+  return {
+    ...fallback,
+    ...financials,
+    cashPosition: fallback.cashPosition,
+    revenueYtd: financials.revenueYtd > 0 ? financials.revenueYtd : fallback.revenueYtd,
+    burnRate: {
+      ...fallback.burnRate,
+      ...financials.burnRate,
+      previousMonthly:
+        financials.burnRate.previousMonthly > 0
+          ? financials.burnRate.previousMonthly
+          : fallback.burnRate.previousMonthly,
+      monthly:
+        financials.burnRate.monthly > 0
+          ? financials.burnRate.monthly
+          : fallback.burnRate.monthly,
+      cashBalance: fallback.cashPosition,
+    },
+    charts: {
+      ...fallback.charts,
+      ...financials.charts,
+      cashPosition:
+        financials.charts.cashPosition.length > 0
+          ? financials.charts.cashPosition
+          : fallback.charts.cashPosition,
+      monthlyRevenue:
+        financials.charts.monthlyRevenue.length > 0
+          ? financials.charts.monthlyRevenue
+          : fallback.charts.monthlyRevenue,
+      monthlyOutgoings:
+        financials.charts.monthlyOutgoings.length > 0
+          ? financials.charts.monthlyOutgoings
+          : fallback.charts.monthlyOutgoings,
+    },
+  };
+}
+
+function pinHomeFinancials(
+  financials: FinancialOverviewSnapshot | null,
+): FinancialOverviewSnapshot | null {
+  return pinAbhiHomeFinancials(pinOnwardAirHomeFinancials(financials));
+}
+
 /** Flagship Home experience — Executive Operating Centre with live KPI SSOT. */
 export default function ExecutiveHomeDashboard() {
   const [bundle, setBundle] = useState<HomeKpiBundle | null>(null);
@@ -140,14 +213,14 @@ export default function ExecutiveHomeDashboard() {
       setBundle({
         projects: data.projects ?? [],
         clients: data.clients ?? [],
-        financials: pinOnwardAirHomeFinancials(data.financials ?? null),
+        financials: pinHomeFinancials(data.financials ?? null),
         onboardingPipelineCount: data.onboardingPipelineCount ?? 0,
       });
     } catch {
       setBundle({
         projects: [],
         clients: [],
-        financials: pinOnwardAirHomeFinancials(null),
+        financials: pinHomeFinancials(null),
         onboardingPipelineCount: 0,
       });
     } finally {

@@ -2,6 +2,8 @@
  * ABHI financial fixtures — canonical GBP figures for home / financials.
  */
 
+import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
+import { roundReportingPercent } from "@/lib/financial-reporting-currency";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 
 /** Canonical cash at bank (GBP). */
@@ -101,4 +103,118 @@ export function getAbhiMonthlyCashSeries(): Array<{ month: string; amount: numbe
     { month: "2026-07", amount: ABHI_CASH_PRIOR_MONTH_GBP },
     { month: "2026-08", amount: ABHI_CASH_BALANCE_GBP },
   ];
+}
+
+/** Home / Command Centre fallback when the ledger overview is slow or empty. */
+export function buildAbhiHomeFinancialOverviewFallback(): FinancialOverviewSnapshot {
+  const currency = "GBP";
+  const monthPrefix = new Date().toISOString().slice(0, 7);
+  const yearPrefix = monthPrefix.slice(0, 4);
+  const abhiRevenue = getAbhiMonthlyRevenueSeries();
+  const abhiOutgoings = getAbhiMonthlyOutgoingsSeries();
+  const burn = getAbhiFixtureBurnObligation(monthPrefix);
+  const monthlyRevenue =
+    abhiRevenue.find((point) => point.month === monthPrefix)?.amount ??
+    abhiRevenue[abhiRevenue.length - 1]?.amount ??
+    0;
+  const monthlyExpenses =
+    abhiOutgoings.find((point) => point.month === monthPrefix)?.amount ?? burn.monthly;
+  const annualRevenue = abhiRevenue
+    .filter((point) => point.month.startsWith(yearPrefix))
+    .reduce((sum, point) => sum + point.amount, 0);
+  const annualExpenses = abhiOutgoings
+    .filter((point) => point.month.startsWith(yearPrefix))
+    .reduce((sum, point) => sum + point.amount, 0);
+  const changePct = roundReportingPercent(
+    ((burn.monthly - burn.previousMonthly) / burn.previousMonthly) * 100,
+  );
+  const trend: FinancialOverviewSnapshot["burnRate"]["trend"] =
+    changePct <= -2 ? "improving" : changePct >= 2 ? "increasing" : "stable";
+
+  return {
+    revenueYtd: ABHI_REVENUE_YTD_GBP,
+    cashPosition: ABHI_CASH_BALANCE_GBP,
+    accountsReceivable: ABHI_ACCOUNTS_RECEIVABLE_GBP,
+    accountsPayable: 0,
+    netProfit: Math.max(0, ABHI_REVENUE_YTD_GBP - annualExpenses),
+    outstandingInvoices: 3,
+    monthlyRevenue,
+    monthlyExpenses,
+    annualRevenue,
+    annualExpenses,
+    burnRate: {
+      source: "demo",
+      currency,
+      monthly: burn.monthly,
+      quarterly: burn.previousMonthly * 3,
+      annual: annualExpenses,
+      previousMonthly: burn.previousMonthly,
+      changePct,
+      trend,
+      trendLabel:
+        trend === "improving"
+          ? "Burn improving"
+          : trend === "increasing"
+            ? "Burn increasing"
+            : "Stable burn",
+      cashBalance: ABHI_CASH_BALANCE_GBP,
+      runwayMonths:
+        burn.previousMonthly > 0
+          ? Math.ceil(ABHI_CASH_BALANCE_GBP / burn.previousMonthly)
+          : null,
+      forecastMonthly: burn.monthly,
+      lines: [],
+      series: [],
+      filterOptions: {
+        departments: [],
+        costCentres: [],
+        projects: [],
+        offices: [],
+      },
+    },
+    ar: {
+      outstanding: ABHI_ACCOUNTS_RECEIVABLE_GBP,
+      overdue: ABHI_ACCOUNTS_RECEIVABLE_GBP,
+      overdueCount: 3,
+      dueSoon: 0,
+      collectionRate: 72,
+      ageing: [
+        { bucket: "Current", amount: 0 },
+        { bucket: "1–30", amount: 0 },
+        { bucket: "31–60", amount: ABHI_ACCOUNTS_RECEIVABLE_GBP },
+        { bucket: "61–90", amount: 0 },
+        { bucket: "90+", amount: 0 },
+      ],
+      recentUnpaid: [],
+    },
+    ap: {
+      outstanding: 0,
+      dueThisMonth: 0,
+      overdue: 0,
+      upcoming: 0,
+      recent: [],
+    },
+    payroll: {
+      current: 0,
+      next: 0,
+      employees: 0,
+      annual: 0,
+      monthly: 0,
+      trend: [],
+    },
+    charts: {
+      monthlyRevenue: abhiRevenue,
+      monthlyOutgoings: abhiOutgoings,
+      cashPosition: getAbhiMonthlyCashSeries(),
+      monthlyProfitLoss: abhiRevenue.map((point) => {
+        const spend = abhiOutgoings.find((row) => row.month === point.month)?.amount ?? 0;
+        return {
+          month: point.month,
+          profit: Math.max(0, point.amount - spend),
+          loss: Math.max(0, spend - point.amount),
+        };
+      }),
+    },
+    activity: [],
+  };
 }
