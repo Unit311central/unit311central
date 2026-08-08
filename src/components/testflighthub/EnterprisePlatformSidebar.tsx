@@ -735,7 +735,7 @@ export default function EnterprisePlatformSidebar({
 
   const pinSections = navSections.filter((section) => section.kind === "pin");
   // Avoid flashing the generic (non-host) workspace list before OA/ABHI inject.
-  const workspaceSections = hydrated
+  const workspaceSections = customerHostNav || hydrated
     ? navSections.filter((section) => section.kind === "workspace")
     : [];
 

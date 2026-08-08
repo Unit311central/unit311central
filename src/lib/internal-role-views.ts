@@ -271,7 +271,7 @@ export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
   "External Client Access",
 ]);
 
-export const TALANTON_HIDDEN_SECTION_LABELS = new Set(["QMS"]);
+export const TALANTON_HIDDEN_SECTION_LABELS = new Set(["QMS", "Business Productivity"]);
 
 export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
   "Unit311 Details",

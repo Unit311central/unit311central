@@ -15,6 +15,7 @@ import {
 import {
   isTalantonLockedSectionBundle,
   TALANTON_LOCKED_SECTION_ORDER_KEYS,
+  TALANTON_SIDEBAR_FACTORY_REVISION,
 } from "@/lib/talanton-nav-order";
 import { canonicalizeTalantonImpactSlug } from "@/lib/talanton-surface";
 
@@ -29,8 +30,33 @@ function isLockedHostSectionBundle(
   return isTalantonLockedSectionBundle(sections) || isOnwardAirLockedSectionBundle(sections);
 }
 
-function targetStorageVersion(sections: readonly InternalNavSection[]): 4 | 6 {
-  return isLockedHostSectionBundle(sections) ? 6 : 4;
+function targetStorageVersion(sections: readonly InternalNavSection[]): 4 | 6 | 7 {
+  if (isTalantonLockedSectionBundle(sections)) return TALANTON_SIDEBAR_FACTORY_REVISION;
+  if (isOnwardAirLockedSectionBundle(sections)) return 6;
+  return 4;
+}
+
+function talantonFactorySectionOrder(sections: readonly InternalNavSection[]): string[] {
+  const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
+  const known = new Set(movable);
+  const locked = TALANTON_LOCKED_SECTION_ORDER_KEYS.filter((key) => known.has(key));
+  const extras = movable.filter((key) => !locked.includes(key));
+  return [...locked, ...extras];
+}
+
+/** Owner factory order — wipes polluted localStorage on Talanton. */
+function talantonFactoryNavCustom(
+  sections: readonly InternalNavSection[],
+  parsed: Partial<SidebarNavCustomStorage>,
+): SidebarNavCustomStorage {
+  return {
+    version: TALANTON_SIDEBAR_FACTORY_REVISION,
+    customized: false,
+    sectionOrder: talantonFactorySectionOrder(sections),
+    hidden: parsed.hidden ?? {},
+    customItems: parsed.customItems ?? [],
+    order: parsed.order,
+  };
 }
 
 /** Host slug for per-workspace sidebar order (Talanton vs OnwardAir vs internal). */
@@ -112,8 +138,9 @@ export type SidebarNavCustomStorage = {
    * v4: OnwardAir locked factory order.
    * v5: Talanton locked factory order (superseded by v6 user-order flag).
    * v6: `customized` — when true, Settings order is authoritative and never re-sorted.
+   * v7: Talanton owner factory order reset (Aug 2026).
    */
-  version: 2 | 3 | 4 | 5 | 6;
+  version: 2 | 3 | 4 | 5 | 6 | 7;
   /** Ordered workspace section keys (excludes fixed pins + Settings). */
   sectionOrder: string[];
   /** User explicitly reordered in Settings → General → Sidebar. */
@@ -162,10 +189,7 @@ export function defaultSectionOrder(sections: readonly InternalNavSection[]): st
     return [...locked, ...extras];
   }
   if (isTalantonLockedSectionBundle(sections)) {
-    const known = new Set(movable);
-    const locked = TALANTON_LOCKED_SECTION_ORDER_KEYS.filter((key) => known.has(key));
-    const extras = movable.filter((key) => !locked.includes(key));
-    return [...locked, ...extras];
+    return talantonFactorySectionOrder(sections);
   }
   return movable;
 }
@@ -278,6 +302,9 @@ function resolveEffectiveSectionOrder(
   sectionOrder: readonly string[],
   customized: boolean,
 ): string[] {
+  if (isTalantonLockedSectionBundle(sections) && !customized) {
+    return talantonFactorySectionOrder(sections);
+  }
   const canonical = defaultSectionOrder(sections);
   if (customized) {
     return appendNewSectionKeys(sectionOrder, sections);
@@ -314,6 +341,10 @@ export function loadSidebarNavCustom(
     const storedVersion = Number(parsed.version ?? 1);
     const targetVersion = targetStorageVersion(sections);
     const lockedHost = isLockedHostSectionBundle(sections);
+
+    if (isTalantonLockedSectionBundle(sections) && storedVersion < TALANTON_SIDEBAR_FACTORY_REVISION) {
+      return talantonFactoryNavCustom(sections, parsed);
+    }
 
     if (lockedHost && storedVersion < 6) {
       return buildNavCustomPayload(sections, parsed, parsed.customized === true);
@@ -366,7 +397,8 @@ export function reconcileSidebarNavCustom(
 
     if (
       storedVersion < 4 ||
-      (isTalantonLockedSectionBundle(sections) && storedVersion < 5) ||
+      (isTalantonLockedSectionBundle(sections) && storedVersion < TALANTON_SIDEBAR_FACTORY_REVISION) ||
+      (isOnwardAirLockedSectionBundle(sections) && storedVersion < 5) ||
       (lockedHost && storedVersion < 6)
     ) {
       saveSidebarNavCustom(next);

@@ -26,7 +26,7 @@ import {
 
 import type { InternalNavSection } from "@/lib/internal-operations-data";
 import { isOnwardAirLockedSectionBundle } from "@/lib/onwardair-nav-order";
-import { isTalantonLockedSectionBundle } from "@/lib/talanton-nav-order";
+import { isTalantonLockedSectionBundle, TALANTON_SIDEBAR_FACTORY_REVISION } from "@/lib/talanton-nav-order";
 import {
   getNavSectionKey,
   getNavSectionTitle,
@@ -389,7 +389,11 @@ export function SettingsSidebarReorderPanel({
     onPersistNavCustom({
       ...navCustom,
       customized: true,
-      version: lockedHost ? 6 : navCustom.version,
+      version: isTalantonLockedSectionBundle(orderedSections)
+        ? TALANTON_SIDEBAR_FACTORY_REVISION
+        : lockedHost
+          ? 6
+          : navCustom.version,
       sectionOrder: nextKeys,
     });
   }
