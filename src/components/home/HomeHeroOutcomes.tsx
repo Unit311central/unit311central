@@ -48,9 +48,11 @@ export default function HomeHeroOutcomes() {
       />
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
-        <HomeSectionTitle>What you get in practice</HomeSectionTitle>
-        <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-relaxed text-white/55 sm:text-[15px]">
-          Four outcomes growing companies care about — not a catalogue of modules.
+        <HomeSectionTitle>What Unit311 Central is</HomeSectionTitle>
+        <p className="mx-auto mt-5 max-w-3xl text-center text-sm leading-relaxed text-white/55 sm:text-[15px] md:text-[16px]">
+          A single intelligent operating layer for your company — CRM, finance, HR, operations,
+          corporate records and AI in one workspace, with your existing tools connected where they
+          still belong.
         </p>
 
         <div className="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 lg:gap-5">

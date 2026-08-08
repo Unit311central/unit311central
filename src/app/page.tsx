@@ -11,9 +11,9 @@ export default function HomePage() {
   return (
     <div className="overflow-x-hidden">
       <HomeHero />
-      <HomeBusinessCase />
       <HomeHeroOutcomes />
       <HomeCustomerProof />
+      <HomeBusinessCase />
       <HowUnit311Works />
       <HomeOfferPlatform />
       <WhoWeWorkWith />
