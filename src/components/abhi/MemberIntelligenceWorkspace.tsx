@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Brain,
+  ChevronDown,
+  ChevronUp,
   FileDown,
-  HeartPulse,
   Sparkles,
   TrendingUp,
   Users,
@@ -16,6 +17,7 @@ import {
 
 import type { ManagedClient } from "@/lib/client-management-data";
 import {
+  MEMBER_ATTENTION_CRITERIA_SUMMARY,
   MEMBER_INTEL_FILTERS,
   answerMemberIntelligenceQuestion,
   buildMemberIntelligencePortfolio,
@@ -23,9 +25,12 @@ import {
   formatMemberIntelDate,
   formatMemberIntelGbp,
   getMemberIntelligenceDetail,
+  listAtRiskMemberSummaries,
+  listMembersRequiringAttentionSummaries,
   type AbhiMemberIntelFilter,
   type AbhiMemberIntelligenceDetail,
   type AbhiPortfolioAiIntelligence,
+  type AbhiPortfolioPriorityAction,
   type AbhiRenewalRisk,
 } from "@/lib/abhi/member-intelligence";
 import { downloadAbhiRelationshipBriefPdf } from "@/lib/abhi/relationship-brief-pdf";
@@ -44,6 +49,8 @@ const AI_SUGGESTIONS = [
   "What actions should the account manager take?",
 ];
 
+type DrillDownKind = "at-risk" | "attention" | null;
+
 export default function MemberIntelligenceWorkspace({ clients }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,6 +62,16 @@ export default function MemberIntelligenceWorkspace({ clients }: Props) {
   );
   const [filter, setFilter] = useState<AbhiMemberIntelFilter>("all");
   const [query, setQuery] = useState("");
+  const [drillDown, setDrillDown] = useState<DrillDownKind>(null);
+
+  const atRiskSummaries = useMemo(
+    () => listAtRiskMemberSummaries(portfolio.rows),
+    [portfolio.rows],
+  );
+  const attentionSummaries = useMemo(
+    () => listMembersRequiringAttentionSummaries(portfolio.rows),
+    [portfolio.rows],
+  );
 
   const filtered = useMemo(() => {
     let rows = filterMemberIntelligenceRows(portfolio.rows, filter);
@@ -122,24 +139,28 @@ export default function MemberIntelligenceWorkspace({ clients }: Props) {
           intervene before value is lost.
         </p>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <SummaryTile icon={<Users className="h-4 w-4" />} label="Total Members" value={String(summary.totalMembers)} />
-          <SummaryTile
-            icon={<HeartPulse className="h-4 w-4" />}
-            label="Healthy Members"
-            value={String(summary.healthyMembers)}
-            tone="good"
-          />
           <SummaryTile
             icon={<AlertTriangle className="h-4 w-4" />}
             label="At Risk Members"
             value={String(summary.atRiskMembers)}
             tone="risk"
+            hint="Click to see why"
+            active={drillDown === "at-risk"}
+            onClick={() => {
+              setFilter("at-risk");
+              setDrillDown((current) => (current === "at-risk" ? null : "at-risk"));
+            }}
           />
           <SummaryTile
             icon={<TrendingUp className="h-4 w-4" />}
             label="Renewals Due In 90 Days"
             value={String(summary.renewalsDueIn90Days)}
+            onClick={() => {
+              setFilter("renewal-90");
+              setDrillDown(null);
+            }}
           />
           <SummaryTile
             icon={<PoundSterling className="h-4 w-4" />}
@@ -153,12 +174,42 @@ export default function MemberIntelligenceWorkspace({ clients }: Props) {
             tone="accent"
           />
         </div>
+
+        {drillDown === "at-risk" ? (
+          <MemberDrillDownPanel
+            title="At risk members — why flagged"
+            description="High renewal risk or at-risk health band. Click a member for full relationship detail."
+            items={atRiskSummaries}
+            onOpenMember={openMember}
+            onClose={() => setDrillDown(null)}
+            className="mt-4"
+          />
+        ) : null}
       </header>
 
       <AiRelationshipIntelligencePanel
         intelligence={aiIntelligence}
+        attentionSummaries={attentionSummaries}
+        drillDown={drillDown}
+        onToggleAttentionDrillDown={() =>
+          setDrillDown((current) => (current === "attention" ? null : "attention"))
+        }
+        onFilterLowEngagement={() => {
+          setFilter("low-engagement");
+          setDrillDown(null);
+        }}
         onOpenMember={openMember}
       />
+
+      {drillDown === "attention" ? (
+        <MemberDrillDownPanel
+          title="Members requiring attention"
+          description={MEMBER_ATTENTION_CRITERIA_SUMMARY}
+          items={attentionSummaries}
+          onOpenMember={openMember}
+          onClose={() => setDrillDown(null)}
+        />
+      ) : null}
 
       <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -533,9 +584,17 @@ function MemberDetail({
 
 function AiRelationshipIntelligencePanel({
   intelligence,
+  attentionSummaries,
+  drillDown,
+  onToggleAttentionDrillDown,
+  onFilterLowEngagement,
   onOpenMember,
 }: {
   intelligence: AbhiPortfolioAiIntelligence;
+  attentionSummaries: AbhiPortfolioPriorityAction[];
+  drillDown: DrillDownKind;
+  onToggleAttentionDrillDown: () => void;
+  onFilterLowEngagement: () => void;
   onOpenMember: (id: string) => void;
 }) {
   return (
@@ -555,6 +614,9 @@ function AiRelationshipIntelligencePanel({
           label="Members Requiring Attention"
           value={String(intelligence.membersRequiringAttention)}
           tone="risk"
+          hint="Click to see why"
+          active={drillDown === "attention"}
+          onClick={onToggleAttentionDrillDown}
         />
         <SummaryTile
           label="High Value Members At Risk"
@@ -568,17 +630,30 @@ function AiRelationshipIntelligencePanel({
         <SummaryTile
           label="Low Engagement Members"
           value={String(intelligence.lowEngagementMembers)}
+          hint="Filter table"
+          onClick={onFilterLowEngagement}
         />
       </div>
 
-      <p className="mt-4 text-sm font-medium text-white/85">
-        {intelligence.membersRequiringAttention} members require attention.
-      </p>
+      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+        <p className="text-sm font-medium text-white/90">
+          {intelligence.membersRequiringAttention} members require attention
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-white/50">
+          {MEMBER_ATTENTION_CRITERIA_SUMMARY}
+          {attentionSummaries.length > 0
+            ? ` · ${attentionSummaries.length} flagged in the current portfolio.`
+            : ""}
+        </p>
+      </div>
 
       <div className="mt-3 grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-white/10 bg-black/25 p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
             Priority actions
+          </p>
+          <p className="mt-1 text-xs text-white/45">
+            Top accounts to intervene on this week — click for member detail and reasoning.
           </p>
           <ol className="mt-3 space-y-3">
             {intelligence.priorityActions.map((item, index) => (
@@ -632,17 +707,127 @@ function AiRelationshipIntelligencePanel({
   );
 }
 
+function MemberDrillDownPanel({
+  title,
+  description,
+  items,
+  onOpenMember,
+  onClose,
+  className,
+}: {
+  title: string;
+  description: string;
+  items: AbhiPortfolioPriorityAction[];
+  onOpenMember: (id: string) => void;
+  onClose: () => void;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "rounded-xl border border-amber-400/25 bg-amber-500/[0.06] p-4",
+        className,
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-white">{title}</h3>
+          <p className="mt-1 text-xs leading-relaxed text-white/55">{description}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-lg border border-white/12 px-2 py-1 text-[11px] text-white/60 hover:text-white"
+        >
+          Close
+        </button>
+      </div>
+      {items.length === 0 ? (
+        <p className="mt-3 text-sm text-white/45">No members in this group.</p>
+      ) : (
+        <ol className="mt-3 max-h-80 space-y-2 overflow-y-auto">
+          {items.map((item, index) => (
+            <li key={item.memberId}>
+              <button
+                type="button"
+                onClick={() => onOpenMember(item.memberId)}
+                className="w-full rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 text-left transition hover:border-[#C2185B]/40 hover:bg-[#C2185B]/10"
+              >
+                <p className="text-sm font-semibold text-white">
+                  {index + 1}. {item.memberName}
+                </p>
+                <ul className="mt-1 space-y-0.5 text-xs text-white/60">
+                  {item.reasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
 function SummaryTile({
   label,
   value,
   icon,
   tone,
+  hint,
+  active,
+  onClick,
 }: {
   label: string;
   value: string;
   icon?: React.ReactNode;
   tone?: "good" | "risk" | "accent";
+  hint?: string;
+  active?: boolean;
+  onClick?: () => void;
 }) {
+  const interactive = Boolean(onClick);
+  const body = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-white/45">
+          {icon}
+          <p className="text-[10px] font-medium uppercase tracking-[0.1em]">{label}</p>
+        </div>
+        {interactive ? (
+          active ? (
+            <ChevronUp className="h-3.5 w-3.5 text-white/40" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 text-white/40" />
+          )
+        ) : null}
+      </div>
+      <p className="mt-1 text-lg font-semibold text-white">{value}</p>
+      {hint ? <p className="mt-0.5 text-[10px] text-white/40">{hint}</p> : null}
+    </>
+  );
+
+  if (interactive) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "rounded-xl border px-3 py-3 text-left transition",
+          tone === "good" && "border-emerald-400/25 bg-emerald-500/10",
+          tone === "risk" && "border-amber-400/30 bg-amber-500/10",
+          tone === "accent" && "border-[#C2185B]/35 bg-[#C2185B]/12",
+          !tone && "border-white/12 bg-black/25",
+          active && "ring-1 ring-[#C2185B]/50",
+          "hover:border-[#C2185B]/40 hover:bg-[#C2185B]/10",
+        )}
+      >
+        {body}
+      </button>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -653,11 +838,7 @@ function SummaryTile({
         !tone && "border-white/12 bg-black/25",
       )}
     >
-      <div className="flex items-center gap-1.5 text-white/45">
-        {icon}
-        <p className="text-[10px] font-medium uppercase tracking-[0.1em]">{label}</p>
-      </div>
-      <p className="mt-1 text-lg font-semibold text-white">{value}</p>
+      {body}
     </div>
   );
 }

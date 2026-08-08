@@ -260,18 +260,41 @@ export function daysUntil(iso: string, asOf = new Date()) {
   return Math.ceil((target.getTime() - asOf.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+/** Members flagged for relationship intervention — intentionally stricter than “medium renewal” alone. */
 function requiresAttention(row: AbhiMemberIntelligenceRow, asOf = new Date()) {
   const renewalDays = daysUntil(row.renewalDate, asOf);
-  return (
-    row.healthBand === "Needs Attention" ||
-    row.healthBand === "At Risk" ||
-    row.renewalRisk === "High" ||
-    row.renewalRisk === "Medium" ||
-    row.engagementScore < 55 ||
-    row.engagementTrend === "down" ||
-    (renewalDays >= 0 && renewalDays <= 90 && row.engagementScore < 75)
-  );
+
+  if (row.healthBand === "At Risk" || row.renewalRisk === "High") {
+    return true;
+  }
+
+  if (row.engagementScore < 40) {
+    return true;
+  }
+
+  if (row.healthBand === "Needs Attention") {
+    if (row.renewalRisk === "Medium" && (row.engagementScore < 60 || row.engagementTrend === "down")) {
+      return true;
+    }
+    if (row.engagementScore < 50) {
+      return true;
+    }
+  }
+
+  if (renewalDays >= 0 && renewalDays <= 60) {
+    if (row.renewalRisk === "Medium" && row.engagementScore < 65) {
+      return true;
+    }
+    if (row.engagementTrend === "down" && row.engagementScore < 60) {
+      return true;
+    }
+  }
+
+  return false;
 }
+
+export const MEMBER_ATTENTION_CRITERIA_SUMMARY =
+  "At-risk health, high renewal risk, or declining engagement inside the renewal window — not routine medium renewals.";
 
 function priorityReasons(row: AbhiMemberIntelligenceRow, asOf = new Date()): string[] {
   const reasons: string[] = [];
@@ -351,7 +374,7 @@ export function buildPortfolioAiIntelligence(
       urgencyScore: urgencyScore(row, asOf),
     }))
     .sort((a, b) => b.urgencyScore - a.urgencyScore || a.memberName.localeCompare(b.memberName))
-    .slice(0, 5);
+    .slice(0, 8);
 
   const renewalMeetings = Math.min(
     8,
@@ -629,6 +652,34 @@ export function buildMemberIntelligencePortfolio(
     },
     aiIntelligence: buildPortfolioAiIntelligence(rows, asOf),
   };
+}
+
+function memberSummariesForRows(
+  rows: AbhiMemberIntelligenceRow[],
+  asOf = new Date(),
+): AbhiPortfolioPriorityAction[] {
+  return rows
+    .map((row) => ({
+      memberId: row.id,
+      memberName: row.memberName,
+      reasons: priorityReasons(row, asOf),
+      urgencyScore: urgencyScore(row, asOf),
+    }))
+    .sort((a, b) => b.urgencyScore - a.urgencyScore || a.memberName.localeCompare(b.memberName));
+}
+
+export function listAtRiskMemberSummaries(
+  rows: AbhiMemberIntelligenceRow[],
+  asOf = new Date(),
+): AbhiPortfolioPriorityAction[] {
+  return memberSummariesForRows(filterMemberIntelligenceRows(rows, "at-risk", asOf), asOf);
+}
+
+export function listMembersRequiringAttentionSummaries(
+  rows: AbhiMemberIntelligenceRow[],
+  asOf = new Date(),
+): AbhiPortfolioPriorityAction[] {
+  return memberSummariesForRows(rows.filter((row) => requiresAttention(row, asOf)), asOf);
 }
 
 export function filterMemberIntelligenceRows(
