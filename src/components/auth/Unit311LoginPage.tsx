@@ -28,6 +28,12 @@ import {
   TALANTON_PORTALS_LOGIN_BACKGROUND_CLASS,
   TALANTON_PORTALS_LOGIN_OVERLAY_CLASS,
 } from "@/lib/talanton/login-branding";
+import {
+  ABHI_LOGIN_BACKGROUND,
+  ABHI_LOGIN_BACKGROUND_CLASS,
+  ABHI_LOGIN_BACKGROUND_QUALITY,
+  ABHI_LOGIN_OVERLAY_CLASS,
+} from "@/lib/abhi/login-branding";
 
 /** Dark engineering/infrastructure background (4K). */
 const LOGIN_BACKGROUND = "/images/login-workspace-bg.webp";
@@ -343,7 +349,9 @@ export default function Unit311LoginPage({
             ? TALANTON_PORTALS_LOGIN_BACKGROUND
             : isTalanton
               ? TALANTON_LOGIN_BACKGROUND
-              : LOGIN_BACKGROUND
+              : isAbhi
+                ? ABHI_LOGIN_BACKGROUND
+                : LOGIN_BACKGROUND
       }
       backgroundImageClassName={
         isOnwardAir
@@ -352,9 +360,13 @@ export default function Unit311LoginPage({
             ? TALANTON_PORTALS_LOGIN_BACKGROUND_CLASS
             : isTalanton
               ? TALANTON_LOGIN_BACKGROUND_CLASS
-              : "object-cover object-[center_35%] opacity-80 sm:object-center"
+              : isAbhi
+                ? ABHI_LOGIN_BACKGROUND_CLASS
+                : "object-cover object-[center_35%] opacity-80 sm:object-center"
       }
-      backgroundImageQuality={isTalanton ? TALANTON_LOGIN_BACKGROUND_QUALITY : 92}
+      backgroundImageQuality={
+        isTalanton ? TALANTON_LOGIN_BACKGROUND_QUALITY : isAbhi ? ABHI_LOGIN_BACKGROUND_QUALITY : 92
+      }
       overlayClassName={
         isOnwardAir
           ? "absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
@@ -362,7 +374,9 @@ export default function Unit311LoginPage({
             ? TALANTON_PORTALS_LOGIN_OVERLAY_CLASS
             : isTalanton
               ? TALANTON_LOGIN_OVERLAY_CLASS
-              : "absolute inset-0 bg-[#020617]/45"
+              : isAbhi
+                ? ABHI_LOGIN_OVERLAY_CLASS
+                : "absolute inset-0 bg-[#020617]/45"
       }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >

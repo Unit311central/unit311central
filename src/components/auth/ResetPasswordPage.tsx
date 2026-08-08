@@ -20,6 +20,12 @@ import {
   TALANTON_LOGIN_BACKGROUND_QUALITY,
   TALANTON_LOGIN_OVERLAY_CLASS,
 } from "@/lib/talanton/login-branding";
+import {
+  ABHI_LOGIN_BACKGROUND,
+  ABHI_LOGIN_BACKGROUND_CLASS,
+  ABHI_LOGIN_BACKGROUND_QUALITY,
+  ABHI_LOGIN_OVERLAY_CLASS,
+} from "@/lib/abhi/login-branding";
 
 /** Match Workspace Login visuals. */
 const LOGIN_BACKGROUND = "/images/login-workspace-bg.webp";
@@ -250,22 +256,34 @@ export default function ResetPasswordPage({
           ? ONWARDAIR_LOGIN_BACKGROUND
           : brand === "talanton"
             ? TALANTON_LOGIN_BACKGROUND
-            : LOGIN_BACKGROUND
+            : brand === "abhi"
+              ? ABHI_LOGIN_BACKGROUND
+              : LOGIN_BACKGROUND
       }
       backgroundImageClassName={
         brand === "onwardair"
           ? "object-cover object-[center_40%] opacity-[0.38] sm:object-center"
           : brand === "talanton"
             ? TALANTON_LOGIN_BACKGROUND_CLASS
-            : "object-cover object-[center_35%] opacity-80 sm:object-center"
+            : brand === "abhi"
+              ? ABHI_LOGIN_BACKGROUND_CLASS
+              : "object-cover object-[center_35%] opacity-80 sm:object-center"
       }
-      backgroundImageQuality={brand === "talanton" ? TALANTON_LOGIN_BACKGROUND_QUALITY : 92}
+      backgroundImageQuality={
+        brand === "talanton"
+          ? TALANTON_LOGIN_BACKGROUND_QUALITY
+          : brand === "abhi"
+            ? ABHI_LOGIN_BACKGROUND_QUALITY
+            : 92
+      }
       overlayClassName={
         brand === "onwardair"
           ? "absolute inset-0 bg-gradient-to-b from-[#020617]/72 via-[#020617]/78 to-[#020617]/88"
           : brand === "talanton"
             ? TALANTON_LOGIN_OVERLAY_CLASS
-            : "absolute inset-0 bg-[#020617]/45"
+            : brand === "abhi"
+              ? ABHI_LOGIN_OVERLAY_CLASS
+              : "absolute inset-0 bg-[#020617]/45"
       }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >
