@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import type { EaTestSuiteReport } from "@/lib/talanton/ea-test-suite";
+import { TALANTON_EA_PHASE1_DEMO_CHECKS } from "@/lib/talanton/ea-phase1-demo-checks";
 
 type RunState = "idle" | "running" | "done" | "error";
 type DeckState = "idle" | "generating" | "ready" | "error";
@@ -30,6 +31,17 @@ export function TalantonEaTestingWorkspace() {
   const [deckMeta, setDeckMeta] = useState<{ packName: string; pageCount: number; build: string } | null>(null);
   const [deckPdfUrl, setDeckPdfUrl] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyPrompt = useCallback(async (id: string, prompt: string) => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 2000);
+    } catch {
+      setCopiedId(null);
+    }
+  }, []);
 
   const runSuite = useCallback(async () => {
     setState("running");
@@ -122,6 +134,52 @@ export function TalantonEaTestingWorkspace() {
             </button>
           </div>
         </header>
+
+        <section className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold">Phase 1 demo checklist</h2>
+            <p className="mt-1 max-w-3xl text-sm text-white/55">
+              Manual walkthrough prompts for client demos. Copy a prompt into the Executive Assistant, or open the
+              linked module first for view-aware checks.
+            </p>
+          </div>
+          <ul className="divide-y divide-white/5 rounded-lg border border-white/10">
+            {TALANTON_EA_PHASE1_DEMO_CHECKS.map((check) => (
+              <li key={check.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-sm text-emerald-200/90">{check.prompt}</p>
+                  <p className="mt-2 text-sm text-white/70">
+                    <span className="text-white/45">Expected: </span>
+                    {check.expected}
+                  </p>
+                  {check.context && (
+                    <p className="mt-1 text-xs text-white/45">
+                      <span className="text-white/35">Context: </span>
+                      {check.context}
+                    </p>
+                  )}
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                  {check.href && (
+                    <Link
+                      href={check.href}
+                      className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium text-white/75 transition hover:bg-white/5"
+                    >
+                      {check.hrefLabel ?? "Open"}
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void copyPrompt(check.id, check.prompt)}
+                    className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+                  >
+                    {copiedId === check.id ? "Copied" : "Copy prompt"}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <section className="mb-8 rounded-xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
