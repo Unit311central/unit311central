@@ -10,6 +10,7 @@ import {
   BOARD_PORTAL_LOGIN_BACKGROUND_QUALITY,
   BOARD_PORTAL_LOGIN_OVERLAY_CLASS,
 } from "@/lib/board-portal-login-branding";
+import { getAbhiMemberPortalLoginBrand } from "@/lib/abhi/member-portal-login-branding";
 import { marketingFadeIn, MARKETING_CONTENT_CLASS } from "@/lib/marketing-ui";
 
 type Props = {
@@ -28,6 +29,7 @@ export function AbhiMemberPortalLogin({
   portalKind = "member",
 }: Props) {
   const isBoard = portalKind === "board";
+  const companyBrand = !isBoard ? getAbhiMemberPortalLoginBrand(companyPath) : null;
   const [username, setUsername] = useState(suggestedUsername);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export function AbhiMemberPortalLogin({
   }
 
   const formCard = (
-    <div className={`w-full max-w-md ${isBoard ? marketingFadeIn : ""}`}>
+    <div className={`w-full max-w-md ${isBoard || companyBrand ? marketingFadeIn : ""}`}>
       <div className="mb-6 flex flex-col items-center gap-4">
         <AbhiLogoMark height={47} tone="onDark" />
         {companyLogoSrc ? (
@@ -81,7 +83,7 @@ export function AbhiMemberPortalLogin({
       </div>
       <div
         className={
-          isBoard
+          isBoard || companyBrand
             ? "rounded-2xl border border-white/10 bg-white/[0.06] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl"
             : "rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
         }
@@ -146,6 +148,20 @@ export function AbhiMemberPortalLogin({
         backgroundImageClassName={BOARD_PORTAL_LOGIN_BACKGROUND_CLASS}
         backgroundImageQuality={BOARD_PORTAL_LOGIN_BACKGROUND_QUALITY}
         overlayClassName={BOARD_PORTAL_LOGIN_OVERLAY_CLASS}
+        contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] items-center justify-center px-4 py-10 text-white`}
+      >
+        {formCard}
+      </MarketingPageShell>
+    );
+  }
+
+  if (companyBrand) {
+    return (
+      <MarketingPageShell
+        backgroundImage={companyBrand.backgroundImage}
+        backgroundImageClassName={companyBrand.backgroundImageClassName}
+        backgroundImageQuality={companyBrand.backgroundImageQuality}
+        overlayClassName={companyBrand.overlayClassName}
         contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] items-center justify-center px-4 py-10 text-white`}
       >
         {formCard}
