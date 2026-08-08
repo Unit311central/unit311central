@@ -477,6 +477,41 @@ function formatModuleDetail(module: ApplicationCatalogueModule): string {
   ].join("\n");
 }
 
+function pickNavigationHit(
+  hits: Array<{ score: number; entry: ApplicationCatalogueEntry }>,
+  lower: string,
+) {
+  const specific = hits.find((h) => {
+    if (h.entry.kind === "application") {
+      const tokens = h.entry.application.label
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((t) => t.length > 2);
+      return tokens.length > 0 && tokens.every((t) => lower.includes(t));
+    }
+    if (h.entry.kind === "page") {
+      const label = h.entry.page.label.toLowerCase();
+      return label.length > 2 && lower.includes(label);
+    }
+    return false;
+  });
+  return specific ?? hits[0]!;
+}
+
+function hrefFromCatalogueEntry(entry: ApplicationCatalogueEntry): string {
+  if (entry.kind === "module") return entry.module.navigation.href;
+  if (entry.kind === "application") {
+    return entry.application.href ?? entry.module.navigation.href;
+  }
+  return entry.page.href ?? entry.module.navigation.href;
+}
+
+function labelFromCatalogueEntry(entry: ApplicationCatalogueEntry): string {
+  if (entry.kind === "module") return entry.module.displayName;
+  if (entry.kind === "application") return entry.application.label;
+  return entry.page.label;
+}
+
 /**
  * Answer platform / application-structure questions from the Application Catalogue only.
  * Never uses the Action Registry.
@@ -513,7 +548,10 @@ export function answerPlatformQuestion(
     return null;
   }
   if (
-    /\b(where\s+(are|is))\b[\s\S]{0,60}\b(sops?|files?|documents?|stored|wordmark)\b/i.test(lower)
+    /\b(where\s+(are|is))\b[\s\S]{0,60}\b(sops?|files?|documents?|stored|wordmark)\b/i.test(
+      lower,
+    ) &&
+    !/\bboard\s+decks?\b/i.test(lower)
   ) {
     return null;
   }
@@ -597,18 +635,8 @@ export function answerPlatformQuestion(
     const raw = openMatch[1].replace(/\b(module|workspace|page|app|application)\b/gi, "").trim();
     const hit = searchApplicationCatalogue(raw, 1, options)[0];
     if (hit) {
-      const href =
-        hit.entry.kind === "module"
-          ? hit.entry.module.navigation.href
-          : hit.entry.kind === "application"
-            ? hit.entry.application.href ?? hit.entry.module.navigation.href
-            : hit.entry.page.href ?? hit.entry.module.navigation.href;
-      const label =
-        hit.entry.kind === "module"
-          ? hit.entry.module.displayName
-          : hit.entry.kind === "application"
-            ? hit.entry.application.label
-            : hit.entry.page.label;
+      const href = hrefFromCatalogueEntry(hit.entry);
+      const label = labelFromCatalogueEntry(hit.entry);
       return {
         kind: "open",
         answer: [
@@ -625,7 +653,8 @@ export function answerPlatformQuestion(
     }
   }
 
-  const whereMatch = /\b(where\s+(do\s+i|can\s+i|to)|where\s+is|find)\b/i.test(lower);
+  const whereMatch =
+    /\b(where\s+(do\s+i|can\s+i|to|are|is)|where\s+is|find)\b/i.test(lower);
   const locationTopic =
     /\b(suppliers?|vendors?|accounts\s+payable|general\s+ledger|leave|recruitment)\b/i.test(
       lower,
@@ -642,13 +671,8 @@ export function answerPlatformQuestion(
         }
         return `• ${h.entry.module.displayName} → ${h.entry.application.label} → ${h.entry.page.label}`;
       });
-      const top = hits[0]!;
-      const href =
-        top.entry.kind === "module"
-          ? top.entry.module.navigation.href
-          : top.entry.kind === "application"
-            ? top.entry.application.href
-            : top.entry.page.href;
+      const top = pickNavigationHit(hits, lower);
+      const href = hrefFromCatalogueEntry(top.entry);
       return {
         kind: "search",
         answer: [
@@ -682,6 +706,9 @@ export function answerPlatformQuestion(
   return null;
 }
 
-export function isPlatformQuestion(message: string): boolean {
-  return answerPlatformQuestion(message) != null;
+export function isPlatformQuestion(
+  message: string,
+  options?: ApplicationCatalogueOptions,
+): boolean {
+  return answerPlatformQuestion(message, options) != null;
 }

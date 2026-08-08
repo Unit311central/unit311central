@@ -168,14 +168,36 @@ export async function resolveOrchestrationRoute(
     message,
   });
 
+  const catalogueOptions = { workspaceSlug: business.workspace.slug };
+
+  // Navigation — Application Catalogue wins over coarse business "where/find" routing.
+  if (/\b(where|open|navigate|take\s+me\s+to|go\s+to)\b/i.test(message)) {
+    const navigationAnswer = answerPlatformQuestion(message, catalogueOptions);
+    if (navigationAnswer?.navigateHref) {
+      const cards: EaExecutionCard[] = [
+        buildNavigationCard({
+          title: navigationAnswer.navigateLabel ?? "Open module",
+          body: "Platform navigation — Application Catalogue",
+          href: navigationAnswer.navigateHref,
+          label: navigationAnswer.navigateLabel ?? "Open",
+        }),
+      ];
+      return {
+        kind: "platform_answer",
+        message: navigationAnswer.answer,
+        executionCards: cards,
+      };
+    }
+  }
+
   // PLATFORM — Application Catalogue only (never Action Registry).
   // Do not override an explicit business-domain classification with catalogue hits
   // ("List our office locations" must stay live-data, not navigation copy).
   if (
     domain.domain === "platform" ||
-    (domain.domain === "unknown" && isPlatformQuestion(message))
+    (domain.domain === "unknown" && isPlatformQuestion(message, catalogueOptions))
   ) {
-    const answered = answerPlatformQuestion(message);
+    const answered = answerPlatformQuestion(message, catalogueOptions);
     if (answered) {
       const cards: EaExecutionCard[] = [];
       if (answered.navigateHref) {

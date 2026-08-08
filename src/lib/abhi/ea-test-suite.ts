@@ -21,8 +21,14 @@ import {
 } from "@/lib/abhi/abhi-request-org-state";
 import { getAbhiBoardMeetingsServerSnapshot } from "@/lib/abhi/board-meetings-store";
 import { generateAbhiBoardDeck } from "@/lib/abhi/board-deck-generator";
-import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
+import {
+  answerPlatformQuestion,
+  listPlatformModules,
+  searchApplicationCatalogue,
+} from "@/lib/ai-operating-assistant/application-catalogue";
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
+import { ABHI_EA_PHASE1_DEMO_CHECKS } from "@/lib/abhi/ea-phase1-demo-checks";
+import { getAbhiNavSections } from "@/lib/internal-role-views";
 import { getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 
@@ -56,7 +62,7 @@ export type EaTestSuiteReport = {
   }>;
 };
 
-const SUITE_VERSION = "abhi-ea-v1";
+const SUITE_VERSION = "abhi-ea-v2";
 
 const FORBIDDEN_ABHI = [/\bTalanton\b/, /\bportfolio companies\b/i, /\bMOIC\b/i, /\bVertex VTOL\b/i];
 
@@ -289,6 +295,61 @@ export async function runAbhiEaTestSuite(): Promise<EaTestSuiteReport> {
       throw new Error("missing Board Risk Register");
     }
   }, `modules=${listPlatformModules({ workspaceSlug: "abhi" }).length}`);
+
+  await catalogue.run("Every ABHI sidebar page is searchable", () => {
+    const options = { workspaceSlug: "abhi" as const };
+    const pages: Array<{ module: string; label: string }> = [];
+    for (const section of getAbhiNavSections()) {
+      if (section.kind === "pin" || !section.label) continue;
+      for (const item of section.items) {
+        const walk = (label: string, children?: readonly { label: string; children?: readonly { label: string }[] }[]) => {
+          if (!children?.length) {
+            pages.push({ module: section.label!, label });
+            return;
+          }
+          for (const child of children) {
+            if (child.children?.length) {
+              for (const grand of child.children) {
+                pages.push({ module: section.label!, label: grand.label });
+              }
+            } else {
+              pages.push({ module: section.label!, label: child.label });
+            }
+          }
+        };
+        walk(item.label, item.children);
+      }
+    }
+    const misses: string[] = [];
+    for (const page of pages) {
+      const answered = answerPlatformQuestion(`Where is ${page.label}?`, options);
+      const hits = searchApplicationCatalogue(page.label, 3, options);
+      const ok =
+        answered != null ||
+        hits.some((h) => {
+          if (h.entry.kind === "page") return h.entry.page.label === page.label;
+          if (h.entry.kind === "application") return h.entry.application.label === page.label;
+          return false;
+        });
+      if (!ok) misses.push(`${page.module} → ${page.label}`);
+    }
+    if (misses.length) {
+      throw new Error(`unsearchable pages: ${misses.slice(0, 5).join("; ")}${misses.length > 5 ? "…" : ""}`);
+    }
+  }, `pages=${getAbhiNavSections().length}`);
+
+  const demo = new SectionRunner("Phase 1 demo prompts");
+  sections.push(demo);
+  for (const check of ABHI_EA_PHASE1_DEMO_CHECKS) {
+    await demo.run(check.id, async () => {
+      const route = await resolveOrchestrationRoute(check.prompt, [], abhiBusiness());
+      const ok =
+        route.kind === "tool" ||
+        route.kind === "platform_answer" ||
+        route.kind === "capability_answer";
+      if (!ok) throw new Error(`unexpected route: ${route.kind}`);
+    });
+  }
 
   const orgState = new SectionRunner("Request org-state");
   sections.push(orgState);
