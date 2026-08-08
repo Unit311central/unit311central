@@ -588,6 +588,8 @@ export function isInternalAppPath(pathname: string): boolean {
     pathname === "/telemetry" ||
     pathname === "/dashboard" ||
     pathname.startsWith("/dashboard/") ||
+    pathname === "/testing" ||
+    pathname.startsWith("/testing/") ||
     pathname === "/portals" ||
     pathname.startsWith("/portals/") ||
     pathname === "/member-portal" ||

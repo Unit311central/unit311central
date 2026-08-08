@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   getRequestHost,
   parseClientPlatformSubdomainSafe,
+  parseSafePostLoginNext,
 } from "@/lib/app-domains";
 import {
   PLATFORM_SESSION_COOKIE,
@@ -76,9 +77,16 @@ export async function evaluateCustomerHostSessionGate(
 
 export function customerHostLoginRedirect(
   workspaceOrigin: string,
+  nextPath?: string | null,
 ): NextResponse {
   // Keep auth on the customer host so tenants see their own login branding.
-  return NextResponse.redirect(`${workspaceOrigin}/login`, 307);
+  const url = new URL(`${workspaceOrigin}/login`);
+  const safeNext =
+    nextPath?.trim() ? parseSafePostLoginNext(nextPath) ?? null : null;
+  if (safeNext) {
+    url.searchParams.set("next", safeNext);
+  }
+  return NextResponse.redirect(url.toString(), 307);
 }
 
 /**

@@ -566,7 +566,7 @@ export async function middleware(request: NextRequest) {
 
       const gate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (gate.status === "anonymous" || gate.status === "invalid") {
-        const bounce = customerHostLoginRedirect(workspaceOrigin);
+        const bounce = customerHostLoginRedirect(workspaceOrigin, "/testing");
         if (gate.status === "invalid") {
           clearPlatformSessionCookie(bounce, request);
         }
@@ -579,7 +579,7 @@ export async function middleware(request: NextRequest) {
       }
 
       if (gate.status === "forbidden") {
-        const bounce = customerHostLoginRedirect(workspaceOrigin);
+        const bounce = customerHostLoginRedirect(workspaceOrigin, "/testing");
         clearPlatformSessionCookie(bounce, request);
         return bounce;
       }
