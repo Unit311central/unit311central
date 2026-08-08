@@ -550,9 +550,9 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    // Talanton EA test suite GUI (Talanton host only).
+    // EA test suite GUI (Talanton + ABHI hosts).
     if (pathname === "/testing" || pathname.startsWith("/testing/")) {
-      if (!isTalantonImpactSlug(workspaceSlug)) {
+      if (!isTalantonImpactSlug(workspaceSlug) && workspaceSlug !== ABHI_SLUG) {
         return redirectExternal(`${workspaceOrigin}/dashboard`);
       }
 
@@ -560,6 +560,14 @@ export async function middleware(request: NextRequest) {
         const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
         const session = token ? await readPlatformSessionToken(token) : null;
         if (session && isPortalsAllowedUsername(session.username, workspaceSlug)) {
+          return rewriteTo(request, "/testing", headers, workspaceResponseHeaders);
+        }
+      }
+
+      if (workspaceSlug === ABHI_SLUG) {
+        const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
+        const session = token ? await readPlatformSessionToken(token) : null;
+        if (session && isAbhiPortalsAllowedUsername(session.username)) {
           return rewriteTo(request, "/testing", headers, workspaceResponseHeaders);
         }
       }

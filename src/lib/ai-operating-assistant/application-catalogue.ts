@@ -17,9 +17,11 @@ import {
 } from "@/lib/internal-operations-data";
 import {
   filterInternalNavSectionsForCorpCentreWorkspace,
+  getAbhiNavSections,
   isViewAllowedForGrants,
 } from "@/lib/internal-role-views";
 import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
+import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
 import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
 
 export type ApplicationCataloguePage = {
@@ -111,6 +113,9 @@ const MODULE_ALIASES: Record<string, string[]> = {
   tools: ["utilities", "website", "media", "testing", "telemetry", "users"],
   "external-client-access": ["external access", "client portal", "external users"],
   settings: ["preferences", "profile", "billing", "appearance"],
+  "abhi-intelligence": ["member intelligence", "regulatory", "regulatory intelligence", "membership insights"],
+  board: ["board meetings", "board deck", "risk register", "governance", "minutes"],
+  "marketing-events": ["marketing", "events", "newsletter", "whx", "accelerator"],
 };
 
 const MODULE_DESCRIPTIONS: Record<string, string> = {
@@ -130,6 +135,9 @@ const MODULE_DESCRIPTIONS: Record<string, string> = {
   tools: "Website management, media, testing, telemetry, and user administration.",
   "external-client-access": "External client users and portal access.",
   settings: "Profile, general settings, billing, and appearance.",
+  "abhi-intelligence": "Member intelligence and regulatory intelligence for HealthTech membership.",
+  board: "Board dashboard, meetings, decks, minutes, risk register, and board members.",
+  "marketing-events": "Newsletter, social, ABHI events, accelerators, and mailing lists.",
 };
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -225,6 +233,7 @@ function moduleFromSection(section: InternalNavSection): ApplicationCatalogueMod
 
 let cachedModules: ApplicationCatalogueModule[] | null = null;
 let cachedCorpCentreModules: ApplicationCatalogueModule[] | null = null;
+let cachedAbhiModules: ApplicationCatalogueModule[] | null = null;
 
 export type ApplicationCatalogueOptions = {
   workspaceSlug?: string | null;
@@ -233,6 +242,9 @@ export type ApplicationCatalogueOptions = {
 function navSectionsForSurface(workspaceSlug?: string | null): readonly InternalNavSection[] {
   if (isCorpCentreWorkspaceSlug(workspaceSlug)) {
     return filterInternalNavSectionsForCorpCentreWorkspace(internalSurveyNavSections);
+  }
+  if (isAbhiWorkspaceSlug(workspaceSlug)) {
+    return getAbhiNavSections();
   }
   return internalSurveyNavSections;
 }
@@ -252,6 +264,13 @@ export function listPlatformModules(
         description: module.description.replace(/Unit311 Central/gi, "CorpCentre"),
       }));
     return cachedCorpCentreModules;
+  }
+  if (isAbhiWorkspaceSlug(options?.workspaceSlug)) {
+    if (cachedAbhiModules) return cachedAbhiModules;
+    cachedAbhiModules = navSectionsForSurface(options?.workspaceSlug)
+      .map(moduleFromSection)
+      .filter((m): m is ApplicationCatalogueModule => Boolean(m));
+    return cachedAbhiModules;
   }
   if (cachedModules) return cachedModules;
   cachedModules = internalSurveyNavSections

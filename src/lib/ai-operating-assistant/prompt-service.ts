@@ -5,6 +5,7 @@ import {
   CORPCENTRE_CASH_BALANCE_AUD,
   isCorpCentreWorkspaceSlug,
 } from "@/lib/corpcentre-financials";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
@@ -124,6 +125,7 @@ export function buildSystemInstructions(
 
   const isCorpCentre = isCorpCentreWorkspaceSlug(context.workspace.slug);
   const isTalanton = isTalantonImpactSlug(context.workspace.slug);
+  const isAbhi = isAbhiSlug(context.workspace.slug);
   const isOnwardAir = isOnwardAirSlug(context.workspace.slug);
   const brand = brandFromWorkspaceClaim({
     slug: context.workspace.slug,
@@ -149,6 +151,18 @@ Document tools: boardpack.generate — Talanton board deck PDF (10 slides: cover
 When users ask for an impact stories report without scope, ask which portfolio companies (all or named) and which impact areas before generating.
 For generic cash/P&L also use queryBusiness / getCashPosition / generateScopedBusinessPdf / generateFinancialReportPdf.`
     : "";
+  const abhiToolsHint = isAbhi
+    ? `
+ABHI — reporting currency is GBP. Use membership / HealthTech industry language (not Talanton portfolio or OnwardAir aviation).
+Platform structure: listPlatformModules / searchApplications know every ABHI sidebar module and subsection — ABHI Intelligence (Member + Regulatory), Business Central (Members), Financials, Board, Marketing & Events, HR, Training, QMS, etc.
+Executive intelligence tools (prefer for briefing, health, actions, board Q&A):
+- abhi.getExecutiveBriefing — Chief-of-Staff overview across financial, commercial, governance
+- abhi.getOrgHealth — RAG health across financial, commercial, operational, governance
+- abhi.queryActions — overdue / due this week / by owner board actions
+- abhi.getBoardInsights — risks, decisions, sponsorship, WHX, financial, agenda (analysis only — not a PDF)
+Document tools: boardpack.generate — ABHI board meeting pack PDF + PowerPoint (cover, exec summary, actions, risks, KPIs, financials, commercial, team, strategic discussion); lms.generateCourseFromDocument — training from uploaded policies.
+For module navigation (“where is …”) always use searchApplications. For live figures use queryBusiness / getCashPosition with ABHI financial fixtures (£1M cash, membership AR, burn).`
+    : "";
   const onwardAirToolsHint = isOnwardAir
     ? `
 OnwardAir tools: boardpack.generate — create OnwardAir board decks (Vertex VTOL / FLEX Pod / Seed raise / cash runway) when explicitly asked; lms.generateCourseFromDocument — create interactive training courses from uploaded PDF/Word SOPs when explicitly asked. Prefer queryBusiness / getCashPosition / search* for live module questions (Financials, Fundraising, Engineering, Board, Training, QMS, Projects).`
@@ -164,7 +178,7 @@ ${JSON.stringify(
       workspace: {
         name: context.workspace.name,
         slug: context.workspace.slug,
-        reportingCurrency: isCorpCentre ? "AUD" : isTalanton ? "USD" : undefined,
+        reportingCurrency: isCorpCentre ? "AUD" : isTalanton ? "USD" : isAbhi ? "GBP" : undefined,
       },
       page: context.page,
       selection: context.selection,
@@ -192,7 +206,7 @@ Active selection: ${selection || "none"}${topicBlock}${memoryBlock}${artifactBlo
 Platform: listPlatformModules / searchApplications.
 Capabilities: listBusinessActions / searchCapabilities / proposeBusinessActionPlan.
 Finance writes: finance.createExpense, finance.chaseOverdueInvoice (then calendar.scheduleMeeting for follow-up).
-Business facts: queryBusiness / getSmartInsights / search* tools. Prefer executing registered capabilities over describing screens when the user wants work done.${talantonToolsHint}${onwardAirToolsHint}`;
+Business facts: queryBusiness / getSmartInsights / search* tools. Prefer executing registered capabilities over describing screens when the user wants work done.${talantonToolsHint}${abhiToolsHint}${onwardAirToolsHint}`;
 }
 
 export function buildStructuredJsonHint() {
