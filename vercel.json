@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "installCommand": "npm install",
-  "buildCommand": "npm run build && find .next -name '*.map' -delete",
+  "buildCommand": "npm run build && find .next -name '*.map' -delete 2>/dev/null || true",
   "crons": [
     {
       "path": "/api/cron/founder-session-reminders",

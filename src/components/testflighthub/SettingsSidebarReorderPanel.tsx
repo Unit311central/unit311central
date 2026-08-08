@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -210,11 +210,11 @@ function ModuleRowChrome({
 }: {
   section: InternalNavSection;
   title: string;
-  leading?: React.ReactNode;
-  trailing?: React.ReactNode;
+  leading?: ReactNode;
+  trailing?: ReactNode;
   expanded: boolean;
   onToggleExpanded: () => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div className="flex items-stretch">
