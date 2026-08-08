@@ -23,6 +23,12 @@ export const ABHI_MONTHLY_BURN_PRIOR_GBP = 76_200;
 export const ABHI_MONTHLY_BURN_MTD_GBP = 41_800;
 
 /**
+ * Outstanding membership receivables (GBP) — aligns with board pack (£18k overdue subset).
+ * Total open membership invoices awaiting collection.
+ */
+export const ABHI_ACCOUNTS_RECEIVABLE_GBP = 18_000;
+
+/**
  * Membership & services income recognised monthly through the current operating year.
  * Jan–Jul carry the bulk of YTD; August is the open month. Sums to {@link ABHI_REVENUE_YTD_GBP}.
  */

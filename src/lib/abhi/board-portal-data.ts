@@ -140,6 +140,8 @@ export type AbhiBoardMinutesRecord = {
   meetingDate: string;
   title: string;
   minutesSummary: string;
+  agenda: string[];
+  attendees: { name: string; role?: string }[];
   decisions: { id: string; text: string; resolution?: string }[];
   resolutions: string[];
   actions: { id: string; title: string; owner: string; dueDate: string; status: string }[];
@@ -158,6 +160,8 @@ export function buildMinutesFromMeetings(meetings?: AbhiBoardMeeting[]): AbhiBoa
       minutesSummary:
         m.notes?.trim() ||
         `Minutes of ${m.title} held on ${m.meetingDate}. Attendance recorded; agenda items discussed; decisions and actions captured below.`,
+      agenda: m.agenda ?? [],
+      attendees: m.attendees ?? [],
       decisions: m.decisions,
       resolutions: m.resolutions?.length
         ? m.resolutions

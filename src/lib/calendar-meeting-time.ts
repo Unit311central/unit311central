@@ -120,3 +120,33 @@ export function extractTimezoneFromNotes(notes: string | null | undefined): stri
 export function stripTimezoneFromNotes(notes: string | null | undefined): string {
   return (notes ?? "").replace(/\n?Timezone:\s*.+$/im, "").trim();
 }
+
+/** Format a meeting range in a fixed IANA timezone with GMT/BST label. */
+export function formatEventTimeRangeInTimezone(
+  startsAt: string,
+  endsAt: string,
+  timeZone = DEFAULT_CALENDAR_TIMEZONE,
+): string {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  if (Number.isNaN(start.getTime())) return "Unknown time";
+  const meta = getFounderBookingTimezone(timeZone);
+  const dateFmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: meta.id,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const timeFmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: meta.id,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const sameDay = start.toDateString() === end.toDateString();
+  const tzLabel = meta.abbreviation === "GMT" || meta.abbreviation === "BST" ? meta.abbreviation : "GMT";
+  if (sameDay && !Number.isNaN(end.getTime())) {
+    return `${dateFmt.format(start)} · ${timeFmt.format(start)}–${timeFmt.format(end)} ${tzLabel}`;
+  }
+  return `${dateFmt.format(start)} ${timeFmt.format(start)} – ${dateFmt.format(end)} ${timeFmt.format(end)} ${tzLabel}`;
+}

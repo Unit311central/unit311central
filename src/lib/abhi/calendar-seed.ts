@@ -1,5 +1,8 @@
 import { createCalendarEvent } from "@/lib/internal-calendar-service";
+import { appendTimezoneToNotes } from "@/lib/calendar-meeting-time";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+
+const ABHI_CALENDAR_TIMEZONE = "Europe/London";
 
 const MARKER_TITLE = "ABHI Board Meeting — August cycle";
 
@@ -133,7 +136,7 @@ export async function ensureAbhiCalendarSeeded(workspaceId: string): Promise<voi
         endsAt: seed.endsAt,
         clientName: seed.clientName,
         location: seed.location,
-        notes: seed.notes,
+        notes: appendTimezoneToNotes(seed.notes, ABHI_CALENDAR_TIMEZONE) ?? undefined,
       },
       { workspaceId },
     );

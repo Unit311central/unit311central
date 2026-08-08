@@ -1,6 +1,7 @@
 "use client";
 
 import { AbhiBoardPortalApp } from "@/components/abhi/board/AbhiBoardPortalApp";
+import { AbhiBoardMinutesWorkspace } from "@/components/abhi/board/AbhiBoardMinutesWorkspace";
 import {
   OnwardAirBoardDashboardWorkspace,
   OnwardAirBoardMinutesWorkspace,
@@ -29,6 +30,14 @@ export default function BoardGovernanceWorkspace({
     return (
       <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
         <AbhiBoardMembersWorkspace />
+      </div>
+    );
+  }
+
+  if (isAbhi && section === "minutes") {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-[#07111f]/40 p-1 sm:p-2">
+        <AbhiBoardMinutesWorkspace />
       </div>
     );
   }

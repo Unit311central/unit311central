@@ -24,11 +24,13 @@ import {
   combineDateTimeInTimezone,
   DEFAULT_CALENDAR_TIMEZONE,
   extractTimezoneFromNotes,
+  formatEventTimeRangeInTimezone,
   fromTwentyFourHourTime,
   stripTimezoneFromNotes,
   toTwentyFourHourTime,
   type CalendarMeetingDurationMinutes,
 } from "@/lib/calendar-meeting-time";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import type { ManagedClient } from "@/lib/client-management-data";
 import { createInitialUsers, type ManagedUser } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
@@ -44,6 +46,35 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
+
+const ABHI_CALENDAR_TIMEZONE = "Europe/London";
+
+function defaultDraftTimezone() {
+  if (typeof window !== "undefined" && isBrowserAbhiSurface()) return ABHI_CALENDAR_TIMEZONE;
+  if (typeof Intl !== "undefined") {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_CALENDAR_TIMEZONE;
+  }
+  return DEFAULT_CALENDAR_TIMEZONE;
+}
+
+function formatCalendarEventTime(startsAt: string, endsAt: string) {
+  if (typeof window !== "undefined" && isBrowserAbhiSurface()) {
+    return formatEventTimeRangeInTimezone(startsAt, endsAt, ABHI_CALENDAR_TIMEZONE);
+  }
+  return formatEventTimeRange(startsAt, endsAt);
+}
+
+function formatCalendarEventClock(startsAt: string) {
+  if (typeof window !== "undefined" && isBrowserAbhiSurface()) {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: ABHI_CALENDAR_TIMEZONE,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(startsAt));
+  }
+  return toTimeInputValue(startsAt);
+}
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -126,10 +157,7 @@ function blankDraft(date: Date): EventDraft {
     startMinute: start.minute,
     startMeridiem: start.meridiem,
     durationMinutes: 60,
-    timeZone:
-      typeof Intl !== "undefined"
-        ? Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_CALENDAR_TIMEZONE
-        : DEFAULT_CALENDAR_TIMEZONE,
+    timeZone: defaultDraftTimezone(),
     clientName: "",
     location: "",
     notes: "",
@@ -438,7 +466,7 @@ export default function CalendarWorkspace({
                 eventTypeClass(event.eventType),
               )}
             >
-              {toTimeInputValue(event.startsAt)} {event.title}
+              {formatCalendarEventClock(event.startsAt)} {event.title}
             </div>
           ))}
           {dayEvents.length > (compact ? 1 : 2) && (
@@ -713,7 +741,7 @@ export default function CalendarWorkspace({
                   >
                     <p className="text-sm font-medium text-white">{event.title}</p>
                     <p className="mt-1 text-xs text-white/50">
-                      {formatEventTimeRange(event.startsAt, event.endsAt)}
+                      {formatCalendarEventTime(event.startsAt, event.endsAt)}
                     </p>
                   </button>
                 ))
@@ -836,7 +864,7 @@ export default function CalendarWorkspace({
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-white/50">
-                    {formatEventTimeRange(event.startsAt, event.endsAt)}
+                    {formatCalendarEventTime(event.startsAt, event.endsAt)}
                   </p>
                   {event.clientName && (
                     <p className="mt-1 flex items-center gap-1 text-xs text-white/55">

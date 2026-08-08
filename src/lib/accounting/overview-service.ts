@@ -14,6 +14,7 @@ import {
 } from "@/lib/corpcentre-financials";
 import {
   ABHI_CASH_BALANCE_GBP,
+  ABHI_ACCOUNTS_RECEIVABLE_GBP,
   ABHI_REVENUE_YTD_GBP,
   getAbhiFixtureBurnObligation,
   getAbhiMonthlyCashSeries,
@@ -713,6 +714,9 @@ export async function getFinancialOverview(
         0,
       ),
     );
+    const effectiveArOutstanding = isAbhiWorkspaceSlug(workspaceSlug)
+      ? ABHI_ACCOUNTS_RECEIVABLE_GBP
+      : arOutstanding;
     const softwareApUpcoming = roundMoney(
       obligations.software.upcoming.reduce((sum, line) => sum + line.monthlyCost, 0),
     );
@@ -791,7 +795,7 @@ export async function getFinancialOverview(
     return {
       revenueYtd,
       cashPosition,
-      accountsReceivable: arOutstanding,
+      accountsReceivable: effectiveArOutstanding,
       accountsPayable: apOutstanding,
       netProfit,
       outstandingInvoices: unpaid.length,
@@ -826,7 +830,7 @@ export async function getFinancialOverview(
             : burnRate.runwayMonths,
       },
       ar: {
-        outstanding: arOutstanding,
+        outstanding: effectiveArOutstanding,
         overdue: roundMoney(
           overdue.reduce(
             (sum, invoice) =>

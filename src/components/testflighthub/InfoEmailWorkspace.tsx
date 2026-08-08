@@ -98,6 +98,13 @@ function defaultMailboxesForHost(): EmailAccountOption[] {
   } catch {
     /* fall through */
   }
+  try {
+    const { isBrowserAbhiSurface } =
+      require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
+    if (isBrowserAbhiSurface()) return DEMO_ONLY_MAILBOXES;
+  } catch {
+    /* fall through */
+  }
   return [];
 }
 
