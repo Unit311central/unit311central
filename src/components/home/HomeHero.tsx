@@ -41,9 +41,13 @@ export default function HomeHero() {
           </h1>
 
           <p className="mt-5 max-w-[760px] text-[15px] font-medium leading-[1.65] text-white/88 sm:mt-6 sm:text-[17px] sm:leading-[1.7]">
-            For funded startups and growing SMEs tired of managing Pipedrive, Zoho, SharePoint and
-            Teams separately. Consolidate where it makes sense, connect what stays, and give
-            leadership one place to run the business.
+            For funded startups and SMEs tired of poor visibility, expensive disconnected systems,
+            and hunting for answers across multiple logins.
+          </p>
+          <p className="mt-4 max-w-[760px] text-[15px] font-medium leading-[1.65] text-white/88 sm:text-[17px] sm:leading-[1.7]">
+            Consolidate where it makes sense, connect what stays, and give leadership and employees
+            one place to run the business — with live insight across operations, finance, and
+            projects.
           </p>
 
           <HomeHeroActions />
