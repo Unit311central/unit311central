@@ -236,17 +236,39 @@ function EditableRows({
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [focusRowId, setFocusRowId] = useState<string | null>(null);
 
-  function isExpanded(id: string, depth: number) {
+  function isExpanded(id: string) {
     if (!collapsible) return true;
-    if (!canEdit || depth > 0) return true;
-    return expandedIds[id] !== false;
+    return Boolean(expandedIds[id]);
   }
 
   function toggleExpanded(id: string) {
-    setExpandedIds((current) => {
-      const open = canEdit ? current[id] !== false : Boolean(current[id]);
-      return { ...current, [id]: !open };
-    });
+    setExpandedIds((current) => ({
+      ...current,
+      [id]: !Boolean(current[id]),
+    }));
+  }
+
+  function renderExpandControl(
+    id: string,
+    open: boolean,
+    hasChildren: boolean,
+    depth: number,
+  ) {
+    if (!collapsible || !hasChildren || depth >= 2) {
+      return <span className="mt-0.5 inline-flex h-6 w-6 shrink-0" aria-hidden />;
+    }
+    const ExpandIcon = open ? ChevronDown : ChevronRight;
+    return (
+      <button
+        type="button"
+        onClick={() => toggleExpanded(id)}
+        className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 text-white/70 hover:bg-white/5 hover:text-white"
+        aria-expanded={open}
+        aria-label={open ? "Collapse" : "Expand"}
+      >
+        <ExpandIcon className="h-3.5 w-3.5" />
+      </button>
+    );
   }
 
   function updateRow(id: string, patch: Partial<PortalsModuleRow>) {
@@ -329,8 +351,7 @@ function EditableRows({
 
   function renderNode(node: ModuleNode, depth: 0 | 1 | 2) {
     const hasChildren = node.children.length > 0;
-    const open = isExpanded(node.row.id, depth);
-    const ExpandIcon = open ? ChevronDown : ChevronRight;
+    const open = isExpanded(node.row.id);
     const childLabel = depth === 0 ? "sub-row" : "sub-sub-row";
     const placeholder =
       depth === 0 ? "Top-level row…" : depth === 1 ? "Sub-row…" : "Sub-sub-row…";
@@ -341,21 +362,7 @@ function EditableRows({
     return (
       <li key={node.row.id} className="space-y-1">
         <div className="flex items-start gap-1.5">
-          {collapsible && depth === 0 ? (
-            hasChildren ? (
-              <button
-                type="button"
-                onClick={() => toggleExpanded(node.row.id)}
-                className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 text-white/70 hover:bg-white/5 hover:text-white"
-                aria-expanded={open}
-                aria-label={open ? "Collapse" : "Expand"}
-              >
-                <ExpandIcon className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <span className="mt-1 inline-flex h-6 w-6 shrink-0" aria-hidden />
-            )
-          ) : null}
+          {renderExpandControl(node.row.id, open, hasChildren, depth)}
           {!collapsible && depth === 0 && accent === "pink" ? (
             <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F48FB1]" />
           ) : null}
@@ -428,17 +435,19 @@ function EditableRows({
                 ) : null}
               </div>
             </div>
-          ) : depth === 0 ? (
+          ) : hasChildren ? (
             <button
               type="button"
-              onClick={() => (hasChildren ? toggleExpanded(node.row.id) : undefined)}
+              onClick={() => toggleExpanded(node.row.id)}
               className={cn(
-                "min-w-0 flex-1 rounded-lg px-1 py-1 text-left text-[13px] font-medium text-white/90",
-                hasChildren && "hover:bg-white/[0.04]",
+                "min-w-0 flex-1 rounded-lg px-1 py-1 text-left hover:bg-white/[0.04]",
+                depth === 0
+                  ? "text-[13px] font-medium text-white/90"
+                  : "text-[12px] text-white/55",
               )}
             >
               {node.row.text}
-              {hasChildren && !open ? (
+              {!open ? (
                 <span className="ml-2 text-[11px] font-normal text-white/40">
                   ({node.children.length})
                 </span>
@@ -448,6 +457,7 @@ function EditableRows({
             <p
               className={cn(
                 "min-w-0 flex-1 py-0.5 leading-snug",
+                depth === 0 ? "text-[13px] text-white/90" : "",
                 depth === 1 ? "text-[12px] text-white/55" : "text-[11px] text-white/45",
               )}
             >
@@ -460,7 +470,7 @@ function EditableRows({
           <ul
             className={cn(
               "space-y-1.5 border-l border-white/10 pl-3",
-              depth === 0 ? "ml-7" : "ml-5",
+              depth === 0 ? "ml-7" : depth === 1 ? "ml-6" : "ml-5",
             )}
           >
             {node.children.map((child) =>
@@ -741,7 +751,7 @@ export default function AbhiPortalsDemoPage() {
                   rows={content.majorModules}
                   canEdit={canEdit}
                   accent="sky"
-                  collapsible={canEdit}
+                  collapsible
                   onChange={(majorModules) =>
                     applyContent({ ...contentRef.current, majorModules }, true)
                   }
