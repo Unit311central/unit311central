@@ -1411,6 +1411,7 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
     }
     if (!insertedMarketing) out.push(ABHI_MARKETING_NAV_SECTION);
     if (!insertedBoard) out.push(ABHI_BOARD_NAV_SECTION);
+    // Module order is applied from Settings / localStorage — do not pre-sort here.
     return out.filter((section) => section.items.length > 0);
   } catch {
     return [

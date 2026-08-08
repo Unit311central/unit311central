@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import type { InternalNavSection } from "@/lib/internal-operations-data";
+import { isAbhiLockedSectionBundle, ABHI_SIDEBAR_FACTORY_REVISION } from "@/lib/abhi-nav-order";
 import { isOnwardAirLockedSectionBundle } from "@/lib/onwardair-nav-order";
 import { isTalantonLockedSectionBundle, TALANTON_SIDEBAR_FACTORY_REVISION } from "@/lib/talanton-nav-order";
 import {
@@ -385,15 +386,18 @@ export function SettingsSidebarReorderPanel({
   function applyMovableOrder(nextKeys: string[]) {
     const lockedHost =
       isTalantonLockedSectionBundle(orderedSections) ||
-      isOnwardAirLockedSectionBundle(orderedSections);
+      isOnwardAirLockedSectionBundle(orderedSections) ||
+      isAbhiLockedSectionBundle(orderedSections);
     onPersistNavCustom({
       ...navCustom,
       customized: true,
       version: isTalantonLockedSectionBundle(orderedSections)
         ? TALANTON_SIDEBAR_FACTORY_REVISION
-        : lockedHost
-          ? 6
-          : navCustom.version,
+        : isAbhiLockedSectionBundle(orderedSections)
+          ? ABHI_SIDEBAR_FACTORY_REVISION
+          : lockedHost
+            ? 6
+            : navCustom.version,
       sectionOrder: nextKeys,
     });
   }

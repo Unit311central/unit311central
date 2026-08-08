@@ -3,11 +3,16 @@
  * Reorders high-level LHS modules (workspace sections). Pins (Home / EA) stay fixed;
  * Settings stays last.
  *
- * Talanton / OnwardAir factory order lives in *-nav-order.ts and is used only until
+ * Talanton / OnwardAir / ABHI factory order lives in *-nav-order.ts and is used only until
  * the user reorders in Settings (`customized: true`). After that, stored order wins.
  */
 
 import type { InternalNavSection } from "@/lib/internal-operations-data";
+import {
+  ABHI_LOCKED_SECTION_ORDER_KEYS,
+  ABHI_SIDEBAR_FACTORY_REVISION,
+  isAbhiLockedSectionBundle,
+} from "@/lib/abhi-nav-order";
 import {
   isOnwardAirLockedSectionBundle,
   ONWARDAIR_LOCKED_SECTION_ORDER_KEYS,
@@ -27,13 +32,41 @@ const LEGACY_SIDEBAR_NAV_CUSTOM_STORAGE_KEY = SIDEBAR_NAV_CUSTOM_STORAGE_KEY;
 function isLockedHostSectionBundle(
   sections: readonly { kind?: string; label?: string | null }[],
 ): boolean {
-  return isTalantonLockedSectionBundle(sections) || isOnwardAirLockedSectionBundle(sections);
+  return (
+    isTalantonLockedSectionBundle(sections) ||
+    isOnwardAirLockedSectionBundle(sections) ||
+    isAbhiLockedSectionBundle(sections)
+  );
 }
 
-function targetStorageVersion(sections: readonly InternalNavSection[]): 4 | 6 | 7 {
+function targetStorageVersion(sections: readonly InternalNavSection[]): 4 | 6 | 7 | 8 {
   if (isTalantonLockedSectionBundle(sections)) return TALANTON_SIDEBAR_FACTORY_REVISION;
+  if (isAbhiLockedSectionBundle(sections)) return ABHI_SIDEBAR_FACTORY_REVISION;
   if (isOnwardAirLockedSectionBundle(sections)) return 6;
   return 4;
+}
+
+function abhiFactorySectionOrder(sections: readonly InternalNavSection[]): string[] {
+  const movable = sections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
+  const known = new Set(movable);
+  const locked = ABHI_LOCKED_SECTION_ORDER_KEYS.filter((key) => known.has(key));
+  const extras = movable.filter((key) => !locked.includes(key));
+  return [...locked, ...extras];
+}
+
+/** Owner factory order — only for non-customized storage when factory revision bumps. */
+function abhiFactoryNavCustom(
+  sections: readonly InternalNavSection[],
+  parsed: Partial<SidebarNavCustomStorage>,
+): SidebarNavCustomStorage {
+  return {
+    version: ABHI_SIDEBAR_FACTORY_REVISION,
+    customized: false,
+    sectionOrder: abhiFactorySectionOrder(sections),
+    hidden: parsed.hidden ?? {},
+    customItems: parsed.customItems ?? [],
+    order: parsed.order,
+  };
 }
 
 function talantonFactorySectionOrder(sections: readonly InternalNavSection[]): string[] {
@@ -139,8 +172,9 @@ export type SidebarNavCustomStorage = {
    * v5: Talanton locked factory order (superseded by v6 user-order flag).
    * v6: `customized` — when true, Settings order is authoritative and never re-sorted.
    * v7: Talanton owner factory order reset (Aug 2026).
+   * v8: ABHI locked factory order + Settings-owned reorder persistence.
    */
-  version: 2 | 3 | 4 | 5 | 6 | 7;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8;
   /** Ordered workspace section keys (excludes fixed pins + Settings). */
   sectionOrder: string[];
   /** User explicitly reordered in Settings → General → Sidebar. */
@@ -190,6 +224,9 @@ export function defaultSectionOrder(sections: readonly InternalNavSection[]): st
   }
   if (isTalantonLockedSectionBundle(sections)) {
     return talantonFactorySectionOrder(sections);
+  }
+  if (isAbhiLockedSectionBundle(sections)) {
+    return abhiFactorySectionOrder(sections);
   }
   return movable;
 }
@@ -305,6 +342,9 @@ function resolveEffectiveSectionOrder(
   if (isTalantonLockedSectionBundle(sections) && !customized) {
     return talantonFactorySectionOrder(sections);
   }
+  if (isAbhiLockedSectionBundle(sections) && !customized) {
+    return abhiFactorySectionOrder(sections);
+  }
   const canonical = defaultSectionOrder(sections);
   if (customized) {
     return appendNewSectionKeys(sectionOrder, sections);
@@ -344,6 +384,14 @@ export function loadSidebarNavCustom(
 
     if (isTalantonLockedSectionBundle(sections) && storedVersion < TALANTON_SIDEBAR_FACTORY_REVISION) {
       return talantonFactoryNavCustom(sections, parsed);
+    }
+
+    if (
+      isAbhiLockedSectionBundle(sections) &&
+      storedVersion < ABHI_SIDEBAR_FACTORY_REVISION &&
+      parsed.customized !== true
+    ) {
+      return abhiFactoryNavCustom(sections, parsed);
     }
 
     if (lockedHost && storedVersion < 6) {
@@ -398,6 +446,9 @@ export function reconcileSidebarNavCustom(
     if (
       storedVersion < 4 ||
       (isTalantonLockedSectionBundle(sections) && storedVersion < TALANTON_SIDEBAR_FACTORY_REVISION) ||
+      (isAbhiLockedSectionBundle(sections) &&
+        storedVersion < ABHI_SIDEBAR_FACTORY_REVISION &&
+        parsed.customized !== true) ||
       (isOnwardAirLockedSectionBundle(sections) && storedVersion < 5) ||
       (lockedHost && storedVersion < 6)
     ) {
