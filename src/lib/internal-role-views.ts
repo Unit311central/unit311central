@@ -406,6 +406,17 @@ export function getTalantonImpactNavSections(): InternalNavSection[] {
   );
 }
 
+/** Server-safe ABHI LHS nav — same shape as the live customer sidebar (factory order applied separately). */
+export function buildAbhiNavSections(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  return insertAbhiMarketingSection(stripCustomerPlatformNav(sections));
+}
+
+export function getAbhiNavSections(): InternalNavSection[] {
+  return buildAbhiNavSections(internalSurveyNavSections);
+}
+
 function appendTalantonNavSections(sections: InternalNavSection[]): InternalNavSection[] {
   if (!isTalantonNavSurface()) return sections;
   try {
