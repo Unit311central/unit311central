@@ -3,6 +3,7 @@
  * Course catalogue matches Talanton Assigned Courses (compliance programme).
  */
 import { applyAbhiQmsOpsSeed } from "@/lib/abhi/qms-data";
+import type { TqmsMockState } from "@/lib/tqms-mock-store";
 import { ABHI_COMPLIANCE_COURSES } from "@/lib/abhi-training-courses";
 import type {
   TqmsAssignment,
@@ -298,15 +299,8 @@ export function createAbhiTqmsLearningPaths(): TqmsLearningPath[] {
   ];
 }
 
-export function applyAbhiTqmsSeed<T extends {
-  courses: TqmsCourse[];
-  learners: TqmsLearner[];
-  assignments: TqmsAssignment[];
-  certificates: TqmsCertificate[];
-  assessments: TqmsAssessment[];
-  learningPaths: TqmsLearningPath[];
-}>(base: T): T {
-  const withTraining = {
+export function applyAbhiTqmsSeed(base: TqmsMockState): TqmsMockState {
+  const withTraining: TqmsMockState = {
     ...base,
     courses: createAbhiTqmsCourses(),
     learners: createAbhiTqmsLearners(),
@@ -315,7 +309,7 @@ export function applyAbhiTqmsSeed<T extends {
     assessments: createAbhiTqmsAssessments(),
     learningPaths: createAbhiTqmsLearningPaths(),
   };
-  return applyAbhiQmsOpsSeed(withTraining) as T;
+  return applyAbhiQmsOpsSeed(withTraining);
 }
 
 export function isNonAbhiTrainingLeak(learners: TqmsLearner[]): boolean {

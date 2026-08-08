@@ -210,7 +210,7 @@ export const ABHI_QMS_MANAGEMENT_REVIEWS: TqmsManagementReview[] = [
   {
     id: "abhi-mr-001",
     period: "H1 2026",
-    status: "In Progress",
+    status: "Scheduled",
     owner: "Peter Ellingworth",
     reviewDate: "2026-08-20",
     inputs: ["KPIs", "Audit Results", "CAPAs", "Member Growth", "WHX Commitments"],
@@ -294,7 +294,7 @@ export const ABHI_QMS_REPORTS: TqmsReport[] = [
   {
     id: "abhi-rpt-004",
     name: "Member Complaint Log — Jul 2026",
-    kind: "Complaints",
+    kind: "Compliance",
     format: "CSV",
     createdAt: "2026-07-22T09:40:00Z",
     createdBy: "Jonathan Evans",
