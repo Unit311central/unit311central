@@ -650,17 +650,12 @@ export default function AbhiPortalsDemoPage() {
     <div className={cn(body.className, "min-h-[100dvh] bg-[#07111f] text-white")}>
       <div className="relative z-10 mx-auto flex w-full max-w-[1280px] flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
         <header className="relative flex items-center justify-between gap-4">
-          <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
-            <div className="relative h-9 w-[160px] sm:h-10 sm:w-[190px]">
-              <Image
-                src={UNIT311_LOGO}
-                alt={SITE_NAME}
-                fill
-                priority
-                sizes="190px"
-                className="object-contain object-left drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
-              />
-            </div>
+          <Link
+            href="https://abhi.unit311central.com"
+            className="shrink-0"
+            aria-label="ABHI"
+          >
+            <AbhiLogoMark height={36} tone="onDark" priority />
           </Link>
           <div className="flex items-center gap-3">
             {canEdit ? (
@@ -680,7 +675,18 @@ export default function AbhiPortalsDemoPage() {
                 </button>
               </>
             ) : null}
-            <AbhiLogoMark height={36} tone="onDark" priority />
+            <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
+              <div className="relative h-9 w-[160px] sm:h-10 sm:w-[190px]">
+                <Image
+                  src={UNIT311_LOGO}
+                  alt={SITE_NAME}
+                  fill
+                  priority
+                  sizes="190px"
+                  className="object-contain object-right drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+                />
+              </div>
+            </Link>
           </div>
         </header>
 
