@@ -1,3 +1,4 @@
+import type { DashboardTileDefinition } from "@/lib/dashboard-view-tiles";
 import { roundReportingPercent } from "@/lib/financial-reporting-currency";
 import {
   isClientPreActiveStatus,
