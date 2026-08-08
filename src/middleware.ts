@@ -556,18 +556,15 @@ export async function middleware(request: NextRequest) {
         return redirectExternal(`${workspaceOrigin}/dashboard`);
       }
 
+      // ABHI — public EA test suite (no login required).
+      if (workspaceSlug === ABHI_SLUG) {
+        return rewriteTo(request, "/testing", headers, workspaceResponseHeaders);
+      }
+
       if (isTalantonImpactSlug(workspaceSlug)) {
         const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
         const session = token ? await readPlatformSessionToken(token) : null;
         if (session && isPortalsAllowedUsername(session.username, workspaceSlug)) {
-          return rewriteTo(request, "/testing", headers, workspaceResponseHeaders);
-        }
-      }
-
-      if (workspaceSlug === ABHI_SLUG) {
-        const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
-        const session = token ? await readPlatformSessionToken(token) : null;
-        if (session && isAbhiPortalsAllowedUsername(session.username)) {
           return rewriteTo(request, "/testing", headers, workspaceResponseHeaders);
         }
       }

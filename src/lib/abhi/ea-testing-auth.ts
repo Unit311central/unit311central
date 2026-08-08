@@ -22,20 +22,20 @@ export async function isAbhiCustomerHostRequest(): Promise<boolean> {
 }
 
 /**
- * ABHI EA testing APIs + /testing page — any authenticated user on the ABHI host,
- * or an authorised ABHI workspace session, or ABHI portal demo accounts.
+ * ABHI EA testing APIs + /testing page — public on the ABHI customer host;
+ * otherwise requires an authenticated ABHI workspace or portal demo session.
  */
 export async function assertAbhiEaAccess(): Promise<NextResponse | null> {
+  if (await isAbhiCustomerHostRequest()) {
+    return null;
+  }
+
   const session = await getPlatformSession();
   if (!session) {
     return NextResponse.json(
       { error: "Authentication required." },
       { status: 401, headers: NO_STORE_HEADERS },
     );
-  }
-
-  if (await isAbhiCustomerHostRequest()) {
-    return null;
   }
 
   if (isAbhiPortalsAllowedUsername(session.username)) {
