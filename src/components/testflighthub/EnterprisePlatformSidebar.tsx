@@ -77,6 +77,8 @@ import { isAbsoluteHttpUrl } from "@/lib/clarity";
 import {
   resolveOnwardAirNavAccent,
 } from "@/lib/onwardair-surface";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import {
   getSidebarTheme,
@@ -220,6 +222,15 @@ export default function EnterprisePlatformSidebar({
   const [isTalantonSurface] = useState(
     () => typeof window !== "undefined" && isBrowserTalantonImpactSurface(),
   );
+  /** Inject host-specific nav on first paint — do not wait for sidebar hydration. */
+  const [customerHostNav] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      isBrowserTalantonImpactSurface() ||
+      isBrowserOnwardAirSurface() ||
+      isBrowserAbhiSurface()
+    );
+  });
   /** Talanton + overview embed: every load starts with modules collapsed; prefs stay session-local. */
   const sessionOnlyExpand = overviewEmbed || isTalantonSurface;
 
@@ -710,8 +721,8 @@ export default function EnterprisePlatformSidebar({
         // reappear at the bottom of the custom order.
         entitlementsReady ? allowedViews : null,
       ),
-      // Host overlays (OA / ABHI / Talanton) only after mount — matches SSR HTML.
-      { allowHostSurfaces: hydrated },
+      // Host overlays: available on first client paint for customer hosts.
+      { allowHostSurfaces: hydrated || customerHostNav },
     );
     if (!hydrated) return filtered;
     const custom = loadSidebarNavCustom(filtered);

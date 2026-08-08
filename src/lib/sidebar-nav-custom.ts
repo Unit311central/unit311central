@@ -376,9 +376,15 @@ export function applySidebarSectionOrder(
     movable.push(section);
   }
 
+  // Talanton / OnwardAir: locked production order — never let stale localStorage scramble it.
+  const effectiveOrder =
+    isTalantonLockedSectionBundle(sections) || isOnwardAirLockedSectionBundle(sections)
+      ? defaultSectionOrder(sections)
+      : resolveSectionOrderForSections(sectionOrder, sections);
+
   const byKey = new Map(movable.map((section) => [getNavSectionKey(section), section]));
   const ordered: InternalNavSection[] = [];
-  for (const key of sectionOrder) {
+  for (const key of effectiveOrder) {
     const section = byKey.get(key);
     if (section) {
       ordered.push(section);

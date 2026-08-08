@@ -46,6 +46,8 @@ import { useWebsiteMockStore } from "./useWebsiteMockStore";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { ABHI_LINKEDIN_URL, ABHI_X_URL, isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import { isOnwardAirLockedSectionBundle } from "@/lib/onwardair-nav-order";
+import { isTalantonLockedSectionBundle } from "@/lib/talanton-nav-order";
 import type { InternalNavSection } from "@/lib/internal-operations-data";
 import {
   applySidebarSectionOrder,
@@ -647,6 +649,12 @@ export default function SettingsWorkspace() {
     () => applySidebarSectionOrder(liveSections, navCustom.sectionOrder),
     [liveSections, navCustom.sectionOrder],
   );
+  const sidebarOrderLocked = useMemo(
+    () =>
+      isTalantonLockedSectionBundle(liveSections) ||
+      isOnwardAirLockedSectionBundle(liveSections),
+    [liveSections],
+  );
 
   const persistNavCustom = useCallback((next: NavCustomStorage) => {
     setNavCustom(next);
@@ -990,7 +998,7 @@ export default function SettingsWorkspace() {
                         <p className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-[0.06em] text-white/90">
                           {title}
                         </p>
-                        {(fixedPin || settingsFixed) && (
+                        {(fixedPin || settingsFixed || (sidebarOrderLocked && movable)) && (
                           <span
                             className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/40"
                             title="Position locked"
@@ -1012,7 +1020,7 @@ export default function SettingsWorkspace() {
                             <ChevronRight className="h-3.5 w-3.5" />
                           )}
                         </button>
-                        {movable ? (
+                        {movable && !sidebarOrderLocked ? (
                           <div className="flex flex-col gap-0.5">
                             <button
                               type="button"
