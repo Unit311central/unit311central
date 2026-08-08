@@ -4,7 +4,10 @@ import type {
   InternalNavSection,
 } from "@/lib/internal-operations-data";
 import { getAbhiNavSections } from "@/lib/internal-role-views";
-import { applySidebarSectionOrder } from "@/lib/sidebar-nav-custom";
+import {
+  applySidebarSectionOrder,
+  defaultSectionOrder,
+} from "@/lib/sidebar-nav-custom";
 
 import type { PortalsIndent, PortalsModuleRow } from "@/lib/abhi/portals-demo";
 
@@ -77,8 +80,9 @@ function flattenNavSection(
 
 /** Major Modules column — mirrors the ABHI customer sidebar order and nesting. */
 export function buildAbhiPortalsMajorModules(): PortalsModuleRow[] {
-  const sections = applySidebarSectionOrder(getAbhiNavSections(), {
-    sectionOrder: [],
+  const rawSections = getAbhiNavSections();
+  const sections = applySidebarSectionOrder(rawSections, {
+    sectionOrder: defaultSectionOrder(rawSections),
     customized: false,
   });
   const out: PortalsModuleRow[] = [];

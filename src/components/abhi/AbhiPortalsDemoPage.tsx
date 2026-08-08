@@ -236,10 +236,10 @@ function EditableRows({
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [focusRowId, setFocusRowId] = useState<string | null>(null);
 
-  function isExpanded(id: string) {
+  function isExpanded(id: string, depth: number) {
     if (!collapsible) return true;
-    if (canEdit) return expandedIds[id] !== false;
-    return Boolean(expandedIds[id]);
+    if (!canEdit || depth > 0) return true;
+    return expandedIds[id] !== false;
   }
 
   function toggleExpanded(id: string) {
@@ -329,7 +329,7 @@ function EditableRows({
 
   function renderNode(node: ModuleNode, depth: 0 | 1 | 2) {
     const hasChildren = node.children.length > 0;
-    const open = isExpanded(node.row.id);
+    const open = isExpanded(node.row.id, depth);
     const ExpandIcon = open ? ChevronDown : ChevronRight;
     const childLabel = depth === 0 ? "sub-row" : "sub-sub-row";
     const placeholder =
@@ -741,7 +741,7 @@ export default function AbhiPortalsDemoPage() {
                   rows={content.majorModules}
                   canEdit={canEdit}
                   accent="sky"
-                  collapsible
+                  collapsible={canEdit}
                   onChange={(majorModules) =>
                     applyContent({ ...contentRef.current, majorModules }, true)
                   }
