@@ -165,6 +165,7 @@ function buildModuleTree(rows: PortalsModuleRow[]): ModuleNode[] {
   const roots: ModuleNode[] = [];
   let current0: ModuleNode | null = null;
   let current1: ModuleNode | null = null;
+  let current2: ModuleNode | null = null;
 
   for (let index = 0; index < rows.length; index += 1) {
     const row = rows[index]!;
@@ -175,20 +176,39 @@ function buildModuleTree(rows: PortalsModuleRow[]): ModuleNode[] {
       roots.push(node);
       current0 = node;
       current1 = null;
+      current2 = null;
       continue;
     }
     if (indent === 1) {
       if (current0) {
         current0.children.push(node);
         current1 = node;
+        current2 = null;
       } else {
         roots.push(node);
         current0 = node;
         current1 = null;
+        current2 = null;
       }
       continue;
     }
-    if (current1) {
+    if (indent === 2) {
+      if (current1) {
+        current1.children.push(node);
+        current2 = node;
+      } else if (current0) {
+        current0.children.push(node);
+        current2 = node;
+      } else {
+        roots.push(node);
+        current0 = node;
+        current2 = null;
+      }
+      continue;
+    }
+    if (current2) {
+      current2.children.push(node);
+    } else if (current1) {
       current1.children.push(node);
     } else if (current0) {
       current0.children.push(node);

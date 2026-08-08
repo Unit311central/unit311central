@@ -4,7 +4,7 @@ export const ABHI_DEMO_PLATFORM_USERNAME = "demo@abhi.org.uk";
 export const ABHI_PORTALS_ADMIN_USERNAME = "admin@abhi.org.uk";
 export const ABHI_PORTALS_SHARED_PASSWORD = "London1999$";
 
-export type PortalsIndent = 0 | 1 | 2;
+export type PortalsIndent = 0 | 1 | 2 | 3;
 
 export type PortalsModuleRow = {
   id: string;
@@ -201,6 +201,7 @@ export function newPortalsRowId(prefix: string) {
 }
 
 export function portalsRowIndent(row: PortalsModuleRow | null | undefined): PortalsIndent {
+  if (row?.indent === 3) return 3;
   if (row?.indent === 2) return 2;
   if (row?.indent === 1) return 1;
   return 0;
@@ -227,7 +228,8 @@ export function sanitizePortalsContent(raw: unknown): AbhiPortalsEditableContent
       // Keep empty draft rows — stripping them made new sub-row inputs vanish on autosave.
       const text = String((entry as PortalsModuleRow).text ?? "");
       const rawIndent = (entry as PortalsModuleRow).indent;
-      const indent: PortalsIndent = rawIndent === 2 ? 2 : rawIndent === 1 ? 1 : 0;
+      const indent: PortalsIndent =
+        rawIndent === 3 ? 3 : rawIndent === 2 ? 2 : rawIndent === 1 ? 1 : 0;
       const id =
         typeof (entry as PortalsModuleRow).id === "string" && (entry as PortalsModuleRow).id
           ? String((entry as PortalsModuleRow).id)
