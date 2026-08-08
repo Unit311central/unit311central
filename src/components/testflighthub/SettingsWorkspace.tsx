@@ -928,7 +928,7 @@ export default function SettingsWorkspace() {
 
         <SettingsColumn
           title="Sidebar"
-          description="Reorder high-level modules on the left nav. Expand a module to show sub-items."
+          description="Home and Executive Assistant stay at the top; Settings at the bottom. Drag or use arrows to reorder modules in between."
           icon={<Menu className="h-4 w-4" />}
           accentClass="border-violet-400/20"
         >

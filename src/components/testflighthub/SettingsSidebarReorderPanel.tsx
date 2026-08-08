@@ -58,7 +58,61 @@ function combineRefs<T>(...refs: Array<(node: T | null) => void>) {
   };
 }
 
-function SidebarModuleRow({
+function sectionAccent(section: InternalNavSection) {
+  const fixedPin = isFixedPinSection(section) || section.kind === "pin";
+  const settingsFixed = isSettingsSection(section);
+  return section.color ?? (fixedPin ? "#2F80ED" : settingsFixed ? "#56CCF2" : "#9B51E0");
+}
+
+function FixedModuleRow({
+  section,
+  expanded,
+  navCustom,
+  onToggleExpanded,
+  onToggleNavHidden,
+}: {
+  section: InternalNavSection;
+  expanded: boolean;
+  navCustom: SidebarNavCustomStorage;
+  onToggleExpanded: () => void;
+  onToggleNavHidden: (itemId: string) => void;
+}) {
+  const sectionKey = getNavSectionKey(section);
+  const title = getNavSectionTitle(section);
+  const settingsFixed = isSettingsSection(section);
+  const leaves = listSectionLeafItems(section);
+  const customLeaves =
+    settingsFixed || sectionKey === "workspace:Custom" ? navCustom.customItems : [];
+
+  return (
+    <li className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/70">
+      <ModuleRowChrome
+        section={section}
+        title={title}
+        trailing={
+          <span
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/40"
+            title="Position locked"
+          >
+            <Lock className="h-2.5 w-2.5" />
+            Fixed
+          </span>
+        }
+        expanded={expanded}
+        onToggleExpanded={onToggleExpanded}
+      >
+        <ModuleLeafList
+          leaves={leaves}
+          customLeaves={customLeaves}
+          navCustom={navCustom}
+          onToggleNavHidden={onToggleNavHidden}
+        />
+      </ModuleRowChrome>
+    </li>
+  );
+}
+
+function DraggableModuleRow({
   section,
   movableKeys,
   expanded,
@@ -77,22 +131,14 @@ function SidebarModuleRow({
 }) {
   const sectionKey = getNavSectionKey(section);
   const title = getNavSectionTitle(section);
-  const movable = isMovableWorkspaceSection(section);
-  const fixedPin = isFixedPinSection(section) || section.kind === "pin";
-  const settingsFixed = isSettingsSection(section);
   const leaves = listSectionLeafItems(section);
-  const customLeaves =
-    settingsFixed || sectionKey === "workspace:Custom" ? navCustom.customItems : [];
   const movableIndex = movableKeys.indexOf(sectionKey);
-  const accent = section.color ?? (fixedPin ? "#2F80ED" : settingsFixed ? "#56CCF2" : "#9B51E0");
 
   const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
     id: sectionKey,
-    disabled: !movable,
   });
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: sectionKey,
-    disabled: !movable,
   });
 
   return (
@@ -105,102 +151,135 @@ function SidebarModuleRow({
       className={cn(
         "overflow-hidden rounded-xl border bg-[#0b1524]/70",
         isDragging ? "border-violet-400/40 opacity-60" : "border-white/10",
-        movable && isOver && !isDragging && "border-violet-400/35 ring-1 ring-violet-400/20",
+        isOver && !isDragging && "border-violet-400/35 ring-1 ring-violet-400/20",
       )}
     >
-      <div className="flex items-stretch">
-        <span className="w-1 shrink-0 self-stretch" style={{ background: accent }} aria-hidden />
-        <div className="min-w-0 flex-1 px-2.5 py-2">
-          <div className="flex items-center gap-1.5">
-            {movable ? (
-              <button
-                type="button"
-                className="cursor-grab rounded border border-white/10 p-1 text-white/45 hover:bg-white/5 hover:text-white active:cursor-grabbing"
-                aria-label={`Drag to reorder ${title}`}
-                {...listeners}
-                {...attributes}
-              >
-                <GripVertical className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <span className="w-[26px] shrink-0" aria-hidden />
-            )}
-            <p className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-[0.06em] text-white/90">
-              {title}
-            </p>
-            {(fixedPin || settingsFixed) && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/40"
-                title="Position locked"
-              >
-                <Lock className="h-2.5 w-2.5" />
-                Fixed
-              </span>
-            )}
+      <ModuleRowChrome
+        section={section}
+        title={title}
+        leading={
+          <button
+            type="button"
+            className="cursor-grab rounded border border-white/10 p-1 text-white/45 hover:bg-white/5 hover:text-white active:cursor-grabbing"
+            aria-label={`Drag to reorder ${title}`}
+            {...listeners}
+            {...attributes}
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+        }
+        trailing={
+          <div className="flex flex-col gap-0.5">
             <button
               type="button"
-              onClick={onToggleExpanded}
-              className="rounded border border-white/10 p-1 text-white/55 hover:bg-white/5 hover:text-white"
-              aria-label={expanded ? `Collapse ${title}` : `Expand ${title}`}
-              aria-expanded={expanded}
+              onClick={() => onMove(-1)}
+              disabled={movableIndex <= 0}
+              className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
+              aria-label={`Move ${title} up`}
             >
-              {expanded ? (
-                <ChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
+              <ChevronUp className="h-3 w-3" />
             </button>
-            {movable ? (
-              <div className="flex flex-col gap-0.5">
-                <button
-                  type="button"
-                  onClick={() => onMove(-1)}
-                  disabled={movableIndex <= 0}
-                  className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                  aria-label={`Move ${title} up`}
-                >
-                  <ChevronUp className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onMove(1)}
-                  disabled={movableIndex < 0 || movableIndex >= movableKeys.length - 1}
-                  className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                  aria-label={`Move ${title} down`}
-                >
-                  <ChevronDown className="h-3 w-3" />
-                </button>
-              </div>
-            ) : null}
+            <button
+              type="button"
+              onClick={() => onMove(1)}
+              disabled={movableIndex < 0 || movableIndex >= movableKeys.length - 1}
+              className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
+              aria-label={`Move ${title} down`}
+            >
+              <ChevronDown className="h-3 w-3" />
+            </button>
           </div>
-
-          {expanded ? (
-            <ul className="mt-2 space-y-1 border-t border-white/10 pt-2">
-              {leaves.length === 0 && customLeaves.length === 0 ? (
-                <li className="px-1 py-1 text-[10px] text-white/35">No sub-modules</li>
-              ) : null}
-              {leaves.map((item) => (
-                <SidebarLeafRow
-                  key={item.id}
-                  item={item}
-                  hidden={navCustom.hidden[item.id] ?? false}
-                  onToggleNavHidden={onToggleNavHidden}
-                />
-              ))}
-              {customLeaves.map((item) => (
-                <SidebarLeafRow
-                  key={item.id}
-                  item={item}
-                  hidden={navCustom.hidden[item.id] ?? false}
-                  onToggleNavHidden={onToggleNavHidden}
-                  custom
-                />
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      </div>
+        }
+        expanded={expanded}
+        onToggleExpanded={onToggleExpanded}
+      >
+        <ModuleLeafList leaves={leaves} customLeaves={[]} navCustom={navCustom} onToggleNavHidden={onToggleNavHidden} />
+      </ModuleRowChrome>
     </li>
+  );
+}
+
+function ModuleRowChrome({
+  section,
+  title,
+  leading,
+  trailing,
+  expanded,
+  onToggleExpanded,
+  children,
+}: {
+  section: InternalNavSection;
+  title: string;
+  leading?: React.ReactNode;
+  trailing?: React.ReactNode;
+  expanded: boolean;
+  onToggleExpanded: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-stretch">
+      <span className="w-1 shrink-0 self-stretch" style={{ background: sectionAccent(section) }} aria-hidden />
+      <div className="min-w-0 flex-1 px-2.5 py-2">
+        <div className="flex items-center gap-1.5">
+          {leading ?? <span className="w-[26px] shrink-0" aria-hidden />}
+          <p className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-[0.06em] text-white/90">
+            {title}
+          </p>
+          {trailing}
+          <button
+            type="button"
+            onClick={onToggleExpanded}
+            className="rounded border border-white/10 p-1 text-white/55 hover:bg-white/5 hover:text-white"
+            aria-label={expanded ? `Collapse ${title}` : `Expand ${title}`}
+            aria-expanded={expanded}
+          >
+            {expanded ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
+        {expanded ? children : null}
+      </div>
+    </div>
+  );
+}
+
+function ModuleLeafList({
+  leaves,
+  customLeaves,
+  navCustom,
+  onToggleNavHidden,
+}: {
+  leaves: ReturnType<typeof listSectionLeafItems>;
+  customLeaves: SidebarNavLeafItem[];
+  navCustom: SidebarNavCustomStorage;
+  onToggleNavHidden: (itemId: string) => void;
+}) {
+  return (
+    <ul className="mt-2 space-y-1 border-t border-white/10 pt-2">
+      {leaves.length === 0 && customLeaves.length === 0 ? (
+        <li className="px-1 py-1 text-[10px] text-white/35">No sub-modules</li>
+      ) : null}
+      {leaves.map((item) => (
+        <SidebarLeafRow
+          key={item.id}
+          item={item}
+          hidden={navCustom.hidden[item.id] ?? false}
+          onToggleNavHidden={onToggleNavHidden}
+        />
+      ))}
+      {customLeaves.map((item) => (
+        <SidebarLeafRow
+          key={item.id}
+          item={item}
+          hidden={navCustom.hidden[item.id] ?? false}
+          onToggleNavHidden={onToggleNavHidden}
+          custom
+        />
+      ))}
+    </ul>
   );
 }
 
@@ -254,9 +333,7 @@ function DragPreview({ title }: { title: string }) {
   return (
     <div className="flex items-center gap-2 rounded-xl border border-violet-400/35 bg-[#0b1524] px-3 py-2 shadow-lg">
       <GripVertical className="h-3.5 w-3.5 text-white/50" />
-      <p className="truncate text-xs font-semibold uppercase tracking-[0.06em] text-white/90">
-        {title}
-      </p>
+      <p className="truncate text-xs font-semibold uppercase tracking-[0.06em] text-white/90">{title}</p>
     </div>
   );
 }
@@ -280,16 +357,28 @@ export function SettingsSidebarReorderPanel({
     }),
   );
 
-  const movableKeys = useMemo(
-    () => orderedSections.filter(isMovableWorkspaceSection).map(getNavSectionKey),
+  const pinSections = useMemo(
+    () => orderedSections.filter((section) => section.kind === "pin" || isFixedPinSection(section)),
     [orderedSections],
+  );
+  const movableSections = useMemo(
+    () => orderedSections.filter(isMovableWorkspaceSection),
+    [orderedSections],
+  );
+  const settingsSection = useMemo(
+    () => orderedSections.find(isSettingsSection) ?? null,
+    [orderedSections],
+  );
+  const movableKeys = useMemo(
+    () => movableSections.map(getNavSectionKey),
+    [movableSections],
   );
 
   const activeTitle = useMemo(() => {
     if (!activeKey) return "";
-    const section = orderedSections.find((row) => getNavSectionKey(row) === activeKey);
+    const section = movableSections.find((row) => getNavSectionKey(row) === activeKey);
     return section ? getNavSectionTitle(section) : "";
-  }, [activeKey, orderedSections]);
+  }, [activeKey, movableSections]);
 
   function applyMovableOrder(nextKeys: string[]) {
     onPersistNavCustom({ ...navCustom, sectionOrder: nextKeys });
@@ -322,39 +411,85 @@ export function SettingsSidebarReorderPanel({
 
   return (
     <>
-      <p className="mb-2 text-[10px] leading-relaxed text-white/40">
-        Drag modules, or use the arrows, to reorder the left nav. Home, Executive Assistant, and
-        Settings stay fixed.
+      <p className="mb-3 text-[10px] leading-relaxed text-white/40">
+        Home and Executive Assistant stay at the top; Settings stays at the bottom. Drag the grip
+        handle or use the arrows to reorder everything in between.
       </p>
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <ul className="space-y-1.5">
-          {orderedSections.map((section) => {
-            const sectionKey = getNavSectionKey(section);
-            return (
-              <SidebarModuleRow
-                key={sectionKey}
-                section={section}
-                movableKeys={movableKeys}
-                expanded={Boolean(expandedModules[sectionKey])}
-                navCustom={navCustom}
-                onToggleExpanded={() => onToggleModuleExpanded(sectionKey)}
-                onMove={(direction) => moveModule(sectionKey, direction)}
-                onToggleNavHidden={onToggleNavHidden}
-              />
-            );
-          })}
-        </ul>
-        <DragOverlay dropAnimation={null}>
-          {activeKey ? <DragPreview title={activeTitle} /> : null}
-        </DragOverlay>
-      </DndContext>
 
-      <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+      {pinSections.length > 0 ? (
+        <div className="mb-3">
+          <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/35">
+            Fixed at top
+          </p>
+          <ul className="space-y-1.5">
+            {pinSections.map((section) => {
+              const sectionKey = getNavSectionKey(section);
+              return (
+                <FixedModuleRow
+                  key={sectionKey}
+                  section={section}
+                  expanded={Boolean(expandedModules[sectionKey])}
+                  navCustom={navCustom}
+                  onToggleExpanded={() => onToggleModuleExpanded(sectionKey)}
+                  onToggleNavHidden={onToggleNavHidden}
+                />
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="mb-3">
+        <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-violet-300/70">
+          Reorder modules
+        </p>
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <ul className="space-y-1.5">
+            {movableSections.map((section) => {
+              const sectionKey = getNavSectionKey(section);
+              return (
+                <DraggableModuleRow
+                  key={sectionKey}
+                  section={section}
+                  movableKeys={movableKeys}
+                  expanded={Boolean(expandedModules[sectionKey])}
+                  navCustom={navCustom}
+                  onToggleExpanded={() => onToggleModuleExpanded(sectionKey)}
+                  onMove={(direction) => moveModule(sectionKey, direction)}
+                  onToggleNavHidden={onToggleNavHidden}
+                />
+              );
+            })}
+          </ul>
+          <DragOverlay dropAnimation={null}>
+            {activeKey ? <DragPreview title={activeTitle} /> : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
+
+      {settingsSection ? (
+        <div className="mb-3">
+          <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/35">
+            Fixed at bottom
+          </p>
+          <ul className="space-y-1.5">
+            <FixedModuleRow
+              section={settingsSection}
+              expanded={Boolean(expandedModules[getNavSectionKey(settingsSection)])}
+              navCustom={navCustom}
+              onToggleExpanded={() => onToggleModuleExpanded(getNavSectionKey(settingsSection))}
+              onToggleNavHidden={onToggleNavHidden}
+            />
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="space-y-2 border-t border-white/10 pt-3">
         <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
           Add custom item
         </label>
