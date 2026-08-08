@@ -32,7 +32,7 @@ import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { matchOnwardAirClientPortalPathname, getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
 import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
-import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-demo";
+import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-auth";
 import { isOnwardAirPortalsAllowedUsername } from "@/lib/onwardair/portals-demo";
 import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-auth";
 import {

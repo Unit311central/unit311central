@@ -1,8 +1,24 @@
-/** ABHI pre-demo portals page — auth helpers + editable content defaults. */
+/** ABHI pre-demo portals page — editable content defaults. */
 
-export const ABHI_DEMO_PLATFORM_USERNAME = "demo@abhi.org.uk";
-export const ABHI_PORTALS_ADMIN_USERNAME = "admin@abhi.org.uk";
-export const ABHI_PORTALS_SHARED_PASSWORD = "London1999$";
+import {
+  ABHI_DEMO_PLATFORM_USERNAME,
+  ABHI_PORTALS_ADMIN_USERNAME,
+  ABHI_PORTALS_SHARED_PASSWORD,
+  isAbhiDemoPlatformUsername,
+  isAbhiPortalsAdminUsername,
+  isAbhiPortalsAllowedUsername,
+  normalizeUsername,
+} from "@/lib/abhi/portals-auth";
+
+export {
+  ABHI_DEMO_PLATFORM_USERNAME,
+  ABHI_PORTALS_ADMIN_USERNAME,
+  ABHI_PORTALS_SHARED_PASSWORD,
+  isAbhiDemoPlatformUsername,
+  isAbhiPortalsAdminUsername,
+  isAbhiPortalsAllowedUsername,
+  normalizeUsername,
+};
 
 export type PortalsIndent = 0 | 1 | 2 | 3;
 
@@ -27,8 +43,6 @@ function loadAbhiPortalsMajorModules() {
     require("@/lib/abhi/portals-nav-sync") as typeof import("@/lib/abhi/portals-nav-sync");
   return buildAbhiPortalsMajorModules();
 }
-
-export const DEFAULT_MAJOR_MODULES: PortalsModuleRow[] = loadAbhiPortalsMajorModules();
 
 export const DEFAULT_CUSTOM_MODULES: PortalsModuleRow[] = [
   row("c1", "Member and Relationship"),
@@ -57,25 +71,6 @@ export function defaultAbhiPortalsContent(): AbhiPortalsEditableContent {
     majorModules: loadAbhiPortalsMajorModules().map((entry) => ({ ...entry })),
     customModules: DEFAULT_CUSTOM_MODULES.map((entry) => ({ ...entry })),
   };
-}
-
-export function normalizeUsername(username: string | null | undefined): string {
-  return String(username ?? "")
-    .trim()
-    .toLowerCase();
-}
-
-export function isAbhiDemoPlatformUsername(username: string | null | undefined): boolean {
-  return normalizeUsername(username) === ABHI_DEMO_PLATFORM_USERNAME;
-}
-
-export function isAbhiPortalsAdminUsername(username: string | null | undefined): boolean {
-  return normalizeUsername(username) === ABHI_PORTALS_ADMIN_USERNAME;
-}
-
-/** Platform users allowed onto /portals (and ABHI org login for this demo). */
-export function isAbhiPortalsAllowedUsername(username: string | null | undefined): boolean {
-  return isAbhiDemoPlatformUsername(username) || isAbhiPortalsAdminUsername(username);
 }
 
 export function newPortalsRowId(prefix: string) {

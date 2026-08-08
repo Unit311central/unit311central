@@ -40,7 +40,7 @@ import {
   ABHI_PORTALS_ADMIN_USERNAME,
   ABHI_PORTALS_SHARED_PASSWORD,
   isAbhiPortalsAllowedUsername,
-} from "@/lib/abhi/portals-demo";
+} from "@/lib/abhi/portals-auth";
 import {
   ONWARDAIR_DEMO_PLATFORM_USERNAME,
   ONWARDAIR_PORTALS_ADMIN_USERNAME,
