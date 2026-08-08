@@ -11,7 +11,6 @@ import {
   ChevronUp,
   Copy,
   Loader2,
-  LogOut,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -497,7 +496,6 @@ export default function AbhiPortalsDemoPage() {
     defaultAbhiPortalsContent(),
   );
   const [canEdit, setCanEdit] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -543,7 +541,6 @@ export default function AbhiPortalsDemoPage() {
       const data = (await response.json()) as {
         content?: AbhiPortalsEditableContent;
         canEdit?: boolean;
-        username?: string;
         error?: string;
       };
       if (!response.ok) throw new Error(data.error ?? "Failed to load portals content");
@@ -556,7 +553,6 @@ export default function AbhiPortalsDemoPage() {
         writePortalsAdminLock(true);
       }
       setCanEdit(nextCanEdit);
-      if (data.username) setUsername(data.username);
     } catch (error) {
       if (!silent) {
         setLoadError(error instanceof Error ? error.message : "Failed to load");
@@ -667,9 +663,6 @@ export default function AbhiPortalsDemoPage() {
             </div>
           </Link>
           <div className="flex items-center gap-3">
-            {username ? (
-              <p className="hidden text-[11px] text-white/50 sm:block">{username}</p>
-            ) : null}
             {canEdit ? (
               <>
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100">
@@ -687,14 +680,6 @@ export default function AbhiPortalsDemoPage() {
                 </button>
               </>
             ) : null}
-            <button
-              type="button"
-              onClick={() => void handleLogout()}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] text-white/70 hover:bg-white/[0.04] hover:text-white"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
-            </button>
             <AbhiLogoMark height={36} tone="onDark" priority />
           </div>
         </header>
@@ -706,10 +691,6 @@ export default function AbhiPortalsDemoPage() {
           <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-white/65 sm:text-[15px]">
             An overview portal page for Peter Ellingworth for Unit311 Central customised ABHI
             Platform.
-          </p>
-          <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-white/50">
-            Sign in with <span className="text-white/75">demo@abhi.org.uk</span> to view, or{" "}
-            <span className="text-white/75">admin@abhi.org.uk</span> to edit columns 2 and 3.
           </p>
           {canEdit ? (
             <p className="mt-2 text-[12px] text-emerald-200/80">
