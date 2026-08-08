@@ -15,7 +15,9 @@ import {
 import {
   ABHI_CASH_BALANCE_GBP,
   ABHI_REVENUE_YTD_GBP,
+  getAbhiFixtureBurnObligation,
   getAbhiMonthlyCashSeries,
+  getAbhiMonthlyOutgoingsSeries,
   getAbhiMonthlyRevenueSeries,
   getAbhiRevenueForMonth,
   isAbhiWorkspaceSlug,
@@ -385,12 +387,15 @@ export async function getFinancialOverview(
       (await resolveWorkspaceSlug(workspaceId));
     if (isAbhiWorkspaceSlug(workspaceSlug)) {
       const abhiRevenue = getAbhiMonthlyRevenueSeries();
+      const abhiOutgoings = getAbhiMonthlyOutgoingsSeries();
       charts = {
         ...charts,
         monthlyRevenue: abhiRevenue,
+        monthlyOutgoings: abhiOutgoings,
+        cashPosition: getAbhiMonthlyCashSeries(),
         monthlyProfitLoss: abhiRevenue.map((point) => {
           const spend =
-            charts.monthlyOutgoings.find((row) => row.month === point.month)?.amount ?? 0;
+            abhiOutgoings.find((row) => row.month === point.month)?.amount ?? 0;
           return {
             month: point.month,
             profit: Math.max(0, roundMoney(point.amount - spend)),
@@ -504,16 +509,27 @@ export async function getFinancialOverview(
       ? getAbhiRevenueForMonth(monthPrefix)
       : roundMoney(monthlyRevenuePoint?.amount ?? 0);
 
+    const abhiFixtureBurn = isAbhiWorkspaceSlug(workspaceSlug)
+      ? getAbhiFixtureBurnObligation(monthPrefix)
+      : null;
+
     const burnRate =
-      postedExpenses.length > 0 || charts.monthlyOutgoings.some((point) => point.amount > 0)
+      isAbhiWorkspaceSlug(workspaceSlug) && abhiFixtureBurn
         ? buildBurnRateSnapshot({
             cashBalance: cashPosition,
-            monthlyOutgoings: charts.monthlyOutgoings,
-            postedExpenses,
+            monthlyOutgoings: getAbhiMonthlyOutgoingsSeries(),
             currency: reportingCurrency,
-            allowDemo: false,
+            allowDemo: true,
           })
-        : emptyBurnRate(cashPosition, reportingCurrency);
+        : postedExpenses.length > 0 || charts.monthlyOutgoings.some((point) => point.amount > 0)
+          ? buildBurnRateSnapshot({
+              cashBalance: cashPosition,
+              monthlyOutgoings: charts.monthlyOutgoings,
+              postedExpenses,
+              currency: reportingCurrency,
+              allowDemo: false,
+            })
+          : emptyBurnRate(cashPosition, reportingCurrency);
 
     const obligations = obligationsResult.ok
       ? obligationsResult.value
@@ -626,16 +642,17 @@ export async function getFinancialOverview(
     const glBurnBase =
       burnRate.lines.length > 0 ? burnRate.monthly : (monthlyExpensePoint?.amount ?? 0);
     // ABHI / Talanton: burn is staff payroll employment cost (SSOT when HR registers are sparse).
-    const monthlyBurn =
-      isAbhiWorkspaceSlug(workspaceSlug) || isTalantonWorkspaceSlug(workspaceSlug)
+    const monthlyBurn = abhiFixtureBurn
+      ? roundMoney(abhiFixtureBurn.monthly)
+      : isTalantonWorkspaceSlug(workspaceSlug)
         ? roundMoney(payrollBurn)
         : isDemoTreasury
-        ? roundMoney(payrollBurn + softwareMonthly + vendorExpenseRunRate)
-        : roundMoney(
-            Math.max(0, glBurnBase - glPayrollMonthly - glSoftwareMonthly) +
-              payrollMonthly +
-              softwareMonthly,
-          );
+          ? roundMoney(payrollBurn + softwareMonthly + vendorExpenseRunRate)
+          : roundMoney(
+              Math.max(0, glBurnBase - glPayrollMonthly - glSoftwareMonthly) +
+                payrollMonthly +
+                softwareMonthly,
+            );
 
     const priorMonthPrefix = (() => {
       const [year, month] = monthPrefix.split("-").map(Number);
@@ -644,17 +661,18 @@ export async function getFinancialOverview(
     })();
     const priorVendor =
       vendorExpenseByMonth.get(priorMonthPrefix) ?? vendorExpenseRunRate;
-    const previousMonthlyBurn =
-      isAbhiWorkspaceSlug(workspaceSlug) || isTalantonWorkspaceSlug(workspaceSlug)
+    const previousMonthlyBurn = abhiFixtureBurn
+      ? roundMoney(abhiFixtureBurn.previousMonthly)
+      : isTalantonWorkspaceSlug(workspaceSlug)
         ? roundMoney(payrollBurn)
         : isDemoTreasury
-        ? roundMoney(payrollBurn + softwareMonthly + priorVendor)
-        : roundMoney(
-            burnRate.previousMonthly > 0
-              ? burnRate.previousMonthly
-              : (charts.monthlyOutgoings.find((point) => point.month === priorMonthPrefix)?.amount ??
-                monthlyBurn),
-          );
+          ? roundMoney(payrollBurn + softwareMonthly + priorVendor)
+          : roundMoney(
+              burnRate.previousMonthly > 0
+                ? burnRate.previousMonthly
+                : (charts.monthlyOutgoings.find((point) => point.month === priorMonthPrefix)
+                    ?.amount ?? monthlyBurn),
+            );
     const burnChangePct =
       previousMonthlyBurn <= 0
         ? 0
@@ -794,14 +812,14 @@ export async function getFinancialOverview(
         cashBalance: cashPosition,
         currency: reportingCurrency,
         trendLabel: isAbhiWorkspaceSlug(workspaceSlug)
-          ? "Staff payroll"
+          ? "Operating spend (payroll + programmes)"
           : isTalantonWorkspaceSlug(workspaceSlug)
             ? "Staff payroll"
             : isDemoTreasury
-            ? "Payroll + software + vendor opex"
-            : burnRate.lines.length > 0
-              ? burnRate.trendLabel
-              : "Operating registers",
+              ? "Payroll + software + vendor opex"
+              : burnRate.lines.length > 0
+                ? burnRate.trendLabel
+                : "Operating registers",
         runwayMonths:
           cashPosition > 0 && monthlyBurn > 0
             ? Math.round((cashPosition / monthlyBurn) * 10) / 10

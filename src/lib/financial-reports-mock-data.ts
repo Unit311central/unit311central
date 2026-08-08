@@ -132,23 +132,30 @@ export type CreateReportDraft = {
   name: string;
 };
 
-export function createBlankReportDraft(options?: { demo?: boolean; talanton?: boolean }): CreateReportDraft {
+export function createBlankReportDraft(options?: {
+  demo?: boolean;
+  talanton?: boolean;
+  abhi?: boolean;
+}): CreateReportDraft {
   const demo = options?.demo ?? false;
   const talanton = options?.talanton ?? false;
+  const abhi = options?.abhi ?? false;
   return {
     reportType: null,
     periodKind: "Monthly",
-    periodLabel: "June 2026",
-    dateFrom: "2026-06-01",
-    dateTo: "2026-06-30",
-    organisation: talanton
-      ? "Talanton Impact Fund"
-      : demo
-        ? "Meridian Atlas Group"
-        : "Unit311 Central",
+    periodLabel: abhi ? "August 2026" : "June 2026",
+    dateFrom: abhi ? "2026-08-01" : "2026-06-01",
+    dateTo: abhi ? "2026-08-31" : "2026-06-30",
+    organisation: abhi
+      ? "Association of British HealthTech Industries"
+      : talanton
+        ? "Talanton Impact Fund"
+        : demo
+          ? "Meridian Atlas Group"
+          : "Unit311 Central",
     department: "Finance",
     project: "All projects",
-    currency: talanton ? "USD" : demo ? "GBP" : "EUR",
+    currency: abhi || demo ? "GBP" : talanton ? "USD" : "EUR",
     includeCharts: true,
     includeNotes: true,
     maturity: "Final",
@@ -766,7 +773,244 @@ export const TALANTON_SEED_FINANCIAL_REPORTS: FinancialReportRecord[] = [
   },
 ];
 
-export function getFinancialReportOrganisations(options?: { demo?: boolean; talanton?: boolean }) {
+export const ABHI_FINANCIAL_REPORT_ORGANISATIONS = [
+  "Association of British HealthTech Industries",
+  "ABHI Events Ltd",
+  "All entities",
+] as const;
+
+export const ABHI_SEED_FINANCIAL_REPORTS: FinancialReportRecord[] = [
+  {
+    id: "abhi-rpt-pl-ytd-2026",
+    name: "Membership & Services P&L",
+    category: "Profit & Loss",
+    reportType: "Profit & Loss",
+    periodKind: "Yearly",
+    periodLabel: "YTD 2026",
+    createdBy: "Jane Lewis",
+    lastGenerated: "Today",
+    formats: ["PDF", "Excel"],
+    primaryFormat: "PDF",
+    status: "Ready",
+    description:
+      "Year-to-date profit and loss — membership income, events revenue, and operating expenditure.",
+    organisation: "Association of British HealthTech Industries",
+    department: "Finance",
+    project: "All projects",
+    currency: "GBP",
+    includeCharts: true,
+    includeNotes: true,
+    maturity: "Final",
+    dateFrom: "2026-01-01",
+    dateTo: "2026-08-08",
+    history: [
+      {
+        id: "abhi-h-pl-1",
+        generatedAt: "2026-08-08T09:00:00.000Z",
+        generatedBy: "Jane Lewis",
+        format: "PDF",
+        status: "Ready",
+      },
+    ],
+  },
+  {
+    id: "abhi-rpt-bs-aug-2026",
+    name: "Balance Sheet",
+    category: "Balance Sheet",
+    reportType: "Balance Sheet",
+    periodKind: "Monthly",
+    periodLabel: "August 2026",
+    createdBy: "Jane Lewis",
+    lastGenerated: "Today",
+    formats: ["PDF", "Excel"],
+    primaryFormat: "PDF",
+    status: "Ready",
+    description: "Statement of financial position — £1.0m cash, receivables, and liabilities.",
+    organisation: "Association of British HealthTech Industries",
+    department: "Finance",
+    project: "All projects",
+    currency: "GBP",
+    includeCharts: false,
+    includeNotes: true,
+    maturity: "Final",
+    dateFrom: "2026-08-01",
+    dateTo: "2026-08-31",
+    history: [
+      {
+        id: "abhi-h-bs-1",
+        generatedAt: "2026-08-07T11:00:00.000Z",
+        generatedBy: "Jane Lewis",
+        format: "PDF",
+        status: "Ready",
+      },
+    ],
+  },
+  {
+    id: "abhi-rpt-cf-ytd-2026",
+    name: "Cash Flow Statement",
+    category: "Cash Flow",
+    reportType: "Cash Flow",
+    periodKind: "Yearly",
+    periodLabel: "YTD 2026",
+    createdBy: "Peter Ellingworth",
+    lastGenerated: "Today",
+    formats: ["PDF"],
+    primaryFormat: "PDF",
+    status: "Ready",
+    description: "Operating, investing, and financing cash flows for the membership year.",
+    organisation: "Association of British HealthTech Industries",
+    department: "Finance",
+    project: "All projects",
+    currency: "GBP",
+    includeCharts: true,
+    includeNotes: false,
+    maturity: "Final",
+    dateFrom: "2026-01-01",
+    dateTo: "2026-08-08",
+    history: [],
+  },
+  {
+    id: "abhi-rpt-ar-aug-2026",
+    name: "Membership Receivables Ageing",
+    category: "Receivables",
+    reportType: "Accounts Receivable",
+    periodKind: "Live",
+    periodLabel: "Live",
+    createdBy: "Finance Team",
+    lastGenerated: "Today",
+    formats: ["PDF", "Excel", "CSV"],
+    primaryFormat: "Excel",
+    status: "Ready",
+    description: "Outstanding membership invoices by ageing bucket.",
+    organisation: "Association of British HealthTech Industries",
+    department: "Finance",
+    project: "All projects",
+    currency: "GBP",
+    includeCharts: false,
+    includeNotes: false,
+    maturity: "Final",
+    history: [],
+  },
+  {
+    id: "abhi-rpt-ap-aug-2026",
+    name: "Creditors & Payables",
+    category: "Payables",
+    reportType: "Accounts Payable",
+    periodKind: "Monthly",
+    periodLabel: "August 2026",
+    createdBy: "Finance Team",
+    lastGenerated: "Today",
+    formats: ["PDF", "Excel"],
+    primaryFormat: "Excel",
+    status: "Ready",
+    description: "Open supplier and expense payables due in August.",
+    organisation: "Association of British HealthTech Industries",
+    department: "Finance",
+    project: "All projects",
+    currency: "GBP",
+    includeCharts: false,
+    includeNotes: false,
+    maturity: "Final",
+    dateFrom: "2026-08-01",
+    dateTo: "2026-08-31",
+    history: [],
+  },
+  {
+    id: "abhi-rpt-exp-mtd-aug",
+    name: "Expense Report — August MTD",
+    category: "Expenses",
+    reportType: "Expense Report",
+    periodKind: "Monthly",
+    periodLabel: "August 2026 (MTD)",
+    createdBy: "Operations",
+    lastGenerated: "Today",
+    formats: ["PDF", "Excel", "CSV"],
+    primaryFormat: "Excel",
+    status: "Ready",
+    description: "Staff expenses and programme spend submitted in August 2026.",
+    organisation: "Association of British HealthTech Industries",
+    department: "Operations",
+    project: "All projects",
+    currency: "GBP",
+    includeCharts: true,
+    includeNotes: true,
+    maturity: "Draft",
+    dateFrom: "2026-08-01",
+    dateTo: "2026-08-08",
+    history: [
+      {
+        id: "abhi-h-exp-1",
+        generatedAt: "2026-08-08T08:30:00.000Z",
+        generatedBy: "Operations",
+        format: "Excel",
+        status: "Ready",
+      },
+    ],
+  },
+  {
+    id: "abhi-rpt-budget-aug",
+    name: "Budget vs Actual",
+    category: "Budget",
+    reportType: "Budget vs Actual",
+    periodKind: "Monthly",
+    periodLabel: "August 2026",
+    createdBy: "Jane Lewis",
+    lastGenerated: "Yesterday",
+    formats: ["PDF", "Excel"],
+    primaryFormat: "PDF",
+    status: "Ready",
+    description: "Membership, events, and overhead budget variance for the current month.",
+    organisation: "Association of British HealthTech Industries",
+    department: "Finance",
+    project: "All projects",
+    currency: "GBP",
+    includeCharts: true,
+    includeNotes: true,
+    maturity: "Final",
+    dateFrom: "2026-08-01",
+    dateTo: "2026-08-31",
+    history: [],
+  },
+  {
+    id: "abhi-rpt-board-fin",
+    name: "Board Pack — Financial Annex",
+    category: "Custom",
+    reportType: "Custom Report",
+    periodKind: "Monthly",
+    periodLabel: "August 2026",
+    createdBy: "Board Secretariat",
+    lastGenerated: "Today",
+    formats: ["PDF"],
+    primaryFormat: "PDF",
+    status: "Ready",
+    description: "Cash position, burn rate, and membership revenue summary for board review.",
+    organisation: "Association of British HealthTech Industries",
+    department: "Executive",
+    project: "All projects",
+    currency: "GBP",
+    includeCharts: true,
+    includeNotes: true,
+    maturity: "Final",
+    dateFrom: "2026-08-01",
+    dateTo: "2026-08-31",
+    history: [
+      {
+        id: "abhi-h-board-1",
+        generatedAt: "2026-08-05T14:00:00.000Z",
+        generatedBy: "Board Secretariat",
+        format: "PDF",
+        status: "Ready",
+      },
+    ],
+  },
+];
+
+export function getFinancialReportOrganisations(options?: {
+  demo?: boolean;
+  talanton?: boolean;
+  abhi?: boolean;
+}) {
+  if (options?.abhi) return ABHI_FINANCIAL_REPORT_ORGANISATIONS;
   if (options?.talanton) return TALANTON_FINANCIAL_REPORT_ORGANISATIONS;
   if (options?.demo) return DEMO_FINANCIAL_REPORT_ORGANISATIONS;
   return FINANCIAL_REPORT_ORGANISATIONS;
@@ -775,9 +1019,12 @@ export function getFinancialReportOrganisations(options?: { demo?: boolean; tala
 export function getSeedFinancialReports(options?: {
   demo?: boolean;
   talanton?: boolean;
+  abhi?: boolean;
 }): FinancialReportRecord[] {
   const demo = options?.demo ?? false;
   const talanton = options?.talanton ?? false;
+  const abhi = options?.abhi ?? false;
+  if (abhi) return ABHI_SEED_FINANCIAL_REPORTS;
   if (talanton) return TALANTON_SEED_FINANCIAL_REPORTS;
   if (!demo) return SEED_FINANCIAL_REPORTS;
   return SEED_FINANCIAL_REPORTS.map((report) => ({

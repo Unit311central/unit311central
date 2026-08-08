@@ -13,7 +13,14 @@ import {
 import { useState } from "react";
 
 import {
-  ABHI_BOARD_MEMBERS,
+  CorporateSection,
+  CorporateStatusPill,
+} from "@/components/testflighthub/corporate-ui";
+import {
+  listAbhiBoardMembers,
+  subscribeAbhiBoardMembersStore,
+} from "@/lib/abhi/board-members-store";
+import {
   buildMinutesFromMeetings,
   getAbhiBoardDashboardSnapshot,
   getDemoApprovedBoardPacks,
@@ -52,6 +59,24 @@ function useRisks() {
     subscribeAbhiRiskRegister,
     getAbhiRiskRegisterState,
     getAbhiRiskRegisterServerSnapshot,
+  );
+}
+
+function formatMeetingDate(iso: string) {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function useBoardMembers() {
+  return useSyncExternalStore(
+    subscribeAbhiBoardMembersStore,
+    listAbhiBoardMembers,
+    () => listAbhiBoardMembers(),
   );
 }
 
@@ -378,16 +403,22 @@ function BoardMinutes() {
   const records = buildMinutesFromMeetings(meetings);
   const [q, setQ] = useState("");
   const filtered = records.filter((r) => {
-    const hay = `${r.title} ${r.minutesSummary} ${r.decisions.map((d) => d.text).join(" ")} ${r.resolutions.join(" ")}`.toLowerCase();
+    const hay =
+      `${r.title} ${r.minutesSummary} ${r.decisions.map((d) => d.text).join(" ")} ${r.resolutions.join(" ")} ${r.actions.map((a) => `${a.owner} ${a.title}`).join(" ")}`.toLowerCase();
     return hay.includes(q.trim().toLowerCase());
   });
 
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold text-white">Minutes & Decisions</h1>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9a8d4]/80">
+          ABHI · Board
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          Minutes & Decisions
+        </h1>
         <p className="mt-1 text-sm text-white/55">
-          Search historical minutes, resolutions, decisions, and action owners.
+          Structured minutes — decisions, resolutions, and action owners per held meeting.
         </p>
       </header>
       <label className="relative block max-w-md">
@@ -399,53 +430,85 @@ function BoardMinutes() {
           className="w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-[#C2185B]/50"
         />
       </label>
-      <div className="space-y-3">
-        {filtered.map((r) => (
-          <article
-            key={r.id}
-            className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
-          >
-            <h2 className="text-lg font-semibold text-white">{r.title}</h2>
-            <p className="text-sm text-white/45">{r.meetingDate}</p>
-            <p className="mt-3 text-sm leading-relaxed text-white/70">{r.minutesSummary}</p>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                  Decisions / resolutions
-                </p>
-                <ul className="mt-1 space-y-1 text-sm text-white/70">
-                  {r.decisions.map((d) => (
-                    <li key={d.id}>
-                      • {d.text}
-                      {d.resolution ? (
-                        <span className="text-white/45"> — {d.resolution}</span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
+      <CorporateSection
+        title="Meeting minutes"
+        subtitle="One card per held board meeting — summary, resolutions, and follow-up actions."
+      >
+        <div className="space-y-3">
+          {filtered.map((r) => (
+            <article
+              key={r.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">{r.title}</h2>
+                  <p className="text-sm text-white/45">{formatMeetingDate(r.meetingDate)}</p>
+                </div>
+                <CorporateStatusPill className="border-emerald-400/30 bg-emerald-500/15 text-emerald-100">
+                  {r.status}
+                </CorporateStatusPill>
               </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                  Action owners
-                </p>
-                <ul className="mt-1 space-y-1 text-sm text-white/70">
-                  {r.actions.map((a) => (
-                    <li key={a.id}>
-                      • {a.owner}: {a.title}{" "}
-                      <span className="text-white/40">
-                        (due {a.dueDate}, {a.status})
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+              <p className="mt-3 text-sm leading-relaxed text-white/70">{r.minutesSummary}</p>
+              {r.resolutions.length > 0 ? (
+                <div className="mt-4 rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Resolutions
+                  </p>
+                  <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-sm text-white/75">
+                    {r.resolutions.map((resolution) => (
+                      <li key={resolution}>{resolution}</li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Decisions
+                  </p>
+                  <ul className="mt-2 space-y-1.5 text-sm text-white/70">
+                    {r.decisions.length === 0 ? (
+                      <li className="text-white/40">None recorded.</li>
+                    ) : (
+                      r.decisions.map((d) => (
+                        <li key={d.id}>
+                          • {d.text}
+                          {d.resolution ? (
+                            <span className="text-white/45"> — {d.resolution}</span>
+                          ) : null}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                    Action owners
+                  </p>
+                  <ul className="mt-2 space-y-1.5 text-sm text-white/70">
+                    {r.actions.length === 0 ? (
+                      <li className="text-white/40">No actions.</li>
+                    ) : (
+                      r.actions.map((a) => (
+                        <li key={a.id}>
+                          • <span className="text-white/85">{a.owner}</span>: {a.title}{" "}
+                          <span className="text-white/40">
+                            (due {formatMeetingDate(a.dueDate)}, {a.status})
+                          </span>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
-        {filtered.length === 0 ? (
-          <p className="text-sm text-white/45">No minutes match your search.</p>
-        ) : null}
-      </div>
+            </article>
+          ))}
+          {filtered.length === 0 ? (
+            <p className="text-sm text-white/45">No minutes match your search.</p>
+          ) : null}
+        </div>
+      </CorporateSection>
     </div>
   );
 }
@@ -494,14 +557,16 @@ function BoardRisk() {
 }
 
 function BoardMembers() {
+  const members = useBoardMembers();
+
   return (
     <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-white">Board Members</h1>
-        <p className="mt-1 text-sm text-white/55">Directory · read-only</p>
+        <p className="mt-1 text-sm text-white/55">Director directory — board portal view.</p>
       </header>
       <div className="grid gap-3 sm:grid-cols-2">
-        {ABHI_BOARD_MEMBERS.map((m) => (
+        {members.map((m) => (
           <article
             key={m.id}
             className="rounded-2xl border border-white/10 bg-white/[0.03] p-4"

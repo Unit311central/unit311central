@@ -212,8 +212,8 @@ export function getAbhiBoardDashboardSnapshot(
         "Regulatory horizon scanning",
       ],
     financialSnapshot: [
-      { label: "YTD membership revenue", value: "£4.2m", hint: "+6% vs prior year" },
-      { label: "Cash position", value: "£1.8m", hint: "Operating reserve held" },
+      { label: "YTD membership revenue", value: "£2.0m", hint: "Calendar YTD" },
+      { label: "Cash position", value: "£1.0m", hint: "Operating reserve held" },
       { label: "Events pipeline", value: "£920k", hint: "WHX + Medica committed" },
       { label: "Budget variance", value: "−2.1%", hint: "Within board tolerance" },
     ],

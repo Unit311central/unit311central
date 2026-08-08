@@ -21,6 +21,7 @@ import {
 
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise/surface";
+import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import {
@@ -135,13 +136,20 @@ const WIZARD_STEPS = [
 export default function FinancialReportsWorkspace() {
   const isDemo = isBrowserDemoSurface();
   const isTalanton = isBrowserTalantonImpactSurface();
+  const isAbhi = isBrowserAbhiSurface();
   const workspaceCurrency = useWorkspaceReportingCurrency();
-  const reportOrganisations = getFinancialReportOrganisations({ demo: isDemo, talanton: isTalanton });
+  const reportOrganisations = getFinancialReportOrganisations({
+    demo: isDemo,
+    talanton: isTalanton,
+    abhi: isAbhi,
+  });
   const [reports, setReports] = useState<FinancialReportRecord[]>(() =>
-    getSeedFinancialReports({ demo: isDemo, talanton: isTalanton }).map((report) => ({
-      ...report,
-      currency: workspaceCurrency === "GBP" ? report.currency : workspaceCurrency,
-    })),
+    getSeedFinancialReports({ demo: isDemo, talanton: isTalanton, abhi: isAbhi }).map(
+      (report) => ({
+        ...report,
+        currency: workspaceCurrency === "GBP" ? report.currency : workspaceCurrency,
+      }),
+    ),
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -158,7 +166,7 @@ export default function FinancialReportsWorkspace() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
   const [draft, setDraft] = useState<CreateReportDraft>(() => {
-    const base = createBlankReportDraft({ demo: isDemo, talanton: isTalanton });
+    const base = createBlankReportDraft({ demo: isDemo, talanton: isTalanton, abhi: isAbhi });
     return workspaceCurrency === "GBP" ? base : { ...base, currency: workspaceCurrency };
   });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -270,7 +278,7 @@ export default function FinancialReportsWorkspace() {
 
   function openCreate() {
     setEditingId(null);
-    setDraft(createBlankReportDraft({ demo: isDemo, talanton: isTalanton }));
+    setDraft(createBlankReportDraft({ demo: isDemo, talanton: isTalanton, abhi: isAbhi }));
     setWizardStep(0);
     setWizardOpen(true);
     setRowMenuId(null);
@@ -302,7 +310,7 @@ export default function FinancialReportsWorkspace() {
   function closeWizard() {
     setWizardOpen(false);
     setEditingId(null);
-    setDraft(createBlankReportDraft({ demo: isDemo, talanton: isTalanton }));
+    setDraft(createBlankReportDraft({ demo: isDemo, talanton: isTalanton, abhi: isAbhi }));
     setWizardStep(0);
   }
 

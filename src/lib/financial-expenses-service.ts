@@ -14,6 +14,8 @@ import {
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
 import { TALANTON_EXPENSE_FIXTURES } from "@/lib/talanton/expenses-fixtures";
+import { ABHI_EXPENSE_FIXTURES } from "@/lib/abhi/expenses-fixtures";
+import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
 import { isTalantonWorkspaceSlug } from "@/lib/talanton-financials";
 import {
   ensureFinancialExpensesTable,
@@ -67,6 +69,9 @@ export async function listExpenses(
       );
       if (talantonOnly.length > 0) return talantonOnly;
       return TALANTON_EXPENSE_FIXTURES;
+    }
+    if (isAbhiWorkspaceSlug(workspaceSlug)) {
+      return ABHI_EXPENSE_FIXTURES;
     }
     return rows;
   });

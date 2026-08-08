@@ -675,6 +675,7 @@ function isOnwardAirNavSurface(): boolean {
 /** ABHI — hide platform-internal / non-member equity surfaces. */
 export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "corporate-cap-table",
+  "corporate-board-directors",
   "testing",
   "telemetry",
   "platform-analytics",
@@ -696,6 +697,7 @@ export const CUSTOMER_PLATFORM_HIDDEN_VIEWS = new Set<InternalOperationsView>([
 
 const ABHI_HIDDEN_ITEM_LABELS = new Set([
   "Cap Table Management",
+  "Board of Directors",
   "Infrastructure & Cloud",
   "Networks & Domains",
   "Certificates & Identity",
@@ -744,7 +746,10 @@ function renameAbhiClientNavLabels(section: InternalNavSection): InternalNavSect
 function reshapeAbhiCorporateSection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Corporate Information") return section;
 
-  let items = [...section.items];
+  let items = section.items.filter(
+    (item) =>
+      item.view !== "corporate-board-directors" && item.label !== "Board of Directors",
+  );
 
   if (!items.some((item) => item.view === "corporate-risk-register")) {
     const riskItem = {
@@ -797,18 +802,17 @@ function reshapeAbhiCorporateSection(section: InternalNavSection): InternalNavSe
 
 function reshapeAbhiProductivitySection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Business Productivity") return section;
-  if (section.items.some((item) => item.view === "whiteboard")) return section;
-  return {
-    ...section,
-    items: [
-      ...section.items,
-      {
-        label: "Whiteboard",
-        icon: "PenLine",
-        view: "whiteboard" as const,
-      },
-    ],
-  };
+  const items = section.items
+    .filter((item) => item.label !== "Social" && item.view !== "social")
+    .map((item) => ({ ...item }));
+  if (!items.some((item) => item.view === "whiteboard")) {
+    items.push({
+      label: "Whiteboard",
+      icon: "PenLine",
+      view: "whiteboard" as const,
+    });
+  }
+  return { ...section, items };
 }
 
 function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
