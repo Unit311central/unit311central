@@ -222,6 +222,9 @@ export default function EnterprisePlatformSidebar({
   const [isTalantonSurface] = useState(
     () => typeof window !== "undefined" && isBrowserTalantonImpactSurface(),
   );
+  const [isAbhiSurface] = useState(
+    () => typeof window !== "undefined" && isBrowserAbhiSurface(),
+  );
   /** Inject host-specific nav on first paint — do not wait for sidebar hydration. */
   const [customerHostNav] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -231,8 +234,8 @@ export default function EnterprisePlatformSidebar({
       isBrowserAbhiSurface()
     );
   });
-  /** Talanton + overview embed: every load starts with modules collapsed; prefs stay session-local. */
-  const sessionOnlyExpand = overviewEmbed || isTalantonSurface;
+  /** Talanton / ABHI + overview embed: every load starts with modules collapsed; prefs stay session-local. */
+  const sessionOnlyExpand = overviewEmbed || isTalantonSurface || isAbhiSurface;
 
   useEffect(() => {
     startTransition(() => {
