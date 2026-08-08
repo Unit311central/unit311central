@@ -15,7 +15,10 @@ export async function GET() {
     if (isOnwardAirSlug(workspace.slug)) {
       await ensureOnwardAirFinancialsSeeded(workspace.id);
     }
-    const invoices = await listInvoices({ workspaceId: workspace.id });
+    const invoices = await listInvoices({
+      workspaceId: workspace.id,
+      workspaceSlug: workspace.slug,
+    });
     return NextResponse.json({ invoices });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load invoices.";

@@ -7,6 +7,9 @@ import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
+import { listAbhiFixtureInvoices } from "@/lib/abhi/ar-invoices-fixtures";
+import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
+import { findWorkspaceById } from "@/lib/workspace-host";
 import { PAYMENT_AMOUNT_NUMERIC } from "@/lib/payment-data";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { generateInvoiceNumber } from "@/lib/subscription-invoice-pdf";
@@ -63,7 +66,22 @@ function addDays(isoDate: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+async function resolveWorkspaceSlugForInvoices(
+  scope?: FinancialsWorkspaceScope,
+): Promise<string> {
+  const hint = scope?.workspaceSlug?.trim().toLowerCase();
+  if (hint) return hint;
+  const workspaceId = await resolveFinancialsWorkspaceId(scope);
+  const record = await findWorkspaceById(workspaceId);
+  return String(record?.slug ?? "").trim().toLowerCase();
+}
+
 export async function listInvoices(scope?: FinancialsWorkspaceScope): Promise<LedgerInvoice[]> {
+  const workspaceSlug = await resolveWorkspaceSlugForInvoices(scope);
+  if (isAbhiWorkspaceSlug(workspaceSlug)) {
+    return listAbhiFixtureInvoices();
+  }
+
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
   const supabase = requireSupabase();
   const { data, error } = await supabase
