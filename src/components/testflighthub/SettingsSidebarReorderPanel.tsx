@@ -5,6 +5,8 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  TouchSensor,
+  closestCenter,
   useDraggable,
   useDroppable,
   useSensor,
@@ -163,7 +165,7 @@ function DraggableModuleRow({
         leading={
           <button
             type="button"
-            className="cursor-grab rounded border border-white/10 p-1 text-white/45 hover:bg-white/5 hover:text-white active:cursor-grabbing"
+            className="cursor-grab touch-none rounded border border-white/10 p-1 text-white/45 hover:bg-white/5 hover:text-white active:cursor-grabbing"
             aria-label={`Drag to reorder ${title}`}
             {...listeners}
             {...attributes}
@@ -356,7 +358,10 @@ export function SettingsSidebarReorderPanel({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 },
+      activationConstraint: { distance: 4 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 4 },
     }),
   );
 
@@ -430,8 +435,10 @@ export function SettingsSidebarReorderPanel({
   return (
     <>
       <p className="mb-3 text-[10px] leading-relaxed text-white/40">
-        Home and Executive Assistant stay at the top; Settings stays at the bottom. Drag the grip
-        handle or use the arrows to reorder everything in between.
+        Home and Executive Assistant stay at the top; Settings stays at the bottom. In this panel only:
+        drag the <span className="text-white/55">⠿ grip</span> on a module, or use the{" "}
+        <span className="text-white/55">▲ ▼</span> arrows. Changes apply to the main left nav
+        immediately.
       </p>
 
       {pinSections.length > 0 ? (
@@ -463,6 +470,7 @@ export function SettingsSidebarReorderPanel({
         </p>
         <DndContext
           sensors={sensors}
+          collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
