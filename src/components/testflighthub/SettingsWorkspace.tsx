@@ -17,18 +17,11 @@ import {
 import {
   Activity,
   Bell,
-  ChevronDown,
-  ChevronRight,
-  ChevronUp,
-  Eye,
-  EyeOff,
   Globe,
   Link2,
   Loader2,
-  Lock,
   Mail,
   Menu,
-  Plus,
   Share2,
   Trash2,
   Truck,
@@ -46,23 +39,15 @@ import { useWebsiteMockStore } from "./useWebsiteMockStore";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { ABHI_LINKEDIN_URL, ABHI_X_URL, isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
-import { isOnwardAirLockedSectionBundle } from "@/lib/onwardair-nav-order";
-import { isTalantonLockedSectionBundle } from "@/lib/talanton-nav-order";
 import type { InternalNavSection } from "@/lib/internal-operations-data";
 import {
   applySidebarSectionOrder,
-  getNavSectionKey,
-  getNavSectionTitle,
-  isFixedPinSection,
-  isMovableWorkspaceSection,
-  isSettingsSection,
-  listSectionLeafItems,
   loadSidebarNavCustom,
   saveSidebarNavCustom,
-  sidebarNavCustomStorageKey,
   type SidebarNavCustomStorage,
   type SidebarNavLeafItem,
 } from "@/lib/sidebar-nav-custom";
+import { SettingsSidebarReorderPanel } from "./SettingsSidebarReorderPanel";
 import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 
 const MOCK_USERS = createInitialUsers();
@@ -649,27 +634,11 @@ export default function SettingsWorkspace() {
     () => applySidebarSectionOrder(liveSections, navCustom.sectionOrder),
     [liveSections, navCustom.sectionOrder],
   );
-  const sidebarOrderLocked = useMemo(
-    () =>
-      isTalantonLockedSectionBundle(liveSections) ||
-      isOnwardAirLockedSectionBundle(liveSections),
-    [liveSections],
-  );
 
   const persistNavCustom = useCallback((next: NavCustomStorage) => {
     setNavCustom(next);
     saveSidebarNavCustom(next);
   }, []);
-
-  function moveModule(sectionKey: string, direction: -1 | 1) {
-    const movableKeys = orderedSections.filter(isMovableWorkspaceSection).map(getNavSectionKey);
-    const index = movableKeys.indexOf(sectionKey);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= movableKeys.length) return;
-    const next = [...movableKeys];
-    [next[index], next[target]] = [next[target], next[index]];
-    persistNavCustom({ ...navCustom, sectionOrder: next });
-  }
 
   function toggleModuleExpanded(sectionKey: string) {
     setExpandedModules((current) => ({ ...current, [sectionKey]: !current[sectionKey] }));
@@ -959,191 +928,22 @@ export default function SettingsWorkspace() {
 
         <SettingsColumn
           title="Sidebar"
-          description="Reorder high-level modules on the left nav. Expand a module to show sub-items. Home, Executive Assistant, and Settings stay fixed."
+          description="Reorder high-level modules on the left nav. Expand a module to show sub-items."
           icon={<Menu className="h-4 w-4" />}
           accentClass="border-violet-400/20"
         >
-          <ul className="space-y-1.5">
-            {orderedSections.map((section) => {
-              const sectionKey = getNavSectionKey(section);
-              const title = getNavSectionTitle(section);
-              const movable = isMovableWorkspaceSection(section);
-              const fixedPin = isFixedPinSection(section) || section.kind === "pin";
-              const settingsFixed = isSettingsSection(section);
-              const expanded = Boolean(expandedModules[sectionKey]);
-              const leaves = listSectionLeafItems(section);
-              const customLeaves =
-                settingsFixed || sectionKey === "workspace:Custom"
-                  ? navCustom.customItems
-                  : [];
-              const movableKeys = orderedSections
-                .filter(isMovableWorkspaceSection)
-                .map(getNavSectionKey);
-              const movableIndex = movableKeys.indexOf(sectionKey);
-              const accent = section.color ?? (fixedPin ? "#2F80ED" : settingsFixed ? "#56CCF2" : "#9B51E0");
-
-              return (
-                <li
-                  key={sectionKey}
-                  className="overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]/70"
-                >
-                  <div className="flex items-stretch">
-                    <span
-                      className="w-1 shrink-0 self-stretch"
-                      style={{ background: accent }}
-                      aria-hidden
-                    />
-                    <div className="min-w-0 flex-1 px-2.5 py-2">
-                      <div className="flex items-center gap-1.5">
-                        <p className="min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-[0.06em] text-white/90">
-                          {title}
-                        </p>
-                        {(fixedPin || settingsFixed || (sidebarOrderLocked && movable)) && (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/40"
-                            title="Position locked"
-                          >
-                            <Lock className="h-2.5 w-2.5" />
-                            Fixed
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => toggleModuleExpanded(sectionKey)}
-                          className="rounded border border-white/10 p-1 text-white/55 hover:bg-white/5 hover:text-white"
-                          aria-label={expanded ? `Collapse ${title}` : `Expand ${title}`}
-                          aria-expanded={expanded}
-                        >
-                          {expanded ? (
-                            <ChevronDown className="h-3.5 w-3.5" />
-                          ) : (
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                        {movable && !sidebarOrderLocked ? (
-                          <div className="flex flex-col gap-0.5">
-                            <button
-                              type="button"
-                              onClick={() => moveModule(sectionKey, -1)}
-                              disabled={movableIndex <= 0}
-                              className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                              aria-label={`Move ${title} up`}
-                            >
-                              <ChevronUp className="h-3 w-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => moveModule(sectionKey, 1)}
-                              disabled={movableIndex < 0 || movableIndex >= movableKeys.length - 1}
-                              className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
-                              aria-label={`Move ${title} down`}
-                            >
-                              <ChevronDown className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {expanded ? (
-                        <ul className="mt-2 space-y-1 border-t border-white/10 pt-2">
-                          {leaves.length === 0 && customLeaves.length === 0 ? (
-                            <li className="px-1 py-1 text-[10px] text-white/35">No sub-modules</li>
-                          ) : null}
-                          {leaves.map((item) => {
-                            const hidden = navCustom.hidden[item.id] ?? false;
-                            return (
-                              <li
-                                key={item.id}
-                                className={cn(
-                                  "flex items-center gap-2 rounded-lg border border-white/8 bg-white/[0.02] px-2 py-1.5",
-                                  hidden && "opacity-45",
-                                )}
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-[11px] text-white/85">{item.label}</p>
-                                  {item.parentLabel ? (
-                                    <p className="truncate text-[9px] text-white/35">{item.parentLabel}</p>
-                                  ) : null}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleNavHidden(item.id)}
-                                  className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white"
-                                  aria-label={hidden ? "Show item" : "Hide item"}
-                                >
-                                  {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                </button>
-                              </li>
-                            );
-                          })}
-                          {customLeaves.map((item) => {
-                            const hidden = navCustom.hidden[item.id] ?? false;
-                            return (
-                              <li
-                                key={item.id}
-                                className={cn(
-                                  "flex items-center gap-2 rounded-lg border border-violet-400/20 bg-violet-500/5 px-2 py-1.5",
-                                  hidden && "opacity-45",
-                                )}
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-[11px] text-white/85">
-                                    {item.label}
-                                    <span className="ml-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-1 py-px text-[9px] text-violet-200">
-                                      Custom
-                                    </span>
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleNavHidden(item.id)}
-                                  className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white"
-                                  aria-label={hidden ? "Show item" : "Hide item"}
-                                >
-                                  {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      ) : null}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
-            <FieldLabel>Add custom item</FieldLabel>
-            <div className="flex gap-2">
-              <input
-                value={customNavLabel}
-                onChange={(event) => setCustomNavLabel(event.target.value)}
-                placeholder="Menu label"
-                className={cn(inputClassName(), "mt-0 min-w-0 flex-1")}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    addCustomNavItem();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={addCustomNavItem}
-                disabled={!customNavLabel.trim()}
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-violet-400/35 bg-violet-500/15 px-2.5 py-2 text-xs font-semibold text-violet-200 hover:bg-violet-500/25 disabled:opacity-50"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add
-              </button>
-            </div>
-            <p className="text-[10px] text-white/35">
-              Module order saves to <code className="text-white/50">{sidebarNavCustomStorageKey()}</code> and
-              updates the main left nav immediately.
-            </p>
-          </div>
+          <SettingsSidebarReorderPanel
+            orderedSections={orderedSections}
+            navCustom={navCustom}
+            expandedModules={expandedModules}
+            customNavLabel={customNavLabel}
+            onCustomNavLabelChange={setCustomNavLabel}
+            onPersistNavCustom={persistNavCustom}
+            onToggleModuleExpanded={toggleModuleExpanded}
+            onToggleNavHidden={toggleNavHidden}
+            onAddCustomNavItem={addCustomNavItem}
+            inputClassName={inputClassName()}
+          />
         </SettingsColumn>
 
         <SettingsColumn

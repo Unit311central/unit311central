@@ -376,11 +376,7 @@ export function applySidebarSectionOrder(
     movable.push(section);
   }
 
-  // Talanton / OnwardAir: locked production order — never let stale localStorage scramble it.
-  const effectiveOrder =
-    isTalantonLockedSectionBundle(sections) || isOnwardAirLockedSectionBundle(sections)
-      ? defaultSectionOrder(sections)
-      : resolveSectionOrderForSections(sectionOrder, sections);
+  const effectiveOrder = resolveSectionOrderForSections(sectionOrder, sections);
 
   const byKey = new Map(movable.map((section) => [getNavSectionKey(section), section]));
   const ordered: InternalNavSection[] = [];
@@ -394,6 +390,21 @@ export function applySidebarSectionOrder(
   for (const section of byKey.values()) ordered.push(section);
 
   return [...pins, ...ordered, ...(settings ? [settings] : [])];
+}
+
+/** Move one workspace section key to another index in the movable order list. */
+export function reorderSectionKeys(
+  keys: readonly string[],
+  activeKey: string,
+  overKey: string,
+): string[] | null {
+  const from = keys.indexOf(activeKey);
+  const to = keys.indexOf(overKey);
+  if (from < 0 || to < 0 || from === to) return null;
+  const next = [...keys];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item!);
+  return next;
 }
 
 export function listSectionLeafItems(section: InternalNavSection): SidebarNavLeafItem[] {
