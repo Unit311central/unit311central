@@ -643,22 +643,6 @@ export default function AbhiPortalsDemoPage() {
     return () => window.clearTimeout(timer);
   }, [content, canEdit, ready, saveContent]);
 
-  async function handleLogout() {
-    adminLockRef.current = false;
-    writePortalsAdminLock(false);
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-    } catch {
-      // Continue to login regardless.
-    }
-    window.location.assign("/login?next=%2Fportals");
-  }
-
   return (
     <div className={cn(body.className, "min-h-[100dvh] bg-[#07111f] text-white")}>
       <div className="relative z-10 mx-auto flex w-full max-w-[1280px] flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
