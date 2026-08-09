@@ -407,8 +407,8 @@ export async function resolveOrchestrationRoute(
     ) {
       return { kind: "tool", intent: direct };
     }
-    // Prefer live business query over falling into platform/catalogue answers.
-    if (!hasExplicitWriteIntent(message)) {
+    // ABHI: let the model synthesise from tools (ChatGPT-style) instead of raw snapshot stubs.
+    if (!hasExplicitWriteIntent(message) && !isAbhiSlug(business.workspace.slug)) {
       return {
         kind: "tool",
         intent: {
@@ -502,16 +502,26 @@ export async function resolveOrchestrationRoute(
     const registered = capabilities?.statements?.length
       ? capabilities.statements.map((s) => `• ${s}`).join("\n")
       : "• Create client\n• Create project\n• Related client contact / location actions";
+    const writeMessage = isAbhiSlug(business.workspace.slug)
+      ? [
+          "I can take care of that through the right ABHI module — here’s the fastest path:",
+          "",
+          "Registered actions I can run for you today:",
+          registered,
+          "",
+          "Tell me which member, project, or module to use and I’ll proceed — or ask me to open the screen.",
+        ].join("\n")
+      : [
+          "I don't have a registered write action for that request yet.",
+          "",
+          "Registered executable writes today:",
+          registered,
+          "",
+          "I can still look up related live data, or you can ask one of the registered actions above.",
+        ].join("\n");
     return {
       kind: "capability_answer",
-      message: [
-        "I don't have a registered write action for that request yet.",
-        "",
-        "Registered executable writes today:",
-        registered,
-        "",
-        "I can still look up related live data, or you can ask one of the registered actions above.",
-      ].join("\n"),
+      message: writeMessage,
     };
   }
 
@@ -525,7 +535,11 @@ export async function resolveOrchestrationRoute(
   }
 
   // Unknown CEO status/lookup reads → live business query (never freeform Application Catalogue).
-  if (isBusinessStatusRead(message) && !hasExplicitWriteIntent(message)) {
+  if (
+    isBusinessStatusRead(message) &&
+    !hasExplicitWriteIntent(message) &&
+    !isAbhiSlug(business.workspace.slug)
+  ) {
     return {
       kind: "tool",
       intent: {

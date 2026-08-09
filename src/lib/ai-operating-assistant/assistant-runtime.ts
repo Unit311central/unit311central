@@ -36,6 +36,7 @@ import type {
   AssistantStreamEvent,
 } from "./types";
 import type { PlatformSession } from "@/lib/platform-auth";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
 
 type EasyInputMessage = {
@@ -81,6 +82,27 @@ function stripStreamPayloadBytes<T>(value: T): T {
 
 function encodeSse(event: AssistantStreamEvent) {
   return `data: ${JSON.stringify(stripStreamPayloadBytes(event))}\n\n`;
+}
+
+/** ABHI: raw tool payloads are passed to the model for natural-language answers. */
+const ABHI_LLM_SYNTHESIS_TOOLS = new Set([
+  "queryBusiness",
+  "getCashPosition",
+  "getSmartInsights",
+  "searchInvoices",
+  "searchClients",
+  "searchCRM",
+  "searchApplications",
+  "listPlatformModules",
+  "getDailyBrief",
+]);
+
+function abhiToolResultForSynthesis(result: unknown): string {
+  try {
+    return JSON.stringify(result).slice(0, 14_000);
+  } catch {
+    return String(result);
+  }
 }
 
 async function resolveHistory(
@@ -1213,6 +1235,25 @@ async function* runAssistantTurnInner(input: {
               : "Board Pack Generated Successfully";
       }
 
+      const synthesizeForAbhi =
+        isAbhiSlug(context.workspace.slug) &&
+        ABHI_LLM_SYNTHESIS_TOOLS.has(directIntent.tool) &&
+        !extracted.errorText;
+
+      if (synthesizeForAbhi) {
+        inputItems = [
+          ...toInputMessages(resolved.history, message),
+          {
+            role: "developer",
+            content: [
+              `Tool ${directIntent.tool} returned the following workspace data for the user's question.`,
+              "Write a natural Chief-of-Staff reply in plain English using this data.",
+              "Never say invalid question or not connected — always be helpful.",
+              abhiToolResultForSynthesis(result),
+            ].join("\n\n"),
+          },
+        ];
+      } else {
       yield { type: "delta", text: assistantText };
 
       const executionCards = [
@@ -1248,6 +1289,7 @@ async function* runAssistantTurnInner(input: {
         correlationId: getEaCorrelationId(),
       };
       return;
+      }
     }
 
     while (toolLoops < 6) {
