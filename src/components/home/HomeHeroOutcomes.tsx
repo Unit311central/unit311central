@@ -1,33 +1,33 @@
-import { Bot, LayoutDashboard, Plug, Wallet } from "lucide-react";
+import { Bot, LayoutDashboard, Plug, SlidersHorizontal } from "lucide-react";
 import HomeSectionTitle from "./HomeSectionTitle";
 
 const OUTCOMES = [
   {
-    icon: LayoutDashboard,
-    title: "See the whole business",
+    icon: SlidersHorizontal,
+    title: "Configured for how you run",
     description:
-      "One login for leadership, ops and teams — live dashboards, projects, clients and activity without jumping between apps.",
+      "Every business is different. Your workspace is shaped around your teams, workflows and systems — not a one-size-fits-all software bundle.",
+    accent: "#818cf8",
+  },
+  {
+    icon: LayoutDashboard,
+    title: "One place to work",
+    description:
+      "Leadership and employees operate from a single layer instead of logging into disconnected apps to find answers.",
     accent: "#3b82f6",
   },
   {
     icon: Bot,
-    title: "Answers without a ticket queue",
+    title: "Answers on your data",
     description:
-      "AI executive assistant across your data — board packs, summaries and operational questions in minutes, not days.",
+      "AI executive assistant across the information already in your business — summaries, reports and operational questions in minutes.",
     accent: "#f472b6",
-  },
-  {
-    icon: Wallet,
-    title: "Numbers the board trusts",
-    description:
-      "Financials, reporting and corporate records in the same system your operators use every day.",
-    accent: "#10b981",
   },
   {
     icon: Plug,
     title: "Connect what stays",
     description:
-      "Consolidate where it makes sense. Keep specialist tools — accounting, email, storage — wired into one layer.",
+      "Consolidate where it makes sense. Keep the specialist tools you rely on — wired into the same operating layer.",
     accent: "#38bdf8",
   },
 ] as const;
@@ -50,9 +50,10 @@ export default function HomeHeroOutcomes() {
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
         <HomeSectionTitle>What Unit311 Central is</HomeSectionTitle>
         <p className="mx-auto mt-5 max-w-3xl text-center text-sm leading-relaxed text-white/55 sm:text-[15px] md:text-[16px]">
-          A single intelligent operating layer for your company — CRM, finance, HR, operations,
-          corporate records and AI in one workspace, with your existing tools connected where they
-          still belong.
+          Every business is different. Unit311 Central is one intelligent operating layer — configured
+          around how your company actually works, with AI across your data and your existing tools
+          connected where they still belong. Not a fixed catalogue of modules; the scope you need,
+          wired together.
         </p>
 
         <div className="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 lg:gap-5">
