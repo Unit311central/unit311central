@@ -1,41 +1,41 @@
-import { Bot, LayoutDashboard, Plug, SlidersHorizontal } from "lucide-react";
+import { Bot, Headset, Layers, Plug } from "lucide-react";
 import HomeSectionTitle from "./HomeSectionTitle";
 
-const OUTCOMES = [
+const OFFERINGS = [
   {
-    icon: SlidersHorizontal,
-    title: "Configured for how you run",
+    icon: Layers,
+    title: "Configured business platform",
     description:
-      "Every business is different. Your workspace is shaped around your teams, workflows and systems — not a one-size-fits-all software bundle.",
-    accent: "#818cf8",
-  },
-  {
-    icon: LayoutDashboard,
-    title: "One place to work",
-    description:
-      "Leadership and employees operate from a single layer instead of logging into disconnected apps to find answers.",
+      "Unit311 Central — workspaces shaped to your company: leadership dashboards, clients & projects, operations, people, finance and corporate records. Scope set in your proposal, not a rigid off-the-shelf bundle.",
     accent: "#3b82f6",
   },
   {
     icon: Bot,
-    title: "Answers on your data",
+    title: "AI executive assistant",
     description:
-      "AI executive assistant across the information already in your business — summaries, reports and operational questions in minutes.",
+      "Intelligence across your live business data — briefings, search, operating reports, board packs and actions without waiting on IT or rebuilding spreadsheets.",
     accent: "#f472b6",
   },
   {
     icon: Plug,
-    title: "Connect what stays",
+    title: "Business app integrations",
     description:
-      "Consolidate where it makes sense. Keep the specialist tools you rely on — wired into the same operating layer.",
+      "Connect accounting, email, storage and the specialist tools you already use into one operating layer — consolidate where it makes sense, connect what stays.",
     accent: "#38bdf8",
+  },
+  {
+    icon: Headset,
+    title: "Implementation, support & customization",
+    description:
+      "Fixed-scope launch — configuration, permissions, migration, training and go-live — plus high-touch support and a monthly allowance to request changes as your business evolves.",
+    accent: "#10b981",
   },
 ] as const;
 
-export default function HomeHeroOutcomes() {
+export default function HomeWhatWeOffering() {
   return (
     <section
-      id="outcomes"
+      id="offering"
       className="relative scroll-mt-20 overflow-x-hidden bg-[#050816] py-12 sm:scroll-mt-28 sm:py-16 lg:py-20"
     >
       <div
@@ -48,16 +48,15 @@ export default function HomeHeroOutcomes() {
       />
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
-        <HomeSectionTitle>Built around your business</HomeSectionTitle>
+        <HomeSectionTitle>What we are offering</HomeSectionTitle>
         <p className="mx-auto mt-5 max-w-3xl text-center text-sm leading-relaxed text-white/55 sm:text-[15px] md:text-[16px]">
-          Every business is different. Unit311 Central is one intelligent operating layer — configured
-          around how your company actually works, with AI across your data and your existing tools
-          connected where they still belong. Not a fixed catalogue of modules; the scope you need,
-          wired together.
+          A complete business operating package for funded startups and growing SMEs — platform, AI
+          intelligence, integrations, and hands-on launch and support. Every business is different;
+          what we deliver is scoped to how yours runs.
         </p>
 
         <div className="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 lg:gap-5">
-          {OUTCOMES.map((item) => (
+          {OFFERINGS.map((item) => (
             <article
               key={item.title}
               className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_16px_48px_rgba(0,0,0,0.25)] sm:p-6"
