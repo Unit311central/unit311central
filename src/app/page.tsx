@@ -13,7 +13,6 @@ export default function HomePage() {
       <HomeWhatWeOffering />
       <HomeCustomerProof />
       <HomeBusinessCase />
-      <HowUnit311Works />
       <HomeOfferPlatform />
       <WhoWeWorkWith />
       <HomePricing />
