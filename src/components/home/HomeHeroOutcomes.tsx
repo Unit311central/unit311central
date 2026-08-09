@@ -48,7 +48,7 @@ export default function HomeHeroOutcomes() {
       />
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
-        <HomeSectionTitle>What Unit311 Central is</HomeSectionTitle>
+        <HomeSectionTitle>Built around your business</HomeSectionTitle>
         <p className="mx-auto mt-5 max-w-3xl text-center text-sm leading-relaxed text-white/55 sm:text-[15px] md:text-[16px]">
           Every business is different. Unit311 Central is one intelligent operating layer — configured
           around how your company actually works, with AI across your data and your existing tools
