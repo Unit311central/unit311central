@@ -31,7 +31,6 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
   const pathname = usePathname();
   const isHomePage = pathname === "/" || pathname === null;
   const isMarketingPage = isMarketingRoute(pathname);
-  const isBookPage = pathname === "/book";
   const isDarkMenu =
     isHomePage ||
     isMarketingPage ||
@@ -105,22 +104,6 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
             </li>
           ))}
         </ul>
-        <Link
-          href="/signup"
-          onClick={onClose}
-          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-lg bg-[#15803d] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#166534]"
-        >
-          Sign up
-        </Link>
-        {!isBookPage ? (
-          <Link
-            href="/login"
-            onClick={onClose}
-            className="mt-2 inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-          >
-            Log in
-          </Link>
-        ) : null}
       </nav>
     </div>
   );

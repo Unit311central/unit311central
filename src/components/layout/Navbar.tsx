@@ -13,7 +13,6 @@ import {
 } from "@/lib/book-submission-state";
 import {
   isMarketingRoute,
-  marketingBtnGreen,
 } from "@/lib/marketing-ui";
 import MobileMenu from "./MobileMenu";
 
@@ -112,18 +111,6 @@ export default function Navbar() {
     return null;
   }
 
-  const homeLoginButtonClass =
-    "inline-flex h-9 items-center justify-center rounded-md bg-white px-3 text-[13px] font-semibold text-[#0b2d63] shadow-[0_2px_12px_rgba(255,255,255,0.15)] transition-colors hover:bg-white/90 lg:h-10 lg:rounded-lg lg:px-5 lg:text-[14px]";
-  const signUpButtonClass = `${marketingBtnGreen} hidden lg:inline-flex lg:h-10 lg:px-5 lg:text-[14px]`;
-  const signUpButtonClassCompact =
-    "inline-flex h-9 items-center rounded-md bg-[#15803d] px-3 text-[13px] font-semibold text-white transition-colors hover:bg-[#166534] sm:h-[36px] sm:px-[16px] sm:text-[14px]";
-  const loginButtonClassCompact =
-    "inline-flex h-9 items-center rounded-md bg-white px-3 text-[13px] font-semibold text-[#0b2d63] transition-colors hover:bg-white/90 sm:h-[36px] sm:px-[16px] sm:text-[14px]";
-  const mobileAuthLinkClass = isDarkNav
-    ? "text-[13px] font-semibold tracking-[0.01em] text-white/90 transition-colors hover:text-white sm:text-[14px]"
-    : "text-[13px] font-semibold tracking-[0.01em] text-muted transition-colors hover:text-foreground sm:text-[14px]";
-  const useHomeNavButtons = isHomePage || isMarketingPage;
-
   return (
     <>
       <header
@@ -217,39 +204,6 @@ export default function Navbar() {
                 isClientCallPage ? "hidden" : ""
               }`}
             >
-              {!isBookPage && pathname !== "/login" ? (
-                <div className="flex items-center gap-1 lg:hidden">
-                  <Link href="/signup" className={mobileAuthLinkClass}>
-                    Sign up
-                  </Link>
-                  <span className={`text-[13px] sm:text-[14px] ${isDarkNav ? "text-white/35" : "text-muted/50"}`} aria-hidden>
-                    ·
-                  </span>
-                  <Link href="/login" className={mobileAuthLinkClass}>
-                    Log in
-                  </Link>
-                </div>
-              ) : (
-                <div className="flex items-center lg:hidden">
-                  <Link href="/signup" className={mobileAuthLinkClass}>
-                    Sign up
-                  </Link>
-                </div>
-              )}
-              <Link
-                href="/signup"
-                className={`${useHomeNavButtons ? signUpButtonClass : signUpButtonClassCompact} hidden lg:inline-flex`}
-              >
-                Sign Up
-              </Link>
-              {!isBookPage && pathname !== "/login" ? (
-                <Link
-                  href="/login"
-                  className={`${useHomeNavButtons ? homeLoginButtonClass : loginButtonClassCompact} hidden lg:inline-flex`}
-                >
-                  Login
-                </Link>
-              ) : null}
               <button
                 type="button"
                 aria-label="Open menu"
