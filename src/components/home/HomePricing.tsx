@@ -215,7 +215,7 @@ export default function HomePricing() {
           >
             Book a free demo and intro session
           </Link>
-          <p className="mt-4 text-sm text-white/40">
+          <p className="mt-6 text-sm text-white/40 sm:mt-8">
             Pricing confirmed in your proposal — demos are the right first step for most teams.
           </p>
         </div>
