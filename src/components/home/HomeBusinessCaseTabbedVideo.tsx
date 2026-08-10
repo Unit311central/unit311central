@@ -8,8 +8,6 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { id: "impact", label: "Business Impact" },
   { id: "operations", label: "Business Operations" },
-  { id: "productivity", label: "Business Productivity" },
-  { id: "technology", label: "Technology" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -17,8 +15,6 @@ type TabId = (typeof TABS)[number]["id"];
 const TAB_VIDEOS: Record<TabId, string> = {
   impact: "/videos/bestvideo1.mp4",
   operations: "/videos/video2best.mp4",
-  productivity: "/videos/bestvideo1.mp4",
-  technology: "/videos/bestvideo1.mp4",
 };
 
 export default function HomeBusinessCaseTabbedVideo() {
@@ -74,9 +70,9 @@ export default function HomeBusinessCaseTabbedVideo() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
+    <div className="w-full">
       <div
-        className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2"
+        className="grid grid-cols-2 gap-1.5 sm:gap-2"
         role="tablist"
         aria-label="Business case video categories"
       >
@@ -104,9 +100,9 @@ export default function HomeBusinessCaseTabbedVideo() {
 
       <div
         ref={playerRef}
-        className="relative mt-3 flex min-h-[280px] w-full flex-1 flex-col overflow-hidden rounded-2xl border border-sky-500/20 bg-[#070b14]/85 shadow-[0_16px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mt-4 lg:mt-5 lg:min-h-[420px] xl:min-h-[480px]"
+        className="relative mt-3 w-full overflow-hidden rounded-2xl border border-sky-500/20 bg-[#070b14]/85 shadow-[0_16px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mt-4"
       >
-        <div className="relative min-h-[280px] flex-1 bg-[#030712] lg:min-h-[420px] xl:min-h-[480px]">
+        <div className="relative aspect-[16/10] w-full bg-[#030712] sm:aspect-[5/3]">
           <video
             ref={videoRef}
             className="absolute inset-0 h-full w-full object-cover object-top"

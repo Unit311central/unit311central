@@ -33,7 +33,7 @@ export default function HomeBusinessCase() {
 
         <div className="business-case-fade-in mt-12 lg:mt-16">
           <div className="overflow-hidden rounded-[28px] border border-white/[0.1] bg-gradient-to-br from-[#0a0f18]/95 via-[#070b14]/90 to-[#060a12]/95 shadow-[0_32px_80px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]">
-            <div className="grid gap-0 xl:grid-cols-[34fr_66fr] xl:items-stretch">
+            <div className="grid gap-0 xl:grid-cols-[34fr_66fr] xl:items-start">
               <div className="min-w-0 border-b border-sky-400/15 bg-sky-400/[0.08] p-4 sm:p-5 xl:border-b-0 xl:border-r xl:border-sky-400/15 xl:p-6">
                 <HomeBusinessCaseStackTable />
               </div>
