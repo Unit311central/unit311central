@@ -77,9 +77,11 @@ const IMPLEMENTATION_INCLUDES = [
 
 function TierCardShell({
   highlighted,
+  className,
   children,
 }: {
   highlighted?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   return (
@@ -88,7 +90,7 @@ function TierCardShell({
         highlighted
           ? "border-[#3b82f6]/40 ring-1 ring-[#3b82f6]/20"
           : "border-[#3b82f6]/25"
-      }`}
+      } ${className ?? ""}`}
     >
       {children}
     </article>
@@ -119,49 +121,55 @@ export default function HomePricing() {
           implementation quoted before you commit. Annual prepay saves {annualDiscountPct}%.
         </p>
 
-        <div className="mx-auto mt-8 grid max-w-6xl gap-4 sm:mt-12 lg:grid-cols-3 lg:gap-5">
-          {TIERS.map((tier) => (
-            <TierCardShell key={tier.id} highlighted={tier.highlighted}>
-              <div className="flex h-full flex-1 flex-col px-5 py-7 sm:px-8 sm:py-10">
-                {tier.highlighted ? (
-                  <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#93c5fd]">
-                    Most common for SMEs
-                  </p>
-                ) : null}
-                <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#93c5fd]">
-                  {tier.name}
-                </h3>
-                <p className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-[2.25rem]">
-                  From {formatProfessionalUsd(tier.monthlyFrom)}
-                  <span className="text-base font-semibold text-white/50 sm:text-lg"> / month</span>
-                </p>
-                <p className="mt-3 text-sm leading-relaxed text-white/55">{tier.description}</p>
-                <ul className="mt-6 space-y-3">
-                  {tier.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3 text-sm text-white/75">
-                      <Check
-                        className="mt-0.5 h-4 w-4 shrink-0 text-[#3b82f6]"
-                        strokeWidth={2.5}
-                      />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-auto pt-8">
-                  <Link
-                    href={tier.ctaHref}
-                    className={`flex h-11 w-full items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors ${
-                      tier.highlighted
-                        ? "bg-white text-[#0b2d63] hover:bg-[#f8fafc]"
-                        : "border border-white/15 bg-white/[0.06] text-white hover:bg-white/[0.1]"
-                    }`}
-                  >
-                    {tier.ctaLabel}
-                  </Link>
+        <div className="mx-auto mt-8 max-w-6xl sm:mt-12">
+          <div className="grid gap-4 lg:grid-cols-3 lg:gap-5 lg:items-stretch">
+            {TIERS.map((tier) => (
+              <div key={tier.id} className="flex min-w-0 flex-col">
+                <div className="mb-3 flex h-5 items-center justify-center">
+                  {tier.highlighted ? (
+                    <p className="text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-[#93c5fd]">
+                      Most common for SMEs
+                    </p>
+                  ) : null}
                 </div>
+                <TierCardShell highlighted={tier.highlighted} className="flex-1">
+                  <div className="flex h-full flex-1 flex-col px-5 py-7 sm:px-8 sm:py-10">
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#93c5fd]">
+                      {tier.name}
+                    </h3>
+                    <p className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-[2.25rem]">
+                      From {formatProfessionalUsd(tier.monthlyFrom)}
+                      <span className="text-base font-semibold text-white/50 sm:text-lg"> / month</span>
+                    </p>
+                    <p className="mt-3 text-sm leading-relaxed text-white/55">{tier.description}</p>
+                    <ul className="mt-6 space-y-3">
+                      {tier.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-3 text-sm text-white/75">
+                          <Check
+                            className="mt-0.5 h-4 w-4 shrink-0 text-[#3b82f6]"
+                            strokeWidth={2.5}
+                          />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-auto pt-8">
+                      <Link
+                        href={tier.ctaHref}
+                        className={`flex h-11 w-full items-center justify-center rounded-lg px-5 text-sm font-semibold transition-colors ${
+                          tier.highlighted
+                            ? "bg-white text-[#0b2d63] hover:bg-[#f8fafc]"
+                            : "border border-white/15 bg-white/[0.06] text-white hover:bg-white/[0.1]"
+                        }`}
+                      >
+                        {tier.ctaLabel}
+                      </Link>
+                    </div>
+                  </div>
+                </TierCardShell>
               </div>
-            </TierCardShell>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div className="mx-auto mt-6 max-w-6xl rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-6 sm:px-8 sm:py-8">
