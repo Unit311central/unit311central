@@ -74,15 +74,6 @@ const PAIN_POINTS = [
 export default function HomeBusinessCaseLeftPanel() {
   return (
     <div className="relative flex h-full min-h-[320px] flex-col overflow-hidden rounded-xl border border-sky-300/20 bg-gradient-to-br from-sky-400/[0.12] via-[#070d18]/90 to-[#030712] p-4 shadow-[inset_0_1px_0_rgba(186,230,253,0.14)] sm:p-5 lg:min-h-full lg:p-6">
-      <div
-        className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-sky-400/10 blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -bottom-8 -left-8 h-36 w-36 rounded-full bg-amber-400/8 blur-3xl"
-        aria-hidden
-      />
-
       <div className="relative">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/70">
           The problem

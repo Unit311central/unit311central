@@ -32,13 +32,13 @@ const MOBILE_PREVIEW_COUNT = 4;
 const FUNCTION_COL =
   "whitespace-nowrap py-1.5 pr-3 align-top font-medium text-white/75 sm:pr-4 lg:py-1.5";
 const PRODUCT_COL =
-  "break-words py-1.5 pl-3 text-right align-top text-white/50 sm:pl-4 lg:py-1.5";
+  "break-words py-1.5 pl-6 text-right align-top text-white/50 sm:pl-8 lg:py-1.5 lg:pl-10";
 const COST_COL =
   "px-2 py-1.5 text-center font-medium tabular-nums text-white/70 sm:px-3 lg:py-1.5";
 const COST_HEADER =
   "px-2 py-2 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-white/55 whitespace-nowrap sm:px-3 sm:text-[11px] lg:py-2.5 lg:text-xs lg:tracking-[0.08em]";
 const PRODUCT_HEADER =
-  "py-2 pl-3 text-right text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-white/55 sm:pl-4 sm:text-[11px] lg:py-2.5 lg:text-xs lg:tracking-[0.08em]";
+  "py-2 pl-6 text-right text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-white/55 sm:pl-8 sm:text-[11px] lg:py-2.5 lg:pl-10 lg:text-xs lg:tracking-[0.08em]";
 
 export default function HomeBusinessCaseStackTable() {
   const [mobileExpanded, setMobileExpanded] = useState(false);
@@ -53,9 +53,9 @@ export default function HomeBusinessCaseStackTable() {
         <div className="overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-3.5">
           <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <colgroup>
-            <col className="w-[46%]" />
-            <col className="w-[20%]" />
-            <col className="w-[34%]" />
+            <col className="w-[54%]" />
+            <col className="w-[14%]" />
+            <col className="w-[32%]" />
           </colgroup>
           <thead>
             <tr className="border-b border-white/[0.08] bg-sky-400/[0.05]">
@@ -94,7 +94,7 @@ export default function HomeBusinessCaseStackTable() {
           </tbody>
         </table>
         </div>
-        <HomeBusinessCaseToolStackBar className="mt-4 px-1 sm:px-2" />
+        <HomeBusinessCaseToolStackBar className="mt-4 px-3 sm:px-3.5" />
       </div>
 
       <div className="space-y-2 md:hidden">
