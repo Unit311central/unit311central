@@ -34,14 +34,14 @@ export default function HomeBusinessCase() {
           </p>
         </div>
 
-        <div className="business-case-fade-in mt-12 flex flex-col gap-4 lg:mt-16 xl:flex-row xl:items-stretch xl:gap-5">
-          <div className={`${PANEL_SHELL} xl:w-[34%] xl:flex-none`}>
-            <div className="h-full bg-sky-400/[0.08] p-4 sm:p-5 xl:p-6">
+        <div className="business-case-fade-in mt-12 flex flex-col gap-4 lg:mt-16">
+          <div className={PANEL_SHELL}>
+            <div className="bg-sky-400/[0.08] p-4 sm:p-5 lg:p-6">
               <HomeBusinessCaseStackTable />
             </div>
           </div>
-          <div className={`${PANEL_SHELL} flex min-h-0 flex-col xl:min-w-0 xl:flex-1`}>
-            <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4 xl:p-5">
+          <div className={`${PANEL_SHELL} flex min-h-0 flex-col`}>
+            <div className="flex min-h-0 flex-col p-3 sm:p-4 lg:p-5">
               <HomeBusinessCaseTabbedVideo />
             </div>
           </div>
