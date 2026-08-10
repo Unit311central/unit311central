@@ -195,13 +195,6 @@ export default function HomeBusinessCaseStackTable() {
           </div>
         </article>
       </div>
-
-      <p className="mt-3 text-xs leading-relaxed text-white/35 sm:mt-4 sm:text-[13px]">
-        NB Internal reserch time at 15 days @ $30/hr
-      </p>
-      <p className="mt-1 text-xs leading-relaxed text-white/35 sm:text-[13px]">
-        Excludes the ongoing employee time spent using and managing these applications
-      </p>
     </div>
   );
 }
