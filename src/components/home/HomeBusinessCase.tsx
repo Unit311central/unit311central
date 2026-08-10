@@ -40,8 +40,8 @@ export default function HomeBusinessCase() {
               <HomeBusinessCaseStackTable />
             </div>
           </div>
-          <div className={`${PANEL_SHELL} flex min-h-0 flex-col`}>
-            <div className="flex min-h-0 flex-col p-3 sm:p-4 lg:p-5">
+          <div className={`${PANEL_SHELL} flex flex-col`}>
+            <div className="p-3 sm:p-4 lg:p-5">
               <HomeBusinessCaseTabbedVideo />
             </div>
           </div>

@@ -120,7 +120,6 @@ export default function HomeBusinessCaseStackTable() {
                 </td>
               </tr>
             ))}
-            <SummaryRow label="Subtotal" value="$34,888" />
             <SummaryRow label="Software research & selction" value="$3,900" />
             <SummaryRow label="Implementation & Integration" value="$7,000" />
             <tr className="border-t border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] via-[#1d4ed8]/[0.12] to-[#2563eb]/[0.06]">
@@ -170,12 +169,6 @@ export default function HomeBusinessCaseStackTable() {
             </svg>
           </button>
         ) : null}
-        <article className="rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold text-white/80">Subtotal</p>
-            <p className="shrink-0 text-xs font-medium tabular-nums text-white/70">$34,888</p>
-          </div>
-        </article>
         <article className="rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold text-white/80">Software research & selction</p>

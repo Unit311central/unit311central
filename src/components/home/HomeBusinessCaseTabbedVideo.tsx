@@ -70,7 +70,7 @@ export default function HomeBusinessCaseTabbedVideo() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex flex-col">
       <div
         className="grid shrink-0 grid-cols-2 gap-1.5 sm:gap-2"
         role="tablist"
@@ -100,26 +100,25 @@ export default function HomeBusinessCaseTabbedVideo() {
 
       <div
         ref={playerRef}
-        className="relative mt-3 flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-2xl border border-sky-500/20 bg-[#070b14]/85 shadow-[0_16px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mt-4 lg:min-h-[360px]"
+        className="relative mt-3 w-full overflow-hidden rounded-2xl border border-sky-500/20 bg-[#030712] shadow-[0_16px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] sm:mt-4 aspect-video"
       >
-        <div className="relative min-h-[280px] flex-1 bg-[#030712] lg:min-h-[360px]">
-          <video
-            ref={videoRef}
-            className="absolute inset-0 h-full w-full object-contain object-center"
-            autoPlay
-            muted
-            loop
-            playsInline
-            disablePictureInPicture
-            preload="auto"
-            aria-label={`${TABS.find((tab) => tab.id === activeTab)?.label ?? "Business case"} demo video`}
-          >
-            <source src={TAB_VIDEOS[activeTab]} type="video/mp4" />
-          </video>
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-contain object-center"
+          autoPlay
+          muted
+          loop
+          playsInline
+          disablePictureInPicture
+          preload="auto"
+          aria-label={`${TABS.find((tab) => tab.id === activeTab)?.label ?? "Business case"} demo video`}
+        >
+          <source src={TAB_VIDEOS[activeTab]} type="video/mp4" />
+        </video>
 
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#030712]/40 via-transparent to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#030712]/35 to-transparent" />
 
-          <div className="absolute bottom-3 right-3 flex gap-1.5 sm:bottom-4 sm:right-4">
+        <div className="absolute bottom-3 right-3 flex gap-1.5 sm:bottom-4 sm:right-4">
             <button
               type="button"
               onClick={handleReplay}
@@ -138,7 +137,6 @@ export default function HomeBusinessCaseTabbedVideo() {
             </button>
           </div>
         </div>
-      </div>
     </div>
   );
 }
