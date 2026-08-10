@@ -39,8 +39,8 @@ const TIERS: Tier[] = [
     ctaLabel: "Book a demo",
   },
   {
-    id: "operator",
-    name: "Operator",
+    id: "professional",
+    name: "Professional",
     monthlyFrom: MARKETING_OPERATOR_MONTHLY_FROM_USD,
     description: "Full platform — AI, reporting and priority support.",
     highlighted: true,
