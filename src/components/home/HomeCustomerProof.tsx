@@ -31,7 +31,7 @@ export default function HomeCustomerProof() {
       />
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
-        <HomeSectionTitle>Built for operators, not slide decks</HomeSectionTitle>
+        <HomeSectionTitle>Built to allow you to focus on running your Business</HomeSectionTitle>
         <p className="mx-auto mt-5 max-w-3xl text-center text-sm leading-relaxed text-white/55 sm:text-[16px]">
           A typical deployment: a 30–80 person company in aviation, services or technology — past
           the startup scramble, now drowning in Pipedrive, Zoho, SharePoint and Teams.
