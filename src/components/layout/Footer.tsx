@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 
 import { CONTACT, SITE_HERO_LINE, SITE_NAME } from "@/lib/site";
 import Unit311CentralWordmark from "./Unit311CentralWordmark";
@@ -78,48 +77,13 @@ function FooterLink({
   );
 }
 
-function FooterAccordionSection({
-  section,
-  open,
-  onToggle,
-}: {
-  section: FooterSection;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  const panelId = `footer-panel-${section.id}`;
-
+function FooterSectionBlock({ section }: { section: FooterSection }) {
   return (
-    <div className="border-b border-black/[0.08] lg:border-0">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={onToggle}
-        className="flex w-full items-center justify-between py-3.5 text-left lg:pointer-events-none lg:cursor-default"
-      >
-        <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#1a2b4a]">
-          {section.title}
-        </span>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          aria-hidden
-          className={`shrink-0 text-[#1a2b4a]/45 transition-transform lg:hidden ${open ? "rotate-180" : ""}`}
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-      <ul
-        id={panelId}
-        className={`overflow-hidden transition-[max-height,opacity] duration-200 lg:!max-h-none lg:!opacity-100 lg:pb-0 ${
-          open ? "max-h-96 opacity-100 pb-2" : "max-h-0 opacity-0 lg:max-h-none lg:opacity-100"
-        }`}
-      >
+    <div className="border-b border-black/[0.08] pb-5 last:border-0 last:pb-0 sm:border-0 sm:pb-0">
+      <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#1a2b4a]">
+        {section.title}
+      </h3>
+      <ul className="mt-2">
         {section.links.map((link) => (
           <li key={`${section.id}-${link.href}`}>
             <FooterLink href={link.href} label={link.label} external={link.external} />
@@ -131,8 +95,6 @@ function FooterAccordionSection({
 }
 
 export default function Footer() {
-  const [openSection, setOpenSection] = useState<string | null>("contact");
-
   return (
     <footer className="bg-white text-[#1a2b4a]">
       <div className="mx-auto max-w-[1280px] px-4 pb-6 pt-6 sm:px-8 sm:pb-[32px] sm:pt-[56px]">
@@ -146,16 +108,9 @@ export default function Footer() {
           <span className="mt-3 block h-[3px] w-[36px] bg-[#2563eb] sm:mt-[12px]" aria-hidden />
         </div>
 
-        <div className="mt-5 lg:mt-[48px] lg:grid lg:grid-cols-3 lg:gap-10">
+        <div className="mt-5 grid gap-5 sm:mt-8 sm:grid-cols-2 sm:gap-8 lg:mt-[48px] lg:grid-cols-3 lg:gap-10">
           {FOOTER_SECTIONS.map((section) => (
-            <FooterAccordionSection
-              key={section.id}
-              section={section}
-              open={openSection === section.id}
-              onToggle={() =>
-                setOpenSection((current) => (current === section.id ? null : section.id))
-              }
-            />
+            <FooterSectionBlock key={section.id} section={section} />
           ))}
         </div>
 

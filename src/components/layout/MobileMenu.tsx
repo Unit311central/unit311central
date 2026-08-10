@@ -56,7 +56,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
       />
       <nav
         aria-label="Mobile navigation"
-        className={`absolute right-0 top-0 flex h-full w-full max-w-[min(100vw,24rem)] flex-col border-l p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] shadow-2xl sm:p-6 ${
+        className={`absolute right-0 top-0 flex h-full w-full max-w-[min(100vw,24rem)] flex-col overflow-hidden border-l p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] shadow-2xl sm:p-6 ${
           isDarkMenu
             ? "border-white/10 bg-[#020617] text-white"
             : "border-border bg-surface text-foreground"
@@ -79,7 +79,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
             </svg>
           </button>
         </div>
-        <ul className="flex flex-col gap-1">
+        <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
           {NAV.map((link) => (
             <li key={link.href}>
               <Link
