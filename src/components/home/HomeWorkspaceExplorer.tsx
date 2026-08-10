@@ -398,7 +398,7 @@ function IntegrationLogoGrid({
         {categories.map((category) => (
           <article
             key={category.name}
-            className="flex h-full flex-col rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] px-3.5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:px-4 sm:py-4"
+            className="flex h-full flex-col rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.09] to-white/[0.04] px-3.5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:px-4 sm:py-4"
           >
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45 sm:text-[11px]">
               {category.name}
@@ -407,7 +407,7 @@ function IntegrationLogoGrid({
               {category.tools.map((tool) => (
                 <li
                   key={tool.name}
-                  className="group/tool flex min-w-[4.75rem] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-2 py-2 transition-all duration-200 hover:border-[rgba(var(--ws-accent-rgb),0.45)] hover:bg-white/[0.06] hover:shadow-[0_0_24px_rgba(var(--ws-accent-rgb),0.18)]"
+                  className="group/tool flex min-w-[4.75rem] flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-white/[0.06] px-2 py-2 transition-all duration-200 hover:border-[rgba(var(--ws-accent-rgb),0.45)] hover:bg-white/[0.1] hover:shadow-[0_0_24px_rgba(var(--ws-accent-rgb),0.18)]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -489,7 +489,7 @@ function WorkspaceOverviewPanel({ workspace }: { workspace: Workspace }) {
               {visibleCapabilities.map((capability) => (
                 <li
                   key={capability.label}
-                  className="min-h-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3"
+                  className="min-h-0 overflow-hidden rounded-xl border border-white/12 bg-white/[0.07] px-3.5 py-3"
                 >
                   <p className="text-[13px] font-semibold leading-snug text-white/92 sm:text-[14px]">
                     {capability.label}
@@ -530,7 +530,7 @@ function ExpandedPanel({
       data-workspace={workspace.id}
     >
       <div className="workspace-panel-glow" aria-hidden />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.06] via-transparent to-transparent" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/[0.1] via-transparent to-transparent" aria-hidden />
       <div key={workspace.id} className="workspace-panel-fade relative z-[1]">
         <WorkspaceOverviewPanel workspace={workspace} />
       </div>
