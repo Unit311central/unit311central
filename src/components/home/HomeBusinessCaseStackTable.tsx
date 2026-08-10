@@ -43,8 +43,8 @@ function SummaryRow({
     <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
       {labelColSpan === 2 ? (
         <>
-          <td colSpan={2} className={`px-2 py-1.5 lg:px-2.5 lg:py-1.5 ${textClass}`}>{label}</td>
-          <td className={`px-2 py-1.5 text-right tabular-nums lg:px-2.5 lg:py-1.5 ${textClass}`}>
+          <td colSpan={2} className={`px-2 py-1.5 lg:px-3 lg:py-1.5 ${textClass}`}>{label}</td>
+          <td className={`w-[1%] whitespace-nowrap px-2 py-1.5 pl-4 text-right tabular-nums lg:px-3 lg:py-1.5 lg:pl-5 ${textClass}`}>
             {value}
           </td>
         </>
@@ -80,21 +80,16 @@ export default function HomeBusinessCaseStackTable() {
       </div>
 
       <div className="hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] md:block">
-        <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
-          <colgroup>
-            <col className="w-[32%]" />
-            <col className="w-[38%]" />
-            <col className="w-[30%]" />
-          </colgroup>
+        <table className="mx-auto w-max max-w-full table-auto border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <thead>
             <tr className="border-b border-white/[0.08] bg-sky-400/[0.05]">
-              <th className="px-2 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-2.5 lg:py-2">
+              <th className="px-2 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-3 lg:py-2">
                 Function
               </th>
-              <th className="px-2 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-2.5 lg:py-2">
+              <th className="px-2 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-3 lg:py-2">
                 Example Product
               </th>
-              <th className="px-2 py-2 text-right font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-2.5 lg:py-2">
+              <th className="w-[1%] whitespace-nowrap px-2 py-2 pl-4 text-right font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-3 lg:py-2 lg:pl-5">
                 Annual Cost (10 Users)
               </th>
             </tr>
@@ -109,13 +104,13 @@ export default function HomeBusinessCaseStackTable() {
                     : "border-b border-sky-300/10 bg-sky-400/[0.04]"
                 }
               >
-                <td className="break-words px-2 py-1.5 align-top font-medium text-white/75 lg:px-2.5 lg:py-1.5">
+                <td className="break-words px-2 py-1.5 align-top font-medium text-white/75 lg:px-3 lg:py-1.5">
                   {row.function}
                 </td>
-                <td className="break-words px-2 py-1.5 align-top text-white/50 lg:px-2.5 lg:py-1.5">
+                <td className="break-words px-2 py-1.5 align-top text-white/50 lg:px-3 lg:py-1.5">
                   {row.product}
                 </td>
-                <td className="px-2 py-1.5 text-right font-medium tabular-nums text-white/70 lg:px-2.5 lg:py-1.5">
+                <td className="w-[1%] whitespace-nowrap px-2 py-1.5 pl-4 text-right font-medium tabular-nums text-white/70 lg:px-3 lg:py-1.5 lg:pl-5">
                   {row.cost}
                 </td>
               </tr>
@@ -123,11 +118,11 @@ export default function HomeBusinessCaseStackTable() {
             <SummaryRow label="Software research & selction" value="$3,900" />
             <SummaryRow label="Implementation & Integration" value="$7,000" />
             <tr className="border-t border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] via-[#1d4ed8]/[0.12] to-[#2563eb]/[0.06]">
-              <td className="px-2 py-2.5 lg:px-2.5 lg:py-3" />
-              <td className="px-2 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe] lg:px-2.5 lg:py-3 lg:text-[13px]">
+              <td className="px-2 py-2.5 lg:px-3 lg:py-3" />
+              <td className="px-2 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe] lg:px-3 lg:py-3 lg:text-[13px]">
                 TOTAL
               </td>
-              <td className="px-2 py-2.5 text-right text-xs font-bold tabular-nums text-white lg:px-2.5 lg:py-3 lg:text-sm">
+              <td className="w-[1%] whitespace-nowrap px-2 py-2.5 pl-4 text-right text-xs font-bold tabular-nums text-white lg:px-3 lg:py-3 lg:pl-5 lg:text-sm">
                 $45,788
               </td>
             </tr>
