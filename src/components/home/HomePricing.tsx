@@ -32,7 +32,7 @@ const TIERS: Tier[] = [
     features: [
       "Business Central, Clients & Projects, HR & People, Operations",
       "Professional onboarding and configuration",
-      "Up to 2 business-app integrations",
+      "5 business app integrations (review required first)",
       "Standard support",
     ],
     ctaHref: "/book",
