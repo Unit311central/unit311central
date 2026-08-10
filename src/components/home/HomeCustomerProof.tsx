@@ -32,13 +32,14 @@ export default function HomeCustomerProof() {
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
         <HomeSectionTitle>Built to allow you to focus on running your Business</HomeSectionTitle>
-        <p className="mx-auto mt-5 max-w-3xl text-center text-sm leading-relaxed text-white/55 sm:text-[16px]">
-          A typical deployment: a 30–80 person company in aviation, services or technology — past
-          the startup scramble, now drowning in Pipedrive, Zoho, SharePoint and Teams.
-        </p>
 
-        <div className="mt-10 grid gap-6 lg:mt-12 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:gap-10">
+        <div className="mt-10 grid gap-8 lg:mt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-start lg:gap-10">
           <div className="space-y-5">
+            <p className="max-w-xl text-sm leading-relaxed text-white/55 sm:text-[16px]">
+              A typical deployment: a 30–80 person company in aviation, services or technology — past
+              the startup scramble, now drowning in Pipedrive, Zoho, SharePoint and Teams.
+            </p>
+
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
                 Before
@@ -68,15 +69,13 @@ export default function HomeCustomerProof() {
             </Link>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.12] to-white/[0.04] p-2 shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:rounded-[28px] sm:p-3">
+          <div className="overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.12] to-white/[0.04] p-2 shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:rounded-[28px] sm:p-3 lg:sticky lg:top-28">
             <WorkspaceDemoLoopVideo
               className="w-full"
               src="/videos/overview.mp4"
               poster={null}
+              frameClassName="aspect-video"
             />
-            <p className="mt-3 px-2 text-center text-[11px] text-white/40 sm:text-xs">
-              Real platform navigation — not a marketing mockup.
-            </p>
           </div>
         </div>
       </div>
