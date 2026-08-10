@@ -4,6 +4,9 @@ import HomeSectionTitle from "./HomeSectionTitle";
 import HomeBusinessCaseStackTable from "./HomeBusinessCaseStackTable";
 import HomeBusinessCaseTabbedVideo from "./HomeBusinessCaseTabbedVideo";
 
+const PANEL_SHELL =
+  "overflow-hidden rounded-[28px] border border-white/[0.1] bg-gradient-to-br from-[#0a0f18]/95 via-[#070b14]/90 to-[#060a12]/95 shadow-[0_32px_80px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]";
+
 export default function HomeBusinessCase() {
   return (
     <section
@@ -31,15 +34,15 @@ export default function HomeBusinessCase() {
           </p>
         </div>
 
-        <div className="business-case-fade-in mt-12 lg:mt-16">
-          <div className="overflow-hidden rounded-[28px] border border-white/[0.1] bg-gradient-to-br from-[#0a0f18]/95 via-[#070b14]/90 to-[#060a12]/95 shadow-[0_32px_80px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]">
-            <div className="flex flex-col gap-0 xl:flex-row xl:items-start">
-              <div className="min-w-0 border-b border-sky-400/15 bg-sky-400/[0.08] p-4 sm:p-5 xl:w-[34%] xl:flex-none xl:border-b-0 xl:border-r xl:border-sky-400/15 xl:p-6">
-                <HomeBusinessCaseStackTable />
-              </div>
-              <div className="w-full shrink-0 p-3 sm:p-4 lg:p-4 xl:w-[66%] xl:self-start xl:p-5">
-                <HomeBusinessCaseTabbedVideo />
-              </div>
+        <div className="business-case-fade-in mt-12 flex flex-col gap-4 lg:mt-16 xl:flex-row xl:items-stretch xl:gap-5">
+          <div className={`${PANEL_SHELL} xl:w-[34%] xl:flex-none`}>
+            <div className="h-full bg-sky-400/[0.08] p-4 sm:p-5 xl:p-6">
+              <HomeBusinessCaseStackTable />
+            </div>
+          </div>
+          <div className={`${PANEL_SHELL} flex min-h-0 flex-col xl:min-w-0 xl:flex-1`}>
+            <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4 xl:p-5">
+              <HomeBusinessCaseTabbedVideo />
             </div>
           </div>
         </div>

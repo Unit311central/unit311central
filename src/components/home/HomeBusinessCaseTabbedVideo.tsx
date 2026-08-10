@@ -70,9 +70,9 @@ export default function HomeBusinessCaseTabbedVideo() {
   }
 
   return (
-    <div className="w-full">
+    <div className="flex h-full min-h-0 flex-col">
       <div
-        className="grid grid-cols-2 gap-1.5 sm:gap-2"
+        className="grid shrink-0 grid-cols-2 gap-1.5 sm:gap-2"
         role="tablist"
         aria-label="Business case video categories"
       >
@@ -100,12 +100,12 @@ export default function HomeBusinessCaseTabbedVideo() {
 
       <div
         ref={playerRef}
-        className="relative mt-3 w-full overflow-hidden rounded-2xl border border-sky-500/20 bg-[#070b14]/85 shadow-[0_16px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mt-4"
+        className="relative mt-3 flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-2xl border border-sky-500/20 bg-[#070b14]/85 shadow-[0_16px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mt-4 lg:min-h-[360px]"
       >
-        <div className="relative h-[220px] w-full bg-[#030712] sm:h-[250px] lg:h-[280px]">
+        <div className="relative min-h-[280px] flex-1 bg-[#030712] lg:min-h-[360px]">
           <video
             ref={videoRef}
-            className="absolute inset-0 h-full w-full object-cover object-top"
+            className="absolute inset-0 h-full w-full object-contain object-center"
             autoPlay
             muted
             loop
@@ -117,7 +117,7 @@ export default function HomeBusinessCaseTabbedVideo() {
             <source src={TAB_VIDEOS[activeTab]} type="video/mp4" />
           </video>
 
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#030712]/50 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#030712]/40 via-transparent to-transparent" />
 
           <div className="absolute bottom-3 right-3 flex gap-1.5 sm:bottom-4 sm:right-4">
             <button
