@@ -27,12 +27,12 @@ const STACK_ROWS = [
 
 const MOBILE_PREVIEW_COUNT = 4;
 
-const TABLE_WRAP = "mx-auto w-full max-w-2xl";
+const TABLE_WRAP = "mx-auto w-full max-w-xl";
 
 const COST_COL =
-  "px-2 py-1.5 text-center font-medium tabular-nums text-white/70 lg:py-1.5";
+  "px-1.5 py-1.5 text-center font-medium tabular-nums text-white/70 sm:px-2 lg:py-1.5";
 const COST_HEADER =
-  "px-2 py-2 text-center font-semibold uppercase leading-tight tracking-[0.08em] text-white/55 lg:py-2.5";
+  "px-1.5 py-2 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-white/55 whitespace-nowrap sm:px-2 sm:text-[11px] lg:py-2.5 lg:text-xs lg:tracking-[0.08em]";
 
 export default function HomeBusinessCaseStackTable() {
   const [mobileExpanded, setMobileExpanded] = useState(false);
@@ -53,7 +53,7 @@ export default function HomeBusinessCaseStackTable() {
       </div>
 
       <div
-        className={`${TABLE_WRAP} hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-4 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-5 md:block`}
+        className={`${TABLE_WRAP} hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-3.5 md:block`}
       >
         <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <colgroup>
