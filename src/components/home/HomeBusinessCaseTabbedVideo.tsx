@@ -102,7 +102,7 @@ export default function HomeBusinessCaseTabbedVideo() {
         ref={playerRef}
         className="relative mt-3 w-full overflow-hidden rounded-2xl border border-sky-500/20 bg-[#070b14]/85 shadow-[0_16px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mt-4"
       >
-        <div className="relative aspect-[16/10] w-full bg-[#030712] sm:aspect-[5/3]">
+        <div className="relative h-[220px] w-full bg-[#030712] sm:h-[250px] lg:h-[280px]">
           <video
             ref={videoRef}
             className="absolute inset-0 h-full w-full object-cover object-top"

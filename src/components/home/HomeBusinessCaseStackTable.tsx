@@ -33,7 +33,7 @@ export default function HomeBusinessCaseStackTable() {
   const hiddenMobileCount = STACK_ROWS.length - MOBILE_PREVIEW_COUNT;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div className="mb-5 sm:mb-6">
         <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[13px] sm:tracking-[0.12em] lg:leading-snug">
           The Hidden Cost of Multiple Business Applications
