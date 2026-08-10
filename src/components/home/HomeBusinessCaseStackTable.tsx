@@ -27,37 +27,22 @@ const STACK_ROWS = [
 
 const MOBILE_PREVIEW_COUNT = 4;
 
-function SummaryRow({
-  label,
-  value,
-  labelColSpan = 2,
-  bold = false,
+function ProductCostCells({
+  product,
+  cost,
+  productClass = "text-white/50",
+  costClass = "font-medium text-white/70",
 }: {
-  label: string;
-  value: string;
-  labelColSpan?: number;
-  bold?: boolean;
+  product?: string;
+  cost: string;
+  productClass?: string;
+  costClass?: string;
 }) {
-  const textClass = bold ? "font-bold text-white" : "font-medium text-white/75";
   return (
-    <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
-      {labelColSpan === 2 ? (
-        <>
-          <td colSpan={2} className={`px-2 py-1.5 lg:px-3 lg:py-1.5 ${textClass}`}>{label}</td>
-          <td className={`w-[1%] whitespace-nowrap px-2 py-1.5 pl-4 text-right tabular-nums lg:px-3 lg:py-1.5 lg:pl-5 ${textClass}`}>
-            {value}
-          </td>
-        </>
-      ) : (
-        <>
-          <td className={`px-2 py-1.5 lg:px-2.5 lg:py-1.5 ${textClass}`}>{label}</td>
-          <td className={`px-2 py-1.5 text-right font-bold tabular-nums lg:px-2.5 lg:py-1.5 ${textClass}`}>
-            {value}
-          </td>
-          <td className="px-2 py-1.5 lg:px-2.5 lg:py-1.5" />
-        </>
-      )}
-    </tr>
+    <div className="flex items-start justify-between gap-6 sm:gap-8">
+      <span className={`min-w-0 break-words ${product ? productClass : ""}`}>{product ?? ""}</span>
+      <span className={`shrink-0 tabular-nums ${costClass}`}>{cost}</span>
+    </div>
   );
 }
 
@@ -80,17 +65,21 @@ export default function HomeBusinessCaseStackTable() {
       </div>
 
       <div className="hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] md:block">
-        <table className="mx-auto w-max max-w-full table-auto border-collapse text-left text-xs leading-snug lg:text-[13px]">
+        <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
+          <colgroup>
+            <col className="w-[34%] sm:w-[36%] lg:w-[38%]" />
+            <col />
+          </colgroup>
           <thead>
             <tr className="border-b border-white/[0.08] bg-sky-400/[0.05]">
-              <th className="px-2 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-3 lg:py-2">
+              <th className="px-3 py-2.5 font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-4 lg:py-2.5">
                 Function
               </th>
-              <th className="px-2 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-3 lg:py-2">
-                Example Product
-              </th>
-              <th className="w-[1%] whitespace-nowrap px-2 py-2 pl-4 text-right font-semibold uppercase tracking-[0.08em] text-white/55 lg:px-3 lg:py-2 lg:pl-5">
-                Annual Cost (10 Users)
+              <th className="px-3 py-2.5 lg:px-4 lg:py-2.5">
+                <div className="flex items-start justify-between gap-6 font-semibold uppercase tracking-[0.08em] text-white/55 sm:gap-8">
+                  <span>Example Product</span>
+                  <span className="shrink-0 text-right">Annual Cost (10 Users)</span>
+                </div>
               </th>
             </tr>
           </thead>
@@ -104,26 +93,43 @@ export default function HomeBusinessCaseStackTable() {
                     : "border-b border-sky-300/10 bg-sky-400/[0.04]"
                 }
               >
-                <td className="break-words px-2 py-1.5 align-top font-medium text-white/75 lg:px-3 lg:py-1.5">
+                <td className="break-words px-3 py-1.5 align-top font-medium text-white/75 lg:px-4 lg:py-1.5">
                   {row.function}
                 </td>
-                <td className="break-words px-2 py-1.5 align-top text-white/50 lg:px-3 lg:py-1.5">
-                  {row.product}
-                </td>
-                <td className="w-[1%] whitespace-nowrap px-2 py-1.5 pl-4 text-right font-medium tabular-nums text-white/70 lg:px-3 lg:py-1.5 lg:pl-5">
-                  {row.cost}
+                <td className="px-3 py-1.5 align-top lg:px-4 lg:py-1.5">
+                  <ProductCostCells product={row.product} cost={row.cost} />
                 </td>
               </tr>
             ))}
-            <SummaryRow label="Software research & selction" value="$3,900" />
-            <SummaryRow label="Implementation & Integration" value="$7,000" />
-            <tr className="border-t border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] via-[#1d4ed8]/[0.12] to-[#2563eb]/[0.06]">
-              <td className="px-2 py-2.5 lg:px-3 lg:py-3" />
-              <td className="px-2 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe] lg:px-3 lg:py-3 lg:text-[13px]">
-                TOTAL
+            <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
+              <td className="px-3 py-1.5 font-medium text-white/75 lg:px-4 lg:py-1.5">
+                Software research & selction
               </td>
-              <td className="w-[1%] whitespace-nowrap px-2 py-2.5 pl-4 text-right text-xs font-bold tabular-nums text-white lg:px-3 lg:py-3 lg:pl-5 lg:text-sm">
-                $45,788
+              <td className="px-3 py-1.5 lg:px-4 lg:py-1.5">
+                <div className="flex justify-end">
+                  <span className="font-medium tabular-nums text-white/75">$3,900</span>
+                </div>
+              </td>
+            </tr>
+            <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
+              <td className="px-3 py-1.5 font-medium text-white/75 lg:px-4 lg:py-1.5">
+                Implementation & Integration
+              </td>
+              <td className="px-3 py-1.5 lg:px-4 lg:py-1.5">
+                <div className="flex justify-end">
+                  <span className="font-medium tabular-nums text-white/75">$7,000</span>
+                </div>
+              </td>
+            </tr>
+            <tr className="border-t border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] via-[#1d4ed8]/[0.12] to-[#2563eb]/[0.06]">
+              <td className="px-3 py-2.5 lg:px-4 lg:py-3" />
+              <td className="px-3 py-2.5 lg:px-4 lg:py-3">
+                <div className="flex items-center justify-between gap-6 sm:gap-8">
+                  <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe] lg:text-[13px]">
+                    TOTAL
+                  </span>
+                  <span className="text-xs font-bold tabular-nums text-white lg:text-sm">$45,788</span>
+                </div>
               </td>
             </tr>
           </tbody>
