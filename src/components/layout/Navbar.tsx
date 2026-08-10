@@ -209,7 +209,7 @@ export default function Navbar() {
                 aria-label="Open menu"
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen(true)}
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border lg:hidden ${
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border lg:hidden ${
                   isDarkNav ? "border-white/25 text-white" : "border-border text-muted"
                 }`}
               >

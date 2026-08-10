@@ -30,6 +30,7 @@ export default function WorkspaceDemoLoopVideo({
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [usePosterFallback, setUsePosterFallback] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -41,7 +42,7 @@ export default function WorkspaceDemoLoopVideo({
   }, []);
 
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    if (prefersReducedMotion || usePosterFallback) return;
 
     const video = videoRef.current;
     const container = containerRef.current;
@@ -51,7 +52,9 @@ export default function WorkspaceDemoLoopVideo({
       video.muted = true;
       video.volume = 0;
       video.playbackRate = PLAYBACK_RATE;
-      void video.play().catch(() => {});
+      void video.play().catch(() => {
+        setUsePosterFallback(true);
+      });
     };
 
     const handleLoadedMetadata = () => {
@@ -69,6 +72,7 @@ export default function WorkspaceDemoLoopVideo({
 
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("error", () => setUsePosterFallback(true));
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -89,20 +93,22 @@ export default function WorkspaceDemoLoopVideo({
       video.removeEventListener("timeupdate", handleTimeUpdate);
       observer.disconnect();
     };
-  }, [loop, prefersReducedMotion, src]);
+  }, [loop, prefersReducedMotion, src, usePosterFallback]);
 
   return (
     <div
       ref={containerRef}
       className={`relative w-full overflow-hidden rounded-xl bg-[#0b1220] sm:rounded-2xl ${frameClassName} ${className}`}
     >
-      {prefersReducedMotion && poster != null ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={poster}
-          alt="Unit311 Central workspace preview"
-          className="h-full w-full object-cover object-top"
-        />
+      {prefersReducedMotion || usePosterFallback ? (
+        poster != null ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={poster}
+            alt="Unit311 Central workspace preview"
+            className="h-full w-full object-cover object-top"
+          />
+        ) : null
       ) : (
         <video
           key={src}

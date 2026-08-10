@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import ClarityProvider from "@/components/analytics/ClarityProvider";
 import MarketingAnalyticsBeacon from "@/components/analytics/MarketingAnalyticsBeacon";
 import FooterGate from "@/components/layout/FooterGate";
+import MobileStickyBookCta from "@/components/layout/MobileStickyBookCta";
 import Navbar from "@/components/layout/Navbar";
 import JsonLd from "@/components/JsonLd";
 import {
@@ -67,6 +68,7 @@ export default async function RootLayout({
         {hideMarketingChrome ? null : <Navbar />}
         <main className="flex-1">{children}</main>
         {hideMarketingChrome ? null : <FooterGate />}
+        {hideMarketingChrome ? null : <MobileStickyBookCta />}
       </body>
     </html>
   );

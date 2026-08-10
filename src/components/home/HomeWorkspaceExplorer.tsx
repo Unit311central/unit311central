@@ -561,7 +561,7 @@ function WorkspaceTile({
       id={`${panelId}-${workspace.id}`}
       onClick={onToggle}
       className={[
-        "workspace-tile group relative flex min-h-[7.5rem] w-full flex-col overflow-hidden rounded-[16px] text-left sm:min-h-[8rem] sm:rounded-[18px] xl:min-h-[8.5rem] xl:rounded-[14px]",
+        "workspace-tile group relative flex min-h-[8.5rem] w-full flex-col overflow-hidden rounded-[16px] text-left sm:min-h-[8rem] sm:rounded-[18px] xl:min-h-[8.5rem] xl:rounded-[14px]",
         "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050816]",
         isOpen ? "is-open is-detached" : "",
       ].join(" ")}
@@ -626,7 +626,7 @@ export default function HomeWorkspaceExplorer() {
       <div
         role="tablist"
         aria-label="Unit311 Central workspaces"
-        className="workspace-explorer-open relative grid grid-cols-2 gap-2 overflow-x-hidden sm:grid-cols-3 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-10 lg:gap-2"
+        className="workspace-explorer-open relative grid grid-cols-2 gap-2 overflow-x-hidden sm:grid-cols-3 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-5 lg:gap-2 xl:grid-cols-10"
       >
         {WORKSPACES.map((workspace) => (
           <WorkspaceTile

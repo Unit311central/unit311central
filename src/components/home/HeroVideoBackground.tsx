@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const HERO_VIDEO = "/images/video.mp4";
+const HERO_POSTER = "/images/homepage-mockup-reference.png";
 const PLAYBACK_RATE = 0.8;
 const LOOP_LEAD_IN_SECONDS = 0.05;
 const LOOP_TRIM_SECONDS = 0.12;
@@ -11,6 +12,7 @@ export default function HeroVideoBackground() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [usePosterFallback, setUsePosterFallback] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -22,7 +24,7 @@ export default function HeroVideoBackground() {
   }, []);
 
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    if (prefersReducedMotion || usePosterFallback) return;
 
     const video = videoRef.current;
     const container = containerRef.current;
@@ -32,7 +34,9 @@ export default function HeroVideoBackground() {
       video.muted = true;
       video.volume = 0;
       video.playbackRate = PLAYBACK_RATE;
-      void video.play().catch(() => {});
+      void video.play().catch(() => {
+        setUsePosterFallback(true);
+      });
     };
 
     const handleLoadedMetadata = () => {
@@ -47,8 +51,13 @@ export default function HeroVideoBackground() {
       }
     };
 
+    const handleError = () => {
+      setUsePosterFallback(true);
+    };
+
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("error", handleError);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -67,9 +76,10 @@ export default function HeroVideoBackground() {
     return () => {
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("error", handleError);
       observer.disconnect();
     };
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, usePosterFallback]);
 
   return (
     <div
@@ -77,13 +87,12 @@ export default function HeroVideoBackground() {
       className="pointer-events-none absolute inset-0 z-0 min-h-full w-full overflow-hidden"
       aria-hidden
     >
-      {prefersReducedMotion ? (
-        <div
-          className="absolute inset-0 bg-[#020617]"
-          style={{
-            background:
-              "radial-gradient(ellipse 80% 60% at 50% 20%, rgba(37, 99, 235, 0.22), transparent 70%), #020617",
-          }}
+      {prefersReducedMotion || usePosterFallback ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={HERO_POSTER}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-[50%_32%] sm:object-[50%_38%] md:object-[50%_42%]"
         />
       ) : (
         <video
@@ -96,6 +105,7 @@ export default function HeroVideoBackground() {
           disablePictureInPicture
           controls={false}
           preload="auto"
+          poster={HERO_POSTER}
           aria-hidden
           tabIndex={-1}
         >

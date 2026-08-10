@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 const STACK_ROWS = [
   { function: "CRM", product: "Pipedrive Professional", cost: "US$5,345" },
   { function: "HR", product: "PeopleHR Pro", cost: "US$1,148" },
@@ -21,7 +25,13 @@ const STACK_ROWS = [
   },
 ] as const;
 
+const MOBILE_PREVIEW_COUNT = 4;
+
 export default function HomeBusinessCaseStackTable() {
+  const [mobileExpanded, setMobileExpanded] = useState(false);
+  const mobileRows = mobileExpanded ? STACK_ROWS : STACK_ROWS.slice(0, MOBILE_PREVIEW_COUNT);
+  const hiddenMobileCount = STACK_ROWS.length - MOBILE_PREVIEW_COUNT;
+
   return (
     <div className="flex h-full flex-col">
       <div className="mb-5 sm:mb-6">
@@ -90,7 +100,7 @@ export default function HomeBusinessCaseStackTable() {
       </div>
 
       <div className="space-y-2 md:hidden">
-        {STACK_ROWS.map((row) => (
+        {mobileRows.map((row) => (
           <article
             key={row.function}
             className="rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5"
@@ -102,6 +112,27 @@ export default function HomeBusinessCaseStackTable() {
             <p className="mt-1 text-xs leading-relaxed text-white/45">{row.product}</p>
           </article>
         ))}
+        {hiddenMobileCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setMobileExpanded((current) => !current)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-300/25 bg-sky-400/[0.08] px-3 py-3 text-xs font-semibold text-sky-100 transition-colors hover:bg-sky-400/[0.14]"
+          >
+            {mobileExpanded ? "Show fewer line items" : `Show ${hiddenMobileCount} more line items`}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden
+              className={mobileExpanded ? "rotate-180" : ""}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        ) : null}
         <article className="rounded-xl border border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] to-[#2563eb]/[0.06] px-3 py-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#bfdbfe]">

@@ -30,6 +30,7 @@
     "diagram:github-architecture": "node --experimental-strip-types scripts/generate-github-architecture-diagram.mjs",
     "guard:canonical-repo": "node scripts/assert-canonical-unit311-repo.mjs",
     "prove:overview-client": "node scripts/prove-overview-client-frozen.mjs",
+    "preview:android": "next dev",
     "prove:talanton-ea": "node --import tsx src/lib/talanton/__tests__/executive-intelligence.check.ts",
     "deploy:prod": "node scripts/assert-canonical-unit311-repo.mjs && node -e \"console.error('BLOCKED: Use Git deploys from Unit311central/unit311central. See docs/PRODUCTION_DEPLOYMENT.md'); process.exit(1)\"",
     "demo:refresh": "node scripts/demo-enterprise/run.mjs",

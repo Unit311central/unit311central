@@ -131,7 +131,7 @@ function FooterAccordionSection({
 }
 
 export default function Footer() {
-  const [openSection, setOpenSection] = useState<string | null>(null);
+  const [openSection, setOpenSection] = useState<string | null>("contact");
 
   return (
     <footer className="bg-white text-[#1a2b4a]">

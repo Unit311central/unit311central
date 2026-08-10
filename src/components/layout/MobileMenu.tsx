@@ -104,6 +104,19 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
             </li>
           ))}
         </ul>
+        <div className="mt-auto border-t border-white/10 pt-4">
+          <Link
+            href="/book"
+            onClick={onClose}
+            className={`flex h-12 w-full items-center justify-center rounded-xl text-sm font-semibold transition-colors ${
+              isDarkMenu
+                ? "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+                : "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+            }`}
+          >
+            Book a demo
+          </Link>
+        </div>
       </nav>
     </div>
   );

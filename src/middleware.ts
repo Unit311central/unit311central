@@ -828,7 +828,11 @@ export async function middleware(request: NextRequest) {
   if (isPublicSiteHost(host)) {
     const headers = withHostHeaders(request, { public: true });
     // Partners signup/portal is a standalone surface — no marketing nav/footer.
-    if (pathname === "/partners" || pathname.startsWith("/partners/")) {
+    if (
+      pathname === "/partners" ||
+      pathname.startsWith("/partners/") ||
+      pathname.startsWith("/dev/android-preview")
+    ) {
       headers.set("x-unit311-bare-chrome", "1");
     }
 
@@ -852,7 +856,11 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isLocalDevHost(host)) {
-    if (pathname === "/partners" || pathname.startsWith("/partners/")) {
+    if (
+      pathname === "/partners" ||
+      pathname.startsWith("/partners/") ||
+      pathname.startsWith("/dev/android-preview")
+    ) {
       const headers = new Headers(request.headers);
       headers.set("x-unit311-bare-chrome", "1");
       return NextResponse.next({ request: { headers } });
