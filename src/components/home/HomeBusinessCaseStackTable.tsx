@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import HomeBusinessCaseLeftPanel from "./HomeBusinessCaseLeftPanel";
+import { HomeBusinessCaseToolStackBar } from "./HomeBusinessCaseToolStackBar";
 
 const STACK_ROWS = [
   { function: "Customer Management", product: "Pipedrive Premium", cost: "$8,160" },
@@ -42,8 +43,9 @@ export default function HomeBusinessCaseStackTable() {
     <div className="grid gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-stretch lg:gap-10">
       <HomeBusinessCaseLeftPanel />
 
-      <div className="hidden h-full overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-3.5 md:block">
-        <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
+      <div className="hidden h-full flex-col md:flex">
+        <div className="overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-3.5">
+          <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <colgroup>
             <col className="w-[32%]" />
             <col className="w-[38%]" />
@@ -89,17 +91,10 @@ export default function HomeBusinessCaseStackTable() {
               <td className="pr-6 pb-4 sm:pr-8 lg:pb-5" />
               <td className={`${COST_COL} pb-4 text-white/75 lg:pb-5`}>$7,000</td>
             </tr>
-            <tr className="border-t border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] via-[#1d4ed8]/[0.12] to-[#2563eb]/[0.06]">
-              <td className="pt-2 lg:pt-2.5" />
-              <td className="py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe] lg:py-3 lg:text-[13px]">
-                TOTAL
-              </td>
-              <td className="py-2.5 text-center text-xs font-bold tabular-nums text-white lg:py-3 lg:text-sm">
-                $45,788
-              </td>
-            </tr>
           </tbody>
         </table>
+        </div>
+        <HomeBusinessCaseToolStackBar className="mt-4 px-1 sm:px-2" />
       </div>
 
       <div className="space-y-2 md:hidden">
@@ -148,12 +143,7 @@ export default function HomeBusinessCaseStackTable() {
             <p className="shrink-0 text-xs font-medium tabular-nums text-white/70">$7,000</p>
           </div>
         </article>
-        <article className="rounded-xl border border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] to-[#2563eb]/[0.06] px-3 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe]">TOTAL</p>
-            <p className="shrink-0 text-sm font-bold tabular-nums text-white">$45,788</p>
-          </div>
-        </article>
+        <HomeBusinessCaseToolStackBar className="px-1 pt-2" />
       </div>
     </div>
   );
