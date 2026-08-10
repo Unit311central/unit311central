@@ -31,6 +31,7 @@ export default function WorkspaceDemoLoopVideo({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [usePosterFallback, setUsePosterFallback] = useState(false);
+  const fallbackPoster = poster ?? WORKSPACE_DEMO_POSTER;
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -101,14 +102,12 @@ export default function WorkspaceDemoLoopVideo({
       className={`relative w-full overflow-hidden rounded-xl bg-[#0b1220] sm:rounded-2xl ${frameClassName} ${className}`}
     >
       {prefersReducedMotion || usePosterFallback ? (
-        poster != null ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={poster}
-            alt="Unit311 Central workspace preview"
-            className="h-full w-full object-cover object-top"
-          />
-        ) : null
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={fallbackPoster}
+          alt="Unit311 Central workspace preview"
+          className="h-full w-full object-cover object-top"
+        />
       ) : (
         <video
           key={src}

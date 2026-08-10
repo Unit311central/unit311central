@@ -71,7 +71,7 @@ function OverviewVideoModal({ open, onClose }: { open: boolean; onClose: () => v
           <WorkspaceDemoLoopVideo
             className="w-full"
             src="/videos/overview.mp4"
-            poster={null}
+            frameClassName="aspect-video"
             preload="auto"
             controls
             loop={false}
