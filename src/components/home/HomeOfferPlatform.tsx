@@ -44,7 +44,7 @@ export default function HomeOfferPlatform() {
 
         <div className="mx-auto mt-10 max-w-[900px] text-center sm:mt-12">
           <h2 className="text-balance text-[1.35rem] font-semibold leading-snug tracking-[-0.025em] text-white sm:text-[1.55rem] md:text-[1.75rem] md:leading-[1.25]">
-            Built by operators who&apos;ve shipped at scale.
+            Built based on experience of building and growing SMEs.
           </h2>
           <p className="mx-auto mt-4 max-w-[860px] text-balance text-sm leading-relaxed text-white/58 sm:mt-5 sm:text-[15px] md:text-[17px] md:leading-relaxed">
             Senior technology executives and architects — 25+ years across enterprise, venture-backed
