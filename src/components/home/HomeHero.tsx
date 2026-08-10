@@ -46,8 +46,7 @@ export default function HomeHero() {
           </p>
           <p className="mt-4 max-w-[760px] text-[15px] font-medium leading-[1.65] text-white/88 sm:text-[17px] sm:leading-[1.7]">
             Consolidate where it makes sense, connect what stays, and give leadership and employees
-            one place to run the business — with live insight across operations, finance, and
-            projects.
+            one place to run the business — with live insight across your entire business.
           </p>
 
           <HomeHeroActions />
