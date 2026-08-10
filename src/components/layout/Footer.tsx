@@ -102,7 +102,7 @@ export default function Footer() {
           <Link href="/" aria-label={SITE_NAME} className="inline-flex shrink-0 items-center">
             <Unit311CentralWordmark variant="footer" />
           </Link>
-          <p className="mt-3 max-w-[320px] text-[12px] font-medium leading-relaxed text-[#1a2b4a]/65 sm:mt-[14px] sm:text-[13px]">
+          <p className="mt-3 text-[12px] font-medium leading-relaxed text-[#1a2b4a]/65 sm:mt-[14px] sm:text-[13px] sm:whitespace-nowrap">
             {SITE_HERO_LINE}
           </p>
           <span className="mt-3 block h-[3px] w-[36px] bg-[#2563eb] sm:mt-[12px]" aria-hidden />
