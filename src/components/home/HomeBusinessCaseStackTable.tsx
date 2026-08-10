@@ -27,9 +27,11 @@ const STACK_ROWS = [
 
 const MOBILE_PREVIEW_COUNT = 4;
 
-const COST_CELL = "px-2 py-1.5 text-center font-medium tabular-nums text-white/70 lg:py-1.5";
+/** Fixed narrow cost column — amounts centered under the header. */
+const COST_COL =
+  "w-[1%] min-w-[4.75rem] whitespace-nowrap px-1 py-1.5 text-center font-medium tabular-nums text-white/70 sm:min-w-[5rem] lg:min-w-[5.5rem] lg:py-1.5";
 const COST_HEADER =
-  "px-2 py-2 text-center font-semibold uppercase tracking-[0.08em] text-white/55 lg:py-2.5";
+  "w-[1%] min-w-[4.75rem] whitespace-normal px-1 py-2 text-center font-semibold uppercase leading-tight tracking-[0.08em] text-white/55 sm:min-w-[5rem] lg:min-w-[5.5rem] lg:py-2.5";
 
 export default function HomeBusinessCaseStackTable() {
   const [mobileExpanded, setMobileExpanded] = useState(false);
@@ -49,22 +51,22 @@ export default function HomeBusinessCaseStackTable() {
         </p>
       </div>
 
-      <div className="hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] md:block">
-        <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
-          <colgroup>
-            <col className="w-[36%]" />
-            <col className="w-[44%]" />
-            <col className="w-[20%]" />
-          </colgroup>
+      <div className="hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-4 md:block">
+        <table className="mx-auto w-max max-w-full table-auto border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <thead>
             <tr className="border-b border-white/[0.08] bg-sky-400/[0.05]">
-              <th className="px-2 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:py-2.5">
+              <th className="pr-4 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:pr-5 lg:py-2.5">
                 Function
               </th>
-              <th className="px-2 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:py-2.5">
+              <th className="pr-3 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:pr-4 lg:py-2.5">
                 Example Product
               </th>
-              <th className={COST_HEADER}>Annual Cost (10 Users)</th>
+              <th className={COST_HEADER}>
+                Annual Cost
+                <span className="block text-[10px] normal-case tracking-normal text-white/40 lg:text-[11px]">
+                  (10 Users)
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -77,35 +79,31 @@ export default function HomeBusinessCaseStackTable() {
                     : "border-b border-sky-300/10 bg-sky-400/[0.04]"
                 }
               >
-                <td className="break-words px-2 py-1.5 align-top font-medium text-white/75 lg:py-1.5">
+                <td className="break-words pr-4 align-top font-medium text-white/75 lg:pr-5">
                   {row.function}
                 </td>
-                <td className="break-words px-2 py-1.5 align-top text-white/50 lg:py-1.5">
-                  {row.product}
-                </td>
-                <td className={COST_CELL}>{row.cost}</td>
+                <td className="break-words pr-3 align-top text-white/50 lg:pr-4">{row.product}</td>
+                <td className={COST_COL}>{row.cost}</td>
               </tr>
             ))}
             <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
-              <td className="px-2 py-1.5 font-medium text-white/75 lg:py-1.5">
-                Software research & selction
-              </td>
-              <td className="px-2 py-1.5 lg:py-1.5" />
-              <td className={`${COST_CELL} text-white/75`}>$3,900</td>
+              <td className="pr-4 font-medium text-white/75 lg:pr-5">Software research & selction</td>
+              <td className="pr-3 lg:pr-4" />
+              <td className={`${COST_COL} text-white/75`}>$3,900</td>
             </tr>
             <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
-              <td className="px-2 py-1.5 pb-3 font-medium text-white/75 lg:py-1.5 lg:pb-4">
+              <td className="pr-4 pb-4 font-medium text-white/75 lg:pr-5 lg:pb-5">
                 Implementation & Integration
               </td>
-              <td className="px-2 py-1.5 pb-3 lg:py-1.5 lg:pb-4" />
-              <td className={`${COST_CELL} pb-3 text-white/75 lg:pb-4`}>$7,000</td>
+              <td className="pr-3 pb-4 lg:pr-4 lg:pb-5" />
+              <td className={`${COST_COL} pb-4 text-white/75 lg:pb-5`}>$7,000</td>
             </tr>
             <tr className="border-t border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] via-[#1d4ed8]/[0.12] to-[#2563eb]/[0.06]">
-              <td className="px-2 py-2.5 lg:py-3" />
-              <td className="px-2 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe] lg:py-3 lg:text-[13px]">
+              <td className="pt-2 lg:pt-2.5" />
+              <td className="px-1 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe] lg:py-3 lg:text-[13px]">
                 TOTAL
               </td>
-              <td className="px-2 py-2.5 text-center text-xs font-bold tabular-nums text-white lg:py-3 lg:text-sm">
+              <td className="px-1 py-2.5 text-center text-xs font-bold tabular-nums text-white lg:py-3 lg:text-sm">
                 $45,788
               </td>
             </tr>
@@ -153,7 +151,7 @@ export default function HomeBusinessCaseStackTable() {
             <p className="shrink-0 text-xs font-medium tabular-nums text-white/70">$3,900</p>
           </div>
         </article>
-        <article className="rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 pb-3">
+        <article className="rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 pb-4">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold text-white/80">Implementation & Integration</p>
             <p className="shrink-0 text-xs font-medium tabular-nums text-white/70">$7,000</p>
