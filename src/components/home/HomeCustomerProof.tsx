@@ -6,7 +6,7 @@ import WorkspaceDemoLoopVideo from "./WorkspaceDemoLoopVideo";
 const SECTION_BG = "/images/workspaces/onwardair-login-bg.png";
 
 const BEFORE_ITEMS = [
-  "12+ subscriptions across CRM, HR, projects and support",
+  "20+ subscriptions across all major business functions",
   "Leadership reporting rebuilt manually every month",
   "Teams copying data between SharePoint, email and ops tools",
 ] as const;
@@ -50,8 +50,8 @@ export default function HomeCustomerProof() {
         <div className="mt-10 grid gap-8 lg:mt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-start lg:gap-10">
           <div className="space-y-5">
             <p className="max-w-xl text-sm leading-relaxed text-white/55 sm:text-[16px]">
-              A typical deployment: a 30–80 person company in aviation, services or technology — past
-              the startup scramble, now drowning in Pipedrive, Zoho, SharePoint and Teams.
+              A typical deployment: a 30–50 person company — past the startup scramble, now drowning
+              in many SaaS disconnected applications.
             </p>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
