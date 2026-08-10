@@ -116,9 +116,8 @@ export default function HomePricing() {
 
       <div className="relative mx-auto max-w-[1760px] px-4 sm:px-8 lg:px-10">
         <HomeSectionTitle>Transparent pricing, scoped to you</HomeSectionTitle>
-        <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-relaxed text-white/55 sm:text-[15px]">
-          From {formatProfessionalUsd(MARKETING_CORE_MONTHLY_FROM_USD)}/month — fixed subscription,
-          implementation quoted before you commit. Annual prepay saves {annualDiscountPct}%.
+        <p className="mx-auto mt-4 max-w-3xl text-balance text-center text-sm leading-relaxed text-white/60 sm:mt-6 sm:text-[15px] md:text-[17px] lg:max-w-[52rem] xl:whitespace-nowrap">
+          From {formatProfessionalUsd(MARKETING_CORE_MONTHLY_FROM_USD)}/month — fixed subscription, implementation quoted before you commit. Annual prepay saves {annualDiscountPct}%.
         </p>
 
         <div className="mx-auto mt-8 max-w-6xl sm:mt-12">
