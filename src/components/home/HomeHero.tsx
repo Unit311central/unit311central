@@ -37,7 +37,7 @@ export default function HomeHero() {
         <div className="relative max-w-[800px]">
           <h1 className="text-[1.75rem] font-bold leading-[1.08] tracking-[-0.03em] text-white sm:text-[2.75rem] sm:leading-[0.95] lg:text-[3.35rem] xl:text-[3.75rem]">
             <span className="block">One operating layer</span>
-            <span className="block">for your whole company.</span>
+            <span className="block">for your whole company</span>
           </h1>
 
           <p className="mt-5 max-w-[760px] text-[15px] font-medium leading-[1.65] text-white/88 sm:mt-6 sm:text-[17px] sm:leading-[1.7]">
