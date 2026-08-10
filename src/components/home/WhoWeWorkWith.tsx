@@ -99,14 +99,14 @@ export default function WhoWeWorkWith() {
     <section className="relative overflow-x-hidden bg-[#030712] py-14 sm:py-20 md:py-24 lg:py-28">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.32] sm:opacity-[0.36]"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.48] sm:opacity-[0.52]"
           style={{ backgroundImage: `url(${SECTION_BG})` }}
         />
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(3,7,18,0.82), rgba(3,7,18,0.9), rgba(3,7,18,0.94))",
+              "linear-gradient(to bottom, rgba(3,7,18,0.52), rgba(3,7,18,0.68), rgba(3,7,18,0.78))",
           }}
         />
         <div
