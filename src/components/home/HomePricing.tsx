@@ -172,7 +172,7 @@ export default function HomePricing() {
           </div>
         </div>
 
-        <div className="mx-auto mt-6 max-w-6xl rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-6 sm:px-8 sm:py-8">
+        <div className="mx-auto mt-6 max-w-6xl rounded-2xl border border-white/[0.12] bg-gradient-to-b from-white/[0.08] to-white/[0.04] px-5 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:px-8 sm:py-8">
           <div className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-start">
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-[#93c5fd]">
