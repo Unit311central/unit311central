@@ -9,7 +9,7 @@ import {
   createEmptyBookThankYouSelections,
   type BookThankYouSelections,
 } from "@/lib/book-thank-you-data";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 
 type BookThankYouPanelProps = {
   sessionWhen: string;
@@ -64,6 +64,7 @@ export default function BookThankYouPanel({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [focusExpanded, setFocusExpanded] = useState(false);
 
   const moduleColumns = useMemo(() => {
     const midpoint = Math.ceil(BOOK_THANK_YOU_MODULE_ITEMS.length / 2);
@@ -138,8 +139,8 @@ export default function BookThankYouPanel({
       </div>
 
       <div className="mx-auto mt-8 max-w-5xl text-left">
-        <div className="overflow-x-auto text-center">
-          <p className="whitespace-nowrap text-sm text-[#1a2b4a]/75">
+        <div className="text-center">
+          <p className="text-sm leading-relaxed text-[#1a2b4a]/75">
             In order to have a productive session, please select the areas and modules you&apos;d most
             like to focus on
           </p>
@@ -148,7 +149,20 @@ export default function BookThankYouPanel({
           If you don&apos;t have time to do this now, don&apos;t worry, we&apos;ll chat on the call!
         </p>
 
-        <div className="mt-5 rounded-2xl border border-[#dbe4f0] bg-[#eef3f8] p-3 sm:p-4">
+        <button
+          type="button"
+          onClick={() => setFocusExpanded((current) => !current)}
+          className="mt-5 flex w-full items-center justify-between gap-3 rounded-2xl border border-[#dbe4f0] bg-[#eef3f8] px-4 py-3.5 text-left text-sm font-semibold text-[#0b2d63] sm:px-5"
+        >
+          <span>Optional: choose focus areas for the call</span>
+          <ChevronDown
+            className={`h-5 w-5 shrink-0 transition-transform ${focusExpanded ? "rotate-180" : ""}`}
+            aria-hidden
+          />
+        </button>
+
+        {focusExpanded ? (
+        <div className="mt-3 rounded-2xl border border-[#dbe4f0] bg-[#eef3f8] p-3 sm:p-4">
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-xl border border-sky-200/80 bg-gradient-to-b from-sky-50 to-sky-100/70 p-4 sm:p-5">
               <h3 className="text-center text-xs font-semibold uppercase tracking-[0.16em] text-sky-800">
@@ -215,6 +229,7 @@ export default function BookThankYouPanel({
             </section>
           </div>
         </div>
+        ) : null}
       </div>
 
       <div className="mx-auto mt-6 max-w-2xl text-sm leading-relaxed text-[#1a2b4a]/75">

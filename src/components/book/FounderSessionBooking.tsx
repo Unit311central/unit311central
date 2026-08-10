@@ -466,9 +466,11 @@ export default function FounderSessionBooking({ onBookingSuccess }: FounderSessi
 
   return (
 
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+    <>
 
-      <section className="rounded-2xl border border-white/15 bg-[#07111f]/88 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.35)] sm:p-6">
+    <div className={`grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] ${selectedStartsAt ? "pb-24 lg:pb-0" : ""}`}>
+
+      <section className="rounded-2xl border border-white/15 bg-[#07111f]/88 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.35)] sm:p-6">
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 
@@ -544,7 +546,7 @@ export default function FounderSessionBooking({ onBookingSuccess }: FounderSessi
 
         </p>
 
-        <p className="mt-1 text-xs text-white/45">
+        <p className="mt-1 hidden text-xs text-white/45 sm:block">
 
           Slots are held 9-6 GMT, Monday to Friday. Times below are shown in your selected timezone.
 
@@ -610,9 +612,11 @@ export default function FounderSessionBooking({ onBookingSuccess }: FounderSessi
 
       <form
 
+        id="founder-booking-form"
+
         onSubmit={(event) => void handleSubmit(event)}
 
-        className="rounded-2xl border border-white/15 bg-[#07111f]/88 p-5 shadow-[0_16px_48px_rgba(0,0,0,0.35)] sm:p-6"
+        className="rounded-2xl border border-white/15 bg-[#07111f]/88 p-4 shadow-[0_16px_48px_rgba(0,0,0,0.35)] sm:p-6"
 
       >
 
@@ -800,7 +804,7 @@ export default function FounderSessionBooking({ onBookingSuccess }: FounderSessi
 
           disabled={submitting || !selectedStartsAt || loadingSlots}
 
-          className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#2563eb] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-6 hidden h-12 w-full items-center justify-center rounded-xl bg-[#2563eb] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50 lg:inline-flex"
 
         >
 
@@ -825,6 +829,50 @@ export default function FounderSessionBooking({ onBookingSuccess }: FounderSessi
       </form>
 
     </div>
+
+    {selectedStartsAt ? (
+
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 lg:hidden">
+
+        <div className="pointer-events-auto border-t border-white/10 bg-[#020617]/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+
+          <button
+
+            type="submit"
+
+            form="founder-booking-form"
+
+            disabled={submitting || loadingSlots}
+
+            className="flex h-12 w-full items-center justify-center rounded-xl bg-[#2563eb] text-sm font-semibold text-white transition-colors hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50"
+
+          >
+
+            {submitting ? (
+
+              <>
+
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+
+                Booking…
+
+              </>
+
+            ) : (
+
+              "Confirm session"
+
+            )}
+
+          </button>
+
+        </div>
+
+      </div>
+
+    ) : null}
+
+    </>
 
   );
 

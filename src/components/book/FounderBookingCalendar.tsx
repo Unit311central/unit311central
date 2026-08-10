@@ -154,7 +154,7 @@ export default function FounderBookingCalendar({
           aria-label="Previous month"
           disabled={!canShiftMonth(-1)}
           onClick={() => shiftMonth(-1)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -182,7 +182,7 @@ export default function FounderBookingCalendar({
           aria-label="Next month"
           disabled={!canShiftMonth(1)}
           onClick={() => shiftMonth(1)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-black/20 text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -217,7 +217,7 @@ export default function FounderBookingCalendar({
                 setVisibleMonth(monthYearFromDateKey(cell.dateKey));
               }}
               className={cn(
-                "aspect-square rounded-xl text-sm font-medium transition-colors",
+                "flex min-h-11 items-center justify-center rounded-xl text-sm font-medium transition-colors",
                 isSelected
                   ? "border border-sky-400/40 bg-sky-500/20 text-sky-100"
                   : isBookable
