@@ -124,9 +124,9 @@ export default function HomePricing() {
           <div className="grid gap-4 lg:grid-cols-3 lg:gap-5 lg:items-stretch">
             {TIERS.map((tier) => (
               <div key={tier.id} className="flex min-w-0 flex-col">
-                <div className="mb-3 flex h-5 items-center justify-center">
+                <div className="mb-3 flex h-6 items-center justify-center sm:h-7">
                   {tier.highlighted ? (
-                    <p className="text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-[#93c5fd]">
+                    <p className="text-center text-xs font-semibold uppercase tracking-[0.16em] text-[#93c5fd] sm:text-[13px] sm:tracking-[0.14em]">
                       Most common for SMEs
                     </p>
                   ) : null}
