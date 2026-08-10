@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import HomeBusinessCaseLeftPanel from "./HomeBusinessCaseLeftPanel";
 
 const STACK_ROWS = [
   { function: "Customer Management", product: "Pipedrive Premium", cost: "$8,160" },
@@ -27,9 +28,6 @@ const STACK_ROWS = [
 
 const MOBILE_PREVIEW_COUNT = 4;
 
-const INTRO_COPY =
-  "Growing companies hit a wall when disconnected software, duplicate information and manual reporting can't keep up — and another subscription doesn't fix it. The question isn't whether you need more business software. It's whether your team can get answers instantly, with AI intelligence across one connected operating layer, instead of logging into multiple systems and rebuilding the picture by hand.";
-
 const COST_COL =
   "px-1.5 py-1.5 text-center font-medium tabular-nums text-white/70 sm:px-2 lg:py-1.5";
 const COST_HEADER =
@@ -41,24 +39,10 @@ export default function HomeBusinessCaseStackTable() {
   const hiddenMobileCount = STACK_ROWS.length - MOBILE_PREVIEW_COUNT;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-start lg:gap-10">
-      <div className="space-y-5 lg:pr-2">
-        <p className="text-sm leading-relaxed text-white/60 sm:text-[15px] sm:leading-relaxed lg:text-[16px]">
-          {INTRO_COPY}
-        </p>
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[13px] sm:tracking-[0.12em] lg:leading-snug">
-            The Hidden Cost of Multiple Business Applications
-          </h3>
-          <p className="mt-2 text-[11px] leading-relaxed text-white/45 sm:text-xs sm:leading-relaxed">
-            Most growing businesses gradually accumulate software to solve individual problems. The
-            result is higher subscription costs, duplicated data, disconnected workflows and more time
-            spent managing systems instead of running the business.
-          </p>
-        </div>
-      </div>
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-stretch lg:gap-10">
+      <HomeBusinessCaseLeftPanel />
 
-      <div className="hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-3.5 md:block">
+      <div className="hidden h-full overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-3.5 md:block">
         <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <colgroup>
             <col className="w-[32%]" />
