@@ -25,13 +25,6 @@ export default function HomeBusinessCase() {
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 xl:px-10">
         <div className="business-case-fade-in mx-auto text-center">
           <HomeSectionTitle singleLine>The business case for Unit311 Central</HomeSectionTitle>
-          <p className="mx-auto mt-6 max-w-3xl text-sm leading-relaxed text-white/60 sm:mt-8 sm:text-[16px] sm:leading-relaxed lg:text-[17px]">
-            Growing companies hit a wall when disconnected software, duplicate information and manual
-            reporting can&apos;t keep up — and another subscription doesn&apos;t fix it. The question
-            isn&apos;t whether you need more business software. It&apos;s whether your team can get
-            answers instantly, with AI intelligence across one connected operating layer, instead of
-            logging into multiple systems and rebuilding the picture by hand.
-          </p>
         </div>
 
         <div className="business-case-fade-in mt-12 flex flex-col gap-4 lg:mt-16">
