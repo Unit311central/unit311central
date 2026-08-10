@@ -3,6 +3,8 @@ import { ArrowRight } from "lucide-react";
 import HomeSectionTitle from "./HomeSectionTitle";
 import WorkspaceDemoLoopVideo from "./WorkspaceDemoLoopVideo";
 
+const SECTION_BG = "/images/workspaces/onwardair-login-bg.png";
+
 const BEFORE_ITEMS = [
   "12+ subscriptions across CRM, HR, projects and support",
   "Leadership reporting rebuilt manually every month",
@@ -21,14 +23,26 @@ export default function HomeCustomerProof() {
       id="proof"
       className="relative scroll-mt-20 overflow-x-hidden bg-[#030712] py-12 sm:scroll-mt-28 sm:py-16 lg:py-20"
     >
-      <div
-        className="pointer-events-none absolute inset-0"
-        aria-hidden
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 55% at 20% 20%, rgba(56,189,248,0.08), transparent 55%), radial-gradient(ellipse 60% 45% at 85% 80%, rgba(59,130,246,0.06), transparent 60%)",
-        }}
-      />
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.18] sm:opacity-[0.22]"
+          style={{ backgroundImage: `url(${SECTION_BG})` }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(3,7,18,0.72), rgba(3,7,18,0.84), rgba(3,7,18,0.9))",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 55% at 20% 20%, rgba(56,189,248,0.08), transparent 55%), radial-gradient(ellipse 60% 45% at 85% 80%, rgba(59,130,246,0.06), transparent 60%)",
+          }}
+        />
+      </div>
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
         <HomeSectionTitle>Built to allow you to focus on running your Business</HomeSectionTitle>
