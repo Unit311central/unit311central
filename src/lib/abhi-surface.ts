@@ -15,19 +15,25 @@ export const ABHI_LINKEDIN_URL = "https://www.linkedin.com/company/abhi/";
 export const ABHI_X_URL = "https://x.com/UK_ABHI";
 export const ABHI_EVENTS_CALENDAR_EMAIL = "events@abhi.org.uk";
 
-/** Member companies signed up by year (Clients Dashboard growth chart). */
+/** Active member companies (excludes onboarding / pre-active accounts). */
+export const ABHI_ACTIVE_MEMBER_COUNT = 375;
+
+/** Member companies in onboarding — not counted as active until live. */
+export const ABHI_ONBOARDING_MEMBER_COUNT = 5;
+
+/** Active members signed up by year (Clients Dashboard growth chart). */
 export const ABHI_MEMBER_SIGNUP_GROWTH = [
   { year: "2021", members: 248 },
   { year: "2022", members: 276 },
   { year: "2023", members: 298 },
   { year: "2024", members: 320 },
   { year: "2025", members: 350 },
-  { year: "2026", members: 379 },
+  { year: "2026", members: ABHI_ACTIVE_MEMBER_COUNT },
 ] as const;
 
-/** Current membership by region (sums to latest year total). */
+/** Current active membership by region (sums to {@link ABHI_ACTIVE_MEMBER_COUNT}). */
 export const ABHI_MEMBERS_BY_REGION = [
-  { region: "UK", members: 245 },
+  { region: "UK", members: 241 },
   { region: "EU", members: 78 },
   { region: "North America", members: 56 },
 ] as const;

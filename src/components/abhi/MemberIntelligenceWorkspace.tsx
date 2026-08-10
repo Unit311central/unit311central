@@ -140,7 +140,7 @@ export default function MemberIntelligenceWorkspace({ clients }: Props) {
         </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <SummaryTile icon={<Users className="h-4 w-4" />} label="Total Members" value={String(summary.totalMembers)} />
+          <SummaryTile icon={<Users className="h-4 w-4" />} label="Active Members" value={String(summary.activeMembers)} />
           <SummaryTile
             icon={<AlertTriangle className="h-4 w-4" />}
             label="At Risk Members"

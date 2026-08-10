@@ -4,7 +4,9 @@
  */
 
 import type { ManagedClient } from "@/lib/client-management-data";
+import { isClientPreActiveStatus } from "@/lib/client-management-data";
 import { ABHI_MEMBERSHIP_FEE_GBP } from "@/lib/abhi-billing";
+import { ABHI_ACTIVE_MEMBER_COUNT } from "@/lib/abhi-surface";
 import {
   buildAbhiFundingDashboard,
   formatFundingGbp,
@@ -135,7 +137,8 @@ export type AbhiPortfolioAiIntelligence = {
 export type AbhiMemberIntelligencePortfolio = {
   rows: AbhiMemberIntelligenceRow[];
   summary: {
-    totalMembers: number;
+    /** Active members only — excludes onboarding / pre-active accounts. */
+    activeMembers: number;
     healthyMembers: number;
     atRiskMembers: number;
     renewalsDueIn90Days: number;
@@ -612,17 +615,28 @@ const FALLBACK_CLIENTS: ManagedClient[] = Object.values(PROFILE_OVERRIDES).map((
   renewalDate: row.renewalDate,
 }));
 
+function isActiveMemberClient(client: ManagedClient) {
+  if (isClientPreActiveStatus(client.accountStatus)) return false;
+  if (client.accountStatus === "Dormant" || client.accountStatus === "Archived") {
+    return false;
+  }
+  return client.accountStatus === "Active";
+}
+
 export function buildMemberIntelligencePortfolio(
   clients: ManagedClient[],
   asOf = new Date(),
 ): AbhiMemberIntelligencePortfolio {
   const source =
     clients.length > 0
-      ? clients.filter((c) => !String(c.id).startsWith("ti-cli-"))
+      ? clients.filter(
+          (c) => !String(c.id).startsWith("ti-cli-") && isActiveMemberClient(c),
+        )
       : FALLBACK_CLIENTS;
 
   const rows = source
     .map((c) => deriveRowFromClient(c, asOf))
+    .filter((row) => row.membershipStatus === "Active")
     .sort((a, b) => a.memberName.localeCompare(b.memberName, "en-GB"));
 
   const healthyMembers = rows.filter(
@@ -640,10 +654,12 @@ export function buildMemberIntelligencePortfolio(
     ? Math.round(rows.reduce((sum, r) => sum + r.engagementScore, 0) / rows.length)
     : 0;
 
+  const activeMembers = ABHI_ACTIVE_MEMBER_COUNT;
+
   return {
     rows,
     summary: {
-      totalMembers: rows.length,
+      activeMembers,
       healthyMembers,
       atRiskMembers,
       renewalsDueIn90Days,

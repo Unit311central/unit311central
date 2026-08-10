@@ -313,7 +313,7 @@ export function buildAbhiBoardPackData(meetingDateIso?: string): AbhiBoardPackDa
   const revenueSparkline = getAbhiMonthlyRevenueSeries().map((point) => point.amount);
 
   const membershipTotal =
-    ABHI_MEMBER_SIGNUP_GROWTH[ABHI_MEMBER_SIGNUP_GROWTH.length - 1]?.members ?? 379;
+    ABHI_MEMBER_SIGNUP_GROWTH[ABHI_MEMBER_SIGNUP_GROWTH.length - 1]?.members ?? 375;
   const membershipNew = 12;
   const membershipLost = 5;
   const membershipNet = membershipNew - membershipLost;
