@@ -27,11 +27,12 @@ const STACK_ROWS = [
 
 const MOBILE_PREVIEW_COUNT = 4;
 
-/** Fixed narrow cost column — amounts centered under the header. */
+const TABLE_WRAP = "mx-auto w-full max-w-2xl";
+
 const COST_COL =
-  "w-[1%] min-w-[4.75rem] whitespace-nowrap px-1 py-1.5 text-center font-medium tabular-nums text-white/70 sm:min-w-[5rem] lg:min-w-[5.5rem] lg:py-1.5";
+  "px-2 py-1.5 text-center font-medium tabular-nums text-white/70 lg:py-1.5";
 const COST_HEADER =
-  "w-[1%] min-w-[4.75rem] whitespace-normal px-1 py-2 text-center font-semibold uppercase leading-tight tracking-[0.08em] text-white/55 sm:min-w-[5rem] lg:min-w-[5.5rem] lg:py-2.5";
+  "px-2 py-2 text-center font-semibold uppercase leading-tight tracking-[0.08em] text-white/55 lg:py-2.5";
 
 export default function HomeBusinessCaseStackTable() {
   const [mobileExpanded, setMobileExpanded] = useState(false);
@@ -40,7 +41,7 @@ export default function HomeBusinessCaseStackTable() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-5 sm:mb-6">
+      <div className={`${TABLE_WRAP} mb-5 sm:mb-6`}>
         <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/90 sm:text-[13px] sm:tracking-[0.12em] lg:leading-snug">
           The Hidden Cost of Multiple Business Applications
         </h3>
@@ -51,14 +52,21 @@ export default function HomeBusinessCaseStackTable() {
         </p>
       </div>
 
-      <div className="hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-4 md:block">
-        <table className="mx-auto w-max max-w-full table-auto border-collapse text-left text-xs leading-snug lg:text-[13px]">
+      <div
+        className={`${TABLE_WRAP} hidden overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-4 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-5 md:block`}
+      >
+        <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
+          <colgroup>
+            <col className="w-[38%]" />
+            <col className="w-[40%]" />
+            <col className="w-[22%]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-white/[0.08] bg-sky-400/[0.05]">
-              <th className="pr-4 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:pr-5 lg:py-2.5">
+              <th className="pr-6 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 sm:pr-8 lg:py-2.5">
                 Function
               </th>
-              <th className="pr-3 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 lg:pr-4 lg:py-2.5">
+              <th className="pr-6 py-2 font-semibold uppercase tracking-[0.08em] text-white/55 sm:pr-8 lg:py-2.5">
                 Example Product
               </th>
               <th className={COST_HEADER}>
@@ -79,31 +87,31 @@ export default function HomeBusinessCaseStackTable() {
                     : "border-b border-sky-300/10 bg-sky-400/[0.04]"
                 }
               >
-                <td className="break-words pr-4 align-top font-medium text-white/75 lg:pr-5">
+                <td className="break-words pr-6 align-top font-medium text-white/75 sm:pr-8">
                   {row.function}
                 </td>
-                <td className="break-words pr-3 align-top text-white/50 lg:pr-4">{row.product}</td>
+                <td className="break-words pr-6 align-top text-white/50 sm:pr-8">{row.product}</td>
                 <td className={COST_COL}>{row.cost}</td>
               </tr>
             ))}
             <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
-              <td className="pr-4 font-medium text-white/75 lg:pr-5">Software research & selction</td>
-              <td className="pr-3 lg:pr-4" />
+              <td className="pr-6 font-medium text-white/75 sm:pr-8">Software research & selction</td>
+              <td className="pr-6 sm:pr-8" />
               <td className={`${COST_COL} text-white/75`}>$3,900</td>
             </tr>
             <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
-              <td className="pr-4 pb-4 font-medium text-white/75 lg:pr-5 lg:pb-5">
+              <td className="pr-6 pb-4 font-medium text-white/75 sm:pr-8 lg:pb-5">
                 Implementation & Integration
               </td>
-              <td className="pr-3 pb-4 lg:pr-4 lg:pb-5" />
+              <td className="pr-6 pb-4 sm:pr-8 lg:pb-5" />
               <td className={`${COST_COL} pb-4 text-white/75 lg:pb-5`}>$7,000</td>
             </tr>
             <tr className="border-t border-[#3b82f6]/30 bg-gradient-to-r from-[#2563eb]/[0.18] via-[#1d4ed8]/[0.12] to-[#2563eb]/[0.06]">
               <td className="pt-2 lg:pt-2.5" />
-              <td className="px-1 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe] lg:py-3 lg:text-[13px]">
+              <td className="py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#bfdbfe] lg:py-3 lg:text-[13px]">
                 TOTAL
               </td>
-              <td className="px-1 py-2.5 text-center text-xs font-bold tabular-nums text-white lg:py-3 lg:text-sm">
+              <td className="py-2.5 text-center text-xs font-bold tabular-nums text-white lg:py-3 lg:text-sm">
                 $45,788
               </td>
             </tr>
@@ -111,7 +119,7 @@ export default function HomeBusinessCaseStackTable() {
         </table>
       </div>
 
-      <div className="space-y-2 md:hidden">
+      <div className={`${TABLE_WRAP} space-y-2 md:hidden`}>
         {mobileRows.map((row) => (
           <article
             key={row.function}
