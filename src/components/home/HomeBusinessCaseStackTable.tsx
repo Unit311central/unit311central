@@ -32,13 +32,13 @@ const MOBILE_PREVIEW_COUNT = 4;
 const FUNCTION_COL =
   "whitespace-nowrap py-1.5 pr-3 align-top font-medium text-white/75 sm:pr-4 lg:py-1.5";
 const PRODUCT_COL =
-  "break-words py-1.5 pl-6 text-right align-top text-white/50 sm:pl-8 lg:py-1.5 lg:pl-10";
+  "break-words py-1.5 pr-3 align-top text-white/50 sm:pr-4 lg:py-1.5";
 const COST_COL =
   "px-2 py-1.5 text-center font-medium tabular-nums text-white/70 sm:px-3 lg:py-1.5";
 const COST_HEADER =
   "px-2 py-2 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-white/55 whitespace-nowrap sm:px-3 sm:text-[11px] lg:py-2.5 lg:text-xs lg:tracking-[0.08em]";
 const PRODUCT_HEADER =
-  "py-2 pl-6 text-right text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-white/55 sm:pl-8 sm:text-[11px] lg:py-2.5 lg:pl-10 lg:text-xs lg:tracking-[0.08em]";
+  "py-2 pr-3 text-left font-semibold uppercase tracking-[0.08em] text-white/55 sm:pr-4 lg:py-2.5";
 
 export default function HomeBusinessCaseStackTable() {
   const [mobileExpanded, setMobileExpanded] = useState(false);
@@ -53,17 +53,17 @@ export default function HomeBusinessCaseStackTable() {
         <div className="overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-3.5">
           <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <colgroup>
-            <col className="w-[54%]" />
-            <col className="w-[14%]" />
-            <col className="w-[32%]" />
+            <col className="w-[48%]" />
+            <col className="w-[30%]" />
+            <col className="w-[22%]" />
           </colgroup>
           <thead>
             <tr className="border-b border-white/[0.08] bg-sky-400/[0.05]">
               <th className="py-2 pr-3 text-left font-semibold uppercase tracking-[0.08em] text-white/55 sm:pr-4 lg:py-2.5">
                 Function
               </th>
-              <th className={COST_HEADER}>Annual Cost (10 Users)</th>
               <th className={PRODUCT_HEADER}>Example Product</th>
+              <th className={COST_HEADER}>Annual Cost (10 Users)</th>
             </tr>
           </thead>
           <tbody>
@@ -77,19 +77,19 @@ export default function HomeBusinessCaseStackTable() {
                 }
               >
                 <td className={FUNCTION_COL}>{row.function}</td>
-                <td className={COST_COL}>{row.cost}</td>
                 <td className={PRODUCT_COL}>{row.product}</td>
+                <td className={COST_COL}>{row.cost}</td>
               </tr>
             ))}
             <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
               <td className={FUNCTION_COL}>Software research & selction</td>
-              <td className={`${COST_COL} text-white/75`}>$3,900</td>
               <td className={PRODUCT_COL} />
+              <td className={`${COST_COL} text-white/75`}>$3,900</td>
             </tr>
             <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
               <td className={`${FUNCTION_COL} pb-4 lg:pb-5`}>Implementation & Integration</td>
-              <td className={`${COST_COL} pb-4 text-white/75 lg:pb-5`}>$7,000</td>
               <td className={`${PRODUCT_COL} pb-4 lg:pb-5`} />
+              <td className={`${COST_COL} pb-4 text-white/75 lg:pb-5`}>$7,000</td>
             </tr>
           </tbody>
         </table>
