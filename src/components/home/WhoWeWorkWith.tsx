@@ -1,5 +1,7 @@
 import HomeSectionTitle from "./HomeSectionTitle";
 
+const SECTION_BG = "/images/overview-corporate-intelligence-bg.png";
+
 const INDUSTRIES = [
   { label: "Founders & Startups", icon: "building" },
   { label: "MedTech", icon: "medtech" },
@@ -94,8 +96,29 @@ function IndustryIcon({ type }: { type: (typeof INDUSTRIES)[number]["icon"] }) {
 
 export default function WhoWeWorkWith() {
   return (
-    <section className="overflow-x-hidden bg-[#030712] py-14 sm:py-20 md:py-24 lg:py-28">
-      <div className="mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
+    <section className="relative overflow-x-hidden bg-[#030712] py-14 sm:py-20 md:py-24 lg:py-28">
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.32] sm:opacity-[0.36]"
+          style={{ backgroundImage: `url(${SECTION_BG})` }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(3,7,18,0.82), rgba(3,7,18,0.9), rgba(3,7,18,0.94))",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(37,99,235,0.12), transparent 65%)",
+          }}
+        />
+      </div>
+
+      <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
         <HomeSectionTitle>Who we help accelerate and scale</HomeSectionTitle>
 
         <p className="mx-auto mt-4 max-w-3xl text-balance text-center text-sm leading-relaxed text-white/60 sm:mt-6 sm:text-[15px] md:text-[17px]">
