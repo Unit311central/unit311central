@@ -4,17 +4,14 @@ import HomeHeroActions from "./HomeHeroActions";
 
 export default function HomeHero() {
   return (
-    <section className="relative h-[100svh] min-h-[640px] overflow-hidden bg-[#020617] sm:min-h-[100svh]">
-      <HeroVideoBackground />
-
-      <div
-        className="pointer-events-none absolute inset-0 z-[1] sm:hidden"
-        aria-hidden
-        style={{
-          background:
-            "linear-gradient(to top, rgba(2, 6, 23, 0.92) 0%, rgba(2, 6, 23, 0.55) 42%, rgba(2, 6, 23, 0.15) 72%, transparent 100%)",
-        }}
-      />
+    <section className="relative bg-[#020617] sm:min-h-[100svh] sm:overflow-hidden">
+      <div className="relative h-[clamp(220px,36svh,300px)] w-full shrink-0 overflow-hidden sm:absolute sm:inset-0 sm:h-full sm:min-h-[100svh]">
+        <HeroVideoBackground />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-10 bg-gradient-to-b from-transparent to-[#020617] sm:hidden"
+          aria-hidden
+        />
+      </div>
 
       <div
         className="pointer-events-none absolute inset-0 z-[1] hidden sm:block"
@@ -33,7 +30,7 @@ export default function HomeHero() {
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-10 mx-auto max-w-[1400px] px-4 pb-[max(2.75rem,env(safe-area-inset-bottom))] pt-[4.5rem] sm:relative sm:flex sm:min-h-[100svh] sm:items-end sm:px-8 sm:pb-20 sm:pt-[6.5rem] lg:items-center lg:px-10 lg:pb-24 lg:pt-[120px]">
+      <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-10 pt-7 sm:absolute sm:inset-x-0 sm:bottom-0 sm:flex sm:min-h-[100svh] sm:items-end sm:px-8 sm:pb-20 sm:pt-[6.5rem] lg:items-center lg:px-10 lg:pb-24 lg:pt-[120px]">
         <div className="relative max-w-[800px]">
           <h1 className="text-[1.75rem] font-bold leading-[1.08] tracking-[-0.03em] text-white sm:text-[2.75rem] sm:leading-[0.95] lg:text-[3.35rem] xl:text-[3.75rem]">
             <span className="block">One operating layer</span>

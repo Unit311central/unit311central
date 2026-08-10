@@ -84,7 +84,7 @@ export default function HeroVideoBackground() {
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
       aria-hidden
     >
       {prefersReducedMotion || usePosterFallback ? (
