@@ -174,7 +174,7 @@ export default function Navbar() {
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }
                     }}
-                    className={`inline-flex items-center gap-1 whitespace-nowrap text-[14px] font-medium transition-colors ${
+                    className={`inline-flex items-center gap-1 whitespace-nowrap text-[16px] font-medium transition-colors ${
                       isDarkNav
                         ? "text-white/90 hover:text-white"
                         : "text-muted hover:text-foreground"
