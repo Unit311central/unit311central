@@ -20,10 +20,10 @@ export const PROFESSIONAL_QUARTERLY_PAYMENT_LABEL = `US$${PROFESSIONAL_QUARTERLY
 
 /** Public marketing tiers (website proposals — confirmed in writing per client). */
 export const MARKETING_CORE_MONTHLY_FROM_USD = 2000;
-export const MARKETING_OPERATOR_MONTHLY_FROM_USD = 3500;
+export const MARKETING_OPERATOR_MONTHLY_FROM_USD = 2800;
 export const MARKETING_ENTERPRISE_MONTHLY_FROM_USD = 6000;
 
-export const MARKETING_IMPLEMENTATION_LOW_USD = 8000;
+export const MARKETING_IMPLEMENTATION_LOW_USD = 2000;
 export const MARKETING_IMPLEMENTATION_HIGH_USD = 25000;
 
 /** Annual prepay discount shown on marketing site (e.g. 0.12 = 12% off). */
