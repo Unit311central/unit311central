@@ -621,7 +621,6 @@ export async function runAbhiEaTestSuite(): Promise<EaTestSuiteReport> {
         { meetingDate: "2026-08-20" },
         {
           business: abhiBusiness(),
-          selection: {},
         },
       );
       const status = String((result as { status?: string }).status ?? "");

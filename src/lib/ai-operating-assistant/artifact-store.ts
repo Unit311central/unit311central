@@ -6,6 +6,20 @@ import {
   createSupabaseServiceRoleClient,
   isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
+import { ensureAssistantArtifactStorage } from "@/lib/internal-db-migrations";
+
+let artifactStorageReady: Promise<boolean> | null = null;
+
+async function ensureArtifactStorageReady() {
+  if (!artifactStorageReady) {
+    artifactStorageReady = ensureAssistantArtifactStorage().catch((error) => {
+      artifactStorageReady = null;
+      console.error("[artifact-store] assistant artifact storage migration failed", error);
+      return false;
+    });
+  }
+  return artifactStorageReady;
+}
 
 export type AssistantStoredArtifact = {
   id: string;

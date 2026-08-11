@@ -92,7 +92,7 @@ export const createBoardActionAction: AssistantActionDefinition = {
         title: asTrimmedString(input.title),
         owner: asTrimmedString(input.owner),
         dueDate: asTrimmedString(input.dueDate),
-        status,
+        status: status ?? undefined,
       });
 
       if (!result.ok) {

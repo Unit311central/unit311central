@@ -2399,8 +2399,8 @@ async function ensurePlatformPasswordResetOtpColumns(): Promise<void> {
 }
 
 export async function ensureAssistantArtifactStorage(): Promise<boolean> {
-  const tableExists = await tableExistsViaManagementApi("assistant_artifact_records");
-  if (tableExists === true) {
+  const existsViaApi = await tableExistsViaManagementApi("assistant_artifact_records");
+  if (existsViaApi === true) {
     await reloadPostgrestSchema();
     return true;
   }
@@ -2422,7 +2422,7 @@ export async function ensureAssistantArtifactStorage(): Promise<boolean> {
     }
   }
 
-  if (tableExists === false) {
+  if (existsViaApi === false) {
     const applied = await applyMigrationViaManagementApi(ASSISTANT_ARTIFACTS_STORAGE_MIGRATION_PATH);
     if (applied) await reloadPostgrestSchema();
     return applied;
