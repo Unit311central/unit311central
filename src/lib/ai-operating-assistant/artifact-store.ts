@@ -50,6 +50,27 @@ export function putAssistantArtifact(
   return record;
 }
 
+async function upsertArtifactRecord(record: AssistantStoredArtifact, storagePath: string) {
+  if (!isSupabaseServiceRoleConfigured()) return;
+  try {
+    const supabase = createSupabaseServiceRoleClient();
+    await supabase.from("assistant_artifact_records").upsert(
+      {
+        id: record.id,
+        user_id: record.userId,
+        storage_path: storagePath,
+        filename: record.filename,
+        mime_type: record.mimeType,
+        kind: record.kind,
+        created_at: record.createdAt,
+      },
+      { onConflict: "id" },
+    );
+  } catch (error) {
+    console.error("[artifact-store] failed to index artifact record", record.id, error);
+  }
+}
+
 export async function persistArtifactToStorage(
   record: AssistantStoredArtifact,
 ): Promise<AssistantStoredArtifact> {
@@ -68,11 +89,16 @@ export async function persistArtifactToStorage(
       contentType: record.mimeType,
       upsert: true,
     });
-    if (error) return record;
+    if (error) {
+      console.error("[artifact-store] upload failed", record.id, error.message);
+      return record;
+    }
     const updated = { ...record, storagePath: path };
     artifacts.set(record.id, updated);
+    await upsertArtifactRecord(updated, path);
     return updated;
-  } catch {
+  } catch (error) {
+    console.error("[artifact-store] persist failed", record.id, error);
     return record;
   }
 }
@@ -91,6 +117,35 @@ export function getLatestArtifactForUser(userId: string) {
   return owned[0] ?? null;
 }
 
+async function downloadArtifactAtPath(
+  id: string,
+  userId: string,
+  path: string,
+  kind: "pdf" | "pptx" | "file",
+  filename: string,
+  mimeType: string,
+) {
+  if (!isSupabaseServiceRoleConfigured()) return null;
+  try {
+    const supabase = createSupabaseServiceRoleClient();
+    const { data, error } = await supabase.storage.from(BUCKET).download(path);
+    if (error || !data) return null;
+    const buffer = Buffer.from(await data.arrayBuffer());
+    return putAssistantArtifact({
+      id,
+      kind,
+      title: filename,
+      filename,
+      mimeType,
+      bytes: buffer,
+      userId,
+      storagePath: path,
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function loadArtifactBytes(
   id: string,
   userId: string,
@@ -101,6 +156,25 @@ export async function loadArtifactBytes(
   if (!isSupabaseServiceRoleConfigured()) return null;
   try {
     const supabase = createSupabaseServiceRoleClient();
+    const { data: record } = await supabase
+      .from("assistant_artifact_records")
+      .select("storage_path, filename, mime_type, kind")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (record?.storage_path) {
+      const fromIndex = await downloadArtifactAtPath(
+        id,
+        userId,
+        record.storage_path,
+        record.kind as "pdf" | "pptx" | "file",
+        record.filename,
+        record.mime_type,
+      );
+      if (fromIndex) return fromIndex;
+    }
+
     const candidates = [
       {
         path: `${userId}/${id}.pdf`,
@@ -117,19 +191,15 @@ export async function loadArtifactBytes(
       },
     ];
     for (const candidate of candidates) {
-      const { data, error } = await supabase.storage.from(BUCKET).download(candidate.path);
-      if (error || !data) continue;
-      const buffer = Buffer.from(await data.arrayBuffer());
-      return putAssistantArtifact({
+      const loaded = await downloadArtifactAtPath(
         id,
-        kind: candidate.kind,
-        title: candidate.filename,
-        filename: candidate.filename,
-        mimeType: candidate.mimeType,
-        bytes: buffer,
         userId,
-        storagePath: candidate.path,
-      });
+        candidate.path,
+        candidate.kind,
+        candidate.filename,
+        candidate.mimeType,
+      );
+      if (loaded) return loaded;
     }
     return null;
   } catch {
@@ -144,14 +214,22 @@ export function hydrateArtifactFromMessagePayload(input: {
   filename: string;
   userId: string;
   contentBase64: string;
+  kind?: "pdf" | "pptx" | "file";
+  mimeType?: string;
 }) {
   const bytes = Buffer.from(input.contentBase64, "base64");
+  const kind = input.kind ?? (input.filename.endsWith(".pptx") ? "pptx" : "pdf");
+  const mimeType =
+    input.mimeType ??
+    (kind === "pptx"
+      ? "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+      : "application/pdf");
   return putAssistantArtifact({
     id: input.id,
-    kind: "pdf",
+    kind,
     title: input.title,
     filename: input.filename,
-    mimeType: "application/pdf",
+    mimeType,
     bytes,
     userId: input.userId,
   });

@@ -177,6 +177,50 @@ export async function getConversationForUser(
   return data ? mapRow(data as DbRow) : null;
 }
 
+/** Search recent conversations (saved or not) for a durable artifact payload. */
+export async function findArtifactInUserConversations(
+  userId: string,
+  artifactId: string,
+  limit = 50,
+): Promise<{
+  id: string;
+  title: string;
+  filename: string;
+  contentBase64: string;
+  kind?: "pdf" | "pptx" | "file";
+} | null> {
+  if (!isSupabaseServiceRoleConfigured()) return null;
+  await ensureConversationTables();
+  const supabase = requireClient();
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("messages")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return null;
+
+  for (const row of data) {
+    const messages = Array.isArray((row as { messages?: unknown }).messages)
+      ? ((row as { messages: AssistantChatMessage[] }).messages ?? [])
+      : [];
+    for (const message of messages) {
+      const match = message.artifacts?.find((artifact) => artifact.id === artifactId);
+      if (match?.contentBase64) {
+        return {
+          id: match.id,
+          title: match.title,
+          filename: match.filename,
+          contentBase64: match.contentBase64,
+          kind: match.kind,
+        };
+      }
+    }
+  }
+  return null;
+}
+
 export async function createConversation(input: {
   userId: string;
   workspaceId?: string | null;

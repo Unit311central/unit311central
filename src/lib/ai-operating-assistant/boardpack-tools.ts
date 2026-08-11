@@ -270,6 +270,7 @@ export async function generateBoardPackTool(
           openUrl: pdfOpenUrl,
           downloadUrl: pdfDownloadUrl,
           kind: "pdf",
+          contentBase64: pdfArtifact.contentBase64,
         },
         {
           artifactId: pptxArtifact.id,
@@ -278,6 +279,7 @@ export async function generateBoardPackTool(
           openUrl: pptxDownloadUrl,
           downloadUrl: pptxDownloadUrl,
           kind: "pptx",
+          contentBase64: pptxArtifact.contentBase64,
         },
       ],
       {

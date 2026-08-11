@@ -4,9 +4,8 @@ import {
   hydrateArtifactFromMessagePayload,
   loadArtifactBytes,
 } from "@/lib/ai-operating-assistant/artifact-store";
-import { getConversationForUser } from "@/lib/ai-operating-assistant/conversation-service";
+import { findArtifactInUserConversations } from "@/lib/ai-operating-assistant/conversation-service";
 import { getPlatformSession } from "@/lib/platform-session";
-import { isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,33 +18,18 @@ async function resolveArtifact(id: string, userId: string) {
   const loaded = await loadArtifactBytes(id, userId);
   if (loaded) return loaded;
 
-  if (!isSupabaseServiceRoleConfigured()) return null;
-
-  // Recover base64 from the user's saved conversations when serverless memory is cold.
-  try {
-    const { listConversationsForUser } = await import(
-      "@/lib/ai-operating-assistant/conversation-service"
-    );
-    const conversations = await listConversationsForUser({ userId, limit: 30 });
-    for (const conversation of conversations) {
-      const full =
-        (await getConversationForUser(conversation.id, userId)) ?? conversation;
-      for (const message of full.messages) {
-        const match = message.artifacts?.find((artifact) => artifact.id === id);
-        if (match?.contentBase64) {
-          return hydrateArtifactFromMessagePayload({
-            id: match.id,
-            title: match.title,
-            filename: match.filename,
-            userId,
-            contentBase64: match.contentBase64,
-          });
-        }
-      }
-    }
-  } catch {
-    return null;
+  const fromConversation = await findArtifactInUserConversations(userId, id);
+  if (fromConversation) {
+    return hydrateArtifactFromMessagePayload({
+      id: fromConversation.id,
+      title: fromConversation.title,
+      filename: fromConversation.filename,
+      userId,
+      contentBase64: fromConversation.contentBase64,
+      kind: fromConversation.kind,
+    });
   }
+
   return null;
 }
 
