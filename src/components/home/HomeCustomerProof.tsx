@@ -45,13 +45,13 @@ export default function HomeCustomerProof() {
       </div>
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
-        <HomeSectionTitle>Built to allow you to focus on running your Business</HomeSectionTitle>
+        <HomeSectionTitle>A typical growing company</HomeSectionTitle>
 
         <div className="mt-10 grid gap-8 lg:mt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-start lg:gap-10">
           <div className="space-y-5">
             <p className="max-w-xl text-sm leading-relaxed text-white/55 sm:text-[16px]">
               A typical deployment: a 10–20 person company — past the startup scramble, now drowning
-              in many SaaS disconnected applications.
+              in many disconnected SaaS applications.
             </p>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
@@ -78,7 +78,7 @@ export default function HomeCustomerProof() {
               href="/book"
               className="inline-flex items-center gap-2 text-sm font-semibold text-[#93c5fd] transition-colors hover:text-white"
             >
-              Book a walkthrough of a live workspace
+              Book a free demo
               <ArrowRight className="h-4 w-4" strokeWidth={2} />
             </Link>
           </div>

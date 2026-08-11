@@ -93,7 +93,7 @@ export default function HomeHeroActions() {
           href="/book"
           className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-white px-5 text-center text-sm font-semibold leading-snug text-[#0b2d63] transition-colors hover:bg-white/90 sm:w-auto sm:px-6"
         >
-          Book a Free Intro & Demo Session
+          Book a free demo
         </Link>
         <button
           type="button"

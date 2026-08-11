@@ -82,7 +82,7 @@ export default function HomeBusinessCaseStackTable() {
               </tr>
             ))}
             <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
-              <td className={FUNCTION_COL}>Software research & selction</td>
+              <td className={FUNCTION_COL}>Software research & selection</td>
               <td className={PRODUCT_COL} />
               <td className={`${COST_COL} text-white/75`}>$3,900</td>
             </tr>
@@ -133,7 +133,7 @@ export default function HomeBusinessCaseStackTable() {
         ) : null}
         <article className="rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold text-white/80">Software research & selction</p>
+            <p className="text-xs font-semibold text-white/80">Software research & selection</p>
             <p className="shrink-0 text-xs font-medium tabular-nums text-white/70">$3,900</p>
           </div>
         </article>

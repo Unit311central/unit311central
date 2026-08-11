@@ -36,7 +36,7 @@ const TIERS: Tier[] = [
       "Standard support",
     ],
     ctaHref: "/book",
-    ctaLabel: "Book a demo",
+    ctaLabel: "Book a free demo",
   },
   {
     id: "professional",
@@ -51,7 +51,7 @@ const TIERS: Tier[] = [
       "Broader integrations and priority support",
     ],
     ctaHref: "/book",
-    ctaLabel: "Book a demo",
+    ctaLabel: "Book a free demo",
   },
   {
     id: "enterprise",
@@ -213,7 +213,7 @@ export default function HomePricing() {
             href="/book"
             className="inline-flex min-h-14 w-full max-w-lg items-center justify-center rounded-xl bg-[#15803d] px-6 text-base font-semibold text-white shadow-[0_2px_12px_rgba(21,128,61,0.35)] transition-colors hover:bg-[#166534] sm:h-16 sm:w-auto sm:px-10 sm:text-lg"
           >
-            Book a free demo and intro session
+            Book a free demo
           </Link>
           <p className="mt-6 text-sm text-white/40 sm:mt-8">
             Pricing confirmed in your proposal — demos are the right first step for most teams.
