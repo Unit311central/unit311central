@@ -138,6 +138,7 @@ async function loadLogoDataUrl(slug: string): Promise<string | null> {
 }
 
 async function runStagedAnalysis(slug: string): Promise<void> {
+  if (process.env.EA_SKIP_BOARDPACK_STAGES === "1") return;
   const stages = isOnwardAirSlug(slug)
     ? OA_BOARD_PACK_STAGES
     : isTalantonImpactSlug(slug)

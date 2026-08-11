@@ -25,7 +25,7 @@ export type EaKnowledgeClassification = {
 };
 
 const PLATFORM_HINT =
-  /\b(application\s+catalogue|platform\s+structure|what\s+is\s+under|applications?\s+(are\s+)?under|apps?\s+(are\s+)?under|pages?\s+(are\s+)?under|open\s+(financials|human\s+resources|hr|operations|settings|business\s+central)|where\s+(do\s+i|can\s+i)\s+(find|manage|open)|go\s+to\s+(financials|hr|human\s+resources)|list\s+(all\s+)?(platform\s+)?modules?\b|what\s+modules?\s+(exist|are\s+there|are\s+available))\b/i;
+  /\b(application\s+catalogue|platform\s+structure|what\s+is\s+under|applications?\s+(are\s+)?under|apps?\s+(are\s+)?under|pages?\s+(are\s+)?under|open\s+(financials|human\s+resources|hr|operations|settings|business\s+central)|where\s+(do\s+i|can\s+i)\s+(find|manage|open)|go\s+to\s+(financials|hr|human\s+resources)|list\s+(all\s+)?(platform\s+)?modules?\b|what\s+modules?\s+(exist|are\s+there|are\s+available)|tell\s+me\s+about|what\s+can\s+i\s+do\s+in|explain\s+the|describe\s+the|overview\s+of)\b/i;
 
 const CAPABILITY_HINT =
   /\b(what\s+can\s+you\s+(do|help|show|tell|answer|provide|generate|configure|change)|what\s+can\s+you\s+help\s+me\s+with|what\s+are\s+you\s+(able|capable)\s+of|list\s+(your\s+)?(capabilities|actions)|what\s+actions?\s+(exist|are\s+(there|available)|for)|can\s+you\s+(create|add|archive|update|assign|merge)|capabilities?\s+for|actions?\s+for|what\s+\w+\s+can\s+you\b)\b/i;
@@ -73,6 +73,15 @@ export function classifyKnowledgeDomain(message: string): EaKnowledgeClassificat
   const text = message.trim();
   if (!text) return { domain: "unknown", reason: "empty" };
   const lower = text.toLowerCase();
+
+  if (
+    /\b(tell\s+me\s+about|what\s+is\s+the|what's\s+in|explain\s+the|describe\s+the|what\s+does\s+the|what\s+can\s+i\s+do\s+in|how\s+does\s+the)\b[\s\S]{0,60}\b(module|section|workspace|area)\b/i.test(
+      lower,
+    ) ||
+    /\b(overview\s+of|applications?\s+in|apps?\s+in|pages?\s+in)\b/i.test(lower)
+  ) {
+    return { domain: "platform", reason: "module_natural_language" };
+  }
 
   // Org module enablement / go-live is live business state, not catalogue listing.
   if (isOrgModuleStateQuestion(lower)) {

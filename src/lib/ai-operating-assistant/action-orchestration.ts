@@ -45,6 +45,7 @@ import { buildNavigationCard, shortCardLead } from "./execution-cards";
 import {
   answerPlatformQuestion,
   isPlatformQuestion,
+  searchApplicationCatalogue,
 } from "./application-catalogue";
 import { classifyKnowledgeDomain, isBusinessStatusRead } from "./knowledge-domains";
 import { eaStage } from "./ea-forensic-trace";
@@ -407,14 +408,24 @@ export async function resolveOrchestrationRoute(
     ) {
       return { kind: "tool", intent: direct };
     }
-    // ABHI: let the model synthesise from tools (ChatGPT-style) instead of raw snapshot stubs.
-    if (!hasExplicitWriteIntent(message) && !isAbhiSlug(business.workspace.slug)) {
+    // ABHI: prefer registered tools; fall back to live snapshot for open business reads.
+    if (!hasExplicitWriteIntent(message)) {
+      if (!isAbhiSlug(business.workspace.slug)) {
+        return {
+          kind: "tool",
+          intent: {
+            tool: "queryBusiness",
+            args: { question: message },
+            reason: "business_domain_fallback",
+          },
+        };
+      }
       return {
         kind: "tool",
         intent: {
           tool: "queryBusiness",
           args: { question: message },
-          reason: "business_domain_fallback",
+          reason: "abhi_business_read_fallback",
         },
       };
     }
@@ -548,6 +559,46 @@ export async function resolveOrchestrationRoute(
         reason: "unknown_business_read_fallback",
       },
     };
+  }
+
+  // Module / platform structure — natural-language questions before giving up.
+  const structureAnswer = answerPlatformQuestion(message, catalogueOptions);
+  if (structureAnswer) {
+    const cards: EaExecutionCard[] = [];
+    if (structureAnswer.navigateHref) {
+      cards.push(
+        buildNavigationCard({
+          title: structureAnswer.navigateLabel ?? "Open module",
+          body: "Platform navigation — Application Catalogue",
+          href: structureAnswer.navigateHref,
+          label: structureAnswer.navigateLabel ?? "Open",
+        }),
+      );
+    }
+    return {
+      kind: "platform_answer",
+      message: structureAnswer.answer,
+      executionCards: cards.length ? cards : undefined,
+    };
+  }
+
+  if (!hasExplicitWriteIntent(message)) {
+    const searchHits = searchApplicationCatalogue(message, 3, catalogueOptions);
+    if (
+      searchHits.length > 0 &&
+      /\b(what|how|tell|explain|describe|which|where|about|module|application|section|page|screen|view|do)\b/i.test(
+        message,
+      )
+    ) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: "searchApplications",
+          args: { query: message },
+          reason: "module_nl_search_fallback",
+        },
+      };
+    }
   }
 
   return { kind: "none" };

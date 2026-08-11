@@ -28,6 +28,16 @@ import {
 } from "@/lib/ai-operating-assistant/application-catalogue";
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
 import { ABHI_EA_PHASE1_DEMO_CHECKS } from "@/lib/abhi/ea-phase1-demo-checks";
+import { buildAbhiModuleNlCases } from "@/lib/abhi/ea-module-nl-cases";
+import { ABHI_CASH_BALANCE_GBP } from "@/lib/abhi-financials";
+import { generateBoardPackTool } from "@/lib/ai-operating-assistant/boardpack-tools";
+import {
+  createArtifactId,
+  getAssistantArtifact,
+  hydrateArtifactFromMessagePayload,
+  putAssistantArtifact,
+} from "@/lib/ai-operating-assistant/artifact-store";
+import { getLatestConversationWithArtifacts } from "@/lib/ai-operating-assistant/conversation-service";
 import { getAbhiNavSections } from "@/lib/internal-role-views";
 import { getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
@@ -62,7 +72,7 @@ export type EaTestSuiteReport = {
   }>;
 };
 
-const SUITE_VERSION = "abhi-ea-v2";
+const SUITE_VERSION = "abhi-ea-v3";
 
 const FORBIDDEN_ABHI = [/\bTalanton\b/, /\bportfolio companies\b/i, /\bMOIC\b/i, /\bVertex VTOL\b/i];
 
@@ -97,6 +107,16 @@ const ANALYSIS_CASES: Array<{ q: string; tool: string; focusOrQuery?: string }> 
     q: "What should the board discuss next month?",
     tool: "abhi.getBoardInsights",
     focusOrQuery: "agenda",
+  },
+  {
+    q: "What issues are deteriorating?",
+    tool: "abhi.getBoardInsights",
+    focusOrQuery: "deteriorating",
+  },
+  {
+    q: "What issues have improved?",
+    tool: "abhi.getBoardInsights",
+    focusOrQuery: "improving",
   },
 ];
 
@@ -462,6 +482,128 @@ export async function runAbhiEaTestSuite(): Promise<EaTestSuiteReport> {
     if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
     if (route.intent.tool !== "boardpack.generate") {
       throw new Error(`expected boardpack.generate, got ${route.intent.tool}`);
+    }
+  });
+
+  const financials = new SectionRunner("ABHI financial fixtures");
+  sections.push(financials);
+  await financials.run("Board pack cash aligns with £1M fixture", () => {
+    const pack = buildAbhiBoardPackData("2026-08-20");
+    if (pack.financialOverview.cashPosition.actual !== ABHI_CASH_BALANCE_GBP) {
+      throw new Error(
+        `expected cash ${ABHI_CASH_BALANCE_GBP}, got ${pack.financialOverview.cashPosition.actual}`,
+      );
+    }
+    const prose = formatAbhiExecutiveBriefingText(buildAbhiExecutiveBriefing());
+    if (!/£1(\.0)?m|£1,000,000|1m cash/i.test(prose)) {
+      throw new Error("executive briefing should mention ~£1M cash");
+    }
+  }, `cash=${ABHI_CASH_BALANCE_GBP}`);
+
+  await financials.run("Open business read routes to queryBusiness on ABHI", async () => {
+    const route = await resolveOrchestrationRoute(
+      "How many employees do we have?",
+      [],
+      abhiBusiness(),
+    );
+    if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
+    if (route.intent.tool !== "queryBusiness") {
+      throw new Error(`expected queryBusiness, got ${route.intent.tool}`);
+    }
+  });
+
+  const moduleNl = new SectionRunner("Module natural language");
+  sections.push(moduleNl);
+  for (const row of buildAbhiModuleNlCases()) {
+    await moduleNl.run(row.id, async () => {
+      const answered = answerPlatformQuestion(row.prompt, { workspaceSlug: "abhi" });
+      const hits = searchApplicationCatalogue(row.prompt, 3, { workspaceSlug: "abhi" });
+      const route = await resolveOrchestrationRoute(row.prompt, [], abhiBusiness());
+      const okRoute =
+        route.kind === "platform_answer" ||
+        route.kind === "tool" ||
+        route.kind === "capability_answer";
+      const okCatalogue =
+        answered != null ||
+        hits.some(
+          (hit) =>
+            hit.entry.module.displayName === row.moduleLabel ||
+            hit.entry.module.label === row.moduleLabel,
+        );
+      if (!okRoute && !okCatalogue) {
+        throw new Error(`no catalogue or orchestration answer for ${row.prompt}`);
+      }
+    }, row.moduleLabel);
+  }
+
+  const artifacts = new SectionRunner("Artifact persistence");
+  sections.push(artifacts);
+  await artifacts.run("putAssistantArtifact retains base64", () => {
+    const id = createArtifactId();
+    const record = putAssistantArtifact({
+      id,
+      kind: "pdf",
+      title: "Test Pack",
+      filename: "Test.pdf",
+      mimeType: "application/pdf",
+      bytes: Buffer.from("%PDF-test"),
+      userId: "u-test",
+    });
+    if (!record.contentBase64) throw new Error("missing contentBase64");
+    if (!getAssistantArtifact(id, "u-test")) throw new Error("memory cache miss");
+  });
+
+  await artifacts.run("hydrateArtifactFromMessagePayload restores bytes", () => {
+    const id = createArtifactId();
+    const original = putAssistantArtifact({
+      id,
+      kind: "pdf",
+      title: "Hydrate Pack",
+      filename: "Hydrate.pdf",
+      mimeType: "application/pdf",
+      bytes: Buffer.from("%PDF-hydrate"),
+      userId: "u-test",
+    });
+    const hydrated = hydrateArtifactFromMessagePayload({
+      id,
+      title: "Hydrate Pack",
+      filename: "Hydrate.pdf",
+      userId: "u-test",
+      contentBase64: original.contentBase64!,
+    });
+    if (hydrated.bytes.toString() !== "%PDF-hydrate") throw new Error("hydration bytes mismatch");
+  });
+
+  await artifacts.run("boardpack.generate returns durable artifact items", async () => {
+    process.env.EA_SKIP_BOARDPACK_STAGES = "1";
+    try {
+      const result = await generateBoardPackTool(
+        { meetingDate: "2026-08-20" },
+        {
+          business: abhiBusiness(),
+          selection: {},
+        },
+      );
+      const status = String((result as { status?: string }).status ?? "");
+      if (status !== "ok") throw new Error(`expected ok, got ${status}`);
+      const items = (result as { items?: Array<Record<string, unknown>> }).items ?? [];
+      const pdf = items.find((item) => item.kind === "pdf");
+      if (!pdf?.contentBase64) throw new Error("board pack PDF missing contentBase64");
+      if (!pdf.artifactId) throw new Error("board pack PDF missing artifactId");
+      const cached = getAssistantArtifact(String(pdf.artifactId), "u-test");
+      if (!cached?.contentBase64) throw new Error("board pack artifact not in memory cache");
+    } finally {
+      delete process.env.EA_SKIP_BOARDPACK_STAGES;
+    }
+  });
+
+  await artifacts.run("conversation resume helper is callable", async () => {
+    const latest = await getLatestConversationWithArtifacts({
+      userId: "00000000-0000-0000-0000-000000000000",
+      workspaceId: "ws-abhi",
+    });
+    if (latest !== null && !Array.isArray(latest.messages)) {
+      throw new Error("unexpected conversation shape");
     }
   });
 

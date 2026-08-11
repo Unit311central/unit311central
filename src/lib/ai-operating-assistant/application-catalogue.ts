@@ -498,6 +498,42 @@ function pickNavigationHit(
   return specific ?? hits[0]!;
 }
 
+function extractNaturalLanguageModuleTopic(lower: string): string | null {
+  const patterns = [
+    /\b(?:tell\s+me\s+about|what\s+is|what's|explain|describe|give\s+me\s+an?\s+overview\s+of)\s+(?:the\s+)?(.+?)(?:\?|\.|$)/i,
+    /\bwhat\s+does\s+(?:the\s+)?(.+?)\s+(?:module|section|workspace)\s+do\b/i,
+    /\bwhat\s+can\s+i\s+do\s+in\s+(?:the\s+)?(.+?)(?:\?|\.|$)/i,
+    /\bwhat(?:'s|\s+is)\s+in\s+(?:the\s+)?(.+?)(?:\?|\.|$)/i,
+    /\bhow\s+does\s+(?:the\s+)?(.+?)\s+(?:module|section)\s+work\b/i,
+  ];
+  for (const pattern of patterns) {
+    const match = lower.match(pattern);
+    if (!match?.[1]) continue;
+    const topic = match[1]
+      .replace(/\b(module|workspace|section|area)\b/gi, "")
+      .replace(/\b(unit\s*311(?:central)?|the\s+platform|abhi)\b/gi, "")
+      .trim();
+    if (topic.length > 1) return topic;
+  }
+  return null;
+}
+
+function catalogueEntryAnswer(entry: ApplicationCatalogueEntry): string {
+  if (entry.kind === "module") return formatModuleDetail(entry.module);
+  if (entry.kind === "application") {
+    return [
+      `${entry.module.displayName} → ${entry.application.label}`,
+      entry.application.description ?? "",
+      entry.application.pages.length
+        ? `Pages: ${entry.application.pages.map((page) => page.label).join(", ")}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+  return `${entry.module.displayName} → ${entry.application.label} → ${entry.page.label}`;
+}
+
 function hrefFromCatalogueEntry(entry: ApplicationCatalogueEntry): string {
   if (entry.kind === "module") return entry.module.navigation.href;
   if (entry.kind === "application") {
@@ -701,6 +737,32 @@ export function answerPlatformQuestion(
       navigateHref: softModule.navigation.href,
       navigateLabel: `Open ${softModule.displayName}`,
     };
+  }
+
+  const nlTopic = extractNaturalLanguageModuleTopic(lower);
+  if (nlTopic) {
+    const module =
+      getPlatformModule(nlTopic, options) ??
+      searchApplicationCatalogue(nlTopic, 1, options)[0]?.entry.module;
+    if (module) {
+      return {
+        kind: "module_detail",
+        answer: formatModuleDetail(module),
+        modules: [module],
+        navigateHref: module.navigation.href,
+        navigateLabel: `Open ${module.displayName}`,
+      };
+    }
+    const hit = searchApplicationCatalogue(nlTopic, 1, options)[0];
+    if (hit) {
+      return {
+        kind: "search",
+        answer: catalogueEntryAnswer(hit.entry),
+        modules: [hit.entry.module],
+        navigateHref: hrefFromCatalogueEntry(hit.entry),
+        navigateLabel: `Open ${labelFromCatalogueEntry(hit.entry)}`,
+      };
+    }
   }
 
   return null;
