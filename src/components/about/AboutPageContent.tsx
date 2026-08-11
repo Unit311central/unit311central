@@ -240,7 +240,7 @@ export default function AboutPageContent() {
       </section>
 
       {/* Leadership */}
-      <div className={`relative z-10 ${marketingFadeIn}`}>
+      <div id="team" className={`relative z-10 scroll-mt-28 ${marketingFadeIn}`}>
         <div className="max-w-2xl">
           <p className={marketingEyebrow}>Leadership</p>
           <h2 className={`mt-3 ${marketingSectionTitle}`}>The team</h2>

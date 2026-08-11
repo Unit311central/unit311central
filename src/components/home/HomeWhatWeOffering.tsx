@@ -1,3 +1,4 @@
+import Link from "next/link";
 import HomeExecutiveDemoVideo from "./HomeExecutiveDemoVideo";
 import HomeSectionTitle from "./HomeSectionTitle";
 import HomeWorkspaceExplorer from "./HomeWorkspaceExplorer";
@@ -18,7 +19,19 @@ export default function HomeWhatWeOffering() {
       />
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
-        <HomeSectionTitle>What we are offering</HomeSectionTitle>
+        <p className="mx-auto max-w-3xl text-center text-sm leading-relaxed text-white/50 sm:text-[15px] md:text-[16px]">
+          Built by a seasoned{" "}
+          <Link
+            href="/about#team"
+            className="font-medium text-sky-300/90 underline decoration-sky-400/30 underline-offset-4 transition-colors hover:text-sky-200 hover:decoration-sky-300/50"
+          >
+            team
+          </Link>{" "}
+          of experts in technology, big data, AI, and building out SMEs.
+        </p>
+        <div className="mt-8 sm:mt-10">
+          <HomeSectionTitle>What we are offering</HomeSectionTitle>
+        </div>
         <p className="mx-auto mt-5 max-w-3xl text-center text-sm leading-relaxed text-white/55 sm:text-[15px] md:text-[16px]">
           A complete business operating package for funded startups and growing SMEs — platform, AI
           intelligence, integrations, and hands-on launch and support. Every business is different;
