@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getIsoWeekKey } from "@/lib/onwardair/competitor-intelligence-feed-store";
+import {
+  ensureWeeklyCompetitorIntelligenceRefresh,
+  getIsoWeekKey,
+  listCompetitorIntelFeed,
+} from "@/lib/onwardair/competitor-intelligence-feed-store";
 import { listCompetitors } from "@/lib/onwardair/competitor-intelligence-data";
 
 export const runtime = "nodejs";
@@ -9,8 +13,7 @@ export const maxDuration = 30;
 
 /**
  * Weekly Competitor Intelligence cadence ping.
- * Client workspaces auto-create the week’s brief on Home / CI open.
- * This cron documents the schedule and returns the current week key for ops.
+ * Ensures the server-side feed (EA + cron) has the current ISO week brief/signals.
  */
 function isAuthorizedCron(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim();
@@ -24,6 +27,8 @@ export async function GET(request: NextRequest) {
   }
 
   const weekKey = getIsoWeekKey();
+  const refresh = ensureWeeklyCompetitorIntelligenceRefresh();
+  const feed = listCompetitorIntelFeed();
   const competitors = listCompetitors();
   const inCertification = competitors.filter(
     (c) => c.certificationCategory === "In Certification",
@@ -34,8 +39,10 @@ export async function GET(request: NextRequest) {
     cron: true,
     module: "onwardair-competitor-intelligence",
     weekKey,
+    refreshCreated: refresh.created,
+    intelFeedItems: feed.length,
     trackedCompetitors: competitors.length,
     inCertification,
-    note: "Weekly briefs are ensured client-side when OnwardAir Home or Competitor Intelligence opens.",
+    note: "Server feed warmed for EA; clients still merge localStorage on open.",
   });
 }

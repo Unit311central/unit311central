@@ -16,6 +16,12 @@ import { getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service"
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import { buildOnwardAirBoardPackData } from "@/lib/onwardair/board-pack-model";
 import { ONWARDAIR_CASH_BALANCE_USD } from "@/lib/onwardair-financials";
+import {
+  getCompetitorIntelCadence,
+  getIsoWeekKey,
+  listCompetitorIntelFeed,
+} from "@/lib/onwardair/competitor-intelligence-feed-store";
+import { queryOnwardAirModule } from "@/lib/onwardair/executive-intelligence";
 
 export type EaTestStatus = "pass" | "fail";
 export type EaTestCaseResult = {
@@ -188,6 +194,33 @@ export async function runOnwardAirEaTestSuite(): Promise<EaTestSuiteReport> {
     const route = await resolveOrchestrationRoute("Tell me about Engineering", [], business);
     if (route.kind !== "platform_answer" && route.kind !== "tool") {
       throw new Error(`unexpected route ${route.kind}`);
+    }
+  });
+
+  const intelFeed = new SectionRunner("Competitor intel feed");
+  sections.push(intelFeed);
+  await intelFeed.run("Server feed seeded with current week brief", () => {
+    const weekKey = getIsoWeekKey();
+    const items = listCompetitorIntelFeed();
+    if (items.length < 4) {
+      throw new Error(`expected seeded feed items, got ${items.length}`);
+    }
+    const brief = items.find((i) => i.id === `weekly-brief-${weekKey}`);
+    if (!brief) {
+      throw new Error(`missing weekly brief for ${weekKey}`);
+    }
+    const cadence = getCompetitorIntelCadence();
+    if (cadence.currentWeekKey !== weekKey) {
+      throw new Error("cadence week key mismatch");
+    }
+  });
+  await intelFeed.run("queryModule intelligence includes weekly brief", () => {
+    const result = queryOnwardAirModule("intelligence");
+    if (!result.bullets.some((b) => b.includes("This week"))) {
+      throw new Error("expected current-week brief in bullets");
+    }
+    if (Number(result.metrics.intelFeedItems) < 4) {
+      throw new Error("intelFeedItems metric missing or too low");
     }
   });
 

@@ -43,7 +43,38 @@ type Listener = () => void;
 const STORAGE_KEY = "unit311.onwardair.competitor-intelligence-feed.v3";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
+declare global {
+  // Ambient `var` required for globalThis augmentation.
+  var __onwardAirCompetitorIntelFeed: CompetitorIntelFeedState | undefined;
+}
+
 const listeners = new Set<Listener>();
+
+function isServerRuntime() {
+  return typeof window === "undefined";
+}
+
+function readServerFeedState(): CompetitorIntelFeedState {
+  if (!globalThis.__onwardAirCompetitorIntelFeed) {
+    globalThis.__onwardAirCompetitorIntelFeed = {
+      items: seedHistoricalFeed(),
+      lastEnsuredWeekKey: null,
+      lastEnsuredAt: null,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+  return globalThis.__onwardAirCompetitorIntelFeed;
+}
+
+function writeServerFeedState(next: CompetitorIntelFeedState) {
+  globalThis.__onwardAirCompetitorIntelFeed = next;
+}
+
+/** Idempotent server bootstrap — historical seed + current ISO week brief/signals. */
+export function bootstrapServerCompetitorIntelFeed(): CompetitorIntelFeedState {
+  ensureWeeklyCompetitorIntelligenceRefresh();
+  return readServerFeedState();
+}
 
 function emit() {
   for (const l of listeners) l();
@@ -200,10 +231,7 @@ const EMPTY_SERVER_SNAPSHOT: CompetitorIntelFeedState = {
   updatedAt: "1970-01-01T00:00:00.000Z",
 };
 
-function loadState(): CompetitorIntelFeedState {
-  if (typeof window === "undefined") {
-    return EMPTY_SERVER_SNAPSHOT;
-  }
+function loadClientState(): CompetitorIntelFeedState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -235,27 +263,43 @@ function persist(state: CompetitorIntelFeedState) {
 let state: CompetitorIntelFeedState | null = null;
 
 function getState(): CompetitorIntelFeedState {
-  if (!state) state = loadState();
+  if (isServerRuntime()) {
+    return readServerFeedState();
+  }
+  if (!state) state = loadClientState();
   return state;
 }
 
 function setState(next: Omit<CompetitorIntelFeedState, "updatedAt"> | CompetitorIntelFeedState) {
-  state = { ...next, updatedAt: new Date().toISOString() };
+  const updated: CompetitorIntelFeedState = {
+    ...next,
+    updatedAt: new Date().toISOString(),
+  };
+  if (isServerRuntime()) {
+    writeServerFeedState(updated);
+    return updated;
+  }
+  state = updated;
   persist(state);
   emit();
   return state;
 }
 
 export function getCompetitorIntelFeedSnapshot(): CompetitorIntelFeedState {
+  ensureWeeklyCompetitorIntelligenceRefresh();
   return getState();
 }
 
 /** Stable server snapshot for useSyncExternalStore (avoids React #185). */
 export function getCompetitorIntelFeedServerSnapshot(): CompetitorIntelFeedState {
+  if (isServerRuntime()) {
+    return bootstrapServerCompetitorIntelFeed();
+  }
   return EMPTY_SERVER_SNAPSHOT;
 }
 
 export function listCompetitorIntelFeed(): CompetitorIntelItem[] {
+  ensureWeeklyCompetitorIntelligenceRefresh();
   return getState()
     .items.slice()
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
@@ -300,13 +344,11 @@ export function ensureWeeklyCompetitorIntelligenceRefresh(options?: {
 
   if (already && !options?.force) {
     if (snap.lastEnsuredWeekKey !== weekKey) {
-      state = {
+      setState({
         ...snap,
         lastEnsuredWeekKey: weekKey,
         lastEnsuredAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      persist(state);
+      });
     }
     return { created: false, weekKey, newItems: [] };
   }

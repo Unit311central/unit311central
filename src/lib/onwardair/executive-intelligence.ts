@@ -29,7 +29,7 @@ import {
   listCompetitors,
   listPriorityWatchCompetitors,
 } from "@/lib/onwardair/competitor-intelligence-data";
-import { listCompetitorIntelFeed } from "@/lib/onwardair/competitor-intelligence-feed-store";
+import { listCompetitorIntelFeed, getCompetitorIntelCadence } from "@/lib/onwardair/competitor-intelligence-feed-store";
 import { getOaOperationsDashboardSummary } from "@/lib/onwardair/operations-data";
 import { getOaBcDashboardSummary } from "@/lib/onwardair/business-central-data";
 import { patentSummaryStats } from "@/lib/onwardair/ip-patents-data";
@@ -516,22 +516,39 @@ export function queryOnwardAirModule(module: OaModuleId, question?: string): OaM
         metrics: { openActions: board.openActions.length, highRisks: board.highRisks.length },
         navigationHint: "Board → Dashboard / Meetings / Risk Register",
       };
-    case "intelligence":
+    case "intelligence": {
+      const cadence = getCompetitorIntelCadence();
+      const weekBrief = intelFeed.find(
+        (i) => i.category === "Weekly Brief" && i.weekKey === cadence.currentWeekKey,
+      );
+      const weekSignals = intelFeed
+        .filter((i) => i.weekKey === cadence.currentWeekKey)
+        .slice(0, 4);
       return {
         asOf,
         module,
-        headline: `${competitors.length} priority competitors; ${intelFeed.length} intel feed items`,
+        headline: weekBrief
+          ? `${weekBrief.title} · ${intelFeed.length} signals tracked`
+          : `${competitors.length} priority competitors; ${intelFeed.length} intel feed items`,
         bullets: [
-          ...competitors.slice(0, 4).map((c) => `${c.companyName} — ${c.certificationCategory}`),
-          ...intelFeed.slice(0, 3).map((i) => i.title),
+          ...(weekBrief ? [`This week (${cadence.currentWeekKey}): ${weekBrief.summary}`] : []),
+          ...weekSignals
+            .filter((i) => i.id !== weekBrief?.id)
+            .map((i) => `${i.title} — ${i.summary}`),
+          ...competitors.slice(0, 3).map((c) => `${c.companyName} — ${c.certificationCategory}`),
         ],
         metrics: {
           competitorsTracked: listCompetitors().length,
+          priorityWatch: competitors.length,
+          intelFeedItems: intelFeed.length,
+          currentWeekKey: cadence.currentWeekKey,
+          weeklyBriefTitle: weekBrief?.title ?? "—",
           patentsVerified: ip.verified,
           patentApplications: ip.applications,
         },
         navigationHint: "OnwardAir Intelligence → Competitor Intelligence / IP & Patents",
       };
+    }
     case "operations":
       return {
         asOf,
