@@ -29,7 +29,7 @@ export default function HomeHero() {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col px-4 py-8 sm:px-8 sm:py-10 lg:min-h-[100svh] lg:items-center lg:px-10 lg:py-24 lg:pt-[120px]">
+      <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col px-4 py-8 sm:px-8 sm:py-10 lg:min-h-[100svh] lg:flex-row lg:items-center lg:px-10 lg:pb-24 lg:pt-[120px]">
         <div className="relative max-w-[800px]">
           <h1 className="text-[1.75rem] font-bold leading-[1.08] tracking-[-0.03em] text-white sm:text-[2.75rem] sm:leading-[0.95] lg:text-[3.35rem] xl:text-[3.75rem]">
             <span className="block">One operating layer</span>
