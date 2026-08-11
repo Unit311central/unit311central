@@ -7,7 +7,10 @@ export default function HomeHero() {
     <section className="relative flex flex-col bg-[#020617] lg:min-h-[100svh] lg:block lg:overflow-hidden">
       {/* Phones: nav clearance + 16:9 band (full frame). Desktop: full-bleed background. */}
       <div className="w-full shrink-0 lg:absolute lg:inset-0 lg:pt-0">
-        <div className="pt-14 sm:pt-20 lg:hidden" aria-hidden />
+        <div
+          className="pt-[calc(5.75rem+env(safe-area-inset-top))] sm:pt-[calc(6.25rem+env(safe-area-inset-top))] lg:hidden"
+          aria-hidden
+        />
         <div className="relative aspect-video w-full overflow-hidden bg-[#020617] lg:absolute lg:inset-0 lg:aspect-auto">
           <HeroVideoBackground />
         </div>

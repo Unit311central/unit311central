@@ -116,10 +116,10 @@ export default function Navbar() {
       <header
         className={
           isHomePage
-            ? "absolute inset-x-0 top-0 z-40 bg-[#020617]/55 pt-[env(safe-area-inset-top)] backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none"
+            ? "absolute inset-x-0 top-0 z-40 overflow-visible bg-[#020617]/55 pt-[env(safe-area-inset-top)] backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none"
             : isDarkNav
-              ? "sticky top-0 z-40 border-b border-white/10 bg-[#020617]/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
-              : "sticky top-0 z-40 border-b border-border bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
+              ? "sticky top-0 z-40 overflow-visible border-b border-white/10 bg-[#020617]/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
+              : "sticky top-0 z-40 overflow-visible border-b border-border bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
         }
       >
         <div
@@ -127,18 +127,18 @@ export default function Navbar() {
             isClientCallPage ? "" : "lg:grid lg:grid-cols-[1fr_auto_1fr]"
           } ${
             isHomePage
-              ? "h-14 px-3 sm:h-20 lg:h-44 lg:px-6"
+              ? "min-h-14 px-[max(0.75rem,env(safe-area-inset-left))] py-1.5 pr-[max(0.75rem,env(safe-area-inset-right))] sm:min-h-20 sm:py-0 lg:h-44 lg:px-6"
               : isClientCallPage
                 ? "h-14 px-4 sm:h-16"
                 : isMarketingPage
-                  ? "h-14 px-3 sm:h-20 lg:h-24"
-                  : "h-14 px-3 sm:h-20 lg:h-28"
+                  ? "min-h-14 px-[max(0.75rem,env(safe-area-inset-left))] py-1.5 pr-[max(0.75rem,env(safe-area-inset-right))] sm:min-h-20 sm:py-0 lg:h-24"
+                  : "min-h-14 px-[max(0.75rem,env(safe-area-inset-left))] py-1.5 pr-[max(0.75rem,env(safe-area-inset-right))] sm:min-h-20 sm:py-0 lg:h-28"
           }`}
         >
-          <div className="flex w-full items-center justify-between lg:contents">
+          <div className="flex w-full min-w-0 items-center justify-between gap-2 lg:contents">
             <div
-              className={`flex items-center justify-start overflow-visible ${
-                isHomePage ? "w-full max-w-[640px] lg:w-auto" : "min-w-0 overflow-hidden"
+              className={`flex min-w-0 flex-1 items-center justify-start overflow-visible lg:flex-none ${
+                isHomePage ? "lg:max-w-[640px]" : ""
               }`}
             >
               {isHomePage ? (
@@ -228,7 +228,7 @@ export default function Navbar() {
               isDarkNav ? "border-white/10 bg-[#020617]/90" : "border-border bg-background/95"
             }`}
           >
-            <div className="mx-auto flex max-w-[1400px] gap-1 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mx-auto flex max-w-[1400px] gap-1 overflow-x-auto px-[max(0.75rem,env(safe-area-inset-left))] py-2 pr-[max(0.75rem,env(safe-area-inset-right))] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {NAV.map((link) => (
                 <Link
                   key={link.href}

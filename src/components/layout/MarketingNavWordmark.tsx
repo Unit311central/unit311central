@@ -11,10 +11,10 @@ export default function MarketingNavWordmark({ compact = false }: MarketingNavWo
     <Link
       href="/"
       aria-label="Unit311 Central home"
-      className={`inline-flex shrink-0 ${
+      className={`inline-flex min-w-0 shrink overflow-visible ${
         compact
-          ? "max-w-[min(100%,calc(100%-9.5rem))] sm:max-w-none"
-          : "max-w-[min(100%,calc(100%-8.5rem))] sm:max-w-none"
+          ? "max-w-[calc(100vw-5.25rem-env(safe-area-inset-left)-env(safe-area-inset-right))] sm:max-w-none"
+          : "max-w-[calc(100vw-4.75rem-env(safe-area-inset-left)-env(safe-area-inset-right))] sm:max-w-none"
       }`}
     >
       <Unit311CentralWordmark

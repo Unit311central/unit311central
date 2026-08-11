@@ -22,10 +22,10 @@ const VARIANTS: Record<
     line: "w-[1rem] sm:w-[1.5rem] lg:w-[2.375rem]",
   },
   nav: {
-    root: "h-8 sm:h-12 lg:h-[5.625rem]",
-    primary: "text-[0.9375rem] sm:text-[1.375rem] lg:text-[2.5rem]",
-    secondary: "text-[0.625rem] sm:text-[0.6875rem] lg:text-[0.8125rem]",
-    line: "w-2.5 sm:w-4 lg:w-[2.125rem]",
+    root: "min-h-[2.25rem] h-auto py-0.5 sm:min-h-0 sm:h-12 sm:py-0 lg:h-[5.625rem]",
+    primary: "text-[0.8125rem] sm:text-[1.375rem] lg:text-[2.5rem]",
+    secondary: "text-[0.5625rem] sm:text-[0.6875rem] lg:text-[0.8125rem]",
+    line: "w-2 sm:w-4 lg:w-[2.125rem]",
   },
   menu: {
     root: "h-11 sm:h-12",
@@ -82,7 +82,15 @@ export default function Unit311CentralWordmark({
             background: `linear-gradient(to right, ${BRAND_BLUE_DEEP}, ${BRAND_BLUE})`,
           }}
         />
-        <span className="font-bold tracking-[0.28em]" style={{ color: centralColor }}>
+        <span
+          className={cn(
+            "font-bold",
+            variant === "nav" || variant === "menu"
+              ? "tracking-[0.2em] sm:tracking-[0.28em]"
+              : "tracking-[0.28em]",
+          )}
+          style={{ color: centralColor }}
+        >
           CENTRAL
         </span>
         <span
