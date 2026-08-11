@@ -72,6 +72,11 @@ import { VoiceSettingsPopover } from "@/components/executive-assistant/voice/Voi
 import { VoiceWaveform } from "@/components/executive-assistant/voice/VoiceWaveform";
 import { useExecutiveVoice } from "@/components/executive-assistant/voice/useExecutiveVoice";
 import { voiceStatusLabel } from "@/lib/executive-assistant-voice";
+import {
+  clearPersistedConversationId,
+  persistConversationId,
+  readPersistedConversationId,
+} from "@/lib/ai-operating-assistant/ea-session-persistence";
 
 export type ExecutiveAssistantPanelProps = {
   variant: ExecutiveAssistantVariant;
@@ -302,6 +307,7 @@ export default function ExecutiveAssistantPanel({
 
   const assistantActive = variant !== "drawer" || open;
   const bootstrappedRef = useRef(false);
+  const skippedResumeRef = useRef(false);
 
   useEffect(() => {
     if (!assistantActive || bootstrappedRef.current) return;
@@ -319,7 +325,34 @@ export default function ExecutiveAssistantPanel({
         // voice prefs fall back to anon
       }
     })();
-  }, [assistantActive, refreshConversations]);
+
+    if (skippedResumeRef.current || embedded) return;
+
+    void (async () => {
+      const persistedId = readPersistedConversationId();
+      const query = persistedId
+        ? `?conversationId=${encodeURIComponent(persistedId)}`
+        : "";
+      try {
+        const response = await fetch(
+          `/api/executive-assistant/conversations/resume${query}`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          conversation?: AssistantConversationRecord | null;
+        };
+        if (!data.conversation?.messages?.length) return;
+        setActiveConversationId(data.conversation.id);
+        persistConversationId(data.conversation.id);
+        setMessages(
+          data.conversation.messages.length > 0 ? data.conversation.messages : [WELCOME],
+        );
+      } catch {
+        // optional resume
+      }
+    })();
+  }, [assistantActive, embedded, refreshConversations]);
 
   useEffect(() => {
     if (variant !== "drawer" || !open) return;
@@ -356,6 +389,8 @@ export default function ExecutiveAssistantPanel({
 
   function startNewConversation() {
     abortRef.current?.abort();
+    skippedResumeRef.current = true;
+    clearPersistedConversationId();
     setActiveConversationId(null);
     setMessages(embedded ? [] : [WELCOME]);
     setMessage("");
@@ -764,6 +799,7 @@ export default function ExecutiveAssistantPanel({
           if (event.type === "meta") {
             if (event.conversationId !== "pending") {
               setActiveConversationId(event.conversationId);
+              persistConversationId(event.conversationId);
             }
             if (typeof event.correlationId === "string" && event.correlationId) {
               setEaCorrelationId(event.correlationId);
@@ -955,6 +991,7 @@ export default function ExecutiveAssistantPanel({
               setEaCorrelationId(event.correlationId);
             }
             setActiveConversationId(event.conversationId);
+            persistConversationId(event.conversationId);
             finalReply = event.message.content?.trim() || null;
             setMessages((current) =>
               current.map((entry) =>

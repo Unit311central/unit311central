@@ -221,6 +221,41 @@ export async function findArtifactInUserConversations(
   return null;
 }
 
+/** Most recent conversation that contains generated files (draft or saved). */
+export async function getLatestConversationWithArtifacts(input: {
+  userId: string;
+  workspaceId?: string | null;
+  limit?: number;
+}): Promise<AssistantConversationRecord | null> {
+  if (!isSupabaseServiceRoleConfigured()) return null;
+  await ensureConversationTables();
+  const supabase = requireClient();
+  const limit = input.limit ?? 25;
+
+  let query = supabase
+    .from(TABLE)
+    .select("*")
+    .eq("user_id", input.userId)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (input.workspaceId) {
+    query = query.eq("workspace_id", input.workspaceId);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) return null;
+
+  for (const row of data) {
+    const conversation = mapRow(row as DbRow);
+    const hasArtifacts = conversation.messages.some(
+      (message) => (message.artifacts?.length ?? 0) > 0,
+    );
+    if (hasArtifacts) return conversation;
+  }
+  return null;
+}
+
 export async function createConversation(input: {
   userId: string;
   workspaceId?: string | null;
