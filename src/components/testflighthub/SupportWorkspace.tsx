@@ -707,9 +707,12 @@ export default function SupportWorkspace({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-ai-target="support-workspace">
       {overviewMode ? (
-        <section className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-4 sm:px-5">
+        <section
+          data-ai-target="support-kpis"
+          className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 px-4 py-4 sm:px-5"
+        >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300/80">

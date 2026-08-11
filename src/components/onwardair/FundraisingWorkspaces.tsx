@@ -137,7 +137,7 @@ export function FundraisingDashboardWorkspace() {
         subtitle="Active raises, capital progress, and round detail. Pre-Seed figures sync from Cap Table Management."
       />
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section data-ai-target="fundraising-kpis" className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile
           label="Active Raises"
           value={activeRaises}
@@ -281,7 +281,7 @@ export function FundraisingInvestorsWorkspace() {
         subtitle="Investor records from Cap Table Management — external capital holders on the OnwardAir register."
       />
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section data-ai-target="fundraising-kpis" className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile label="Investors" value={investors.length} hint="From cap table" />
         <CorporateKpiTile
           label="Capital Committed"
@@ -371,7 +371,7 @@ export function FundraisingPipelineWorkspace() {
         subtitle="Seed round in progress — investor progression across stages. Raise not finished."
       />
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section data-ai-target="fundraising-kpis" className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile label="Open deals" value={openDeals.length} hint="Seed pipeline" />
         <CorporateKpiTile
           label="Pipeline value"
@@ -406,7 +406,7 @@ export function FundraisingPipelineWorkspace() {
         title="Seed round deals"
         subtitle="Demo pipeline for the ongoing Seed raise."
       >
-        <div className={tableWrapClass()}>
+        <div data-ai-target="fundraising-pipeline-table" className={tableWrapClass()}>
           <table className="min-w-full text-left">
             <thead className="border-b border-white/10 bg-white/[0.03]">
               <tr>
@@ -454,7 +454,7 @@ export function FundraisingMeetingsWorkspace() {
         subtitle="Upcoming meetings with potential Seed investors — dates, attendees, links, and deck status."
       />
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section data-ai-target="fundraising-kpis" className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile
           label="Upcoming"
           value={FUNDRAISING_MEETINGS.length}
@@ -822,7 +822,7 @@ export function FundraisingDataRoomsWorkspace() {
         subtitle="Active investor data rooms — folder links and last update."
       />
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section data-ai-target="fundraising-kpis" className="grid gap-3 sm:grid-cols-3">
         <CorporateKpiTile
           label="Active rooms"
           value={FUNDRAISING_DATA_ROOMS.length}

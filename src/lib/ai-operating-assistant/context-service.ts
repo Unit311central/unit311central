@@ -115,6 +115,7 @@ export async function buildBusinessContext(
       roles: entitlements.roles,
       departments: entitlements.departments,
       allowedViews: entitlements.allowedViews,
+      readOnlyMode: input.session.userType === "external",
     },
     generatedAt: new Date().toISOString(),
   };

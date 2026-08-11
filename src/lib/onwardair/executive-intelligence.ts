@@ -13,13 +13,16 @@ import {
   type OaBoardAction,
 } from "@/lib/onwardair/board-data";
 import {
-  FUNDRAISING_PIPELINE,
   ONWARDAIR_SEED_RAISE_TARGET_USD,
   formatUsdCompact,
 } from "@/lib/onwardair/fundraising-data";
 import {
+  getMergedEngineeringRisks,
+  getMergedFundraisingPipeline,
+  listMergedOpenBoardActions,
+} from "@/lib/onwardair/executive-mutations-store";
+import {
   OA_ENG_PROGRAMS,
-  OA_ENG_RISKS,
   getOaEngineeringOverviewSummary,
 } from "@/lib/onwardair/engineering-data";
 import {
@@ -142,16 +145,13 @@ export function loadOnwardAirExecutiveSnapshot(asOf?: string | null): AbhiBoardP
 }
 
 function listOaBoardActions(): OaBoardAction[] {
-  return OA_HELD_BOARD_MEETINGS.flatMap((m) => m.actions).filter(
-    (a) => a.status !== "Completed" && a.status !== "Closed",
-  );
+  return listMergedOpenBoardActions();
 }
 
 function activePipelineUsd() {
-  return FUNDRAISING_PIPELINE.filter((d) => d.stage !== "Passed").reduce(
-    (sum, d) => sum + d.amountUsd,
-    0,
-  );
+  return getMergedFundraisingPipeline()
+    .filter((d) => d.stage !== "Passed")
+    .reduce((sum, d) => sum + d.amountUsd, 0);
 }
 
 function worstStatus(...statuses: OaHealthStatus[]): OaHealthStatus {
@@ -237,7 +237,7 @@ export function buildOnwardAirExecutiveBriefing(asOf?: string | null): OaExecuti
   const eng = getOaEngineeringOverviewSummary();
   const board = getOaBoardDashboardSnapshot();
   const actions = listOaBoardActions();
-  const pipeline = FUNDRAISING_PIPELINE.filter((d) => d.stage !== "Passed");
+  const pipeline = getMergedFundraisingPipeline().filter((d) => d.stage !== "Passed");
 
   return {
     asOf: data.meetingDate,
@@ -261,7 +261,7 @@ export function buildOnwardAirExecutiveBriefing(asOf?: string | null): OaExecuti
     ],
     risksRequiringAttention: [
       ...data.risks.slice(0, 3).map((r) => `${r.risk} (${r.owner})`),
-      ...OA_ENG_RISKS.filter((r) => r.severity === "critical" || r.severity === "high")
+      ...getMergedEngineeringRisks().filter((r) => r.severity === "critical" || r.severity === "high")
         .slice(0, 2)
         .map((r) => `${r.title} — ${r.program}`),
     ],
@@ -393,7 +393,7 @@ export function buildOnwardAirBoardInsights(focus: OaBoardInsightsFocus): OaBoar
   const data = loadOnwardAirExecutiveSnapshot();
   const board = getOaBoardDashboardSnapshot();
   const eng = getOaEngineeringOverviewSummary();
-  const pipeline = FUNDRAISING_PIPELINE.filter((d) => d.stage !== "Passed");
+  const pipeline = getMergedFundraisingPipeline().filter((d) => d.stage !== "Passed");
 
   const insights: OaBoardInsights = {
     asOf: data.meetingDate,
@@ -466,7 +466,7 @@ export function queryOnwardAirModule(module: OaModuleId, question?: string): OaM
   const ip = patentSummaryStats();
   const competitors = listPriorityWatchCompetitors();
   const intelFeed = listCompetitorIntelFeed();
-  const pipeline = FUNDRAISING_PIPELINE.filter((d) => d.stage !== "Passed");
+  const pipeline = getMergedFundraisingPipeline().filter((d) => d.stage !== "Passed");
 
   switch (module) {
     case "fundraising":
@@ -493,7 +493,7 @@ export function queryOnwardAirModule(module: OaModuleId, question?: string): OaM
           ...OA_ENG_PROGRAMS.map(
             (p) => `${p.name} — ${p.rag.toUpperCase()} — ${p.progressPct}% — ${p.nextGate}`,
           ),
-          ...OA_ENG_RISKS.filter((r) => r.status === "open" || r.status === "mitigating")
+          ...getMergedEngineeringRisks().filter((r) => r.status === "open" || r.status === "mitigating")
             .slice(0, 3)
             .map((r) => `Risk: ${r.title} (${r.severity})`),
         ],

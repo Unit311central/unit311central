@@ -1,3 +1,7 @@
+/**
+ * @deprecated Legacy standalone chat completion — `/api/executive-assistant/chat` now routes
+ * `{ messages }` through the Operating Assistant (`runAssistantTurn`). Kept for type exports only.
+ */
 import { getVercelOidcToken } from "@vercel/oidc";
 
 export const EXECUTIVE_ASSISTANT_MODEL = "openai/gpt-4o-mini";

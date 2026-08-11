@@ -3,6 +3,8 @@
  * Isolated from ABHI board portal seeds.
  */
 
+import { listMergedOpenBoardActions } from "@/lib/onwardair/executive-mutations-store";
+
 export type OaBoardMeetingStatus = "Draft" | "Scheduled" | "Held" | "Archived";
 
 export type OaBoardActionStatus =
@@ -400,9 +402,7 @@ export const OA_BOARD_DASHBOARD_RISKS: OaBoardRisk[] = [
 export function getOaBoardDashboardSnapshot(decks: OaBoardDeck[] = OA_BOARD_DECKS) {
   const nextMeeting = OA_UPCOMING_BOARD_MEETINGS[0]!;
   const latestHeld = OA_HELD_BOARD_MEETINGS[OA_HELD_BOARD_MEETINGS.length - 1]!;
-  const openActions = OA_HELD_BOARD_MEETINGS.flatMap((m) => m.actions)
-    .filter((a) => a.status === "Underway" || a.status === "Overdue" || a.status === "Blocked")
-    .slice(0, 6);
+  const openActions = listMergedOpenBoardActions().slice(0, 6);
   const recentDecisions = latestHeld.decisions;
   const approvedDecks = decks.filter((d) => d.status === "Approved");
   const latestApprovedPack = approvedDecks[0] ?? decks[0]!;

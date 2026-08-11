@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { LogOut, Menu, X } from "lucide-react";
 
 import OnwardAirLogoMark from "@/components/layout/OnwardAirLogoMark";
+import { OnwardAirClientPortalAssistant } from "@/components/onwardair/portal/OnwardAirClientPortalAssistant";
 import {
   OA_CLIENT_PORTAL_NAV,
   oaClientPortalHref,
@@ -152,6 +153,7 @@ export function OnwardAirClientPortalShell({
       ) : null}
 
       <aside
+        data-ai-target="platform-nav"
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-[16.5rem] max-w-[85vw] flex-col border-r border-white/10 bg-[#0a1822] px-3 py-5 transition-transform duration-200 ease-out lg:static lg:z-auto lg:max-w-none lg:shrink-0 lg:translate-x-0",
           mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
@@ -187,10 +189,14 @@ export function OnwardAirClientPortalShell({
           </div>
           <OnwardAirLogoMark height={28} maxWidth={120} />
         </header>
-        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-8 sm:py-6">
+        <main
+          data-ai-target="page-main"
+          className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-8 sm:py-6"
+        >
           {children}
         </main>
       </div>
+      <OnwardAirClientPortalAssistant companyName={companyName} />
     </div>
   );
 }

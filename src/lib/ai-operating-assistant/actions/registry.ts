@@ -50,6 +50,9 @@ export function listAssistantActions(filter?: {
     actions = actions.filter((action) =>
       userHasActionPermissions(filter.business!, action.requiredPermissions),
     );
+    if (filter.business.permissions.readOnlyMode) {
+      actions = [];
+    }
   }
   return actions.sort((a, b) => a.module.localeCompare(b.module) || a.name.localeCompare(b.name));
 }

@@ -106,6 +106,92 @@ function isInternalView(viewId: string): viewId is InternalOperationsView {
   return viewId in internalViewTitles;
 }
 
+type ModuleGuideHint = {
+  purpose: string;
+  kpis: string[];
+  workflows: string[];
+  commonQuestions: string[];
+  relationships: string[];
+};
+
+const MODULE_GUIDE_HINTS: Record<string, ModuleGuideHint> = {
+  Financials: {
+    purpose: "Financial operations — ledgers, AR/AP, expenses, and reporting.",
+    kpis: ["Cash position", "Receivables", "Payables", "Opex"],
+    workflows: ["Review dashboard", "Chase overdue invoices", "Log expenses"],
+    commonQuestions: ["What is our cash position?", "Which invoices are overdue?", "How do I log an expense?"],
+    relationships: ["Board pack", "Corporate Information", "Projects"],
+  },
+  Board: {
+    purpose: "Board governance — meetings, actions, risks, and approved packs.",
+    kpis: ["Next meeting", "Open actions", "High risks"],
+    workflows: ["Prepare board pack", "Close overdue actions", "Review risk register"],
+    commonQuestions: ["When is the next board meeting?", "What actions are overdue?", "What are the top risks?"],
+    relationships: ["Fundraising", "Financials", "Engineering"],
+  },
+  Fundraising: {
+    purpose: "Investor pipeline, meetings, pitch decks, and data rooms for active raises.",
+    kpis: ["Pipeline value", "Open deals", "Seed target progress"],
+    workflows: ["Work investor pipeline", "Schedule investor meetings", "Share data room"],
+    commonQuestions: ["Where are we on the seed raise?", "Who is in diligence?", "Update pipeline stage"],
+    relationships: ["Board", "Corporate cap table", "OnwardAir Intelligence"],
+  },
+  "Support Desk": {
+    purpose: "Support ticket queue, analytics, and client issue resolution.",
+    kpis: ["Open tickets", "Queue time", "Resolution rate"],
+    workflows: ["Triage tickets", "Assign owner", "Close resolved tickets"],
+    commonQuestions: ["How many open tickets?", "Create a support ticket", "Show my tickets"],
+    relationships: ["Clients", "External Client Access"],
+  },
+  Engineering: {
+    purpose: "OnwardAir engineering programmes — VTOL, FLEX Pod, risks, and assurance.",
+    kpis: ["Programme RAG", "Milestones", "Open risks", "Supply watch"],
+    workflows: ["Review programme status", "Track milestones", "Mitigate risks"],
+    commonQuestions: ["Which milestones are at risk?", "Log an engineering risk", "Programme status"],
+    relationships: ["Board", "QMS", "Project Management"],
+  },
+  "OnwardAir Intelligence": {
+    purpose: "Competitive intelligence and executive landscape monitoring.",
+    kpis: ["Weekly brief", "Watch list", "Certification signals"],
+    workflows: ["Scan weekly intel", "Brief leadership", "Update watch list"],
+    commonQuestions: ["Who is closest to certification?", "Summarise competitors", "Latest intel brief"],
+    relationships: ["Fundraising narrative", "Board strategic discussion"],
+  },
+};
+
+const DEFAULT_MODULE_HINT: ModuleGuideHint = {
+  purpose: "Workspace module for day-to-day operations in this area.",
+  kpis: ["Module KPIs when present"],
+  workflows: ["Use controls in the main panel", "Ask the Assistant for a tour"],
+  commonQuestions: ["What is this page for?", "Show me around", "What should I do here?"],
+  relationships: ["Related modules via sidebar navigation"],
+};
+
+const AUTO_PAGE_GUIDES = new Map<string, AiPageGuide>();
+
+function buildAutoPageGuide(viewId: InternalOperationsView): AiPageGuide {
+  const cached = AUTO_PAGE_GUIDES.get(viewId);
+  if (cached) return cached;
+
+  const meta = internalViewTitles[viewId];
+  const hint = MODULE_GUIDE_HINTS[meta.subtitle] ?? DEFAULT_MODULE_HINT;
+  const built = guide(viewId, {
+    purpose: `${meta.title} — ${hint.purpose}`,
+    kpis: hint.kpis,
+    buttons: ["Primary actions in the main panel", "Filters and search when available"],
+    actions: ["Use module controls", "Ask the Executive Assistant"],
+    tables: meta.title.includes("Dashboard") ? [`${meta.title} summary`] : [`${meta.subtitle} tables`],
+    charts: meta.title.includes("Dashboard") ? [`${meta.title} charts`] : [],
+    forms: [`${meta.title} forms when present`],
+    workflows: hint.workflows,
+    permissions: ["Subject to your role view and module grants"],
+    relationships: hint.relationships,
+    commonQuestions: hint.commonQuestions,
+  });
+  AUTO_PAGE_GUIDES.set(viewId, built);
+  return built;
+}
+
 const PAGE_GUIDES: Record<string, AiPageGuide> = {
   home: guide("home", {
     purpose:
@@ -423,6 +509,23 @@ const PAGE_GUIDES: Record<string, AiPageGuide> = {
       "What are the top board risks?",
     ],
   }),
+  "client-portal": guide("client-portal", {
+    purpose: "External client portal — read-only access to shared project materials and updates.",
+    kpis: ["Shared documents", "Project status", "Support requests"],
+    buttons: ["Open Assistant", "Navigate portal sections"],
+    actions: ["Ask about shared content", "Request help via support channels"],
+    tables: ["Portal content sections when present"],
+    charts: [],
+    forms: [],
+    workflows: ["Browse shared materials", "Ask the portal assistant"],
+    permissions: ["External client access only — no internal write actions"],
+    relationships: ["Support Desk", "Project delivery teams"],
+    commonQuestions: [
+      "What can I see in this portal?",
+      "How do I get help?",
+      "Where are my shared files?",
+    ],
+  }),
   "executive-assistant": guide("executive-assistant", {
     purpose: "Full-page AI Executive Assistant — conversations, tours, and live tools.",
     kpis: [],
@@ -462,11 +565,9 @@ const PAGE_GUIDES: Record<string, AiPageGuide> = {
 export function getPageGuide(viewId: string | null | undefined): AiPageGuide {
   const id = viewId?.trim() || "home";
   if (PAGE_GUIDES[id]) return PAGE_GUIDES[id];
+  if (isInternalView(id)) return buildAutoPageGuide(id);
 
-  const title =
-    isInternalView(id) && internalViewTitles[id]
-      ? internalViewTitles[id].title
-      : id;
+  const title = id;
 
   return guide(id, {
     purpose: `${title} workspace module.`,
@@ -488,7 +589,11 @@ export function getPageGuide(viewId: string | null | undefined): AiPageGuide {
 }
 
 export function listRegisteredPageGuides(): AiPageGuide[] {
-  return Object.values(PAGE_GUIDES);
+  const handWritten = Object.values(PAGE_GUIDES);
+  const auto = (Object.keys(internalViewTitles) as InternalOperationsView[])
+    .filter((viewId) => !PAGE_GUIDES[viewId])
+    .map((viewId) => buildAutoPageGuide(viewId));
+  return [...handWritten, ...auto];
 }
 
 export function findPageTarget(viewId: string, targetId: string): AiUiTarget | null {

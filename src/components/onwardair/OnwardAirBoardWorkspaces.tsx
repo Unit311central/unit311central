@@ -42,13 +42,16 @@ function Card({
   title,
   children,
   className,
+  aiTarget,
 }: {
   title: string;
   children: React.ReactNode;
   className?: string;
+  aiTarget?: string;
 }) {
   return (
     <section
+      data-ai-target={aiTarget}
       className={cn(
         "rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5",
         className,
@@ -113,7 +116,7 @@ export function OnwardAirBoardDashboardWorkspace() {
           <p className="mt-2 text-xs text-emerald-200/80">Status: Approved (Final)</p>
         </Card>
 
-        <Card title="Open board actions">
+        <Card title="Open board actions" aiTarget="board-open-actions">
           <ul className="space-y-2">
             {snap.openActions.length === 0 ? (
               <li className="text-sm text-white/50">No open actions.</li>

@@ -15,14 +15,6 @@ import {
   resolveIncomingCorrelationId,
   runWithEaTraceAsync,
 } from "@/lib/ai-operating-assistant/ea-forensic-trace";
-import {
-  completeExecutiveAssistantChat,
-  type ExecutiveAssistantChatTurn,
-} from "@/lib/executive-assistant-ai";
-import {
-  buildExecutivePlatformSnapshot,
-  formatExecutivePlatformSnapshot,
-} from "@/lib/executive-assistant-context";
 import { getPlatformSession } from "@/lib/platform-session";
 
 export const dynamic = "force-dynamic";
@@ -101,19 +93,21 @@ function parseOperatingMessages(raw: unknown): AssistantChatMessage[] | undefine
     });
 }
 
-function parseLegacyMessages(raw: unknown): ExecutiveAssistantChatTurn[] | null {
+function parseLegacyMessages(raw: unknown): AssistantChatMessage[] | null {
   if (!Array.isArray(raw)) return null;
 
   const messages = raw
     .filter(
-      (entry): entry is ExecutiveAssistantChatTurn =>
+      (entry): entry is { role: "user" | "assistant"; content: string } =>
         Boolean(entry) &&
         (entry.role === "user" || entry.role === "assistant") &&
         typeof entry.content === "string",
     )
-    .map((entry) => ({
+    .map((entry, index) => ({
+      id: `legacy_${index}`,
       role: entry.role,
       content: entry.content.trim(),
+      createdAt: new Date().toISOString(),
     }))
     .filter((entry) => entry.content.length > 0)
     .slice(-MAX_LEGACY_MESSAGES);
@@ -121,19 +115,33 @@ function parseLegacyMessages(raw: unknown): ExecutiveAssistantChatTurn[] | null 
   return messages.length > 0 ? messages : null;
 }
 
-async function handleLegacyChat(messages: ExecutiveAssistantChatTurn[]) {
-  const snapshot = await buildExecutivePlatformSnapshot();
-  const platformContext = formatExecutivePlatformSnapshot(snapshot);
-  const { content: reply, model, authMode } = await completeExecutiveAssistantChat(
-    messages,
-    platformContext,
+async function handleLegacyChat(
+  messages: AssistantChatMessage[],
+  session: NonNullable<Awaited<ReturnType<typeof getPlatformSession>>>,
+  correlationId: string,
+) {
+  const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+  const response = await handleOperatingAssistantChat(
+    {
+      message: lastUser,
+      messages,
+      stream: false,
+      activeView: "home",
+    },
+    session,
+    correlationId,
   );
 
+  if (response.status !== 200) return response;
+
+  const body = (await response.json()) as { reply?: string; conversationId?: string };
   return NextResponse.json({
-    reply,
-    model,
-    authMode,
-    dataAvailable: snapshot.dataAvailable,
+    reply: body.reply ?? "",
+    conversationId: body.conversationId ?? null,
+    model: "unit311-operating-assistant",
+    authMode: "platform-session",
+    dataAvailable: true,
+    correlationId: getEaCorrelationId(),
   });
 }
 
@@ -217,7 +225,7 @@ async function handleOperatingAssistantChat(
 
 /**
  * Dual contract:
- * - Legacy panel: `{ messages: [...] }` → `{ reply, model, authMode, dataAvailable }`
+ * - Legacy panel: `{ messages: [...] }` → `{ reply, model, authMode, dataAvailable }` (routed through Operating Assistant)
  * - Operating Assistant: `{ message, ... }` → SSE stream or `{ reply, conversationId }`
  */
 export async function POST(request: NextRequest) {
@@ -265,7 +273,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return handleLegacyChat(legacyMessages);
+    return handleLegacyChat(legacyMessages, session, effectiveCorrelation);
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error("[EA] EXCEPTION — Chat POST");

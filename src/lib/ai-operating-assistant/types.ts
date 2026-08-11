@@ -76,6 +76,8 @@ export type AssistantBusinessContext = {
     departments?: string[];
     /** Explicit module grants; null = unrestricted. */
     allowedViews?: string[] | null;
+    /** External / client-portal sessions — read tools only, no write actions. */
+    readOnlyMode?: boolean;
   };
   generatedAt: string;
 };

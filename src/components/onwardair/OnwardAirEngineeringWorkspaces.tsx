@@ -219,7 +219,7 @@ function OverviewPage() {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div data-ai-target="engineering-kpis" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {tiles.map((tile) => {
           const Icon = tile.icon;
           return (
