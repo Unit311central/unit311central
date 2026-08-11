@@ -88,7 +88,7 @@ export default function HeroVideoBackground() {
       ) : (
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover object-center lg:object-[50%_42%]"
+          className="absolute inset-0 h-full w-full object-contain object-center lg:object-cover lg:object-[50%_42%]"
           autoPlay
           muted
           loop
