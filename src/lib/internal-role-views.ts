@@ -417,6 +417,19 @@ export function getAbhiNavSections(): InternalNavSection[] {
   return buildAbhiNavSections(internalSurveyNavSections);
 }
 
+/** Server-safe OnwardAir LHS nav — same shape as the live customer sidebar. */
+export function buildOnwardAirNavSections(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  return insertOnwardAirNavSections(
+    stripCustomerPlatformNav(stripMemberIntelligenceNavForNonAbhi(sections)),
+  );
+}
+
+export function getOnwardAirNavSections(): InternalNavSection[] {
+  return buildOnwardAirNavSections(internalSurveyNavSections);
+}
+
 function appendTalantonNavSections(sections: InternalNavSection[]): InternalNavSection[] {
   if (!isTalantonNavSurface()) return sections;
   try {

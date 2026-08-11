@@ -29,6 +29,12 @@ import {
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
 import { ABHI_EA_PHASE1_DEMO_CHECKS } from "@/lib/abhi/ea-phase1-demo-checks";
 import { buildAbhiModuleNlCases } from "@/lib/abhi/ea-module-nl-cases";
+import { buildWorkspaceNlSuite } from "@/lib/ai-operating-assistant/ea-workspace-nl-cases";
+import { assertWorkspaceNlCase } from "@/lib/ai-operating-assistant/ea-workspace-nl-assert";
+import {
+  runEaToolExecutionSmoke,
+  type EaToolSmokeCase,
+} from "@/lib/ai-operating-assistant/ea-tool-execution-smoke";
 import { ABHI_CASH_BALANCE_GBP } from "@/lib/abhi-financials";
 import { generateBoardPackTool } from "@/lib/ai-operating-assistant/boardpack-tools";
 import {
@@ -72,7 +78,7 @@ export type EaTestSuiteReport = {
   }>;
 };
 
-const SUITE_VERSION = "abhi-ea-v3";
+const SUITE_VERSION = "abhi-ea-v4";
 
 const FORBIDDEN_ABHI = [/\bTalanton\b/, /\bportfolio companies\b/i, /\bMOIC\b/i, /\bVertex VTOL\b/i];
 
@@ -516,24 +522,58 @@ export async function runAbhiEaTestSuite(): Promise<EaTestSuiteReport> {
   sections.push(moduleNl);
   for (const row of buildAbhiModuleNlCases()) {
     await moduleNl.run(row.id, async () => {
-      const answered = answerPlatformQuestion(row.prompt, { workspaceSlug: "abhi" });
-      const hits = searchApplicationCatalogue(row.prompt, 3, { workspaceSlug: "abhi" });
-      const route = await resolveOrchestrationRoute(row.prompt, [], abhiBusiness());
-      const okRoute =
-        route.kind === "platform_answer" ||
-        route.kind === "tool" ||
-        route.kind === "capability_answer";
-      const okCatalogue =
-        answered != null ||
-        hits.some(
-          (hit) =>
-            hit.entry.module.displayName === row.moduleLabel ||
-            hit.entry.module.label === row.moduleLabel,
-        );
-      if (!okRoute && !okCatalogue) {
-        throw new Error(`no catalogue or orchestration answer for ${row.prompt}`);
-      }
+      await assertWorkspaceNlCase(
+        { ...row, targetLabel: row.moduleLabel, kind: "module" },
+        abhiBusiness(),
+      );
     }, row.moduleLabel);
+  }
+
+  const pageNl = new SectionRunner("Page natural language");
+  sections.push(pageNl);
+  for (const row of buildWorkspaceNlSuite("abhi").pageCases) {
+    await pageNl.run(row.id, async () => {
+      await assertWorkspaceNlCase(row, abhiBusiness());
+    }, row.targetLabel);
+  }
+
+  const toolSmoke = new SectionRunner("Tool execution smoke");
+  sections.push(toolSmoke);
+  const smokeCases: EaToolSmokeCase[] = [
+    {
+      id: "executive-briefing",
+      prompt: "Give me an executive briefing",
+      expectedTool: "abhi.getExecutiveBriefing",
+    },
+    {
+      id: "board-risks",
+      prompt: "What are the three biggest risks facing ABHI?",
+      expectedTool: "abhi.getBoardInsights",
+    },
+    {
+      id: "search-financials",
+      prompt: "How do I use member explorer?",
+      expectedTool: "searchApplications",
+    },
+    {
+      id: "query-business",
+      prompt: "How many employees do we have?",
+      expectedTool: "queryBusiness",
+    },
+    {
+      id: "board-pack",
+      prompt: "Create a board pack for tomorrow",
+      expectedTool: "boardpack.generate",
+    },
+  ];
+  const smokeResults = await runEaToolExecutionSmoke({
+    business: abhiBusiness(),
+    cases: smokeCases,
+  });
+  for (const result of smokeResults) {
+    await toolSmoke.run(result.id, () => {
+      if (!result.ok) throw new Error(result.error ?? "tool smoke failed");
+    });
   }
 
   const artifacts = new SectionRunner("Artifact persistence");

@@ -18,10 +18,14 @@ import {
 import {
   filterInternalNavSectionsForCorpCentreWorkspace,
   getAbhiNavSections,
+  getOnwardAirNavSections,
+  getTalantonImpactNavSections,
   isViewAllowedForGrants,
 } from "@/lib/internal-role-views";
 import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
 import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
+import { isOnwardAirWorkspaceSlug } from "@/lib/onwardair-financials";
+import { isTalantonWorkspaceSlug } from "@/lib/talanton-financials";
 import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
 
 export type ApplicationCataloguePage = {
@@ -273,7 +277,7 @@ function moduleFromSection(section: InternalNavSection): ApplicationCatalogueMod
 
 let cachedModules: ApplicationCatalogueModule[] | null = null;
 let cachedCorpCentreModules: ApplicationCatalogueModule[] | null = null;
-let cachedAbhiModules: ApplicationCatalogueModule[] | null = null;
+const cachedWorkspaceModules = new Map<string, ApplicationCatalogueModule[]>();
 
 export type ApplicationCatalogueOptions = {
   workspaceSlug?: string | null;
@@ -286,7 +290,22 @@ function navSectionsForSurface(workspaceSlug?: string | null): readonly Internal
   if (isAbhiWorkspaceSlug(workspaceSlug)) {
     return getAbhiNavSections();
   }
+  if (isOnwardAirWorkspaceSlug(workspaceSlug)) {
+    return getOnwardAirNavSections();
+  }
+  if (isTalantonWorkspaceSlug(workspaceSlug)) {
+    return getTalantonImpactNavSections();
+  }
   return internalSurveyNavSections;
+}
+
+function workspaceModulesCacheKey(workspaceSlug?: string | null): string | null {
+  if (!workspaceSlug) return null;
+  if (isCorpCentreWorkspaceSlug(workspaceSlug)) return "corpcentre";
+  if (isAbhiWorkspaceSlug(workspaceSlug)) return "abhi";
+  if (isOnwardAirWorkspaceSlug(workspaceSlug)) return "onwardair";
+  if (isTalantonWorkspaceSlug(workspaceSlug)) return "talantonimpact";
+  return null;
 }
 
 /** Build / return the live Application Catalogue from platform navigation. */
@@ -305,13 +324,18 @@ export function listPlatformModules(
       }));
     return cachedCorpCentreModules;
   }
-  if (isAbhiWorkspaceSlug(options?.workspaceSlug)) {
-    if (cachedAbhiModules) return cachedAbhiModules;
-    cachedAbhiModules = navSectionsForSurface(options?.workspaceSlug)
+
+  const cacheKey = workspaceModulesCacheKey(options?.workspaceSlug);
+  if (cacheKey) {
+    const cached = cachedWorkspaceModules.get(cacheKey);
+    if (cached) return cached;
+    const built = navSectionsForSurface(options?.workspaceSlug)
       .map(moduleFromSection)
       .filter((m): m is ApplicationCatalogueModule => Boolean(m));
-    return cachedAbhiModules;
+    cachedWorkspaceModules.set(cacheKey, built);
+    return built;
   }
+
   if (cachedModules) return cachedModules;
   cachedModules = internalSurveyNavSections
     .map(moduleFromSection)
@@ -707,8 +731,10 @@ export function answerPlatformQuestion(
   const openMatch = lower.match(
     /\b(?:open|go\s+to|take\s+me\s+to|navigate\s+to)\s+(.+?)(?:\?|$)/i,
   );
-  if (openMatch?.[1]) {
-    const raw = openMatch[1].replace(/\b(module|workspace|page|app|application)\b/gi, "").trim();
+  const howOpenMatch = lower.match(/\bhow\s+do\s+i\s+open\s+(?:the\s+)?(.+?)(?:\?|\.|$)/i);
+  const openTarget = openMatch?.[1] ?? howOpenMatch?.[1];
+  if (openTarget) {
+    const raw = openTarget.replace(/\b(module|workspace|page|app|application)\b/gi, "").trim();
     const hit = searchApplicationCatalogue(raw, 1, options)[0];
     if (hit) {
       const href = hrefFromCatalogueEntry(hit.entry);

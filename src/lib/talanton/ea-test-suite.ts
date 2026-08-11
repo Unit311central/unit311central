@@ -13,6 +13,13 @@ import {
   resolveTalantonStoriesRoute,
   resolveTalantonViewAwareTool,
 } from "@/lib/talanton/executive-stories-intent";
+import { buildWorkspaceNlSuite } from "@/lib/ai-operating-assistant/ea-workspace-nl-cases";
+import { assertWorkspaceNlCase } from "@/lib/ai-operating-assistant/ea-workspace-nl-assert";
+import {
+  runEaToolExecutionSmoke,
+  type EaToolSmokeCase,
+} from "@/lib/ai-operating-assistant/ea-tool-execution-smoke";
+import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
 import { queryTalantonStories } from "@/lib/talanton/executive-stories-intelligence";
 import { buildTalantonDailyExecutiveBrief } from "@/lib/talanton/daily-executive-brief";
 import {
@@ -66,7 +73,7 @@ export type EaTestSuiteReport = {
   }>;
 };
 
-const SUITE_VERSION = "talanton-ea-v1";
+const SUITE_VERSION = "talanton-ea-v2";
 
 const FORBIDDEN_TALANTON = [
   /\bABHI\b/,
@@ -478,6 +485,65 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
       throw new Error("expected funds view mapping");
     }
   });
+
+  const catalogue = new SectionRunner("Application catalogue");
+  sections.push(catalogue);
+  await catalogue.run("Talanton module catalogue", () => {
+    const modules = listPlatformModules({ workspaceSlug: "talantonimpact" });
+    if (modules.length < 8) throw new Error(`expected 8+ modules, got ${modules.length}`);
+    if (!modules.some((m) => m.label === "Talanton Intelligence")) {
+      throw new Error("missing Talanton Intelligence");
+    }
+  }, `modules=${listPlatformModules({ workspaceSlug: "talantonimpact" }).length}`);
+
+  const business = talantonBusiness();
+  const nl = buildWorkspaceNlSuite("talantonimpact");
+  const moduleNl = new SectionRunner("Module natural language");
+  sections.push(moduleNl);
+  for (const row of nl.moduleCases) {
+    await moduleNl.run(row.id, async () => {
+      await assertWorkspaceNlCase(row, business);
+    }, row.targetLabel);
+  }
+
+  const pageNl = new SectionRunner("Page natural language");
+  sections.push(pageNl);
+  for (const row of nl.pageCases) {
+    await pageNl.run(row.id, async () => {
+      await assertWorkspaceNlCase(row, business);
+    }, row.targetLabel);
+  }
+
+  const toolSmoke = new SectionRunner("Tool execution smoke");
+  sections.push(toolSmoke);
+  const smokeCases: EaToolSmokeCase[] = [
+    {
+      id: "executive-briefing",
+      prompt: "Give me an executive briefing",
+      expectedTool: "talanton.getExecutiveBriefing",
+    },
+    {
+      id: "portfolio",
+      prompt: "What requires attention across the portfolio?",
+      expectedTool: "talanton.queryPortfolio",
+    },
+    {
+      id: "funds",
+      prompt: "Summarise fund capital deployment",
+      expectedTool: "talanton.queryFunds",
+    },
+    {
+      id: "board-pack",
+      prompt: "Create a board pack for next month",
+      expectedTool: "boardpack.generate",
+    },
+  ];
+  const smokeResults = await runEaToolExecutionSmoke({ business, cases: smokeCases });
+  for (const result of smokeResults) {
+    await toolSmoke.run(result.id, () => {
+      if (!result.ok) throw new Error(result.error ?? "tool smoke failed");
+    });
+  }
 
   const finishedAt = new Date().toISOString();
   const allCases = sections.flatMap((s) => s.cases);
