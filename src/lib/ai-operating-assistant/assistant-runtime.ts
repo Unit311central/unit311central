@@ -465,16 +465,25 @@ function formatExecutiveIntelligenceReply(
     toolName === "talanton.queryFunds" ||
     toolName === "talanton.queryImpact" ||
     toolName === "talanton.queryStories" ||
-    toolName === "talanton.generateStoriesReport"
+    toolName === "talanton.generateStoriesReport" ||
+    toolName === "onwardair.getExecutiveBriefing" ||
+    toolName === "onwardair.getOrgHealth" ||
+    toolName === "onwardair.queryActions" ||
+    toolName === "onwardair.getBoardInsights" ||
+    toolName === "onwardair.queryModule"
   ) {
     const prose =
       (typeof summary?.message === "string" && summary.message) ||
       (typeof items?.[0]?.prose === "string" && items[0].prose) ||
       null;
     if (prose) return prose;
-    return toolName.startsWith("talanton.")
-      ? "I could not complete that Talanton executive analysis."
-      : "I could not complete that ABHI executive analysis.";
+    if (toolName.startsWith("talanton.")) {
+      return "I could not complete that Talanton executive analysis.";
+    }
+    if (toolName.startsWith("onwardair.")) {
+      return "I could not complete that OnwardAir executive analysis.";
+    }
+    return "I could not complete that ABHI executive analysis.";
   }
 
   return null;

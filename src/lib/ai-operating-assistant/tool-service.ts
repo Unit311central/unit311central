@@ -39,7 +39,16 @@ import {
   queryTalantonPortfolioTool,
   queryTalantonStoriesTool,
 } from "./talanton-executive-tools";
+import {
+  ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS,
+  getOnwardAirBoardInsightsTool,
+  getOnwardAirExecutiveBriefingTool,
+  getOnwardAirOrgHealthTool,
+  queryOnwardAirActionsTool,
+  queryOnwardAirModuleTool,
+} from "./onwardair-executive-tools";
 import { isAbhiSlug } from "@/lib/abhi-surface";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import {
   getPageGuideTool,
@@ -925,6 +934,11 @@ const handlers: Record<string, ContextualToolHandler> = {
   "talanton.queryImpact": queryTalantonImpactTool,
   "talanton.queryStories": queryTalantonStoriesTool,
   "talanton.generateStoriesReport": generateTalantonStoriesReportTool,
+  "onwardair.getExecutiveBriefing": getOnwardAirExecutiveBriefingTool,
+  "onwardair.getOrgHealth": getOnwardAirOrgHealthTool,
+  "onwardair.queryActions": queryOnwardAirActionsTool,
+  "onwardair.getBoardInsights": getOnwardAirBoardInsightsTool,
+  "onwardair.queryModule": queryOnwardAirModuleTool,
 };
 
 /** @deprecated Prefer contextual handlers — kept for registerAssistantTool compatibility. */
@@ -939,6 +953,7 @@ export function getOpenAIToolSchemas(workspaceSlug?: string | null) {
   const extra = [
     ...(isAbhiSlug(slug) ? ABHI_EXECUTIVE_TOOL_DEFINITIONS : []),
     ...(isTalantonImpactSlug(slug) ? TALANTON_EXECUTIVE_TOOL_DEFINITIONS : []),
+    ...(isOnwardAirSlug(slug) ? ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS : []),
   ];
   return [...ASSISTANT_TOOL_DEFINITIONS, ...extra].map((tool) => ({
     type: "function" as const,

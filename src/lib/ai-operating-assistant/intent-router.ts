@@ -42,6 +42,8 @@ export type DirectAssistantIntent = {
     | "listBusinessActions"
     | "searchCapabilities"
     | "planBusinessGoal"
+    | "searchApplications"
+    | "listPlatformModules"
     | "abhi.getExecutiveBriefing"
     | "abhi.getOrgHealth"
     | "abhi.queryActions"
@@ -54,7 +56,12 @@ export type DirectAssistantIntent = {
     | "talanton.queryFunds"
     | "talanton.queryImpact"
     | "talanton.queryStories"
-    | "talanton.generateStoriesReport";
+    | "talanton.generateStoriesReport"
+    | "onwardair.getExecutiveBriefing"
+    | "onwardair.getOrgHealth"
+    | "onwardair.queryActions"
+    | "onwardair.getBoardInsights"
+    | "onwardair.queryModule";
   args: Record<string, unknown>;
   reason: string;
 };

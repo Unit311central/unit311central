@@ -13,6 +13,8 @@ import { getWiseConnectionStatus, listWiseBalances } from "@/lib/wise-service";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import { loadLiveInvoices } from "./live-finance";
 import { isOverdue } from "./tool-result";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
+import { queryOnwardAirModule } from "@/lib/onwardair/executive-intelligence";
 import type { AssistantBusinessContext } from "./types";
 
 export type BusinessSnapshotDomain =
@@ -23,6 +25,9 @@ export type BusinessSnapshotDomain =
   | "hr"
   | "crm"
   | "assets"
+  | "fundraising"
+  | "engineering"
+  | "intelligence"
   | "all";
 
 /**
@@ -412,6 +417,17 @@ export async function buildBusinessSnapshot(
           }
         : { restricted: true }
       : undefined,
+    onwardairModule:
+      isOnwardAirSlug(context.workspace.slug) &&
+      (domain === "fundraising" || domain === "engineering" || domain === "intelligence")
+        ? queryOnwardAirModule(
+            domain === "fundraising"
+              ? "fundraising"
+              : domain === "engineering"
+                ? "engineering"
+                : "intelligence",
+          )
+        : undefined,
     dataGaps,
     guidance:
       domain === "assets"

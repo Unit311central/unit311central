@@ -13,6 +13,7 @@ import { resolveAbhiExecutiveIntelligenceIntent } from "@/lib/abhi/executive-int
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
+import { resolveOnwardAirExecutiveIntelligenceIntent } from "@/lib/onwardair/executive-intelligence-intent";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { resolveTalantonExecutiveIntelligenceIntent } from "@/lib/talanton/executive-intelligence-intent";
 import {
@@ -345,8 +346,20 @@ export async function resolveOrchestrationRoute(
     }
   }
 
-  // OnwardAir — board deck generation (aerospace pack; same NL verbs as ABHI).
+  // OnwardAir — executive intelligence, board deck, AI training course.
   if (isOnwardAirSlug(business.workspace.slug)) {
+    const execIntel = resolveOnwardAirExecutiveIntelligenceIntent(message);
+    if (execIntel) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: execIntel.tool as DirectAssistantIntent["tool"],
+          args: execIntel.args,
+          reason: execIntel.reason,
+        },
+      };
+    }
+
     const boardPack = resolveAbhiBoardPackIntent(message);
     if (boardPack) {
       return {
@@ -408,8 +421,21 @@ export async function resolveOrchestrationRoute(
     ) {
       return { kind: "tool", intent: direct };
     }
-    // ABHI: prefer registered tools; fall back to live snapshot for open business reads.
+    // Prefer workspace executive tools; fall back to live snapshot for open business reads.
     if (!hasExplicitWriteIntent(message)) {
+      if (isOnwardAirSlug(business.workspace.slug)) {
+        const oaIntel = resolveOnwardAirExecutiveIntelligenceIntent(message);
+        if (oaIntel) {
+          return {
+            kind: "tool",
+            intent: {
+              tool: oaIntel.tool as DirectAssistantIntent["tool"],
+              args: oaIntel.args,
+              reason: oaIntel.reason,
+            },
+          };
+        }
+      }
       if (!isAbhiSlug(business.workspace.slug)) {
         return {
           kind: "tool",

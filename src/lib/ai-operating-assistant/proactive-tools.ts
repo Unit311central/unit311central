@@ -25,6 +25,7 @@ import {
 } from "./role-awareness";
 import { buildHighlightAction, buildStartTourAction } from "./guided-learning";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 
 /**
  * Proactive Executive tools — registered alongside existing search/guide tools.
@@ -77,6 +78,24 @@ function resolveSnapshotDomain(
   if (/hr|employee|staff|people|leave/.test(value)) return "hr";
   if (/crm|lead|pipeline|sales/.test(value)) return "crm";
   if (/inventory|logistics|shipment/.test(value)) return "assets";
+  if (
+    isOnwardAirSlug(workspaceSlug) &&
+    /fundraising|investor|seed\s+raise|term\s+sheet|data\s+room/.test(value)
+  ) {
+    return "fundraising";
+  }
+  if (
+    isOnwardAirSlug(workspaceSlug) &&
+    /engineering|vtol|flex\s+pod|milestone|certification|programme|program/.test(value)
+  ) {
+    return "engineering";
+  }
+  if (
+    isOnwardAirSlug(workspaceSlug) &&
+    /competitor|intelligence|patent|evtols?/.test(value)
+  ) {
+    return "intelligence";
+  }
   if (/health|brief|overview|business|company|status/.test(value)) return "overview";
   return "all";
 }

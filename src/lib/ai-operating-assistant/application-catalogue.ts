@@ -116,6 +116,40 @@ const MODULE_ALIASES: Record<string, string[]> = {
   "abhi-intelligence": ["member intelligence", "regulatory", "regulatory intelligence", "membership insights"],
   board: ["board meetings", "board deck", "risk register", "governance", "minutes"],
   "marketing-events": ["marketing", "events", "newsletter", "whx", "accelerator"],
+  fundraising: [
+    "fundraising",
+    "investors",
+    "seed raise",
+    "seed round",
+    "pipeline",
+    "term sheet",
+    "data room",
+    "capitalisation",
+    "capitalization",
+  ],
+  engineering: [
+    "engineering",
+    "vtol",
+    "vertex",
+    "flex pod",
+    "milestones",
+    "certification",
+    "prototype",
+    "programmes",
+    "programs",
+    "assurance",
+  ],
+  "onwardair-intelligence": [
+    "onwardair intelligence",
+    "competitor",
+    "competitors",
+    "competitive intelligence",
+    "market landscape",
+    "evtols",
+    "patents",
+    "ip",
+  ],
+  "project-management": ["project management", "delivery", "portfolio projects"],
 };
 
 const MODULE_DESCRIPTIONS: Record<string, string> = {
@@ -138,6 +172,12 @@ const MODULE_DESCRIPTIONS: Record<string, string> = {
   "abhi-intelligence": "Member intelligence and regulatory intelligence for HealthTech membership.",
   board: "Board dashboard, meetings, decks, minutes, risk register, and board members.",
   "marketing-events": "Newsletter, social, ABHI events, accelerators, and mailing lists.",
+  fundraising: "Seed raise pipeline, investors, meetings, pitch decks, and data rooms.",
+  engineering:
+    "Vertex VTOL and FLEX Pod programmes — milestones, team capacity, supply, assurance, risks, and integrations.",
+  "onwardair-intelligence":
+    "Competitor intelligence, ecosystem partners, and IP & patents landscape for eVTOL programmes.",
+  "project-management": "Client project delivery, timelines, and portfolio tracking.",
 };
 
 const DISPLAY_NAMES: Record<string, string> = {
