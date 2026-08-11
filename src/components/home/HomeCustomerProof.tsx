@@ -47,50 +47,57 @@ export default function HomeCustomerProof() {
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
         <HomeSectionTitle>A typical growing company</HomeSectionTitle>
 
-        <div className="mt-10 grid gap-8 lg:mt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-start lg:gap-10">
-          <div className="space-y-5">
-            <p className="max-w-xl text-sm leading-relaxed text-white/55 sm:text-[16px]">
-              A typical deployment: a 10–20 person company — past the startup scramble, now drowning
-              in many disconnected SaaS applications.
-            </p>
+        <div className="mt-10 lg:mt-12">
+          <div
+            className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-stretch lg:gap-10"
+          >
+            <div className="space-y-5">
+              <p className="max-w-xl text-sm leading-relaxed text-white/55 sm:text-[16px]">
+                A typical deployment: a 10–20 person company — past the startup scramble, now drowning
+                in many disconnected SaaS applications.
+              </p>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                Before
-              </p>
-              <ul className="mt-4 space-y-3">
-                {BEFORE_ITEMS.map((item) => (
-                  <li key={item} className="text-sm leading-relaxed text-white/65">{item}</li>
-                ))}
-              </ul>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                  Before
+                </p>
+                <ul className="mt-4 space-y-3">
+                  {BEFORE_ITEMS.map((item) => (
+                    <li key={item} className="text-sm leading-relaxed text-white/65">{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-2xl border border-[#3b82f6]/25 bg-[#2563eb]/[0.08] p-5 sm:p-6">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#93c5fd]">
+                  With Unit311 Central
+                </p>
+                <ul className="mt-4 space-y-3">
+                  {AFTER_ITEMS.map((item) => (
+                    <li key={item} className="text-sm leading-relaxed text-white/80">{item}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <div className="rounded-2xl border border-[#3b82f6]/25 bg-[#2563eb]/[0.08] p-5 sm:p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#93c5fd]">
-                With Unit311 Central
-              </p>
-              <ul className="mt-4 space-y-3">
-                {AFTER_ITEMS.map((item) => (
-                  <li key={item} className="text-sm leading-relaxed text-white/80">{item}</li>
-                ))}
-              </ul>
-            </div>
-            <Link
-              href="/book"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#93c5fd] transition-colors hover:text-white"
+
+            <div
+              className="flex min-h-0 overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.12] to-white/[0.04] p-2 shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:rounded-[28px] sm:p-3 lg:h-full lg:min-h-0 lg:flex-col"
             >
-              Book a free demo
-              <ArrowRight className="h-4 w-4" strokeWidth={2} />
-            </Link>
+              <WorkspaceDemoLoopVideo
+                className="min-h-0 w-full lg:h-full lg:flex-1"
+                src="/videos/overview.mp4"
+                poster={null}
+                frameClassName="aspect-video lg:aspect-auto lg:h-full lg:min-h-0"
+              />
+            </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.12] to-white/[0.04] p-2 shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:rounded-[28px] sm:p-3 lg:sticky lg:top-28">
-            <WorkspaceDemoLoopVideo
-              className="w-full"
-              src="/videos/overview.mp4"
-              poster={null}
-              frameClassName="aspect-video"
-            />
-          </div>
+          <Link
+            href="/book"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#93c5fd] transition-colors hover:text-white"
+          >
+            Book a free demo
+            <ArrowRight className="h-4 w-4" strokeWidth={2} />
+          </Link>
         </div>
       </div>
     </section>
