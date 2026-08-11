@@ -50,7 +50,7 @@ export default function HomeCustomerProof() {
         <div className="mt-10 grid gap-8 lg:mt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-start lg:gap-10">
           <div className="space-y-5">
             <p className="max-w-xl text-sm leading-relaxed text-white/55 sm:text-[16px]">
-              A typical deployment: a 30–50 person company — past the startup scramble, now drowning
+              A typical deployment: a 10–20 person company — past the startup scramble, now drowning
               in many SaaS disconnected applications.
             </p>
 
