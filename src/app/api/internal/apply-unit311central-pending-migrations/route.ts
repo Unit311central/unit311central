@@ -96,6 +96,7 @@ const MIGRATIONS = [
   "supabase/migrations/133_platform_password_reset_otp.sql",
   "supabase/migrations/135_board_directors_compensation.sql",
   "supabase/migrations/136_onwardair_portals_page_content.sql",
+  "supabase/migrations/137_assistant_artifacts_storage.sql",
 ];
 
 function isAuthorized(request: NextRequest) {

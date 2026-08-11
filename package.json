@@ -36,7 +36,7 @@
     "prove:onwardair-ea": "node --import tsx src/lib/onwardair/__tests__/ea-test-suite.check.ts",
     "prove:ea-all": "npm run prove:abhi-ea && npm run prove:onwardair-ea && npm run prove:talanton-ea && npm run test:ea-artifacts",
     "test:ea-artifacts": "node --import tsx src/lib/ai-operating-assistant/__tests__/artifact-persistence.check.ts",
-    "db:assistant-artifacts": "node scripts/apply-support-tickets-migration.mjs supabase/migrations/137_assistant_artifacts_storage.sql",
+    "db:assistant-artifacts": "node scripts/apply-assistant-artifacts-migration.mjs",
     "deploy:prod": "node scripts/assert-canonical-unit311-repo.mjs && node -e \"console.error('BLOCKED: Use Git deploys from Unit311central/unit311central. See docs/PRODUCTION_DEPLOYMENT.md'); process.exit(1)\"",
     "demo:refresh": "node scripts/demo-enterprise/run.mjs",
     "demo:enterprise:seed": "node scripts/demo-enterprise/run.mjs",

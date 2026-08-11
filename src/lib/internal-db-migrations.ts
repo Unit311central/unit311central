@@ -83,6 +83,8 @@ export const PLATFORM_PASSWORD_RESET_TOKENS_MIGRATION_PATH =
   "supabase/migrations/040_platform_password_reset_tokens.sql";
 export const PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH =
   "supabase/migrations/133_platform_password_reset_otp.sql";
+export const ASSISTANT_ARTIFACTS_STORAGE_MIGRATION_PATH =
+  "supabase/migrations/137_assistant_artifacts_storage.sql";
 export const CLIENT_ONBOARDING_MIGRATION_PATH =
   "supabase/migrations/041_client_onboarding_records.sql";
 export const PLATFORM_USERS_LAST_LOGIN_MIGRATION_PATH =
@@ -2394,6 +2396,39 @@ async function ensurePlatformPasswordResetOtpColumns(): Promise<void> {
 
   await applyMigrationViaManagementApi(PLATFORM_PASSWORD_RESET_OTP_MIGRATION_PATH);
   await reloadPostgrestSchema();
+}
+
+export async function ensureAssistantArtifactStorage(): Promise<boolean> {
+  const tableExists = await tableExistsViaManagementApi("assistant_artifact_records");
+  if (tableExists === true) {
+    await reloadPostgrestSchema();
+    return true;
+  }
+
+  const dbUrl = getDatabaseUrl();
+  if (dbUrl) {
+    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    try {
+      await client.connect();
+      if (await tableExists(client, "assistant_artifact_records")) {
+        await reloadPostgrestSchema();
+        return true;
+      }
+      await applyMigration(client, ASSISTANT_ARTIFACTS_STORAGE_MIGRATION_PATH);
+      await reloadPostgrestSchema();
+      return true;
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  if (tableExists === false) {
+    const applied = await applyMigrationViaManagementApi(ASSISTANT_ARTIFACTS_STORAGE_MIGRATION_PATH);
+    if (applied) await reloadPostgrestSchema();
+    return applied;
+  }
+
+  return false;
 }
 
 export async function withPlatformPasswordResetTokensTable<T>(
