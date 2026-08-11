@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   hydrateArtifactFromMessagePayload,
   loadArtifactBytes,
+  persistArtifactToStorage,
 } from "@/lib/ai-operating-assistant/artifact-store";
 import { findArtifactInUserConversations } from "@/lib/ai-operating-assistant/conversation-service";
 import { getPlatformSession } from "@/lib/platform-session";
@@ -20,7 +21,7 @@ async function resolveArtifact(id: string, userId: string) {
 
   const fromConversation = await findArtifactInUserConversations(userId, id);
   if (fromConversation) {
-    return hydrateArtifactFromMessagePayload({
+    const hydrated = hydrateArtifactFromMessagePayload({
       id: fromConversation.id,
       title: fromConversation.title,
       filename: fromConversation.filename,
@@ -28,6 +29,8 @@ async function resolveArtifact(id: string, userId: string) {
       contentBase64: fromConversation.contentBase64,
       kind: fromConversation.kind,
     });
+    void persistArtifactToStorage(hydrated);
+    return hydrated;
   }
 
   return null;

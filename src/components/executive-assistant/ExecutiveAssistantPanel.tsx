@@ -481,12 +481,19 @@ export default function ExecutiveAssistantPanel({
     }
   }
 
-  function openArtifactBlob(artifact: AssistantMessageArtifact, disposition: "inline" | "attachment") {
+  async function openArtifactBlob(
+    artifact: AssistantMessageArtifact,
+    disposition: "inline" | "attachment",
+  ) {
     if (artifact.contentBase64) {
       const binary = atob(artifact.contentBase64);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-      const blob = new Blob([bytes], { type: "application/pdf" });
+      const mimeType =
+        artifact.kind === "pptx"
+          ? "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+          : "application/pdf";
+      const blob = new Blob([bytes], { type: mimeType });
       const url = URL.createObjectURL(blob);
       if (disposition === "attachment") {
         const anchor = document.createElement("a");
@@ -499,11 +506,33 @@ export default function ExecutiveAssistantPanel({
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
       return;
     }
-    window.open(
-      disposition === "attachment" ? artifact.downloadUrl : artifact.openUrl,
-      "_blank",
-      "noopener,noreferrer",
-    );
+
+    const url =
+      disposition === "attachment" ? artifact.downloadUrl : artifact.openUrl;
+    try {
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) {
+        showNotice(
+          response.status === 404
+            ? "Pack not found — ask the assistant to generate it again."
+            : "Could not open document.",
+        );
+        return;
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      if (disposition === "attachment") {
+        const anchor = document.createElement("a");
+        anchor.href = blobUrl;
+        anchor.download = artifact.filename;
+        anchor.click();
+      } else {
+        window.open(blobUrl, "_blank", "noopener,noreferrer");
+      }
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   }
 
   async function runFollowUp(action: AssistantFollowUpAction) {
@@ -1105,12 +1134,12 @@ export default function ExecutiveAssistantPanel({
             <div className="mt-2 flex flex-wrap gap-1.5">
               <ActionButton
                 label="Open"
-                onClick={() => openArtifactBlob(artifact, "inline")}
+                onClick={() => void openArtifactBlob(artifact, "inline")}
               />
               <ActionButton
                 label="Download"
                 icon={<Download className="h-3 w-3" />}
-                onClick={() => openArtifactBlob(artifact, "attachment")}
+                onClick={() => void openArtifactBlob(artifact, "attachment")}
               />
               <ActionButton
                 label="Email"

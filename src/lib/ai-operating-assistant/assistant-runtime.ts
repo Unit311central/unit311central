@@ -22,7 +22,9 @@ import {
 import { buildBusinessContext } from "./context-service";
 import { buildStructuredJsonHint, buildSystemInstructions } from "./prompt-service";
 import { executeAssistantTool, getOpenAIToolSchemas } from "./tool-service";
+import { getAssistantArtifact } from "./artifact-store";
 import {
+  createConversation,
   createMessageId,
   getConversationForUser,
   titleFromMessages,
@@ -605,9 +607,31 @@ function formatDirectListReply(toolName: string, result: unknown): string | null
   }
 }
 
+function enrichArtifactsFromMemory(
+  artifacts: NonNullable<AssistantChatMessage["artifacts"]>,
+  userId: string,
+): NonNullable<AssistantChatMessage["artifacts"]> {
+  return artifacts.map((artifact) => {
+    if (artifact.contentBase64) return artifact;
+    const stored = getAssistantArtifact(artifact.id, userId);
+    if (!stored?.contentBase64) return artifact;
+    return { ...artifact, contentBase64: stored.contentBase64 };
+  });
+}
+
+function messageHasDurableArtifacts(message: AssistantChatMessage) {
+  return Boolean(
+    message.artifacts?.some(
+      (artifact) =>
+        typeof artifact.contentBase64 === "string" && artifact.contentBase64.length > 0,
+    ),
+  );
+}
+
 function extractArtifactsFromToolResult(
   result: unknown,
   toolName?: string,
+  userId?: string,
 ): {
   followUps: NonNullable<AssistantChatMessage["followUpActions"]>;
   artifacts: NonNullable<AssistantChatMessage["artifacts"]>;
@@ -726,12 +750,14 @@ function extractArtifactsFromToolResult(
       };
     });
 
+    const durableArtifacts = userId ? enrichArtifactsFromMemory(artifacts, userId) : artifacts;
+
     return {
       followUps,
-      artifacts,
+      artifacts: durableArtifacts,
       successText:
         (typeof summary?.message === "string" && summary.message) ||
-        `${artifacts[0]?.filename ?? "Document"}\n\nGenerated successfully.`,
+        `${durableArtifacts[0]?.filename ?? "Document"}\n\nGenerated successfully.`,
       errorText: null,
     };
   }
@@ -787,11 +813,27 @@ async function persistTurn(input: {
   context: AssistantBusinessContext;
   title: string;
 }) {
-  const messages = [...input.history, input.userMessage, input.assistantMessage];
+  const assistantMessage = messageHasDurableArtifacts(input.assistantMessage)
+    ? {
+        ...input.assistantMessage,
+        artifacts: enrichArtifactsFromMemory(
+          input.assistantMessage.artifacts ?? [],
+          input.session.sub,
+        ),
+      }
+    : input.assistantMessage;
+  const messages = [...input.history, input.userMessage, assistantMessage];
   const title = titleFromMessages(messages);
   const localId = input.conversationId?.startsWith("local_")
     ? input.conversationId
     : `local_${createMessageId()}`;
+  const hasDurableArtifacts = messageHasDurableArtifacts(assistantMessage);
+  const persistedId =
+    input.conversationId &&
+    !input.conversationId.startsWith("local_") &&
+    input.conversationId !== "pending"
+      ? input.conversationId
+      : null;
 
   if (!isSupabaseServiceRoleConfigured()) {
     return {
@@ -800,21 +842,34 @@ async function persistTurn(input: {
     };
   }
 
-  // Only update conversations that already exist in the database (explicit Save Chat).
-  // Never auto-create list entries from ordinary chat turns.
-  if (input.conversationId && !input.conversationId.startsWith("local_") && input.conversationId !== "pending") {
-    const existing = await getConversationForUser(input.conversationId, input.session.sub);
+  if (persistedId) {
+    const existing = await getConversationForUser(persistedId, input.session.sub);
     if (existing) {
       const updated = await updateConversation({
-        conversationId: input.conversationId,
+        conversationId: persistedId,
         userId: input.session.sub,
         messages,
         workspaceContext: input.context,
         title,
-        isSaved: true,
+        isSaved: existing.isSaved,
       });
       return { conversationId: updated.id, title: updated.title };
     }
+  }
+
+  // Auto-save a hidden draft when PDFs/PPTX are generated so View Pack still works
+  // after switching ABHI ↔ OnwardAir (serverless cold starts, new browser tabs).
+  if (hasDurableArtifacts) {
+    const created = await createConversation({
+      userId: input.session.sub,
+      workspaceId: input.context.workspace.id,
+      organisationId: input.context.organisation?.id ?? null,
+      messages,
+      workspaceContext: input.context,
+      title,
+      isSaved: false,
+    });
+    return { conversationId: created.id, title: created.title };
   }
 
   return {
@@ -1138,7 +1193,11 @@ async function* runAssistantTurnInner(input: {
         context,
       );
       yield { type: "tool_result", name: directIntent.tool, result };
-      const extracted = extractArtifactsFromToolResult(result, directIntent.tool);
+      const extracted = extractArtifactsFromToolResult(
+        result,
+        directIntent.tool,
+        input.session.sub,
+      );
       turnFollowUps = extracted.followUps;
       turnArtifacts = extracted.artifacts;
 
@@ -1425,7 +1484,11 @@ async function* runAssistantTurnInner(input: {
           });
         }
         yield { type: "tool_result", name: effectiveName, result };
-        const extracted = extractArtifactsFromToolResult(result, effectiveName);
+        const extracted = extractArtifactsFromToolResult(
+          result,
+          effectiveName,
+          input.session.sub,
+        );
         if (extracted.followUps.length > 0) turnFollowUps = extracted.followUps;
         if (extracted.artifacts.length > 0) turnArtifacts = extracted.artifacts;
 
