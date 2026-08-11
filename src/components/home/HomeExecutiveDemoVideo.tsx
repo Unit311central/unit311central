@@ -119,10 +119,10 @@ export default function HomeExecutiveDemoVideo() {
 
   return (
     <div ref={containerRef} className="w-full max-w-[960px]">
-      <div className="overflow-hidden rounded-[18px] border border-white/[0.1] bg-black/20 shadow-[0_20px_48px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.06)] sm:rounded-[20px]">
+      <div className="aspect-video overflow-hidden rounded-[18px] border border-white/[0.1] bg-black/20 shadow-[0_20px_48px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.06)] sm:rounded-[20px]">
         <video
           ref={videoRef}
-          className="exec-demo-video block h-auto w-full cursor-pointer"
+          className="exec-demo-video block h-full w-full cursor-pointer object-contain"
           src={EXEC_VIDEO_SRC}
           preload="auto"
           playsInline

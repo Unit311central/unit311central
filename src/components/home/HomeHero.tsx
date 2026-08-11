@@ -4,20 +4,17 @@ import HomeHeroActions from "./HomeHeroActions";
 
 export default function HomeHero() {
   return (
-    <section className="relative min-h-[100svh] overflow-hidden bg-[#020617]">
-      <HeroVideoBackground />
+    <section className="relative flex flex-col bg-[#020617] lg:min-h-[100svh] lg:block lg:overflow-hidden">
+      {/* Phones: nav clearance + 16:9 band (full frame). Desktop: full-bleed background. */}
+      <div className="w-full shrink-0 lg:absolute lg:inset-0 lg:pt-0">
+        <div className="pt-14 sm:pt-20 lg:hidden" aria-hidden />
+        <div className="relative aspect-video w-full overflow-hidden bg-[#020617] lg:absolute lg:inset-0 lg:aspect-auto">
+          <HeroVideoBackground />
+        </div>
+      </div>
 
       <div
-        className="pointer-events-none absolute inset-0 z-[1] sm:hidden"
-        aria-hidden
-        style={{
-          background:
-            "linear-gradient(to top, rgba(2, 6, 23, 0.96) 0%, rgba(2, 6, 23, 0.82) 38%, rgba(2, 6, 23, 0.45) 68%, rgba(2, 6, 23, 0.2) 100%)",
-        }}
-      />
-
-      <div
-        className="pointer-events-none absolute inset-0 z-[1] hidden sm:block"
+        className="pointer-events-none absolute inset-0 z-[1] hidden lg:block"
         aria-hidden
         style={{
           background:
@@ -33,7 +30,7 @@ export default function HomeHero() {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-[1400px] items-end px-4 pb-12 pt-[3.75rem] sm:px-8 sm:pb-20 sm:pt-[6.5rem] lg:items-center lg:px-10 lg:pb-24 lg:pt-[120px]">
+      <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col px-4 py-8 sm:px-8 sm:py-10 lg:min-h-[100svh] lg:items-center lg:px-10 lg:py-24 lg:pt-[120px]">
         <div className="relative max-w-[800px]">
           <h1 className="text-[1.75rem] font-bold leading-[1.08] tracking-[-0.03em] text-white sm:text-[2.75rem] sm:leading-[0.95] lg:text-[3.35rem] xl:text-[3.75rem]">
             <span className="block">One operating layer</span>

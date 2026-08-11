@@ -74,7 +74,7 @@ export default function HeroVideoBackground() {
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none absolute inset-0 z-0 min-h-full w-full overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
       aria-hidden
     >
       {prefersReducedMotion ? (
@@ -88,7 +88,7 @@ export default function HeroVideoBackground() {
       ) : (
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover object-[50%_32%] sm:object-[50%_38%] md:object-[50%_42%]"
+          className="absolute inset-0 h-full w-full object-cover object-center lg:object-[50%_42%]"
           autoPlay
           muted
           loop
