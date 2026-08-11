@@ -95,7 +95,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
                   }
                   onClose();
                 }}
-                className={`block rounded-lg px-4 py-3 text-base font-medium transition-colors ${
+                className={`block rounded-lg px-4 py-3.5 text-base font-medium touch-manipulation transition-colors ${
                   isDarkMenu ? "text-white/90 hover:bg-white/10 hover:text-white" : "text-foreground hover:bg-surface-elevated"
                 }`}
               >
@@ -108,7 +108,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
           <Link
             href="/book"
             onClick={onClose}
-            className={`flex h-12 w-full items-center justify-center rounded-xl text-sm font-semibold transition-colors ${
+            className={`flex min-h-12 w-full touch-manipulation items-center justify-center rounded-xl text-base font-semibold transition-colors sm:text-sm ${
               isDarkMenu
                 ? "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
                 : "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"

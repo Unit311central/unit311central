@@ -97,7 +97,7 @@ function FooterSectionBlock({ section }: { section: FooterSection }) {
 export default function Footer() {
   return (
     <footer className="bg-white text-[#1a2b4a]">
-      <div className="mx-auto max-w-[1280px] px-4 pb-6 pt-6 sm:px-8 sm:pb-[32px] sm:pt-[56px]">
+      <div className="mx-auto max-w-[1280px] px-4 pb-[max(5.5rem,calc(1.5rem+env(safe-area-inset-bottom)+3.5rem))] pt-6 sm:px-8 sm:pb-[32px] sm:pt-[56px] lg:pb-[32px]">
         <div className="mb-5 sm:mb-0">
           <Link href="/" aria-label={SITE_NAME} className="inline-flex shrink-0 items-center">
             <Unit311CentralWordmark variant="footer" />

@@ -32,6 +32,16 @@ const inter = Inter({
 export const metadata: Metadata = {
   ...homeMetadata,
   metadataBase: new URL(SITE_URL),
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Unit311 Central",
+  },
 };
 
 export const viewport: Viewport = {
@@ -59,7 +69,11 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
-      <body className="flex min-h-full flex-col overflow-x-clip bg-background font-sans text-foreground antialiased">
+      <body
+        className={`flex min-h-full flex-col overflow-x-clip bg-background font-sans text-foreground antialiased${
+          hideMarketingChrome ? "" : " marketing-mobile-shell"
+        }`}
+      >
         <ClarityProvider />
         {hideMarketingChrome ? null : <MarketingAnalyticsBeacon />}
         <JsonLd

@@ -18,7 +18,7 @@ export function isMarketingRoute(pathname: string | null): boolean {
 }
 
 export const MARKETING_CONTENT_CLASS =
-  "relative z-10 mx-auto w-full max-w-[1400px] px-4 py-8 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-8 sm:py-16 lg:px-10 lg:py-20";
+  "relative z-10 mx-auto w-full max-w-[1400px] px-4 py-8 pt-[max(2rem,env(safe-area-inset-top))] pb-[max(5.5rem,calc(2rem+env(safe-area-inset-bottom)+3.5rem))] sm:px-8 sm:py-16 lg:px-10 lg:py-20 lg:pb-[max(2rem,env(safe-area-inset-bottom))]";
 
 export const marketingEyebrow =
   "text-[11px] font-semibold uppercase tracking-[0.14em] text-[#93c5fd] sm:text-xs sm:tracking-[0.28em]";
@@ -51,12 +51,12 @@ export const marketingBtnGreen =
   "inline-flex h-11 items-center justify-center rounded-lg bg-[#15803d] px-7 text-[15px] font-semibold text-white shadow-[0_2px_12px_rgba(21,128,61,0.35)] transition-colors hover:bg-[#166534]";
 
 export const marketingBtnSubmit =
-  "inline-flex w-full items-center justify-center rounded-lg bg-[#2563eb] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_32px_rgba(37,99,235,0.35)] transition-colors hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-12 w-full touch-manipulation items-center justify-center rounded-lg bg-[#2563eb] px-6 py-3 text-base font-semibold text-white shadow-[0_0_32px_rgba(37,99,235,0.35)] transition-colors hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm";
 
 export const marketingInputLabel = "mb-1.5 block text-sm font-medium text-white/80";
 
 export const marketingInput =
-  "w-full rounded-lg border border-white/15 bg-white/[0.06] px-4 py-2.5 text-sm text-white placeholder:text-white/35 focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] disabled:opacity-60";
+  "w-full rounded-lg border border-white/15 bg-white/[0.06] px-4 py-3 text-base text-white placeholder:text-white/35 focus:border-[#3b82f6] focus:outline-none focus:ring-1 focus:ring-[#3b82f6] disabled:opacity-60 sm:py-2.5 sm:text-sm";
 
 export const marketingLegalH2 = "text-lg font-semibold text-white";
 

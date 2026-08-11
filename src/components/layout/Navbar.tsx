@@ -209,7 +209,7 @@ export default function Navbar() {
                 aria-label="Open menu"
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen(true)}
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border lg:hidden ${
+                className={`flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg border lg:hidden ${
                   isDarkNav ? "border-white/25 text-white" : "border-border text-muted"
                 }`}
               >
@@ -243,7 +243,7 @@ export default function Navbar() {
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }
                   }}
-                  className={`shrink-0 rounded-lg px-3 py-2 text-[15px] font-medium whitespace-nowrap transition-colors ${
+                className={`shrink-0 rounded-lg px-3 py-2.5 text-[15px] font-medium whitespace-nowrap touch-manipulation transition-colors ${
                     isDarkNav
                       ? "text-white/85 hover:bg-white/10 hover:text-white"
                       : "text-muted hover:bg-surface-elevated hover:text-foreground"

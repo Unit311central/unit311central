@@ -38,7 +38,7 @@ export default function MobileStickyBookCta() {
       <div className="pointer-events-auto border-t border-white/10 bg-[#020617]/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <Link
           href="/book"
-          className="flex h-12 w-full items-center justify-center rounded-xl bg-[#2563eb] text-sm font-semibold text-white transition-colors hover:bg-[#1d4ed8]"
+          className="touch-manipulation flex h-12 w-full items-center justify-center rounded-xl bg-[#2563eb] text-base font-semibold text-white transition-colors hover:bg-[#1d4ed8] active:bg-[#1d4ed8] sm:text-sm"
         >
           Book a demo
         </Link>
