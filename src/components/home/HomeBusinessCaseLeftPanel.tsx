@@ -115,36 +115,38 @@ export default function HomeBusinessCaseLeftPanel() {
         ))}
       </div>
 
-      <div className="relative mt-4 grid flex-1 grid-cols-2 gap-2 sm:mt-5 sm:gap-2.5">
+      <div className="relative mt-4 grid flex-1 grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3">
         {PAIN_POINTS.map(({ icon: Icon, title, detail, accent, gradient }) => (
           <div
             key={title}
-            className="group relative overflow-hidden rounded-xl border border-white/[0.1] bg-[#070d18]/75 p-3 transition-colors hover:border-white/20 sm:p-3.5"
+            className="group relative flex min-h-[108px] flex-col overflow-hidden rounded-2xl border border-white/[0.12] bg-[#060b14]/80 p-3.5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 sm:min-h-[118px] sm:p-4"
           >
             <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
+              style={{
+                background: `linear-gradient(90deg, transparent, ${accent}88, transparent)`,
+              }}
+              aria-hidden
+            />
+            <div
               className={cn(
-                "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-80",
+                "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-70 transition-opacity group-hover:opacity-100",
                 gradient,
               )}
               aria-hidden
             />
-            <div className="relative flex gap-2.5 sm:gap-3">
-              <div
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 shadow-[0_0_20px_rgba(56,189,248,0.12)] transition-transform group-hover:scale-105"
-                style={{
-                  color: accent,
-                  backgroundColor: `${accent}14`,
-                  boxShadow: `0 0 22px ${accent}22`,
-                }}
-              >
-                <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-white/90 sm:text-[13px]">{title}</p>
-                <p className="mt-0.5 text-[10px] leading-snug text-white/45 sm:text-[11px]">
-                  {detail}
-                </p>
-              </div>
+            <div
+              className="relative mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0a1220]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform duration-300 group-hover:scale-105"
+              style={{
+                color: accent,
+                boxShadow: `0 0 24px ${accent}1f, inset 0 1px 0 rgba(255,255,255,0.08)`,
+              }}
+            >
+              <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
+            </div>
+            <div className="relative mt-auto">
+              <p className="text-[13px] font-semibold leading-snug text-white sm:text-sm">{title}</p>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-white/50 sm:text-xs">{detail}</p>
             </div>
           </div>
         ))}
