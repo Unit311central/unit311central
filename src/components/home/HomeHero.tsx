@@ -6,7 +6,7 @@ function HeroCopy() {
   return (
     <div className="relative max-w-[800px]">
       <h1 className="text-[1.75rem] font-bold leading-[1.08] tracking-[-0.03em] text-white sm:text-[2.75rem] sm:leading-[0.95] lg:text-[3.35rem] xl:text-[3.75rem]">
-        <span className="block">One operating layer</span>
+        <span className="block">One operating platform</span>
         <span className="block">for your whole company</span>
       </h1>
 
