@@ -51,10 +51,10 @@ export default function ModuleReviewContent() {
   return (
     <div className="w-full max-w-full">
       <header className="text-left">
-        <h1 className="text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl lg:text-[2rem]">
+        <h1 className="text-lg font-bold leading-tight tracking-tight text-white sm:text-xl lg:text-2xl">
           UNIT311 CENTRAL MODULE REVIEW
         </h1>
-        <p className="mt-3 max-w-4xl text-sm leading-relaxed text-white/70 sm:text-[15px]">
+        <p className="mt-2 max-w-4xl text-sm leading-relaxed text-white/70 sm:text-[15px]">
           Review the full Unit311 module map and tick the areas you want to prioritise in your
           discovery session.
         </p>
