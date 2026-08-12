@@ -45,7 +45,7 @@ export default function HomeCustomerProof() {
       </div>
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
-        <HomeSectionTitle>A typical growing company</HomeSectionTitle>
+        <HomeSectionTitle>Built to allow you to focus on running your Business</HomeSectionTitle>
 
         <div className="mt-10 lg:mt-12">
           <div
