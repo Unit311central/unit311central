@@ -5,6 +5,7 @@ import {
   queryScalarViaManagementApi,
   withResolvedDatabaseClient,
 } from "@/lib/internal-db-migrations";
+import { readEnvString, readSupabaseProjectRef } from "@/lib/env-value";
 
 const CRM_REPORT_MIGRATION_FILES = [
   "supabase/migrations/063_crm_leads_client_report.sql",
@@ -56,10 +57,8 @@ async function crmClientReportSchemaReady() {
 }
 
 async function applyCrmClientReportMigrations() {
-  const token = process.env.SUPABASE_ACCESS_TOKEN?.trim() ?? "";
-  const projectRef =
-    process.env.SUPABASE_PROJECT_REF?.trim() ||
-    (process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).hostname.split(".")[0] : null);
+  const token = readEnvString("SUPABASE_ACCESS_TOKEN") ?? "";
+  const projectRef = readSupabaseProjectRef();
 
   if (token.length >= 20 && projectRef) {
     for (const migration of CRM_REPORT_MIGRATION_FILES) {

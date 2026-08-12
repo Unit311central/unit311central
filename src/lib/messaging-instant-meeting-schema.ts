@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { readEnvString, readSupabaseProjectRef } from "@/lib/env-value";
+
 import { queryScalarViaManagementApi } from "@/lib/internal-db-migrations";
 import {
   createSupabaseServiceRoleClient,
@@ -90,10 +92,8 @@ async function instantMeetingSchemaReady() {
 
 async function applyInstantMeetingMigrationViaManagement() {
   const sql = readFileSync(join(process.cwd(), INSTANT_MEETING_MIGRATION), "utf8");
-  const token = process.env.SUPABASE_ACCESS_TOKEN?.trim() ?? "";
-  const projectRef =
-    process.env.SUPABASE_PROJECT_REF?.trim() ||
-    (process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).hostname.split(".")[0] : null);
+  const token = readEnvString("SUPABASE_ACCESS_TOKEN") ?? "";
+  const projectRef = readSupabaseProjectRef();
 
   if (token.length < 20 || !projectRef) return false;
 
