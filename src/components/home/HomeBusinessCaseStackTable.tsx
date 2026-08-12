@@ -36,7 +36,7 @@ const PRODUCT_COL =
 const COST_COL =
   "px-2 py-1.5 text-center font-medium tabular-nums text-white/70 sm:px-3 lg:py-1.5";
 const COST_HEADER =
-  "px-2 py-2 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-white/55 whitespace-nowrap sm:px-3 sm:text-[11px] lg:py-2.5 lg:text-xs lg:tracking-[0.08em]";
+  "px-2 py-2 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.06em] text-white/55 sm:px-3 sm:text-[11px] lg:py-2.5 lg:text-xs lg:tracking-[0.08em]";
 const PRODUCT_HEADER =
   "py-2 pr-3 text-left font-semibold uppercase tracking-[0.08em] text-white/55 sm:pr-4 lg:py-2.5";
 
@@ -53,9 +53,9 @@ export default function HomeBusinessCaseStackTable() {
         <div className="overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-3.5">
           <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <colgroup>
-            <col className="w-[48%]" />
-            <col className="w-[30%]" />
-            <col className="w-[22%]" />
+            <col className="w-[44%]" />
+            <col className="w-[28%]" />
+            <col className="w-[28%]" />
           </colgroup>
           <thead>
             <tr className="border-b border-white/[0.08] bg-sky-400/[0.05]">
@@ -63,7 +63,12 @@ export default function HomeBusinessCaseStackTable() {
                 Function
               </th>
               <th className={PRODUCT_HEADER}>Example Product</th>
-              <th className={COST_HEADER}>Annual Cost (10 Users)</th>
+              <th className={COST_HEADER}>
+                <span className="block">Annual Cost</span>
+                <span className="mt-0.5 block text-[9px] font-medium normal-case tracking-normal text-white/45 sm:text-[10px]">
+                  (10 users)
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
