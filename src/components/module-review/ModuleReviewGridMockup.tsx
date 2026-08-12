@@ -59,9 +59,9 @@ function MockTile({ column, columnIndex }: { column: BookFocusGridColumn; column
 export default function ModuleReviewGridMockup() {
   return (
     <div data-module-review-mockup className="w-full min-w-0 max-w-full">
-      <div className="space-y-1.5 sm:space-y-2">
+      <div className="space-y-4 sm:space-y-5">
         {MOCKUP_ROWS.map((row, rowIndex) => (
-          <div key={`mock-row-${rowIndex}`} className="grid w-full grid-cols-7 gap-1 sm:gap-1.5">
+          <div key={`mock-row-${rowIndex}`} className="grid w-full grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2">
             {row.map((column, columnIndex) => (
               <MockTile
                 key={column.title}

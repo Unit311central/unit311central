@@ -25,8 +25,7 @@ export const BOOK_FOCUS_GRID_ROW_1: readonly BookFocusGridColumn[] = [
       { kind: "item", label: "Dashboard" },
       { kind: "item", label: "Clients - Dashboard" },
       { kind: "item", label: "Clients - Client Directory" },
-      { kind: "item", label: "CRM - Pipeline" },
-      { kind: "item", label: "CRM - Discovery" },
+      { kind: "item", label: "CRM – Pipeline & Discovery" },
       { kind: "item", label: "CRM - Client Onboarding" },
       { kind: "item", label: "Partners" },
       { kind: "item", label: "Grants" },
@@ -55,7 +54,6 @@ export const BOOK_FOCUS_GRID_ROW_1: readonly BookFocusGridColumn[] = [
       { kind: "item", label: "Bank integrations" },
       { kind: "item", label: "Expenses" },
       { kind: "item", label: "Bank" },
-      { kind: "item", label: "Reports" },
     ],
   },
   {
@@ -90,13 +88,11 @@ export const BOOK_FOCUS_GRID_ROW_1: readonly BookFocusGridColumn[] = [
     items: [
       { kind: "item", label: "Dashboard" },
       { kind: "item", label: "Company details" },
-      { kind: "item", label: "Office location" },
       { kind: "item", label: "Bank Accounts" },
       { kind: "item", label: "Professional Advisors" },
       { kind: "item", label: "Contracts" },
       { kind: "item", label: "IP/Patents — Dashboard" },
-      { kind: "item", label: "IP/Patents — Register" },
-      { kind: "item", label: "IP/Patents — Portfolio" },
+      { kind: "item", label: "IP / Patents – Portfolio & Register" },
     ],
   },
   {
@@ -142,14 +138,13 @@ export const BOOK_FOCUS_GRID_ROW_2: readonly BookFocusGridColumn[] = [
     title: "HUMAN RESOURCES",
     tone: "emerald",
     items: [
-      { kind: "item", label: "Dashboard" },
+      { kind: "item", label: "Dashboard & Reports" },
       { kind: "item", label: "Employees" },
       { kind: "item", label: "Org Chart" },
       { kind: "item", label: "Recruitment" },
       { kind: "item", label: "Time and Attendance" },
       { kind: "item", label: "Payroll" },
       { kind: "item", label: "Performance" },
-      { kind: "item", label: "Reports" },
     ],
   },
   {
@@ -194,7 +189,6 @@ export const BOOK_FOCUS_GRID_ROW_2: readonly BookFocusGridColumn[] = [
       { kind: "item", label: "Utilisation Mgmt" },
       { kind: "item", label: "Assurance & Certification" },
       { kind: "item", label: "Engineering Risks" },
-      { kind: "item", label: "Integrations" },
     ],
   },
   {
@@ -207,7 +201,6 @@ export const BOOK_FOCUS_GRID_ROW_2: readonly BookFocusGridColumn[] = [
       { kind: "item", label: "Courses - QMS courses" },
       { kind: "item", label: "Auto Generate Courses" },
       { kind: "item", label: "Learning Library" },
-      { kind: "item", label: "Company progress" },
     ],
   },
   {

@@ -14,9 +14,6 @@ type BookFocusGridProps = {
 const COLUMN_HEADER_CLASS =
   "border-b border-[#0b2d63]/20 bg-[#0b2d63] px-2 py-1.5 text-left text-[9px] font-semibold uppercase leading-tight tracking-wide text-white";
 
-const SUBHEADER_CLASS =
-  "mt-1 rounded border border-[#2563eb]/25 bg-[#eff6ff] px-1.5 py-1 text-left text-[8px] font-bold uppercase leading-tight text-[#1d4ed8]";
-
 function FocusCheckbox({
   id,
   label,
@@ -62,11 +59,7 @@ function FocusColumn({
       <div className="space-y-0.5 p-1">
         {column.items.map((entry, entryIndex) => {
           if (entry.kind === "subheader") {
-            return (
-              <div key={`${column.title}-sub-${entryIndex}`} className={SUBHEADER_CLASS}>
-                {entry.label}
-              </div>
-            );
+            return null;
           }
 
           const key = bookFocusItemKey(column.title, entry.label);
@@ -86,48 +79,30 @@ function FocusColumn({
 }
 
 export default function BookFocusGrid({ selections, onToggle }: BookFocusGridProps) {
-  const homeColumn = BOOK_FOCUS_GRID_ROWS[0][0];
-  const row1Rest = BOOK_FOCUS_GRID_ROWS[0].slice(1);
+  const allColumns = [
+    BOOK_FOCUS_GRID_ROWS[0][0],
+    MODULE_REVIEW_EXECUTIVE_ASSISTANT_COLUMN,
+    ...BOOK_FOCUS_GRID_ROWS[0].slice(1),
+    ...BOOK_FOCUS_GRID_ROWS[1],
+  ];
+  const rows = [allColumns.slice(0, 7), allColumns.slice(7, 14), allColumns.slice(14, 21)];
 
   return (
     <div className="overflow-x-auto" data-book-focus-grid>
       <div className="min-w-[1180px] space-y-3">
-        <div className="flex gap-2">
-          <div className="flex shrink-0 flex-col gap-2">
-            <FocusColumn
-              column={homeColumn}
-              columnIndex={0}
-              selections={selections}
-              onToggle={onToggle}
-            />
-            <FocusColumn
-              column={MODULE_REVIEW_EXECUTIVE_ASSISTANT_COLUMN}
-              columnIndex={0}
-              selections={selections}
-              onToggle={onToggle}
-            />
+        {rows.map((row, rowIndex) => (
+          <div key={`row-${rowIndex}`} className="flex gap-2">
+            {row.map((column, columnIndex) => (
+              <FocusColumn
+                key={column.title}
+                column={column}
+                columnIndex={rowIndex * 7 + columnIndex}
+                selections={selections}
+                onToggle={onToggle}
+              />
+            ))}
           </div>
-          {row1Rest.map((column, columnIndex) => (
-            <FocusColumn
-              key={column.title}
-              column={column}
-              columnIndex={columnIndex + 1}
-              selections={selections}
-              onToggle={onToggle}
-            />
-          ))}
-        </div>
-        <div className="flex gap-2">
-          {BOOK_FOCUS_GRID_ROWS[1].map((column, columnIndex) => (
-            <FocusColumn
-              key={column.title}
-              column={column}
-              columnIndex={columnIndex}
-              selections={selections}
-              onToggle={onToggle}
-            />
-          ))}
-        </div>
+        ))}
       </div>
     </div>
   );
