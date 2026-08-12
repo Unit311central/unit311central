@@ -14,6 +14,8 @@ type MarketingPageShellProps = {
   overlayClassName?: string;
   /** Next/Image quality (1–100). Prefer higher for hero/login backgrounds. */
   backgroundImageQuality?: number;
+  /** Serve the raw public asset (full resolution, no optimizer downscale). */
+  backgroundImageUnoptimized?: boolean;
 };
 
 export default function MarketingPageShell({
@@ -24,6 +26,7 @@ export default function MarketingPageShell({
   backgroundImageClassName = "object-cover object-center opacity-30",
   overlayClassName = "absolute inset-0 bg-[#020617]/88",
   backgroundImageQuality = 75,
+  backgroundImageUnoptimized = false,
 }: MarketingPageShellProps) {
   return (
     <section className={`relative min-h-[100dvh] overflow-x-hidden bg-[#020617] ${className}`}>
@@ -34,6 +37,7 @@ export default function MarketingPageShell({
           fill
           priority
           quality={backgroundImageQuality}
+          unoptimized={backgroundImageUnoptimized}
           className={backgroundImageClassName}
           sizes="100vw"
         />

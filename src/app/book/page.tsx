@@ -4,6 +4,8 @@ import BookPageContent from "@/components/book/BookPageContent";
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import { createPageMetadata } from "@/lib/metadata";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = createPageMetadata({
   title: "Book a Free Demo",
   description:
@@ -16,7 +18,8 @@ export default function BookPage() {
     <MarketingPageShell
       backgroundImage="/images/overview-corporate-intelligence-bg.png"
       backgroundImageClassName="object-cover object-center opacity-[0.48] sm:opacity-[0.52]"
-      backgroundImageQuality={92}
+      backgroundImageQuality={100}
+      backgroundImageUnoptimized
       overlayClassName="absolute inset-0 bg-gradient-to-b from-[#030712]/52 via-[#020617]/68 to-[#020617]/78"
       contentClassName="relative z-10 mx-auto max-w-[1100px] px-4 pb-[max(5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:px-8 sm:pb-24 lg:px-10 lg:pb-28"
     >
