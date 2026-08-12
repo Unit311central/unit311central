@@ -89,6 +89,7 @@ export async function persistArtifactToStorage(
   record: AssistantStoredArtifact,
 ): Promise<AssistantStoredArtifact> {
   if (!isSupabaseServiceRoleConfigured()) return record;
+  await ensureArtifactStorageReady();
   try {
     const supabase = createSupabaseServiceRoleClient();
     const ext =

@@ -88,7 +88,7 @@ export const logEngineeringRiskAction: AssistantActionDefinition = {
       const result = logEngineeringRiskViaEa({
         title: asTrimmedString(input.title),
         program: asTrimmedString(input.program),
-        severity,
+        severity: severity ?? undefined,
         owner: asTrimmedString(input.owner) || undefined,
         dueDate: asTrimmedString(input.dueDate) || undefined,
         mitigation: asTrimmedString(input.mitigation) || undefined,
