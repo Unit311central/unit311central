@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
 import HomeSectionTitle from "./HomeSectionTitle";
+import { marketingBtnGreenLg } from "@/lib/marketing-ui";
 import {
   formatProfessionalUsd,
   MARKETING_ANNUAL_PREPAY_DISCOUNT,
@@ -209,10 +210,7 @@ export default function HomePricing() {
         </div>
 
         <div className="mt-14 px-2 text-center sm:mt-20 sm:px-0">
-          <Link
-            href="/book"
-            className="inline-flex min-h-14 w-full max-w-lg items-center justify-center rounded-xl bg-[#15803d] px-6 text-base font-semibold text-white shadow-[0_2px_12px_rgba(21,128,61,0.35)] transition-colors hover:bg-[#166534] sm:h-16 sm:w-auto sm:px-10 sm:text-lg"
-          >
+          <Link href="/book" className={marketingBtnGreenLg}>
             Book a free demo
           </Link>
           <p className="mt-6 text-sm text-white/40 sm:mt-8">
