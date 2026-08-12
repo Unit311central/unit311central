@@ -16,6 +16,8 @@ type MarketingPageShellProps = {
   backgroundImageQuality?: number;
   /** Serve the raw public asset (full resolution, no optimizer downscale). */
   backgroundImageUnoptimized?: boolean;
+  /** Use CSS background-image (full static file, best for marketing heroes). */
+  backgroundImageViaCss?: boolean;
 };
 
 export default function MarketingPageShell({
@@ -27,20 +29,28 @@ export default function MarketingPageShell({
   overlayClassName = "absolute inset-0 bg-[#020617]/88",
   backgroundImageQuality = 75,
   backgroundImageUnoptimized = false,
+  backgroundImageViaCss = false,
 }: MarketingPageShellProps) {
   return (
     <section className={`relative min-h-[100dvh] overflow-x-hidden bg-[#020617] ${className}`}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <Image
-          src={backgroundImage}
-          alt=""
-          fill
-          priority
-          quality={backgroundImageQuality}
-          unoptimized={backgroundImageUnoptimized}
-          className={backgroundImageClassName}
-          sizes="100vw"
-        />
+        {backgroundImageViaCss ? (
+          <div
+            className={`absolute inset-0 bg-cover bg-center bg-no-repeat ${backgroundImageClassName}`}
+            style={{ backgroundImage: `url(${backgroundImage})` }}
+          />
+        ) : (
+          <Image
+            src={backgroundImage}
+            alt=""
+            fill
+            priority
+            quality={backgroundImageQuality}
+            unoptimized={backgroundImageUnoptimized}
+            className={backgroundImageClassName}
+            sizes="100vw"
+          />
+        )}
         <div className={overlayClassName} />
         <div
           className="absolute inset-0"
