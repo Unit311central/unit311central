@@ -1,11 +1,15 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const HERO_BACKGROUND = "/images/overview-corporate-intelligence-bg.png";
+const HERO_VIDEO = "/images/video.mp4";
+const PLAYBACK_RATE = 0.8;
+const LOOP_LEAD_IN_SECONDS = 0.05;
+const LOOP_TRIM_SECONDS = 0.12;
 
 export default function HeroVideoBackground() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -17,8 +21,62 @@ export default function HeroVideoBackground() {
     return () => media.removeEventListener("change", syncPreference);
   }, []);
 
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!video || !container) return;
+
+    const primePlayback = () => {
+      video.muted = true;
+      video.volume = 0;
+      video.playbackRate = PLAYBACK_RATE;
+      void video.play().catch(() => {});
+    };
+
+    const handleLoadedMetadata = () => {
+      video.playbackRate = PLAYBACK_RATE;
+    };
+
+    const handleTimeUpdate = () => {
+      if (!video.duration || Number.isNaN(video.duration)) return;
+
+      if (video.currentTime >= video.duration - LOOP_TRIM_SECONDS) {
+        video.currentTime = LOOP_LEAD_IN_SECONDS;
+      }
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("timeupdate", handleTimeUpdate);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          primePlayback();
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.05 },
+    );
+
+    observer.observe(container);
+    primePlayback();
+
+    return () => {
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      observer.disconnect();
+    };
+  }, [prefersReducedMotion]);
+
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
+    <div
+      ref={containerRef}
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      aria-hidden
+    >
       {prefersReducedMotion ? (
         <div
           className="absolute inset-0 bg-[#020617]"
@@ -28,21 +86,21 @@ export default function HeroVideoBackground() {
           }}
         />
       ) : (
-        <>
-          <Image
-            src={HERO_BACKGROUND}
-            alt=""
-            fill
-            priority
-            quality={92}
-            sizes="100vw"
-            className="object-cover object-center opacity-[0.52] sm:opacity-[0.5] lg:opacity-[0.48]"
-          />
-          <div
-            className="absolute inset-0 bg-gradient-to-b from-[#030712]/45 via-[#020617]/60 to-[#020617]/78"
-            aria-hidden
-          />
-        </>
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-contain object-center lg:object-cover lg:object-[50%_42%]"
+          autoPlay
+          muted
+          loop
+          playsInline
+          disablePictureInPicture
+          controls={false}
+          preload="auto"
+          aria-hidden
+          tabIndex={-1}
+        >
+          <source src={HERO_VIDEO} type="video/mp4" />
+        </video>
       )}
     </div>
   );
