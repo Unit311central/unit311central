@@ -15,28 +15,24 @@ const STATS: {
   label: string;
   icon: LucideIcon;
   gradient: string;
-  glow: string;
 }[] = [
   {
     value: "20+",
     label: "separate tools in a typical SME stack",
     icon: Layers3,
     gradient: "from-sky-400/25 via-sky-500/10 to-transparent",
-    glow: "shadow-[0_0_28px_rgba(56,189,248,0.22)]",
   },
   {
     value: "Ongoing",
     label: "costs and admin on top of subscriptions",
     icon: RefreshCw,
     gradient: "from-amber-400/20 via-orange-500/10 to-transparent",
-    glow: "shadow-[0_0_28px_rgba(251,191,36,0.18)]",
   },
   {
     value: "Multiple layers",
     label: "rebuilding the same picture by hand",
     icon: Layers2,
     gradient: "from-violet-400/20 via-blue-500/10 to-transparent",
-    glow: "shadow-[0_0_28px_rgba(129,140,248,0.2)]",
   },
 ];
 
@@ -88,13 +84,12 @@ export default function HomeBusinessCaseLeftPanel() {
       </div>
 
       <div className="relative mt-5 grid grid-cols-3 gap-2 sm:gap-3">
-        {STATS.map(({ value, label, icon: Icon, gradient, glow }) => (
+        {STATS.map(({ value, label, icon: Icon, gradient }) => (
           <div
             key={label}
             className={cn(
-              "relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br p-2.5 text-center sm:p-3",
+              "relative isolate overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br p-2.5 text-center sm:p-3",
               gradient,
-              glow,
             )}
           >
             <div className="mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-sky-200 sm:h-8 sm:w-8">
@@ -119,7 +114,11 @@ export default function HomeBusinessCaseLeftPanel() {
         {PAIN_POINTS.map(({ icon: Icon, title, detail, accent, gradient }) => (
           <div
             key={title}
-            className="relative flex min-h-[108px] flex-col overflow-hidden rounded-2xl border border-white/[0.12] bg-[#060b14]/80 p-3.5 backdrop-blur-sm sm:min-h-[118px] sm:p-4"
+            className={cn(
+              "relative isolate flex min-h-[108px] flex-col overflow-hidden rounded-2xl border border-white/[0.12] bg-[#060b14]/80 p-3.5 sm:min-h-[118px] sm:p-4",
+              "bg-gradient-to-br",
+              gradient,
+            )}
           >
             <div
               className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
@@ -129,18 +128,8 @@ export default function HomeBusinessCaseLeftPanel() {
               aria-hidden
             />
             <div
-              className={cn(
-                "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-70",
-                gradient,
-              )}
-              aria-hidden
-            />
-            <div
               className="relative mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0a1220]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-              style={{
-                color: accent,
-                boxShadow: `0 0 24px ${accent}1f, inset 0 1px 0 rgba(255,255,255,0.08)`,
-              }}
+              style={{ color: accent }}
             >
               <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
             </div>
