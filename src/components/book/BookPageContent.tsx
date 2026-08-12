@@ -49,7 +49,7 @@ export default function BookPageContent() {
             We&apos;d love to have a short call to better understand your requirements
           </p>
           <div className="mx-auto mt-5 flex justify-center sm:mt-8">
-            <div className="w-full max-w-3xl">
+            <div className="mx-auto w-fit max-w-3xl">
               <ul className="hidden space-y-2.5 text-left text-sm text-white sm:text-base md:block">
                 {BOOK_INTRO_BULLETS.map((line) => (
                   <li key={line} className="flex items-start gap-2.5">
