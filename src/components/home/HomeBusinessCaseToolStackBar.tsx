@@ -1,15 +1,15 @@
 export const STACK_TABLE_GRID_COLS =
-  "grid-cols-[minmax(0,48%)_minmax(0,30%)_minmax(0,22%)]";
+  "grid-cols-[minmax(0,44%)_minmax(0,28%)_minmax(0,28%)]";
 
 export function HomeBusinessCaseToolStackBar({ className = "" }: { className?: string }) {
   return (
     <div className={className}>
       <div className={`grid ${STACK_TABLE_GRID_COLS} items-center`}>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45 sm:text-[11px]">
+        <span className="text-xs font-semibold uppercase tracking-[0.1em] text-white/55 sm:text-[13px] lg:text-sm">
           Typical tool stack
         </span>
         <span aria-hidden />
-        <span className="text-center text-[10px] font-semibold tabular-nums tracking-wide text-white/70 sm:text-[11px]">
+        <span className="text-center text-xs font-semibold tabular-nums tracking-wide text-white/80 sm:text-[13px] lg:text-sm">
           $45,788/yr
         </span>
       </div>
