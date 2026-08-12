@@ -119,7 +119,7 @@ export default function HomeBusinessCaseLeftPanel() {
         {PAIN_POINTS.map(({ icon: Icon, title, detail, accent, gradient }) => (
           <div
             key={title}
-            className="group relative flex min-h-[108px] flex-col overflow-hidden rounded-2xl border border-white/[0.12] bg-[#060b14]/80 p-3.5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/20 sm:min-h-[118px] sm:p-4"
+            className="relative flex min-h-[108px] flex-col overflow-hidden rounded-2xl border border-white/[0.12] bg-[#060b14]/80 p-3.5 backdrop-blur-sm sm:min-h-[118px] sm:p-4"
           >
             <div
               className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
@@ -130,13 +130,13 @@ export default function HomeBusinessCaseLeftPanel() {
             />
             <div
               className={cn(
-                "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-70 transition-opacity group-hover:opacity-100",
+                "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-70",
                 gradient,
               )}
               aria-hidden
             />
             <div
-              className="relative mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0a1220]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-transform duration-300 group-hover:scale-105"
+              className="relative mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0a1220]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
               style={{
                 color: accent,
                 boxShadow: `0 0 24px ${accent}1f, inset 0 1px 0 rgba(255,255,255,0.08)`,
