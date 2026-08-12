@@ -78,6 +78,10 @@ const nextConfig: NextConfig = {
       "node_modules/@esbuild/**",
       "node_modules/webpack/**",
       "node_modules/terser/**",
+      "docs/**",
+      "mobile-android/**",
+      "tmp/**",
+      "backups/**",
     ],
   },
 };

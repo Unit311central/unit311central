@@ -581,7 +581,8 @@ function getSupabaseProjectRef() {
 }
 
 function readMigrationSql(relativePath: string) {
-  return readFileSync(join(process.cwd(), relativePath), "utf8");
+  const fileName = relativePath.replace(/^supabase\/migrations\//, "");
+  return readFileSync(join(process.cwd(), "supabase", "migrations", fileName), "utf8");
 }
 
 /** Process-local memo so hot API routes do not re-check/reload schema every request. */

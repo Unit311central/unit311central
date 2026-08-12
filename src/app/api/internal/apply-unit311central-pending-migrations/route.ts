@@ -133,7 +133,8 @@ async function applyMigrationFile(
   migration: string,
   token: string,
 ): Promise<{ ok: boolean; status?: number; data?: unknown; method: string }> {
-  const sql = readFileSync(join(process.cwd(), migration), "utf8");
+  const fileName = migration.replace(/^supabase\/migrations\//, "");
+  const sql = readFileSync(join(process.cwd(), "supabase", "migrations", fileName), "utf8");
 
   if (token.length >= 20) {
     const result = await queryViaManagementApi(token, sql);
