@@ -33,6 +33,7 @@ import { withFounderSessionBookingsTable } from "@/lib/internal-db-migrations";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { parseTranscriptDraft, type TranscriptLine } from "@/lib/executive-call-transcript-data";
 import type { BookThankYouSelections } from "@/lib/book-thank-you-data";
+import { normalizeBookThankYouSelections } from "@/lib/book-thank-you-data";
 import {
   requireCurrentWorkspace,
   resolveWorkspaceBinding,
@@ -144,14 +145,7 @@ function requireSupabase() {
 }
 
 function parseFocusSelections(value: unknown): BookThankYouSelections | null {
-  if (!value || typeof value !== "object") return null;
-  const record = value as { general?: unknown; modules?: unknown };
-  if (!record.general || typeof record.general !== "object") return null;
-  if (!record.modules || typeof record.modules !== "object") return null;
-  return {
-    general: record.general as Record<string, boolean>,
-    modules: record.modules as Record<string, boolean>,
-  };
+  return normalizeBookThankYouSelections(value);
 }
 
 function mapBooking(row: DbFounderSessionBooking): FounderSessionBooking {

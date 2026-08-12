@@ -8,6 +8,7 @@ export const MARKETING_PATHS = [
   "/termsandconditions",
   "/privacypolicy",
   "/book",
+  "/module-review",
   "/payment",
   "/payment-transfer",
 ] as const;

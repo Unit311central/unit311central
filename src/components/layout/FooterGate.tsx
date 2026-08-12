@@ -43,7 +43,8 @@ export default function FooterGate() {
     pathname?.startsWith("/calendar") ||
     pathname?.startsWith("/info-email") ||
     pathname?.startsWith("/whatsapp/") ||
-    pathname?.startsWith("/partners")
+    pathname?.startsWith("/partners") ||
+    pathname === "/module-review"
   ) {
     return null;
   }

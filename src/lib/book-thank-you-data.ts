@@ -1,69 +1,102 @@
-export const BOOK_THANK_YOU_GENERAL_ITEMS = [
-  "Real-time visibility across your business",
-  "Integration and interoperability across business functions and software",
-  "Dashboard customization",
-  "Generating advanced business reports",
-  "Business-wide data consistency and governance",
-  "Platform security and scalability",
-  "The onboarding process",
-] as const;
-
-export const BOOK_THANK_YOU_MODULE_ITEMS = [
-  "AI Executive Assistant / Board Deck Automation / Other",
-  "Clients, CRM, Client Acquisition / Onboarding",
-  "CRM",
-  "Project Management",
-  "Financial / Reporting",
-  "Human Resources / Representative Mgmt",
-  "Asset, Inventory & Logistics Management",
-  "Engineering Management",
-  "Information Repository",
-  "Messaging / Calendar / Email / Social Media Mgmt",
-  "Support Center",
-  "Training Center",
-  "Quality Management System",
-  "Competitors / Whiteboard",
-  "Website Management",
-  "User, Roles & Notification Management",
-] as const;
+import {
+  BOOK_FOCUS_GRID_ROWS,
+  MODULE_REVIEW_EXECUTIVE_ASSISTANT_COLUMN,
+  bookFocusItemKey,
+  getAllBookFocusItemKeys,
+} from "@/lib/book-focus-grid-data";
 
 export type BookThankYouSelections = {
+  items: Record<string, boolean>;
+};
+
+export type LegacyBookThankYouSelections = {
   general: Record<string, boolean>;
   modules: Record<string, boolean>;
 };
 
 export function createEmptyBookThankYouSelections(): BookThankYouSelections {
   return {
-    general: Object.fromEntries(BOOK_THANK_YOU_GENERAL_ITEMS.map((item) => [item, false])),
-    modules: Object.fromEntries(BOOK_THANK_YOU_MODULE_ITEMS.map((item) => [item, false])),
+    items: Object.fromEntries(getAllBookFocusItemKeys().map((key) => [key, false])),
   };
 }
 
+export function normalizeBookThankYouSelections(
+  value: unknown,
+): BookThankYouSelections | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as {
+    items?: unknown;
+    general?: unknown;
+    modules?: unknown;
+  };
+
+  if (record.items && typeof record.items === "object") {
+    return { items: record.items as Record<string, boolean> };
+  }
+
+  if (typeof record.general === "object" && typeof record.modules === "object") {
+    const items: Record<string, boolean> = Object.fromEntries(
+      getAllBookFocusItemKeys().map((key) => [key, false]),
+    );
+    const legacyGeneral = record.general as Record<string, boolean>;
+    const legacyModules = record.modules as Record<string, boolean>;
+    for (const [label, checked] of Object.entries(legacyGeneral)) {
+      if (checked) items[`Legacy General::${label}`] = true;
+    }
+    for (const [label, checked] of Object.entries(legacyModules)) {
+      if (checked) items[`Legacy Modules::${label}`] = true;
+    }
+    return { items };
+  }
+
+  return null;
+}
+
 export function getSelectedBookThankYouItems(selections: BookThankYouSelections) {
-  const general = BOOK_THANK_YOU_GENERAL_ITEMS.filter((item) => selections.general[item]);
-  const modules = BOOK_THANK_YOU_MODULE_ITEMS.filter((item) => selections.modules[item]);
-  return { general, modules };
+  const selectedKeys = Object.entries(selections.items)
+    .filter(([, checked]) => checked)
+    .map(([key]) => key);
+
+  const byColumn: Record<string, string[]> = {};
+  const allColumns = [
+    ...BOOK_FOCUS_GRID_ROWS.flat(),
+    MODULE_REVIEW_EXECUTIVE_ASSISTANT_COLUMN,
+  ];
+  for (const column of allColumns) {
+    const selectedInColumn = column.items
+      .filter((entry) => entry.kind === "item")
+      .map((entry) => entry.label)
+      .filter((label) => selections.items[bookFocusItemKey(column.title, label)]);
+    if (selectedInColumn.length > 0) {
+      byColumn[column.title] = selectedInColumn;
+    }
+  }
+
+  const legacyKeys = selectedKeys.filter((key) => key.startsWith("Legacy "));
+  return { byColumn, legacyKeys, totalSelected: selectedKeys.length };
 }
 
 export function formatBookThankYouSelectionsNotes(selections: BookThankYouSelections) {
-  const { general, modules } = getSelectedBookThankYouItems(selections);
-  const lines = ["Pre-meeting focus areas submitted via /book:"];
+  const { byColumn, legacyKeys, totalSelected } = getSelectedBookThankYouItems(selections);
+  const lines = ["Pre-meeting focus areas submitted via /book:", ""];
 
-  lines.push("", "General:");
-  if (general.length === 0) {
-    lines.push("- (none selected)");
-  } else {
-    general.forEach((item) => lines.push(`- ${item}`));
+  if (totalSelected === 0) {
+    lines.push("(none selected)");
+    return lines.join("\n");
   }
 
-  lines.push("", "Modules:");
-  if (modules.length === 0) {
-    lines.push("- (none selected)");
-  } else {
-    modules.forEach((item) => lines.push(`- ${item}`));
+  for (const [columnTitle, items] of Object.entries(byColumn)) {
+    lines.push(`${columnTitle}:`);
+    items.forEach((item) => lines.push(`- ${item}`));
+    lines.push("");
   }
 
-  return lines.join("\n");
+  if (legacyKeys.length > 0) {
+    lines.push("Legacy selections:");
+    legacyKeys.forEach((key) => lines.push(`- ${key.replace(/^Legacy (General|Modules)::/, "")}`));
+  }
+
+  return lines.join("\n").trimEnd();
 }
 
 export const PRE_MEETING_FOCUS_PDF_FILE_ID_PREFIX = "Pre-meeting focus PDF file id:";

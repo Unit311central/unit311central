@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
+import BookFocusGrid from "@/components/book/BookFocusGrid";
 import {
-  BOOK_THANK_YOU_GENERAL_ITEMS,
-  BOOK_THANK_YOU_MODULE_ITEMS,
   createEmptyBookThankYouSelections,
   type BookThankYouSelections,
 } from "@/lib/book-thank-you-data";
@@ -19,37 +18,8 @@ type BookThankYouPanelProps = {
   submitLabel?: string;
   showTestNotice?: boolean;
   submittedMessage?: string;
+  defaultFocusExpanded?: boolean;
 };
-
-function FocusCheckbox({
-  id,
-  label,
-  checked,
-  onChange,
-  labelClassName = "text-sm leading-snug text-[#1a2b4a]/85",
-}: {
-  id: string;
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  labelClassName?: string;
-}) {
-  return (
-    <label
-      htmlFor={id}
-      className="flex cursor-pointer items-start gap-2.5 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-white/40"
-    >
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#94a3b8] text-[#2563eb] focus:ring-[#2563eb]"
-      />
-      <span className={labelClassName}>{label}</span>
-    </label>
-  );
-}
 
 export default function BookThankYouPanel({
   sessionWhen,
@@ -59,20 +29,13 @@ export default function BookThankYouPanel({
   submitLabel = "Submit",
   showTestNotice = false,
   submittedMessage = "Thank you — your focus areas have been saved and shared with our team.",
+  defaultFocusExpanded = false,
 }: BookThankYouPanelProps) {
   const [selections, setSelections] = useState(createEmptyBookThankYouSelections);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [focusExpanded, setFocusExpanded] = useState(false);
-
-  const moduleColumns = useMemo(() => {
-    const midpoint = Math.ceil(BOOK_THANK_YOU_MODULE_ITEMS.length / 2);
-    return {
-      left: BOOK_THANK_YOU_MODULE_ITEMS.slice(0, midpoint),
-      right: BOOK_THANK_YOU_MODULE_ITEMS.slice(midpoint),
-    };
-  }, []);
+  const [focusExpanded, setFocusExpanded] = useState(defaultFocusExpanded);
 
   async function handleSubmit() {
     if (!onSubmit) return;
@@ -86,6 +49,12 @@ export default function BookThankYouPanel({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleToggle(key: string, checked: boolean) {
+    setSelections((current) => ({
+      items: { ...current.items, [key]: checked },
+    }));
   }
 
   return (
@@ -138,7 +107,7 @@ export default function BookThankYouPanel({
         </p>
       </div>
 
-      <div className="mx-auto mt-8 max-w-5xl text-left">
+      <div className="mx-auto mt-8 max-w-full text-left">
         <div className="text-center">
           <p className="text-sm leading-relaxed text-[#1a2b4a]/75">
             In order to have a productive session, please select the areas and modules you&apos;d most
@@ -162,73 +131,9 @@ export default function BookThankYouPanel({
         </button>
 
         {focusExpanded ? (
-        <div className="mt-3 rounded-2xl border border-[#dbe4f0] bg-[#eef3f8] p-3 sm:p-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <section className="rounded-xl border border-sky-200/80 bg-gradient-to-b from-sky-50 to-sky-100/70 p-4 sm:p-5">
-              <h3 className="text-center text-xs font-semibold uppercase tracking-[0.16em] text-sky-800">
-                General
-              </h3>
-              <div className="mt-4 space-y-1">
-                {BOOK_THANK_YOU_GENERAL_ITEMS.map((item, index) => (
-                  <FocusCheckbox
-                    key={item}
-                    id={`general-${index}`}
-                    label={item}
-                    checked={selections.general[item] ?? false}
-                    onChange={(checked) =>
-                      setSelections((current) => ({
-                        ...current,
-                        general: { ...current.general, [item]: checked },
-                      }))
-                    }
-                  />
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-violet-200/80 bg-gradient-to-b from-violet-50 to-indigo-100/60 p-4 sm:p-5">
-              <h3 className="text-center text-xs font-semibold uppercase tracking-[0.16em] text-violet-900">
-                Modules
-              </h3>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  {moduleColumns.left.map((item, index) => (
-                    <FocusCheckbox
-                      key={item}
-                      id={`module-left-${index}`}
-                      label={item}
-                      labelClassName="text-xs leading-snug text-[#1a2b4a]/85"
-                      checked={selections.modules[item] ?? false}
-                      onChange={(checked) =>
-                        setSelections((current) => ({
-                          ...current,
-                          modules: { ...current.modules, [item]: checked },
-                        }))
-                      }
-                    />
-                  ))}
-                </div>
-                <div className="space-y-1">
-                  {moduleColumns.right.map((item, index) => (
-                    <FocusCheckbox
-                      key={item}
-                      id={`module-right-${index}`}
-                      label={item}
-                      labelClassName="text-xs leading-snug text-[#1a2b4a]/85"
-                      checked={selections.modules[item] ?? false}
-                      onChange={(checked) =>
-                        setSelections((current) => ({
-                          ...current,
-                          modules: { ...current.modules, [item]: checked },
-                        }))
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-            </section>
+          <div className="mt-3 rounded-2xl border border-[#dbe4f0] bg-[#eef3f8] p-3 sm:p-4">
+            <BookFocusGrid selections={selections.items} onToggle={handleToggle} />
           </div>
-        </div>
         ) : null}
       </div>
 

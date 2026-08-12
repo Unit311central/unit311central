@@ -1,12 +1,8 @@
-import { jsPDF } from "jspdf";
-
 import type { BookThankYouSelections } from "@/lib/book-thank-you-data";
-import {
-  BOOK_THANK_YOU_GENERAL_ITEMS,
-  BOOK_THANK_YOU_MODULE_ITEMS,
-  getSelectedBookThankYouItems,
-} from "@/lib/book-thank-you-data";
+import { getSelectedBookThankYouItems } from "@/lib/book-thank-you-data";
+import { BOOK_FOCUS_GRID_ROWS, MODULE_REVIEW_EXECUTIVE_ASSISTANT_COLUMN } from "@/lib/book-focus-grid-data";
 import { formatLondonDateTime } from "@/lib/founder-booking/slots";
+import { jsPDF } from "jspdf";
 
 const PAGE_W = 210;
 const MARGIN = 18;
@@ -50,7 +46,7 @@ function renderCheckboxList(
 ) {
   let y = startY;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(15, 23, 42);
 
   for (const item of items) {
@@ -61,7 +57,7 @@ function renderCheckboxList(
     const prefix = checked ? "[x]" : "[ ]";
     const lines = wrapText(doc, `${prefix} ${item}`, CONTENT_W - 4);
     doc.text(lines, MARGIN + 2, y);
-    y += lines.length * 5 + 2;
+    y += lines.length * 4.5 + 1.5;
   }
 
   return y;
@@ -70,9 +66,7 @@ function renderCheckboxList(
 export async function buildBookThankYouFocusPdf(input: BookThankYouPdfInput): Promise<Uint8Array> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const generatedAt = new Date().toISOString();
-  const { general, modules } = getSelectedBookThankYouItems(input.selections);
-  const selectedGeneral = new Set(general);
-  const selectedModules = new Set(modules);
+  const { byColumn, totalSelected } = getSelectedBookThankYouItems(input.selections);
 
   doc.setFillColor(11, 45, 99);
   doc.rect(0, 0, PAGE_W, 36, "F");
@@ -120,27 +114,33 @@ export async function buildBookThankYouFocusPdf(input: BookThankYouPdfInput): Pr
   doc.text(meetingLines, MARGIN, y);
   y += meetingLines.length * 5 + 8;
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(14, 116, 144);
-  doc.text("General focus areas", MARGIN, y);
-  y += 7;
-  y = renderCheckboxList(doc, BOOK_THANK_YOU_GENERAL_ITEMS, selectedGeneral, y) + 6;
+  const allColumns = [
+    ...BOOK_FOCUS_GRID_ROWS.flat(),
+    MODULE_REVIEW_EXECUTIVE_ASSISTANT_COLUMN,
+  ];
+  for (const column of allColumns) {
+    const itemLabels = column.items
+      .filter((entry) => entry.kind === "item")
+      .map((entry) => entry.label);
+    const selectedInColumn = byColumn[column.title] ?? [];
+    const selectedSet = new Set(selectedInColumn);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(91, 33, 182);
-  doc.text("Modules of interest", MARGIN, y);
-  y += 7;
-  y = renderCheckboxList(doc, BOOK_THANK_YOU_MODULE_ITEMS, selectedModules, y) + 6;
+    y = ensureSpace(doc, y, 12);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(column.tone === "emerald" ? 5 : 14, column.tone === "emerald" ? 150 : 116, column.tone === "emerald" ? 105 : 144);
+    doc.text(column.title, MARGIN, y);
+    y += 6;
+    y = renderCheckboxList(doc, itemLabels, selectedSet, y) + 4;
+  }
 
   doc.setFont("helvetica", "italic");
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
   const summary =
-    general.length + modules.length === 0
+    totalSelected === 0
       ? "No specific focus areas were selected. The team will explore priorities during the discovery call."
-      : `${general.length} general area${general.length === 1 ? "" : "s"} and ${modules.length} module${modules.length === 1 ? "" : "s"} selected for discussion.`;
+      : `${totalSelected} focus area${totalSelected === 1 ? "" : "s"} selected for discussion.`;
   const summaryLines = wrapText(doc, summary, CONTENT_W);
   y = ensureSpace(doc, y, summaryLines.length * 5 + 4);
   doc.text(summaryLines, MARGIN, y);
