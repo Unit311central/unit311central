@@ -38,8 +38,6 @@ const FOOTER_SECTIONS: FooterSection[] = [
     links: [
       { href: "/contact", label: "Contact Us" },
       { href: "/book", label: "Book a demo" },
-      { href: "/signup", label: "Sign up" },
-      { href: "/login", label: "Sign in" },
       { href: `mailto:${CONTACT.infoEmail}`, label: CONTACT.infoEmail, external: true },
       { href: CONTACT.linkedin, label: "LinkedIn", external: true },
     ],
@@ -97,7 +95,7 @@ function FooterSectionBlock({ section }: { section: FooterSection }) {
 export default function Footer() {
   return (
     <footer className="bg-white text-[#1a2b4a]">
-      <div className="mx-auto max-w-[1280px] px-4 pb-[max(5.5rem,calc(1.5rem+env(safe-area-inset-bottom)+3.5rem))] pt-6 sm:px-8 sm:pb-[32px] sm:pt-[56px] lg:pb-[32px]">
+      <div className="mx-auto max-w-[1280px] px-4 pb-[max(5.5rem,calc(1.5rem+env(safe-area-inset-bottom)+3.5rem))] pt-4 sm:px-8 sm:pb-[32px] sm:pt-8 lg:pb-[32px]">
         <div className="mb-5 sm:mb-0">
           <Link href="/" aria-label={SITE_NAME} className="inline-flex shrink-0 items-center">
             <Unit311CentralWordmark variant="footer" />
@@ -108,7 +106,7 @@ export default function Footer() {
           <span className="mt-3 block h-[3px] w-[36px] bg-[#2563eb] sm:mt-[12px]" aria-hidden />
         </div>
 
-        <div className="mt-5 grid gap-5 sm:mt-8 sm:grid-cols-2 sm:gap-8 lg:mt-[48px] lg:grid-cols-3 lg:gap-10">
+        <div className="mt-4 grid gap-5 sm:mt-6 sm:grid-cols-2 sm:gap-8 lg:mt-10 lg:grid-cols-3 lg:gap-10">
           {FOOTER_SECTIONS.map((section) => (
             <FooterSectionBlock key={section.id} section={section} />
           ))}

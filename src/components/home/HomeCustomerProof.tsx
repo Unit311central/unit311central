@@ -1,9 +1,12 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check, X } from "lucide-react";
 import HomeSectionTitle from "./HomeSectionTitle";
 import WorkspaceDemoLoopVideo from "./WorkspaceDemoLoopVideo";
 
 const SECTION_BG = "/images/workspaces/onwardair-login-bg.png";
+
+const BOX_LABEL_CLASS =
+  "text-sm font-bold uppercase tracking-[0.14em] text-white sm:text-[15px]";
 
 const BEFORE_ITEMS = [
   "20+ subscriptions across all major business functions",
@@ -58,35 +61,43 @@ export default function HomeCustomerProof() {
               </p>
 
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                  Before
-                </p>
+                <p className={BOX_LABEL_CLASS}>Before</p>
                 <ul className="mt-4 space-y-3">
                   {BEFORE_ITEMS.map((item) => (
-                    <li key={item} className="text-sm leading-relaxed text-white/65">{item}</li>
+                    <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-white/65">
+                      <X
+                        className="mt-0.5 h-4 w-4 shrink-0 text-red-400/80"
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                      <span>{item}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
               <div className="rounded-2xl border border-[#3b82f6]/25 bg-[#2563eb]/[0.08] p-5 sm:p-6">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#93c5fd]">
-                  With Unit311 Central
-                </p>
+                <p className={`${BOX_LABEL_CLASS} text-[#93c5fd]`}>With Unit311 Central</p>
                 <ul className="mt-4 space-y-3">
                   {AFTER_ITEMS.map((item) => (
-                    <li key={item} className="text-sm leading-relaxed text-white/80">{item}</li>
+                    <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-white/80">
+                      <Check
+                        className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400"
+                        strokeWidth={2.5}
+                        aria-hidden
+                      />
+                      <span>{item}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
             </div>
 
-            <div
-              className="flex min-h-0 overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-b from-white/[0.12] to-white/[0.04] p-2 shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:rounded-[28px] sm:p-3 lg:h-full lg:min-h-0 lg:flex-col"
-            >
+            <div className="relative min-h-[280px] overflow-hidden rounded-2xl border border-white/12 bg-[#0b1220] shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:min-h-[320px] sm:rounded-[28px] lg:h-full lg:min-h-0">
               <WorkspaceDemoLoopVideo
-                className="min-h-0 w-full lg:h-full lg:flex-1"
+                className="absolute inset-0 h-full w-full rounded-none"
                 src="/videos/overview.mp4"
                 poster={null}
-                frameClassName="aspect-video lg:aspect-auto lg:h-full lg:min-h-0"
+                frameClassName="h-full w-full"
               />
             </div>
           </div>

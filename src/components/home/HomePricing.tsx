@@ -104,7 +104,7 @@ export default function HomePricing() {
   return (
     <section
       id="pricing"
-      className="relative scroll-mt-20 overflow-x-hidden bg-[#050816] pt-7 pb-12 sm:scroll-mt-28 sm:pt-12 sm:pb-20 lg:pt-14 lg:pb-24"
+      className="relative scroll-mt-20 overflow-x-hidden bg-[#050816] pt-7 pb-8 sm:scroll-mt-28 sm:pt-12 sm:pb-10 lg:pt-14 lg:pb-12"
     >
       <div
         className="pointer-events-none absolute inset-0"
@@ -209,13 +209,10 @@ export default function HomePricing() {
           </div>
         </div>
 
-        <div className="mt-14 px-2 text-center sm:mt-20 sm:px-0">
+        <div className="mt-10 px-2 text-center sm:mt-12 sm:px-0">
           <Link href="/book" className={marketingBtnGreenLg}>
             Book a free demo
           </Link>
-          <p className="mt-6 text-sm text-white/40 sm:mt-8">
-            Pricing confirmed in your proposal — demos are the right first step for most teams.
-          </p>
         </div>
       </div>
     </section>

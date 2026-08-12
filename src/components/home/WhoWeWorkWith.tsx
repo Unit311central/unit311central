@@ -119,11 +119,11 @@ export default function WhoWeWorkWith() {
       </div>
 
       <div className="relative mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10">
-        <HomeSectionTitle>Who we help accelerate and scale</HomeSectionTitle>
+        <HomeSectionTitle>Examples of who we help accelerate and scale</HomeSectionTitle>
 
         <p className="mx-auto mt-4 max-w-3xl text-balance text-center text-sm leading-relaxed text-white/60 sm:mt-6 sm:text-[15px] md:text-[17px]">
-          From first-time founders to established operators — any industry where software sprawl is
-          slowing the business down.
+          From first-time founders to established operators — any industry where software sprawl and
+          challenges in getting rapid access to information is slowing your business down.
         </p>
 
         <div className="mt-10 sm:mt-14 md:mt-16">
