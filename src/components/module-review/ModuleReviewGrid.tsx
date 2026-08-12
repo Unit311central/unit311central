@@ -33,16 +33,16 @@ function ModuleCheckbox({
   return (
     <label
       htmlFor={id}
-      className="flex cursor-pointer items-center gap-1 rounded px-0.5 py-0.5 text-left transition-colors hover:bg-white/45"
+      className="flex cursor-pointer items-center gap-0.5 rounded px-0.5 py-0.5 text-left transition-colors hover:bg-white/45 sm:gap-1"
     >
       <input
         id={id}
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-3 w-3 shrink-0 rounded border-slate-400/80 text-[#2563eb] focus:ring-[#2563eb] sm:h-3.5 sm:w-3.5"
+        className="h-2.5 w-2.5 shrink-0 rounded border-slate-400/80 text-[#2563eb] focus:ring-[#2563eb] sm:h-3 sm:w-3"
       />
-      <span className="whitespace-nowrap text-[7px] leading-none text-slate-700 sm:text-[7.5px]">
+      <span className="min-w-0 truncate text-[6.5px] leading-none text-slate-700 sm:text-[7px] lg:text-[7.5px]">
         {label}
       </span>
     </label>
@@ -64,16 +64,16 @@ function ModuleColumn({
 }) {
   return (
     <div
-      className="min-w-0 overflow-hidden rounded-md border border-slate-400/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_2px_8px_rgba(15,23,42,0.12)]"
+      className="min-w-0 rounded-md border border-slate-400/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_2px_8px_rgba(15,23,42,0.12)]"
       style={MODULE_REVIEW_TILE_SURFACE}
     >
       <div
-        className="border-b border-white/25 px-1.5 py-1.5 text-left text-[7px] font-semibold uppercase leading-none tracking-wide text-white shadow-sm sm:text-[7.5px]"
+        className="border-b border-white/25 px-1 py-1.5 text-left text-[8px] font-semibold uppercase leading-[1.15] tracking-wide text-white shadow-sm sm:px-1.5 sm:text-[9px] lg:text-[10px]"
         style={{ background: moduleReviewAlternatingHeader(columnIndex) }}
       >
-        <span className="whitespace-nowrap">{column.title}</span>
+        {column.title}
       </div>
-      <div className="space-y-0.5 p-1">
+      <div className="space-y-0.5 p-0.5 sm:p-1">
         {column.items.map((entry, entryIndex) => {
           if (entry.kind === "subheader") {
             return null;
@@ -95,21 +95,9 @@ function ModuleColumn({
   );
 }
 
-function ModuleReviewRow({
-  rowIndex,
-  children,
-}: {
-  rowIndex: number;
-  children: ReactNode;
-}) {
+function ModuleReviewRow({ children }: { children: ReactNode }) {
   return (
-    <div
-      className={`grid w-full grid-cols-10 gap-2 sm:gap-2.5 lg:gap-3 ${
-        rowIndex === 0 ? "mb-0" : ""
-      }`}
-    >
-      {children}
-    </div>
+    <div className="grid w-full min-w-0 grid-cols-10 gap-0.5 sm:gap-1 lg:gap-1.5">{children}</div>
   );
 }
 
@@ -118,48 +106,46 @@ export default function ModuleReviewGrid({ selections, onToggle }: ModuleReviewG
   const row1Rest = BOOK_FOCUS_GRID_ROW_1.slice(1);
 
   return (
-    <div data-module-review-grid className="w-full overflow-x-auto overscroll-x-contain pb-1">
-      <div className="w-full min-w-[min(100%,1080px)] xl:min-w-0">
-        <div className="space-y-6 sm:space-y-8">
-          <ModuleReviewRow rowIndex={0}>
-            <div className="flex min-w-0 flex-col gap-2 sm:gap-2.5">
-              <ModuleColumn
-                column={homeColumn}
-                columnIndex={0}
-                selections={selections}
-                onToggle={onToggle}
-              />
-              <ModuleColumn
-                column={MODULE_REVIEW_EXECUTIVE_ASSISTANT_COLUMN}
-                columnIndex={0}
-                selections={selections}
-                onToggle={onToggle}
-                idPrefix="module-review-ea"
-              />
-            </div>
-            {row1Rest.map((column, columnIndex) => (
-              <ModuleColumn
-                key={column.title}
-                column={column}
-                columnIndex={columnIndex + 1}
-                selections={selections}
-                onToggle={onToggle}
-              />
-            ))}
-          </ModuleReviewRow>
+    <div data-module-review-grid className="w-full min-w-0 max-w-full">
+      <div className="space-y-10 sm:space-y-12 lg:space-y-14">
+        <ModuleReviewRow>
+          <div className="flex min-w-0 flex-col gap-1.5 sm:gap-2">
+            <ModuleColumn
+              column={homeColumn}
+              columnIndex={0}
+              selections={selections}
+              onToggle={onToggle}
+            />
+            <ModuleColumn
+              column={MODULE_REVIEW_EXECUTIVE_ASSISTANT_COLUMN}
+              columnIndex={0}
+              selections={selections}
+              onToggle={onToggle}
+              idPrefix="module-review-ea"
+            />
+          </div>
+          {row1Rest.map((column, columnIndex) => (
+            <ModuleColumn
+              key={column.title}
+              column={column}
+              columnIndex={columnIndex + 1}
+              selections={selections}
+              onToggle={onToggle}
+            />
+          ))}
+        </ModuleReviewRow>
 
-          <ModuleReviewRow rowIndex={1}>
-            {BOOK_FOCUS_GRID_ROW_2.map((column, columnIndex) => (
-              <ModuleColumn
-                key={column.title}
-                column={column}
-                columnIndex={columnIndex}
-                selections={selections}
-                onToggle={onToggle}
-              />
-            ))}
-          </ModuleReviewRow>
-        </div>
+        <ModuleReviewRow>
+          {BOOK_FOCUS_GRID_ROW_2.map((column, columnIndex) => (
+            <ModuleColumn
+              key={column.title}
+              column={column}
+              columnIndex={columnIndex}
+              selections={selections}
+              onToggle={onToggle}
+            />
+          ))}
+        </ModuleReviewRow>
       </div>
     </div>
   );

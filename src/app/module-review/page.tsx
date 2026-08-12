@@ -7,14 +7,14 @@ import { createPageMetadata } from "@/lib/metadata";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Module Review",
+  title: "UNIT311 Central Module Review",
   description:
     "Review Unit311 platform modules and select focus areas for your discovery session.",
   path: "/module-review",
 });
 
 const MODULE_REVIEW_CONTENT_CLASS =
-  "relative z-10 mx-auto w-full max-w-[min(100%,1920px)] px-4 py-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-5 sm:py-8 lg:px-6";
+  "relative z-10 mx-auto w-full max-w-[100%] px-2 py-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-6 lg:px-5";
 
 export default function ModuleReviewPage() {
   return (

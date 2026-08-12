@@ -5,7 +5,6 @@ import { useState } from "react";
 
 import ModuleReviewGrid from "@/components/module-review/ModuleReviewGrid";
 import { createEmptyBookThankYouSelections } from "@/lib/book-thank-you-data";
-import { marketingPageIntro, marketingPageTitle } from "@/lib/marketing-ui";
 
 export default function ModuleReviewContent() {
   const [selections, setSelections] = useState(createEmptyBookThankYouSelections);
@@ -50,20 +49,19 @@ export default function ModuleReviewContent() {
   const selectedCount = Object.values(selections.items).filter(Boolean).length;
 
   return (
-    <div className="w-full">
+    <div className="w-full max-w-full">
       <header className="text-left">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#93c5fd]">
-          Unit311 platform modules
-        </p>
-        <h1 className={`${marketingPageTitle} mt-3 max-w-4xl`}>Module review</h1>
-        <p className={`${marketingPageIntro} max-w-4xl whitespace-nowrap`}>
+        <h1 className="text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl lg:text-[2rem]">
+          UNIT311 CENTRAL MODULE REVIEW
+        </h1>
+        <p className="mt-3 max-w-4xl text-sm leading-relaxed text-white/70 sm:text-[15px]">
           Review the full Unit311 module map and tick the areas you want to prioritise in your
           discovery session.
         </p>
       </header>
 
       <div
-        className="mt-8 rounded-[28px] border border-white/18 bg-slate-950/50 p-4 shadow-[0_32px_100px_rgba(0,0,0,0.55)] ring-1 ring-white/10 backdrop-blur-xl sm:p-5 lg:p-6"
+        className="mt-6 rounded-[24px] border border-white/18 bg-slate-950/50 p-2 shadow-[0_32px_100px_rgba(0,0,0,0.55)] ring-1 ring-white/10 backdrop-blur-xl sm:mt-8 sm:p-4 lg:p-5"
         data-module-review-panel
       >
         <ModuleReviewGrid selections={selections.items} onToggle={handleToggle} />

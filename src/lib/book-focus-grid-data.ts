@@ -31,7 +31,6 @@ export const BOOK_FOCUS_GRID_ROW_1: readonly BookFocusGridColumn[] = [
       { kind: "item", label: "Partners" },
       { kind: "item", label: "Grants" },
       { kind: "item", label: "Connections" },
-      { kind: "item", label: "External Client Portals" },
     ],
   },
   {
@@ -98,8 +97,6 @@ export const BOOK_FOCUS_GRID_ROW_1: readonly BookFocusGridColumn[] = [
       { kind: "item", label: "IP/Patents — Dashboard" },
       { kind: "item", label: "IP/Patents — Register" },
       { kind: "item", label: "IP/Patents — Portfolio" },
-      { kind: "item", label: "IP/Patents — Documents" },
-      { kind: "item", label: "IP/Patents — Search" },
     ],
   },
   {
@@ -239,6 +236,7 @@ export const BOOK_FOCUS_GRID_ROW_2: readonly BookFocusGridColumn[] = [
     items: [
       { kind: "item", label: "Dashboard" },
       { kind: "item", label: "External Mgmt" },
+      { kind: "item", label: "External Client Portals" },
     ],
   },
   {
