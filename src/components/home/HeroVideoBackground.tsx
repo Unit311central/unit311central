@@ -88,7 +88,8 @@ export default function HeroVideoBackground() {
       ) : (
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-contain object-center lg:object-cover lg:object-[50%_42%]"
+          src={HERO_VIDEO}
+          className="absolute inset-0 h-full w-full object-contain object-center sm:object-cover sm:object-[50%_42%]"
           autoPlay
           muted
           loop
@@ -98,9 +99,7 @@ export default function HeroVideoBackground() {
           preload="auto"
           aria-hidden
           tabIndex={-1}
-        >
-          <source src={HERO_VIDEO} type="video/mp4" />
-        </video>
+        />
       )}
     </div>
   );
