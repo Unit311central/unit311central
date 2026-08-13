@@ -20,3 +20,6 @@ export const MODULE_REVIEW_TILE_BODY = "space-y-px p-0.5 sm:p-1";
 export const MODULE_REVIEW_ROW_GAP = "space-y-5 sm:space-y-5.5 lg:space-y-6";
 
 export const MODULE_REVIEW_COL_GAP = "gap-1 sm:gap-1.5 lg:gap-2";
+
+/** Matches panel inner horizontal padding so header column 7 aligns with BOARD tile. */
+export const MODULE_REVIEW_PANEL_INSET_X = "px-1 sm:px-1.5";
