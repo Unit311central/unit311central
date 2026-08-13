@@ -14,7 +14,7 @@ export function parseFocusJsonl(text: string): FocusBillingCharge[] {
   return rows;
 }
 
-export function aggregateFocusCharges(charges: FocusBillingCharge[]): ChargeAggregation {
+export function aggregateFocusCharges(charges: readonly FocusBillingCharge[]): ChargeAggregation {
   const byService: Record<string, { effective: number; billed: number }> = {};
   let usageEffective = 0;
   let usageBilled = 0;

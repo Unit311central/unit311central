@@ -8,12 +8,6 @@
 
 
 
-import { adaptCursorToProviderBillingRow } from "@/lib/software-billing/adapters/cursor-to-dashboard";
-
-import { adaptOpenAiToProviderBillingRow } from "@/lib/software-billing/adapters/openai-to-dashboard";
-
-import { adaptSupabaseToProviderBillingRow } from "@/lib/software-billing/adapters/supabase-to-dashboard";
-
 import {
 
   adaptVercelToProviderBillingRow,
@@ -341,8 +335,6 @@ function adaptProviderRow(
 
 ): SoftwareSaasProviderBillingRow {
 
-  const context = input.providerContexts?.[slug as SoftwareProviderSlug];
-
   const providerInvoices = input.providerInvoices?.filter((row) => row.providerSlug === slug);
 
   if (slug === "vercel" && input.summary) {
@@ -362,30 +354,6 @@ function adaptProviderRow(
       providerInvoices,
 
     });
-
-  }
-
-
-
-  if (slug === "openai" && context) {
-
-    return adaptOpenAiToProviderBillingRow(context);
-
-  }
-
-
-
-  if (slug === "cursor" && context) {
-
-    return adaptCursorToProviderBillingRow(context);
-
-  }
-
-
-
-  if (slug === "supabase" && context) {
-
-    return adaptSupabaseToProviderBillingRow(context);
 
   }
 

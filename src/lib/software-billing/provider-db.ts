@@ -287,34 +287,62 @@ export async function listPeriodSnapshots(
 }
 
 export async function findVercelSoftwareAssetId(workspaceId: string): Promise<string | null> {
+  return findProviderSoftwareAssetId(workspaceId, VERCEL_PROVIDER_SLUG);
+}
+
+export async function findProviderSoftwareAssetId(
+  workspaceId: string,
+  providerSlug: string,
+): Promise<string | null> {
+  if (providerSlug === VERCEL_PROVIDER_SLUG) {
+    const supabase = requireServiceClient();
+    const { data: bySlug } = await supabase
+      .from("software_assets")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("provider_slug", VERCEL_PROVIDER_SLUG)
+      .maybeSingle();
+    if (bySlug?.id) return String(bySlug.id);
+
+    const { data: byVendor } = await supabase
+      .from("software_assets")
+      .select("id, name, vendor")
+      .eq("workspace_id", workspaceId);
+    const match = (byVendor ?? []).find((row) => {
+      const vendor = String(row.vendor ?? "").toLowerCase();
+      const name = String(row.name ?? "").toLowerCase();
+      return vendor.includes("vercel") || name.includes("vercel");
+    });
+    if (!match?.id) return null;
+
+    await supabase
+      .from("software_assets")
+      .update({ provider_slug: VERCEL_PROVIDER_SLUG, updated_at: new Date().toISOString() })
+      .eq("id", match.id);
+    return String(match.id);
+  }
+
   const supabase = requireServiceClient();
   const { data: bySlug } = await supabase
     .from("software_assets")
     .select("id")
     .eq("workspace_id", workspaceId)
-    .eq("provider_slug", VERCEL_PROVIDER_SLUG)
+    .eq("provider_slug", providerSlug)
     .maybeSingle();
-  if (bySlug?.id) return String(bySlug.id);
-
-  const { data: byVendor } = await supabase
-    .from("software_assets")
-    .select("id, name, vendor")
-    .eq("workspace_id", workspaceId);
-  const match = (byVendor ?? []).find((row) => {
-    const vendor = String(row.vendor ?? "").toLowerCase();
-    const name = String(row.name ?? "").toLowerCase();
-    return vendor.includes("vercel") || name.includes("vercel");
-  });
-  if (!match?.id) return null;
-
-  await supabase
-    .from("software_assets")
-    .update({ provider_slug: VERCEL_PROVIDER_SLUG, updated_at: new Date().toISOString() })
-    .eq("id", match.id);
-  return String(match.id);
+  return bySlug?.id ? String(bySlug.id) : null;
 }
 
 export async function updateVercelAssetFromSnapshot(input: {
+  softwareAssetId: string;
+  billedAmount: number;
+  periodEnd: string;
+  syncStatus: string;
+  connected: boolean;
+}) {
+  return updateProviderAssetFromSnapshot(input);
+}
+
+export async function updateProviderAssetFromSnapshot(input: {
   softwareAssetId: string;
   billedAmount: number;
   periodEnd: string;

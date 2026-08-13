@@ -1,8 +1,20 @@
 export const VERCEL_PROVIDER_SLUG = "vercel" as const;
+export const OPENAI_PROVIDER_SLUG = "openai" as const;
+export const SUPABASE_PROVIDER_SLUG = "supabase" as const;
+export const CURSOR_PROVIDER_SLUG = "cursor" as const;
 
-export type SoftwareProviderSlug = typeof VERCEL_PROVIDER_SLUG;
+export const SOFTWARE_BILLING_PROVIDER_SLUGS = [
+  VERCEL_PROVIDER_SLUG,
+  OPENAI_PROVIDER_SLUG,
+  SUPABASE_PROVIDER_SLUG,
+  CURSOR_PROVIDER_SLUG,
+] as const;
+
+export type SoftwareProviderSlug = (typeof SOFTWARE_BILLING_PROVIDER_SLUGS)[number];
 
 export type PeriodKind = "completed" | "in_progress";
+
+export type BillingDataQuality = "actual" | "estimated" | "mixed" | "unavailable";
 
 export type FocusBillingCharge = {
   BilledCost: number;
@@ -75,6 +87,7 @@ export type ProviderPeriodSnapshot = {
   planIteration: string;
   seatCount: number | null;
   rawSummary: Record<string, unknown>;
+  source: string;
   updatedAt: string;
 };
 
@@ -88,6 +101,15 @@ export type ProviderConnectionState = {
   lastSuccessfulSyncAt: string | null;
   lastSyncStatus: string;
   lastSyncError: string;
+};
+
+export type ProviderBillingContext = {
+  providerSlug: SoftwareProviderSlug;
+  connection: ProviderConnectionState | null;
+  completedSnapshots: ProviderPeriodSnapshot[];
+  inProgressSnapshot: ProviderPeriodSnapshot | null;
+  configured: boolean;
+  configError: string | null;
 };
 
 export type SoftwareBillingSummary = {
