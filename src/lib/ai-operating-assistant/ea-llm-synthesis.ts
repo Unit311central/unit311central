@@ -100,6 +100,20 @@ function synthesisGuidanceForTool(toolName: string, toolArgs: Record<string, unk
     ].join("\n");
   }
 
+  if (toolName === "onwardair.queryProjectPortfolio" || toolName === "abhi.queryProjectPortfolio") {
+    return [
+      "You are synthesising a workspace project portfolio health assessment for executives.",
+      "Use ONLY the onTrack, atRisk, withIssues, and projects arrays in the tool payload.",
+      "Structure the answer as:",
+      "1. Portfolio snapshot — counts on track vs at risk vs issues.",
+      "2. On track — name specific projects and why they are healthy.",
+      "3. At risk — name projects, milestones, and risks driving concern.",
+      "4. Issues / blocked — name projects with overdue, blocked, or red-band delivery.",
+      "5. Executive priorities — what management should act on this week.",
+      "Always name the projects behind each conclusion. Do not invent projects or statuses.",
+    ].join("\n");
+  }
+
   return [
     "Write a natural Chief-of-Staff reply in plain English using this data.",
     "Never say invalid question or not connected — always be helpful.",
@@ -127,6 +141,14 @@ export function shouldSynthesizeExecutiveToolResult(ctx: EaSynthesisContext): bo
   if (isOnwardAirSlug(workspaceSlug) && toolName === "onwardair.queryModule") {
     const moduleId = String(toolArgs.module ?? "").trim();
     return ONWARDAIR_SYNTHESIS_MODULES.has(moduleId);
+  }
+
+  if (isOnwardAirSlug(workspaceSlug) && toolName === "onwardair.queryProjectPortfolio") {
+    return true;
+  }
+
+  if (isAbhiSlug(workspaceSlug) && toolName === "abhi.queryProjectPortfolio") {
+    return true;
   }
 
   if (toolName === "getSmartInsights") {

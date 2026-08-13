@@ -51,6 +51,7 @@ export type DirectAssistantIntent = {
     | "abhi.generateRegulatoryImpactPdf"
     | "abhi.generateQuarterlyFinancialDeltaPdf"
     | "abhi.generateProjectHealthPdf"
+    | "abhi.queryProjectPortfolio"
     | "abhi.generatePlatformAccessPdf"
     | "talanton.getExecutiveBriefing"
     | "talanton.getOrgHealth"
@@ -61,11 +62,13 @@ export type DirectAssistantIntent = {
     | "talanton.queryImpact"
     | "talanton.queryStories"
     | "talanton.generateStoriesReport"
+    | "talanton.generateStoriesLessonsPdf"
     | "onwardair.getExecutiveBriefing"
     | "onwardair.getOrgHealth"
     | "onwardair.queryActions"
     | "onwardair.getBoardInsights"
-    | "onwardair.queryModule";
+    | "onwardair.queryModule"
+    | "onwardair.queryProjectPortfolio";
   args: Record<string, unknown>;
   reason: string;
 };

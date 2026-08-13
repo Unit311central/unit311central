@@ -32,6 +32,7 @@ import {
   generateAbhiProjectHealthPdfTool,
   generateAbhiQuarterlyFinancialDeltaPdfTool,
   generateAbhiRegulatoryImpactPdfTool,
+  queryAbhiProjectPortfolioTool,
 } from "@/lib/abhi/ea-pdf-tools";
 import {
   ABHI_EXECUTIVE_TOOL_DEFINITIONS,
@@ -39,6 +40,7 @@ import {
   getTalantonBoardInsightsTool,
   getTalantonExecutiveBriefingTool,
   getTalantonOrgHealthTool,
+  generateTalantonStoriesLessonsPdfTool,
   generateTalantonStoriesReportTool,
   queryTalantonActionsTool,
   queryTalantonFundsTool,
@@ -53,6 +55,7 @@ import {
   getOnwardAirOrgHealthTool,
   queryOnwardAirActionsTool,
   queryOnwardAirModuleTool,
+  queryOnwardAirProjectPortfolioTool,
 } from "./onwardair-executive-tools";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
@@ -935,6 +938,7 @@ const handlers: Record<string, ContextualToolHandler> = {
   "abhi.generateRegulatoryImpactPdf": generateAbhiRegulatoryImpactPdfTool,
   "abhi.generateQuarterlyFinancialDeltaPdf": generateAbhiQuarterlyFinancialDeltaPdfTool,
   "abhi.generateProjectHealthPdf": generateAbhiProjectHealthPdfTool,
+  "abhi.queryProjectPortfolio": queryAbhiProjectPortfolioTool,
   "abhi.generatePlatformAccessPdf": generateAbhiPlatformAccessPdfTool,
   "talanton.getExecutiveBriefing": getTalantonExecutiveBriefingTool,
   "talanton.getOrgHealth": getTalantonOrgHealthTool,
@@ -945,11 +949,13 @@ const handlers: Record<string, ContextualToolHandler> = {
   "talanton.queryImpact": queryTalantonImpactTool,
   "talanton.queryStories": queryTalantonStoriesTool,
   "talanton.generateStoriesReport": generateTalantonStoriesReportTool,
+  "talanton.generateStoriesLessonsPdf": generateTalantonStoriesLessonsPdfTool,
   "onwardair.getExecutiveBriefing": getOnwardAirExecutiveBriefingTool,
   "onwardair.getOrgHealth": getOnwardAirOrgHealthTool,
   "onwardair.queryActions": queryOnwardAirActionsTool,
   "onwardair.getBoardInsights": getOnwardAirBoardInsightsTool,
   "onwardair.queryModule": queryOnwardAirModuleTool,
+  "onwardair.queryProjectPortfolio": queryOnwardAirProjectPortfolioTool,
 };
 
 /** @deprecated Prefer contextual handlers — kept for registerAssistantTool compatibility. */

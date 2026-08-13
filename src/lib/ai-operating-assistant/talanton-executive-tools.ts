@@ -30,6 +30,14 @@ import {
   talantonStoriesReportFilename,
 } from "@/lib/talanton/executive-stories-pdf";
 import {
+  buildTalantonStoriesLessonsPdf,
+  talantonStoriesLessonsPdfFilename,
+} from "@/lib/talanton/executive-stories-lessons-pdf";
+import {
+  formatStoriesLessonsProse,
+  synthesizeTalantonStoriesLessons,
+} from "@/lib/talanton/executive-stories-lessons";
+import {
   createArtifactId,
   persistArtifactToStorage,
   putAssistantArtifact,
@@ -332,6 +340,83 @@ export async function queryTalantonStoriesTool(
   });
 }
 
+export async function generateTalantonStoriesLessonsPdfTool(
+  args: Record<string, unknown>,
+  ctx: AssistantToolExecutionContext,
+): Promise<AssistantToolResult> {
+  const blocked = talantonOnly("talanton.generateStoriesLessonsPdf", ctx);
+  if (blocked) return blocked;
+
+  const scope = parseStoriesScopeArgs(args);
+  const question = asString(args.question) || "Management lessons from field stories";
+  const result = queryTalantonStories({ ...scope, outputFormat: "narrative" });
+  const analysis = await synthesizeTalantonStoriesLessons(result, question);
+  const pdfBytes = await buildTalantonStoriesLessonsPdf(
+    analysis,
+    ctx.business.organisation.name ?? "Talanton Impact",
+  );
+  const filename = talantonStoriesLessonsPdfFilename();
+
+  let artifact = putAssistantArtifact({
+    id: createArtifactId(),
+    kind: "pdf",
+    title: analysis.documentTitle,
+    filename,
+    mimeType: "application/pdf",
+    bytes: Buffer.from(pdfBytes),
+    userId: ctx.business.user.id,
+    meta: {
+      workspaceSlug: ctx.business.workspace.slug,
+      storyCount: analysis.storyCount,
+      lessonCount: analysis.lessons.length,
+      scope: result.scope,
+      synthesisSource: analysis.synthesisSource,
+    },
+  });
+  artifact = await persistArtifactToStorage(artifact);
+
+  const openUrl = `/api/executive-assistant/artifacts/${artifact.id}?disposition=inline`;
+  const downloadUrl = `/api/executive-assistant/artifacts/${artifact.id}?disposition=attachment`;
+  const prose = `${formatStoriesLessonsProse(analysis)}\n\nPDF report generated (${analysis.lessons.length} management lessons from ${analysis.storyCount} stories).`;
+
+  return toolOk(
+    "talanton.generateStoriesLessonsPdf",
+    [
+      {
+        ...result,
+        analysis,
+        prose,
+        artifactId: artifact.id,
+        title: artifact.title,
+        filename: artifact.filename,
+        openUrl,
+        downloadUrl,
+        kind: "pdf",
+      },
+    ],
+    {
+      source: [
+        "talanton:marketing-stories",
+        "talanton:journey-stories",
+        "assistant:stories-lessons-pdf",
+      ],
+      page: 1,
+      pageSize: 1,
+      summary: {
+        message: prose,
+        storyCount: analysis.storyCount,
+        lessonCount: analysis.lessons.length,
+        artifactId: artifact.id,
+        openUrl,
+        downloadUrl,
+        executed: true,
+      },
+      followUpActions: FOLLOW_UPS,
+      appliedContext: { activeView: ctx.business.page.activeView },
+    },
+  );
+}
+
 export async function generateTalantonStoriesReportTool(
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
@@ -493,7 +578,7 @@ export const TALANTON_EXECUTIVE_TOOL_DEFINITIONS = [
   {
     name: "talanton.queryStories",
     description:
-      "Talanton Impact only. Query portfolio impact story submissions and journey field visits from Marketing & Stories and Journey Stories. Use for story lists, summaries, newsletter picks, and narrative briefings. For PDF export use talanton.generateStoriesReport.",
+      "Talanton Impact only. Query portfolio impact story submissions and journey field visits from Marketing & Stories and Journey Stories. Use for story lists, summaries, newsletter picks, and narrative briefings. For inventory PDF use talanton.generateStoriesReport; for management-lessons PDF use talanton.generateStoriesLessonsPdf.",
     parameters: {
       type: "object",
       properties: {
@@ -521,7 +606,7 @@ export const TALANTON_EXECUTIVE_TOOL_DEFINITIONS = [
   {
     name: "talanton.generateStoriesReport",
     description:
-      "Talanton Impact only. Generate a PDF impact stories report from portfolio submissions and journey visits. Ask which companies and impact areas if the user did not specify.",
+      "Talanton Impact only. Generate a PDF inventory report listing portfolio submissions and journey visits. Use sensible defaults when companies or impact areas are not specified. Not for management lessons — use talanton.generateStoriesLessonsPdf.",
     parameters: {
       type: "object",
       properties: {
@@ -536,6 +621,28 @@ export const TALANTON_EXECUTIVE_TOOL_DEFINITIONS = [
         },
         categories: { type: "string" },
         outputFormat: { type: "string", enum: ["pdf", "narrative", "newsletter"] },
+        question: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "talanton.generateStoriesLessonsPdf",
+    description:
+      "Talanton Impact only. Synthesise the strongest recurring management lessons from portfolio and journey field stories, then export a branded Talanton PDF with lesson explanations and story evidence.",
+    parameters: {
+      type: "object",
+      properties: {
+        companyIds: { type: "string" },
+        storyTypes: {
+          type: "string",
+          enum: ["portfolio", "journey", "both"],
+        },
+        statusFilter: {
+          type: "string",
+          enum: ["approved_only", "include_review", "all"],
+        },
+        categories: { type: "string" },
         question: { type: "string" },
       },
       additionalProperties: false,

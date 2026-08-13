@@ -24,6 +24,14 @@ import {
   renderProjectHealthPdf,
 } from "@/lib/ai-operating-assistant/project-health-pdf-service";
 import {
+  buildProjectPortfolioHealthAssessment,
+} from "@/lib/ai-operating-assistant/project-portfolio-health";
+import {
+  getPortfolioProjectsForWorkspaceSlug,
+  type PortfolioProject,
+} from "@/lib/project-portfolios";
+import type { InternalProject } from "@/lib/projects-data";
+import {
   renderPlatformAccessPdf,
 } from "@/lib/ai-operating-assistant/platform-access-pdf-service";
 import {
@@ -42,9 +50,67 @@ import type { ManagedUser } from "@/lib/user-management-data";
 
 function abhiOnly(tool: string, ctx: AssistantToolExecutionContext): AssistantToolResult | null {
   if (!isAbhiSlug(ctx.business.workspace.slug)) {
-    return toolForbidden(tool, "This PDF tool is available on the ABHI workspace only.");
+    return toolForbidden(tool, "This ABHI tool is available on the ABHI workspace only.");
   }
   return null;
+}
+
+function shellPortfolioProject(project: InternalProject): PortfolioProject {
+  return {
+    ...project,
+    kind: project.clientId ? "external" : "internal",
+    projectManager: project.operator ?? "—",
+    budgetLabel: "—",
+    milestones: [],
+    risks: [],
+  };
+}
+
+async function loadAbhiPortfolioProjects(
+  ctx: AssistantToolExecutionContext,
+): Promise<{ projects: PortfolioProject[]; dataSource: string }> {
+  const slug = ctx.business.workspace.slug ?? "abhi";
+  const fixtures = getPortfolioProjectsForWorkspaceSlug(slug, "all");
+  const dbProjects = await listProjects({ workspaceId: ctx.business.workspace.id }).catch(() => []);
+  if (dbProjects.length === 0) {
+    return { projects: fixtures, dataSource: "abhi:project-portfolios" };
+  }
+  return {
+    projects: dbProjects.map(shellPortfolioProject),
+    dataSource: "supabase:projects",
+  };
+}
+
+export async function queryAbhiProjectPortfolioTool(
+  args: Record<string, unknown>,
+  ctx: AssistantToolExecutionContext,
+): Promise<AssistantToolResult> {
+  const blocked = abhiOnly("abhi.queryProjectPortfolio", ctx);
+  if (blocked) return blocked;
+
+  const slug = ctx.business.workspace.slug ?? "abhi";
+  const { projects, dataSource } = await loadAbhiPortfolioProjects(ctx);
+  const assessment = buildProjectPortfolioHealthAssessment(projects, slug, dataSource);
+  const question = asString(args.question);
+  const prose = assessment.prose;
+
+  return toolOk(
+    "abhi.queryProjectPortfolio",
+    [{ ...assessment, prose, question }],
+    {
+      source: ["abhi:project-portfolios", assessment.dataSource],
+      page: 1,
+      pageSize: assessment.totalProjects,
+      summary: {
+        message: prose,
+        onTrack: assessment.onTrack.length,
+        atRisk: assessment.atRisk.length,
+        withIssues: assessment.withIssues.length,
+        dataSource: assessment.dataSource,
+      },
+      appliedContext: { activeView: ctx.business.page.activeView },
+    },
+  );
 }
 
 function artifactActions(artifactId: string) {
@@ -228,7 +294,7 @@ export async function generateAbhiProjectHealthPdfTool(
 
   try {
     const question = asString(args.question) || "";
-    const projects = await listProjects().catch(() => []);
+    const { projects } = await loadAbhiPortfolioProjects(ctx);
     let artifact = await renderProjectHealthPdf({
       projects,
       userId: ctx.business.user.id,
@@ -351,6 +417,16 @@ export const ABHI_EA_PDF_TOOL_DEFINITIONS = [
       properties: {
         question: { type: "string" },
       },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "abhi.queryProjectPortfolio",
+    description:
+      "ABHI only. Executive health check of the ABHI project portfolio — on-track vs at-risk vs issues with milestones and risks.",
+    parameters: {
+      type: "object",
+      properties: { question: { type: "string" } },
       additionalProperties: false,
     },
   },

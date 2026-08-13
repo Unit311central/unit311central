@@ -1,16 +1,18 @@
 import type { InternalProject, ProjectPhase } from "@/lib/projects-data";
 import { CORPCENTRE_INTERNAL_PROJECT_PORTFOLIO } from "@/lib/corpcentre-project-portfolios";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { ABHI_PROJECT_PORTFOLIO } from "@/lib/abhi/project-portfolio-fixtures";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import {
   ONWARDAIR_EXTERNAL_PROJECT_PORTFOLIO,
   ONWARDAIR_INTERNAL_PROJECT_PORTFOLIO,
 } from "@/lib/onwardair/project-portfolios";
-import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserOnwardAirSurface, isOnwardAirSlug } from "@/lib/onwardair-surface";
 import {
   TALANTON_EXTERNAL_PROJECT_PORTFOLIO,
   TALANTON_INTERNAL_PROJECT_PORTFOLIO,
 } from "@/lib/talanton/project-portfolios";
-import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import { isBrowserTalantonImpactSurface, isTalantonImpactSlug } from "@/lib/talanton-surface";
 
 export type ProjectPortfolioScope = "internal" | "external" | "all";
 
@@ -907,6 +909,7 @@ const BY_ID = new Map<string, PortfolioProject>(
     ...TALANTON_EXTERNAL_PROJECT_PORTFOLIO,
     ...ONWARDAIR_INTERNAL_PROJECT_PORTFOLIO,
     ...ONWARDAIR_EXTERNAL_PROJECT_PORTFOLIO,
+    ...ABHI_PROJECT_PORTFOLIO,
   ].map((entry) => [entry.id, entry]),
 );
 
@@ -936,6 +939,64 @@ function isOnwardAirPortfolioSurface(): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Server-safe portfolio list keyed by workspace slug (EA runtime, PDF tools).
+ */
+export function getPortfolioProjectsForWorkspaceSlug(
+  workspaceSlug: string,
+  scope: ProjectPortfolioScope = "all",
+): PortfolioProject[] {
+  const slug = String(workspaceSlug ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (isTalantonImpactSlug(slug)) {
+    if (scope === "internal") {
+      return TALANTON_INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+    }
+    if (scope === "external") {
+      return TALANTON_EXTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+    }
+    return [...TALANTON_INTERNAL_PROJECT_PORTFOLIO, ...TALANTON_EXTERNAL_PROJECT_PORTFOLIO].map(
+      (entry) => ({ ...entry }),
+    );
+  }
+
+  if (isOnwardAirSlug(slug)) {
+    if (scope === "internal") {
+      return ONWARDAIR_INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+    }
+    if (scope === "external") {
+      return ONWARDAIR_EXTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+    }
+    return [...ONWARDAIR_INTERNAL_PROJECT_PORTFOLIO, ...ONWARDAIR_EXTERNAL_PROJECT_PORTFOLIO].map(
+      (entry) => ({ ...entry }),
+    );
+  }
+
+  if (isAbhiSlug(slug)) {
+    if (scope === "internal") {
+      return ABHI_PROJECT_PORTFOLIO.filter((p) => p.kind === "internal").map((entry) => ({
+        ...entry,
+      }));
+    }
+    if (scope === "external") {
+      return ABHI_PROJECT_PORTFOLIO.filter((p) => p.kind === "external").map((entry) => ({
+        ...entry,
+      }));
+    }
+    return ABHI_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+  }
+
+  if (scope === "internal") {
+    return INTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+  }
+  if (scope === "external") return EXTERNAL_PROJECT_PORTFOLIO.map((entry) => ({ ...entry }));
+  return [...INTERNAL_PROJECT_PORTFOLIO, ...EXTERNAL_PROJECT_PORTFOLIO].map((entry) => ({
+    ...entry,
+  }));
 }
 
 export function getProjectsForScope(scope: ProjectPortfolioScope): PortfolioProject[] {

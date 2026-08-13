@@ -19,6 +19,9 @@ import {
   type OaModuleId,
 } from "@/lib/onwardair/executive-intelligence";
 import {
+  assessWorkspaceProjectPortfolioHealth,
+} from "@/lib/ai-operating-assistant/project-portfolio-health";
+import {
   toolForbidden,
   toolOk,
   type AssistantToolExecutionContext,
@@ -215,6 +218,38 @@ export async function queryOnwardAirModuleTool(
   });
 }
 
+export async function queryOnwardAirProjectPortfolioTool(
+  args: Record<string, unknown>,
+  ctx: AssistantToolExecutionContext,
+): Promise<AssistantToolResult> {
+  const blocked = onwardAirOnly("onwardair.queryProjectPortfolio", ctx);
+  if (blocked) return blocked;
+
+  const slug = ctx.business.workspace.slug ?? "onwardair";
+  const assessment = assessWorkspaceProjectPortfolioHealth(slug);
+  const question = asString(args.question);
+  const prose = assessment.prose;
+
+  return toolOk(
+    "onwardair.queryProjectPortfolio",
+    [{ ...assessment, prose, question }],
+    {
+      source: ["onwardair:project-portfolios", assessment.dataSource],
+      page: 1,
+      pageSize: assessment.totalProjects,
+      summary: {
+        message: prose,
+        onTrack: assessment.onTrack.length,
+        atRisk: assessment.atRisk.length,
+        withIssues: assessment.withIssues.length,
+        dataSource: assessment.dataSource,
+      },
+      followUpActions: FOLLOW_UPS,
+      appliedContext: { activeView: ctx.business.page.activeView },
+    },
+  );
+}
+
 export const ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS = [
   {
     name: "onwardair.getExecutiveBriefing",
@@ -303,6 +338,16 @@ export const ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS = [
         },
         question: { type: "string" },
       },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "onwardair.queryProjectPortfolio",
+    description:
+      "OnwardAir only. Executive health check of the OnwardAir project portfolio using workspace project fixtures — on-track vs at-risk vs issues, milestones, and risks.",
+    parameters: {
+      type: "object",
+      properties: { question: { type: "string" } },
       additionalProperties: false,
     },
   },

@@ -314,7 +314,41 @@ export function hasExplicitCategoryChoice(message: string): boolean {
 
 export function needsStoriesScopeClarification(message: string): boolean {
   if (!wantsStoriesReportMessage(message)) return false;
-  return !hasExplicitCompanyChoice(message) || !hasExplicitCategoryChoice(message);
+  if (isStoriesLessonsPdfRequest(message) || isStoriesExecutiveAnalysisQuestion(message)) {
+    return false;
+  }
+  const scope = parseStoriesScopeFromMessage(message);
+  if (scope.companyIds !== "all" && Array.isArray(scope.companyIds) && scope.companyIds.length === 0) {
+    return true;
+  }
+  return false;
+}
+
+/** Executive analysis of field/portfolio/journey stories (lessons, themes, takeaways). */
+export function isStoriesExecutiveAnalysisQuestion(message: string): boolean {
+  if (!isStoriesTopicMessage(message)) return false;
+  const lower = message.toLowerCase();
+  return (
+    /\b(lesson|lessons|theme|themes|takeaway|takeaways|insight|insights|learn|learning)\b/.test(
+      lower,
+    ) ||
+    /\bmanagement\s+(lesson|insight|takeaway)/.test(lower) ||
+    /\bwhat\s+(should|must)\s+management\b/.test(lower) ||
+    (/\bbiggest\b/.test(lower) && /\b(lesson|theme|takeaway|insight)/.test(lower))
+  );
+}
+
+export function wantsStoriesPdfOutput(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    /\b(pdf|export\s+pdf)\b/.test(lower) ||
+    /\bmake\s+me\s+a\s+pdf\b/.test(lower) ||
+    (/\b(generate|create|make|export)\b/.test(lower) && /\bpdf\b/.test(lower))
+  );
+}
+
+export function isStoriesLessonsPdfRequest(message: string): boolean {
+  return wantsStoriesPdfOutput(message) && isStoriesExecutiveAnalysisQuestion(message);
 }
 
 export function isStoriesTopicMessage(message: string): boolean {

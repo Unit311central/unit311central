@@ -276,11 +276,13 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
     assertNoForbiddenTalantonCopy(result.prose, "stories query prose");
   }, `rows=${queryTalantonStories({ companyIds: "all", storyTypes: "both", statusFilter: "include_review", categories: "all", outputFormat: "narrative" }).rows.length}`);
 
-  await stories.run("Vague report request → clarify", () => {
+  await stories.run("Vague report request → generateStoriesReport defaults", () => {
     const route = resolveTalantonStoriesRoute("Create an impact stories report");
-    if (!route || route.kind !== "clarify") throw new Error("expected clarify route");
-    if (!route.message.includes("companies")) throw new Error("missing companies prompt");
-    if (route.followUpActions.length < 2) throw new Error("expected follow-up actions");
+    if (!route || route.kind !== "tool") throw new Error("expected tool route with defaults");
+    if (route.tool !== "talanton.generateStoriesReport") {
+      throw new Error(`expected generateStoriesReport, got ${route.tool}`);
+    }
+    if (route.args.companyIds !== "all") throw new Error("expected default all companies");
   });
 
   await stories.run("Scoped report → generateStoriesReport", () => {
@@ -459,14 +461,16 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
     }
   });
 
-  await orchestration.run("Vague stories report → need_info", async () => {
+  await orchestration.run("Vague stories report → generateStoriesReport defaults", async () => {
     const route = await resolveOrchestrationRoute(
       "Create an impact stories report",
       [],
       talantonBusiness(),
     );
-    if (route.kind !== "need_info") throw new Error(`expected need_info, got ${route.kind}`);
-    if (!route.message.includes("companies")) throw new Error("missing clarification");
+    if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
+    if (route.intent.tool !== "talanton.generateStoriesReport") {
+      throw new Error(`expected generateStoriesReport, got ${route.intent.tool}`);
+    }
   });
 
   await orchestration.run("View-aware portfolio-stories route", async () => {

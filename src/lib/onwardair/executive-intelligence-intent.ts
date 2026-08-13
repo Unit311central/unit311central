@@ -88,6 +88,28 @@ export function resolveOnwardAirExecutiveIntelligenceIntent(
     };
   }
 
+  if (
+    /\bengineering\b/.test(lower) &&
+    /\b(issue|issues|risk|risks|priorit|concern|summary|executive)\b/.test(lower)
+  ) {
+    return {
+      tool: "onwardair.queryModule",
+      args: { module: "engineering", question: text },
+      reason: "onwardair_engineering_executive",
+    };
+  }
+
+  if (
+    /\b(fundraising|seed\s+raise|investor|capital)\b/.test(lower) &&
+    /\b(issue|issues|risk|risks|priorit|concern|summary|executive)\b/.test(lower)
+  ) {
+    return {
+      tool: "onwardair.queryModule",
+      args: { module: "fundraising", question: text },
+      reason: "onwardair_fundraising_executive",
+    };
+  }
+
   const moduleId = resolveOnwardAirModuleId(lower);
   if (moduleId) {
     return {

@@ -13,6 +13,7 @@ import { resolveAbhiExecutiveIntelligenceIntent } from "@/lib/abhi/executive-int
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveAbhiEaPdfIntent } from "@/lib/abhi/ea-pdf-intents";
 import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
+import { resolveProjectPortfolioHealthIntent } from "@/lib/ai-operating-assistant/project-portfolio-health-intent";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { resolveOnwardAirExecutiveIntelligenceIntent } from "@/lib/onwardair/executive-intelligence-intent";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -231,6 +232,21 @@ export async function resolveOrchestrationRoute(
 
   // ABHI flagship — Board Pack Generation (PowerPoint + PDF). Workspace-gated.
   if (isAbhiSlug(business.workspace.slug)) {
+    const portfolioHealth = resolveProjectPortfolioHealthIntent(
+      message,
+      business.workspace.slug ?? "",
+    );
+    if (portfolioHealth) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: portfolioHealth.tool as DirectAssistantIntent["tool"],
+          args: portfolioHealth.args,
+          reason: portfolioHealth.reason,
+        },
+      };
+    }
+
     const execIntel = resolveAbhiExecutiveIntelligenceIntent(message);
     if (execIntel) {
       return {
@@ -361,6 +377,21 @@ export async function resolveOrchestrationRoute(
 
   // OnwardAir — executive intelligence, board deck, AI training course.
   if (isOnwardAirSlug(business.workspace.slug)) {
+    const portfolioHealth = resolveProjectPortfolioHealthIntent(
+      message,
+      business.workspace.slug ?? "",
+    );
+    if (portfolioHealth) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: portfolioHealth.tool as DirectAssistantIntent["tool"],
+          args: portfolioHealth.args,
+          reason: portfolioHealth.reason,
+        },
+      };
+    }
+
     const execIntel = resolveOnwardAirExecutiveIntelligenceIntent(message);
     if (execIntel) {
       return {

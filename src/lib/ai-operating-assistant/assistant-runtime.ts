@@ -449,11 +449,14 @@ function formatExecutiveIntelligenceReply(
     toolName === "talanton.queryImpact" ||
     toolName === "talanton.queryStories" ||
     toolName === "talanton.generateStoriesReport" ||
+    toolName === "talanton.generateStoriesLessonsPdf" ||
     toolName === "onwardair.getExecutiveBriefing" ||
     toolName === "onwardair.getOrgHealth" ||
     toolName === "onwardair.queryActions" ||
     toolName === "onwardair.getBoardInsights" ||
-    toolName === "onwardair.queryModule"
+    toolName === "onwardair.queryModule" ||
+    toolName === "onwardair.queryProjectPortfolio" ||
+    toolName === "abhi.queryProjectPortfolio"
   ) {
     const prose =
       (typeof summary?.message === "string" && summary.message) ||

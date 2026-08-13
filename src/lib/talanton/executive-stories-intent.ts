@@ -4,13 +4,17 @@
 
 import {
   buildStoriesClarificationMessage,
+  isStoriesLessonsPdfRequest,
   isStoriesTopicMessage,
   needsStoriesScopeClarification,
   parseStoriesScopeFromMessage,
   wantsStoriesReportMessage,
 } from "@/lib/talanton/executive-stories-intelligence";
 
-export type TalantonStoriesTool = "talanton.queryStories" | "talanton.generateStoriesReport";
+export type TalantonStoriesTool =
+  | "talanton.queryStories"
+  | "talanton.generateStoriesReport"
+  | "talanton.generateStoriesLessonsPdf";
 
 export type TalantonStoriesRoute =
   | {
@@ -111,6 +115,15 @@ export function resolveTalantonStoriesRoute(
     outputFormat: scope.outputFormat,
     question: text,
   };
+
+  if (isStoriesLessonsPdfRequest(text)) {
+    return {
+      kind: "tool",
+      tool: "talanton.generateStoriesLessonsPdf",
+      args,
+      reason: "talanton_stories_lessons_pdf",
+    };
+  }
 
   if (scope.outputFormat === "pdf" || wantsStoriesReportMessage(text)) {
     return {
