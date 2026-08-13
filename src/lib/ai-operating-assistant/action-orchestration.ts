@@ -453,6 +453,8 @@ export async function resolveOrchestrationRoute(
       "abhi.generateQuarterlyFinancialDeltaPdf",
       "abhi.generateProjectHealthPdf",
       "abhi.generatePlatformAccessPdf",
+      "talanton.generateStoriesLessonsPdf",
+      "talanton.generateStoriesReport",
       "emailAssistantArtifact",
     ].includes(documentIntent.tool)
   ) {

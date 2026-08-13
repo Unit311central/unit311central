@@ -313,10 +313,12 @@ export function hasExplicitCategoryChoice(message: string): boolean {
 }
 
 export function needsStoriesScopeClarification(message: string): boolean {
-  if (!wantsStoriesReportMessage(message)) return false;
-  if (isStoriesLessonsPdfRequest(message) || isStoriesExecutiveAnalysisQuestion(message)) {
+  if (isStoriesLessonsPdfRequest(message)) return false;
+  if (isStoriesExecutiveAnalysisQuestion(message) && wantsStoriesPdfOutput(message)) {
     return false;
   }
+  if (isStoriesExecutiveAnalysisQuestion(message)) return false;
+  if (!wantsStoriesReportMessage(message)) return false;
   const scope = parseStoriesScopeFromMessage(message);
   if (scope.companyIds !== "all" && Array.isArray(scope.companyIds) && scope.companyIds.length === 0) {
     return true;
@@ -332,9 +334,15 @@ export function isStoriesExecutiveAnalysisQuestion(message: string): boolean {
     /\b(lesson|lessons|theme|themes|takeaway|takeaways|insight|insights|learn|learning)\b/.test(
       lower,
     ) ||
-    /\bmanagement\s+(lesson|insight|takeaway)/.test(lower) ||
+    /\brecurring\s+themes?\b/.test(lower) ||
+    /\bmost\s+important\s+(lesson|theme|takeaway|insight)/.test(lower) ||
+    /\b(three|3)\b.*\b(lesson|theme|takeaway|insight)/.test(lower) ||
+    /\bmanagement\s+(lesson|insight|takeaway|theme)/.test(lower) ||
     /\bwhat\s+(should|must)\s+management\b/.test(lower) ||
-    (/\bbiggest\b/.test(lower) && /\b(lesson|theme|takeaway|insight)/.test(lower))
+    (/\bbiggest\b/.test(lower) && /\b(lesson|theme|takeaway|insight)/.test(lower)) ||
+    (/\bidentify\b/.test(lower) &&
+      /\b(lesson|theme|takeaway|insight)/.test(lower) &&
+      /\bstor(y|ies)\b/.test(lower))
   );
 }
 
@@ -342,6 +350,7 @@ export function wantsStoriesPdfOutput(message: string): boolean {
   const lower = message.toLowerCase();
   return (
     /\b(pdf|export\s+pdf)\b/.test(lower) ||
+    /\bas\s+a\s+pdf\b/.test(lower) ||
     /\bmake\s+me\s+a\s+pdf\b/.test(lower) ||
     (/\b(generate|create|make|export)\b/.test(lower) && /\bpdf\b/.test(lower))
   );

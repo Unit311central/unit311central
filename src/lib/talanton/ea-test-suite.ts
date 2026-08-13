@@ -6,7 +6,7 @@ import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
 import { loadScopedPdfBundle } from "@/lib/ai-operating-assistant/scoped-business-pdf-service";
 import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
-import { getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service";
+import { executeAssistantTool, getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import { resolveTalantonExecutiveIntelligenceIntent } from "@/lib/talanton/executive-intelligence-intent";
 import {
@@ -74,6 +74,10 @@ export type EaTestSuiteReport = {
 };
 
 const SUITE_VERSION = "talanton-ea-v2";
+
+/** Live Talanton EA reproduction — field stories lessons PDF (not inventory report). */
+export const TALANTON_FIELD_STORIES_LESSONS_PDF_PROMPT =
+  "Review the field stories and identify the three most important lessons or recurring themes that management should be aware of as a pdf";
 
 const FORBIDDEN_TALANTON = [
   /\bABHI\b/,
@@ -285,6 +289,51 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
     if (route.args.companyIds !== "all") throw new Error("expected default all companies");
   });
 
+  await stories.run("Live lessons PDF prompt → generateStoriesLessonsPdf", () => {
+    const route = resolveTalantonStoriesRoute(TALANTON_FIELD_STORIES_LESSONS_PDF_PROMPT);
+    if (!route || route.kind !== "tool") {
+      throw new Error(`expected tool route, got ${route?.kind ?? "null"}`);
+    }
+    if (route.tool !== "talanton.generateStoriesLessonsPdf") {
+      throw new Error(`expected generateStoriesLessonsPdf, got ${route.tool}`);
+    }
+    if (route.kind === "clarify") throw new Error("must not clarify companies/impact areas");
+  });
+
+  await stories.run("Live lessons PDF prompt → not clarify questionnaire", () => {
+    const route = resolveTalantonStoriesRoute(TALANTON_FIELD_STORIES_LESSONS_PDF_PROMPT);
+    if (route?.kind === "clarify") throw new Error("unexpected clarify route");
+  });
+
+  await stories.run("Live lessons PDF → tool execution (3 lessons, sources, artifact)", async () => {
+    const route = resolveTalantonStoriesRoute(TALANTON_FIELD_STORIES_LESSONS_PDF_PROMPT);
+    if (!route || route.kind !== "tool" || route.tool !== "talanton.generateStoriesLessonsPdf") {
+      throw new Error("expected lessons PDF tool route");
+    }
+    const result = await executeAssistantTool(
+      route.tool,
+      route.args,
+      talantonBusiness(),
+    );
+    const status = String((result as { status?: string }).status ?? "");
+    if (status !== "ok" && status !== "partial") {
+      throw new Error(`tool returned ${status}`);
+    }
+    const summary = (result as { summary?: Record<string, unknown> }).summary ?? {};
+    const lessonCount = Number(summary.lessonCount ?? 0);
+    if (lessonCount !== 3) throw new Error(`expected 3 lessons, got ${lessonCount}`);
+    const source = (result as { source?: string[] }).source ?? [];
+    if (!source.includes("talanton:marketing-stories")) {
+      throw new Error("missing talanton:marketing-stories source");
+    }
+    if (!source.includes("talanton:journey-stories")) {
+      throw new Error("missing talanton:journey-stories source");
+    }
+    if (!summary.openUrl || !summary.downloadUrl) {
+      throw new Error("expected lessons PDF artifact URLs");
+    }
+  });
+
   await stories.run("Scoped report → generateStoriesReport", () => {
     const route = resolveTalantonStoriesRoute(
       "All companies, all impact areas, approved only, PDF impact stories report",
@@ -437,6 +486,7 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
       "talanton.queryImpact",
       "talanton.queryStories",
       "talanton.generateStoriesReport",
+      "talanton.generateStoriesLessonsPdf",
     ]) {
       if (!tiTools.includes(name)) throw new Error(`missing ${name}`);
     }
@@ -470,6 +520,18 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
     if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
     if (route.intent.tool !== "talanton.generateStoriesReport") {
       throw new Error(`expected generateStoriesReport, got ${route.intent.tool}`);
+    }
+  });
+
+  await orchestration.run("Live lessons PDF prompt → orchestration tool route", async () => {
+    const route = await resolveOrchestrationRoute(
+      TALANTON_FIELD_STORIES_LESSONS_PDF_PROMPT,
+      [],
+      talantonBusiness(),
+    );
+    if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
+    if (route.intent.tool !== "talanton.generateStoriesLessonsPdf") {
+      throw new Error(`expected generateStoriesLessonsPdf, got ${route.intent.tool}`);
     }
   });
 
@@ -540,6 +602,11 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
       id: "board-pack",
       prompt: "Create a board pack for next month",
       expectedTool: "boardpack.generate",
+    },
+    {
+      id: "field-stories-lessons-pdf-live",
+      prompt: TALANTON_FIELD_STORIES_LESSONS_PDF_PROMPT,
+      expectedTool: "talanton.generateStoriesLessonsPdf",
     },
   ];
   const smokeResults = await runEaToolExecutionSmoke({ business, cases: smokeCases });

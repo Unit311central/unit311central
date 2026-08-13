@@ -1,4 +1,5 @@
 import type { AssistantChatMessage } from "./types";
+import { resolveTalantonStoriesRoute } from "@/lib/talanton/executive-stories-intent";
 import {
   classifyReportIntent,
   inferReportTypeFromHistory,
@@ -643,6 +644,19 @@ export function resolveDirectIntent(
       tool: "emailAssistantArtifact",
       args: artifactIdMatch ? { artifactId: artifactIdMatch[0] } : {},
       reason: "email_existing_pdf",
+    };
+  }
+
+  // Talanton field stories — management lessons PDF (before generic fallbacks).
+  const talantonStoriesRoute = resolveTalantonStoriesRoute(text);
+  if (
+    talantonStoriesRoute?.kind === "tool" &&
+    talantonStoriesRoute.tool === "talanton.generateStoriesLessonsPdf"
+  ) {
+    return {
+      tool: "talanton.generateStoriesLessonsPdf",
+      args: talantonStoriesRoute.args,
+      reason: talantonStoriesRoute.reason,
     };
   }
 

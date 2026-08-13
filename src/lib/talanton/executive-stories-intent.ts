@@ -98,14 +98,6 @@ export function resolveTalantonStoriesRoute(
   const storyTopic = isStoriesTopicMessage(text) || (activeView && STORY_VIEWS.has(activeView));
   if (!storyTopic) return null;
 
-  if (needsStoriesScopeClarification(text)) {
-    return {
-      kind: "clarify",
-      message: buildStoriesClarificationMessage(),
-      followUpActions: clarificationFollowUps(),
-    };
-  }
-
   const scope = parseStoriesScopeFromMessage(text, activeView);
   const args = {
     companyIds: scope.companyIds,
@@ -116,12 +108,21 @@ export function resolveTalantonStoriesRoute(
     question: text,
   };
 
+  // Management lessons PDF — always wins over inventory report + scope questionnaires.
   if (isStoriesLessonsPdfRequest(text)) {
     return {
       kind: "tool",
       tool: "talanton.generateStoriesLessonsPdf",
       args,
       reason: "talanton_stories_lessons_pdf",
+    };
+  }
+
+  if (needsStoriesScopeClarification(text)) {
+    return {
+      kind: "clarify",
+      message: buildStoriesClarificationMessage(),
+      followUpActions: clarificationFollowUps(),
     };
   }
 
