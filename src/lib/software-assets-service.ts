@@ -129,6 +129,7 @@ function mapAsset(
     integrationWebhookUrl: String(row.integration_webhook_url ?? ""),
     integrationOauthStatus: String(row.integration_oauth_status ?? ""),
     integrationSyncStatus: String(row.integration_sync_status ?? ""),
+    providerSlug: row.provider_slug ? String(row.provider_slug) : null,
     linkedExpenseId: (row.linked_expense_id as string | null) ?? null,
     filesFolderId: (row.files_folder_id as string | null) ?? null,
     credentials: mapCredentials(credentials),
@@ -282,6 +283,9 @@ function buildAssetPayload(input: Partial<SoftwareAsset>) {
   }
   if (input.integrationSyncStatus !== undefined) {
     payload.integration_sync_status = input.integrationSyncStatus.trim();
+  }
+  if (input.providerSlug !== undefined) {
+    payload.provider_slug = input.providerSlug?.trim() || null;
   }
   if (input.linkedExpenseId !== undefined) {
     payload.linked_expense_id = input.linkedExpenseId || null;

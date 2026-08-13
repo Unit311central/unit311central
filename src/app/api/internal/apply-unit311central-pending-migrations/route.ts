@@ -97,6 +97,7 @@ const MIGRATIONS = [
   "supabase/migrations/135_board_directors_compensation.sql",
   "supabase/migrations/136_onwardair_portals_page_content.sql",
   "supabase/migrations/137_assistant_artifacts_storage.sql",
+  "supabase/migrations/138_software_provider_billing.sql",
 ];
 
 function isAuthorized(request: NextRequest) {

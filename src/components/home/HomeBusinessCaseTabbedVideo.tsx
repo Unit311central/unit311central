@@ -86,7 +86,7 @@ export default function HomeBusinessCaseTabbedVideo() {
               aria-selected={isActive}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "rounded-lg px-2.5 py-2.5 text-xs font-semibold leading-snug transition-colors duration-300 sm:px-3 sm:py-2.5 sm:text-[13px] lg:text-sm",
+                "min-h-11 rounded-lg px-2.5 py-2.5 text-xs font-semibold leading-snug transition-colors duration-300 sm:px-3 sm:py-2.5 sm:text-[13px] lg:text-sm",
                 isActive
                   ? "bg-white text-[#0f172a] shadow-[0_4px_14px_rgba(255,255,255,0.12)]"
                   : "bg-[#1a2332]/90 text-white/45 hover:bg-[#243044]/90 hover:text-white/65",
@@ -122,7 +122,7 @@ export default function HomeBusinessCaseTabbedVideo() {
             <button
               type="button"
               onClick={handleReplay}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-[#0a1220]/75 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-sky-400/35 hover:bg-[#0f172a]/90 sm:h-10 sm:w-10"
+              className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg border border-white/15 bg-[#0a1220]/75 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-sky-400/35 hover:bg-[#0f172a]/90"
               aria-label="Replay video"
             >
               <RotateCcw className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
@@ -130,7 +130,7 @@ export default function HomeBusinessCaseTabbedVideo() {
             <button
               type="button"
               onClick={() => void handleFullscreen()}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 bg-[#0a1220]/75 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-sky-400/35 hover:bg-[#0f172a]/90 sm:h-10 sm:w-10"
+              className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-lg border border-white/15 bg-[#0a1220]/75 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-sky-400/35 hover:bg-[#0f172a]/90"
               aria-label="Full screen video"
             >
               <Maximize2 className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />

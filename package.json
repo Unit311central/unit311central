@@ -52,7 +52,8 @@
     "test:ea-synthesis": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-llm-synthesis.check.ts",
     "catalog:executive-modules": "node scripts/generate-executive-module-prompt-catalog.mjs",
     "test:ea-domains": "node scripts/verify-ea-knowledge-domains.mjs",
-    "test:ea-intelligence": "node scripts/verify-ea-intelligence.mjs"
+    "test:ea-intelligence": "node scripts/verify-ea-intelligence.mjs",
+    "test:vercel-billing": "node --import tsx src/lib/software-billing/__tests__/vercel-billing.check.ts"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.91.0",

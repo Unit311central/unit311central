@@ -23,7 +23,7 @@ export default function HomeWhatWeOffering() {
           Built by a seasoned{" "}
           <Link
             href="/about#team"
-            className="font-medium text-sky-300/90 underline decoration-sky-400/30 underline-offset-4 transition-colors hover:text-sky-200 hover:decoration-sky-300/50"
+            className="inline-flex min-h-11 items-center px-1.5 font-medium text-sky-300/90 underline decoration-sky-400/30 underline-offset-4 transition-colors hover:text-sky-200 hover:decoration-sky-300/50"
           >
             team
           </Link>{" "}

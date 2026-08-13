@@ -85,6 +85,8 @@ export type SoftwareAsset = {
   integrationOauthStatus: string;
   integrationSyncStatus: string;
 
+  providerSlug: string | null;
+
   linkedExpenseId: string | null;
   filesFolderId: string | null;
 
@@ -192,6 +194,7 @@ export function createBlankSoftwareAsset(workspaceId = ""): SoftwareAsset {
     integrationWebhookUrl: "",
     integrationOauthStatus: "",
     integrationSyncStatus: "",
+    providerSlug: null,
     linkedExpenseId: null,
     filesFolderId: null,
     credentials: {

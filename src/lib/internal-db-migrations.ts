@@ -111,6 +111,8 @@ export const EXECUTIVE_CALL_WEBRTC_SIGNALS_MIGRATION_PATH =
   "supabase/migrations/085_executive_call_webrtc_signals.sql";
 export const SOFTWARE_ASSET_REGISTER_MIGRATION_PATH =
   "supabase/migrations/086_software_asset_register.sql";
+export const SOFTWARE_PROVIDER_BILLING_MIGRATION_PATH =
+  "supabase/migrations/138_software_provider_billing.sql";
 export const INTEGRATIONS_REGISTRY_MIGRATION_PATH =
   "supabase/migrations/111_integrations_registry.sql";
 export const CRM_PROJECTS_WORKSPACE_ISOLATION_MIGRATION_PATH =
@@ -280,6 +282,55 @@ export async function withSoftwareAssetRegisterTables<T>(
   }
 
   throw new Error("software_assets table is unavailable.");
+}
+
+export async function ensureSoftwareProviderBillingTables(): Promise<boolean> {
+  const exists = await tableExistsViaManagementApi("software_provider_period_snapshots");
+  if (exists === true) return true;
+
+  const dbUrl = getDatabaseUrl();
+  if (dbUrl) {
+    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    try {
+      await client.connect();
+      if (await tableExists(client, "software_provider_period_snapshots")) return true;
+      await applyMigration(client, SOFTWARE_PROVIDER_BILLING_MIGRATION_PATH);
+      await reloadPostgrestSchema();
+      return true;
+    } catch (error) {
+      if (!isDirectDbConnectionError(error)) {
+        console.warn("[software-billing] direct DB ensure failed", error);
+      }
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  const applied = await applyMigrationViaManagementApi(SOFTWARE_PROVIDER_BILLING_MIGRATION_PATH);
+  if (applied) {
+    await reloadPostgrestSchema();
+    return true;
+  }
+
+  return false;
+}
+
+export async function withSoftwareProviderBillingTables<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isMissingTableError(error, "software_provider_period_snapshots")) throw error;
+      await ensureSoftwareProviderBillingTables();
+      await reloadPostgrestSchema();
+      if (attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+    }
+  }
+
+  throw new Error("software_provider_period_snapshots table is unavailable.");
 }
 
 export async function ensureIntegrationsRegistryTables(): Promise<boolean> {

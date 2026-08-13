@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
+import SoftwareBillingSummarySection, {
+  useSoftwareBillingSummary,
+} from "@/components/testflighthub/SoftwareBillingSummarySection";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import {
   ATTACHMENT_KINDS,
@@ -31,6 +34,8 @@ import {
   type SoftwareStatus,
 } from "@/lib/software-assets-data";
 import { cn } from "@/lib/utils";
+import { isInternalDomainHost } from "@/lib/app-domains";
+import { VERCEL_PROVIDER_SLUG } from "@/lib/software-billing/types";
 import {
   buildSoftwareAssetsDashboardCatalog,
   DEFAULT_SOFTWARE_ASSETS_TILE_LAYOUT,
@@ -139,6 +144,11 @@ export default function SoftwareAssetRegisterWorkspace() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const snapshottedIdRef = useRef<string | null>(null);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
+  const [isInternalHost] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return isInternalDomainHost(window.location.hostname);
+  });
+  const billingSummary = useSoftwareBillingSummary(isInternalHost);
 
   const selected = useMemo(
     () => assets.find((asset) => asset.id === selectedId) ?? assets[0] ?? null,
@@ -409,9 +419,16 @@ export default function SoftwareAssetRegisterWorkspace() {
   ];
 
   const available = selected ? availableLicences(selected) : null;
+  const isVercelRecord =
+    selected &&
+    (selected.providerSlug === VERCEL_PROVIDER_SLUG ||
+      selected.vendor.toLowerCase().includes("vercel") ||
+      selected.name.toLowerCase().includes("vercel"));
 
   return (
     <div className="space-y-4">
+      {isInternalHost ? <SoftwareBillingSummarySection /> : null}
+
       <DashboardTopTilesBar
         storageKey="unit311-software-assets-tiles"
         catalog={SOFTWARE_ASSETS_DASHBOARD_TILES}
@@ -781,6 +798,133 @@ export default function SoftwareAssetRegisterWorkspace() {
                 ) : null}
 
                 {detailTab === "financials" ? (
+                  <div className="space-y-4">
+                    {isVercelRecord && billingSummary ? (
+                      <div className="rounded-2xl border border-sky-400/20 bg-sky-500/10 p-4">
+                        <SectionTitle>Vercel live billing</SectionTitle>
+                        <p className="mt-1 text-[11px] text-white/50">
+                          From Vercel official billing APIs. Manual fields below are preserved and
+                          are not double-counted when live sync is active.
+                        </p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <FieldLabel>Plan</FieldLabel>
+                            <p className="mt-1 text-sm text-white">
+                              {billingSummary.vercel.planName || "—"}
+                              {billingSummary.vercel.planIteration
+                                ? ` (${billingSummary.vercel.planIteration})`
+                                : ""}
+                            </p>
+                          </div>
+                          <div>
+                            <FieldLabel>Base subscription</FieldLabel>
+                            <p className="mt-1 text-sm text-white">
+                              {formatSoftwareMoney(
+                                billingSummary.vercel.baseSubscriptionMonthly,
+                                billingSummary.currency,
+                              )}
+                              / month
+                            </p>
+                          </div>
+                          <div>
+                            <FieldLabel>Last month (actual)</FieldLabel>
+                            <p className="mt-1 text-sm text-white">
+                              {formatSoftwareMoney(
+                                billingSummary.vercel.lastMonth,
+                                billingSummary.currency,
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <FieldLabel>Upcoming (projected)</FieldLabel>
+                            <p className="mt-1 text-sm text-white">
+                              {formatSoftwareMoney(
+                                billingSummary.vercel.upcomingProjected,
+                                billingSummary.currency,
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <FieldLabel>Current period spend</FieldLabel>
+                            <p className="mt-1 text-sm text-white">
+                              {formatSoftwareMoney(
+                                billingSummary.vercel.currentSpend,
+                                billingSummary.currency,
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <FieldLabel>Usage (effective)</FieldLabel>
+                            <p className="mt-1 text-sm text-white">
+                              {formatSoftwareMoney(
+                                billingSummary.vercel.usageEffectiveCurrent,
+                                billingSummary.currency,
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <FieldLabel>Credits applied (current)</FieldLabel>
+                            <p className="mt-1 text-sm text-white">
+                              {formatSoftwareMoney(
+                                billingSummary.vercel.creditsAppliedCurrent,
+                                billingSummary.currency,
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <FieldLabel>Billing period</FieldLabel>
+                            <p className="mt-1 text-sm text-white">
+                              {billingSummary.vercel.billingPeriodStart
+                                ? `${billingSummary.vercel.billingPeriodStart.slice(0, 10)} → ${billingSummary.vercel.billingPeriodEnd?.slice(0, 10) ?? "—"}`
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                        {billingSummary.history.length > 0 ? (
+                          <div className="mt-4 overflow-x-auto">
+                            <FieldLabel>Monthly history</FieldLabel>
+                            <table className="mt-2 w-full min-w-[28rem] text-left text-xs text-white/80">
+                              <thead className="text-white/45">
+                                <tr>
+                                  <th className="pb-2 pr-3 font-medium">Period</th>
+                                  <th className="pb-2 pr-3 font-medium">Billed</th>
+                                  <th className="pb-2 pr-3 font-medium">Usage</th>
+                                  <th className="pb-2 pr-3 font-medium">Credits</th>
+                                  <th className="pb-2 font-medium">Change</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {billingSummary.history.map((row) => (
+                                  <tr key={row.periodStart} className="border-t border-white/10">
+                                    <td className="py-2 pr-3">{row.periodStart.slice(0, 10)}</td>
+                                    <td className="py-2 pr-3">
+                                      {formatSoftwareMoney(row.billedAmount, billingSummary.currency)}
+                                    </td>
+                                    <td className="py-2 pr-3">
+                                      {formatSoftwareMoney(
+                                        row.usageEffectiveAmount,
+                                        billingSummary.currency,
+                                      )}
+                                    </td>
+                                    <td className="py-2 pr-3">
+                                      {formatSoftwareMoney(
+                                        row.creditsAppliedAmount,
+                                        billingSummary.currency,
+                                      )}
+                                    </td>
+                                    <td className="py-2">
+                                      {row.deltaAmount == null
+                                        ? "—"
+                                        : `${row.deltaAmount >= 0 ? "+" : ""}${formatSoftwareMoney(row.deltaAmount, billingSummary.currency)}`}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                       <FieldLabel>Current monthly cost</FieldLabel>
@@ -943,6 +1087,7 @@ export default function SoftwareAssetRegisterWorkspace() {
                         }
                       />
                     </div>
+                  </div>
                   </div>
                 ) : null}
 
@@ -1218,10 +1363,32 @@ export default function SoftwareAssetRegisterWorkspace() {
 
                 {detailTab === "integrations" ? (
                   <div className="space-y-3">
+                    {isVercelRecord && billingSummary ? (
+                      <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-50">
+                        <p className="font-medium">Vercel billing connection</p>
+                        <p className="mt-1 text-[12px] text-emerald-100/80">
+                          Server-side token:{" "}
+                          {billingSummary.syncError?.includes("VERCEL_API_TOKEN")
+                            ? "Not configured"
+                            : "Configured"}
+                        </p>
+                        <p className="mt-1 text-[12px] text-emerald-100/80">
+                          Last successful sync:{" "}
+                          {billingSummary.lastSuccessfulSyncAt
+                            ? new Date(billingSummary.lastSuccessfulSyncAt).toLocaleString("en-GB")
+                            : "Never"}
+                        </p>
+                        <p className="mt-1 text-[12px] text-emerald-100/80">
+                          Status: {billingSummary.syncStatus}
+                          {billingSummary.syncError ? ` — ${billingSummary.syncError}` : ""}
+                        </p>
+                      </div>
+                    ) : (
                     <p className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
                       Integration fields are placeholders for a future sync. No live API, webhook,
                       or OAuth connection is active yet.
                     </p>
+                    )}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div>
                         <FieldLabel>Connected</FieldLabel>

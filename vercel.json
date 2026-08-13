@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/competitor-intelligence-weekly",
       "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/software-billing-sync",
+      "schedule": "0 10 * * *"
     }
   ]
 }

@@ -53,7 +53,8 @@ function FooterLink({
   label: string;
   external?: boolean;
 }) {
-  const className = "block py-2 text-[13px] text-[#1a2b4a]/65 transition-colors hover:text-[#1a2b4a]";
+  const className =
+    "flex min-h-11 items-center py-2 text-[13px] text-[#1a2b4a]/65 transition-colors hover:text-[#1a2b4a]";
 
   if (external) {
     return (

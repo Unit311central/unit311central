@@ -95,7 +95,7 @@ export default function MobileMenu({ open, onClose }: MobileMenuProps) {
                   }
                   onClose();
                 }}
-                className={`block rounded-lg px-4 py-3.5 text-base font-medium touch-manipulation transition-colors ${
+                className={`block min-h-11 rounded-lg px-4 py-3.5 text-base font-medium touch-manipulation transition-colors ${
                   isDarkMenu ? "text-white/90 hover:bg-white/10 hover:text-white" : "text-foreground hover:bg-surface-elevated"
                 }`}
               >

@@ -11,7 +11,7 @@ export default function MarketingNavWordmark({ compact = false }: MarketingNavWo
     <Link
       href="/"
       aria-label="Unit311 Central home"
-      className={`inline-flex min-w-0 shrink overflow-visible ${
+      className={`inline-flex min-h-11 min-w-0 shrink items-center overflow-visible ${
         compact
           ? "max-w-[calc(100vw-5.25rem-env(safe-area-inset-left)-env(safe-area-inset-right))] sm:max-w-none"
           : "max-w-[calc(100vw-4.75rem-env(safe-area-inset-left)-env(safe-area-inset-right))] sm:max-w-none"

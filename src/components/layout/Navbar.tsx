@@ -221,40 +221,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {!isClientCallPage ? (
-          <nav
-            aria-label="Mobile navigation links"
-            className={`border-t lg:hidden ${
-              isDarkNav ? "border-white/10 bg-[#020617]/90" : "border-border bg-background/95"
-            }`}
-          >
-            <div className="mx-auto flex max-w-[1400px] gap-1 overflow-x-auto px-[max(0.75rem,env(safe-area-inset-left))] py-2 pr-[max(0.75rem,env(safe-area-inset-right))] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {NAV.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={(event) => {
-                    if (pathname === "/" && link.hash) {
-                      event.preventDefault();
-                      scrollToSection(link.hash);
-                    }
-                    if (pathname === "/" && link.href === "/") {
-                      event.preventDefault();
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }
-                  }}
-                className={`shrink-0 rounded-lg px-3 py-2.5 text-[15px] font-medium whitespace-nowrap touch-manipulation transition-colors ${
-                    isDarkNav
-                      ? "text-white/85 hover:bg-white/10 hover:text-white"
-                      : "text-muted hover:bg-surface-elevated hover:text-foreground"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </nav>
-        ) : null}
       </header>
       {!isClientCallPage ? (
         <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
