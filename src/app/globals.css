@@ -126,6 +126,12 @@ svg {
   touch-action: manipulation;
 }
 
+/* Module review — single viewport, no page scroll */
+html:has([data-module-review-shell]),
+body:has([data-module-review-shell]) {
+  overflow: hidden !important;
+}
+
 /* Marketing site — iOS / Android phones */
 @media (max-width: 1023px) {
   .marketing-mobile-shell main {

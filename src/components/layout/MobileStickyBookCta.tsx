@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 function shouldHideStickyCta(pathname: string | null) {
   if (!pathname) return true;
   if (pathname === "/book" || pathname === "/login" || pathname === "/signup") return true;
+  if (pathname === "/module-review" || pathname?.startsWith("/module-review/")) return true;
   if (pathname.startsWith("/partners") || pathname.startsWith("/dev/")) return true;
   if (pathname.startsWith("/ws/") || pathname.startsWith("/meet/")) return true;
   return false;

@@ -11,6 +11,15 @@ import {
   MODULE_REVIEW_TILE_SURFACE,
   moduleReviewAlternatingHeader,
 } from "@/lib/module-review-accents";
+import {
+  MODULE_REVIEW_COL_GAP,
+  MODULE_REVIEW_ITEM_LABEL,
+  MODULE_REVIEW_ITEM_ROW,
+  MODULE_REVIEW_MOCK_CHECKBOX,
+  MODULE_REVIEW_ROW_GAP,
+  MODULE_REVIEW_TILE_BODY,
+  MODULE_REVIEW_TILE_HEADER,
+} from "@/lib/module-review-tile-styles";
 
 const MOCKUP_ROWS: readonly (readonly BookFocusGridColumn[])[] = (() => {
   const all: BookFocusGridColumn[] = [
@@ -29,26 +38,21 @@ function MockTile({ column, columnIndex }: { column: BookFocusGridColumn; column
       style={MODULE_REVIEW_TILE_SURFACE}
     >
       <div
-        className="border-b border-white/25 px-1 py-1 text-left text-[7.5px] font-semibold uppercase leading-[1.1] tracking-wide text-white sm:text-[8.5px]"
+        className={MODULE_REVIEW_TILE_HEADER}
         style={{ background: moduleReviewAlternatingHeader(columnIndex) }}
       >
         {column.title}
       </div>
-      <div className="space-y-0.5 p-0.5">
+      <div className={MODULE_REVIEW_TILE_BODY}>
         {column.items
           .filter((entry) => entry.kind === "item")
           .map((entry) => (
             <label
               key={bookFocusItemKey(column.title, entry.label)}
-              className="flex items-center gap-0.5 px-0.5 py-0.5 text-left"
+              className={MODULE_REVIEW_ITEM_ROW}
             >
-              <span
-                className="inline-block h-2.5 w-2.5 shrink-0 rounded border border-slate-400/80 bg-white"
-                aria-hidden
-              />
-              <span className="truncate text-[6.5px] leading-none text-slate-700 sm:text-[7px]">
-                {entry.label}
-              </span>
+              <span className={MODULE_REVIEW_MOCK_CHECKBOX} aria-hidden />
+              <span className={MODULE_REVIEW_ITEM_LABEL}>{entry.label}</span>
             </label>
           ))}
       </div>
@@ -59,9 +63,9 @@ function MockTile({ column, columnIndex }: { column: BookFocusGridColumn; column
 export default function ModuleReviewGridMockup() {
   return (
     <div data-module-review-mockup className="w-full min-w-0 max-w-full">
-      <div className="space-y-4 sm:space-y-5">
+      <div className={MODULE_REVIEW_ROW_GAP}>
         {MOCKUP_ROWS.map((row, rowIndex) => (
-          <div key={`mock-row-${rowIndex}`} className="grid w-full grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2">
+          <div key={`mock-row-${rowIndex}`} className={`grid w-full grid-cols-7 ${MODULE_REVIEW_COL_GAP}`}>
             {row.map((column, columnIndex) => (
               <MockTile
                 key={column.title}

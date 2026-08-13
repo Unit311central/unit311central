@@ -14,11 +14,12 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 const MODULE_REVIEW_CONTENT_CLASS =
-  "relative z-10 mx-auto w-full max-w-[100%] px-2 py-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-6 lg:px-5";
+  "relative z-10 mx-auto flex h-full min-h-0 w-full max-w-full flex-col overflow-hidden px-2 py-2 pt-[max(0.35rem,env(safe-area-inset-top))] pb-2 sm:px-3 sm:py-3";
 
 export default function ModuleReviewPage() {
   return (
     <MarketingPageShell
+      className="!min-h-0 h-[calc(100dvh-3.5rem)] overflow-hidden sm:h-[calc(100dvh-4rem)]"
       backgroundImage="/images/overview-corporate-intelligence-bg.png"
       backgroundImageViaCss
       backgroundImageClassName="opacity-[0.55] sm:opacity-[0.62]"

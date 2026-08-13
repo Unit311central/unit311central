@@ -46,36 +46,22 @@ export default function ModuleReviewContent() {
     }
   }
 
-  const selectedCount = Object.values(selections.items).filter(Boolean).length;
-
   return (
     <div className="w-full max-w-full">
       <header className="text-left">
-        <h1 className="text-lg font-bold leading-tight tracking-tight text-white sm:text-xl lg:text-2xl">
-          UNIT311 CENTRAL MODULE REVIEW
-        </h1>
-        <p className="mt-2 max-w-4xl text-sm leading-relaxed text-white/70 sm:text-[15px]">
-          Review the full Unit311 module map and tick the areas you want to prioritise in your
-          discovery session.
-        </p>
-      </header>
-
-      <div
-        className="mt-6 rounded-[24px] border border-white/18 bg-slate-950/50 p-2 shadow-[0_32px_100px_rgba(0,0,0,0.55)] ring-1 ring-white/10 backdrop-blur-xl sm:mt-8 sm:p-4 lg:p-5"
-        data-module-review-panel
-      >
-        <ModuleReviewGrid selections={selections.items} onToggle={handleToggle} />
-
-        <div className="mt-6 flex flex-col items-start gap-3 border-t border-white/15 pt-6">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-sm font-bold leading-tight tracking-tight text-white sm:text-base lg:text-lg">
+            UNIT311 CENTRAL MODULE REVIEW
+          </h1>
           <button
             type="button"
             onClick={() => void handleSubmit()}
             disabled={submitting || submitted}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#0b2d63] px-8 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(11,45,99,0.35)] transition-colors hover:bg-[#0a2554] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#0b2d63] px-4 py-2 text-[10px] font-semibold text-white shadow-[0_6px_18px_rgba(11,45,99,0.35)] transition-colors hover:bg-[#0a2554] disabled:cursor-not-allowed disabled:opacity-60 sm:px-5 sm:text-[11px]"
           >
             {submitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                 Saving…
               </>
             ) : submitted ? (
@@ -84,18 +70,25 @@ export default function ModuleReviewContent() {
               "Submit selections"
             )}
           </button>
-          <p className="text-xs text-white/55">
-            {selectedCount === 0
-              ? "No modules selected yet."
-              : `${selectedCount} module area${selectedCount === 1 ? "" : "s"} selected.`}
-          </p>
-          {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-          {submitted ? (
-            <p className="text-sm text-emerald-300">
-              Saved to modulereviewarjan.csv on your desktop.
-            </p>
-          ) : null}
         </div>
+        <p className="mt-1 max-w-4xl text-[11px] leading-snug text-white/70 sm:text-xs">
+          Review the full Unit311 module map and tick the areas you want to prioritise in your
+          discovery session.
+        </p>
+      </header>
+
+      <div
+        className="mt-4 rounded-[16px] border border-white/18 bg-slate-950/50 p-1 shadow-[0_20px_64px_rgba(0,0,0,0.55)] ring-1 ring-white/10 backdrop-blur-xl sm:mt-5 sm:p-1.5"
+        data-module-review-panel
+      >
+        <ModuleReviewGrid selections={selections.items} onToggle={handleToggle} />
+
+        {error ? <p className="mt-2 text-[11px] text-rose-400">{error}</p> : null}
+        {submitted ? (
+          <p className="mt-2 text-[11px] text-emerald-300">
+            Saved to modulereviewarjan.csv on your desktop.
+          </p>
+        ) : null}
       </div>
     </div>
   );

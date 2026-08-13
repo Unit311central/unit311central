@@ -13,6 +13,15 @@ import {
   MODULE_REVIEW_TILE_SURFACE,
   moduleReviewAlternatingHeader,
 } from "@/lib/module-review-accents";
+import {
+  MODULE_REVIEW_COL_GAP,
+  MODULE_REVIEW_ITEM_CHECKBOX,
+  MODULE_REVIEW_ITEM_LABEL,
+  MODULE_REVIEW_ITEM_ROW,
+  MODULE_REVIEW_ROW_GAP,
+  MODULE_REVIEW_TILE_BODY,
+  MODULE_REVIEW_TILE_HEADER,
+} from "@/lib/module-review-tile-styles";
 
 type ModuleReviewGridProps = {
   selections: Record<string, boolean>;
@@ -41,20 +50,15 @@ function ModuleCheckbox({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label
-      htmlFor={id}
-      className="flex cursor-pointer items-center gap-0.5 rounded px-0.5 py-0.5 text-left transition-colors hover:bg-white/45 sm:gap-1"
-    >
+    <label htmlFor={id} className={MODULE_REVIEW_ITEM_ROW}>
       <input
         id={id}
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="h-2.5 w-2.5 shrink-0 rounded border-slate-400/80 text-[#2563eb] focus:ring-[#2563eb] sm:h-3 sm:w-3"
+        className={MODULE_REVIEW_ITEM_CHECKBOX}
       />
-      <span className="min-w-0 truncate text-[6.5px] leading-none text-slate-700 sm:text-[7px] lg:text-[7.5px]">
-        {label}
-      </span>
+      <span className={MODULE_REVIEW_ITEM_LABEL}>{label}</span>
     </label>
   );
 }
@@ -78,12 +82,12 @@ function ModuleColumn({
       style={MODULE_REVIEW_TILE_SURFACE}
     >
       <div
-        className="border-b border-white/25 px-1 py-1.5 text-left text-[8px] font-semibold uppercase leading-[1.1] tracking-wide text-white shadow-sm sm:px-1.5 sm:text-[9px] lg:text-[10px]"
+        className={MODULE_REVIEW_TILE_HEADER}
         style={{ background: moduleReviewAlternatingHeader(columnIndex) }}
       >
         {column.title}
       </div>
-      <div className="space-y-0.5 p-0.5 sm:p-1">
+      <div className={MODULE_REVIEW_TILE_BODY}>
         {column.items.map((entry, entryIndex) => {
           if (entry.kind === "subheader") {
             return null;
@@ -107,26 +111,31 @@ function ModuleColumn({
 
 function ModuleReviewRow({ children }: { children: ReactNode }) {
   return (
-    <div className="grid w-full min-w-0 grid-cols-7 gap-1 sm:gap-1.5 lg:gap-2">{children}</div>
+    <div className={`grid w-full min-w-0 grid-cols-7 ${MODULE_REVIEW_COL_GAP}`}>{children}</div>
   );
 }
 
 export default function ModuleReviewGrid({ selections, onToggle }: ModuleReviewGridProps) {
   return (
     <div data-module-review-grid className="w-full min-w-0 max-w-full">
-      <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+      <div className={MODULE_REVIEW_ROW_GAP}>
         {MODULE_REVIEW_ROWS.map((row, rowIndex) => (
           <ModuleReviewRow key={`row-${rowIndex}`}>
-            {row.map((column, columnIndex) => (
-              <ModuleColumn
-                key={column.title}
-                column={column}
-                columnIndex={rowIndex * 7 + columnIndex}
-                selections={selections}
-                onToggle={onToggle}
-                idPrefix={column.title === "EXECUTIVE ASSISTANT" ? "module-review-ea" : "module-review"}
-              />
-            ))}
+            {row.map((column, columnIndex) => {
+              const globalIndex = rowIndex * 7 + columnIndex;
+              return (
+                <ModuleColumn
+                  key={column.title}
+                  column={column}
+                  columnIndex={globalIndex}
+                  selections={selections}
+                  onToggle={onToggle}
+                  idPrefix={
+                    column.title === "EXECUTIVE ASSISTANT" ? "module-review-ea" : "module-review"
+                  }
+                />
+              );
+            })}
           </ModuleReviewRow>
         ))}
       </div>
