@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import ModuleReviewGrid from "@/components/module-review/ModuleReviewGrid";
 import { createEmptyBookThankYouSelections } from "@/lib/book-thank-you-data";
+import { finishModuleReviewSubmit } from "@/lib/module-review-submit-client";
 import {
   MODULE_REVIEW_COL_GAP,
   MODULE_REVIEW_PANEL_INSET_X,
@@ -14,6 +15,7 @@ export default function ModuleReviewContent() {
   const [selections, setSelections] = useState(createEmptyBookThankYouSelections);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function handleToggle(key: string, checked: boolean) {
@@ -25,6 +27,7 @@ export default function ModuleReviewContent() {
   async function handleSubmit() {
     setSubmitting(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       const selected = Object.entries(selections.items)
         .filter(([, checked]) => checked)
@@ -38,10 +41,17 @@ export default function ModuleReviewContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ selected, selections: selections.items }),
       });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        mode?: string;
+        csv?: string;
+        filename?: string;
+      };
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to save selections.");
       }
+
+      setSuccessMessage(finishModuleReviewSubmit(payload));
       setSubmitted(true);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to save selections.");
@@ -92,10 +102,8 @@ export default function ModuleReviewContent() {
         <ModuleReviewGrid selections={selections.items} onToggle={handleToggle} />
 
         {error ? <p className="mt-2 text-[11px] text-rose-400">{error}</p> : null}
-        {submitted ? (
-          <p className="mt-2 text-[11px] text-emerald-300">
-            Saved to modulereviewarjan.csv on your desktop.
-          </p>
+        {successMessage ? (
+          <p className="mt-2 text-[11px] text-emerald-300">{successMessage}</p>
         ) : null}
       </div>
     </div>

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import ModuleReviewGridUniform from "@/components/module-review/ModuleReviewGridUniform";
 import { createEmptyBookThankYouSelections } from "@/lib/book-thank-you-data";
+import { finishModuleReviewSubmit } from "@/lib/module-review-submit-client";
 import { marketingPageIntro, marketingPageTitle } from "@/lib/marketing-ui";
 
 /** Uniform-header snapshot content (previous design before per-module accents). */
