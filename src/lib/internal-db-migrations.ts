@@ -285,15 +285,22 @@ export async function withSoftwareAssetRegisterTables<T>(
 }
 
 export async function ensureSoftwareProviderBillingTables(): Promise<boolean> {
-  const exists = await tableExistsViaManagementApi("software_provider_period_snapshots");
-  if (exists === true) return true;
+  const markerTables = [
+    "software_provider_connections",
+    "software_provider_sync_runs",
+    "software_provider_period_snapshots",
+    "software_provider_charge_facts",
+  ] as const;
+
+  const existingViaApi = await tableExistsViaManagementApi(markerTables[0]);
+  if (existingViaApi === true) return true;
 
   const dbUrl = getDatabaseUrl();
   if (dbUrl) {
     const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
     try {
       await client.connect();
-      if (await tableExists(client, "software_provider_period_snapshots")) return true;
+      if (await tableExists(client, markerTables[0])) return true;
       await applyMigration(client, SOFTWARE_PROVIDER_BILLING_MIGRATION_PATH);
       await reloadPostgrestSchema();
       return true;
@@ -312,18 +319,41 @@ export async function ensureSoftwareProviderBillingTables(): Promise<boolean> {
     return true;
   }
 
+  const appliedViaResolved = await withResolvedDatabaseClient(async (client) => {
+    if (await tableExists(client, markerTables[0])) return true;
+    await applyMigration(client, SOFTWARE_PROVIDER_BILLING_MIGRATION_PATH);
+    return true;
+  });
+  if (appliedViaResolved) {
+    await reloadPostgrestSchema();
+    return true;
+  }
+
   return false;
 }
 
 export async function withSoftwareProviderBillingTables<T>(
   operation: () => Promise<T>,
 ): Promise<T> {
+  const billingTables = [
+    "software_provider_connections",
+    "software_provider_sync_runs",
+    "software_provider_period_snapshots",
+    "software_provider_charge_facts",
+  ] as const;
+
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       return await operation();
     } catch (error) {
-      if (!isMissingTableError(error, "software_provider_period_snapshots")) throw error;
-      await ensureSoftwareProviderBillingTables();
+      const missing = billingTables.some((table) => isMissingTableError(error, table));
+      if (!missing) throw error;
+      const ensured = await ensureSoftwareProviderBillingTables();
+      if (!ensured) {
+        throw new Error(
+          "Software provider billing tables are unavailable. Migration 138 could not be applied automatically.",
+        );
+      }
       await reloadPostgrestSchema();
       if (attempt === 4) throw error;
       await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
