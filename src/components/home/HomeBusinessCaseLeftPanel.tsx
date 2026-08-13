@@ -14,25 +14,25 @@ const STATS: {
   value: string;
   label: string;
   icon: LucideIcon;
-  gradient: string;
+  tint: string;
 }[] = [
   {
     value: "20+",
     label: "separate tools in a typical SME stack",
     icon: Layers3,
-    gradient: "from-sky-400/25 via-sky-500/10 to-transparent",
+    tint: "bg-[#0b1522]",
   },
   {
     value: "Ongoing",
     label: "costs and admin on top of subscriptions",
     icon: RefreshCw,
-    gradient: "from-amber-400/20 via-orange-500/10 to-transparent",
+    tint: "bg-[#12100c]",
   },
   {
     value: "Multiple layers",
     label: "rebuilding the same picture by hand",
     icon: Layers2,
-    gradient: "from-violet-400/20 via-blue-500/10 to-transparent",
+    tint: "bg-[#0f1020]",
   },
 ];
 
@@ -42,34 +42,34 @@ const PAIN_POINTS = [
     title: "Duplicate data",
     detail: "Same numbers in CRM, finance and ops",
     accent: "#38bdf8",
-    gradient: "from-sky-500/20 to-sky-500/0",
+    tint: "bg-[#081018]",
   },
   {
     icon: Layers3,
     title: "Manual reporting",
     detail: "Leadership decks rebuilt every month",
     accent: "#60a5fa",
-    gradient: "from-blue-500/20 to-blue-500/0",
+    tint: "bg-[#08111c]",
   },
   {
     icon: LogIn,
     title: "Login sprawl",
     detail: "Teams hopping between a dozen systems",
     accent: "#3b82f6",
-    gradient: "from-indigo-500/20 to-indigo-500/0",
+    tint: "bg-[#080f1a]",
   },
   {
     icon: Puzzle,
     title: "Integration tax",
     detail: "Research, setup and glue code never ends",
     accent: "#2563eb",
-    gradient: "from-violet-500/20 to-violet-500/0",
+    tint: "bg-[#0a0e1c]",
   },
 ] as const;
 
 export default function HomeBusinessCaseLeftPanel() {
   return (
-    <div className="relative flex h-full min-h-[320px] flex-col overflow-hidden rounded-xl border border-sky-300/20 bg-gradient-to-br from-sky-400/[0.12] via-[#070d18]/90 to-[#030712] p-4 shadow-[inset_0_1px_0_rgba(186,230,253,0.14)] sm:p-5 lg:min-h-full lg:p-6">
+    <div className="relative flex h-full min-h-[320px] flex-col overflow-hidden rounded-xl border border-sky-300/20 bg-[#070d18] p-4 sm:p-5 lg:min-h-full lg:p-6">
       <div className="relative">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/70">
           The problem
@@ -84,12 +84,12 @@ export default function HomeBusinessCaseLeftPanel() {
       </div>
 
       <div className="relative mt-5 grid grid-cols-3 gap-2 sm:gap-3">
-        {STATS.map(({ value, label, icon: Icon, gradient }) => (
+        {STATS.map(({ value, label, icon: Icon, tint }) => (
           <div
             key={label}
             className={cn(
-              "relative isolate overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br p-2.5 text-center sm:p-3",
-              gradient,
+              "overflow-hidden rounded-xl border border-white/10 p-2.5 text-center sm:p-3",
+              tint,
             )}
           >
             <div className="mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-sky-200 sm:h-8 sm:w-8">
@@ -111,29 +111,22 @@ export default function HomeBusinessCaseLeftPanel() {
       </div>
 
       <div className="relative mt-4 grid flex-1 grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3">
-        {PAIN_POINTS.map(({ icon: Icon, title, detail, accent, gradient }) => (
+        {PAIN_POINTS.map(({ icon: Icon, title, detail, accent, tint }) => (
           <div
             key={title}
             className={cn(
-              "relative isolate flex min-h-[108px] flex-col overflow-hidden rounded-2xl border border-white/[0.12] bg-[#060b14]/80 p-3.5 sm:min-h-[118px] sm:p-4",
-              "bg-gradient-to-br",
-              gradient,
+              "flex min-h-[108px] flex-col overflow-hidden rounded-2xl border border-white/[0.12] p-3.5 sm:min-h-[118px] sm:p-4",
+              tint,
             )}
+            style={{ borderTopColor: `${accent}55`, borderTopWidth: 2 }}
           >
             <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
-              style={{
-                background: `linear-gradient(90deg, transparent, ${accent}88, transparent)`,
-              }}
-              aria-hidden
-            />
-            <div
-              className="relative mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0a1220]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+              className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0a1220]"
               style={{ color: accent }}
             >
               <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
             </div>
-            <div className="relative mt-auto">
+            <div className="mt-auto">
               <p className="text-[13px] font-semibold leading-snug text-white sm:text-sm">{title}</p>
               <p className="mt-1.5 text-[11px] leading-relaxed text-white/50 sm:text-xs">{detail}</p>
             </div>
