@@ -742,6 +742,7 @@ export default function ExecutiveAssistantPanel({
 
     let finalReply: string | null = null;
     let sawBoardPackTool = false;
+    let sawTerminalStreamEvent = false;
     const correlationId =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? `ea_${crypto.randomUUID()}`
@@ -978,6 +979,7 @@ export default function ExecutiveAssistantPanel({
             }
           }
           if (event.type === "delta") {
+            sawTerminalStreamEvent = true;
             setMessages((current) =>
               current.map((entry) =>
                 entry.id === assistantId
@@ -987,6 +989,7 @@ export default function ExecutiveAssistantPanel({
             );
           }
           if (event.type === "done") {
+            sawTerminalStreamEvent = true;
             if (typeof event.correlationId === "string" && event.correlationId) {
               setEaCorrelationId(event.correlationId);
             }
@@ -1019,6 +1022,7 @@ export default function ExecutiveAssistantPanel({
             );
           }
           if (event.type === "error") {
+            sawTerminalStreamEvent = true;
             console.error("[EA] Chat stream error");
             console.error(`- correlationId: ${correlationId}`);
             console.error(`- error: ${event.error}`);
@@ -1026,6 +1030,17 @@ export default function ExecutiveAssistantPanel({
             throw new Error(event.error);
           }
         });
+        if (!sawTerminalStreamEvent) {
+          const incompleteMessage =
+            "The assistant stream ended before a reply was ready. Please try again.";
+          setMessages((current) =>
+            current.map((entry) =>
+              entry.id === assistantId
+                ? { ...entry, content: incompleteMessage }
+                : entry,
+            ),
+          );
+        }
       } else {
         const data = (await response.json()) as {
           reply?: string;

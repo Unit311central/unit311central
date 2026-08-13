@@ -968,6 +968,7 @@ async function* runAssistantTurnInner(input: {
   let inputItems: EasyInputMessage[] = toInputMessages(resolved.history, message);
   let assistantText = "";
   let toolLoops = 0;
+  let awaitingSynthesis = false;
   let turnFollowUps: NonNullable<AssistantChatMessage["followUpActions"]> = [];
   let turnArtifacts: NonNullable<AssistantChatMessage["artifacts"]> = [];
 
@@ -1305,6 +1306,7 @@ async function* runAssistantTurnInner(input: {
             content: buildExecutiveSynthesisDeveloperMessage(synthesisCtx),
           },
         ];
+        awaitingSynthesis = true;
       } else {
       yield { type: "delta", text: assistantText };
 
@@ -1345,12 +1347,14 @@ async function* runAssistantTurnInner(input: {
     }
 
     while (toolLoops < 6) {
+      const synthesisOnly = awaitingSynthesis;
+      awaitingSynthesis = false;
       const stream = await createAssistantResponse(
         {
           model: getAssistantModel(),
           instructions,
           input: inputItems,
-          tools,
+          ...(synthesisOnly ? {} : { tools }),
           stream: true,
           store: false,
           ...(input.request.structuredJson
@@ -1663,8 +1667,12 @@ export function createAssistantSseResponse(
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
+      let terminalEvent = false;
       try {
         for await (const event of generator) {
+          if (event.type === "done" || event.type === "error") {
+            terminalEvent = true;
+          }
           controller.enqueue(encoder.encode(encodeSse(event)));
         }
       } catch (error) {
@@ -1683,7 +1691,21 @@ export function createAssistantSseResponse(
             }),
           ),
         );
+        terminalEvent = true;
       } finally {
+        if (!terminalEvent) {
+          console.error("[EA] SSE stream ended without done/error");
+          console.error(`- correlationId: ${getEaCorrelationId()}`);
+          controller.enqueue(
+            encoder.encode(
+              encodeSse({
+                type: "error",
+                error: "The assistant stream ended before a reply was ready. Please try again.",
+                retryable: true,
+              }),
+            ),
+          );
+        }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       }

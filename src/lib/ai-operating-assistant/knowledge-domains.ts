@@ -59,6 +59,14 @@ export function isBusinessStatusRead(message: string): boolean {
   ) {
     return true;
   }
+  if (
+    /\b(help|worried|nervous|concerned|anxious|scared)\b/.test(lower) &&
+    /\b(business|company|organisation|organization|cash|money|finances?|bankrupt|runway|going\s+broke)\b/.test(
+      lower,
+    )
+  ) {
+    return true;
+  }
   return /\b(status|brief|enabled|complete|live|credentials?|stored|today|linked|correct|concentrated)\b/i.test(
     lower,
   );

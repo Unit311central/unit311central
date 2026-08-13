@@ -19,6 +19,7 @@ import { getPlatformSession } from "@/lib/platform-session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MAX_LEGACY_MESSAGES = 24;
 

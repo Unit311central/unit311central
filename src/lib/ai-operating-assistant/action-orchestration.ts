@@ -588,23 +588,7 @@ export async function resolveOrchestrationRoute(
     return { kind: "tool", intent: direct };
   }
 
-  // Unknown CEO status/lookup reads → live business query (never freeform Application Catalogue).
-  if (
-    isBusinessStatusRead(message) &&
-    !hasExplicitWriteIntent(message) &&
-    !isAbhiSlug(business.workspace.slug)
-  ) {
-    return {
-      kind: "tool",
-      intent: {
-        tool: "queryBusiness",
-        args: { question: message },
-        reason: "unknown_business_read_fallback",
-      },
-    };
-  }
-
-  // Module / platform structure — natural-language questions before giving up.
+  // Module / platform structure — natural-language questions before business snapshot fallback.
   const structureAnswer = answerPlatformQuestion(message, catalogueOptions);
   if (structureAnswer) {
     const cards: EaExecutionCard[] = [];
@@ -642,6 +626,18 @@ export async function resolveOrchestrationRoute(
         },
       };
     }
+  }
+
+  // Unknown CEO status/lookup reads → live business query (never freeform Application Catalogue).
+  if (isBusinessStatusRead(message) && !hasExplicitWriteIntent(message)) {
+    return {
+      kind: "tool",
+      intent: {
+        tool: "queryBusiness",
+        args: { question: message },
+        reason: "unknown_business_read_fallback",
+      },
+    };
   }
 
   return { kind: "none" };

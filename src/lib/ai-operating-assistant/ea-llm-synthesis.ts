@@ -74,6 +74,17 @@ function synthesisGuidanceForTool(toolName: string, toolArgs: Record<string, unk
     ].join("\n");
   }
 
+  if (toolName === "getSmartInsights") {
+    return [
+      "You are synthesising operating/project insight data for an executive audience.",
+      "Use ONLY the insight records in the tool payload (severity, titles, summaries, categories).",
+      "When the user asks for a health check, on-track vs at-risk view, or management priorities:",
+      "- Separate what is on track vs at risk using only the supplied records.",
+      "- Highlight the key issues management must address, with brief evidence from the data.",
+      "- Do not invent projects, risks, or statuses unsupported by the payload.",
+    ].join("\n");
+  }
+
   if (toolName === "onwardair.queryModule" && toolArgs.module === "fundraising") {
     return [
       "You are synthesising OnwardAir fundraising data for management.",
@@ -116,6 +127,13 @@ export function shouldSynthesizeExecutiveToolResult(ctx: EaSynthesisContext): bo
   if (isOnwardAirSlug(workspaceSlug) && toolName === "onwardair.queryModule") {
     const moduleId = String(toolArgs.module ?? "").trim();
     return ONWARDAIR_SYNTHESIS_MODULES.has(moduleId);
+  }
+
+  if (toolName === "getSmartInsights") {
+    const q = (ctx.userMessage ?? "").toLowerCase();
+    return /\b(executive|health\s+check|on\s+track|at\s+risk|management|summar|overview|key\s+issues)\b/.test(
+      q,
+    );
   }
 
   return false;
