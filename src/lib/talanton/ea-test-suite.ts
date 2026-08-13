@@ -291,13 +291,11 @@ export async function runTalantonEaTestSuite(): Promise<EaTestSuiteReport> {
 
   await stories.run("Live lessons PDF prompt → generateStoriesLessonsPdf", () => {
     const route = resolveTalantonStoriesRoute(TALANTON_FIELD_STORIES_LESSONS_PDF_PROMPT);
-    if (!route || route.kind !== "tool") {
-      throw new Error(`expected tool route, got ${route?.kind ?? "null"}`);
-    }
+    if (!route) throw new Error("expected route, got null");
+    if (route.kind === "clarify") throw new Error("must not clarify companies/impact areas");
     if (route.tool !== "talanton.generateStoriesLessonsPdf") {
       throw new Error(`expected generateStoriesLessonsPdf, got ${route.tool}`);
     }
-    if (route.kind === "clarify") throw new Error("must not clarify companies/impact areas");
   });
 
   await stories.run("Live lessons PDF prompt → not clarify questionnaire", () => {
