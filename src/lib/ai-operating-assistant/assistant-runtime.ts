@@ -1361,21 +1361,24 @@ async function* runAssistantTurnInner(input: {
     }
 
     while (toolLoops < 6) {
-      const stream = await createAssistantResponse({
-        model: getAssistantModel(),
-        instructions,
-        input: inputItems,
-        tools,
-        stream: true,
-        store: false,
-        ...(input.request.structuredJson
-          ? {
-              text: {
-                format: { type: "json_object" as const },
-              },
-            }
-          : {}),
-      });
+      const stream = await createAssistantResponse(
+        {
+          model: getAssistantModel(),
+          instructions,
+          input: inputItems,
+          tools,
+          stream: true,
+          store: false,
+          ...(input.request.structuredJson
+            ? {
+                text: {
+                  format: { type: "json_object" as const },
+                },
+              }
+            : {}),
+        },
+        { callSite: "assistant_chat_stream" },
+      );
 
       let pendingToolCalls: Array<{ callId: string; name: string; arguments: string }> = [];
       let responseId: string | null = null;

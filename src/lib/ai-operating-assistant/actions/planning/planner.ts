@@ -229,7 +229,8 @@ async function planWithLlm(
   }));
 
   try {
-    const response = await createAssistantResponse({
+    const response = await createAssistantResponse(
+      {
       model: getAssistantModel(),
       instructions: `You are the Unit311 Planning Engine. Given a business goal and a catalogue of registered actions, propose an execution plan as JSON.
 Rules:
@@ -255,7 +256,9 @@ Rules:
         format: { type: "json_object" as const },
       },
       store: false,
-    });
+      },
+      { callSite: "goal_planner" },
+    );
 
     const text =
       typeof (response as { output_text?: string }).output_text === "string"

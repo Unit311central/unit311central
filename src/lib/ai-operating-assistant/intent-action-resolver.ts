@@ -647,7 +647,8 @@ async function classifyWithLlm(
   }));
 
   try {
-    const response = await createAssistantResponse({
+    const response = await createAssistantResponse(
+      {
       model: getAssistantModel(),
       instructions: `You are the Unit311 Executive Assistant intent classifier.
 Map the user's natural-language request to ONE registered business capability from the catalogue, or null if it is not an executable write.
@@ -672,7 +673,9 @@ Rules:
       ],
       text: { format: { type: "json_object" as const } },
       store: false,
-    });
+      },
+      { callSite: "write_intent_classifier" },
+    );
 
     const text =
       typeof (response as { output_text?: string }).output_text === "string"

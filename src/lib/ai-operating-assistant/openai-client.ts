@@ -1,5 +1,12 @@
 import OpenAI from "openai";
 
+import { getEaCorrelationId } from "./ea-forensic-trace";
+import {
+  parseResponseUsage,
+  recordModelUsage,
+  type ModelUsageCallSite,
+} from "./model-usage-service";
+
 const DEFAULT_MODEL = process.env.OPENAI_ASSISTANT_MODEL?.trim() || "gpt-4o-mini";
 const MAX_RETRIES = 3;
 
@@ -23,12 +30,130 @@ export function createOpenAIClient() {
 
 export type ResponsesCreateParams = Parameters<OpenAI["responses"]["create"]>[0];
 
-export async function createAssistantResponse(params: ResponsesCreateParams) {
-  const client = createOpenAIClient();
-  return client.responses.create({
-    ...params,
-    model: params.model ?? DEFAULT_MODEL,
-  });
+export type AssistantResponseTelemetryOptions = {
+  callSite?: ModelUsageCallSite | string;
+};
+
+type StreamEvent = {
+  type?: string;
+  response?: {
+    id?: string;
+    usage?: unknown;
+  };
+};
+
+function fireModelUsage(input: Parameters<typeof recordModelUsage>[0]) {
+  void recordModelUsage(input);
+}
+
+async function* instrumentResponseStream(
+  stream: AsyncIterable<StreamEvent>,
+  context: {
+    callSite: string;
+    model: string;
+    startedAt: number;
+  },
+): AsyncIterable<StreamEvent> {
+  let recorded = false;
+  let responseId: string | null = null;
+
+  const emit = (success: boolean, usage?: unknown, meta?: Record<string, unknown>) => {
+    if (recorded) return;
+    recorded = true;
+    const tokens = parseResponseUsage(usage);
+    fireModelUsage({
+      callSite: context.callSite,
+      model: context.model,
+      durationMs: Date.now() - context.startedAt,
+      stream: true,
+      success,
+      responseId,
+      correlationId: getEaCorrelationId(),
+      ...tokens,
+      meta,
+    });
+  };
+
+  try {
+    for await (const event of stream) {
+      if (event.type === "response.created" && event.response?.id) {
+        responseId = event.response.id;
+      }
+      if (event.type === "response.completed") {
+        if (event.response?.id) responseId = event.response.id;
+        emit(true, event.response?.usage);
+      }
+      if (event.type === "response.failed") {
+        emit(false, event.response?.usage, { reason: "response.failed" });
+      }
+      yield event;
+    }
+    if (!recorded) {
+      emit(true, undefined, { reason: "stream_ended_without_completed" });
+    }
+  } catch (error) {
+    if (!recorded) {
+      emit(false, undefined, {
+        reason: "stream_error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+    throw error;
+  }
+}
+
+export async function createAssistantResponse(
+  params: ResponsesCreateParams,
+  telemetry?: AssistantResponseTelemetryOptions,
+) {
+  const callSite = telemetry?.callSite ?? "unknown";
+  const model = String(params.model ?? DEFAULT_MODEL);
+  const startedAt = Date.now();
+  const isStream = params.stream === true;
+
+  try {
+    const client = createOpenAIClient();
+    const result = await client.responses.create({
+      ...params,
+      model: params.model ?? DEFAULT_MODEL,
+    });
+
+    if (isStream) {
+      return instrumentResponseStream(
+        result as AsyncIterable<StreamEvent>,
+        { callSite, model, startedAt },
+      );
+    }
+
+    const response = result as { id?: string; usage?: unknown };
+    const tokens = parseResponseUsage(response.usage);
+    fireModelUsage({
+      callSite,
+      model,
+      durationMs: Date.now() - startedAt,
+      stream: false,
+      success: true,
+      responseId: response.id ?? null,
+      correlationId: getEaCorrelationId(),
+      ...tokens,
+    });
+
+    return result;
+  } catch (error) {
+    fireModelUsage({
+      callSite,
+      model,
+      durationMs: Date.now() - startedAt,
+      stream: isStream,
+      success: false,
+      correlationId: getEaCorrelationId(),
+      meta: {
+        reason: "openai_request_error",
+        message: error instanceof Error ? error.message : String(error),
+      },
+    });
+    throw error;
+  }
 }
 
 export function isRetryableOpenAIError(error: unknown) {
