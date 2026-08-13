@@ -188,6 +188,12 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
   // Technology
   page("technology", "Technology Management", "technology-dashboard", "Dashboard", { core: true }),
   page("technology", "Technology Management", "technology-devices", "Devices"),
+  page(
+    "technology",
+    "Technology Management",
+    "technology-software-dashboard",
+    "Software & SaaS Dashboard",
+  ),
   page("technology", "Technology Management", "technology-software", "Software & SaaS"),
   page("technology", "Technology Management", "technology-telecommunications", "Telecommunications"),
   page("technology", "Technology Management", "technology-infrastructure", "Infrastructure & Cloud"),

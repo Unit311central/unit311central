@@ -89,14 +89,45 @@ export default function SoftwareBillingSummarySection() {
 
 export function useSoftwareBillingSummary(enabled: boolean) {
   const [summary, setSummary] = useState<SoftwareBillingSummary | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    if (!enabled) return;
+    const response = await fetch("/api/internal/software-billing/summary", { cache: "no-store" });
+    const data = (await response.json()) as { summary?: SoftwareBillingSummary };
+    setSummary(data.summary ?? null);
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled) return;
-    void fetch("/api/internal/software-billing/summary", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data: { summary?: SoftwareBillingSummary }) => setSummary(data.summary ?? null))
-      .catch(() => undefined);
+    void reload().catch(() => undefined);
+  }, [enabled, reload]);
+
+  const syncNow = useCallback(async () => {
+    if (!enabled) return;
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const response = await fetch("/api/internal/software-billing/vercel/sync", {
+        method: "POST",
+      });
+      const data = (await response.json()) as {
+        summary?: SoftwareBillingSummary;
+        result?: { ok?: boolean; error?: string };
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error ?? "Sync failed");
+      if (data.result && !data.result.ok) {
+        throw new Error(data.result.error ?? "Sync failed");
+      }
+      setSummary(data.summary ?? null);
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
   }, [enabled]);
 
-  return summary;
+  return { summary, syncing, syncNow, syncError };
 }

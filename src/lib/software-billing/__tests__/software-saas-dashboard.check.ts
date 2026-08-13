@@ -7,6 +7,9 @@ import assert from "node:assert/strict";
 import { adaptVercelToProviderBillingRow } from "@/lib/software-billing/adapters/vercel-to-dashboard";
 import { buildSoftwareSaasDashboard } from "@/lib/software-billing/build-software-saas-dashboard";
 import {
+  buildSoftwareSaasExecutiveDashboard,
+} from "@/lib/software-billing/build-software-saas-executive-dashboard";
+import {
   SOFTWARE_SAAS_PROVIDER_CATALOG,
   SOFTWARE_SAAS_PROVIDER_SLUGS,
   buildSpendToDateFromActualCharges,
@@ -18,6 +21,7 @@ import {
   isUnclaimedReimbursementStatus,
 } from "@/lib/software-billing/expense-reimbursement-model";
 import type { SoftwareBillingSummary } from "@/lib/software-billing/types";
+import { createBlankSoftwareAsset } from "@/lib/software-assets-data";
 
 const sampleSummary: SoftwareBillingSummary = {
   currency: "USD",
@@ -203,5 +207,83 @@ assert.equal(companyExpense.paidBy, "company_paid");
 assert.equal(companyExpense.reimbursementStatus, "NOT_APPLICABLE");
 assert.equal(defaultReimbursementStatusForPaidBy("corporate_card"), "NOT_APPLICABLE");
 assert.equal(defaultReimbursementStatusForPaidBy("other"), "NOT_APPLICABLE");
+
+// --- Executive dashboard (register-based, 6 tiles) ---
+function testAsset(
+  overrides: Partial<ReturnType<typeof createBlankSoftwareAsset>>,
+): ReturnType<typeof createBlankSoftwareAsset> {
+  return {
+    ...createBlankSoftwareAsset("ws-1"),
+    id: overrides.id ?? "asset-1",
+    name: overrides.name ?? "Asset",
+    ...overrides,
+  };
+}
+
+const execAssets = [
+  testAsset({
+    id: "a-alpha",
+    name: "Alpha SaaS",
+    monthlyCost: 100,
+    currency: "USD",
+    status: "Active",
+    createdAt: "2026-04-15T00:00:00.000Z",
+    lastPaymentDate: "2026-04-01",
+    updatedAt: "2026-08-01T00:00:00.000Z",
+  }),
+  testAsset({
+    id: "a-beta",
+    name: "Beta Tools",
+    monthlyCost: 50,
+    currency: "USD",
+    status: "Active",
+    createdAt: "2026-06-01T00:00:00.000Z",
+    lastPaymentDate: "2026-06-01",
+    updatedAt: "2026-08-01T00:00:00.000Z",
+  }),
+  testAsset({
+    id: "a-gamma",
+    name: "Gamma Cloud",
+    monthlyCost: 200,
+    currency: "USD",
+    status: "Active",
+    createdAt: "2026-07-01T00:00:00.000Z",
+    lastPaymentDate: "2026-07-01",
+    updatedAt: "2026-08-01T00:00:00.000Z",
+  }),
+];
+
+const executive = buildSoftwareSaasExecutiveDashboard({
+  assets: execAssets,
+  now: "2026-08-15T12:00:00.000Z",
+});
+assert.equal(executive.currency, "USD");
+assert.equal(executive.firstExpenditureMonth, "2026-04");
+// Last month (July): Alpha 100 + Beta 50 + Gamma 200 = 350
+assert.equal(executive.lastMonth, 350);
+// Upcoming / this month (Aug): same active run-rate = 350
+assert.equal(executive.upcoming, 350);
+assert.equal(executive.thisMonth, 350);
+// Spend to date Apr–Aug:
+// Apr: 100, May: 100, Jun: 150, Jul: 350, Aug: 350 = 1050
+assert.equal(executive.spendToDate, 1050);
+assert.equal(executive.monthlyTrend.length, 5);
+assert.equal(executive.monthlyTrend[0]?.month, "2026-04");
+assert.equal(executive.monthlyTrend[0]?.amount, 100);
+assert.equal(executive.monthlyTrend[2]?.amount, 150);
+assert.equal(executive.monthlyTrend[3]?.amount, 350);
+// Biggest increase last month (Jul vs Jun): Gamma appeared (+200)
+assert.equal(executive.biggestIncreaseLastMonth?.softwareName, "Gamma Cloud");
+assert.equal(executive.biggestIncreaseLastMonth?.increase, 200);
+// Highest spend last month (July): Gamma Cloud at 200
+assert.equal(executive.highestSpendSoftware?.softwareName, "Gamma Cloud");
+assert.equal(executive.highestSpendSoftware?.amount, 200);
+
+const emptyExec = buildSoftwareSaasExecutiveDashboard({ assets: [], now: "2026-08-15T12:00:00.000Z" });
+assert.equal(emptyExec.lastMonth, 0);
+assert.equal(emptyExec.spendToDate, 0);
+assert.equal(emptyExec.monthlyTrend.length, 0);
+assert.equal(emptyExec.biggestIncreaseLastMonth, null);
+assert.equal(emptyExec.highestSpendSoftware, null);
 
 console.log("software-saas-dashboard.check.ts: OK");

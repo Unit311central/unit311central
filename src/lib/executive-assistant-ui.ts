@@ -271,6 +271,15 @@ const CONTEXT_BY_VIEW: Partial<Record<string, ExecutiveAssistantPageContext>> = 
       "Generate software report",
     ],
   },
+  "technology-software-dashboard": {
+    label: "Software & SaaS Dashboard",
+    suggestedPrompts: [
+      "Last month software spend",
+      "Spend to date",
+      "Biggest spend increase",
+      "Monthly spend trend",
+    ],
+  },
   "technology-dashboard": {
     label: "Technology Management",
     suggestedPrompts: [

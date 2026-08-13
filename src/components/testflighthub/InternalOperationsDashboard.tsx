@@ -311,6 +311,7 @@ import {
   TechnologyDashboardWorkspace,
   TechnologyPlaceholderWorkspace,
   TechnologySoftwareWorkspace,
+  SoftwareSaasDashboardWorkspace,
   TrainingDashboardWorkspace,
   TqmsReportsWorkspace,
   Unit311DetailsWorkspace,
@@ -1308,6 +1309,10 @@ export default function InternalOperationsDashboard({
 
           {activeView === "technology-devices" && (
             <TechnologyPlaceholderWorkspace module="devices" />
+          )}
+
+          {activeView === "technology-software-dashboard" && (
+            <SoftwareSaasDashboardWorkspace />
           )}
 
           {activeView === "technology-software" && <TechnologySoftwareWorkspace />}

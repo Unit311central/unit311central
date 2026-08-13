@@ -113,6 +113,7 @@ export type InternalOperationsView =
   | "technology"
   | "technology-dashboard"
   | "technology-devices"
+  | "technology-software-dashboard"
   | "technology-software"
   | "technology-telecommunications"
   | "technology-infrastructure"
@@ -367,6 +368,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "technology",
   "technology-dashboard",
   "technology-devices",
+  "technology-software-dashboard",
   "technology-software",
   "technology-telecommunications",
   "technology-infrastructure",
@@ -483,6 +485,7 @@ export const TECHNOLOGY_NAV_VIEWS = [
   "technology",
   "technology-dashboard",
   "technology-devices",
+  "technology-software-dashboard",
   "technology-software",
   "technology-telecommunications",
   "technology-infrastructure",
@@ -852,6 +855,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "technology-dashboard" as const },
       { label: "Technology Assets", icon: "Laptop", view: "technology-devices" as const },
+      {
+        label: "Software & SaaS Dashboard",
+        icon: "BarChart3",
+        view: "technology-software-dashboard" as const,
+      },
       { label: "Software & SaaS", icon: "KeyRound", view: "technology-software" as const },
       {
         label: "Telecommunications",
@@ -1175,7 +1183,11 @@ export const internalViewTitles: Record<
   technology: { title: "Technology Management", subtitle: "Technology Management" },
   "technology-dashboard": { title: "Dashboard", subtitle: "Technology Management" },
   "technology-devices": { title: "Technology Assets", subtitle: "Technology Management" },
-  "technology-software": { title: "Software", subtitle: "Technology Management" },
+  "technology-software-dashboard": {
+    title: "Software & SaaS Dashboard",
+    subtitle: "Technology Management",
+  },
+  "technology-software": { title: "Software & SaaS", subtitle: "Technology Management" },
   "technology-telecommunications": {
     title: "Telecommunications",
     subtitle: "Technology Management",

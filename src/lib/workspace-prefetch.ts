@@ -60,6 +60,8 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
     import("@/components/testflighthub/TechnologyPlaceholderWorkspace"),
   "technology-software": () =>
     import("@/components/testflighthub/TechnologySoftwareWorkspace"),
+  "technology-software-dashboard": () =>
+    import("@/components/testflighthub/SoftwareSaasDashboardWorkspace"),
   "technology-telecommunications": () =>
     import("@/components/testflighthub/TechnologyPlaceholderWorkspace"),
   "technology-infrastructure": () =>
@@ -187,17 +189,34 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
   technology: [
     "technology-dashboard",
     "technology-devices",
+    "technology-software-dashboard",
     "technology-software",
     "technology-telecommunications",
   ],
   "technology-dashboard": [
     "technology-devices",
+    "technology-software-dashboard",
     "technology-software",
     "technology-telecommunications",
     "technology-infrastructure",
   ],
-  "technology-devices": ["technology-software", "technology-dashboard", "assets"],
-  "technology-software": ["technology-devices", "technology-dashboard", "technology-reports"],
+  "technology-devices": [
+    "technology-software",
+    "technology-software-dashboard",
+    "technology-dashboard",
+    "assets",
+  ],
+  "technology-software-dashboard": [
+    "technology-software",
+    "technology-dashboard",
+    "technology-devices",
+  ],
+  "technology-software": [
+    "technology-software-dashboard",
+    "technology-devices",
+    "technology-dashboard",
+    "technology-reports",
+  ],
   "technology-telecommunications": [
     "technology-devices",
     "technology-dashboard",
@@ -208,7 +227,11 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
     "technology-telecommunications",
     "technology-reports",
   ],
-  "technology-reports": ["technology-dashboard", "technology-software"],
+  "technology-reports": [
+    "technology-dashboard",
+    "technology-software",
+    "technology-software-dashboard",
+  ],
   "technology-settings": ["technology-dashboard", "settings"],
   settings: ["profile", "users"],
   profile: ["settings"],

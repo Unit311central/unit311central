@@ -272,6 +272,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "technology",
       "technology-dashboard",
       "technology-devices",
+      "technology-software-dashboard",
       "technology-software",
       "technology-telecommunications",
       "technology-infrastructure",

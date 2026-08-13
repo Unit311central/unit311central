@@ -7,15 +7,14 @@ import {
   EyeOff,
   Loader2,
   Plus,
+  RefreshCw,
   Save,
   Trash2,
   Upload,
 } from "lucide-react";
 
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
-import SoftwareBillingSummarySection, {
-  useSoftwareBillingSummary,
-} from "@/components/testflighthub/SoftwareBillingSummarySection";
+import { useSoftwareBillingSummary } from "@/components/testflighthub/SoftwareBillingSummarySection";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import {
   ATTACHMENT_KINDS,
@@ -148,7 +147,8 @@ export default function SoftwareAssetRegisterWorkspace() {
     if (typeof window === "undefined") return false;
     return isInternalDomainHost(window.location.hostname);
   });
-  const billingSummary = useSoftwareBillingSummary(isInternalHost);
+  const { summary: billingSummary, syncing: billingSyncing, syncNow: syncVercelBilling } =
+    useSoftwareBillingSummary(isInternalHost);
 
   const selected = useMemo(
     () => assets.find((asset) => asset.id === selectedId) ?? assets[0] ?? null,
@@ -427,8 +427,6 @@ export default function SoftwareAssetRegisterWorkspace() {
 
   return (
     <div className="space-y-4">
-      {isInternalHost ? <SoftwareBillingSummarySection /> : null}
-
       <DashboardTopTilesBar
         storageKey="unit311-software-assets-tiles"
         catalog={SOFTWARE_ASSETS_DASHBOARD_TILES}
@@ -1365,7 +1363,22 @@ export default function SoftwareAssetRegisterWorkspace() {
                   <div className="space-y-3">
                     {isVercelRecord && billingSummary ? (
                       <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-50">
-                        <p className="font-medium">Vercel billing connection</p>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-medium">Vercel billing connection</p>
+                          <button
+                            type="button"
+                            onClick={() => void syncVercelBilling()}
+                            disabled={billingSyncing}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-300/30 bg-emerald-600/40 px-2.5 text-[11px] font-medium text-white hover:bg-emerald-600/60 disabled:opacity-50"
+                          >
+                            {billingSyncing ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-3.5 w-3.5" />
+                            )}
+                            Sync now
+                          </button>
+                        </div>
                         <p className="mt-1 text-[12px] text-emerald-100/80">
                           Server-side token:{" "}
                           {billingSummary.syncError?.includes("VERCEL_API_TOKEN")
