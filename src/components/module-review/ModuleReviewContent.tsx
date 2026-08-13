@@ -50,7 +50,7 @@ export default function ModuleReviewContent() {
   }
 
   return (
-    <div className="w-full max-w-full">
+    <div className="w-full max-w-full pt-6 sm:pt-8">
       <header className="text-left">
         <h1 className="text-sm font-bold leading-tight tracking-tight text-white sm:text-base lg:text-lg">
           UNIT311 CENTRAL MODULE REVIEW

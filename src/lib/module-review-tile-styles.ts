@@ -17,6 +17,6 @@ export const MODULE_REVIEW_TILE_HEADER =
 
 export const MODULE_REVIEW_TILE_BODY = "space-y-px p-0.5 sm:p-1";
 
-export const MODULE_REVIEW_ROW_GAP = "space-y-3 sm:space-y-3.5 lg:space-y-4";
+export const MODULE_REVIEW_ROW_GAP = "space-y-5 sm:space-y-5.5 lg:space-y-6";
 
 export const MODULE_REVIEW_COL_GAP = "gap-1 sm:gap-1.5 lg:gap-2";

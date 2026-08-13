@@ -20,7 +20,7 @@ export default function ModuleReviewSizePreviewPage() {
       overlayClassName="absolute inset-0 bg-gradient-to-b from-[#030712]/45 via-[#020617]/58 to-[#020617]/72"
       contentClassName={SIZE_PREVIEW_CONTENT_CLASS}
     >
-      <div className="w-full max-w-full" data-module-review-size-page>
+      <div className="w-full max-w-full pt-6 sm:pt-8" data-module-review-size-page>
         <header className="text-left">
           <h1 className="text-sm font-bold leading-tight tracking-tight text-white sm:text-base lg:text-lg">
             UNIT311 CENTRAL MODULE REVIEW
