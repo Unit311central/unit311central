@@ -6,13 +6,12 @@ import {
 import {
   createSyncRun,
   ensureBillingTablesReady,
-  findVercelSoftwareAssetId,
   finishSyncRun,
   replaceChargeFacts,
-  updateVercelAssetFromSnapshot,
   upsertPeriodSnapshot,
   upsertProviderConnection,
 } from "@/lib/software-billing/provider-db";
+import { applyVercelSyncToSoftwareAsset } from "@/lib/software-billing/vercel-asset-sync";
 import { VERCEL_PROVIDER_SLUG } from "@/lib/software-billing/types";
 import {
   fetchVercelBillingCharges,
@@ -141,8 +140,33 @@ export async function syncVercelSoftwareBilling(workspaceId: string): Promise<Ve
       facts: buildDailyChargeFacts(currentCharges),
     });
 
-    const softwareAssetId = await findVercelSoftwareAssetId(workspaceId);
     const syncedAt = new Date().toISOString();
+
+    const softwareAssetId = await applyVercelSyncToSoftwareAsset({
+      workspaceId,
+      team,
+      previousBilledAmount: previousAgg.totalBilled,
+      previousPeriodEnd: previous.to,
+      currentBilledAmount: currentAgg.totalBilled,
+      currentProjectedAmount: projectedAmount,
+      syncedAt,
+    });
+
+    try {
+      const { discoverVercelBillingInvoices } = await import(
+        "@/lib/software-billing/adapters/vercel-invoice-adapter"
+      );
+      const { syncProviderInvoiceBatch } = await import(
+        "@/lib/software-billing/billing-invoice-lifecycle"
+      );
+      const discovery = await discoverVercelBillingInvoices({ workspaceId, softwareAssetId });
+      await syncProviderInvoiceBatch(discovery.invoices);
+    } catch (invoiceError) {
+      console.warn(
+        "[vercel-sync] invoice lifecycle sync failed",
+        invoiceError instanceof Error ? invoiceError.message : invoiceError,
+      );
+    }
 
     await upsertProviderConnection({
       workspaceId,
@@ -155,16 +179,6 @@ export async function syncVercelSoftwareBilling(workspaceId: string): Promise<Ve
       lastSyncStatus: "ok",
       lastSyncError: "",
     });
-
-    if (softwareAssetId) {
-      await updateVercelAssetFromSnapshot({
-        softwareAssetId,
-        billedAmount: previousAgg.totalBilled,
-        periodEnd: previous.to,
-        syncStatus: `Synced ${syncedAt}`,
-        connected: true,
-      });
-    }
 
     await finishSyncRun({
       runId,

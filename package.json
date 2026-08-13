@@ -54,6 +54,10 @@
     "test:ea-domains": "node scripts/verify-ea-knowledge-domains.mjs",
     "test:ea-intelligence": "node scripts/verify-ea-intelligence.mjs",
     "test:vercel-billing": "node --import tsx src/lib/software-billing/__tests__/vercel-billing.check.ts",
+    "test:software-billing": "node --import tsx src/lib/software-billing/__tests__/software-billing.check.ts",
+    "test:provider-adapters": "node --import tsx src/lib/software-billing/__tests__/provider-adapters.check.ts",
+    "test:billing-invoice": "node --import tsx src/lib/software-billing/__tests__/billing-invoice.check.ts",
+    "test:vercel-upcoming-invoice": "node --import tsx src/lib/software-billing/__tests__/vercel-upcoming-invoice.check.ts",
     "test:software-saas-dashboard": "node --import tsx src/lib/software-billing/__tests__/software-saas-dashboard.check.ts"
   },
   "dependencies": {

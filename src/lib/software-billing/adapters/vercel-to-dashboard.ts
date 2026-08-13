@@ -24,6 +24,8 @@ import type {
   ProviderPeriodSnapshot,
   SoftwareBillingSummary,
 } from "@/lib/software-billing/types";
+import type { ProviderBillingInvoice } from "@/lib/software-billing/billing-invoice-model";
+import { buildProviderAccountingFromInvoices } from "@/lib/software-billing/invoice-dashboard-helpers";
 
 function formatIsoDate(iso: string | null | undefined): string | null {
   if (!iso) return null;
@@ -188,9 +190,37 @@ export function adaptVercelToProviderBillingRow(input: {
   actualCharges?: readonly SoftwareSaasActualChargeRecord[];
   /** Set true once historical Vercel invoices/receipts have been fully imported. */
   historicalImportComplete?: boolean;
+  /** Accounting-backed invoices — when present, override snapshot/projection figures. */
+  providerInvoices?: readonly ProviderBillingInvoice[];
 }): SoftwareSaasProviderBillingRow {
   const { summary } = input;
   const currency = summary.currency || "USD";
+
+  if (input.providerInvoices && input.providerInvoices.length > 0) {
+    const accounting = buildProviderAccountingFromInvoices({
+      providerSlug: "vercel",
+      currency,
+      invoices: input.providerInvoices,
+    });
+    const connected = Boolean(summary.lastSuccessfulSyncAt) || accounting.spendToDate.totalActual > 0;
+    return {
+      slug: "vercel",
+      displayName: "Vercel",
+      connectionStatus:
+        summary.syncError && !connected ? "error" : connected ? "connected" : "not_configured",
+      currency,
+      planLabel: summary.vercel.planName
+        ? `${summary.vercel.planName}${summary.vercel.planIteration ? ` (${summary.vercel.planIteration})` : ""}`
+        : null,
+      allowanceUsage: buildVercelAllowance(summary),
+      lastMonth: accounting.lastMonth,
+      upcoming: accounting.upcoming,
+      spendToDate: accounting.spendToDate,
+      lastSuccessfulSyncAt: summary.lastSuccessfulSyncAt,
+      syncError: summary.syncError,
+    };
+  }
+
   const subscription = Number(summary.vercel.baseSubscriptionMonthly || 0);
   const lastMonthTotal = Number(summary.vercel.lastMonth || 0);
   const latestHistory = [...(summary.history ?? [])].sort(

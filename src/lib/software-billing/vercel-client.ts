@@ -6,6 +6,23 @@ import {
 } from "@/lib/software-billing/vercel-config";
 import type { VercelTeamBilling } from "@/lib/software-billing/types";
 
+export type VercelInvoiceItemState = {
+  price?: number;
+  quantity?: number;
+  highestQuantity?: number;
+  createdAt?: number;
+  hidden?: boolean;
+};
+
+export type VercelTeamBillingDetails = VercelTeamBilling & {
+  invoiceItems: {
+    pro?: VercelInvoiceItemState;
+    teamSeats?: VercelInvoiceItemState;
+    analytics?: VercelInvoiceItemState;
+    includedAllocationUsd?: VercelInvoiceItemState;
+  };
+};
+
 export class VercelBillingApiError extends Error {
   readonly status: number;
 
@@ -56,6 +73,7 @@ export async function fetchVercelTeamBilling(): Promise<VercelTeamBilling> {
   const payload = JSON.parse(text) as {
     id: string;
     slug: string;
+    enabledInvoiceItems?: { includedAllocationUsd?: { enabled?: boolean } };
     billing?: {
       plan?: string;
       planIteration?: string;
@@ -69,6 +87,23 @@ export async function fetchVercelTeamBilling(): Promise<VercelTeamBilling> {
     };
   };
 
+  return mapTeamBillingDetails(payload);
+}
+
+function mapTeamBillingDetails(payload: {
+  id: string;
+  slug: string;
+  enabledInvoiceItems?: { includedAllocationUsd?: { enabled?: boolean } };
+  billing?: {
+    plan?: string;
+    planIteration?: string;
+    currency?: string;
+    period?: { start?: number; end?: number };
+    invoiceItems?: VercelTeamBillingDetails["invoiceItems"];
+    controls?: { analyticsSpendLimitInDollars?: number };
+    enabledInvoiceItems?: { includedAllocationUsd?: { enabled?: boolean } };
+  };
+}): VercelTeamBillingDetails {
   const billing = payload.billing ?? {};
   const pro = billing.invoiceItems?.pro;
   const periodStart = billing.period?.start
@@ -77,6 +112,10 @@ export async function fetchVercelTeamBilling(): Promise<VercelTeamBilling> {
   const periodEnd = billing.period?.end
     ? new Date(billing.period.end).toISOString()
     : new Date().toISOString();
+  const includedAllocationEnabled = Boolean(
+    payload.enabledInvoiceItems?.includedAllocationUsd?.enabled ??
+      billing.enabledInvoiceItems?.includedAllocationUsd?.enabled,
+  );
 
   return {
     plan: String(billing.plan ?? "unknown"),
@@ -90,10 +129,26 @@ export async function fetchVercelTeamBilling(): Promise<VercelTeamBilling> {
       billing.controls?.analyticsSpendLimitInDollars != null
         ? Number(billing.controls.analyticsSpendLimitInDollars)
         : null,
-    includedAllocationEnabled: Boolean(billing.enabledInvoiceItems?.includedAllocationUsd?.enabled),
+    includedAllocationEnabled,
     teamId: String(payload.id),
     teamSlug: String(payload.slug),
+    invoiceItems: billing.invoiceItems ?? {},
   };
+}
+
+export async function fetchVercelTeamBillingDetails(): Promise<VercelTeamBillingDetails> {
+  const slug = getVercelTeamSlug();
+  const response = await vercelFetch(`/v2/teams/${encodeURIComponent(slug)}`, {
+    method: "GET",
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    throw new VercelBillingApiError(
+      `Vercel team API failed (${response.status}): ${text.slice(0, 200)}`,
+      response.status,
+    );
+  }
+  return mapTeamBillingDetails(JSON.parse(text));
 }
 
 export async function fetchVercelBillingCharges(fromIso: string, toIso: string): Promise<string> {

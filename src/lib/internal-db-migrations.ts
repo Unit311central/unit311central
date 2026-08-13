@@ -113,6 +113,8 @@ export const SOFTWARE_ASSET_REGISTER_MIGRATION_PATH =
   "supabase/migrations/086_software_asset_register.sql";
 export const SOFTWARE_PROVIDER_BILLING_MIGRATION_PATH =
   "supabase/migrations/138_software_provider_billing.sql";
+export const SOFTWARE_PROVIDER_INVOICES_MIGRATION_PATH =
+  "supabase/migrations/139_software_provider_invoices.sql";
 export const INTEGRATIONS_REGISTRY_MIGRATION_PATH =
   "supabase/migrations/111_integrations_registry.sql";
 export const CRM_PROJECTS_WORKSPACE_ISOLATION_MIGRATION_PATH =
@@ -327,6 +329,38 @@ export async function ensureSoftwareProviderBillingTables(): Promise<boolean> {
   }
 
   return softwareProviderBillingTablesExistViaServiceRole();
+}
+
+export async function ensureSoftwareProviderInvoiceTables(): Promise<boolean> {
+  await ensureSoftwareProviderBillingTables();
+  const exists = await tableExistsViaManagementApi("software_provider_invoices");
+  if (exists === true) return true;
+  if (await tableExistsViaServiceRole("software_provider_invoices")) return true;
+
+  const dbUrl = getDatabaseUrl();
+  if (dbUrl) {
+    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    try {
+      await client.connect();
+      if (await tableExists(client, "software_provider_invoices")) return true;
+      await applyMigration(client, SOFTWARE_PROVIDER_INVOICES_MIGRATION_PATH);
+      await reloadPostgrestSchema();
+      return true;
+    } catch (error) {
+      if (!isDirectDbConnectionError(error)) {
+        console.warn("[software-billing] direct DB invoice ensure failed", error);
+      }
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  const applied = await applyMigrationViaManagementApi(SOFTWARE_PROVIDER_INVOICES_MIGRATION_PATH);
+  if (applied) {
+    await reloadPostgrestSchema();
+    return true;
+  }
+  return tableExistsViaServiceRole("software_provider_invoices");
 }
 
 export async function withSoftwareProviderBillingTables<T>(
@@ -744,6 +778,7 @@ const SOFTWARE_PROVIDER_BILLING_TABLES = [
   "software_provider_sync_runs",
   "software_provider_period_snapshots",
   "software_provider_charge_facts",
+  "software_provider_invoices",
 ] as const;
 
 async function softwareProviderBillingTablesExistViaServiceRole(): Promise<boolean> {
