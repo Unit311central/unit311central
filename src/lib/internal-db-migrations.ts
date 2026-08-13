@@ -285,15 +285,12 @@ export async function withSoftwareAssetRegisterTables<T>(
 }
 
 export async function ensureSoftwareProviderBillingTables(): Promise<boolean> {
-  const markerTables = [
-    "software_provider_connections",
-    "software_provider_sync_runs",
-    "software_provider_period_snapshots",
-    "software_provider_charge_facts",
-  ] as const;
+  const markerTables = SOFTWARE_PROVIDER_BILLING_TABLES;
 
   const existingViaApi = await tableExistsViaManagementApi(markerTables[0]);
   if (existingViaApi === true) return true;
+
+  if (await softwareProviderBillingTablesExistViaServiceRole()) return true;
 
   const dbUrl = getDatabaseUrl();
   if (dbUrl) {
@@ -329,7 +326,7 @@ export async function ensureSoftwareProviderBillingTables(): Promise<boolean> {
     return true;
   }
 
-  return false;
+  return softwareProviderBillingTablesExistViaServiceRole();
 }
 
 export async function withSoftwareProviderBillingTables<T>(
@@ -730,6 +727,30 @@ async function tableExistsViaManagementApi(tableName: string) {
   if (!response.ok) return null;
   if (Array.isArray(data)) return data[0]?.exists === true;
   return null;
+}
+
+async function tableExistsViaServiceRole(tableName: string): Promise<boolean> {
+  if (!isSupabaseServiceRoleConfigured()) return false;
+  const supabase = createSupabaseServiceRoleClient();
+  const { error } = await supabase.from(tableName).select("id").limit(1);
+  if (!error) return true;
+  if (isMissingTableError(error, tableName)) return false;
+  // Non-schema errors (timeouts, etc.) — don't treat as missing.
+  return true;
+}
+
+const SOFTWARE_PROVIDER_BILLING_TABLES = [
+  "software_provider_connections",
+  "software_provider_sync_runs",
+  "software_provider_period_snapshots",
+  "software_provider_charge_facts",
+] as const;
+
+async function softwareProviderBillingTablesExistViaServiceRole(): Promise<boolean> {
+  for (const table of SOFTWARE_PROVIDER_BILLING_TABLES) {
+    if (!(await tableExistsViaServiceRole(table))) return false;
+  }
+  return true;
 }
 
 async function applyMigrationViaManagementApi(relativePath: string) {
