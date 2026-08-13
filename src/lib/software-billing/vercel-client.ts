@@ -106,6 +106,19 @@ export async function fetchVercelBillingCharges(fromIso: string, toIso: string):
   );
   const text = await response.text();
   if (!response.ok) {
+    if (response.status === 404) {
+      try {
+        const body = JSON.parse(text) as { error?: { code?: string } };
+        if (body.error?.code === "costs_not_found") {
+          console.warn(
+            `[vercel-billing] costs_not_found for ${fromIso} → ${toIso}; treating as empty charges.`,
+          );
+          return "";
+        }
+      } catch {
+        // fall through
+      }
+    }
     throw new VercelBillingApiError(
       `Vercel billing charges API failed (${response.status}): ${text.slice(0, 200)}`,
       response.status,
