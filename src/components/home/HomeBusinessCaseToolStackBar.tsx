@@ -13,8 +13,8 @@ export function HomeBusinessCaseToolStackBar({ className = "" }: { className?: s
           $45,788/yr
         </span>
       </div>
-      <div className="mt-2.5 h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
-        <div className="h-full w-full rounded-full bg-gradient-to-r from-amber-400/80 via-orange-400/70 to-red-400/60" />
+      <div className="mt-2.5 h-2.5 rounded-full bg-white/[0.06]">
+        <div className="h-full w-full rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-red-500" />
       </div>
     </div>
   );

@@ -50,7 +50,7 @@ export default function HomeBusinessCaseStackTable() {
       <HomeBusinessCaseLeftPanel />
 
       <div className="hidden h-full flex-col md:flex">
-        <div className="overflow-hidden rounded-xl border border-sky-300/20 bg-sky-400/[0.06] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(186,230,253,0.12)] sm:px-3.5">
+        <div className="rounded-xl border border-sky-300/20 bg-[#0a1520] px-3 py-2.5 sm:px-3.5">
           <table className="w-full table-fixed border-collapse text-left text-xs leading-snug lg:text-[13px]">
           <colgroup>
             <col className="w-[44%]" />
@@ -99,7 +99,7 @@ export default function HomeBusinessCaseStackTable() {
           </tbody>
         </table>
         </div>
-        <HomeBusinessCaseToolStackBar className="mt-1 px-3 sm:px-3.5" />
+        <HomeBusinessCaseToolStackBar className="mt-5 px-3 sm:px-3.5" />
       </div>
 
       <div className="space-y-2 md:hidden">
@@ -148,7 +148,7 @@ export default function HomeBusinessCaseStackTable() {
             <p className="shrink-0 text-xs font-medium tabular-nums text-white/70">$7,000</p>
           </div>
         </article>
-        <HomeBusinessCaseToolStackBar className="px-1 pt-2" />
+        <HomeBusinessCaseToolStackBar className="mt-5 px-1" />
       </div>
     </div>
   );

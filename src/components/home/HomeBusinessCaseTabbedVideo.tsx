@@ -100,7 +100,7 @@ export default function HomeBusinessCaseTabbedVideo() {
 
       <div
         ref={playerRef}
-        className="relative mt-3 w-full overflow-hidden rounded-2xl border border-sky-500/20 bg-[#030712] shadow-[0_16px_48px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)] sm:mt-4 aspect-video"
+        className="relative mt-3 w-full rounded-2xl border border-sky-500/20 bg-[#030712] shadow-[0_16px_48px_rgba(0,0,0,0.4)] sm:mt-4 aspect-video overflow-hidden"
       >
         <video
           ref={videoRef}

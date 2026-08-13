@@ -43,6 +43,7 @@ const PAIN_POINTS = [
     detail: "Same numbers in CRM, finance and ops",
     accent: "#38bdf8",
     tint: "bg-[#081018]",
+    border: "border-white/[0.12]",
   },
   {
     icon: Layers3,
@@ -50,6 +51,7 @@ const PAIN_POINTS = [
     detail: "Leadership decks rebuilt every month",
     accent: "#60a5fa",
     tint: "bg-[#08111c]",
+    border: "border-white/[0.12]",
   },
   {
     icon: LogIn,
@@ -57,6 +59,7 @@ const PAIN_POINTS = [
     detail: "Teams hopping between a dozen systems",
     accent: "#3b82f6",
     tint: "bg-[#080f1a]",
+    border: "border-white/[0.12]",
   },
   {
     icon: Puzzle,
@@ -64,12 +67,13 @@ const PAIN_POINTS = [
     detail: "Research, setup and glue code never ends",
     accent: "#2563eb",
     tint: "bg-[#0a0e1c]",
+    border: "border-white/[0.12]",
   },
 ] as const;
 
 export default function HomeBusinessCaseLeftPanel() {
   return (
-    <div className="relative flex h-full min-h-[320px] flex-col overflow-hidden rounded-xl border border-sky-300/20 bg-[#070d18] p-4 sm:p-5 lg:min-h-full lg:p-6">
+    <div className="flex h-full min-h-[320px] flex-col rounded-xl border border-sky-300/20 bg-[#070d18] p-4 sm:p-5 lg:min-h-full lg:p-6">
       <div className="relative">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/70">
           The problem
@@ -83,16 +87,13 @@ export default function HomeBusinessCaseLeftPanel() {
         </p>
       </div>
 
-      <div className="relative mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
         {STATS.map(({ value, label, icon: Icon, tint }) => (
           <div
             key={label}
-            className={cn(
-              "overflow-hidden rounded-xl border border-white/10 p-2.5 text-center sm:p-3",
-              tint,
-            )}
+            className={cn("rounded-xl border border-white/10 p-2.5 text-center sm:p-3", tint)}
           >
-            <div className="mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-sky-200 sm:h-8 sm:w-8">
+            <div className="mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-[#0f1724] text-sky-200 sm:h-8 sm:w-8">
               <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={1.75} aria-hidden />
             </div>
             <p
@@ -110,15 +111,15 @@ export default function HomeBusinessCaseLeftPanel() {
         ))}
       </div>
 
-      <div className="relative mt-4 grid flex-1 grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3">
-        {PAIN_POINTS.map(({ icon: Icon, title, detail, accent, tint }) => (
+      <div className="mt-4 grid flex-1 grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3">
+        {PAIN_POINTS.map(({ icon: Icon, title, detail, accent, tint, border }) => (
           <div
             key={title}
             className={cn(
-              "flex min-h-[108px] flex-col overflow-hidden rounded-2xl border border-white/[0.12] p-3.5 sm:min-h-[118px] sm:p-4",
+              "flex min-h-[108px] flex-col rounded-2xl border p-3.5 sm:min-h-[118px] sm:p-4",
               tint,
+              border,
             )}
-            style={{ borderTopColor: `${accent}55`, borderTopWidth: 2 }}
           >
             <div
               className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#0a1220]"
