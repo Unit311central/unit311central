@@ -54,6 +54,11 @@ export async function POST(request: NextRequest) {
       supplier?: string | null;
       categoryAccountCode?: string | null;
       expenseDate?: string;
+      paymentMethod?: string | null;
+      reference?: string | null;
+      attachmentPath?: string | null;
+      recordStatus?: "draft" | "finalized";
+      reimbursable?: boolean;
     };
 
     if (!body.submitterUserId?.trim()) {
@@ -78,6 +83,11 @@ export async function POST(request: NextRequest) {
         supplier: body.supplier,
         categoryAccountCode: body.categoryAccountCode,
         expenseDate: body.expenseDate,
+        paymentMethod: body.paymentMethod,
+        reference: body.reference,
+        attachmentPath: body.attachmentPath,
+        recordStatus: body.recordStatus,
+        reimbursable: body.reimbursable,
       },
       { workspaceId: workspace.id },
     );

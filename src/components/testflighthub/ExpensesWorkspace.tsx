@@ -4,54 +4,41 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 
 import {
-  buildOutstandingByPayableDate,
-  createBlankExpenseInput,
-  EXPENSE_CURRENCY_OPTIONS,
-  expenseFieldsEqual,
   formatExpenseAmount,
-  getInternalUserById,
-  inferExpenseCategory,
-  INTERNAL_EXPENSE_USERS,
   isAccountsPayableSeedExpense,
-  sumOutstandingExpenses,
-  type ExpenseCurrency,
+  isCountableExpense,
+  isExpenseDraft,
+  semanticCategoryForBillingCode,
+  EXPENSE_SEMANTIC_CATEGORIES,
   type FinancialExpense,
 } from "@/lib/expenses-data";
-import { ChartTooltip } from "@/components/dashboard/ChartTooltip";
+import { expenseToBulkRow } from "@/lib/expenses-bulk-entry";
+import {
+  buildSpendByVendor,
+  EMPTY_EXPENSE_LOG_FILTER,
+  filterExpenses,
+  formatMultiCurrencyTotals,
+  isReimbursableOwedExpense,
+  isSoftwareExpense,
+  sumExpensesByCurrency,
+  type ExpenseLogFilter,
+} from "@/lib/expenses-summary";
+import ExpenseBulkEntryGrid, {
+  type ExpenseBulkEntryGridHandle,
+} from "@/components/testflighthub/ExpenseBulkEntryGrid";
+import {
+  sumPaidInvoiceAmounts,
+  sumUpcomingInvoiceAmounts,
+  type ProviderBillingInvoice,
+} from "@/lib/software-billing/billing-invoice-model";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import {
   buildExpensesDashboardCatalog,
   DEFAULT_EXPENSES_TILE_LAYOUT,
 } from "@/lib/view-dashboard-tile-catalogs";
 import { cn } from "@/lib/utils";
-import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
-import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
-import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
-import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
-import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
-import {
-  ArrowLeft,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  Eye,
-  Loader2,
-  Pencil,
-  Plus,
-  Receipt,
-  Save,
-  Trash2,
-} from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { ArrowLeft, ExternalLink, Loader2, Pencil, Receipt, Trash2 } from "lucide-react";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -72,198 +59,74 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 function inputClassName() {
-  return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50 disabled:cursor-not-allowed disabled:opacity-60";
+  return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50";
 }
 
-function sanitizeExpenseAmountInput(value: string) {
-  if (value === "" || value === "0" || value === "0.") return value;
-  if (/^\d+\.\d*$/.test(value) || /^\d+$/.test(value)) {
-    if (value.length > 1 && value.startsWith("0") && value[1] !== ".") {
-      return value.replace(/^0+/, "") || "0";
-    }
-  }
-  return value.replace(/[^\d.]/g, "");
-}
-
-function reportingExpenseCurrency(
-  expenses: FinancialExpense[],
-  workspaceCurrency: ReturnType<typeof useWorkspaceReportingCurrency>,
-): ExpenseCurrency {
-  if (workspaceCurrency === "AUD" || workspaceCurrency === "USD") return workspaceCurrency;
-  if (isBrowserTalantonImpactSurface()) return "USD";
-  if (isBrowserAbhiSurface()) return "GBP";
-  const codes = expenses.map((expense) => String(expense.currency || "").toUpperCase());
-  const usdCount = codes.filter((code) => code === "USD").length;
-  const gbpCount = codes.filter((code) => code === "GBP").length;
-  const eurCount = codes.filter((code) => code === "EUR").length;
-  const audCount = codes.filter((code) => code === "AUD").length;
-  const ranked = [
-    { code: "GBP" as const, count: gbpCount },
-    { code: "USD" as const, count: usdCount },
-    { code: "EUR" as const, count: eurCount },
-    { code: "AUD" as const, count: audCount },
-  ].sort((a, b) => b.count - a.count);
-  if (ranked[0] && ranked[0].count > 0) return ranked[0].code;
-  return "GBP";
-}
-
-function expenseAxisCurrencySymbol(currency: ExpenseCurrency): string {
-  if (currency === "GBP") return "£";
-  if (currency === "EUR") return "€";
-  if (currency === "AUD") return "AU$";
-  return "$";
-}
-
-function parseExpenseAmount(value: string) {
-  const sanitized = sanitizeExpenseAmountInput(value);
-  if (!sanitized || sanitized === ".") return 0;
-  const parsed = Number(sanitized);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function stepExpenseAmount(current: number, delta: number) {
-  return Math.max(0, Math.round((current + delta) * 100) / 100);
-}
-
-function journalStatusLabel(expense: FinancialExpense) {
-  if (expense.journalEntryId) return "Posted";
-  if (expense.paymentJournalEntryId) return "Paid journal";
-  return "—";
-}
-
-type ExpenseReportMode = "total" | "byPerson" | "byCategory";
-
-type ExpenseReportRow = {
-  label: string;
-  count: number;
-  total: number;
-  paid: number;
-  unpaid: number;
+type SoftwareBillingSnapshot = {
+  currency: string;
+  paidTotal: number;
+  upcomingTotal: number;
 };
-
-function buildExpenseReport(expenses: FinancialExpense[], mode: ExpenseReportMode): ExpenseReportRow[] {
-  if (mode === "total") {
-    const paid = expenses.filter((entry) => entry.paid).reduce((sum, entry) => sum + entry.amount, 0);
-    const unpaid = expenses.filter((entry) => !entry.paid).reduce((sum, entry) => sum + entry.amount, 0);
-    return [
-      {
-        label: "All expenses",
-        count: expenses.length,
-        total: paid + unpaid,
-        paid,
-        unpaid,
-      },
-    ];
-  }
-
-  const buckets = new Map<string, { count: number; paid: number; unpaid: number }>();
-
-  for (const expense of expenses) {
-    const label =
-      mode === "byPerson"
-        ? expense.submitterName
-        : expense.categoryAccountCode || inferExpenseCategory(expense.purposeDescription);
-    const current = buckets.get(label) ?? { count: 0, paid: 0, unpaid: 0 };
-    buckets.set(label, {
-      count: current.count + 1,
-      paid: current.paid + (expense.paid ? expense.amount : 0),
-      unpaid: current.unpaid + (expense.paid ? 0 : expense.amount),
-    });
-  }
-
-  return [...buckets.entries()]
-    .map(([label, data]) => ({
-      label,
-      count: data.count,
-      total: data.paid + data.unpaid,
-      paid: data.paid,
-      unpaid: data.unpaid,
-    }))
-    .sort((a, b) => b.total - a.total);
-}
 
 type ExpensesWorkspaceProps = {
   onBackToFinancials?: () => void;
 };
 
 export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorkspaceProps) {
-  const workspaceCurrency = useWorkspaceReportingCurrency();
+  const gridRef = useRef<ExpenseBulkEntryGridHandle>(null);
   const [expenses, setExpenses] = useState<FinancialExpense[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [newDraft, setNewDraft] = useState<FinancialExpense | null>(null);
-  const [savedSnapshot, setSavedSnapshot] = useState<FinancialExpense | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [reportMode, setReportMode] = useState<ExpenseReportMode>("total");
-  const snapshottedIdRef = useRef<string | null>(null);
+  const [filter, setFilter] = useState<ExpenseLogFilter>(EMPTY_EXPENSE_LOG_FILTER);
+  const [softwareBilling, setSoftwareBilling] = useState<SoftwareBillingSnapshot | null>(null);
 
-  const selected = useMemo(() => {
-    if (selectedId === "__draft__" && newDraft) return newDraft;
-    return expenses.find((entry) => entry.id === selectedId) ?? null;
-  }, [expenses, selectedId, newDraft]);
-
-  const isDirty = useMemo(() => {
-    if (!selected || !isEditing) return false;
-    if (selected.id === "__draft__") return true;
-    if (!savedSnapshot || savedSnapshot.id !== selected.id) return true;
-    return !expenseFieldsEqual(selected, savedSnapshot);
-  }, [selected, savedSnapshot, isEditing]);
-
-  const outstandingChartData = useMemo(
-    () => buildOutstandingByPayableDate(expenses),
+  const claimExpenses = useMemo(
+    () => expenses.filter((expense) => !isAccountsPayableSeedExpense(expense)),
     [expenses],
   );
 
-  const totalOutstanding = useMemo(() => sumOutstandingExpenses(expenses), [expenses]);
-
-  const reportCurrency = useMemo(
-    () => reportingExpenseCurrency(expenses, workspaceCurrency),
-    [expenses, workspaceCurrency],
+  const countableExpenses = useMemo(
+    () => claimExpenses.filter((expense) => isCountableExpense(expense)),
+    [claimExpenses],
   );
 
-  const reportData = useMemo(
-    () => buildExpenseReport(expenses, reportMode),
-    [expenses, reportMode],
+  const draftExpenses = useMemo(
+    () => claimExpenses.filter((expense) => isExpenseDraft(expense)),
+    [claimExpenses],
   );
 
-  const reportChartData = useMemo(
-    () =>
-      reportData.map((row) => ({
-        label: row.label.length > 18 ? `${row.label.slice(0, 16)}…` : row.label,
-        fullLabel: row.label,
-        total: Math.round(row.total * 100) / 100,
-        paid: Math.round(row.paid * 100) / 100,
-        unpaid: Math.round(row.unpaid * 100) / 100,
-      })),
-    [reportData],
+  const filteredExpenses = useMemo(
+    () => filterExpenses(claimExpenses, filter),
+    [claimExpenses, filter],
   );
+
+  const reimbursableTotals = useMemo(
+    () => sumExpensesByCurrency(claimExpenses, isReimbursableOwedExpense),
+    [claimExpenses],
+  );
+
+  const softwareExpenseTotals = useMemo(
+    () => sumExpensesByCurrency(countableExpenses, isSoftwareExpense),
+    [countableExpenses],
+  );
+
+  const spendByVendor = useMemo(() => buildSpendByVendor(countableExpenses), [countableExpenses]);
 
   const expensesDashboardCatalog = useMemo(
-    () => buildExpensesDashboardCatalog(expenses),
-    [expenses],
+    () => buildExpensesDashboardCatalog(countableExpenses),
+    [countableExpenses],
   );
 
   const loadExpenses = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       const response = await fetch("/api/financials/expenses", { cache: "no-store" });
       const data = await readApiJson<{ expenses?: FinancialExpense[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load expenses");
-
-      const next = (data.expenses ?? []).filter(
-        (expense) => !isAccountsPayableSeedExpense(expense),
-      );
-      setExpenses(next);
-      setSelectedId((current) => {
-        if (current === "__draft__") return current;
-        if (current && next.some((entry) => entry.id === current)) return current;
-        return null;
-      });
+      setExpenses((data.expenses ?? []).filter((expense) => !isAccountsPayableSeedExpense(expense)));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load expenses");
       setExpenses([]);
@@ -272,204 +135,62 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
     }
   }, []);
 
+  const loadSoftwareBilling = useCallback(async () => {
+    try {
+      const response = await fetch("/api/internal/software-billing/summary", { cache: "no-store" });
+      if (!response.ok) return;
+      const data = await readApiJson<{
+        summary?: { currency?: string };
+        providerInvoices?: ProviderBillingInvoice[];
+      }>(response);
+      const invoices = data.providerInvoices ?? [];
+      setSoftwareBilling({
+        currency: data.summary?.currency ?? "USD",
+        paidTotal: sumPaidInvoiceAmounts(invoices),
+        upcomingTotal: sumUpcomingInvoiceAmounts(invoices),
+      });
+    } catch {
+      // Optional read-only enrichment — ignore if unavailable.
+    }
+  }, []);
+
   useEffect(() => {
     startTransition(() => {
       void loadExpenses();
+      void loadSoftwareBilling();
     });
-  }, [loadExpenses]);
+  }, [loadExpenses, loadSoftwareBilling]);
 
-  useEffect(() => {
-    startTransition(() => {
-      if (!selectedId || selectedId === "__draft__") {
-        snapshottedIdRef.current = null;
-        setSavedSnapshot(null);
-        return;
+  function handleBulkSaved(saved: FinancialExpense[], message: string) {
+    setExpenses((current) => {
+      const byId = new Map(current.map((entry) => [entry.id, entry]));
+      for (const expense of saved) {
+        byId.set(expense.id, expense);
       }
-      if (snapshottedIdRef.current === selectedId) return;
-      const entry = expenses.find((item) => item.id === selectedId);
-      if (entry) {
-        snapshottedIdRef.current = selectedId;
-        setSavedSnapshot({ ...entry });
-      }
-    });
-  }, [selectedId, expenses]);
-
-  async function saveExpense(expense: FinancialExpense, isNew: boolean) {
-    setBusy(true);
-    setError(null);
-
-    try {
-      if (isNew) {
-        const response = await fetch("/api/financials/expenses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            submitterUserId: expense.submitterUserId,
-            purposeDescription: expense.purposeDescription,
-            amount: expense.amount,
-            currency: expense.currency,
-            dateSubmitted: expense.dateSubmitted,
-            paid: expense.paid,
-            supplier: expense.supplier,
-            categoryAccountCode: expense.categoryAccountCode,
-            expenseDate: expense.expenseDate,
-          }),
-        });
-
-        const data = await readApiJson<{ expense?: FinancialExpense; error?: string }>(response);
-        if (!response.ok || !data.expense) throw new Error(data.error ?? "Failed to save expense");
-
-        setExpenses((current) => [data.expense!, ...current]);
-        setNewDraft(null);
-        setSelectedId(data.expense.id);
-        snapshottedIdRef.current = data.expense.id;
-        setSavedSnapshot(data.expense);
-        setIsEditing(false);
-        setSaveMessage("Expense saved");
-        return;
-      }
-
-      const response = await fetch(`/api/financials/expenses/${expense.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          submitterUserId: expense.submitterUserId,
-          purposeDescription: expense.purposeDescription,
-          amount: expense.amount,
-          currency: expense.currency,
-          dateSubmitted: expense.dateSubmitted,
-          paid: expense.paid,
-          supplier: expense.supplier,
-          categoryAccountCode: expense.categoryAccountCode,
-          expenseDate: expense.expenseDate,
-        }),
-      });
-
-      const data = await readApiJson<{ expense?: FinancialExpense; error?: string }>(response);
-      if (!response.ok || !data.expense) throw new Error(data.error ?? "Failed to save expense");
-
-      setExpenses((current) =>
-        current.map((entry) => (entry.id === data.expense!.id ? data.expense! : entry)),
+      return [...byId.values()].sort((a, b) =>
+        String(b.expenseDate || b.dateSubmitted).localeCompare(String(a.expenseDate || a.dateSubmitted)),
       );
-      snapshottedIdRef.current = data.expense.id;
-      setSavedSnapshot(data.expense);
-      setIsEditing(false);
-      setSaveMessage("Changes saved");
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Failed to save");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function patchSelected(patch: Partial<FinancialExpense>) {
-    if (!selected || !isEditing) return;
-
-    if (patch.submitterUserId) {
-      const user = getInternalUserById(patch.submitterUserId);
-      patch.submitterName = user?.fullName ?? selected.submitterName;
-    }
-
-    if (selected.id === "__draft__" && newDraft) {
-      setNewDraft({ ...newDraft, ...patch });
-      return;
-    }
-
-    const next = { ...selected, ...patch };
-    setExpenses((current) => current.map((entry) => (entry.id === next.id ? next : entry)));
-  }
-
-  function handleNewExpense() {
-    setError(null);
-    setSaveMessage(null);
-    const blank = createBlankExpenseInput();
-    setNewDraft({
-      ...blank,
-      id: "__draft__",
-      createdAt: "",
-      updatedAt: "",
     });
-    setSelectedId("__draft__");
-    setIsEditing(true);
-  }
-
-  function handleOpenExpense(expense: FinancialExpense) {
+    setSaveMessage(message);
     setError(null);
-    setSaveMessage(null);
-    setNewDraft(null);
-    setSelectedId(expense.id);
-    setIsEditing(false);
+    void loadSoftwareBilling();
   }
 
-  function handleEditExpense(expense: FinancialExpense) {
+  function handleEditInGrid(expense: FinancialExpense) {
+    gridRef.current?.loadRows([expenseToBulkRow(expense, 0)]);
+    setSaveMessage(null);
     setError(null);
-    setSaveMessage(null);
-    setNewDraft(null);
-    setSelectedId(expense.id);
-    setIsEditing(true);
   }
 
-  async function handleSaveExpense() {
-    if (!selected) return;
-    setError(null);
-    setSaveMessage(null);
-    await saveExpense(selected, selected.id === "__draft__");
-  }
-
-  async function handleMarkPaid(expense: FinancialExpense) {
-    if (expense.paid) return;
-
+  async function handleDeleteExpense(expense: FinancialExpense) {
+    if (!window.confirm(`Delete expense for "${expense.supplier || expense.purposeDescription}"?`)) return;
     setBusy(true);
     setError(null);
-    setSaveMessage(null);
-
     try {
-      const response = await fetch(`/api/financials/expenses/${expense.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paid: true }),
-      });
-      const data = await readApiJson<{ expense?: FinancialExpense; error?: string }>(response);
-      if (!response.ok || !data.expense) throw new Error(data.error ?? "Failed to mark paid");
-
-      snapshottedIdRef.current = null;
-      await loadExpenses();
-      setSelectedId(expense.id);
-      setIsEditing(false);
-      setSaveMessage("Marked as paid");
-    } catch (markError) {
-      setError(markError instanceof Error ? markError.message : "Failed to mark paid");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleDeleteExpense() {
-    if (!selected) return;
-
-    if (selected.id === "__draft__") {
-      setNewDraft(null);
-      setSelectedId(null);
-      setIsEditing(false);
-      return;
-    }
-
-    if (!window.confirm(`Delete expense for "${selected.submitterName}"?`)) return;
-
-    setBusy(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/financials/expenses/${selected.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/financials/expenses/${expense.id}`, { method: "DELETE" });
       const data = await readApiJson<{ error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to delete expense");
-
-      const remaining = expenses.filter((entry) => entry.id !== selected.id);
-      setExpenses(remaining);
-      setSelectedId(null);
-      setIsEditing(false);
-      setSavedSnapshot(null);
-      snapshottedIdRef.current = null;
+      setExpenses((current) => current.filter((entry) => entry.id !== expense.id));
       setSaveMessage("Expense deleted");
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Failed to delete expense");
@@ -491,141 +212,77 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
         title="Expenses key details"
         showCustomizeHint={false}
       />
+
       <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            {onBackToFinancials && (
-              <button
-                type="button"
-                onClick={onBackToFinancials}
-                className="mt-0.5 inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 px-3 text-xs text-white/60 transition-colors hover:border-white/20 hover:text-white"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Back to Financials
-              </button>
-            )}
-            <div>
-              <div className="flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-emerald-400" />
-                <h3 className="text-sm font-semibold text-white">Expenses</h3>
-              </div>
-              <p className="mt-1 text-xs text-white/45">
-                {expenses.length} submitted expenses · track purpose, amount, and payment status
-              </p>
+        <div className="flex flex-wrap items-start gap-3">
+          {onBackToFinancials && (
+            <button
+              type="button"
+              onClick={onBackToFinancials}
+              className="mt-0.5 inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 px-3 text-xs text-white/60 transition-colors hover:border-white/20 hover:text-white"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to Financials
+            </button>
+          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-emerald-400" />
+              <h3 className="text-sm font-semibold text-white">Reimbursable expenses</h3>
             </div>
+            <p className="mt-1 text-xs text-white/45">
+              Personally paid business expenses owed back to you · {claimExpenses.length} records ·{" "}
+              {draftExpenses.length} draft{draftExpenses.length === 1 ? "" : "s"}
+            </p>
           </div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={handleNewExpense}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-200 transition-colors hover:border-emerald-400/60 hover:bg-emerald-500/25 disabled:opacity-50"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New expense
-          </button>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-sky-400/20 bg-sky-500/10 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-sky-200/70">Owed to you</p>
+            <p className="mt-1 text-sm font-semibold text-white">
+              {formatMultiCurrencyTotals(reimbursableTotals)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Software (expenses)</p>
+            <p className="mt-1 text-sm font-semibold text-white">
+              {formatMultiCurrencyTotals(softwareExpenseTotals)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Software billing (confirmed)</p>
+            <p className="mt-1 text-sm font-semibold text-white">
+              {softwareBilling
+                ? `${softwareBilling.currency} ${softwareBilling.paidTotal.toFixed(2)}`
+                : "—"}
+            </p>
+            <p className="mt-1 text-[10px] text-white/40">Paid provider invoices only</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Upcoming software</p>
+            <p className="mt-1 text-sm font-semibold text-white">
+              {softwareBilling
+                ? `${softwareBilling.currency} ${softwareBilling.upcomingTotal.toFixed(2)}`
+                : "—"}
+            </p>
+            <Link
+              href="?view=software-saas"
+              className="mt-1 inline-flex text-[10px] text-sky-300/90 hover:text-sky-200"
+            >
+              Open Software &amp; SaaS →
+            </Link>
+          </div>
         </div>
       </section>
 
-      {!loading && expenses.length > 0 && (
-        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-white">Reports</h3>
-              <p className="mt-1 text-xs text-white/45">
-                Expense summary computed from loaded entries
-              </p>
-            </div>
-            <div>
-              <FieldLabel>View</FieldLabel>
-              <select
-                value={reportMode}
-                onChange={(event) => setReportMode(event.target.value as ExpenseReportMode)}
-                className={cn(inputClassName(), "mt-0 w-44")}
-              >
-                <option value="total">Total</option>
-                <option value="byPerson">By person</option>
-                <option value="byCategory">By category</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[32rem] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.08] text-[10px] font-medium uppercase tracking-[0.12em] text-white/35">
-                  <th className="px-3 py-2 font-medium">
-                    {reportMode === "byPerson"
-                      ? "Person"
-                      : reportMode === "byCategory"
-                        ? "Category"
-                        : "Summary"}
-                  </th>
-                  <th className="px-3 py-2 font-medium text-right">Items</th>
-                  <th className="px-3 py-2 font-medium text-right">Total</th>
-                  <th className="px-3 py-2 font-medium text-right">Paid</th>
-                  <th className="px-3 py-2 font-medium text-right">Unpaid</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.map((row) => (
-                  <tr key={row.label} className="border-b border-white/[0.05] last:border-0">
-                    <td className="px-3 py-2.5 font-medium text-white/90">{row.label}</td>
-                    <td className="px-3 py-2.5 text-right text-white/55">{row.count}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-white/80">
-                      {formatExpenseAmount(row.total, reportCurrency)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-emerald-300/90">
-                      {formatExpenseAmount(row.paid, reportCurrency)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-amber-200/90">
-                      {formatExpenseAmount(row.unpaid, reportCurrency)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {reportChartData.length > 0 && (
-            <div className="mt-6 h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={reportChartData} margin={{ top: 8, right: 8, left: -4, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                    interval={0}
-                    angle={reportChartData.length > 3 ? -20 : 0}
-                    textAnchor={reportChartData.length > 3 ? "end" : "middle"}
-                    height={reportChartData.length > 3 ? 52 : 30}
-                  />
-                  <YAxis
-                    tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                    tickFormatter={(value: number) =>
-                      `${expenseAxisCurrencySymbol(reportCurrency)}${value}`
-                    }
-                  />
-                  <Tooltip
-                    content={({ active, payload, label }) => (
-                      <ChartTooltip
-                        active={active}
-                        label={String(payload?.[0]?.payload?.fullLabel ?? label ?? "")}
-                        payload={payload?.map((entry) => ({
-                          name: entry.name === "paid" ? "Paid" : "Unpaid",
-                          value: entry.value as number,
-                          color: entry.name === "paid" ? "#34d399" : "#fbbf24",
-                        }))}
-                      />
-                    )}
-                  />
-                  <Bar dataKey="paid" name="paid" stackId="a" fill="#34d399" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="unpaid" name="unpaid" stackId="a" fill="#fbbf24" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </section>
-      )}
+      <ExpenseBulkEntryGrid
+        ref={gridRef}
+        busy={busy}
+        draftExpenses={draftExpenses}
+        onSaved={handleBulkSaved}
+        onError={setError}
+      />
 
       {saveMessage && (
         <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
@@ -636,457 +293,207 @@ export default function ExpensesWorkspace({ onBackToFinancials }: ExpensesWorksp
       {error && (
         <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
-          {error.includes("financial_expenses") && (
-            <p className="mt-1 text-xs text-red-200/70">
-              Run{" "}
-              <span className="font-mono">supabase/migrations/021_create_financial_expenses.sql</span>{" "}
-              in Supabase SQL Editor.
-            </p>
-          )}
         </div>
       )}
 
       <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
-        <h3 className="text-sm font-semibold text-white">Expense log</h3>
-
-        {loading ? (
-          <div className="mt-6 flex items-center gap-3 text-sm text-white/55">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading expenses…
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Spend by vendor</h3>
+            <p className="mt-1 text-xs text-white/45">Submitted expenses grouped by vendor</p>
           </div>
-        ) : expenses.length === 0 ? (
-          <p className="mt-6 text-sm text-white/45">
-            No expenses yet. Click New expense to submit the first entry.
-          </p>
+        </div>
+        {spendByVendor.length === 0 ? (
+          <p className="mt-4 text-sm text-white/45">No submitted expenses yet.</p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[920px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[28rem] border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-white/[0.08] text-[9px] font-medium uppercase tracking-[0.12em] text-white/35">
-                  <th className="px-3 py-2.5 font-medium">Supplier</th>
-                  <th className="px-3 py-2.5 font-medium">Category</th>
-                  <th className="px-3 py-2.5 font-medium">Amount</th>
-                  <th className="px-3 py-2.5 font-medium">Currency</th>
-                  <th className="px-3 py-2.5 font-medium">Expense Date</th>
-                  <th className="px-3 py-2.5 font-medium">Payment Status</th>
-                  <th className="px-3 py-2.5 font-medium">Journal Status</th>
-                  <th className="px-3 py-2.5 font-medium text-right">Actions</th>
+                <tr className="border-b border-white/[0.08] text-[10px] font-medium uppercase tracking-[0.12em] text-white/35">
+                  <th className="px-3 py-2 font-medium">Vendor</th>
+                  <th className="px-3 py-2 font-medium text-right">Items</th>
+                  <th className="px-3 py-2 font-medium text-right">Totals</th>
                 </tr>
               </thead>
               <tbody>
-                {expenses.map((expense) => {
-                  const active = expense.id === selectedId && selectedId !== "__draft__";
-                  return (
-                    <tr
-                      key={expense.id}
-                      className={cn(
-                        "border-b border-white/[0.05] last:border-0",
-                        active && "bg-emerald-500/5",
-                      )}
-                    >
-                      <td className="px-3 py-2.5 font-medium text-white/90">
-                        {expense.supplier || expense.submitterName}
-                      </td>
-                      <td className="px-3 py-2.5 font-mono text-white/65">
-                        {expense.categoryAccountCode || "—"}
-                      </td>
-                      <td className="px-3 py-2.5 font-mono text-white/80">
-                        {formatExpenseAmount(expense.amount, expense.currency)}
-                      </td>
-                      <td className="px-3 py-2.5 text-white/55">{expense.currency}</td>
-                      <td className="px-3 py-2.5 text-white/55">
-                        {expense.expenseDate || expense.dateSubmitted}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <span
-                          className={cn(
-                            "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]",
-                            expense.paid
-                              ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
-                              : "border-amber-400/40 bg-amber-500/15 text-amber-200",
-                          )}
-                        >
-                          {expense.paid ? "Paid" : "Unpaid"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-white/65">{journalStatusLabel(expense)}</td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex flex-wrap items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => handleOpenExpense(expense)}
-                            className="inline-flex h-8 items-center gap-1 rounded-lg border border-white/10 px-2.5 text-xs text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Open
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => handleEditExpense(expense)}
-                            className="inline-flex h-8 items-center gap-1 rounded-lg border border-white/10 px-2.5 text-xs text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </button>
-                          {expense.journalEntryId ? (
-                            <Link
-                              href={`?view=general-ledger&journal=${encodeURIComponent(expense.journalEntryId)}`}
-                              className="inline-flex h-8 items-center gap-1 rounded-lg border border-sky-500/30 px-2.5 text-xs text-sky-300 transition-colors hover:border-sky-400/50 hover:bg-sky-500/10"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                              View Journal
-                            </Link>
-                          ) : null}
-                          {!expense.paid ? (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() => void handleMarkPaid(expense)}
-                              className="inline-flex h-8 items-center gap-1 rounded-lg border border-emerald-500/30 px-2.5 text-xs text-emerald-200 transition-colors hover:border-emerald-400/50 hover:bg-emerald-500/10 disabled:opacity-50"
-                            >
-                              Mark Paid
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {spendByVendor.slice(0, 12).map((row) => (
+                  <tr key={row.vendor} className="border-b border-white/[0.05] last:border-0">
+                    <td className="px-3 py-2.5 font-medium text-white/90">{row.vendor}</td>
+                    <td className="px-3 py-2.5 text-right text-white/55">{row.count}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-white/80">
+                      {formatMultiCurrencyTotals(row.totalByCurrency)}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </section>
 
-      {selected && !isEditing && selected.id !== "__draft__" ? (
-        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
-                Expense detail
-              </p>
-              <h2 className="mt-1 text-lg font-semibold text-white">
-                {selected.supplier || selected.submitterName || "Expense entry"}
-              </h2>
-              <p className="mt-1 text-sm text-white/50">{selected.purposeDescription || "—"}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => handleEditExpense(selected)}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 px-3 text-xs text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </button>
-              {selected.journalEntryId ? (
-                <Link
-                  href={`?view=general-ledger&journal=${encodeURIComponent(selected.journalEntryId)}`}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/15 px-3 text-xs font-semibold text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/25"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  View Journal
-                </Link>
-              ) : null}
-              {!selected.paid ? (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void handleMarkPaid(selected)}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-200 transition-colors hover:border-emerald-400/60 hover:bg-emerald-500/25 disabled:opacity-50"
-                >
-                  Mark Paid
-                </button>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-3 py-2.5">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Category</p>
-              <p className="mt-1 font-mono text-sm text-white/85">
-                {selected.categoryAccountCode || "—"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-3 py-2.5">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Amount</p>
-              <p className="mt-1 font-mono text-sm text-white/85">
-                {formatExpenseAmount(selected.amount, selected.currency)}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-3 py-2.5">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Expense date</p>
-              <p className="mt-1 text-sm text-white/85">
-                {selected.expenseDate || selected.dateSubmitted}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-[#0b1524]/70 px-3 py-2.5">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Status</p>
-              <p className="mt-1 text-sm text-white/85">
-                {selected.paid ? "Paid" : "Unpaid"} · {journalStatusLabel(selected)}
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {selected && isEditing ? (
-        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
-                {selected.id === "__draft__" ? "New expense" : "Edit expense"}
-              </p>
-              <h2 className="mt-1 text-lg font-semibold text-white">
-                {selected.supplier || selected.submitterName || "Expense entry"}
-              </h2>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                disabled={busy || !isDirty}
-                onClick={() => void handleSaveExpense()}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3 text-xs font-semibold text-emerald-200 transition-colors hover:border-emerald-400/60 hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Save className="h-3.5 w-3.5" />
-                Save
-              </button>
-              {selected.id !== "__draft__" && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void handleDeleteExpense()}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-400/20 px-3 text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-50"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </button>
-              )}
-              {selected.id === "__draft__" && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void handleDeleteExpense()}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 px-3 text-xs text-white/55 hover:bg-white/[0.04] disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div>
-              <FieldLabel>Name (internal user)</FieldLabel>
-              <select
-                className={inputClassName()}
-                value={selected.submitterUserId}
-                onChange={(event) => patchSelected({ submitterUserId: event.target.value })}
-                disabled={busy}
-              >
-                {INTERNAL_EXPENSE_USERS.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.fullName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <FieldLabel>Supplier</FieldLabel>
-              <input
-                className={inputClassName()}
-                value={selected.supplier ?? ""}
-                onChange={(event) =>
-                  patchSelected({ supplier: event.target.value.trim() ? event.target.value : null })
-                }
-                disabled={busy}
-                placeholder="Supplier name"
-              />
-            </div>
-            <div>
-              <FieldLabel>Category account code</FieldLabel>
-              <input
-                className={inputClassName()}
-                value={selected.categoryAccountCode ?? "5090"}
-                onChange={(event) =>
-                  patchSelected({
-                    categoryAccountCode: event.target.value.trim() ? event.target.value : "5090",
-                  })
-                }
-                disabled={busy}
-                placeholder="5090"
-              />
-            </div>
-            <div>
-              <FieldLabel>Expense date</FieldLabel>
-              <input
-                type="date"
-                className={inputClassName()}
-                value={selected.expenseDate || selected.dateSubmitted}
-                onChange={(event) => patchSelected({ expenseDate: event.target.value })}
-                disabled={busy}
-              />
-            </div>
-            <div>
-              <FieldLabel>Date submitted</FieldLabel>
-              <input
-                type="date"
-                className={inputClassName()}
-                value={selected.dateSubmitted}
-                onChange={(event) => patchSelected({ dateSubmitted: event.target.value })}
-                disabled={busy}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <FieldLabel>Purpose description</FieldLabel>
-              <textarea
-                rows={3}
-                className={cn(inputClassName(), "resize-y")}
-                value={selected.purposeDescription}
-                onChange={(event) => patchSelected({ purposeDescription: event.target.value })}
-                disabled={busy}
-                placeholder="Describe the business purpose for this expense…"
-              />
-            </div>
-            <div>
-              <FieldLabel>Amount</FieldLabel>
-              <div className="mt-1.5 flex overflow-hidden rounded-xl border border-white/10 bg-[#0b1524]">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm text-white outline-none"
-                  value={selected.amount === 0 ? "" : String(selected.amount)}
-                  onChange={(event) => {
-                    const sanitized = sanitizeExpenseAmountInput(event.target.value);
-                    patchSelected({ amount: parseExpenseAmount(sanitized) });
-                  }}
-                  disabled={busy}
-                  placeholder="0.00"
-                />
-                <div className="flex flex-col border-l border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => patchSelected({ amount: stepExpenseAmount(selected.amount, 1) })}
-                    disabled={busy}
-                    className="flex flex-1 items-center justify-center px-2 text-white/60 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-50"
-                    aria-label="Increase amount"
-                  >
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => patchSelected({ amount: stepExpenseAmount(selected.amount, -1) })}
-                    disabled={busy || selected.amount <= 0}
-                    className="flex flex-1 items-center justify-center border-t border-white/10 px-2 text-white/60 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-50"
-                    aria-label="Decrease amount"
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div>
-              <FieldLabel>Currency</FieldLabel>
-              <select
-                className={inputClassName()}
-                value={selected.currency}
-                onChange={(event) =>
-                  patchSelected({ currency: event.target.value as ExpenseCurrency })
-                }
-                disabled={busy}
-              >
-                {EXPENSE_CURRENCY_OPTIONS.map((currency) => (
-                  <option key={currency} value={currency}>
-                    {currency}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <FieldLabel>Paid?</FieldLabel>
-              <label className="mt-2 flex items-center gap-3 rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2.5">
-                <input
-                  type="checkbox"
-                  checked={selected.paid}
-                  onChange={(event) => patchSelected({ paid: event.target.checked })}
-                  disabled={busy}
-                  className="h-4 w-4 rounded border-white/20 bg-transparent accent-emerald-500"
-                />
-                <span className="text-sm text-white/75">
-                  {selected.paid ? "Marked as paid" : "Not yet paid"}
-                </span>
-              </label>
-            </div>
-          </div>
-        </section>
-      ) : (
-        !loading &&
-        !(selected && !isEditing) && (
-          <section className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/45">
-            Select Open or Edit on an expense, or create a new one.
-          </section>
-        )
-      )}
-
-      {!loading && (
-        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-white">Outstanding by payable date</h3>
-              <p className="mt-1 text-xs text-white/45">
-                Unpaid expenses grouped by NET 30 payable date · total outstanding{" "}
-                {formatExpenseAmount(totalOutstanding, reportCurrency)}
-              </p>
-            </div>
-            <p className="text-xs text-white/35">
-              {outstandingChartData.reduce((sum, row) => sum + row.count, 0)} unpaid items
+      <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold text-white">Expense log</h3>
+            <p className="mt-1 text-xs text-white/45">
+              {filteredExpenses.length} of {claimExpenses.length} records shown
             </p>
           </div>
+        </div>
 
-          {outstandingChartData.length === 0 ? (
-            <p className="mt-6 text-sm text-white/45">No outstanding expenses — all submitted items are paid.</p>
-          ) : (
-            <div className="mt-4 h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={outstandingChartData} margin={{ top: 8, right: 8, left: -4, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                    interval={0}
-                    angle={outstandingChartData.length > 4 ? -25 : 0}
-                    textAnchor={outstandingChartData.length > 4 ? "end" : "middle"}
-                    height={outstandingChartData.length > 4 ? 56 : 30}
-                  />
-                  <YAxis
-                    tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }}
-                    tickFormatter={(value: number) =>
-                      `${expenseAxisCurrencySymbol(reportCurrency)}${value}`
-                    }
-                  />
-                  <Tooltip
-                    content={({ active, payload, label }) => (
-                      <ChartTooltip
-                        active={active}
-                        label={String(label ?? "")}
-                        payload={payload?.map((entry) => ({
-                          name: `Outstanding (${entry.payload?.count ?? 0} items)`,
-                          value: entry.value as number,
-                          color: "#34d399",
-                        }))}
-                      />
-                    )}
-                  />
-                  <Bar dataKey="amount" name="Outstanding" fill="#34d399" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </section>
-      )}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <div className="lg:col-span-2">
+            <FieldLabel>Search</FieldLabel>
+            <input
+              className={inputClassName()}
+              value={filter.query}
+              placeholder="Vendor, purpose, invoice #…"
+              onChange={(event) => setFilter((current) => ({ ...current, query: event.target.value }))}
+            />
+          </div>
+          <div>
+            <FieldLabel>Status</FieldLabel>
+            <select
+              className={cn(inputClassName(), "mt-0")}
+              value={filter.status}
+              onChange={(event) =>
+                setFilter((current) => ({
+                  ...current,
+                  status: event.target.value as ExpenseLogFilter["status"],
+                }))
+              }
+            >
+              <option value="all">All</option>
+              <option value="draft">Draft</option>
+              <option value="finalized">Submitted</option>
+              <option value="reimbursable">Reimbursable</option>
+            </select>
+          </div>
+          <div>
+            <FieldLabel>Category</FieldLabel>
+            <select
+              className={cn(inputClassName(), "mt-0")}
+              value={filter.category}
+              onChange={(event) => setFilter((current) => ({ ...current, category: event.target.value }))}
+            >
+              <option value="">All</option>
+              {EXPENSE_SEMANTIC_CATEGORIES.map((entry) => (
+                <option key={entry.label} value={entry.label}>
+                  {entry.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <FieldLabel>From</FieldLabel>
+            <input
+              type="date"
+              className={cn(inputClassName(), "mt-0")}
+              value={filter.dateFrom}
+              onChange={(event) => setFilter((current) => ({ ...current, dateFrom: event.target.value }))}
+            />
+          </div>
+          <div>
+            <FieldLabel>To</FieldLabel>
+            <input
+              type="date"
+              className={cn(inputClassName(), "mt-0")}
+              value={filter.dateTo}
+              onChange={(event) => setFilter((current) => ({ ...current, dateTo: event.target.value }))}
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="mt-6 flex items-center gap-3 text-sm text-white/55">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading expenses…
+          </div>
+        ) : filteredExpenses.length === 0 ? (
+          <p className="mt-6 text-sm text-white/45">
+            No matching expenses. Use the grid above to enter reimbursable expenses.
+          </p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[980px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/[0.08] text-[9px] font-medium uppercase tracking-[0.12em] text-white/35">
+                  <th className="px-3 py-2.5 font-medium">Vendor</th>
+                  <th className="px-3 py-2.5 font-medium">Purpose</th>
+                  <th className="px-3 py-2.5 font-medium">Category</th>
+                  <th className="px-3 py-2.5 font-medium">Date paid</th>
+                  <th className="px-3 py-2.5 font-medium">Invoice #</th>
+                  <th className="px-3 py-2.5 font-medium">Amount</th>
+                  <th className="px-3 py-2.5 font-medium">Status</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredExpenses.map((expense) => (
+                  <tr key={expense.id} className="border-b border-white/[0.05] last:border-0">
+                    <td className="px-3 py-2.5 font-medium text-white/90">{expense.supplier || "—"}</td>
+                    <td className="px-3 py-2.5 text-white/70">{expense.purposeDescription || "—"}</td>
+                    <td className="px-3 py-2.5 text-white/55">
+                      {semanticCategoryForBillingCode(expense.categoryAccountCode)}
+                    </td>
+                    <td className="px-3 py-2.5 text-white/55">
+                      {expense.expenseDate || expense.dateSubmitted}
+                    </td>
+                    <td className="px-3 py-2.5 font-mono text-white/55">{expense.reference || "—"}</td>
+                    <td className="px-3 py-2.5 font-mono text-white/80">
+                      {formatExpenseAmount(expense.amount, expense.currency)}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      {isExpenseDraft(expense) ? (
+                        <span className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-200">
+                          Draft
+                        </span>
+                      ) : expense.reimbursable ? (
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-300">
+                          Reimbursable
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-white/45">Submitted</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => handleEditInGrid(expense)}
+                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-white/10 px-2.5 text-xs text-white/70 transition-colors hover:border-white/20 hover:text-white disabled:opacity-50"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </button>
+                        {expense.journalEntryId ? (
+                          <Link
+                            href={`?view=general-ledger&journal=${encodeURIComponent(expense.journalEntryId)}`}
+                            className="inline-flex h-8 items-center gap-1 rounded-lg border border-sky-500/30 px-2.5 text-xs text-sky-300 transition-colors hover:border-sky-400/50 hover:bg-sky-500/10"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Journal
+                          </Link>
+                        ) : null}
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void handleDeleteExpense(expense)}
+                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-red-400/20 px-2.5 text-xs text-red-300 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

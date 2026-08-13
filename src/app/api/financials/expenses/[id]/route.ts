@@ -29,6 +29,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       supplier?: string | null;
       categoryAccountCode?: string | null;
       expenseDate?: string;
+      paymentMethod?: string | null;
+      reference?: string | null;
+      attachmentPath?: string | null;
+      recordStatus?: "draft" | "finalized";
+      reimbursable?: boolean;
     };
 
     const expense = await updateExpense(id, body, { workspaceId: workspace.id });

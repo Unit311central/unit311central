@@ -1,7 +1,12 @@
 import { createInitialUsers } from "@/lib/user-management-data";
-import { withPreferredCurrencySymbol } from "@/lib/accounting/chart-of-accounts";
+import {
+  CHART_OF_ACCOUNTS_SEED,
+  withPreferredCurrencySymbol,
+} from "@/lib/accounting/chart-of-accounts";
 
-export type ExpenseCurrency = "EUR" | "GBP" | "USD" | "AUD" | "CHF";
+export type ExpenseCurrency = "EUR" | "GBP" | "USD" | "AUD" | "CHF" | "HKD";
+
+export type ExpenseRecordStatus = "draft" | "finalized";
 
 export type FinancialExpense = {
   id: string;
@@ -19,16 +24,73 @@ export type FinancialExpense = {
   wiseBalanceId: number | null;
   attachmentPath: string | null;
   reference: string | null;
+  recordStatus: ExpenseRecordStatus;
+  reimbursable: boolean;
   journalEntryId: string | null;
   paymentJournalEntryId: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
+/** GL expense account codes used as billing category codes in bulk entry. */
+export const EXPENSE_BILLING_CATEGORY_OPTIONS = CHART_OF_ACCOUNTS_SEED.filter(
+  (account) => account.type === "expense",
+).map((account) => ({ code: account.code, name: account.name }));
+
+export type ExpenseSemanticCategory =
+  | "Software"
+  | "Travel"
+  | "Equipment"
+  | "Meals & entertainment"
+  | "Office"
+  | "Marketing"
+  | "Contractors"
+  | "Legal"
+  | "Accounting"
+  | "General";
+
+export const EXPENSE_SEMANTIC_CATEGORIES: {
+  label: ExpenseSemanticCategory;
+  defaultBillingCode: string;
+}[] = [
+  { label: "Software", defaultBillingCode: "5010" },
+  { label: "Travel", defaultBillingCode: "5050" },
+  { label: "Equipment", defaultBillingCode: "5090" },
+  { label: "Meals & entertainment", defaultBillingCode: "5090" },
+  { label: "Office", defaultBillingCode: "5060" },
+  { label: "Marketing", defaultBillingCode: "5040" },
+  { label: "Contractors", defaultBillingCode: "5030" },
+  { label: "Legal", defaultBillingCode: "5080" },
+  { label: "Accounting", defaultBillingCode: "5070" },
+  { label: "General", defaultBillingCode: "5090" },
+];
+
+export function semanticCategoryForBillingCode(code: string | null | undefined): ExpenseSemanticCategory {
+  const normalized = String(code ?? "").trim();
+  const match = EXPENSE_SEMANTIC_CATEGORIES.find((entry) => entry.defaultBillingCode === normalized);
+  if (match) return match.label;
+  return inferExpenseCategory("") as ExpenseSemanticCategory;
+}
+
+export function billingCodeForSemanticCategory(label: string): string {
+  const match = EXPENSE_SEMANTIC_CATEGORIES.find((entry) => entry.label === label);
+  return match?.defaultBillingCode ?? "5090";
+}
+
+export function isExpenseDraft(expense: Pick<FinancialExpense, "recordStatus">) {
+  return expense.recordStatus === "draft";
+}
+
+/** Finalized expenses only — drafts are excluded from spend and reimbursement KPIs. */
+export function isCountableExpense(expense: FinancialExpense) {
+  return !isAccountsPayableSeedExpense(expense) && !isExpenseDraft(expense);
+}
+
 export const EXPENSE_CURRENCY_OPTIONS: ExpenseCurrency[] = [
+  "USD",
   "EUR",
   "GBP",
-  "USD",
+  "HKD",
   "AUD",
   "CHF",
 ];
@@ -55,6 +117,8 @@ type DbExpense = {
   wise_balance_id?: number | null;
   attachment_path?: string | null;
   reference?: string | null;
+  record_status?: string | null;
+  reimbursable?: boolean | null;
   journal_entry_id?: string | null;
   payment_journal_entry_id?: string | null;
   created_at: string;
@@ -78,6 +142,8 @@ export function mapFinancialExpense(row: DbExpense): FinancialExpense {
     wiseBalanceId: row.wise_balance_id ?? null,
     attachmentPath: row.attachment_path ?? null,
     reference: row.reference ?? null,
+    recordStatus: row.record_status === "draft" ? "draft" : "finalized",
+    reimbursable: Boolean(row.reimbursable),
     journalEntryId: row.journal_entry_id ?? null,
     paymentJournalEntryId: row.payment_journal_entry_id ?? null,
     createdAt: row.created_at,
@@ -150,6 +216,8 @@ export function createBlankExpenseInput(): Omit<
     wiseBalanceId: null,
     attachmentPath: null,
     reference: null,
+    recordStatus: "finalized",
+    reimbursable: false,
     journalEntryId: null,
     paymentJournalEntryId: null,
   };
@@ -174,12 +242,15 @@ export function formatExpenseAmount(amount: number, currency: ExpenseCurrency) {
   const code = String(currency || "GBP").toUpperCase();
   const fractionDigits = code === "AUD" ? 0 : 2;
   return withPreferredCurrencySymbol(
-    new Intl.NumberFormat(code === "AUD" ? "en-AU" : "en-GB", {
-      style: "currency",
-      currency: code,
-      minimumFractionDigits: fractionDigits,
-      maximumFractionDigits: fractionDigits,
-    }).format(amount),
+    new Intl.NumberFormat(
+      code === "AUD" ? "en-AU" : code === "USD" ? "en-US" : code === "HKD" ? "en-HK" : "en-GB",
+      {
+        style: "currency",
+        currency: code,
+        minimumFractionDigits: fractionDigits,
+        maximumFractionDigits: fractionDigits,
+      },
+    ).format(amount),
     code,
   );
 }
@@ -231,7 +302,7 @@ export function buildOutstandingByPayableDate(
   const buckets = new Map<string, { amount: number; count: number }>();
 
   for (const expense of expenses) {
-    if (expense.paid) continue;
+    if (!isCountableExpense(expense) || expense.paid) continue;
     const payableDate = getExpensePayableDate(expense);
     const current = buckets.get(payableDate) ?? { amount: 0, count: 0 };
     buckets.set(payableDate, {
@@ -251,5 +322,18 @@ export function buildOutstandingByPayableDate(
 }
 
 export function sumOutstandingExpenses(expenses: FinancialExpense[]) {
-  return expenses.filter((expense) => !expense.paid).reduce((sum, expense) => sum + expense.amount, 0);
+  return expenses
+    .filter((expense) => isCountableExpense(expense) && !expense.paid)
+    .reduce((sum, expense) => sum + expense.amount, 0);
+}
+
+export function sumReimbursableExpenses(expenses: FinancialExpense[]) {
+  return expenses
+    .filter(
+      (expense) =>
+        isCountableExpense(expense) &&
+        expense.reimbursable &&
+        expense.paymentMethod === "personally_paid",
+    )
+    .reduce((sum, expense) => sum + expense.amount, 0);
 }

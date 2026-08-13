@@ -7,8 +7,10 @@ import {
   getInternalUserById,
   mapFinancialExpense,
   type ExpenseCurrency,
+  type ExpenseRecordStatus,
   type FinancialExpense,
 } from "@/lib/expenses-data";
+import type { BulkExpenseSaveMode } from "@/lib/expenses-bulk-entry";
 import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
@@ -102,12 +104,47 @@ async function requireExpenseInWorkspace(id: string, scope?: ExpensesWorkspaceSc
   return expense;
 }
 
+async function findDuplicateExpense(
+  workspaceId: string,
+  input: {
+    reference: string | null;
+    supplier: string | null;
+    expenseId?: string | null;
+  },
+) {
+  const reference = String(input.reference ?? "").trim();
+  if (!reference) return null;
+
+  const supabase = requireExpensesSupabase();
+  let query = supabase
+    .from("financial_expenses")
+    .select("id")
+    .eq("workspace_id", workspaceId)
+    .eq("reference", reference);
+
+  const supplier = String(input.supplier ?? "").trim();
+  if (supplier) {
+    query = query.eq("supplier", supplier);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.id) return null;
+  if (input.expenseId && String(data.id) === input.expenseId) return null;
+  return String(data.id);
+}
+
 export async function createExpense(
   input: Partial<ReturnType<typeof createBlankExpenseInput>> & {
     submitterUserId: string;
     purposeDescription: string;
     amount: number;
     workspaceId?: string;
+    recordStatus?: ExpenseRecordStatus;
+    reimbursable?: boolean;
+    paymentMethod?: string | null;
+    reference?: string | null;
+    attachmentPath?: string | null;
   },
   scope?: ExpensesWorkspaceScope,
 ): Promise<FinancialExpense> {
@@ -122,7 +159,21 @@ export async function createExpense(
     const expenseDate =
       input.expenseDate ?? input.dateSubmitted ?? new Date().toISOString().slice(0, 10);
     const categoryAccountCode = input.categoryAccountCode ?? "5090";
+    const recordStatus = input.recordStatus ?? "finalized";
     const paid = input.paid ?? false;
+    const paymentMethod =
+      input.paymentMethod ?? (paid && recordStatus === "finalized" ? "wise" : null);
+    const reimbursable = input.reimbursable ?? false;
+
+    const duplicateId = await findDuplicateExpense(workspaceId, {
+      reference: input.reference ?? null,
+      supplier: input.supplier ?? null,
+    });
+    if (duplicateId) {
+      throw new Error(
+        `Duplicate expense: invoice/reference "${input.reference}" already recorded.`,
+      );
+    }
 
     const { data, error } = await supabase
       .from("financial_expenses")
@@ -138,15 +189,21 @@ export async function createExpense(
         supplier: input.supplier ?? null,
         category_account_code: categoryAccountCode,
         expense_date: expenseDate,
-        payment_method: input.paymentMethod ?? (paid ? "wise" : null),
+        payment_method: paymentMethod,
         wise_balance_id: input.wiseBalanceId ?? null,
         attachment_path: input.attachmentPath ?? null,
         reference: input.reference ?? null,
+        record_status: recordStatus,
+        reimbursable,
       })
       .select("*")
       .single();
 
     if (error) throw new Error(error.message);
+
+    if (recordStatus === "draft") {
+      return mapFinancialExpense(data as DbExpense);
+    }
 
     try {
       const journal = await postExpenseJournal({
@@ -191,6 +248,9 @@ export async function updateExpense(
     expenseDate: string;
     paymentMethod: string | null;
     reference: string | null;
+    attachmentPath: string | null;
+    recordStatus: ExpenseRecordStatus;
+    reimbursable: boolean;
   }>,
   scope?: ExpensesWorkspaceScope,
 ): Promise<FinancialExpense> {
@@ -229,7 +289,25 @@ export async function updateExpense(
     if (patch.expenseDate !== undefined) payload.expense_date = patch.expenseDate;
     if (patch.paymentMethod !== undefined) payload.payment_method = patch.paymentMethod;
     if (patch.reference !== undefined) payload.reference = patch.reference;
+    if (patch.attachmentPath !== undefined) payload.attachment_path = patch.attachmentPath;
+    if (patch.recordStatus !== undefined) payload.record_status = patch.recordStatus;
+    if (patch.reimbursable !== undefined) payload.reimbursable = patch.reimbursable;
 
+    if (patch.reference !== undefined || patch.supplier !== undefined) {
+      const duplicateId = await findDuplicateExpense(workspaceId, {
+        reference: patch.reference ?? existing.reference ?? null,
+        supplier: patch.supplier ?? existing.supplier ?? null,
+        expenseId: id,
+      });
+      if (duplicateId) {
+        throw new Error(
+          `Duplicate expense: invoice/reference "${patch.reference ?? existing.reference}" already recorded.`,
+        );
+      }
+    }
+
+    const becomingFinalized =
+      patch.recordStatus === "finalized" && String(existing.record_status ?? "finalized") === "draft";
     const becomingPaid = patch.paid === true && !existing.paid;
 
     if (becomingPaid && !existing.payment_journal_entry_id && existing.journal_entry_id) {
@@ -260,8 +338,130 @@ export async function updateExpense(
       .single();
 
     if (error) throw new Error(error.message);
-    return mapFinancialExpense(data as DbExpense);
+    const mapped = mapFinancialExpense(data as DbExpense);
+
+    if (becomingFinalized && !mapped.journalEntryId) {
+      try {
+        const journal = await postExpenseJournal({
+          expenseId: mapped.id,
+          amount: Number(mapped.amount),
+          currency: String(mapped.currency),
+          categoryAccountCode: mapped.categoryAccountCode ?? "5090",
+          description: mapped.purposeDescription,
+          journalDate: mapped.expenseDate,
+          paid: mapped.paid,
+          workspaceId,
+        });
+        const { data: updated, error: updateError } = await supabase
+          .from("financial_expenses")
+          .update({
+            journal_entry_id: journal.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", id)
+          .eq("workspace_id", workspaceId)
+          .select("*")
+          .single();
+        if (updateError) throw new Error(updateError.message);
+        return mapFinancialExpense(updated as DbExpense);
+      } catch {
+        return mapped;
+      }
+    }
+
+    return mapped;
   });
+}
+
+export type BulkExpenseUpsertInput = {
+  rowIndex: number;
+  expenseId?: string | null;
+  submitterUserId: string;
+  purposeDescription: string;
+  amount: number;
+  currency: ExpenseCurrency;
+  dateSubmitted: string;
+  expenseDate: string;
+  paid: boolean;
+  supplier: string | null;
+  categoryAccountCode: string;
+  reference: string | null;
+  attachmentPath: string | null;
+  paymentMethod: string | null;
+  reimbursable: boolean;
+  recordStatus: ExpenseRecordStatus;
+};
+
+export type BulkExpenseSaveResult = {
+  saved: FinancialExpense[];
+  errors: { rowIndex: number; message: string }[];
+};
+
+export async function saveBulkExpenses(
+  rows: BulkExpenseUpsertInput[],
+  mode: BulkExpenseSaveMode,
+  scope?: ExpensesWorkspaceScope,
+): Promise<BulkExpenseSaveResult> {
+  const saved: FinancialExpense[] = [];
+  const errors: { rowIndex: number; message: string }[] = [];
+
+  for (const row of rows) {
+    try {
+      if (row.expenseId) {
+        const expense = await updateExpense(
+          row.expenseId,
+          {
+            submitterUserId: row.submitterUserId,
+            purposeDescription: row.purposeDescription,
+            amount: row.amount,
+            currency: row.currency,
+            dateSubmitted: row.dateSubmitted,
+            expenseDate: row.expenseDate,
+            paid: row.paid,
+            supplier: row.supplier,
+            categoryAccountCode: row.categoryAccountCode,
+            reference: row.reference,
+            attachmentPath: row.attachmentPath,
+            paymentMethod: row.paymentMethod,
+            reimbursable: row.reimbursable,
+            recordStatus: row.recordStatus,
+          },
+          scope,
+        );
+        saved.push(expense);
+        continue;
+      }
+
+      const expense = await createExpense(
+        {
+          submitterUserId: row.submitterUserId,
+          purposeDescription: row.purposeDescription,
+          amount: row.amount,
+          currency: row.currency,
+          dateSubmitted: row.dateSubmitted,
+          expenseDate: row.expenseDate,
+          paid: row.paid,
+          supplier: row.supplier,
+          categoryAccountCode: row.categoryAccountCode,
+          reference: row.reference,
+          attachmentPath: row.attachmentPath,
+          paymentMethod: row.paymentMethod,
+          reimbursable: row.reimbursable,
+          recordStatus: row.recordStatus,
+        },
+        scope,
+      );
+      saved.push(expense);
+    } catch (error) {
+      errors.push({
+        rowIndex: row.rowIndex,
+        message: error instanceof Error ? error.message : "Failed to save expense row.",
+      });
+    }
+  }
+
+  void mode;
+  return { saved, errors };
 }
 
 export async function deleteExpense(id: string, scope?: ExpensesWorkspaceScope) {

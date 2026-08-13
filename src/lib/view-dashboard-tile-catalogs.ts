@@ -9,7 +9,7 @@ import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
-import { inferExpenseCategory, isAccountsPayableSeedExpense, type FinancialExpense } from "@/lib/expenses-data";
+import { inferExpenseCategory, isCountableExpense, type FinancialExpense } from "@/lib/expenses-data";
 
 function crmReportingCurrency(): "AUD" | "GBP" | "USD" {
   try {
@@ -408,7 +408,7 @@ export function buildExpensesDashboardCatalog(
   // UTC month — matches expense_date seeds and AP KPI monthPrefix.
   const monthPrefix = new Date().toISOString().slice(0, 7);
 
-  const claimExpenses = expenses.filter((expense) => !isAccountsPayableSeedExpense(expense));
+  const claimExpenses = expenses.filter((expense) => isCountableExpense(expense));
 
   const spendMtd = claimExpenses
     .filter((expense) => {
