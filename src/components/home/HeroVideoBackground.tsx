@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 
 const HERO_VIDEO = "/images/video.mp4";
-const HERO_VIDEO_POSTER = "/images/hero-survey-background.png";
 const PLAYBACK_RATE = 0.8;
 const LOOP_LEAD_IN_SECONDS = 0.05;
 const LOOP_TRIM_SECONDS = 0.12;
@@ -12,6 +11,7 @@ export default function HeroVideoBackground() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -40,6 +40,10 @@ export default function HeroVideoBackground() {
       video.playbackRate = PLAYBACK_RATE;
     };
 
+    const handleCanPlay = () => {
+      setVideoReady(true);
+    };
+
     const handleTimeUpdate = () => {
       if (!video.duration || Number.isNaN(video.duration)) return;
 
@@ -49,6 +53,7 @@ export default function HeroVideoBackground() {
     };
 
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("canplay", handleCanPlay);
     video.addEventListener("timeupdate", handleTimeUpdate);
 
     const observer = new IntersectionObserver(
@@ -67,6 +72,7 @@ export default function HeroVideoBackground() {
 
     return () => {
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("canplay", handleCanPlay);
       video.removeEventListener("timeupdate", handleTimeUpdate);
       observer.disconnect();
     };
@@ -75,7 +81,7 @@ export default function HeroVideoBackground() {
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#020617]"
       aria-hidden
     >
       {prefersReducedMotion ? (
@@ -90,8 +96,9 @@ export default function HeroVideoBackground() {
         <video
           ref={videoRef}
           src={HERO_VIDEO}
-          poster={HERO_VIDEO_POSTER}
-          className="absolute inset-0 h-full w-full object-cover object-[50%_42%]"
+          className={`absolute inset-0 h-full w-full object-cover object-[50%_42%] transition-opacity duration-300 ${
+            videoReady ? "opacity-100" : "opacity-0"
+          }`}
           autoPlay
           muted
           loop
