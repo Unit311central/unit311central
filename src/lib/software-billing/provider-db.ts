@@ -42,6 +42,7 @@ function mapSnapshot(row: Record<string, unknown>): ProviderPeriodSnapshot {
     planIteration: String(row.plan_iteration ?? ""),
     seatCount: row.seat_count == null ? null : Number(row.seat_count),
     rawSummary: (row.raw_summary as Record<string, unknown>) ?? {},
+    source: String(row.source ?? "vercel_api"),
     updatedAt: String(row.updated_at ?? row.created_at ?? new Date().toISOString()),
   };
 }
