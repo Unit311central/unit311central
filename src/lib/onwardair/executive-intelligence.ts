@@ -130,6 +130,8 @@ export type OaModuleQueryResult = {
   bullets: string[];
   metrics: Record<string, string | number>;
   navigationHint: string;
+  /** Structured source records for EA synthesis — not shown in fixed bullet prose. */
+  records?: Record<string, unknown>;
 };
 
 function todayIso() {
@@ -483,8 +485,24 @@ export function queryOnwardAirModule(module: OaModuleId, question?: string): OaM
           pipelineUsd: activePipelineUsd(),
         },
         navigationHint: "Fundraising → Pipeline / Investors / Data Rooms",
+        records: {
+          seedTargetUsd: ONWARDAIR_SEED_RAISE_TARGET_USD,
+          activePipelineUsd: activePipelineUsd(),
+          deals: pipeline.map((d) => ({
+            firm: d.firm,
+            investor: d.investor,
+            stage: d.stage,
+            amountUsd: d.amountUsd,
+            owner: d.owner,
+            lastTouch: d.lastTouch,
+            notes: d.notes,
+          })),
+        },
       };
-    case "engineering":
+    case "engineering": {
+      const openRisks = getMergedEngineeringRisks().filter(
+        (r) => r.status === "open" || r.status === "mitigating",
+      );
       return {
         asOf,
         module,
@@ -493,7 +511,7 @@ export function queryOnwardAirModule(module: OaModuleId, question?: string): OaM
           ...OA_ENG_PROGRAMS.map(
             (p) => `${p.name} — ${p.rag.toUpperCase()} — ${p.progressPct}% — ${p.nextGate}`,
           ),
-          ...getMergedEngineeringRisks().filter((r) => r.status === "open" || r.status === "mitigating")
+          ...openRisks
             .slice(0, 3)
             .map((r) => `Risk: ${r.title} (${r.severity})`),
         ],
@@ -503,7 +521,27 @@ export function queryOnwardAirModule(module: OaModuleId, question?: string): OaM
           supplyAtRisk: eng.supplyAtRisk,
         },
         navigationHint: "Engineering → Overview / Programs & Milestones / Engineering Risks",
+        records: {
+          overview: eng,
+          programs: OA_ENG_PROGRAMS.map((p) => ({
+            name: p.name,
+            rag: p.rag,
+            progressPct: p.progressPct,
+            nextGate: p.nextGate,
+            nextGateDate: p.nextGateDate,
+            owner: p.owner,
+            summary: p.summary,
+          })),
+          risks: openRisks.map((r) => ({
+            title: r.title,
+            severity: r.severity,
+            status: r.status,
+            owner: r.owner,
+            mitigation: r.mitigation,
+          })),
+        },
       };
+    }
     case "board":
       return {
         asOf,

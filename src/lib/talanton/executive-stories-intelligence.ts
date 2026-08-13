@@ -320,9 +320,10 @@ export function needsStoriesScopeClarification(message: string): boolean {
 export function isStoriesTopicMessage(message: string): boolean {
   const lower = message.toLowerCase();
   return (
-    /\b(impact\s+stor|portfolio\s+stor|journey\s+stor|field\s+stor|founder\s+visit)\b/.test(lower) ||
+    /\b(impact|portfolio|journey|field)\s+stor(y|ies)\b/.test(lower) ||
+    /\bfounder\s+visit/.test(lower) ||
     (/\bstor(y|ies)\b/.test(lower) &&
-      /\b(impact|portfolio|journey|publish|newsletter|media|board|report|summar)/.test(lower))
+      /\b(impact|portfolio|journey|field|publish|newsletter|media|board|report|summar)/.test(lower))
   );
 }
 

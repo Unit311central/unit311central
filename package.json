@@ -49,6 +49,7 @@
     "test:write-overfire": "node --import tsx src/lib/ai-operating-assistant/__tests__/write-overfire.check.ts",
     "test:ea-fail-buckets": "node --import tsx src/lib/ai-operating-assistant/__tests__/remaining-fail-buckets.check.ts",
     "test:scoped-pdf": "node --import tsx src/lib/ai-operating-assistant/__tests__/scoped-pdf.check.ts",
+    "test:ea-synthesis": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-llm-synthesis.check.ts",
     "catalog:executive-modules": "node scripts/generate-executive-module-prompt-catalog.mjs",
     "test:ea-domains": "node scripts/verify-ea-knowledge-domains.mjs",
     "test:ea-intelligence": "node scripts/verify-ea-intelligence.mjs"
