@@ -11,6 +11,7 @@
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { resolveAbhiExecutiveIntelligenceIntent } from "@/lib/abhi/executive-intelligence-intent";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
+import { resolveAbhiEaPdfIntent } from "@/lib/abhi/ea-pdf-intents";
 import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { resolveOnwardAirExecutiveIntelligenceIntent } from "@/lib/onwardair/executive-intelligence-intent";
@@ -242,6 +243,18 @@ export async function resolveOrchestrationRoute(
       };
     }
 
+    const abhiPdf = resolveAbhiEaPdfIntent(message);
+    if (abhiPdf) {
+      return {
+        kind: "tool",
+        intent: {
+          tool: abhiPdf.tool,
+          args: abhiPdf.args,
+          reason: abhiPdf.reason,
+        },
+      };
+    }
+
     const boardPack = resolveAbhiBoardPackIntent(message);
     if (boardPack) {
       return {
@@ -405,6 +418,10 @@ export async function resolveOrchestrationRoute(
       "generateReportPdf",
       "generateEmployeeListPdf",
       "generatePayrollPdf",
+      "abhi.generateRegulatoryImpactPdf",
+      "abhi.generateQuarterlyFinancialDeltaPdf",
+      "abhi.generateProjectHealthPdf",
+      "abhi.generatePlatformAccessPdf",
       "emailAssistantArtifact",
     ].includes(documentIntent.tool)
   ) {

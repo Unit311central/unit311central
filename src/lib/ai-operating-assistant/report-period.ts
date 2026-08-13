@@ -3,10 +3,18 @@
  * Numbers always come from live series for the resolved window — never invented.
  */
 
+export type CalendarQuarter = 1 | 2 | 3 | 4;
+
+export type QuarterRef = {
+  year: number;
+  quarter: CalendarQuarter;
+};
+
 export type ReportPeriod =
   | { kind: "month"; key: string }
   | { kind: "ytd" }
-  | { kind: "last_n_months"; n: number };
+  | { kind: "last_n_months"; n: number }
+  | { kind: "quarter"; year: number; quarter: CalendarQuarter };
 
 function previousMonthKey(now = new Date()) {
   const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
@@ -28,6 +36,41 @@ export function lastNMonthKeys(n: number, now = new Date()): string[] {
   return keys;
 }
 
+/** Previous completed calendar quarter relative to `now` (UTC). */
+export function getLastCompletedCalendarQuarter(now = new Date()): QuarterRef {
+  const month = now.getUTCMonth();
+  const year = now.getUTCFullYear();
+  const currentQuarter = (Math.floor(month / 3) + 1) as CalendarQuarter;
+  if (currentQuarter === 1) {
+    return { year: year - 1, quarter: 4 };
+  }
+  return { year, quarter: (currentQuarter - 1) as CalendarQuarter };
+}
+
+export function getPriorQuarter(ref: QuarterRef): QuarterRef {
+  if (ref.quarter === 1) {
+    return { year: ref.year - 1, quarter: 4 };
+  }
+  return { year: ref.year, quarter: (ref.quarter - 1) as CalendarQuarter };
+}
+
+export function quarterToReportPeriod(ref: QuarterRef): Extract<ReportPeriod, { kind: "quarter" }> {
+  return { kind: "quarter", year: ref.year, quarter: ref.quarter };
+}
+
+/** ISO month keys (YYYY-MM) for each month in a calendar quarter. */
+export function quarterMonthKeys(ref: QuarterRef): string[] {
+  const startMonth = (ref.quarter - 1) * 3 + 1;
+  return [0, 1, 2].map((offset) => {
+    const month = startMonth + offset;
+    return `${ref.year}-${String(month).padStart(2, "0")}`;
+  });
+}
+
+export function formatQuarterLabel(ref: QuarterRef): string {
+  return `Q${ref.quarter} ${ref.year}`;
+}
+
 export function parseReportPeriod(periodHint?: string | null): ReportPeriod {
   const hint = (periodHint || "").toLowerCase();
   const now = new Date();
@@ -38,6 +81,9 @@ export function parseReportPeriod(periodHint?: string | null): ReportPeriod {
   }
   if (/\blast\s+six\s+months\b/.test(hint) || /\bpast\s+six\s+months\b/.test(hint)) {
     return { kind: "last_n_months", n: 6 };
+  }
+  if (/\blast\s+quarter\b/.test(hint) || /\bprevious\s+quarter\b/.test(hint) || /\bprior\s+quarter\b/.test(hint)) {
+    return quarterToReportPeriod(getLastCompletedCalendarQuarter(now));
   }
 
   if (/last\s+month|previous\s+month|prior\s+month/.test(hint)) {
@@ -69,6 +115,12 @@ export function formatReportPeriodLabel(period: ReportPeriod): string {
     const first = keys[0];
     const last = keys[keys.length - 1];
     return `Last ${period.n} months (${monthLabel(first)} – ${monthLabel(last)})`;
+  }
+  if (period.kind === "quarter") {
+    const keys = quarterMonthKeys({ year: period.year, quarter: period.quarter });
+    const first = keys[0];
+    const last = keys[keys.length - 1];
+    return `${formatQuarterLabel({ year: period.year, quarter: period.quarter })} (${monthLabel(first)} – ${monthLabel(last)})`;
   }
   return monthLabel(period.key);
 }

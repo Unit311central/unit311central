@@ -48,6 +48,10 @@ export type DirectAssistantIntent = {
     | "abhi.getOrgHealth"
     | "abhi.queryActions"
     | "abhi.getBoardInsights"
+    | "abhi.generateRegulatoryImpactPdf"
+    | "abhi.generateQuarterlyFinancialDeltaPdf"
+    | "abhi.generateProjectHealthPdf"
+    | "abhi.generatePlatformAccessPdf"
     | "talanton.getExecutiveBriefing"
     | "talanton.getOrgHealth"
     | "talanton.queryActions"
@@ -552,7 +556,9 @@ export function resolveDirectIntent(
             ? `last ${scoped.period.n} months`
             : scoped.period.kind === "ytd"
               ? "ytd"
-              : scoped.period.key,
+              : scoped.period.kind === "quarter"
+                ? `Q${scoped.period.quarter} ${scoped.period.year}`
+                : scoped.period.key,
       },
       reason: "scoped_business_pdf",
     };

@@ -27,6 +27,13 @@ import {
   queryAbhiActionsTool,
 } from "./abhi-executive-tools";
 import {
+  ABHI_EA_PDF_TOOL_DEFINITIONS,
+  generateAbhiPlatformAccessPdfTool,
+  generateAbhiProjectHealthPdfTool,
+  generateAbhiQuarterlyFinancialDeltaPdfTool,
+  generateAbhiRegulatoryImpactPdfTool,
+} from "@/lib/abhi/ea-pdf-tools";
+import {
   ABHI_EXECUTIVE_TOOL_DEFINITIONS,
   TALANTON_EXECUTIVE_TOOL_DEFINITIONS,
   getTalantonBoardInsightsTool,
@@ -925,6 +932,10 @@ const handlers: Record<string, ContextualToolHandler> = {
   "abhi.getOrgHealth": getAbhiOrgHealthTool,
   "abhi.queryActions": queryAbhiActionsTool,
   "abhi.getBoardInsights": getAbhiBoardInsightsTool,
+  "abhi.generateRegulatoryImpactPdf": generateAbhiRegulatoryImpactPdfTool,
+  "abhi.generateQuarterlyFinancialDeltaPdf": generateAbhiQuarterlyFinancialDeltaPdfTool,
+  "abhi.generateProjectHealthPdf": generateAbhiProjectHealthPdfTool,
+  "abhi.generatePlatformAccessPdf": generateAbhiPlatformAccessPdfTool,
   "talanton.getExecutiveBriefing": getTalantonExecutiveBriefingTool,
   "talanton.getOrgHealth": getTalantonOrgHealthTool,
   "talanton.queryActions": queryTalantonActionsTool,
@@ -951,7 +962,7 @@ export function registerAssistantTool(name: string, handler: ContextualToolHandl
 export function getOpenAIToolSchemas(workspaceSlug?: string | null) {
   const slug = workspaceSlug?.trim().toLowerCase() ?? "";
   const extra = [
-    ...(isAbhiSlug(slug) ? ABHI_EXECUTIVE_TOOL_DEFINITIONS : []),
+    ...(isAbhiSlug(slug) ? [...ABHI_EXECUTIVE_TOOL_DEFINITIONS, ...ABHI_EA_PDF_TOOL_DEFINITIONS] : []),
     ...(isTalantonImpactSlug(slug) ? TALANTON_EXECUTIVE_TOOL_DEFINITIONS : []),
     ...(isOnwardAirSlug(slug) ? ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS : []),
   ];

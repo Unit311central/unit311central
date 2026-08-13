@@ -5,6 +5,7 @@ import {
   type AbhiRegulatoryDashboard,
   type AbhiRegulatoryExportKind,
   type AbhiRegulatoryImpactAssessment,
+  type AbhiRegulatoryPeriodReportData,
   type AbhiRegulatoryUpdate,
 } from "@/lib/abhi/regulatory-intelligence";
 
@@ -162,6 +163,117 @@ export function buildAbhiRegulatoryPdf(
     for (const line of lines) {
       doc.text(`• ${line}`, 16, y);
       y += 6;
+    }
+  }
+
+  return new Uint8Array(doc.output("arraybuffer"));
+}
+
+export function abhiRegulatoryPeriodPdfFileName(periodLabel: string) {
+  const stamp = new Date().toISOString().slice(0, 10);
+  const safe = periodLabel.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 40);
+  return `ABHI-Regulatory-Impact-${safe}-${stamp}.pdf`;
+}
+
+/** Multi-update regulatory impact report for EA period/region asks (not board deck). */
+export function buildAbhiRegulatoryPeriodImpactPdf(
+  data: AbhiRegulatoryPeriodReportData,
+): Uint8Array {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+
+  let y = 18;
+  doc.setFillColor(0, 43, 92);
+  doc.rect(0, 0, pageW, 28, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("ABHI Regulatory Member Impact Report", 14, 14);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(
+    `${data.periodLabel} · ${data.regionLabel} · Generated ${data.refreshedAt}`,
+    14,
+    22,
+  );
+
+  y = 40;
+  doc.setTextColor(27, 36, 48);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("Scope", 14, y);
+  y += 7;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  y = wrap(
+    doc,
+    `${data.updates.length} regulatory update(s) in period · ${data.uniqueMemberCount} unique member(s) with recorded impact.`,
+    14,
+    y,
+    pageW - 28,
+  );
+
+  if (data.emptyReason) {
+    y += 4;
+    y = wrap(doc, data.emptyReason, 14, y, pageW - 28);
+  }
+
+  for (let i = 0; i < data.updates.length; i += 1) {
+    const update = data.updates[i]!;
+    const assessment =
+      data.assessments.find((row) => row.updateId === update.id) ?? data.assessments[i];
+    if (!assessment) continue;
+
+    if (y > 250) {
+      doc.addPage();
+      y = 18;
+    }
+    y += 6;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("What changed", 14, y);
+    y += 7;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    y = wrap(doc, update.title, 14, y, pageW - 28);
+    y = wrap(
+      doc,
+      `${update.sourceName} · ${formatRegulatoryDate(update.publicationDate)} · ${update.severity} · ${update.status}`,
+      14,
+      y,
+      pageW - 28,
+    );
+    y = wrap(doc, update.summary, 14, y, pageW - 28);
+
+    y += 4;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Why it matters", 14, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    y = wrap(doc, assessment.whyItMatters, 14, y, pageW - 28);
+    y = wrap(doc, assessment.summary, 14, y, pageW - 28);
+
+    y += 4;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Members affected", 14, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    const members = assessment.affectedMembers.slice(0, 10);
+    if (members.length === 0) {
+      y = wrap(doc, "• No members matched this update for the selected region.", 16, y, pageW - 30);
+    } else {
+      for (const member of members) {
+        y = wrap(
+          doc,
+          `• ${member.memberName} (${member.impactScore}% impact) — ${member.whyAffected.slice(0, 2).join("; ") || member.recommendedAbhiAction}`,
+          16,
+          y,
+          pageW - 30,
+        );
+      }
     }
   }
 

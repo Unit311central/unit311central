@@ -906,6 +906,107 @@ export function formatRegulatoryDate(iso: string) {
   }).format(date);
 }
 
+export type AbhiRegulatoryReportRegion = "UK" | "all";
+
+export type AbhiRegulatoryPeriodReportData = {
+  periodLabel: string;
+  regionLabel: string;
+  refreshedAt: string;
+  updates: AbhiRegulatoryUpdate[];
+  assessments: AbhiRegulatoryImpactAssessment[];
+  uniqueMemberCount: number;
+  emptyReason?: string;
+};
+
+function isUkRegion(value: string | null | undefined) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return (
+    normalized === "uk" ||
+    normalized === "united kingdom" ||
+    normalized === "great britain" ||
+    normalized === "gb" ||
+    normalized.includes("united kingdom")
+  );
+}
+
+function ukMemberIds(clients: ManagedClient[]): Set<string> {
+  const ids = new Set<string>();
+  for (const client of clients) {
+    if (isUkRegion(client.region)) ids.add(client.id);
+  }
+  return ids;
+}
+
+function filterAssessmentMembersForRegion(
+  assessment: AbhiRegulatoryImpactAssessment,
+  region: AbhiRegulatoryReportRegion,
+  ukIds: Set<string>,
+): AbhiRegulatoryImpactAssessment {
+  if (region === "all") return assessment;
+  const keep = (member: AbhiMatchedRegulatoryMember) => ukIds.has(member.id);
+  const affectedMembers = assessment.affectedMembers.filter(keep);
+  const highImpactMembers = assessment.highImpactMembers.filter(keep);
+  const strategicMembers = assessment.strategicMembers.filter(keep);
+  return {
+    ...assessment,
+    affectedMembers,
+    highImpactMembers,
+    strategicMembers,
+    summary:
+      affectedMembers.length > 0
+        ? assessment.summary
+        : "No UK members matched this update in the current portfolio snapshot.",
+  };
+}
+
+/** Filter regulatory catalogue and member impacts for EA period/region PDF reports. */
+export function buildAbhiRegulatoryPeriodReportData(
+  clients: ManagedClient[],
+  options: { months?: number; region?: AbhiRegulatoryReportRegion },
+  asOf = new Date(),
+): AbhiRegulatoryPeriodReportData {
+  const months = Math.max(1, Math.min(36, Math.floor(options.months ?? 6)));
+  const region = options.region ?? "UK";
+  const dashboard = buildAbhiRegulatoryDashboard(clients, asOf);
+  const cutoff = new Date(asOf);
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - months);
+  const cutoffIso = cutoff.toISOString().slice(0, 10);
+
+  const updates = dashboard.updates.filter((update) => update.publicationDate >= cutoffIso);
+  const ukIds = ukMemberIds(clients);
+  const assessments = updates.map((update) => {
+    const base = dashboard.assessments.find((row) => row.updateId === update.id);
+    if (!base) return buildImpactAssessment(update, buildMemberIntelligencePortfolio(clients, asOf).rows);
+    return filterAssessmentMembersForRegion(base, region, ukIds);
+  });
+
+  const memberIds = new Set(
+    assessments.flatMap((assessment) => assessment.affectedMembers.map((member) => member.id)),
+  );
+
+  const startLabel = formatRegulatoryDate(cutoffIso);
+  const endLabel = formatRegulatoryDate(asOf.toISOString().slice(0, 10));
+  const periodLabel = `Past ${months} months (${startLabel} – ${endLabel})`;
+  const regionLabel = region === "UK" ? "United Kingdom members" : "All members";
+
+  return {
+    periodLabel,
+    regionLabel,
+    refreshedAt: dashboard.refreshedAt,
+    updates,
+    assessments,
+    uniqueMemberCount: memberIds.size,
+    emptyReason:
+      updates.length === 0
+        ? `No regulatory updates were published in the ${periodLabel.toLowerCase()} window in the current catalogue.`
+        : memberIds.size === 0
+          ? `Regulatory updates were found for ${periodLabel.toLowerCase()}, but no ${regionLabel.toLowerCase()} matched the portfolio snapshot.`
+          : undefined,
+  };
+}
+
 export type AbhiRegulatoryExportKind =
   | "regulatory-briefing"
   | "member-impact"

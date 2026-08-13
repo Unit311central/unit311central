@@ -19,6 +19,7 @@ import {
 import {
   formatReportPeriodLabel,
   lastNMonthKeys,
+  quarterMonthKeys,
   type ReportPeriod,
 } from "@/lib/ai-operating-assistant/report-period";
 import {
@@ -125,6 +126,38 @@ function pnlForPeriod(
         ...monthRows.map((r) => ({ label: `  ${r.label} net`, value: r.value })),
       ],
       note,
+    };
+  }
+
+  if (period.kind === "quarter") {
+    const keys = quarterMonthKeys({ year: period.year, quarter: period.quarter });
+    let revenue = 0;
+    let expenses = 0;
+    let netTotal = 0;
+    const monthRows: ScopedPdfRow[] = [];
+    for (const key of keys) {
+      const rev = overview.charts.monthlyRevenue.find((r) => r.month === key)?.amount ?? 0;
+      const out = overview.charts.monthlyOutgoings.find((r) => r.month === key)?.amount ?? 0;
+      const pl = overview.charts.monthlyProfitLoss.find((r) => r.month === key);
+      const net = pl ? pl.profit - pl.loss : rev - out;
+      revenue += rev;
+      expenses += out;
+      netTotal += net;
+      monthRows.push({ label: monthLabel(key), value: money(net) });
+    }
+    return {
+      rows: [
+        { label: "Revenue (quarter sum)", value: money(revenue) },
+        { label: "Expenses (quarter sum)", value: money(expenses) },
+        { label: "Net profit / (loss)", value: money(netTotal) },
+        ...monthRows.map((r) => ({ label: `  ${r.label} net`, value: r.value })),
+      ],
+    };
+  }
+
+  if (period.kind !== "month") {
+    return {
+      rows: [{ label: "Status", value: "Unsupported period for P&L snapshot" }],
     };
   }
 
