@@ -8,6 +8,13 @@ import HomePricing from "@/components/home/HomePricing";
 export default function HomePage() {
   return (
     <div className="overflow-x-hidden pb-[max(5rem,calc(3rem+env(safe-area-inset-bottom)))] lg:pb-0">
+      <link
+        rel="preload"
+        href="/images/video.mp4"
+        as="video"
+        type="video/mp4"
+        fetchPriority="high"
+      />
       <HomeHero />
       <HomeWhatWeOffering />
       <HomeCustomerProof />

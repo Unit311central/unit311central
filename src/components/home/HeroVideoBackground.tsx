@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const HERO_VIDEO = "/images/video.mp4";
+const HERO_VIDEO_POSTER = "/images/hero-survey-background.png";
 const PLAYBACK_RATE = 0.8;
 const LOOP_LEAD_IN_SECONDS = 0.05;
 const LOOP_TRIM_SECONDS = 0.12;
@@ -89,7 +90,8 @@ export default function HeroVideoBackground() {
         <video
           ref={videoRef}
           src={HERO_VIDEO}
-          className="absolute inset-0 h-full w-full object-contain object-center sm:object-cover sm:object-[50%_42%]"
+          poster={HERO_VIDEO_POSTER}
+          className="absolute inset-0 h-full w-full object-cover object-[50%_42%]"
           autoPlay
           muted
           loop
@@ -97,6 +99,8 @@ export default function HeroVideoBackground() {
           disablePictureInPicture
           controls={false}
           preload="auto"
+          // @ts-expect-error fetchPriority is valid on video in modern browsers
+          fetchPriority="high"
           aria-hidden
           tabIndex={-1}
         />

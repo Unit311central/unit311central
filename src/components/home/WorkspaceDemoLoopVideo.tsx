@@ -14,6 +14,10 @@ type WorkspaceDemoLoopVideoProps = {
   preload?: "auto" | "metadata" | "none";
   controls?: boolean;
   loop?: boolean;
+  /** Stretch video to fill the parent height (object-cover). */
+  fill?: boolean;
+  /** Zoom slightly past object-cover to hide baked-in letterboxing. */
+  cropFill?: boolean;
   /** Override default 16/11 frame (e.g. aspect-video for 16:9 commercials). */
   frameClassName?: string;
 };
@@ -25,6 +29,8 @@ export default function WorkspaceDemoLoopVideo({
   preload = "metadata",
   controls = false,
   loop = true,
+  fill = false,
+  cropFill = false,
   frameClassName = "aspect-[16/11] sm:aspect-[16/10]",
 }: WorkspaceDemoLoopVideoProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -94,20 +100,28 @@ export default function WorkspaceDemoLoopVideo({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full overflow-hidden rounded-xl bg-[#0b1220] sm:rounded-2xl ${frameClassName} ${className}`}
+      className={`relative w-full overflow-hidden bg-[#0b1220] ${
+        fill ? "h-full min-h-full" : `rounded-xl sm:rounded-2xl ${frameClassName}`
+      } ${className}`}
     >
       {prefersReducedMotion && poster != null ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={poster}
           alt="Unit311 Central workspace preview"
-          className="h-full w-full object-cover object-top"
+          className="h-full w-full object-cover object-center"
         />
       ) : (
         <video
           key={src}
           ref={videoRef}
-          className="h-full w-full object-cover object-center"
+          className={
+            fill
+              ? `absolute inset-0 h-full w-full object-cover object-center${
+                  cropFill ? " min-h-full min-w-full scale-[1.28]" : ""
+                }`
+              : "h-full w-full object-cover object-center"
+          }
           src={src}
           autoPlay
           muted

@@ -27,14 +27,14 @@ export default function HomeBusinessCase() {
           <HomeSectionTitle singleLine>The business case for Unit311 Central</HomeSectionTitle>
         </div>
 
-        <div className="business-case-fade-in mt-12 flex flex-col gap-4 lg:mt-16">
+        <div className="business-case-fade-in mt-12 flex flex-col gap-0 lg:mt-16">
           <div className={PANEL_SHELL}>
-            <div className="bg-sky-400/[0.08] p-4 sm:p-5 lg:p-6">
+            <div className="bg-sky-400/[0.08] p-4 sm:p-5 lg:px-6 lg:pt-6 lg:pb-2">
               <HomeBusinessCaseStackTable />
             </div>
           </div>
           <div className={`${PANEL_SHELL} flex flex-col`}>
-            <div className="p-3 sm:p-4 lg:p-5">
+            <div className="px-3 pt-2 pb-3 sm:px-4 sm:pt-2.5 sm:pb-4 lg:px-5 lg:pt-3 lg:pb-5">
               <HomeBusinessCaseTabbedVideo />
             </div>
           </div>

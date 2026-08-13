@@ -92,12 +92,14 @@ export default function HomeCustomerProof() {
               </div>
             </div>
 
-            <div className="relative min-h-[280px] overflow-hidden rounded-2xl border border-white/12 bg-[#0b1220] shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:min-h-[320px] sm:rounded-[28px] lg:h-full lg:min-h-0">
+            <div className="relative min-h-[280px] overflow-hidden rounded-2xl border border-white/12 bg-[#0b1220] shadow-[0_28px_90px_rgba(0,0,0,0.35)] sm:min-h-[320px] sm:rounded-[28px] lg:min-h-0 lg:h-full">
               <WorkspaceDemoLoopVideo
+                fill
+                cropFill
                 className="absolute inset-0 h-full w-full rounded-none"
                 src="/videos/overview.mp4"
                 poster={null}
-                frameClassName="h-full w-full"
+                preload="metadata"
               />
             </div>
           </div>

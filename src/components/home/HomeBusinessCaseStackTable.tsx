@@ -92,14 +92,14 @@ export default function HomeBusinessCaseStackTable() {
               <td className={`${COST_COL} text-white/75`}>$3,900</td>
             </tr>
             <tr className="border-b border-sky-300/10 bg-sky-400/[0.04]">
-              <td className={`${FUNCTION_COL} pb-4 lg:pb-5`}>Implementation & Integration</td>
-              <td className={`${PRODUCT_COL} pb-4 lg:pb-5`} />
-              <td className={`${COST_COL} pb-4 text-white/75 lg:pb-5`}>$7,000</td>
+              <td className={`${FUNCTION_COL} pb-2`}>Implementation & Integration</td>
+              <td className={`${PRODUCT_COL} pb-2`} />
+              <td className={`${COST_COL} pb-2 text-white/75`}>$7,000</td>
             </tr>
           </tbody>
         </table>
         </div>
-        <HomeBusinessCaseToolStackBar className="mt-4 px-3 sm:px-3.5" />
+        <HomeBusinessCaseToolStackBar className="mt-1 px-3 sm:px-3.5" />
       </div>
 
       <div className="space-y-2 md:hidden">
