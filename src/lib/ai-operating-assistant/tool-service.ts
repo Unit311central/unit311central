@@ -57,6 +57,10 @@ import {
   queryOnwardAirModuleTool,
   queryOnwardAirProjectPortfolioTool,
 } from "./onwardair-executive-tools";
+import {
+  ensureEaWorkspacePacksRegistered,
+  getEaWorkspacePackToolDefinitions,
+} from "@/lib/ai-operating-assistant/workspace-packs";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -966,12 +970,19 @@ export function registerAssistantTool(name: string, handler: ContextualToolHandl
 }
 
 export function getOpenAIToolSchemas(workspaceSlug?: string | null) {
+  ensureEaWorkspacePacksRegistered();
   const slug = workspaceSlug?.trim().toLowerCase() ?? "";
-  const extra = [
-    ...(isAbhiSlug(slug) ? [...ABHI_EXECUTIVE_TOOL_DEFINITIONS, ...ABHI_EA_PDF_TOOL_DEFINITIONS] : []),
-    ...(isTalantonImpactSlug(slug) ? TALANTON_EXECUTIVE_TOOL_DEFINITIONS : []),
-    ...(isOnwardAirSlug(slug) ? ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS : []),
-  ];
+  const packTools = getEaWorkspacePackToolDefinitions(slug);
+  const extra =
+    packTools.length > 0
+      ? packTools
+      : [
+          ...(isAbhiSlug(slug)
+            ? [...ABHI_EXECUTIVE_TOOL_DEFINITIONS, ...ABHI_EA_PDF_TOOL_DEFINITIONS]
+            : []),
+          ...(isTalantonImpactSlug(slug) ? TALANTON_EXECUTIVE_TOOL_DEFINITIONS : []),
+          ...(isOnwardAirSlug(slug) ? ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS : []),
+        ];
   return [...ASSISTANT_TOOL_DEFINITIONS, ...extra].map((tool) => ({
     type: "function" as const,
     name: tool.name,

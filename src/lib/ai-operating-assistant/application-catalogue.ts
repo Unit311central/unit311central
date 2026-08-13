@@ -27,6 +27,11 @@ import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
 import { isOnwardAirWorkspaceSlug } from "@/lib/onwardair-financials";
 import { isTalantonWorkspaceSlug } from "@/lib/talanton-financials";
 import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
+import {
+  ensureEaWorkspacePacksRegistered,
+  getEaWorkspacePackForSlug,
+  getEaWorkspacePackNavSections,
+} from "@/lib/ai-operating-assistant/workspace-packs";
 
 export type ApplicationCataloguePage = {
   id: string;
@@ -284,6 +289,10 @@ export type ApplicationCatalogueOptions = {
 };
 
 function navSectionsForSurface(workspaceSlug?: string | null): readonly InternalNavSection[] {
+  ensureEaWorkspacePacksRegistered();
+  const packNav = getEaWorkspacePackNavSections(workspaceSlug);
+  if (packNav) return packNav;
+
   if (isCorpCentreWorkspaceSlug(workspaceSlug)) {
     return filterInternalNavSectionsForCorpCentreWorkspace(internalSurveyNavSections);
   }
@@ -301,6 +310,9 @@ function navSectionsForSurface(workspaceSlug?: string | null): readonly Internal
 
 function workspaceModulesCacheKey(workspaceSlug?: string | null): string | null {
   if (!workspaceSlug) return null;
+  ensureEaWorkspacePacksRegistered();
+  const pack = getEaWorkspacePackForSlug(workspaceSlug);
+  if (pack) return pack.id;
   if (isCorpCentreWorkspaceSlug(workspaceSlug)) return "corpcentre";
   if (isAbhiWorkspaceSlug(workspaceSlug)) return "abhi";
   if (isOnwardAirWorkspaceSlug(workspaceSlug)) return "onwardair";

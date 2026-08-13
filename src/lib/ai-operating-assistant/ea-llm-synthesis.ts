@@ -8,7 +8,10 @@
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
-
+import {
+  ensureEaWorkspacePacksRegistered,
+  getEaWorkspacePackForSlug,
+} from "@/lib/ai-operating-assistant/workspace-packs";
 export type EaSynthesisContext = {
   workspaceSlug: string;
   toolName: string;
@@ -127,6 +130,12 @@ function synthesisGuidanceForTool(toolName: string, toolArgs: Record<string, unk
  */
 export function shouldSynthesizeExecutiveToolResult(ctx: EaSynthesisContext): boolean {
   if (toolResultHasError(ctx.toolResult)) return false;
+
+  ensureEaWorkspacePacksRegistered();
+  const pack = getEaWorkspacePackForSlug(ctx.workspaceSlug);
+  if (pack?.synthesisRules?.length) {
+    return pack.synthesisRules.some((rule) => rule.matches(ctx));
+  }
 
   const { workspaceSlug, toolName, toolArgs } = ctx;
 

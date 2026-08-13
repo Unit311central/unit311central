@@ -9,19 +9,12 @@
  */
 
 import { isAbhiSlug } from "@/lib/abhi-surface";
-import { resolveAbhiExecutiveIntelligenceIntent } from "@/lib/abhi/executive-intelligence-intent";
-import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
-import { resolveAbhiEaPdfIntent } from "@/lib/abhi/ea-pdf-intents";
-import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
-import { resolveProjectPortfolioHealthIntent } from "@/lib/ai-operating-assistant/project-portfolio-health-intent";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { resolveOnwardAirExecutiveIntelligenceIntent } from "@/lib/onwardair/executive-intelligence-intent";
-import { isTalantonImpactSlug } from "@/lib/talanton-surface";
-import { resolveTalantonExecutiveIntelligenceIntent } from "@/lib/talanton/executive-intelligence-intent";
 import {
-  resolveTalantonStoriesRoute,
-  resolveTalantonViewAwareTool,
-} from "@/lib/talanton/executive-stories-intent";
+  ensureEaWorkspacePacksRegistered,
+  resolveEaWorkspacePackOrchestration,
+} from "@/lib/ai-operating-assistant/workspace-packs";
 
 import type { AssistantBusinessContext, AssistantChatMessage } from "./types";
 import type { DirectAssistantIntent } from "./intent-router";
@@ -61,6 +54,7 @@ let modulesBootstrapped = false;
 
 /** Idempotent — safe on every turn / serverless invoke. */
 export function ensureActionModulesRegistered() {
+  ensureEaWorkspacePacksRegistered();
   registerAllActionModules();
   modulesBootstrapped = true;
   return modulesBootstrapped;
@@ -75,38 +69,8 @@ const MANUAL_GUIDANCE_TOOLS = new Set([
   "listPageGuides",
 ]);
 
-export type OrchestrationRoute =
-  | {
-      kind: "tool";
-      intent: DirectAssistantIntent;
-      executionCards?: EaExecutionCard[];
-    }
-  | {
-      kind: "need_info";
-      message: string;
-      actionId: string;
-      missingFields: string[];
-      input: Record<string, unknown>;
-      executionCards: EaExecutionCard[];
-    }
-  | {
-      kind: "capability_answer";
-      message: string;
-      executionCards?: EaExecutionCard[];
-    }
-  | {
-      kind: "platform_answer";
-      message: string;
-      executionCards?: EaExecutionCard[];
-    }
-  | {
-      kind: "workflow_read";
-      message: string;
-      executionCards: EaExecutionCard[];
-    }
-  | {
-      kind: "none";
-    };
+import type { OrchestrationRoute } from "./orchestration-route";
+export type { OrchestrationRoute } from "./orchestration-route";
 
 function proposeSteps(
   actionId: string,
@@ -230,206 +194,13 @@ export async function resolveOrchestrationRoute(
     }
   }
 
-  // ABHI flagship — Board Pack Generation (PowerPoint + PDF). Workspace-gated.
-  if (isAbhiSlug(business.workspace.slug)) {
-    const portfolioHealth = resolveProjectPortfolioHealthIntent(
-      message,
-      business.workspace.slug ?? "",
-    );
-    if (portfolioHealth) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: portfolioHealth.tool as DirectAssistantIntent["tool"],
-          args: portfolioHealth.args,
-          reason: portfolioHealth.reason,
-        },
-      };
-    }
-
-    const execIntel = resolveAbhiExecutiveIntelligenceIntent(message);
-    if (execIntel) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: execIntel.tool,
-          args: execIntel.args,
-          reason: execIntel.reason,
-        },
-      };
-    }
-
-    const abhiPdf = resolveAbhiEaPdfIntent(message);
-    if (abhiPdf) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: abhiPdf.tool,
-          args: abhiPdf.args,
-          reason: abhiPdf.reason,
-        },
-      };
-    }
-
-    const boardPack = resolveAbhiBoardPackIntent(message);
-    if (boardPack) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: boardPack.tool,
-          args: boardPack.args,
-          reason: boardPack.reason,
-        },
-      };
-    }
-
-    if (resolveAbhiLmsCourseIntent(message)) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: "lms.generateCourseFromDocument",
-          args: {
-            fileId: business.selection?.fileId ?? undefined,
-            fileName: business.selection?.fileName ?? undefined,
-            title: undefined,
-          },
-          reason: "ABHI AI course generator from document",
-        },
-      };
-    }
-  }
-
-  // Talanton Impact — executive intelligence, board pack, AI training course.
-  if (isTalantonImpactSlug(business.workspace.slug)) {
-    const viewTool = resolveTalantonViewAwareTool(message, business.page.activeView);
-    if (viewTool) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: viewTool.tool as DirectAssistantIntent["tool"],
-          args: viewTool.args,
-          reason: viewTool.reason,
-        },
-      };
-    }
-
-    const storiesRoute = resolveTalantonStoriesRoute(message, business.page.activeView);
-    if (storiesRoute?.kind === "clarify") {
-      return {
-        kind: "need_info",
-        message: storiesRoute.message,
-        actionId: "talanton.storiesScope",
-        missingFields: ["companies", "categories"],
-        input: {},
-        executionCards: [],
-      };
-    }
-    if (storiesRoute?.kind === "tool") {
-      return {
-        kind: "tool",
-        intent: {
-          tool: storiesRoute.tool,
-          args: storiesRoute.args,
-          reason: storiesRoute.reason,
-        },
-      };
-    }
-
-    const execIntel = resolveTalantonExecutiveIntelligenceIntent(message);
-    if (execIntel) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: execIntel.tool,
-          args: execIntel.args,
-          reason: execIntel.reason,
-        },
-      };
-    }
-
-    const boardPack = resolveAbhiBoardPackIntent(message);
-    if (boardPack) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: boardPack.tool,
-          args: boardPack.args,
-          reason: "Talanton Impact board pack generation",
-        },
-      };
-    }
-
-    if (resolveAbhiLmsCourseIntent(message)) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: "lms.generateCourseFromDocument",
-          args: {
-            fileId: business.selection?.fileId ?? undefined,
-            fileName: business.selection?.fileName ?? undefined,
-            title: undefined,
-          },
-          reason: "Talanton Impact AI course generator from document",
-        },
-      };
-    }
-  }
-
-  // OnwardAir — executive intelligence, board deck, AI training course.
-  if (isOnwardAirSlug(business.workspace.slug)) {
-    const portfolioHealth = resolveProjectPortfolioHealthIntent(
-      message,
-      business.workspace.slug ?? "",
-    );
-    if (portfolioHealth) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: portfolioHealth.tool as DirectAssistantIntent["tool"],
-          args: portfolioHealth.args,
-          reason: portfolioHealth.reason,
-        },
-      };
-    }
-
-    const execIntel = resolveOnwardAirExecutiveIntelligenceIntent(message);
-    if (execIntel) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: execIntel.tool as DirectAssistantIntent["tool"],
-          args: execIntel.args,
-          reason: execIntel.reason,
-        },
-      };
-    }
-
-    const boardPack = resolveAbhiBoardPackIntent(message);
-    if (boardPack) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: boardPack.tool,
-          args: boardPack.args,
-          reason: "OnwardAir board deck generation",
-        },
-      };
-    }
-
-    if (resolveAbhiLmsCourseIntent(message)) {
-      return {
-        kind: "tool",
-        intent: {
-          tool: "lms.generateCourseFromDocument",
-          args: {
-            fileId: business.selection?.fileId ?? undefined,
-            fileName: business.selection?.fileName ?? undefined,
-            title: undefined,
-          },
-          reason: "OnwardAir AI course generator from document",
-        },
-      };
-    }
+  const workspacePackRoute = await resolveEaWorkspacePackOrchestration({
+    message,
+    business,
+    history,
+  });
+  if (workspacePackRoute) {
+    return workspacePackRoute;
   }
 
   // Document / PDF / export intents win before any write propose path.
