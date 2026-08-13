@@ -623,7 +623,7 @@ function messageHasDurableArtifacts(message: AssistantChatMessage) {
   );
 }
 
-function extractArtifactsFromToolResult(
+export function extractArtifactsFromToolResult(
   result: unknown,
   toolName?: string,
   userId?: string,
@@ -663,7 +663,8 @@ function extractArtifactsFromToolResult(
 
   if (toolName) {
     const listed = formatDirectListReply(toolName, result);
-    if (listed) {
+    // Executive PDF tools return formatted prose — still attach artifacts when present.
+    if (listed && !artifactId) {
       return {
         followUps,
         artifacts: [],
