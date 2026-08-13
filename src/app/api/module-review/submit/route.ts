@@ -57,7 +57,7 @@ function buildCsvRows(selected: SubmitBody["selected"]) {
 }
 
 async function trySaveToDesktop(rows: string[]) {
-  if (process.env.VERCEL) return null;
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") return null;
 
   const desktopFile = desktopFilePath();
   if (!desktopFile) return null;
