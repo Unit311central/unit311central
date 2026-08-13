@@ -23,7 +23,9 @@ export default function ModuleReviewSizePreviewPage() {
     >
       <div className="w-full max-w-full pt-6 sm:pt-8" data-module-review-size-page>
         <header className={`text-left ${MODULE_REVIEW_PANEL_INSET_X}`}>
-          <div className={`grid w-full min-w-0 grid-cols-7 ${MODULE_REVIEW_COL_GAP} items-center`}>
+          <div
+            className={`grid w-full min-w-0 grid-cols-7 ${MODULE_REVIEW_COL_GAP} items-center pb-2 sm:pb-3`}
+          >
             <h1
               className="col-span-6 min-w-0 text-sm font-bold leading-tight tracking-tight text-white sm:text-base lg:text-lg"
             >

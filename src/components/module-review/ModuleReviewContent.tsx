@@ -10,8 +10,6 @@ import {
   MODULE_REVIEW_PANEL_INSET_X,
 } from "@/lib/module-review-tile-styles";
 
-const ROW_ONE_END_COLUMN_INDEX = 6;
-
 export default function ModuleReviewContent() {
   const [selections, setSelections] = useState(createEmptyBookThankYouSelections);
   const [submitting, setSubmitting] = useState(false);
@@ -55,7 +53,9 @@ export default function ModuleReviewContent() {
   return (
     <div className="w-full max-w-full pt-6 sm:pt-8">
       <header className={`text-left ${MODULE_REVIEW_PANEL_INSET_X}`}>
-        <div className={`grid w-full min-w-0 grid-cols-7 ${MODULE_REVIEW_COL_GAP} items-center`}>
+        <div
+          className={`grid w-full min-w-0 grid-cols-7 ${MODULE_REVIEW_COL_GAP} items-center pb-2 sm:pb-3`}
+        >
           <h1
             className="col-span-6 min-w-0 text-sm font-bold leading-tight tracking-tight text-white sm:text-base lg:text-lg"
           >
