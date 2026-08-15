@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { Client, type ClientBase } from "pg";
 
@@ -602,9 +603,10 @@ export function listDatabaseConnectionCandidates() {
   const projectRef = getSupabaseProjectRef();
   const dbPassword = getDatabasePassword();
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const poolerHosts = ["aws-0-eu-west-2.pooler.supabase.com", "aws-1-eu-west-2.pooler.supabase.com"];
 
   const add = (label: string, url: string | null) => {
-    if (!url || seen.has(url)) return;
+    if (!url || url.includes("******") || seen.has(url)) return;
     seen.add(url);
     candidates.push({ label, url });
   };
@@ -612,14 +614,16 @@ export function listDatabaseConnectionCandidates() {
   add("configured-db-url", getDatabaseUrl());
 
   if (projectRef && dbPassword) {
-    add(
-      "pooler-session-db-password",
-      `postgresql://postgres.${projectRef}:${encodeURIComponent(dbPassword)}@aws-1-eu-west-2.pooler.supabase.com:5432/postgres`,
-    );
-    add(
-      "pooler-transaction-db-password",
-      `postgresql://postgres.${projectRef}:${encodeURIComponent(dbPassword)}@aws-1-eu-west-2.pooler.supabase.com:6543/postgres`,
-    );
+    for (const host of poolerHosts) {
+      add(
+        `pooler-session-db-password-${host}`,
+        `postgresql://postgres.${projectRef}:${encodeURIComponent(dbPassword)}@${host}:5432/postgres`,
+      );
+      add(
+        `pooler-transaction-db-password-${host}`,
+        `postgresql://postgres.${projectRef}:${encodeURIComponent(dbPassword)}@${host}:6543/postgres`,
+      );
+    }
     add(
       "direct-db-password",
       `postgresql://postgres:${encodeURIComponent(dbPassword)}@db.${projectRef}.supabase.co:5432/postgres`,
@@ -627,15 +631,16 @@ export function listDatabaseConnectionCandidates() {
   }
 
   if (projectRef && serviceRole && serviceRole.length >= 80) {
-    add(
-      "pooler-session-service-role",
-      `postgresql://postgres.${projectRef}:${encodeURIComponent(serviceRole)}@aws-1-eu-west-2.pooler.supabase.com:5432/postgres`,
-    );
-    add(
-      "pooler-transaction-service-role",
-      `postgresql://postgres.${projectRef}:${encodeURIComponent(serviceRole)}@aws-1-eu-west-2.pooler.supabase.com:6543/postgres`,
-    );
-    add("pooler-session-service-role-aws0", getServiceRolePoolerUrl()?.replace("aws-1-", "aws-0-") ?? null);
+    for (const host of poolerHosts) {
+      add(
+        `pooler-session-service-role-${host}`,
+        `postgresql://postgres.${projectRef}:${encodeURIComponent(serviceRole)}@${host}:5432/postgres`,
+      );
+      add(
+        `pooler-transaction-service-role-${host}`,
+        `postgresql://postgres.${projectRef}:${encodeURIComponent(serviceRole)}@${host}:6543/postgres`,
+      );
+    }
   }
 
   return candidates;
@@ -905,6 +910,90 @@ export async function queryScalarViaManagementApi<T>(query: string): Promise<T |
   const data = (await response.json()) as Array<T> | { message?: string };
   if (!response.ok || !Array.isArray(data)) return null;
   return data[0] ?? null;
+}
+
+export type SchemaQueryBackend = "pg" | "management-api" | "linked-cli";
+
+function isLinkedSupabaseCliAvailable(): boolean {
+  try {
+    const linkedRef = readFileSync(join(process.cwd(), "supabase/.temp/project-ref"), "utf8").trim();
+    const projectRef = getSupabaseProjectRef();
+    return Boolean(linkedRef && projectRef && linkedRef === projectRef);
+  } catch {
+    return false;
+  }
+}
+
+function hasConfiguredPgUrl(): boolean {
+  const dbUrl = getDatabaseUrl();
+  return Boolean(dbUrl && !dbUrl.includes("******"));
+}
+
+export function resolveSchemaQueryBackend(): SchemaQueryBackend | null {
+  if (hasConfiguredPgUrl() || (getDatabasePassword() && getSupabaseProjectRef())) return "pg";
+  if (isLinkedSupabaseCliAvailable()) return "linked-cli";
+  if (getSupabaseAccessToken() && getSupabaseProjectRef()) return "management-api";
+  return null;
+}
+
+function querySchemaScalarViaLinkedCli<T>(sql: string): T | null {
+  if (!isLinkedSupabaseCliAvailable()) return null;
+  const env = { ...process.env };
+  delete env.SUPABASE_ACCESS_TOKEN;
+  const escaped = sql.replace(/"/g, '\\"');
+  const result = spawnSync(`npx supabase db query --linked "${escaped}" -o json`, {
+    encoding: "utf8",
+    shell: true,
+    cwd: process.cwd(),
+    env,
+  });
+  if ((result.status ?? 1) !== 0) return null;
+  try {
+    const stdout = result.stdout ?? "";
+    const jsonStart = stdout.indexOf("{");
+    if (jsonStart < 0) return null;
+    const parsed = JSON.parse(stdout.slice(jsonStart)) as { rows?: T[] };
+    return parsed.rows?.[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function querySchemaScalar<T>(sql: string): Promise<{ backend: string; row: T }> {
+  for (const candidate of listDatabaseConnectionCandidates()) {
+    const client = new Client({
+      connectionString: candidate.url,
+      ssl: { rejectUnauthorized: false },
+    });
+
+    try {
+      await client.connect();
+      const result = await client.query(sql);
+      const row = (result.rows[0] as T) ?? null;
+      if (row == null) {
+        throw new Error("Schema query returned no rows");
+      }
+      return { backend: `pg (${candidate.label})`, row };
+    } catch (error) {
+      if (!isDirectDbConnectionError(error)) throw error;
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  const fromLinkedCli = querySchemaScalarViaLinkedCli<T>(sql);
+  if (fromLinkedCli != null) {
+    return { backend: "pg (supabase linked CLI)", row: fromLinkedCli };
+  }
+
+  const fromMgmt = await queryScalarViaManagementApi<T>(sql);
+  if (fromMgmt != null) {
+    return { backend: "Supabase Management API", row: fromMgmt };
+  }
+
+  throw new Error(
+    "Schema checks require DATABASE_URL/POSTGRES_URL (pg), SUPABASE_ACCESS_TOKEN + SUPABASE_URL (Management API), or supabase link to the target project",
+  );
 }
 
 async function countCompetitorsInRegion(region: string): Promise<number | null> {
