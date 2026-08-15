@@ -32,7 +32,7 @@ import {
   matchPortalPathnameForSlug,
   portalImplBaseForSlug,
   portalsBriefingLoginUrl,
-} from "@/lib/portals/registry";
+} from "@/lib/portals/middleware-edge";
 import {
   readPortalsBriefingGateCookie,
   readPortalsBriefingViewCookie,
