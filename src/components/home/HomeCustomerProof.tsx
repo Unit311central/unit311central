@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, Check, X } from "lucide-react";
+
+import { UNIT311_CENTRAL_OVERVIEW_VIDEO_SRC } from "@/lib/unit311-central-homepage-video";
+
 import HomeSectionTitle from "./HomeSectionTitle";
 import WorkspaceDemoLoopVideo from "./WorkspaceDemoLoopVideo";
 
@@ -96,7 +99,7 @@ export default function HomeCustomerProof() {
               <WorkspaceDemoLoopVideo
                 className="w-full rounded-none"
                 frameClassName="aspect-video w-full"
-                src="/videos/overview.mp4"
+                src={UNIT311_CENTRAL_OVERVIEW_VIDEO_SRC}
                 poster={null}
                 preload="metadata"
               />

@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const HERO_VIDEO = "/images/video.mp4";
+import { UNIT311_CENTRAL_HOMEPAGE_HERO_VIDEO_SRC } from "@/lib/unit311-central-homepage-video";
+
+const HERO_VIDEO = UNIT311_CENTRAL_HOMEPAGE_HERO_VIDEO_SRC;
 const PLAYBACK_RATE = 0.8;
 const LOOP_LEAD_IN_SECONDS = 0.05;
 const LOOP_TRIM_SECONDS = 0.12;
