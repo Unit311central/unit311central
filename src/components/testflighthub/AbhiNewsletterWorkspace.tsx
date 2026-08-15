@@ -16,6 +16,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ABHI_LINKEDIN_URL, ABHI_X_URL } from "@/lib/abhi-surface";
+import { CentralMarketingShell } from "@/components/marketing/workspaces/CentralMarketingShell";
 import {
   deleteNewsletter,
   scheduleNewsletter,
@@ -300,6 +301,12 @@ export default function AbhiNewsletterWorkspace() {
   const canSend = form.subject.trim().length > 0 && form.htmlBody.trim().length > 0;
 
   return (
+    <CentralMarketingShell
+      brandLabel="ABHI"
+      moduleLabel="Marketing & Events"
+      title="Digital newsletter"
+      description="Member-facing newsletter campaigns with email and social channel options."
+    >
     <div className="space-y-5">
       {notice ? (
         <p className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
@@ -611,5 +618,6 @@ export default function AbhiNewsletterWorkspace() {
         )}
       </TqmsSection>
     </div>
+    </CentralMarketingShell>
   );
 }

@@ -1,12 +1,10 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-
+import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 import {
-  ONWARDAIR_CLIENT_PORTAL_ORIGIN,
   getOnwardAirClientPortalByPath,
   type OnwardAirClientPortalRoute,
 } from "@/lib/onwardair/client-portal-routes";
-import { PLATFORM_SESSION_COOKIE, readPlatformSessionToken } from "@/lib/platform-session-token";
+import { requirePortalAccess } from "@/lib/portals/require-portal-access";
+import type { PortalSession } from "@/lib/portals/types";
 
 export type OnwardAirClientPortalSession = {
   userId: string;
@@ -17,50 +15,22 @@ export type OnwardAirClientPortalSession = {
   clientId: string | null;
 };
 
-function portalLoginPath(path: string) {
-  return `${ONWARDAIR_CLIENT_PORTAL_ORIGIN}/${path}/login`;
-}
-
 export async function requireOnwardAirClientPortalAccess(
   companyPath: string,
 ): Promise<{ route: OnwardAirClientPortalRoute; session: OnwardAirClientPortalSession }> {
-  const route = getOnwardAirClientPortalByPath(companyPath);
-  if (!route) {
-    redirect("/login");
-  }
-
-  const jar = await cookies();
-  const token = jar.get(PLATFORM_SESSION_COOKIE)?.value;
-  if (!token) {
-    redirect(portalLoginPath(route.path));
-  }
-
-  const session = await readPlatformSessionToken(token);
-  if (!session) {
-    redirect(portalLoginPath(route.path));
-  }
-
-  if (session.userType === "external") {
-    const allowed = getOnwardAirClientPortalByPath(session.redirectPath);
-    if (!allowed) {
-      redirect(portalLoginPath(route.path));
-    }
-    if (allowed.path !== route.path) {
-      redirect(`/${allowed.path}`);
-    }
-
-    return {
-      route,
-      session: {
-        userId: session.sub,
-        username: session.username,
-        displayName: session.displayName,
-        userType: session.userType,
-        redirectPath: session.redirectPath,
-        clientId: allowed.clientId,
-      },
-    };
-  }
-
-  redirect(portalLoginPath(route.path));
+  const { route, session } = await requirePortalAccess(ONWARDAIR_SLUG, companyPath);
+  return {
+    route: route as OnwardAirClientPortalRoute,
+    session: {
+      userId: session.userId,
+      username: session.username,
+      displayName: session.displayName,
+      userType: session.userType,
+      redirectPath: session.redirectPath,
+      clientId: session.clientId,
+    },
+  };
 }
+
+/** @deprecated Prefer central registry matcher */
+export { getOnwardAirClientPortalByPath };

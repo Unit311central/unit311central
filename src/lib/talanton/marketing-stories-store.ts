@@ -623,6 +623,10 @@ function createInitialState(): MarketingStoriesState {
   };
 }
 
+export function buildTalantonMarketingStoriesSeedState(): MarketingStoriesState {
+  return createInitialState();
+}
+
 let state: MarketingStoriesState = createInitialState();
 const listeners = new Set<Listener>();
 
@@ -645,6 +649,24 @@ export function getTalantonMarketingStoriesSnapshot(): MarketingStoriesState {
   return state;
 }
 
+export function replaceTalantonMarketingStoriesState(next: MarketingStoriesState) {
+  state = next;
+  refreshMediaFromStories();
+  emit();
+}
+
+export async function hydrateTalantonMarketingStoriesFromCentralApi(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  const { fetchMarketingBundle } = await import("@/lib/marketing/client/marketing-api");
+  const { mapBundleToTalantonMarketingStoriesState } = await import(
+    "@/lib/marketing/client/store-hydration"
+  );
+  const bundle = await fetchMarketingBundle();
+  if (!bundle) return false;
+  replaceTalantonMarketingStoriesState(mapBundleToTalantonMarketingStoriesState(bundle));
+  return true;
+}
+
 export function resetTalantonMarketingStoriesStore() {
   state = createInitialState();
   emit();
@@ -665,6 +687,12 @@ export function updateStoryStatus(storyId: string, status: StoryStatus) {
   };
   refreshMediaFromStories();
   emit();
+  const story = state.stories.find((s) => s.id === storyId);
+  if (story) {
+    void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonPortfolioStory }) =>
+      syncTalantonPortfolioStory(story),
+    );
+  }
 }
 
 /**
@@ -713,6 +741,9 @@ export function ingestCompanyPortalStory(input: {
   };
   refreshMediaFromStories();
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonPortfolioStory }) =>
+    syncTalantonPortfolioStory(next),
+  );
   return next;
 }
 
@@ -778,6 +809,9 @@ export function addJourneyStoryToNewsletter(journeyStoryId: string, newsletterId
     newsletters: state.newsletters.map((n) => (n.id === next.id ? next : n)),
   };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonNewsletter }) =>
+    syncTalantonNewsletter(next),
+  );
   return next;
 }
 
@@ -795,6 +829,9 @@ export function upsertNewsletter(input: Omit<StoriesNewsletter, "createdAt" | "u
       : [next, ...state.newsletters],
   };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonNewsletter }) =>
+    syncTalantonNewsletter(next),
+  );
   return next;
 }
 
@@ -804,12 +841,18 @@ export function sendNewsletterNow(id: string) {
   const next = { ...item, status: "sent" as const, sentAt: nowIso(), scheduledAt: null, updatedAt: nowIso() };
   state = { ...state, newsletters: state.newsletters.map((n) => (n.id === id ? next : n)) };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonNewsletter }) =>
+    syncTalantonNewsletter(next),
+  );
   return next;
 }
 
 export function deleteNewsletter(id: string) {
   state = { ...state, newsletters: state.newsletters.filter((n) => n.id !== id) };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ deleteTalantonNewsletter }) =>
+    deleteTalantonNewsletter(id),
+  );
 }
 
 export function addMailingContact(contact: Omit<MailingContact, "id"> & { id?: string }) {
@@ -822,20 +865,32 @@ export function addMailingContact(contact: Omit<MailingContact, "id"> & { id?: s
   };
   state = { ...state, contacts: [next, ...state.contacts] };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonMailingContact }) =>
+    syncTalantonMailingContact(next),
+  );
   return next;
 }
 
 export function updateMailingContact(id: string, patch: Partial<Omit<MailingContact, "id">>) {
+  const existing = state.contacts.find((c) => c.id === id);
+  if (!existing) return;
+  const next = { ...existing, ...patch };
   state = {
     ...state,
-    contacts: state.contacts.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    contacts: state.contacts.map((c) => (c.id === id ? next : c)),
   };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonMailingContact }) =>
+    syncTalantonMailingContact(next),
+  );
 }
 
 export function deleteMailingContact(id: string) {
   state = { ...state, contacts: state.contacts.filter((c) => c.id !== id) };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ deleteTalantonMailingContact }) =>
+    deleteTalantonMailingContact(id),
+  );
 }
 
 export function upsertMailingCampaign(
@@ -853,6 +908,9 @@ export function upsertMailingCampaign(
       : [next, ...state.campaigns],
   };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonMailingCampaign }) =>
+    syncTalantonMailingCampaign(next),
+  );
   return next;
 }
 
@@ -862,12 +920,18 @@ export function sendMailingCampaignNow(id: string) {
   const next = { ...item, status: "sent" as const, sentAt: nowIso(), scheduledAt: null };
   state = { ...state, campaigns: state.campaigns.map((c) => (c.id === id ? next : c)) };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonMailingCampaign }) =>
+    syncTalantonMailingCampaign(next),
+  );
   return next;
 }
 
 export function deleteMailingCampaign(id: string) {
   state = { ...state, campaigns: state.campaigns.filter((c) => c.id !== id) };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ deleteTalantonMailingCampaign }) =>
+    deleteTalantonMailingCampaign(id),
+  );
 }
 
 export const IMPACT_CATEGORIES: ImpactCategory[] = [

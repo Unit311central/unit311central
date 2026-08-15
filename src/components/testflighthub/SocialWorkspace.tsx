@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { ABHI_LINKEDIN_URL, ABHI_X_URL, isBrowserAbhiSurface } from "@/lib/abhi-surface";
-import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import { getSocialWorkspaceSeoConfig } from "@/lib/marketing/social/seo-config";
+import { resolveSocialPlatforms, type SocialPlatformConfig } from "@/lib/marketing/social/platforms";
+import { resolveSocialWorkspacePackId } from "@/lib/marketing/social/resolve-workspace-pack";
 import { cn } from "@/lib/utils";
 import {
   ArrowDownRight,
@@ -28,418 +29,6 @@ import {
 type PostMode = "create" | "schedule";
 type ComposerStep = "compose" | "preview";
 
-type PostStat = {
-  label: string;
-  value: string;
-  icon: React.ReactNode;
-};
-
-type LastPost = {
-  date: string;
-  preview: string;
-  stats: PostStat[];
-};
-
-type PlatformConfig = {
-  id: "linkedin" | "instagram" | "twitter";
-  name: string;
-  handle: string;
-  /** External profile URL — when set, the handle links out instead of being static text. */
-  href?: string;
-  /** Display name shown on the mocked post preview card. */
-  displayName: string;
-  /** "wide" mimics a LinkedIn/X feed post; "square" mimics an Instagram grid post. */
-  layout: "wide" | "square";
-  avatarLabel: string;
-  avatarClassName: string;
-  accent: string;
-  accentBorder: string;
-  icon: React.ReactNode;
-  lastPost: LastPost;
-};
-
-const INTERNAL_PLATFORMS: PlatformConfig[] = [
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    handle: "@bcndrone",
-    displayName: "BCN Drone",
-    layout: "wide",
-    avatarLabel: "BC",
-    avatarClassName: "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold",
-    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
-    accentBorder: "border-[#0A66C2]/35",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
-        in
-      </span>
-    ),
-    lastPost: {
-      date: "12 Mar 2026 · 09:15",
-      preview:
-        "Precision aerial surveying across Catalonia — Matrice 4T fleet delivering orthomosaics and DSM layers for infrastructure clients.",
-      stats: [
-        { label: "Impressions", value: "4.2K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Reactions", value: "86", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
-        { label: "Comments", value: "14", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Reposts", value: "9", icon: <Repeat2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-  {
-    id: "instagram",
-    name: "Instagram",
-    handle: "@bcndrone",
-    displayName: "@bcndrone",
-    layout: "square",
-    avatarLabel: "IG",
-    avatarClassName: "rounded-full bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold",
-    accent: "from-fuchsia-500/20 via-pink-500/15 to-amber-500/10",
-    accentBorder: "border-pink-400/35",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold text-white">
-        IG
-      </span>
-    ),
-    lastPost: {
-      date: "10 Mar 2026 · 18:40",
-      preview:
-        "Golden hour over the port — FPV reel from this week's coastal inspection mission. Full case study on the blog.",
-      stats: [
-        { label: "Reach", value: "6.8K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Likes", value: "312", icon: <Heart className="h-3.5 w-3.5" /> },
-        { label: "Comments", value: "28", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Saves", value: "47", icon: <Share2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-];
-
-const DEMO_PLATFORMS: PlatformConfig[] = [
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    handle: "@meridianatlas",
-    displayName: "Meridian Atlas",
-    layout: "wide",
-    avatarLabel: "MA",
-    avatarClassName: "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold",
-    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
-    accentBorder: "border-[#0A66C2]/35",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
-        in
-      </span>
-    ),
-    lastPost: {
-      date: "18 Jul 2026 · 10:05",
-      preview:
-        "How Meridian Atlas helps global enterprises modernise cloud estates and operating models — new case study from our London practice.",
-      stats: [
-        { label: "Impressions", value: "9.1K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Reactions", value: "214", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
-        { label: "Comments", value: "31", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Reposts", value: "22", icon: <Repeat2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-  {
-    id: "instagram",
-    name: "Instagram",
-    handle: "@meridianatlas",
-    displayName: "@meridianatlas",
-    layout: "square",
-    avatarLabel: "IG",
-    avatarClassName: "rounded-full bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold",
-    accent: "from-fuchsia-500/20 via-pink-500/15 to-amber-500/10",
-    accentBorder: "border-pink-400/35",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold text-white">
-        IG
-      </span>
-    ),
-    lastPost: {
-      date: "14 Jul 2026 · 16:20",
-      preview:
-        "Behind the scenes at Bishopsgate — strategy workshop with our APAC leadership cohort.",
-      stats: [
-        { label: "Reach", value: "5.4K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Likes", value: "268", icon: <Heart className="h-3.5 w-3.5" /> },
-        { label: "Comments", value: "19", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Saves", value: "41", icon: <Share2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-];
-
-const ABHI_PLATFORMS: PlatformConfig[] = [
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    handle: "ABHI",
-    href: ABHI_LINKEDIN_URL,
-    displayName: "ABHI",
-    layout: "wide",
-    avatarLabel: "AB",
-    avatarClassName: "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold",
-    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
-    accentBorder: "border-[#0A66C2]/35",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
-        in
-      </span>
-    ),
-    lastPost: {
-      date: "22 Jul 2026 · 11:00",
-      preview:
-        "ABHI members are heading to WHX Dubai 2027 — early bird registration is now open for the UK pavilion.",
-      stats: [
-        { label: "Impressions", value: "7.6K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Reactions", value: "164", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
-        { label: "Comments", value: "21", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Reposts", value: "18", icon: <Repeat2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-  {
-    id: "twitter",
-    name: "X (Twitter)",
-    handle: "@UK_ABHI",
-    href: ABHI_X_URL,
-    displayName: "ABHI",
-    layout: "wide",
-    avatarLabel: "X",
-    avatarClassName: "rounded-full border border-white/15 bg-black text-sm font-bold",
-    accent: "from-white/15 to-white/5",
-    accentBorder: "border-white/25",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-black text-[10px] font-bold text-white">
-        X
-      </span>
-    ),
-    lastPost: {
-      date: "19 Jul 2026 · 09:30",
-      preview:
-        "350 member companies and counting — thank you to everyone driving UK HealthTech growth this year. 🚀",
-      stats: [
-        { label: "Impressions", value: "5.2K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Likes", value: "98", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
-        { label: "Replies", value: "12", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Reposts", value: "27", icon: <Repeat2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-];
-
-const TALANTON_PLATFORMS: PlatformConfig[] = [
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    handle: "Talanton Impact",
-    href: "https://www.linkedin.com/company/talantonimpact",
-    displayName: "Talanton Impact",
-    layout: "wide",
-    avatarLabel: "TI",
-    avatarClassName: "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold",
-    accent: "from-[#0A66C2]/20 to-[#0A66C2]/5",
-    accentBorder: "border-[#0A66C2]/35",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
-        in
-      </span>
-    ),
-    lastPost: {
-      date: "28 Jul 2026 · 09:40",
-      preview:
-        "Across our African portfolio, jobs created and people served remain the north star — Impact Health holds steady as we prepare the August board pack.",
-      stats: [
-        { label: "Impressions", value: "5.1K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Reactions", value: "128", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
-        { label: "Comments", value: "19", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Reposts", value: "11", icon: <Repeat2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-];
-
-const ONWARDAIR_PLATFORMS: PlatformConfig[] = [
-  {
-    id: "linkedin",
-    name: "LinkedIn",
-    handle: "OnwardAir",
-    href: "https://www.linkedin.com/company/onwardair",
-    displayName: "OnwardAir",
-    layout: "wide",
-    avatarLabel: "OA",
-    avatarClassName: "rounded-full border border-sky-400/40 bg-sky-500/30 text-xs font-bold",
-    accent: "from-sky-500/20 to-cyan-500/5",
-    accentBorder: "border-sky-400/35",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-[#0A66C2] text-[10px] font-bold text-white">
-        in
-      </span>
-    ),
-    lastPost: {
-      date: "29 Jul 2026 · 14:10",
-      preview:
-        "Another FAA interaction cycle complete — next stop: investor day in Austin and dual-source battery pack acceptance tests.",
-      stats: [
-        { label: "Impressions", value: "11.2K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Reactions", value: "326", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
-        { label: "Comments", value: "41", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Reposts", value: "28", icon: <Repeat2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-  {
-    id: "instagram",
-    name: "Instagram",
-    handle: "@onwardair",
-    displayName: "@onwardair",
-    layout: "square",
-    avatarLabel: "OA",
-    avatarClassName:
-      "rounded-full bg-gradient-to-br from-sky-400 via-cyan-500 to-indigo-500 text-[10px] font-bold",
-    accent: "from-sky-500/20 via-cyan-500/15 to-indigo-500/10",
-    accentBorder: "border-cyan-400/35",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-sky-400 via-cyan-500 to-indigo-500 text-[10px] font-bold text-white">
-        IG
-      </span>
-    ),
-    lastPost: {
-      date: "26 Jul 2026 · 17:45",
-      preview:
-        "Golden-hour taxi tests on the flight campus — certification cameras rolling. Full reel in stories.",
-      stats: [
-        { label: "Reach", value: "18.6K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Likes", value: "1.1K", icon: <Heart className="h-3.5 w-3.5" /> },
-        { label: "Comments", value: "64", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Saves", value: "89", icon: <Share2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-  {
-    id: "twitter",
-    name: "X",
-    handle: "@OnwardAir",
-    displayName: "OnwardAir",
-    layout: "wide",
-    avatarLabel: "X",
-    avatarClassName: "rounded-full border border-white/20 bg-black text-xs font-bold",
-    accent: "from-white/10 to-white/5",
-    accentBorder: "border-white/20",
-    icon: (
-      <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-black text-[10px] font-bold text-white">
-        𝕏
-      </span>
-    ),
-    lastPost: {
-      date: "30 Jul 2026 · 09:05",
-      preview:
-        "Vertiport partnership talks advancing in Dallas & Phoenix. Quiet skies, dense networks — city-first design.",
-      stats: [
-        { label: "Impressions", value: "7.8K", icon: <Eye className="h-3.5 w-3.5" /> },
-        { label: "Likes", value: "194", icon: <Heart className="h-3.5 w-3.5" /> },
-        { label: "Replies", value: "22", icon: <MessageCircle className="h-3.5 w-3.5" /> },
-        { label: "Reposts", value: "37", icon: <Repeat2 className="h-3.5 w-3.5" /> },
-      ],
-    },
-  },
-];
-
-function resolveSocialPlatforms(): PlatformConfig[] {
-  if (typeof window === "undefined") return INTERNAL_PLATFORMS;
-  if (isBrowserAbhiSurface()) return ABHI_PLATFORMS;
-  if (isBrowserTalantonImpactSurface()) return TALANTON_PLATFORMS;
-  try {
-    const { isBrowserOnwardAirSurface } =
-      require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
-    if (isBrowserOnwardAirSurface()) return ONWARDAIR_PLATFORMS;
-  } catch {
-    // fall through
-  }
-  try {
-    const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
-    if (isBrowserDemoSurface()) return DEMO_PLATFORMS;
-  } catch {
-    // fall through
-  }
-  return INTERNAL_PLATFORMS;
-}
-
-const INTERNAL_SEO_KEYWORDS = [
-  { keyword: "drone surveying barcelona", position: 4, change: 2, volume: "1.2K" },
-  { keyword: "aerial inspection catalonia", position: 7, change: -1, volume: "880" },
-  { keyword: "matrice 4t training spain", position: 11, change: 3, volume: "640" },
-  { keyword: "orthomosaic drone services", position: 15, change: 0, volume: "520" },
-  { keyword: "unit311", position: 1, change: 0, volume: "390" },
-  { keyword: "thermal drone inspection port", position: 19, change: 4, volume: "310" },
-] as const;
-
-const DEMO_SEO_KEYWORDS = [
-  { keyword: "enterprise cloud consulting", position: 3, change: 1, volume: "2.4K" },
-  { keyword: "operating model transformation", position: 6, change: 2, volume: "1.1K" },
-  { keyword: "meridian atlas group", position: 1, change: 0, volume: "720" },
-  { keyword: "platform modernisation uk", position: 8, change: -1, volume: "980" },
-  { keyword: "sap s4 migration partner", position: 12, change: 3, volume: "640" },
-  { keyword: "board pack automation", position: 15, change: 1, volume: "410" },
-] as const;
-
-const TALANTON_SEO_KEYWORDS = [
-  { keyword: "impact investing east africa", position: 5, change: 2, volume: "1.8K" },
-  { keyword: "faith driven investing africa", position: 3, change: 1, volume: "920" },
-  { keyword: "missing middle capital africa", position: 8, change: 3, volume: "740" },
-  { keyword: "talanton impact", position: 1, change: 0, volume: "510" },
-  { keyword: "job creation impact fund", position: 11, change: -1, volume: "680" },
-  { keyword: "sme growth capital kenya", position: 14, change: 2, volume: "430" },
-] as const;
-
-const INTERNAL_PPC_CAMPAIGNS = [
-  { name: "Survey leads — ES", spend: "€842", clicks: 312, ctr: "3.8%", cpc: "€2.70", conversions: 14 },
-  { name: "Training courses", spend: "€516", clicks: 198, ctr: "4.1%", cpc: "€2.61", conversions: 9 },
-  { name: "Inspection — retarget", spend: "€284", clicks: 94, ctr: "2.2%", cpc: "€3.02", conversions: 5 },
-] as const;
-
-const DEMO_PPC_CAMPAIGNS = [
-  { name: "Cloud advisory — UK", spend: "£1,240", clicks: 418, ctr: "4.4%", cpc: "£2.97", conversions: 22 },
-  { name: "Transformation webinars", spend: "£680", clicks: 255, ctr: "3.9%", cpc: "£2.67", conversions: 14 },
-  { name: "Retarget — case studies", spend: "£390", clicks: 128, ctr: "2.8%", cpc: "£3.05", conversions: 8 },
-] as const;
-
-const TALANTON_PPC_CAMPAIGNS = [
-  { name: "LP awareness — Impact Fund", spend: "$1,180", clicks: 286, ctr: "3.6%", cpc: "$4.13", conversions: 12 },
-  { name: "Faith-driven investor webinars", spend: "$740", clicks: 194, ctr: "4.2%", cpc: "$3.81", conversions: 9 },
-  { name: "Portfolio stories — retarget", spend: "$420", clicks: 108, ctr: "2.9%", cpc: "$3.89", conversions: 6 },
-] as const;
-
-const INTERNAL_PPC_SUMMARY = {
-  spend: "€1,642",
-  impressions: "28.4K",
-  clicks: 604,
-  avgCpc: "€2.72",
-  conversions: 28,
-  roas: "4.2x",
-} as const;
-
-const DEMO_PPC_SUMMARY = {
-  spend: "£2,310",
-  impressions: "41.2K",
-  clicks: 801,
-  avgCpc: "£2.88",
-  conversions: 44,
-  roas: "5.1x",
-} as const;
-
-const TALANTON_PPC_SUMMARY = {
-  spend: "$2,340",
-  impressions: "36.8K",
-  clicks: 588,
-  avgCpc: "$3.98",
-  conversions: 27,
-  roas: "4.6x",
-} as const;
-
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
@@ -456,32 +45,9 @@ function panelShellClassName() {
   return "overflow-hidden rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl";
 }
 
-function isDemoSocialSurface() {
-  if (typeof window === "undefined") return false;
-  try {
-    const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
-    return isBrowserDemoSurface();
-  } catch {
-    return false;
-  }
-}
-
 function SeoRankingsPanel() {
-  const isDemo = isDemoSocialSurface();
-  const isTalanton = typeof window !== "undefined" && isBrowserTalantonImpactSurface();
-  const keywords = isTalanton
-    ? TALANTON_SEO_KEYWORDS
-    : isDemo
-      ? DEMO_SEO_KEYWORDS
-      : INTERNAL_SEO_KEYWORDS;
-  const domain = isTalanton
-    ? "talantonimpact.com"
-    : isDemo
-      ? "meridianatlas.demo"
-      : "unit311.com";
-  const avgPosition = isTalanton ? "7.0" : isDemo ? "7.5" : "9.5";
-  const top10 = isTalanton ? "4 keywords" : isDemo ? "4 keywords" : "3 keywords";
-  const visibility = isTalanton ? "+16%" : isDemo ? "+18%" : "+12%";
+  const packId = typeof window !== "undefined" ? resolveSocialWorkspacePackId() : "internal";
+  const pack = getSocialWorkspaceSeoConfig(packId);
 
   return (
     <article className={panelShellClassName()}>
@@ -492,7 +58,7 @@ function SeoRankingsPanel() {
           </div>
           <div>
             <h3 className="text-base font-semibold text-white sm:text-lg">SEO rankings</h3>
-            <p className="text-xs text-white/50">Google positions · {domain}</p>
+            <p className="text-xs text-white/50">Google positions · {pack.domain}</p>
           </div>
         </div>
       </div>
@@ -500,17 +66,17 @@ function SeoRankingsPanel() {
       <div className="grid grid-cols-3 gap-2 border-b border-white/10 p-4 sm:p-5">
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Avg. position</p>
-          <p className="mt-1 text-lg font-semibold text-white">{avgPosition}</p>
+          <p className="mt-1 text-lg font-semibold text-white">{pack.avgPosition}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Top 10</p>
-          <p className="mt-1 text-lg font-semibold text-emerald-300">{top10}</p>
+          <p className="mt-1 text-lg font-semibold text-emerald-300">{pack.top10}</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
           <p className="text-[10px] uppercase tracking-wide text-white/40">Visibility</p>
           <p className="mt-1 flex items-center gap-1 text-lg font-semibold text-white">
             <TrendingUp className="h-4 w-4 text-emerald-400" />
-            {visibility}
+            {pack.visibility}
           </p>
         </div>
       </div>
@@ -520,7 +86,7 @@ function SeoRankingsPanel() {
           Tracked keywords
         </p>
         <ul className="mt-3 space-y-2">
-          {keywords.map((row) => {
+          {pack.keywords.map((row) => {
             const improved = row.change > 0;
             const declined = row.change < 0;
 
@@ -566,18 +132,8 @@ function SeoRankingsPanel() {
 }
 
 function PpcStatsPanel() {
-  const isDemo = isDemoSocialSurface();
-  const isTalanton = typeof window !== "undefined" && isBrowserTalantonImpactSurface();
-  const summary = isTalanton
-    ? TALANTON_PPC_SUMMARY
-    : isDemo
-      ? DEMO_PPC_SUMMARY
-      : INTERNAL_PPC_SUMMARY;
-  const campaigns = isTalanton
-    ? TALANTON_PPC_CAMPAIGNS
-    : isDemo
-      ? DEMO_PPC_CAMPAIGNS
-      : INTERNAL_PPC_CAMPAIGNS;
+  const packId = typeof window !== "undefined" ? resolveSocialWorkspacePackId() : "internal";
+  const { ppcSummary: summary, ppcCampaigns: campaigns } = getSocialWorkspaceSeoConfig(packId);
   return (
     <article className={panelShellClassName()}>
       <div className="border-b border-white/10 bg-gradient-to-r from-amber-500/15 to-orange-500/5 px-4 py-4 sm:px-5">
@@ -653,7 +209,7 @@ function PpcStatsPanel() {
   );
 }
 
-function LastPostCard({ platform }: { platform: PlatformConfig }) {
+function LastPostCard({ platform }: { platform: SocialPlatformConfig }) {
   return (
     <div className="border-t border-white/10 bg-black/20 p-4 sm:p-5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
@@ -706,7 +262,7 @@ function PostPreviewCard({
   scheduleDate,
   scheduleTime,
 }: {
-  platform: PlatformConfig;
+  platform: SocialPlatformConfig;
   text: string;
   imageUrl: string | null;
   imageName: string | null;
@@ -814,7 +370,7 @@ function PostPreviewCard({
   );
 }
 
-function PlatformColumn({ platform }: { platform: PlatformConfig }) {
+function PlatformColumn({ platform }: { platform: SocialPlatformConfig }) {
   const [mode, setMode] = useState<PostMode>("create");
   const [step, setStep] = useState<ComposerStep>("compose");
   const [text, setText] = useState("");

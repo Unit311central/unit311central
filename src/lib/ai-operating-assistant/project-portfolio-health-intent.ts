@@ -1,9 +1,7 @@
 /**
- * Project portfolio health check routing — OnwardAir & ABHI EA.
+ * Project portfolio health check routing — shared question detection only.
+ * Workspace tool selection belongs in workspace EA packs.
  */
-
-import { isAbhiSlug } from "@/lib/abhi-surface";
-import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 
 export type ProjectPortfolioHealthTool =
   | "onwardair.queryProjectPortfolio"
@@ -31,32 +29,17 @@ export function isProjectPortfolioHealthQuestion(message: string): boolean {
   );
 }
 
-export function resolveProjectPortfolioHealthIntent(
+/** Build a portfolio-health tool intent when the active pack supplies the tool name. */
+export function buildProjectPortfolioHealthIntent(
   message: string,
-  workspaceSlug: string,
+  tool: ProjectPortfolioHealthTool,
+  reason: string,
 ): ProjectPortfolioHealthIntent | null {
   const text = message.trim();
   if (!text || !isProjectPortfolioHealthQuestion(text)) return null;
-
-  const slug = String(workspaceSlug ?? "")
-    .trim()
-    .toLowerCase();
-
-  if (isOnwardAirSlug(slug)) {
-    return {
-      tool: "onwardair.queryProjectPortfolio",
-      args: { question: text },
-      reason: "onwardair_project_portfolio_health",
-    };
-  }
-
-  if (isAbhiSlug(slug)) {
-    return {
-      tool: "abhi.queryProjectPortfolio",
-      args: { question: text },
-      reason: "abhi_project_portfolio_health",
-    };
-  }
-
-  return null;
+  return {
+    tool,
+    args: { question: text },
+    reason,
+  };
 }

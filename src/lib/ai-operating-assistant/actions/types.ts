@@ -23,6 +23,7 @@ export type AssistantActionModule =
   | "notifications"
   | "board"
   | "strategy"
+  | "marketing"
   | "system";
 
 export type AssistantActionPermission =

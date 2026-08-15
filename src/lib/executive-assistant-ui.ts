@@ -2,8 +2,10 @@ import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { internalViewTitles, isInternalOperationsView } from "@/lib/internal-operations-data";
 import type { SurveyOperationsView } from "@/lib/survey-operations-mock-data";
 import { surveyViewTitles } from "@/lib/survey-operations-mock-data";
-import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
-import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
+import {
+  resolveEaExecutiveAssistantContext,
+  resolveEaPackForBrowser,
+} from "@/lib/ai-operating-assistant/workspace-packs/client-pack-ui";
 
 export type ExecutiveAssistantVariant = "home" | "drawer" | "page";
 
@@ -18,30 +20,6 @@ const DEFAULT_PROMPTS = [
   "What needs attention?",
   "Draft an executive update",
   "Find related records",
-] as const;
-
-const CORPCENTRE_DEFAULT_PROMPTS = [
-  "Summarise this page",
-  "What needs attention today?",
-  "Draft an AU executive update",
-  "Find related client records",
-] as const;
-
-const CORPCENTRE_HOME_PROMPTS = [
-  "Review today's priorities",
-  "Summarise CRM pipeline in AUD",
-  "Explain cash position",
-  "Show open support tickets",
-  "Find client",
-  "Draft proposal",
-  "Generate project report",
-] as const;
-
-const CORPCENTRE_FINANCE_PROMPTS = [
-  "Explain cash position in AUD",
-  "Summarise expenses",
-  "Outstanding invoices",
-  "Generate finance report",
 ] as const;
 
 const CONTEXT_BY_VIEW: Partial<Record<string, ExecutiveAssistantPageContext>> = {
@@ -352,50 +330,11 @@ const TALANTON_HOME_PROMPTS = [
 ] as const;
 
 export function getHomeSuggestedActions(): readonly string[] {
-  if (typeof window !== "undefined" && isBrowserCorpCentreSurface()) {
-    return CORPCENTRE_HOME_PROMPTS;
-  }
-  if (typeof window !== "undefined" && isBrowserTalantonImpactSurface()) {
-    return TALANTON_HOME_PROMPTS;
+  const pack = resolveEaPackForBrowser();
+  if (pack?.defaultSuggestedPrompts?.length) {
+    return pack.defaultSuggestedPrompts;
   }
   return HOME_SUGGESTED_ACTIONS;
-}
-
-function withCorpCentrePrompts(
-  context: ExecutiveAssistantPageContext,
-  activeView: string,
-): ExecutiveAssistantPageContext {
-  if (typeof window === "undefined" || !isBrowserCorpCentreSurface()) return context;
-
-  if (activeView === "home" || activeView === "executive-assistant") {
-    return { ...context, suggestedPrompts: [...CORPCENTRE_HOME_PROMPTS] };
-  }
-  if (
-    activeView === "financials" ||
-    activeView === "general-ledger" ||
-    activeView === "accounts-receivable" ||
-    activeView === "accounts-payable" ||
-    activeView === "expenses" ||
-    activeView === "financial-reports" ||
-    activeView === "bank"
-  ) {
-    return { ...context, suggestedPrompts: [...CORPCENTRE_FINANCE_PROMPTS] };
-  }
-  if (context.suggestedPrompts.some((p) => /Board Pack|€|Unit311/i.test(p))) {
-    return {
-      ...context,
-      suggestedPrompts: context.suggestedPrompts
-        .map((p) =>
-          p
-            .replace(/Create Board Pack/gi, "Explain cash position")
-            .replace(/Board pack numbers/gi, "AUD cash position")
-            .replace(/Analyse cashflow/gi, "Explain cash position in AUD")
-            .replace(/€/g, "AU$"),
-        )
-        .filter((p, index, all) => all.indexOf(p) === index),
-    };
-  }
-  return context;
 }
 
 export const GENERATE_ACTIONS = [
@@ -415,90 +354,43 @@ export const FUTURE_ACTIONS = [
   "Schedule follow-up",
 ] as const;
 
-const TALANTON_BOARD_PACK_PROMPTS = [
-  "Create Board Pack",
-  "Summarise the next board meeting",
-  "What are the open board actions?",
-  "Highlight portfolio risks for the board",
-] as const;
-
-function withTalantonPrompts(
-  context: ExecutiveAssistantPageContext,
-  activeView: string,
-): ExecutiveAssistantPageContext {
-  if (typeof window === "undefined" || !isBrowserTalantonImpactSurface()) return context;
-
-  if (
-    activeView === "board-pack" ||
-    activeView === "board-meetings" ||
-    activeView === "board-dashboard" ||
-    activeView === "board-minutes" ||
-    activeView === "board-members" ||
-    activeView === "corporate-risk-register"
-  ) {
-    return { ...context, suggestedPrompts: [...TALANTON_BOARD_PACK_PROMPTS] };
-  }
-  if (activeView === "home" || activeView === "executive-assistant") {
-    return { ...context, suggestedPrompts: [...TALANTON_HOME_PROMPTS] };
-  }
-  return context;
-}
-
-function withSurfacePrompts(
-  context: ExecutiveAssistantPageContext,
-  activeView: string,
-): ExecutiveAssistantPageContext {
-  if (typeof window !== "undefined" && isBrowserTalantonImpactSurface()) {
-    return withTalantonPrompts(context, activeView);
-  }
-  return withCorpCentrePrompts(context, activeView);
-}
-
 export function resolveExecutiveAssistantContext(
   activeView: string | null | undefined,
   mode: "survey" | "internal" = "internal",
 ): ExecutiveAssistantPageContext {
+  const pack = resolveEaPackForBrowser();
+  const defaultPrompts = pack?.defaultSuggestedPrompts ?? DEFAULT_PROMPTS;
+
   if (!activeView) {
-    const defaults =
-      typeof window !== "undefined" && isBrowserCorpCentreSurface()
-        ? CORPCENTRE_DEFAULT_PROMPTS
-        : DEFAULT_PROMPTS;
-    return { label: "Workspace", suggestedPrompts: [...defaults] };
+    return resolveEaExecutiveAssistantContext(null, {
+      label: "Workspace",
+      suggestedPrompts: [...defaultPrompts],
+    });
   }
 
   const mapped = CONTEXT_BY_VIEW[activeView];
-  if (mapped) return withSurfacePrompts(mapped, activeView);
+  if (mapped) return resolveEaExecutiveAssistantContext(activeView, mapped);
 
   if (mode === "internal" && isInternalOperationsView(activeView)) {
     const meta = internalViewTitles[activeView as InternalOperationsView];
-    return withSurfacePrompts(
-      {
-        label: meta.subtitle || meta.title,
-        suggestedPrompts: [
-          ...(typeof window !== "undefined" && isBrowserCorpCentreSurface()
-            ? CORPCENTRE_DEFAULT_PROMPTS
-            : DEFAULT_PROMPTS),
-        ],
-      },
-      activeView,
-    );
+    return resolveEaExecutiveAssistantContext(activeView, {
+      label: meta.subtitle || meta.title,
+      suggestedPrompts: [...defaultPrompts],
+    });
   }
 
   const surveyMeta = surveyViewTitles[activeView as SurveyOperationsView];
   if (surveyMeta) {
-    return withSurfacePrompts(
-      {
-        label: surveyMeta.subtitle || surveyMeta.title,
-        suggestedPrompts: [...DEFAULT_PROMPTS],
-      },
-      activeView,
-    );
+    return resolveEaExecutiveAssistantContext(activeView, {
+      label: surveyMeta.subtitle || surveyMeta.title,
+      suggestedPrompts: [...DEFAULT_PROMPTS],
+    });
   }
 
-  return withSurfacePrompts(
-    { label: "Workspace", suggestedPrompts: [...DEFAULT_PROMPTS] },
-    activeView,
-  );
+  return resolveEaExecutiveAssistantContext(activeView, {
+    label: "Workspace",
+    suggestedPrompts: [...DEFAULT_PROMPTS],
+  });
 }
 
 export function greetingForNow(name: string) {

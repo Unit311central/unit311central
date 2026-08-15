@@ -616,8 +616,27 @@ export function subscribeTalantonJourneyStoriesStore(listener: Listener) {
   return () => listeners.delete(listener);
 }
 
+export function buildJourneyStoriesSeedState(): JourneyStoriesState {
+  return { stories: SEED.map((s) => ({ ...s })) };
+}
+
 export function getTalantonJourneyStoriesSnapshot(): JourneyStoriesState {
   return state;
+}
+
+export function replaceTalantonJourneyStoriesState(next: JourneyStoriesState) {
+  state = next;
+  emit();
+}
+
+export async function hydrateTalantonJourneyStoriesFromCentralApi(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  const { fetchMarketingBundle } = await import("@/lib/marketing/client/marketing-api");
+  const { mapBundleToJourneyStoriesState } = await import("@/lib/marketing/client/store-hydration");
+  const bundle = await fetchMarketingBundle();
+  if (!bundle) return false;
+  replaceTalantonJourneyStoriesState(mapBundleToJourneyStoriesState(bundle));
+  return true;
 }
 
 export function resetTalantonJourneyStoriesStore() {
@@ -756,6 +775,9 @@ export function upsertJourneyStory(story: JourneyStory): JourneyStory {
       : [next, ...state.stories],
   };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonJourneyStory }) =>
+    syncTalantonJourneyStory(next),
+  );
   return next;
 }
 
@@ -765,6 +787,9 @@ export function regenerateJourneyContent(id: string): JourneyStory | null {
   const next = { ...story, generated: generateJourneyContent(story), updatedAt: new Date().toISOString() };
   state = { stories: state.stories.map((s) => (s.id === id ? next : s)) };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonJourneyStory }) =>
+    syncTalantonJourneyStory(next),
+  );
   return next;
 }
 
@@ -774,6 +799,9 @@ export function updateJourneyStatus(id: string, status: JourneyPublishStatus): J
   const next = { ...story, status, updatedAt: new Date().toISOString() };
   state = { stories: state.stories.map((s) => (s.id === id ? next : s)) };
   emit();
+  void import("@/lib/marketing/client/talanton-central-sync").then(({ syncTalantonJourneyStory }) =>
+    syncTalantonJourneyStory(next),
+  );
   return next;
 }
 

@@ -24,8 +24,7 @@ import {
   resolveExecutivePersona,
 } from "./role-awareness";
 import { buildHighlightAction, buildStartTourAction } from "./guided-learning";
-import { isTalantonImpactSlug } from "@/lib/talanton-surface";
-import { isOnwardAirSlug } from "@/lib/onwardair-surface";
+import { resolveEaWorkspacePackSnapshotDomain } from "@/lib/ai-operating-assistant/workspace-packs";
 
 /**
  * Proactive Executive tools — registered alongside existing search/guide tools.
@@ -35,69 +34,7 @@ function resolveSnapshotDomain(
   raw: string | null,
   workspaceSlug?: string | null,
 ): BusinessSnapshotDomain {
-  const value = (raw || "all").toLowerCase();
-  if (
-    value === "overview" ||
-    value === "clients" ||
-    value === "projects" ||
-    value === "finance" ||
-    value === "hr" ||
-    value === "crm" ||
-    value === "assets" ||
-    value === "all"
-  ) {
-    return value;
-  }
-  // Talanton: portfolio companies are not generic delivery projects.
-  if (
-    isTalantonImpactSlug(workspaceSlug) &&
-    /\b(portfolio\s+compan|holdings?|fund|impact|governance|stewardship)\b/.test(value)
-  ) {
-    return "overview";
-  }
-  // Physical Assets / fleet / inventory BEFORE finance “balance” / generic matches.
-  if (
-    /\b(assets?\s+section|physical\s+assets?|asset\s+register|fleet|drones?|equipment\s+register|look\s+in\s+(the\s+)?assets?)\b/.test(
-      value,
-    ) ||
-    (/\bassets?\b/.test(value) &&
-      !/\b(cash|bank|wise|financial|finance|balance sheet)\b/.test(value))
-  ) {
-    return "assets";
-  }
-  if (
-    /finance|financial|cash|bank|wise|treasury|balance|revenue|invoice|expense|p\s*&?\s*l|profit|burn|debtor|creditor/.test(
-      value,
-    )
-  ) {
-    return "finance";
-  }
-  if (/client|customer/.test(value)) return "clients";
-  if (/project|delivery/.test(value)) return "projects";
-  if (/\bportfolio\b/.test(value) && !isTalantonImpactSlug(workspaceSlug)) return "projects";
-  if (/hr|employee|staff|people|leave/.test(value)) return "hr";
-  if (/crm|lead|pipeline|sales/.test(value)) return "crm";
-  if (/inventory|logistics|shipment/.test(value)) return "assets";
-  if (
-    isOnwardAirSlug(workspaceSlug) &&
-    /fundraising|investor|seed\s+raise|term\s+sheet|data\s+room/.test(value)
-  ) {
-    return "fundraising";
-  }
-  if (
-    isOnwardAirSlug(workspaceSlug) &&
-    /engineering|vtol|flex\s+pod|milestone|certification|programme|program/.test(value)
-  ) {
-    return "engineering";
-  }
-  if (
-    isOnwardAirSlug(workspaceSlug) &&
-    /competitor|intelligence|patent|evtols?/.test(value)
-  ) {
-    return "intelligence";
-  }
-  if (/health|brief|overview|business|company|status/.test(value)) return "overview";
-  return "all";
+  return resolveEaWorkspacePackSnapshotDomain(raw, workspaceSlug);
 }
 
 /**

@@ -99,6 +99,7 @@ const MIGRATIONS = [
   "supabase/migrations/137_assistant_artifacts_storage.sql",
   "supabase/migrations/138_software_provider_billing.sql",
   "supabase/migrations/140_financial_expenses_bulk_entry.sql",
+  "supabase/migrations/141_marketing_events_module.sql",
 ];
 
 function isAuthorized(request: NextRequest) {
@@ -233,6 +234,14 @@ export async function POST(request: NextRequest) {
     crm_discovery_questionnaire?: boolean;
     company_details?: boolean;
     simon_meeting_slug?: string | null;
+    marketing_contacts?: boolean;
+    marketing_newsletters?: boolean;
+    marketing_campaigns?: boolean;
+    marketing_external_events?: boolean;
+    marketing_managed_events?: boolean;
+    marketing_media_assets?: boolean;
+    marketing_stories?: boolean;
+    marketing_abhi_extensions?: boolean;
   }>(
     `select
       (select exists (
@@ -282,7 +291,39 @@ export async function POST(request: NextRequest) {
           and table_name = 'company_details'
       )) as company_details,
       (select meeting_slug from public.founder_session_bookings
-       where id = '4e92abae-4d94-430e-8888-c2ecb95d8552') as simon_meeting_slug`,
+       where id = '4e92abae-4d94-430e-8888-c2ecb95d8552') as simon_meeting_slug,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'marketing_contacts'
+      )) as marketing_contacts,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'marketing_newsletters'
+      )) as marketing_newsletters,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'marketing_campaigns'
+      )) as marketing_campaigns,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'marketing_external_events'
+      )) as marketing_external_events,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'marketing_managed_events'
+      )) as marketing_managed_events,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'marketing_media_assets'
+      )) as marketing_media_assets,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'marketing_stories'
+      )) as marketing_stories,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'marketing_abhi_extensions'
+      )) as marketing_abhi_extensions`,
   );
 
   let verificationViaDb: typeof verification = null;
@@ -298,6 +339,14 @@ export async function POST(request: NextRequest) {
         crm_discovery_questionnaire: boolean;
         company_details: boolean;
         simon_meeting_slug: string | null;
+        marketing_contacts: boolean;
+        marketing_newsletters: boolean;
+        marketing_campaigns: boolean;
+        marketing_external_events: boolean;
+        marketing_managed_events: boolean;
+        marketing_media_assets: boolean;
+        marketing_stories: boolean;
+        marketing_abhi_extensions: boolean;
       }>(
         `select
           (select exists (
@@ -347,7 +396,39 @@ export async function POST(request: NextRequest) {
               and table_name = 'company_details'
           )) as company_details,
           (select meeting_slug from public.founder_session_bookings
-           where id = '4e92abae-4d94-430e-8888-c2ecb95d8552') as simon_meeting_slug`,
+           where id = '4e92abae-4d94-430e-8888-c2ecb95d8552') as simon_meeting_slug,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'marketing_contacts'
+          )) as marketing_contacts,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'marketing_newsletters'
+          )) as marketing_newsletters,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'marketing_campaigns'
+          )) as marketing_campaigns,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'marketing_external_events'
+          )) as marketing_external_events,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'marketing_managed_events'
+          )) as marketing_managed_events,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'marketing_media_assets'
+          )) as marketing_media_assets,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'marketing_stories'
+          )) as marketing_stories,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'marketing_abhi_extensions'
+          )) as marketing_abhi_extensions`,
       );
       return result.rows[0] ?? null;
     });

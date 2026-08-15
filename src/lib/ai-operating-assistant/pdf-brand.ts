@@ -1,18 +1,17 @@
 /**
- * Shared EA PDF chrome — workspace-aware brand marks.
+ * Shared EA PDF chrome — workspace-aware brand marks via EaWorkspacePack.
  */
-
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 
 import { jsPDF } from "jspdf";
 
 import {
   ABHI_LOGO_INTRINSIC_HEIGHT,
   ABHI_LOGO_INTRINSIC_WIDTH,
-  ABHI_LOGO_SRC,
-  isAbhiSlug,
 } from "@/lib/abhi-surface";
+import {
+  ensureEaWorkspacePacksRegistered,
+  resolveEaWorkspacePdfBrand,
+} from "@/lib/ai-operating-assistant/workspace-packs";
 import { brandFromWorkspaceClaim, type WorkspaceBrandKind } from "@/lib/workspace-brand";
 
 export type AssistantPdfBrandKind = WorkspaceBrandKind | "unit311";
@@ -21,9 +20,7 @@ export type AssistantPdfRgb = readonly [number, number, number];
 
 export type AssistantPdfBrand = {
   kind: AssistantPdfBrandKind;
-  /** Primary wordmark / product name in the header. */
   brandName: string;
-  /** Fallback org line under the brand. */
   organisationFallback: string;
   colors: {
     navy: AssistantPdfRgb;
@@ -40,17 +37,6 @@ export type AssistantPdfBrand = {
   footnoteSource: string;
 };
 
-const ABHI_COLORS = {
-  navy: [0, 43, 92] as const,
-  text: [27, 36, 48] as const,
-  muted: [91, 101, 119] as const,
-  soft: [238, 241, 245] as const,
-  line: [213, 220, 230] as const,
-  white: [255, 255, 255] as const,
-  page: [245, 247, 250] as const,
-  headerAccent: [0, 43, 92] as const,
-};
-
 const UNIT311_COLORS = {
   navy: [15, 23, 42] as const,
   text: [15, 23, 42] as const,
@@ -62,46 +48,18 @@ const UNIT311_COLORS = {
   headerAccent: [14, 165, 233] as const,
 };
 
-async function loadPublicImageDataUrl(
-  relativePath: string,
-): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
-  try {
-    const absolute = join(process.cwd(), "public", relativePath.replace(/^\//, ""));
-    const bytes = await readFile(absolute);
-    const lower = relativePath.toLowerCase();
-    const format: "PNG" | "JPEG" = lower.endsWith(".png") ? "PNG" : "JPEG";
-    const mime = format === "PNG" ? "image/png" : "image/jpeg";
-    return {
-      dataUrl: `data:${mime};base64,${bytes.toString("base64")}`,
-      format,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export async function resolveAssistantPdfBrand(
   workspaceSlug?: string | null,
   workspaceName?: string | null,
 ): Promise<AssistantPdfBrand> {
+  ensureEaWorkspacePacksRegistered();
+  const packBrand = await resolveEaWorkspacePdfBrand(workspaceSlug, workspaceName);
+  if (packBrand) return packBrand;
+
   const slug = String(workspaceSlug ?? "")
     .trim()
     .toLowerCase();
   const brand = brandFromWorkspaceClaim({ slug, name: workspaceName });
-
-  if (isAbhiSlug(slug)) {
-    const logo = await loadPublicImageDataUrl(ABHI_LOGO_SRC);
-    return {
-      kind: "abhi",
-      brandName: brand.productName,
-      organisationFallback: brand.displayName,
-      colors: ABHI_COLORS,
-      logoDataUrl: logo?.dataUrl ?? null,
-      logoFormat: logo?.format ?? null,
-      footnoteSource: brand.pdfFootnote,
-    };
-  }
-
   const kind: AssistantPdfBrandKind =
     brand.kind === "platform" ? "unit311" : brand.kind;
 
@@ -109,7 +67,7 @@ export async function resolveAssistantPdfBrand(
     kind,
     brandName: brand.productName,
     organisationFallback: brand.displayName,
-    colors: brand.kind === "abhi" ? ABHI_COLORS : UNIT311_COLORS,
+    colors: UNIT311_COLORS,
     logoDataUrl: null,
     logoFormat: null,
     footnoteSource: brand.pdfFootnote,
@@ -136,7 +94,6 @@ export function drawAssistantPdfHeader(
   const org =
     input.organisationName?.trim() || brand.organisationFallback;
 
-  // Soft page wash for ABHI board-paper feel
   if (brand.kind === "abhi") {
     doc.setFillColor(...colors.page);
     doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), "F");
@@ -242,3 +199,6 @@ export function assistantPdfTableHeaderFill(
 ): AssistantPdfRgb {
   return brand.kind === "abhi" ? brand.colors.navy : brand.colors.navy;
 }
+
+// Re-export for consumers that referenced ABHI logo dimensions from pdf-brand.
+export { ABHI_LOGO_INTRINSIC_HEIGHT, ABHI_LOGO_INTRINSIC_WIDTH };

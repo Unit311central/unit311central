@@ -38,7 +38,6 @@ import type {
   AssistantStreamEvent,
 } from "./types";
 import type { PlatformSession } from "@/lib/platform-auth";
-import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isSupabaseServiceRoleConfigured } from "@/lib/supabase/server";
 import {
   buildExecutiveSynthesisDeveloperMessage,
@@ -882,20 +881,23 @@ export async function* runAssistantTurn(input: {
   session: PlatformSession;
   request: AssistantChatRequest;
 }): AsyncGenerator<AssistantStreamEvent> {
-  const {
-    iterateWithAbhiRequestOrgState,
-    parseAbhiClientOrgState,
-  } = await import("@/lib/abhi/abhi-request-org-state");
-  const {
-    iterateWithTalantonRequestOrgState,
-    parseTalantonClientOrgState,
-  } = await import("@/lib/talanton/talanton-request-org-state");
-  const abhiOrgState = parseAbhiClientOrgState(input.request.abhiOrgState);
-  const talantonOrgState = parseTalantonClientOrgState(input.request.talantonOrgState);
-  yield* iterateWithAbhiRequestOrgState(
-    abhiOrgState,
-    iterateWithTalantonRequestOrgState(talantonOrgState, runAssistantTurnInner(input)),
+  const { EA_SERVER_ORG_STATE_BINDINGS } = await import(
+    "@/lib/ai-operating-assistant/workspace-packs/org-state-server"
   );
+
+  let run: () => AsyncGenerator<AssistantStreamEvent> = () => runAssistantTurnInner(input);
+  for (const binding of EA_SERVER_ORG_STATE_BINDINGS) {
+    const requestRecord = input.request as Record<string, unknown>;
+    const parsed = binding.parseRequestPayload(requestRecord[binding.requestField]);
+    const previous = run;
+    run = () =>
+      binding.wrapAssistantTurn(
+        parsed,
+        previous,
+      ) as AsyncGenerator<AssistantStreamEvent>;
+  }
+
+  yield* run();
 }
 
 async function* runAssistantTurnInner(input: {

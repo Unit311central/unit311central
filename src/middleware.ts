@@ -25,22 +25,27 @@ import {
   customerHostLoginRedirect,
   evaluateCustomerHostSessionGate,
 } from "@/lib/workspace-host-session-gate";
-import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
-import { isTalantonImpactSlug, TALANTON_HOST_ALIAS_SLUG, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
-import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
-import { ABHI_SLUG } from "@/lib/abhi-surface";
-import { matchOnwardAirClientPortalPathname, getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
+import {
+  canonicalizePortalRedirect,
+  isPortalWorkspaceSlug,
+  isPortalsBriefingAllowedUsername,
+  matchPortalPathnameForSlug,
+  portalImplBaseForSlug,
+  portalsBriefingLoginUrl,
+} from "@/lib/portals/registry";
+import {
+  readPortalsBriefingGateCookie,
+  readPortalsBriefingViewCookie,
+  applyPortalsBriefingViewCookie,
+  clearPortalsBriefingCookies,
+} from "@/lib/portals/briefing/cookies";
+import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
 import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
-import { isAbhiPortalsAllowedUsername } from "@/lib/abhi/portals-auth";
-import { isOnwardAirPortalsAllowedUsername } from "@/lib/onwardair/portals-demo";
-import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-auth";
+import { isTalantonImpactSlug, TALANTON_HOST_ALIAS_SLUG, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import { ABHI_SLUG } from "@/lib/abhi-surface";
 import {
-  ABHI_PORTALS_GATE_COOKIE,
-  ABHI_PORTALS_VIEW_COOKIE,
-  applyAbhiPortalsViewCookie,
   applyOverviewViewCookie,
-  clearAbhiPortalsGateCookie,
   clearOverviewGateCookie,
   clearPlatformSessionCookie,
 } from "@/lib/platform-session-cookie";
@@ -48,33 +53,6 @@ import {
   PLATFORM_SESSION_COOKIE,
   readPlatformSessionToken,
 } from "@/lib/platform-session-token";
-
-function canonicalizePortalRedirect(redirectPath: string | null | undefined): string | null {
-  if (!redirectPath) return null;
-  const talanton = matchTalantonCompanyPortalPathname(redirectPath);
-  if (talanton) return `/${talanton.route.path}`;
-  const abhi = matchAbhiMemberPortalPathname(redirectPath);
-  if (abhi) return `/${abhi.route.path}`;
-  const onwardair = matchOnwardAirClientPortalPathname(redirectPath);
-  if (onwardair) return `/${onwardair.route.path}`;
-  return null;
-}
-
-/** Route-based company/member portal slugs — talantonimpact, abhi, onwardair. */
-function isCompanyPortalSlug(workspaceSlug: string): boolean {
-  return (
-    isTalantonImpactSlug(workspaceSlug) ||
-    workspaceSlug === ABHI_SLUG ||
-    isOnwardAirSlug(workspaceSlug)
-  );
-}
-
-function isPortalsAllowedUsername(username: string | null | undefined, workspaceSlug: string): boolean {
-  if (workspaceSlug === ABHI_SLUG) return isAbhiPortalsAllowedUsername(username);
-  if (isTalantonImpactSlug(workspaceSlug)) return isTalantonPortalsAllowedUsername(username);
-  if (isOnwardAirSlug(workspaceSlug)) return isOnwardAirPortalsAllowedUsername(username);
-  return false;
-}
 
 /** Next.js / browser prefetch must not clear auth gates or bounce live sessions. */
 function isNextPrefetchRequest(request: NextRequest): boolean {
@@ -85,21 +63,6 @@ function isNextPrefetchRequest(request: NextRequest): boolean {
     request.headers.get("X-Middleware-Prefetch") === "1" ||
     purpose === "prefetch"
   );
-}
-
-function matchPortalPathnameForSlug(workspaceSlug: string, pathname: string) {
-  if (isTalantonImpactSlug(workspaceSlug)) return matchTalantonCompanyPortalPathname(pathname);
-  if (workspaceSlug === ABHI_SLUG) return matchAbhiMemberPortalPathname(pathname);
-  if (isOnwardAirSlug(workspaceSlug)) return matchOnwardAirClientPortalPathname(pathname);
-  return null;
-}
-
-/** Hidden App Router implementation base for a portal slug — never a public browser URL. */
-function portalImplBaseForSlug(workspaceSlug: string): string | null {
-  if (isTalantonImpactSlug(workspaceSlug)) return "/portfolio-portal";
-  if (workspaceSlug === ABHI_SLUG) return "/member-portal";
-  if (isOnwardAirSlug(workspaceSlug)) return "/client-portal";
-  return null;
 }
 
 function withHostHeaders(
@@ -245,7 +208,7 @@ export async function middleware(request: NextRequest) {
 
     // Route-based company/member portals: /{company}/... on talantonimpact and abhi hosts only.
     // These URLs must NEVER fall through to the admin /internaldashboard shell.
-    if (isCompanyPortalSlug(workspaceSlug)) {
+    if (isPortalWorkspaceSlug(workspaceSlug)) {
       const portalMatch = matchPortalPathnameForSlug(workspaceSlug, pathname);
       const portalImplBase = portalImplBaseForSlug(workspaceSlug);
       if (portalMatch && portalImplBase) {
@@ -391,13 +354,11 @@ export async function middleware(request: NextRequest) {
       (pathname === "/portals" || pathname.startsWith("/portals/")) &&
       !isPortalsLoginPath
     ) {
-      const loginUrl = isTalantonImpactSlug(workspaceSlug)
-        ? `${workspaceOrigin}/portals/login`
-        : `${workspaceOrigin}/login?next=${encodeURIComponent("/portals")}`;
+      const loginUrl = portalsBriefingLoginUrl(workspaceOrigin, workspaceSlug);
       const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
       const session = token ? await readPlatformSessionToken(token) : null;
-      const portalsEntry = request.cookies.get(ABHI_PORTALS_GATE_COOKIE)?.value === "1";
-      const portalsView = request.cookies.get(ABHI_PORTALS_VIEW_COOKIE)?.value === "1";
+      const portalsEntry = readPortalsBriefingGateCookie(request);
+      const portalsView = readPortalsBriefingViewCookie(request);
       // Address-bar / bookmark / external opens must complete login again even if a
       // short-lived view cookie remains from an earlier briefing tab.
       const fetchMode = (request.headers.get("sec-fetch-mode") ?? "").toLowerCase();
@@ -407,21 +368,21 @@ export async function middleware(request: NextRequest) {
         isDocumentNav && (fetchSite === "none" || fetchSite === "cross-site");
       const allowed =
         Boolean(session) &&
-        isPortalsAllowedUsername(session?.username, workspaceSlug) &&
+        isPortalsBriefingAllowedUsername(session?.username, workspaceSlug) &&
         (isFreshEntry ? portalsEntry : portalsEntry || portalsView);
 
       if (!allowed) {
         const bounce = redirectExternal(loginUrl);
-        if (token && (!session || !isPortalsAllowedUsername(session.username, workspaceSlug))) {
+        if (token && (!session || !isPortalsBriefingAllowedUsername(session.username, workspaceSlug))) {
           clearPlatformSessionCookie(bounce, request);
         }
-        clearAbhiPortalsGateCookie(bounce, request);
+        clearPortalsBriefingCookies(bounce, request);
         return bounce;
       }
       const response = NextResponse.next({ request: { headers } });
       // Consume the one-time login ticket; keep a short view cookie for this tab.
-      clearAbhiPortalsGateCookie(response, request);
-      applyAbhiPortalsViewCookie(response, request);
+      clearPortalsBriefingCookies(response, request);
+      applyPortalsBriefingViewCookie(response, request);
       for (const [key, value] of Object.entries(workspaceResponseHeaders)) {
         response.headers.set(key, value);
       }
@@ -434,7 +395,7 @@ export async function middleware(request: NextRequest) {
 
     // Talanton / ABHI externals may only use login/api/static + their assigned portal.
     // Apex `/` and `/login` are the organisation entry — never hijack into /{company}.
-    if (isCompanyPortalSlug(workspaceSlug)) {
+    if (isPortalWorkspaceSlug(workspaceSlug)) {
       const externalGate = await evaluateCustomerHostSessionGate(request, workspaceSlug);
       if (externalGate.status === "ok" && externalGate.session.userType === "external") {
         const portalHome = canonicalizePortalRedirect(externalGate.session.redirectPath);
@@ -490,7 +451,7 @@ export async function middleware(request: NextRequest) {
         clearPlatformSessionCookie(response, request);
       }
 
-      if (isCompanyPortalSlug(workspaceSlug)) {
+      if (isPortalWorkspaceSlug(workspaceSlug)) {
         // Real visits to portals login clear the one-time gate so /portals
         // requires completing the form again. Skip prefetch AND any request
         // that still originates from an open /portals tab (speculative loads
@@ -508,7 +469,7 @@ export async function middleware(request: NextRequest) {
           fromPortals = false;
         }
         if (wantsPortals && !isNextPrefetchRequest(request) && !fromPortals) {
-          clearAbhiPortalsGateCookie(response, request);
+          clearPortalsBriefingCookies(response, request);
         }
       }
 
@@ -571,7 +532,7 @@ export async function middleware(request: NextRequest) {
       if (isTalantonImpactSlug(workspaceSlug)) {
         const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
         const session = token ? await readPlatformSessionToken(token) : null;
-        if (session && isPortalsAllowedUsername(session.username, workspaceSlug)) {
+        if (session && isPortalsBriefingAllowedUsername(session.username, workspaceSlug)) {
           return rewriteTo(request, "/testing", headers, workspaceResponseHeaders);
         }
       }
@@ -614,12 +575,12 @@ export async function middleware(request: NextRequest) {
       if (workspaceSlug === ABHI_SLUG || isTalantonImpactSlug(workspaceSlug)) {
         const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
         const session = token ? await readPlatformSessionToken(token) : null;
-        if (session && isPortalsAllowedUsername(session.username, workspaceSlug)) {
+        if (session && isPortalsBriefingAllowedUsername(session.username, workspaceSlug)) {
           if (pathname === "/" || pathname === "") {
             const bounce = redirectExternal(`${workspaceOrigin}/dashboard${search}`);
             // Leaving the briefing surface drops the one-time portals gate.
             if (!isNextPrefetchRequest(request)) {
-              clearAbhiPortalsGateCookie(bounce, request);
+              clearPortalsBriefingCookies(bounce, request);
             }
             return bounce;
           }
@@ -631,7 +592,7 @@ export async function middleware(request: NextRequest) {
             response = rewriteTo(request, "/internaldashboard", headers, workspaceResponseHeaders);
           }
           if (!isNextPrefetchRequest(request)) {
-            clearAbhiPortalsGateCookie(response, request);
+            clearPortalsBriefingCookies(response, request);
           }
           return response;
         }
@@ -665,7 +626,7 @@ export async function middleware(request: NextRequest) {
 
       // Talanton / ABHI company-portal externals must not enter the admin shell.
       if (
-        isCompanyPortalSlug(workspaceSlug) &&
+        isPortalWorkspaceSlug(workspaceSlug) &&
         gate.session.userType === "external" &&
         (pathname === "/dashboard" || pathname.startsWith("/dashboard/"))
       ) {

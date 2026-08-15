@@ -38,14 +38,11 @@ import {
   createAbhiBoardPackRecordId,
   saveAbhiBoardPack,
 } from "@/lib/abhi/board-pack-record";
-import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
-import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
-import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
-import { getAbhiBoardMeetingsState } from "@/lib/abhi/board-meetings-store";
-import { getAbhiRiskRegisterState } from "@/lib/abhi/risk-register-store";
-import { getTalantonGovernanceSnapshot } from "@/lib/talanton/governance-store";
-import { getTiRiskRegisterState } from "@/lib/talanton/risk-register-store";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import {
+  collectEaClientOrgStatePayload,
+  workspacePackSupportsBoardPack,
+} from "@/lib/ai-operating-assistant/workspace-packs/client-pack-ui";
 import { saveFileToFolderPath } from "@/lib/pdf-file-storage";
 import { cn } from "@/lib/utils";
 import { resolveBrowserWorkspaceDisplayName } from "@/lib/workspace-brand";
@@ -250,12 +247,8 @@ export default function ExecutiveAssistantPanel({
     active: boolean;
     complete: boolean;
   }>({ active: false, complete: false });
-  const isAbhi = typeof window !== "undefined" ? isBrowserAbhiSurface() : false;
-  const isTalanton =
-    typeof window !== "undefined" ? isBrowserTalantonImpactSurface() : false;
-  const isOnwardAir =
-    typeof window !== "undefined" ? isBrowserOnwardAirSurface() : false;
-  const supportsBoardPackWorkspace = isAbhi || isTalanton || isOnwardAir;
+  const supportsBoardPackWorkspace =
+    typeof window !== "undefined" ? workspacePackSupportsBoardPack() : false;
   const [assistantTitle, setAssistantTitle] = useState("Executive Assistant");
   useLayoutEffect(() => {
     const name = resolveBrowserWorkspaceDisplayName().trim();
@@ -770,22 +763,7 @@ export default function ExecutiveAssistantPanel({
           roleView,
           stream: true,
           correlationId,
-          ...(isBrowserAbhiSurface()
-            ? {
-                abhiOrgState: {
-                  meetings: getAbhiBoardMeetingsState(),
-                  risks: getAbhiRiskRegisterState(),
-                },
-              }
-            : {}),
-          ...(isBrowserTalantonImpactSurface()
-            ? {
-                talantonOrgState: {
-                  governance: getTalantonGovernanceSnapshot(),
-                  risks: getTiRiskRegisterState(),
-                },
-              }
-            : {}),
+          ...collectEaClientOrgStatePayload(),
         }),
       });
 

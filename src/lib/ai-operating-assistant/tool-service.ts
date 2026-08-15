@@ -21,49 +21,14 @@ import {
 import { generateBoardPackTool } from "./boardpack-tools";
 import { generateLmsCourseFromDocumentTool } from "./lms-course-tools";
 import {
-  getAbhiBoardInsightsTool,
-  getAbhiExecutiveBriefingTool,
-  getAbhiOrgHealthTool,
-  queryAbhiActionsTool,
-} from "./abhi-executive-tools";
-import {
-  ABHI_EA_PDF_TOOL_DEFINITIONS,
-  generateAbhiPlatformAccessPdfTool,
-  generateAbhiProjectHealthPdfTool,
-  generateAbhiQuarterlyFinancialDeltaPdfTool,
-  generateAbhiRegulatoryImpactPdfTool,
-  queryAbhiProjectPortfolioTool,
-} from "@/lib/abhi/ea-pdf-tools";
-import {
-  ABHI_EXECUTIVE_TOOL_DEFINITIONS,
-  TALANTON_EXECUTIVE_TOOL_DEFINITIONS,
-  getTalantonBoardInsightsTool,
-  getTalantonExecutiveBriefingTool,
-  getTalantonOrgHealthTool,
-  generateTalantonStoriesLessonsPdfTool,
-  generateTalantonStoriesReportTool,
-  queryTalantonActionsTool,
-  queryTalantonFundsTool,
-  queryTalantonImpactTool,
-  queryTalantonPortfolioTool,
-  queryTalantonStoriesTool,
-} from "./talanton-executive-tools";
-import {
-  ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS,
-  getOnwardAirBoardInsightsTool,
-  getOnwardAirExecutiveBriefingTool,
-  getOnwardAirOrgHealthTool,
-  queryOnwardAirActionsTool,
-  queryOnwardAirModuleTool,
-  queryOnwardAirProjectPortfolioTool,
-} from "./onwardair-executive-tools";
+  CENTRAL_INTELLIGENCE_TOOL_DEFINITIONS,
+  CENTRAL_INTELLIGENCE_TOOL_HANDLERS,
+} from "@/lib/intelligence/ea-tools";
 import {
   ensureEaWorkspacePacksRegistered,
   getEaWorkspacePackToolDefinitions,
 } from "@/lib/ai-operating-assistant/workspace-packs";
-import { isAbhiSlug } from "@/lib/abhi-surface";
-import { isOnwardAirSlug } from "@/lib/onwardair-surface";
-import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { getPackToolHandlers } from "@/lib/ai-operating-assistant/workspace-packs/handlers-registry";
 import {
   getPageGuideTool,
   highlightUiTarget,
@@ -878,6 +843,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
       additionalProperties: false,
     },
   },
+  ...CENTRAL_INTELLIGENCE_TOOL_DEFINITIONS,
 ];
 
 type ContextualToolHandler = (
@@ -935,31 +901,7 @@ const handlers: Record<string, ContextualToolHandler> = {
   proposeBusinessActionPlan: proposeBusinessActionPlanTool,
   planBusinessGoal: planBusinessGoalTool,
   executeGoalPlan: executeGoalPlanTool,
-  "abhi.getExecutiveBriefing": getAbhiExecutiveBriefingTool,
-  "abhi.getOrgHealth": getAbhiOrgHealthTool,
-  "abhi.queryActions": queryAbhiActionsTool,
-  "abhi.getBoardInsights": getAbhiBoardInsightsTool,
-  "abhi.generateRegulatoryImpactPdf": generateAbhiRegulatoryImpactPdfTool,
-  "abhi.generateQuarterlyFinancialDeltaPdf": generateAbhiQuarterlyFinancialDeltaPdfTool,
-  "abhi.generateProjectHealthPdf": generateAbhiProjectHealthPdfTool,
-  "abhi.queryProjectPortfolio": queryAbhiProjectPortfolioTool,
-  "abhi.generatePlatformAccessPdf": generateAbhiPlatformAccessPdfTool,
-  "talanton.getExecutiveBriefing": getTalantonExecutiveBriefingTool,
-  "talanton.getOrgHealth": getTalantonOrgHealthTool,
-  "talanton.queryActions": queryTalantonActionsTool,
-  "talanton.getBoardInsights": getTalantonBoardInsightsTool,
-  "talanton.queryPortfolio": queryTalantonPortfolioTool,
-  "talanton.queryFunds": queryTalantonFundsTool,
-  "talanton.queryImpact": queryTalantonImpactTool,
-  "talanton.queryStories": queryTalantonStoriesTool,
-  "talanton.generateStoriesReport": generateTalantonStoriesReportTool,
-  "talanton.generateStoriesLessonsPdf": generateTalantonStoriesLessonsPdfTool,
-  "onwardair.getExecutiveBriefing": getOnwardAirExecutiveBriefingTool,
-  "onwardair.getOrgHealth": getOnwardAirOrgHealthTool,
-  "onwardair.queryActions": queryOnwardAirActionsTool,
-  "onwardair.getBoardInsights": getOnwardAirBoardInsightsTool,
-  "onwardair.queryModule": queryOnwardAirModuleTool,
-  "onwardair.queryProjectPortfolio": queryOnwardAirProjectPortfolioTool,
+  ...CENTRAL_INTELLIGENCE_TOOL_HANDLERS,
 };
 
 /** @deprecated Prefer contextual handlers — kept for registerAssistantTool compatibility. */
@@ -973,17 +915,7 @@ export function getOpenAIToolSchemas(workspaceSlug?: string | null) {
   ensureEaWorkspacePacksRegistered();
   const slug = workspaceSlug?.trim().toLowerCase() ?? "";
   const packTools = getEaWorkspacePackToolDefinitions(slug);
-  const extra =
-    packTools.length > 0
-      ? packTools
-      : [
-          ...(isAbhiSlug(slug)
-            ? [...ABHI_EXECUTIVE_TOOL_DEFINITIONS, ...ABHI_EA_PDF_TOOL_DEFINITIONS]
-            : []),
-          ...(isTalantonImpactSlug(slug) ? TALANTON_EXECUTIVE_TOOL_DEFINITIONS : []),
-          ...(isOnwardAirSlug(slug) ? ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS : []),
-        ];
-  return [...ASSISTANT_TOOL_DEFINITIONS, ...extra].map((tool) => ({
+  return [...ASSISTANT_TOOL_DEFINITIONS, ...packTools].map((tool) => ({
     type: "function" as const,
     name: tool.name,
     description: tool.description,
@@ -997,7 +929,8 @@ export async function executeAssistantTool(
   rawArgs: unknown,
   businessContext?: AssistantBusinessContext,
 ) {
-  const handler = handlers[name];
+  ensureEaWorkspacePacksRegistered();
+  const handler = handlers[name] ?? getPackToolHandlers()[name];
   if (!handler) {
     return {
       status: "error",

@@ -1,71 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import {
-  isOnwardAirPortalsAdminUsername,
-  isOnwardAirPortalsAllowedUsername,
-  sanitizePortalsContent,
-} from "@/lib/onwardair/portals-demo";
-import {
-  readOnwardAirPortalsContent,
-  writeOnwardAirPortalsContent,
-} from "@/lib/onwardair/portals-content-store";
-import { applyAbhiPortalsViewCookie } from "@/lib/platform-session-cookie";
-import { getPlatformSession } from "@/lib/platform-session";
+  handleGetPortalsBriefingContent,
+  handlePutPortalsBriefingContent,
+} from "@/lib/portals/briefing/api-handlers";
+import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const NO_STORE_HEADERS = {
-  "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
-  Vary: "Cookie",
-} as const;
-
-function portalsJson(
-  body: unknown,
-  init: { status?: number; request?: NextRequest; refreshView?: boolean } = {},
-) {
-  const response = NextResponse.json(body, {
-    status: init.status,
-    headers: NO_STORE_HEADERS,
-  });
-  if (init.refreshView && init.request) {
-    applyAbhiPortalsViewCookie(response, init.request);
-  }
-  return response;
-}
-
+/** @deprecated Prefer /api/portals/briefing-content — kept for backward compatibility. */
 export async function GET(request: NextRequest) {
-  const session = await getPlatformSession();
-  if (!session || !isOnwardAirPortalsAllowedUsername(session.username)) {
-    return portalsJson({ error: "Authentication required." }, { status: 401 });
-  }
-
-  const content = await readOnwardAirPortalsContent();
-  return portalsJson(
-    {
-      content,
-      canEdit: isOnwardAirPortalsAdminUsername(session.username),
-      username: session.username,
-    },
-    { request, refreshView: true },
-  );
+  return handleGetPortalsBriefingContent(request, ONWARDAIR_SLUG);
 }
 
+/** @deprecated Prefer /api/portals/briefing-content — kept for backward compatibility. */
 export async function PUT(request: NextRequest) {
-  const session = await getPlatformSession();
-  if (!session) {
-    return portalsJson({ error: "Authentication required." }, { status: 401 });
-  }
-  if (!isOnwardAirPortalsAdminUsername(session.username)) {
-    return portalsJson({ error: "Admin access required." }, { status: 403 });
-  }
-
-  try {
-    const body = (await request.json()) as { content?: unknown };
-    const content = await writeOnwardAirPortalsContent(sanitizePortalsContent(body.content));
-    return portalsJson({ ok: true, content }, { request, refreshView: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to save portals content.";
-    return portalsJson({ error: message }, { status: 500 });
-  }
+  return handlePutPortalsBriefingContent(request, ONWARDAIR_SLUG);
 }

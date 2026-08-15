@@ -18,8 +18,8 @@ import {
   type TalantonActionCentreQuery,
   type TalantonBoardInsightsFocus,
 } from "@/lib/talanton/executive-intelligence";
+import { queryTalantonStoriesForEa } from "@/lib/marketing/executive-stories-service";
 import {
-  queryTalantonStories,
   type StoriesScope,
   type StoryStatusFilter,
   type StoryTypeFilter,
@@ -323,7 +323,7 @@ export async function queryTalantonStoriesTool(
 
   const scope = parseStoriesScopeArgs(args);
   scope.outputFormat = "narrative";
-  const result = queryTalantonStories(scope);
+  const result = await queryTalantonStoriesForEa(scope);
 
   return toolOk("talanton.queryStories", [{ ...result }], {
     source: ["talanton:marketing-stories", "talanton:journey-stories"],
@@ -349,7 +349,7 @@ export async function generateTalantonStoriesLessonsPdfTool(
 
   const scope = parseStoriesScopeArgs(args);
   const question = asString(args.question) || "Management lessons from field stories";
-  const result = queryTalantonStories({ ...scope, outputFormat: "narrative" });
+  const result = await queryTalantonStoriesForEa({ ...scope, outputFormat: "narrative" });
   const analysis = await synthesizeTalantonStoriesLessons(result, question);
   const pdfBytes = await buildTalantonStoriesLessonsPdf(
     analysis,
@@ -426,7 +426,7 @@ export async function generateTalantonStoriesReportTool(
 
   const scope = parseStoriesScopeArgs(args);
   scope.outputFormat = "pdf";
-  const result = queryTalantonStories(scope);
+  const result = await queryTalantonStoriesForEa(scope);
   const pdfBytes = await buildTalantonStoriesReportPdf(result, ctx.business.organisation.name);
   const filename = talantonStoriesReportFilename();
 

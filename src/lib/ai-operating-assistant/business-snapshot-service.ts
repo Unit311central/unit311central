@@ -13,8 +13,7 @@ import { getWiseConnectionStatus, listWiseBalances } from "@/lib/wise-service";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import { loadLiveInvoices } from "./live-finance";
 import { isOverdue } from "./tool-result";
-import { isOnwardAirSlug } from "@/lib/onwardair-surface";
-import { queryOnwardAirModule } from "@/lib/onwardair/executive-intelligence";
+import { enrichEaWorkspaceBusinessSnapshot } from "@/lib/ai-operating-assistant/workspace-packs";
 import type { AssistantBusinessContext } from "./types";
 
 export type BusinessSnapshotDomain =
@@ -219,7 +218,7 @@ export async function buildBusinessSnapshot(
   }> = [];
   void assetBundle;
 
-  return {
+  const baseSnapshot = {
     asOf: new Date().toISOString(),
     organisation: context.organisation.name,
     workspace: context.workspace.name,
@@ -417,22 +416,17 @@ export async function buildBusinessSnapshot(
           }
         : { restricted: true }
       : undefined,
-    onwardairModule:
-      isOnwardAirSlug(context.workspace.slug) &&
-      (domain === "fundraising" || domain === "engineering" || domain === "intelligence")
-        ? queryOnwardAirModule(
-            domain === "fundraising"
-              ? "fundraising"
-              : domain === "engineering"
-                ? "engineering"
-                : "intelligence",
-          )
-        : undefined,
     dataGaps,
     guidance:
       domain === "assets"
         ? "The user asked about physical Assets. Answer ONLY from the assets register (tags, models, locations, status). Do NOT report Wise cash, bank balances, clients, or finance unless they also asked."
-        : "Answer using only these live figures. For bank/cash questions use workspace cash/ledger figures (not platform treasury). For Assets section / physical assets / fleet / drones use the assets register ÔÇö never confuse Assets with finance. If a field is null/empty/zero, say so plainly.",
+        : "Answer using only these live figures. For bank/cash questions use workspace cash/ledger figures (not platform treasury). For Assets section / physical assets / fleet / drones use the assets register — never confuse Assets with finance. If a field is null/empty/zero, say so plainly.",
   };
+
+  return (await enrichEaWorkspaceBusinessSnapshot(
+    context,
+    domain,
+    baseSnapshot,
+  )) as typeof baseSnapshot;
 }
 

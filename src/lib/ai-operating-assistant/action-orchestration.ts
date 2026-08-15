@@ -8,11 +8,9 @@
  * Write requests use the Action Framework (propose → Plan Viewer → execute).
  */
 
-import { isAbhiSlug } from "@/lib/abhi-surface";
-import { isOnwardAirSlug } from "@/lib/onwardair-surface";
-import { resolveOnwardAirExecutiveIntelligenceIntent } from "@/lib/onwardair/executive-intelligence-intent";
 import {
   ensureEaWorkspacePacksRegistered,
+  getEaWorkspaceUnsupportedWriteMessage,
   resolveEaWorkspacePackOrchestration,
 } from "@/lib/ai-operating-assistant/workspace-packs";
 
@@ -244,35 +242,12 @@ export async function resolveOrchestrationRoute(
     }
     // Prefer workspace executive tools; fall back to live snapshot for open business reads.
     if (!hasExplicitWriteIntent(message)) {
-      if (isOnwardAirSlug(business.workspace.slug)) {
-        const oaIntel = resolveOnwardAirExecutiveIntelligenceIntent(message);
-        if (oaIntel) {
-          return {
-            kind: "tool",
-            intent: {
-              tool: oaIntel.tool as DirectAssistantIntent["tool"],
-              args: oaIntel.args,
-              reason: oaIntel.reason,
-            },
-          };
-        }
-      }
-      if (!isAbhiSlug(business.workspace.slug)) {
-        return {
-          kind: "tool",
-          intent: {
-            tool: "queryBusiness",
-            args: { question: message },
-            reason: "business_domain_fallback",
-          },
-        };
-      }
       return {
         kind: "tool",
         intent: {
           tool: "queryBusiness",
           args: { question: message },
-          reason: "abhi_business_read_fallback",
+          reason: "business_domain_fallback",
         },
       };
     }
@@ -360,23 +335,16 @@ export async function resolveOrchestrationRoute(
     const registered = capabilities?.statements?.length
       ? capabilities.statements.map((s) => `• ${s}`).join("\n")
       : "• Create client\n• Create project\n• Related client contact / location actions";
-    const writeMessage = isAbhiSlug(business.workspace.slug)
-      ? [
-          "I can take care of that through the right ABHI module — here’s the fastest path:",
-          "",
-          "Registered actions I can run for you today:",
-          registered,
-          "",
-          "Tell me which member, project, or module to use and I’ll proceed — or ask me to open the screen.",
-        ].join("\n")
-      : [
-          "I don't have a registered write action for that request yet.",
-          "",
-          "Registered executable writes today:",
-          registered,
-          "",
-          "I can still look up related live data, or you can ask one of the registered actions above.",
-        ].join("\n");
+    const writeMessage =
+      getEaWorkspaceUnsupportedWriteMessage(business.workspace.slug, registered) ??
+      [
+        "I don't have a registered write action for that request yet.",
+        "",
+        "Registered executable writes today:",
+        registered,
+        "",
+        "I can still look up related live data, or you can ask one of the registered actions above.",
+      ].join("\n");
     return {
       kind: "capability_answer",
       message: writeMessage,

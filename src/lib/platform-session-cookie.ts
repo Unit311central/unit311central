@@ -8,16 +8,16 @@ import {
 
 export { PLATFORM_SESSION_COOKIE, PLATFORM_SESSION_MAX_AGE_SECONDS };
 
-/**
- * One-time entry ticket set only by an explicit /portals login.
- * Name bumped so stale `abhi_portals_access` cookies cannot skip login.
- */
-export const ABHI_PORTALS_GATE_COOKIE = "abhi_portals_entry";
+import {
+  PORTALS_BRIEFING_GATE_COOKIE,
+  PORTALS_BRIEFING_VIEW_COOKIE,
+} from "@/lib/portals/briefing/cookie-names";
 
-/** Short-lived cookie that keeps an open /portals tab working after entry is consumed. */
-export const ABHI_PORTALS_VIEW_COOKIE = "abhi_portals_view";
+/** @deprecated Use PORTALS_BRIEFING_GATE_COOKIE */
+export const ABHI_PORTALS_GATE_COOKIE = PORTALS_BRIEFING_GATE_COOKIE;
 
-const ABHI_PORTALS_GATE_COOKIE_LEGACY = ["abhi_portals_gate", "abhi_portals_access"] as const;
+/** @deprecated Use PORTALS_BRIEFING_VIEW_COOKIE */
+export const ABHI_PORTALS_VIEW_COOKIE = PORTALS_BRIEFING_VIEW_COOKIE;
 
 /**
  * One-time entry ticket set only by an explicit /overview login.
@@ -93,22 +93,18 @@ export function applyAbhiPortalsGateCookie(
   response: NextResponse,
   request?: NextRequest | Request,
 ) {
-  response.cookies.set(
-    ABHI_PORTALS_GATE_COOKIE,
-    "1",
-    getAbhiPortalsGateCookieOptions(request),
-  );
+  const { applyPortalsBriefingGateCookie } =
+    require("@/lib/portals/briefing/cookies") as typeof import("@/lib/portals/briefing/cookies");
+  applyPortalsBriefingGateCookie(response, request);
 }
 
 export function applyAbhiPortalsViewCookie(
   response: NextResponse,
   request?: NextRequest | Request,
 ) {
-  response.cookies.set(
-    ABHI_PORTALS_VIEW_COOKIE,
-    "1",
-    getAbhiPortalsViewCookieOptions(request),
-  );
+  const { applyPortalsBriefingViewCookie } =
+    require("@/lib/portals/briefing/cookies") as typeof import("@/lib/portals/briefing/cookies");
+  applyPortalsBriefingViewCookie(response, request);
 }
 
 function expiredCookieOptions(request?: NextRequest | Request) {
@@ -128,12 +124,9 @@ export function clearAbhiPortalsGateCookie(
   response: NextResponse,
   request?: NextRequest | Request,
 ) {
-  const expired = expiredCookieOptions(request);
-  response.cookies.set(ABHI_PORTALS_GATE_COOKIE, "", expired);
-  response.cookies.set(ABHI_PORTALS_VIEW_COOKIE, "", expired);
-  for (const legacy of ABHI_PORTALS_GATE_COOKIE_LEGACY) {
-    response.cookies.set(legacy, "", expired);
-  }
+  const { clearPortalsBriefingCookies } =
+    require("@/lib/portals/briefing/cookies") as typeof import("@/lib/portals/briefing/cookies");
+  clearPortalsBriefingCookies(response, request);
 }
 
 export function applyOverviewEntryGateCookie(

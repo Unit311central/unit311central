@@ -12,6 +12,7 @@ import { registerFinanceActions } from "./modules/finance/register";
 import { registerFundraisingActions } from "./modules/fundraising/register";
 import { registerProjectsActions } from "./modules/projects/register";
 import { registerSupportActions } from "./modules/support/register";
+import { registerMarketingActions } from "./modules/marketing/register";
 import { validateRegisteredActionCapabilities } from "./capability-validation";
 import { buildCapabilityGraph, invalidateCapabilityGraph } from "./capability-service";
 
@@ -27,6 +28,7 @@ export function registerAllActionModules() {
   registerBoardActions();
   registerEngineeringActions();
   registerSupportActions();
+  registerMarketingActions();
 
   if (!bootstrapped) {
     validateRegisteredActionCapabilities({

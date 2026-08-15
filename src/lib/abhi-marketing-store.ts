@@ -1021,6 +1021,37 @@ export function getAbhiMarketingSnapshot(): AbhiMarketingState {
   return state;
 }
 
+export function replaceAbhiMarketingState(next: AbhiMarketingState) {
+  state = next;
+  emit();
+}
+
+export async function hydrateAbhiMarketingFromCentralApi(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  const { fetchMarketingBundle } = await import("@/lib/marketing/client/marketing-api");
+  const { mapBundleToAbhiMarketingState } = await import("@/lib/marketing/client/store-hydration");
+  const bundle = await fetchMarketingBundle();
+  if (!bundle) return false;
+  replaceAbhiMarketingState(mapBundleToAbhiMarketingState(bundle));
+  return true;
+}
+
+function syncMarketingToCentral(resource: import("@/lib/marketing/client/marketing-api").MarketingResource, payload: Record<string, unknown>) {
+  void import("@/lib/marketing/client/store-write-through").then(({ writeThroughMarketingResource }) =>
+    writeThroughMarketingResource(resource, payload, hydrateAbhiMarketingFromCentralApi),
+  );
+}
+
+function deleteMarketingFromCentral(resource: import("@/lib/marketing/client/marketing-api").MarketingResource, id: string) {
+  void import("@/lib/marketing/client/store-write-through").then(({ deleteThroughMarketingResource }) =>
+    deleteThroughMarketingResource(resource, id, hydrateAbhiMarketingFromCentralApi),
+  );
+}
+
+export function buildAbhiMarketingSeedState(): AbhiMarketingState {
+  return seedState();
+}
+
 export function resetAbhiMarketingStore() {
   state = seedState();
   emit();
@@ -1050,6 +1081,13 @@ export function addMember(input: { companyName: string; contactEmail: string }) 
   };
   state = { ...state, members: [member, ...state.members] };
   emit();
+  syncMarketingToCentral("contacts", {
+    id: member.id,
+    name: member.companyName,
+    email: member.contactEmail,
+    organisation: member.companyName,
+    status: "active",
+  });
   return member;
 }
 
@@ -1069,6 +1107,13 @@ export function updateMember(
     members: state.members.map((row) => (row.id === id ? next : row)),
   };
   emit();
+  syncMarketingToCentral("contacts", {
+    id: next.id,
+    name: next.companyName,
+    email: next.contactEmail,
+    organisation: next.companyName,
+    status: "active",
+  });
   return next;
 }
 
@@ -1090,9 +1135,8 @@ export function deleteMember(id: string) {
     })),
   };
   emit();
+  deleteMarketingFromCentral("contacts", id);
 }
-
-/* —— Events —— */
 
 export function listEvents() {
   return state.events;
@@ -1124,30 +1168,80 @@ export function upsertEvent(input: Partial<AbhiEvent> & { id?: string }) {
       : [next, ...state.events],
   };
   emit();
+  syncMarketingToCentral("external-events", {
+    id: next.id,
+    name: next.name,
+    startDate: next.startDate,
+    endDate: next.endDate,
+    city: next.city,
+    country: next.country,
+    website: next.website,
+    owner: next.ownerName,
+    status: "Confirmed",
+    notes: next.notes,
+    memberIds: next.memberIds,
+    calendarSynced: next.calendarSynced,
+    extensionData: { year: next.year, ownerId: next.ownerId },
+  });
   return next;
 }
 
 export function deleteEvent(id: string) {
   state = { ...state, events: state.events.filter((row) => row.id !== id) };
   emit();
+  deleteMarketingFromCentral("external-events", id);
 }
 
 export function toggleEventCalendarSync(id: string) {
+  const existing = state.events.find((row) => row.id === id);
+  if (!existing) return;
+  const next = { ...existing, calendarSynced: !existing.calendarSynced };
   state = {
     ...state,
-    events: state.events.map((row) =>
-      row.id === id ? { ...row, calendarSynced: !row.calendarSynced } : row,
-    ),
+    events: state.events.map((row) => (row.id === id ? next : row)),
   };
   emit();
+  syncMarketingToCentral("external-events", {
+    id: next.id,
+    name: next.name,
+    startDate: next.startDate,
+    endDate: next.endDate,
+    city: next.city,
+    country: next.country,
+    website: next.website,
+    owner: next.ownerName,
+    status: "Confirmed",
+    notes: next.notes,
+    memberIds: next.memberIds,
+    calendarSynced: next.calendarSynced,
+    extensionData: { year: next.year, ownerId: next.ownerId },
+  });
 }
 
 export function setEventMembers(id: string, memberIds: string[]) {
+  const existing = state.events.find((row) => row.id === id);
+  if (!existing) return;
+  const next = { ...existing, memberIds };
   state = {
     ...state,
-    events: state.events.map((row) => (row.id === id ? { ...row, memberIds } : row)),
+    events: state.events.map((row) => (row.id === id ? next : row)),
   };
   emit();
+  syncMarketingToCentral("external-events", {
+    id: next.id,
+    name: next.name,
+    startDate: next.startDate,
+    endDate: next.endDate,
+    city: next.city,
+    country: next.country,
+    website: next.website,
+    owner: next.ownerName,
+    status: "Confirmed",
+    notes: next.notes,
+    memberIds: next.memberIds,
+    calendarSynced: next.calendarSynced,
+    extensionData: { year: next.year, ownerId: next.ownerId },
+  });
 }
 
 /* —— Newsletters —— */
@@ -1182,6 +1276,21 @@ export function upsertNewsletter(input: Partial<AbhiNewsletter> & { id?: string 
       : [next, ...state.newsletters],
   };
   emit();
+  syncMarketingToCentral("newsletters", {
+    id: next.id,
+    title: next.title,
+    subject: next.subject,
+    htmlBody: next.htmlBody,
+    status: next.status,
+    scheduledAt: next.scheduledAt,
+    sentAt: next.sentAt,
+    recipientMode: next.recipientMode,
+    recipientIds: next.recipientMemberIds,
+    manualEmails: next.manualEmails,
+    channels: next.channels,
+    metrics: next.metrics,
+    extensionData: { imageDataUrls: next.imageDataUrls },
+  });
   return next;
 }
 
@@ -1204,6 +1313,24 @@ export function sendNewsletterNow(id: string) {
     ),
   };
   emit();
+  const row = state.newsletters.find((item) => item.id === id);
+  if (row) {
+    syncMarketingToCentral("newsletters", {
+      id: row.id,
+      title: row.title,
+      subject: row.subject,
+      htmlBody: row.htmlBody,
+      status: row.status,
+      scheduledAt: row.scheduledAt,
+      sentAt: row.sentAt,
+      recipientMode: row.recipientMode,
+      recipientIds: row.recipientMemberIds,
+      manualEmails: row.manualEmails,
+      channels: row.channels,
+      metrics: row.metrics,
+      extensionData: { imageDataUrls: row.imageDataUrls },
+    });
+  }
 }
 
 export function scheduleNewsletter(id: string, scheduledAt: string) {
@@ -1216,11 +1343,30 @@ export function scheduleNewsletter(id: string, scheduledAt: string) {
     ),
   };
   emit();
+  const row = state.newsletters.find((item) => item.id === id);
+  if (row) {
+    syncMarketingToCentral("newsletters", {
+      id: row.id,
+      title: row.title,
+      subject: row.subject,
+      htmlBody: row.htmlBody,
+      status: row.status,
+      scheduledAt: row.scheduledAt,
+      sentAt: row.sentAt,
+      recipientMode: row.recipientMode,
+      recipientIds: row.recipientMemberIds,
+      manualEmails: row.manualEmails,
+      channels: row.channels,
+      metrics: row.metrics,
+      extensionData: { imageDataUrls: row.imageDataUrls },
+    });
+  }
 }
 
 export function deleteNewsletter(id: string) {
   state = { ...state, newsletters: state.newsletters.filter((row) => row.id !== id) };
   emit();
+  deleteMarketingFromCentral("newsletters", id);
 }
 
 /* —— Mailing list campaigns —— */
@@ -1250,6 +1396,17 @@ export function upsertMailingCampaign(input: Partial<AbhiMailingCampaign> & { id
       : [next, ...state.mailingCampaigns],
   };
   emit();
+  syncMarketingToCentral("campaigns", {
+    id: next.id,
+    subject: next.subject,
+    body: next.body,
+    status: next.status,
+    recipientMode: next.recipientMode,
+    recipientIds: next.recipientMemberIds,
+    manualEmails: next.manualEmails,
+    scheduledAt: next.scheduledAt,
+    sentAt: next.sentAt,
+  });
   return next;
 }
 
@@ -1261,11 +1418,26 @@ export function sendMailingCampaignNow(id: string) {
     ),
   };
   emit();
+  const row = state.mailingCampaigns.find((item) => item.id === id);
+  if (row) {
+    syncMarketingToCentral("campaigns", {
+      id: row.id,
+      subject: row.subject,
+      body: row.body,
+      status: row.status,
+      recipientMode: row.recipientMode,
+      recipientIds: row.recipientMemberIds,
+      manualEmails: row.manualEmails,
+      scheduledAt: row.scheduledAt,
+      sentAt: row.sentAt,
+    });
+  }
 }
 
 export function deleteMailingCampaign(id: string) {
   state = { ...state, mailingCampaigns: state.mailingCampaigns.filter((row) => row.id !== id) };
   emit();
+  deleteMarketingFromCentral("campaigns", id);
 }
 
 /* —— Working groups —— */

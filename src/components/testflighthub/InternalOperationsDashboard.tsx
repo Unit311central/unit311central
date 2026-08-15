@@ -59,6 +59,8 @@ import {
   WORKSPACE_CHUNK_LOADERS,
 } from "@/lib/workspace-prefetch";
 import { markWorkspaceView } from "@/lib/platform-performance";
+import { isMarketingModuleView } from "@/lib/marketing/views";
+import { MarketingViewHost } from "@/components/marketing";
 
 const ExecutiveHomeDashboard = dynamic(() => import("./ExecutiveHomeDashboard"), {
   loading: () => <WorkspaceLoadingFallback label="Loading executive dashboard" />,
@@ -68,34 +70,6 @@ const TalantonPortfolioWorkspace = dynamic(
   () => import("./talanton/TalantonPortfolioWorkspace"),
   {
     loading: () => <WorkspaceLoadingFallback label="Loading Talanton portfolio" />,
-    ssr: false,
-  },
-);
-const PortfolioIntelligenceBriefingWorkspace = dynamic(
-  () => import("./talanton/PortfolioIntelligenceBriefingWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading executive briefing" />,
-    ssr: false,
-  },
-);
-const CompanyIntelligenceWorkspace = dynamic(
-  () => import("./talanton/CompanyIntelligenceWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading company intelligence" />,
-    ssr: false,
-  },
-);
-const ImpactIntelligenceDashboardWorkspace = dynamic(
-  () => import("./talanton/ImpactIntelligenceDashboardWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading impact dashboard" />,
-    ssr: false,
-  },
-);
-const CompanyImpactWorkspace = dynamic(
-  () => import("./talanton/CompanyImpactWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading company impact" />,
     ssr: false,
   },
 );
@@ -110,48 +84,6 @@ const QuarterlyPortfolioUpdateWorkspace = dynamic(
   () => import("./talanton/QuarterlyPortfolioUpdateWorkspace"),
   {
     loading: () => <WorkspaceLoadingFallback label="Loading quarterly portfolio update" />,
-    ssr: false,
-  },
-);
-const OpportunityIntelligenceWorkspace = dynamic(
-  () => import("./talanton/OpportunityIntelligenceWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading opportunity intelligence" />,
-    ssr: false,
-  },
-);
-const PortfolioStoriesWorkspace = dynamic(
-  () => import("./talanton/PortfolioStoriesWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading portfolio stories" />,
-    ssr: false,
-  },
-);
-const JourneyStoriesWorkspace = dynamic(
-  () => import("./talanton/JourneyStoriesWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading journey stories" />,
-    ssr: false,
-  },
-);
-const StoriesNewsletterWorkspace = dynamic(
-  () => import("./talanton/StoriesNewsletterWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading digital newsletter" />,
-    ssr: false,
-  },
-);
-const MediaLibraryWorkspace = dynamic(
-  () => import("./talanton/MediaLibraryWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading media library" />,
-    ssr: false,
-  },
-);
-const StoriesMailingListWorkspace = dynamic(
-  () => import("./talanton/StoriesMailingListWorkspace"),
-  {
-    loading: () => <WorkspaceLoadingFallback label="Loading mailing list" />,
     ssr: false,
   },
 );
@@ -226,14 +158,8 @@ const TalantonRiskRegisterWorkspace = dynamic(
   },
 );
 import {
-  AbhiCalendarEventsWorkspace,
   AbhiComplianceTrainingWorkspace,
-  AbhiEventManagementWorkspace,
-  AbhiEventsWorkspace,
-  AbhiMailingListWorkspace,
-  AbhiNewsletterWorkspace,
   AbhiUkPavilionWorkspace,
-  AbhiProgrammesWorkspace,
   AccountsPayableWorkspace,
   AccountsReceivableWorkspace,
   AssetManagementWorkspace,
@@ -247,8 +173,6 @@ import {
   ClientManagementWorkspace,
   ClientOnboardingWorkspace,
   ClientsDashboardWorkspace,
-  MemberIntelligenceWorkspace,
-  RegulatoryIntelligenceWorkspace,
   CompetitorsWorkspace,
   ConnectionsWorkspace,
   CorporateDashboardWorkspace,
@@ -300,7 +224,6 @@ import {
   BoardGovernanceWorkspace,
   SectorWorkspace,
   SettingsWorkspace,
-  SocialWorkspace,
   StaffTrainingWorkspace,
   ExternalTrainingWorkspace,
   StrategyWorkspace,
@@ -354,9 +277,8 @@ import {
   OnwardAirBoardMeetingsWorkspace,
 } from "@/components/onwardair/OnwardAirBoardWorkspaces";
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
-import { OnwardAirCompetitorIntelligenceWorkspace } from "@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace";
-import { OnwardAirEcosystemPartnersWorkspace } from "@/components/onwardair/OnwardAirEcosystemPartnersWorkspace";
-import OnwardAirMarketingEventsWorkspace from "@/components/onwardair/OnwardAirMarketingEventsWorkspace";
+import IntelligenceCentralWorkspace from "@/components/intelligence/IntelligenceCentralWorkspace";
+import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
@@ -852,19 +774,11 @@ export default function InternalOperationsDashboard({
             </WorkspacePane>
           )}
 
-          {activeView === "member-intelligence" && (
-            <MemberIntelligenceWorkspace clients={clients} />
-          )}
-
-          {(activeView === "regulatory-dashboard" ||
-            activeView === "regulatory-updates" ||
-            activeView === "regulatory-impact" ||
-            activeView === "regulatory-alerts") && (
-            <RegulatoryIntelligenceWorkspace
-              clients={clients}
-              view={activeView}
-            />
-          )}
+          {isIntelligenceOperationsView(activeView) ? (
+            <WorkspaceErrorBoundary title="Intelligence">
+              <IntelligenceCentralWorkspace activeView={activeView} clients={clients} />
+            </WorkspaceErrorBoundary>
+          ) : null}
 
           {activeView === "client-onboarding" && <ClientOnboardingWorkspace />}
 
@@ -1067,58 +981,7 @@ export default function InternalOperationsDashboard({
 
           {activeView === "training-external" && <ExternalTrainingWorkspace />}
 
-          {activeView === "oa-marketing-dashboard" && (
-            <OnwardAirMarketingEventsWorkspace page="dashboard" />
-          )}
-
-          {activeView === "marketing-newsletter" &&
-            (isBrowserOnwardAirSurface() ? (
-              <OnwardAirMarketingEventsWorkspace page="newsletter" />
-            ) : (
-              <AbhiNewsletterWorkspace />
-            ))}
-
-          {activeView === "marketing-events" &&
-            (isBrowserOnwardAirSurface() ? (
-              <OnwardAirMarketingEventsWorkspace page="events" />
-            ) : (
-              <AbhiEventsWorkspace />
-            ))}
-
-          {activeView === "marketing-abhi-events" && <AbhiCalendarEventsWorkspace />}
-
-          {activeView === "marketing-event-management" &&
-            (isBrowserOnwardAirSurface() ? (
-              <OnwardAirMarketingEventsWorkspace page="event-management" />
-            ) : (
-              <AbhiEventManagementWorkspace />
-            ))}
-
-          {activeView === "marketing-working-groups" && (
-            <AbhiProgrammesWorkspace mode="working-groups" />
-          )}
-
-          {activeView === "marketing-us-accelerator" && (
-            <AbhiProgrammesWorkspace mode="us-accelerator" />
-          )}
-
-          {activeView === "marketing-me-accelerator" && (
-            <AbhiProgrammesWorkspace mode="me-accelerator" />
-          )}
-
-          {activeView === "marketing-training" &&
-            (isBrowserAbhiSurface() ? (
-              <AbhiComplianceTrainingWorkspace mode="courses" />
-            ) : (
-              <StaffTrainingWorkspace />
-            ))}
-
-          {activeView === "marketing-mailing-list" &&
-            (isBrowserOnwardAirSurface() ? (
-              <OnwardAirMarketingEventsWorkspace page="mailing-list" />
-            ) : (
-              <AbhiMailingListWorkspace />
-            ))}
+          {isMarketingModuleView(activeView) && <MarketingViewHost view={activeView} />}
 
           {activeView === "training-dashboard" &&
             (isBrowserTalantonImpactSurface() ? (
@@ -1206,8 +1069,6 @@ export default function InternalOperationsDashboard({
               <CommunicationsWorkspace />
             </WorkspacePane>
           )}
-
-          {activeView === "social" && <SocialWorkspace />}
 
           {isWarm("settings") && (
             <WorkspacePane view="settings" activeView={activeView} keepMounted={isWarm("settings")}>
@@ -1444,40 +1305,6 @@ export default function InternalOperationsDashboard({
               <OnwardAirIpPatentsWorkspace section="search" />
             </WorkspaceErrorBoundary>
           )}
-          {activeView === "oa-competitor-intelligence" && (
-            <WorkspaceErrorBoundary title="Competitor Intelligence">
-              <OnwardAirCompetitorIntelligenceWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-          {activeView === "oa-ecosystem-partners" && (
-            <WorkspaceErrorBoundary title="Ecosystem Partners">
-              <OnwardAirEcosystemPartnersWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "portfolio-intelligence-briefing" && (
-            <WorkspaceErrorBoundary title="Portfolio Intelligence">
-              <PortfolioIntelligenceBriefingWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "portfolio-intelligence-company" && (
-            <WorkspaceErrorBoundary title="Company Intelligence">
-              <CompanyIntelligenceWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "impact-intelligence-dashboard" && (
-            <WorkspaceErrorBoundary title="Impact Intelligence">
-              <ImpactIntelligenceDashboardWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "impact-intelligence-company" && (
-            <WorkspaceErrorBoundary title="Company Impact">
-              <CompanyImpactWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
 
           {activeView === "annual-impact-report" && (
             <WorkspaceErrorBoundary title="Annual Impact Report">
@@ -1488,42 +1315,6 @@ export default function InternalOperationsDashboard({
           {activeView === "quarterly-portfolio-update" && (
             <WorkspaceErrorBoundary title="Quarterly Portfolio Update">
               <QuarterlyPortfolioUpdateWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "opportunity-intelligence" && (
-            <WorkspaceErrorBoundary title="Opportunity Intelligence">
-              <OpportunityIntelligenceWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "portfolio-stories" && (
-            <WorkspaceErrorBoundary title="Portfolio Stories">
-              <PortfolioStoriesWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "journey-stories" && (
-            <WorkspaceErrorBoundary title="Journey Stories">
-              <JourneyStoriesWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "stories-newsletter" && (
-            <WorkspaceErrorBoundary title="Digital Newsletter">
-              <StoriesNewsletterWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "stories-media-library" && (
-            <WorkspaceErrorBoundary title="Media Library">
-              <MediaLibraryWorkspace />
-            </WorkspaceErrorBoundary>
-          )}
-
-          {activeView === "stories-mailing-list" && (
-            <WorkspaceErrorBoundary title="Mailing List Management">
-              <StoriesMailingListWorkspace />
             </WorkspaceErrorBoundary>
           )}
 

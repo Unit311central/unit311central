@@ -1,68 +1,57 @@
 /**
  * Workspace-aware operational datasets for EA tools.
- * Prefer slug-selected builders so SSR answers match ABHI / CorpCentre / default seeds.
+ * Resolved via EaWorkspacePack operationalDataProvider with central defaults.
  */
 
-import { isAbhiSlug } from "@/lib/abhi-surface";
-import { buildAbhiLeaveRequests } from "@/lib/abhi-hr-leave";
-import { buildAbhiPerformanceReviews } from "@/lib/abhi-hr-performance";
-import { buildAbhiRecruitmentVacancies } from "@/lib/abhi-hr-recruitment";
-import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
-import { buildCorpCentrePerformanceReviews } from "@/lib/corpcentre-hr-performance";
 import {
-  buildTalantonLeaveRequests,
-  buildTalantonPerformanceReviews,
-} from "@/lib/talanton/hr-ops-data";
-import { isTalantonWorkspaceSlug } from "@/lib/talanton-financials";
+  ensureEaWorkspacePacksRegistered,
+  getEaWorkspacePackForSlug,
+} from "@/lib/ai-operating-assistant/workspace-packs";
+import {
+  defaultLoadCandidates,
+  defaultLoadInventory,
+  defaultLoadLeaveRequests,
+  defaultLoadPerformanceReviews,
+  defaultLoadVacancies,
+} from "@/lib/ai-operating-assistant/workspace-packs/operational-data-default";
 import type { HrLeaveRequest } from "@/lib/hr-leave-data";
 import type { HrPerformanceReview } from "@/lib/hr-performance-data";
 import type { HrVacancy } from "@/lib/hr-recruitment-data";
-import {
-  listCandidates,
-  listLeaveRequests,
-  listPerformanceReviews,
-  listVacancies,
-} from "@/lib/hr-mock-store";
-import {
-  getInventoryMockSnapshot,
-  getInventorySnapshotForWorkspace,
-  type InventoryMockState,
-} from "@/lib/inventory-mock-store";
 import type { HrCandidate } from "@/lib/hr-recruitment-data";
+import type { InventoryMockState } from "@/lib/inventory-mock-store";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
 export function loadWorkspaceLeaveRequests(slug?: string | null): HrLeaveRequest[] {
-  if (isAbhiSlug(slug)) return buildAbhiLeaveRequests();
-  if (isTalantonWorkspaceSlug(slug)) return buildTalantonLeaveRequests();
-  return listLeaveRequests();
+  ensureEaWorkspacePacksRegistered();
+  const provider = getEaWorkspacePackForSlug(slug)?.operationalDataProvider;
+  return provider?.loadLeaveRequests?.(slug) ?? defaultLoadLeaveRequests(slug);
 }
 
 export function loadWorkspacePerformanceReviews(slug?: string | null): HrPerformanceReview[] {
-  if (isAbhiSlug(slug)) return buildAbhiPerformanceReviews();
-  if (isCorpCentreWorkspaceSlug(slug)) return buildCorpCentrePerformanceReviews();
-  if (isTalantonWorkspaceSlug(slug)) return buildTalantonPerformanceReviews();
-  return listPerformanceReviews();
+  ensureEaWorkspacePacksRegistered();
+  const provider = getEaWorkspacePackForSlug(slug)?.operationalDataProvider;
+  return provider?.loadPerformanceReviews?.(slug) ?? defaultLoadPerformanceReviews(slug);
 }
 
 export function loadWorkspaceVacancies(slug?: string | null): HrVacancy[] {
-  if (isAbhiSlug(slug)) return buildAbhiRecruitmentVacancies();
-  return listVacancies();
+  ensureEaWorkspacePacksRegistered();
+  const provider = getEaWorkspacePackForSlug(slug)?.operationalDataProvider;
+  return provider?.loadVacancies?.(slug) ?? defaultLoadVacancies(slug);
 }
 
 export function loadWorkspaceCandidates(slug?: string | null): HrCandidate[] {
-  if (isAbhiSlug(slug)) return [];
-  return listCandidates();
+  ensureEaWorkspacePacksRegistered();
+  const provider = getEaWorkspacePackForSlug(slug)?.operationalDataProvider;
+  return provider?.loadCandidates?.(slug) ?? defaultLoadCandidates(slug);
 }
 
 export function loadWorkspaceInventory(slug?: string | null): InventoryMockState {
-  try {
-    return getInventorySnapshotForWorkspace(slug);
-  } catch {
-    return getInventoryMockSnapshot();
-  }
+  ensureEaWorkspacePacksRegistered();
+  const provider = getEaWorkspacePackForSlug(slug)?.operationalDataProvider;
+  return provider?.loadInventory?.(slug) ?? defaultLoadInventory(slug);
 }
 
 /** Leave overlapping today (approved or pending covering as-of). */

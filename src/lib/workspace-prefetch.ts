@@ -2,6 +2,9 @@ import type { InternalOperationsView } from "@/lib/internal-operations-data";
 
 type WorkspaceLoader = () => Promise<unknown>;
 
+const loadIntelligenceCentralWorkspace = () =>
+  import("@/components/intelligence/IntelligenceCentralWorkspace");
+
 /** Chunk loaders keyed by internal ops view. */
 export const WORKSPACE_CHUNK_LOADERS: Partial<
   Record<InternalOperationsView, WorkspaceLoader>
@@ -24,11 +27,11 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "financial-reports": () => import("@/components/testflighthub/FinancialReportsWorkspace"),
   clients: () => import("@/components/testflighthub/ClientManagementWorkspace"),
   "clients-dashboard": () => import("@/components/testflighthub/ClientsDashboardWorkspace"),
-  "member-intelligence": () => import("@/components/abhi/MemberIntelligenceWorkspace"),
-  "regulatory-dashboard": () => import("@/components/abhi/RegulatoryIntelligenceWorkspace"),
-  "regulatory-updates": () => import("@/components/abhi/RegulatoryIntelligenceWorkspace"),
-  "regulatory-impact": () => import("@/components/abhi/RegulatoryIntelligenceWorkspace"),
-  "regulatory-alerts": () => import("@/components/abhi/RegulatoryIntelligenceWorkspace"),
+  "member-intelligence": loadIntelligenceCentralWorkspace,
+  "regulatory-dashboard": loadIntelligenceCentralWorkspace,
+  "regulatory-updates": loadIntelligenceCentralWorkspace,
+  "regulatory-impact": loadIntelligenceCentralWorkspace,
+  "regulatory-alerts": loadIntelligenceCentralWorkspace,
   "client-onboarding": () => import("@/components/testflighthub/ClientOnboardingWorkspace"),
   "potential-clients": () => import("@/components/testflighthub/PotentialClientsWorkspace"),
   hr: () => import("@/components/testflighthub/HrWorkspace"),
@@ -88,10 +91,8 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "oa-ip-portfolio": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
   "oa-ip-documents": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
   "oa-ip-search": () => import("@/components/onwardair/OnwardAirIpPatentsWorkspace"),
-  "oa-competitor-intelligence": () =>
-    import("@/components/onwardair/OnwardAirCompetitorIntelligenceWorkspace"),
-  "oa-ecosystem-partners": () =>
-    import("@/components/onwardair/OnwardAirEcosystemPartnersWorkspace"),
+  "oa-competitor-intelligence": loadIntelligenceCentralWorkspace,
+  "oa-ecosystem-partners": loadIntelligenceCentralWorkspace,
   "oa-engineering-overview": () =>
     import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
   "oa-programs-milestones": () =>
@@ -109,6 +110,13 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   training: () => import("@/components/testflighthub/StaffTrainingWorkspace"),
   "training-external": () => import("@/components/testflighthub/ExternalTrainingWorkspace"),
   "qms-training": () => import("@/components/testflighthub/QmsTrainingWorkspace"),
+  "demo-intelligence": loadIntelligenceCentralWorkspace,
+  "demo-market-radar": loadIntelligenceCentralWorkspace,
+  "portfolio-intelligence-briefing": loadIntelligenceCentralWorkspace,
+  "portfolio-intelligence-company": loadIntelligenceCentralWorkspace,
+  "impact-intelligence-dashboard": loadIntelligenceCentralWorkspace,
+  "impact-intelligence-company": loadIntelligenceCentralWorkspace,
+  "opportunity-intelligence": loadIntelligenceCentralWorkspace,
 };
 
 /**

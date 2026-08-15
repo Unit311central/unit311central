@@ -6,7 +6,18 @@ import {
   normalizePlatformUsername,
   type PlatformSession,
 } from "@/lib/platform-auth";
-import { applyPlatformSessionCookie, applyAbhiPortalsGateCookie, applyOverviewEntryGateCookie } from "@/lib/platform-session-cookie";
+import { applyPlatformSessionCookie, applyOverviewEntryGateCookie } from "@/lib/platform-session-cookie";
+import { applyPortalsBriefingGateCookie } from "@/lib/portals/briefing/cookies";
+import {
+  resolveAnyPortalPostLoginUrl,
+  resolveAnyPortalSessionRedirect,
+  resolvePortalSessionRedirect,
+} from "@/lib/portals/post-login";
+import {
+  getPortalPackBySlug,
+  isPortalsBriefingAllowedUsername,
+  listPortalWorkspacePacks,
+} from "@/lib/portals/registry";
 import {
   DEMO_WORKSPACE_SLUG,
   DEMO_SITE_URL,
@@ -25,15 +36,6 @@ import {
 import { loginPlatformUser } from "@/lib/platform-users-service";
 import { recordPlatformUserLogin } from "@/lib/external-platform-users-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
-import { resolveTalantonCompanyPortalPostLoginUrl } from "@/lib/talanton/company-portal-login";
-import {
-  resolveAbhiMemberPortalPostLoginUrl,
-  resolveAbhiMemberPortalSessionRedirect,
-} from "@/lib/abhi/member-portal-login";
-import {
-  resolveOnwardAirClientPortalPostLoginUrl,
-  resolveOnwardAirClientPortalSessionRedirect,
-} from "@/lib/onwardair/client-portal-login";
 import { matchOnwardAirClientPortalPathname } from "@/lib/onwardair/client-portal-routes";
 import {
   ABHI_DEMO_PLATFORM_USERNAME,
@@ -54,7 +56,7 @@ import {
   isTalantonPortalsAllowedUsername,
 } from "@/lib/talanton/portals-demo";
 import { isAbhiSlug } from "@/lib/abhi-surface";
-import { isOnwardAirSlug } from "@/lib/onwardair-surface";
+import { isOnwardAirSlug, ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 import {
   canonicalizeTalantonImpactSlug,
   isTalantonImpactSlug,
@@ -125,16 +127,22 @@ function wantsAbhiPortalsNext(nextRaw: string | null | undefined): boolean {
 function applyPortalsGateIfNeeded(
   response: NextResponse,
   request: NextRequest,
-  options: { nextRaw: string | null; username?: string | null; userType: string },
+  options: { nextRaw: string | null; username?: string | null; userType: string; workspaceSlug?: string | null },
 ) {
-  if (
-    wantsAbhiPortalsNext(options.nextRaw) &&
-    (isAbhiPortalsAllowedUsername(options.username) ||
-      isTalantonPortalsAllowedUsername(options.username) ||
-      isOnwardAirPortalsAllowedUsername(options.username)) &&
-    options.userType !== "external"
-  ) {
-    applyAbhiPortalsGateCookie(response, request);
+  if (options.userType === "external") return;
+  if (!wantsAbhiPortalsNext(options.nextRaw)) return;
+
+  const slug = options.workspaceSlug;
+  if (slug && isPortalsBriefingAllowedUsername(options.username, slug)) {
+    applyPortalsBriefingGateCookie(response, request);
+    return;
+  }
+
+  for (const pack of listPortalWorkspacePacks()) {
+    if (pack.briefing?.isAllowedUsername(options.username)) {
+      applyPortalsBriefingGateCookie(response, request);
+      break;
+    }
   }
 }
 
@@ -156,7 +164,8 @@ function applyOverviewEntryGateIfNeeded(
 ) {
   if (options.userType !== "external") return;
 
-  const overviewRoute = resolveOnwardAirClientPortalSessionRedirect({
+  const overviewRoute = resolvePortalSessionRedirect({
+    workspaceSlug: ONWARDAIR_SLUG,
     redirectPath: options.redirectPath,
     nextRaw: options.nextRaw,
     username: options.username,
@@ -189,10 +198,10 @@ async function resolvePostLoginRedirect(options: {
   const loginReturn = parseLoginReturnTo(returnToRaw);
   const nextPath = parseSafePostLoginNext(nextRaw);
   const wantsPortalsNext = wantsAbhiPortalsNext(nextRaw);
-  const portalsAllowed =
-    isAbhiPortalsAllowedUsername(username) ||
-    isTalantonPortalsAllowedUsername(username) ||
-    isOnwardAirPortalsAllowedUsername(username);
+  const hostSlug = parseClientPlatformSubdomainSafe(requestHost);
+  const portalsAllowed = hostSlug
+    ? isPortalsBriefingAllowedUsername(username, hostSlug)
+    : listPortalWorkspacePacks().some((pack) => pack.briefing?.isAllowedUsername(username));
 
   // Prefer /portals whenever the deep-link asked for it (demo/admin only).
   // Do this before the generic workspace → dashboard default.
@@ -201,7 +210,6 @@ async function resolvePostLoginRedirect(options: {
       loginReturn?.kind === "workspace"
         ? loginReturn.origin
         : parseValidWorkspaceReturnTo(returnToRaw);
-    const hostSlug = parseClientPlatformSubdomainSafe(requestHost);
     const fromReturnSlug = fromReturn
       ? parseClientPlatformSubdomainSafe(new URL(fromReturn).host)
       : null;
@@ -238,31 +246,14 @@ async function resolvePostLoginRedirect(options: {
 
   // Company/member portal externals must never land in the admin shell.
   if (userType === "external") {
-    const talantonPortalUrl = resolveTalantonCompanyPortalPostLoginUrl({
-      redirectPath,
-      nextRaw: nextPath ?? nextRaw,
-      returnToRaw,
-      requestHost,
-    });
-    if (talantonPortalUrl) return talantonPortalUrl;
-
-    const abhiPortalUrl = resolveAbhiMemberPortalPostLoginUrl({
+    const portalUrl = resolveAnyPortalPostLoginUrl({
       redirectPath,
       nextRaw: nextPath ?? nextRaw,
       returnToRaw,
       requestHost,
       username,
     });
-    if (abhiPortalUrl) return abhiPortalUrl;
-
-    const onwardAirPortalUrl = resolveOnwardAirClientPortalPostLoginUrl({
-      redirectPath,
-      nextRaw: nextPath ?? nextRaw,
-      returnToRaw,
-      requestHost,
-      username,
-    });
-    if (onwardAirPortalUrl) return onwardAirPortalUrl;
+    if (portalUrl) return portalUrl;
   }
 
   if (loginReturn?.kind === "workspace") {
@@ -686,17 +677,11 @@ export async function POST(request: NextRequest) {
         let token = result.token;
         let storedRedirect = result.redirectPath;
         if (session.userType === "external") {
-          const abhiPortalRedirect = resolveAbhiMemberPortalSessionRedirect({
+          const portalRedirect = resolveAnyPortalSessionRedirect({
             redirectPath: session.redirectPath || result.redirectPath,
             nextRaw,
             username: session.username,
           });
-          const oaPortalRedirect = resolveOnwardAirClientPortalSessionRedirect({
-            redirectPath: session.redirectPath || result.redirectPath,
-            nextRaw,
-            username: session.username,
-          });
-          const portalRedirect = abhiPortalRedirect ?? oaPortalRedirect;
           if (portalRedirect && portalRedirect !== session.redirectPath) {
             session = { ...session, redirectPath: portalRedirect };
             token = await createPlatformSessionToken(session);
@@ -732,6 +717,7 @@ export async function POST(request: NextRequest) {
           nextRaw,
           username: result.session.username,
           userType: result.session.userType,
+          workspaceSlug,
         });
         applyOverviewEntryGateIfNeeded(response, request, {
           nextRaw,

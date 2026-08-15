@@ -2,13 +2,10 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
-import AbhiPortalsDemoPage from "@/components/abhi/AbhiPortalsDemoPage";
-import OnwardAirPortalsDemoPage from "@/components/onwardair/OnwardAirPortalsDemoPage";
-import TalantonPortalsDemoPage from "@/components/talanton/TalantonPortalsDemoPage";
+import PortalsBriefingPage from "@/components/portals/PortalsBriefingPage";
 import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
-import { isAbhiSlug } from "@/lib/abhi-surface";
-import { isOnwardAirSlug } from "@/lib/onwardair-surface";
-import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { getPortalsBriefingUiConfig } from "@/lib/portals/briefing/pack-ui-configs";
+import { getPortalPackBySlug } from "@/lib/portals/registry";
 
 export const metadata: Metadata = {
   title: "Demo Portals | Unit311 Central",
@@ -20,19 +17,16 @@ export const metadata: Metadata = {
 export default async function PortalsPage() {
   const host = getRequestHost({ headers: await headers() });
   const workspaceSlug = parseClientPlatformSubdomainSafe(host);
+  const pack = workspaceSlug ? getPortalPackBySlug(workspaceSlug) : null;
 
-  if (workspaceSlug && isTalantonImpactSlug(workspaceSlug)) {
-    return <TalantonPortalsDemoPage />;
-  }
-
-  if (workspaceSlug && isOnwardAirSlug(workspaceSlug)) {
-    return <OnwardAirPortalsDemoPage />;
-  }
-
-  // Page is intended for ABHI (and local/dev without slug).
-  if (workspaceSlug && !isAbhiSlug(workspaceSlug)) {
+  if (!pack?.briefing) {
     notFound();
   }
 
-  return <AbhiPortalsDemoPage />;
+  const uiConfig = getPortalsBriefingUiConfig(pack.slug);
+  if (!uiConfig) {
+    notFound();
+  }
+
+  return <PortalsBriefingPage config={uiConfig} />;
 }

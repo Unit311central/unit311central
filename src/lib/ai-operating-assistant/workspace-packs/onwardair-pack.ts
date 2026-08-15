@@ -1,17 +1,22 @@
 /**
- * OnwardAir workspace EA pack — Phase 1 registration only (behaviour unchanged).
+ * OnwardAir workspace EA pack.
  */
 
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
 import { getOnwardAirNavSections } from "@/lib/internal-role-views";
-import { isOnwardAirSlug } from "@/lib/onwardair-surface";
+import { isOnwardAirSlug, isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { resolveOnwardAirExecutiveIntelligenceIntent } from "@/lib/onwardair/executive-intelligence-intent";
 import type { EaSynthesisContext } from "@/lib/ai-operating-assistant/ea-llm-synthesis";
-import { ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS } from "@/lib/ai-operating-assistant/onwardair-executive-tools";
-import { resolveProjectPortfolioHealthIntent } from "@/lib/ai-operating-assistant/project-portfolio-health-intent";
+import { buildProjectPortfolioHealthIntent } from "@/lib/ai-operating-assistant/project-portfolio-health-intent";
 
 import { packLmsCourseRoute, packToolRoute } from "./orchestration-helpers";
+import {
+  EA_DEFAULT_SYNTHESIS_GUIDANCE,
+  EA_ONWARDAIR_ENGINEERING_GUIDANCE,
+  EA_ONWARDAIR_FUNDRAISING_GUIDANCE,
+  EA_PROJECT_PORTFOLIO_GUIDANCE,
+} from "./synthesis-guidance";
 import type { EaWorkspacePack } from "./types";
 
 const ONWARDAIR_SYNTHESIS_MODULES = new Set(["engineering", "fundraising"]);
@@ -38,7 +43,8 @@ export const onwardAirWorkspacePack: EaWorkspacePack = {
   id: "onwardair",
   label: "OnwardAir",
   matchesSlug: isOnwardAirSlug,
-  toolDefinitions: [...ONWARDAIR_EXECUTIVE_TOOL_DEFINITIONS] as EaWorkspacePack["toolDefinitions"],
+  matchesBrowserSurface: isBrowserOnwardAirSurface,
+  clientSupportsBoardPack: true,
   navProvider: () => getOnwardAirNavSections(),
   promptExtensions: () => ({
     systemHint: ONWARDAIR_TOOLS_HINT,
@@ -47,28 +53,54 @@ export const onwardAirWorkspacePack: EaWorkspacePack = {
   artifactBranding: {
     workspacePrefix: ({ slug }) => (slug === "onwardair" ? "OnwardAir" : "Organisation"),
   },
+  proactiveInsightMapping: {
+    resolveSnapshotDomain(raw, _workspaceSlug, defaultResolve) {
+      const value = (raw || "all").toLowerCase();
+      if (/fundraising|investor|seed\s+raise|term\s+sheet|data\s+room/.test(value)) {
+        return "fundraising";
+      }
+      if (/engineering|vtol|flex\s+pod|milestone|certification|programme|program/.test(value)) {
+        return "engineering";
+      }
+      if (/competitor|intelligence|patent|evtols?/.test(value)) {
+        return "intelligence";
+      }
+      return defaultResolve(raw);
+    },
+  },
   synthesisRules: [
     {
       id: "onwardair-query-module",
       matches: (ctx: EaSynthesisContext) => {
-        if (!isOnwardAirSlug(ctx.workspaceSlug) || ctx.toolName !== "onwardair.queryModule") {
-          return false;
-        }
+        if (ctx.toolName !== "onwardair.queryModule") return false;
         const moduleId = String(ctx.toolArgs.module ?? "").trim();
         return ONWARDAIR_SYNTHESIS_MODULES.has(moduleId);
+      },
+      guidance: (ctx) => {
+        const moduleId = String(ctx.toolArgs.module ?? "").trim();
+        if (moduleId === "engineering") return EA_ONWARDAIR_ENGINEERING_GUIDANCE;
+        if (moduleId === "fundraising") return EA_ONWARDAIR_FUNDRAISING_GUIDANCE;
+        return EA_DEFAULT_SYNTHESIS_GUIDANCE;
       },
     },
     {
       id: "onwardair-project-portfolio",
+      matches: (ctx: EaSynthesisContext) => ctx.toolName === "onwardair.queryProjectPortfolio",
+      guidance: EA_PROJECT_PORTFOLIO_GUIDANCE,
+    },
+    {
+      id: "onwardair-llm-tools",
       matches: (ctx: EaSynthesisContext) =>
-        isOnwardAirSlug(ctx.workspaceSlug) && ctx.toolName === "onwardair.queryProjectPortfolio",
+        ["queryBusiness", "getCashPosition", "getDailyBrief"].includes(ctx.toolName),
+      guidance: EA_DEFAULT_SYNTHESIS_GUIDANCE,
     },
   ],
   intentResolvers: [
-    ({ message, business }) => {
-      const portfolioHealth = resolveProjectPortfolioHealthIntent(
+    ({ message }) => {
+      const portfolioHealth = buildProjectPortfolioHealthIntent(
         message,
-        business.workspace.slug ?? "",
+        "onwardair.queryProjectPortfolio",
+        "onwardair_project_portfolio_health",
       );
       if (portfolioHealth) return packToolRoute(portfolioHealth);
       return null;

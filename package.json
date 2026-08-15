@@ -34,7 +34,11 @@
     "prove:talanton-ea": "node --import tsx src/lib/talanton/__tests__/ea-test-suite.check.ts",
     "prove:abhi-ea": "node --import tsx src/lib/abhi/__tests__/ea-test-suite.check.ts",
     "prove:onwardair-ea": "node --import tsx src/lib/onwardair/__tests__/ea-test-suite.check.ts",
-    "prove:ea-all": "npm run prove:abhi-ea && npm run prove:onwardair-ea && npm run prove:talanton-ea && npm run test:ea-artifacts",
+    "prove:internal-ea": "node --import tsx src/lib/internal/__tests__/ea-test-suite.check.ts",
+    "prove:demo-ea": "node --import tsx src/lib/demo/__tests__/ea-test-suite.check.ts",
+    "prove:ea-provisioning": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-provisioning.check.ts",
+    "prove:ea-inheritance": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-inheritance.check.ts",
+    "prove:ea-all": "npm run prove:abhi-ea && npm run prove:onwardair-ea && npm run prove:talanton-ea && npm run prove:internal-ea && npm run prove:demo-ea && npm run prove:ea-provisioning && npm run prove:ea-inheritance && npm run test:ea-artifacts",
     "test:ea-artifacts": "node --import tsx src/lib/ai-operating-assistant/__tests__/artifact-persistence.check.ts",
     "db:assistant-artifacts": "node scripts/apply-assistant-artifacts-migration.mjs",
     "deploy:prod": "node scripts/assert-canonical-unit311-repo.mjs && node -e \"console.error('BLOCKED: Use Git deploys from Unit311central/unit311central. See docs/PRODUCTION_DEPLOYMENT.md'); process.exit(1)\"",
@@ -58,7 +62,9 @@
     "test:provider-adapters": "node --import tsx src/lib/software-billing/__tests__/provider-adapters.check.ts",
     "test:billing-invoice": "node --import tsx src/lib/software-billing/__tests__/billing-invoice.check.ts",
     "test:vercel-upcoming-invoice": "node --import tsx src/lib/software-billing/__tests__/vercel-upcoming-invoice.check.ts",
-    "test:software-saas-dashboard": "node --import tsx src/lib/software-billing/__tests__/software-saas-dashboard.check.ts"
+    "test:software-saas-dashboard": "node --import tsx src/lib/software-billing/__tests__/software-saas-dashboard.check.ts",
+    "test:portals": "node --import tsx src/lib/portals/__tests__/registry.check.ts && node --import tsx src/lib/portals/__tests__/post-login.check.ts && node --import tsx src/lib/portals/__tests__/briefing-cookies.check.ts && node --import tsx src/lib/portals/__tests__/eca-seed.check.ts && node --import tsx src/lib/portals/__tests__/phase2.check.ts",
+    "test:intelligence": "node --import tsx src/lib/intelligence/__tests__/registry.check.ts && node --import tsx src/lib/intelligence/__tests__/workspace-context.check.ts && node --import tsx src/lib/intelligence/__tests__/phase2.check.ts && node --import tsx src/lib/intelligence/__tests__/deploy-ready.check.ts"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.91.0",

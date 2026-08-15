@@ -47,6 +47,8 @@ export const INTERNAL_PROJECT_TASKS_DESCRIPTION_MIGRATION_PATH =
   "supabase/migrations/127_internal_project_tasks_description.sql";
 export const FINANCIAL_EXPENSES_MIGRATION_PATH =
   "supabase/migrations/021_create_financial_expenses.sql";
+export const MARKETING_EVENTS_MIGRATION_PATH =
+  "supabase/migrations/141_marketing_events_module.sql";
 export const GENERAL_LEDGER_MIGRATION_PATH =
   "supabase/migrations/071_general_ledger.sql";
 export const CLIENT_PAYMENT_ACTIVATION_MIGRATION_PATH =
@@ -3003,4 +3005,55 @@ export async function ensureSystemArchitectureDiagramsTable(): Promise<boolean> 
   }
 
   return false;
+}
+
+export async function ensureMarketingEventsTables(): Promise<boolean> {
+  return onceEnsured("table:marketing_contacts", async () => {
+    const exists = await tableExistsViaManagementApi("marketing_contacts");
+    if (exists === true) {
+      return true;
+    }
+
+    const dbUrl = getDatabaseUrl();
+    if (dbUrl) {
+      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+
+      try {
+        await client.connect();
+        if (await tableExists(client, "marketing_contacts")) {
+          await reloadPostgrestSchema();
+          return true;
+        }
+        await applyMigration(client, MARKETING_EVENTS_MIGRATION_PATH);
+        await reloadPostgrestSchema();
+        return true;
+      } finally {
+        await client.end().catch(() => undefined);
+      }
+    }
+
+    if (exists === false) {
+      const applied = await applyMigrationViaManagementApi(MARKETING_EVENTS_MIGRATION_PATH);
+      if (applied) await reloadPostgrestSchema();
+      return applied;
+    }
+
+    return false;
+  });
+}
+
+export async function withMarketingEventsTables<T>(operation: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isMissingTableError(error, "marketing_contacts")) throw error;
+      await ensureMarketingEventsTables();
+      await reloadPostgrestSchema();
+      if (attempt === 4) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1200 * (attempt + 1)));
+    }
+  }
+
+  throw new Error("Failed to access marketing tables.");
 }

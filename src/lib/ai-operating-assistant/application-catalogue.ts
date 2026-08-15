@@ -15,17 +15,7 @@ import {
   type InternalNavSection,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
-import {
-  filterInternalNavSectionsForCorpCentreWorkspace,
-  getAbhiNavSections,
-  getOnwardAirNavSections,
-  getTalantonImpactNavSections,
-  isViewAllowedForGrants,
-} from "@/lib/internal-role-views";
-import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
-import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
-import { isOnwardAirWorkspaceSlug } from "@/lib/onwardair-financials";
-import { isTalantonWorkspaceSlug } from "@/lib/talanton-financials";
+import { isViewAllowedForGrants } from "@/lib/internal-role-views";
 import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
 import {
   ensureEaWorkspacePacksRegistered,
@@ -281,7 +271,6 @@ function moduleFromSection(section: InternalNavSection): ApplicationCatalogueMod
 }
 
 let cachedModules: ApplicationCatalogueModule[] | null = null;
-let cachedCorpCentreModules: ApplicationCatalogueModule[] | null = null;
 const cachedWorkspaceModules = new Map<string, ApplicationCatalogueModule[]>();
 
 export type ApplicationCatalogueOptions = {
@@ -292,19 +281,6 @@ function navSectionsForSurface(workspaceSlug?: string | null): readonly Internal
   ensureEaWorkspacePacksRegistered();
   const packNav = getEaWorkspacePackNavSections(workspaceSlug);
   if (packNav) return packNav;
-
-  if (isCorpCentreWorkspaceSlug(workspaceSlug)) {
-    return filterInternalNavSectionsForCorpCentreWorkspace(internalSurveyNavSections);
-  }
-  if (isAbhiWorkspaceSlug(workspaceSlug)) {
-    return getAbhiNavSections();
-  }
-  if (isOnwardAirWorkspaceSlug(workspaceSlug)) {
-    return getOnwardAirNavSections();
-  }
-  if (isTalantonWorkspaceSlug(workspaceSlug)) {
-    return getTalantonImpactNavSections();
-  }
   return internalSurveyNavSections;
 }
 
@@ -313,10 +289,6 @@ function workspaceModulesCacheKey(workspaceSlug?: string | null): string | null 
   ensureEaWorkspacePacksRegistered();
   const pack = getEaWorkspacePackForSlug(workspaceSlug);
   if (pack) return pack.id;
-  if (isCorpCentreWorkspaceSlug(workspaceSlug)) return "corpcentre";
-  if (isAbhiWorkspaceSlug(workspaceSlug)) return "abhi";
-  if (isOnwardAirWorkspaceSlug(workspaceSlug)) return "onwardair";
-  if (isTalantonWorkspaceSlug(workspaceSlug)) return "talantonimpact";
   return null;
 }
 
@@ -324,35 +296,35 @@ function workspaceModulesCacheKey(workspaceSlug?: string | null): string | null 
 export function listPlatformModules(
   options?: ApplicationCatalogueOptions,
 ): ApplicationCatalogueModule[] {
-  const corp = isCorpCentreWorkspaceSlug(options?.workspaceSlug);
-  if (corp) {
-    if (cachedCorpCentreModules) return cachedCorpCentreModules;
-    cachedCorpCentreModules = navSectionsForSurface(options?.workspaceSlug)
-      .map(moduleFromSection)
-      .filter((m): m is ApplicationCatalogueModule => Boolean(m))
-      .map((module) => ({
-        ...module,
-        description: module.description.replace(/Unit311 Central/gi, "CorpCentre"),
-      }));
-    return cachedCorpCentreModules;
-  }
+  ensureEaWorkspacePacksRegistered();
+  const pack = getEaWorkspacePackForSlug(options?.workspaceSlug);
+  const cacheKey = workspaceModulesCacheKey(options?.workspaceSlug) ?? "default";
 
-  const cacheKey = workspaceModulesCacheKey(options?.workspaceSlug);
-  if (cacheKey) {
+  if (cacheKey !== "default") {
     const cached = cachedWorkspaceModules.get(cacheKey);
     if (cached) return cached;
-    const built = navSectionsForSurface(options?.workspaceSlug)
-      .map(moduleFromSection)
-      .filter((m): m is ApplicationCatalogueModule => Boolean(m));
-    cachedWorkspaceModules.set(cacheKey, built);
-    return built;
+  } else if (cachedModules) {
+    return cachedModules;
   }
 
-  if (cachedModules) return cachedModules;
-  cachedModules = internalSurveyNavSections
+  const built = navSectionsForSurface(options?.workspaceSlug)
     .map(moduleFromSection)
-    .filter((m): m is ApplicationCatalogueModule => Boolean(m));
-  return cachedModules;
+    .filter((m): m is ApplicationCatalogueModule => Boolean(m))
+    .map((module) =>
+      pack?.catalogueDescriptionTransform
+        ? {
+            ...module,
+            description: pack.catalogueDescriptionTransform(module.description),
+          }
+        : module,
+    );
+
+  if (cacheKey === "default") {
+    cachedModules = built;
+  } else {
+    cachedWorkspaceModules.set(cacheKey, built);
+  }
+  return built;
 }
 
 function viewAllowed(

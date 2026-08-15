@@ -1,21 +1,43 @@
 /**
- * Talanton Impact workspace EA pack — Phase 1 registration only (behaviour unchanged).
+ * Talanton Impact workspace EA pack.
  */
 
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveAbhiLmsCourseIntent } from "@/lib/abhi/lms-course-intent";
 import { getTalantonImpactNavSections } from "@/lib/internal-role-views";
-import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import {
+  buildTalantonLeaveRequests,
+  buildTalantonPerformanceReviews,
+} from "@/lib/talanton/hr-ops-data";
+import { isTalantonImpactSlug, isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { resolveTalantonExecutiveIntelligenceIntent } from "@/lib/talanton/executive-intelligence-intent";
 import {
   resolveTalantonStoriesRoute,
   resolveTalantonViewAwareTool,
 } from "@/lib/talanton/executive-stories-intent";
 import type { EaSynthesisContext } from "@/lib/ai-operating-assistant/ea-llm-synthesis";
-import { TALANTON_EXECUTIVE_TOOL_DEFINITIONS } from "@/lib/ai-operating-assistant/talanton-executive-tools";
 
 import { packLmsCourseRoute, packToolRoute } from "./orchestration-helpers";
+import {
+  EA_DEFAULT_SYNTHESIS_GUIDANCE,
+  EA_TALANTON_STORIES_GUIDANCE,
+} from "./synthesis-guidance";
 import type { EaWorkspacePack } from "./types";
+
+const TALANTON_HOME_PROMPTS = [
+  "Review today's priorities",
+  "Summarise portfolio companies requiring attention",
+  "Draft an impact briefing for the board",
+  "What board actions are overdue?",
+  "Explain cash position in USD",
+] as const;
+
+const TALANTON_BOARD_PACK_PROMPTS = [
+  "Create Board Pack",
+  "Summarise the next board meeting",
+  "What are the open board actions?",
+  "Highlight portfolio risks for the board",
+] as const;
 
 const TALANTON_TOOLS_HINT = `
 Talanton Impact — reporting currency is USD. Never use ABHI, membership, WHX, or HealthTech industry language.
@@ -37,7 +59,8 @@ export const talantonWorkspacePack: EaWorkspacePack = {
   id: "talanton",
   label: "Talanton Impact",
   matchesSlug: isTalantonImpactSlug,
-  toolDefinitions: [...TALANTON_EXECUTIVE_TOOL_DEFINITIONS] as EaWorkspacePack["toolDefinitions"],
+  matchesBrowserSurface: isBrowserTalantonImpactSurface,
+  clientSupportsBoardPack: true,
   navProvider: () => getTalantonImpactNavSections(),
   promptExtensions: () => ({
     systemHint: TALANTON_TOOLS_HINT,
@@ -46,16 +69,85 @@ export const talantonWorkspacePack: EaWorkspacePack = {
   orgState: {
     requestField: "talantonOrgState",
     label: "Talanton org state",
+    matchesBrowserSurface: isBrowserTalantonImpactSurface,
+    collectClientState: () => {
+      if (typeof window === "undefined") return null;
+      const { getTalantonGovernanceSnapshot } =
+        require("@/lib/talanton/governance-store") as typeof import("@/lib/talanton/governance-store");
+      const { getTiRiskRegisterState } =
+        require("@/lib/talanton/risk-register-store") as typeof import("@/lib/talanton/risk-register-store");
+      return {
+        governance: getTalantonGovernanceSnapshot(),
+        risks: getTiRiskRegisterState(),
+      };
+    },
   },
   artifactBranding: {
     workspacePrefix: ({ slug }) =>
       slug === "talantonimpact" ? "Talanton Impact" : "Organisation",
+  },
+  operationalDataProvider: {
+    loadLeaveRequests: () => buildTalantonLeaveRequests(),
+    loadPerformanceReviews: () => buildTalantonPerformanceReviews(),
+  },
+  defaultSuggestedPrompts: TALANTON_HOME_PROMPTS,
+  suggestedPromptsByView: {
+    home: { label: "Home", suggestedPrompts: [...TALANTON_HOME_PROMPTS] },
+    "executive-assistant": {
+      label: "Executive Assistant",
+      suggestedPrompts: [...TALANTON_HOME_PROMPTS],
+    },
+    "board-pack": { label: "Board Pack", suggestedPrompts: [...TALANTON_BOARD_PACK_PROMPTS] },
+    "board-meetings": {
+      label: "Board Meetings",
+      suggestedPrompts: [...TALANTON_BOARD_PACK_PROMPTS],
+    },
+    "board-dashboard": {
+      label: "Board Dashboard",
+      suggestedPrompts: [...TALANTON_BOARD_PACK_PROMPTS],
+    },
+    "board-minutes": {
+      label: "Board Minutes",
+      suggestedPrompts: [...TALANTON_BOARD_PACK_PROMPTS],
+    },
+    "board-members": {
+      label: "Board Members",
+      suggestedPrompts: [...TALANTON_BOARD_PACK_PROMPTS],
+    },
+    "corporate-risk-register": {
+      label: "Risk Register",
+      suggestedPrompts: [...TALANTON_BOARD_PACK_PROMPTS],
+    },
+  },
+  proactiveInsightMapping: {
+    resolveSnapshotDomain(raw, workspaceSlug, defaultResolve) {
+      const value = (raw || "all").toLowerCase();
+      if (
+        isTalantonImpactSlug(workspaceSlug) &&
+        /\b(portfolio\s+compan|holdings?|fund|impact|governance|stewardship)\b/.test(value)
+      ) {
+        return "overview";
+      }
+      const resolved = defaultResolve(raw);
+      if (resolved === "projects" && /\bportfolio\b/.test(value)) {
+        return "overview";
+      }
+      return resolved;
+    },
   },
   synthesisRules: [
     {
       id: "talanton-stories",
       matches: (ctx: EaSynthesisContext) =>
         isTalantonImpactSlug(ctx.workspaceSlug) && ctx.toolName === "talanton.queryStories",
+      guidance: EA_TALANTON_STORIES_GUIDANCE,
+    },
+    {
+      id: "talanton-llm-tools",
+      matches: (ctx: EaSynthesisContext) =>
+        isTalantonImpactSlug(ctx.workspaceSlug) &&
+        ["queryBusiness", "getCashPosition", "getDailyBrief"].includes(ctx.toolName),
+      guidance: EA_DEFAULT_SYNTHESIS_GUIDANCE,
     },
   ],
   intentResolvers: [

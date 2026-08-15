@@ -6,7 +6,6 @@ function workspaceStorageKey(): string {
   if (host.includes("onwardair")) return "onwardair";
   if (host.includes("talanton")) return "talanton";
   if (host.includes("abhi")) return "abhi";
-  if (host.includes("corpcentre")) return "corpcentre";
   return host.split(".")[0] || "default";
 }
 

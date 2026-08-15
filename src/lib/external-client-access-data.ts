@@ -1,6 +1,9 @@
 /** External Client Access (MOD-160 / program MOD-620). */
 
-import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { ABHI_SLUG } from "@/lib/abhi-surface";
+import { buildEcaPortalConfigsForWorkspace } from "@/lib/portals/eca-seed";
+import { resolvePortalWorkspaceSlugFromBrowser } from "@/lib/portals/resolve-browser-workspace";
+import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 
 export const ECA_PORTAL_MODULES = [
   "Projects",
@@ -196,106 +199,11 @@ function createAbhiSeedEcaPortals(): EcaPortalConfig[] {
 }
 
 export function createSeedEcaPortals(): EcaPortalConfig[] {
-  if (isBrowserAbhiSurface()) {
-    return createAbhiSeedEcaPortals();
-  }
-
-  if (typeof window !== "undefined") {
-    try {
-      const { isBrowserOnwardAirSurface } =
-        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
-      if (isBrowserOnwardAirSurface()) {
-        const { ONWARDAIR_CLIENT_PORTAL_ROUTES, ONWARDAIR_CLIENT_PORTAL_ORIGIN } =
-          require("@/lib/onwardair/client-portal-routes") as typeof import("@/lib/onwardair/client-portal-routes");
-        return ONWARDAIR_CLIENT_PORTAL_ROUTES.filter(
-          (route) => route.portalKind !== "board" && route.portalKind !== "overview",
-        ).map((route) => ({
-          id: `portal-oa-${route.path.replace(/\./g, "-")}`,
-          clientId: route.clientId,
-          clientName: route.displayName,
-          portalName: `${route.displayName} Portal`,
-          logoLabel: "CF",
-          brandPrimary: "#0d9488",
-          brandAccent: "#0b1f3a",
-          modules: [
-            "Projects",
-            "Files",
-            "Support",
-            "Documents",
-            "Reports",
-            "Assets",
-            "Training",
-          ] as EcaPortalModule[],
-          landingPage: "Projects",
-          supportContact: route.username,
-          notificationsEnabled: true,
-          documentBranding: "OnwardAir · Coastal Freight letterhead",
-          users: 3,
-          activeSessions: 1,
-          pendingInvites: 0,
-          lockedAccounts: 0,
-          storageGb: 4.8,
-          lastLogin: "2026-08-04T18:22:00Z",
-          portalAccessEnabled: true,
-          portalUrl: `${ONWARDAIR_CLIENT_PORTAL_ORIGIN}/${route.path}`,
-        }));
-      }
-    } catch {
-      // Fall through.
-    }
-
-    try {
-      const { isBrowserTalantonImpactSurface } =
-        require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
-      if (isBrowserTalantonImpactSurface()) {
-        const { TALANTON_COMPANY_PORTAL_ROUTES } =
-          require("@/lib/talanton/company-portal-routes") as typeof import("@/lib/talanton/company-portal-routes");
-        const companies = TALANTON_COMPANY_PORTAL_ROUTES.filter(
-          (route) => route.portalKind !== "board" && route.companyId,
-        );
-        const accents = [
-          ["#10b981", "#047857"],
-          ["#0ea5e9", "#0369a1"],
-          ["#f59e0b", "#b45309"],
-          ["#8b5cf6", "#6d28d9"],
-          ["#ef4444", "#b91c1c"],
-        ] as const;
-        return companies.map((route, index) => {
-          const [primary, accent] = accents[index % accents.length];
-          const initials = route.displayName
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((part) => part[0]?.toUpperCase() ?? "")
-            .join("");
-          return {
-            id: `portal-ti-${route.path}`,
-            clientId: route.clientId,
-            clientName: route.displayName,
-            portalName: `${route.displayName} Portal`,
-            logoLabel: initials || "TI",
-            brandPrimary: primary,
-            brandAccent: accent,
-            modules: ["Projects", "Files", "Support", "Documents", "Reports", "Training"] as EcaPortalModule[],
-            landingPage: "Documents",
-            supportContact: "demo@unit311central.com",
-            notificationsEnabled: true,
-            documentBranding: "Talanton Impact letterhead",
-            users: 4 + (index % 8),
-            activeSessions: index % 3,
-            pendingInvites: index % 2,
-            lockedAccounts: 0,
-            storageGb: 8 + index * 1.4,
-            lastLogin: "2026-07-28T10:00:00Z",
-            // Portal access + unique URL for Talanton company portals
-            portalAccessEnabled: true,
-            portalUrl: `https://talantonimpact.unit311central.com/${route.path}`,
-          };
-        });
-      }
-    } catch {
-      // Fall through.
-    }
+  const portalSlug = resolvePortalWorkspaceSlugFromBrowser();
+  if (portalSlug) {
+    const fromRegistry = buildEcaPortalConfigsForWorkspace(portalSlug) as EcaPortalConfig[];
+    if (fromRegistry.length > 0) return fromRegistry;
+    if (portalSlug === ABHI_SLUG) return createAbhiSeedEcaPortals();
   }
 
   if (typeof window !== "undefined") {
@@ -439,7 +347,8 @@ export function createSeedEcaPortals(): EcaPortalConfig[] {
 }
 
 export function createSeedEcaAudit(): EcaAuditEvent[] {
-  if (isBrowserAbhiSurface()) {
+  const portalSlug = resolvePortalWorkspaceSlugFromBrowser();
+  if (portalSlug === ABHI_SLUG) {
     return [
       { id: "aud-1", at: "2026-07-31T16:50:00Z", kind: "Successful Login", actor: "demo@wavetec.com", detail: "Portal session started", clientName: "Wavetec" },
       { id: "aud-2", at: "2026-07-30T09:12:00Z", kind: "Successful Login", actor: "demo@centrak.com", detail: "Portal session started", clientName: "Centrak" },
@@ -449,12 +358,8 @@ export function createSeedEcaAudit(): EcaAuditEvent[] {
     ];
   }
 
-  if (typeof window !== "undefined") {
-    try {
-      const { isBrowserOnwardAirSurface } =
-        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
-      if (isBrowserOnwardAirSurface()) {
-        return [
+  if (portalSlug === ONWARDAIR_SLUG) {
+    return [
           {
             id: "aud-oa-1",
             at: "2026-08-04T18:22:00Z",
@@ -496,11 +401,9 @@ export function createSeedEcaAudit(): EcaAuditEvent[] {
             clientName: "Coastal Freight Partners",
           },
         ];
-      }
-    } catch {
-      // Fall through.
-    }
+  }
 
+  if (typeof window !== "undefined") {
     try {
       const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
@@ -526,7 +429,8 @@ export function createSeedEcaAudit(): EcaAuditEvent[] {
 }
 
 export function createSeedEcaInvitations(): EcaInvitation[] {
-  if (isBrowserAbhiSurface()) {
+  const portalSlug = resolvePortalWorkspaceSlugFromBrowser();
+  if (portalSlug === ABHI_SLUG) {
     return [
       {
         id: "inv-1",
@@ -549,12 +453,8 @@ export function createSeedEcaInvitations(): EcaInvitation[] {
     ];
   }
 
-  if (typeof window !== "undefined") {
-    try {
-      const { isBrowserOnwardAirSurface } =
-        require("@/lib/onwardair-surface") as typeof import("@/lib/onwardair-surface");
-      if (isBrowserOnwardAirSurface()) {
-        return [
+  if (portalSlug === ONWARDAIR_SLUG) {
+    return [
           {
             id: "inv-oa-1",
             email: "e.vargas@coastalfreightpartners.com",
@@ -574,11 +474,9 @@ export function createSeedEcaInvitations(): EcaInvitation[] {
             createdAt: "2026-08-01",
           },
         ];
-      }
-    } catch {
-      // Fall through.
-    }
+  }
 
+  if (typeof window !== "undefined") {
     try {
       const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
