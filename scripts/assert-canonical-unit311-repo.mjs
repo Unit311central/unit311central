@@ -18,6 +18,34 @@ export const CANONICAL_GITHUB_HTTPS = `https://github.com/${CANONICAL_GITHUB_SLU
 export const UNIT311_VERCEL_PROJECT_ID = "prj_lyDcefpA3tnfzWLiZ9Ui0xVk6nJD";
 export const UNIT311_VERCEL_PROJECT_NAME = "unit311central";
 
+/** Canonical production hosts (single Vercel project `unit311central`). */
+export const CANONICAL_SITE_HOST = "unit311central.com";
+export const CANONICAL_PUBLIC_ORIGIN = `https://${CANONICAL_SITE_HOST}`;
+export const CANONICAL_INTERNAL_ORIGIN = "https://internal.unit311central.com";
+export const CANONICAL_DEMO_ORIGIN = "https://demo.unit311central.com";
+export const CANONICAL_PRODUCTION_ORIGIN = CANONICAL_INTERNAL_ORIGIN;
+
+/** Obsolete Vercel projects — must never receive env copies or production links. */
+export const OBSOLETE_VERCEL_PROJECT_NAMES = [
+  "unit311",
+  "barcelonadronecenter",
+  "onwardair",
+  "onwardairpf",
+  "unit311-prod-deploy",
+  "unit311-deploy-msg",
+];
+
+export function refuseObsoleteVercelProject(projectName, scriptName = "script") {
+  const normalized = String(projectName ?? "").trim().toLowerCase();
+  if (!normalized) return;
+  if (OBSOLETE_VERCEL_PROJECT_NAMES.includes(normalized)) {
+    console.error(`BLOCKED: ${scriptName} targets obsolete Vercel project "${projectName}".`);
+    console.error(`  Canonical Vercel project: ${UNIT311_VERCEL_PROJECT_NAME}`);
+    console.error("  See docs/PRODUCTION_DEPLOYMENT.md and docs/VERCEL_ARCHITECTURE.md");
+    process.exit(1);
+  }
+}
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function git(cmd) {

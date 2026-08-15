@@ -35,6 +35,9 @@ export class VercelBillingApiError extends Error {
 
 function teamQuery() {
   const teamId = getVercelTeamId();
+  if (!teamId) {
+    throw new VercelBillingApiError("VERCEL_TEAM_ID (or VERCEL_ORG_ID) is not configured.", 503);
+  }
   return `teamId=${encodeURIComponent(teamId)}`;
 }
 
@@ -59,6 +62,9 @@ async function vercelFetch(path: string, init?: RequestInit): Promise<Response> 
 
 export async function fetchVercelTeamBilling(): Promise<VercelTeamBilling> {
   const slug = getVercelTeamSlug();
+  if (!slug) {
+    throw new VercelBillingApiError("VERCEL_TEAM_SLUG is not configured.", 503);
+  }
   const response = await vercelFetch(`/v2/teams/${encodeURIComponent(slug)}`, {
     method: "GET",
   });
@@ -138,6 +144,9 @@ function mapTeamBillingDetails(payload: {
 
 export async function fetchVercelTeamBillingDetails(): Promise<VercelTeamBillingDetails> {
   const slug = getVercelTeamSlug();
+  if (!slug) {
+    throw new VercelBillingApiError("VERCEL_TEAM_SLUG is not configured.", 503);
+  }
   const response = await vercelFetch(`/v2/teams/${encodeURIComponent(slug)}`, {
     method: "GET",
   });

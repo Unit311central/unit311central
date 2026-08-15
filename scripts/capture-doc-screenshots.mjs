@@ -1,18 +1,19 @@
 import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
+import { CANONICAL_INTERNAL_ORIGIN } from "./canonical-production-url.mjs";
 
-const BASE = "https://barcelonadronecenter.vercel.app";
+const BASE = CANONICAL_INTERNAL_ORIGIN;
 const OUT = path.join(process.cwd(), "docs", "screenshots");
 
 const shots = [
-  { name: "internal-home", url: `${BASE}/internaldashboard`, wait: 4000 },
-  { name: "internal-clients", url: `${BASE}/internaldashboard?view=clients`, wait: 3500 },
-  { name: "internal-crm", url: `${BASE}/internaldashboard?view=crm`, wait: 3500 },
-  { name: "internal-logistics", url: `${BASE}/internaldashboard?view=logistics`, wait: 4500 },
-  { name: "internal-office-locations", url: `${BASE}/internaldashboard?view=office-locations`, wait: 3000 },
-  { name: "internal-file-explorer", url: `${BASE}/internaldashboard?view=files-internal`, wait: 3500 },
-  { name: "operations-login", url: `${BASE}/`, wait: 2000 },
+  { name: "internal-home", url: `${BASE}/`, wait: 4000 },
+  { name: "internal-clients", url: `${BASE}/?view=clients`, wait: 3500 },
+  { name: "internal-crm", url: `${BASE}/?view=crm`, wait: 3500 },
+  { name: "internal-logistics", url: `${BASE}/?view=logistics`, wait: 4500 },
+  { name: "internal-office-locations", url: `${BASE}/?view=office-locations`, wait: 3000 },
+  { name: "internal-file-explorer", url: `${BASE}/?view=files-internal`, wait: 3500 },
+  { name: "operations-login", url: `https://unit311central.com/login`, wait: 2000 },
   { name: "client-login", url: `${BASE}/clientlogin`, wait: 2000 },
 ];
 

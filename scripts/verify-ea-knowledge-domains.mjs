@@ -1,12 +1,13 @@
 /**
- * Production verification — three EA knowledge domains on unit311.vercel.app.
+ * Production verification — three EA knowledge domains on internal.unit311central.com.
  * Do not use localhost. Requires .tmp-qa-creds.json.
  */
 import fs from "node:fs";
 import https from "node:https";
 import { URL } from "node:url";
+import { CANONICAL_PRODUCTION_ORIGIN } from "./canonical-production-url.mjs";
 
-const baseUrl = process.argv[2] || "https://unit311.vercel.app";
+const baseUrl = process.argv[2] || CANONICAL_PRODUCTION_ORIGIN;
 const creds = JSON.parse(fs.readFileSync(".tmp-qa-creds.json", "utf8"));
 
 function request(url, { method = "GET", headers = {}, body } = {}) {

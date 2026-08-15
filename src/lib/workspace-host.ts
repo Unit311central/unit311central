@@ -41,9 +41,11 @@ export async function findWorkspaceBySlug(
   if (!raw) return null;
   if (!isSupabaseConfigured()) return null;
 
-  // Short host aliases (e.g. onward → onwardair) resolve to the canonical workspace row.
+  // Short host aliases (e.g. onward → onwardair, talanton → talantonimpact).
   const { canonicalizeOnwardAirSlug } = await import("@/lib/onwardair-surface");
-  const normalized = canonicalizeOnwardAirSlug(raw) ?? raw;
+  const { canonicalizeTalantonImpactSlug } = await import("@/lib/talanton-surface");
+  const normalized =
+    canonicalizeOnwardAirSlug(raw) ?? canonicalizeTalantonImpactSlug(raw) ?? raw;
 
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase

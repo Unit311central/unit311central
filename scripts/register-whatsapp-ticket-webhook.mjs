@@ -7,10 +7,11 @@
  *   CALLMEBOT_API_KEY=... WHATSAPP_NOTIFY_PHONE=34657106176 \
  *   node scripts/register-whatsapp-ticket-webhook.mjs "Westport paul ormandy open ticket low priority This is a test new ticket"
  */
+import { CANONICAL_PUBLIC_ORIGIN } from "./canonical-production-url.mjs";
 
 const apiKey = process.env.CALLMEBOT_API_KEY?.trim();
 const phone = (process.env.WHATSAPP_NOTIFY_PHONE ?? "34657106176").replace(/\D/g, "");
-const siteUrl = (process.env.SITE_URL ?? "https://barcelonadronecenter.vercel.app").replace(/\/$/, "");
+const siteUrl = (process.env.SITE_URL ?? CANONICAL_PUBLIC_ORIGIN).replace(/\/$/, "");
 
 const ticketMessage =
   process.argv[2] ??

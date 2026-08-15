@@ -5,13 +5,11 @@
  *   TEXTMEBOT_API_KEY=reWJA3LBW6Gy WHATSAPP_NOTIFY_PHONE=34657106176 \
  *   node scripts/setup-textmebot-webhook.mjs
  */
+import { CANONICAL_PUBLIC_ORIGIN } from "./canonical-production-url.mjs";
 
 const apiKey = process.env.TEXTMEBOT_API_KEY?.trim();
 const phone = (process.env.WHATSAPP_NOTIFY_PHONE ?? "34657106176").replace(/\D/g, "");
-const siteUrl = (process.env.SITE_URL ?? "https://barcelonadronecenter.vercel.app").replace(
-  /\/$/,
-  "",
-);
+const siteUrl = (process.env.SITE_URL ?? CANONICAL_PUBLIC_ORIGIN).replace(/\/$/, "");
 const secret = process.env.WHATSAPP_WEBHOOK_SECRET?.trim();
 
 const webhookPath = "/api/whatsapp/inbound";

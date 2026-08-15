@@ -1,3 +1,8 @@
+import fs from "node:fs";
+import https from "node:https";
+import { URL } from "node:url";
+import { CANONICAL_PRODUCTION_ORIGIN } from "./canonical-production-url.mjs";
+
 /**
  * Executive Acceptance Test Suite
  *
@@ -6,15 +11,12 @@
  *
  * Usage:
  *   node scripts/executive-acceptance-suite.mjs
- *   node scripts/executive-acceptance-suite.mjs https://unit311.vercel.app
+ *   node scripts/executive-acceptance-suite.mjs https://internal.unit311central.com
  *
  * Requires: .tmp-qa-creds.json
  */
-import fs from "node:fs";
-import https from "node:https";
-import { URL } from "node:url";
 
-const baseUrl = process.argv[2] || "https://unit311.vercel.app";
+const baseUrl = process.argv[2] || CANONICAL_PRODUCTION_ORIGIN;
 const credsPath = ".tmp-qa-creds.json";
 if (!fs.existsSync(credsPath)) {
   console.error(`Missing ${credsPath}`);

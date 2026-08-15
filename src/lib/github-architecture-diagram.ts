@@ -177,7 +177,7 @@ export function parseGithubArchitectureDoc(markdown: string): ParsedGithubArchit
   }));
 
   return {
-    remote: identity["GitHub remote"] || "https://github.com/paulwfotheringham-cmd/unit311.git",
+    remote: identity["GitHub remote"] || "https://github.com/Unit311central/unit311central.git",
     packageName: identity["Default package name"] || "unit311",
     product: identity["Product"] || "Unit311 Central",
     defaultBranch: identity["Default branch"] || "main",

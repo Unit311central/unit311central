@@ -4,15 +4,16 @@
  *
  * Usage:
  *   node scripts/e2e-assistant-workflow.mjs [baseUrl]
- * Default baseUrl: https://unit311.vercel.app
+ * Default baseUrl: https://internal.unit311central.com
  */
 import https from "node:https";
 import http from "node:http";
 import { URL } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
+import { CANONICAL_PRODUCTION_ORIGIN } from "./canonical-production-url.mjs";
 
-const baseUrl = process.argv[2] || "https://unit311.vercel.app";
+const baseUrl = process.argv[2] || CANONICAL_PRODUCTION_ORIGIN;
 const credsPath = path.join(process.cwd(), ".tmp-qa-creds.json");
 const creds = JSON.parse(fs.readFileSync(credsPath, "utf8"));
 

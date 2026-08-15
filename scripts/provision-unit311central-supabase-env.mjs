@@ -1,5 +1,9 @@
 import { execSync } from "node:child_process";
 import { existsSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  refuseObsoleteVercelProject,
+  UNIT311_VERCEL_PROJECT_NAME,
+} from "./assert-canonical-unit311-repo.mjs";
 
 function api(path, method = "GET", body) {
   const args = [`npx vercel api "${path}"`];
@@ -19,7 +23,8 @@ function api(path, method = "GET", body) {
 }
 
 const sourceProject = "barcelonadronecenter";
-const targetProject = "unit311central";
+const targetProject = process.env.VERCEL_PROJECT ?? UNIT311_VERCEL_PROJECT_NAME;
+refuseObsoleteVercelProject(targetProject, "provision-unit311central-supabase-env.mjs");
 const key = "SUPABASE_ACCESS_TOKEN";
 
 const source = api(`/v9/projects/${sourceProject}`);

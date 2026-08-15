@@ -84,6 +84,8 @@ Implemented in `src/middleware.ts` and `src/lib/app-domains.ts`.
 | `{slug}.*` | Rewrite → `/ws/[slug]` (workspace gateway) |
 | `{slug}.*` `/login` | Redirect → apex `/login` |
 | `unit311.unit311central.com` | Redirect → `internal.unit311central.com` |
+| `onward.unit311central.com` | Redirect → `onwardair.unit311central.com` |
+| `talanton.unit311central.com` | Redirect → `talantonimpact.unit311central.com` |
 
 Request flags set by middleware: `x-unit311-central`, `x-unit311-internal`, `x-unit311-workspace-slug`.
 

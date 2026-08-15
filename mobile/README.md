@@ -1,6 +1,6 @@
-# BCN Drone Center — Android shell
+# Unit311 Central — Android shell
 
-Capacitor wrapper that loads the live site from `https://barcelonadronecenter.vercel.app`.
+Capacitor wrapper that loads the live Internal ops app from `https://internal.unit311central.com` (Vercel project `unit311central`).
 
 ## Local debug APK (requires Android Studio)
 
@@ -17,4 +17,3 @@ In Android Studio: **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
 ## CI build
 
 GitHub Actions builds a debug APK on push to `mobile/` or manual workflow dispatch.
-Download from the latest [GitHub Release](https://github.com/paulwfotheringham-cmd/barcelonadronecenter/releases) tagged `android-*`.

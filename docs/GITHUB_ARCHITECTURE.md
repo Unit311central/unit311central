@@ -14,7 +14,7 @@ npm run diagram:github-architecture
 
 | Field | Value |
 | --- | --- |
-| GitHub remote | `https://github.com/paulwfotheringham-cmd/unit311.git` |
+| GitHub remote | `https://github.com/Unit311central/unit311central.git` |
 | Default package name | `unit311` |
 | Product | Unit311 Central (single-repo multi-tenant SaaS) |
 | Default branch | `main` |

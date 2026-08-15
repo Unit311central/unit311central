@@ -3,7 +3,7 @@
  *
  * Usage:
  *   npm run test:ceo-demo
- *   npm run test:ceo-demo -- https://unit311.vercel.app
+ *   npm run test:ceo-demo -- https://internal.unit311central.com
  *   npm run test:ceo-demo -- --concurrency=2
  *
  * Requires: .tmp-qa-creds.json
@@ -12,13 +12,14 @@ import fs from "node:fs";
 import https from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CANONICAL_PRODUCTION_ORIGIN } from "./canonical-production-url.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 
 const args = process.argv.slice(2);
 const baseUrl =
-  args.find((a) => a.startsWith("http")) || "https://unit311.vercel.app";
+  args.find((a) => a.startsWith("http")) || CANONICAL_PRODUCTION_ORIGIN;
 const concurrencyArg = args.find((a) => a.startsWith("--concurrency="));
 const outArg = args.find((a) => a.startsWith("--out="));
 const concurrency = Math.max(1, Number(concurrencyArg?.split("=")[1] || 2));

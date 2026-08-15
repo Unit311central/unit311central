@@ -1,11 +1,11 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.barcelonadronecenter.app",
-  appName: "BCN Drone Center",
+  appId: "com.unit311central.app",
+  appName: "Unit311 Central",
   webDir: "www",
   server: {
-    url: "https://barcelonadronecenter.vercel.app",
+    url: "https://internal.unit311central.com",
     cleartext: false,
     androidScheme: "https",
   },

@@ -26,7 +26,7 @@ import {
   evaluateCustomerHostSessionGate,
 } from "@/lib/workspace-host-session-gate";
 import { matchTalantonCompanyPortalPathname } from "@/lib/talanton/company-portal-routes";
-import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { isTalantonImpactSlug, TALANTON_HOST_ALIAS_SLUG, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 import { matchAbhiMemberPortalPathname } from "@/lib/abhi/member-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { matchOnwardAirClientPortalPathname, getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-routes";
@@ -212,6 +212,13 @@ export async function middleware(request: NextRequest) {
     if (workspaceSlug === "onward") {
       return redirectExternal(
         `https://onwardair.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
+      );
+    }
+
+    // Canonical Talanton host is talantonimpact.*; keep short talanton.* bookmarks working.
+    if (workspaceSlug === TALANTON_HOST_ALIAS_SLUG) {
+      return redirectExternal(
+        `https://${TALANTON_IMPACT_SLUG}.${UNIT311_SITE_HOST}${pathname === "/" ? "" : pathname}${search}`,
       );
     }
 

@@ -9,7 +9,7 @@
  *   node scripts/executive-module-acceptance-suite.mjs --module=Financials
  *   node scripts/executive-module-acceptance-suite.mjs --concurrency=3
  *   node scripts/executive-module-acceptance-suite.mjs --ids-file=.tmp-rerun-ids.json
- *   node scripts/executive-module-acceptance-suite.mjs https://unit311.vercel.app
+ *   node scripts/executive-module-acceptance-suite.mjs https://internal.unit311central.com
  *
  * Requires: .tmp-qa-creds.json + docs/executive-module-prompt-catalog.json
  */
@@ -17,13 +17,14 @@ import fs from "node:fs";
 import https from "node:https";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CANONICAL_PRODUCTION_ORIGIN } from "./canonical-production-url.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 
 const args = process.argv.slice(2);
 const baseUrl =
-  args.find((a) => a.startsWith("http")) || "https://unit311.vercel.app";
+  args.find((a) => a.startsWith("http")) || CANONICAL_PRODUCTION_ORIGIN;
 const limitArg = args.find((a) => a.startsWith("--limit="));
 const moduleArg = args.find((a) => a.startsWith("--module="));
 const idsFileArg = args.find((a) => a.startsWith("--ids-file="));

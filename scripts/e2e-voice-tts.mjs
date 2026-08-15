@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import https from "node:https";
 import { URL } from "node:url";
+import { CANONICAL_PRODUCTION_ORIGIN } from "./canonical-production-url.mjs";
 
 const creds = JSON.parse(fs.readFileSync(".tmp-qa-creds.json", "utf8"));
-const baseUrl = process.argv[2] || "https://unit311.vercel.app";
+const baseUrl = process.argv[2] || CANONICAL_PRODUCTION_ORIGIN;
 
 function request(url, { method = "GET", headers = {}, body } = {}) {
   return new Promise((resolve, reject) => {

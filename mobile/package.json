@@ -2,7 +2,7 @@
   "name": "bcn-drone-center-mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "Capacitor shell for barcelonadronecenter.vercel.app",
+  "description": "Capacitor shell for internal.unit311central.com (Unit311 Central production)",
   "scripts": {
     "sync": "cap sync",
     "open:android": "cap open android",

@@ -15,6 +15,10 @@ import {
   TextRun,
   WidthType,
 } from "docx";
+import {
+  CANONICAL_INTERNAL_ORIGIN,
+  CANONICAL_PUBLIC_ORIGIN,
+} from "./canonical-production-url.mjs";
 
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, "docs", "BCN-Unit311-Platform-Technical-Documentation.docx");
@@ -121,7 +125,7 @@ const children = [
   }),
   new Paragraph({
     alignment: AlignmentType.CENTER,
-    children: [new TextRun({ text: "Production: https://barcelonadronecenter.vercel.app", size: 22, color: "666666" })],
+    children: [new TextRun({ text: `Production: ${CANONICAL_PUBLIC_ORIGIN}`, size: 22, color: "666666" })],
   }),
   new Paragraph({ children: [new PageBreak()] }),
 
@@ -444,7 +448,7 @@ const children = [
 
   h1("12. Deployment Architecture & Environment"),
   h2("12.1 Production Topology"),
-  p("GitHub (main) → Vercel build (Next.js Turbopack) → Serverless functions at barcelonadronecenter.vercel.app → Supabase cloud (Postgres + Storage) + external APIs."),
+  p(`GitHub (main) → Vercel build (Next.js Turbopack) → Serverless functions at ${CANONICAL_PUBLIC_ORIGIN} (wildcard *.unit311central.com) → Supabase cloud (Postgres + Storage) + external APIs.`),
   h2("12.2 Key Environment Variables"),
   table(
     ["Variable", "Required for"],
@@ -465,7 +469,7 @@ const children = [
   bullet("Git push to Unit311central/unit311central main (CLI vercel --prod disabled)"),
   bullet("npm run db:* — various migration and seed scripts"),
   h2("12.4 Mobile"),
-  p("Capacitor Android app in mobile/ loads https://barcelonadronecenter.vercel.app. GitHub Actions workflow builds APK artifacts."),
+  p(`Capacitor Android app in mobile/ loads ${CANONICAL_INTERNAL_ORIGIN}. GitHub Actions workflow builds APK artifacts.`),
   new Paragraph({ children: [new PageBreak()] }),
 
   h1("13. Strengths, Technical Debt & Recommendations"),
