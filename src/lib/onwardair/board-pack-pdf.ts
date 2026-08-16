@@ -69,14 +69,57 @@ function paintBackground(doc: jsPDF) {
 /** Dark navy PNG wordmark — sized for white board-pack pages. */
 const LOGO_W = 30;
 const LOGO_H = LOGO_W * (ONWARDAIR_LOGO_INTRINSIC_HEIGHT / ONWARDAIR_LOGO_INTRINSIC_WIDTH);
+const NORTHSTAR_SKY = [14, 116, 178] as const;
 
 function logoImageFormat(logoDataUrl: string): "PNG" | "JPEG" {
   return logoDataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
 }
 
-function drawLogo(doc: jsPDF, logoDataUrl: string | null) {
+function isNorthstarBoardPack(brand?: AbhiBoardPackData | null): boolean {
+  return /northstar/i.test(brand?.coverBrand?.orgLine ?? "");
+}
+
+/** Vector wordmark for white PDF pages — avoids the dark-UI PNG with grey box. */
+function drawNorthstarWordmark(doc: jsPDF, x: number, y: number, width: number): number {
+  const titlePt = Math.max(15, width * 0.19);
+  const subPt = Math.max(6.5, width * 0.052);
+  const titleY = y + titlePt * 0.35;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(titlePt);
+  setText(doc, C.navy);
+  doc.text("NORTHSTAR", x, titleY, { charSpace: 2.4 });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(subPt);
+  setText(doc, NORTHSTAR_SKY);
+  const subY = titleY + subPt * 0.95;
+  doc.text("INDUSTRIAL TECHNOLOGIES", x, subY, { charSpace: 0.45 });
+
+  return subY - y + subPt * 0.35;
+}
+
+function drawLogo(
+  doc: jsPDF,
+  logoDataUrl: string | null,
+  brand?: AbhiBoardPackData | null,
+  placement: "header" | "cover" = "header",
+) {
+  if (isNorthstarBoardPack(brand)) {
+    const width = placement === "cover" ? 78 : 36;
+    const x = placement === "cover" ? MARGIN : SLIDE_W - MARGIN - width;
+    const y = placement === "cover" ? 7 : 4.5;
+    drawNorthstarWordmark(doc, x, y, width);
+    return;
+  }
   if (!logoDataUrl) return;
   try {
+    if (placement === "cover") {
+      const coverW = LOGO_W * 2.2;
+      const coverH = LOGO_H * 2.2;
+      doc.addImage(logoDataUrl, logoImageFormat(logoDataUrl), MARGIN, 6, coverW, coverH);
+      return;
+    }
     doc.addImage(
       logoDataUrl,
       logoImageFormat(logoDataUrl),
@@ -99,8 +142,14 @@ function boardAttentionForRisk(risk: AbhiBoardRisk): string {
   return "Monitor";
 }
 
-function drawHeader(doc: jsPDF, title: string, logoDataUrl: string | null, subtitle?: string) {
-  drawLogo(doc, logoDataUrl);
+function drawHeader(
+  doc: jsPDF,
+  title: string,
+  logoDataUrl: string | null,
+  subtitle?: string,
+  brand?: AbhiBoardPackData | null,
+) {
+  drawLogo(doc, logoDataUrl, brand, "header");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   setText(doc, C.navy);
@@ -277,33 +326,28 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 1 — Cover
   {
     addSlide(doc);
-    if (logoDataUrl) {
-      try {
-        const coverW = LOGO_W * 2.2;
-        const coverH = LOGO_H * 2.2;
-        doc.addImage(logoDataUrl, logoImageFormat(logoDataUrl), MARGIN, 6, coverW, coverH);
-      } catch {
-        // optional
-      }
+    drawLogo(doc, logoDataUrl, data, "cover");
+    const northstar = isNorthstarBoardPack(data);
+    if (!northstar) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      setText(doc, C.muted);
+      doc.text(data.coverBrand?.orgLine ?? "OnwardAir", MARGIN, 34);
     }
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    setText(doc, C.muted);
-    doc.text(data.coverBrand?.orgLine ?? "OnwardAir", MARGIN, 34);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(28);
     setText(doc, C.navy);
-    doc.text(data.coverBrand?.deckTitle ?? "Board Deck", MARGIN, 47);
+    doc.text(data.coverBrand?.deckTitle ?? "Board Deck", MARGIN, northstar ? 43 : 47);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(14);
     setText(doc, C.text);
-    doc.text(formatAbhiBoardDate(data.meetingDate), MARGIN, 57);
+    doc.text(formatAbhiBoardDate(data.meetingDate), MARGIN, northstar ? 53 : 57);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setText(doc, C.subtleRed);
-    doc.text("CONFIDENTIAL", MARGIN, 64);
+    doc.text("CONFIDENTIAL", MARGIN, northstar ? 60 : 64);
 
-    let y = 74;
+    let y = northstar ? 70 : 74;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     setText(doc, C.navy);
@@ -324,7 +368,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 2 — Executive Summary
   {
     addSlide(doc);
-    drawHeader(doc, "Executive Summary", logoDataUrl);
+    drawHeader(doc, "Executive Summary", logoDataUrl, undefined, data);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
@@ -422,7 +466,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 3 — Actions
   {
     addSlide(doc);
-    drawHeader(doc, "Previous Meeting Actions", logoDataUrl, "Board action register");
+    drawHeader(doc, "Previous Meeting Actions", logoDataUrl, "Board action register", data);
     const actions = abhiSortedBoardActions(data);
     const colX = [MARGIN, MARGIN + 28, MARGIN + 163, MARGIN + 210, MARGIN + 242];
     let y = 28;
@@ -469,7 +513,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 4 — Risk Register
   {
     addSlide(doc);
-    drawHeader(doc, "Risk Register", logoDataUrl, "Board + Engineering risk registers");
+    drawHeader(doc, "Risk Register", logoDataUrl, "Board + Engineering risk registers", data);
     const sorted = [...data.risks]
       .sort((a, b) => abhiRiskScore(b) - abhiRiskScore(a))
       .slice(0, 6);
@@ -562,7 +606,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 5 — KPI
   {
     addSlide(doc);
-    drawHeader(doc, "KPI Dashboard", logoDataUrl, "Programme performance vs target");
+    drawHeader(doc, "KPI Dashboard", logoDataUrl, "Programme performance vs target", data);
     const kpis = data.kpis.slice(0, 6);
     const cols = 3;
     const cardW = (CONTENT_W - 8) / cols;
@@ -621,7 +665,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 6 — Financial Overview (CEO visual metrics)
   {
     addSlide(doc);
-    drawHeader(doc, "Financial Overview", logoDataUrl, "10-second board view");
+    drawHeader(doc, "Financial Overview", logoDataUrl, "10-second board view", data);
 
     const rev = data.financialOverview.revenueVsBudget;
     const op = data.financialOverview.operatingSurplus;
@@ -718,7 +762,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 7 — P&L
   {
     addSlide(doc);
-    drawHeader(doc, "Programme Spend", logoDataUrl, "YTD actual vs programme budget");
+    drawHeader(doc, "Programme Spend", logoDataUrl, "YTD actual vs programme budget", data);
     const colX = [MARGIN, MARGIN + 118, MARGIN + 155, MARGIN + 192, MARGIN + 235];
     let y = 28;
     setFill(doc, C.navy);
@@ -785,7 +829,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 8 — Balance Sheet & Cash (visual cash story)
   {
     addSlide(doc);
-    drawHeader(doc, "Balance Sheet & Cash", logoDataUrl, "Cash position at a glance");
+    drawHeader(doc, "Balance Sheet & Cash", logoDataUrl, "Cash position at a glance", data);
 
     const position = [
       { label: "Assets", value: data.balanceSheet.assets },
@@ -912,7 +956,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 9 — Fundraising & Pipeline
   {
     addSlide(doc);
-    drawHeader(doc, "Fundraising & Pipeline", logoDataUrl, "Programme · Seed · Investors");
+    drawHeader(doc, "Fundraising & Pipeline", logoDataUrl, "Programme · Seed · Investors", data);
     const colW = (CONTENT_W - 8) / 3;
     const colH = 124;
     const colY = 24;
@@ -1043,7 +1087,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 10 — Team
   {
     addSlide(doc);
-    drawHeader(doc, "Team & Organisation", logoDataUrl, "Houston HQ · hiring · training");
+    drawHeader(doc, "Team & Organisation", logoDataUrl, "Houston HQ · hiring · training", data);
     [
       { label: "Headcount", value: String(data.team.headcount), x: MARGIN, color: C.navy },
       { label: "Open roles", value: String(data.team.openRoles), x: MARGIN + 72, color: C.amber },
@@ -1107,7 +1151,7 @@ export async function buildOnwardAirBoardPackPdf(
   // Slide 11 — Strategic Discussion (decision-first)
   {
     addSlide(doc);
-    drawHeader(doc, "Strategic Discussion & AOB", logoDataUrl, "Decisions required this cycle");
+    drawHeader(doc, "Strategic Discussion & AOB", logoDataUrl, "Decisions required this cycle", data);
     const cardW = (CONTENT_W - 6) / 2;
     const cardH = 48;
     data.strategicTopics.slice(0, 4).forEach((topic, index) => {

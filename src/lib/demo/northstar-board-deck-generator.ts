@@ -1,14 +1,10 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-
 import {
   buildNorthstarBoardPackData,
   northstarBoardDeckPdfFileName,
 } from "@/lib/demo/northstar-board-pack-model";
-import { NORTHSTAR_LOGO_SRC } from "@/lib/demo/northstar-surface";
 import { buildOnwardAirBoardPackPdf } from "@/lib/onwardair/board-pack-pdf";
 
-export const NORTHSTAR_BOARD_DECK_BUILD = "2026-08-16-v2";
+export const NORTHSTAR_BOARD_DECK_BUILD = "2026-08-16-v3";
 
 export type NorthstarBoardDeckResult = {
   data: ReturnType<typeof buildNorthstarBoardPackData>;
@@ -32,8 +28,7 @@ export async function generateNorthstarBoardDeck(
   meetingDate?: string,
 ): Promise<NorthstarBoardDeckResult> {
   const data = buildNorthstarBoardPackData(meetingDate);
-  const logoDataUrl = await loadNorthstarLogoDataUrl();
-  const pdfBytes = await buildOnwardAirBoardPackPdf(data, logoDataUrl);
+  const pdfBytes = await buildOnwardAirBoardPackPdf(data, null);
   return {
     data,
     pdfBytes,
