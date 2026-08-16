@@ -686,7 +686,7 @@ export function writeDemoFixtures(repoRoot, graph) {
         {
           id: "company-overview",
           label: "Company Overview",
-          content: `${graph.company.tradingName} (${graph.company.legalName}) is a technology and management consulting firm headquartered in London with offices across EMEA and APAC. Company no. ${graph.company.companyNumber}. VAT ${graph.company.vatNumber}.`,
+          content: `${graph.company.tradingName} (${graph.company.legalName}) is a UK B2B industrial technology SME founded in 2023. HQ Manchester with Bristol R&D and Austin US office. Company no. ${graph.company.companyNumber}. VAT ${graph.company.vatNumber}.`,
         },
         {
           id: "operating-model",
@@ -705,9 +705,44 @@ export function writeDemoFixtures(repoRoot, graph) {
     summary: {
       employees: graph.employees.length,
       clients: graph.clients.length,
+      activeProjects: graph.projects.filter((p) => p.phase === "live" || p.phase === "upcoming").length,
       projects: graph.projects.length,
       invoices: graph.invoices.length,
       tickets: graph.tickets.length,
+    },
+    narrative: {
+      foundedYear: graph.company.foundedYear ?? 2023,
+      arrGbp: graph.company.arrGbp ?? 4_800_000,
+      cashGbp: graph.company.cashGbp ?? 1_900_000,
+      targetGmPct: graph.company.targetGmPct ?? 58,
+      actualGmPct: graph.company.actualGmPct ?? 54,
+      arGbp: 620_000,
+      apGbp: 210_000,
+      pipelineGbp: 1_200_000,
+      wins: [
+        "Meridian Packaging Group expansion — £180k ARR add-on",
+        "Dec 2025 strong close — 4 new logos",
+        "Growth round £2m closed Aug 2025",
+      ],
+      losses: [
+        "Harbor Forge churned — integration failure lesson",
+        "Jun 2025 margin dip — Voltex supplier delays on Atlas",
+      ],
+      peopleChanges: [
+        "Hired: US Solutions Engineer (Austin), Senior Firmware Engineer (Bristol)",
+        "Promoted: Delivery lead → Delivery Director",
+        "Terminated: Sales AE (underperformance, Dec 2025)",
+        "Active PIP: Junior AE (pipeline conversion)",
+        "Open roles: US Account Executive, Firmware Engineer, CSM",
+      ],
+      priorities: [
+        "Margin recovery to 58% target",
+        "Atlas Monitoring Platform go-live for Meridian",
+        "US pipeline conversion without burn spike",
+        "Supplier diversification away from Voltex Automation",
+      ],
+      intelligenceHeadline:
+        "Meridian renewal risk elevated; Voltex supply-chain delay affecting Atlas delivery; Austin expansion on track.",
     },
   };
 

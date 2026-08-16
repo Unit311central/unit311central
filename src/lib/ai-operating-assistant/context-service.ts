@@ -115,7 +115,20 @@ export async function buildBusinessContext(
       roles: entitlements.roles,
       departments: entitlements.departments,
       allowedViews: entitlements.allowedViews,
-      readOnlyMode: input.session.userType === "external",
+      readOnlyMode:
+        input.session.userType === "external" ||
+        (() => {
+          try {
+            const { isDemoReadOnlySession } =
+              require("@/lib/demo/read-only") as typeof import("@/lib/demo/read-only");
+            return isDemoReadOnlySession({
+              workspaceSlug: input.workspaceSlug,
+              username: input.session.username,
+            });
+          } catch {
+            return false;
+          }
+        })(),
     },
     generatedAt: new Date().toISOString(),
   };

@@ -58,11 +58,11 @@ assert.match(releaseDoc, /demo:enterprise:seed/);
 
 const fixtures = JSON.parse(read("src/lib/demo-enterprise/fixtures.generated.json"));
 assert.equal(fixtures.wise?.connected, true);
-assert.match(String(fixtures.company?.legalName ?? ""), /Meridian Atlas/);
-assert.ok(Array.isArray(fixtures.offices) && fixtures.offices.length >= 5);
+assert.match(String(fixtures.company?.legalName ?? ""), /Northstar/);
+assert.ok(Array.isArray(fixtures.offices) && fixtures.offices.length >= 3);
 
-const bankProvider = read("src/lib/treasury/bank-provider.ts");
-assert.match(bankProvider, /shouldUseDemoWiseSimulator/);
+const bankProvider = read("src/lib/treasury/bank-provider-server.ts");
+assert.match(bankProvider, /shouldUseDemoWiseSimulator|isDemoWiseWorkspaceSlug/);
 assert.match(read("src/lib/treasury/providers/demo-wise-simulator.ts"), /getDemoWiseConnectionStatus/);
 
 console.log("verify-demo-release: OK");

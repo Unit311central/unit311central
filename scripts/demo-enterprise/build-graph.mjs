@@ -1,5 +1,5 @@
 /**
- * Build in-memory Meridian Atlas enterprise graph (Demo only).
+ * Build in-memory Northstar enterprise graph (Demo only).
  */
 
 import {
@@ -18,26 +18,17 @@ import {
 import { addDays, createRng, daysAgo, monthsAgo, sqlUuid } from "./rng.mjs";
 
 const ROLE_BANDS = [
-  { dept: "Executive", roles: ["Chief Executive Officer", "Chief Operating Officer", "Chief Financial Officer", "Chief Technology Officer", "Chief People Officer"], level: "executive", count: 5 },
-  { dept: "Engineering", roles: ["Engineering Director", "Engineering Manager", "Senior Software Engineer", "Software Engineer", "Graduate Engineer"], level: "ic", count: 14 },
-  { dept: "Cloud", roles: ["Cloud Director", "Cloud Architect", "Cloud Engineer", "DevOps Engineer"], level: "ic", count: 10 },
-  { dept: "Security", roles: ["Security Director", "Security Engineer", "SOC Analyst"], level: "ic", count: 6 },
-  { dept: "Consulting", roles: ["Consulting Director", "Principal Consultant", "Senior Consultant", "Consultant"], level: "ic", count: 12 },
-  { dept: "Project Management", roles: ["PMO Director", "Senior Project Manager", "Project Manager"], level: "ic", count: 8 },
-  { dept: "Business Analysis", roles: ["Lead Business Analyst", "Business Analyst"], level: "ic", count: 6 },
-  { dept: "Customer Success", roles: ["CS Director", "Customer Success Manager", "Onboarding Specialist"], level: "ic", count: 7 },
-  { dept: "Sales", roles: ["VP Sales", "Enterprise Account Executive", "Account Executive", "Sales Development Rep"], level: "ic", count: 8 },
-  { dept: "Marketing", roles: ["Marketing Director", "Product Marketing Manager", "Content Manager"], level: "ic", count: 5 },
-  { dept: "Finance", roles: ["Finance Director", "Financial Controller", "Management Accountant", "Accounts Payable Specialist"], level: "ic", count: 6 },
-  { dept: "HR", roles: ["HR Director", "HR Business Partner", "People Operations Specialist", "Recruiter"], level: "ic", count: 5 },
-  { dept: "Operations", roles: ["Operations Director", "Operations Manager", "Facilities Coordinator"], level: "ic", count: 4 },
-  { dept: "Procurement", roles: ["Procurement Manager", "Buyer"], level: "ic", count: 3 },
-  { dept: "Support", roles: ["Support Manager", "Support Engineer", "Support Analyst"], level: "ic", count: 6 },
-  { dept: "Administration", roles: ["Executive Assistant", "Office Administrator", "Intern"], level: "ic", count: 4 },
+  { dept: "Executive", roles: ["Chief Executive Officer", "Chief Operating Officer", "Chief Financial Officer", "Chief Technology Officer"], level: "executive", count: 4 },
+  { dept: "Engineering", roles: ["Engineering Director", "Senior Firmware Engineer", "Software Engineer", "QA Engineer", "Graduate Engineer"], level: "ic", count: 8 },
+  { dept: "Sales", roles: ["VP Sales", "Account Executive", "Sales Development Rep"], level: "ic", count: 4 },
+  { dept: "Customer Success", roles: ["Customer Success Manager", "Onboarding Specialist"], level: "ic", count: 3 },
+  { dept: "Operations", roles: ["Delivery Director", "Project Manager", "Operations Coordinator"], level: "ic", count: 3 },
+  { dept: "Finance", roles: ["Management Accountant", "Accounts Payable Specialist"], level: "ic", count: 2 },
+  { dept: "HR", roles: ["HR Business Partner"], level: "ic", count: 1 },
 ];
 
 function salaryFor(role, rng) {
-  // Calibrated so 100-headcount Demo burn fits ~4–5 months runway on £1.58m treasury.
+  // Calibrated for 25-headcount Northstar (~£4.8m ARR SME).
   const r = role.toLowerCase();
   if (r.includes("chief") || r.includes("vp ")) return rng.money(55000, 75000, 0);
   if (r.includes("director")) return rng.money(45000, 58000, 0);
@@ -49,7 +40,7 @@ function salaryFor(role, rng) {
 
 export function buildEnterpriseGraph(options = {}) {
   const rng = createRng(options.seed ?? 3112025);
-  const employeeTarget = options.employees ?? 45;
+  const employeeTarget = options.employees ?? 25;
   const clientTarget = options.clients ?? 100;
 
   const employees = [];
@@ -129,10 +120,12 @@ export function buildEnterpriseGraph(options = {}) {
   for (let i = 1; i <= clientTarget; i += 1) {
     let companyName;
     if (i === 1) {
-      companyName = "Rapid Labs Inc";
+      companyName = "Meridian Packaging Group";
+    } else if (i === 2) {
+      companyName = "Harbor Forge Ltd";
     } else {
       do {
-        companyName = `${rng.pick(CLIENT_PREFIXES)} ${rng.pick(CLIENT_SUFFIXES)} ${rng.pick(["Ltd", "Inc", "GmbH", "Pte Ltd", "PLC"])}`;
+        companyName = `${rng.pick(CLIENT_PREFIXES)} ${rng.pick(CLIENT_SUFFIXES)} ${rng.pick(["Ltd", "Inc", "GmbH", "PLC"])}`;
       } while (usedNames.has(companyName));
     }
     usedNames.add(companyName);
@@ -166,28 +159,30 @@ export function buildEnterpriseGraph(options = {}) {
       contactLast,
       email:
         i === 1
-          ? "alex.chen@rapidlabs.example"
+          ? "alex.chen@meridianpackaging.example"
           : `${contactFirst}.${contactLast}@${companyName.toLowerCase().replace(/[^a-z0-9]+/g, "")}.example`.slice(0, 80),
       phone: `+1 555 ${String(1000000 + i).slice(-7)}`,
       taxId: `TAX-DME-${i}`,
       address: `${10 + (i % 80)} Commerce Street, ${office.city}`,
       notes:
         i === 1
-          ? `${DEMO_ENTERPRISE_TAG} Flagship Support Lounge demo client.`
-          : `${DEMO_ENTERPRISE_TAG} Active Meridian Atlas customer.`,
+          ? `${DEMO_ENTERPRISE_TAG} Anchor customer — Atlas Monitoring Platform deployment.`
+          : i === 2
+            ? `${DEMO_ENTERPRISE_TAG} Churned customer — integration failure lesson.`
+            : `${DEMO_ENTERPRISE_TAG} Northstar industrial IoT customer.`,
       subscriptionStatus: accountStatus === "Active" ? "active" : accountStatus === "Onboarding" ? "pending_payment" : "inactive",
       billingFrequency: rng.pick(["monthly", "quarterly", "annual"]),
       renewalDate: daysAgo(-rng.int(20, 180)),
       createdDaysAgo: rng.int(20, 350),
       // Stable demo lounge token for Rapid Labs (Workflow 2).
-      supportLoungeToken: i === 1 ? "demo-rapid-labs-lounge" : null,
+      supportLoungeToken: i === 1 ? "demo-meridian-packaging-lounge" : null,
     });
   }
 
   const activeClients = clients.filter((c) => c.accountStatus === "Active");
 
   const leads = [];
-  for (let i = 1; i <= 100; i += 1) {
+  for (let i = 1; i <= 35; i += 1) {
     const status = rng.pick(["Cold", "Warm", "Qualified", "Proposal", "Won", "Lost"]);
     leads.push({
       id: sqlUuid(`dme-lead-${i}`),
@@ -207,21 +202,35 @@ export function buildEnterpriseGraph(options = {}) {
     if (phase === "Completed" || phase === "Cancelled") return "completed";
     return "upcoming";
   };
-  for (let i = 1; i <= 55; i += 1) {
-    const client = activeClients[i % activeClients.length];
-    const phase = phases[i % phases.length];
+  const projectCount = 28;
+  const activeProjectTarget = 20;
+  for (let i = 1; i <= projectCount; i += 1) {
+    const client = i === 1 ? clients[0] : activeClients[i % activeClients.length];
+    const isClosed = i > activeProjectTarget;
+    const phase = isClosed
+      ? rng.pick(["Completed", "Cancelled"])
+      : i === 1
+        ? "Delivery"
+        : rng.pick(["Discovery", "Delivery", "UAT", "Hypercare", "On Hold"]);
     const progress =
       phase === "Completed" ? 100 : phase === "Cancelled" ? rng.int(10, 40) : rng.int(15, 92);
     const id = sqlUuid(`dme-prj-${i}`);
-    const pm = rng.pick(employees.filter((e) => e.department === "Project Management"));
+    const pm = rng.pick(employees.filter((e) => e.department === "Operations"));
+    const projectThemes =
+      i === 1
+        ? ["Atlas Monitoring Platform"]
+        : ["Edge Controller Rollout", "Remote Monitoring", "Predictive Maintenance", "US Pilot"];
     projects.push({
       id,
-      name: `${client.companyName.split(" ")[0]} ${rng.pick(["Modernisation", "Cloud Migration", "Platform Build", "Security Uplift", "Data Platform", "ERP Advisory"])}`,
+      name:
+        i === 1
+          ? "Atlas Monitoring Platform — Meridian Packaging"
+          : `${client.companyName.split(" ")[0]} ${rng.pick(projectThemes)}`,
       clientId: client.id,
       clientName: client.companyName,
       phase: appPhaseFor(phase),
       progressPct: progress,
-      budget: rng.money(80000, 1200000, 0),
+      budget: i === 1 ? rng.money(420_000, 520_000, 0) : rng.money(40_000, 280_000, 0),
       owner: pm?.fullName ?? "PMO",
       startDaysAgo: rng.int(30, 340),
       tasks: Array.from({ length: rng.int(4, 8) }, (_, t) => ({
@@ -237,7 +246,7 @@ export function buildEnterpriseGraph(options = {}) {
   }
 
   const tickets = [];
-  for (let i = 1; i <= 80; i += 1) {
+  for (let i = 1; i <= 120; i += 1) {
     const client = rng.pick(activeClients);
     tickets.push({
       id: `dme-tkt-${String(i).padStart(3, "0")}`,
@@ -254,12 +263,11 @@ export function buildEnterpriseGraph(options = {}) {
   const invoices = [];
   let invSeq = 0;
   const todayIso = daysAgo(0);
-  for (let m = 11; m >= 0; m -= 1) {
-    // ~8–11 invoices/month at consulting scale so collections fit a £1.58M treasury.
-    const monthClients = rng.shuffle(activeClients).slice(0, rng.int(8, 11));
+  for (let m = 23; m >= 0; m -= 1) {
+    const monthClients = rng.shuffle(activeClients).slice(0, rng.int(16, 19));
     for (const client of monthClients) {
       invSeq += 1;
-      const amount = rng.money(8_000, 42_000, 2);
+      const amount = rng.money(12_000, 32_000, 2);
       const issue = monthsAgo(m, rng.int(3, 20));
       const netDays = rng.pick([14, 30, 45]);
       const due = addDays(issue, netDays);
@@ -286,8 +294,8 @@ export function buildEnterpriseGraph(options = {}) {
 
       invoices.push({
         id: sqlUuid(`dme-inv-${invSeq}`),
-        invoiceNumber: `MAG-DME-${String(invSeq).padStart(5, "0")}`,
-        paymentReference: `MAGPAY${String(invSeq).padStart(6, "0")}`,
+        invoiceNumber: `NST-DME-${String(invSeq).padStart(5, "0")}`,
+        paymentReference: `NSTPAY${String(invSeq).padStart(6, "0")}`,
         clientId: client.id,
         amount: openAmount,
         // Prefer reporting currency so AR cards and rows stay coherent.
@@ -303,8 +311,8 @@ export function buildEnterpriseGraph(options = {}) {
 
   const expenses = [];
   let expSeq = 0;
-  for (let m = 11; m >= 0; m -= 1) {
-    for (let k = 0; k < 14; k += 1) {
+  for (let m = 23; m >= 0; m -= 1) {
+    for (let k = 0; k < 8; k += 1) {
       expSeq += 1;
       const supplier = rng.pick(SUPPLIERS);
       const emp = rng.pick(employees);
@@ -390,20 +398,26 @@ export function buildEnterpriseGraph(options = {}) {
     employees.reduce((sum, emp) => sum + Number(emp.salary || 0), 0) / 12;
   const employerTaxMonthly = payrollMonthlyEstimate * 0.138;
   const softwareMonthly = software.reduce((sum, row) => sum + Number(row.monthly || 0), 0);
-  for (let m = 11; m >= 0; m -= 1) {
+  for (let m = 23; m >= 0; m -= 1) {
     const monthInvoices = invoices.filter((inv) => inv.monthIndex === m && inv.status !== "cancelled");
     const revenue = monthInvoices.reduce(
       (s, inv) => s + inv.amount * (fxToGbp[inv.currency] ?? 1),
       0,
     );
     const monthKey = monthsAgo(m, 1).slice(0, 7);
+    // Narrative revenue shaping: Jun 2025 dip, Dec 2025 peak, Mar 2026 pressure.
+    let revenueMultiplier = 1;
+    if (monthKey === "2025-06") revenueMultiplier = 0.82;
+    else if (monthKey === "2025-12") revenueMultiplier = 1.12;
+    else if (monthKey === "2026-03") revenueMultiplier = 0.94;
+    const adjustedRevenue = Number((revenue * revenueMultiplier).toFixed(2));
     const monthExpenses = expenses.filter((e) => e.dateSubmitted.startsWith(monthKey));
     const vendorOpex = monthExpenses.reduce((s, e) => s + e.amount, 0);
     const opex = vendorOpex + payrollMonthlyEstimate + employerTaxMonthly + softwareMonthly;
     monthlyFinance.push({
       month: monthKey,
       journalDate: monthsAgo(m, 28),
-      revenue: Number(revenue.toFixed(2)),
+      revenue: adjustedRevenue,
       opex: Number(opex.toFixed(2)),
       payroll: Number((payrollMonthlyEstimate + employerTaxMonthly).toFixed(2)),
       software: Number(softwareMonthly.toFixed(2)),
@@ -411,16 +425,16 @@ export function buildEnterpriseGraph(options = {}) {
     });
   }
 
-  // Demo treasury totals $2,000,000 USD-equivalent (≈ £1,580,000 at platform FX).
+  // Northstar treasury ~£1.9m cash.
   const wiseBalances = {
-    GBP: 500_000,
-    USD: 800_000,
-    EUR: 250_000,
-    GBP_RESERVE: 233_000,
+    GBP: 1_100_000,
+    USD: 420_000,
+    EUR: 180_000,
+    GBP_RESERVE: 200_000,
   };
   const wiseTransactions = [];
   let tx = 0;
-  for (const inv of invoices.filter((i) => i.status === "paid").slice(0, 60)) {
+  for (const inv of invoices.filter((i) => i.status === "paid").slice(0, 120)) {
     tx += 1;
     wiseTransactions.push({
       id: `dme-wise-in-${tx}`,
@@ -434,7 +448,7 @@ export function buildEnterpriseGraph(options = {}) {
       invoiceId: inv.id,
     });
   }
-  for (const exp of expenses.filter((e) => e.paid).slice(0, 40)) {
+  for (const exp of expenses.filter((e) => e.paid).slice(0, 80)) {
     tx += 1;
     wiseTransactions.push({
       id: `dme-wise-out-${tx}`,
@@ -448,7 +462,7 @@ export function buildEnterpriseGraph(options = {}) {
     });
   }
   // Payroll outs
-  for (let m = 11; m >= 0; m -= 1) {
+  for (let m = 23; m >= 0; m -= 1) {
     tx += 1;
     wiseTransactions.push({
       id: `dme-wise-pay-${m}`,

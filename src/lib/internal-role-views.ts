@@ -1682,5 +1682,29 @@ export function filterInternalNavSectionsForDemoSurface(
     })
     .filter((section) => section.items.length > 0);
 
-  return injectInternalPlatformAnalytics(filtered);
+  return applyDemoNavExtensions(injectInternalPlatformAnalytics(filtered), options);
+}
+
+function isDemoNavSurface(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserDemoSurface } =
+      require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+    return isBrowserDemoSurface();
+  } catch {
+    return false;
+  }
+}
+
+export function applyDemoNavExtensions(
+  sections: readonly InternalNavSection[],
+  options?: { allowHostSurfaces?: boolean },
+): InternalNavSection[] {
+  const allowHostSurfaces = options?.allowHostSurfaces !== false;
+  if (!allowHostSurfaces || !isDemoNavSurface()) return [...sections];
+  const { injectDemoNavSections } = require("@/lib/demo/nav") as typeof import("@/lib/demo/nav");
+  const { injectIntelligenceNavIfMissing } =
+    require("@/lib/intelligence/nav") as typeof import("@/lib/intelligence/nav");
+  const { DEMO_WORKSPACE_SLUG } = require("@/lib/app-domains") as typeof import("@/lib/app-domains");
+  return injectIntelligenceNavIfMissing(injectDemoNavSections(sections), DEMO_WORKSPACE_SLUG);
 }

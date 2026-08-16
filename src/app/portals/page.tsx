@@ -17,6 +17,12 @@ export const metadata: Metadata = {
 export default async function PortalsPage() {
   const host = getRequestHost({ headers: await headers() });
   const workspaceSlug = parseClientPlatformSubdomainSafe(host);
+
+  if (workspaceSlug === "demo") {
+    const DemoPortalsShowcase = (await import("@/components/demo/DemoPortalsShowcase")).default;
+    return <DemoPortalsShowcase />;
+  }
+
   const pack = workspaceSlug ? getPortalPackBySlug(workspaceSlug) : null;
 
   if (!pack?.briefing) {

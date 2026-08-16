@@ -721,6 +721,21 @@ export async function middleware(request: NextRequest) {
       return bounce;
     }
 
+    if (
+      pathname === "/board" ||
+      pathname === "/portals" ||
+      pathname.startsWith("/portals/") ||
+      pathname === "/demo-client-portal" ||
+      pathname.startsWith("/demo-client-portal/") ||
+      pathname === "/company-overview"
+    ) {
+      const response = NextResponse.next({ request: { headers } });
+      for (const [key, value] of Object.entries(shellHeaders)) {
+        response.headers.set(key, value);
+      }
+      return applyCustomerHostRebindIfNeeded({ request, response, gate });
+    }
+
     // Post-login lands on /dashboard (apex `/` always clears the session).
     if (
       pathname === "/dashboard" ||

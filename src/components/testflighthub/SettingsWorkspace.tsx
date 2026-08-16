@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
@@ -452,6 +453,70 @@ function ProviderIntegrationSection<T extends string>({
         ) : null}
       </div>
     </article>
+  );
+}
+
+function DemoResetSettingsColumn() {
+  const [username, setUsername] = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/auth/whoami", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setUsername(data?.username ?? null))
+      .catch(() => undefined);
+  }, []);
+
+  const isAdmin =
+    String(username ?? "")
+      .trim()
+      .toLowerCase() === "admin@unit311central.com";
+
+  async function handleReset() {
+    if (!isAdmin || !window.confirm("Reset Demo to Northstar baseline? This wipes and reseeds Demo data.")) {
+      return;
+    }
+    setStatus("loading");
+    setMessage(null);
+    try {
+      const res = await fetch("/api/demo/reset", { method: "POST" });
+      const data = (await res.json()) as { message?: string; error?: string };
+      if (!res.ok) throw new Error(data.error || "Reset failed");
+      setStatus("done");
+      setMessage(data.message ?? "Demo reset complete.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "Reset failed");
+    }
+  }
+
+  return (
+    <SettingsColumn
+      title="Demo workspace"
+      description="Admin-only — reseed Northstar Industrial Technologies baseline data."
+      icon={<Share2 className="h-4 w-4" />}
+      accentClass="border-amber-400/25"
+    >
+      <div className="space-y-3">
+        <p className="text-xs text-white/55">
+          Wipes Demo business data and reseeds from the deterministic Northstar graph. Never touches
+          Internal, OnwardAir, Talanton or ABHI.
+        </p>
+        <button
+          type="button"
+          disabled={!isAdmin || status === "loading"}
+          onClick={() => void handleReset()}
+          className="rounded-lg border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-100 disabled:opacity-40"
+        >
+          {status === "loading" ? "Resetting…" : "Reset Demo to baseline"}
+        </button>
+        {!isAdmin ? (
+          <p className="text-[10px] text-white/40">Sign in as admin@unit311central.com to reset.</p>
+        ) : null}
+        {message ? <p className="text-xs text-white/70">{message}</p> : null}
+      </div>
+    </SettingsColumn>
   );
 }
 
@@ -1059,6 +1124,10 @@ export default function SettingsWorkspace() {
             </p>
           </div>
         </SettingsColumn>
+
+        {hydrated && isBrowserDemoSurface() ? (
+          <DemoResetSettingsColumn />
+        ) : null}
       </div>
     </div>
   );

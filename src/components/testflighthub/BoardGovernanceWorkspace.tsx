@@ -3,12 +3,19 @@
 import { AbhiBoardPortalApp } from "@/components/abhi/board/AbhiBoardPortalApp";
 import { AbhiBoardMinutesWorkspace } from "@/components/abhi/board/AbhiBoardMinutesWorkspace";
 import {
+  DemoBoardDashboardWorkspace,
+  DemoBoardMeetingsWorkspace,
+  DemoBoardMembersWorkspace,
+  DemoBoardRisksWorkspace,
+} from "@/components/demo/DemoBoardWorkspace";
+import {
   OnwardAirBoardDashboardWorkspace,
   OnwardAirBoardMinutesWorkspace,
 } from "@/components/onwardair/OnwardAirBoardWorkspaces";
 import { TalantonBoardPortalApp } from "@/components/talanton/board/TalantonBoardPortalApp";
 import type { AbhiBoardPortalSection } from "@/lib/abhi/board-portal-data";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import type { TiBoardPortalSection } from "@/lib/talanton/board-portal-data";
@@ -25,6 +32,15 @@ export default function BoardGovernanceWorkspace({
   const isTalanton = isBrowserTalantonImpactSurface();
   const isOnwardAir = isBrowserOnwardAirSurface();
   const isAbhi = isBrowserAbhiSurface();
+  const isDemo = isBrowserDemoSurface();
+
+  if (isDemo) {
+    if (section === "dashboard") return <DemoBoardDashboardWorkspace />;
+    if (section === "meetings") return <DemoBoardMeetingsWorkspace />;
+    if (section === "minutes") return <DemoBoardMeetingsWorkspace />;
+    if (section === "members") return <DemoBoardMembersWorkspace />;
+    return <DemoBoardRisksWorkspace />;
+  }
 
   if (isAbhi && section === "members") {
     return (

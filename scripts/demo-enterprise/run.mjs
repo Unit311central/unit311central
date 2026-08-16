@@ -124,7 +124,7 @@ async function main() {
     console.log("Internal snapshot before:", beforeInternal);
   }
 
-  const graph = buildEnterpriseGraph({ seed, employees: 100, clients: 100 });
+  const graph = buildEnterpriseGraph({ seed, employees: 25, clients: 100 });
   console.log(
     `Graph: ${graph.employees.length} employees, ${graph.clients.length} clients, ${graph.projects.length} projects, ${graph.invoices.length} invoices`,
   );
@@ -176,7 +176,7 @@ async function main() {
     console.log("Internal workspace unchanged ✓");
   }
 
-  if (afterDemo.clients < 90 || afterDemo.employees < 90) {
+  if (afterDemo.clients < 90 || afterDemo.employees < 20) {
     throw new Error(`Demo thresholds not met: ${JSON.stringify(afterDemo)}`);
   }
 

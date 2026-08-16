@@ -41,6 +41,12 @@ import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./Operato
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import {
+  DemoFundraisingDashboardWorkspace,
+  DemoFundraisingInvestorsWorkspace,
+} from "@/components/demo/DemoFundraisingWorkspaces";
+import { DemoBoardRisksWorkspace } from "@/components/demo/DemoBoardWorkspace";
 import {
   ABHI_HIDDEN_VIEWS,
   CUSTOMER_PLATFORM_HIDDEN_VIEWS,
@@ -911,6 +917,8 @@ export default function InternalOperationsDashboard({
           {activeView === "corporate-risk-register" &&
             (isBrowserTalantonImpactSurface() ? (
               <TalantonRiskRegisterWorkspace />
+            ) : isBrowserDemoSurface() ? (
+              <DemoBoardRisksWorkspace />
             ) : (
               <RiskRegisterWorkspace />
             ))}
@@ -920,6 +928,8 @@ export default function InternalOperationsDashboard({
               <BoardGovernanceWorkspace section="meetings" />
             ) : isBrowserOnwardAirSurface() ? (
               <OnwardAirBoardMeetingsWorkspace />
+            ) : isBrowserDemoSurface() ? (
+              <BoardGovernanceWorkspace section="meetings" />
             ) : (
               <BoardMeetingsWorkspace />
             ))}
@@ -1196,8 +1206,18 @@ export default function InternalOperationsDashboard({
 
           {activeView === "operations-dashboard" && <OperationsDashboardWorkspace />}
 
-          {activeView === "fundraising-dashboard" && <FundraisingDashboardWorkspace />}
-          {activeView === "fundraising-investors" && <FundraisingInvestorsWorkspace />}
+          {activeView === "fundraising-dashboard" &&
+            (isBrowserDemoSurface() ? (
+              <DemoFundraisingDashboardWorkspace />
+            ) : (
+              <FundraisingDashboardWorkspace />
+            ))}
+          {activeView === "fundraising-investors" &&
+            (isBrowserDemoSurface() ? (
+              <DemoFundraisingInvestorsWorkspace />
+            ) : (
+              <FundraisingInvestorsWorkspace />
+            ))}
           {activeView === "fundraising-pipeline" && <FundraisingPipelineWorkspace />}
           {activeView === "fundraising-meetings" && <FundraisingMeetingsWorkspace />}
           {activeView === "fundraising-pitch-decks" && <FundraisingPitchDecksWorkspace />}
