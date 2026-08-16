@@ -2,25 +2,29 @@
  * Northstar Demo — single source of truth for financial fixtures (GBP, UK FY Apr–Mar).
  */
 
-export const NORTHSTAR_MONTHLY_REVENUE = 400_000;
-export const NORTHSTAR_MONTHLY_OPEX = 310_000;
-export const NORTHSTAR_REVENUE_YTD = 2_880_000;
-export const NORTHSTAR_NET_PROFIT_YTD = 720_000;
-export const NORTHSTAR_CASH_GBP = 1_900_000;
-
 /** Current-month operating expense breakdown (matches burn / GL expense accounts). */
 export const NORTHSTAR_OPEX_BREAKDOWN = {
   payroll: 118_000,
-  cloud: 42_000,
-  rent: 36_000,
-  marketing: 24_000,
-  software: 18_000,
-  professional: 16_000,
+  cloud: 10_500,
+  rent: 21_600,
+  marketing: 12_000,
+  software: 9_000,
+  professional: 8_000,
   travel: 8_000,
   other: 7_000,
 } as const;
 
-export const NORTHSTAR_BURN_PREVIOUS_MONTHLY = 295_000;
+const OPEX_BREAKDOWN_TOTAL = Object.values(NORTHSTAR_OPEX_BREAKDOWN).reduce((sum, value) => sum + value, 0);
+
+export const NORTHSTAR_MONTHLY_OPEX = OPEX_BREAKDOWN_TOTAL;
+
+export const NORTHSTAR_MONTHLY_REVENUE = 400_000;
+export const NORTHSTAR_REVENUE_YTD = 2_880_000;
+export const NORTHSTAR_NET_PROFIT_YTD = 720_000;
+export const NORTHSTAR_CASH_GBP = 1_900_000;
+
+/** Prior-month burn — scaled from legacy £295k after opex mix reductions. */
+export const NORTHSTAR_BURN_PREVIOUS_MONTHLY = 212_731;
 
 export const NORTHSTAR_AP_OUTSTANDING = 186_000;
 export const NORTHSTAR_AP_DUE_NOW = 64_000;
