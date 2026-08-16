@@ -29,9 +29,12 @@ export function listDemoMailboxMessages(
   const fixtures = getDemoEnterpriseFixtures();
   const account = UNIT311_ACCOUNTS.find((row) => row.id === accountId);
   const mailbox = account?.email ?? "info@unit311central.com";
+  const hasDemoThreads = fixtures.emails.threads.some((thread) => thread.accountId === "demo");
+  const effectiveAccountId =
+    accountId === "demo" && !hasDemoThreads ? ("info" as EmailAccountId) : accountId;
 
   return fixtures.emails.threads
-    .filter((thread) => thread.accountId === accountId && thread.folder === folder)
+    .filter((thread) => thread.accountId === effectiveAccountId && thread.folder === folder)
     .map((thread, index) => {
       const date = new Date(Date.now() + thread.dateOffsetHours * 3600_000).toISOString();
       const body = thread.body;
