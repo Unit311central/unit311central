@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { BookOpen, Play } from "lucide-react";
 
 import CoursePlayer from "@/components/lms/CoursePlayer";
+import { getPlayableLmsCourseTree, getPlayableLmsCourseTreeById } from "@/lib/lms/tqms-course-trees";
 import type { LmsCourseTree } from "@/lib/lms/types";
 import type { TqmsCourse } from "@/lib/tqms-data";
-import { getOaLmsCourseTree } from "@/lib/onwardair/lms-course-trees";
 import { tqmsStatusClass } from "@/lib/tqms-data";
 import { cn } from "@/lib/utils";
 import { TqmsEmpty, TqmsStatusPill, tqmsPrimaryButtonClass } from "./tqms-ui";
@@ -34,7 +34,10 @@ export function OaCourseCatalogueScroller({
   actions,
 }: Props) {
   const activeTree: LmsCourseTree | null = launchCourseId
-    ? getOaLmsCourseTree(launchCourseId)
+    ? getPlayableLmsCourseTreeById(
+        launchCourseId,
+        courses.find((course) => course.id === launchCourseId) ?? null,
+      )
     : null;
 
   return (
@@ -54,7 +57,7 @@ export function OaCourseCatalogueScroller({
           <div className="-mx-1 overflow-x-auto pb-1">
             <div className="flex snap-x snap-mandatory gap-3 px-1">
               {courses.map((course) => {
-                const tree = getOaLmsCourseTree(course.id);
+                const tree = getPlayableLmsCourseTree(course);
                 const lessonCount =
                   tree?.modules.reduce((n, m) => n + m.lessons.length, 0) ?? 0;
                 return (

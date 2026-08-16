@@ -1,14 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
-import { Loader2, Plus, Sparkles, Upload, UserPlus, Users, X } from "lucide-react";
+import { Loader2, Plus, UserPlus, Users, X } from "lucide-react";
 
 import CoursePlayer from "@/components/lms/CoursePlayer";
 import CourseReviewScreen from "@/components/lms/CourseReviewScreen";
+import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import {
   ABHI_COMPLIANCE_COURSES,
   type AbhiComplianceCourse,
 } from "@/lib/abhi-training-courses";
+import { getInternalNavHref } from "@/lib/internal-operations-data";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import type { LmsCertificate, LmsCourse, LmsCourseTree, LmsEnrolment } from "@/lib/lms/types";
 import { cn } from "@/lib/utils";
@@ -628,7 +631,8 @@ function DashboardAssignedView() {
 }
 
 function CoursesCatalogView() {
-  const brand = useTrainingBrand();
+  const basePath = useInternalOperationsBasePath();
+  const courseBuilderHref = getInternalNavHref("course-builder", basePath);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [assignCourse, setAssignCourse] = useState<CatalogRow | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -736,60 +740,13 @@ function CoursesCatalogView() {
         </div>
       ) : null}
 
-      <div
-        className={cn(
-          "rounded-3xl border bg-gradient-to-br p-5",
-          brand.accentBorder,
-          brand.accentGradient,
-        )}
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p
-              className={cn(
-                "inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em]",
-                brand.accentText,
-              )}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {brand.generatorLabel}
-            </p>
-            <h3 className="mt-2 text-lg font-semibold text-white">
-              Upload a policy — get a complete interactive course
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-white/55">{brand.description}</p>
-          </div>
-          <button
-            type="button"
-            disabled={generating}
-            onClick={() => fileInputRef.current?.click()}
-            className={cn(tqmsPrimaryButtonClass(), "inline-flex items-center gap-2")}
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {generating ? "Building course…" : "Upload PDF / Word"}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void generateFromFile(file);
-              e.target.value = "";
-            }}
-          />
-        </div>
-        {genError ? (
-          <p className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
-            {genError}
-          </p>
-        ) : null}
-      </div>
+      <p className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/60">
+        Upload documents and build new courses in{" "}
+        <Link href={courseBuilderHref} className="font-semibold text-sky-300 hover:text-sky-200">
+          Course Builder
+        </Link>
+        .
+      </p>
 
       <TqmsSection
         title="Courses"

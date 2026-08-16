@@ -840,31 +840,31 @@ export function createSeedTqmsEvents(): TqmsEvent[] {
   return [
     {
       id: "evt-001",
-      title: "Flight Ops classroom session",
-      kind: "Classroom",
-      when: "2026-07-23",
-      owner: "James Ortega",
-    },
-    {
-      id: "evt-002",
-      title: "Induction assessment deadline",
-      kind: "Assessment",
-      when: "2026-07-24",
+      title: "Leadership development workshop",
+      kind: "Session",
+      when: "2026-08-19",
       owner: "People Ops",
     },
     {
+      id: "evt-002",
+      title: "Mandatory compliance assessment deadline",
+      kind: "Assessment",
+      when: "2026-08-22",
+      owner: "Quality",
+    },
+    {
       id: "evt-003",
-      title: "InfoSec certificate renewal — Lucas Berg",
+      title: "InfoSec certificate renewal window",
       kind: "Renewal",
-      when: "2026-08-20",
+      when: "2026-09-05",
       owner: "IT Security",
     },
     {
       id: "evt-004",
-      title: "Internal auditor workshop",
-      kind: "Session",
-      when: "2026-07-29",
-      owner: "Sofia Mendes",
+      title: "New starter induction classroom",
+      kind: "Classroom",
+      when: "2026-08-21",
+      owner: "HR",
     },
   ];
 }

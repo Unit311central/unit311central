@@ -1,46 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Award,
-  BookOpen,
-  CalendarDays,
-  ClipboardList,
-  FileText,
-  Plus,
-  UserPlus,
-} from "lucide-react";
 
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
-import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
-import { getInternalNavHref } from "@/lib/internal-operations-data";
-import {
-  computeTrainingDashboardKpis,
-  createReport,
-} from "@/lib/tqms-mock-store";
+import { computeTrainingDashboardKpis } from "@/lib/tqms-mock-store";
 import { tqmsStatusClass } from "@/lib/tqms-data";
-import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
 import { useTqmsMockStore } from "./useTqmsMockStore";
-import {
-  TqmsEmpty,
-  TqmsKpiTile,
-  tqmsPrimaryButtonClass,
-  TqmsSection,
-  tqmsSecondaryButtonClass,
-  TqmsStatusPill,
-} from "./tqms-ui";
+import { TqmsEmpty, TqmsKpiTile, TqmsSection, TqmsStatusPill } from "./tqms-ui";
 
 export default function TrainingDashboardWorkspace() {
-  const basePath = useInternalOperationsBasePath();
   const store = useTqmsMockStore();
   const kpis = useMemo(() => computeTrainingDashboardKpis(store), [store]);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [hideQms, setHideQms] = useState(false);
   const [isAbhi, setIsAbhi] = useState(false);
 
   useEffect(() => {
-    setHideQms(isBrowserCorpCentreSurface() || isBrowserAbhiSurface());
     setIsAbhi(isBrowserAbhiSurface());
   }, []);
 
@@ -87,100 +60,8 @@ export default function TrainingDashboardWorkspace() {
     },
   ];
 
-  const generateReport = () => {
-    createReport({
-      name: `Training Compliance — ${new Date().toLocaleDateString("en-GB")}`,
-      kind: "Training",
-      format: "PDF",
-      createdBy: "Operations",
-    });
-    setNotice("Training report saved to history.");
-  };
-
-  const quickActions = [
-    {
-      label: "Create Course",
-      href: getInternalNavHref("training", basePath),
-      icon: Plus,
-    },
-    {
-      label: "Assign Training",
-      href: getInternalNavHref("training", basePath),
-      icon: UserPlus,
-    },
-    {
-      label: "Schedule Session",
-      href: getInternalNavHref("training", basePath),
-      icon: CalendarDays,
-    },
-    {
-      label: "Generate Training Report",
-      href: getInternalNavHref("qms-reports", basePath),
-      icon: FileText,
-      onClick: generateReport,
-    },
-    {
-      label: "Add Certification",
-      href: getInternalNavHref("training", basePath),
-      icon: Award,
-    },
-    ...(!hideQms
-      ? [
-          {
-            label: "QMS Training",
-            href: getInternalNavHref("qms-training", basePath),
-            icon: BookOpen,
-          },
-          {
-            label: "Open QMS",
-            href: getInternalNavHref("quality-management", basePath),
-            icon: ClipboardList,
-          },
-        ]
-      : []),
-  ];
-
   return (
     <div className="space-y-5">
-      {notice ? (
-        <p className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          {notice}
-        </p>
-      ) : null}
-
-      <section className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
-        {quickActions.map((action) => {
-          const Icon = action.icon;
-          if (action.onClick) {
-            return (
-              <button
-                key={action.label}
-                type="button"
-                onClick={action.onClick}
-                className={`${tqmsPrimaryButtonClass()} shrink-0`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {action.label}
-              </button>
-            );
-          }
-          return (
-            <Link
-              key={action.label}
-              href={action.href}
-              className={`${
-                action.label === "Open QMS" || action.label === "QMS Training"
-                  ? tqmsSecondaryButtonClass()
-                  : tqmsPrimaryButtonClass()
-              } shrink-0`}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {action.label}
-            </Link>
-          );
-        })}
-      </section>
-
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <TqmsKpiTile label="Total Courses" value={kpis.totalCourses} />
         <TqmsKpiTile label="Employees Assigned" value={kpis.employeesAssigned} />
@@ -214,7 +95,7 @@ export default function TrainingDashboardWorkspace() {
         </TqmsSection>
 
         <TqmsSection
-          title={isAbhi ? "External Events" : "Upcoming Events"}
+          title={isAbhi ? "External Events" : "Upcoming Training"}
           subtitle="Sessions, deadlines, and renewals."
         >
           {store.events.length === 0 ? (
@@ -241,20 +122,6 @@ export default function TrainingDashboardWorkspace() {
           )}
         </TqmsSection>
       </div>
-
-      <TqmsSection title="Recent Activity" subtitle="Latest learning activity across the organisation.">
-        <ul className="space-y-2">
-          {store.activity.slice(0, 8).map((item) => (
-            <li
-              key={item.id}
-              className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
-            >
-              <p className="text-sm font-medium text-white">{item.label}</p>
-              <p className="text-xs text-white/45">{item.detail}</p>
-            </li>
-          ))}
-        </ul>
-      </TqmsSection>
     </div>
   );
 }

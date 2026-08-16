@@ -107,6 +107,7 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   "oa-engineering-integrations": () =>
     import("@/components/onwardair/OnwardAirEngineeringWorkspaces"),
   "training-dashboard": () => import("@/components/testflighthub/TrainingDashboardWorkspace"),
+  "course-builder": () => import("@/components/testflighthub/CourseBuilderWorkspace"),
   training: () => import("@/components/testflighthub/StaffTrainingWorkspace"),
   "training-external": () => import("@/components/testflighthub/ExternalTrainingWorkspace"),
   "qms-training": () => import("@/components/testflighthub/QmsTrainingWorkspace"),

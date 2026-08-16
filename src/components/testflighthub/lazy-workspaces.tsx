@@ -87,6 +87,7 @@ export const InternalAuditsWorkspace = lazyWorkspace(() => import("./InternalAud
 export const ManagementReviewWorkspace = lazyWorkspace(() => import("./ManagementReviewWorkspace"));
 export const TqmsReportsWorkspace = lazyWorkspace(() => import("./TqmsReportsWorkspace"));
 export const TrainingDashboardWorkspace = lazyWorkspace(() => import("./TrainingDashboardWorkspace"));
+export const CourseBuilderWorkspace = lazyWorkspace(() => import("./CourseBuilderWorkspace"));
 export const StaffTrainingWorkspace = lazyWorkspace(() => import("./StaffTrainingWorkspace"));
 export const ExternalTrainingWorkspace = lazyWorkspace(() => import("./ExternalTrainingWorkspace"));
 export const InternalDesignMockups = lazyWorkspace(() => import("./InternalDesignMockups"));

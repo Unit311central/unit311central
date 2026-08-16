@@ -88,6 +88,7 @@ export type InternalOperationsView =
   | "sector"
   | "training"
   | "training-dashboard"
+  | "course-builder"
   | "training-external"
   | "logistics"
   | "client-onboarding"
@@ -110,8 +111,10 @@ export type InternalOperationsView =
   | "integrations"
   | "engineering"
   | "engineering-dashboard"
+  | "engineering-programs"
   | "engineering-resources"
   | "engineering-capacity"
+  | "engineering-risks"
   | "technology"
   | "technology-dashboard"
   | "technology-devices"
@@ -346,6 +349,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "sector",
   "training",
   "training-dashboard",
+  "course-builder",
   "training-external",
   "logistics",
   "client-onboarding",
@@ -368,8 +372,10 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "integrations",
   "engineering",
   "engineering-dashboard",
+  "engineering-programs",
   "engineering-resources",
   "engineering-capacity",
+  "engineering-risks",
   "technology",
   "technology-dashboard",
   "technology-devices",
@@ -483,8 +489,10 @@ export const PROJECTS_NAV_VIEWS = [
 export const ENGINEERING_NAV_VIEWS = [
   "engineering",
   "engineering-dashboard",
+  "engineering-programs",
   "engineering-resources",
   "engineering-capacity",
+  "engineering-risks",
 ] as const satisfies readonly InternalOperationsView[];
 
 export const TECHNOLOGY_NAV_VIEWS = [
@@ -963,6 +971,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         view: "training-dashboard" as const,
       },
       {
+        label: "Course Builder",
+        icon: "Sparkles",
+        view: "course-builder" as const,
+      },
+      {
         label: "Courses",
         icon: "GraduationCap",
         children: [
@@ -1159,6 +1172,7 @@ export const internalViewTitles: Record<
   "design-mockups": { title: "Design Concepts", subtitle: "Internal Operations" },
   sector: { title: "Sector Intelligence", subtitle: "Unit311" },
   training: { title: "Staff Courses", subtitle: "Training" },
+  "course-builder": { title: "Course Builder", subtitle: "Training" },
   "training-dashboard": { title: "Training Dashboard", subtitle: "Training" },
   "training-external": { title: "External Courses", subtitle: "Training" },
   logistics: { title: "Logistics", subtitle: "Operations" },
@@ -1184,12 +1198,14 @@ export const internalViewTitles: Record<
   },
   integrations: { title: "Integrations", subtitle: "Tools" },
   engineering: { title: "Technology Overview", subtitle: "Technology Management" },
-  "engineering-dashboard": { title: "Technology Dashboard", subtitle: "Technology Management" },
+  "engineering-dashboard": { title: "Dashboard", subtitle: "Engineering" },
+  "engineering-programs": { title: "Programs & Milestones", subtitle: "Engineering" },
   "engineering-resources": {
     title: "Technology Resourcing",
     subtitle: "Technology Management",
   },
-  "engineering-capacity": { title: "Capacity Planning", subtitle: "Technology Management" },
+  "engineering-capacity": { title: "Team & Capacity", subtitle: "Engineering" },
+  "engineering-risks": { title: "Risks", subtitle: "Engineering" },
   technology: { title: "Technology Management", subtitle: "Technology Management" },
   "technology-dashboard": { title: "Dashboard", subtitle: "Technology Management" },
   "technology-devices": { title: "Technology Assets", subtitle: "Technology Management" },

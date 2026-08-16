@@ -139,9 +139,13 @@ function createInitialTqmsState(): TqmsMockState {
 
   if (!fixtures) return base;
 
+  const { applyNorthstarTqmsSeed } =
+    require("@/lib/demo/northstar-tqms-training") as typeof import("@/lib/demo/northstar-tqms-training");
+  const northstarBase = applyNorthstarTqmsSeed(base);
+
   const company = fixtures.company.tradingName;
   return {
-    ...base,
+    ...northstarBase,
     learners: fixtures.directory.slice(0, 16).map((row, index) => {
       const template = base.learners[index % Math.max(base.learners.length, 1)]!;
       return {

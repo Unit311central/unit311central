@@ -252,6 +252,7 @@ import {
   TechnologySoftwareWorkspace,
   SoftwareSaasDashboardWorkspace,
   TrainingDashboardWorkspace,
+  CourseBuilderWorkspace,
   TqmsReportsWorkspace,
   Unit311DetailsWorkspace,
   UserManagementWorkspace,
@@ -298,6 +299,12 @@ import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpP
 import IntelligenceCentralWorkspace from "@/components/intelligence/IntelligenceCentralWorkspace";
 import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
 import NorthstarBusinessCentralDashboard from "@/components/demo/NorthstarBusinessCentralDashboard";
+import {
+  NorthstarEngineeringCapacityWorkspace,
+  NorthstarEngineeringDashboardWorkspace,
+  NorthstarEngineeringProgramsWorkspace,
+  NorthstarEngineeringRisksWorkspace,
+} from "@/components/demo/NorthstarEngineeringWorkspaces";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
@@ -1018,6 +1025,8 @@ export default function InternalOperationsDashboard({
             ))}
 
           {activeView === "training-external" && <ExternalTrainingWorkspace />}
+
+          {activeView === "course-builder" && <CourseBuilderWorkspace />}
 
           {isMarketingModuleView(activeView) && <MarketingViewHost view={activeView} />}
 
