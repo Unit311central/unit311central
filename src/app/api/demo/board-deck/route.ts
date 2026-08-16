@@ -1,6 +1,9 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 
 import { generateNorthstarBoardDeck } from "@/lib/demo/northstar-board-deck-generator";
+import { northstarBoardDeckPdfFileName } from "@/lib/demo/northstar-board-pack-model";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 
 export const runtime = "nodejs";
@@ -17,23 +20,46 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await generateNorthstarBoardDeck(meetingDate);
-    return new NextResponse(Buffer.from(result.pdfBytes), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `${disposition}; filename="${result.filename}"`,
-        "Cache-Control": "public, max-age=3600",
-        "X-Northstar-Pack-Name": result.data.packName,
-        "X-Northstar-Meeting-Date": result.data.meetingDate,
-        "X-Northstar-Deck-Build": result.build,
-      },
+    return pdfResponse(result.pdfBytes, result.filename, disposition, {
+      packName: result.data.packName,
+      meetingDate: result.data.meetingDate,
+      build: result.build,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to generate board deck." },
-      { status: 500 },
-    );
+    try {
+      const filename = northstarBoardDeckPdfFileName(meetingDate);
+      const bytes = await readFile(join(process.cwd(), "public", "samples", filename));
+      return pdfResponse(bytes, filename, disposition, {
+        packName: `Northstar Board Pack — ${meetingDate}`,
+        meetingDate,
+        build: "static-fallback",
+      });
+    } catch {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Failed to generate board deck." },
+        { status: 500 },
+      );
+    }
   }
+}
+
+function pdfResponse(
+  pdfBytes: Uint8Array | Buffer,
+  filename: string,
+  disposition: "inline" | "attachment",
+  meta: { packName: string; meetingDate: string; build: string },
+) {
+  return new NextResponse(Buffer.from(pdfBytes), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `${disposition}; filename="${filename}"`,
+      "Cache-Control": "public, max-age=3600",
+      "X-Northstar-Pack-Name": meta.packName,
+      "X-Northstar-Meeting-Date": meta.meetingDate,
+      "X-Northstar-Deck-Build": meta.build,
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
