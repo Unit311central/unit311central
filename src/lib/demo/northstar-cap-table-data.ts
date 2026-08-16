@@ -1,7 +1,7 @@
 /**
  * Northstar Demo — cap table single source of truth (GBP, UK Companies Act ordinary shares).
  *
- * Ownership: Paul Fotheringham 60% · pre-seed investors 33% · employee option pool 7%.
+ * Ownership: Paul Fotheringham 60% · pre-seed investors 33% · employee option pool 7% (FD 100%).
  * Pre-seed (£1M): lead £500k + four investors at £125k each.
  */
 
@@ -144,16 +144,16 @@ export function buildNorthstarCapTableSnapshot(): NorthstarCapTableSnapshot {
     },
     {
       id: "cap-esop",
-      holder: "Employee option pool (unallocated)",
-      role: "ESOP reserve",
+      holder: "Employee option pool",
+      role: "ESOP reserve (50,000 issued · 650,000 unallocated)",
       shareClass: "Options",
       shareType: "Options",
-      shares: OPTION_POOL_SHARES - OPTIONS_PER_EMPLOYEE * 5,
-      ownershipPct: 6.5,
+      shares: OPTION_POOL_SHARES,
+      ownershipPct: 7,
       investmentGbp: null,
       pricePerShareGbp: null,
       issueDate: "2023-08-01",
-      notes: "Unallocated ESOP · 7% FD cap table",
+      notes: "Full 7% FD pool · grants tracked below",
     },
   ];
 
