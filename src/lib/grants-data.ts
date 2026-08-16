@@ -276,6 +276,11 @@ export function getGrantApplications(): GrantApplication[] {
       require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
     return getOaGrantApplications();
   }
+  if (isDemoGrantsSurface()) {
+    const { getNorthstarGrantApplications } =
+      require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+    return getNorthstarGrantApplications();
+  }
   return isDemoGrantsSurface() ? DEMO_GRANT_APPLICATIONS : GRANT_APPLICATIONS;
 }
 
@@ -293,6 +298,11 @@ export function getGrantsKpis() {
     const { getOaGrantsKpis } =
       require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
     return getOaGrantsKpis();
+  }
+  if (isDemoGrantsSurface()) {
+    const { NORTHSTAR_GRANTS_KPIS } =
+      require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+    return NORTHSTAR_GRANTS_KPIS;
   }
   return GRANTS_KPIS;
 }
@@ -326,7 +336,8 @@ export const STATUS_COLORS: Record<GrantStatus, string> = {
 
 export function formatGrantAmount(amount: number) {
   const oa = isOnwardAirGrantsSurface();
-  const symbol = oa ? "$" : "€";
+  const demo = isDemoGrantsSurface();
+  const symbol = oa ? "$" : demo ? "£" : "€";
   if (amount >= 1_000_000) return `${symbol}${(amount / 1_000_000).toFixed(2)}M`;
   if (amount >= 1_000) return `${symbol}${Math.round(amount / 1_000)}k`;
   return `${symbol}${amount}`;

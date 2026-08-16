@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import type { ExpenseCurrency } from "@/lib/expenses-data";
 import { createExpense, listExpenses } from "@/lib/financial-expenses-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { ensureFinancialExpensesTable } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -10,6 +11,10 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ expenses: [] });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

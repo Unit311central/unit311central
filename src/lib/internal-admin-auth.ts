@@ -9,6 +9,7 @@ import {
   isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
 import { userHasRole } from "@/lib/user-management-data";
+import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import {
   WorkspaceAccessError,
   requireCurrentWorkspace,
@@ -74,6 +75,10 @@ export async function requireInternalWorkspaceSession(): Promise<
 
   try {
     const workspace = await requireCurrentWorkspace();
+
+    if (isDemoWorkspaceSlug(workspace.slug)) {
+      return { session, workspace };
+    }
 
     if (session.userType === "internal") {
       return { session, workspace };

@@ -242,6 +242,33 @@ export default function ProjectsWorkspace({
       return;
     }
 
+    if (typeof window !== "undefined") {
+      try {
+        const { isNorthstarDemoBrowser, getNorthstarProjects } =
+          require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+        if (isNorthstarDemoBrowser()) {
+          const all = getNorthstarProjects();
+          const next =
+            scope === "internal"
+              ? all.filter((project) => !project.clientId)
+              : scope === "external"
+                ? all.filter((project) => Boolean(project.clientId))
+                : all;
+          setProjects(next);
+          setSelectedIds((current) => current.filter((id) => next.some((project) => project.id === id)));
+          const live = sortLatestFirst(next.filter((project) => project.phase === "live"));
+          setSelectedProjectId((current) => {
+            if (current && next.some((project) => project.id === current)) return current;
+            return live[0]?.id ?? next[0]?.id ?? null;
+          });
+          setLoading(false);
+          return;
+        }
+      } catch {
+        /* optional */
+      }
+    }
+
     try {
       const response = await fetch("/api/projects", { cache: "no-store" });
       const data = await readApiJson<{ projects?: InternalProject[]; error?: string }>(response);

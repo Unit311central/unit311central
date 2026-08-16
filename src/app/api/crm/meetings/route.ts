@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { listFounderSessionBookings } from "@/lib/founder-booking/service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarDiscoveryMeetings } from "@/lib/demo/module-fixtures";
 import { resolveFounderSessionFocusOverviewPdfFileId } from "@/lib/founder-booking/focus-submission-service";
 import { formatDateTimeInTimezone, getFounderBookingTimezone } from "@/lib/founder-booking/timezones";
 import { formatLondonDateTime } from "@/lib/founder-booking/slots";
@@ -12,6 +14,10 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ meetings: getNorthstarDiscoveryMeetings() });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

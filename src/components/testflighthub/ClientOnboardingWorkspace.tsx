@@ -126,6 +126,20 @@ export default function ClientOnboardingWorkspace() {
     setError(null);
 
     try {
+      if (typeof window !== "undefined") {
+        try {
+          const { isNorthstarDemoBrowser, getNorthstarOnboardingRecords } =
+            require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+          if (isNorthstarDemoBrowser()) {
+            setRecords(getNorthstarOnboardingRecords());
+            setLoading(false);
+            return;
+          }
+        } catch {
+          /* optional */
+        }
+      }
+
       const response = await fetch("/api/client-onboarding?status=all", { cache: "no-store" });
       const data = await readApiJson<{ records?: ClientOnboardingRecord[]; error?: string }>(response);
       if (!response.ok) {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { listClientOnboardingRecords } from "@/lib/client-onboarding-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarOnboardingRecords } from "@/lib/demo/module-fixtures";
 import { requireInternalWorkspaceSession } from "@/lib/internal-admin-auth";
 import { ensureClientOnboardingRecordsTable } from "@/lib/internal-db-migrations";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -8,6 +10,10 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ records: getNorthstarOnboardingRecords() });
+  }
+
   const auth = await requireInternalWorkspaceSession();
   if ("error" in auth) return auth.error;
 

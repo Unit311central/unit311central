@@ -112,6 +112,18 @@ export default function CrmWorkspace({
       let resolved = nextLeads;
       if (typeof window !== "undefined") {
         try {
+          const { isNorthstarDemoBrowser, getNorthstarCrmLeads } =
+            require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+          if (isNorthstarDemoBrowser()) {
+            resolved = getNorthstarCrmLeads();
+            if (statusFilter !== "All") {
+              resolved = resolved.filter((lead) => lead.status === statusFilter);
+            }
+          }
+        } catch {
+          /* optional */
+        }
+        try {
           const { isOnwardAirBusinessCentralFixtures, getOaPipelineLeads } =
             require("@/lib/onwardair/business-central-data") as typeof import("@/lib/onwardair/business-central-data");
           if (isOnwardAirBusinessCentralFixtures()) {

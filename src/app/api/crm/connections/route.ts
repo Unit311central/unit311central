@@ -4,6 +4,7 @@ import {
   createConnectionWithSource,
   listConnectionsWithSource,
 } from "@/lib/crm-connections-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -11,6 +12,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    if (await isDemoApiRequest()) {
+      return NextResponse.json({ connections: [], source: "demo" });
+    }
+
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const { connections, source } = await listConnectionsWithSource({

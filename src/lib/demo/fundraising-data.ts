@@ -109,3 +109,60 @@ export const NORTHSTAR_FUNDRAISING_PIPELINE = [
     nextStep: "Site visit Manchester",
   },
 ];
+
+export type FundraisingPipelineStage =
+  | "Intro"
+  | "Pitch sent"
+  | "Meeting"
+  | "Diligence"
+  | "Term sheet"
+  | "Passed";
+
+export type FundraisingPipelineDeal = {
+  id: string;
+  investor: string;
+  firm: string;
+  stage: FundraisingPipelineStage;
+  amountGbp: number;
+  owner: string;
+  lastTouch: string;
+  notes: string;
+};
+
+export type FundraisingMeeting = {
+  id: string;
+  title: string;
+  investor: string;
+  firm: string;
+  withWhom: string;
+  date: string;
+  time: string;
+  meetingLink: string;
+  pitchDeckSent: boolean;
+  owner: string;
+  status: "Scheduled" | "Confirmed";
+};
+
+export type PitchDeckVersion = {
+  id: string;
+  version: string;
+  title: string;
+  dateAdded: string;
+  lastUpdatedAt: string;
+  lastUpdatedBy: string;
+  fileName: string;
+  notes: string;
+};
+
+export type DataRoomRow = {
+  id: string;
+  investor: string;
+  firm: string;
+  folderLink: string;
+  lastUpdatedAt: string;
+  lastUpdatedBy: string;
+  documents: number;
+  status: "Open" | "Restricted" | "Revoked";
+};
+
+export const NORTHSTAR_SEED_TARGET_GBP = 5_000_000;

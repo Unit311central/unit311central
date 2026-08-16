@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getFinancialOverview } from "@/lib/accounting/overview-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { buildNorthstarFinancialOverview } from "@/lib/demo/module-fixtures";
 import { ensureTalantonHrEmployeesSeeded } from "@/lib/hr-employees-service";
 import {
   ensureOnwardAirFinancialsCore,
@@ -15,6 +17,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    if (await isDemoApiRequest()) {
+      return NextResponse.json({ overview: buildNorthstarFinancialOverview() });
+    }
+
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     if (isOnwardAirSlug(workspace.slug)) {

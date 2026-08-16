@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { listInvoices } from "@/lib/accounting/invoices-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { ensureOnwardAirFinancialsSeeded } from "@/lib/onwardair/financials-seed";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -10,6 +11,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    if (await isDemoApiRequest()) {
+      return NextResponse.json({ invoices: [] });
+    }
+
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     if (isOnwardAirSlug(workspace.slug)) {

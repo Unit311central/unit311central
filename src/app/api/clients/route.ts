@@ -8,6 +8,8 @@ import type {
 } from "@/lib/client-management-data";
 import { apiErrorStatus } from "@/lib/api-error-status";
 import { createInternalClient, listInternalClients } from "@/lib/internal-clients-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarClients } from "@/lib/demo/module-fixtures";
 import { ensureInternalClientsTable } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -16,6 +18,13 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({
+      clients: getNorthstarClients(),
+      workspace: { id: "demo-workspace", slug: "demo", name: "Demo" },
+    });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

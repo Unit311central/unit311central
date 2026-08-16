@@ -236,6 +236,20 @@ export default function FinancialsWorkspace() {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20_000);
     try {
+      if (typeof window !== "undefined") {
+        try {
+          const { isNorthstarDemoBrowser, buildNorthstarFinancialOverview } =
+            require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+          if (isNorthstarDemoBrowser()) {
+            setOverview(buildNorthstarFinancialOverview());
+            setLoading(false);
+            return;
+          }
+        } catch {
+          /* optional */
+        }
+      }
+
       const response = await fetch("/api/financials/ledger/overview", {
         cache: "no-store",
         signal: controller.signal,

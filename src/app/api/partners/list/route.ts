@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { listPartners } from "@/lib/partners/service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarPartners } from "@/lib/demo/module-fixtures";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -8,6 +10,10 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ partners: getNorthstarPartners() });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

@@ -2,11 +2,13 @@ import { cache } from "react";
 import { headers } from "next/headers";
 
 import {
+  DEMO_WORKSPACE_SLUG,
   getRequestHost,
   isDemoDomainHost,
   isInternalDomainHost,
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
+import { resolveDemoRole } from "@/lib/demo/read-only";
 import { getPlatformSession, type PlatformSession } from "@/lib/platform-session";
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import { authorizeUserForWorkspace } from "@/lib/workspace-authorization";
@@ -148,6 +150,12 @@ async function authorizeActiveWorkspace(
   session: PlatformSession,
   workspace: CurrentWorkspace,
 ): Promise<boolean> {
+  const slug = workspace.slug.trim().toLowerCase();
+  const demoSlug = (demoWorkspaceSlug() || DEMO_WORKSPACE_SLUG).trim().toLowerCase();
+  if (slug === demoSlug || slug === DEMO_WORKSPACE_SLUG) {
+    if (resolveDemoRole(session.username)) return true;
+  }
+
   const decision = await authorizeUserForWorkspace(session.sub, workspace.id, {
     workspace,
     userTypeHint: session.userType,
@@ -243,9 +251,27 @@ export const getWorkspaceContextDiagnostics = cache(
       };
     }
 
-    if (isDemoDomainHost(host)) {
+    const isDemoHost =
+      isDemoDomainHost(host) || requestHeaders.get("x-unit311-demo") === "1";
+
+    if (isDemoHost) {
       const demo = await findWorkspaceBySlug(demoWorkspaceSlug());
       if (!demo) {
+        if (session && resolveDemoRole(session.username)) {
+          return {
+            host,
+            sessionUser,
+            sessionWorkspace: fromSession,
+            resolvedWorkspace: {
+              id: "demo-workspace",
+              slug: demoWorkspaceSlug(),
+              name: "Demo",
+            },
+            source: "demo_default",
+            authenticated: true,
+            authorized: true,
+          };
+        }
         return {
           host,
           sessionUser,

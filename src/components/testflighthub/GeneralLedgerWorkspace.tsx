@@ -115,6 +115,36 @@ export default function GeneralLedgerWorkspace() {
     setLoading(true);
     setError(null);
     try {
+      if (typeof window !== "undefined") {
+        try {
+          const { isNorthstarDemoBrowser, getNorthstarJournalEntries, getNorthstarLedgerAccounts, getNorthstarTrialBalance } =
+            require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+          if (isNorthstarDemoBrowser()) {
+            const rows = getNorthstarTrialBalance();
+            const debitTotal = rows.reduce((sum, row) => sum + row.debit, 0);
+            const creditTotal = rows.reduce((sum, row) => sum + row.credit, 0);
+            const accounts = getNorthstarLedgerAccounts();
+            setJournals(getNorthstarJournalEntries());
+            setAccounts(accounts);
+            setTrialRows(rows);
+            setDifference(Math.round((debitTotal - creditTotal) * 100) / 100);
+            setTotals({
+              assets: accounts.filter((a) => a.type === "asset").reduce((s, a) => s + a.balance, 0),
+              liabilities: accounts.filter((a) => a.type === "liability").reduce((s, a) => s + a.balance, 0),
+              equity: accounts.filter((a) => a.type === "equity").reduce((s, a) => s + a.balance, 0),
+              income: accounts.filter((a) => a.type === "income").reduce((s, a) => s + a.balance, 0),
+              expenses: accounts.filter((a) => a.type === "expense").reduce((s, a) => s + a.balance, 0),
+              netProfit: 0,
+            });
+            setClientOptions([]);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          /* optional */
+        }
+      }
+
       const [journalsRes, accountsRes, trialRes, clientsRes] = await Promise.all([
         fetch("/api/financials/ledger/journals", { cache: "no-store" }),
         fetch("/api/financials/ledger/accounts", { cache: "no-store" }),

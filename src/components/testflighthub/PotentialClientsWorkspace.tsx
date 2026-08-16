@@ -154,12 +154,27 @@ export default function PotentialClientsWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isOnwardAir = isBrowserOnwardAirSurface();
+  const isDemo =
+    typeof window !== "undefined" &&
+    (() => {
+      try {
+        const { isBrowserDemoSurface } =
+          require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+        return isBrowserDemoSurface();
+      } catch {
+        return false;
+      }
+    })();
 
-  const [countries, setCountries] = useState(() =>
-    cloneCountries(
-      isOnwardAir ? ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES : POTENTIAL_CLIENTS_COUNTRIES,
-    ),
-  );
+  const initialCountries = isOnwardAir
+    ? ONWARDAIR_POTENTIAL_CLIENTS_COUNTRIES
+    : isDemo
+      ? (
+          require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures")
+        ).NORTHSTAR_POTENTIAL_CLIENTS
+      : POTENTIAL_CLIENTS_COUNTRIES;
+
+  const [countries, setCountries] = useState(() => cloneCountries(initialCountries));
   const [intro, setIntro] = useState<IntroContent>(() =>
     isOnwardAir
       ? {
@@ -167,7 +182,14 @@ export default function PotentialClientsWorkspace() {
           title: ONWARDAIR_POTENTIAL_CLIENTS_INTRO.title,
           description: ONWARDAIR_POTENTIAL_CLIENTS_INTRO.description,
         }
-      : {
+      : isDemo
+        ? {
+            eyebrow: "Northstar · Market sizing",
+            title: "Potential Clients",
+            description:
+              "UK manufacturing SME targets for Northstar Industrial Technologies — industrial IoT and remote monitoring.",
+          }
+        : {
           eyebrow: "Strategy · Market sizing",
           title: "Potential Clients",
           description:

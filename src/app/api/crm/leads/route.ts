@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import type { LeadStatus } from "@/lib/crm-data";
 import { createLead, listLeads } from "@/lib/crm-leads-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarCrmLeads } from "@/lib/demo/module-fixtures";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -9,6 +11,18 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  if (await isDemoApiRequest()) {
+    const status = request.nextUrl.searchParams.get("status") as LeadStatus | "All" | null;
+    let leads = getNorthstarCrmLeads();
+    if (status && status !== "All") {
+      leads = leads.filter((lead) => lead.status === status);
+    }
+    return NextResponse.json({
+      leads,
+      workspace: { id: "demo", slug: "demo", name: "Demo" },
+    });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

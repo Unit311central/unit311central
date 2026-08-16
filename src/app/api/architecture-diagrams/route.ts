@@ -9,12 +9,16 @@ import {
   upsertArchitectureDiagram,
 } from "@/lib/architecture-diagram-service";
 import type { ArchitectureCatalogEntry } from "@/lib/architecture-diagram-data";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 async function requireSession() {
+  if (await isDemoApiRequest()) {
+    return { session: { sub: "demo", username: "demo@unit311central.com", displayName: "Demo", userType: "internal" as const, exp: 0 } };
+  }
   const session = await getPlatformSession();
   if (!session) {
     return { error: NextResponse.json({ error: "Authentication required." }, { status: 401 }) };

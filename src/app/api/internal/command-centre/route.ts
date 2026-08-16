@@ -8,6 +8,15 @@ import {
   isAbhiWorkspaceSlug,
 } from "@/lib/abhi-financials";
 import { listLeads } from "@/lib/crm-leads-service";
+import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import {
+  buildNorthstarFinancialOverview,
+  getNorthstarCrmLeads,
+  getNorthstarClients,
+  getNorthstarOnboardingRecords,
+  getNorthstarProjects,
+} from "@/lib/demo/module-fixtures";
 import { listOpenActionItems } from "@/lib/internal-action-items-service";
 import { listCalendarEvents } from "@/lib/internal-calendar-service";
 import { listClientOnboardingRecords } from "@/lib/client-onboarding-service";
@@ -177,6 +186,22 @@ function oaFinancialsFallback(): FinancialOverviewSnapshot {
 export async function GET() {
   const started = Date.now();
   try {
+    if (await isDemoApiRequest()) {
+      const onboarding = getNorthstarOnboardingRecords();
+      return NextResponse.json({
+        projects: getNorthstarProjects(),
+        clients: getNorthstarClients(),
+        leads: getNorthstarCrmLeads(),
+        events: [],
+        tickets: [],
+        financials: buildNorthstarFinancialOverview(),
+        apiActions: [],
+        onboardingPipelineCount: onboarding.filter((r) => r.currentStatus === "In Progress").length,
+        elapsedMs: Date.now() - started,
+        generatedAt: new Date().toISOString(),
+      });
+    }
+
     const session = await getPlatformSession();
     if (!session) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
@@ -185,6 +210,7 @@ export async function GET() {
     const workspaceId = workspace.id;
     const oaSurface = isOnwardAirSlug(workspace.slug);
     const abhiSurface = isAbhiWorkspaceSlug(workspace.slug);
+    const demoSurface = isDemoWorkspaceSlug(workspace.slug);
     const scope = { workspaceId, workspaceSlug: workspace.slug };
 
     if (oaSurface) {
@@ -200,7 +226,9 @@ export async function GET() {
 
     // OA: never soft-timeout financials to null (that zeroes Home cash/burn).
     // Also force the $1M cash pin when overview returns a zero cash snapshot.
-    const financialsPromise = oaSurface
+    const financialsPromise = demoSurface
+      ? Promise.resolve(buildNorthstarFinancialOverview())
+      : oaSurface
       ? getFinancialOverview(scope)
           .catch(() => null)
           .then((snapshot) => {
@@ -238,14 +266,18 @@ export async function GET() {
 
     const [projects, clientsRaw, leads, events, tickets, financials, apiActions, onboardingPipeline] =
       await Promise.all([
-        listProjects(scope).catch(() => []),
+        demoSurface
+          ? Promise.resolve(getNorthstarProjects())
+          : listProjects(scope).catch(() => []),
         listInternalClients(scope).catch(() => []),
-        listLeads("All", scope).catch(() => []),
+        demoSurface ? Promise.resolve(getNorthstarCrmLeads()) : listLeads("All", scope).catch(() => []),
         listCalendarEvents(from.toISOString(), to.toISOString(), scope).catch(() => []),
         listSupportTickets(false, scope).catch(() => []),
         financialsPromise,
         listOpenActionItems(scope).catch(() => []),
-        listClientOnboardingRecords({ status: "in_progress", workspaceId }).catch(() => []),
+        demoSurface
+          ? Promise.resolve(getNorthstarOnboardingRecords())
+          : listClientOnboardingRecords({ status: "in_progress", workspaceId }).catch(() => []),
       ]);
 
     const clients = oaSurface ? filterOaHomeClients(clientsRaw) : clientsRaw;

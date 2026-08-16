@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getRequestHost } from "@/lib/app-domains";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getPlatformSession } from "@/lib/platform-session";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
 import type { IntelligenceServiceAccess } from "@/lib/intelligence/provider";
@@ -34,6 +35,12 @@ function unauthorized() {
   return json({ error: "Authentication required." }, 401);
 }
 
+async function requireIntelligenceSession(request: NextRequest) {
+  if (await isDemoApiRequest()) return true;
+  const session = await getPlatformSession();
+  return Boolean(session);
+}
+
 async function resolveWorkspaceSlug(
   request: NextRequest,
   override?: string,
@@ -55,7 +62,17 @@ async function buildAccessContext(
   workspaceSlug: string,
 ): Promise<IntelligenceServiceAccess | undefined> {
   const session = await getPlatformSession();
-  if (!session) return undefined;
+  if (!session) {
+    if (await isDemoApiRequest()) {
+      return {
+        roleView: "admin",
+        hostSurface: resolveIntelligenceHostSurface(workspaceSlug),
+        isExternal: false,
+        isAdmin: true,
+      };
+    }
+    return undefined;
+  }
   return {
     roleView: "admin",
     hostSurface: resolveIntelligenceHostSurface(workspaceSlug),
@@ -78,8 +95,8 @@ export async function handleListIntelligenceDomains(
     return json({ error: "No intelligence pack for this workspace." }, 404);
   }
 
-  const session = await getPlatformSession();
-  if (!session) return unauthorized();
+  const sessionOk = await requireIntelligenceSession(request);
+  if (!sessionOk) return unauthorized();
 
   return json({
     workspaceSlug: pack.slug,
@@ -98,8 +115,7 @@ export async function handleSearchIntelligenceRecords(
     return json({ error: "Intelligence not available for this workspace." }, 404);
   }
 
-  const session = await getPlatformSession();
-  if (!session) return unauthorized();
+  if (!(await requireIntelligenceSession(request))) return unauthorized();
 
   const params = request.nextUrl.searchParams;
   const domainId = params.get("domainId")?.trim();
@@ -153,8 +169,7 @@ export async function handleGetIntelligenceRecord(
     return json({ error: "Intelligence not available for this workspace." }, 404);
   }
 
-  const session = await getPlatformSession();
-  if (!session) return unauthorized();
+  if (!(await requireIntelligenceSession(request))) return unauthorized();
 
   const domainId = request.nextUrl.searchParams.get("domainId")?.trim();
   if (!domainId) {
@@ -182,8 +197,7 @@ export async function handleGetIntelligenceBriefing(
     return json({ error: "Intelligence not available for this workspace." }, 404);
   }
 
-  const session = await getPlatformSession();
-  if (!session) return unauthorized();
+  if (!(await requireIntelligenceSession(request))) return unauthorized();
 
   const domainId = request.nextUrl.searchParams.get("domainId")?.trim();
   if (!domainId) {
@@ -210,8 +224,7 @@ export async function handleListIntelligenceSources(
     return json({ error: "Intelligence not available for this workspace." }, 404);
   }
 
-  const session = await getPlatformSession();
-  if (!session) return unauthorized();
+  if (!(await requireIntelligenceSession(request))) return unauthorized();
 
   const domainId = request.nextUrl.searchParams.get("domainId")?.trim();
   if (!domainId) {

@@ -63,6 +63,20 @@ export default function MeetingsWorkspace() {
     setLoading(true);
     setError(null);
     try {
+      if (typeof window !== "undefined") {
+        try {
+          const { isNorthstarDemoBrowser, getNorthstarDiscoveryMeetings } =
+            require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+          if (isNorthstarDemoBrowser()) {
+            setMeetings(getNorthstarDiscoveryMeetings() as MeetingRow[]);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          /* optional */
+        }
+      }
+
       const response = await fetch("/api/crm/meetings", { cache: "no-store" });
       const data = await readApiJson<{ meetings?: MeetingRow[]; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Failed to load meetings");

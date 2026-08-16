@@ -44,7 +44,11 @@ import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
   DemoFundraisingDashboardWorkspace,
+  DemoFundraisingDataRoomsWorkspace,
   DemoFundraisingInvestorsWorkspace,
+  DemoFundraisingMeetingsWorkspace,
+  DemoFundraisingPipelineWorkspace,
+  DemoFundraisingPitchDecksWorkspace,
 } from "@/components/demo/DemoFundraisingWorkspaces";
 import { DemoBoardRisksWorkspace } from "@/components/demo/DemoBoardWorkspace";
 import {
@@ -1218,10 +1222,30 @@ export default function InternalOperationsDashboard({
             ) : (
               <FundraisingInvestorsWorkspace />
             ))}
-          {activeView === "fundraising-pipeline" && <FundraisingPipelineWorkspace />}
-          {activeView === "fundraising-meetings" && <FundraisingMeetingsWorkspace />}
-          {activeView === "fundraising-pitch-decks" && <FundraisingPitchDecksWorkspace />}
-          {activeView === "fundraising-data-rooms" && <FundraisingDataRoomsWorkspace />}
+          {activeView === "fundraising-pipeline" &&
+            (isBrowserDemoSurface() ? (
+              <DemoFundraisingPipelineWorkspace />
+            ) : (
+              <FundraisingPipelineWorkspace />
+            ))}
+          {activeView === "fundraising-meetings" &&
+            (isBrowserDemoSurface() ? (
+              <DemoFundraisingMeetingsWorkspace />
+            ) : (
+              <FundraisingMeetingsWorkspace />
+            ))}
+          {activeView === "fundraising-pitch-decks" &&
+            (isBrowserDemoSurface() ? (
+              <DemoFundraisingPitchDecksWorkspace />
+            ) : (
+              <FundraisingPitchDecksWorkspace />
+            ))}
+          {activeView === "fundraising-data-rooms" &&
+            (isBrowserDemoSurface() ? (
+              <DemoFundraisingDataRoomsWorkspace />
+            ) : (
+              <FundraisingDataRoomsWorkspace />
+            ))}
 
           {activeView === "oa-engineering-overview" && <EngineeringOverviewWorkspace />}
           {activeView === "oa-programs-milestones" && <EngineeringProgramsWorkspace />}
