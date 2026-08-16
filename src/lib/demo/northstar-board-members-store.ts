@@ -15,14 +15,14 @@ export type NorthstarBoardMembersState = {
   members: NorthstarBoardMember[];
 };
 
-const STORAGE_KEY = "unit311-northstar-board-members-v1";
+const STORAGE_KEY = "unit311-northstar-board-members-v2";
 const listeners = new Set<Listener>();
 
 function seedMembers(): NorthstarBoardMember[] {
   return [
     {
-      id: "dir-admin",
-      name: "Platform Admin",
+      id: "dir-ceo",
+      name: "Paul Fotheringham",
       role: "Chief Executive Officer & Director",
       type: "Executive",
     },

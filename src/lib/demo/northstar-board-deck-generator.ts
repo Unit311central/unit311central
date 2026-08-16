@@ -8,7 +8,7 @@ import {
 import { NORTHSTAR_LOGO_SRC } from "@/lib/demo/northstar-surface";
 import { buildOnwardAirBoardPackPdf } from "@/lib/onwardair/board-pack-pdf";
 
-export const NORTHSTAR_BOARD_DECK_BUILD = "2026-08-16-v1";
+export const NORTHSTAR_BOARD_DECK_BUILD = "2026-08-16-v2";
 
 export type NorthstarBoardDeckResult = {
   data: ReturnType<typeof buildNorthstarBoardPackData>;

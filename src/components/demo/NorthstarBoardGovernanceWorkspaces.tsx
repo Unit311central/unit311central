@@ -27,6 +27,7 @@ import {
   getNorthstarBoardPack,
   loadNorthstarBoardPacks,
   resolveNorthstarPackPdfUrl,
+  resolveNorthstarPackDownloadUrl,
   saveNorthstarBoardPack,
   type NorthstarBoardPackRecord,
 } from "@/lib/demo/northstar-board-pack-store";
@@ -597,7 +598,7 @@ export function NorthstarBoardPacksWorkspace() {
       <div className="space-y-3">
         {decks.map((pack) => {
           const pdfUrl = resolveNorthstarPackPdfUrl(pack.meetingDate, pack.pdfOpenUrl);
-          const downloadUrl = pack.pptxDownloadUrl ?? pdfUrl;
+          const downloadUrl = resolveNorthstarPackDownloadUrl(pack.meetingDate, pack.pptxDownloadUrl);
           return (
           <article
             key={pack.id}

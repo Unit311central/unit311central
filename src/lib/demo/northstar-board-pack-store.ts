@@ -4,7 +4,6 @@
 
 import {
   northstarBoardDeckPdfUrl,
-  northstarBoardDeckSampleUrl,
 } from "@/lib/demo/northstar-board-pack-model";
 import { NORTHSTAR_LOGO_SRC } from "@/lib/demo/northstar-surface";
 
@@ -23,13 +22,12 @@ export type NorthstarBoardPackRecord = {
   logoSrc: string;
 };
 
-const STORAGE_KEY = "unit311-northstar-board-packs-v2";
+const STORAGE_KEY = "unit311-northstar-board-packs-v3";
 
 function packPdfUrls(meetingDate: string) {
-  const sample = northstarBoardDeckSampleUrl(meetingDate);
   const api = northstarBoardDeckPdfUrl(meetingDate, "inline");
   const download = northstarBoardDeckPdfUrl(meetingDate, "attachment");
-  return { sample, api, download };
+  return { api, download };
 }
 
 function seedPacks(): NorthstarBoardPackRecord[] {
@@ -45,7 +43,7 @@ function seedPacks(): NorthstarBoardPackRecord[] {
       quarter: "Q1 2026",
       status: "Approved",
       createdAt: "2026-03-12T10:00:00.000Z",
-      pdfOpenUrl: q1.sample,
+      pdfOpenUrl: q1.api,
       pptxDownloadUrl: q1.download,
       folderPath: "Board/Northstar/2026/Q1",
       pageSummaries: [
@@ -65,7 +63,7 @@ function seedPacks(): NorthstarBoardPackRecord[] {
       quarter: "Q2 2026",
       status: "Approved",
       createdAt: "2026-06-11T10:00:00.000Z",
-      pdfOpenUrl: q2.sample,
+      pdfOpenUrl: q2.api,
       pptxDownloadUrl: q2.download,
       folderPath: "Board/Northstar/2026/Q2",
       pageSummaries: [
@@ -85,7 +83,7 @@ function seedPacks(): NorthstarBoardPackRecord[] {
       quarter: "Q3 2026",
       status: "Draft",
       createdAt: "2026-08-20T14:00:00.000Z",
-      pdfOpenUrl: q3.sample,
+      pdfOpenUrl: q3.api,
       pptxDownloadUrl: q3.download,
       folderPath: "Board/Northstar/2026/Q3",
       pageSummaries: [
@@ -100,7 +98,11 @@ function seedPacks(): NorthstarBoardPackRecord[] {
 }
 
 function isLegacyPackUrl(url: string): boolean {
-  return url.includes("onwardair") || url.includes("onwardair-board-deck");
+  return (
+    url.includes("onwardair") ||
+    url.includes("onwardair-board-deck") ||
+    url.startsWith("/samples/")
+  );
 }
 
 function readAll(): NorthstarBoardPackRecord[] {
@@ -188,8 +190,11 @@ export function createNorthstarBoardPackDraft(input: {
   };
 }
 
-/** Resolve preview URL — static sample first, API fallback for new drafts. */
-export function resolveNorthstarPackPdfUrl(meetingDate: string, storedUrl: string): string {
-  if (storedUrl.startsWith("/api/demo/board-deck")) return storedUrl;
-  return northstarBoardDeckSampleUrl(meetingDate);
+/** Resolve preview/download URL — always use on-demand API so demo middleware never rewrites to the shell. */
+export function resolveNorthstarPackPdfUrl(meetingDate: string, _storedUrl?: string): string {
+  return northstarBoardDeckPdfUrl(meetingDate, "inline");
+}
+
+export function resolveNorthstarPackDownloadUrl(meetingDate: string, _storedUrl?: string): string {
+  return northstarBoardDeckPdfUrl(meetingDate, "attachment");
 }

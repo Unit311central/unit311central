@@ -351,7 +351,7 @@ export const NORTHSTAR_BOARD_RISKS: readonly DemoBoardRisk[] = [
 ];
 
 export const NORTHSTAR_BOARD_DIRECTORS = [
-  { id: "dir-ceo", name: "Elena Hart", role: "Chief Executive Officer", type: "Executive" as const },
+  { id: "dir-ceo", name: "Paul Fotheringham", role: "Chief Executive Officer & Director", type: "Executive" as const },
   { id: "dir-cto", name: "James Okonkwo", role: "Chief Technology Officer", type: "Executive" as const },
   { id: "dir-chair", name: "Sarah Pemberton", role: "Chair", type: "Non-Executive" as const },
   { id: "dir-ned-1", name: "David Chen", role: "Non-Executive Director", type: "Investor" as const },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import {
@@ -39,30 +39,6 @@ const TYPES: NorthstarBoardMember["type"][] = [
 export function NorthstarBoardMembersWorkspace() {
   const store = useNorthstarBoardMembersStore();
   const [form, setForm] = useState<NorthstarBoardMember | null>(null);
-
-  useEffect(() => {
-    void fetch("/api/auth/whoami", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { username?: string; displayName?: string } | null) => {
-        if (!data) return;
-        const isAdmin =
-          String(data.username ?? "")
-            .trim()
-            .toLowerCase() === "admin@unit311central.com";
-        if (!isAdmin) return;
-        const admin = store.members.find((m) => m.id === "dir-admin");
-        const displayName = data.displayName?.trim() || "Platform Admin";
-        if (admin && admin.name === "Platform Admin") {
-          upsertNorthstarBoardMember({
-            id: "dir-admin",
-            name: displayName,
-            role: "Chief Executive Officer & Director",
-            type: "Executive",
-          });
-        }
-      })
-      .catch(() => undefined);
-  }, [store.members]);
 
   function save() {
     if (!form?.name.trim()) return;

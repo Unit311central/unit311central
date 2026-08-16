@@ -25,8 +25,6 @@ export type NorthstarRiskRegisterEntry = {
   status: NorthstarMitigationStatus;
   dateRaised: string;
   reviewDate: string;
-  /** Linked board pack id for board deck cross-reference. */
-  boardPackId?: string;
   archived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -36,7 +34,7 @@ export type NorthstarRiskRegisterState = {
   risks: NorthstarRiskRegisterEntry[];
 };
 
-const STORAGE_KEY = "unit311-northstar-risk-register-v1";
+const STORAGE_KEY = "unit311-northstar-risk-register-v2";
 const listeners = new Set<Listener>();
 const LEVEL_SCORE: Record<NorthstarRiskLevel, number> = { H: 5, M: 3, L: 1 };
 
@@ -76,7 +74,6 @@ function seedRisks(): NorthstarRiskRegisterEntry[] {
       status: "Ongoing",
       dateRaised: "2025-11-14",
       reviewDate: "2026-08-15",
-      boardPackId: "ns-deck-q2-2026",
       archived: false,
     },
     {
@@ -91,7 +88,6 @@ function seedRisks(): NorthstarRiskRegisterEntry[] {
       status: "Ongoing",
       dateRaised: "2025-11-14",
       reviewDate: "2026-09-18",
-      boardPackId: "ns-deck-q1-2026",
       archived: false,
     },
     {
@@ -162,7 +158,6 @@ function seedRisks(): NorthstarRiskRegisterEntry[] {
       status: "Overdue for mitigation",
       dateRaised: "2026-03-20",
       reviewDate: "2026-06-30",
-      boardPackId: "ns-deck-q2-2026",
       archived: false,
     },
     {
@@ -205,7 +200,6 @@ function seedRisks(): NorthstarRiskRegisterEntry[] {
       status: "Open",
       dateRaised: "2026-06-19",
       reviewDate: "2026-09-18",
-      boardPackId: "ns-deck-q3-2026-draft",
       archived: false,
     },
   ];
@@ -309,7 +303,6 @@ export function upsertNorthstarRisk(input: UpsertNorthstarRiskInput): NorthstarR
     status: (input.status ?? existing?.status ?? "Open") as NorthstarMitigationStatus,
     dateRaised: (input.dateRaised ?? existing?.dateRaised ?? todayIso()).slice(0, 10),
     reviewDate: (input.reviewDate ?? existing?.reviewDate ?? todayIso()).slice(0, 10),
-    boardPackId: input.boardPackId ?? existing?.boardPackId,
     archived: typeof input.archived === "boolean" ? input.archived : (existing?.archived ?? false),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
