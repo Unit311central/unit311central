@@ -206,7 +206,9 @@ export default function PotentialClientsWorkspace() {
   const selectedCountryId = useMemo(() => {
     const fromUrl = searchParams.get("country");
     if (isDemo) {
-      if (fromUrl === "uk" || !fromUrl) return "uk" as PotentialClientsCountryId;
+      if (!fromUrl || fromUrl === "uk" || fromUrl === "us" || fromUrl === "de") {
+        return (fromUrl || "uk") as PotentialClientsCountryId;
+      }
     }
     const isValid = isOnwardAir
       ? isOnwardAirPotentialClientsCountryId(fromUrl)
@@ -413,8 +415,7 @@ export default function PotentialClientsWorkspace() {
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-white">All countries summary</h3>
             <p className="mt-1 text-xs text-white/50">
-              Combined view across United States, Canada, United Kingdom, France, Germany, South
-              Korea, Japan, and Australia.
+              UK, US & EU manufacturing SME targets for Northstar Industrial Technologies.
             </p>
           </div>
           <EditSectionButton

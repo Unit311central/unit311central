@@ -20,6 +20,7 @@ import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/Re
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import PartnerJobsPanel from "@/components/testflighthub/PartnerJobsPanel";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isNorthstarDemoBrowser } from "@/lib/demo/module-fixtures";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   ABHI_REPRESENTATIVES_DASHBOARD_TILES,
@@ -82,9 +83,10 @@ export default function RepresentativesWorkspace({
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
   const isAbhi = isBrowserAbhiSurface();
   const isOnwardAir = isBrowserOnwardAirSurface();
+  const isNorthstar = isNorthstarDemoBrowser();
   const commissionCurrency: "GBP" | "EUR" | "USD" = isOnwardAir
     ? "USD"
-    : isAbhi
+    : isAbhi || isNorthstar
       ? "GBP"
       : "EUR";
   const currencySymbol = commissionCurrencySymbol(commissionCurrency);

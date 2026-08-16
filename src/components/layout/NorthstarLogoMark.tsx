@@ -1,67 +1,46 @@
 "use client";
 
-import {
-  NORTHSTAR_LOGO_INTRINSIC_HEIGHT,
-  NORTHSTAR_LOGO_INTRINSIC_WIDTH,
-  NORTHSTAR_LOGO_SRC,
-  isNorthstarDemoSlug,
-} from "@/lib/demo/northstar-surface";
+import { isNorthstarDemoSlug, NORTHSTAR_LOGO_SRC } from "@/lib/demo/northstar-surface";
 import { cn } from "@/lib/utils";
 
 export { isNorthstarDemoSlug, NORTHSTAR_LOGO_SRC };
 
 type NorthstarLogoMarkProps = {
   className?: string;
-  /** Display height in CSS pixels. Width is derived from the asset aspect ratio. */
+  /** Base display height in CSS pixels (wordmark scales ~25% above legacy 32px default). */
   height?: number;
-  /** Optional max width clamp (keeps aspect ratio). */
   maxWidth?: number;
   priority?: boolean;
 };
 
 /**
- * Northstar Industrial Technologies wordmark — white on transparent for dark UI chrome.
+ * Northstar wordmark — NORTHSTAR (white) + INDUSTRIAL TECHNOLOGIES (sky blue), no image box.
  */
 export default function NorthstarLogoMark({
   className,
-  height = 32,
-  maxWidth,
-  priority = false,
+  height = 40,
+  maxWidth = 230,
 }: NorthstarLogoMarkProps) {
-  let width = Math.round(
-    (height * NORTHSTAR_LOGO_INTRINSIC_WIDTH) / NORTHSTAR_LOGO_INTRINSIC_HEIGHT,
-  );
-  let displayHeight = height;
-  if (maxWidth != null && width > maxWidth) {
-    width = maxWidth;
-    displayHeight = Math.round(
-      (width * NORTHSTAR_LOGO_INTRINSIC_HEIGHT) / NORTHSTAR_LOGO_INTRINSIC_WIDTH,
-    );
-  }
+  const titleSize = Math.round(height * 0.42);
+  const subtitleSize = Math.round(height * 0.22);
 
   return (
     <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-visible bg-transparent p-0",
-        className,
-      )}
+      className={cn("inline-flex min-w-0 flex-col leading-none bg-transparent", className)}
+      style={{ maxWidth }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={NORTHSTAR_LOGO_SRC}
-        alt="Northstar Industrial Technologies"
-        width={width}
-        height={displayHeight}
-        decoding="async"
-        fetchPriority={priority ? "high" : "auto"}
-        className="block bg-transparent object-contain object-left"
-        style={{
-          height: displayHeight,
-          width,
-          minWidth: width,
-          maxWidth: "100%",
-        }}
-      />
+      <span
+        className="font-bold tracking-[0.06em] text-white"
+        style={{ fontSize: titleSize, lineHeight: 1.05 }}
+      >
+        NORTHSTAR
+      </span>
+      <span
+        className="mt-0.5 font-semibold uppercase tracking-[0.14em] text-sky-400"
+        style={{ fontSize: subtitleSize, lineHeight: 1.1 }}
+      >
+        Industrial Technologies
+      </span>
     </span>
   );
 }

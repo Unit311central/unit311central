@@ -135,7 +135,7 @@ export default function WorkspaceSidebarBrand({
     ) : brand === "onwardair" ? (
       <OnwardAirLogoMark height={32} maxWidth={184} />
     ) : brand === "northstar" ? (
-      <NorthstarLogoMark height={32} maxWidth={184} />
+      <NorthstarLogoMark height={40} maxWidth={230} />
     ) : brand === "customer" ? (
       logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element

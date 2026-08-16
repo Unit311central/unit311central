@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { deleteClientOnboardingRecord } from "@/lib/client-onboarding-service";
+import type { ClientOnboardingRecord } from "@/lib/client-onboarding-data";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { updateNorthstarOnboardingDemo } from "@/lib/demo/northstar-demo-store";
 import { requireInternalWorkspaceSession } from "@/lib/internal-admin-auth";
 import { ensureClientOnboardingRecordsTable } from "@/lib/internal-db-migrations";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -8,6 +11,28 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  const auth = await requireInternalWorkspaceSession();
+  if ("error" in auth) return auth.error;
+
+  const { id } = await context.params;
+  const body = (await request.json()) as Partial<
+    Pick<ClientOnboardingRecord, "currentStatus" | "currentStage" | "progressPercent">
+  >;
+
+  if (await isDemoApiRequest()) {
+    try {
+      const record = updateNorthstarOnboardingDemo(id, body);
+      return NextResponse.json({ record });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update onboarding record";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+  }
+
+  return NextResponse.json({ error: "Onboarding updates require Supabase." }, { status: 503 });
+}
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   const auth = await requireInternalWorkspaceSession();

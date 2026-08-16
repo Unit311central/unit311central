@@ -23,7 +23,13 @@ export type NorthstarOverviewSnapshot = {
     description: string;
     website: string;
   };
-  offices: Array<{ city: string; country: string; headcount: number }>;
+  offices: Array<{
+    city: string;
+    country: string;
+    headcount: number;
+    leaderName: string;
+    leaderTitle: string;
+  }>;
   metrics: {
     employees: number;
     clients: number;
@@ -67,11 +73,21 @@ export function buildNorthstarOverviewSnapshot(): NorthstarOverviewSnapshot {
       description: fixtures.company.description,
       website: fixtures.company.website,
     },
-    offices: fixtures.offices.map((o) => ({
-      city: o.city,
-      country: o.country,
-      headcount: o.headcountTarget,
-    })),
+    offices: fixtures.offices.map((o, index) => {
+      const leaders = [
+        { name: "Elena Hart", title: "Managing Director" },
+        { name: "James Okonkwo", title: "Engineering Director" },
+        { name: "Marcus Reed", title: "US General Manager" },
+      ];
+      const leader = leaders[index] ?? { name: "Site lead", title: "Office manager" };
+      return {
+        city: o.city,
+        country: o.country,
+        headcount: o.headcountTarget,
+        leaderName: leader.name,
+        leaderTitle: leader.title,
+      };
+    }),
     metrics: {
       employees: summary.employees ?? 25,
       clients: summary.clients ?? 100,

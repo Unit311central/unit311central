@@ -100,6 +100,7 @@ export default function ClientOnboardingWorkspace() {
   const [paymentReceipt, setPaymentReceipt] = useState<PaymentReceipt | null>(null);
   const [loadingPaymentReceipt, setLoadingPaymentReceipt] = useState(false);
   const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
+  const [isNorthstarDemo, setIsNorthstarDemo] = useState(false);
 
   const selectedRecord = useMemo(
     () => records.find((record) => record.id === selectedRecordId) ?? null,
@@ -131,6 +132,7 @@ export default function ClientOnboardingWorkspace() {
           const { isNorthstarDemoBrowser, getNorthstarOnboardingRecords } =
             require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
           if (isNorthstarDemoBrowser()) {
+            setIsNorthstarDemo(true);
             setRecords(getNorthstarOnboardingRecords());
             setLoading(false);
             return;
@@ -326,6 +328,29 @@ export default function ClientOnboardingWorkspace() {
     [],
   );
 
+  const handleStatusUpdate = useCallback(
+    async (recordId: string, currentStatus: ClientOnboardingRecord["currentStatus"]) => {
+      setError(null);
+      try {
+        const response = await fetch(`/api/client-onboarding/${recordId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ currentStatus }),
+        });
+        const data = await readApiJson<{ record?: ClientOnboardingRecord; error?: string }>(response);
+        if (!response.ok) throw new Error(data.error ?? "Failed to update status.");
+        if (data.record) {
+          setRecords((current) =>
+            current.map((record) => (record.id === data.record!.id ? data.record! : record)),
+          );
+        }
+      } catch (statusError) {
+        setError(statusError instanceof Error ? statusError.message : "Failed to update status.");
+      }
+    },
+    [],
+  );
+
   const handleDelete = useCallback(
     async (record: ClientOnboardingRecord) => {
       if (
@@ -391,14 +416,30 @@ export default function ClientOnboardingWorkspace() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium",
-                  statusBadgeClass(selectedRecord.currentStatus),
-                )}
-              >
-                {selectedRecord.currentStatus}
-              </span>
+              {isNorthstarDemo ? (
+                <select
+                  value={selectedRecord.currentStatus}
+                  onChange={(event) =>
+                    void handleStatusUpdate(
+                      selectedRecord.id,
+                      event.target.value as ClientOnboardingRecord["currentStatus"],
+                    )
+                  }
+                  className="rounded-full border border-white/15 bg-[#0b1524] px-3 py-1 text-xs font-medium text-white"
+                >
+                  <option value="In Progress">In Progress</option>
+                  <option value="Platform Live">Platform Live</option>
+                </select>
+              ) : (
+                <span
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium",
+                    statusBadgeClass(selectedRecord.currentStatus),
+                  )}
+                >
+                  {selectedRecord.currentStatus}
+                </span>
+              )}
               <span
                 className={cn(
                   "rounded-full border px-3 py-1 text-xs font-medium",

@@ -4,6 +4,8 @@ import {
   requireInternalWorkspaceSession,
   requireUsersModuleAdministratorSession,
 } from "@/lib/internal-admin-auth";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarExternalUsers } from "@/lib/demo/northstar-api-fixtures";
 import {
   createExternalUser,
   listExternalUsers,
@@ -18,6 +20,10 @@ export async function GET() {
   // Clients Dashboard metrics need a read for any authenticated workspace operator.
   const auth = await requireInternalWorkspaceSession();
   if ("error" in auth) return auth.error;
+
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ users: getNorthstarExternalUsers(), linkableCompanies: [] });
+  }
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });

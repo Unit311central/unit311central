@@ -209,7 +209,6 @@ export default function ExecutiveHomeDashboard() {
   const [layoutHydrated, setLayoutHydrated] = useState(false);
   const isTalanton = typeof window !== "undefined" ? isBrowserTalantonImpactSurface() : false;
   const isDemo = typeof window !== "undefined" ? isBrowserDemoSurface() : false;
-  const demoCompanyName = isDemo ? getDemoEnterpriseFixtures().company.tradingName : "";
 
   useEffect(() => {
     setLayout(loadExecutiveHomeLayout());
@@ -346,10 +345,7 @@ export default function ExecutiveHomeDashboard() {
             onClick={() => setOverviewOpen(true)}
             className="block w-full rounded-2xl border border-sky-400/35 bg-gradient-to-r from-sky-950/50 to-[#121C2D] p-5 text-left transition hover:border-sky-300/50"
           >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
-              Company overview
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-white">{demoCompanyName}</h2>
+            <h2 className="text-xl font-bold tracking-tight text-sky-400">Company overview</h2>
             <p className="mt-2 text-sm text-white/60">
               Offices, burn rate, ARR and cash — Northstar snapshot (opens in place).
             </p>
@@ -364,7 +360,7 @@ export default function ExecutiveHomeDashboard() {
               onClick={() => setOverviewOpen(false)}
             >
               <div
-                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-[#07111f] shadow-2xl"
+                className="max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-300/60 bg-[#e8eaed] shadow-2xl"
                 onClick={(event) => event.stopPropagation()}
               >
                 <NorthstarCompanyOverview embedded onClose={() => setOverviewOpen(false)} />
