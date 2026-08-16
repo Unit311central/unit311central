@@ -5,6 +5,7 @@ import {
   listConnectionsWithSource,
 } from "@/lib/crm-connections-service";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarCrmConnections } from "@/lib/demo/northstar-api-fixtures";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     if (await isDemoApiRequest()) {
-      return NextResponse.json({ connections: [], source: "demo" });
+      return NextResponse.json({ connections: getNorthstarCrmConnections(), source: "demo" });
     }
 
     await requirePlatformSession();

@@ -8,7 +8,7 @@ import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 const PORTAL_TYPES = [
   {
     title: "Client portal",
-    description: "Project status, documents, support and billing for anchor customers like Meridian Packaging Group.",
+    description: "Project status, documents, support and billing for anchor customers like Sheffield Precision Engineering.",
     href: "/demo-client-portal",
     icon: Building2,
   },

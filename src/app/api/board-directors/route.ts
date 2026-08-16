@@ -5,6 +5,8 @@ import {
   ensureOnwardAirBoardDirectorsSeeded,
   listBoardDirectorsForWorkspace,
 } from "@/lib/board-directors-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarBoardDirectors } from "@/lib/demo/northstar-api-fixtures";
 import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 import { getPlatformSession } from "@/lib/platform-session";
 import {
@@ -15,6 +17,10 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ directors: getNorthstarBoardDirectors() });
+  }
+
   const session = await getPlatformSession();
   if (!session) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });

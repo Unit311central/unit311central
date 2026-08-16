@@ -5,24 +5,24 @@ import Link from "next/link";
 
 import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 
-const MERIDIAN_PROJECT = {
-  name: "Atlas Monitoring Platform — Meridian Packaging",
+const SHEFFIELD_PROJECT = {
+  name: "Edge Controller Rollout — Sheffield Precision",
   phase: "Delivery",
-  progressPct: 68,
+  progressPct: 62,
   owner: "Marcus Reed",
-  milestone: "UAT sign-off for edge controller firmware (delayed)",
+  milestone: "Phase 2 gateway deployment in progress",
 };
 
-const MERIDIAN_TICKETS = [
-  { id: "t1", name: "Atlas dashboard latency regression", priority: "high", closed: false },
+const SHEFFIELD_TICKETS = [
+  { id: "t1", name: "Edge gateway offline at Line 3", priority: "high", closed: false },
   { id: "t2", name: "Firmware v2.4 deployment window", priority: "medium", closed: false },
   { id: "t3", name: "Monthly executive QBR pack", priority: "low", closed: true },
 ];
 
-const MERIDIAN_INVOICES = [
-  { id: "inv1", invoiceNumber: "NST-DME-00042", amount: 28500, status: "issued" },
-  { id: "inv2", invoiceNumber: "NST-DME-00038", amount: 42000, status: "paid" },
-  { id: "inv3", invoiceNumber: "NST-DME-00031", amount: 31500, status: "paid" },
+const SHEFFIELD_INVOICES = [
+  { id: "inv1", invoiceNumber: "NST-2026-0841", amount: 18_500, status: "issued" },
+  { id: "inv2", invoiceNumber: "NST-2026-0820", amount: 9_600, status: "paid" },
+  { id: "inv3", invoiceNumber: "NST-2026-0795", amount: 24_000, status: "paid" },
 ];
 
 function formatGbp(value: number) {
@@ -31,7 +31,11 @@ function formatGbp(value: number) {
 
 export default function DemoClientPortal() {
   const fixtures = getDemoEnterpriseFixtures();
-  const meridianContact = { first: "Alex", last: "Chen", email: "alex.chen@meridianpackaging.example" };
+  const clientContact = {
+    first: "Tom",
+    last: "Bradley",
+    email: "t.bradley@sheffieldprecision.co.uk",
+  };
 
   return (
     <div className="min-h-screen bg-[#0a1628] text-white">
@@ -39,7 +43,7 @@ export default function DemoClientPortal() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-white/45">Northstar client portal</p>
-            <h1 className="text-xl font-semibold">Meridian Packaging Group</h1>
+            <h1 className="text-xl font-semibold">Sheffield Precision Engineering</h1>
           </div>
           <Link href="/dashboard" className="text-sm text-sky-300 hover:underline">
             Northstar staff login
@@ -51,10 +55,10 @@ export default function DemoClientPortal() {
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <h2 className="text-lg font-medium">Your account</h2>
           <p className="mt-2 text-sm text-white/65">
-            {meridianContact.first} {meridianContact.last} · {meridianContact.email}
+            {clientContact.first} {clientContact.last} · {clientContact.email}
           </p>
           <p className="mt-1 text-sm text-white/55">
-            Meridian Packaging Group · Anchor customer · {fixtures.company.tradingName} partner
+            Sheffield Precision Engineering · Active customer · {fixtures.company.tradingName} partner
           </p>
         </section>
 
@@ -64,12 +68,12 @@ export default function DemoClientPortal() {
             <h2 className="text-lg font-medium">Active projects</h2>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h3 className="font-medium">{MERIDIAN_PROJECT.name}</h3>
+            <h3 className="font-medium">{SHEFFIELD_PROJECT.name}</h3>
             <p className="mt-1 text-sm text-white/55">
-              Status: {MERIDIAN_PROJECT.phase} · {MERIDIAN_PROJECT.progressPct}% complete
+              Status: {SHEFFIELD_PROJECT.phase} · {SHEFFIELD_PROJECT.progressPct}% complete
             </p>
             <p className="mt-2 text-sm text-white/70">
-              Delivery lead: {MERIDIAN_PROJECT.owner}. Next: {MERIDIAN_PROJECT.milestone}.
+              Delivery lead: {SHEFFIELD_PROJECT.owner}. Next: {SHEFFIELD_PROJECT.milestone}.
             </p>
           </div>
         </section>
@@ -80,7 +84,7 @@ export default function DemoClientPortal() {
             <h2 className="text-lg font-medium">Support</h2>
           </div>
           <ul className="space-y-2">
-            {MERIDIAN_TICKETS.map((t) => (
+            {SHEFFIELD_TICKETS.map((t) => (
               <li key={t.id} className="rounded-xl border border-white/10 px-4 py-3 text-sm">
                 <span className="font-medium">{t.name}</span>
                 <span className="ml-2 text-white/45">· {t.priority}</span>
@@ -105,7 +109,7 @@ export default function DemoClientPortal() {
                 </tr>
               </thead>
               <tbody>
-                {MERIDIAN_INVOICES.map((inv) => (
+                {SHEFFIELD_INVOICES.map((inv) => (
                   <tr key={inv.id} className="border-t border-white/10">
                     <td className="px-4 py-2">{inv.invoiceNumber}</td>
                     <td className="px-4 py-2">{formatGbp(inv.amount)}</td>
@@ -118,8 +122,8 @@ export default function DemoClientPortal() {
         </section>
 
         <p className="text-xs text-white/40">
-          Simulated client portal for Demo — scoped Meridian Packaging Group view only. No full Northstar workspace
-          exposure.
+          Simulated client portal for Demo — scoped Sheffield Precision Engineering view only. No full Northstar
+          workspace exposure.
         </p>
       </main>
     </div>

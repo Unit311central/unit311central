@@ -250,7 +250,7 @@ export function createSeedWebsiteContent(websiteId: string): WebsiteContentItem[
       id: `${websiteId}-t1`,
       websiteId,
       kind: "Theme",
-      title: isAbhi ? "ABHI Theme" : isDemo ? "Meridian Theme" : "Unit311 Theme",
+      title: isAbhi ? "ABHI Theme" : isDemo ? "Northstar Theme" : "Unit311 Theme",
       status: "Published",
       updatedAt: "2026-06-20",
       author: "Design",

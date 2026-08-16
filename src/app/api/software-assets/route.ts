@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarSoftwareAssets } from "@/lib/demo/northstar-api-fixtures";
 import { ensureSoftwareAssetRegisterTables } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import {
@@ -15,6 +17,15 @@ import { ensureTalantonSoftwareAssetsSeeded } from "@/lib/talanton/software-asse
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    const { assets, summary } = getNorthstarSoftwareAssets();
+    return NextResponse.json({
+      assets,
+      summary,
+      workspace: { id: "demo-workspace", slug: "demo", name: "Demo" },
+    });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

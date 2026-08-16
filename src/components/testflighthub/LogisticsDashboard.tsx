@@ -36,7 +36,7 @@ const LogisticsRouteMap = dynamic(() => import("./LogisticsRouteMap"), {
   ),
 });
 
-const CARRIER_OPTIONS = ["FedEx", "DHL", "UPS", "Meridian Courier", "Unit311 Courier", "Royal Mail"] as const;
+const CARRIER_OPTIONS = ["FedEx", "DHL", "UPS", "Sheffield Precision Courier", "Unit311 Courier", "Royal Mail"] as const;
 
 type NewPackageForm = {
   id: string;

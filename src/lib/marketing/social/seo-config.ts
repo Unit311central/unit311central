@@ -64,21 +64,21 @@ const INTERNAL_PACK: SocialWorkspaceSeoPack = {
 };
 
 const DEMO_PACK: SocialWorkspaceSeoPack = {
-  domain: "meridianatlas.demo",
+  domain: "northstar.demo",
   avgPosition: "7.5",
   top10: "4 keywords",
   visibility: "+18%",
   keywords: [
-    { keyword: "enterprise cloud consulting", position: 3, change: 1, volume: "2.4K" },
-    { keyword: "operating model transformation", position: 6, change: 2, volume: "1.1K" },
-    { keyword: "meridian atlas group", position: 1, change: 0, volume: "720" },
-    { keyword: "platform modernisation uk", position: 8, change: -1, volume: "980" },
-    { keyword: "sap s4 migration partner", position: 12, change: 3, volume: "640" },
-    { keyword: "board pack automation", position: 15, change: 1, volume: "410" },
+    { keyword: "industrial iot monitoring uk", position: 3, change: 1, volume: "2.4K" },
+    { keyword: "edge controller manufacturing", position: 6, change: 2, volume: "1.1K" },
+    { keyword: "northstar industrial technologies", position: 1, change: 0, volume: "720" },
+    { keyword: "predictive maintenance sme", position: 8, change: -1, volume: "980" },
+    { keyword: "ot remote monitoring platform", position: 12, change: 3, volume: "640" },
+    { keyword: "factory telemetry dashboard", position: 15, change: 1, volume: "410" },
   ],
   ppcCampaigns: [
-    { name: "Cloud advisory — UK", spend: "£1,240", clicks: 418, ctr: "4.4%", cpc: "£2.97", conversions: 22 },
-    { name: "Transformation webinars", spend: "£680", clicks: 255, ctr: "3.9%", cpc: "£2.67", conversions: 14 },
+    { name: "IoT monitoring — UK", spend: "£1,240", clicks: 418, ctr: "4.4%", cpc: "£2.97", conversions: 22 },
+    { name: "Manufacturing webinars", spend: "£680", clicks: 255, ctr: "3.9%", cpc: "£2.67", conversions: 14 },
     { name: "Retarget — case studies", spend: "£390", clicks: 128, ctr: "2.8%", cpc: "£3.05", conversions: 8 },
   ],
   ppcSummary: {

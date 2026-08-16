@@ -27,7 +27,7 @@ export const NORTHSTAR_ENGINEERING_PROGRAMS: readonly DemoEngineeringProgram[] =
     status: "delayed",
     owner: "James Okonkwo",
     progressPct: 78,
-    client: "Meridian Packaging Group",
+    client: "Sheffield Precision Engineering",
     notes: "18% over budget; Voltex firmware delay; phased go-live Mar 2026.",
   },
   {
@@ -44,7 +44,7 @@ export const NORTHSTAR_ENGINEERING_PROGRAMS: readonly DemoEngineeringProgram[] =
     status: "at_risk",
     owner: "Tom Clarke",
     progressPct: 45,
-    client: "Summit Manufacturing Inc",
+    client: "Austin Industrial Partners",
     notes: "Austin team capacity constrained.",
   },
 ];

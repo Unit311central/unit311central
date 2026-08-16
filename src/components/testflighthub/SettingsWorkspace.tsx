@@ -117,7 +117,7 @@ const PLATFORMS: PlatformCredentials[] = [
         in
       </span>
     ),
-    urlPlaceholder: "https://www.linkedin.com/company/meridianatlas",
+    urlPlaceholder: "https://www.linkedin.com/company/northstar-industrial",
   },
   {
     id: "instagram",
@@ -129,7 +129,7 @@ const PLATFORMS: PlatformCredentials[] = [
         IG
       </span>
     ),
-    urlPlaceholder: "https://www.instagram.com/meridianatlas",
+    urlPlaceholder: "https://www.instagram.com/northstarindustrial",
   },
 ];
 

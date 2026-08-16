@@ -1263,7 +1263,7 @@ function seedState(): CorporateMockState {
           routing: "",
           branch: balance.regionLabel,
           accountHolder: fixtures.company.legalName,
-          notes: "Demo simulated Meridian Atlas treasury balance",
+          notes: "Demo simulated Northstar treasury balance",
         }));
         const advisors: CorporateAdvisor[] = (fixtures.advisors ?? []).map((row) => ({
           id: row.id,
@@ -1353,7 +1353,7 @@ function seedState(): CorporateMockState {
               id: "act-demo-2",
               at: isoDaysFromNow(-1),
               label: "Bank account synced",
-              detail: "Wise simulated balances refreshed for Meridian Atlas treasury.",
+              detail: "Wise simulated balances refreshed for Northstar treasury.",
             },
           ],
         };

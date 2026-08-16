@@ -86,7 +86,7 @@ export function buildNorthstarOverviewSnapshot(): NorthstarOverviewSnapshot {
       totalRaisedGbp: NORTHSTAR_TOTAL_RAISED_GBP,
     },
     wins: narrative.wins ?? [
-      "Meridian Packaging Group expansion — £180k ARR add-on",
+      "Sheffield Precision expansion — £180k ARR add-on",
       "Dec 2025 strong close — 4 new logos",
       "Growth round £2m closed Aug 2025",
     ],
@@ -109,13 +109,13 @@ export function buildNorthstarOverviewSnapshot(): NorthstarOverviewSnapshot {
     },
     priorities: narrative.priorities ?? [
       "Margin recovery to 58% target",
-      "Atlas Monitoring Platform go-live for Meridian",
+      "Atlas Monitoring Platform go-live for Peak District Breweries",
       "US pipeline conversion without burn spike",
       "Supplier diversification away from Voltex",
     ],
     intelligenceHeadline:
       narrative.intelligenceHeadline ??
-      "Meridian renewal risk elevated; Voltex supply-chain delay affecting Atlas delivery.",
+      "Sheffield renewal risk elevated; Voltex supply-chain delay affecting Atlas delivery.",
     fundingRounds: NORTHSTAR_FUNDING_ROUNDS,
   };
 }

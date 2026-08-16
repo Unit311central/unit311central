@@ -17,6 +17,10 @@ import {
   getNorthstarOnboardingRecords,
   getNorthstarProjects,
 } from "@/lib/demo/module-fixtures";
+import {
+  getNorthstarCalendarEvents,
+  getNorthstarSupportTickets,
+} from "@/lib/demo/northstar-api-fixtures";
 import { listOpenActionItems } from "@/lib/internal-action-items-service";
 import { listCalendarEvents } from "@/lib/internal-calendar-service";
 import { listClientOnboardingRecords } from "@/lib/client-onboarding-service";
@@ -192,8 +196,8 @@ export async function GET() {
         projects: getNorthstarProjects(),
         clients: getNorthstarClients(),
         leads: getNorthstarCrmLeads(),
-        events: [],
-        tickets: [],
+        events: getNorthstarCalendarEvents(),
+        tickets: getNorthstarSupportTickets(),
         financials: buildNorthstarFinancialOverview(),
         apiActions: [],
         onboardingPipelineCount: onboarding.filter((r) => r.currentStatus === "In Progress").length,

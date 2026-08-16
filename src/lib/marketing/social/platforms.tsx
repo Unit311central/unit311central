@@ -97,8 +97,8 @@ const DEMO_PLATFORMS: SocialPlatformConfig[] = [
   {
     id: "linkedin",
     name: "LinkedIn",
-    handle: "@meridianatlas",
-    displayName: "Meridian Atlas",
+    handle: "@northstarindustrial",
+    displayName: "Northstar Industrial Technologies",
     layout: "wide",
     avatarLabel: "MA",
     avatarClassName: "rounded-full border border-white/15 bg-[#0A66C2]/80 text-xs font-bold",
@@ -112,7 +112,7 @@ const DEMO_PLATFORMS: SocialPlatformConfig[] = [
     lastPost: {
       date: "18 Jul 2026 ┬À 10:05",
       preview:
-        "How Meridian Atlas helps global enterprises modernise cloud estates and operating models ÔÇö new case study from our London practice.",
+        "How Northstar Industrial Technologies helps global enterprises modernise cloud estates and operating models ÔÇö new case study from our London practice.",
       stats: [
         { label: "Impressions", value: "9.1K", icon: <Eye className="h-3.5 w-3.5" /> },
         { label: "Reactions", value: "214", icon: <ThumbsUp className="h-3.5 w-3.5" /> },
@@ -124,8 +124,8 @@ const DEMO_PLATFORMS: SocialPlatformConfig[] = [
   {
     id: "instagram",
     name: "Instagram",
-    handle: "@meridianatlas",
-    displayName: "@meridianatlas",
+    handle: "@northstarindustrial",
+    displayName: "@northstarindustrial",
     layout: "square",
     avatarLabel: "IG",
     avatarClassName: "rounded-full bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-[10px] font-bold",

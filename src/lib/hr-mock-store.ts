@@ -572,7 +572,7 @@ function seedState(): HrMockState {
             Array.from({ length: Math.min(3, row.candidates) }, (_, j) => ({
               id: `cand-${row.id}-${j}`,
               name: `Candidate ${i + 1}${String.fromCharCode(65 + j)}`,
-              email: `candidate.${i}${j}@talent.meridianatlas.demo`,
+              email: `candidate.${i}${j}@talent.northstar.demo`,
               phone: "+44 20 7946 0" + String(100 + i * 3 + j),
               vacancyId: row.id,
               role: row.role,
@@ -626,7 +626,7 @@ function seedState(): HrMockState {
               employeeGoals:
                 "Lead two enterprise transformation workstreams and mentor two consultants.",
               nextReviewDate: isoDaysFromNow(120),
-              summary: `${fixtures.tag} Strong half — on track for Meridian Atlas practice goals.`,
+              summary: `${fixtures.tag} Strong half — on track for Northstar delivery goals.`,
               responses: blankQuestionResponses().map((item, qIndex) => ({
                 ...item,
                 rating: ([4, 4, 5, 4, 4, 4, 3, 4, 4, 4, 3, 5, 5, 4, 4, 3, 5, 4, 4, 4][qIndex] ??
@@ -638,7 +638,7 @@ function seedState(): HrMockState {
                 {
                   id: `obj-mag-${index}-1`,
                   title: "Client NPS on live programmes",
-                  description: "Hold ≥ 4.5 average score across active Meridian engagements.",
+                  description: "Hold ≥ 4.5 average score across active Northstar deployments.",
                   progressPercent: 78 + (index % 15),
                   dueDate: isoDaysFromNow(40),
                   status: "on_track" as const,

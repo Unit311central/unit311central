@@ -318,7 +318,7 @@
       "email": "priya.shah@ashfordlane.demo",
       "retainer": "£6,500 / month",
       "status": "active",
-      "notes": "Corporate, commercial, and employment counsel for Meridian Atlas"
+      "notes": "Corporate, commercial, and employment counsel for Northstar Industrial Technologies"
     },
     {
       "id": "mag-adv-2",
@@ -412,7 +412,7 @@
       "parties": "Northstar Industrial Technologies Ltd · Microsoft",
       "renewalNotes": "",
       "documents": "M365_E5_Order.pdf",
-      "notes": "Covers all Meridian Atlas seats"
+      "notes": "Covers all Northstar Industrial Technologies seats"
     },
     {
       "id": "mag-con-3",
@@ -456,7 +456,7 @@
       "expiryDate": "2027-03-14",
       "value": "£3,400 / month",
       "status": "active",
-      "summary": "CRM + marketing automation for Meridian Atlas",
+      "summary": "CRM + marketing automation for Northstar Industrial Technologies",
       "parties": "Northstar Industrial Technologies Ltd · HubSpot",
       "renewalNotes": "",
       "documents": "",
@@ -528,7 +528,7 @@
   "shareholders": [
     {
       "id": "mag-sh-1",
-      "name": "Atlas Founders Trust",
+      "name": "Northstar Founders Trust",
       "type": "Trust",
       "shares": 3200000,
       "percent": 50,
@@ -536,7 +536,7 @@
     },
     {
       "id": "mag-sh-2",
-      "name": "Meridian Growth Partners LP",
+      "name": "Midlands Growth Partners LP",
       "type": "Fund",
       "shares": 1920000,
       "percent": 30,
@@ -587,7 +587,7 @@
         "fromName": "Alex Morgan",
         "fromEmail": "alex.morgan@northstar.demo",
         "snippet": "Attached is the latest board pack for Friday's review.",
-        "body": "Hi team,\n\nAttached is the latest Meridian Atlas Q3 board pack for Friday's leadership review.\n\nPlease send comments by Thursday EOD.\n\nThanks,\nAlex",
+        "body": "Hi team,\n\nAttached is the latest Northstar Industrial Technologies Q3 board pack for Friday's leadership review.\n\nPlease send comments by Thursday EOD.\n\nThanks,\nAlex",
         "dateOffsetHours": -3,
         "unread": true
       },
@@ -595,11 +595,11 @@
         "id": "mag-mail-2",
         "accountId": "info",
         "folder": "inbox",
-        "subject": "Client SOW countersign — Harbor Energy",
-        "fromName": "Harbor Energy Procurement",
+        "subject": "Client SOW countersign — Sheffield Precision Engineering",
+        "fromName": "Sheffield Precision Procurement",
         "fromEmail": "procurement@harborenergy.demo",
-        "snippet": "We have countersigned MAG-SOW-441. Please return the final PDF.",
-        "body": "Hello Meridian Atlas,\n\nWe have countersigned SOW MAG-SOW-441. Kindly return the fully executed PDF for our records.\n\nRegards,\nHarbor Energy Procurement",
+        "snippet": "We have countersigned NST-SOW-441. Please return the final PDF.",
+        "body": "Hello Northstar Industrial Technologies,\n\nWe have countersigned SOW NST-SOW-441. Kindly return the fully executed PDF for our records.\n\nRegards,\nSheffield Precision Procurement",
         "dateOffsetHours": -8,
         "unread": true
       },
@@ -655,8 +655,8 @@
         "id": "mag-mail-7",
         "accountId": "info",
         "folder": "sent",
-        "subject": "Re: Harbor Energy SOW",
-        "fromName": "Meridian Atlas Shared Inbox",
+        "subject": "Re: Sheffield Precision Engineering SOW",
+        "fromName": "Northstar Industrial Technologies Shared Inbox",
         "fromEmail": "hello@northstar.demo",
         "snippet": "Executed PDF attached — thank you.",
         "body": "Thanks — executed SOW attached. Looking forward to kickoff next week.",
@@ -680,8 +680,8 @@
         "unread": true
       },
       {
-        "from": "Harbor Energy",
-        "subject": "SOW countersign — MAG-SOW-441",
+        "from": "Sheffield Precision Engineering",
+        "subject": "SOW countersign — NST-SOW-441",
         "time": "07:52",
         "unread": true
       },
@@ -705,7 +705,7 @@
       },
       {
         "time": "14:00",
-        "title": "Client demo — Harbor Energy",
+        "title": "Client demo — Sheffield Precision Engineering",
         "meta": "Video · 60 min"
       },
       {
@@ -733,7 +733,7 @@
     ],
     "files": [
       {
-        "name": "MAG_SOW_Harbor_v3.pdf",
+        "name": "NST_SOW_Sheffield_v3.pdf",
         "action": "Uploaded",
         "by": "A. Morgan",
         "time": "1h ago"
@@ -833,7 +833,7 @@
         "id": 31101,
         "currency": "GBP",
         "type": "STANDARD",
-        "name": "Meridian Operating GBP",
+        "name": "Northstar Operating GBP",
         "amount": 1100000,
         "reservedAmount": 12000,
         "regionLabel": "United Kingdom",
@@ -844,7 +844,7 @@
         "id": 31102,
         "currency": "USD",
         "type": "STANDARD",
-        "name": "Meridian Operating USD",
+        "name": "Northstar Operating USD",
         "amount": 420000,
         "reservedAmount": 8000,
         "regionLabel": "United States",
@@ -855,7 +855,7 @@
         "id": 31103,
         "currency": "EUR",
         "type": "STANDARD",
-        "name": "Meridian Operating EUR",
+        "name": "Northstar Operating EUR",
         "amount": 180000,
         "reservedAmount": 5000,
         "regionLabel": "Belgium",
@@ -866,7 +866,7 @@
         "id": 31104,
         "currency": "GBP",
         "type": "SAVINGS",
-        "name": "Meridian Reserves GBP",
+        "name": "Northstar Reserves GBP",
         "amount": 200000,
         "reservedAmount": 0,
         "regionLabel": "United Kingdom",
@@ -4636,7 +4636,7 @@
       {
         "id": "governance",
         "label": "Governance",
-        "content": "Board meets quarterly. Audit and Remuneration committees active. Cap table held under Atlas Founders Trust and Meridian Growth Partners."
+        "content": "Board meets quarterly. Audit and Remuneration committees active. Cap table held under Northstar Founders Trust and Midlands Growth Partners."
       }
     ]
   },
@@ -4658,12 +4658,12 @@
     "apGbp": 210000,
     "pipelineGbp": 1200000,
     "wins": [
-      "Meridian Packaging Group expansion — £180k ARR add-on",
+      "Sheffield Precision expansion — £180k ARR add-on",
       "Dec 2025 strong close — 4 new logos",
       "Growth round £2m closed Aug 2025"
     ],
     "losses": [
-      "Harbor Forge churned — integration failure lesson",
+      "Lancashire Packaging Systems churned — integration failure lesson",
       "Jun 2025 margin dip — Voltex supplier delays on Atlas"
     ],
     "peopleChanges": [
@@ -4675,10 +4675,10 @@
     ],
     "priorities": [
       "Margin recovery to 58% target",
-      "Atlas Monitoring Platform go-live for Meridian",
+      "Atlas Monitoring Platform go-live for Peak District Breweries",
       "US pipeline conversion without burn spike",
       "Supplier diversification away from Voltex Automation"
     ],
-    "intelligenceHeadline": "Meridian renewal risk elevated; Voltex supply-chain delay affecting Atlas delivery; Austin expansion on track."
+    "intelligenceHeadline": "Sheffield renewal risk elevated; Voltex supply-chain delay affecting Atlas delivery; Austin expansion on track."
   }
 }

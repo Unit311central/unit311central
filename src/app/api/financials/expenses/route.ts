@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { ExpenseCurrency } from "@/lib/expenses-data";
 import { createExpense, listExpenses } from "@/lib/financial-expenses-service";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarExpenses } from "@/lib/demo/northstar-api-fixtures";
 import { ensureFinancialExpensesTable } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (await isDemoApiRequest()) {
-    return NextResponse.json({ expenses: [] });
+    return NextResponse.json({ expenses: getNorthstarExpenses() });
   }
 
   if (!isSupabaseConfigured()) {

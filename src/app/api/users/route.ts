@@ -20,6 +20,9 @@ import type {
 } from "@/lib/user-management-data";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarDemoUsers } from "@/lib/demo/northstar-api-fixtures";
+import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +45,10 @@ export async function GET() {
   }
 
   try {
+    if ((await isDemoApiRequest()) || isDemoWorkspaceSlug(auth.workspace.slug)) {
+      return NextResponse.json({ users: getNorthstarDemoUsers() });
+    }
+
     if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
       const users = isTalantonImpactSlug(auth.workspace.slug)
         ? listTalantonTenantUsers()

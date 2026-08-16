@@ -25,6 +25,7 @@ import { buildAbhiHomeFinancialOverviewFallback } from "@/lib/abhi-financials";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import type { InternalProject } from "@/lib/projects-data";
 import { isBrowserDemoSurface, getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
+import { buildNorthstarFinancialOverview } from "@/lib/demo/module-fixtures";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { cn } from "@/lib/utils";
 
@@ -181,10 +182,19 @@ function pinAbhiHomeFinancials(
   };
 }
 
+function pinDemoHomeFinancials(
+  financials: FinancialOverviewSnapshot | null,
+): FinancialOverviewSnapshot | null {
+  if (!isBrowserDemoSurface()) return financials;
+  const fallback = buildNorthstarFinancialOverview();
+  if (financials && financials.cashPosition > 0) return financials;
+  return fallback;
+}
+
 function pinHomeFinancials(
   financials: FinancialOverviewSnapshot | null,
 ): FinancialOverviewSnapshot | null {
-  return pinAbhiHomeFinancials(pinOnwardAirHomeFinancials(financials));
+  return pinDemoHomeFinancials(pinAbhiHomeFinancials(pinOnwardAirHomeFinancials(financials)));
 }
 
 /** Flagship Home experience — Executive Operating Centre with live KPI SSOT. */

@@ -851,7 +851,7 @@ function seedState(): ProcurementMockState {
           id: "mag-ai-1",
           kind: "cost_saving",
           title: "Consolidate cloud spend",
-          detail: "AWS + Microsoft renewals land within 60 days — negotiate jointly for Meridian Atlas.",
+          detail: "AWS + Microsoft renewals land within 60 days — negotiate jointly for Northstar.",
           confidence: 0.88,
           actionLabel: "Open renewals",
           relatedIds: [],

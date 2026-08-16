@@ -13,7 +13,7 @@ export const LOGISTICS_CARRIERS = [
   "DHL",
   "UPS",
   "Unit311 Courier",
-  "Meridian Courier",
+  "Sheffield Precision Courier",
   "Royal Mail",
   "Australia Post",
   "Toll",
@@ -197,7 +197,7 @@ const DEMO_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
     origin: "London HQ, United Kingdom",
     destination: "New York Office, United States",
     recipient: "Riley Jenkins",
-    sender: "Meridian Atlas — Logistics",
+    sender: "Northstar Industrial Technologies — Logistics",
     sentBy: "Reese Sullivan",
     contents: "Executive briefing packs + signed SOW originals",
     weightKg: 4.2,
@@ -215,7 +215,7 @@ const DEMO_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
     eta: "2026-07-22T11:30:00.000Z",
     origin: "Harbor Energy — Houston, US",
     destination: "London HQ, United Kingdom",
-    recipient: "Meridian Atlas — Receiving",
+    recipient: "Northstar Industrial Technologies — Receiving",
     sender: "Harbor Energy Procurement",
     sentBy: "Warehouse dispatch",
     contents: "Client reference architecture USB + hard-copy NDA set",
@@ -233,7 +233,7 @@ const DEMO_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
     origin: "Berlin Office, Germany",
     destination: "Cascade Health Systems, Frankfurt",
     recipient: "Delivery PMO",
-    sender: "Meridian Atlas — Berlin",
+    sender: "Northstar Industrial Technologies — Berlin",
     sentBy: "Oliver Hayes",
     contents: "Cutover runbook binder + access tokens",
     weightKg: 2.1,
@@ -243,13 +243,13 @@ const DEMO_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
     trackingNumber: "MAG-CR-88421",
     direction: "inbound",
     status: "In transit",
-    carrier: "Meridian Courier",
+    carrier: "Sheffield Precision Courier",
     carrierTrackingUrl: "https://www.fedex.com/fedextrack/",
     sentAt: "2026-07-21T11:20:00.000Z",
     eta: "2026-07-21T17:00:00.000Z",
     origin: "Singapore Office",
     destination: "London HQ, United Kingdom",
-    recipient: "Meridian Atlas — Practice Ops",
+    recipient: "Northstar Industrial Technologies — Practice Ops",
     sender: "APAC Delivery",
     sentBy: "Benjamin Bailey",
     contents: "Returned laptop kit from Singapore workshop",
@@ -267,7 +267,7 @@ const DEMO_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
     origin: "London HQ, United Kingdom",
     destination: "Ashford Lane LLP, London",
     recipient: "Priya Shah",
-    sender: "Meridian Atlas — Legal Ops",
+    sender: "Northstar Industrial Technologies — Legal Ops",
     sentBy: "Finance Desk",
     contents: "Executed board resolutions + share certificates",
     weightKg: 0.9,
@@ -283,7 +283,7 @@ const DEMO_LOGISTICS_SHIPMENTS: LogisticsShipment[] = [
     eta: "2026-07-22T09:00:00.000Z",
     origin: "Sydney Office, Australia",
     destination: "London HQ, United Kingdom",
-    recipient: "Meridian Atlas — Import desk",
+    recipient: "Northstar Industrial Technologies — Import desk",
     sender: "APAC Facilities",
     sentBy: "Leo Fisher",
     contents: "Conference AV kit — RMA return",
@@ -686,7 +686,7 @@ export function getLogisticsBrandName() {
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       return `${getDemoEnterpriseFixtures().company.tradingName} Logistics`;
     } catch {
-      return "Meridian Atlas Logistics";
+      return "Northstar Industrial Technologies Logistics";
     }
   }
   return "Unit311 Logistics";

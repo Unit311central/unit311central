@@ -952,7 +952,7 @@ function seedState(): InventoryMockState {
         assetTag: row.sku,
         name: row.name,
         category: "IT Equipment",
-        manufacturer: "Meridian Atlas",
+        manufacturer: fixtures.company.tradingName,
         model: row.sku,
         serialNumber: `MAG-${row.sku}-${index + 1}`,
         purchaseDate: isoDaysFromNow(-200 - index),

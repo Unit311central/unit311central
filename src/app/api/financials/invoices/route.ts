@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { listInvoices } from "@/lib/accounting/invoices-service";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarInvoices } from "@/lib/demo/northstar-api-fixtures";
 import { ensureOnwardAirFinancialsSeeded } from "@/lib/onwardair/financials-seed";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     if (await isDemoApiRequest()) {
-      return NextResponse.json({ invoices: [] });
+      return NextResponse.json({ invoices: getNorthstarInvoices() });
     }
 
     await requirePlatformSession();

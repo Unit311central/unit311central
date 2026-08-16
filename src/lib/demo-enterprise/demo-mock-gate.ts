@@ -1,6 +1,6 @@
 /**
  * Shared client-side Demo gate for mock stores.
- * Returns Meridian Atlas fixtures only on the Demo host.
+ * Returns Northstar fixtures only on the Demo host.
  */
 
 import type { DemoEnterpriseFixtures } from "@/lib/demo-enterprise";

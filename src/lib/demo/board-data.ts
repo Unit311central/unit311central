@@ -63,13 +63,13 @@ export const NORTHSTAR_BOARD_MEETINGS: readonly DemoBoardMeeting[] = [
     location: "Manchester HQ / video",
     agenda: [
       "Q3 financial results",
-      "Meridian expansion contract",
+      "Sheffield Precision expansion contract",
       "Voltex supply delay impact",
       "Margin recovery actions",
     ],
     decisions: [
       "Approved Q4 opex freeze on non-critical hires",
-      "Meridian QBR to be monthly until Atlas stabilises",
+      "Sheffield QBR to be monthly until Atlas stabilises",
       "Engage backup supplier for edge controllers",
     ],
     minutesSummary:
@@ -90,7 +90,7 @@ export const NORTHSTAR_BOARD_MEETINGS: readonly DemoBoardMeeting[] = [
     ],
     decisions: [
       "Approved 2026 budget",
-      "Approved Meridian executive QBR cadence",
+      "Approved Sheffield executive QBR cadence",
       "Risk: supplier concentration elevated to High",
     ],
     minutesSummary:
@@ -138,7 +138,7 @@ export const NORTHSTAR_BOARD_ACTIONS: readonly DemoBoardAction[] = [
   {
     id: "act-3",
     meetingId: "bm-2026-01",
-    title: "Schedule monthly Meridian QBR",
+    title: "Schedule monthly Sheffield QBR",
     owner: "Elena Hart",
     dueDate: "2026-02-01",
     status: "closed",
@@ -241,7 +241,7 @@ export const NORTHSTAR_BOARD_RISKS: readonly DemoBoardRisk[] = [
     title: "Atlas programme delay / reputational impact",
     rating: "High",
     owner: "Marcus Reed",
-    mitigation: "Weekly steering with Meridian; phased go-live plan",
+    mitigation: "Weekly steering with Sheffield Precision; phased go-live plan",
     trend: "down",
   },
   {
@@ -262,7 +262,7 @@ export const NORTHSTAR_BOARD_RISKS: readonly DemoBoardRisk[] = [
   },
   {
     id: "risk-5",
-    title: "Meridian revenue concentration (~22% ARR)",
+    title: "Sheffield revenue concentration (~22% ARR)",
     rating: "Medium",
     owner: "Elena Hart",
     mitigation: "Diversify enterprise pipeline; US/EU expansion",

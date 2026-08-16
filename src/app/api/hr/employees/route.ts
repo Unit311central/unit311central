@@ -7,6 +7,8 @@ import {
   listHrEmployees,
 } from "@/lib/hr-employees-service";
 import type { HrEmployee } from "@/lib/hr-data";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarEmployees } from "@/lib/demo/northstar-api-fixtures";
 import { ensureHrEmployeesTable } from "@/lib/internal-db-migrations";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -17,6 +19,14 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  if (await isDemoApiRequest()) {
+    const includeArchived = request.nextUrl.searchParams.get("includeArchived") === "true";
+    const employees = getNorthstarEmployees().filter(
+      (row) => includeArchived || row.employmentStatus !== "archived",
+    );
+    return NextResponse.json({ employees });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

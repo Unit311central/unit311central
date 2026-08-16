@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarSupportTickets } from "@/lib/demo/northstar-api-fixtures";
 import { createSupportTicket, listSupportTickets } from "@/lib/support-tickets-service";
 import type { SupportTicketPriority } from "@/lib/support-data";
 import {
@@ -25,6 +27,10 @@ function isSchemaWarmupError(error: unknown) {
 }
 
 export async function GET(request: NextRequest) {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ tickets: getNorthstarSupportTickets() });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

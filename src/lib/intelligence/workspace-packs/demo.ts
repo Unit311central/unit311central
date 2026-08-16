@@ -65,7 +65,7 @@ const WORKSPACE_SIGNALS: readonly IntelligenceRecord[] = [
     id: "demo-signal-2",
     workspaceSlug: SLUG,
     domainId: "workspace-signals",
-    title: "Renewal risk — Meridian Packaging Group",
+    title: "Renewal risk — Sheffield Precision Engineering",
     summary: "Support ticket volume elevated; executive sponsor engagement dropped ahead of Atlas go-live.",
     severity: "high",
     score: { value: 41, band: "watch", label: "Renewal risk" },
@@ -94,7 +94,7 @@ const WORKSPACE_SIGNALS: readonly IntelligenceRecord[] = [
     severity: "high",
     score: { value: 38, band: "elevated", label: "Project risk" },
     categories: [{ id: "delivery", label: "Delivery" }],
-    tags: [{ id: "atlas", label: "Atlas" }, { id: "meridian", label: "Meridian" }],
+    tags: [{ id: "atlas", label: "Atlas" }, { id: "meridian", label: "Sheffield Precision" }],
     sourceId: "demo-source-crm",
   },
   {
@@ -147,7 +147,7 @@ const WORKSPACE_SIGNALS: readonly IntelligenceRecord[] = [
     workspaceSlug: SLUG,
     domainId: "workspace-signals",
     title: "Firmware QA backlog — Bristol",
-    summary: "Atlas edge controller firmware validation queue at 3-week lag; go-live risk for Meridian.",
+    summary: "Atlas edge controller firmware validation queue at 3-week lag; go-live risk for Sheffield Precision.",
     severity: "medium",
     score: { value: 58, band: "watch", label: "Delivery risk" },
     categories: [{ id: "delivery", label: "Delivery" }],
@@ -199,22 +199,22 @@ const CUSTOMER_HEALTH: readonly IntelligenceRecord[] = [
     id: "demo-customer-1",
     workspaceSlug: SLUG,
     domainId: "customer-health",
-    title: "Meridian Packaging — renewal in 90 days",
+    title: "Sheffield Precision — renewal in 90 days",
     summary: "Atlas delay increases renewal risk; monthly executive QBR now required by board.",
     severity: "high",
     categories: [{ id: "retention", label: "Retention" }],
-    tags: [{ id: "meridian", label: "Meridian" }],
+    tags: [{ id: "meridian", label: "Sheffield Precision" }],
     sourceId: "demo-source-customer",
   },
   {
     id: "demo-customer-2",
     workspaceSlug: SLUG,
     domainId: "customer-health",
-    title: "Meridian support ticket spike",
+    title: "Sheffield Precision support ticket spike",
     summary: "Eight open tickets linked to Atlas firmware regression; CSM escalation active.",
     severity: "high",
     categories: [{ id: "support", label: "Support" }],
-    tags: [{ id: "meridian", label: "Meridian" }],
+    tags: [{ id: "meridian", label: "Sheffield Precision" }],
     sourceId: "demo-source-customer",
   },
   {
@@ -247,7 +247,7 @@ const SUPPLY_CHAIN: readonly IntelligenceRecord[] = [
     workspaceSlug: SLUG,
     domainId: "supply-chain",
     title: "Voltex Automation — lead time +6 weeks",
-    summary: "Edge controller PCB backlog affecting Atlas delivery milestones for Meridian.",
+    summary: "Edge controller PCB backlog affecting Atlas delivery milestones for Sheffield Precision.",
     severity: "critical",
     categories: [{ id: "supplier", label: "Supplier" }],
     tags: [{ id: "voltex", label: "Voltex" }, { id: "atlas", label: "Atlas" }],
@@ -328,8 +328,8 @@ const signalsProvider: IntelligenceDomainProvider = {
         ? `${atRisk.length} high-priority workspace signals require review.`
         : "Demo workspace signals are broadly healthy.",
       recommendedActions: [
-        "Review Meridian renewal risk with customer success.",
-        "Unblock Atlas firmware validation before Meridian go-live.",
+        "Review Sheffield Precision renewal risk with customer success.",
+        "Unblock Atlas firmware validation before Sheffield Precision go-live.",
       ],
     });
   },
@@ -390,7 +390,7 @@ const customerProvider: IntelligenceDomainProvider = {
         title: "Expansion",
         bullets: CUSTOMER_HEALTH.filter((r) => r.categories.some((c) => c.id === "expansion")).map((r) => r.title),
       },
-    ], { posture: "watch", postureReason: "Meridian renewal risk elevated ahead of Atlas go-live." });
+    ], { posture: "watch", postureReason: "Sheffield Precision renewal risk elevated ahead of Atlas go-live." });
   },
 };
 

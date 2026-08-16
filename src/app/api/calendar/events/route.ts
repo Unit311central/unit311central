@@ -8,6 +8,8 @@ import {
   sendCalendarMeetingInvites,
 } from "@/lib/calendar-invite-email";
 import { appendTimezoneToNotes } from "@/lib/calendar-meeting-time";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarCalendarEvents } from "@/lib/demo/northstar-api-fixtures";
 import { createCalendarEvent, listCalendarEvents } from "@/lib/internal-calendar-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -20,6 +22,10 @@ import { ensureTalantonCalendarSeeded } from "@/lib/talanton/calendar-seed";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ events: getNorthstarCalendarEvents() });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

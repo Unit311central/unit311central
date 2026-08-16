@@ -42,7 +42,7 @@ export function DemoBoardDashboardWorkspace() {
       <CorporateSection title="Current priorities">
         <ul className="list-disc space-y-2 pl-5 text-sm text-white/80">
           <li>Margin recovery to 58% gross margin target</li>
-          <li>Atlas Monitoring Platform delivery for Meridian Packaging Group</li>
+          <li>Atlas Monitoring Platform delivery for Sheffield Precision Engineering</li>
           <li>US expansion hiring without burn spike</li>
           <li>Supplier diversification away from Voltex Automation</li>
         </ul>
