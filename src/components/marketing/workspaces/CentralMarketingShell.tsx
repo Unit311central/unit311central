@@ -13,8 +13,8 @@ import {
 export function CentralMarketingShell({
   title,
   description,
-  moduleLabel = "Marketing & Events",
-  brandLabel = "Unit311 Central",
+  moduleLabel,
+  brandLabel,
   themeId,
   readOnly = false,
   actions,

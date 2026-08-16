@@ -48,6 +48,21 @@ const PLATFORM_CENTRAL_VIEWS: Partial<Record<InternalOperationsView, string>> = 
   "marketing-training": MARKETING_RENDERER_IDS.STAFF_TRAINING,
 };
 
+const DEMO_VIEWS: Partial<Record<InternalOperationsView, string>> = {
+  "oa-marketing-dashboard": MARKETING_RENDERER_IDS.CENTRAL_DASHBOARD,
+  "marketing-newsletter": MARKETING_RENDERER_IDS.ABHI_NEWSLETTER,
+  "marketing-events": MARKETING_RENDERER_IDS.ABHI_EVENTS,
+  "marketing-event-management": MARKETING_RENDERER_IDS.ABHI_EVENT_MANAGEMENT,
+  "marketing-mailing-list": MARKETING_RENDERER_IDS.ABHI_MAILING_LIST,
+  "portfolio-stories": MARKETING_RENDERER_IDS.TALANTON_PORTFOLIO_STORIES,
+  "journey-stories": MARKETING_RENDERER_IDS.TALANTON_JOURNEY_STORIES,
+  "stories-newsletter": MARKETING_RENDERER_IDS.ABHI_NEWSLETTER,
+  "stories-media-library": MARKETING_RENDERER_IDS.TALANTON_MEDIA_LIBRARY,
+  "stories-mailing-list": MARKETING_RENDERER_IDS.ABHI_MAILING_LIST,
+  social: MARKETING_RENDERER_IDS.SOCIAL,
+  "marketing-training": MARKETING_RENDERER_IDS.STAFF_TRAINING,
+};
+
 const OA_VIEWS: Partial<Record<InternalOperationsView, string>> = {
   "oa-marketing-dashboard": MARKETING_RENDERER_IDS.OA_MARKETING,
   "marketing-newsletter": MARKETING_RENDERER_IDS.OA_MARKETING,
@@ -113,10 +128,9 @@ function main() {
   ensureMarketingWorkspacePacksRegistered();
 
   assertNeverAbhiForPlatform("internal");
-  assertNeverAbhiForPlatform("demo");
 
   assertExpected("internal", PLATFORM_CENTRAL_VIEWS);
-  assertExpected("demo", PLATFORM_CENTRAL_VIEWS);
+  assertExpected("demo", DEMO_VIEWS);
 
   for (const view of MARKETING_MODULE_VIEWS) {
     if (view in PLATFORM_CENTRAL_VIEWS) continue;
@@ -125,6 +139,16 @@ function main() {
       resolution?.rendererId,
       MARKETING_RENDERER_IDS.UNAVAILABLE,
       `internal:${view} should be unavailable`,
+    );
+  }
+
+  for (const view of MARKETING_MODULE_VIEWS) {
+    if (view in DEMO_VIEWS) continue;
+    const resolution = resolveMarketingViewForWorkspace(view, "demo");
+    assert.equal(
+      resolution?.rendererId,
+      MARKETING_RENDERER_IDS.UNAVAILABLE,
+      `demo:${view} should be unavailable`,
     );
   }
 

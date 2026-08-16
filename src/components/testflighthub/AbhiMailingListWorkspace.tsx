@@ -48,6 +48,9 @@ function memberFormFrom(member: AbhiMemberCompany): MemberFormState {
 
 type FormState = {
   id: string | null;
+  name: string;
+  purpose: string;
+  listName: string;
   subject: string;
   body: string;
   recipientMode: AbhiRecipientMode;
@@ -56,12 +59,25 @@ type FormState = {
 };
 
 function emptyForm(): FormState {
-  return { id: null, subject: "", body: "", recipientMode: "all", recipientMemberIds: [], manualEmailsText: "" };
+  return {
+    id: null,
+    name: "",
+    purpose: "",
+    listName: "",
+    subject: "",
+    body: "",
+    recipientMode: "all",
+    recipientMemberIds: [],
+    manualEmailsText: "",
+  };
 }
 
 function formFromCampaign(item: AbhiMailingCampaign): FormState {
   return {
     id: item.id,
+    name: item.name ?? "",
+    purpose: item.purpose ?? "",
+    listName: item.listName ?? "",
     subject: item.subject,
     body: item.body,
     recipientMode: item.recipientMode,
@@ -141,6 +157,9 @@ export default function AbhiMailingListWorkspace() {
       .filter(Boolean);
     return {
       id: form.id ?? undefined,
+      name: form.name.trim() || form.subject.trim() || "Untitled campaign",
+      purpose: form.purpose.trim(),
+      listName: form.listName.trim(),
       subject: form.subject.trim() || "Untitled campaign",
       body: form.body,
       recipientMode: form.recipientMode,
@@ -255,13 +274,20 @@ export default function AbhiMailingListWorkspace() {
                     )}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="min-w-0 truncate text-sm font-medium text-white">{item.subject}</p>
+                      <p className="min-w-0 truncate text-sm font-medium text-white">
+                        {item.name?.trim() || item.subject}
+                      </p>
                       <TqmsStatusPill className={statusPillClass(item.status)}>{item.status}</TqmsStatusPill>
                     </div>
+                    {item.purpose || item.listName ? (
+                      <p className="mt-0.5 truncate text-[11px] text-white/45">
+                        {[item.purpose, item.listName].filter(Boolean).join(" · ")}
+                      </p>
+                    ) : null}
                     <p className="mt-1 flex items-center gap-1 text-[11px] text-white/40">
                       <Users className="h-3 w-3" />
-                      {recipientCount(item, store.members.length)} recipients ·{" "}
-                      {item.status === "sent" ? formatWhen(item.sentAt) : formatWhen(item.createdAt)}
+                      {recipientCount(item, store.members.length)} recipients · Last sent{" "}
+                      {formatWhen(item.lastSent ?? item.sentAt ?? item.createdAt)}
                     </p>
                   </button>
                 </li>
@@ -272,6 +298,35 @@ export default function AbhiMailingListWorkspace() {
 
         <TqmsSection title={form.id ? "Edit email" : "Compose email"}>
           <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className={tqmsLabelClass()}>Campaign name</span>
+                <input
+                  value={form.name}
+                  onChange={(e) => patchForm({ name: e.target.value })}
+                  placeholder="e.g. Smart Mfg Expo invite"
+                  className={tqmsInputClass()}
+                />
+              </label>
+              <label className="block">
+                <span className={tqmsLabelClass()}>Purpose</span>
+                <input
+                  value={form.purpose}
+                  onChange={(e) => patchForm({ purpose: e.target.value })}
+                  placeholder="Event promotion, lead nurture…"
+                  className={tqmsInputClass()}
+                />
+              </label>
+            </div>
+            <label className="block">
+              <span className={tqmsLabelClass()}>Saved list</span>
+              <input
+                value={form.listName}
+                onChange={(e) => patchForm({ listName: e.target.value })}
+                placeholder="e.g. Manufacturing accounts Q3"
+                className={tqmsInputClass()}
+              />
+            </label>
             <label className="block">
               <span className={tqmsLabelClass()}>Subject</span>
               <input

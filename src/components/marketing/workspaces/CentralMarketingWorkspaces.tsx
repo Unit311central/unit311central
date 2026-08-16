@@ -12,6 +12,8 @@ import {
 } from "@/components/marketing/workspaces/CentralMarketingShell";
 import { WorkspaceSection } from "@/components/workspace-ui";
 import { useMarketingData } from "@/lib/marketing/client/use-marketing-data";
+import { resolveMarketingShellChrome } from "@/lib/marketing/marketing-shell-chrome";
+import { resolveBrowserMarketingWorkspaceKey } from "@/lib/marketing/workspace-context";
 import type {
   Campaign,
   ExternalEvent,
@@ -52,9 +54,18 @@ function StatusBadge({ status }: { status: string }) {
 
 export function CentralMarketingDashboardWorkspace() {
   const { bundle, loading, error } = useMarketingData();
+  const workspace = resolveBrowserMarketingWorkspaceKey();
+  const chrome = resolveMarketingShellChrome(workspace);
+  const isDemo = workspace === "demo";
   const kpis = bundle?.kpis ?? EMPTY_KPIS;
   const recentNewsletterTitle =
     bundle?.newsletters.find((row) => row.status === "sent")?.title ?? null;
+  const draftNewsletters = bundle?.newsletters.filter((row) => row.status === "draft").length ?? 0;
+  const scheduledCampaigns = bundle?.campaigns.filter((row) => row.status === "scheduled").length ?? 0;
+  const clientStoriesPending =
+    bundle?.portfolioStories.filter((row) =>
+      ["Under Review", "Submitted", "draft"].includes(String(row.status ?? "")),
+    ).length ?? 0;
 
   return (
     <div className="space-y-4">
@@ -62,16 +73,42 @@ export function CentralMarketingDashboardWorkspace() {
       {loading && !bundle ? (
         <LoadingState label="marketing dashboard" />
       ) : (
-        <MarketingDashboardShell
-          title="Marketing dashboard"
-          description="Central Marketing & Events workspace — newsletters, campaigns, events, and media in one place."
-          kpis={kpis}
-          recentNewsletterTitle={recentNewsletterTitle}
-          upcomingExternalEvents={bundle?.externalEvents ?? []}
-          liveManagedEvents={(bundle?.managedEvents ?? []).filter((row) =>
-            ["Live", "Booking", "Planning"].includes(String(row.status ?? "")),
-          )}
-        />
+        <>
+          <MarketingDashboardShell
+            brandLabel={chrome.brandLabel}
+            moduleLabel={chrome.moduleLabel ?? (isDemo ? "Marketing and Events" : "Marketing & Events")}
+            title={isDemo ? "Marketing and Events" : "Marketing dashboard"}
+            description={
+              isDemo
+                ? "Newsletter performance, upcoming events, client stories, and mailing list growth in one place."
+                : "Central Marketing & Events workspace — newsletters, campaigns, events, and media in one place."
+            }
+            kpis={kpis}
+            recentNewsletterTitle={recentNewsletterTitle}
+            upcomingExternalEvents={bundle?.externalEvents ?? []}
+            liveManagedEvents={(bundle?.managedEvents ?? []).filter((row) =>
+              ["active", "Live", "Booking", "Planning", "Registration open"].includes(
+                String(row.status ?? row.stage ?? ""),
+              ),
+            )}
+          />
+          {isDemo ? (
+            <WorkspaceSection
+              title="Recommended on this dashboard"
+              subtitle="Quick links to the workflows teams use most on Northstar demo."
+            >
+              <ul className="grid gap-2 text-sm text-white/70 sm:grid-cols-2">
+                <li>Newsletter drafts ready: {draftNewsletters}</li>
+                <li>Scheduled campaigns: {scheduledCampaigns}</li>
+                <li>Client stories pending review: {clientStoriesPending}</li>
+                <li>
+                  Client portal submissions feed Client Stories — see{" "}
+                  <span className="text-sky-300">/demo-client-portal</span>
+                </li>
+              </ul>
+            </WorkspaceSection>
+          ) : null}
+        </>
       )}
     </div>
   );

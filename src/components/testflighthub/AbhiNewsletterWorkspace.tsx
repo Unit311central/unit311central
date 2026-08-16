@@ -17,6 +17,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ABHI_LINKEDIN_URL, ABHI_X_URL } from "@/lib/abhi-surface";
 import { CentralMarketingShell } from "@/components/marketing/workspaces/CentralMarketingShell";
+import { resolveMarketingShellChrome } from "@/lib/marketing/marketing-shell-chrome";
+import { resolveBrowserMarketingWorkspaceKey } from "@/lib/marketing/workspace-context";
 import {
   deleteNewsletter,
   scheduleNewsletter,
@@ -215,6 +217,9 @@ function RichTextEditor({
 
 export default function AbhiNewsletterWorkspace() {
   const store = useAbhiMarketingStore();
+  const workspace = resolveBrowserMarketingWorkspaceKey();
+  const chrome = resolveMarketingShellChrome(workspace);
+  const isDemo = workspace === "demo";
   const [form, setForm] = useState<FormState>(emptyForm());
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -302,10 +307,14 @@ export default function AbhiNewsletterWorkspace() {
 
   return (
     <CentralMarketingShell
-      brandLabel="ABHI"
-      moduleLabel="Marketing & Events"
+      brandLabel={chrome.brandLabel}
+      moduleLabel={chrome.moduleLabel}
       title="Digital newsletter"
-      description="Member-facing newsletter campaigns with email and social channel options."
+      description={
+        isDemo
+          ? "Customer and partner newsletters with member selection, saved lists, and scheduled sends."
+          : "Member-facing newsletter campaigns with email and social channel options."
+      }
     >
     <div className="space-y-5">
       {notice ? (
@@ -321,7 +330,7 @@ export default function AbhiNewsletterWorkspace() {
           actions={
             <button type="button" onClick={startNew} className={tqmsPrimaryButtonClass()}>
               <Plus className="h-3.5 w-3.5" />
-              New
+              Create newsletter
             </button>
           }
           className="h-fit"
@@ -575,7 +584,7 @@ export default function AbhiNewsletterWorkspace() {
                 </p>
               </div>
               <div
-                className="prose prose-sm max-w-none px-4 py-4 text-slate-700"
+                className="prose prose-sm min-h-[420px] max-w-none px-4 py-6 text-slate-700"
                 dangerouslySetInnerHTML={{
                   __html: form.htmlBody.trim() || "<p class=\"text-slate-400\">Your newsletter content will appear here…</p>",
                 }}

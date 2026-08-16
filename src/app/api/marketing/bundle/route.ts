@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
-import { getNorthstarMarketingBundle } from "@/lib/demo/northstar-marketing-fixtures";
+import { getNorthstarMarketingBundle } from "@/lib/demo/northstar-marketing-store";
 import {
   computeMarketingDashboardKpis,
   ensureMarketingWorkspaceSeeded,

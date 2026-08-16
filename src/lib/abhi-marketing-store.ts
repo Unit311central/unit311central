@@ -77,6 +77,10 @@ export type AbhiNewsletter = {
 
 export type AbhiMailingCampaign = {
   id: string;
+  name?: string;
+  purpose?: string;
+  listName?: string;
+  lastSent?: string | null;
   subject: string;
   body: string;
   status: AbhiNewsletterStatus;
@@ -1379,6 +1383,10 @@ export function upsertMailingCampaign(input: Partial<AbhiMailingCampaign> & { id
   const existing = input.id ? state.mailingCampaigns.find((row) => row.id === input.id) : null;
   const next: AbhiMailingCampaign = {
     id: existing?.id ?? uid("abhi-mail"),
+    name: input.name ?? existing?.name,
+    purpose: input.purpose ?? existing?.purpose,
+    listName: input.listName ?? existing?.listName,
+    lastSent: input.lastSent !== undefined ? input.lastSent : (existing?.lastSent ?? null),
     subject: input.subject ?? existing?.subject ?? "Untitled campaign",
     body: input.body ?? existing?.body ?? "",
     status: input.status ?? existing?.status ?? "draft",
@@ -1406,6 +1414,12 @@ export function upsertMailingCampaign(input: Partial<AbhiMailingCampaign> & { id
     manualEmails: next.manualEmails,
     scheduledAt: next.scheduledAt,
     sentAt: next.sentAt,
+    extensionData: {
+      name: next.name ?? next.subject,
+      purpose: next.purpose ?? "",
+      listName: next.listName ?? "",
+      lastSent: next.lastSent ?? next.sentAt,
+    },
   });
   return next;
 }
@@ -1430,6 +1444,12 @@ export function sendMailingCampaignNow(id: string) {
       manualEmails: row.manualEmails,
       scheduledAt: row.scheduledAt,
       sentAt: row.sentAt,
+      extensionData: {
+        name: row.name ?? row.subject,
+        purpose: row.purpose ?? "",
+        listName: row.listName ?? "",
+        lastSent: row.sentAt ?? row.lastSent ?? null,
+      },
     });
   }
 }

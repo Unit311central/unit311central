@@ -8,7 +8,8 @@ import {
 import type { MarketingDashboardKpis, ExternalEvent, ManagedEvent } from "@/lib/marketing/types";
 
 export function MarketingDashboardShell({
-  moduleLabel = "Marketing & Events",
+  moduleLabel,
+  brandLabel,
   title,
   description,
   kpis,
@@ -18,6 +19,7 @@ export function MarketingDashboardShell({
   readOnly = false,
 }: {
   moduleLabel?: string;
+  brandLabel?: string;
   title: string;
   description: string;
   kpis: MarketingDashboardKpis;
@@ -32,7 +34,7 @@ export function MarketingDashboardShell({
         moduleLabel={moduleLabel}
         title={title}
         description={description}
-        brandLabel="Unit311 Central"
+        brandLabel={brandLabel}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

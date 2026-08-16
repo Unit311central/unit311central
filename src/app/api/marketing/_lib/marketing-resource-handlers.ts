@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
-import { getNorthstarMarketingBundle } from "@/lib/demo/northstar-marketing-fixtures";
+import {
+  deleteNorthstarMarketingResource,
+  getNorthstarMarketingBundle,
+  upsertNorthstarMarketingResource,
+} from "@/lib/demo/northstar-marketing-store";
+import type { MarketingResource } from "@/lib/marketing/client/marketing-api";
 import {
   deleteMarketingCampaign,
   deleteMarketingContact,
@@ -78,6 +83,14 @@ export async function handleMarketingResourcePost(
   workspaceSlug: string,
   payload: Record<string, unknown>,
 ) {
+  if (await isDemoApiRequest()) {
+    const item = upsertNorthstarMarketingResource(resource as MarketingResource, payload);
+    if (!item) {
+      return NextResponse.json({ error: `Unknown resource: ${resource}` }, { status: 400 });
+    }
+    return NextResponse.json({ item });
+  }
+
   await ensureMarketingWorkspaceSeeded({ workspaceId, workspaceSlug });
   const scope = { workspaceId };
 
@@ -148,6 +161,14 @@ export async function handleMarketingResourceDelete(
   workspaceId: string,
   workspaceSlug: string,
 ) {
+  if (await isDemoApiRequest()) {
+    const ok = deleteNorthstarMarketingResource(resource as MarketingResource, id);
+    if (!ok) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   await ensureMarketingWorkspaceSeeded({ workspaceId, workspaceSlug });
   const scope = { workspaceId };
 

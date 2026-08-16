@@ -143,7 +143,7 @@ export function WorkspaceModuleHeader({
   themeId = "default",
   brandLabel,
 }: {
-  moduleLabel: string;
+  moduleLabel?: string;
   title: string;
   description: string;
   actions?: ReactNode;
@@ -174,14 +174,16 @@ export function WorkspaceModuleHeader({
               {brandLabel}
             </p>
           ) : null}
-          <p
-            className={cn(
-              theme.moduleHeaderAccentClassName ?? "mt-1.5 text-[11px] font-medium tracking-wide text-white/45",
-              !brandLabel && "mt-0",
-            )}
-          >
-            {moduleLabel}
-          </p>
+          {moduleLabel ? (
+            <p
+              className={cn(
+                theme.moduleHeaderAccentClassName ?? "mt-1.5 text-[11px] font-medium tracking-wide text-white/45",
+                !brandLabel && "mt-0",
+              )}
+            >
+              {moduleLabel}
+            </p>
+          ) : null}
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/60">{description}</p>
         </div>

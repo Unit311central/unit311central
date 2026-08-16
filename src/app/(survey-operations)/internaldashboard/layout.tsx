@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import {
   getRequestHost,
   isCentralDomainHost,
+  isDemoDomainHost,
   isInternalDomainHost,
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
@@ -20,6 +21,15 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
       title: `${name} | Dashboard`,
       description: `${name} workspace — operations, finance, and delivery.`,
+      robots: { index: false, follow: false },
+    };
+  }
+
+  if (isDemoDomainHost(host)) {
+    return {
+      title: "Northstar Operations Dashboard",
+      description:
+        "Northstar Industrial Technologies demo workspace — operations, finance, marketing, and delivery.",
       robots: { index: false, follow: false },
     };
   }

@@ -50,6 +50,7 @@ export type Campaign = {
   sentAt: string | null;
   createdAt: string;
   updatedAt: string;
+  extensionData?: Record<string, unknown>;
 };
 
 /** Mailing list contact / subscriber. */

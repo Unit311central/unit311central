@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Filter } from "lucide-react";
+import { Check, Filter, Plus } from "lucide-react";
 
 import { CopyToClipboardButton } from "@/components/ui/CopyToClipboardButton";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
   IMPACT_CATEGORIES,
+  ingestCompanyPortalStory,
   updateStoryStatus,
   type ImpactCategory,
   type PortfolioStory,
@@ -51,6 +53,7 @@ function storyCopy(s: PortfolioStory) {
 
 export default function PortfolioStoriesWorkspace() {
   const store = useTalantonMarketingStoriesStore();
+  const isDemo = isBrowserDemoSurface();
   const [statusFilter, setStatusFilter] = useState<StoryStatus | "all">("all");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
@@ -84,12 +87,48 @@ export default function PortfolioStoriesWorkspace() {
   const selectClass =
     "rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/80 outline-none focus:border-emerald-400/40";
 
+  function addDemoStory() {
+    const stamp = Date.now().toString(36);
+    ingestCompanyPortalStory({
+      id: `nst-story-demo-${stamp}`,
+      title: "Demo client success story",
+      summary: "Submitted from the Northstar client portal for marketing review.",
+      fullStory:
+        "Example story body — replace with customer quotes, metrics, and photos before publishing.",
+      companyId: `nst-client-demo-${stamp}`,
+      companyName: "Demo Manufacturing Ltd",
+      country: "United Kingdom",
+      impactCategory: "Jobs & Livelihoods",
+      status: "Submitted",
+      submissionDate: new Date().toISOString().slice(0, 10),
+      submittedBy: "Client portal (demo)",
+      photos: [],
+    });
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-auto p-5 sm:p-6">
       <TalantonIntelligenceHeader
-        moduleLabel="Marketing & Stories"
-        title="Portfolio Stories"
-        description="Central repository of stories submitted by portfolio companies — filter by company, country, status, and impact category. Approved stories feed Media Library and Digital Newsletter."
+        brandLabel={isDemo ? undefined : "Talanton Intelligence"}
+        moduleLabel={isDemo ? undefined : "Marketing & Stories"}
+        title={isDemo ? "Client Stories" : "Portfolio Stories"}
+        description={
+          isDemo
+            ? "Customer stories submitted via the Northstar client portal — review, approve, and publish for newsletters and events."
+            : "Central repository of stories submitted by portfolio companies — filter by company, country, status, and impact category. Approved stories feed Media Library and Digital Newsletter."
+        }
+        actions={
+          isDemo ? (
+            <button
+              type="button"
+              onClick={addDemoStory}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 text-xs font-medium text-emerald-100 transition-colors hover:bg-emerald-500/20"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add client story
+            </button>
+          ) : undefined
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-3">

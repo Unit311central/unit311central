@@ -40,15 +40,17 @@ export function TalantonIntelligenceHeader({
   title,
   description,
   actions,
+  brandLabel = "Talanton Intelligence",
 }: {
-  moduleLabel: string;
+  moduleLabel?: string;
   title: string;
   description: string;
   actions?: ReactNode;
+  brandLabel?: string;
 }) {
   return (
     <WorkspaceModuleHeader
-      brandLabel="Talanton Intelligence"
+      brandLabel={brandLabel}
       moduleLabel={moduleLabel}
       title={title}
       description={description}
