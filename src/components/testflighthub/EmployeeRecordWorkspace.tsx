@@ -751,6 +751,7 @@ export default function EmployeeRecordWorkspace() {
                         src={photoUrl}
                         alt=""
                         className="h-10 w-10 shrink-0 rounded-full border border-white/15 object-cover"
+                        referrerPolicy="no-referrer"
                       />
                     ) : (
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-violet-400/30 bg-violet-500/15 text-xs font-semibold text-violet-100">
@@ -808,6 +809,7 @@ export default function EmployeeRecordWorkspace() {
                 src={draft.profilePhotoUrl}
                 alt=""
                 className="h-16 w-16 rounded-2xl border border-white/15 object-cover"
+                referrerPolicy="no-referrer"
               />
             ) : (
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/15 text-lg font-semibold text-violet-100">

@@ -9,9 +9,19 @@ import {
   Maximize2,
   Minimize2,
   Network,
+  Pencil,
   RefreshCw,
+  RotateCcw,
   Users,
 } from "lucide-react";
+
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import {
+  applyNorthstarOrgChartManagers,
+  resetNorthstarOrgChartManagers,
+  setNorthstarOrgChartManager,
+  subscribeNorthstarOrgChart,
+} from "@/lib/demo/northstar-org-chart-store";
 
 import type { HrEmployee } from "@/lib/hr-data";
 import {
@@ -24,7 +34,7 @@ import { getInternalNavHref } from "@/lib/internal-operations-data";
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import { cn } from "@/lib/utils";
 import { useInternalOperationsBasePath } from "./InternalOperationsBasePathContext";
-import { HrKpiTile, HrSection, hrSecondaryButtonClass } from "./hr-ui";
+import { HrKpiTile, HrSection, hrPrimaryButtonClass, hrSecondaryButtonClass } from "./hr-ui";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -41,24 +51,41 @@ function PersonCard({
   expanded,
   onToggle,
   basePath,
+  editMode,
+  managerOptionsFor,
+  onManagerChange,
 }: {
   node: OrgChartNode;
   expanded: boolean;
   onToggle: () => void;
   basePath: SurveyOperationsBasePath;
+  editMode: boolean;
+  managerOptionsFor: (employeeId: string) => HrEmployee[];
+  onManagerChange: (employeeId: string, managerEmployeeId: string | null) => void;
 }) {
   const { employee } = node;
+  const managerOptions = managerOptionsFor(employee.id);
   const reports = countReports(node);
   const hasChildren = node.children.length > 0;
   const href = getInternalNavHref("hr", basePath, { employeeId: employee.id });
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative w-[220px] rounded-2xl border border-white/15 bg-[#0b1524]/95 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+      <div
+        className={cn(
+          "relative w-[220px] rounded-2xl border bg-[#0b1524]/95 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl",
+          editMode ? "border-teal-400/35" : "border-white/15",
+        )}
+      >
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-violet-400/30 bg-violet-500/15 text-sm font-semibold text-violet-100">
             {employee.profilePhotoUrl ? (
-              <img src={employee.profilePhotoUrl} alt="" className="h-full w-full object-cover" />
+              <img
+                src={employee.profilePhotoUrl}
+                alt=""
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
             ) : (
               initialsFromName(employee.fullName)
             )}
@@ -79,6 +106,27 @@ function PersonCard({
             </p>
           </div>
         </div>
+        {editMode ? (
+          <label className="mt-3 block">
+            <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-white/45">
+              Reports to
+            </span>
+            <select
+              className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1524] px-2 py-1.5 text-xs text-white"
+              value={employee.managerEmployeeId ?? ""}
+              onChange={(event) =>
+                onManagerChange(employee.id, event.target.value ? event.target.value : null)
+              }
+            >
+              <option value="">Top level (no manager)</option>
+              {managerOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.fullName} · {option.role}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         {hasChildren ? (
           <button
             type="button"
@@ -100,11 +148,17 @@ function OrgBranch({
   expandedIds,
   toggle,
   basePath,
+  editMode,
+  managerOptionsFor,
+  onManagerChange,
 }: {
   node: OrgChartNode;
   expandedIds: Set<string>;
   toggle: (id: string) => void;
   basePath: SurveyOperationsBasePath;
+  editMode: boolean;
+  managerOptionsFor: (employeeId: string) => HrEmployee[];
+  onManagerChange: (employeeId: string, managerEmployeeId: string | null) => void;
 }) {
   const expanded = expandedIds.has(node.id);
   const showChildren = expanded && node.children.length > 0;
@@ -116,6 +170,9 @@ function OrgBranch({
         expanded={expanded}
         onToggle={() => toggle(node.id)}
         basePath={basePath}
+        editMode={editMode}
+        managerOptionsFor={managerOptionsFor}
+        onManagerChange={onManagerChange}
       />
       {showChildren ? (
         <>
@@ -135,6 +192,9 @@ function OrgBranch({
                     expandedIds={expandedIds}
                     toggle={toggle}
                     basePath={basePath}
+                    editMode={editMode}
+                    managerOptionsFor={managerOptionsFor}
+                    onManagerChange={onManagerChange}
                   />
                 </ul>
               </li>
@@ -175,6 +235,18 @@ export default function OrgChartWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [initialized, setInitialized] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [orgChartRevision, setOrgChartRevision] = useState(0);
+  const [isNorthstarDemo, setIsNorthstarDemo] = useState(false);
+
+  useEffect(() => {
+    setIsNorthstarDemo(isBrowserDemoSurface());
+  }, []);
+
+  useEffect(() => {
+    if (!isNorthstarDemo) return;
+    return subscribeNorthstarOrgChart(() => setOrgChartRevision((value) => value + 1));
+  }, [isNorthstarDemo]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -198,7 +270,27 @@ export default function OrgChartWorkspace() {
     });
   }, [load]);
 
-  const forest = useMemo(() => buildOrgChartForest(employees), [employees]);
+  const chartEmployees = useMemo(() => {
+    if (!isNorthstarDemo) return employees;
+    return applyNorthstarOrgChartManagers(employees);
+  }, [employees, isNorthstarDemo, orgChartRevision]);
+
+  const forest = useMemo(() => buildOrgChartForest(chartEmployees), [chartEmployees]);
+
+  const managerOptionsFor = useCallback(
+    (employeeId: string) =>
+      chartEmployees
+        .filter((row) => row.id !== employeeId)
+        .sort((a, b) => a.fullName.localeCompare(b.fullName)),
+    [chartEmployees],
+  );
+
+  const handleManagerChange = useCallback(
+    (employeeId: string, managerEmployeeId: string | null) => {
+      setNorthstarOrgChartManager(employeeId, managerEmployeeId);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (initialized || loading) return;
@@ -247,9 +339,36 @@ export default function OrgChartWorkspace() {
 
       <HrSection
         title="Organisation chart"
-        subtitle="Live view of reporting lines from the HR employee directory. Changes to managers update here automatically."
+        subtitle={
+          isNorthstarDemo
+            ? "Paul Fotheringham leads at the top. Turn on Edit to change reporting lines — saved in this browser."
+            : "Live view of reporting lines from the HR employee directory. Changes to managers update here automatically."
+        }
         actions={
           <div className="flex flex-wrap gap-2">
+            {isNorthstarDemo ? (
+              <>
+                <button
+                  type="button"
+                  className={editMode ? hrPrimaryButtonClass() : hrSecondaryButtonClass()}
+                  onClick={() => setEditMode((value) => !value)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  {editMode ? "Done editing" : "Edit chart"}
+                </button>
+                <button
+                  type="button"
+                  className={hrSecondaryButtonClass()}
+                  onClick={() => {
+                    resetNorthstarOrgChartManagers();
+                    setEditMode(false);
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reset lines
+                </button>
+              </>
+            ) : null}
             <button type="button" className={hrSecondaryButtonClass()} onClick={() => void load()}>
               <RefreshCw className="h-3.5 w-3.5" />
               Refresh
@@ -284,6 +403,9 @@ export default function OrgChartWorkspace() {
                   expandedIds={expandedIds}
                   toggle={toggle}
                   basePath={basePath}
+                  editMode={isNorthstarDemo && editMode}
+                  managerOptionsFor={managerOptionsFor}
+                  onManagerChange={handleManagerChange}
                 />
               ))}
             </ul>

@@ -58,6 +58,48 @@ const EXTRA_DIRECTORY_ROW = {
   status: "Active",
 } as const;
 
+/** Canonical Northstar executive identity overrides (fixtures use placeholder names). */
+const EMPLOYEE_IDENTITY_OVERRIDES: Record<
+  string,
+  { fullName: string; preferredName: string; email: string; role?: string }
+> = {
+  "mag-dir-1": {
+    fullName: "Paul Fotheringham",
+    preferredName: "Paul",
+    email: "paul.fotheringham@northstar.demo",
+    role: "Chief Executive Officer",
+  },
+};
+
+/** Deterministic portrait headshots per employee (randomuser.me). */
+const PORTRAIT_BY_ID: Record<string, { gender: "men" | "women"; index: number }> = {
+  "mag-dir-1": { gender: "men", index: 15 },
+  "mag-dir-2": { gender: "men", index: 32 },
+  "mag-dir-3": { gender: "women", index: 44 },
+  "mag-dir-4": { gender: "men", index: 52 },
+  "mag-dir-5": { gender: "women", index: 26 },
+  "mag-dir-6": { gender: "women", index: 31 },
+  "mag-dir-7": { gender: "women", index: 68 },
+  "mag-dir-8": { gender: "men", index: 41 },
+  "mag-dir-9": { gender: "women", index: 12 },
+  "mag-dir-10": { gender: "men", index: 19 },
+  "mag-dir-11": { gender: "women", index: 55 },
+  "mag-dir-12": { gender: "men", index: 63 },
+  "mag-dir-13": { gender: "women", index: 22 },
+  "mag-dir-14": { gender: "men", index: 28 },
+  "mag-dir-15": { gender: "women", index: 37 },
+  "mag-dir-16": { gender: "women", index: 48 },
+  "mag-dir-17": { gender: "women", index: 71 },
+  "mag-dir-18": { gender: "men", index: 36 },
+  "mag-dir-19": { gender: "women", index: 64 },
+  "mag-dir-20": { gender: "men", index: 47 },
+  "mag-dir-21": { gender: "women", index: 29 },
+  "mag-dir-22": { gender: "women", index: 53 },
+  "mag-dir-23": { gender: "men", index: 58 },
+  "mag-dir-24": { gender: "women", index: 81 },
+  "mag-dir-25": { gender: "women", index: 17 },
+};
+
 /** mag-dir-* → office city */
 const LOCATION_BY_ID: Record<string, string> = {
   "mag-dir-1": "Manchester",
@@ -142,8 +184,12 @@ export function isoDaysFromNow(offset: number) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-export function northstarEmployeePhotoUrl(fullName: string) {
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=0f766e&color=fff&size=128&bold=true`;
+export function northstarEmployeePhotoUrl(employeeId: string) {
+  const portrait = PORTRAIT_BY_ID[employeeId] ?? {
+    gender: employeeId.charCodeAt(employeeId.length - 1) % 2 === 0 ? "women" : "men",
+    index: Math.abs(employeeId.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0)) % 90,
+  };
+  return `https://randomuser.me/api/portraits/${portrait.gender}/${portrait.index}.jpg`;
 }
 
 let cachedEmployees: NorthstarHrEmployee[] | null = null;
@@ -151,7 +197,10 @@ let cachedEmployees: NorthstarHrEmployee[] | null = null;
 export function getNorthstarHrEmployees(): NorthstarHrEmployee[] {
   if (cachedEmployees) return cachedEmployees;
   const fixtures = getDemoEnterpriseFixtures();
-  const directory = [...fixtures.directory, EXTRA_DIRECTORY_ROW];
+  const directory = [...fixtures.directory, EXTRA_DIRECTORY_ROW].map((row) => {
+    const override = EMPLOYEE_IDENTITY_OVERRIDES[row.id];
+    return override ? { ...row, ...override } : row;
+  });
   const byId = new Map(directory.map((row) => [row.id, row]));
 
   cachedEmployees = directory.map((row, index) => {
@@ -208,7 +257,7 @@ export function getNorthstarHrEmployees(): NorthstarHrEmployee[] {
       vacationDaysTaken: 6 + (index % 7),
       offboarding: emptyOffboarding(),
       archivedAt: null,
-      profilePhotoUrl: northstarEmployeePhotoUrl(row.fullName),
+      profilePhotoUrl: northstarEmployeePhotoUrl(row.id),
       dateOfBirth: DATE_OF_BIRTH_BY_ID[row.id] ?? null,
     };
   });
