@@ -36,6 +36,8 @@ export type NorthstarOverviewSnapshot = {
     activeProjects: number;
     /** Annual revenue recognised in 2025 (GBP). */
     annualRevenue2025Gbp: number;
+    targetGmPct: number;
+    actualGmPct: number;
     /** Revenue growth since 2023 baseline (%). */
     revenueGrowthSince2023Pct: number;
     investmentToDateGbp: number;
@@ -94,7 +96,9 @@ export function buildNorthstarOverviewSnapshot(): NorthstarOverviewSnapshot {
       employees: summary.employees ?? 25,
       clients: summary.clients ?? 100,
       activeProjects: summary.activeProjects ?? 20,
-      annualRevenue2025Gbp: narrative.arrGbp ?? 4_800_000,
+      annualRevenue2025Gbp: narrative.arrGbp ?? fixtures.company.arrGbp ?? 4_800_000,
+      targetGmPct: fixtures.company.targetGmPct ?? narrative.targetGmPct ?? 58,
+      actualGmPct: fixtures.company.actualGmPct ?? narrative.actualGmPct ?? 54,
       revenueGrowthSince2023Pct: 823,
       investmentToDateGbp: NORTHSTAR_TOTAL_RAISED_GBP,
       ebitdaGbp: 1_080_000,

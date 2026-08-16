@@ -347,7 +347,7 @@ export default function ExecutiveHomeDashboard() {
           >
             <h2 className="text-xl font-bold tracking-tight text-sky-400">Company overview</h2>
             <p className="mt-2 text-sm text-white/60">
-              Annual revenue, growth, investment and EBITDA — Northstar snapshot.
+              Offices, burn rate, annual revenue and cash — Northstar snapshot (opens in place).
             </p>
             <span className="mt-3 inline-block text-sm font-medium text-sky-300">Open overview →</span>
           </button>
@@ -360,7 +360,7 @@ export default function ExecutiveHomeDashboard() {
               onClick={() => setOverviewOpen(false)}
             >
               <div
-                className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-300/40 bg-[#e8eaed]/55 shadow-2xl backdrop-blur-md"
+                className="max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-white/10 bg-[#07111f] shadow-2xl"
                 onClick={(event) => event.stopPropagation()}
               >
                 <NorthstarCompanyOverview embedded onClose={() => setOverviewOpen(false)} />
