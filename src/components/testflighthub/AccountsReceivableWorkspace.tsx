@@ -7,6 +7,7 @@ import { FileText, Loader2, RefreshCw, X } from "lucide-react";
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
 import type { LedgerInvoice } from "@/lib/accounting/types";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
@@ -139,6 +140,7 @@ export default function AccountsReceivableWorkspace() {
   const todayIso = new Date().toISOString().slice(0, 10);
   const monthPrefix = todayIso.slice(0, 7);
 
+  const isDemo = isBrowserDemoSurface();
   const currency = reportingCurrency(invoices);
   const money = (amount: number) => formatMoney(amount, currency);
 
@@ -183,6 +185,7 @@ export default function AccountsReceivableWorkspace() {
       paidThisMonth,
       collectionRate,
       averageDaysToPayment,
+      openCount: unpaid.length,
     };
   }, [currency, invoices, monthPrefix, todayIso]);
 
@@ -191,13 +194,16 @@ export default function AccountsReceivableWorkspace() {
     : null;
 
   const cards = [
-    { label: "Outstanding", value: money(kpis.outstanding) },
+    {
+      label: "Outstanding",
+      value: isDemo ? money(420_000) : money(kpis.outstanding),
+    },
     { label: "Overdue", value: money(kpis.overdue) },
     { label: "Paid This Month", value: money(kpis.paidThisMonth) },
     { label: "Collection Rate", value: `${Math.ceil(kpis.collectionRate)}%` },
     {
-      label: "Average Days To Payment",
-      value: String(Math.ceil(kpis.averageDaysToPayment)),
+      label: "Open Invoices",
+      value: String(isDemo ? 12 : kpis.openCount),
     },
   ];
 
@@ -205,7 +211,15 @@ export default function AccountsReceivableWorkspace() {
     <div className="space-y-4">
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <p className="text-sm text-white/55">Client invoices posted to the General Ledger.</p>
+          <div>
+            <p className="text-sm text-white/55">Client invoices posted to the General Ledger.</p>
+            {isDemo ? (
+              <p className="mt-1 text-xs text-white/40">
+                85 active subscription clients · ~£4.7k avg MRR · 12 open invoices totalling £420k
+                outstanding (~1 month of billing on net-30 terms).
+              </p>
+            ) : null}
+          </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"

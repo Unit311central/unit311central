@@ -200,6 +200,18 @@ export type FinancialOverviewSnapshot = {
   activity: FinancialActivityItem[];
   /** Optional human-readable YTD / P&L period for dashboard tiles. */
   reportingPeriodLabel?: string;
+  compliance?: {
+    vat: {
+      lastPaidAmount: number;
+      lastPaidDate: string;
+      estimatedUpcoming: number;
+      dueDate: string;
+    };
+    hmrc: {
+      annualAccountsDue: string;
+      label: string;
+    };
+  };
 };
 
 export type FinancialActivityItem = {

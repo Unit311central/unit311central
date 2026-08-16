@@ -43,7 +43,9 @@ type Totals = {
   liabilities: number;
   equity: number;
   income: number;
-  expenses: number;
+  payroll: number;
+  opex: number;
+  operatingExpenses: number;
   netProfit: number;
 };
 
@@ -127,7 +129,15 @@ export default function GeneralLedgerWorkspace() {
             const creditTotal = rows.reduce((sum, row) => sum + row.credit, 0);
             const accounts = getNorthstarLedgerAccounts();
             const income = accounts.filter((a) => a.type === "income").reduce((s, a) => s + a.balance, 0);
-            const expenses = accounts.filter((a) => a.type === "expense").reduce((s, a) => s + a.balance, 0);
+            const payroll = accounts
+              .filter((a) => a.code === "5020")
+              .reduce((s, a) => s + a.balance, 0);
+            const opex = accounts
+              .filter((a) => ["5030", "5040", "5050", "5060", "5070"].includes(a.code))
+              .reduce((s, a) => s + a.balance, 0);
+            const operatingExpenses = accounts
+              .filter((a) => ["5080", "5090"].includes(a.code))
+              .reduce((s, a) => s + a.balance, 0);
             setJournals(getNorthstarJournalEntries());
             setAccounts(accounts);
             setTrialRows(rows);
@@ -137,8 +147,10 @@ export default function GeneralLedgerWorkspace() {
               liabilities: accounts.filter((a) => a.type === "liability").reduce((s, a) => s + a.balance, 0),
               equity: accounts.filter((a) => a.type === "equity").reduce((s, a) => s + a.balance, 0),
               income,
-              expenses,
-              netProfit: income - expenses,
+              payroll,
+              opex,
+              operatingExpenses,
+              netProfit: income - payroll - opex - operatingExpenses,
             });
             setDateFrom(northstarCurrentUkFyStart());
             setClientOptions([]);
@@ -168,7 +180,29 @@ export default function GeneralLedgerWorkspace() {
       setAccounts(accountsData.accounts ?? []);
       setTrialRows(trialData.trialBalance?.rows ?? []);
       setDifference(trialData.trialBalance?.difference ?? 0);
-      setTotals(trialData.totals ?? null);
+      const raw = trialData.totals as
+        | (Totals & { expenses?: number })
+        | null
+        | undefined;
+      setTotals(
+        raw
+          ? {
+              assets: raw.assets ?? 0,
+              liabilities: raw.liabilities ?? 0,
+              equity: raw.equity ?? 0,
+              income: raw.income ?? 0,
+              payroll: raw.payroll ?? 0,
+              opex: raw.opex ?? raw.expenses ?? 0,
+              operatingExpenses: raw.operatingExpenses ?? 0,
+              netProfit:
+                raw.netProfit ??
+                (raw.income ?? 0) -
+                  (raw.payroll ?? 0) -
+                  (raw.opex ?? raw.expenses ?? 0) -
+                  (raw.operatingExpenses ?? 0),
+            }
+          : null,
+      );
 
       const journalClientIds = [
         ...new Set(
@@ -314,31 +348,62 @@ export default function GeneralLedgerWorkspace() {
             value: totals?.income ?? 0,
           },
           {
-            label: plMonthLabel ? `Expenses (${plMonthLabel.plMonth})` : "Expenses",
-            value: totals?.expenses ?? 0,
+            label: plMonthLabel ? `Payroll (${plMonthLabel.plMonth})` : "Payroll",
+            value: totals?.payroll ?? 0,
+          },
+          {
+            label: plMonthLabel ? `Opex (${plMonthLabel.plMonth})` : "Opex",
+            value: totals?.opex ?? 0,
+          },
+          {
+            label: plMonthLabel ? `Operating expenses (${plMonthLabel.plMonth})` : "Operating expenses",
+            value: totals?.operatingExpenses ?? 0,
           },
           {
             label: plMonthLabel ? `Net profit (${plMonthLabel.plMonth})` : "Net Profit",
             value: totals?.netProfit ?? 0,
           },
         ]
-      : [
-          { label: "Assets", value: totals?.assets ?? 0 },
-          { label: "Liabilities", value: totals?.liabilities ?? 0 },
-          { label: "Equity", value: totals?.equity ?? 0 },
-          {
-            label: plMonthLabel ? `Income (${plMonthLabel.plMonth})` : "Income",
-            value: totals?.income ?? 0,
-          },
-          {
-            label: plMonthLabel ? `Expenses (${plMonthLabel.plMonth})` : "Expenses",
-            value: totals?.expenses ?? 0,
-          },
-          {
-            label: plMonthLabel ? `Net profit (${plMonthLabel.plMonth})` : "Net Profit",
-            value: totals?.netProfit ?? 0,
-          },
-        ]
+      : isNorthstarDemo
+        ? [
+            { label: "Assets", value: totals?.assets ?? 0 },
+            { label: "Liabilities", value: totals?.liabilities ?? 0 },
+            { label: "Equity", value: totals?.equity ?? 0 },
+            {
+              label: plMonthLabel ? `Income (${plMonthLabel.plMonth})` : "Income",
+              value: totals?.income ?? 0,
+            },
+            {
+              label: plMonthLabel ? `Payroll (${plMonthLabel.plMonth})` : "Payroll",
+              value: totals?.payroll ?? 0,
+            },
+            {
+              label: plMonthLabel ? `Opex (${plMonthLabel.plMonth})` : "Opex",
+              value: totals?.opex ?? 0,
+            },
+            {
+              label: plMonthLabel ? `Operating expenses (${plMonthLabel.plMonth})` : "Operating expenses",
+              value: totals?.operatingExpenses ?? 0,
+            },
+            {
+              label: plMonthLabel ? `Net profit (${plMonthLabel.plMonth})` : "Net Profit",
+              value: totals?.netProfit ?? 0,
+            },
+          ]
+        : [
+            { label: "Assets", value: totals?.assets ?? 0 },
+            { label: "Liabilities", value: totals?.liabilities ?? 0 },
+            { label: "Equity", value: totals?.equity ?? 0 },
+            { label: plMonthLabel ? `Income (${plMonthLabel.plMonth})` : "Income", value: totals?.income ?? 0 },
+            {
+              label: plMonthLabel ? `Expenses (${plMonthLabel.plMonth})` : "Expenses",
+              value: (totals?.payroll ?? 0) + (totals?.opex ?? 0) + (totals?.operatingExpenses ?? 0),
+            },
+            {
+              label: plMonthLabel ? `Net profit (${plMonthLabel.plMonth})` : "Net Profit",
+              value: totals?.netProfit ?? 0,
+            },
+          ]
   );
 
   const trialDebitTotal = trialRows.reduce((sum, row) => sum + row.debit, 0);
@@ -414,7 +479,7 @@ export default function GeneralLedgerWorkspace() {
         <div
           className={cn(
             "mt-4 grid gap-3 sm:grid-cols-2",
-            cards.length <= 3 ? "xl:grid-cols-3" : "xl:grid-cols-6",
+            cards.length <= 5 ? "xl:grid-cols-5" : "xl:grid-cols-4",
           )}
         >
           {cards.map((card) => (

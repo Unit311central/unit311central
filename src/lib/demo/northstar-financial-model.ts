@@ -30,6 +30,12 @@ export const NORTHSTAR_AP_OUTSTANDING = 186_000;
 export const NORTHSTAR_AP_DUE_NOW = 64_000;
 export const NORTHSTAR_AP_DUE_WITHIN_MONTH = 122_000;
 
+export const NORTHSTAR_VAT_LAST_PAID = 38_200;
+export const NORTHSTAR_VAT_LAST_PAID_DATE = "2026-07-07";
+export const NORTHSTAR_VAT_ESTIMATED_UPCOMING = 42_600;
+export const NORTHSTAR_VAT_DUE_DATE = "2026-09-07";
+export const NORTHSTAR_HMRC_ACCOUNTS_DUE = "2027-03-31";
+
 export const NORTHSTAR_FY_START_MONTH = 4; // UK fiscal year begins April
 
 /** Months from Apr 2023 through Aug 2026 for minable GL history. */

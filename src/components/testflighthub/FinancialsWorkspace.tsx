@@ -332,6 +332,17 @@ export default function FinancialsWorkspace() {
     return Array.from(months.values());
   }, [overview]);
 
+  const cashInOut = useMemo(() => {
+    if (!overview) return [];
+    const revenue = overview.charts.monthlyRevenue.slice(-6);
+    const spend = overview.charts.monthlyOutgoings.slice(-6);
+    return revenue.map((row, index) => ({
+      month: row.month.slice(5),
+      cashIn: row.amount,
+      cashOut: spend[index]?.amount ?? 0,
+    }));
+  }, [overview]);
+
   const marginPct = useMemo(() => {
     if (!overview || overview.monthlyRevenue <= 0) return 0;
     return Math.round(
@@ -406,12 +417,12 @@ export default function FinancialsWorkspace() {
           storageKey={
             isBrowserOnwardAirSurface()
               ? "oa-financials-dashboard-tiles-v4"
-              : "unit311-financials-dashboard-tiles-v5"
+              : "unit311-financials-dashboard-tiles-v6"
           }
           catalog={tiles}
           defaultLayout={DEFAULT_FINANCIALS_TILE_LAYOUT}
           title="Key metrics"
-          showCustomizeHint
+          showCustomizeHint={false}
           showCustomizeButton={false}
           customizeOpen={tilesCustomizeOpen}
           onCustomizeOpenChange={setTilesCustomizeOpen}
@@ -419,6 +430,32 @@ export default function FinancialsWorkspace() {
             if (tileId === "burn-rate") setBurnDrillOpen(true);
           }}
         />
+      ) : null}
+
+      {overview?.compliance ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <article className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              VAT return
+            </p>
+            <p className="mt-2 text-xl font-semibold text-white">
+              {money(overview.compliance.vat.estimatedUpcoming)}
+            </p>
+            <p className="mt-1 text-xs text-white/45">
+              Last paid {money(overview.compliance.vat.lastPaidAmount)} on{" "}
+              {overview.compliance.vat.lastPaidDate} · Due {overview.compliance.vat.dueDate}
+            </p>
+          </article>
+          <article className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+              HMRC annual accounts
+            </p>
+            <p className="mt-2 text-xl font-semibold text-white">
+              {overview.compliance.hmrc.annualAccountsDue}
+            </p>
+            <p className="mt-1 text-xs text-white/45">{overview.compliance.hmrc.label}</p>
+          </article>
+        </div>
       ) : null}
 
       {overview ? (
@@ -633,7 +670,7 @@ export default function FinancialsWorkspace() {
 
       {overview ? (
         <>
-          <div className="grid gap-4 xl:grid-cols-3">
+          <div className="grid gap-4 xl:grid-cols-4">
             <ChartCard title="Accounts Receivable" subtitle="Collections and open invoices">
               <dl className="space-y-2 text-sm">
                 <div className="flex justify-between gap-3">
@@ -750,6 +787,25 @@ export default function FinancialsWorkspace() {
                         dot={false}
                       />
                     </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </ChartCard>
+
+            <ChartCard title="Cash in vs cash out" subtitle="Last 6 months — revenue vs operating spend">
+              <div className="h-40">
+                {cashInOut.length === 0 ? (
+                  <EmptyChart label="cash flow" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={cashInOut}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                      <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} />
+                      <YAxis hide />
+                      <Tooltip contentStyle={TOOLTIP_STYLE} />
+                      <Bar dataKey="cashIn" name="Cash in" fill="#34d399" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="cashOut" name="Cash out" fill="#fb7185" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 )}
               </div>

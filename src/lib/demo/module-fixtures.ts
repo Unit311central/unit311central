@@ -8,6 +8,13 @@ import type { ClientOnboardingRecord } from "@/lib/client-onboarding-data";
 import type { CrmLead } from "@/lib/crm-data";
 import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 import {
+  getNorthstarInvoices,
+  getNorthstarPayables,
+  NORTHSTAR_COMPLIANCE_FIXTURE,
+  summarizeNorthstarPayables,
+  summarizeNorthstarReceivables,
+} from "@/lib/demo/northstar-api-fixtures";
+import {
   NORTHSTAR_AP_DUE_NOW,
   NORTHSTAR_AP_DUE_WITHIN_MONTH,
   NORTHSTAR_AP_OUTSTANDING,
@@ -604,14 +611,18 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
 
   const burnQuarterly = monthlyExpenses * 3;
   const burnAnnual = monthlyExpenses * 12;
+  const invoices = getNorthstarInvoices();
+  const payables = getNorthstarPayables();
+  const arSummary = summarizeNorthstarReceivables(invoices);
+  const apSummary = summarizeNorthstarPayables(payables);
 
   return {
     revenueYtd: NORTHSTAR_REVENUE_YTD,
     cashPosition: cash,
-    accountsReceivable: 420_000,
-    accountsPayable: NORTHSTAR_AP_OUTSTANDING,
+    accountsReceivable: arSummary.outstanding,
+    accountsPayable: apSummary.outstanding,
     netProfit: NORTHSTAR_NET_PROFIT_YTD,
-    outstandingInvoices: 12,
+    outstandingInvoices: arSummary.outstandingInvoices,
     monthlyRevenue,
     monthlyExpenses,
     annualRevenue: monthlyRevenue * 12,
@@ -629,7 +640,6 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
       cashBalance: cash,
       runwayMonths: Math.round((cash / monthlyExpenses) * 10) / 10,
       forecastMonthly: monthlyExpenses,
-      lines: [],
       series: monthSeries.map((row) => {
         const total = northstarMonthlyOpexForMonth(row.month);
         const payroll = Math.round(total * (NORTHSTAR_OPEX_BREAKDOWN.payroll / NORTHSTAR_MONTHLY_OPEX));
@@ -651,22 +661,63 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
         };
       }),
       filterOptions: { departments: [], costCentres: [], projects: [], offices: [] },
+      lines: payables
+        .filter((row) => !row.paid)
+        .map((row, index) => ({
+          id: row.id,
+          date: row.dueDate,
+          month: row.dueDate.slice(0, 7),
+          category:
+            row.category === "payroll"
+              ? ("payroll" as const)
+              : row.category === "opex"
+                ? ("office" as const)
+                : ("travel" as const),
+          amount: row.amount,
+          vendor: row.supplier,
+          department: row.category === "payroll" ? "People" : row.category === "opex" ? "Opex" : "Expenses",
+          costCentre: "HQ",
+          project: "—",
+          office: "Manchester",
+          description: row.description,
+        }))
+        .concat(
+          monthSeries.slice(-3).flatMap((row) => {
+            const total = northstarMonthlyOpexForMonth(row.month);
+            const payroll = Math.round(total * (NORTHSTAR_OPEX_BREAKDOWN.payroll / NORTHSTAR_MONTHLY_OPEX));
+            return [
+              {
+                id: `burn-pay-${row.month}`,
+                date: `${row.month}-28`,
+                month: row.month,
+                category: "payroll" as const,
+                amount: payroll,
+                vendor: "Payroll run",
+                department: "People",
+                costCentre: "HQ",
+                project: "—",
+                office: "Manchester",
+                description: `${row.month} payroll`,
+              },
+            ];
+          }),
+        ),
     },
     ar: {
-      outstanding: 420_000,
-      overdue: 48_000,
-      overdueCount: 2,
-      dueSoon: 92_000,
-      collectionRate: 94,
-      ageing: [],
-      recentUnpaid: [],
+      outstanding: arSummary.outstanding,
+      overdue: arSummary.overdue,
+      overdueCount: arSummary.overdueCount,
+      dueSoon: arSummary.dueSoon,
+      collectionRate: arSummary.collectionRate,
+      ageing: arSummary.ageing,
+      recentUnpaid: arSummary.recentUnpaid,
     },
     ap: {
-      outstanding: NORTHSTAR_AP_OUTSTANDING,
-      dueThisMonth: NORTHSTAR_AP_DUE_NOW,
-      overdue: 0,
-      upcoming: NORTHSTAR_AP_DUE_WITHIN_MONTH,
-      recent: [],
+      outstanding: apSummary.outstanding,
+      dueThisMonth: apSummary.dueThisMonth,
+      overdue: apSummary.overdue,
+      upcoming: apSummary.upcoming,
+      recent: apSummary.recent,
     },
     payroll: {
       current: NORTHSTAR_OPEX_BREAKDOWN.payroll,
@@ -674,7 +725,13 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
       employees: 25,
       annual: NORTHSTAR_OPEX_BREAKDOWN.payroll * 12,
       monthly: NORTHSTAR_OPEX_BREAKDOWN.payroll,
-      trend: [],
+      trend: monthSeries.slice(-6).map((row) => ({
+        month: row.month,
+        amount: Math.round(
+          northstarMonthlyOpexForMonth(row.month) *
+            (NORTHSTAR_OPEX_BREAKDOWN.payroll / NORTHSTAR_MONTHLY_OPEX),
+        ),
+      })),
     },
     charts: {
       monthlyRevenue: monthSeries,
@@ -687,6 +744,7 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
     },
     activity: [],
     reportingPeriodLabel: northstarYtdPeriodLabel(),
+    compliance: NORTHSTAR_COMPLIANCE_FIXTURE,
   };
 }
 
@@ -715,6 +773,7 @@ export function getNorthstarLedgerAccounts(): LedgerAccount[] {
     { code: "1200", name: "Prepaid expenses", type: "asset" as const, balance: 28_000 },
     { code: "2000", name: "Accounts Payable", type: "liability" as const, balance: NORTHSTAR_AP_OUTSTANDING },
     { code: "2100", name: "Deferred revenue", type: "liability" as const, balance: 85_000 },
+    { code: "2200", name: "VAT liability (estimated)", type: "liability" as const, balance: 42_600 },
     { code: "3010", name: "Share capital (pre-seed)", type: "equity" as const, balance: 1_000_000 },
     { code: "3020", name: "Retained earnings", type: "equity" as const, balance: 1_433_000 },
     {

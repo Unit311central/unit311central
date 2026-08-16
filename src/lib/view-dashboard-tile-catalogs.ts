@@ -185,6 +185,8 @@ function emptyFinancialsDashboardTiles(currency: string): DashboardTileDefinitio
     { id: "annual-revenue", label: "Annual Revenue", value: money(0), hint: "Calendar year" },
     { id: "annual-expenses", label: "Annual Expenses", value: money(0), hint: "Calendar year" },
     { id: "gross-margin", label: "Gross Margin", value: "0%", hint: "From ledger income/expenses" },
+    { id: "vat-return", label: "VAT Return", value: money(0), hint: "Last paid & upcoming" },
+    { id: "hmrc-accounts", label: "HMRC Accounts", value: "—", hint: "Annual submission due" },
     { id: "forecast", label: "Forecast", value: money(0), hint: "Not configured yet" },
   ];
 }
@@ -233,6 +235,18 @@ export function buildFinancialsDashboardCatalog(
       upcoming?: number;
     };
     reportingPeriodLabel?: string;
+    compliance?: {
+      vat: {
+        lastPaidAmount: number;
+        lastPaidDate: string;
+        estimatedUpcoming: number;
+        dueDate: string;
+      };
+      hmrc: {
+        annualAccountsDue: string;
+        label: string;
+      };
+    };
   } | null,
 ): DashboardTileDefinition[] {
   const fallbackCurrency = financialsFallbackCurrency();
@@ -347,6 +361,26 @@ export function buildFinancialsDashboardCatalog(
           value: `${grossMarginPct}%`,
           hint: "SaaS gross margin · current month",
         };
+      case "vat-return":
+        return overview.compliance
+          ? {
+              ...tile,
+              value: money(overview.compliance.vat.estimatedUpcoming),
+              meta: [
+                `Last paid ${money(overview.compliance.vat.lastPaidAmount)} · ${overview.compliance.vat.lastPaidDate}`,
+                `Due ${overview.compliance.vat.dueDate}`,
+              ],
+              hint: "Estimated upcoming VAT liability",
+            }
+          : tile;
+      case "hmrc-accounts":
+        return overview.compliance
+          ? {
+              ...tile,
+              value: overview.compliance.hmrc.annualAccountsDue,
+              hint: overview.compliance.hmrc.label,
+            }
+          : tile;
       case "forecast":
         return {
           ...tile,
@@ -504,6 +538,8 @@ export const DEFAULT_FINANCIALS_TILE_LAYOUT = [
   "accounts-receivable",
   "accounts-payable",
   "net-profit",
+  "monthly-revenue",
+  "vat-return",
 ];
 export const DEFAULT_DEBTORS_TILE_LAYOUT = DEBTORS_DASHBOARD_TILES.map((tile) => tile.id);
 export const DEFAULT_CREDITORS_TILE_LAYOUT = CREDITORS_DASHBOARD_TILES.map((tile) => tile.id);
