@@ -21,9 +21,6 @@ const ADVANCE_ACTIONS = new Set<ClientOnboardingAdvanceAction>([
 ]);
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  const auth = await requireInternalWorkspaceSession();
-  if ("error" in auth) return auth.error;
-
   const { id } = await context.params;
   const body = (await request.json()) as { action?: string; actorLabel?: string };
   const action = body.action as ClientOnboardingAdvanceAction | undefined;
@@ -41,6 +38,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
   }
+
+  const auth = await requireInternalWorkspaceSession();
+  if ("error" in auth) return auth.error;
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });

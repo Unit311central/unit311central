@@ -187,7 +187,7 @@ export default function PotentialClientsWorkspace() {
             eyebrow: "Northstar · Market sizing",
             title: "Potential Clients",
             description:
-              "UK manufacturing SME targets for Northstar Industrial Technologies — industrial IoT and remote monitoring.",
+              "UK / US / EU SME targets for Northstar Industrial Technologies — industrial IoT and remote monitoring for mid-market manufacturers.",
           }
         : {
           eyebrow: "Strategy · Market sizing",
@@ -415,7 +415,7 @@ export default function PotentialClientsWorkspace() {
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-white">All countries summary</h3>
             <p className="mt-1 text-xs text-white/50">
-              UK, US & EU manufacturing SME targets for Northstar Industrial Technologies.
+              UK / US / EU SME targets — combined market sizing across Northstar focus regions.
             </p>
           </div>
           <EditSectionButton

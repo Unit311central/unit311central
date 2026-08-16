@@ -29,17 +29,20 @@ function detailField(label: string, value: string) {
   `;
 }
 
+function companyFromBackground(background: string) {
+  const split = background.split(" — ");
+  return split[0]?.trim() || "";
+}
+
 function connectionDetailsHtml(connection: CrmConnection, compact = false) {
   const name = escapeHtml(connection.name);
   const role = escapeHtml(connection.role);
+  const company = escapeHtml(companyFromBackground(connection.background));
   const location = escapeHtml(`${connection.city}, ${connection.country}`);
 
   const fields = compact
     ? [
         connection.specialties ? detailField("Specialties", connection.specialties) : "",
-        connection.countryExperience
-          ? detailField("Country experience", connection.countryExperience)
-          : "",
       ].join("")
     : [
         detailField("Specialties", connection.specialties),
@@ -48,10 +51,11 @@ function connectionDetailsHtml(connection: CrmConnection, compact = false) {
       ].join("");
 
   return `
-    <div style="min-width:${compact ? 200 : 220}px;max-width:280px;font-family:system-ui,sans-serif">
-      <div style="font-size:14px;font-weight:600;color:#f8fafc">${name}</div>
-      <div style="margin-top:2px;font-size:12px;color:#60a5fa">${role}</div>
-      <div style="margin-top:4px;font-size:11px;color:rgba(148,163,184,0.95)">${location}</div>
+    <div style="min-width:150px;max-width:220px;font-family:system-ui,sans-serif;padding:2px 0">
+      <div style="font-size:13px;font-weight:600;color:#f8fafc;line-height:1.25">${name}</div>
+      ${company ? `<div style="margin-top:3px;font-size:11px;font-weight:600;color:#7dd3fc;line-height:1.25">${company}</div>` : ""}
+      <div style="margin-top:3px;font-size:10px;color:#93c5fd">${role}</div>
+      <div style="margin-top:2px;font-size:10px;color:rgba(148,163,184,0.95)">${location}</div>
       ${fields}
     </div>
   `;
@@ -109,8 +113,8 @@ function ConnectionMarkers({
       });
 
       marker.bindPopup(connectionDetailsHtml(connection), {
-        maxWidth: 320,
-        minWidth: 220,
+        maxWidth: 240,
+        minWidth: 150,
         className: "connections-map-popup",
         autoPan: true,
         closeButton: true,

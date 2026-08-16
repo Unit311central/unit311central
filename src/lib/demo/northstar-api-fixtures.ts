@@ -747,6 +747,52 @@ export function getNorthstarExternalUsers() {
   }));
 }
 
+export function getNorthstarOnboardingQuestionnaire(recordId: string) {
+  const records: Record<
+    string,
+    {
+      organisationName: string;
+      logoPath: string | null;
+      completedAt: string | null;
+      moduleSelectionMode: "all" | "choose";
+      selectedModuleLabels: string[];
+      importClientsCsv: boolean;
+    }
+  > = {
+    "nst-onb-001": {
+      organisationName: "Lancashire Packaging Systems",
+      logoPath: null,
+      completedAt: "2026-08-10T16:30:00.000Z",
+      moduleSelectionMode: "choose",
+      selectedModuleLabels: ["Monitoring", "Alerts", "Reporting"],
+      importClientsCsv: true,
+    },
+    "nst-onb-002": {
+      organisationName: "Nottingham Automation Group",
+      logoPath: null,
+      completedAt: "2026-07-28T10:00:00.000Z",
+      moduleSelectionMode: "all",
+      selectedModuleLabels: ["Full platform suite"],
+      importClientsCsv: false,
+    },
+  };
+  return records[recordId] ?? null;
+}
+
+export function getNorthstarOnboardingPaymentReceipt(recordId: string) {
+  const receipts: Record<string, { url: string; name: string }> = {
+    "nst-onb-001": {
+      url: "https://northstar.demo/receipts/lancashire-packaging-aug-2026.pdf",
+      name: "Lancashire Packaging — onboarding payment.pdf",
+    },
+    "nst-onb-002": {
+      url: "https://northstar.demo/receipts/nottingham-auto-jul-2026.pdf",
+      name: "Nottingham Automation — onboarding payment.pdf",
+    },
+  };
+  return receipts[recordId] ?? null;
+}
+
 export function getNorthstarMarketingKpis(): MarketingDashboardKpis {
   return {
     newsletterOpenRate: 42.5,

@@ -318,7 +318,7 @@ export default function NorthstarBusinessCentralDashboard() {
         </section>
 
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">Best performing country</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">Best performing country / region</p>
           <p className="mt-2 text-2xl font-bold text-white">United Kingdom</p>
           <p className="mt-1 text-xs text-white/50">68% of active ARR · 67 live clients</p>
           <div className="mt-4 space-y-2">

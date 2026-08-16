@@ -34,14 +34,16 @@ export type NorthstarOverviewSnapshot = {
     employees: number;
     clients: number;
     activeProjects: number;
-    arrGbp: number;
+    /** Annual revenue recognised in 2025 (GBP). */
+    annualRevenue2025Gbp: number;
+    /** Revenue growth since 2023 baseline (%). */
+    revenueGrowthSince2023Pct: number;
+    investmentToDateGbp: number;
+    ebitdaGbp: number;
     cashGbp: number;
-    targetGmPct: number;
-    actualGmPct: number;
     arGbp: number;
     apGbp: number;
     pipelineGbp: number;
-    totalRaisedGbp: number;
   };
   wins: string[];
   losses: string[];
@@ -92,28 +94,28 @@ export function buildNorthstarOverviewSnapshot(): NorthstarOverviewSnapshot {
       employees: summary.employees ?? 25,
       clients: summary.clients ?? 100,
       activeProjects: summary.activeProjects ?? 20,
-      arrGbp: narrative.arrGbp ?? 4_800_000,
+      annualRevenue2025Gbp: narrative.arrGbp ?? 4_800_000,
+      revenueGrowthSince2023Pct: 823,
+      investmentToDateGbp: NORTHSTAR_TOTAL_RAISED_GBP,
+      ebitdaGbp: 1_080_000,
       cashGbp: narrative.cashGbp ?? 1_900_000,
-      targetGmPct: narrative.targetGmPct ?? 58,
-      actualGmPct: narrative.actualGmPct ?? 54,
       arGbp: narrative.arGbp ?? 620_000,
       apGbp: narrative.apGbp ?? 210_000,
       pipelineGbp: narrative.pipelineGbp ?? 1_200_000,
-      totalRaisedGbp: NORTHSTAR_TOTAL_RAISED_GBP,
     },
     wins: narrative.wins ?? [
       "Sheffield Precision expansion — £180k ARR add-on",
       "Dec 2025 strong close — 4 new logos",
-      "Growth round £2m closed Aug 2025",
+      "£1M pre-seed closed 2023 — five strategic investors",
     ],
     losses: narrative.losses ?? [
       "Harbor Forge churned — integration failure lesson",
       "Jun 2025 margin dip — Voltex supplier delays",
     ],
     peopleChanges: narrative.peopleChanges ?? [
+      "Headcount 5 → 25 since Apr 2023 (UK FY growth)",
       "Hired: US Solutions Engineer (Austin), Senior Firmware Engineer (Bristol)",
       "Promoted: Delivery lead → Delivery Director",
-      "Terminated: Sales AE (underperformance, Dec 2025)",
       "Open roles: US Account Executive, Firmware Engineer, CSM",
     ],
     board: {

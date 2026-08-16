@@ -134,6 +134,14 @@ export const ONWARDAIR_REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[
   { id: "new-leads", label: "Rep-sourced leads", value: "11", hint: "This quarter" },
 ];
 
+/** Northstar demo partners — GBP commissions. */
+export const NORTHSTAR_REPRESENTATIVES_DASHBOARD_TILES: DashboardTileDefinition[] = [
+  { id: "active-reps", label: "Active partners", value: "4", hint: "Channel & integrators" },
+  { id: "commission-due", label: "Commission due", value: "£18.4k", hint: "Outstanding GBP" },
+  { id: "territories", label: "Territories", value: "3", hint: "UK · US · EU" },
+  { id: "new-leads", label: "Partner-sourced leads", value: "9", hint: "This quarter" },
+];
+
 export const PROJECTS_DASHBOARD_TILES: DashboardTileDefinition[] = [
   { id: "live-projects", label: "Live projects", value: "0", hint: "In delivery" },
   { id: "upcoming", label: "Upcoming", value: "0", hint: "Mobilising soon" },
@@ -283,7 +291,15 @@ export function buildFinancialsDashboardCatalog(
       case "accounts-receivable":
         return { ...tile, value: money(overview.accountsReceivable) };
       case "accounts-payable":
-        return { ...tile, value: money(overview.accountsPayable) };
+        return {
+          ...tile,
+          value: money(overview.accountsPayable),
+          meta: [
+            `Due now ${money(overview.ap?.dueThisMonth ?? 0)}`,
+            `Within 30 days ${money(overview.ap?.upcoming ?? 0)}`,
+          ],
+          hint: "Outstanding supplier invoices",
+        };
       case "net-profit":
         return { ...tile, value: money(overview.netProfit) };
       case "outstanding-invoices":
@@ -459,6 +475,9 @@ export const HR_DASHBOARD_TILES: DashboardTileDefinition[] = [
 export const DEFAULT_CRM_TILE_LAYOUT = CRM_DASHBOARD_TILES.map((tile) => tile.id);
 export const DEFAULT_CLIENTS_TILE_LAYOUT = CLIENTS_DASHBOARD_TILES.map((tile) => tile.id);
 export const DEFAULT_REPRESENTATIVES_TILE_LAYOUT = REPRESENTATIVES_DASHBOARD_TILES.map((tile) => tile.id);
+export const DEFAULT_NORTHSTAR_REPRESENTATIVES_TILE_LAYOUT = NORTHSTAR_REPRESENTATIVES_DASHBOARD_TILES.map(
+  (tile) => tile.id,
+);
 export const DEFAULT_PROJECTS_TILE_LAYOUT = PROJECTS_DASHBOARD_TILES.map((tile) => tile.id);
 /** Cleaner default KPI strip — full catalogue remains available via Customize. */
 export const DEFAULT_FINANCIALS_TILE_LAYOUT = [

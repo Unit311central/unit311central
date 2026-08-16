@@ -14,30 +14,30 @@ type NorthstarLogoMarkProps = {
 };
 
 /**
- * Northstar wordmark — NORTHSTAR (white) + INDUSTRIAL TECHNOLOGIES (sky blue), no image box.
+ * Northstar wordmark — NORTHSTAR (white) + INDUSTRIAL TECHNOLOGIES (sky blue), equal line width.
  */
 export default function NorthstarLogoMark({
   className,
   height = 40,
   maxWidth = 230,
 }: NorthstarLogoMarkProps) {
-  const titleSize = Math.round(height * 0.42);
-  const subtitleSize = Math.round(height * 0.22);
+  const titleSize = Math.round(height * 0.38);
+  const subtitleSize = Math.round(height * 0.19);
 
   return (
     <span
-      className={cn("inline-flex min-w-0 flex-col leading-none bg-transparent", className)}
-      style={{ maxWidth }}
+      className={cn("inline-flex min-w-0 flex-col items-stretch leading-none bg-transparent", className)}
+      style={{ width: maxWidth, maxWidth }}
     >
       <span
-        className="font-bold tracking-[0.06em] text-white"
-        style={{ fontSize: titleSize, lineHeight: 1.05 }}
+        className="block w-full text-center font-bold text-white"
+        style={{ fontSize: titleSize, lineHeight: 1.05, letterSpacing: "0.24em" }}
       >
         NORTHSTAR
       </span>
       <span
-        className="mt-0.5 font-semibold uppercase tracking-[0.14em] text-sky-400"
-        style={{ fontSize: subtitleSize, lineHeight: 1.1 }}
+        className="mt-0.5 block w-full text-center font-semibold uppercase text-sky-400"
+        style={{ fontSize: subtitleSize, lineHeight: 1.1, letterSpacing: "0.06em" }}
       >
         Industrial Technologies
       </span>

@@ -17,13 +17,13 @@ import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  // Clients Dashboard metrics need a read for any authenticated workspace operator.
-  const auth = await requireInternalWorkspaceSession();
-  if ("error" in auth) return auth.error;
-
   if (await isDemoApiRequest()) {
     return NextResponse.json({ users: getNorthstarExternalUsers(), linkableCompanies: [] });
   }
+
+  // Clients Dashboard metrics need a read for any authenticated workspace operator.
+  const auth = await requireInternalWorkspaceSession();
+  if ("error" in auth) return auth.error;
 
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });

@@ -13,9 +13,6 @@ export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
-  const auth = await requireInternalWorkspaceSession();
-  if ("error" in auth) return auth.error;
-
   const { id } = await context.params;
   const body = (await request.json()) as Partial<
     Pick<ClientOnboardingRecord, "currentStatus" | "currentStage" | "progressPercent">
@@ -31,10 +28,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
   }
 
+  const auth = await requireInternalWorkspaceSession();
+  if ("error" in auth) return auth.error;
+
   return NextResponse.json({ error: "Onboarding updates require Supabase." }, { status: 503 });
 }
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ ok: true });
+  }
+
   const auth = await requireInternalWorkspaceSession();
   if ("error" in auth) return auth.error;
 

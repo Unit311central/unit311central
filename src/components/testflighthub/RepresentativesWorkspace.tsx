@@ -24,7 +24,9 @@ import { isNorthstarDemoBrowser } from "@/lib/demo/module-fixtures";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   ABHI_REPRESENTATIVES_DASHBOARD_TILES,
+  DEFAULT_NORTHSTAR_REPRESENTATIVES_TILE_LAYOUT,
   DEFAULT_REPRESENTATIVES_TILE_LAYOUT,
+  NORTHSTAR_REPRESENTATIVES_DASHBOARD_TILES,
   ONWARDAIR_REPRESENTATIVES_DASHBOARD_TILES,
   REPRESENTATIVES_DASHBOARD_TILES,
 } from "@/lib/view-dashboard-tile-catalogs";
@@ -94,7 +96,15 @@ export default function RepresentativesWorkspace({
     ? ONWARDAIR_REPRESENTATIVES_DASHBOARD_TILES
     : isAbhi
       ? ABHI_REPRESENTATIVES_DASHBOARD_TILES
-      : REPRESENTATIVES_DASHBOARD_TILES;
+      : isNorthstar
+        ? NORTHSTAR_REPRESENTATIVES_DASHBOARD_TILES
+        : REPRESENTATIVES_DASHBOARD_TILES;
+  const dashboardDefaultLayout = isNorthstar
+    ? DEFAULT_NORTHSTAR_REPRESENTATIVES_TILE_LAYOUT
+    : DEFAULT_REPRESENTATIVES_TILE_LAYOUT;
+  const dashboardStorageKey = isNorthstar
+    ? "unit311-northstar-representatives-dashboard-tiles"
+    : "unit311-representatives-dashboard-tiles";
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [customTerritories, setCustomTerritories] = useState<Record<string, string[]>>({});
   const [customTerritoryInput, setCustomTerritoryInput] = useState("");
@@ -299,9 +309,9 @@ export default function RepresentativesWorkspace({
   return (
     <div className="space-y-6">
       <DashboardTopTilesBar
-        storageKey="unit311-representatives-dashboard-tiles"
+        storageKey={dashboardStorageKey}
         catalog={dashboardTiles}
-        defaultLayout={DEFAULT_REPRESENTATIVES_TILE_LAYOUT}
+        defaultLayout={dashboardDefaultLayout}
         title="Representative key details"
         showCustomizeHint={false}
       />

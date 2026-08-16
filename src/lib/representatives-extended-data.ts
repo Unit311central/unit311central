@@ -51,6 +51,52 @@ export const ABHI_REP_COMMISSIONS: RepCommissionRow[] = [
   },
 ];
 
+/** Northstar demo partners — amounts stored in amountEur field, displayed as GBP. */
+export const NORTHSTAR_REP_COMMISSIONS: RepCommissionRow[] = [
+  {
+    repId: "rep-nst-1",
+    client: "Sheffield Precision Engineering",
+    period: "Aug 2026",
+    amountEur: 12_400,
+    status: "Paid",
+  },
+  {
+    repId: "rep-nst-1",
+    client: "Trafford Packaging Ltd",
+    period: "Q3 2026",
+    amountEur: 8_600,
+    status: "Outstanding",
+  },
+  {
+    repId: "rep-nst-2",
+    client: "Bristol Composites Ltd",
+    period: "Jul 2026",
+    amountEur: 5_200,
+    status: "Upcoming",
+  },
+  {
+    repId: "rep-nst-3",
+    client: "Cardiff Port Logistics",
+    period: "Aug 2026",
+    amountEur: 4_800,
+    status: "Paid",
+  },
+  {
+    repId: "nst-partner-1",
+    client: "Peak District Breweries",
+    period: "Q3 2026",
+    amountEur: 6_200,
+    status: "Outstanding",
+  },
+  {
+    repId: "nst-partner-2",
+    client: "Nottingham Automation Group",
+    period: "Sep 2026",
+    amountEur: 3_400,
+    status: "Outstanding",
+  },
+];
+
 function activeRepCommissions(): RepCommissionRow[] {
   if (typeof window !== "undefined") {
     try {
@@ -64,6 +110,13 @@ function activeRepCommissions(): RepCommissionRow[] {
       const { isBrowserAbhiSurface } =
         require("@/lib/abhi-surface") as typeof import("@/lib/abhi-surface");
       if (isBrowserAbhiSurface()) return ABHI_REP_COMMISSIONS;
+    } catch {
+      // Fall through.
+    }
+    try {
+      const { isNorthstarDemoBrowser } =
+        require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+      if (isNorthstarDemoBrowser()) return NORTHSTAR_REP_COMMISSIONS;
     } catch {
       // Fall through.
     }
