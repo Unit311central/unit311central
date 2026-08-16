@@ -1,11 +1,28 @@
 import { NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requireInternalWiseWorkspace } from "@/lib/treasury/treasury-api-auth";
 import { getWiseConnectionStatus, listWiseBalances } from "@/lib/wise-service";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    try {
+      const status = await getWiseConnectionStatus();
+      const balances = await listWiseBalances(status.profileId ?? undefined);
+      return NextResponse.json({
+        balances,
+        fetchedAt: new Date().toISOString(),
+        status,
+        demoMode: true,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load Wise balances.";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
   const gate = await requireInternalWiseWorkspace();
   if ("error" in gate) return gate.error;
 

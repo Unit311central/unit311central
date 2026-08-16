@@ -17,6 +17,12 @@ import {
  */
 export async function shouldUseDemoWiseSimulator(): Promise<boolean> {
   try {
+    const { isDemoApiRequest } = await import("@/lib/demo/demo-request");
+    if (await isDemoApiRequest()) return true;
+  } catch {
+    /* optional */
+  }
+  try {
     const { headers } = await import("next/headers");
     const { getRequestHost } = await import("@/lib/app-domains");
     const requestHeaders = await headers();

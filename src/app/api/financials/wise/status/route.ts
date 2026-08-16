@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requireInternalWiseWorkspace } from "@/lib/treasury/treasury-api-auth";
 import {
   shouldUseDemoWiseSimulator,
@@ -10,6 +11,21 @@ import { getWiseConnectionStatus, getWiseScaKeyDiagnostics } from "@/lib/wise-se
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    try {
+      const status = await getWiseConnectionStatus();
+      return NextResponse.json({
+        ...status,
+        demoMode: true,
+        scaPrivateKeyConfigured: false,
+        scaKey: getWiseScaKeyDiagnostics(),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to check Wise connection.";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  }
+
   const gate = await requireInternalWiseWorkspace();
   if ("error" in gate) return gate.error;
 
