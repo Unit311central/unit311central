@@ -26,12 +26,12 @@ import {
   createNorthstarBoardPackDraft,
   getNorthstarBoardPack,
   loadNorthstarBoardPacks,
+  resolveNorthstarPackPdfUrl,
   saveNorthstarBoardPack,
   type NorthstarBoardPackRecord,
 } from "@/lib/demo/northstar-board-pack-store";
 import {
   archiveNorthstarRisk,
-  buildNorthstarRiskHeatmap,
   computeNorthstarRiskRating,
   deleteNorthstarRisk,
   upsertNorthstarRisk,
@@ -324,7 +324,7 @@ export function NorthstarBoardMeetingsWorkspace() {
                     <td className="px-3 py-3">
                       {pack ? (
                         <a
-                          href={pack.pdfOpenUrl}
+                          href={resolveNorthstarPackPdfUrl(pack.meetingDate, pack.pdfOpenUrl)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs font-medium text-sky-300 hover:text-sky-200"
@@ -397,14 +397,20 @@ export function NorthstarBoardMeetingsWorkspace() {
           {viewMeeting.boardPackId ? (
             <div className="mt-4">
               <CorporateFieldLabel>Board pack</CorporateFieldLabel>
-              <a
-                href={getNorthstarBoardPack(viewMeeting.boardPackId)?.pdfOpenUrl ?? "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-sky-300 hover:underline"
-              >
-                Open legacy deck
-              </a>
+              {(() => {
+                const pack = getNorthstarBoardPack(viewMeeting.boardPackId!);
+                if (!pack) return <p className="text-sm text-white/45">—</p>;
+                return (
+                  <a
+                    href={resolveNorthstarPackPdfUrl(pack.meetingDate, pack.pdfOpenUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm text-sky-300 hover:underline"
+                  >
+                    {pack.packName}
+                  </a>
+                );
+              })()}
             </div>
           ) : null}
           <div className="mt-4">
@@ -544,111 +550,6 @@ export function NorthstarBoardMeetingsWorkspace() {
   );
 }
 
-export function NorthstarBoardMinutesWorkspace() {
-  const store = useNorthstarBoardMeetingsStore();
-  const [q, setQ] = useState("");
-  const held = useMemo(
-    () =>
-      store.meetings
-        .filter((m) => m.status === "Held")
-        .slice()
-        .sort((a, b) => b.meetingDate.localeCompare(a.meetingDate)),
-    [store.meetings],
-  );
-
-  const filtered = held.filter((m) => {
-    const hay = `${m.title} ${m.notes} ${m.decisions.map((d) => d.text).join(" ")}`.toLowerCase();
-    return hay.includes(q.trim().toLowerCase());
-  });
-
-  return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Minutes & Decisions"
-        subtitle="Structured minutes for held Northstar board meetings — Q1 and Q2 2026 on record. Edit via Board Meetings."
-      />
-
-      <label className="relative block max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search minutes, decisions…"
-          className="w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-sky-400/50"
-        />
-      </label>
-
-      <CorporateSection title="Meeting minutes" subtitle="One card per held meeting — mirrors the meeting register.">
-        <div className="space-y-3">
-          {filtered.map((m) => {
-            const pack = m.boardPackId ? getNorthstarBoardPack(m.boardPackId) : null;
-            return (
-              <article
-                key={m.id}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">{m.title}</h2>
-                    <p className="text-sm text-white/45">{formatDate(m.meetingDate)}</p>
-                  </div>
-                  <CorporateStatusPill className="border-emerald-400/30 bg-emerald-500/15 text-emerald-100">
-                    {m.status}
-                  </CorporateStatusPill>
-                </div>
-                {pack ? (
-                  <p className="mt-2 text-xs text-sky-300/90">
-                    Board pack:{" "}
-                    <a href={pack.pdfOpenUrl} target="_blank" rel="noreferrer" className="hover:underline">
-                      {pack.packName}
-                    </a>
-                  </p>
-                ) : null}
-                <p className="mt-3 text-sm leading-relaxed text-white/70">{m.notes}</p>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                      Decisions / resolutions
-                    </p>
-                    <ul className="mt-2 space-y-1.5 text-sm text-white/70">
-                      {m.decisions.map((d) => (
-                        <li key={d.id}>
-                          • {d.text}
-                          {d.resolution ? (
-                            <span className="text-white/45"> — {d.resolution}</span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="rounded-xl border border-white/8 bg-black/20 px-3.5 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                      Action owners
-                    </p>
-                    <ul className="mt-2 space-y-1.5 text-sm text-white/70">
-                      {m.actions.map((a) => (
-                        <li key={a.id}>
-                          • {a.owner}: {a.title}{" "}
-                          <span className="text-white/40">
-                            (due {formatDate(a.dueDate)}, {a.status})
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-          {filtered.length === 0 ? (
-            <p className="text-sm text-white/45">No held meetings match your search.</p>
-          ) : null}
-        </div>
-      </CorporateSection>
-    </div>
-  );
-}
-
 export function NorthstarBoardPacksWorkspace() {
   const [decks, setDecks] = useState<NorthstarBoardPackRecord[]>(() => loadNorthstarBoardPacks());
   const [message, setMessage] = useState<string | null>(null);
@@ -660,11 +561,10 @@ export function NorthstarBoardPacksWorkspace() {
       meetingId: next?.id,
       meetingDate: next?.meetingDate ?? "2026-09-18",
       quarter: next?.title.includes("Q3") ? "Q3 2026" : "Q4 2026",
-      existing: decks,
     });
     saveNorthstarBoardPack(draft);
     setDecks(loadNorthstarBoardPacks());
-    setMessage(`Created draft pack for ${draft.quarter}. Review before the board meeting.`);
+    setMessage(`Created draft pack for ${draft.quarter}. Open preview to download northstar-board-deck-${draft.meetingDate}.pdf`);
   }
 
   return (
@@ -695,7 +595,10 @@ export function NorthstarBoardPacksWorkspace() {
       ) : null}
 
       <div className="space-y-3">
-        {decks.map((pack) => (
+        {decks.map((pack) => {
+          const pdfUrl = resolveNorthstarPackPdfUrl(pack.meetingDate, pack.pdfOpenUrl);
+          const downloadUrl = pack.pptxDownloadUrl ?? pdfUrl;
+          return (
           <article
             key={pack.id}
             className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
@@ -743,11 +646,15 @@ export function NorthstarBoardPacksWorkspace() {
               ))}
             </ul>
             <div className="mt-4 flex flex-wrap gap-2">
-              <a href={pack.pdfOpenUrl} target="_blank" rel="noreferrer" className={corporateSecondaryButtonClass()}>
+              <a href={pdfUrl} target="_blank" rel="noreferrer" className={corporateSecondaryButtonClass()}>
                 <FileText className="h-3.5 w-3.5" />
                 Preview PDF
               </a>
-              <a href={pack.pdfOpenUrl} download className={corporateSecondaryButtonClass()}>
+              <a
+                href={downloadUrl}
+                download={`northstar-board-deck-${pack.meetingDate}.pdf`}
+                className={corporateSecondaryButtonClass()}
+              >
                 <Download className="h-3.5 w-3.5" />
                 Download PDF
               </a>
@@ -758,8 +665,12 @@ export function NorthstarBoardPacksWorkspace() {
                 </a>
               ) : null}
             </div>
+            <p className="mt-2 text-xs text-white/40">
+              File: northstar-board-deck-{pack.meetingDate}.pdf
+            </p>
           </article>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -787,7 +698,6 @@ type RiskFormState = {
   status: NorthstarMitigationStatus;
   dateRaised: string;
   reviewDate: string;
-  boardPackId: string;
 };
 
 function emptyRiskForm(): RiskFormState {
@@ -802,7 +712,6 @@ function emptyRiskForm(): RiskFormState {
     status: "Open",
     dateRaised: todayIso(),
     reviewDate: todayIso(),
-    boardPackId: "",
   };
 }
 
@@ -819,7 +728,6 @@ function riskFormFrom(risk: NorthstarRiskRegisterEntry): RiskFormState {
     status: risk.status,
     dateRaised: risk.dateRaised,
     reviewDate: risk.reviewDate,
-    boardPackId: risk.boardPackId ?? "",
   };
 }
 
@@ -839,64 +747,49 @@ function statusTone(status: NorthstarMitigationStatus) {
   return "border-white/15 bg-white/[0.04] text-white/55";
 }
 
-function RiskHeatmap({ risks }: { risks: NorthstarRiskRegisterEntry[] }) {
-  const grid = buildNorthstarRiskHeatmap(risks);
-  const impacts: NorthstarRiskLevel[] = ["H", "M", "L"];
-  const likelihoods: NorthstarRiskLevel[] = ["L", "M", "H"];
+function riskBandLabel(rating: number): "High" | "Medium" | "Low" {
+  if (rating >= 15) return "High";
+  if (rating >= 9) return "Medium";
+  return "Low";
+}
+
+function SimpleRiskOverview({ risks }: { risks: NorthstarRiskRegisterEntry[] }) {
+  const bands = { High: 0, Medium: 0, Low: 0 } as Record<"High" | "Medium" | "Low", number>;
+  for (const risk of risks) {
+    bands[riskBandLabel(risk.rating)] += 1;
+  }
+  const total = risks.length || 1;
+  const items: Array<{ label: "High" | "Medium" | "Low"; tone: string; bar: string }> = [
+    { label: "High", tone: "text-rose-100", bar: "bg-rose-500" },
+    { label: "Medium", tone: "text-amber-100", bar: "bg-amber-500" },
+    { label: "Low", tone: "text-emerald-100", bar: "bg-emerald-500" },
+  ];
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-[320px] border-collapse text-center text-xs">
-        <thead>
-          <tr>
-            <th className="p-2 text-white/40" />
-            {likelihoods.map((l) => (
-              <th key={l} className="p-2 font-semibold text-white/50">
-                L={l}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {impacts.map((impact) => (
-            <tr key={impact}>
-              <th className="p-2 font-semibold text-white/50">I={impact}</th>
-              {likelihoods.map((likelihood) => {
-                const cell = grid[`${impact}-${likelihood}`] ?? [];
-                const score = computeNorthstarRiskRating(impact, likelihood);
-                return (
-                  <td
-                    key={`${impact}-${likelihood}`}
-                    className={cn(
-                      "min-w-[88px] border border-white/10 p-2 align-top",
-                      score >= 15
-                        ? "bg-rose-500/20"
-                        : score >= 9
-                          ? "bg-amber-500/15"
-                          : "bg-emerald-500/10",
-                    )}
-                    title={cell.map((r) => r.id).join(", ")}
-                  >
-                    <p className="font-semibold text-white">{cell.length}</p>
-                    {cell.slice(0, 2).map((r) => (
-                      <p key={r.id} className="mt-0.5 truncate text-[10px] text-white/60">
-                        {r.id}
-                      </p>
-                    ))}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-4">
+      <p className="text-sm text-white/55">
+        Risks grouped by score band — high is 15+, medium is 9–14, low is below 9.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {items.map(({ label, tone, bar }) => (
+          <div key={label} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+            <p className={`text-2xl font-semibold ${tone}`}>{bands[label]}</p>
+            <p className="text-xs uppercase tracking-wide text-white/45">{label} priority</p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className={`h-full rounded-full ${bar}`}
+                style={{ width: `${Math.round((bands[label] / total) * 100)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 export function NorthstarBoardRisksWorkspace() {
   const store = useNorthstarRiskRegisterStore();
-  const packs = useMemo(() => loadNorthstarBoardPacks(), []);
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState<RiskFormState | null>(null);
@@ -932,7 +825,6 @@ export function NorthstarBoardRisksWorkspace() {
       status: form.status,
       dateRaised: form.dateRaised,
       reviewDate: form.reviewDate,
-      boardPackId: form.boardPackId.trim() || undefined,
     });
     setForm(null);
   }
@@ -941,7 +833,7 @@ export function NorthstarBoardRisksWorkspace() {
     <div className="space-y-5">
       <PageHeader
         title="Risk Register"
-        subtitle="Editable board risks — highest rating first, heatmap view, mitigation status including overdue items. Links to board packs."
+        subtitle="Editable board risks — highest rating first, simple priority bands, mitigation status including overdue items."
       />
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -958,8 +850,8 @@ export function NorthstarBoardRisksWorkspace() {
         <CorporateKpiTile label="Open" value={activeRisks.filter((r) => r.status === "Open").length} />
       </section>
 
-      <CorporateSection title="Risk heatmap" subtitle="Impact × likelihood — darker cells = higher inherent score.">
-        <RiskHeatmap risks={activeRisks} />
+      <CorporateSection title="Risk overview" subtitle="How many risks sit in each priority band.">
+        <SimpleRiskOverview risks={activeRisks} />
       </CorporateSection>
 
       <CorporateSection
@@ -1000,14 +892,11 @@ export function NorthstarBoardRisksWorkspace() {
                 <th className="px-4 py-3">Risk</th>
                 <th className="px-4 py-3">Rating</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Board pack</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((risk) => {
-                const pack = risk.boardPackId ? getNorthstarBoardPack(risk.boardPackId) : null;
-                return (
+              {filtered.map((risk) => (
                   <tr key={risk.id} className="border-b border-white/8 text-white/85">
                     <td className="px-4 py-3 font-medium">{risk.id}</td>
                     <td className="max-w-[280px] px-4 py-3">
@@ -1028,20 +917,6 @@ export function NorthstarBoardRisksWorkspace() {
                       <CorporateStatusPill className={statusTone(risk.status)}>
                         {risk.status}
                       </CorporateStatusPill>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {pack ? (
-                        <a
-                          href={pack.pdfOpenUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sky-300 hover:underline"
-                        >
-                          {pack.quarter}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
@@ -1071,8 +946,7 @@ export function NorthstarBoardRisksWorkspace() {
                       </div>
                     </td>
                   </tr>
-                );
-              })}
+                ))}
             </tbody>
           </table>
         </div>
@@ -1192,21 +1066,6 @@ export function NorthstarBoardRisksWorkspace() {
                   value={form.reviewDate}
                   onChange={(e) => setForm({ ...form, reviewDate: e.target.value })}
                 />
-              </div>
-              <div>
-                <CorporateFieldLabel>Linked board pack</CorporateFieldLabel>
-                <select
-                  className={corporateInputClass()}
-                  value={form.boardPackId}
-                  onChange={(e) => setForm({ ...form, boardPackId: e.target.value })}
-                >
-                  <option value="">— None —</option>
-                  {packs.map((pack) => (
-                    <option key={pack.id} value={pack.id}>
-                      {pack.packName}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
           </div>

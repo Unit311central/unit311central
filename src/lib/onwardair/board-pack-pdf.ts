@@ -289,11 +289,11 @@ export async function buildOnwardAirBoardPackPdf(
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     setText(doc, C.muted);
-    doc.text("OnwardAir", MARGIN, 34);
+    doc.text(data.coverBrand?.orgLine ?? "OnwardAir", MARGIN, 34);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(28);
     setText(doc, C.navy);
-    doc.text("Board Deck", MARGIN, 47);
+    doc.text(data.coverBrand?.deckTitle ?? "Board Deck", MARGIN, 47);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(14);
     setText(doc, C.text);

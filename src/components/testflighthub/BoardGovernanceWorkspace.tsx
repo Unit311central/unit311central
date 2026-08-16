@@ -2,11 +2,11 @@
 
 import { AbhiBoardPortalApp } from "@/components/abhi/board/AbhiBoardPortalApp";
 import { AbhiBoardMinutesWorkspace } from "@/components/abhi/board/AbhiBoardMinutesWorkspace";
-import { DemoBoardMembersWorkspace } from "@/components/demo/DemoBoardWorkspace";
+import { NorthstarBoardMinutesWorkspace } from "@/components/demo/NorthstarBoardMinutesWorkspace";
+import { NorthstarBoardMembersWorkspace } from "@/components/demo/NorthstarBoardMembersWorkspace";
 import {
   NorthstarBoardDashboardWorkspace,
   NorthstarBoardMeetingsWorkspace,
-  NorthstarBoardMinutesWorkspace,
   NorthstarBoardRisksWorkspace,
 } from "@/components/demo/NorthstarBoardGovernanceWorkspaces";
 import {
@@ -39,7 +39,7 @@ export default function BoardGovernanceWorkspace({
     if (section === "dashboard") return <NorthstarBoardDashboardWorkspace />;
     if (section === "meetings") return <NorthstarBoardMeetingsWorkspace />;
     if (section === "minutes") return <NorthstarBoardMinutesWorkspace />;
-    if (section === "members") return <DemoBoardMembersWorkspace />;
+    if (section === "members") return <NorthstarBoardMembersWorkspace />;
     return <NorthstarBoardRisksWorkspace />;
   }
 

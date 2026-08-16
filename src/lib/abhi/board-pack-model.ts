@@ -214,6 +214,8 @@ export type AbhiBoardPackData = {
   aob: string;
   pageSummaries: string[];
   folderPath: string;
+  /** Optional PDF cover branding (OnwardAir-style deck builder). */
+  coverBrand?: { orgLine: string; deckTitle: string };
 };
 
 const ABHI_AGENDA = [

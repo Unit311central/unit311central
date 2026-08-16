@@ -2,6 +2,10 @@
  * Northstar Demo — board pack / deck records (ABHI-style, Northstar branding).
  */
 
+import {
+  northstarBoardDeckPdfUrl,
+  northstarBoardDeckSampleUrl,
+} from "@/lib/demo/northstar-board-pack-model";
 import { NORTHSTAR_LOGO_SRC } from "@/lib/demo/northstar-surface";
 
 export type NorthstarBoardPackRecord = {
@@ -19,10 +23,19 @@ export type NorthstarBoardPackRecord = {
   logoSrc: string;
 };
 
-const STORAGE_KEY = "unit311-northstar-board-packs-v1";
+const STORAGE_KEY = "unit311-northstar-board-packs-v2";
+
+function packPdfUrls(meetingDate: string) {
+  const sample = northstarBoardDeckSampleUrl(meetingDate);
+  const api = northstarBoardDeckPdfUrl(meetingDate, "inline");
+  const download = northstarBoardDeckPdfUrl(meetingDate, "attachment");
+  return { sample, api, download };
+}
 
 function seedPacks(): NorthstarBoardPackRecord[] {
-  const legacyPdf = "/samples/onwardair-board-deck-example.pdf";
+  const q1 = packPdfUrls("2026-03-20");
+  const q2 = packPdfUrls("2026-06-19");
+  const q3 = packPdfUrls("2026-09-18");
   return [
     {
       id: "ns-deck-q1-2026",
@@ -32,8 +45,8 @@ function seedPacks(): NorthstarBoardPackRecord[] {
       quarter: "Q1 2026",
       status: "Approved",
       createdAt: "2026-03-12T10:00:00.000Z",
-      pdfOpenUrl: legacyPdf,
-      pptxDownloadUrl: legacyPdf,
+      pdfOpenUrl: q1.sample,
+      pptxDownloadUrl: q1.download,
       folderPath: "Board/Northstar/2026/Q1",
       pageSummaries: [
         "CEO trading update",
@@ -52,8 +65,8 @@ function seedPacks(): NorthstarBoardPackRecord[] {
       quarter: "Q2 2026",
       status: "Approved",
       createdAt: "2026-06-11T10:00:00.000Z",
-      pdfOpenUrl: legacyPdf,
-      pptxDownloadUrl: legacyPdf,
+      pdfOpenUrl: q2.sample,
+      pptxDownloadUrl: q2.download,
       folderPath: "Board/Northstar/2026/Q2",
       pageSummaries: [
         "Q2 financial results",
@@ -72,17 +85,22 @@ function seedPacks(): NorthstarBoardPackRecord[] {
       quarter: "Q3 2026",
       status: "Draft",
       createdAt: "2026-08-20T14:00:00.000Z",
-      pdfOpenUrl: legacyPdf,
+      pdfOpenUrl: q3.sample,
+      pptxDownloadUrl: q3.download,
       folderPath: "Board/Northstar/2026/Q3",
       pageSummaries: [
         "CEO update (draft)",
         "Atlas GA readiness",
         "Margin vs target",
-        "Risk heatmap",
+        "Risk summary",
       ],
       logoSrc: NORTHSTAR_LOGO_SRC,
     },
   ];
+}
+
+function isLegacyPackUrl(url: string): boolean {
+  return url.includes("onwardair") || url.includes("onwardair-board-deck");
 }
 
 function readAll(): NorthstarBoardPackRecord[] {
@@ -91,7 +109,9 @@ function readAll(): NorthstarBoardPackRecord[] {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return seedPacks();
     const parsed = JSON.parse(raw) as NorthstarBoardPackRecord[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : seedPacks();
+    if (!Array.isArray(parsed) || parsed.length === 0) return seedPacks();
+    if (parsed.some((p) => isLegacyPackUrl(p.pdfOpenUrl))) return seedPacks();
+    return parsed;
   } catch {
     return seedPacks();
   }
@@ -143,28 +163,33 @@ export function createNorthstarBoardPackDraft(input: {
   meetingId?: string;
   meetingDate: string;
   quarter: string;
-  existing: NorthstarBoardPackRecord[];
 }): NorthstarBoardPackRecord {
-  const legacyPdf = "/samples/onwardair-board-deck-example.pdf";
+  const urls = packPdfUrls(input.meetingDate);
   const id = createNorthstarBoardPackId();
   return {
     id,
-    packName: `Northstar Board Pack — ${input.quarter} (AI Draft)`,
+    packName: `Northstar Board Pack — ${input.quarter} (Draft)`,
     meetingDate: input.meetingDate,
     meetingId: input.meetingId,
     quarter: input.quarter,
     status: "Draft",
     createdAt: new Date().toISOString(),
-    pdfOpenUrl: legacyPdf,
-    pptxDownloadUrl: legacyPdf,
+    pdfOpenUrl: urls.api,
+    pptxDownloadUrl: urls.download,
     folderPath: `Board/Northstar/${input.quarter.replace(/\s/g, "-")}`,
     pageSummaries: [
       "Executive summary",
       "Prior actions & decisions",
       "Financial overview",
-      "Risk register heatmap",
+      "Risk summary",
       "Strategic topics",
     ],
     logoSrc: NORTHSTAR_LOGO_SRC,
   };
+}
+
+/** Resolve preview URL — static sample first, API fallback for new drafts. */
+export function resolveNorthstarPackPdfUrl(meetingDate: string, storedUrl: string): string {
+  if (storedUrl.startsWith("/api/demo/board-deck")) return storedUrl;
+  return northstarBoardDeckSampleUrl(meetingDate);
 }
