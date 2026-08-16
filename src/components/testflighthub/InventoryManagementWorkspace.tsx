@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Copy,
@@ -1198,6 +1198,12 @@ export default function InventoryManagementWorkspace() {
     );
   }
 
+  const [isDemo, setIsDemo] = useState(false);
+
+  useEffect(() => {
+    setIsDemo(isBrowserDemoSurface());
+  }, []);
+
   return (
     <div className="space-y-5">
       {toast ? (
@@ -1221,7 +1227,7 @@ export default function InventoryManagementWorkspace() {
         />
       </section>
 
-      {typeof window !== "undefined" && isBrowserDemoSurface() ? <NorthstarInventoryCharts /> : null}
+      {isDemo ? <NorthstarInventoryCharts /> : null}
 
       {dueSoon.length > 0 ? (
         <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-4">

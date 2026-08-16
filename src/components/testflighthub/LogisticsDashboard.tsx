@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import NorthstarLogisticsKpiBar from "@/components/demo/NorthstarLogisticsKpiBar";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
@@ -124,6 +124,11 @@ export default function LogisticsDashboard({ onManageProviders }: LogisticsDashb
     destination: "",
     carrier: "FedEx",
   });
+  const [isDemo, setIsDemo] = useState(false);
+
+  useEffect(() => {
+    setIsDemo(isBrowserDemoSurface());
+  }, []);
 
   const selectedShipment =
     shipments.find((shipment) => shipment.id === selectedId) ?? featured ?? shipments[0];
@@ -184,7 +189,7 @@ export default function LogisticsDashboard({ onManageProviders }: LogisticsDashb
 
   return (
     <div className="space-y-6">
-      {typeof window !== "undefined" && isBrowserDemoSurface() ? <NorthstarLogisticsKpiBar /> : null}
+      {isDemo ? <NorthstarLogisticsKpiBar /> : null}
 
       <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">

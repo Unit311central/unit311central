@@ -486,8 +486,13 @@ export default function InternalOperationsDashboard({
   const mockSeededRef = useRef(false);
   const clientsLoadedRef = useRef(false);
   const usersLoadedRef = useRef(false);
+  const [isDemoSurface, setIsDemoSurface] = useState(false);
 
   useInfoEmailWhatsAppPoller(true);
+
+  useEffect(() => {
+    setIsDemoSurface(isBrowserDemoSurface());
+  }, []);
 
   // Seed mock registries only when a module that needs them is first opened.
   // Resolve the registry in-effect so host-specific seeds (ABHI / CorpCentre) see `window`.
@@ -803,7 +808,7 @@ export default function InternalOperationsDashboard({
 
           {activeView === "assets" && (
             <div className="space-y-5">
-              {isBrowserDemoSurface() ? <NorthstarAssetKpiBar /> : null}
+              {isDemoSurface ? <NorthstarAssetKpiBar /> : null}
               <AssetManagementWorkspace
                 assets={assets}
                 categories={assetCategories}

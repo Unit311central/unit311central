@@ -936,6 +936,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     icon: "Package",
     color: "#0284C7",
     items: [
+      { label: "Dashboard", icon: "LayoutDashboard", view: "operations-dashboard" as const },
       { label: "Assets", icon: "Package", view: "assets" as const },
       {
         label: "Inventory",
@@ -1594,6 +1595,20 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
             title: "Board Members",
             subtitle: "Board",
           };
+        }
+        if (activeView === "oa-marketing-dashboard") {
+          return { title: "Marketing and Events", subtitle: "Marketing and Events" };
+        }
+        if (activeView === "portfolio-stories") {
+          return { title: "Client Stories", subtitle: "Marketing and Events" };
+        }
+        if (
+          activeView === "marketing-newsletter" ||
+          activeView === "marketing-events" ||
+          activeView === "marketing-event-management" ||
+          activeView === "marketing-mailing-list"
+        ) {
+          return { title: base.title, subtitle: "Marketing and Events" };
         }
       }
     } catch {

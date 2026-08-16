@@ -44,18 +44,25 @@ export function mapBundleToAbhiMarketingState(bundle: MarketingBundleResponse) {
       createdAt: String(row.createdAt ?? new Date().toISOString()),
       updatedAt: String(row.updatedAt ?? new Date().toISOString()),
     })),
-    mailingCampaigns: bundle.campaigns.map((row) => ({
-      id: String(row.id),
-      subject: String(row.subject ?? ""),
-      body: String(row.body ?? ""),
-      status: row.status as "draft" | "scheduled" | "sent",
-      recipientMode: row.recipientMode as "all" | "selected" | "manual",
-      recipientMemberIds: (row.recipientIds as string[]) ?? [],
-      manualEmails: (row.manualEmails as string[]) ?? [],
-      scheduledAt: (row.scheduledAt as string | null) ?? null,
-      sentAt: (row.sentAt as string | null) ?? null,
-      createdAt: String(row.createdAt ?? new Date().toISOString()),
-    })),
+    mailingCampaigns: bundle.campaigns.map((row) => {
+      const ext = (row as { extensionData?: Record<string, unknown> }).extensionData ?? {};
+      return {
+        id: String(row.id),
+        name: String(ext.name ?? row.subject ?? ""),
+        purpose: String(ext.purpose ?? ""),
+        listName: String(ext.listName ?? ""),
+        lastSent: (ext.lastSent as string | null) ?? (row.sentAt as string | null) ?? null,
+        subject: String(row.subject ?? ""),
+        body: String(row.body ?? ""),
+        status: row.status as "draft" | "scheduled" | "sent",
+        recipientMode: row.recipientMode as "all" | "selected" | "manual",
+        recipientMemberIds: (row.recipientIds as string[]) ?? [],
+        manualEmails: (row.manualEmails as string[]) ?? [],
+        scheduledAt: (row.scheduledAt as string | null) ?? null,
+        sentAt: (row.sentAt as string | null) ?? null,
+        createdAt: String(row.createdAt ?? new Date().toISOString()),
+      };
+    }),
     events: bundle.externalEvents.map((row) => ({
       id: String(row.id),
       name: String(row.name ?? ""),

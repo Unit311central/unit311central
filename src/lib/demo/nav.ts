@@ -43,7 +43,7 @@ const DEMO_MARKETING_NAV: InternalNavSection = {
     { label: "External Events", icon: "CalendarDays", view: "marketing-events" as const },
     { label: "Event Management", icon: "Ticket", view: "marketing-event-management" as const },
     { label: "Mailing List", icon: "Users", view: "marketing-mailing-list" as const },
-    { label: "Stories", icon: "BookOpen", view: "portfolio-stories" as const },
+    { label: "Client Stories", icon: "BookOpen", view: "portfolio-stories" as const },
   ],
 };
 
@@ -174,7 +174,22 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
     }
 
     if (section.label === "Operations") {
-      out.push(section);
+      const hasDashboard = section.items.some(
+        (item) => item.view === "operations-dashboard" || item.label === "Dashboard",
+      );
+      out.push({
+        ...section,
+        items: hasDashboard
+          ? [...section.items]
+          : [
+              {
+                label: "Dashboard",
+                icon: "LayoutDashboard",
+                view: "operations-dashboard" as const,
+              },
+              ...section.items,
+            ],
+      });
       if (!insertedEngineering) {
         out.push(DEMO_ENGINEERING_NAV);
         insertedEngineering = true;

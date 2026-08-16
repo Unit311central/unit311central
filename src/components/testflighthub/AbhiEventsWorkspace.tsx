@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 
 import { ABHI_EVENTS_CALENDAR_EMAIL } from "@/lib/abhi-surface";
 import {
-  ABHI_EVENT_OWNERS,
   addMember,
   computeEventsDashboardKpis,
   deleteEvent,
@@ -14,6 +13,8 @@ import {
   upsertEvent,
   type AbhiEvent,
 } from "@/lib/abhi-marketing-store";
+import { getMarketingEventOwners } from "@/lib/marketing/marketing-event-owners";
+import { resolveBrowserMarketingWorkspaceKey } from "@/lib/marketing/workspace-context";
 import { cn } from "@/lib/utils";
 import AbhiEventsMonthCalendar, {
   formatAbhiEventDateRange,
@@ -58,7 +59,7 @@ const EXTERNAL_EVENT_COLORS = [
   "bg-indigo-400",
 ] as const;
 
-function emptyForm(): EventFormState {
+function emptyForm(defaultOwnerId = ""): EventFormState {
   return {
     id: null,
     name: "",
@@ -69,13 +70,13 @@ function emptyForm(): EventFormState {
     country: "",
     website: "",
     notes: "",
-    ownerId: ABHI_EVENT_OWNERS[0]?.id ?? "",
+    ownerId: defaultOwnerId,
     memberIds: [],
     sendToAll: false,
   };
 }
 
-function formFromEvent(event: AbhiEvent): EventFormState {
+function formFromEvent(event: AbhiEvent, defaultOwnerId = ""): EventFormState {
   return {
     id: event.id,
     name: event.name,
@@ -86,15 +87,19 @@ function formFromEvent(event: AbhiEvent): EventFormState {
     country: event.country,
     website: event.website,
     notes: event.notes,
-    ownerId: event.ownerId || ABHI_EVENT_OWNERS[0]?.id || "",
+    ownerId: event.ownerId || defaultOwnerId,
     memberIds: event.memberIds,
     sendToAll: false,
   };
 }
 
-function ownerLabel(ownerId: string, ownerName: string) {
+function ownerLabel(
+  ownerId: string,
+  ownerName: string,
+  owners: ReadonlyArray<{ id: string; name: string }>,
+) {
   if (ownerName.trim()) return ownerName;
-  return ABHI_EVENT_OWNERS.find((row) => row.id === ownerId)?.name ?? "Unassigned";
+  return owners.find((row) => row.id === ownerId)?.name ?? "Unassigned";
 }
 
 function locationLabel(event: AbhiEvent) {
@@ -115,6 +120,10 @@ function eventToCalendarItem(event: AbhiEvent, index: number): AbhiCalendarMonth
 
 export default function AbhiEventsWorkspace() {
   const store = useAbhiMarketingStore();
+  const workspace = resolveBrowserMarketingWorkspaceKey();
+  const eventOwners = useMemo(() => getMarketingEventOwners(workspace), [workspace]);
+  const isDemo = workspace === "demo";
+  const defaultOwnerId = eventOwners[0]?.id ?? "";
   const kpis = useMemo(() => computeEventsDashboardKpis(store), [store]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -152,7 +161,7 @@ export default function AbhiEventsWorkspace() {
 
   function openCreate() {
     setSelectedId(null);
-    setForm(emptyForm());
+    setForm(emptyForm(defaultOwnerId));
     setShowForm(true);
   }
 
@@ -163,7 +172,7 @@ export default function AbhiEventsWorkspace() {
 
   function openEdit(event: AbhiEvent) {
     setSelectedId(null);
-    setForm(formFromEvent(event));
+    setForm(formFromEvent(event, defaultOwnerId));
     setShowForm(true);
   }
 
@@ -206,7 +215,7 @@ export default function AbhiEventsWorkspace() {
     event.preventDefault();
     if (!form.name.trim() || !form.startDate) return;
     const memberIds = form.sendToAll ? store.members.map((m) => m.id) : form.memberIds;
-    const owner = ABHI_EVENT_OWNERS.find((row) => row.id === form.ownerId);
+    const owner = eventOwners.find((row) => row.id === form.ownerId);
     const saved = upsertEvent({
       id: form.id ?? undefined,
       name: form.name.trim(),
@@ -227,7 +236,7 @@ export default function AbhiEventsWorkspace() {
   }
 
   function assignOwner(eventId: string, ownerId: string) {
-    const owner = ABHI_EVENT_OWNERS.find((row) => row.id === ownerId);
+    const owner = eventOwners.find((row) => row.id === ownerId);
     upsertEvent({
       id: eventId,
       ownerId: owner?.id ?? "",
@@ -260,7 +269,11 @@ export default function AbhiEventsWorkspace() {
 
       <TqmsSection
         title="External Events"
-        subtitle="International trade shows, congresses, and delegations ABHI is coordinating."
+        subtitle={
+          isDemo
+            ? "Trade shows, conferences, and partner events Northstar is attending or hosting."
+            : "International trade shows, congresses, and delegations ABHI is coordinating."
+        }
         actions={
           <button type="button" onClick={openCreate} className={tqmsPrimaryButtonClass()}>
             <Plus className="h-3.5 w-3.5" />
@@ -303,7 +316,7 @@ export default function AbhiEventsWorkspace() {
                             </p>
                             <p className="mt-1 inline-flex items-center gap-1 text-xs text-white/55">
                               <UserRound className="h-3 w-3 shrink-0" />
-                              {ownerLabel(event.ownerId, event.ownerName)}
+                              {ownerLabel(event.ownerId, event.ownerName, eventOwners)}
                             </p>
                           </button>
                           <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -434,7 +447,7 @@ export default function AbhiEventsWorkspace() {
                   className={tqmsInputClass()}
                 >
                   <option value="">Unassigned</option>
-                  {ABHI_EVENT_OWNERS.map((owner) => (
+                  {eventOwners.map((owner) => (
                     <option key={owner.id} value={owner.id}>
                       {owner.name}
                     </option>
@@ -580,7 +593,7 @@ export default function AbhiEventsWorkspace() {
                 className={tqmsInputClass()}
               >
                 <option value="">Unassigned</option>
-                {ABHI_EVENT_OWNERS.map((owner) => (
+                {eventOwners.map((owner) => (
                   <option key={owner.id} value={owner.id}>
                     {owner.name}
                   </option>
