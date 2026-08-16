@@ -2,11 +2,13 @@
  * Northstar Demo — single source of truth for financial fixtures (GBP, UK FY Apr–Mar).
  */
 
+import { NORTHSTAR_TOTAL_RENT_MONTHLY_GBP } from "@/lib/demo/northstar-office-rent";
+
 /** Current-month operating expense breakdown (matches burn / GL expense accounts). */
 export const NORTHSTAR_OPEX_BREAKDOWN = {
   payroll: 118_000,
   cloud: 42_000,
-  rent: 36_000,
+  rent: NORTHSTAR_TOTAL_RENT_MONTHLY_GBP,
   marketing: 24_000,
   software: 18_000,
   professional: 16_000,
@@ -24,7 +26,7 @@ export const NORTHSTAR_NET_PROFIT_YTD = 720_000;
 export const NORTHSTAR_CASH_GBP = 1_900_000;
 
 /** Prior-month burn (July 2026 opex pace). */
-export const NORTHSTAR_BURN_PREVIOUS_MONTHLY = 295_000;
+export const NORTHSTAR_BURN_PREVIOUS_MONTHLY = 274_000;
 
 export const NORTHSTAR_AP_OUTSTANDING = 186_000;
 export const NORTHSTAR_AP_DUE_NOW = 64_000;

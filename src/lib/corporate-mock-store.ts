@@ -1268,25 +1268,9 @@ function seedState(): CorporateMockState {
         const advisors: CorporateAdvisor[] = (
           require("@/lib/demo/northstar-corporate-advisors") as typeof import("@/lib/demo/northstar-corporate-advisors")
         ).NORTHSTAR_CORPORATE_ADVISORS.map((row) => ({ ...row }));
-        const contracts: CorporateContract[] = (fixtures.contracts ?? []).map((row) => ({
-          id: row.id,
-          name: row.name,
-          supplier: row.supplier,
-          type: row.type as CorporateContract["type"],
-          owner: row.owner,
-          startDate: row.startDate,
-          expiryDate: row.expiryDate,
-          value: row.value,
-          status: contractStatusFromExpiry(
-            row.expiryDate,
-            row.status as CorporateContract["status"],
-          ),
-          summary: row.summary,
-          parties: row.parties,
-          renewalNotes: row.renewalNotes,
-          documents: row.documents,
-          notes: row.notes,
-        })) as CorporateContract[];
+        const contracts: CorporateContract[] = (
+          require("@/lib/demo/northstar-corporate-contracts") as typeof import("@/lib/demo/northstar-corporate-contracts")
+        ).NORTHSTAR_CORPORATE_CONTRACTS.map((row) => ({ ...row }));
         const licences: CorporateLicence[] = (fixtures.licences ?? []).map((row) => ({
           id: row.id,
           software: row.name,

@@ -120,23 +120,23 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
           (item) =>
             item.view !== "corporate-board-directors" &&
             item.view !== "corporate-cap-table" &&
+            item.view !== "corporate-company-details" &&
+            item.view !== "unit311-details" &&
+            item.view !== "module-go-live" &&
             item.label !== "Board of Directors" &&
             item.label !== "Cap Table Management" &&
-            (!item.view || !CORPORATE_BOARD_VIEWS.has(item.view as InternalOperationsView)),
-        )
-        .map((item) =>
-          item.view === "corporate-company-details"
-            ? { ...item, label: "Company Information" }
-            : item,
+            item.label !== "Company Information" &&
+            item.label !== "Unit311 Details" &&
+            (!item.view || !CORPORATE_BOARD_VIEWS.has(item.view as InternalOperationsView)) &&
+            !item.children?.some(
+              (child) => child.view === "unit311-details" || child.view === "module-go-live",
+            ),
         );
       const dashboard = corpItems.find((item) => item.view === "corporate-dashboard");
-      const companyInfo = corpItems.find((item) => item.view === "corporate-company-details");
-      const rest = corpItems.filter(
-        (item) => item.view !== "corporate-dashboard" && item.view !== "corporate-company-details",
-      );
+      const rest = corpItems.filter((item) => item.view !== "corporate-dashboard");
       out.push({
         ...section,
-        items: [dashboard, companyInfo, ...rest].filter(
+        items: [dashboard, ...rest].filter(
           (item): item is (typeof corpItems)[number] => Boolean(item),
         ),
       });
@@ -153,6 +153,17 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
         out.push(DEMO_MARKETING_NAV);
         insertedMarketing = true;
       }
+      continue;
+    }
+
+    if (section.label === "Technology Management") {
+      out.push({
+        ...section,
+        items: [
+          { label: "Architecture Diagrams", icon: "Network", view: "unit311-details" as const },
+          ...section.items,
+        ],
+      });
       continue;
     }
 

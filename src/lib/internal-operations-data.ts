@@ -1569,6 +1569,36 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
     } catch {
       /* ignore */
     }
+
+    try {
+      const { isBrowserDemoSurface } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (isBrowserDemoSurface()) {
+        if (activeView === "unit311-details") {
+          return { title: "Architecture Diagrams", subtitle: "Technology Management" };
+        }
+        if (activeView === "corporate-cap-table") {
+          return {
+            title: "Cap Table Management",
+            subtitle: "Fundraising",
+          };
+        }
+        if (activeView === "board-dashboard") {
+          return {
+            title: "Dashboard",
+            subtitle: "Board",
+          };
+        }
+        if (activeView === "board-members" || activeView === "corporate-board-directors") {
+          return {
+            title: "Board Members",
+            subtitle: "Board",
+          };
+        }
+      }
+    } catch {
+      /* ignore */
+    }
   }
   return base;
 }
