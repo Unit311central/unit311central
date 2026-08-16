@@ -1265,18 +1265,9 @@ function seedState(): CorporateMockState {
           accountHolder: fixtures.company.legalName,
           notes: "Demo simulated Northstar treasury balance",
         }));
-        const advisors: CorporateAdvisor[] = (fixtures.advisors ?? []).map((row) => ({
-          id: row.id,
-          company: row.company,
-          contact: row.contact,
-          category: row.category as CorporateAdvisor["category"],
-          country: row.country,
-          phone: row.phone,
-          email: row.email,
-          retainer: row.retainer,
-          status: row.status as CorporateAdvisor["status"],
-          notes: row.notes,
-        }));
+        const advisors: CorporateAdvisor[] = (
+          require("@/lib/demo/northstar-corporate-advisors") as typeof import("@/lib/demo/northstar-corporate-advisors")
+        ).NORTHSTAR_CORPORATE_ADVISORS.map((row) => ({ ...row }));
         const contracts: CorporateContract[] = (fixtures.contracts ?? []).map((row) => ({
           id: row.id,
           name: row.name,

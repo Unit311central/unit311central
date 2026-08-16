@@ -115,17 +115,29 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
     }
 
     if (section.label === "Corporate Information") {
-      out.push({
-        ...section,
-        items: section.items.filter(
+      const corpItems = section.items
+        .filter(
           (item) =>
-            item.view !== "corporate-company-details" &&
             item.view !== "corporate-board-directors" &&
             item.view !== "corporate-cap-table" &&
-            item.label !== "Company Details" &&
             item.label !== "Board of Directors" &&
             item.label !== "Cap Table Management" &&
             (!item.view || !CORPORATE_BOARD_VIEWS.has(item.view as InternalOperationsView)),
+        )
+        .map((item) =>
+          item.view === "corporate-company-details"
+            ? { ...item, label: "Company Information" }
+            : item,
+        );
+      const dashboard = corpItems.find((item) => item.view === "corporate-dashboard");
+      const companyInfo = corpItems.find((item) => item.view === "corporate-company-details");
+      const rest = corpItems.filter(
+        (item) => item.view !== "corporate-dashboard" && item.view !== "corporate-company-details",
+      );
+      out.push({
+        ...section,
+        items: [dashboard, companyInfo, ...rest].filter(
+          (item): item is (typeof corpItems)[number] => Boolean(item),
         ),
       });
       if (!insertedBoard) {

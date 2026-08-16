@@ -855,6 +855,21 @@ export function getNorthstarJournalEntries(): JournalEntry[] {
       creditTotal: payroll,
     });
   }
+  entries.push({
+    id: "nst-je-legal-preseed-2023",
+    reference: "LEGAL-PRESEED",
+    description: "Pre-seed round legal fees — Ashford Lane LLP (one-off, £1M raise Jun 2023)",
+    clientId: null,
+    sourceType: "expense",
+    sourceId: null,
+    status: "posted",
+    journalDate: "2023-06-28",
+    postedAt: "2023-06-28T10:00:00.000Z",
+    createdAt: "2023-06-28T10:00:00.000Z",
+    lines: [],
+    debitTotal: 25_000,
+    creditTotal: 25_000,
+  });
   return entries;
 }
 

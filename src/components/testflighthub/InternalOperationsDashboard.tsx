@@ -41,6 +41,7 @@ import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./Operato
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import NorthstarCorporateDashboard from "@/components/demo/NorthstarCorporateDashboard";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
   DemoFundraisingCapTableWorkspace,
@@ -1021,7 +1022,8 @@ export default function InternalOperationsDashboard({
               <TrainingDashboardWorkspace />
             ))}
 
-          {activeView === "corporate-dashboard" && <CorporateDashboardWorkspace />}
+          {activeView === "corporate-dashboard" &&
+            (isBrowserDemoSurface() ? <NorthstarCorporateDashboard /> : <CorporateDashboardWorkspace />)}
 
           {(activeView === "corporate-information" ||
             Boolean(legacyCorporateViewToTab(activeView))) && (

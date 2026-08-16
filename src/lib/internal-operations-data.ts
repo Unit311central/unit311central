@@ -1079,7 +1079,7 @@ export const internalViewTitles: Record<
   "office-locations": { title: "Office Locations", subtitle: "Corporate Information" },
   "corporate-dashboard": { title: "Dashboard", subtitle: "Corporate Information" },
   "corporate-information": { title: "Company Details", subtitle: "Corporate Information" },
-  "corporate-company-details": { title: "Company Details", subtitle: "Corporate Information" },
+  "corporate-company-details": { title: "Company Information", subtitle: "Corporate Information" },
   "corporate-cap-table": { title: "Cap Table Management", subtitle: "Corporate Information" },
   "corporate-bank-accounts": { title: "Bank Accounts", subtitle: "Corporate Information" },
   "corporate-board-directors": { title: "Board of Directors", subtitle: "Corporate Information" },

@@ -10,6 +10,7 @@ import {
 } from "@/lib/internal-operations-data";
 
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import NorthstarCompanyDetailsWorkspace from "@/components/demo/NorthstarCompanyDetailsWorkspace";
 
 import BankAccountsWorkspace from "./BankAccountsWorkspace";
 import BoardDirectorsWorkspace from "./BoardDirectorsWorkspace";
@@ -29,7 +30,7 @@ function resolveTab(
     if (
       typeof window !== "undefined" &&
       isBrowserDemoSurface() &&
-      (fromTab === "company-details" || fromTab === "board-directors")
+      fromTab === "board-directors"
     ) {
       return "office-locations";
     }
@@ -39,11 +40,11 @@ function resolveTab(
   if (
     typeof window !== "undefined" &&
     isBrowserDemoSurface() &&
-    (fromView === "company-details" || fromView === "board-directors")
+    fromView === "board-directors"
   ) {
     return "office-locations";
   }
-  return fromView ?? (typeof window !== "undefined" && isBrowserDemoSurface() ? "office-locations" : "company-details");
+  return fromView ?? "company-details";
 }
 
 /**
@@ -67,7 +68,9 @@ export default function CorporateInformationWorkspace({
 
   return (
     <div className="space-y-4">
-      {tab === "company-details" ? <CompanyDetailsWorkspace /> : null}
+      {tab === "company-details" ? (
+        isBrowserDemoSurface() ? <NorthstarCompanyDetailsWorkspace /> : <CompanyDetailsWorkspace />
+      ) : null}
       {tab === "cap-table" ? <CapTableWorkspace /> : null}
       {tab === "office-locations" ? <OfficeLocationsWorkspace /> : null}
       {tab === "bank-accounts" ? <BankAccountsWorkspace /> : null}

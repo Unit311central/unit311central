@@ -173,7 +173,7 @@ export default function ProfessionalAdvisorsWorkspace() {
   return (
     <div className="space-y-5">
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <CorporateKpiTile label="Advisors on Retainer" value={store.advisors.length} />
+        <CorporateKpiTile label="Professional advisors" value={store.advisors.length} />
         <CorporateKpiTile label="Active" value={activeCount} />
         <CorporateKpiTile label="Categories" value={categoryCount} />
         <CorporateKpiTile label="Countries" value={countryCount} />
@@ -181,7 +181,7 @@ export default function ProfessionalAdvisorsWorkspace() {
 
       <CorporateSection
         title="Professional Advisors"
-        subtitle="Lawyers, accountants, auditors, and other advisers on retainer."
+        subtitle="Lawyers, accountants, auditors, tax advisors, and IP counsel — cost per year."
         actions={
           <button type="button" className={corporatePrimaryButtonClass()} onClick={openAdd}>
             <Plus className="h-3.5 w-3.5" />
@@ -238,12 +238,12 @@ export default function ProfessionalAdvisorsWorkspace() {
             <thead>
               <tr className="border-b border-white/10 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
                 <th className="px-4 py-3">Company</th>
-                <th className="px-4 py-3">Contact</th>
                 <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Contact</th>
                 <th className="px-4 py-3">Country</th>
                 <th className="px-4 py-3">Phone</th>
                 <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Retainer</th>
+                <th className="px-4 py-3">Cost per year</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
@@ -259,8 +259,8 @@ export default function ProfessionalAdvisorsWorkspace() {
                 filtered.map((advisor) => (
                   <tr key={advisor.id} className="border-b border-white/8 text-white/85">
                     <td className="px-4 py-3 font-medium text-white">{advisor.company}</td>
-                    <td className="px-4 py-3">{advisor.contact}</td>
                     <td className="px-4 py-3">{advisor.category}</td>
+                    <td className="px-4 py-3">{advisor.contact}</td>
                     <td className="px-4 py-3">{advisor.country}</td>
                     <td className="px-4 py-3 tabular-nums">{advisor.phone || "—"}</td>
                     <td className="px-4 py-3">{advisor.email || "—"}</td>
@@ -306,13 +306,6 @@ export default function ProfessionalAdvisorsWorkspace() {
                 onChange={(e) => setForm({ ...form, company: e.target.value })}
               />
             </Field>
-            <Field label="Contact">
-              <input
-                className={corporateInputClass()}
-                value={form.contact}
-                onChange={(e) => setForm({ ...form, contact: e.target.value })}
-              />
-            </Field>
             <Field label="Category">
               <select
                 className={corporateInputClass()}
@@ -327,6 +320,13 @@ export default function ProfessionalAdvisorsWorkspace() {
                   </option>
                 ))}
               </select>
+            </Field>
+            <Field label="Contact">
+              <input
+                className={corporateInputClass()}
+                value={form.contact}
+                onChange={(e) => setForm({ ...form, contact: e.target.value })}
+              />
             </Field>
             <Field label="Country">
               <input
@@ -350,12 +350,12 @@ export default function ProfessionalAdvisorsWorkspace() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </Field>
-            <Field label="Retainer">
+            <Field label="Cost per year">
               <input
                 className={corporateInputClass()}
                 value={form.retainer}
                 onChange={(e) => setForm({ ...form, retainer: e.target.value })}
-                placeholder="e.g. €2,800 / month"
+                placeholder="e.g. £5,000 / year or Ad hoc"
               />
             </Field>
             <Field label="Status">
