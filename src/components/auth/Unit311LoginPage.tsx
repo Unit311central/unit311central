@@ -397,7 +397,7 @@ export default function Unit311LoginPage({
           ) : isOnwardAir ? (
             <OnwardAirLogoMark height={90} maxWidth={500} priority />
           ) : isNorthstar ? (
-            <NorthstarLogoMark height={56} maxWidth={320} priority />
+            <NorthstarLogoMark height={70} maxWidth={400} priority />
           ) : isCustomer ? (
             <div className="rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4">
               <p className="text-center text-[1.35rem] font-semibold tracking-tight text-white">
