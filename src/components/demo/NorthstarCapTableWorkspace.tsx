@@ -53,6 +53,8 @@ export default function NorthstarCapTableWorkspace() {
   const [optionForm, setOptionForm] = useState<OptionForm | null>(null);
 
   const totalShares = shareholders.reduce((sum, row) => sum + row.shares, 0);
+  const totalOwnershipPct = shareholders.reduce((sum, row) => sum + row.ownershipPct, 0);
+  const totalOptions = optionGrants.reduce((sum, row) => sum + row.options, 0);
   const paul = shareholders.find((row) => row.id === "cap-paul");
 
   function saveShareholder() {
@@ -96,9 +98,9 @@ export default function NorthstarCapTableWorkspace() {
           hint={`${formatShares(seed.optionPool.issuedShares)} issued · ${formatShares(seed.optionPool.reservedShares)} reserved`}
         />
         <CorporateKpiTile
-          label="Issued shares (FD)"
-          value={formatShares(totalShares)}
-          hint={`of ${formatShares(NORTHSTAR_AUTHORISED_SHARES)} authorised`}
+          label="Total ownership"
+          value={`${totalOwnershipPct.toFixed(1).replace(/\.0$/, "")}%`}
+          hint={`${formatShares(totalShares)} shares on register`}
         />
         <CorporateKpiTile
           label="Issued share capital"
@@ -151,7 +153,7 @@ export default function NorthstarCapTableWorkspace() {
             </thead>
             <tbody>
               {shareholders.map((row) => (
-                <tr key={row.id} className="border-b border-white/5 last:border-0">
+                <tr key={row.id} className="border-b border-white/5">
                   <td className={cn(tdClass(), "font-medium text-white")}>{row.holder}</td>
                   <td className={tdClass()}>{row.role}</td>
                   <td className={tdClass()}>{row.shareClass}</td>
@@ -172,6 +174,20 @@ export default function NorthstarCapTableWorkspace() {
                 </tr>
               ))}
             </tbody>
+            <tfoot className="border-t border-white/10 bg-white/[0.03]">
+              <tr>
+                <td colSpan={4} className={cn(tdClass(), "font-semibold text-white")}>
+                  Total
+                </td>
+                <td className={cn(tdClass(), "tabular-nums font-semibold text-white")}>
+                  {formatShares(totalShares)}
+                </td>
+                <td className={cn(tdClass(), "tabular-nums font-semibold text-white")}>
+                  {totalOwnershipPct.toFixed(1).replace(/\.0$/, "")}%
+                </td>
+                <td colSpan={2} className={tdClass()} />
+              </tr>
+            </tfoot>
           </table>
         </div>
       </CorporateSection>
@@ -237,6 +253,17 @@ export default function NorthstarCapTableWorkspace() {
                 </tr>
               ))}
             </tbody>
+            <tfoot className="border-t border-white/10 bg-white/[0.03]">
+              <tr>
+                <td colSpan={2} className={cn(tdClass(), "font-semibold text-white")}>
+                  Total options issued
+                </td>
+                <td className={cn(tdClass(), "tabular-nums font-semibold text-white")}>
+                  {formatShares(totalOptions)}
+                </td>
+                <td colSpan={4} className={tdClass()} />
+              </tr>
+            </tfoot>
           </table>
         </div>
       </CorporateSection>

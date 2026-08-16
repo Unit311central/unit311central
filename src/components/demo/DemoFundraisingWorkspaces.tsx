@@ -24,6 +24,7 @@ import {
   type FundraisingMeeting,
   type FundraisingPipelineDeal,
   type FundraisingPipelineStage,
+  type InvestorDocuments,
   type InvestorType,
   type PitchDeckVersion,
   type ShareClassLabel,
@@ -138,6 +139,38 @@ function buildDefaultDashboardTiles(): DashboardTile[] {
   ];
 }
 
+function formatShares(value: number) {
+  return value.toLocaleString("en-GB");
+}
+
+function InvestorDocumentLinks({ documents }: { documents: InvestorDocuments }) {
+  const links = [
+    { key: "articlesOfAssociation", label: "Articles" },
+    { key: "shareholderAgreement", label: "SHA" },
+    { key: "shareCertificate", label: "Certificate" },
+  ] as const;
+
+  const available = links.filter((link) => documents[link.key]);
+  if (available.length === 0) return <span className="text-white/35">—</span>;
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {available.map((link) => (
+        <a
+          key={link.key}
+          href={documents[link.key]}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-sky-300 hover:text-sky-200"
+        >
+          {link.label}
+          <ExternalLink className="h-3 w-3 opacity-60" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function stagePillClass(stage: string) {
   if (stage === "Term sheet" || stage === "Diligence") {
     return "border-emerald-400/30 bg-emerald-500/15 text-emerald-100";
@@ -160,8 +193,8 @@ function emptyInvestor(): DemoInvestor {
     sharesIssued: 0,
     shareClass: "Ordinary shares",
     shareType: "Equity",
-    round: "Seed (2026)",
-    status: "pipeline",
+    round: "Pre-seed (2023)",
+    status: "portfolio",
     lastContact: new Date().toISOString().slice(0, 10),
     documents: {},
   };
@@ -291,8 +324,14 @@ export function DemoFundraisingDashboardWorkspace() {
 }
 
 export function DemoFundraisingInvestorsWorkspace() {
-  const [investors, setInvestors] = useState<DemoInvestor[]>(() => [...NORTHSTAR_INVESTORS]);
+  const [investors, setInvestors] = useState<DemoInvestor[]>(() =>
+    NORTHSTAR_INVESTORS.filter((inv) => inv.status === "portfolio").map((inv) => ({ ...inv })),
+  );
   const [editing, setEditing] = useState<DemoInvestor | null>(null);
+
+  const totalShares = investors.reduce((sum, inv) => sum + inv.sharesIssued, 0);
+  const totalShareholdingPct = investors.reduce((sum, inv) => sum + inv.ownershipPct, 0);
+  const totalInvestment = investors.reduce((sum, inv) => sum + inv.investmentAmountGbp, 0);
 
   function saveInvestor() {
     if (!editing?.fundName.trim()) return;
@@ -309,9 +348,7 @@ export function DemoFundraisingInvestorsWorkspace() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-white">Investors</h1>
-          <p className="mt-1 text-sm text-white/60">
-            Pre-seed cap table investors and seed pipeline — ordinary shares, equity, or options.
-          </p>
+          <p className="mt-1 text-sm text-white/60">Pre-seed cap table investors.</p>
         </div>
         <button type="button" className={corporatePrimaryButtonClass()} onClick={() => setEditing(emptyInvestor())}>
           <Plus className="mr-1.5 inline h-4 w-4" />
@@ -319,7 +356,28 @@ export function DemoFundraisingInvestorsWorkspace() {
         </button>
       </header>
 
-      <CorporateSection title="Investor register" subtitle="Company, contact, type, investment, ownership, and share class.">
+      <section className="grid gap-3 sm:grid-cols-3">
+        <CorporateKpiTile
+          label="Total shareholding"
+          value={`${totalShareholdingPct.toFixed(3).replace(/\.?0+$/, "")}%`}
+          hint={`${investors.length} pre-seed investors`}
+        />
+        <CorporateKpiTile
+          label="Total shares issued"
+          value={formatShares(totalShares)}
+          hint="Ordinary shares · pre-seed round"
+        />
+        <CorporateKpiTile
+          label="Total invested"
+          value={formatGbp(totalInvestment)}
+          hint="Pre-seed round (2023)"
+        />
+      </section>
+
+      <CorporateSection
+        title="Investor register"
+        subtitle="Company, contact, investment, shareholding, and linked investment documents."
+      >
         <div className={tableWrapClass()}>
           <table className="min-w-full text-left">
             <thead className="border-b border-white/10 bg-white/[0.03]">
@@ -328,10 +386,10 @@ export function DemoFundraisingInvestorsWorkspace() {
                 <th className={thClass()}>Lead contact</th>
                 <th className={thClass()}>Investor type</th>
                 <th className={thClass()}>Investment</th>
+                <th className={thClass()}>Shares</th>
                 <th className={thClass()}>% Shareholding</th>
                 <th className={thClass()}>Share class</th>
-                <th className={thClass()}>Type</th>
-                <th className={thClass()}>Status</th>
+                <th className={thClass()}>Documents</th>
                 <th className={thClass()} />
               </tr>
             </thead>
@@ -341,16 +399,12 @@ export function DemoFundraisingInvestorsWorkspace() {
                   <td className={cn(tdClass(), "font-medium text-white")}>{inv.fundName}</td>
                   <td className={tdClass()}>{inv.leadContact}</td>
                   <td className={tdClass()}>{inv.investorType}</td>
-                  <td className={cn(tdClass(), "tabular-nums")}>
-                    {inv.investmentAmountGbp > 0 ? formatGbp(inv.investmentAmountGbp) : "—"}
-                  </td>
-                  <td className={cn(tdClass(), "tabular-nums")}>
-                    {inv.ownershipPct > 0 ? `${inv.ownershipPct}%` : "—"}
-                  </td>
+                  <td className={cn(tdClass(), "tabular-nums")}>{formatGbp(inv.investmentAmountGbp)}</td>
+                  <td className={cn(tdClass(), "tabular-nums")}>{formatShares(inv.sharesIssued)}</td>
+                  <td className={cn(tdClass(), "tabular-nums")}>{inv.ownershipPct}%</td>
                   <td className={tdClass()}>{inv.shareClass}</td>
-                  <td className={tdClass()}>{inv.shareType}</td>
                   <td className={tdClass()}>
-                    <CorporateStatusPill>{inv.status}</CorporateStatusPill>
+                    <InvestorDocumentLinks documents={inv.documents} />
                   </td>
                   <td className={tdClass()}>
                     <button
@@ -365,6 +419,23 @@ export function DemoFundraisingInvestorsWorkspace() {
                 </tr>
               ))}
             </tbody>
+            <tfoot className="border-t border-white/10 bg-white/[0.03]">
+              <tr>
+                <td colSpan={3} className={cn(tdClass(), "font-semibold text-white")}>
+                  Total
+                </td>
+                <td className={cn(tdClass(), "tabular-nums font-semibold text-white")}>
+                  {formatGbp(totalInvestment)}
+                </td>
+                <td className={cn(tdClass(), "tabular-nums font-semibold text-white")}>
+                  {formatShares(totalShares)}
+                </td>
+                <td className={cn(tdClass(), "tabular-nums font-semibold text-white")}>
+                  {totalShareholdingPct.toFixed(3).replace(/\.?0+$/, "")}%
+                </td>
+                <td colSpan={3} className={tdClass()} />
+              </tr>
+            </tfoot>
           </table>
         </div>
       </CorporateSection>
