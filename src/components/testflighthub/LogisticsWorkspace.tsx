@@ -17,6 +17,7 @@
 
 import { useState } from "react";
 
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 
 import LogisticsDashboard from "./LogisticsDashboard";
@@ -28,9 +29,10 @@ type LogisticsAppPage = "dashboard" | "providers";
 
 export default function LogisticsWorkspace() {
   // OnwardAir demo/overview: open straight on the map dashboard. Other surfaces keep the setup wizard.
-  const [phase, setPhase] = useState<LogisticsPhase>(() =>
-    typeof window !== "undefined" && isBrowserOnwardAirSurface() ? "app" : "wizard",
-  );
+  const [phase, setPhase] = useState<LogisticsPhase>(() => {
+    if (typeof window === "undefined") return "wizard";
+    return isBrowserOnwardAirSurface() || isBrowserDemoSurface() ? "app" : "wizard";
+  });
   const [appPage, setAppPage] = useState<LogisticsAppPage>("dashboard");
   const [showAddProviderWizard, setShowAddProviderWizard] = useState(false);
 

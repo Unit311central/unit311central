@@ -2,7 +2,6 @@
 
 import { Landmark, LayoutDashboard, Target } from "lucide-react";
 
-import OnwardAirOperationsDashboard from "@/components/onwardair/OnwardAirOperationsDashboard";
 
 type PlaceholderProps = {
   title: string;
@@ -50,9 +49,7 @@ export function OnwardAirPlaceholderWorkspace({ title, group, description }: Pla
   );
 }
 
-export function OperationsDashboardWorkspace() {
-  return <OnwardAirOperationsDashboard />;
-}
+export { OperationsDashboardWorkspace } from "@/components/testflighthub/OperationsDashboardWorkspace";
 
 /** @deprecated Use `@/components/onwardair/FundraisingWorkspaces` */
 export { FundraisingDashboardWorkspace } from "@/components/onwardair/FundraisingWorkspaces";

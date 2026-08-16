@@ -270,7 +270,9 @@ import {
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvider";
-import { OnwardAirPlaceholderWorkspace, OperationsDashboardWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
+import NorthstarAssetKpiBar from "@/components/demo/NorthstarAssetKpiBar";
+import { OnwardAirPlaceholderWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
+import { OperationsDashboardWorkspace } from "@/components/testflighthub/OperationsDashboardWorkspace";
 import {
   EngineeringAssuranceWorkspace,
   EngineeringIntegrationsWorkspace,
@@ -800,18 +802,21 @@ export default function InternalOperationsDashboard({
           {activeView === "client-onboarding" && <ClientOnboardingWorkspace />}
 
           {activeView === "assets" && (
-            <AssetManagementWorkspace
-              assets={assets}
-              categories={assetCategories}
-              locations={assetLocations}
-              clients={clients}
-              users={users}
-              selectedAssetId={selectedAssetId}
-              onSelectAsset={setSelectedAssetId}
-              onAssetsChange={setAssets}
-              onCategoriesChange={setAssetCategories}
-              onLocationsChange={setAssetLocations}
-            />
+            <div className="space-y-5">
+              {isBrowserDemoSurface() ? <NorthstarAssetKpiBar /> : null}
+              <AssetManagementWorkspace
+                assets={assets}
+                categories={assetCategories}
+                locations={assetLocations}
+                clients={clients}
+                users={users}
+                selectedAssetId={selectedAssetId}
+                onSelectAsset={setSelectedAssetId}
+                onAssetsChange={setAssets}
+                onCategoriesChange={setAssetCategories}
+                onLocationsChange={setAssetLocations}
+              />
+            </div>
           )}
 
           {activeView === "inventory-management" && (

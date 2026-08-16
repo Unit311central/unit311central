@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 
+import NorthstarInventoryCharts from "@/components/demo/NorthstarInventoryCharts";
 import {
   INVENTORY_CATEGORIES,
   INVENTORY_CONDITION_LABELS,
@@ -28,6 +29,7 @@ import {
   type InventoryPanelTab,
   type InventoryStatus,
 } from "@/lib/inventory-data";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import {
   addInventoryDocument,
@@ -1218,6 +1220,8 @@ export default function InventoryManagementWorkspace() {
           hint="Within 60 days"
         />
       </section>
+
+      {typeof window !== "undefined" && isBrowserDemoSurface() ? <NorthstarInventoryCharts /> : null}
 
       {dueSoon.length > 0 ? (
         <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-4">

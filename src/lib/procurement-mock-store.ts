@@ -823,11 +823,15 @@ function seedState(): ProcurementMockState {
       currency: "GBP",
       status: "active" as const,
     }));
+    const { getNorthstarProcurementSeed } =
+      require("@/lib/demo/northstar-operations-data") as typeof import("@/lib/demo/northstar-operations-data");
+    const northstarProcurement = getNorthstarProcurementSeed();
+
     return {
       suppliers,
-      requisitions: [],
-      purchaseOrders: [],
-      goodsReceipts: [],
+      requisitions: northstarProcurement.requisitions,
+      purchaseOrders: northstarProcurement.purchaseOrders,
+      goodsReceipts: northstarProcurement.goodsReceipts,
       invoiceMatches: [],
       approvalRules: [],
       contracts: fixtures.contracts.slice(0, 4).map((row, index) => ({
