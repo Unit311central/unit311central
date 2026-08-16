@@ -42,3 +42,15 @@ export const NORTHSTAR_OFFICE_MAP_MARKERS: NorthstarOfficeMapMarker[] = [
     region: "US",
   },
 ];
+
+/** Fixed UK viewport — England & Wales office sites. */
+export const NORTHSTAR_UK_MAP_BOUNDS: [[number, number], [number, number]] = [
+  [50.6, -3.4],
+  [54.2, -1.2],
+];
+
+/** Fixed US viewport — continental United States. */
+export const NORTHSTAR_US_MAP_BOUNDS: [[number, number], [number, number]] = [
+  [24.4, -125],
+  [49.5, -66],
+];

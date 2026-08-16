@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 const NorthstarCorporateOfficeMap = dynamic(() => import("./NorthstarCorporateOfficeMap"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full min-h-[480px] items-center justify-center rounded-2xl border border-white/10 bg-[#060d18] text-sm text-white/45">
+    <div className="flex h-full min-h-[420px] items-center justify-center rounded-2xl border border-white/10 bg-[#060d18] text-sm text-white/45">
       Loading map…
     </div>
   ),
@@ -95,7 +95,7 @@ export default function NorthstarCorporateDashboard() {
         </p>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch lg:min-h-[min(640px,calc(100vh-11rem))]">
         <div className="grid grid-rows-3 gap-4">
           <DashboardPanel
             title="Office locations"
@@ -176,7 +176,7 @@ export default function NorthstarCorporateDashboard() {
           </DashboardPanel>
         </div>
 
-        <div className="min-h-[480px] lg:min-h-0">
+        <div className="h-full min-h-[420px] lg:min-h-0">
           <NorthstarCorporateOfficeMap />
         </div>
       </div>
