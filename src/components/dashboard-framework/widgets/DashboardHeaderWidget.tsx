@@ -17,7 +17,15 @@ export default function DashboardHeaderWidgetView({ widget }: { widget: Dashboar
         {widget.workspaceName}
       </h2>
       {widget.description ? (
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/55">{widget.description}</p>
+        <p
+          className={`mt-2 text-sm leading-relaxed text-white/55 ${
+            widget.descriptionSingleLine
+              ? "whitespace-nowrap overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              : "max-w-3xl"
+          }`}
+        >
+          {widget.description}
+        </p>
       ) : null}
     </header>
   );

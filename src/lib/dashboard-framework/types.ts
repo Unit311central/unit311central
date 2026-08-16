@@ -153,6 +153,8 @@ export type DashboardHeaderWidget = DashboardWidgetBase & {
   workspaceName: string;
   eyebrow?: string;
   description?: string;
+  /** Keep subtitle on one line (e.g. executive home tagline). */
+  descriptionSingleLine?: boolean;
 };
 
 export type DashboardAiSummaryWidget = DashboardWidgetBase & {

@@ -1277,6 +1277,7 @@ export const executiveHomeDashboardConfig: WorkspaceDashboardConfig = {
           id: "home-header",
           type: "header",
           workspaceName: "Home",
+          descriptionSingleLine: true,
           description:
             "Executive Dashboard — Your organisation at a glance. AI-powered insights, priorities and business performance across every workspace.",
         },
