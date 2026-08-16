@@ -11,6 +11,10 @@ import {
   type ArchitectureDiagramDocument,
   type SystemArchitectureDiagram,
 } from "@/lib/architecture-diagram-data";
+import {
+  createLiveArchitectureDiagram,
+  isLiveSeedTemplate,
+} from "@/lib/architecture-diagram-live-seeds";
 import { ensureSystemArchitectureDiagramsTable } from "@/lib/internal-db-migrations";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -32,8 +36,54 @@ function mapRow(row: Record<string, unknown>): SystemArchitectureDiagram {
   };
 }
 
+function resolveDiagramJson(
+  seedTemplate: ArchitectureCatalogEntry["seedTemplate"],
+  title: string,
+): ArchitectureDiagramDocument {
+  if (seedTemplate && isLiveSeedTemplate(seedTemplate)) {
+    return createLiveArchitectureDiagram(seedTemplate);
+  }
+  return resolveSeedTemplate(seedTemplate, title);
+}
+
 function catalogEntryForSlug(sectionSlug: string): ArchitectureCatalogEntry | undefined {
   return ARCHITECTURE_DIAGRAM_CATALOG.find((entry) => entry.sectionSlug === sectionSlug);
+}
+
+async function ensureCatalogSeed(
+  entry: ArchitectureCatalogEntry,
+  options?: { force?: boolean },
+): Promise<SystemArchitectureDiagram | null> {
+  if (!entry.seedTemplate) return null;
+
+  const sectionSlug = entry.sectionSlug;
+  const title = entry.title;
+  const force = options?.force === true || entry.liveRefresh === true;
+
+  if (!force) {
+    const existing = await getArchitectureDiagramBySection(sectionSlug);
+    if (existing) return existing;
+  }
+
+  const diagramJson = resolveDiagramJson(entry.seedTemplate, title);
+  return upsertArchitectureDiagram({ sectionSlug, title, diagramJson });
+}
+
+export async function ensureLiveArchitectureSeeds(): Promise<void> {
+  const liveEntries = ARCHITECTURE_DIAGRAM_CATALOG.filter(
+    (entry) => entry.liveRefresh && entry.seedTemplate,
+  );
+  await Promise.all(liveEntries.map((entry) => ensureCatalogSeed(entry, { force: true })));
+}
+
+export async function ensureAllArchitectureHubSeeds(): Promise<SystemArchitectureDiagram[]> {
+  const hubEntries = ARCHITECTURE_DIAGRAM_CATALOG.filter(
+    (entry) => entry.navOrder != null && entry.seedTemplate,
+  );
+  const diagrams = await Promise.all(
+    hubEntries.map((entry) => ensureCatalogSeed(entry, { force: entry.liveRefresh === true })),
+  );
+  return diagrams.filter((diagram): diagram is SystemArchitectureDiagram => diagram != null);
 }
 
 export async function getArchitectureDiagramBySection(
@@ -165,7 +215,7 @@ export async function createArchitectureDiagramForSection(input: {
               ? "Executive AI Platform Architecture"
               : `${sectionSlug} Architecture`);
 
-  const diagramJson = resolveSeedTemplate(seedTemplate, title);
+  const diagramJson = resolveDiagramJson(seedTemplate, title);
   return upsertArchitectureDiagram({ sectionSlug, title, diagramJson });
 }
 
@@ -176,30 +226,49 @@ export async function ensureCoreArchitectureSeeds(): Promise<{
   softwareAssetRegister: SystemArchitectureDiagram;
   executiveAi: SystemArchitectureDiagram;
 }> {
+  await ensureAllArchitectureHubSeeds();
+
   const [storage, platformOverview, voiceAndVideo, softwareAssetRegister, executiveAi] =
     await Promise.all([
-      createArchitectureDiagramForSection({
-        sectionSlug: "storage",
-        title: "Storage Architecture",
-        seedTemplate: "storage",
-      }),
-      createArchitectureDiagramForSection({
-        sectionSlug: "platform-overview",
-        title: "Platform Overview",
-        seedTemplate: "platform-overview",
-      }),
-      createArchitectureDiagramForSection({
-        sectionSlug: "voice-and-video",
-        title: "Communications Architecture",
-        seedTemplate: "voice-and-video",
-      }),
-      createArchitectureDiagramForSection({
-        sectionSlug: "software-asset-register",
-        title: "Software Asset Register Architecture",
-        seedTemplate: "software-asset-register",
-      }),
+      getArchitectureDiagramBySection("storage").then(
+        (diagram) =>
+          diagram ??
+          createArchitectureDiagramForSection({
+            sectionSlug: "storage",
+            title: "Storage Architecture",
+            seedTemplate: "storage",
+          }),
+      ),
+      getArchitectureDiagramBySection("platform-overview").then(
+        (diagram) =>
+          diagram ??
+          createArchitectureDiagramForSection({
+            sectionSlug: "platform-overview",
+            title: "Platform Overview",
+            seedTemplate: "platform-overview-live",
+          }),
+      ),
+      getArchitectureDiagramBySection("voice-and-video").then(
+        (diagram) =>
+          diagram ??
+          createArchitectureDiagramForSection({
+            sectionSlug: "voice-and-video",
+            title: "Voice & Video Architecture",
+            seedTemplate: "voice-and-video",
+          }),
+      ),
+      getArchitectureDiagramBySection("software-asset-register").then(
+        (diagram) =>
+          diagram ??
+          createArchitectureDiagramForSection({
+            sectionSlug: "software-asset-register",
+            title: "Software Asset Register Architecture",
+            seedTemplate: "software-asset-register",
+          }),
+      ),
       ensureExecutiveAiArchitectureSeed(true),
     ]);
+
   return { storage, platformOverview, voiceAndVideo, softwareAssetRegister, executiveAi };
 }
 
@@ -213,10 +282,15 @@ export async function ensureStorageArchitectureSeed(): Promise<SystemArchitectur
 }
 
 export async function ensurePlatformOverviewSeed(): Promise<SystemArchitectureDiagram> {
+  const entry = catalogEntryForSlug("platform-overview");
+  if (entry) {
+    const diagram = await ensureCatalogSeed(entry, { force: true });
+    if (diagram) return diagram;
+  }
   return createArchitectureDiagramForSection({
     sectionSlug: "platform-overview",
     title: "Platform Overview",
-    seedTemplate: "platform-overview",
+    seedTemplate: "platform-overview-live",
   });
 }
 

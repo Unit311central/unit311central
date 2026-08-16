@@ -855,8 +855,22 @@ export default function Unit311DetailsWorkspace() {
                     ) : (
                       <ul className="divide-y divide-white/10">
                         {existingDiagrams
+                          .filter((item) =>
+                            diagramCatalog.some(
+                              (entry) => entry.sectionSlug === item.sectionSlug && entry.navOrder != null,
+                            ),
+                          )
                           .slice()
-                          .sort((a, b) => a.title.localeCompare(b.title))
+                          .sort((a, b) => {
+                            const orderA =
+                              diagramCatalog.find((entry) => entry.sectionSlug === a.sectionSlug)
+                                ?.navOrder ?? 9999;
+                            const orderB =
+                              diagramCatalog.find((entry) => entry.sectionSlug === b.sectionSlug)
+                                ?.navOrder ?? 9999;
+                            if (orderA !== orderB) return orderA - orderB;
+                            return a.title.localeCompare(b.title);
+                          })
                           .map((item) => {
                             const catalogEntry = diagramCatalog.find(
                               (entry) => entry.sectionSlug === item.sectionSlug,

@@ -87,10 +87,24 @@ export type ArchitectureCatalogEntry = {
   sectionSlug: string;
   title: string;
   description?: string;
+  /** Lower numbers appear first in the Architecture Diagrams hub sidebar. */
+  navOrder?: number;
+  /** When true, diagram JSON is regenerated from repo docs on each API load. */
+  liveRefresh?: boolean;
   seedTemplate?:
     | "blank"
     | "storage"
     | "platform-overview"
+    | "platform-overview-live"
+    | "vercel-stack"
+    | "supabase-stack"
+    | "codebase-stack"
+    | "openai-stack"
+    | "workspace-internal"
+    | "workspace-demo"
+    | "workspace-onwardair"
+    | "workspace-abhi"
+    | "workspace-talantonimpact"
     | "voice-and-video"
     | "software-asset-register"
     | "executive-ai";
@@ -137,8 +151,110 @@ export const ARCHITECTURE_DIAGRAM_CATALOG: readonly ArchitectureCatalogEntry[] =
   {
     sectionSlug: "platform-overview",
     title: "Platform Overview",
-    description: "Master Unit311 platform blueprint",
-    seedTemplate: "platform-overview",
+    description: "Whole-stack blueprint — Vercel · Next.js · Supabase · OpenAI · workspaces",
+    navOrder: 10,
+    liveRefresh: true,
+    seedTemplate: "platform-overview-live",
+  },
+  {
+    sectionSlug: "vercel-stack",
+    title: "Vercel",
+    description: "Production deployment · domains · middleware · crons",
+    navOrder: 20,
+    liveRefresh: true,
+    seedTemplate: "vercel-stack",
+  },
+  {
+    sectionSlug: "supabase-stack",
+    title: "Supabase",
+    description: "Postgres · Auth · Storage · workspace tenancy",
+    navOrder: 30,
+    liveRefresh: true,
+    seedTemplate: "supabase-stack",
+  },
+  {
+    sectionSlug: "codebase-stack",
+    title: "Codebase",
+    description: "GitHub monorepo · App Router · migrations",
+    navOrder: 40,
+    liveRefresh: true,
+    seedTemplate: "codebase-stack",
+  },
+  {
+    sectionSlug: "openai-stack",
+    title: "OpenAI",
+    description: "Executive Assistant · Responses API · server-only keys",
+    navOrder: 50,
+    liveRefresh: true,
+    seedTemplate: "openai-stack",
+  },
+  {
+    sectionSlug: "workspace-internal",
+    title: "Workspace — Internal",
+    description: "unit311 · internal.unit311central.com",
+    navOrder: 60,
+    liveRefresh: true,
+    seedTemplate: "workspace-internal",
+  },
+  {
+    sectionSlug: "workspace-demo",
+    title: "Workspace — Demo",
+    description: "demo · demo.unit311central.com",
+    navOrder: 70,
+    liveRefresh: true,
+    seedTemplate: "workspace-demo",
+  },
+  {
+    sectionSlug: "workspace-onwardair",
+    title: "Workspace — OnwardAir",
+    description: "onwardair · client portals · aviation ops",
+    navOrder: 80,
+    liveRefresh: true,
+    seedTemplate: "workspace-onwardair",
+  },
+  {
+    sectionSlug: "workspace-abhi",
+    title: "Workspace — ABHI",
+    description: "abhi · member portals · HealthTech",
+    navOrder: 90,
+    liveRefresh: true,
+    seedTemplate: "workspace-abhi",
+  },
+  {
+    sectionSlug: "workspace-talantonimpact",
+    title: "Workspace — Talanton Impact",
+    description: "talantonimpact · portfolio · board",
+    navOrder: 100,
+    liveRefresh: true,
+    seedTemplate: "workspace-talantonimpact",
+  },
+  {
+    sectionSlug: "ai-agent",
+    title: "Executive AI Platform",
+    description: "Operating Assistant, Command Centre, Guided Learning, trust",
+    navOrder: 110,
+    seedTemplate: "executive-ai",
+  },
+  {
+    sectionSlug: "software-asset-register",
+    title: "Software Asset Register",
+    description: "Corporate software licences, spend, and credentials",
+    navOrder: 120,
+    seedTemplate: "software-asset-register",
+  },
+  {
+    sectionSlug: "storage",
+    title: "Storage Architecture",
+    description: "Uploads, internal-files, signed URLs",
+    navOrder: 130,
+    seedTemplate: "storage",
+  },
+  {
+    sectionSlug: "voice-and-video",
+    title: "Voice & Video Architecture",
+    description: "Executive Call WebRTC 1:1 streaming",
+    navOrder: 140,
+    seedTemplate: "voice-and-video",
   },
   {
     sectionSlug: "authentication",
@@ -183,12 +299,6 @@ export const ARCHITECTURE_DIAGRAM_CATALOG: readonly ArchitectureCatalogEntry[] =
     seedTemplate: "blank",
   },
   {
-    sectionSlug: "ai-agent",
-    title: "Executive AI Platform",
-    description: "Operating Assistant, Command Centre, Guided Learning, trust",
-    seedTemplate: "executive-ai",
-  },
-  {
     sectionSlug: "website",
     title: "Website",
     description: "Public marketing and signup",
@@ -211,18 +321,6 @@ export const ARCHITECTURE_DIAGRAM_CATALOG: readonly ArchitectureCatalogEntry[] =
     title: "External Integrations",
     description: "Third-party systems",
     seedTemplate: "blank",
-  },
-  {
-    sectionSlug: "voice-and-video",
-    title: "Communications",
-    description: "Executive Call WebRTC 1:1 streaming",
-    seedTemplate: "voice-and-video",
-  },
-  {
-    sectionSlug: "software-asset-register",
-    title: "Software Asset Register",
-    description: "Corporate software licences, spend, and credentials",
-    seedTemplate: "software-asset-register",
   },
 ] as const;
 
