@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const includeCatalog = request.nextUrl.searchParams.get("catalog") === "1";
 
     // Ensure table + core seeds exist before serving the knowledge centre.
-    await ensureCoreArchitectureSeeds().catch(() => null);
+    await ensureCoreArchitectureSeeds();
 
     if (!sectionSlug) {
       const diagrams = await listArchitectureDiagrams();

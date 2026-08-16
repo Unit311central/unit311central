@@ -61,9 +61,69 @@ function readDoc(path: string): { markdown: string; mtimeMs: number } {
   return { markdown, mtimeMs: statSync(path).mtimeMs };
 }
 
+function safeReadDoc(path: string, fallbackMarkdown: string): { markdown: string; mtimeMs: number } {
+  try {
+    return readDoc(path);
+  } catch {
+    return { markdown: fallbackMarkdown, mtimeMs: 0 };
+  }
+}
+
+const VERCEL_DOC_FALLBACK = `# Vercel
+| Field | Value |
+| --- | --- |
+| Vercel project | unit311central |
+| Framework | Next.js (App Router) |
+| Runtime | Vercel Edge Middleware + Node.js App Router |
+| Production URL (apex) | https://unit311central.com |
+| Production database | Supabase Unit311 Central (kkxtvzxqmbacjatkiupq) |
+## Domains
+| Domain | Role | Status |
+| unit311central.com | Public marketing website | Production |
+| internal.unit311central.com | Unit311 Internal operations app | Production |
+| demo.unit311central.com | Demo workspace | Production |
+## Middleware request flow
+| Host | Path behaviour |
+| Apex / www | Serve public marketing |
+| internal.* | Rewrite to internal dashboard |
+`;
+
+const SUPABASE_DOC_FALLBACK = `# Workspace
+**Production database**
+| Field | Value |
+| Supabase display name | Unit311 Central |
+| Project ID | kkxtvzxqmbacjatkiupq |
+## Unit311 Central Internal workspace
+| Field | Value |
+| name | Unit311 Central |
+| slug | unit311 |
+| workspace_type | Internal |
+| status | Active |
+`;
+
+const CODEBASE_DOC_FALLBACK = `# GitHub
+| Field | Value |
+| GitHub remote | https://github.com/Unit311central/unit311central.git |
+| Default package name | unit311 |
+| Product | Unit311 Central (single-repo multi-tenant SaaS) |
+## Repository structure
+| Path | Role |
+| src/app/ | Next.js App Router |
+| src/lib/ | Domain services |
+| supabase/migrations/ | SQL migrations |
+## App Router
+| Area | Location | Purpose |
+| Internal dashboard | src/app/(survey-operations)/internaldashboard | Internal ops |
+`;
+
+const OPENAI_DOC_FALLBACK = `# Executive AI
+OPENAI_ASSISTANT_MODEL gpt-4o-mini
+OPENAI_API_KEY server-only
+`;
+
 export function createVercelStackDiagram(cwd = process.cwd()): ArchitectureDiagramDocument {
   const docPath = resolveVercelArchitectureDocPath(cwd);
-  const { markdown, mtimeMs } = readDoc(docPath);
+  const { markdown, mtimeMs } = safeReadDoc(docPath, VERCEL_DOC_FALLBACK);
   const parsed = parseVercelArchitectureDoc(markdown);
 
   const domainNodes = parsed.domains.slice(0, 6).map((row, index) =>
@@ -148,7 +208,7 @@ export function createVercelStackDiagram(cwd = process.cwd()): ArchitectureDiagr
 
 export function createSupabaseStackDiagram(cwd = process.cwd()): ArchitectureDiagramDocument {
   const docPath = resolveWorkspaceArchitectureDocPath(cwd);
-  const { markdown, mtimeMs } = readDoc(docPath);
+  const { markdown, mtimeMs } = safeReadDoc(docPath, SUPABASE_DOC_FALLBACK);
   const parsed = parseWorkspaceArchitectureDoc(markdown);
 
   const foundationNodes = parsed.foundationTables.map((table, index) =>
@@ -236,7 +296,7 @@ export function createSupabaseStackDiagram(cwd = process.cwd()): ArchitectureDia
 
 export function createCodebaseStackDiagram(cwd = process.cwd()): ArchitectureDiagramDocument {
   const docPath = resolveGithubArchitectureDocPath(cwd);
-  const { markdown, mtimeMs } = readDoc(docPath);
+  const { markdown, mtimeMs } = safeReadDoc(docPath, CODEBASE_DOC_FALLBACK);
   const parsed = parseGithubArchitectureDoc(markdown);
 
   const structureNodes = parsed.structure.slice(0, 8).map((row, index) =>
@@ -321,7 +381,7 @@ export function createCodebaseStackDiagram(cwd = process.cwd()): ArchitectureDia
 
 export function createOpenAiStackDiagram(cwd = process.cwd()): ArchitectureDiagramDocument {
   const docPath = join(cwd, EXECUTIVE_AI_DOC);
-  const { markdown, mtimeMs } = readDoc(docPath);
+  const { markdown, mtimeMs } = safeReadDoc(docPath, OPENAI_DOC_FALLBACK);
 
   const modelMatch = markdown.match(/OPENAI_ASSISTANT_MODEL[^\n`]*`?([a-z0-9.-]+)`?/i);
   const defaultModel = modelMatch?.[1] ?? "gpt-4o-mini";
@@ -604,9 +664,9 @@ export function createLiveArchitectureDiagram(
 }
 
 export function createPlatformOverviewLiveDiagram(cwd = process.cwd()): ArchitectureDiagramDocument {
-  const vercelDoc = readDoc(resolveVercelArchitectureDocPath(cwd));
+  const vercelDoc = safeReadDoc(resolveVercelArchitectureDocPath(cwd), VERCEL_DOC_FALLBACK);
   const vercel = parseVercelArchitectureDoc(vercelDoc.markdown);
-  const githubDoc = readDoc(resolveGithubArchitectureDocPath(cwd));
+  const githubDoc = safeReadDoc(resolveGithubArchitectureDocPath(cwd), CODEBASE_DOC_FALLBACK);
   const github = parseGithubArchitectureDoc(githubDoc.markdown);
 
   const workspaceHosts = WORKSPACE_DIAGRAM_PROFILES.map((profile, index) =>

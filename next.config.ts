@@ -71,6 +71,27 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "date-fns"],
   },
+  // Architecture diagram live-seeds read these at runtime on Vercel (docs/ is otherwise excluded).
+  outputFileTracingIncludes: {
+    "/api/architecture-diagrams": [
+      "./docs/VERCEL_ARCHITECTURE.md",
+      "./docs/GITHUB_ARCHITECTURE.md",
+      "./docs/WORKSPACE_ARCHITECTURE.md",
+      "./docs/EXECUTIVE_AI_PLATFORM.md",
+    ],
+    "/api/unit311-details": [
+      "./docs/VERCEL_ARCHITECTURE.md",
+      "./docs/GITHUB_ARCHITECTURE.md",
+      "./docs/WORKSPACE_ARCHITECTURE.md",
+      "./docs/EXECUTIVE_AI_PLATFORM.md",
+    ],
+    "/api/internal/bootstrap-architecture-diagrams": [
+      "./docs/VERCEL_ARCHITECTURE.md",
+      "./docs/GITHUB_ARCHITECTURE.md",
+      "./docs/WORKSPACE_ARCHITECTURE.md",
+      "./docs/EXECUTIVE_AI_PLATFORM.md",
+    ],
+  },
   outputFileTracingExcludes: {
     "*": [
       "node_modules/playwright/**",
