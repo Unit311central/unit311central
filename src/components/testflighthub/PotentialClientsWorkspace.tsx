@@ -205,14 +205,19 @@ export default function PotentialClientsWorkspace() {
 
   const selectedCountryId = useMemo(() => {
     const fromUrl = searchParams.get("country");
+    if (isDemo) {
+      if (fromUrl === "uk" || !fromUrl) return "uk" as PotentialClientsCountryId;
+    }
     const isValid = isOnwardAir
       ? isOnwardAirPotentialClientsCountryId(fromUrl)
       : isPotentialClientsCountryId(fromUrl);
     if (isValid) return fromUrl as PotentialClientsCountryId;
     return isOnwardAir
       ? DEFAULT_ONWARDAIR_POTENTIAL_CLIENTS_COUNTRY_ID
-      : DEFAULT_POTENTIAL_CLIENTS_COUNTRY_ID;
-  }, [isOnwardAir, searchParams]);
+      : isDemo
+        ? ("uk" as PotentialClientsCountryId)
+        : DEFAULT_POTENTIAL_CLIENTS_COUNTRY_ID;
+  }, [isOnwardAir, isDemo, searchParams]);
 
   const selectCountry = useCallback(
     (countryId: PotentialClientsCountryId) => {

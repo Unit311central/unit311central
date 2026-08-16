@@ -9,6 +9,8 @@ import {
   type CorporateInformationTab,
 } from "@/lib/internal-operations-data";
 
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+
 import BankAccountsWorkspace from "./BankAccountsWorkspace";
 import BoardDirectorsWorkspace from "./BoardDirectorsWorkspace";
 import CapTableWorkspace from "./CapTableWorkspace";
@@ -23,9 +25,25 @@ function resolveTab(
 ): CorporateInformationTab {
   if (forcedTab) return forcedTab;
   const fromTab = searchParams.get("tab");
-  if (isCorporateInformationTab(fromTab)) return fromTab;
+  if (isCorporateInformationTab(fromTab)) {
+    if (
+      typeof window !== "undefined" &&
+      isBrowserDemoSurface() &&
+      (fromTab === "company-details" || fromTab === "board-directors")
+    ) {
+      return "office-locations";
+    }
+    return fromTab;
+  }
   const fromView = legacyCorporateViewToTab(searchParams.get("view"));
-  return fromView ?? "company-details";
+  if (
+    typeof window !== "undefined" &&
+    isBrowserDemoSurface() &&
+    (fromView === "company-details" || fromView === "board-directors")
+  ) {
+    return "office-locations";
+  }
+  return fromView ?? (typeof window !== "undefined" && isBrowserDemoSurface() ? "office-locations" : "company-details");
 }
 
 /**

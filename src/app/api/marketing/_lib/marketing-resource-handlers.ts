@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarMarketingBundle } from "@/lib/demo/northstar-marketing-fixtures";
 import {
   deleteMarketingCampaign,
   deleteMarketingContact,
@@ -44,6 +46,20 @@ export async function handleMarketingResourceGet(
   workspaceId: string,
   workspaceSlug: string,
 ) {
+  if (await isDemoApiRequest()) {
+    const bundle = getNorthstarMarketingBundle();
+    const map: Record<string, unknown[]> = {
+      contacts: bundle.contacts,
+      newsletters: bundle.newsletters,
+      campaigns: bundle.campaigns,
+      "external-events": bundle.externalEvents,
+      "managed-events": bundle.managedEvents,
+      media: bundle.media,
+      stories: bundle.portfolioStories,
+    };
+    return NextResponse.json({ items: map[resource] ?? [] });
+  }
+
   await ensureMarketingWorkspaceSeeded({ workspaceId, workspaceSlug });
   const lister = LISTERS[resource as MarketingResourceKey];
   if (!lister) {

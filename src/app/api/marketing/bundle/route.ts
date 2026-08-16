@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarMarketingBundle } from "@/lib/demo/northstar-marketing-fixtures";
 import {
   computeMarketingDashboardKpis,
   ensureMarketingWorkspaceSeeded,
@@ -20,6 +22,10 @@ import { withMarketingApiAuth } from "../_lib/with-marketing-api-auth";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json(getNorthstarMarketingBundle());
+  }
+
   return withMarketingApiAuth(async ({ workspaceId, workspaceSlug }) => {
     await ensureMarketingWorkspaceSeeded({ workspaceId, workspaceSlug });
 

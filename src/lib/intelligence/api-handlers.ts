@@ -49,12 +49,19 @@ async function resolveWorkspaceSlug(
     return resolveIntelligencePackSlugForWorkspace(override);
   }
 
+  if (await isDemoApiRequest()) {
+    return resolveIntelligencePackSlugForWorkspace("demo") ?? "demo";
+  }
+
+  const fromHost = resolveIntelligenceWorkspaceSlugFromHost(getRequestHost(request));
+  if (fromHost) return fromHost;
+
   const workspace = await getCurrentWorkspace();
   if (workspace) {
     return resolveIntelligencePackSlugForWorkspace(workspace.slug);
   }
 
-  return resolveIntelligenceWorkspaceSlugFromHost(getRequestHost(request));
+  return null;
 }
 
 async function buildAccessContext(

@@ -506,7 +506,25 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
   const cash = fixtures.company.cashGbp;
   const monthlyRevenue = 400_000;
   const monthlyExpenses = 310_000;
-  const month = new Date().toISOString().slice(0, 7);
+  const monthSeries: { month: string; amount: number }[] = [];
+  const plSeries: { month: string; profit: number; loss: number }[] = [];
+  const cashSeries: { month: string; amount: number }[] = [];
+  const anchor = new Date("2026-08-16T10:00:00.000Z");
+  for (let offset = 35; offset >= 0; offset -= 1) {
+    const date = new Date(anchor);
+    date.setMonth(date.getMonth() - offset);
+    const month = date.toISOString().slice(0, 7);
+    const revenue = monthlyRevenue - offset * 1_500;
+    const expenses = monthlyExpenses - offset * 800;
+    monthSeries.push({ month, amount: revenue });
+    plSeries.push({
+      month,
+      profit: Math.max(0, revenue - expenses),
+      loss: Math.max(0, expenses - revenue),
+    });
+    cashSeries.push({ month, amount: cash - offset * 25_000 });
+  }
+  const month = anchor.toISOString().slice(0, 7);
 
   return {
     revenueYtd: 2_880_000,
@@ -548,10 +566,13 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
     ap: { outstanding: 186_000, dueThisMonth: 64_000, overdue: 0, upcoming: 122_000, recent: [] },
     payroll: { current: 118_000, next: 118_000, employees: 25, annual: 1_416_000, monthly: 118_000, trend: [] },
     charts: {
-      monthlyRevenue: [{ month, amount: monthlyRevenue }],
-      monthlyProfitLoss: [{ month, profit: Math.max(0, monthlyRevenue - monthlyExpenses), loss: Math.max(0, monthlyExpenses - monthlyRevenue) }],
-      monthlyOutgoings: [{ month, amount: monthlyExpenses }],
-      cashPosition: [{ month, amount: cash }],
+      monthlyRevenue: monthSeries,
+      monthlyProfitLoss: plSeries,
+      monthlyOutgoings: monthSeries.map((row) => ({
+        month: row.month,
+        amount: monthlyExpenses,
+      })),
+      cashPosition: cashSeries,
     },
     activity: [],
   };
@@ -579,38 +600,45 @@ export function getNorthstarLedgerAccounts(): LedgerAccount[] {
 }
 
 export function getNorthstarJournalEntries(): JournalEntry[] {
-  return [
-    {
-      id: "nst-je-1",
-      reference: "REV-2026-08",
-      description: "August SaaS & monitoring revenue recognition",
+  const entries: JournalEntry[] = [];
+  const now = new Date("2026-08-16T10:00:00.000Z");
+  for (let offset = 35; offset >= 0; offset -= 1) {
+    const date = new Date(now);
+    date.setMonth(date.getMonth() - offset);
+    const month = date.toISOString().slice(0, 7);
+    const revenue = 360_000 + (offset % 6) * 8_000;
+    entries.push({
+      id: `nst-je-rev-${month}`,
+      reference: `REV-${month}`,
+      description: `${month} SaaS & monitoring revenue recognition`,
       clientId: null,
       sourceType: "revenue",
       sourceId: null,
       status: "posted",
-      journalDate: "2026-08-01",
-      postedAt: NOW,
-      createdAt: NOW,
+      journalDate: `${month}-01`,
+      postedAt: `${month}-01T10:00:00.000Z`,
+      createdAt: `${month}-01T10:00:00.000Z`,
       lines: [],
-      debitTotal: 400_000,
-      creditTotal: 400_000,
-    },
-    {
-      id: "nst-je-2",
-      reference: "PAY-2026-08",
-      description: "August payroll accrual",
+      debitTotal: revenue,
+      creditTotal: revenue,
+    });
+    entries.push({
+      id: `nst-je-pay-${month}`,
+      reference: `PAY-${month}`,
+      description: `${month} payroll accrual`,
       clientId: null,
       sourceType: "payroll",
       sourceId: null,
       status: "posted",
-      journalDate: "2026-08-31",
-      postedAt: NOW,
-      createdAt: NOW,
+      journalDate: `${month}-28`,
+      postedAt: `${month}-28T10:00:00.000Z`,
+      createdAt: `${month}-28T10:00:00.000Z`,
       lines: [],
-      debitTotal: 118_000,
-      creditTotal: 118_000,
-    },
-  ];
+      debitTotal: 112_000 + (offset % 4) * 2_000,
+      creditTotal: 112_000 + (offset % 4) * 2_000,
+    });
+  }
+  return entries;
 }
 
 export function getNorthstarTrialBalance(): TrialBalanceRow[] {
@@ -628,7 +656,20 @@ export function getNorthstarTrialBalance(): TrialBalanceRow[] {
 export function getNorthstarClients() {
   const fixtures = getDemoEnterpriseFixtures();
   const company = fixtures.company.tradingName;
-  return [
+  const industries = ["Manufacturing", "Food & Beverage", "Logistics", "Energy", "Automotive"];
+  const cities = [
+    "Sheffield",
+    "Manchester",
+    "Birmingham",
+    "Bristol",
+    "Leeds",
+    "Nottingham",
+    "Cardiff",
+    "Glasgow",
+    "Liverpool",
+    "Newcastle",
+  ];
+  const core = [
     {
       id: "nst-cli-sheffield",
       companyName: "Sheffield Precision Engineering",
@@ -675,6 +716,27 @@ export function getNorthstarClients() {
       notes: "Predictive maintenance pilot.",
     },
   ];
+  const generated = Array.from({ length: 97 }, (_, index) => {
+    const n = index + 4;
+    const city = cities[index % cities.length]!;
+    const industry = industries[index % industries.length]!;
+    return {
+      id: `nst-cli-${String(n).padStart(3, "0")}`,
+      companyName: `${city} Industrial Systems ${n}`,
+      industry,
+      primaryContact: `Contact ${n}`,
+      email: `contact${n}@${city.toLowerCase()}industrial.demo`,
+      phone: `+44 161 555 ${String(1000 + n).slice(-4)}`,
+      region: "UK",
+      accountStatus: n % 7 === 0 ? "Onboarding" : "Active",
+      contractType: n % 3 === 0 ? "Statement of Work" : "Subscription",
+      taxId: `GB${String(100000000 + n)}`,
+      billingAddress: `${city} Industrial Park`,
+      activeProjects: n % 5 === 0 ? 2 : 1,
+      notes: `${company} monitoring or edge deployment.`,
+    };
+  });
+  return [...core, ...generated];
 }
 
 export function getNorthstarPartners() {

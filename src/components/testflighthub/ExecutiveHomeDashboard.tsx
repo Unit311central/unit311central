@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutGrid, Plus, RotateCcw, X } from "lucide-react";
 
+import NorthstarCompanyOverview from "@/components/demo/NorthstarCompanyOverview";
+
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
 import PortfolioCompanyMap from "@/components/testflighthub/talanton/PortfolioCompanyMap";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
@@ -203,6 +205,7 @@ export default function ExecutiveHomeDashboard() {
   const [loading, setLoading] = useState(true);
   const [layout, setLayout] = useState<ExecutiveHomeTileId[]>([...DEFAULT_EXECUTIVE_HOME_LAYOUT]);
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
   const [layoutHydrated, setLayoutHydrated] = useState(false);
   const isTalanton = typeof window !== "undefined" ? isBrowserTalantonImpactSurface() : false;
   const isDemo = typeof window !== "undefined" ? isBrowserDemoSurface() : false;
@@ -336,20 +339,39 @@ export default function ExecutiveHomeDashboard() {
   return (
     <div data-ai-target="home-tiles" className="space-y-3">
       {isDemo ? (
-        <Link
-          href="/company-overview"
-          data-ai-target="demo-company-overview"
-          className="block rounded-2xl border border-sky-400/35 bg-gradient-to-r from-sky-950/50 to-[#121C2D] p-5 transition hover:border-sky-300/50"
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
-            Company overview
-          </p>
-          <h2 className="mt-1 text-xl font-semibold text-white">{demoCompanyName}</h2>
-          <p className="mt-2 text-sm text-white/60">
-            Company identity, financials, people, board, risks and priorities — derived from Demo seed data.
-          </p>
-          <span className="mt-3 inline-block text-sm font-medium text-sky-300">Open overview →</span>
-        </Link>
+        <>
+          <button
+            type="button"
+            data-ai-target="demo-company-overview"
+            onClick={() => setOverviewOpen(true)}
+            className="block w-full rounded-2xl border border-sky-400/35 bg-gradient-to-r from-sky-950/50 to-[#121C2D] p-5 text-left transition hover:border-sky-300/50"
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
+              Company overview
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-white">{demoCompanyName}</h2>
+            <p className="mt-2 text-sm text-white/60">
+              Offices, burn rate, ARR and cash — Northstar snapshot (opens in place).
+            </p>
+            <span className="mt-3 inline-block text-sm font-medium text-sky-300">Open overview →</span>
+          </button>
+          {overviewOpen ? (
+            <div
+              className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Company overview"
+              onClick={() => setOverviewOpen(false)}
+            >
+              <div
+                className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-white/10 bg-[#07111f] shadow-2xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <NorthstarCompanyOverview embedded onClose={() => setOverviewOpen(false)} />
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">

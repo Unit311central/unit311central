@@ -86,11 +86,43 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
       continue;
     }
 
+    if (section.label === "Business Central") {
+      out.push({
+        ...section,
+        items: [
+          {
+            label: "Dashboard",
+            icon: "LayoutDashboard",
+            view: "business-central-dashboard" as const,
+          },
+          ...section.items
+            .filter((item) => item.label !== "Projects")
+            .map((item) => {
+              if (item.label !== "Projects" || !item.children) return item;
+              return {
+                ...item,
+                children: item.children.filter(
+                  (child) =>
+                    !child.view?.startsWith("projects") && child.view !== "projects-dashboard",
+                ),
+              };
+            }),
+          { label: "Grants", icon: "ScrollText", view: "grants" as const },
+        ],
+      });
+      continue;
+    }
+
     if (section.label === "Corporate Information") {
       out.push({
         ...section,
         items: section.items.filter(
-          (item) => !item.view || !CORPORATE_BOARD_VIEWS.has(item.view as InternalOperationsView),
+          (item) =>
+            item.view !== "corporate-company-details" &&
+            item.view !== "corporate-board-directors" &&
+            item.label !== "Company Details" &&
+            item.label !== "Board of Directors" &&
+            (!item.view || !CORPORATE_BOARD_VIEWS.has(item.view as InternalOperationsView)),
         ),
       });
       if (!insertedBoard) {

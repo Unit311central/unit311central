@@ -289,6 +289,7 @@ import {
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
 import IntelligenceCentralWorkspace from "@/components/intelligence/IntelligenceCentralWorkspace";
 import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
+import NorthstarBusinessCentralDashboard from "@/components/demo/NorthstarBusinessCentralDashboard";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
@@ -869,7 +870,12 @@ export default function InternalOperationsDashboard({
           )}
 
           {activeView === "grants" && <GrantsWorkspace />}
-          {activeView === "business-central-dashboard" && <OnwardAirBusinessCentralDashboard />}
+          {activeView === "business-central-dashboard" &&
+            (isBrowserDemoSurface() ? (
+              <NorthstarBusinessCentralDashboard />
+            ) : (
+              <OnwardAirBusinessCentralDashboard />
+            ))}
 
           {activeView === "recent-missions" && <RecentMissionsPanel />}
 
