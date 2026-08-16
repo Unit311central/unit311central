@@ -45,7 +45,7 @@ export function mapBundleToAbhiMarketingState(bundle: MarketingBundleResponse) {
       updatedAt: String(row.updatedAt ?? new Date().toISOString()),
     })),
     mailingCampaigns: bundle.campaigns.map((row) => {
-      const ext = (row as { extensionData?: Record<string, unknown> }).extensionData ?? {};
+      const ext = row.extensionData ?? {};
       return {
         id: String(row.id),
         name: String(ext.name ?? row.subject ?? ""),
