@@ -26,8 +26,23 @@ export async function GET(request: NextRequest) {
       build: result.build,
     });
   } catch (error) {
+    const filename = northstarBoardDeckPdfFileName(meetingDate);
+    const origin = request.nextUrl.origin;
     try {
-      const filename = northstarBoardDeckPdfFileName(meetingDate);
+      const staticRes = await fetch(`${origin}/samples/${filename}`, { cache: "no-store" });
+      const contentType = staticRes.headers.get("content-type") ?? "";
+      if (staticRes.ok && contentType.includes("pdf")) {
+        const bytes = new Uint8Array(await staticRes.arrayBuffer());
+        return pdfResponse(bytes, filename, disposition, {
+          packName: `Northstar Board Pack — ${meetingDate}`,
+          meetingDate,
+          build: "static-fallback",
+        });
+      }
+    } catch {
+      /* try disk */
+    }
+    try {
       const bytes = await readFile(join(process.cwd(), "public", "samples", filename));
       return pdfResponse(bytes, filename, disposition, {
         packName: `Northstar Board Pack — ${meetingDate}`,
