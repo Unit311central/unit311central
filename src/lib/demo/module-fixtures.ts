@@ -28,11 +28,12 @@ import {
 import type { GrantApplication } from "@/lib/grants-data";
 import type { InternalProject } from "@/lib/projects-data";
 import type { PotentialClientsCountrySnapshot } from "@/lib/potential-clients-data";
-import type {
-  DataRoomRow,
-  FundraisingMeeting,
-  FundraisingPipelineDeal,
-  PitchDeckVersion,
+import {
+  NORTHSTAR_FUNDRAISING_PIPELINE_SEED,
+  type DataRoomRow,
+  type FundraisingMeeting,
+  type FundraisingPipelineDeal,
+  type PitchDeckVersion,
 } from "@/lib/demo/fundraising-data";
 
 const WS = "demo";
@@ -490,45 +491,14 @@ export const NORTHSTAR_POTENTIAL_CLIENTS: PotentialClientsCountrySnapshot[] = [
 ];
 
 export function getNorthstarFundraisingPipeline(): FundraisingPipelineDeal[] {
-  return [
-    {
-      id: "nst-pipe-seed-mgp",
-      investor: "Simon Wright",
-      firm: "Midlands Growth Partners",
-      stage: "Term sheet",
-      amountGbp: 2_500_000,
-      owner: "Elena Hart",
-      lastTouch: "2026-08-12",
-      notes: "Lead candidate for £5M seed round.",
-    },
-    {
-      id: "nst-pipe-seed-iif",
-      investor: "Helena Voigt",
-      firm: "Industrial Innovation Fund",
-      stage: "Diligence",
-      amountGbp: 1_500_000,
-      owner: "Priya Shah",
-      lastTouch: "2026-08-08",
-      notes: "Technical diligence — Manchester site visit completed.",
-    },
-    {
-      id: "nst-pipe-seed-ntv",
-      investor: "David Chen",
-      firm: "Northern Tech Ventures",
-      stage: "Meeting",
-      amountGbp: 1_000_000,
-      owner: "Elena Hart",
-      lastTouch: "2026-08-14",
-      notes: "Pre-seed lead — pro-rata for seed extension.",
-    },
-  ];
+  return NORTHSTAR_FUNDRAISING_PIPELINE_SEED.map((deal) => ({ ...deal }));
 }
 
 export function getNorthstarFundraisingMeetings(): FundraisingMeeting[] {
   return [
     {
       id: "nst-fr-meet-1",
-      title: "Series B intro — Midlands Growth Partners",
+      title: "Seed intro — Midlands Growth Partners",
       investor: "Simon Wright",
       firm: "Midlands Growth Partners",
       withWhom: "Elena Hart, Priya Shah",

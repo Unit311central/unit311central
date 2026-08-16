@@ -43,6 +43,7 @@ import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
+  DemoFundraisingCapTableWorkspace,
   DemoFundraisingDashboardWorkspace,
   DemoFundraisingDataRoomsWorkspace,
   DemoFundraisingInvestorsWorkspace,
@@ -1228,6 +1229,9 @@ export default function InternalOperationsDashboard({
             ) : (
               <FundraisingInvestorsWorkspace />
             ))}
+          {activeView === "fundraising-cap-table" && isBrowserDemoSurface() && (
+            <DemoFundraisingCapTableWorkspace />
+          )}
           {activeView === "fundraising-pipeline" &&
             (isBrowserDemoSurface() ? (
               <DemoFundraisingPipelineWorkspace />

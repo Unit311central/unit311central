@@ -9,6 +9,7 @@ const DEMO_FUNDRAISING_NAV: InternalNavSection = {
   items: [
     { label: "Dashboard", icon: "LayoutDashboard", view: "fundraising-dashboard" as const },
     { label: "Investors", icon: "Users", view: "fundraising-investors" as const },
+    { label: "Cap Table Management", icon: "Layers", view: "fundraising-cap-table" as const },
     { label: "Pipeline", icon: "GitBranch", view: "fundraising-pipeline" as const },
     { label: "Meetings", icon: "CalendarDays", view: "fundraising-meetings" as const },
     { label: "Pitch Decks", icon: "Presentation", view: "fundraising-pitch-decks" as const },
@@ -120,8 +121,10 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
           (item) =>
             item.view !== "corporate-company-details" &&
             item.view !== "corporate-board-directors" &&
+            item.view !== "corporate-cap-table" &&
             item.label !== "Company Details" &&
             item.label !== "Board of Directors" &&
+            item.label !== "Cap Table Management" &&
             (!item.view || !CORPORATE_BOARD_VIEWS.has(item.view as InternalOperationsView)),
         ),
       });

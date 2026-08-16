@@ -190,6 +190,7 @@ export type InternalOperationsView =
   | "operations-dashboard"
   | "fundraising-dashboard"
   | "fundraising-investors"
+  | "fundraising-cap-table"
   | "fundraising-pipeline"
   | "fundraising-meetings"
   | "fundraising-pitch-decks"
@@ -447,6 +448,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "operations-dashboard",
   "fundraising-dashboard",
   "fundraising-investors",
+  "fundraising-cap-table",
   "fundraising-pipeline",
   "fundraising-meetings",
   "fundraising-pitch-decks",
@@ -508,6 +510,7 @@ export const ASSETS_NAV_VIEWS = [
 export const FUNDRAISING_NAV_VIEWS = [
   "fundraising-dashboard",
   "fundraising-investors",
+  "fundraising-cap-table",
   "fundraising-pipeline",
   "fundraising-meetings",
   "fundraising-pitch-decks",
@@ -1345,6 +1348,7 @@ export const internalViewTitles: Record<
   "operations-dashboard": { title: "Dashboard", subtitle: "Operations" },
   "fundraising-dashboard": { title: "Dashboard", subtitle: "Fundraising" },
   "fundraising-investors": { title: "Investors", subtitle: "Fundraising" },
+  "fundraising-cap-table": { title: "Cap Table Management", subtitle: "Fundraising" },
   "fundraising-pipeline": { title: "Pipeline", subtitle: "Fundraising" },
   "fundraising-meetings": { title: "Meetings", subtitle: "Fundraising" },
   "fundraising-pitch-decks": { title: "Pitch Decks", subtitle: "Fundraising" },
