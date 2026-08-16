@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { listNorthstarMessagingChannels } from "@/lib/demo/northstar-messaging-fixtures";
 import {
   createChannel,
   deleteChannel,
@@ -30,6 +32,37 @@ function authErrorStatus(message: string) {
 }
 
 export async function GET(request: NextRequest) {
+  const viewerType = request.nextUrl.searchParams.get("viewerType");
+  const operatorId = request.nextUrl.searchParams.get("operatorId") ?? undefined;
+  const clientKey = request.nextUrl.searchParams.get("clientKey") ?? undefined;
+  const viewerKey = request.nextUrl.searchParams.get("viewerKey") ?? operatorId ?? `client:${clientKey}`;
+
+  if (await isDemoApiRequest()) {
+    if (viewerType === "client") {
+      if (!clientKey) {
+        return NextResponse.json({ error: "clientKey is required." }, { status: 400 });
+      }
+      return NextResponse.json({
+        channels: listNorthstarMessagingChannels({
+          viewerType: "client",
+          clientKey,
+          viewerKey,
+        }),
+        source: "demo",
+      });
+    }
+
+    const resolvedOperatorId = operatorId ?? "mag-dir-1";
+    return NextResponse.json({
+      channels: listNorthstarMessagingChannels({
+        viewerType: "internal",
+        operatorId: resolvedOperatorId,
+        viewerKey: operatorId ?? viewerKey ?? resolvedOperatorId,
+      }),
+      source: "demo",
+    });
+  }
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
@@ -38,11 +71,6 @@ export async function GET(request: NextRequest) {
     if (isTalantonImpactSlug(workspace.slug) && isSupabaseConfigured()) {
       await ensureTalantonMessagingChannelsSeeded(workspace.id).catch(() => undefined);
     }
-
-    const viewerType = request.nextUrl.searchParams.get("viewerType");
-    const operatorId = request.nextUrl.searchParams.get("operatorId") ?? undefined;
-    const clientKey = request.nextUrl.searchParams.get("clientKey") ?? undefined;
-    const viewerKey = request.nextUrl.searchParams.get("viewerKey") ?? operatorId ?? `client:${clientKey}`;
 
     if (!isSupabaseConfigured()) {
       if (viewerType === "client") {

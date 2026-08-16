@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarScheduledCalls } from "@/lib/demo/northstar-messaging-fixtures";
 import { createScheduledCall, listScheduledCalls } from "@/lib/internal-messaging-service";
 import { localListScheduledCalls } from "@/lib/internal-messaging-local-store";
 import { INTERNAL_MESSAGING_ROOM } from "@/lib/internal-messaging-data";
@@ -16,12 +18,20 @@ function authErrorStatus(message: string) {
 }
 
 export async function GET(request: NextRequest) {
+  const room = request.nextUrl.searchParams.get("room") ?? undefined;
+
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({
+      scheduledCalls: getNorthstarScheduledCalls(room),
+      source: "demo",
+    });
+  }
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
 
-    const room = request.nextUrl.searchParams.get("room") ?? undefined;
     const scheduledCalls = isSupabaseConfigured()
       ? await listScheduledCalls(room ?? undefined, scope)
       : localListScheduledCalls();

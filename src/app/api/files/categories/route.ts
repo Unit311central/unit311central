@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { filesApiErrorStatus, requireInternalFilesAccess } from "@/lib/files-api-auth";
 import { createCategory, listCategories } from "@/lib/internal-files-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -7,6 +8,10 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ categories: [] });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json(
       { error: "Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY." },

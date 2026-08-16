@@ -79,8 +79,8 @@ function defaultMailboxesForHost(): EmailAccountOption[] {
     const { resolveRuntimeSurface } =
       require("@/lib/runtime-surface") as typeof import("@/lib/runtime-surface");
     const surface = resolveRuntimeSurface(window.location.hostname);
-    // Platform Zoho mailboxes are Internal/Demo only — never customer tenants.
-    if (surface === "internal" || surface === "demo") return DEFAULT_MAILBOXES;
+    if (surface === "demo") return DEMO_ONLY_MAILBOXES;
+    if (surface === "internal") return DEFAULT_MAILBOXES;
   } catch {
     /* fall through */
   }

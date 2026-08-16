@@ -19,6 +19,8 @@ import {
   type ScheduledCall,
 } from "@/lib/internal-messaging-data";
 import { CLIENT_MESSAGING_OPTIONS } from "@/lib/client-messaging-config";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { NORTHSTAR_CLIENT_MESSAGING_OPTIONS } from "@/lib/demo/northstar-messaging-config";
 import { TALANTON_CLIENT_MESSAGING_OPTIONS } from "@/lib/talanton/messaging-config";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import {
@@ -268,7 +270,9 @@ export default function MessagingWorkspace(_props: MessagingWorkspaceProps) {
     () =>
       isBrowserTalantonImpactSurface()
         ? TALANTON_CLIENT_MESSAGING_OPTIONS
-        : CLIENT_MESSAGING_OPTIONS,
+        : isBrowserDemoSurface()
+          ? NORTHSTAR_CLIENT_MESSAGING_OPTIONS
+          : CLIENT_MESSAGING_OPTIONS,
     [],
   );
 

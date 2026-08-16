@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import {
+  getDemoPublicEmailAccounts,
+  isDemoEmailAccountConfigured,
+  listDemoMailboxMessages,
+} from "@/lib/email/demo-mailbox";
 import { getPublicEmailAccounts, isAccountConfigured } from "@/lib/email/accounts";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isDemoWiseWorkspaceSlug } from "@/lib/treasury/bank-provider";
@@ -15,6 +21,16 @@ function authErrorStatus(message: string) {
 }
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    const accounts = getDemoPublicEmailAccounts()
+      .filter((account) => account.id === "demo")
+      .map((account) => ({
+        ...account,
+        configured: isDemoEmailAccountConfigured(account.id),
+      }));
+    return NextResponse.json(accounts);
+  }
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { CENTRAL_SITE_URL } from "@/lib/app-domains";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { ensureDailyRoomForMessagingCall, isDailyConfigured } from "@/lib/daily-call-service";
 import {
   createMessagingCallRoom,
@@ -13,7 +15,6 @@ import {
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
-import { CENTRAL_SITE_URL } from "@/lib/app-domains";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,39 @@ function authErrorStatus(message: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const body = (await request.json()) as {
+    sessionId?: string;
+    callType?: MessagingCallType;
+    channelRoom?: string;
+    hostOperatorId?: string;
+    hostOperatorName?: string;
+    instantMeeting?: boolean;
+    allowGuestJoin?: boolean;
+  };
+
+  if (await isDemoApiRequest()) {
+    const callType: MessagingCallType = body.callType === "voice" ? "voice" : "video";
+    const instantMeeting = Boolean(body.instantMeeting || body.allowGuestJoin);
+    const sessionId = crypto.randomUUID().replace(/-/g, "").slice(0, 10);
+    const callLink = `${CENTRAL_SITE_URL}/meet/${callType}/${sessionId}`;
+    const guestToken = crypto.randomUUID().slice(0, 12);
+    const guestLink = instantMeeting ? `${callLink}?guest=${encodeURIComponent(guestToken)}` : null;
+    return NextResponse.json({
+      room: {
+        sessionId,
+        callType,
+        channelRoom: body.channelRoom ?? `instant-meeting:${sessionId}`,
+        allowGuestJoin: instantMeeting,
+        guestToken: instantMeeting ? guestToken : null,
+      },
+      callLink,
+      guestLink,
+      instantMeeting,
+      provider: "demo",
+      dailyRoomUrl: null,
+    });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
@@ -31,15 +65,6 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
-    const body = (await request.json()) as {
-      sessionId?: string;
-      callType?: MessagingCallType;
-      channelRoom?: string;
-      hostOperatorId?: string;
-      hostOperatorName?: string;
-      instantMeeting?: boolean;
-      allowGuestJoin?: boolean;
-    };
 
     const callType: MessagingCallType = body.callType === "voice" ? "voice" : "video";
     const instantMeeting = Boolean(body.instantMeeting || body.allowGuestJoin);

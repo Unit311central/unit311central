@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { ClientFilesError, resolveClientFilesRoot } from "@/lib/client-files-root";
+import type { ManagedClient } from "@/lib/client-management-data";
+import { ClientFilesError } from "@/lib/client-files-root";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarClients } from "@/lib/demo/module-fixtures";
+import { ensureNorthstarClientFilesRoot } from "@/lib/demo/northstar-files-fixtures";
 import { requireInternalWorkspaceSession } from "@/lib/internal-admin-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -12,6 +16,21 @@ type RouteContext = { params: Promise<{ id: string }> };
  * MOD-103 — ensure / repair Client Directory files root folder.
  */
 export async function POST(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+
+  if (await isDemoApiRequest()) {
+    const client = getNorthstarClients().find((row) => row.id === id);
+    if (!client) {
+      return NextResponse.json({ error: "Client not found in Client Directory." }, { status: 404 });
+    }
+    const enriched = ensureNorthstarClientFilesRoot(id, client as ManagedClient);
+    return NextResponse.json({
+      client: enriched,
+      rootFolderId: enriched.filesFolderId,
+      rootFolderName: enriched.filesFolderName,
+    });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
@@ -20,7 +39,7 @@ export async function POST(_request: Request, context: RouteContext) {
   if ("error" in auth) return auth.error;
 
   try {
-    const { id } = await context.params;
+    const { resolveClientFilesRoot } = await import("@/lib/client-files-root");
     const root = await resolveClientFilesRoot(id, auth.workspace.id);
     return NextResponse.json({
       client: root.client,

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { parseAccountId, parseMailboxFolder } from "@/lib/email/accounts";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { listDemoMailboxMessages } from "@/lib/email/demo-mailbox";
 import { emailErrorResponse } from "@/lib/email/api-utils";
 import { fetchMailboxMessages } from "@/lib/email/imap";
 import { processInfoMailboxWhatsAppNotifications } from "@/lib/email/whatsapp-notifications";
@@ -24,6 +26,10 @@ export async function GET(request: NextRequest) {
   }
 
   const folder = parseMailboxFolder(request.nextUrl.searchParams.get("folder"));
+
+  if (await isDemoApiRequest()) {
+    return NextResponse.json(listDemoMailboxMessages(account, folder));
+  }
 
   try {
     await requirePlatformSession();

@@ -8,8 +8,10 @@ import type {
 } from "@/lib/client-management-data";
 import { apiErrorStatus } from "@/lib/api-error-status";
 import { createInternalClient, listInternalClients } from "@/lib/internal-clients-service";
+import type { ManagedClient } from "@/lib/client-management-data";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarClients } from "@/lib/demo/module-fixtures";
+import { enrichNorthstarClientsWithFilesRoots } from "@/lib/demo/northstar-files-fixtures";
 import { ensureInternalClientsTable } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -20,7 +22,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   if (await isDemoApiRequest()) {
     return NextResponse.json({
-      clients: getNorthstarClients(),
+      clients: enrichNorthstarClientsWithFilesRoots(getNorthstarClients() as ManagedClient[]),
       workspace: { id: "demo-workspace", slug: "demo", name: "Demo" },
     });
   }

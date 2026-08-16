@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import {
+  listNorthstarMessagingMessages,
+  sendNorthstarMessagingMessage,
+} from "@/lib/demo/northstar-messaging-fixtures";
 import { INTERNAL_MESSAGING_ROOM } from "@/lib/internal-messaging-data";
 import {
   listMessages,
@@ -38,15 +43,25 @@ function parseView(value: string | null): "active" | "archived" | "saved" {
 }
 
 export async function GET(request: NextRequest) {
+  const room = request.nextUrl.searchParams.get("room") ?? INTERNAL_MESSAGING_ROOM;
+  const limitParam = request.nextUrl.searchParams.get("limit");
+  const limit = limitParam ? Number(limitParam) : undefined;
+  const view = parseView(request.nextUrl.searchParams.get("view"));
+
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({
+      messages: listNorthstarMessagingMessages({ room, limit, view }),
+      room,
+      view,
+      source: "demo",
+    });
+  }
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
 
-    const room = request.nextUrl.searchParams.get("room") ?? INTERNAL_MESSAGING_ROOM;
-    const limitParam = request.nextUrl.searchParams.get("limit");
-    const limit = limitParam ? Number(limitParam) : undefined;
-    const view = parseView(request.nextUrl.searchParams.get("view"));
     const operatorId = request.nextUrl.searchParams.get("operatorId")?.trim() || undefined;
 
     if (isSupabaseConfigured()) {
@@ -79,23 +94,37 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const body = (await request.json()) as {
+    operatorId?: string;
+    operatorName?: string;
+    username?: string;
+    content?: string;
+    room?: string;
+    messageType?: "text" | "file" | "call" | "system";
+    attachmentName?: string | null;
+    attachmentUrl?: string | null;
+    attachmentMime?: string | null;
+    callLink?: string | null;
+  };
+
+  if (await isDemoApiRequest()) {
+    if (!body.operatorId || !body.operatorName || !body.username) {
+      return NextResponse.json({ error: "Operator identity is required" }, { status: 400 });
+    }
+    const message = sendNorthstarMessagingMessage({
+      room: body.room ?? INTERNAL_MESSAGING_ROOM,
+      operatorId: body.operatorId,
+      operatorName: body.operatorName,
+      username: body.username,
+      content: body.content ?? "",
+    });
+    return NextResponse.json({ message });
+  }
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
     const scope = { workspaceId: workspace.id };
-
-    const body = (await request.json()) as {
-      operatorId?: string;
-      operatorName?: string;
-      username?: string;
-      content?: string;
-      room?: string;
-      messageType?: "text" | "file" | "call" | "system";
-      attachmentName?: string | null;
-      attachmentUrl?: string | null;
-      attachmentMime?: string | null;
-      callLink?: string | null;
-    };
 
     if (!body.operatorId || !body.operatorName || !body.username) {
       return NextResponse.json({ error: "Operator identity is required" }, { status: 400 });

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarMessagingOperators } from "@/lib/demo/northstar-messaging-fixtures";
 import { ensureInternalOperatorsTable } from "@/lib/internal-db-migrations";
 import { listInternalOperators } from "@/lib/internal-operators-service";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -14,6 +16,13 @@ export const dynamic = "force-dynamic";
  * Any authenticated platform session can list Active operators (unlike /api/users which is admin-gated).
  */
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({
+      users: getNorthstarMessagingOperators(),
+      source: "demo",
+    });
+  }
+
   try {
     await requirePlatformSession();
     await requireCurrentWorkspace();

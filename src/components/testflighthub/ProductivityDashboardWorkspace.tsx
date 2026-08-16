@@ -21,6 +21,7 @@ import {
 
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isBrowserDemoSurface, getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
+import NorthstarProductivityDashboard from "@/components/demo/NorthstarProductivityDashboard";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 import { getInternalNavHref, type InternalOperationsView } from "@/lib/internal-operations-data";
 import { buildOaProductivitySnapshot } from "@/lib/onwardair/productivity-fake-data";
@@ -467,6 +468,7 @@ export default function ProductivityDashboardWorkspace() {
   const basePath = useInternalOperationsBasePath();
   const isAbhi = isBrowserAbhiSurface();
   const isOa = isBrowserOnwardAirSurface();
+  const isDemo = isBrowserDemoSurface();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const snapshot = resolveProductivitySnapshot(displayName);
   const {
@@ -557,6 +559,24 @@ export default function ProductivityDashboardWorkspace() {
         support={SUPPORT}
         social={SOCIAL}
         approvals={APPROVALS}
+      />
+    );
+  }
+
+  if (isDemo) {
+    return (
+      <NorthstarProductivityDashboard
+        headline={SUMMARY.headline}
+        nextUp={SUMMARY.nextUp}
+        attention={SUMMARY.attention}
+        changed={SUMMARY.changed}
+        meetingsLeft={TODAY_SCHEDULE.length}
+        unreadEmail={EMAILS.filter((row) => row.unread).length}
+        messageCount={MESSAGES.length}
+        supportOpen={SUPPORT.open}
+        supportCritical={SUPPORT.critical}
+        emailHint={`${EMAILS.filter((row) => row.unread).length} unread · demo@unit311central.com`}
+        messageHint={MESSAGES[0]?.channel ?? "Channels"}
       />
     );
   }

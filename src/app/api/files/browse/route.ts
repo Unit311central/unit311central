@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { browseClientFiles } from "@/lib/client-files-root";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import {
+  browseNorthstarClientFiles,
+  browseNorthstarInternalFiles,
+} from "@/lib/demo/northstar-files-fixtures";
 import { filesApiErrorStatus, requireInternalFilesAccess } from "@/lib/files-api-auth";
 import { browseFolder } from "@/lib/internal-files-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -10,6 +15,30 @@ import { ensureTalantonFilesSeeded } from "@/lib/talanton/files-seed";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const folderId = request.nextUrl.searchParams.get("folderId");
+  const query = request.nextUrl.searchParams.get("q") ?? undefined;
+  const categoryId = request.nextUrl.searchParams.get("categoryId");
+  const clientId = request.nextUrl.searchParams.get("clientId")?.trim() || null;
+
+  if (await isDemoApiRequest()) {
+    if (clientId) {
+      return NextResponse.json(
+        browseNorthstarClientFiles({
+          clientId,
+          folderId: folderId || null,
+          query,
+        }),
+      );
+    }
+
+    return NextResponse.json(
+      browseNorthstarInternalFiles({
+        folderId: folderId || null,
+        query,
+      }),
+    );
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json(
       { error: "Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY." },
@@ -24,11 +53,6 @@ export async function GET(request: NextRequest) {
     if (isTalantonImpactSlug(auth.workspace.slug)) {
       await ensureTalantonFilesSeeded(auth.workspace.id).catch(() => undefined);
     }
-
-    const folderId = request.nextUrl.searchParams.get("folderId");
-    const query = request.nextUrl.searchParams.get("q") ?? undefined;
-    const categoryId = request.nextUrl.searchParams.get("categoryId");
-    const clientId = request.nextUrl.searchParams.get("clientId")?.trim() || null;
 
     if (clientId) {
       const result = await browseClientFiles({
