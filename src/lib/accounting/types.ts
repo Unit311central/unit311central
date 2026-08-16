@@ -198,6 +198,8 @@ export type FinancialOverviewSnapshot = {
     cashPosition: Array<{ month: string; amount: number }>;
   };
   activity: FinancialActivityItem[];
+  /** Optional human-readable YTD / P&L period for dashboard tiles. */
+  reportingPeriodLabel?: string;
 };
 
 export type FinancialActivityItem = {

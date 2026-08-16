@@ -232,6 +232,7 @@ export function buildFinancialsDashboardCatalog(
       dueThisMonth?: number;
       upcoming?: number;
     };
+    reportingPeriodLabel?: string;
   } | null,
 ): DashboardTileDefinition[] {
   const fallbackCurrency = financialsFallbackCurrency();
@@ -243,12 +244,15 @@ export function buildFinancialsDashboardCatalog(
 
   const tileTemplates = emptyFinancialsDashboardTiles(currency);
 
-  const marginBaseExpenses =
-    overview.annualExpenses > 0 ? overview.annualExpenses : overview.monthlyExpenses;
-  const marginPct =
-    overview.revenueYtd <= 0
+  const grossMarginPct =
+    overview.monthlyRevenue <= 0
       ? 0
-      : Math.round(((overview.revenueYtd - marginBaseExpenses) / overview.revenueYtd) * 100);
+      : Math.round(
+          ((overview.monthlyRevenue - Math.round(overview.monthlyRevenue * 0.46)) /
+            overview.monthlyRevenue) *
+            100,
+        );
+  const ytdLabel = overview.reportingPeriodLabel ?? "YTD from general ledger";
   const cashMom = momFromSeries(overview.charts?.cashPosition);
   const revMom = momFromSeries(overview.charts?.monthlyRevenue);
   const spendMom = momFromSeries(overview.charts?.monthlyOutgoings);
@@ -259,6 +263,7 @@ export function buildFinancialsDashboardCatalog(
         return {
           ...tile,
           value: money(overview.revenueYtd),
+          hint: ytdLabel,
           trend:
             revMom == null ? undefined : `${revMom > 0 ? "▲" : revMom < 0 ? "▼" : "●"} ${revMom > 0 ? "+" : ""}${revMom}% MoM`,
           accent: revMom == null ? undefined : revMom >= 0 ? "improving" : "increasing",
@@ -305,7 +310,11 @@ export function buildFinancialsDashboardCatalog(
           hint: "Outstanding supplier invoices",
         };
       case "net-profit":
-        return { ...tile, value: money(overview.netProfit) };
+        return {
+          ...tile,
+          value: money(overview.netProfit),
+          hint: `${ytdLabel} · income − expenses`,
+        };
       case "outstanding-invoices":
         return { ...tile, value: String(overview.outstandingInvoices) };
       case "monthly-revenue":
@@ -333,7 +342,11 @@ export function buildFinancialsDashboardCatalog(
       case "annual-expenses":
         return { ...tile, value: money(overview.annualExpenses) };
       case "gross-margin":
-        return { ...tile, value: `${marginPct}%` };
+        return {
+          ...tile,
+          value: `${grossMarginPct}%`,
+          hint: "SaaS gross margin · current month",
+        };
       case "forecast":
         return {
           ...tile,
@@ -491,8 +504,6 @@ export const DEFAULT_FINANCIALS_TILE_LAYOUT = [
   "accounts-receivable",
   "accounts-payable",
   "net-profit",
-  "gross-margin",
-  "monthly-revenue",
 ];
 export const DEFAULT_DEBTORS_TILE_LAYOUT = DEBTORS_DASHBOARD_TILES.map((tile) => tile.id);
 export const DEFAULT_CREDITORS_TILE_LAYOUT = CREDITORS_DASHBOARD_TILES.map((tile) => tile.id);

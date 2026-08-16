@@ -282,20 +282,62 @@ export default function GeneralLedgerWorkspace() {
       : null;
 
   const isCorpCentre = isBrowserCorpCentreSurface();
+  const isNorthstarDemo =
+    typeof window !== "undefined" &&
+    (() => {
+      try {
+        const { isNorthstarDemoBrowser } =
+          require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+        return isNorthstarDemoBrowser();
+      } catch {
+        return false;
+      }
+    })();
+
+  const plMonthLabel = isNorthstarDemo
+    ? (() => {
+        try {
+          const { northstarReportingPlMonthLabel, northstarDemoAsAtLabel } =
+            require("@/lib/demo/northstar-financial-model") as typeof import("@/lib/demo/northstar-financial-model");
+          return { asAt: northstarDemoAsAtLabel(), plMonth: northstarReportingPlMonthLabel() };
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
   const cards = (
     isCorpCentre
       ? [
-          { label: "Income", value: totals?.income ?? 0 },
-          { label: "Expenses", value: totals?.expenses ?? 0 },
-          { label: "Net Profit", value: totals?.netProfit ?? 0 },
+          {
+            label: plMonthLabel ? `Income (${plMonthLabel.plMonth})` : "Income",
+            value: totals?.income ?? 0,
+          },
+          {
+            label: plMonthLabel ? `Expenses (${plMonthLabel.plMonth})` : "Expenses",
+            value: totals?.expenses ?? 0,
+          },
+          {
+            label: plMonthLabel ? `Net profit (${plMonthLabel.plMonth})` : "Net Profit",
+            value: totals?.netProfit ?? 0,
+          },
         ]
       : [
           { label: "Assets", value: totals?.assets ?? 0 },
           { label: "Liabilities", value: totals?.liabilities ?? 0 },
           { label: "Equity", value: totals?.equity ?? 0 },
-          { label: "Income", value: totals?.income ?? 0 },
-          { label: "Expenses", value: totals?.expenses ?? 0 },
-          { label: "Net Profit", value: totals?.netProfit ?? 0 },
+          {
+            label: plMonthLabel ? `Income (${plMonthLabel.plMonth})` : "Income",
+            value: totals?.income ?? 0,
+          },
+          {
+            label: plMonthLabel ? `Expenses (${plMonthLabel.plMonth})` : "Expenses",
+            value: totals?.expenses ?? 0,
+          },
+          {
+            label: plMonthLabel ? `Net profit (${plMonthLabel.plMonth})` : "Net Profit",
+            value: totals?.netProfit ?? 0,
+          },
         ]
   );
 
@@ -344,13 +386,21 @@ export default function GeneralLedgerWorkspace() {
     <div className="space-y-4">
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <p className="text-sm text-white/55">
-            {isBrowserAbhiSurface()
-              ? "Source of truth for all ABHI financial postings."
-              : isBrowserCustomerGeneralLedgerCopy()
-                ? "Source of truth for all workspace financial postings."
-                : "Source of truth for all financial postings."}
-          </p>
+          <div>
+            <p className="text-sm text-white/55">
+              {isBrowserAbhiSurface()
+                ? "Source of truth for all ABHI financial postings."
+                : isBrowserCustomerGeneralLedgerCopy()
+                  ? "Source of truth for all workspace financial postings."
+                  : "Source of truth for all financial postings."}
+            </p>
+            {plMonthLabel ? (
+              <p className="mt-1 text-xs text-white/40">
+                As at {plMonthLabel.asAt} · P&amp;L snapshot for {plMonthLabel.plMonth} (current month
+                in progress)
+              </p>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={() => void load()}

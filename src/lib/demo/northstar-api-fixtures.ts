@@ -16,104 +16,83 @@ import type { SupportTicket } from "@/lib/support-data";
 import { createInitialUsers, type ManagedUser } from "@/lib/user-management-data";
 import { computeSoftwareAssetsSummary } from "@/lib/software-assets-data";
 
+import { northstarFinancialMonths } from "@/lib/demo/northstar-financial-model";
+
 const WS = "demo-workspace";
 const NOW = "2026-08-16T10:00:00.000Z";
 
+const EXPENSE_TEMPLATES = [
+  { supplier: "Amazon Web Services", category: "5030", purpose: "Cloud infrastructure", base: 980 },
+  { supplier: "GitHub", category: "5060", purpose: "GitHub Enterprise + CI", base: 890 },
+  { supplier: "Trainline / Premier Inn", category: "5080", purpose: "Site visit travel", base: 420 },
+  { supplier: "Voltex Automation UK", category: "5090", purpose: "Edge controller components", base: 8_400 },
+  { supplier: "WeWork Manchester", category: "5040", purpose: "Office rent allocation", base: 3_600 },
+  { supplier: "Google Ads", category: "5050", purpose: "Demand generation campaign", base: 2_100 },
+  { supplier: "Deloitte LLP", category: "5070", purpose: "Audit & advisory", base: 4_200 },
+  { supplier: "Slack / Atlassian", category: "5060", purpose: "Team productivity stack", base: 640 },
+  { supplier: "National Rail", category: "5080", purpose: "Customer site travel", base: 280 },
+  { supplier: "RS Components", category: "5090", purpose: "Lab hardware consumables", base: 1_150 },
+] as const;
+
+const SUBMITTERS = [
+  { id: "nst-emp-elena", name: "Elena Hart" },
+  { id: "nst-emp-marcus", name: "Marcus Reed" },
+  { id: "nst-emp-priya", name: "Priya Shah" },
+  { id: "nst-emp-james", name: "James Okonkwo" },
+] as const;
+
+let cachedNorthstarExpenses: FinancialExpense[] | null = null;
+
+function buildNorthstarExpenseHistory(): FinancialExpense[] {
+  const expenses: FinancialExpense[] = [];
+  let counter = 0;
+
+  for (const month of northstarFinancialMonths()) {
+    const [year, monthNum] = month.split("-").map(Number);
+    const entriesThisMonth = 3 + (monthNum % 3);
+    for (let i = 0; i < entriesThisMonth; i += 1) {
+      const template = EXPENSE_TEMPLATES[(counter + i) % EXPENSE_TEMPLATES.length]!;
+      const submitter = SUBMITTERS[(counter + i) % SUBMITTERS.length]!;
+      const yearScale = 1 + (year - 2023) * 0.12;
+      const amount = Math.round(template.base * yearScale * (0.85 + (i % 4) * 0.08) * 100) / 100;
+      const day = String(Math.min(28, 4 + i * 5)).padStart(2, "0");
+      const expenseDate = `${month}-${day}`;
+      const dateSubmitted = `${month}-${String(Math.min(28, 6 + i * 5)).padStart(2, "0")}`;
+      counter += 1;
+      expenses.push({
+        id: `nst-exp-${month}-${i}`,
+        submitterUserId: submitter.id,
+        submitterName: submitter.name,
+        purposeDescription: `${template.purpose} — ${month}`,
+        amount,
+        currency: "GBP",
+        dateSubmitted,
+        paid: i !== 1 || month < "2026-08",
+        supplier: template.supplier,
+        categoryAccountCode: template.category,
+        expenseDate,
+        paymentMethod: i % 2 === 0 ? "Wise" : "Card",
+        wiseBalanceId: i % 2 === 0 ? 1 : null,
+        attachmentPath: null,
+        reference: `NST-${month.replace("-", "")}-${String(counter).padStart(3, "0")}`,
+        recordStatus: "finalized",
+        reimbursable: template.category === "5080",
+        journalEntryId: null,
+        paymentJournalEntryId: null,
+        createdAt: `${expenseDate}T10:00:00.000Z`,
+        updatedAt: NOW,
+      });
+    }
+  }
+
+  return expenses.sort((a, b) => b.expenseDate.localeCompare(a.expenseDate));
+}
+
 export function getNorthstarExpenses(): FinancialExpense[] {
-  return [
-    {
-      id: "nst-exp-1",
-      submitterUserId: "nst-emp-elena",
-      submitterName: "Elena Hart",
-      purposeDescription: "AWS production infrastructure — August",
-      amount: 1_070,
-      currency: "GBP",
-      dateSubmitted: "2026-08-05",
-      paid: true,
-      supplier: "Amazon Web Services",
-      categoryAccountCode: "5010",
-      expenseDate: "2026-08-01",
-      paymentMethod: "Wise",
-      wiseBalanceId: 1,
-      attachmentPath: null,
-      reference: "AWS-AUG-2026",
-      recordStatus: "finalized",
-      reimbursable: false,
-      journalEntryId: null,
-      paymentJournalEntryId: null,
-      createdAt: NOW,
-      updatedAt: NOW,
-    },
-    {
-      id: "nst-exp-2",
-      submitterUserId: "nst-emp-marcus",
-      submitterName: "Marcus Reed",
-      purposeDescription: "Sheffield site visit — travel & accommodation",
-      amount: 486.5,
-      currency: "GBP",
-      dateSubmitted: "2026-08-12",
-      paid: false,
-      supplier: "Trainline / Premier Inn",
-      categoryAccountCode: "5050",
-      expenseDate: "2026-08-10",
-      paymentMethod: null,
-      wiseBalanceId: null,
-      attachmentPath: null,
-      reference: "TRV-SHF-0810",
-      recordStatus: "finalized",
-      reimbursable: true,
-      journalEntryId: null,
-      paymentJournalEntryId: null,
-      createdAt: NOW,
-      updatedAt: NOW,
-    },
-    {
-      id: "nst-exp-3",
-      submitterUserId: "nst-emp-priya",
-      submitterName: "Priya Shah",
-      purposeDescription: "Voltex edge controller components — pilot stock",
-      amount: 12_400,
-      currency: "GBP",
-      dateSubmitted: "2026-08-14",
-      paid: true,
-      supplier: "Voltex Automation UK",
-      categoryAccountCode: "5090",
-      expenseDate: "2026-08-13",
-      paymentMethod: "Bank transfer",
-      wiseBalanceId: null,
-      attachmentPath: null,
-      reference: "PO-VX-4412",
-      recordStatus: "finalized",
-      reimbursable: false,
-      journalEntryId: null,
-      paymentJournalEntryId: null,
-      createdAt: NOW,
-      updatedAt: NOW,
-    },
-    {
-      id: "nst-exp-4",
-      submitterUserId: "nst-emp-james",
-      submitterName: "James Okonkwo",
-      purposeDescription: "GitHub Enterprise + CI runners",
-      amount: 890,
-      currency: "GBP",
-      dateSubmitted: "2026-08-01",
-      paid: true,
-      supplier: "GitHub",
-      categoryAccountCode: "5010",
-      expenseDate: "2026-08-01",
-      paymentMethod: "Card",
-      wiseBalanceId: null,
-      attachmentPath: null,
-      reference: "GH-ENT-AUG",
-      recordStatus: "finalized",
-      reimbursable: false,
-      journalEntryId: null,
-      paymentJournalEntryId: null,
-      createdAt: NOW,
-      updatedAt: NOW,
-    },
-  ];
+  if (!cachedNorthstarExpenses) {
+    cachedNorthstarExpenses = buildNorthstarExpenseHistory();
+  }
+  return cachedNorthstarExpenses;
 }
 
 export function getNorthstarInvoices(): LedgerInvoice[] {

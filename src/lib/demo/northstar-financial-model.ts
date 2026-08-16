@@ -5,13 +5,13 @@
 /** Current-month operating expense breakdown (matches burn / GL expense accounts). */
 export const NORTHSTAR_OPEX_BREAKDOWN = {
   payroll: 118_000,
-  cloud: 10_500,
-  rent: 21_600,
-  marketing: 12_000,
-  software: 9_000,
-  professional: 8_000,
+  cloud: 42_000,
+  rent: 36_000,
+  marketing: 24_000,
+  software: 18_000,
+  professional: 16_000,
   travel: 8_000,
-  other: 7_000,
+  other: 48_000,
 } as const;
 
 const OPEX_BREAKDOWN_TOTAL = Object.values(NORTHSTAR_OPEX_BREAKDOWN).reduce((sum, value) => sum + value, 0);
@@ -23,8 +23,8 @@ export const NORTHSTAR_REVENUE_YTD = 2_880_000;
 export const NORTHSTAR_NET_PROFIT_YTD = 720_000;
 export const NORTHSTAR_CASH_GBP = 1_900_000;
 
-/** Prior-month burn — scaled from legacy £295k after opex mix reductions. */
-export const NORTHSTAR_BURN_PREVIOUS_MONTHLY = 212_731;
+/** Prior-month burn (July 2026 opex pace). */
+export const NORTHSTAR_BURN_PREVIOUS_MONTHLY = 295_000;
 
 export const NORTHSTAR_AP_OUTSTANDING = 186_000;
 export const NORTHSTAR_AP_DUE_NOW = 64_000;
@@ -45,11 +45,31 @@ export function northstarFinancialMonths(): string[] {
   return months;
 }
 
+/** Recent-month revenue ramp — ends at £400k with positive MoM into August 2026. */
+const NORTHSTAR_RECENT_REVENUE_RAMP: Record<string, number> = {
+  "2025-09": 298_000,
+  "2025-10": 305_000,
+  "2025-11": 312_000,
+  "2025-12": 320_000,
+  "2026-01": 330_000,
+  "2026-02": 340_000,
+  "2026-03": 350_000,
+  "2026-04": 360_000,
+  "2026-05": 370_000,
+  "2026-06": 378_000,
+  "2026-07": 385_000,
+  "2026-08": 400_000,
+};
+
 /** Revenue ramps from early startup to current run-rate. */
 export function northstarMonthlyRevenueForMonth(monthKey: string): number {
+  if (NORTHSTAR_RECENT_REVENUE_RAMP[monthKey] != null) {
+    return NORTHSTAR_RECENT_REVENUE_RAMP[monthKey]!;
+  }
   const [y, m] = monthKey.split("-").map(Number);
   const fyYear = m >= NORTHSTAR_FY_START_MONTH ? y : y - 1;
-  const monthsSinceApr2023 = (fyYear - 2023) * 12 + (m >= NORTHSTAR_FY_START_MONTH ? m - NORTHSTAR_FY_START_MONTH : m + 8);
+  const monthsSinceApr2023 =
+    (fyYear - 2023) * 12 + (m >= NORTHSTAR_FY_START_MONTH ? m - NORTHSTAR_FY_START_MONTH : m + 8);
   if (monthsSinceApr2023 <= 3) return 55_000 + monthsSinceApr2023 * 8_000;
   if (monthsSinceApr2023 <= 12) return 95_000 + (monthsSinceApr2023 - 3) * 6_500;
   if (monthsSinceApr2023 <= 24) return 180_000 + (monthsSinceApr2023 - 12) * 5_500;
@@ -78,4 +98,30 @@ export function northstarCurrentUkFyStart(): string {
   const m = now.getUTCMonth() + 1;
   const fyStartYear = m >= NORTHSTAR_FY_START_MONTH ? y : y - 1;
   return `${fyStartYear}-04-01`;
+}
+
+export const NORTHSTAR_DEMO_AS_AT = "2026-08-16";
+
+export function northstarDemoAsAtLabel(): string {
+  return "16 August 2026";
+}
+
+/** Closed P&L month for GL / summary cards (prior month when mid-period). */
+export function northstarReportingPlMonthKey(): string {
+  return "2026-07";
+}
+
+export function northstarReportingPlMonthLabel(): string {
+  return "July 2026";
+}
+
+export function northstarYtdPeriodLabel(): string {
+  return "UK FY Apr–Aug 2026";
+}
+
+/** SaaS gross margin (revenue minus COGS, not full opex). */
+export function northstarGrossMarginPct(monthlyRevenue: number): number {
+  if (monthlyRevenue <= 0) return 0;
+  const cogs = Math.round(monthlyRevenue * 0.46);
+  return Math.round(((monthlyRevenue - cogs) / monthlyRevenue) * 100);
 }

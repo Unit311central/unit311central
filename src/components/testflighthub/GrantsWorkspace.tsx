@@ -15,6 +15,7 @@ import {
   type GrantStatus,
 } from "@/lib/grants-data";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { cn } from "@/lib/utils";
 import { LayoutGrid, Plus, TrendingUp, X } from "lucide-react";
 import {
@@ -180,6 +181,7 @@ function GrantCard({ grant }: { grant: GrantApplication }) {
 
 export default function GrantsWorkspace() {
   const isOnwardAir = isBrowserOnwardAirSurface();
+  const isNorthstarDemo = isBrowserDemoSurface();
   const amountUnit = isOnwardAir ? "$k" : "€k";
   const amountLabel = isOnwardAir ? "Amount (USD)" : "Amount (EUR)";
   const [grants, setGrants] = useState<GrantApplication[]>(() => [...getGrantApplications()]);
@@ -203,6 +205,21 @@ export default function GrantsWorkspace() {
     if (statusFilter === "All") return grants;
     return grants.filter((grant) => grant.status === statusFilter);
   }, [grants, statusFilter]);
+
+  const ukGrants = useMemo(
+    () => grants.filter((grant) => grant.region === "UK" || grant.region.toLowerCase().includes("uk")),
+    [grants],
+  );
+  const euGrants = useMemo(
+    () =>
+      grants.filter(
+        (grant) =>
+          grant.region === "EU" ||
+          grant.region.toLowerCase().includes("eu") ||
+          grant.region.toLowerCase().includes("europe"),
+      ),
+    [grants],
+  );
 
   const pipelineChartData = grantsByStatus.map((item) => ({
     name: item.status,
@@ -235,8 +252,9 @@ export default function GrantsWorkspace() {
     <section className="min-w-0 space-y-4 sm:space-y-5" aria-label="Grants workspace">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-2xl text-sm text-white/50">
-          Track funding programmes, application pipeline, approval rates, and disbursement status
-          across US federal and agency schemes (USD).
+          {isNorthstarDemo
+            ? "UK and EU grant pipeline — Innovate UK, Made Smarter, Horizon Europe and regional programmes (GBP/EUR)."
+            : "Track funding programmes, application pipeline, approval rates, and disbursement status across US federal and agency schemes (USD)."}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -293,6 +311,43 @@ export default function GrantsWorkspace() {
         ))}
       </div>
       )}
+
+      {isNorthstarDemo && visibleSections.kpis ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className={panelClassName()}>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-white">United Kingdom</h3>
+                <p className="mt-1 text-xs text-white/45">{ukGrants.length} applications in pipeline</p>
+              </div>
+              <span className="rounded-full border border-sky-400/30 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-sky-200">
+                UK · 6
+              </span>
+            </div>
+            <div className="mt-4 space-y-2">
+              {ukGrants.map((grant) => (
+                <GrantCard key={`uk-${grant.id}`} grant={grant} />
+              ))}
+            </div>
+          </div>
+          <div className={panelClassName()}>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-white">European Union</h3>
+                <p className="mt-1 text-xs text-white/45">{euGrants.length} applications in pipeline</p>
+              </div>
+              <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-violet-200">
+                EU · 3
+              </span>
+            </div>
+            <div className="mt-4 space-y-2">
+              {euGrants.map((grant) => (
+                <GrantCard key={`eu-${grant.id}`} grant={grant} />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {(visibleSections.pipelineChart || visibleSections.programmeChart) && (
       <div className="grid gap-4 xl:grid-cols-2">

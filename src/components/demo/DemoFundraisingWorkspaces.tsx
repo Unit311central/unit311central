@@ -14,6 +14,7 @@ import {
   NORTHSTAR_FUNDING_ROUNDS,
   NORTHSTAR_INVESTORS,
   NORTHSTAR_SEED_TARGET_GBP,
+  NORTHSTAR_SERIES_A_TARGET_GBP,
   NORTHSTAR_TOTAL_RAISED_GBP,
   type DataRoomRow,
   type DemoInvestor,
@@ -95,9 +96,22 @@ export function DemoFundraisingDashboardWorkspace() {
         <h1 className="text-2xl font-semibold text-white">Fundraising Dashboard</h1>
         <p className="mt-1 text-sm text-white/60">Northstar funding history and investor relations</p>
       </header>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <CorporateKpiTile label="Total raised" value={formatGbp(NORTHSTAR_TOTAL_RAISED_GBP)} hint="3 rounds" />
-        <CorporateKpiTile label="ARR" value={formatGbp(4_800_000)} hint="Current run-rate" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <CorporateKpiTile
+          label="Total raised"
+          value={formatGbp(NORTHSTAR_TOTAL_RAISED_GBP)}
+          hint="Pre-seed closed (2023)"
+        />
+        <CorporateKpiTile
+          label="Seed round"
+          value={formatGbp(NORTHSTAR_SEED_TARGET_GBP)}
+          hint="In progress · £5M target"
+        />
+        <CorporateKpiTile
+          label="Series A aspiration"
+          value={formatGbp(NORTHSTAR_SERIES_A_TARGET_GBP)}
+          hint="Target raise 2027"
+        />
         <CorporateKpiTile label="Cash" value={formatGbp(1_900_000)} hint="Treasury position" />
       </div>
       <CorporateSection title="Funding rounds">
@@ -105,18 +119,27 @@ export function DemoFundraisingDashboardWorkspace() {
           {NORTHSTAR_FUNDING_ROUNDS.map((round) => (
             <div
               key={round.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"
+              className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3"
             >
-              <div>
-                <p className="font-medium text-white">
-                  {round.label} · {round.year}
-                </p>
-                <p className="text-sm text-white/55">Lead: {round.lead}</p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium text-white">
+                    {round.label} · {round.year}
+                  </p>
+                  <p className="text-sm text-white/55">Lead: {round.lead}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-white">{formatGbp(round.amountGbp)}</p>
+                  <CorporateStatusPill>{round.status}</CorporateStatusPill>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="font-semibold text-white">{formatGbp(round.amountGbp)}</p>
-                <CorporateStatusPill>{round.status}</CorporateStatusPill>
-              </div>
+              {round.investors.length > 0 ? (
+                <ul className="mt-3 space-y-1 border-t border-white/[0.06] pt-3 text-xs text-white/50">
+                  {round.investors.map((name) => (
+                    <li key={name}>· {name}</li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
           ))}
         </div>

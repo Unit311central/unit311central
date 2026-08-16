@@ -21,6 +21,9 @@ import {
   northstarFinancialMonths,
   northstarMonthlyOpexForMonth,
   northstarMonthlyRevenueForMonth,
+  northstarReportingPlMonthKey,
+  northstarReportingPlMonthLabel,
+  northstarYtdPeriodLabel,
 } from "@/lib/demo/northstar-financial-model";
 import type { GrantApplication } from "@/lib/grants-data";
 import type { InternalProject } from "@/lib/projects-data";
@@ -650,9 +653,9 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
       quarterly: burnQuarterly,
       annual: burnAnnual,
       previousMonthly: NORTHSTAR_BURN_PREVIOUS_MONTHLY,
-      changePct: -9,
-      trend: "improving",
-      trendLabel: "Prior month £213k · people & opex",
+      changePct: 5,
+      trend: "increasing",
+      trendLabel: "Prior month £295k · payroll & cloud",
       cashBalance: cash,
       runwayMonths: Math.round((cash / monthlyExpenses) * 10) / 10,
       forecastMonthly: monthlyExpenses,
@@ -713,11 +716,27 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
       cashPosition: cashSeries,
     },
     activity: [],
+    reportingPeriodLabel: northstarYtdPeriodLabel(),
   };
 }
 
 export function getNorthstarLedgerAccounts(): LedgerAccount[] {
   const opex = NORTHSTAR_OPEX_BREAKDOWN;
+  const plMonth = northstarReportingPlMonthLabel();
+  const plMonthKey = northstarReportingPlMonthKey();
+  const plRevenue = northstarMonthlyRevenueForMonth(plMonthKey);
+  const plOpexTotal = northstarMonthlyOpexForMonth(plMonthKey);
+  const scale = plOpexTotal / NORTHSTAR_MONTHLY_OPEX;
+  const scaledOpex = {
+    payroll: Math.round(opex.payroll * scale),
+    cloud: Math.round(opex.cloud * scale),
+    rent: Math.round(opex.rent * scale),
+    marketing: Math.round(opex.marketing * scale),
+    software: Math.round(opex.software * scale),
+    professional: Math.round(opex.professional * scale),
+    travel: Math.round(opex.travel * scale),
+    other: Math.round(opex.other * scale),
+  };
   const accounts = [
     { code: "1010", name: "Wise GBP — Operating", type: "asset" as const, balance: 1_100_000 },
     { code: "1015", name: "Wise GBP — Reserves", type: "asset" as const, balance: 200_000 },
@@ -730,18 +749,18 @@ export function getNorthstarLedgerAccounts(): LedgerAccount[] {
     { code: "3020", name: "Retained earnings", type: "equity" as const, balance: 1_433_000 },
     {
       code: "4010",
-      name: "SaaS & monitoring revenue (current month)",
+      name: `SaaS & monitoring revenue (${plMonth})`,
       type: "income" as const,
-      balance: NORTHSTAR_MONTHLY_REVENUE,
+      balance: plRevenue,
     },
-    { code: "5020", name: "Payroll (current month)", type: "expense" as const, balance: opex.payroll },
-    { code: "5030", name: "Cloud & hosting (current month)", type: "expense" as const, balance: opex.cloud },
-    { code: "5040", name: "Rent & facilities (current month)", type: "expense" as const, balance: opex.rent },
-    { code: "5050", name: "Marketing (current month)", type: "expense" as const, balance: opex.marketing },
-    { code: "5060", name: "Software & tools (current month)", type: "expense" as const, balance: opex.software },
-    { code: "5070", name: "Professional services (current month)", type: "expense" as const, balance: opex.professional },
-    { code: "5080", name: "Travel (current month)", type: "expense" as const, balance: opex.travel },
-    { code: "5090", name: "Other operating expense (current month)", type: "expense" as const, balance: opex.other },
+    { code: "5020", name: `Payroll (${plMonth})`, type: "expense" as const, balance: scaledOpex.payroll },
+    { code: "5030", name: `Cloud & hosting (${plMonth})`, type: "expense" as const, balance: scaledOpex.cloud },
+    { code: "5040", name: `Rent & facilities (${plMonth})`, type: "expense" as const, balance: scaledOpex.rent },
+    { code: "5050", name: `Marketing (${plMonth})`, type: "expense" as const, balance: scaledOpex.marketing },
+    { code: "5060", name: `Software & tools (${plMonth})`, type: "expense" as const, balance: scaledOpex.software },
+    { code: "5070", name: `Professional services (${plMonth})`, type: "expense" as const, balance: scaledOpex.professional },
+    { code: "5080", name: `Travel (${plMonth})`, type: "expense" as const, balance: scaledOpex.travel },
+    { code: "5090", name: `Other operating expense (${plMonth})`, type: "expense" as const, balance: scaledOpex.other },
   ];
   return accounts.map((row, index) => ({
     id: `nst-gl-${row.code}`,

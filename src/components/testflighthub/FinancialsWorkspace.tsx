@@ -20,6 +20,7 @@ import {
 import {
   ArrowDownRight,
   ArrowUpRight,
+  LayoutGrid,
   Loader2,
   Minus,
   RefreshCw,
@@ -225,6 +226,8 @@ export default function FinancialsWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [burnDrillOpen, setBurnDrillOpen] = useState(false);
+  const [tilesCustomizeOpen, setTilesCustomizeOpen] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
 
   const reportingCurrency = useWorkspaceReportingCurrency(overview?.burnRate?.currency);
   const money = (amount: number, currency?: string) =>
@@ -241,7 +244,9 @@ export default function FinancialsWorkspace() {
           const { isNorthstarDemoBrowser, buildNorthstarFinancialOverview } =
             require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
           if (isNorthstarDemoBrowser()) {
+            await new Promise((resolve) => setTimeout(resolve, 350));
             setOverview(buildNorthstarFinancialOverview());
+            setLastRefreshedAt(new Date());
             setLoading(false);
             return;
           }
@@ -257,6 +262,7 @@ export default function FinancialsWorkspace() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Failed to load overview");
       setOverview(data.overview);
+      setLastRefreshedAt(new Date());
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -327,11 +333,15 @@ export default function FinancialsWorkspace() {
   }, [overview]);
 
   const marginPct = useMemo(() => {
-    if (!overview || overview.revenueYtd <= 0) return 0;
-    const base =
-      overview.annualExpenses > 0 ? overview.annualExpenses : overview.monthlyExpenses;
-    return Math.round(((overview.revenueYtd - base) / overview.revenueYtd) * 100);
+    if (!overview || overview.monthlyRevenue <= 0) return 0;
+    return Math.round(
+      ((overview.monthlyRevenue - Math.round(overview.monthlyRevenue * 0.46)) /
+        overview.monthlyRevenue) *
+        100,
+    );
   }, [overview]);
+
+  const ytdLabel = overview?.reportingPeriodLabel ?? "YTD from general ledger";
 
   return (
     <div className="space-y-4">
@@ -347,15 +357,36 @@ export default function FinancialsWorkspace() {
               AR / AP feed.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white/80 transition hover:border-white/25 hover:bg-white/[0.07]"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-            Refresh
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTilesCustomizeOpen((open) => !open)}
+              className={cn(
+                "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition",
+                tilesCustomizeOpen
+                  ? "border-sky-400/40 bg-sky-500/15 text-sky-200"
+                  : "border-white/15 bg-white/[0.04] text-white/80 hover:border-white/25 hover:bg-white/[0.07]",
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Customize tiles
+            </button>
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-semibold text-white/80 transition hover:border-white/25 hover:bg-white/[0.07] disabled:opacity-60"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              Refresh
+            </button>
+          </div>
         </div>
+        {lastRefreshedAt ? (
+          <p className="mt-2 text-[11px] text-white/35">
+            Last updated {lastRefreshedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        ) : null}
 
         {error ? (
           <p className="mt-4 rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
@@ -369,6 +400,26 @@ export default function FinancialsWorkspace() {
           </div>
         ) : null}
       </section>
+
+      {overview ? (
+        <DashboardTopTilesBar
+          storageKey={
+            isBrowserOnwardAirSurface()
+              ? "oa-financials-dashboard-tiles-v4"
+              : "unit311-financials-dashboard-tiles-v5"
+          }
+          catalog={tiles}
+          defaultLayout={DEFAULT_FINANCIALS_TILE_LAYOUT}
+          title="Key metrics"
+          showCustomizeHint
+          showCustomizeButton={false}
+          customizeOpen={tilesCustomizeOpen}
+          onCustomizeOpenChange={setTilesCustomizeOpen}
+          onTileClick={(tileId) => {
+            if (tileId === "burn-rate") setBurnDrillOpen(true);
+          }}
+        />
+      ) : null}
 
       {overview ? (
         <div className="grid gap-4 xl:grid-cols-3">
@@ -478,7 +529,7 @@ export default function FinancialsWorkspace() {
 
           <ChartCard
             title="Margin & profit"
-            subtitle="YTD income against cost pace"
+            subtitle={`${ytdLabel} · SaaS gross margin vs monthly P&L`}
             className="xl:col-span-1"
           >
             <div className="flex items-end justify-between gap-3">
@@ -486,7 +537,7 @@ export default function FinancialsWorkspace() {
                 <p className="text-[10px] uppercase tracking-[0.12em] text-white/40">Gross margin</p>
                 <p className="mt-1 text-4xl font-semibold text-emerald-300">{marginPct}%</p>
                 <p className="mt-2 text-xs text-white/45">
-                  Net profit {money(overview.netProfit)}
+                  Net profit {money(overview.netProfit)} · {ytdLabel}
                 </p>
               </div>
               <DeltaBadge delta={revenueDelta} suffix="rev MoM" />
@@ -571,21 +622,6 @@ export default function FinancialsWorkspace() {
           </div>
         </ChartCard>
       ) : null}
-
-      <DashboardTopTilesBar
-        storageKey={
-          isBrowserOnwardAirSurface()
-            ? "oa-financials-dashboard-tiles-v4"
-            : "unit311-financials-dashboard-tiles-v3"
-        }
-        catalog={tiles}
-        defaultLayout={DEFAULT_FINANCIALS_TILE_LAYOUT}
-        title="Key metrics"
-        showCustomizeHint
-        onTileClick={(tileId) => {
-          if (tileId === "burn-rate") setBurnDrillOpen(true);
-        }}
-      />
 
       {overview?.burnRate ? (
         <BurnRateOverviewSection
@@ -771,26 +807,6 @@ export default function FinancialsWorkspace() {
               </ChartCard>
             ))}
           </div>
-
-          <ChartCard title="Recent financial activity">
-            {overview.activity.length === 0 ? (
-              <p className="text-sm text-white/45">No activity yet.</p>
-            ) : (
-              <ul className="divide-y divide-white/[0.06]">
-                {overview.activity.slice(0, 8).map((item) => (
-                  <li key={item.id} className="flex items-start justify-between gap-3 py-3 text-sm">
-                    <div>
-                      <p className="font-medium text-white">{item.label}</p>
-                      <p className="text-white/55">{item.description}</p>
-                    </div>
-                    <p className="shrink-0 text-xs text-white/40">
-                      {new Date(item.at).toLocaleString()}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </ChartCard>
         </>
       ) : null}
     </div>
