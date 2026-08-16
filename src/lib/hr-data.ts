@@ -240,6 +240,8 @@ export type HrEmployee = {
   vacationDaysTaken: number;
   offboarding: HrOffboarding;
   archivedAt: string | null;
+  profilePhotoUrl?: string | null;
+  dateOfBirth?: string | null;
 };
 
 export type HrEmployeeDetail = HrEmployee & {

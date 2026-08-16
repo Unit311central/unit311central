@@ -77,6 +77,8 @@ export type HrInterview = {
   feedback: string;
   notes: string;
   recommendation: "strong_yes" | "yes" | "neutral" | "no" | "strong_no" | null;
+  /** Video / Teams join link when scheduled remotely. */
+  meetingUrl?: string;
 };
 
 export type HrOfferDetails = {

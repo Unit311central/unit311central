@@ -2,14 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import {
-  CalendarDays,
-  ClipboardList,
-  FileText,
-  Plus,
-  UserPlus,
-  Users,
-} from "lucide-react";
 
 import {
   computeHrDashboardKpis,
@@ -25,6 +17,7 @@ import {
   type HrAttentionItem,
 } from "@/lib/hr-dashboard-data";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import type { HrEmployee } from "@/lib/hr-data";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
@@ -39,6 +32,15 @@ import {
   hrSecondaryButtonClass,
 } from "./hr-ui";
 import { cn } from "@/lib/utils";
+import NorthstarHrDashboard from "@/components/demo/NorthstarHrDashboard";
+import {
+  CalendarDays,
+  ClipboardList,
+  FileText,
+  Plus,
+  UserPlus,
+  Users,
+} from "lucide-react";
 
 type HrDashboardWorkspaceProps = {
   employees: HrEmployee[];
@@ -271,6 +273,7 @@ export default function HrDashboardWorkspace({ employees }: HrDashboardWorkspace
   const basePath = useInternalOperationsBasePath();
   const isAbhi = isBrowserAbhiSurface();
   const [isOnwardAir, setIsOnwardAir] = useState(false);
+  const [isNorthstarDemo, setIsNorthstarDemo] = useState(false);
   const store = useHrMockStore();
   const kpis = useMemo(() => computeHrDashboardKpis(employees), [employees, store]);
   const overview = useMemo(() => computePeopleOverview(employees), [employees]);
@@ -285,7 +288,12 @@ export default function HrDashboardWorkspace({ employees }: HrDashboardWorkspace
 
   useEffect(() => {
     setIsOnwardAir(isBrowserOnwardAirSurface());
+    setIsNorthstarDemo(isBrowserDemoSurface());
   }, []);
+
+  if (isNorthstarDemo) {
+    return <NorthstarHrDashboard employees={employees} />;
+  }
 
   if (isOnwardAir) {
     return <OnwardAirHrDashboard employees={employees} />;

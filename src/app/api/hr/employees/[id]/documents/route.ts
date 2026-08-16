@@ -5,6 +5,8 @@ import {
   listEmployeeDocuments,
   uploadEmployeeDocument,
 } from "@/lib/hr-employees-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarEmployeeDetail } from "@/lib/demo/northstar-hr-data";
 import { HR_DOCUMENT_TYPES, type HrDocumentType } from "@/lib/hr-data";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -15,6 +17,13 @@ export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
+  if (await isDemoApiRequest()) {
+    const { id } = await context.params;
+    const detail = getNorthstarEmployeeDetail(id);
+    if (!detail) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    return NextResponse.json({ documents: detail.documents });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

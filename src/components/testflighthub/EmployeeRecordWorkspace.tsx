@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Archive, Loader2, Plus, Save, Search, Trash2 } from "lucide-react";
+import { Archive, ChevronDown, Loader2, Plus, Save, Search, Trash2, Upload } from "lucide-react";
 
 import {
   createBlankEmployeeInput,
@@ -35,6 +35,7 @@ import {
   resolveLeaveBalanceForLiveEmployee,
 } from "@/lib/hr-mock-store";
 import { cn } from "@/lib/utils";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import EmployeePerformancePanel from "./EmployeePerformancePanel";
 import EmployeePayrollPanel from "./EmployeePayrollPanel";
@@ -118,8 +119,14 @@ export default function EmployeeRecordWorkspace() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [isNorthstarDemo, setIsNorthstarDemo] = useState(false);
+  const [listVisibleCount, setListVisibleCount] = useState(5);
   const [newEmployee, setNewEmployee] = useState(createBlankEmployeeInput());
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
+
+  useEffect(() => {
+    setIsNorthstarDemo(isBrowserDemoSurface());
+  }, []);
 
   useEffect(() => {
     const fromUrl = searchParams.get("employeeId");
@@ -200,6 +207,38 @@ export default function EmployeeRecordWorkspace() {
     if (selectedId) void loadDetail(selectedId);
   }, [selectedId, loadDetail]);
 
+  useEffect(() => {
+    if (!isNorthstarDemo || loading || employees.length === 0 || searchParams.get("employeeId")) {
+      return;
+    }
+    if (selectedId) return;
+    const first = [...employees].sort((a, b) =>
+      (a.preferredName || a.fullName).localeCompare(b.preferredName || b.fullName, undefined, {
+        sensitivity: "base",
+      }),
+    )[0];
+    if (first) {
+      setSelectedId(first.id);
+      openDetail();
+    }
+  }, [isNorthstarDemo, loading, employees, searchParams, selectedId, openDetail]);
+
+  function handlePhotoUpload(file: File | null) {
+    if (!file || !draft) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = typeof reader.result === "string" ? reader.result : null;
+      if (!url) return;
+      setDraft({ ...draft, profilePhotoUrl: url });
+      setDetail((current) => (current ? { ...current, profilePhotoUrl: url } : current));
+      setEmployees((current) =>
+        current.map((row) => (row.id === draft.id ? { ...row, profilePhotoUrl: url } : row)),
+      );
+      setMessage("Photo updated for this session.");
+    };
+    reader.readAsDataURL(file);
+  }
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return employees.filter((employee) => {
@@ -214,6 +253,23 @@ export default function EmployeeRecordWorkspace() {
       );
     });
   }, [employees, query, statusFilter]);
+
+  const sortedFiltered = useMemo(() => {
+    const rows = [...filtered];
+    if (isNorthstarDemo) {
+      rows.sort((a, b) =>
+        (a.preferredName || a.fullName).localeCompare(b.preferredName || b.fullName, undefined, {
+          sensitivity: "base",
+        }),
+      );
+    }
+    return rows;
+  }, [filtered, isNorthstarDemo]);
+
+  const listEmployees = isNorthstarDemo
+    ? sortedFiltered.slice(0, listVisibleCount)
+    : sortedFiltered;
+  const hasMoreEmployees = isNorthstarDemo && sortedFiltered.length > listVisibleCount;
 
   const allFilteredSelected =
     filtered.length > 0 && filtered.every((employee) => selectedIds.includes(employee.id));
@@ -661,8 +717,9 @@ export default function EmployeeRecordWorkspace() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((employee) => {
+          {listEmployees.map((employee) => {
             const checked = selectedIds.includes(employee.id);
+            const photoUrl = employee.profilePhotoUrl;
             return (
               <div
                 key={employee.id}
@@ -688,27 +745,50 @@ export default function EmployeeRecordWorkspace() {
                   onClick={() => selectEmployee(employee.id)}
                   className="min-w-0 flex-1 text-left"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-mono text-[11px] text-sky-200/80">{employee.employeeNumber}</p>
-                      <p className="text-sm font-medium text-white">{employee.fullName}</p>
-                      <p className="text-xs text-white/45">
-                        {employee.role || "No role"} · {employee.department || "No department"}
-                      </p>
+                  <div className="flex items-start gap-3">
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-full border border-white/15 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-violet-400/30 bg-violet-500/15 text-xs font-semibold text-violet-100">
+                        {(employee.preferredName || employee.fullName).slice(0, 1)}
+                      </div>
+                    )}
+                    <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                      <div>
+                        <p className="font-mono text-[11px] text-sky-200/80">{employee.employeeNumber}</p>
+                        <p className="text-sm font-medium text-white">{employee.fullName}</p>
+                        <p className="text-xs text-white/45">
+                          {employee.role || "No role"} · {employee.department || "No department"}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-[10px]",
+                          statusBadgeClass(employee.employmentStatus),
+                        )}
+                      >
+                        {HR_EMPLOYMENT_STATUS_LABELS[employee.employmentStatus]}
+                      </span>
                     </div>
-                    <span
-                      className={cn(
-                        "rounded-full border px-2 py-0.5 text-[10px]",
-                        statusBadgeClass(employee.employmentStatus),
-                      )}
-                    >
-                      {HR_EMPLOYMENT_STATUS_LABELS[employee.employmentStatus]}
-                    </span>
                   </div>
                 </button>
               </div>
             );
           })}
+          {hasMoreEmployees ? (
+            <button
+              type="button"
+              onClick={() => setListVisibleCount((count) => count + 5)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 py-2.5 text-sm text-white/60 hover:bg-white/[0.04]"
+            >
+              <ChevronDown className="h-4 w-4" />
+              Show more ({sortedFiltered.length - listVisibleCount} remaining)
+            </button>
+          ) : null}
         </div>
       )}
     </div>
@@ -722,12 +802,37 @@ export default function EmployeeRecordWorkspace() {
     ) : (
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="font-mono text-xs text-sky-200/90">{draft.employeeNumber}</p>
-            <h3 className="text-lg font-semibold text-white">{draft.fullName}</h3>
-            <p className="text-sm text-white/50">
-              {draft.role || "—"} · {HR_EMPLOYMENT_STATUS_LABELS[draft.employmentStatus]}
-            </p>
+          <div className="flex items-start gap-4">
+            {draft.profilePhotoUrl ? (
+              <img
+                src={draft.profilePhotoUrl}
+                alt=""
+                className="h-16 w-16 rounded-2xl border border-white/15 object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/15 text-lg font-semibold text-violet-100">
+                {(draft.preferredName || draft.fullName).slice(0, 1)}
+              </div>
+            )}
+            <div>
+              <p className="font-mono text-xs text-sky-200/90">{draft.employeeNumber}</p>
+              <h3 className="text-lg font-semibold text-white">{draft.fullName}</h3>
+              <p className="text-sm text-white/50">
+                {draft.role || "—"} · {HR_EMPLOYMENT_STATUS_LABELS[draft.employmentStatus]}
+              </p>
+              {isNorthstarDemo ? (
+                <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-xs text-teal-200/80 hover:text-teal-100">
+                  <Upload className="h-3.5 w-3.5" />
+                  Upload photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => handlePhotoUpload(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+              ) : null}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button

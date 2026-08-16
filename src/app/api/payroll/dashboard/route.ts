@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { ensureTalantonHrEmployeesSeeded } from "@/lib/hr-employees-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarPayrollDashboard } from "@/lib/demo/northstar-hr-data";
 import { getPayrollDashboard } from "@/lib/payroll/payroll-service";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -9,6 +11,10 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ dashboard: getNorthstarPayrollDashboard() });
+  }
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();

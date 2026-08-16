@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { createPayrollRun, listPayrollRuns } from "@/lib/payroll/payroll-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarPayrollDashboard } from "@/lib/demo/northstar-hr-data";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ runs: getNorthstarPayrollDashboard().recentRuns });
+  }
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();

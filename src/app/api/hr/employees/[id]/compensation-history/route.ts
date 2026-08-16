@@ -4,6 +4,8 @@ import {
   appendCompensationHistory,
   listCompensationHistory,
 } from "@/lib/hr-employees-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarEmployeeDetail } from "@/lib/demo/northstar-hr-data";
 import {
   HR_COMPENSATION_CATEGORIES,
   type HrCompensationCategory,
@@ -17,6 +19,13 @@ export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
+  if (await isDemoApiRequest()) {
+    const { id } = await context.params;
+    const detail = getNorthstarEmployeeDetail(id);
+    if (!detail) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    return NextResponse.json({ entries: detail.compensationHistory });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

@@ -9,7 +9,7 @@ import type { CrmConnection } from "@/lib/connections-data";
 import { NORTHSTAR_BOARD_DIRECTORS } from "@/lib/demo/board-data";
 import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 import type { FinancialExpense } from "@/lib/expenses-data";
-import { emptyOffboarding, type HrEmployee } from "@/lib/hr-data";
+import { type HrEmployee } from "@/lib/hr-data";
 import type { MarketingDashboardKpis } from "@/lib/marketing/types";
 import type { SoftwareAsset, SoftwareAssetsSummary } from "@/lib/software-assets-data";
 import type { SupportTicket } from "@/lib/support-data";
@@ -124,44 +124,8 @@ export function getNorthstarBoardDirectors(): BoardDirector[] {
 }
 
 export function getNorthstarEmployees(): HrEmployee[] {
-  const fixtures = getDemoEnterpriseFixtures();
-  return fixtures.directory.map((row, index) => ({
-    id: row.id,
-    employeeNumber: `NST-${String(index + 1).padStart(3, "0")}`,
-    fullName: row.fullName,
-    preferredName: row.fullName.split(" ")[0] ?? row.fullName,
-    email: row.email,
-    phone: "+44 161 555 0100",
-    address: "Trafford Park, Manchester",
-    suburb: "Manchester",
-    emergencyContactName: "Emergency Contact",
-    emergencyContactPhone: "+44 161 555 0199",
-    emergencyContactRelationship: "Partner",
-    nationality: "British",
-    employmentStatus: "active",
-    employmentType: "full_time",
-    dateJoined: "2024-03-01",
-    location: row.department === "Engineering" ? "Bristol" : "Manchester",
-    officeId: fixtures.offices[0]?.id ?? null,
-    role: row.role,
-    department: row.department,
-    manager: index === 0 ? "Board" : "Elena Hart",
-    managerEmployeeId: index === 0 ? null : "nst-dir-ceo",
-    probationEndDate: null,
-    endDate: null,
-    currency: "GBP",
-    payFrequency: "monthly",
-    salaryCurrent: 52_000 + index * 2_400,
-    salaryPrevious: 48_000 + index * 2_200,
-    salaryIncreaseDate: "2026-04-01",
-    salaryIncreaseAmount: 4_000,
-    bonus: index % 3 === 0 ? 3_500 : 0,
-    holidayCalendar: "United Kingdom",
-    vacationDaysPerYear: 25,
-    vacationDaysTaken: 8 + (index % 5),
-    offboarding: emptyOffboarding(),
-    archivedAt: null,
-  }));
+  const { getNorthstarHrEmployees } = require("./northstar-hr-data") as typeof import("./northstar-hr-data");
+  return getNorthstarHrEmployees();
 }
 
 export function getNorthstarDemoUsers(): ManagedUser[] {

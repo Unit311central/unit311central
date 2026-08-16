@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Plus, Search, Star, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { ChevronRight, Plus, Search, Star, X } from "lucide-react";
 
-import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import {
   HR_CANDIDATE_PANEL_TABS,
   HR_CANDIDATE_SOURCES,
@@ -57,6 +57,7 @@ import {
   hrSecondaryButtonClass,
   HrStatusPill,
 } from "./hr-ui";
+import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 
 type VacancyFormState = {
   id?: string;
@@ -144,6 +145,10 @@ function stars(rating: number) {
 
 export default function RecruitmentWorkspace() {
   const store = useHrMockStore();
+  const boardScrollRef = useRef<HTMLDivElement | null>(null);
+  const [isNorthstarDemo, setIsNorthstarDemo] = useState(
+    () => typeof window !== "undefined" && isBrowserDemoSurface(),
+  );
   const [search, setSearch] = useState("");
   const [vacancyFilter, setVacancyFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -222,6 +227,14 @@ export default function RecruitmentWorkspace() {
   const boardCandidates = useMemo(
     () => filteredCandidates.filter((c) => !c.rejected),
     [filteredCandidates],
+  );
+
+  const boardStages = useMemo(
+    () =>
+      isNorthstarDemo
+        ? HR_PIPELINE_STAGES.filter((stage) => stage !== "role_approved")
+        : [...HR_PIPELINE_STAGES],
+    [isNorthstarDemo],
   );
 
   const selected = store.candidates.find((c) => c.id === selectedId) ?? null;
@@ -595,60 +608,72 @@ export default function RecruitmentWorkspace() {
       </HrSection>
 
       <HrSection title="Hiring Board" subtitle="Move candidates through each stage from the details panel.">
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {HR_PIPELINE_STAGES.map((stage) => {
-            const cards = boardCandidates.filter((candidate) => candidate.stage === stage);
-            return (
-              <div
-                key={stage}
-                className="min-w-[15.5rem] max-w-[15.5rem] shrink-0 rounded-2xl border border-white/10 bg-[#0b1524]/60 p-3"
-              >
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">
-                    {HR_PIPELINE_STAGE_LABELS[stage]}
-                  </p>
-                  <span className="rounded-md bg-white/10 px-1.5 text-[11px] tabular-nums text-white/60">
-                    {cards.length}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {cards.map((candidate) => (
-                    <button
-                      key={candidate.id}
-                      type="button"
-                      onClick={() => openCandidate(candidate.id)}
-                      className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                        selectedId === candidate.id
-                          ? "border-sky-400/45 bg-sky-500/10"
-                          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <p className="text-sm font-medium text-white">{candidate.name}</p>
-                      <p className="mt-0.5 truncate text-xs text-white/50">{candidate.role}</p>
-                      <p className="mt-1 text-[11px] text-white/40">{candidate.location}</p>
-                      <div className="mt-2 flex items-center gap-1">{stars(candidate.rating)}</div>
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <HrStatusPill className={pipelineStageClass(candidate.stage)}>
-                          {HR_PIPELINE_STAGE_LABELS[candidate.stage]}
-                        </HrStatusPill>
-                        <span className="text-[10px] tabular-nums text-white/35">
-                          {formatShortDate(candidate.appliedAt)}
-                        </span>
-                      </div>
-                      <p className="mt-1.5 truncate text-[11px] text-white/40">
-                        Recruiter · {candidate.recruiter || "Unassigned"}
-                      </p>
-                    </button>
-                  ))}
-                  {cards.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-white/10 px-2 py-8 text-center text-xs text-white/35">
-                      No candidates
+        <div className="relative">
+          <div ref={boardScrollRef} className="flex gap-3 overflow-x-auto pb-2 pr-10">
+            {boardStages.map((stage) => {
+              const cards = boardCandidates.filter((candidate) => candidate.stage === stage);
+              return (
+                <div
+                  key={stage}
+                  className="min-w-[15.5rem] max-w-[15.5rem] shrink-0 rounded-2xl border border-white/10 bg-[#0b1524]/60 p-3"
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55">
+                      {HR_PIPELINE_STAGE_LABELS[stage]}
                     </p>
-                  ) : null}
+                    <span className="rounded-md bg-white/10 px-1.5 text-[11px] tabular-nums text-white/60">
+                      {cards.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {cards.map((candidate) => (
+                      <button
+                        key={candidate.id}
+                        type="button"
+                        onClick={() => openCandidate(candidate.id)}
+                        className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                          selectedId === candidate.id
+                            ? "border-sky-400/45 bg-sky-500/10"
+                            : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+                        }`}
+                      >
+                        <p className="text-sm font-medium text-white">{candidate.name}</p>
+                        <p className="mt-0.5 truncate text-xs text-white/50">{candidate.role}</p>
+                        <p className="mt-1 text-[11px] text-white/40">{candidate.location}</p>
+                        <div className="mt-2 flex items-center gap-1">{stars(candidate.rating)}</div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <HrStatusPill className={pipelineStageClass(candidate.stage)}>
+                            {HR_PIPELINE_STAGE_LABELS[candidate.stage]}
+                          </HrStatusPill>
+                          <span className="text-[10px] tabular-nums text-white/35">
+                            {formatShortDate(candidate.appliedAt)}
+                          </span>
+                        </div>
+                        <p className="mt-1.5 truncate text-[11px] text-white/40">
+                          Recruiter · {candidate.recruiter || "Unassigned"}
+                        </p>
+                      </button>
+                    ))}
+                    {cards.length === 0 ? (
+                      <p className="rounded-xl border border-dashed border-white/10 px-2 py-8 text-center text-xs text-white/35">
+                        No candidates
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            aria-label="Scroll hiring board right"
+            onClick={() =>
+              boardScrollRef.current?.scrollBy({ left: 320, behavior: "smooth" })
+            }
+            className="absolute right-0 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#0b1524]/95 text-white/70 shadow-lg hover:bg-white/10"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
       </HrSection>
 
@@ -669,6 +694,20 @@ export default function RecruitmentWorkspace() {
                     <p className="text-xs text-white/45">
                       {interviewTypeLabel(interview.type)} · {formatDateTime(interview.scheduledAt)}
                     </p>
+                    <p className="mt-1 text-[11px] text-white/40">
+                      Hiring manager · {interview.interviewer || candidate.interviewer}
+                    </p>
+                    {interview.meetingUrl ? (
+                      <a
+                        href={interview.meetingUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(event) => event.stopPropagation()}
+                        className="mt-2 inline-flex text-[11px] font-medium text-sky-300 hover:text-sky-200"
+                      >
+                        Join video call →
+                      </a>
+                    ) : null}
                   </button>
                 </li>
               ))

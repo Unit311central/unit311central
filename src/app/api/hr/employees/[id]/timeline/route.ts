@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { addTimelineManualEvent, getHrEmployeeDetail } from "@/lib/hr-employees-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarEmployeeDetail } from "@/lib/demo/northstar-hr-data";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
@@ -10,6 +12,13 @@ export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
+  if (await isDemoApiRequest()) {
+    const { id } = await context.params;
+    const detail = getNorthstarEmployeeDetail(id);
+    if (!detail) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    return NextResponse.json({ timeline: detail.timeline });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

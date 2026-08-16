@@ -7,6 +7,8 @@ import {
   upsertEmployeePayrollProfile,
 } from "@/lib/payroll/payroll-service";
 import { getHrEmployee } from "@/lib/hr-employees-service";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarEmployeePayrollProfile } from "@/lib/demo/northstar-hr-data";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -15,6 +17,15 @@ export const dynamic = "force-dynamic";
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, { params }: Params) {
+  if (await isDemoApiRequest()) {
+    const { id } = await params;
+    const payload = getNorthstarEmployeePayrollProfile(id);
+    if (!payload) {
+      return NextResponse.json({ error: "Employee not found." }, { status: 404 });
+    }
+    return NextResponse.json(payload);
+  }
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();

@@ -56,8 +56,12 @@ function PersonCard({
     <div className="flex flex-col items-center">
       <div className="relative w-[220px] rounded-2xl border border-white/15 bg-[#0b1524]/95 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-violet-400/30 bg-violet-500/15 text-sm font-semibold text-violet-100">
-            {initialsFromName(employee.fullName)}
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-violet-400/30 bg-violet-500/15 text-sm font-semibold text-violet-100">
+            {employee.profilePhotoUrl ? (
+              <img src={employee.profilePhotoUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              initialsFromName(employee.fullName)
+            )}
           </div>
           <div className="min-w-0 flex-1">
             <Link
