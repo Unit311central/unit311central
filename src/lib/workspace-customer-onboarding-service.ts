@@ -7,7 +7,8 @@ import {
   ONBOARDING_MODULES,
   type OnboardingModuleId,
 } from "@/lib/onboarding-modules-data";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 /** V1 prototype: only these workspace slugs use the customer onboarding wizard. */
@@ -37,7 +38,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 export function isWorkspaceOnboardingPrototypeSlug(slug: string | null | undefined) {

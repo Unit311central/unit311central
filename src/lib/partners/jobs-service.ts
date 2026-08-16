@@ -5,7 +5,8 @@ import {
   type ExpenseCurrency,
 } from "@/lib/expenses-data";
 import { getPartnerById } from "@/lib/partners/service";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { generateInvoiceNumber } from "@/lib/subscription-invoice-pdf";
 
 function asExpenseCurrency(value: string | undefined): ExpenseCurrency {
@@ -51,7 +52,7 @@ export type PartnerJob = {
 
 function requireSb() {
   if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function mapRate(row: Record<string, unknown>): PartnerCommissionRate {

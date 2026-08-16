@@ -18,12 +18,8 @@ import {
   ONWARDAIR_CAPITAL_RAISED_USD,
 } from "@/lib/onwardair-financials";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
-import {
-  createSupabaseServerClient,
-  createSupabaseServiceRoleClient,
-  isSupabaseConfigured,
-  isSupabaseServiceRoleConfigured,
-} from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export const OA_FINANCIALS_SEED_VERSION = "oa-fin-v4";
 const CORE_SOURCE_TYPE = "manual";
@@ -243,9 +239,7 @@ function adminClient() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return isSupabaseServiceRoleConfigured()
-    ? createSupabaseServiceRoleClient()
-    : createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function isoMonthsAgo(months: number, day = 15): string {

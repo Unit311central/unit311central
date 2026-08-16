@@ -2,7 +2,8 @@ import { createHash, randomBytes, randomInt } from "node:crypto";
 
 import { CENTRAL_SITE_URL } from "@/lib/app-domains";
 import { buildSupportEmail } from "@/lib/support-email-html";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import type { PartnerInvoice, PartnerInvoiceStatus, PartnerRecord } from "@/lib/partners/types";
 
 type DbPartner = {
@@ -41,7 +42,7 @@ type DbPartner = {
 
 function requirePartnersSupabase() {
   if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function hashCode(code: string) {

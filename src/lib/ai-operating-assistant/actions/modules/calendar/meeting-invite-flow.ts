@@ -71,11 +71,10 @@ async function resolveOrganiserEmail(
   }
 
   try {
-    const { createSupabaseServerClient, isSupabaseConfigured } = await import(
-      "@/lib/supabase/server"
-    );
+    const { isSupabaseConfigured } = await import("@/lib/supabase/server");
+    const { createTenancyServerClient } = await import("@/lib/supabase/tenancy-server");
     if (isSupabaseConfigured() && business.user.id) {
-      const supabase = createSupabaseServerClient();
+      const supabase = createTenancyServerClient();
       const { data } = await supabase
         .from("platform_users")
         .select("email")

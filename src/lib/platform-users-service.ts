@@ -8,7 +8,8 @@ import {
 } from "@/lib/platform-auth";
 import { canonicalizeStoredRedirectPath } from "@/lib/app-domains";
 import { getMemberPortalByPath } from "@/lib/abhi/member-portal-routes";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { resolveWorkspaceOnboardingRedirectForUser } from "@/lib/workspace-customer-onboarding-service";
 import { formatWorkspaceDisplayStatus } from "@/lib/workspace-host";
 import type { ManagedUser, UserRole } from "@/lib/user-management-data";
@@ -20,7 +21,7 @@ function requirePlatformUsersSupabase() {
     throw new Error("Supabase is not configured");
   }
 
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function isActiveSubscriptionStatus(value: unknown) {
@@ -483,7 +484,7 @@ export async function listWorkspaceTenantUsers(workspaceId: string): Promise<Man
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured");
   }
-  const supabase = createSupabaseServerClient();
+  const supabase = createTenancyServerClient();
 
   const { data: memberships, error: membershipError } = await supabase
     .from("workspace_users")

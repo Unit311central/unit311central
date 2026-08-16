@@ -17,14 +17,15 @@ import {
   ensureFounderSessionFocusOverviewColumns,
   withFounderSessionFocusOverviewColumns,
 } from "@/lib/internal-db-migrations";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { resolveWorkspaceBinding } from "@/lib/workspace-context";
 
 function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function toUploadFile(name: string, buffer: Buffer, mimeType: string) {

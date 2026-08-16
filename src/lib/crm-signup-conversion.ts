@@ -15,7 +15,8 @@ import {
   formatSignupAddress,
   mapSignupCountryToRegion,
 } from "@/lib/signup-profile";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { provisionCustomerWorkspace } from "@/lib/workspace-provisioning-service";
 import { resolveWorkspaceBinding } from "@/lib/workspace-context";
 
@@ -23,7 +24,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function normalizeKey(value: string) {

@@ -46,8 +46,8 @@ export async function GET() {
 
   if (workspace?.id && isSupabaseConfigured()) {
     try {
-      const { createSupabaseServerClient } = await import("@/lib/supabase/server");
-      const supabase = createSupabaseServerClient();
+      const { createTenancyServerClient } = await import("@/lib/supabase/tenancy-server");
+      const supabase = createTenancyServerClient();
       const { data: settings } = await supabase
         .from("workspace_settings")
         .select("logo_url")

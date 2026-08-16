@@ -14,7 +14,8 @@ import {
   organisationStoragePrefix,
   slugifyOrganisationName,
 } from "@/lib/organisation-slug";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export type PlatformOrganisation = {
   id: string;
@@ -86,7 +87,7 @@ function mapOrganisationRow(
 }
 
 async function selectOrganisationRow(
-  supabase: ReturnType<typeof createSupabaseServerClient>,
+  supabase: ReturnType<typeof createTenancyServerClient>,
   filter: { column: "slug" | "name" | "id"; value: string },
 ) {
   for (const columns of ORGANISATION_SELECT_ATTEMPTS) {
@@ -257,7 +258,7 @@ function requireSupabase() {
     throw new Error("Supabase is not configured.");
   }
 
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 export async function uniqueOrganisationSlug(name: string, excludeId?: string) {

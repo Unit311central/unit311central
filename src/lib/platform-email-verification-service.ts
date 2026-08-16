@@ -10,7 +10,8 @@ import {
 import { buildEmailVerificationEmail } from "@/lib/platform-email-verification/emails";
 import type { PlatformUserRecord } from "@/lib/platform-auth";
 import { findPlatformUserByUsername } from "@/lib/platform-users-service";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export const EMAIL_VERIFICATION_EXPIRY_HOURS = 48;
 
@@ -18,7 +19,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function hashVerificationToken(token: string) {

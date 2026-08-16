@@ -4,7 +4,8 @@ import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export type ClientFinanceSummary = {
   clientId: string;
@@ -32,7 +33,7 @@ export async function getClientFinanceSummary(
   if (!isSupabaseConfigured()) return null;
 
   const workspaceId = await resolveFinancialsWorkspaceId(scope);
-  const supabase = createSupabaseServerClient();
+  const supabase = createTenancyServerClient();
   const { data: client, error } = await supabase
     .from("internal_clients")
     .select(

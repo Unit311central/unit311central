@@ -25,7 +25,8 @@ import {
   type SignupBillingProfile,
 } from "@/lib/signup-billing-profile";
 import { mapSignupCountryToRegion } from "@/lib/signup-profile";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import {
   ensureWorkspaceOwnerMembership,
   provisionCustomerWorkspace,
@@ -49,7 +50,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function normalizeKey(value: string) {

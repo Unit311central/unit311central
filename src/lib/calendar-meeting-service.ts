@@ -15,7 +15,8 @@ import { uploadFile } from "@/lib/internal-files-service";
 import { listLeads } from "@/lib/crm-leads-service";
 import { getPlatformSession } from "@/lib/platform-session";
 import type { PlatformSession } from "@/lib/platform-auth";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export type CalendarMeetingSession = {
   eventId: string;
@@ -77,7 +78,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function isCalendarMeetingHost(session: PlatformSession | null) {

@@ -1,4 +1,5 @@
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import {
   INTERNAL_WORKSPACE_SLUG,
@@ -63,7 +64,7 @@ export async function authorizeWorkspaceAccess(
   }
 
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = createTenancyServerClient();
 
     const workspace =
       input.workspace && input.workspace.id === workspaceId

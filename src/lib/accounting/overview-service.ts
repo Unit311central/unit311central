@@ -43,7 +43,8 @@ import {
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
 import { calculateLivePayrollSnapshot } from "@/lib/payroll/payroll-service";
-import { isSupabaseConfigured, createSupabaseServerClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { convertToGbp } from "@/lib/treasury/treasury-utils";
 import { getWiseConnectionStatus, listWiseBalances } from "@/lib/wise-service";
 
@@ -59,11 +60,9 @@ const FX_TO_AUD: Record<string, number> = {
 
 async function resolveReportingCurrency(workspaceId: string): Promise<string> {
   try {
-    const { createSupabaseServiceRoleClient, isSupabaseServiceRoleConfigured } =
-      await import("@/lib/supabase/server");
-    const supabase = isSupabaseServiceRoleConfigured()
-      ? createSupabaseServiceRoleClient()
-      : createSupabaseServerClient();
+    const { isSupabaseServiceRoleConfigured } = await import("@/lib/supabase/server");
+    const { createTenancyServerClient } = await import("@/lib/supabase/tenancy-server");
+    const supabase = createTenancyServerClient();
 
     const [{ data: settings }, { data: workspace }] = await Promise.all([
       supabase
@@ -101,11 +100,9 @@ async function resolveReportingCurrency(workspaceId: string): Promise<string> {
 
 async function resolveWorkspaceSlug(workspaceId: string): Promise<string> {
   try {
-    const { createSupabaseServiceRoleClient, isSupabaseServiceRoleConfigured } =
-      await import("@/lib/supabase/server");
-    const supabase = isSupabaseServiceRoleConfigured()
-      ? createSupabaseServiceRoleClient()
-      : createSupabaseServerClient();
+    const { isSupabaseServiceRoleConfigured } = await import("@/lib/supabase/server");
+    const { createTenancyServerClient } = await import("@/lib/supabase/tenancy-server");
+    const supabase = createTenancyServerClient();
     const { data } = await supabase
       .from("workspaces")
       .select("slug")

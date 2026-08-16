@@ -1,6 +1,10 @@
 import {
-  createSupabaseServerClient,
+  createTenancyServerClient,
+  isTenancyHardeningActive,
+} from "@/lib/supabase/tenancy-server";
+import {
   isSupabaseConfigured,
+  isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
 import {
   getFileExtension,
@@ -85,7 +89,12 @@ export function requireFilesSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
   }
-  return createSupabaseServerClient();
+  if (isTenancyHardeningActive() && !isSupabaseServiceRoleConfigured()) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY is required for file storage after Phase 1 storage hardening.",
+    );
+  }
+  return createTenancyServerClient();
 }
 
 export async function listCategories(scope?: FilesWorkspaceScope): Promise<FileCategory[]> {
@@ -384,11 +393,12 @@ export async function deleteFolder(id: string, scope?: FilesWorkspaceScope) {
   await deleteFolderRecursive(id, workspaceId);
 }
 
-function buildStoragePath(folderId: string | null, fileName: string) {
+function buildStoragePath(folderId: string | null, fileName: string, workspaceId?: string) {
   const objectId = crypto.randomUUID();
   const extension = getFileExtension(fileName);
   const safeSuffix = extension ? `.${extension}` : "";
-  return `objects/${folderId ?? "root"}/${objectId}${safeSuffix}`;
+  const relative = `objects/${folderId ?? "root"}/${objectId}${safeSuffix}`;
+  return workspaceId ? `${workspaceId}/${relative}` : relative;
 }
 
 function assertUploadableFile(name: string, size: number) {
@@ -425,7 +435,7 @@ export async function prepareFileUpload(
   }
 
   const supabase = requireFilesSupabase();
-  const storagePath = buildStoragePath(options.folderId, options.name);
+  const storagePath = buildStoragePath(options.folderId, options.name, workspaceId);
 
   const { data, error } = await supabase.storage
     .from(INTERNAL_FILES_BUCKET)
@@ -504,7 +514,7 @@ export async function uploadFile(
   }
 
   const supabase = requireFilesSupabase();
-  const storagePath = buildStoragePath(options.folderId, options.file.name);
+  const storagePath = buildStoragePath(options.folderId, options.file.name, workspaceId);
 
   const buffer = Buffer.from(await options.file.arrayBuffer());
   const { error: uploadError } = await supabase.storage

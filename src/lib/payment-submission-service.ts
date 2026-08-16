@@ -19,7 +19,8 @@ import {
   buildSubscriptionInvoicePdf,
   generateInvoiceNumber,
 } from "@/lib/subscription-invoice-pdf";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export type PaymentInvoiceState = {
   invoiceNumber: string;
@@ -37,7 +38,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 async function findClientByOrganisationId(organisationId: string) {

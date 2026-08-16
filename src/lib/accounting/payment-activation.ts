@@ -3,7 +3,8 @@ import { sendMessage } from "@/lib/internal-messaging-service";
 import { INTERNAL_MESSAGING_ROOM } from "@/lib/internal-messaging-data";
 import { sendMailboxEmail } from "@/lib/email/smtp";
 import { PAYMENT_SUPPORT_EMAIL } from "@/lib/payment-data";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { resolveWorkspaceBinding } from "@/lib/workspace-context";
 
 export type PaymentActivationContext = {
@@ -116,7 +117,7 @@ export async function markClientActivatedFromPayment(input: {
   wiseTransactionId: string;
 }) {
   if (!isSupabaseConfigured()) return;
-  const supabase = createSupabaseServerClient();
+  const supabase = createTenancyServerClient();
   const today = new Date().toISOString().slice(0, 10);
   const now = new Date().toISOString();
 

@@ -5,13 +5,14 @@ import {
   markOrganisationPaymentVerified,
 } from "@/lib/organisation-service";
 import { buildPaymentAcceptedEmail } from "@/lib/platform-email-verification/emails";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 export async function markClientPaymentReceived(clientId: string) {

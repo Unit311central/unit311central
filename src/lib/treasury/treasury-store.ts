@@ -14,7 +14,8 @@ import {
   resolveFinancialsWorkspaceId,
   type FinancialsWorkspaceScope,
 } from "@/lib/financials-workspace";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 type MemoryStore = {
   settingsByWorkspace: Map<string, TreasurySettings>;
@@ -40,7 +41,7 @@ function nowIso() {
 
 function supabaseClient() {
   if (!isSupabaseConfigured()) return null;
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 async function loadSettingsFromDb(workspaceId: string): Promise<TreasurySettings | null> {

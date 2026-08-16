@@ -11,14 +11,15 @@ import { listAbhiFixtureInvoices } from "@/lib/abhi/ar-invoices-fixtures";
 import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
 import { findWorkspaceById } from "@/lib/workspace-host";
 import { PAYMENT_AMOUNT_NUMERIC } from "@/lib/payment-data";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { generateInvoiceNumber } from "@/lib/subscription-invoice-pdf";
 
 function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function mapInvoice(

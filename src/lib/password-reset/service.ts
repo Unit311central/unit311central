@@ -27,7 +27,8 @@ import {
   findPlatformUserByUsername,
   findPlatformUsersByEmail,
 } from "@/lib/platform-users-service";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { resolveWorkspaceBrandFor } from "@/lib/workspace-brand-server";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
@@ -41,7 +42,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function normalizeEmail(email: string) {

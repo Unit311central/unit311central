@@ -6,17 +6,15 @@ import {
   type SupportTicketPriority,
   type SupportTicketStatus,
 } from "@/lib/support-data";
-import {
-  postTicketToSupportChannel,
-} from "@/lib/support-channel";
+import { postTicketToSupportChannel } from "@/lib/support-channel";
 import {
   SUPPORT_DESK_NOTIFY_EMAIL,
   buildSupportEmail,
   clientLogoUrl,
 } from "@/lib/support-email-html";
-
 import { createSupportTicket, updateSupportTicket } from "@/lib/support-tickets-service";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { DEMO_SITE_URL } from "@/lib/app-domains";
 
 export type SupportLoungeClient = {
@@ -61,7 +59,7 @@ function requireLoungeSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 export function createLoungeToken() {

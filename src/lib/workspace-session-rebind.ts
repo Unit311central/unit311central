@@ -5,7 +5,8 @@ import {
   type PlatformSession,
 } from "@/lib/platform-session-token";
 import { applyPlatformSessionCookie } from "@/lib/platform-session-cookie";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export type RebindWorkspace = {
   id: string;
@@ -54,7 +55,7 @@ export async function recordHostRebindAudit(input: HostRebindAuditInput): Promis
   }
 
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = createTenancyServerClient();
     const previousId = input.previousWorkspace?.id?.trim() || null;
     await supabase.from("workspace_audit_log").insert({
       workspace_id: input.newWorkspace.id,

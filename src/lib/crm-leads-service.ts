@@ -6,7 +6,8 @@ import {
 } from "@/lib/crm-client-report-notes";
 import { isMissingCrmClientReportColumnError } from "@/lib/crm-client-report-schema";
 import { promoteCrmLeadToClient } from "@/lib/crm-lead-client-service";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 type DbLead = Parameters<typeof mapCrmLead>[0];
@@ -20,7 +21,7 @@ function requireCrmSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 /**

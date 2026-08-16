@@ -1,4 +1,5 @@
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import {
   CENTRAL_SITE_URL,
   WORKSPACE_HOST_ROUTE_PREFIX,
@@ -47,7 +48,7 @@ export async function findWorkspaceBySlug(
   const normalized =
     canonicalizeOnwardAirSlug(raw) ?? canonicalizeTalantonImpactSlug(raw) ?? raw;
 
-  const supabase = createSupabaseServerClient();
+  const supabase = createTenancyServerClient();
   const { data, error } = await supabase
     .from("workspaces")
     .select("id, name, slug, workspace_type, status")
@@ -66,7 +67,7 @@ export async function findWorkspaceById(
   if (!normalized) return null;
   if (!isSupabaseConfigured()) return null;
 
-  const supabase = createSupabaseServerClient();
+  const supabase = createTenancyServerClient();
   const { data, error } = await supabase
     .from("workspaces")
     .select("id, name, slug, workspace_type, status")

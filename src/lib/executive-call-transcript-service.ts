@@ -14,14 +14,15 @@ import {
 } from "@/lib/founder-booking/service";
 import { formatLondonDateTime } from "@/lib/founder-booking/slots";
 import { uploadFile } from "@/lib/internal-files-service";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { withFounderSessionBookingsTable } from "@/lib/internal-db-migrations";
 
 function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function toUploadFile(name: string, buffer: Buffer, mimeType: string) {

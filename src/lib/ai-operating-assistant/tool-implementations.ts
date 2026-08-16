@@ -5,7 +5,8 @@ import { vacationDaysRemaining } from "@/lib/hr-data";
 import { listLeads } from "@/lib/crm-leads-service";
 import { browseFolder, getFileDownloadUrl } from "@/lib/internal-files-service";
 import { listExpenses } from "@/lib/financial-expenses-service";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { INTERNAL_FILES_BUCKET } from "@/lib/internal-files-data";
 import {
   formatBillingFrequency,
@@ -926,7 +927,7 @@ async function readFileTextSnippet(fileId: string, workspaceId: string) {
     };
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = createTenancyServerClient();
   const { data: row, error } = await supabase
     .from("file_objects")
     .select("id, name, storage_path, mime_type, extension")

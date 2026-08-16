@@ -22,7 +22,8 @@ import { findPlatformUserByUsername } from "@/lib/platform-users-service";
 import { createClientOnboardingRecordForSignup } from "@/lib/client-onboarding-service";
 import { ensureClientFromSignup } from "@/lib/crm-signup-conversion";
 import { type PlatformSignupProfileInput, type SignupAddressInput } from "@/lib/signup-profile";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export type PlatformSignupInput = PlatformSignupProfileInput & {
   /** @deprecated Use companyName */
@@ -98,7 +99,7 @@ function requireSupabase() {
     throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
   }
 
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 async function createPlatformOrganisation(name: string, primaryEmail: string) {

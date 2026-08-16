@@ -23,7 +23,8 @@ import {
   ensureSoftwareAssetRegisterTables,
   withSoftwareAssetRegisterTables,
 } from "@/lib/internal-db-migrations";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 import { getPlatformSession } from "@/lib/platform-session";
 
@@ -35,7 +36,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 async function resolveWorkspaceId(scope?: SoftwareWorkspaceScope) {

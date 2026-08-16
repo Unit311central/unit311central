@@ -1,7 +1,8 @@
 import { RESERVED_UNIT311_SUBDOMAINS } from "@/lib/app-domains";
 import { slugifyOrganisationName } from "@/lib/organisation-slug";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 const WORKSPACE_PENDING_PAYMENT_STATUS = "Pending Payment";
 const DEMO_WORKSPACE_SLUG = "demo";
@@ -10,7 +11,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 export async function uniqueCustomerWorkspaceSlug(companyName: string): Promise<string> {

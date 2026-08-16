@@ -14,7 +14,8 @@ import {
   ensureInternalProjectTasksTable,
   withInternalProjectTasksTable,
 } from "@/lib/internal-db-migrations";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 type DbTask = {
   id: string;
@@ -37,7 +38,7 @@ function requireTasksSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 export function mapProjectTask(row: DbTask): ProjectTask {

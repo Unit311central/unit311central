@@ -21,25 +21,24 @@ function loadEnvFile(path, base = process.env) {
 }
 
 function loadStagingEnv() {
-  const env = loadEnvFile(".env.staging-validation.tmp");
+  const env = { ...process.env };
+  // Drop local/production DB URLs so child processes target staging Supabase only.
+  for (const key of [
+    "DATABASE_URL",
+    "POSTGRES_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "SUPABASE_DB_URL",
+    "SUPABASE_ACCESS_TOKEN",
+  ]) {
+    delete env[key];
+  }
+  Object.assign(env, loadEnvFile(".env.staging-validation.tmp", {}));
   if (env.SUPABASE_ANON_KEY && !env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
   }
   env.SUPABASE_PROJECT_REF = "jbcyewdsoerdiiokhpin";
   for (const key of ["POSTGRES_URL", "POSTGRES_URL_NON_POOLING", "DATABASE_URL"]) {
     if (env[key]?.includes("******")) delete env[key];
-  }
-  try {
-    const corp = loadEnvFile(".env.corporatecentre.runtime", {});
-    if (!env.SUPABASE_ACCESS_TOKEN?.trim() && corp.SUPABASE_ACCESS_TOKEN?.trim()) {
-      env.SUPABASE_ACCESS_TOKEN = corp.SUPABASE_ACCESS_TOKEN;
-    }
-  } catch {
-    /* optional */
-  }
-  // Stale management tokens break `supabase db query --linked`; prefer linked CLI login for schema checks.
-  if (!env.DATABASE_URL?.trim() && !env.POSTGRES_URL?.trim()) {
-    delete env.SUPABASE_ACCESS_TOKEN;
   }
   return env;
 }
@@ -57,6 +56,9 @@ function run(label, cmd, args) {
   }
 }
 
+if (all || steps.includes("schema")) {
+  run("phase1-staging-replay --verify", "node", ["scripts/phase1-staging-replay.mjs", "--verify"]);
+}
 if (all || steps.includes("tenancy")) {
   run("prove:workspace-tenancy", "npm", ["run", "prove:workspace-tenancy"]);
 }

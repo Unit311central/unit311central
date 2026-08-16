@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getPlatformSession } from "@/lib/platform-session";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export async function GET() {
 
   let logoUrl: string | null = null;
   if (isSupabaseConfigured()) {
-    const supabase = createSupabaseServerClient();
+    const supabase = createTenancyServerClient();
     const { data } = await supabase
       .from("workspace_settings")
       .select("logo_url")

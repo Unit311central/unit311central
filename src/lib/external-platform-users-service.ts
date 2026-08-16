@@ -13,12 +13,8 @@ import {
   hashPlatformPasswordForUser,
   normalizePlatformUsername,
 } from "@/lib/platform-auth";
-import {
-  createSupabaseServerClient,
-  createSupabaseServiceRoleClient,
-  isSupabaseConfigured,
-  isSupabaseServiceRoleConfigured,
-} from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 import type { ManagedClient } from "@/lib/client-management-data";
@@ -32,11 +28,7 @@ function requirePlatformSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
   }
-  // Prefer service role so External Users listing is not blocked by anon RLS.
-  if (isSupabaseServiceRoleConfigured()) {
-    return createSupabaseServiceRoleClient();
-  }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 /** Portfolio company rows used for External Users linkage on Talanton (not Client Directory). */

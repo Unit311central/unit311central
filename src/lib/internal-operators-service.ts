@@ -23,7 +23,8 @@ import {
   hashPlatformPasswordForUser,
   normalizePlatformUsername,
 } from "@/lib/platform-auth";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { validatePlatformSignupPassword } from "@/lib/platform-password-validation";
 
@@ -36,7 +37,7 @@ function requireOperatorsSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function buildOperatorPayload(input: Partial<ManagedUser>) {

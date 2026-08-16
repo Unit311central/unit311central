@@ -4,7 +4,8 @@ import { ensureExternalClientFolder } from "@/lib/external-files-service";
 import { formatLondonDateTime } from "@/lib/founder-booking/slots";
 import { deleteFile, uploadFile } from "@/lib/internal-files-service";
 import type { CrmLead } from "@/lib/crm-data";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 function toUploadFile(name: string, buffer: Buffer, mimeType: string) {
   const bytes = Uint8Array.from(buffer);
@@ -47,7 +48,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 async function deleteNamedFilesInFolder(folderId: string, names: string[]) {

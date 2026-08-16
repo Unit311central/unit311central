@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 
 import { Client, type ClientBase } from "pg";
 
@@ -912,60 +911,63 @@ export async function queryScalarViaManagementApi<T>(query: string): Promise<T |
   return data[0] ?? null;
 }
 
-export type SchemaQueryBackend = "pg" | "management-api" | "linked-cli";
-
-function isLinkedSupabaseCliAvailable(): boolean {
-  try {
-    const linkedRef = readFileSync(join(process.cwd(), "supabase/.temp/project-ref"), "utf8").trim();
-    const projectRef = getSupabaseProjectRef();
-    return Boolean(linkedRef && projectRef && linkedRef === projectRef);
-  } catch {
-    return false;
-  }
-}
+export type SchemaQueryBackend = "management-api" | "pg";
 
 function hasConfiguredPgUrl(): boolean {
   const dbUrl = getDatabaseUrl();
-  return Boolean(dbUrl && !dbUrl.includes("******"));
+  if (dbUrl && !dbUrl.includes("******")) return true;
+  return Boolean(getDatabasePassword() && getSupabaseProjectRef());
 }
 
 export function resolveSchemaQueryBackend(): SchemaQueryBackend | null {
-  if (hasConfiguredPgUrl() || (getDatabasePassword() && getSupabaseProjectRef())) return "pg";
-  if (isLinkedSupabaseCliAvailable()) return "linked-cli";
   if (getSupabaseAccessToken() && getSupabaseProjectRef()) return "management-api";
+  if (hasConfiguredPgUrl()) return "pg";
   return null;
 }
 
-function querySchemaScalarViaLinkedCli<T>(sql: string): T | null {
-  if (!isLinkedSupabaseCliAvailable()) return null;
-  const env = { ...process.env };
-  delete env.SUPABASE_ACCESS_TOKEN;
-  const escaped = sql.replace(/"/g, '\\"');
-  const result = spawnSync(`npx supabase db query --linked "${escaped}" -o json`, {
-    encoding: "utf8",
-    shell: true,
-    cwd: process.cwd(),
-    env,
-  });
-  if ((result.status ?? 1) !== 0) return null;
-  try {
-    const stdout = result.stdout ?? "";
-    const jsonStart = stdout.indexOf("{");
-    if (jsonStart < 0) return null;
-    const parsed = JSON.parse(stdout.slice(jsonStart)) as { rows?: T[] };
-    return parsed.rows?.[0] ?? null;
-  } catch {
-    return null;
-  }
+function pgClientOptions(url: string) {
+  const local =
+    url.includes("127.0.0.1") || url.includes("localhost") || url.includes("@db:") || url.includes("@host.docker.internal");
+  return {
+    connectionString: url,
+    ssl: local ? false : { rejectUnauthorized: false },
+  };
 }
 
-export async function querySchemaScalar<T>(sql: string): Promise<{ backend: string; row: T }> {
-  for (const candidate of listDatabaseConnectionCandidates()) {
-    const client = new Client({
-      connectionString: candidate.url,
-      ssl: { rejectUnauthorized: false },
-    });
+export async function querySchemaScalar<T>(
+  sql: string,
+  backend: SchemaQueryBackend = resolveSchemaQueryBackend() ?? "pg",
+): Promise<{ backend: string; row: T }> {
+  if (backend === "management-api") {
+    const row = await queryScalarViaManagementApi<T>(sql);
+    if (row == null) {
+      throw new Error(
+        "Management API schema query failed — verify SUPABASE_ACCESS_TOKEN and SUPABASE_URL project ref",
+      );
+    }
+    return { backend: "Supabase Management API", row };
+  }
 
+  const dbUrl = getDatabaseUrl();
+  if (dbUrl && !dbUrl.includes("******")) {
+    const client = new Client(pgClientOptions(dbUrl));
+    try {
+      await client.connect();
+      const result = await client.query(sql);
+      const row = (result.rows[0] as T) ?? null;
+      if (row == null) {
+        throw new Error("Schema query returned no rows");
+      }
+      return { backend: "pg (DATABASE_URL)", row };
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  let lastError: unknown = null;
+  for (const candidate of listDatabaseConnectionCandidates()) {
+    if (candidate.label === "configured-db-url") continue;
+    const client = new Client(pgClientOptions(candidate.url));
     try {
       await client.connect();
       const result = await client.query(sql);
@@ -975,25 +977,16 @@ export async function querySchemaScalar<T>(sql: string): Promise<{ backend: stri
       }
       return { backend: `pg (${candidate.label})`, row };
     } catch (error) {
+      lastError = error;
       if (!isDirectDbConnectionError(error)) throw error;
     } finally {
       await client.end().catch(() => undefined);
     }
   }
 
-  const fromLinkedCli = querySchemaScalarViaLinkedCli<T>(sql);
-  if (fromLinkedCli != null) {
-    return { backend: "pg (supabase linked CLI)", row: fromLinkedCli };
-  }
-
-  const fromMgmt = await queryScalarViaManagementApi<T>(sql);
-  if (fromMgmt != null) {
-    return { backend: "Supabase Management API", row: fromMgmt };
-  }
-
-  throw new Error(
-    "Schema checks require DATABASE_URL/POSTGRES_URL (pg), SUPABASE_ACCESS_TOKEN + SUPABASE_URL (Management API), or supabase link to the target project",
-  );
+  const message =
+    lastError instanceof Error ? lastError.message : lastError ? String(lastError) : "no candidates";
+  throw new Error(`Schema query failed — DATABASE_URL/POSTGRES_URL connection unavailable (${message})`);
 }
 
 async function countCompetitorsInRegion(region: string): Promise<number | null> {

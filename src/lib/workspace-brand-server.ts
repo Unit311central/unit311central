@@ -5,10 +5,8 @@
 
 import { cache } from "react";
 
-import {
-  createSupabaseServerClient,
-  isSupabaseConfigured,
-} from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import {
   getCurrentWorkspace,
   type CurrentWorkspace,
@@ -24,7 +22,7 @@ async function loadWorkspaceSettings(workspaceId: string | null | undefined): Pr
 }> {
   if (!workspaceId || !isSupabaseConfigured()) return { logoUrl: null };
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = createTenancyServerClient();
     const { data } = await supabase
       .from("workspace_settings")
       .select("logo_url")

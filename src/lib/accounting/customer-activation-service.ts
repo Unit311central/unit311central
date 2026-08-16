@@ -9,7 +9,8 @@ import {
 } from "@/lib/app-domains";
 import { sendMailboxEmail } from "@/lib/email/smtp";
 import { buildCustomerWelcomeEmail } from "@/lib/payment-emails";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export type PaymentActivationSource = "wise" | "manual_test";
 
@@ -46,7 +47,7 @@ function requireSupabase() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-  return createSupabaseServerClient();
+  return createTenancyServerClient();
 }
 
 function mapInvoiceRow(row: Record<string, unknown>, clientName?: string): LedgerInvoice {

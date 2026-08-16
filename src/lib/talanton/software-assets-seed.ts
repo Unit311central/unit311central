@@ -8,7 +8,8 @@ import {
   listSoftwareAssets,
 } from "@/lib/software-assets-service";
 import { ensureSoftwareAssetRegisterTables } from "@/lib/internal-db-migrations";
-import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 const SEED_MARKER_NAME = "Salesforce Nonprofit Cloud";
 
@@ -208,7 +209,7 @@ function buildTalantonSoftwareSeeds(seats: number): SeedRow[] {
 
 async function countTalantonActiveEmployees(workspaceId: string): Promise<number> {
   if (!isSupabaseConfigured()) return 23;
-  const supabase = createSupabaseServerClient();
+  const supabase = createTenancyServerClient();
   const { count, error } = await supabase
     .from("hr_employees")
     .select("id", { count: "exact", head: true })
@@ -228,7 +229,7 @@ function talantonSoftwareSeedReady(assets: SoftwareAsset[]): boolean {
 
 async function clearWorkspaceSoftwareAssets(workspaceId: string): Promise<void> {
   if (!isSupabaseConfigured()) return;
-  const supabase = createSupabaseServerClient();
+  const supabase = createTenancyServerClient();
   await supabase.from("software_asset_credentials").delete().eq("workspace_id", workspaceId);
   await supabase.from("software_asset_files").delete().eq("workspace_id", workspaceId);
   await supabase.from("software_asset_audit_events").delete().eq("workspace_id", workspaceId);
