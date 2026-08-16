@@ -51,7 +51,11 @@ import {
   DemoFundraisingPipelineWorkspace,
   DemoFundraisingPitchDecksWorkspace,
 } from "@/components/demo/DemoFundraisingWorkspaces";
-import { DemoBoardRisksWorkspace } from "@/components/demo/DemoBoardWorkspace";
+import {
+  NorthstarBoardMeetingsWorkspace,
+  NorthstarBoardPacksWorkspace,
+  NorthstarBoardRisksWorkspace,
+} from "@/components/demo/NorthstarBoardGovernanceWorkspaces";
 import {
   ABHI_HIDDEN_VIEWS,
   CUSTOMER_PLATFORM_HIDDEN_VIEWS,
@@ -929,7 +933,7 @@ export default function InternalOperationsDashboard({
             (isBrowserTalantonImpactSurface() ? (
               <TalantonRiskRegisterWorkspace />
             ) : isBrowserDemoSurface() ? (
-              <DemoBoardRisksWorkspace />
+              <NorthstarBoardRisksWorkspace />
             ) : (
               <RiskRegisterWorkspace />
             ))}
@@ -940,7 +944,7 @@ export default function InternalOperationsDashboard({
             ) : isBrowserOnwardAirSurface() ? (
               <OnwardAirBoardMeetingsWorkspace />
             ) : isBrowserDemoSurface() ? (
-              <BoardGovernanceWorkspace section="meetings" />
+              <NorthstarBoardMeetingsWorkspace />
             ) : (
               <BoardMeetingsWorkspace />
             ))}
@@ -955,6 +959,8 @@ export default function InternalOperationsDashboard({
           {activeView === "board-pack" &&
             (isBrowserOnwardAirSurface() ? (
               <OnwardAirBoardDecksWorkspace />
+            ) : isBrowserDemoSurface() ? (
+              <NorthstarBoardPacksWorkspace />
             ) : (
               <BoardPackCustomizerWorkspace />
             ))}

@@ -2,12 +2,13 @@
 
 import { AbhiBoardPortalApp } from "@/components/abhi/board/AbhiBoardPortalApp";
 import { AbhiBoardMinutesWorkspace } from "@/components/abhi/board/AbhiBoardMinutesWorkspace";
+import { DemoBoardMembersWorkspace } from "@/components/demo/DemoBoardWorkspace";
 import {
-  DemoBoardDashboardWorkspace,
-  DemoBoardMeetingsWorkspace,
-  DemoBoardMembersWorkspace,
-  DemoBoardRisksWorkspace,
-} from "@/components/demo/DemoBoardWorkspace";
+  NorthstarBoardDashboardWorkspace,
+  NorthstarBoardMeetingsWorkspace,
+  NorthstarBoardMinutesWorkspace,
+  NorthstarBoardRisksWorkspace,
+} from "@/components/demo/NorthstarBoardGovernanceWorkspaces";
 import {
   OnwardAirBoardDashboardWorkspace,
   OnwardAirBoardMinutesWorkspace,
@@ -35,11 +36,11 @@ export default function BoardGovernanceWorkspace({
   const isDemo = isBrowserDemoSurface();
 
   if (isDemo) {
-    if (section === "dashboard") return <DemoBoardDashboardWorkspace />;
-    if (section === "meetings") return <DemoBoardMeetingsWorkspace />;
-    if (section === "minutes") return <DemoBoardMeetingsWorkspace />;
+    if (section === "dashboard") return <NorthstarBoardDashboardWorkspace />;
+    if (section === "meetings") return <NorthstarBoardMeetingsWorkspace />;
+    if (section === "minutes") return <NorthstarBoardMinutesWorkspace />;
     if (section === "members") return <DemoBoardMembersWorkspace />;
-    return <DemoBoardRisksWorkspace />;
+    return <NorthstarBoardRisksWorkspace />;
   }
 
   if (isAbhi && section === "members") {
