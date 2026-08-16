@@ -42,14 +42,3 @@ export const NORTHSTAR_OFFICE_MAP_MARKERS: NorthstarOfficeMapMarker[] = [
     region: "US",
   },
 ];
-
-/** UK + US viewport for the transatlantic office map. */
-export const NORTHSTAR_OFFICE_MAP_VIEW = {
-  center: [48, -42] as [number, number],
-  zoom: 3,
-};
-
-export const NORTHSTAR_OFFICE_MAP_BOUNDS: [[number, number], [number, number]] = [
-  [24, -108],
-  [58, 4],
-];

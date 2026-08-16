@@ -1,190 +1,204 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import L from "leaflet";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
-import { MapPin, X } from "lucide-react";
-import "leaflet/dist/leaflet.css";
+import { useState } from "react";
+import { MapPin } from "lucide-react";
 
 import {
-  NORTHSTAR_OFFICE_MAP_BOUNDS,
   NORTHSTAR_OFFICE_MAP_MARKERS,
-  NORTHSTAR_OFFICE_MAP_VIEW,
   type NorthstarOfficeMapMarker,
 } from "@/lib/demo/northstar-office-map-data";
-import { URBAN_MAP_ATTRIBUTION } from "@/lib/map-tiles";
+import { cn } from "@/lib/utils";
 
-const CARTO_DARK_URL =
-  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+/** Normalised pin positions on simplified regional map silhouettes. */
+const UK_PIN_POSITIONS: Record<string, { x: number; y: number }> = {
+  "nst-office-man": { x: 118, y: 148 },
+  "nst-office-bri": { x: 102, y: 188 },
+};
 
-function markerIcon(active: boolean, region: "UK" | "US") {
-  const size = active ? 16 : 12;
-  const fill = region === "UK" ? "#38bdf8" : "#fbbf24";
-  const glow =
-    region === "UK"
-      ? active
-        ? "0 0 16px rgba(56,189,248,0.95)"
-        : "0 0 10px rgba(56,189,248,0.7)"
-      : active
-        ? "0 0 16px rgba(251,191,36,0.95)"
-        : "0 0 10px rgba(251,191,36,0.7)";
-  return L.divIcon({
-    className: "northstar-office-marker",
-    html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:9999px;background:${fill};border:2px solid rgba(255,255,255,0.92);box-shadow:${glow};"></span>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
+const US_PIN_POSITIONS: Record<string, { x: number; y: number }> = {
+  "nst-office-aus": { x: 198, y: 168 },
+};
+
+function HoverTooltip({ marker }: { marker: NorthstarOfficeMapMarker }) {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-3 z-20 w-[min(18rem,calc(100%-1.5rem))] -translate-x-1/2 rounded-xl border border-white/15 bg-[#07111f]/95 p-3 shadow-xl backdrop-blur">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-300/80">
+        {marker.city} · {marker.country}
+      </p>
+      <p className="mt-1 text-sm font-semibold text-white">{marker.employees} people on site</p>
+      <p className="mt-1 text-xs leading-relaxed text-white/65">{marker.address}</p>
+    </div>
+  );
 }
 
-function TransatlanticViewport() {
-  const map = useMap();
-
-  useEffect(() => {
-    const apply = () => {
-      map.invalidateSize({ animate: false });
-      map.setMaxBounds(NORTHSTAR_OFFICE_MAP_BOUNDS);
-      map.setMinZoom(3);
-      map.fitBounds(NORTHSTAR_OFFICE_MAP_BOUNDS, { padding: [24, 24], animate: false });
-    };
-
-    map.whenReady(() => {
-      apply();
-      window.setTimeout(apply, 80);
-      window.setTimeout(apply, 250);
-    });
-
-    const onResize = () => map.invalidateSize({ animate: false });
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [map]);
-
-  return null;
-}
-
-function OfficeMarkers({
-  markers,
-  activeId,
-  onSelect,
-}: {
-  markers: NorthstarOfficeMapMarker[];
-  activeId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  const map = useMap();
-  const layerRef = useRef<L.LayerGroup | null>(null);
-  const markerRefs = useRef<Map<string, L.Marker>>(new Map());
-
-  useEffect(() => {
-    layerRef.current?.remove();
-    markerRefs.current.clear();
-
-    const group = L.layerGroup();
-    markers.forEach((marker) => {
-      const pin = L.marker([marker.lat, marker.lng], {
-        icon: markerIcon(false, marker.region),
-        riseOnHover: true,
-        title: `${marker.city} · ${marker.country}`,
-      });
-      pin.on("click", () => onSelect(marker.id));
-      group.addLayer(pin);
-      markerRefs.current.set(marker.id, pin);
-    });
-
-    group.addTo(map);
-    layerRef.current = group;
-
-    return () => {
-      group.remove();
-      layerRef.current = null;
-      markerRefs.current.clear();
-    };
-  }, [map, markers, onSelect]);
-
-  useEffect(() => {
-    markerRefs.current.forEach((pin, id) => {
-      const marker = markers.find((row) => row.id === id);
-      pin.setIcon(markerIcon(id === activeId, marker?.region ?? "UK"));
-      pin.setZIndexOffset(id === activeId ? 1000 : 0);
-    });
-  }, [activeId, markers]);
-
-  return null;
-}
-
-function OfficeCard({
+function MapPinMarker({
   marker,
-  onClose,
+  x,
+  y,
+  tone,
+  onHover,
 }: {
   marker: NorthstarOfficeMapMarker;
-  onClose: () => void;
+  x: number;
+  y: number;
+  tone: "uk" | "us";
+  onHover: (marker: NorthstarOfficeMapMarker | null) => void;
+}) {
+  const fill = tone === "uk" ? "#38bdf8" : "#fbbf24";
+  const glow = tone === "uk" ? "rgba(56,189,248,0.55)" : "rgba(251,191,36,0.55)";
+
+  return (
+    <g
+      className="cursor-pointer"
+      onMouseEnter={() => onHover(marker)}
+      onMouseLeave={() => onHover(null)}
+      onFocus={() => onHover(marker)}
+      onBlur={() => onHover(null)}
+      tabIndex={0}
+      role="button"
+      aria-label={`${marker.city} office`}
+    >
+      <circle cx={x} cy={y} r={14} fill={glow} opacity={0.35} />
+      <circle cx={x} cy={y} r={5.5} fill={fill} stroke="rgba(255,255,255,0.92)" strokeWidth={2} />
+      <text
+        x={x}
+        y={y + 18}
+        textAnchor="middle"
+        className="fill-white/80 text-[9px] font-semibold"
+        style={{ fontSize: 9 }}
+      >
+        {marker.city}
+      </text>
+    </g>
+  );
+}
+
+function UkMapPanel({
+  markers,
+  hoveredId,
+  onHover,
+}: {
+  markers: NorthstarOfficeMapMarker[];
+  hoveredId: string | null;
+  onHover: (marker: NorthstarOfficeMapMarker | null) => void;
 }) {
   return (
-    <div className="pointer-events-auto absolute bottom-3 left-3 right-3 z-[500] rounded-xl border border-sky-400/25 bg-[#07111f]/95 p-3 shadow-xl backdrop-blur sm:left-auto sm:right-3 sm:w-72">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-300/80">
-            {marker.region === "UK" ? "United Kingdom" : "United States"}
-          </p>
-          <h3 className="mt-0.5 text-sm font-semibold text-white">{marker.city}</h3>
-          <p className="text-xs text-white/55">{marker.employees} people on site</p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white"
-          aria-label="Close office details"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+    <div className="relative flex h-full min-h-0 flex-1 flex-col border-b border-white/10">
+      <div className="border-b border-white/8 px-4 py-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+          United Kingdom
+        </p>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-white/70">{marker.address}</p>
+      <div className="relative flex flex-1 items-center justify-center bg-[#08111d] p-3">
+        {hoveredId && markers.some((marker) => marker.id === hoveredId) ? (
+          <HoverTooltip marker={markers.find((marker) => marker.id === hoveredId)!} />
+        ) : null}
+        <svg viewBox="0 0 200 260" className="h-full max-h-full w-full max-w-[220px]" aria-hidden>
+          <rect width="200" height="260" fill="#08111d" />
+          <path
+            d="M118 28 C132 24 148 34 154 52 C162 72 156 92 148 108 C158 124 164 142 158 162 C150 186 132 204 112 214 C96 222 78 218 68 204 C58 188 62 168 72 152 C64 136 58 118 64 98 C70 78 84 62 102 52 C108 44 112 34 118 28 Z"
+            fill="#1a3a5c"
+            stroke="#2d5f8a"
+            strokeWidth="1.5"
+          />
+          {markers.map((marker) => {
+            const pos = UK_PIN_POSITIONS[marker.id];
+            if (!pos) return null;
+            return (
+              <MapPinMarker
+                key={marker.id}
+                marker={marker}
+                x={pos.x}
+                y={pos.y}
+                tone="uk"
+                onHover={onHover}
+              />
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function UsMapPanel({
+  markers,
+  hoveredId,
+  onHover,
+}: {
+  markers: NorthstarOfficeMapMarker[];
+  hoveredId: string | null;
+  onHover: (marker: NorthstarOfficeMapMarker | null) => void;
+}) {
+  return (
+    <div className="relative flex h-full min-h-0 flex-1 flex-col">
+      <div className="border-b border-white/8 px-4 py-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+          United States
+        </p>
+      </div>
+      <div className="relative flex flex-1 items-center justify-center bg-[#08111d] p-3">
+        {hoveredId && markers.some((marker) => marker.id === hoveredId) ? (
+          <HoverTooltip marker={markers.find((marker) => marker.id === hoveredId)!} />
+        ) : null}
+        <svg viewBox="0 0 400 240" className="h-full max-h-full w-full max-w-[360px]" aria-hidden>
+          <rect width="400" height="240" fill="#08111d" />
+          <path
+            d="M42 58 L118 42 L188 48 L248 38 L318 52 L358 78 L372 118 L364 158 L338 188 L288 202 L228 196 L168 204 L108 192 L58 168 L34 128 L28 88 Z"
+            fill="#3d3520"
+            stroke="#8b7340"
+            strokeWidth="1.5"
+          />
+          <path
+            d="M318 52 L338 44 L352 58 L348 78 L328 72 Z"
+            fill="#3d3520"
+            stroke="#8b7340"
+            strokeWidth="1.5"
+          />
+          {markers.map((marker) => {
+            const pos = US_PIN_POSITIONS[marker.id];
+            if (!pos) return null;
+            return (
+              <MapPinMarker
+                key={marker.id}
+                marker={marker}
+                x={pos.x}
+                y={pos.y}
+                tone="us"
+                onHover={onHover}
+              />
+            );
+          })}
+        </svg>
+      </div>
     </div>
   );
 }
 
 export default function NorthstarCorporateOfficeMap() {
-  const markers = useMemo(() => NORTHSTAR_OFFICE_MAP_MARKERS, []);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const ukMarkers = NORTHSTAR_OFFICE_MAP_MARKERS.filter((marker) => marker.region === "UK");
+  const usMarkers = NORTHSTAR_OFFICE_MAP_MARKERS.filter((marker) => marker.region === "US");
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const toggleMarker = useCallback((id: string) => {
-    setActiveId((current) => (current === id ? null : id));
-  }, []);
-
-  const active = markers.find((marker) => marker.id === activeId) ?? null;
+  const onHover = (marker: NorthstarOfficeMapMarker | null) => {
+    setHoveredId(marker?.id ?? null);
+  };
 
   return (
-    <div className="relative h-full min-h-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#060d18]">
-      <div className="absolute inset-x-0 top-0 z-[400] flex items-center justify-between gap-2 border-b border-white/10 bg-[#060d18]/80 px-4 py-2.5 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-sky-300" />
-          <p className="text-sm font-semibold text-white">Global footprint</p>
-        </div>
-        <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/45">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-sky-400" />
-            UK
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
-            US
-          </span>
-        </div>
+    <div
+      className={cn(
+        "flex h-full min-h-[480px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#060d18]",
+      )}
+    >
+      <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+        <MapPin className="h-4 w-4 text-sky-300" />
+        <p className="text-sm font-semibold text-white">Office map</p>
+        <p className="ml-auto text-[10px] text-white/40">Hover a pin for details</p>
       </div>
-
-      <MapContainer
-        center={NORTHSTAR_OFFICE_MAP_VIEW.center}
-        zoom={NORTHSTAR_OFFICE_MAP_VIEW.zoom}
-        className="h-full min-h-[280px] w-full"
-        zoomControl={false}
-        attributionControl={false}
-        scrollWheelZoom={false}
-      >
-        <TileLayer url={CARTO_DARK_URL} attribution={URBAN_MAP_ATTRIBUTION} />
-        <TransatlanticViewport />
-        <OfficeMarkers markers={markers} activeId={activeId} onSelect={toggleMarker} />
-      </MapContainer>
-
-      {active ? <OfficeCard marker={active} onClose={() => setActiveId(null)} /> : null}
+      <div className="grid min-h-0 flex-1 grid-rows-2">
+        <UkMapPanel markers={ukMarkers} hoveredId={hoveredId} onHover={onHover} />
+        <UsMapPanel markers={usMarkers} hoveredId={hoveredId} onHover={onHover} />
+      </div>
     </div>
   );
 }
