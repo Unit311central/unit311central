@@ -30,6 +30,7 @@
     "diagram:github-architecture": "node --experimental-strip-types scripts/generate-github-architecture-diagram.mjs",
     "guard:canonical-repo": "node scripts/assert-canonical-unit311-repo.mjs",
     "prove:overview-client": "node scripts/prove-overview-client-frozen.mjs",
+    "prove:homepage-hero": "node --import tsx src/lib/__tests__/unit311-central-homepage-video.check.ts && node scripts/prove-homepage-hero.mjs",
     "preview:android": "next dev",
     "prove:talanton-ea": "node --import tsx src/lib/talanton/__tests__/ea-test-suite.check.ts",
     "prove:abhi-ea": "node --import tsx src/lib/abhi/__tests__/ea-test-suite.check.ts",

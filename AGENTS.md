@@ -15,3 +15,9 @@ After implementing requested product/code changes: commit the relevant files and
 Production invite: `https://onwardair.unit311central.com/overview` (login required, no `?tune` for clients).
 
 **Frozen Aug 2026** — do not change overview layout, defaults, or embed nav sizing without explicit owner request. See `.cursor/rules/overview-client-frozen.mdc`. Run `npm run prove:overview-client` before any overview deploy.
+
+## Unit311 Central homepage hero (frozen)
+
+Production homepage: `https://unit311central.com`
+
+**Frozen Aug 2026** — hero background video must stay `/images/video.mp4` via `HeroVideoBackground` in `HomeHero.tsx`. Do not remove the video, swap assets, or replace with gradient-only hero without explicit owner request. See `.cursor/rules/homepage-hero-frozen.mdc`. Run `npm run prove:homepage-hero` before any homepage deploy.
