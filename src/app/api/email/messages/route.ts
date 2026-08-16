@@ -28,7 +28,11 @@ export async function GET(request: NextRequest) {
   const folder = parseMailboxFolder(request.nextUrl.searchParams.get("folder"));
 
   if (await isDemoApiRequest()) {
-    return NextResponse.json(listDemoMailboxMessages(account, folder));
+    const messages = listDemoMailboxMessages(account, folder);
+    if (account === "demo" && messages.length === 0) {
+      return NextResponse.json(listDemoMailboxMessages("info", folder));
+    }
+    return NextResponse.json(messages);
   }
 
   try {
