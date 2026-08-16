@@ -12,6 +12,8 @@ import TalantonLogoMark, {
   isTalantonImpactSlug,
 } from "@/components/layout/TalantonLogoMark";
 import Unit311CentralWordmark from "@/components/layout/Unit311CentralWordmark";
+import { isDemoDomainHost } from "@/lib/app-domains";
+import { readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
 import { cn } from "@/lib/utils";
 
 type WorkspaceSidebarBrandProps = {
@@ -22,6 +24,9 @@ type WorkspaceSidebarBrandProps = {
 function hostWorkspaceSlug(): string | null {
   if (typeof window === "undefined") return null;
   const host = window.location.hostname.toLowerCase();
+  if (isDemoDomainHost(host)) {
+    return readBrowserDemoPreviewSlug();
+  }
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
   if (!match) {
     if (host.endsWith(".localhost") && host !== "localhost") {

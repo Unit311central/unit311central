@@ -53,6 +53,11 @@ import {
   PLATFORM_SESSION_COOKIE,
   readPlatformSessionToken,
 } from "@/lib/platform-session-token";
+import {
+  DEMO_PREVIEW_COOKIE,
+  DEMO_PREVIEW_HEADER,
+  normalizeDemoPreviewSlug,
+} from "@/lib/demo/workspace-preview";
 
 /** Next.js / browser prefetch must not clear auth gates or bounce live sessions. */
 function isNextPrefetchRequest(request: NextRequest): boolean {
@@ -76,6 +81,12 @@ function withHostHeaders(
     requestHeaders.set("x-unit311-demo", "1");
     requestHeaders.set("x-unit311-internal", "1");
     requestHeaders.set("x-unit311-workspace-slug", DEMO_WORKSPACE_SLUG);
+    const previewSlug = normalizeDemoPreviewSlug(
+      request.cookies.get(DEMO_PREVIEW_COOKIE)?.value,
+    );
+    if (previewSlug && previewSlug !== DEMO_WORKSPACE_SLUG) {
+      requestHeaders.set(DEMO_PREVIEW_HEADER, previewSlug);
+    }
   }
   if (flags.workspaceSlug) {
     requestHeaders.set("x-unit311-workspace-slug", flags.workspaceSlug);

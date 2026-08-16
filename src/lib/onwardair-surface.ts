@@ -93,6 +93,16 @@ export function isOnwardAirSlug(slug: string | null | undefined): boolean {
 
 export function getBrowserOnwardAirWorkspaceSlug(): string {
   if (typeof window === "undefined") return "";
+  try {
+    const { isOnDemoHostBrowser, readBrowserDemoPreviewSlug } =
+      require("@/lib/demo/workspace-preview") as typeof import("@/lib/demo/workspace-preview");
+    if (isOnDemoHostBrowser()) {
+      const preview = readBrowserDemoPreviewSlug();
+      if (canonicalizeOnwardAirSlug(preview)) return ONWARDAIR_SLUG;
+    }
+  } catch {
+    /* ignore */
+  }
   const host = window.location.hostname.toLowerCase();
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
   if (match?.[1]) {

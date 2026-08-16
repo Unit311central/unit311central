@@ -40,6 +40,8 @@ import PlatformThemeProvider from "./PlatformThemeProvider";
 import SurveyOperationsSidebar from "./SurveyOperationsSidebar";
 import { WorkspaceBreadcrumb } from "./workspace-chrome";
 import { prefetchViewOnIntent } from "@/lib/workspace-prefetch";
+import DemoWorkspacePreviewSwitcher from "@/components/demo/DemoWorkspacePreviewSwitcher";
+import { demoPreviewWorkspaceLabel, readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
 
 type SurveyOperationsShellProps = {
   children: React.ReactNode;
@@ -77,10 +79,17 @@ export default function SurveyOperationsShell({
     if (typeof window === "undefined") return false;
     return isDemoDomainHost(window.location.hostname);
   });
+  const [demoPreviewLabel, setDemoPreviewLabel] = useState<string | null>(null);
   const [isCorpCentre] = useState(() => {
     if (typeof window === "undefined") return false;
     return isBrowserCorpCentreSurface();
   });
+
+  useEffect(() => {
+    if (!isDemoHost) return;
+    const preview = readBrowserDemoPreviewSlug();
+    setDemoPreviewLabel(preview === "demo" ? null : demoPreviewWorkspaceLabel(preview));
+  }, [isDemoHost]);
 
   useEffect(() => {
     startTransition(() => {
@@ -234,7 +243,7 @@ export default function SurveyOperationsShell({
                       className="shrink-0 rounded border border-amber-400/40 bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-200"
                       title="Demo surface — same build as Internal; curated workspace content"
                     >
-                      Demo
+                      {demoPreviewLabel ? `Demo · ${demoPreviewLabel}` : "Demo"}
                     </span>
                   ) : null}
                 </div>
@@ -254,6 +263,7 @@ export default function SurveyOperationsShell({
             <div className="relative flex shrink-0 items-center gap-2">
               {showPlatformAi ? (
                 <>
+                  {isDemoHost && activeView === "home" ? <DemoWorkspacePreviewSwitcher /> : null}
                   <button
                     type="button"
                     data-ai-target="ai-assistant"

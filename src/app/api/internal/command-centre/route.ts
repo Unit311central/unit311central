@@ -10,6 +10,9 @@ import {
 import { listLeads } from "@/lib/crm-leads-service";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { resolveDemoPreviewSlug } from "@/lib/demo/workspace-preview-server";
+import { DEMO_WORKSPACE_SLUG } from "@/lib/demo/workspace-preview";
+import { findWorkspaceBySlug } from "@/lib/workspace-host";
 import {
   buildNorthstarFinancialOverview,
   getNorthstarCrmLeads,
@@ -190,7 +193,11 @@ function oaFinancialsFallback(): FinancialOverviewSnapshot {
 export async function GET() {
   const started = Date.now();
   try {
-    if (await isDemoApiRequest()) {
+    const demoRequest = await isDemoApiRequest();
+    const previewSlug = demoRequest ? await resolveDemoPreviewSlug() : DEMO_WORKSPACE_SLUG;
+    const demoNorthstarOnly = demoRequest && previewSlug === DEMO_WORKSPACE_SLUG;
+
+    if (demoNorthstarOnly) {
       const onboarding = getNorthstarOnboardingRecords();
       return NextResponse.json({
         projects: getNorthstarProjects(),
@@ -210,7 +217,17 @@ export async function GET() {
     if (!session) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
-    const workspace = await requireCurrentWorkspace();
+
+    let workspace: { id: string; slug: string; name: string };
+    if (demoRequest) {
+      const record = await findWorkspaceBySlug(previewSlug);
+      if (!record) {
+        return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+      }
+      workspace = { id: record.id, slug: record.slug, name: record.name };
+    } else {
+      workspace = await requireCurrentWorkspace();
+    }
     const workspaceId = workspace.id;
     const oaSurface = isOnwardAirSlug(workspace.slug);
     const abhiSurface = isAbhiWorkspaceSlug(workspace.slug);

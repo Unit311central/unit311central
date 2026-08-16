@@ -10,6 +10,13 @@ export const TALANTON_HOST_ALIAS_SLUG = "talanton";
 
 export function getBrowserWorkspaceSlug(): string {
   if (typeof window === "undefined") return "";
+  try {
+    const { isOnDemoHostBrowser, readBrowserDemoPreviewSlug } =
+      require("@/lib/demo/workspace-preview") as typeof import("@/lib/demo/workspace-preview");
+    if (isOnDemoHostBrowser()) return readBrowserDemoPreviewSlug();
+  } catch {
+    /* ignore */
+  }
   const host = window.location.hostname.toLowerCase();
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
   if (match?.[1]) return match[1];
