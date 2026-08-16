@@ -120,23 +120,29 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
           (item) =>
             item.view !== "corporate-board-directors" &&
             item.view !== "corporate-cap-table" &&
-            item.view !== "corporate-company-details" &&
             item.view !== "unit311-details" &&
             item.view !== "module-go-live" &&
             item.label !== "Board of Directors" &&
             item.label !== "Cap Table Management" &&
-            item.label !== "Company Information" &&
             item.label !== "Unit311 Details" &&
             (!item.view || !CORPORATE_BOARD_VIEWS.has(item.view as InternalOperationsView)) &&
             !item.children?.some(
               (child) => child.view === "unit311-details" || child.view === "module-go-live",
             ),
+        )
+        .map((item) =>
+          item.view === "corporate-company-details"
+            ? { ...item, label: "Company Information" }
+            : item,
         );
       const dashboard = corpItems.find((item) => item.view === "corporate-dashboard");
-      const rest = corpItems.filter((item) => item.view !== "corporate-dashboard");
+      const companyInfo = corpItems.find((item) => item.view === "corporate-company-details");
+      const rest = corpItems.filter(
+        (item) => item.view !== "corporate-dashboard" && item.view !== "corporate-company-details",
+      );
       out.push({
         ...section,
-        items: [dashboard, ...rest].filter(
+        items: [dashboard, companyInfo, ...rest].filter(
           (item): item is (typeof corpItems)[number] => Boolean(item),
         ),
       });
