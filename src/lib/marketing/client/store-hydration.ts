@@ -99,7 +99,19 @@ export function mapBundleToTalantonMarketingStoriesState(bundle: MarketingBundle
         submissionDate: String(ext.submissionDate ?? ""),
         status: row.status as never,
         impactCategory: ext.impactCategory as never,
-        photos: (ext.photos as never[]) ?? [],
+        photos: ((ext.photos as Array<{ id: string; name: string; mediaType: string; caption: string; url?: string }>) ?? []).map(
+          (photo) => ({
+            id: String(photo.id),
+            name: String(photo.name ?? ""),
+            mediaType: (photo.mediaType === "Video"
+              ? "Video"
+              : photo.mediaType === "Document"
+                ? "Document"
+                : "Image") as never,
+            caption: String(photo.caption ?? ""),
+            url: photo.url ? String(photo.url) : undefined,
+          }),
+        ),
         videos: (ext.videos as never[]) ?? [],
         attachments: (ext.attachments as never[]) ?? [],
         submittedBy: String(ext.submittedBy ?? ""),

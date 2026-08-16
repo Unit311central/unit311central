@@ -26,6 +26,8 @@ export type StoryMediaAsset = {
   mediaType: MediaType;
   /** Display placeholder / caption — no binary blobs in the mock. */
   caption: string;
+  /** Optional preview image URL (demo / portal submissions). */
+  url?: string;
 };
 
 export type PortfolioStory = {

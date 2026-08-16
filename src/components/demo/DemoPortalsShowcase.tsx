@@ -4,12 +4,13 @@ import { Building2, Globe2, Shield, Users } from "lucide-react";
 import Link from "next/link";
 
 import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
+import { demoClientPortalPublicPath } from "@/lib/demo/demo-client-portal-routes";
 
 const PORTAL_TYPES = [
   {
     title: "Client portal",
     description: "Project status, documents, support and billing for anchor customers like Sheffield Precision Engineering.",
-    href: "/demo-client-portal",
+    href: demoClientPortalPublicPath(),
     icon: Building2,
   },
   {

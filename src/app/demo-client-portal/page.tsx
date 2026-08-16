@@ -1,12 +1,7 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import DemoClientPortal from "@/components/demo/DemoClientPortal";
+import { demoClientPortalPublicPath } from "@/lib/demo/demo-client-portal-routes";
 
-export const metadata: Metadata = {
-  title: "Client Portal | Northstar Demo",
-  robots: { index: false, follow: false },
-};
-
-export default function DemoClientPortalPage() {
-  return <DemoClientPortal />;
+export default function LegacyDemoClientPortalPage() {
+  redirect(demoClientPortalPublicPath());
 }

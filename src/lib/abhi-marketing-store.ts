@@ -1454,6 +1454,38 @@ export function sendMailingCampaignNow(id: string) {
   }
 }
 
+export function scheduleMailingCampaign(id: string, scheduledAt: string) {
+  state = {
+    ...state,
+    mailingCampaigns: state.mailingCampaigns.map((row) =>
+      row.id === id
+        ? { ...row, status: "scheduled" as const, scheduledAt, sentAt: null }
+        : row,
+    ),
+  };
+  emit();
+  const row = state.mailingCampaigns.find((item) => item.id === id);
+  if (row) {
+    syncMarketingToCentral("campaigns", {
+      id: row.id,
+      subject: row.subject,
+      body: row.body,
+      status: row.status,
+      recipientMode: row.recipientMode,
+      recipientIds: row.recipientMemberIds,
+      manualEmails: row.manualEmails,
+      scheduledAt: row.scheduledAt,
+      sentAt: row.sentAt,
+      extensionData: {
+        name: row.name ?? row.subject,
+        purpose: row.purpose ?? "",
+        listName: row.listName ?? "",
+        lastSent: row.lastSent ?? null,
+      },
+    });
+  }
+}
+
 export function deleteMailingCampaign(id: string) {
   state = { ...state, mailingCampaigns: state.mailingCampaigns.filter((row) => row.id !== id) };
   emit();

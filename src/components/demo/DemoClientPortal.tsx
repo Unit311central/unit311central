@@ -3,6 +3,7 @@
 import { FileText, LifeBuoy, Milestone } from "lucide-react";
 import Link from "next/link";
 
+import type { DemoClientPortalConfig } from "@/lib/demo/demo-client-portal-routes";
 import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 
 const SHEFFIELD_PROJECT = {
@@ -29,13 +30,12 @@ function formatGbp(value: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(value);
 }
 
-export default function DemoClientPortal() {
+type Props = {
+  portal: DemoClientPortalConfig;
+};
+
+export default function DemoClientPortal({ portal }: Props) {
   const fixtures = getDemoEnterpriseFixtures();
-  const clientContact = {
-    first: "Tom",
-    last: "Bradley",
-    email: "t.bradley@sheffieldprecision.co.uk",
-  };
 
   return (
     <div className="min-h-screen bg-[#0a1628] text-white">
@@ -43,9 +43,9 @@ export default function DemoClientPortal() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-white/45">Northstar client portal</p>
-            <h1 className="text-xl font-semibold">Sheffield Precision Engineering</h1>
+            <h1 className="text-xl font-semibold">{portal.companyName}</h1>
           </div>
-          <Link href="/dashboard" className="text-sm text-sky-300 hover:underline">
+          <Link href="/login" className="text-sm text-sky-300 hover:underline">
             Northstar staff login
           </Link>
         </div>
@@ -55,10 +55,10 @@ export default function DemoClientPortal() {
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <h2 className="text-lg font-medium">Your account</h2>
           <p className="mt-2 text-sm text-white/65">
-            {clientContact.first} {clientContact.last} · {clientContact.email}
+            {portal.contactFirst} {portal.contactLast} · {portal.contactEmail}
           </p>
           <p className="mt-1 text-sm text-white/55">
-            Sheffield Precision Engineering · Active customer · {fixtures.company.tradingName} partner
+            {portal.companyName} · Active customer · {fixtures.company.tradingName} partner
           </p>
         </section>
 
@@ -122,8 +122,8 @@ export default function DemoClientPortal() {
         </section>
 
         <p className="text-xs text-white/40">
-          Simulated client portal for Demo — scoped Sheffield Precision Engineering view only. No full Northstar
-          workspace exposure.
+          Client portal for {portal.companyName} on Northstar Demo — project status, support, and billing only.
+          Success stories submitted here feed Marketing → Client Stories.
         </p>
       </main>
     </div>

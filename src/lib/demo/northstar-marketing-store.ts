@@ -6,7 +6,7 @@ import type { MarketingBundleResponse, MarketingResource } from "@/lib/marketing
 import type { MediaAsset } from "@/lib/marketing/types";
 import { getNorthstarMarketingKpis } from "@/lib/demo/northstar-api-fixtures";
 
-const STORAGE_KEY = "unit311-northstar-marketing-v1";
+const STORAGE_KEY = "unit311-northstar-marketing-v2";
 const GLOBAL_KEY = "__unit311_northstar_marketing_bundle__";
 
 function nowIso() {
@@ -387,6 +387,7 @@ function seedBundle(): MarketingBundleResponse {
             name: "Line 3 gateway install",
             mediaType: "Image",
             caption: "Edge gateway deployment — Sheffield Line 3",
+            url: "https://images.unsplash.com/photo-1565793298595-6a879b1d9492?w=960&q=80",
           },
         ],
         videos: [],
@@ -411,7 +412,15 @@ function seedBundle(): MarketingBundleResponse {
         impactCategory: "Climate & Environment",
         submittedBy: "Daniel Wright",
         source: "client_portal",
-        photos: [],
+        photos: [
+          {
+            id: "ph-2",
+            name: "Packaging line monitoring",
+            mediaType: "Image",
+            caption: "Energy analytics on the brewery packaging line",
+            url: "https://images.unsplash.com/photo-1532635246-17e820acc59f?w=960&q=80",
+          },
+        ],
         videos: [],
         attachments: [],
       },
@@ -434,7 +443,15 @@ function seedBundle(): MarketingBundleResponse {
         impactCategory: "Health & Wellbeing",
         submittedBy: "Helen Marsh",
         source: "client_portal",
-        photos: [],
+        photos: [
+          {
+            id: "ph-3",
+            name: "Cold chain hub sensors",
+            mediaType: "Image",
+            caption: "Temperature monitoring at Midlands distribution hub",
+            url: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=960&q=80",
+          },
+        ],
         videos: [],
         attachments: [],
       },
@@ -457,7 +474,15 @@ function seedBundle(): MarketingBundleResponse {
         impactCategory: "Jobs & Livelihoods",
         submittedBy: "Chris Okafor",
         source: "client_portal",
-        photos: [],
+        photos: [
+          {
+            id: "ph-4",
+            name: "Composite layup inspection",
+            mediaType: "Image",
+            caption: "Automated quality gate on composite layup line",
+            url: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=960&q=80",
+          },
+        ],
         videos: [],
         attachments: [],
       },

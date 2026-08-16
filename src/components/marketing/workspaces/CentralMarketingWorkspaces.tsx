@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { MarketingDashboardShell } from "@/components/marketing/workspaces/MarketingDashboardShell";
+import { demoClientPortalPublicPath } from "@/lib/demo/demo-client-portal-routes";
 import {
   CentralEntityList,
   CentralMarketingShell,
@@ -102,8 +103,10 @@ export function CentralMarketingDashboardWorkspace() {
                 <li>Scheduled campaigns: {scheduledCampaigns}</li>
                 <li>Client stories pending review: {clientStoriesPending}</li>
                 <li>
-                  Client portal submissions feed Client Stories — see{" "}
-                  <span className="text-sky-300">/demo-client-portal</span>
+                  Client portal submissions feed Client Stories —{" "}
+                  <a href={demoClientPortalPublicPath()} className="text-sky-300 hover:underline">
+                    demo.unit311central.com{demoClientPortalPublicPath()}
+                  </a>
                 </li>
               </ul>
             </WorkspaceSection>

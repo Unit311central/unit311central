@@ -246,15 +246,38 @@ export default function PortfolioStoriesWorkspace() {
                     {s.attachments.length} attachments · by {s.submittedBy}
                   </p>
                   {(s.photos.length > 0 || s.videos.length > 0 || s.attachments.length > 0) && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {[...s.photos, ...s.videos, ...s.attachments].map((m) => (
-                        <span
-                          key={m.id}
-                          className="rounded-lg border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] text-white/55"
-                        >
-                          {m.mediaType}: {m.name}
-                        </span>
-                      ))}
+                    <div className="mt-3 space-y-3">
+                      {s.photos.some((photo) => photo.url) ? (
+                        <div className="flex flex-wrap gap-3">
+                          {s.photos
+                            .filter((photo) => photo.url)
+                            .map((photo) => (
+                              <figure
+                                key={photo.id}
+                                className="overflow-hidden rounded-xl border border-white/10 bg-black/25"
+                              >
+                                <img
+                                  src={photo.url}
+                                  alt={photo.caption || photo.name}
+                                  className="h-36 w-52 object-cover"
+                                />
+                                <figcaption className="px-2.5 py-1.5 text-[11px] text-white/55">
+                                  {photo.caption}
+                                </figcaption>
+                              </figure>
+                            ))}
+                        </div>
+                      ) : null}
+                      <div className="flex flex-wrap gap-2">
+                        {[...s.photos, ...s.videos, ...s.attachments].map((m) => (
+                          <span
+                            key={m.id}
+                            className="rounded-lg border border-white/10 bg-black/25 px-2.5 py-1 text-[11px] text-white/55"
+                          >
+                            {m.mediaType}: {m.name}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

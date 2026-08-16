@@ -43,6 +43,10 @@ import { getOnwardAirClientPortalByPath } from "@/lib/onwardair/client-portal-ro
 import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOverviewAuthBypassEnabled } from "@/lib/onwardair/overview-gate";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug, TALANTON_HOST_ALIAS_SLUG, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import {
+  matchDemoClientPortalSlug,
+  PRIMARY_DEMO_CLIENT_PORTAL_SLUG,
+} from "@/lib/demo/demo-client-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
 import {
   applyOverviewViewCookie,
@@ -710,6 +714,32 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
+    if (pathname === "/demo-client-portal" || pathname.startsWith("/demo-client-portal/")) {
+      return redirectPermanent(request, `/${PRIMARY_DEMO_CLIENT_PORTAL_SLUG}${search}`);
+    }
+
+    const demoClientSlug = matchDemoClientPortalSlug(pathname);
+    if (demoClientSlug) {
+      const response = rewriteTo(request, `/demo-client/${demoClientSlug}`, headers, shellHeaders);
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return response;
+    }
+
+    if (pathname.startsWith("/demo-client/")) {
+      const response = NextResponse.next({ request: { headers } });
+      for (const [key, value] of Object.entries(shellHeaders)) {
+        response.headers.set(key, value);
+      }
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return response;
+    }
+
     if (isPublicMarketingPath(pathname)) {
       if (isLocalDevHost(host)) {
         const port = request.nextUrl.port || "3000";
@@ -740,8 +770,6 @@ export async function middleware(request: NextRequest) {
       pathname === "/board" ||
       pathname === "/portals" ||
       pathname.startsWith("/portals/") ||
-      pathname === "/demo-client-portal" ||
-      pathname.startsWith("/demo-client-portal/") ||
       pathname === "/company-overview"
     ) {
       const response = NextResponse.next({ request: { headers } });

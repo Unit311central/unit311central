@@ -1,12 +1,13 @@
 "use client";
 
 import { Mail, Pencil, Plus, Send, Trash2, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import {
   addMember,
   deleteMailingCampaign,
   deleteMember,
+  scheduleMailingCampaign,
   sendMailingCampaignNow,
   updateMember,
   upsertMailingCampaign,
@@ -56,6 +57,8 @@ type FormState = {
   recipientMode: AbhiRecipientMode;
   recipientMemberIds: string[];
   manualEmailsText: string;
+  scheduleMode: "now" | "schedule";
+  scheduledAt: string;
 };
 
 function emptyForm(): FormState {
@@ -69,6 +72,8 @@ function emptyForm(): FormState {
     recipientMode: "all",
     recipientMemberIds: [],
     manualEmailsText: "",
+    scheduleMode: "now",
+    scheduledAt: "",
   };
 }
 
@@ -83,6 +88,8 @@ function formFromCampaign(item: AbhiMailingCampaign): FormState {
     recipientMode: item.recipientMode,
     recipientMemberIds: item.recipientMemberIds,
     manualEmailsText: item.manualEmails.join("\n"),
+    scheduleMode: item.status === "scheduled" ? "schedule" : "now",
+    scheduledAt: item.scheduledAt ? item.scheduledAt.slice(0, 16) : "",
   };
 }
 
@@ -111,6 +118,7 @@ function recipientCount(item: AbhiMailingCampaign, totalMembers: number) {
 
 export default function AbhiMailingListWorkspace() {
   const store = useAbhiMarketingStore();
+  const composeRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [notice, setNotice] = useState<string | null>(null);
   const [memberFormOpen, setMemberFormOpen] = useState(false);
@@ -138,8 +146,20 @@ export default function AbhiMailingListWorkspace() {
   }
 
   function startNew() {
-    setForm(emptyForm());
-    setNotice(null);
+    const saved = upsertMailingCampaign({
+      name: "New campaign",
+      subject: "",
+      body: "",
+      purpose: "",
+      listName: "",
+      status: "draft",
+      recipientMode: "all",
+      recipientMemberIds: [],
+      manualEmails: [],
+    });
+    setForm(formFromCampaign(saved));
+    setNotice("New campaign created — add details below.");
+    composeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function toggleMember(memberId: string) {
@@ -176,9 +196,14 @@ export default function AbhiMailingListWorkspace() {
 
   function handleSend() {
     const saved = upsertMailingCampaign(buildPayload());
-    sendMailingCampaignNow(saved.id);
+    if (form.scheduleMode === "schedule" && form.scheduledAt) {
+      scheduleMailingCampaign(saved.id, new Date(form.scheduledAt).toISOString());
+      setNotice(`Campaign scheduled for ${formatWhen(new Date(form.scheduledAt).toISOString())}.`);
+    } else {
+      sendMailingCampaignNow(saved.id);
+      setNotice("Email sent.");
+    }
     setForm((current) => ({ ...current, id: saved.id }));
-    setNotice("Email sent.");
   }
 
   function handleDelete(id: string) {
@@ -229,7 +254,10 @@ export default function AbhiMailingListWorkspace() {
     setNotice("Member removed.");
   }
 
-  const canSend = form.subject.trim().length > 0 && form.body.trim().length > 0;
+  const canSend =
+    form.subject.trim().length > 0 &&
+    form.body.trim().length > 0 &&
+    (form.scheduleMode !== "schedule" || form.scheduledAt.trim().length > 0);
 
   return (
     <div className="space-y-5">
@@ -252,7 +280,7 @@ export default function AbhiMailingListWorkspace() {
           actions={
             <button type="button" onClick={startNew} className={tqmsPrimaryButtonClass()}>
               <Plus className="h-3.5 w-3.5" />
-              New
+              New campaign
             </button>
           }
           className="h-fit"
@@ -296,6 +324,7 @@ export default function AbhiMailingListWorkspace() {
           )}
         </TqmsSection>
 
+        <div ref={composeRef}>
         <TqmsSection title={form.id ? "Edit email" : "Compose email"}>
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -401,13 +430,47 @@ export default function AbhiMailingListWorkspace() {
               ) : null}
             </div>
 
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <p className="text-sm font-medium text-white">Send</p>
+              <div className="mt-2 flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm text-white/75">
+                  <input
+                    type="radio"
+                    name="mailingScheduleMode"
+                    checked={form.scheduleMode === "now"}
+                    onChange={() => patchForm({ scheduleMode: "now" })}
+                    className="h-3.5 w-3.5 border-white/30 bg-transparent"
+                  />
+                  Send now
+                </label>
+                <label className="flex items-center gap-2 text-sm text-white/75">
+                  <input
+                    type="radio"
+                    name="mailingScheduleMode"
+                    checked={form.scheduleMode === "schedule"}
+                    onChange={() => patchForm({ scheduleMode: "schedule" })}
+                    className="h-3.5 w-3.5 border-white/30 bg-transparent"
+                  />
+                  Schedule send
+                </label>
+              </div>
+              {form.scheduleMode === "schedule" ? (
+                <input
+                  type="datetime-local"
+                  value={form.scheduledAt}
+                  onChange={(e) => patchForm({ scheduledAt: e.target.value })}
+                  className={cn(tqmsInputClass(), "mt-2")}
+                />
+              ) : null}
+            </div>
+
             <div className="flex flex-wrap gap-2 pt-1">
               <button type="button" onClick={handleSaveDraft} className={tqmsSecondaryButtonClass()}>
                 Save draft
               </button>
               <button type="button" onClick={handleSend} disabled={!canSend} className={tqmsPrimaryButtonClass(!canSend)}>
                 <Send className="h-3.5 w-3.5" />
-                Send now
+                {form.scheduleMode === "schedule" ? "Schedule" : "Send now"}
               </button>
               {form.id ? (
                 <button
@@ -422,6 +485,7 @@ export default function AbhiMailingListWorkspace() {
             </div>
           </div>
         </TqmsSection>
+        </div>
       </div>
 
       <TqmsSection
