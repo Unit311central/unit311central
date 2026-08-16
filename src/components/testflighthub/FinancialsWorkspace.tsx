@@ -368,68 +368,6 @@ export default function FinancialsWorkspace() {
             Loading financial overview…
           </div>
         ) : null}
-
-        {overview ? (
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <HeroKpi
-              label="Cash position"
-              value={money(overview.cashPosition)}
-              hint={cashDelta ? `${formatCompact(Math.abs(cashDelta.abs), reportingCurrency)} vs prior` : undefined}
-              delta={cashDelta}
-              spark={overview.charts.cashPosition}
-              sparkColor="#34d399"
-              icon={<Wallet className="h-4 w-4" />}
-            />
-            <HeroKpi
-              label="Revenue YTD"
-              value={money(overview.revenueYtd)}
-              hint={`This month ${money(overview.monthlyRevenue)}`}
-              delta={revenueDelta}
-              spark={overview.charts.monthlyRevenue}
-              sparkColor="#38bdf8"
-              icon={<TrendingUp className="h-4 w-4" />}
-            />
-            <HeroKpi
-              label="Accounts receivable"
-              value={money(overview.accountsReceivable)}
-              hint={`${overview.ar.overdueCount} invoices overdue · ${Math.round(overview.ar.collectionRate)}% collected`}
-              delta={
-                overview.ar.outstanding > 0
-                  ? {
-                      abs: overview.ar.overdue,
-                      pct: roundReportingPercent(
-                        (overview.ar.overdue / overview.ar.outstanding) * 100,
-                      ),
-                      up: true,
-                    }
-                  : null
-              }
-              invertDelta
-              deltaSuffix="overdue"
-              spark={overview.ar.ageing.map((b) => ({ amount: b.amount }))}
-              sparkColor="#fbbf24"
-              icon={<ArrowDownRight className="h-4 w-4" />}
-            />
-            <HeroKpi
-              label="Monthly burn"
-              value={`${money(overview.burnRate.monthly)} / mo`}
-              hint={overview.burnRate.trendLabel}
-              delta={
-                overview.burnRate
-                  ? {
-                      abs: overview.burnRate.changePct,
-                      pct: roundReportingPercent(overview.burnRate.changePct),
-                      up: overview.burnRate.trend === "increasing",
-                    }
-                  : expenseDelta
-              }
-              invertDelta
-              spark={overview.charts.monthlyOutgoings}
-              sparkColor="#fb7185"
-              icon={<TrendingDown className="h-4 w-4" />}
-            />
-          </div>
-        ) : null}
       </section>
 
       {overview ? (

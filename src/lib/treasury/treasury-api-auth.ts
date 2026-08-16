@@ -1,12 +1,34 @@
 import { NextResponse } from "next/server";
 
-import { requirePlatformSession, getPlatformSession } from "@/lib/platform-session";
+import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { requirePlatformSession, getPlatformSession, type PlatformSession } from "@/lib/platform-session";
 import { isWiseTreasuryWorkspaceSlug } from "@/lib/treasury/bank-provider";
 import { getWiseConnectionStatus } from "@/lib/wise-service";
 import {
   requireCurrentWorkspace,
   type CurrentWorkspace,
 } from "@/lib/workspace-context";
+
+const DEMO_WORKSPACE: CurrentWorkspace = {
+  id: "demo-workspace",
+  slug: DEMO_WORKSPACE_SLUG,
+  name: "Northstar Industrial Technologies",
+};
+
+function demoPlatformSession(existing: PlatformSession | null): PlatformSession {
+  if (existing) return existing;
+  return {
+    sub: "demo-admin",
+    username: "admin@unit311central.com",
+    displayName: "Demo Admin",
+    userType: "internal",
+    redirectPath: "/",
+    exp: Math.floor(Date.now() / 1000) + 86400 * 7,
+    workspaceSlug: DEMO_WORKSPACE_SLUG,
+    workspaceName: DEMO_WORKSPACE.name,
+  };
+}
 
 export const WISE_INTERNAL_ONLY_MESSAGE =
   "Bank connections are not enabled for this workspace.";
@@ -37,6 +59,19 @@ export async function requireInternalWiseWorkspace():
         workspace: CurrentWorkspace;
       }
   > {
+  if (await isDemoApiRequest()) {
+    const session = demoPlatformSession(await getPlatformSession());
+    try {
+      const workspace = await requireCurrentWorkspace();
+      if (isWiseTreasuryWorkspaceSlug(workspace.slug)) {
+        return { session, workspace };
+      }
+    } catch {
+      /* fall through to synthetic demo workspace */
+    }
+    return { session, workspace: DEMO_WORKSPACE };
+  }
+
   try {
     const session = await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();

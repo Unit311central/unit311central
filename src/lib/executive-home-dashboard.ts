@@ -27,6 +27,17 @@ const OA_COMMERCIAL_CLIENT_IDS = new Set([
   "oa-cli-coastal-freight",
 ]);
 
+function isBrowserDemoHome(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const { isBrowserDemoSurface } =
+      require("@/lib/demo-enterprise/surface") as typeof import("@/lib/demo-enterprise/surface");
+    return isBrowserDemoSurface();
+  } catch {
+    return false;
+  }
+}
+
 function isBrowserOnwardAirHome(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -231,6 +242,9 @@ function resolveEffectiveOnboardingCount(input: {
 }
 
 function formatCompactMoney(amount: number, currency = "GBP") {
+  if (isBrowserDemoHome()) {
+    return formatReportingMoney(amount, currency);
+  }
   const code = String(currency || "GBP").toUpperCase();
   const rounded = Math.ceil(Number(amount) || 0);
   const abs = Math.abs(rounded);
@@ -487,9 +501,14 @@ export function buildExecutiveHomeLiveKpis(input: {
   const financialsLoaded = input.financials != null;
   const oaHome = isOnwardAirHomeBundle(input.clients) || isBrowserOnwardAirHome();
   const abhiHome = isBrowserAbhiHome();
-  // Prefer closed prior-month burn (current month is usually partial).
+  const demoHome = isBrowserDemoHome();
+  // Prefer closed prior-month burn on mature workspaces; Demo uses current month opex.
   const burnFromLedger =
-    burn && burn.previousMonthly > 0 ? burn.previousMonthly : (burn?.monthly ?? 0);
+    demoHome
+      ? (burn?.monthly ?? 0)
+      : burn && burn.previousMonthly > 0
+        ? burn.previousMonthly
+        : (burn?.monthly ?? 0);
   // OA demo: cash glide ~$80k/mo (1.08M → 1.0M); never show $0 burn on Home.
   const burnPrevious =
     burnFromLedger > 0

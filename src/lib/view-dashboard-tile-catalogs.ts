@@ -228,6 +228,10 @@ export function buildFinancialsDashboardCatalog(
       cashPosition?: Array<{ amount: number }>;
       monthlyOutgoings?: Array<{ amount: number }>;
     };
+    ap?: {
+      dueThisMonth?: number;
+      upcoming?: number;
+    };
   } | null,
 ): DashboardTileDefinition[] {
   const fallbackCurrency = financialsFallbackCurrency();

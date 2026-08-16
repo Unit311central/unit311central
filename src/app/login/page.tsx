@@ -98,8 +98,8 @@ export async function generateMetadata({
 
   if (isDemo) {
     return {
-      title: "Login | Unit311 Demo",
-      description: "Secure access to the Unit311 Demo workspace.",
+      title: "Login | Northstar Industrial Technologies",
+      description: "Secure access to the Northstar Industrial Technologies demo workspace.",
       robots: { index: false, follow: false },
     };
   }
@@ -141,11 +141,13 @@ export default async function LoginPage({ searchParams }: PageProps) {
         ? "abhi"
         : isOnwardAirSlug(workspaceSlug)
           ? "onwardair"
-          : workspaceSlug
-            ? "customer"
-            : isCentral
-              ? "central"
-              : "default";
+          : isDemo || workspaceSlug === "demo"
+            ? "northstar"
+            : workspaceSlug
+              ? "customer"
+              : isCentral
+                ? "central"
+                : "default";
 
   return (
     <Unit311LoginPage

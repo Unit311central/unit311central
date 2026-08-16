@@ -119,11 +119,15 @@ export default function GeneralLedgerWorkspace() {
         try {
           const { isNorthstarDemoBrowser, getNorthstarJournalEntries, getNorthstarLedgerAccounts, getNorthstarTrialBalance } =
             require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
+          const { northstarCurrentUkFyStart } =
+            require("@/lib/demo/northstar-financial-model") as typeof import("@/lib/demo/northstar-financial-model");
           if (isNorthstarDemoBrowser()) {
             const rows = getNorthstarTrialBalance();
             const debitTotal = rows.reduce((sum, row) => sum + row.debit, 0);
             const creditTotal = rows.reduce((sum, row) => sum + row.credit, 0);
             const accounts = getNorthstarLedgerAccounts();
+            const income = accounts.filter((a) => a.type === "income").reduce((s, a) => s + a.balance, 0);
+            const expenses = accounts.filter((a) => a.type === "expense").reduce((s, a) => s + a.balance, 0);
             setJournals(getNorthstarJournalEntries());
             setAccounts(accounts);
             setTrialRows(rows);
@@ -132,10 +136,11 @@ export default function GeneralLedgerWorkspace() {
               assets: accounts.filter((a) => a.type === "asset").reduce((s, a) => s + a.balance, 0),
               liabilities: accounts.filter((a) => a.type === "liability").reduce((s, a) => s + a.balance, 0),
               equity: accounts.filter((a) => a.type === "equity").reduce((s, a) => s + a.balance, 0),
-              income: accounts.filter((a) => a.type === "income").reduce((s, a) => s + a.balance, 0),
-              expenses: accounts.filter((a) => a.type === "expense").reduce((s, a) => s + a.balance, 0),
-              netProfit: 0,
+              income,
+              expenses,
+              netProfit: income - expenses,
             });
+            setDateFrom(northstarCurrentUkFyStart());
             setClientOptions([]);
             setLoading(false);
             return;

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import CorpCentreLogoMark from "@/components/layout/CorpCentreLogoMark";
+import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import OnwardAirLogoMark from "@/components/layout/OnwardAirLogoMark";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
@@ -188,8 +189,8 @@ export default function Unit311LoginPage({
   portalsLogin = false,
 }: {
   variant?: "default" | "central";
-  /** Tenant login branding. CorpCentre / Talanton / ABHI / OnwardAir / customer use workspace branding. */
-  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer";
+  /** Tenant login branding. CorpCentre / Talanton / ABHI / OnwardAir / customer / northstar use workspace branding. */
+  brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar";
   /** Display name for generic customer hosts (e.g. Acme). */
   workspaceName?: string | null;
   /** Validated return origin (`return_to`) for workspace / demo / internal. */
@@ -211,6 +212,7 @@ export default function Unit311LoginPage({
   const isTalanton = brand === "talanton";
   const isAbhi = brand === "abhi";
   const isOnwardAir = brand === "onwardair";
+  const isNorthstar = brand === "northstar";
   const isCustomer = brand === "customer";
   const customerLabel = workspaceName?.trim() || "Workspace";
   const portalsNext =
@@ -394,6 +396,8 @@ export default function Unit311LoginPage({
             <AbhiLogoMark height={50} tone="onDark" priority />
           ) : isOnwardAir ? (
             <OnwardAirLogoMark height={90} maxWidth={500} priority />
+          ) : isNorthstar ? (
+            <NorthstarLogoMark height={56} maxWidth={320} priority />
           ) : isCustomer ? (
             <div className="rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4">
               <p className="text-center text-[1.35rem] font-semibold tracking-tight text-white">
@@ -439,6 +443,8 @@ export default function Unit311LoginPage({
                     ? "OnwardAir Demo Information Page"
                     : isOnwardAir
                       ? "OnwardAir Login"
+                      : isNorthstar
+                        ? "Northstar Industrial Technologies Login"
                       : isCustomer
                         ? `${customerLabel} Login`
                         : "Workspace Login"}
@@ -458,6 +464,8 @@ export default function Unit311LoginPage({
                     ? "Secure access to your OnwardAir demo portal page"
                     : isOnwardAir
                       ? "Secure access to your OnwardAir workspace"
+                      : isNorthstar
+                        ? "Secure access to Northstar Industrial Technologies"
                       : isCustomer
                         ? `Secure access to your ${customerLabel} workspace`
                         : "Secure Access to your Workspace"}

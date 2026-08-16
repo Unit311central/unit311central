@@ -7,6 +7,21 @@ import type { LedgerAccount, JournalEntry, TrialBalanceRow } from "@/lib/account
 import type { ClientOnboardingRecord } from "@/lib/client-onboarding-data";
 import type { CrmLead } from "@/lib/crm-data";
 import { getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
+import {
+  NORTHSTAR_AP_DUE_NOW,
+  NORTHSTAR_AP_DUE_WITHIN_MONTH,
+  NORTHSTAR_AP_OUTSTANDING,
+  NORTHSTAR_BURN_PREVIOUS_MONTHLY,
+  NORTHSTAR_CASH_GBP,
+  NORTHSTAR_MONTHLY_OPEX,
+  NORTHSTAR_MONTHLY_REVENUE,
+  NORTHSTAR_NET_PROFIT_YTD,
+  NORTHSTAR_OPEX_BREAKDOWN,
+  NORTHSTAR_REVENUE_YTD,
+  northstarFinancialMonths,
+  northstarMonthlyOpexForMonth,
+  northstarMonthlyRevenueForMonth,
+} from "@/lib/demo/northstar-financial-model";
 import type { GrantApplication } from "@/lib/grants-data";
 import type { InternalProject } from "@/lib/projects-data";
 import type { PotentialClientsCountrySnapshot } from "@/lib/potential-clients-data";
@@ -386,10 +401,10 @@ export const NORTHSTAR_GRANTS_KPIS = [
   {
     id: "pipeline",
     label: "Grant pipeline",
-    value: "£1.37M",
-    change: "+£185k",
+    value: "UK 6 · EU 3",
+    change: "9 applications",
     trend: "up" as const,
-    hint: "6 UK · 3 EU applications",
+    hint: "£1.37M total pipeline value",
   },
   {
     id: "approved-ytd",
@@ -474,34 +489,34 @@ export const NORTHSTAR_POTENTIAL_CLIENTS: PotentialClientsCountrySnapshot[] = [
 export function getNorthstarFundraisingPipeline(): FundraisingPipelineDeal[] {
   return [
     {
-      id: "nst-pipe-1",
+      id: "nst-pipe-seed-mgp",
       investor: "Simon Wright",
       firm: "Midlands Growth Partners",
-      stage: "Meeting",
-      amountGbp: 3_000_000,
+      stage: "Term sheet",
+      amountGbp: 2_500_000,
       owner: "Elena Hart",
       lastTouch: "2026-08-12",
-      notes: "Partner meeting scheduled Manchester — Series B track.",
+      notes: "Lead candidate for £5M seed round.",
     },
     {
-      id: "nst-pipe-2",
+      id: "nst-pipe-seed-iif",
       investor: "Helena Voigt",
       firm: "Industrial Innovation Fund",
       stage: "Diligence",
       amountGbp: 1_500_000,
       owner: "Priya Shah",
       lastTouch: "2026-08-08",
-      notes: "Site visit completed — data room access granted.",
+      notes: "Technical diligence — Manchester site visit completed.",
     },
     {
-      id: "nst-pipe-3",
+      id: "nst-pipe-seed-ntv",
       investor: "David Chen",
       firm: "Northern Tech Ventures",
-      stage: "Term sheet",
-      amountGbp: 2_000_000,
+      stage: "Meeting",
+      amountGbp: 1_000_000,
       owner: "Elena Hart",
       lastTouch: "2026-08-14",
-      notes: "Follow-on participation in growth extension.",
+      notes: "Pre-seed lead — pro-rata for seed extension.",
     },
   ];
 }
@@ -589,55 +604,79 @@ export function getNorthstarDataRooms(): DataRoomRow[] {
 
 export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
   const fixtures = getDemoEnterpriseFixtures();
-  const cash = fixtures.company.cashGbp;
-  const monthlyRevenue = 400_000;
-  const monthlyExpenses = 310_000;
+  const cash = fixtures.company.cashGbp ?? NORTHSTAR_CASH_GBP;
+  const monthlyRevenue = NORTHSTAR_MONTHLY_REVENUE;
+  const monthlyExpenses = NORTHSTAR_MONTHLY_OPEX;
+  const months = northstarFinancialMonths();
   const monthSeries: { month: string; amount: number }[] = [];
   const plSeries: { month: string; profit: number; loss: number }[] = [];
   const cashSeries: { month: string; amount: number }[] = [];
-  const anchor = new Date("2026-08-16T10:00:00.000Z");
-  for (let offset = 35; offset >= 0; offset -= 1) {
-    const date = new Date(anchor);
-    date.setMonth(date.getMonth() - offset);
-    const month = date.toISOString().slice(0, 7);
-    const revenue = monthlyRevenue - offset * 1_500;
-    const expenses = monthlyExpenses - offset * 800;
+  let runningCash = cash - months.length * 18_000;
+
+  for (const month of months) {
+    const revenue = northstarMonthlyRevenueForMonth(month);
+    const expenses = northstarMonthlyOpexForMonth(month);
     monthSeries.push({ month, amount: revenue });
     plSeries.push({
       month,
       profit: Math.max(0, revenue - expenses),
       loss: Math.max(0, expenses - revenue),
     });
-    cashSeries.push({ month, amount: cash - offset * 25_000 });
+    runningCash += revenue - expenses;
+    cashSeries.push({ month, amount: Math.max(420_000, runningCash) });
   }
-  const month = anchor.toISOString().slice(0, 7);
+  if (cashSeries.length > 0) {
+    cashSeries[cashSeries.length - 1] = { month: cashSeries[cashSeries.length - 1]!.month, amount: cash };
+  }
+
+  const burnQuarterly = monthlyExpenses * 3;
+  const burnAnnual = monthlyExpenses * 12;
 
   return {
-    revenueYtd: 2_880_000,
+    revenueYtd: NORTHSTAR_REVENUE_YTD,
     cashPosition: cash,
     accountsReceivable: 420_000,
-    accountsPayable: 186_000,
-    netProfit: 720_000,
+    accountsPayable: NORTHSTAR_AP_OUTSTANDING,
+    netProfit: NORTHSTAR_NET_PROFIT_YTD,
     outstandingInvoices: 12,
     monthlyRevenue,
     monthlyExpenses,
-    annualRevenue: 4_800_000,
-    annualExpenses: 3_720_000,
+    annualRevenue: monthlyRevenue * 12,
+    annualExpenses: monthlyExpenses * 12,
     burnRate: {
       source: "demo",
       currency: "GBP",
       monthly: monthlyExpenses,
-      quarterly: 270_000,
-      annual: 1_080_000,
-      previousMonthly: 295_000,
+      quarterly: burnQuarterly,
+      annual: burnAnnual,
+      previousMonthly: NORTHSTAR_BURN_PREVIOUS_MONTHLY,
       changePct: -5,
       trend: "improving",
-      trendLabel: "Improving",
+      trendLabel: "Prior month £295k · people & opex",
       cashBalance: cash,
-      runwayMonths: Math.round((cash / 90_000) * 10) / 10,
-      forecastMonthly: 300_000,
+      runwayMonths: Math.round((cash / monthlyExpenses) * 10) / 10,
+      forecastMonthly: monthlyExpenses,
       lines: [],
-      series: [],
+      series: monthSeries.map((row) => {
+        const total = northstarMonthlyOpexForMonth(row.month);
+        const payroll = Math.round(total * (NORTHSTAR_OPEX_BREAKDOWN.payroll / NORTHSTAR_MONTHLY_OPEX));
+        const software = Math.round(total * (NORTHSTAR_OPEX_BREAKDOWN.software / NORTHSTAR_MONTHLY_OPEX));
+        const office = Math.round(total * ((NORTHSTAR_OPEX_BREAKDOWN.rent + NORTHSTAR_OPEX_BREAKDOWN.cloud) / NORTHSTAR_MONTHLY_OPEX));
+        const marketing = Math.round(total * (NORTHSTAR_OPEX_BREAKDOWN.marketing / NORTHSTAR_MONTHLY_OPEX));
+        const travel = Math.round(total * (NORTHSTAR_OPEX_BREAKDOWN.travel / NORTHSTAR_MONTHLY_OPEX));
+        const other = total - payroll - software - office - marketing - travel;
+        return {
+          month: row.month,
+          total,
+          payroll,
+          contractors: 0,
+          software,
+          office,
+          marketing,
+          travel,
+          other,
+        };
+      }),
       filterOptions: { departments: [], costCentres: [], projects: [], offices: [] },
     },
     ar: {
@@ -649,14 +688,27 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
       ageing: [],
       recentUnpaid: [],
     },
-    ap: { outstanding: 186_000, dueThisMonth: 64_000, overdue: 0, upcoming: 122_000, recent: [] },
-    payroll: { current: 118_000, next: 118_000, employees: 25, annual: 1_416_000, monthly: 118_000, trend: [] },
+    ap: {
+      outstanding: NORTHSTAR_AP_OUTSTANDING,
+      dueThisMonth: NORTHSTAR_AP_DUE_NOW,
+      overdue: 0,
+      upcoming: NORTHSTAR_AP_DUE_WITHIN_MONTH,
+      recent: [],
+    },
+    payroll: {
+      current: NORTHSTAR_OPEX_BREAKDOWN.payroll,
+      next: NORTHSTAR_OPEX_BREAKDOWN.payroll,
+      employees: 25,
+      annual: NORTHSTAR_OPEX_BREAKDOWN.payroll * 12,
+      monthly: NORTHSTAR_OPEX_BREAKDOWN.payroll,
+      trend: [],
+    },
     charts: {
       monthlyRevenue: monthSeries,
       monthlyProfitLoss: plSeries,
       monthlyOutgoings: monthSeries.map((row) => ({
         month: row.month,
-        amount: monthlyExpenses,
+        amount: northstarMonthlyOpexForMonth(row.month),
       })),
       cashPosition: cashSeries,
     },
@@ -665,38 +717,54 @@ export function buildNorthstarFinancialOverview(): FinancialOverviewSnapshot {
 }
 
 export function getNorthstarLedgerAccounts(): LedgerAccount[] {
+  const opex = NORTHSTAR_OPEX_BREAKDOWN;
   const accounts = [
-    { code: "1010", name: "Wise GBP", type: "asset" as const, balance: 1_900_000 },
+    { code: "1010", name: "Wise GBP — Operating", type: "asset" as const, balance: 1_100_000 },
+    { code: "1015", name: "Wise GBP — Reserves", type: "asset" as const, balance: 200_000 },
+    { code: "1020", name: "Wise USD / EUR (GBP equiv.)", type: "asset" as const, balance: 800_000 },
     { code: "1030", name: "Accounts Receivable", type: "asset" as const, balance: 420_000 },
-    { code: "2000", name: "Accounts Payable", type: "liability" as const, balance: 186_000 },
-    { code: "3010", name: "Retained Earnings", type: "equity" as const, balance: 720_000 },
-    { code: "4010", name: "SaaS & Monitoring Revenue", type: "income" as const, balance: 400_000 },
-    { code: "5020", name: "Payroll Expense", type: "expense" as const, balance: 118_000 },
+    { code: "1200", name: "Prepaid expenses", type: "asset" as const, balance: 28_000 },
+    { code: "2000", name: "Accounts Payable", type: "liability" as const, balance: NORTHSTAR_AP_OUTSTANDING },
+    { code: "2100", name: "Deferred revenue", type: "liability" as const, balance: 85_000 },
+    { code: "3010", name: "Share capital (pre-seed)", type: "equity" as const, balance: 1_000_000 },
+    { code: "3020", name: "Retained earnings", type: "equity" as const, balance: 1_433_000 },
+    {
+      code: "4010",
+      name: "SaaS & monitoring revenue (current month)",
+      type: "income" as const,
+      balance: NORTHSTAR_MONTHLY_REVENUE,
+    },
+    { code: "5020", name: "Payroll (current month)", type: "expense" as const, balance: opex.payroll },
+    { code: "5030", name: "Cloud & hosting (current month)", type: "expense" as const, balance: opex.cloud },
+    { code: "5040", name: "Rent & facilities (current month)", type: "expense" as const, balance: opex.rent },
+    { code: "5050", name: "Marketing (current month)", type: "expense" as const, balance: opex.marketing },
+    { code: "5060", name: "Software & tools (current month)", type: "expense" as const, balance: opex.software },
+    { code: "5070", name: "Professional services (current month)", type: "expense" as const, balance: opex.professional },
+    { code: "5080", name: "Travel (current month)", type: "expense" as const, balance: opex.travel },
+    { code: "5090", name: "Other operating expense (current month)", type: "expense" as const, balance: opex.other },
   ];
   return accounts.map((row, index) => ({
-    id: `nst-gl-${index}`,
+    id: `nst-gl-${row.code}`,
     code: row.code,
     name: row.name,
     type: row.type,
     balance: row.balance,
     currency: "GBP",
     isActive: true,
-    transactionCount: 4 + index,
+    transactionCount: 6 + (index % 5),
   }));
 }
 
 export function getNorthstarJournalEntries(): JournalEntry[] {
   const entries: JournalEntry[] = [];
-  const now = new Date("2026-08-16T10:00:00.000Z");
-  for (let offset = 35; offset >= 0; offset -= 1) {
-    const date = new Date(now);
-    date.setMonth(date.getMonth() - offset);
-    const month = date.toISOString().slice(0, 7);
-    const revenue = 360_000 + (offset % 6) * 8_000;
+  for (const month of northstarFinancialMonths()) {
+    const revenue = northstarMonthlyRevenueForMonth(month);
+    const opex = northstarMonthlyOpexForMonth(month);
+    const payroll = Math.round(opex * (NORTHSTAR_OPEX_BREAKDOWN.payroll / NORTHSTAR_MONTHLY_OPEX));
     entries.push({
       id: `nst-je-rev-${month}`,
       reference: `REV-${month}`,
-      description: `${month} SaaS & monitoring revenue recognition`,
+      description: `${month} SaaS & monitoring revenue recognition (UK FY)`,
       clientId: null,
       sourceType: "revenue",
       sourceId: null,
@@ -707,6 +775,21 @@ export function getNorthstarJournalEntries(): JournalEntry[] {
       lines: [],
       debitTotal: revenue,
       creditTotal: revenue,
+    });
+    entries.push({
+      id: `nst-je-opex-${month}`,
+      reference: `OPEX-${month}`,
+      description: `${month} operating expenses accrual`,
+      clientId: null,
+      sourceType: "expense",
+      sourceId: null,
+      status: "posted",
+      journalDate: `${month}-28`,
+      postedAt: `${month}-28T10:00:00.000Z`,
+      createdAt: `${month}-28T10:00:00.000Z`,
+      lines: [],
+      debitTotal: opex,
+      creditTotal: opex,
     });
     entries.push({
       id: `nst-je-pay-${month}`,
@@ -720,8 +803,8 @@ export function getNorthstarJournalEntries(): JournalEntry[] {
       postedAt: `${month}-28T10:00:00.000Z`,
       createdAt: `${month}-28T10:00:00.000Z`,
       lines: [],
-      debitTotal: 112_000 + (offset % 4) * 2_000,
-      creditTotal: 112_000 + (offset % 4) * 2_000,
+      debitTotal: payroll,
+      creditTotal: payroll,
     });
   }
   return entries;

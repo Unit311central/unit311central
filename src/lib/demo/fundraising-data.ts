@@ -21,92 +21,121 @@ export type DemoInvestor = {
   lastContact: string;
 };
 
+/** £1M pre-seed (2023) — sole closed round to date. */
 export const NORTHSTAR_FUNDING_ROUNDS: readonly DemoFundingRound[] = [
   {
-    id: "seed-2023",
-    label: "Seed",
-    amountGbp: 750_000,
+    id: "pre-seed-2023",
+    label: "Pre-seed",
+    amountGbp: 1_000_000,
     year: 2023,
     lead: "Northern Tech Ventures",
     status: "closed",
-    investors: ["Northern Tech Ventures", "Angel syndicate (12)"],
+    investors: [
+      "Northern Tech Ventures (UK VC)",
+      "Harwood Family Capital (UK family office)",
+      "Selby Private Investments (UK family office)",
+      "Elena Hart (UK angel)",
+      "Austin Industrial Partners (US angel)",
+    ],
   },
   {
-    id: "series-a-2024",
-    label: "Series A",
-    amountGbp: 1_750_000,
-    year: 2024,
-    lead: "Northern Tech Ventures",
-    status: "closed",
-    investors: ["Northern Tech Ventures", "Cedar Bridge Capital"],
-  },
-  {
-    id: "growth-2025",
-    label: "Growth",
-    amountGbp: 2_000_000,
-    year: 2025,
-    lead: "Cedar Bridge Capital",
-    status: "closed",
-    investors: ["Cedar Bridge Capital", "Northern Tech Ventures"],
+    id: "seed-2026",
+    label: "Seed (in progress)",
+    amountGbp: 5_000_000,
+    year: 2026,
+    lead: "Midlands Growth Partners",
+    status: "in_progress",
+    investors: ["Midlands Growth Partners", "Industrial Innovation Fund", "Pipeline investors"],
   },
 ];
 
-export const NORTHSTAR_TOTAL_RAISED_GBP = NORTHSTAR_FUNDING_ROUNDS.reduce(
-  (sum, round) => sum + round.amountGbp,
-  0,
-);
+export const NORTHSTAR_SERIES_A_TARGET_GBP = 15_000_000;
+
+export const NORTHSTAR_TOTAL_RAISED_GBP = 1_000_000;
 
 export const NORTHSTAR_INVESTORS: readonly DemoInvestor[] = [
   {
     id: "inv-ntv",
     firm: "Northern Tech Ventures",
     contact: "David Chen",
-    stage: "Series A / Growth",
+    stage: "Pre-seed lead",
     status: "portfolio",
-    lastContact: "2026-02-10",
+    lastContact: "2026-07-14",
   },
   {
-    id: "inv-cbc",
-    firm: "Cedar Bridge Capital",
-    contact: "Rachel Okon",
-    stage: "Growth",
+    id: "inv-hfc",
+    firm: "Harwood Family Capital",
+    contact: "Sarah Harwood",
+    stage: "Pre-seed",
     status: "portfolio",
-    lastContact: "2026-01-22",
+    lastContact: "2026-06-02",
   },
   {
-    id: "inv-mid",
+    id: "inv-selby",
+    firm: "Selby Private Investments",
+    contact: "Mark Selby",
+    stage: "Pre-seed",
+    status: "portfolio",
+    lastContact: "2026-05-18",
+  },
+  {
+    id: "inv-hart",
+    firm: "Elena Hart (angel)",
+    contact: "Elena Hart",
+    stage: "Pre-seed",
+    status: "portfolio",
+    lastContact: "2026-08-01",
+  },
+  {
+    id: "inv-aip",
+    firm: "Austin Industrial Partners",
+    contact: "Robert Klein",
+    stage: "Pre-seed (US)",
+    status: "portfolio",
+    lastContact: "2026-04-22",
+  },
+  {
+    id: "inv-mgp",
     firm: "Midlands Growth Partners",
     contact: "Simon Wright",
-    stage: "Series B (future)",
+    stage: "Seed (£5M target)",
     status: "pipeline",
-    lastContact: "2026-03-01",
+    lastContact: "2026-08-12",
   },
   {
-    id: "inv-ind",
+    id: "inv-iif",
     firm: "Industrial Innovation Fund",
     contact: "Helena Voigt",
-    stage: "Strategic",
+    stage: "Seed diligence",
     status: "pipeline",
-    lastContact: "2026-02-28",
+    lastContact: "2026-08-08",
   },
 ];
 
 export const NORTHSTAR_FUNDRAISING_PIPELINE = [
   {
-    id: "pipe-1",
+    id: "pipe-seed-mgp",
     firm: "Midlands Growth Partners",
-    stage: "Introductory",
-    amountGbp: 3_000_000,
-    probability: 25,
-    nextStep: "Partner meeting Apr 2026",
+    stage: "Term sheet discussion",
+    amountGbp: 2_500_000,
+    probability: 45,
+    nextStep: "Partner meeting Manchester — Aug 2026",
   },
   {
-    id: "pipe-2",
+    id: "pipe-seed-iif",
     firm: "Industrial Innovation Fund",
     stage: "Due diligence",
     amountGbp: 1_500_000,
-    probability: 40,
-    nextStep: "Site visit Manchester",
+    probability: 35,
+    nextStep: "Technical diligence workshop",
+  },
+  {
+    id: "pipe-seed-ntv",
+    firm: "Northern Tech Ventures",
+    stage: "Follow-on conversations",
+    amountGbp: 1_000_000,
+    probability: 55,
+    nextStep: "Pro-rata for seed round",
   },
 ];
 
