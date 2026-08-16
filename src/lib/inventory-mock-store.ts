@@ -1002,7 +1002,7 @@ function seedState(): InventoryMockState {
         purchaseCost: "£2,400",
         warrantyExpiry: isoDaysFromNow(400),
         currentValue: "£1,800",
-        location: office?.city ?? "London",
+        location: office?.city ?? "Manchester",
         status: "operational",
         condition: "excellent",
         department: "Consulting",
@@ -1012,7 +1012,7 @@ function seedState(): InventoryMockState {
         assignment: {
           employee: row.assignedTo,
           department: "Consulting",
-          office: office?.city ?? "London",
+          office: office?.city ?? "Manchester",
           project: "Client delivery",
           issueDate: isoDaysFromNow(-90),
           expectedReturn: "",

@@ -1143,7 +1143,7 @@ export function createInitialAssetRegistry(): AssetRegistryState {
             id: row.id,
             assetTag: `IT-${String(index + 1).padStart(4, "0")}`,
             category: "IT Equipment",
-            location: office?.city ?? "London",
+            location: office?.city ?? "Manchester",
             model: row.sku ?? "Laptop",
             serialNumber: `MAG-${index + 1}`,
             operationalStatus: "In Service",

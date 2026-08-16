@@ -6,6 +6,8 @@
 import { calcPoTotals, type GoodsReceipt, type PurchaseOrder, type PurchaseRequisition } from "@/lib/procurement-data";
 import type { LogisticsShipment } from "@/lib/logistics-data";
 
+export const NORTHSTAR_INVENTORY_OFFICES = ["Manchester", "Bristol", "Austin"] as const;
+
 export const NORTHSTAR_ASSET_KPIS = {
   totalValueGbp: 4_200_000,
   totalCount: 248,
@@ -133,11 +135,9 @@ export function getNorthstarInventoryCharts(): NorthstarInventoryCharts {
       { name: "Out of service", value: 8 },
     ],
     valueByLocation: [
-      { location: "London", value: 280_000 },
-      { location: "Berlin", value: 145_000 },
-      { location: "Singapore", value: 98_000 },
-      { location: "Sydney", value: 72_000 },
-      { location: "Manchester", value: 85_000 },
+      { location: "Manchester", value: 320_000 },
+      { location: "Bristol", value: 185_000 },
+      { location: "Austin", value: 115_000 },
     ],
     stockMovement: [
       { month: "Mar", inbound: 42, outbound: 38 },
@@ -178,7 +178,7 @@ function buildPo(
     supplierId: partial.supplierId,
     supplierName: partial.supplierName,
     supplierContact: partial.supplierContact ?? "Account Manager",
-    deliveryAddress: partial.deliveryAddress ?? "London HQ, United Kingdom",
+    deliveryAddress: partial.deliveryAddress ?? "Manchester, United Kingdom",
     billingAddress: partial.billingAddress ?? "Northstar Industrial Technologies Ltd",
     currency: "GBP",
     paymentTerms: partial.paymentTerms ?? "Net 30",
@@ -330,7 +330,7 @@ export function getNorthstarProcurementSeed(): {
       poNumber: "PO-2026-1175",
       supplierName: "Print & Board Pack Co",
       deliveryDate: isoDaysFromNow(-6),
-      receivedBy: "Warehouse — London",
+      receivedBy: "Warehouse — Manchester",
       lines: purchaseOrders[2].lines.map((line) => ({
         lineId: line.id,
         item: line.item,

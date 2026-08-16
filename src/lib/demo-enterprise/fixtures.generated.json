@@ -4389,35 +4389,35 @@
       "sku": "LT-14-MBP",
       "name": "MacBook Pro 14",
       "qty": 42,
-      "location": "London"
+      "location": "Manchester"
     },
     {
       "id": "inv-2",
       "sku": "MON-27",
       "name": "27in Monitor",
       "qty": 80,
-      "location": "Berlin"
+      "location": "Bristol"
     },
     {
       "id": "inv-3",
       "sku": "PHN-SEC",
       "name": "Secure handset",
       "qty": 55,
-      "location": "New York"
+      "location": "Austin"
     },
     {
       "id": "inv-4",
       "sku": "DK-DOCK",
       "name": "Thunderbolt dock",
       "qty": 60,
-      "location": "London"
+      "location": "Manchester"
     },
     {
       "id": "inv-5",
       "sku": "HD-NOI",
       "name": "Noise-cancelling headset",
       "qty": 70,
-      "location": "Sydney"
+      "location": "Bristol"
     }
   ],
   "assets": [
