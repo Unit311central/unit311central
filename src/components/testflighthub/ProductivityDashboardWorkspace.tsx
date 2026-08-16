@@ -467,7 +467,6 @@ export default function ProductivityDashboardWorkspace() {
   const basePath = useInternalOperationsBasePath();
   const isAbhi = isBrowserAbhiSurface();
   const isOa = isBrowserOnwardAirSurface();
-  const isDemo = typeof window !== "undefined" && isBrowserDemoSurface();
   const [displayName, setDisplayName] = useState<string | null>(null);
   const snapshot = resolveProductivitySnapshot(displayName);
   const {
@@ -791,21 +790,6 @@ export default function ProductivityDashboardWorkspace() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 pb-4">
-      {isDemo ? (
-        <Link
-          href="/company-overview"
-          className="block rounded-2xl border border-sky-400/35 bg-gradient-to-r from-sky-950/50 to-[#121C2D] p-5 transition hover:border-sky-300/50"
-        >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
-            Demo company overview
-          </p>
-          <h2 className="mt-1 text-xl font-semibold text-white">Northstar Industrial Technologies</h2>
-          <p className="mt-2 text-sm text-white/60">
-            Company identity, financials, people, board, risks and priorities — derived from Demo seed data.
-          </p>
-          <span className="mt-3 inline-block text-sm font-medium text-sky-300">Open overview →</span>
-        </Link>
-      ) : null}
       <section
         className={cn(cardClass(), "relative overflow-hidden p-5 sm:p-6")}
         style={{

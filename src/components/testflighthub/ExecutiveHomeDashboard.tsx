@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutGrid, Plus, RotateCcw, X } from "lucide-react";
 
@@ -23,6 +24,7 @@ import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { buildAbhiHomeFinancialOverviewFallback } from "@/lib/abhi-financials";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import type { InternalProject } from "@/lib/projects-data";
+import { isBrowserDemoSurface, getDemoEnterpriseFixtures } from "@/lib/demo-enterprise";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { cn } from "@/lib/utils";
 
@@ -193,6 +195,8 @@ export default function ExecutiveHomeDashboard() {
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [layoutHydrated, setLayoutHydrated] = useState(false);
   const isTalanton = typeof window !== "undefined" ? isBrowserTalantonImpactSurface() : false;
+  const isDemo = typeof window !== "undefined" ? isBrowserDemoSurface() : false;
+  const demoCompanyName = isDemo ? getDemoEnterpriseFixtures().company.tradingName : "";
 
   useEffect(() => {
     setLayout(loadExecutiveHomeLayout());
@@ -321,6 +325,23 @@ export default function ExecutiveHomeDashboard() {
 
   return (
     <div data-ai-target="home-tiles" className="space-y-3">
+      {isDemo ? (
+        <Link
+          href="/company-overview"
+          data-ai-target="demo-company-overview"
+          className="block rounded-2xl border border-sky-400/35 bg-gradient-to-r from-sky-950/50 to-[#121C2D] p-5 transition hover:border-sky-300/50"
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/80">
+            Company overview
+          </p>
+          <h2 className="mt-1 text-xl font-semibold text-white">{demoCompanyName}</h2>
+          <p className="mt-2 text-sm text-white/60">
+            Company identity, financials, people, board, risks and priorities — derived from Demo seed data.
+          </p>
+          <span className="mt-3 inline-block text-sm font-medium text-sky-300">Open overview →</span>
+        </Link>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
           Executive dashboard
