@@ -680,6 +680,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next({ request: { headers } });
     }
 
+    if (pathname.startsWith("/samples/") && pathname.toLowerCase().endsWith(".pdf")) {
+      return NextResponse.next({ request: { headers } });
+    }
+
     // Apex always forces the Demo login page — never auto-enter the shell from a
     // leftover Domain=.unit311central.com session (e.g. after ABHI/Talanton/internal).
     if (pathname === "/" || pathname === "") {
