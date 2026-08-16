@@ -87,7 +87,7 @@ export default function NorthstarInventoryCharts() {
               />
               <Tooltip
                 contentStyle={chartTooltipStyle}
-                formatter={(value: number) => formatNorthstarGbp(value)}
+                formatter={(value) => formatNorthstarGbp(Number(value ?? 0))}
               />
               <Bar dataKey="value" fill="#34d399" radius={[0, 4, 4, 0]} />
             </BarChart>

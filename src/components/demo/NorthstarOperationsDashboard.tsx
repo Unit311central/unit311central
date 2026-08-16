@@ -181,7 +181,7 @@ export default function NorthstarOperationsDashboard() {
                 />
                 <Tooltip
                   contentStyle={chartTooltipStyle}
-                  formatter={(value: number) => formatNorthstarGbp(value)}
+                  formatter={(value) => formatNorthstarGbp(Number(value ?? 0))}
                 />
                 <Bar dataKey="value" name="Value" fill="#34d399" radius={[0, 4, 4, 0]} />
               </BarChart>
@@ -210,7 +210,7 @@ export default function NorthstarOperationsDashboard() {
                 />
                 <Tooltip
                   contentStyle={chartTooltipStyle}
-                  formatter={(value: number) => formatNorthstarGbp(value)}
+                  formatter={(value) => formatNorthstarGbp(Number(value ?? 0))}
                 />
                 <Bar dataKey="spend" name="Spend" fill="#38bdf8" radius={[4, 4, 0, 0]} />
               </BarChart>
