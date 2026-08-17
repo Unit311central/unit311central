@@ -1,4 +1,7 @@
-import { persistArtifactToStorage } from "@/lib/ai-operating-assistant/artifact-store";
+import {
+  formatNorthstarPayrollTrendMessage,
+  northstarDemoPayrollDashboard,
+} from "@/lib/demo/northstar-payroll-bridge";
 import {
   asString,
   toolError,
@@ -81,6 +84,72 @@ export async function queryPayroll(
   }
   const intent = asString(args.intent) || "overview";
   const scope = workspaceScope(ctx);
+
+  const demoDashboard = northstarDemoPayrollDashboard(ctx.business.workspace.slug);
+  if (demoDashboard) {
+    if (intent === "trend") {
+      return toolOk("queryPayroll", demoDashboard.trend, {
+        source: ["northstar:payroll_dashboard"],
+        summary: {
+          message: formatNorthstarPayrollTrendMessage(demoDashboard.trend, demoDashboard.currency),
+        },
+        followUpActions: [
+          {
+            id: "open_payroll",
+            label: "Open Payroll",
+            kind: "navigate",
+            href: "/dashboard?view=hr-payroll",
+          },
+        ],
+      });
+    }
+    if (intent === "department_cost") {
+      const department = asString(args.department);
+      const rows = department
+        ? demoDashboard.departmentBreakdown.filter((row) =>
+            row.department.toLowerCase().includes(department.toLowerCase()),
+          )
+        : demoDashboard.departmentBreakdown;
+      return toolOk("queryPayroll", rows, {
+        source: ["northstar:payroll_dashboard"],
+        summary: {
+          message: `Payroll by department — ${rows.length} department(s).`,
+        },
+      });
+    }
+    if (intent === "next_payroll" || intent === "overview") {
+      return toolOk(
+        "queryPayroll",
+        [
+          {
+            nextPayrollDate: demoDashboard.nextPayrollDate,
+            monthlyGross: demoDashboard.monthlyGrossPayroll,
+            net: demoDashboard.estimatedNetPayroll,
+            employerTax: demoDashboard.estimatedEmployerTaxes,
+            employeeTax: demoDashboard.estimatedEmployeeTaxWithheld,
+            employees: demoDashboard.employeeCount,
+            currency: demoDashboard.currency,
+            runStatus: demoDashboard.payrollRunStatus,
+          },
+        ],
+        {
+          source: ["northstar:payroll_dashboard"],
+          summary: {
+            message: `Monthly payroll is ${demoDashboard.monthlyGrossPayroll.toLocaleString("en-GB", {
+              style: "currency",
+              currency: demoDashboard.currency,
+              maximumFractionDigits: 0,
+            })} across ${demoDashboard.employeeCount} employees (next run ${demoDashboard.nextPayrollDate}).`,
+          },
+        },
+      );
+    }
+    if (intent === "unpaid") {
+      return toolOk("queryPayroll", demoDashboard.recentRuns, {
+        source: ["northstar:payroll_runs"],
+      });
+    }
+  }
 
   try {
     if (intent === "next_payroll" || intent === "overview") {

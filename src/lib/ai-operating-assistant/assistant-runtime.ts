@@ -604,6 +604,27 @@ function formatDirectListReply(toolName: string, result: unknown): string | null
       const summary = (result as { summary?: Record<string, unknown> }).summary;
       return typeof summary?.message === "string" ? summary.message : null;
     }
+    case "queryPayroll": {
+      const summary = (result as { summary?: Record<string, unknown> }).summary;
+      if (typeof summary?.message === "string") return summary.message;
+      return formatListedToolReply(result, {
+        emptyFallback: "No payroll data is available for that request.",
+        line: (item, index) => {
+          if (typeof item.month === "string") {
+            return `${index + 1}. ${item.month} — gross ${Number(item.gross ?? 0).toLocaleString("en-GB", {
+              style: "currency",
+              currency: "GBP",
+              maximumFractionDigits: 0,
+            })} — net ${Number(item.net ?? 0).toLocaleString("en-GB", {
+              style: "currency",
+              currency: "GBP",
+              maximumFractionDigits: 0,
+            })}`;
+          }
+          return `${index + 1}. ${JSON.stringify(item)}`;
+        },
+      });
+    }
     default:
       return null;
   }

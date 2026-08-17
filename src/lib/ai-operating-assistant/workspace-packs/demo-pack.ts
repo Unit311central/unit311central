@@ -40,6 +40,8 @@ const DEMO_LLM_SYNTHESIS_TOOLS = new Set([
   "searchApplications",
   "listPlatformModules",
   "getDailyBrief",
+  "queryPayroll",
+  "getMonthlyPayrollObligation",
   "northstar.getExecutiveBriefing",
   "northstar.getOrgHealth",
   "northstar.queryActions",
@@ -122,6 +124,22 @@ export const demoWorkspacePack: EaWorkspacePack = {
     },
   ],
   intentResolvers: [
+    ({ message }) => {
+      const lower = message.toLowerCase();
+      if (
+        /\bpayroll\b/i.test(lower) &&
+        (/\b(last|past|previous)\s+(\d+|six|6)\s+months?\b/i.test(lower) ||
+          /\b(history|trend|month\s+by\s+month)\b/i.test(lower)) &&
+        !/\b(pdf|export|download|report)\b/i.test(lower)
+      ) {
+        return packToolRoute({
+          tool: "queryPayroll",
+          args: { intent: "trend" },
+          reason: "northstar_payroll_trend",
+        });
+      }
+      return null;
+    },
     ({ message }) => {
       const execIntel = resolveNorthstarExecutiveIntelligenceIntent(message);
       if (execIntel) return packToolRoute(execIntel);

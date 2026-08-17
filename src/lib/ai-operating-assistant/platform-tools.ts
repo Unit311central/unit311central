@@ -1,4 +1,5 @@
 ﻿import { getFinancialOverview } from "@/lib/accounting/overview-service";
+import { northstarDemoPayrollDashboard } from "@/lib/demo/northstar-payroll-bridge";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { listInternalClients } from "@/lib/internal-clients-service";
@@ -263,6 +264,43 @@ export async function getMonthlyPayrollObligation(
   }
 
   try {
+    const demoDashboard = northstarDemoPayrollDashboard(ctx.business.workspace.slug);
+    if (demoDashboard) {
+      const monthly = demoDashboard.monthlyGrossPayroll;
+      const employees = demoDashboard.employeeCount;
+      const nextDate = demoDashboard.nextPayrollDate;
+      const currency = demoDashboard.currency;
+      return toolOk(
+        "getMonthlyPayrollObligation",
+        [
+          {
+            monthly,
+            employees,
+            nextPayrollDate: nextDate,
+            currency,
+            liability: monthly,
+            gross: monthly,
+            employerTax: demoDashboard.estimatedEmployerTaxes,
+            net: demoDashboard.estimatedNetPayroll,
+          },
+        ],
+        {
+          source: ["northstar:payroll_dashboard"],
+          summary: {
+            monthly,
+            employees,
+            nextPayrollDate: nextDate,
+            message: `Monthly payroll is ${monthly.toLocaleString("en-GB", {
+              style: "currency",
+              currency,
+              maximumFractionDigits: 0,
+            })} across ${employees} employee${employees === 1 ? "" : "s"} (next payroll ${nextDate}).`,
+          },
+          followUpActions: [nav("/?view=payroll", "Open Payroll")],
+        },
+      );
+    }
+
     const [snapshot, overview] = await Promise.all([
       calculateLivePayrollSnapshot().catch(() => null),
       getFinancialOverview().catch(() => null),

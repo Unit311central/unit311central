@@ -145,10 +145,16 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
       throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
     }
   });
-  await orchestration.run("board pack generation routes to boardpack.generate", async () => {
-    const route = await resolveOrchestrationRoute("Create a board pack for the next meeting", [], business);
+  await orchestration.run("board deck for tomorrow routes to boardpack.generate", async () => {
+    const route = await resolveOrchestrationRoute("Create me a board deck for tomorrow", [], business);
     if (route.kind !== "tool" || route.intent.tool !== "boardpack.generate") {
       throw new Error(`expected boardpack.generate, got ${JSON.stringify(route)}`);
+    }
+  });
+  await orchestration.run("payroll last 6 months routes to queryPayroll trend", async () => {
+    const route = await resolveOrchestrationRoute("Tell me payroll for last 6 months", [], business);
+    if (route.kind !== "tool" || route.intent.tool !== "queryPayroll") {
+      throw new Error(`expected queryPayroll, got ${JSON.stringify(route)}`);
     }
   });
 

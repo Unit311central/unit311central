@@ -224,6 +224,7 @@ export async function resolveOrchestrationRoute(
       "abhi.generatePlatformAccessPdf",
       "talanton.generateStoriesLessonsPdf",
       "talanton.generateStoriesReport",
+      "boardpack.generate",
       "emailAssistantArtifact",
     ].includes(documentIntent.tool)
   ) {

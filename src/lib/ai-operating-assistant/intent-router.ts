@@ -435,6 +435,30 @@ export function resolveDirectIntent(
   }
 
   if (
+    /\bpayroll\b/i.test(lower) &&
+    /\b(last|past|previous)\s+(\d+|six|6)\s+months?\b/i.test(lower) &&
+    !/\b(pdf|export|download|report)\b/i.test(lower)
+  ) {
+    return {
+      tool: "queryPayroll",
+      args: { intent: "trend" },
+      reason: "payroll_trend",
+    };
+  }
+
+  if (
+    /\bpayroll\b/i.test(lower) &&
+    /\b(history|trend|over\s+time|month\s+by\s+month)\b/i.test(lower) &&
+    !/\b(pdf|export|download|report)\b/i.test(lower)
+  ) {
+    return {
+      tool: "queryPayroll",
+      args: { intent: "trend" },
+      reason: "payroll_history",
+    };
+  }
+
+  if (
     /\b(top\s+\d+\s+clients?|top\s+clients?|biggest\s+clients?|who\s+are\s+my\s+top)\b/i.test(lower)
   ) {
     const topMatch = lower.match(/top\s+(\d+)/);
