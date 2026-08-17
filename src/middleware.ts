@@ -740,6 +740,66 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
+    // Northstar board portal — /board on demo host (external board members only).
+    if (pathname === "/board" || pathname.startsWith("/board/")) {
+      const isLoginRest = pathname === "/board/login" || pathname.startsWith("/board/login/");
+      const gate = await evaluateCustomerHostSessionGate(request, DEMO_WORKSPACE_SLUG);
+
+      const boardLoginGate = (clearSession = false) => {
+        if (!isLoginRest) {
+          const response = redirectExternal(`${demoOrigin}/board/login${search}`);
+          if (clearSession) clearPlatformSessionCookie(response, request);
+          return response;
+        }
+        const response = NextResponse.next({ request: { headers } });
+        for (const [key, value] of Object.entries(shellHeaders)) {
+          response.headers.set(key, value);
+        }
+        response.headers.set(
+          "Cache-Control",
+          "private, no-cache, no-store, max-age=0, must-revalidate",
+        );
+        if (clearSession) clearPlatformSessionCookie(response, request);
+        return response;
+      };
+
+      if (gate.status === "anonymous") {
+        return boardLoginGate();
+      }
+
+      if (
+        gate.status === "invalid" ||
+        gate.status === "forbidden" ||
+        gate.status === "workspace_missing"
+      ) {
+        return boardLoginGate(true);
+      }
+
+      if (gate.session.userType !== "external") {
+        return boardLoginGate();
+      }
+
+      const allowed = canonicalizePortalRedirect(gate.session.redirectPath);
+      if (allowed !== "/board") {
+        return boardLoginGate(true);
+      }
+
+      if (isLoginRest) {
+        const bounce = redirectExternal(`${demoOrigin}/board${search}`);
+        return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
+      }
+
+      const response = NextResponse.next({ request: { headers } });
+      for (const [key, value] of Object.entries(shellHeaders)) {
+        response.headers.set(key, value);
+      }
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return applyCustomerHostRebindIfNeeded({ request, response, gate });
+    }
+
     if (isPublicMarketingPath(pathname)) {
       if (isLocalDevHost(host)) {
         const port = request.nextUrl.port || "3000";
@@ -767,7 +827,6 @@ export async function middleware(request: NextRequest) {
     }
 
     if (
-      pathname === "/board" ||
       pathname === "/portals" ||
       pathname.startsWith("/portals/") ||
       pathname === "/company-overview"
