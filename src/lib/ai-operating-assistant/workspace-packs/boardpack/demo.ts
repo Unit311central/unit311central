@@ -29,6 +29,9 @@ async function loadStaticNorthstarBoardDeckPdf(meetingDate: string): Promise<Uin
   ];
 
   if (process.env.VERCEL === "1") {
+    const apiPdf = await fetchNorthstarBoardDeckPdf(meetingDate);
+    if (apiPdf) return apiPdf;
+
     const origin =
       process.env.VERCEL_PROJECT_PRODUCTION_URL
         ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
@@ -57,6 +60,27 @@ async function loadStaticNorthstarBoardDeckPdf(meetingDate: string): Promise<Uin
     }
   }
   return null;
+}
+
+async function fetchNorthstarBoardDeckPdf(meetingDate: string): Promise<Uint8Array | null> {
+  const origin = "https://demo.unit311central.com";
+  try {
+    const res = await fetch(
+      `${origin}/api/demo/board-deck?meetingDate=${encodeURIComponent(meetingDate)}`,
+      {
+        cache: "no-store",
+        headers: {
+          "x-unit311-demo": "1",
+          "x-unit311-workspace-slug": "demo",
+        },
+      },
+    );
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!res.ok || !contentType.includes("pdf")) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
 }
 
 export function northstarBoardPackPptxFileName(meetingDate: string): string {
