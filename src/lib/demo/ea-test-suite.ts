@@ -112,10 +112,12 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
 
   const tools = new SectionRunner("Tool registration");
   sections.push(tools);
-  await tools.run("generic EA tools only", () => {
+  await tools.run("northstar executive tools registered", () => {
     const schemas = getOpenAIToolSchemas(DEMO_WORKSPACE_SLUG);
     const names = new Set(schemas.map((s) => s.name));
     if (!names.has("queryBusiness")) throw new Error("missing queryBusiness");
+    if (!names.has("northstar.getExecutiveBriefing")) throw new Error("missing northstar.getExecutiveBriefing");
+    if (!names.has("northstar.queryModule")) throw new Error("missing northstar.queryModule");
     if (names.has("onwardair.queryModule")) throw new Error("unexpected OA tool on demo");
   });
 
@@ -131,9 +133,37 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
       throw new Error(`expected queryBusiness, got ${JSON.stringify(route)}`);
     }
   });
+  await orchestration.run("margin question routes to northstar briefing", async () => {
+    const route = await resolveOrchestrationRoute("Why did margin fall?", [], business);
+    if (route.kind !== "tool" || route.intent.tool !== "northstar.getExecutiveBriefing") {
+      throw new Error(`expected northstar.getExecutiveBriefing, got ${JSON.stringify(route)}`);
+    }
+  });
+  await orchestration.run("Sheffield risk routes to northstar module", async () => {
+    const route = await resolveOrchestrationRoute("Which customers are at risk?", [], business);
+    if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+      throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+    }
+  });
+  await orchestration.run("board pack generation routes to boardpack.generate", async () => {
+    const route = await resolveOrchestrationRoute("Create a board pack for the next meeting", [], business);
+    if (route.kind !== "tool" || route.intent.tool !== "boardpack.generate") {
+      throw new Error(`expected boardpack.generate, got ${JSON.stringify(route)}`);
+    }
+  });
 
   const synthesis = new SectionRunner("LLM synthesis");
   sections.push(synthesis);
+  await synthesis.run("northstar executive briefing synthesizes", () => {
+    const ok = shouldSynthesizeExecutiveToolResult({
+      workspaceSlug: DEMO_WORKSPACE_SLUG,
+      toolName: "northstar.getExecutiveBriefing",
+      toolArgs: {},
+      userMessage: "Give me an executive briefing",
+      toolResult: { status: "ok", items: [{ prose: "brief" }] },
+    });
+    if (!ok) throw new Error("expected northstar briefing synthesis");
+  });
   await synthesis.run("getSmartInsights health check synthesizes", () => {
     const ok = shouldSynthesizeExecutiveToolResult({
       workspaceSlug: DEMO_WORKSPACE_SLUG,

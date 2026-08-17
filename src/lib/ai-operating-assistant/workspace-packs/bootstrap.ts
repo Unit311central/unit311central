@@ -3,6 +3,7 @@
  */
 
 import { abhiPackToolHandlers } from "./handlers/abhi";
+import { demoPackToolHandlers } from "./handlers/demo";
 import { onwardAirPackToolHandlers } from "./handlers/onwardair";
 import { talantonPackToolHandlers } from "./handlers/talanton";
 import { registerPackToolHandlers } from "./handlers-registry";
@@ -16,6 +17,7 @@ export function ensureEaWorkspacePacksRegistered(): boolean {
     registerPackToolHandlers(abhiPackToolHandlers);
     registerPackToolHandlers(talantonPackToolHandlers);
     registerPackToolHandlers(onwardAirPackToolHandlers);
+    registerPackToolHandlers(demoPackToolHandlers);
     bootstrapped = true;
   }
   return bootstrapped;

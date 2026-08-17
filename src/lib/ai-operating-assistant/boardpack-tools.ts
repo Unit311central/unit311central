@@ -81,7 +81,7 @@ export async function generateBoardPackTool(
   if (!slug || !boardPack?.supportsBoardPack) {
     return toolForbidden(
       "boardpack.generate",
-      "Board Pack Generation is available on the ABHI, Talanton Impact, and OnwardAir workspaces only.",
+      "Board Pack Generation is available on the ABHI, Talanton Impact, OnwardAir, and Northstar workspaces only.",
     );
   }
 

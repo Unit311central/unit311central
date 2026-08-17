@@ -15,6 +15,7 @@ import type { AssistantPdfBrand } from "@/lib/ai-operating-assistant/pdf-brand";
 import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
 
 import { abhiBoardPackConfig } from "./boardpack/abhi";
+import { demoBoardPackConfig } from "./boardpack/demo";
 import { onwardAirBoardPackConfig } from "./boardpack/onwardair";
 import { talantonBoardPackConfig } from "./boardpack/talanton";
 import type {
@@ -39,6 +40,7 @@ const SERVER_BOARD_PACK_BY_ID: Record<string, EaBoardPackConfig> = {
   abhi: abhiBoardPackConfig,
   talanton: talantonBoardPackConfig,
   onwardair: onwardAirBoardPackConfig,
+  demo: demoBoardPackConfig,
 };
 
 async function loadAbhiLogoDataUrl(): Promise<{ dataUrl: string; format: "PNG" | "JPEG" } | null> {
@@ -92,6 +94,8 @@ async function loadServerSnapshotEnrichers(): Promise<Record<string, EaBusinessS
   if (serverSnapshotEnrichers) return serverSnapshotEnrichers;
   const { queryOnwardAirModule } = await import("@/lib/onwardair/executive-intelligence");
   const { isOnwardAirSlug } = await import("@/lib/onwardair-surface");
+  const { queryNorthstarModule } = await import("@/lib/demo/executive-intelligence");
+  const { isNorthstarDemoSlug } = await import("@/lib/demo/northstar-surface");
   serverSnapshotEnrichers = {
     onwardair: async (context, domain, snapshot) => {
       if (
@@ -109,6 +113,31 @@ async function loadServerSnapshotEnrichers(): Promise<Record<string, EaBusinessS
       return {
         ...snapshot,
         onwardairModule: queryOnwardAirModule(moduleId),
+      };
+    },
+    demo: async (context, domain, snapshot) => {
+      if (!isNorthstarDemoSlug(context.workspace.slug)) return snapshot;
+      if (
+        !(
+          domain === "fundraising" ||
+          domain === "engineering" ||
+          domain === "intelligence" ||
+          domain === "finance"
+        )
+      ) {
+        return snapshot;
+      }
+      const moduleId =
+        domain === "fundraising"
+          ? "fundraising"
+          : domain === "engineering"
+            ? "engineering"
+            : domain === "finance"
+              ? "financials"
+              : "intelligence";
+      return {
+        ...snapshot,
+        northstarModule: queryNorthstarModule(moduleId),
       };
     },
   };

@@ -227,5 +227,29 @@ export const demoIntelligencePack: IntelligenceWorkspacePackRegistration = {
     denyExternal: true,
   },
   providers: [companyProvider, clientProvider, marketProvider],
-  eaToolNames: ["intelligence.getBriefing", "intelligence.searchRecords", "getSmartInsights", "getDailyBrief"],
+  eaBridge: {
+    intentResolvers: [
+      async ({ message }) => {
+        const { resolveNorthstarExecutiveIntelligenceIntent } = await import(
+          "@/lib/demo/executive-intelligence-intent"
+        );
+        const { packToolRoute } = await import(
+          "@/lib/ai-operating-assistant/workspace-packs/orchestration-helpers"
+        );
+        const intent = resolveNorthstarExecutiveIntelligenceIntent(message);
+        return intent ? packToolRoute(intent) : null;
+      },
+    ],
+  },
+  eaToolNames: [
+    "northstar.getExecutiveBriefing",
+    "northstar.getOrgHealth",
+    "northstar.queryActions",
+    "northstar.getBoardInsights",
+    "northstar.queryModule",
+    "intelligence.getBriefing",
+    "intelligence.searchRecords",
+    "getSmartInsights",
+    "getDailyBrief",
+  ],
 };

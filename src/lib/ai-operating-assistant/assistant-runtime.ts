@@ -455,6 +455,11 @@ function formatExecutiveIntelligenceReply(
     toolName === "onwardair.getBoardInsights" ||
     toolName === "onwardair.queryModule" ||
     toolName === "onwardair.queryProjectPortfolio" ||
+    toolName === "northstar.getExecutiveBriefing" ||
+    toolName === "northstar.getOrgHealth" ||
+    toolName === "northstar.queryActions" ||
+    toolName === "northstar.getBoardInsights" ||
+    toolName === "northstar.queryModule" ||
     toolName === "abhi.queryProjectPortfolio"
   ) {
     const prose =
@@ -467,6 +472,9 @@ function formatExecutiveIntelligenceReply(
     }
     if (toolName.startsWith("onwardair.")) {
       return "I could not complete that OnwardAir executive analysis.";
+    }
+    if (toolName.startsWith("northstar.")) {
+      return "I could not complete that Northstar executive analysis.";
     }
     return "I could not complete that ABHI executive analysis.";
   }

@@ -69,7 +69,12 @@ export type DirectAssistantIntent = {
     | "onwardair.queryActions"
     | "onwardair.getBoardInsights"
     | "onwardair.queryModule"
-    | "onwardair.queryProjectPortfolio";
+    | "onwardair.queryProjectPortfolio"
+    | "northstar.getExecutiveBriefing"
+    | "northstar.getOrgHealth"
+    | "northstar.queryActions"
+    | "northstar.getBoardInsights"
+    | "northstar.queryModule";
   args: Record<string, unknown>;
   reason: string;
 };
