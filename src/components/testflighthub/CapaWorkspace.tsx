@@ -61,7 +61,7 @@ function actionClass(tone: "sky" | "amber" | "rose" | "emerald") {
     rose: "border-rose-400/40 bg-rose-500/15 text-rose-100 hover:bg-rose-500/25",
     emerald: "border-emerald-400/40 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25",
   } as const;
-  return `inline-flex h-8 items-center gap-1 rounded-lg border px-2 text-[11px] font-semibold transition-colors ${map[tone]}`;
+  return `inline-flex h-7 shrink-0 items-center gap-0.5 rounded-md border px-1.5 text-[10px] font-semibold transition-colors ${map[tone]}`;
 }
 
 export default function CapaWorkspace() {
@@ -150,8 +150,8 @@ export default function CapaWorkspace() {
                       </TqmsStatusPill>
                     </td>
                     <td className="px-3 py-2.5 tabular-nums text-white/60">{capa.dueDate}</td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex flex-wrap gap-1">
+                    <td className="whitespace-nowrap px-3 py-2.5">
+                      <div className="flex flex-nowrap items-center gap-1">
                         {capa.status !== "Action" && capa.status !== "Closed" ? (
                           <button
                             type="button"

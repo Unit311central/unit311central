@@ -38,7 +38,7 @@ const admin = createClient(
 );
 
 const EMAIL = "demo@unit311central.com";
-const PASSWORD = "Franny1999$";
+const PASSWORD = "Letmein2026$";
 const OA_ID = "3b479f90-d063-421b-ae93-542a508129f5";
 
 function normalizeUsername(username) {
