@@ -4,11 +4,13 @@ import {
   getCoastalFreightPortalData,
   type OaClientPortalSection,
 } from "@/lib/onwardair/client-portal-data";
+import { getSheffieldPortalData } from "@/lib/demo/northstar-client-portal-data";
 import { cn } from "@/lib/utils";
 
 type Props = {
   companyName: string;
   section: OaClientPortalSection;
+  variant?: "onwardair" | "northstar";
 };
 
 function Panel({
@@ -53,19 +55,24 @@ function StatusChip({
   );
 }
 
-export function OnwardAirClientPortalApp({ companyName, section }: Props) {
-  const data = getCoastalFreightPortalData();
+export function OnwardAirClientPortalApp({ companyName, section, variant = "onwardair" }: Props) {
+  const data = variant === "northstar" ? getSheffieldPortalData() : getCoastalFreightPortalData();
+  const isNorthstar = variant === "northstar";
 
   if (section === "fleet") {
     return (
       <div className="space-y-5">
         <header>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
-            Fleet & VTOL
+            {isNorthstar ? "Edge Sites" : "Fleet & VTOL"}
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Assigned Vertex aircraft</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            {isNorthstar ? "Production monitoring sites" : "Assigned Vertex aircraft"}
+          </h1>
           <p className="mt-1 text-sm text-white/50">
-            Trial fleet allocated to {companyName} for Gulf Coast middle-mile demonstrations.
+            {isNorthstar
+              ? `Atlas edge gateways and monitored assets across ${companyName}.`
+              : `Trial fleet allocated to ${companyName} for Gulf Coast middle-mile demonstrations.`}
           </p>
         </header>
         <div className="grid gap-4 lg:grid-cols-2">
@@ -103,11 +110,15 @@ export function OnwardAirClientPortalApp({ companyName, section }: Props) {
       <div className="space-y-5">
         <header>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
-            Missions & Corridors
+            {isNorthstar ? "Programme Milestones" : "Missions & Corridors"}
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Programme missions</h1>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+            {isNorthstar ? "Delivery milestones" : "Programme missions"}
+          </h1>
           <p className="mt-1 text-sm text-white/50">
-            Houston–Galveston–Corpus Christi middle-mile corridor activity.
+            {isNorthstar
+              ? "Atlas rollout, UAT, and predictive maintenance workstreams."
+              : "Houston–Galveston–Corpus Christi middle-mile corridor activity."}
           </p>
         </header>
         <Panel title="Mission board">
@@ -153,7 +164,9 @@ export function OnwardAirClientPortalApp({ companyName, section }: Props) {
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Shared data room</h1>
           <p className="mt-1 text-sm text-white/50">
-            Controlled artefacts for the {companyName} × OnwardAir Vertex trial.
+            {isNorthstar
+              ? `Controlled artefacts for the ${companyName} × Northstar Atlas programme.`
+              : `Controlled artefacts for the ${companyName} × OnwardAir Vertex trial.`}
           </p>
         </header>
         <Panel title="Files">
@@ -184,7 +197,9 @@ export function OnwardAirClientPortalApp({ companyName, section }: Props) {
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Programme support</h1>
           <p className="mt-1 text-sm text-white/50">
-            Tickets routed to OnwardAir Flight Test and account teams.
+            {isNorthstar
+              ? "Tickets routed to Northstar customer success and engineering."
+              : "Tickets routed to OnwardAir Flight Test and account teams."}
           </p>
         </header>
         <Panel title="Open items">
@@ -212,8 +227,9 @@ export function OnwardAirClientPortalApp({ companyName, section }: Props) {
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{companyName}</h1>
         <p className="mt-1 max-w-2xl text-sm text-white/50">
-          Vertex VTOL™ middle-mile trial with OnwardAir — FLEX Pod™ cargo demos across the Gulf Coast
-          corridor network.
+          {isNorthstar
+            ? "Atlas Monitoring Platform deployment with Northstar — edge telemetry, predictive maintenance, and executive reporting for Sheffield Precision Engineering."
+            : "Vertex VTOL™ middle-mile trial with OnwardAir — FLEX Pod™ cargo demos across the Gulf Coast corridor network."}
         </p>
       </header>
 
@@ -231,7 +247,7 @@ export function OnwardAirClientPortalApp({ companyName, section }: Props) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Upcoming missions">
+        <Panel title={isNorthstar ? "Upcoming milestones" : "Upcoming missions"}>
           <ul className="space-y-3">
             {data.missions
               .filter((m) => m.status === "Scheduled" || m.status === "Planning")
@@ -260,7 +276,7 @@ export function OnwardAirClientPortalApp({ companyName, section }: Props) {
         </Panel>
       </div>
 
-      <Panel title="Fleet snapshot">
+        <Panel title={isNorthstar ? "Site snapshot" : "Fleet snapshot"}>
         <div className="grid gap-3 sm:grid-cols-2">
           {data.aircraft.map((ac) => (
             <div key={ac.id} className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">

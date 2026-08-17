@@ -653,7 +653,13 @@ export function getNorthstarCrmConnections(): CrmConnection[] {
 
 export function getNorthstarExternalUsers() {
   const clients = [
-    { id: "nst-cli-sheffield", org: "Sheffield Precision Engineering", name: "Tom Bradley" },
+    {
+      id: "nst-cli-sheffield",
+      org: "Sheffield Precision Engineering",
+      name: "Tom Bradley",
+      username: "demo@sheffieldprecision.com",
+      redirectPath: "/sheffield-precision",
+    },
     { id: "nst-cli-peak", org: "Peak District Breweries", name: "Daniel Wright" },
     { id: "nst-cli-cardiff", org: "Cardiff Port Logistics", name: "Siân Evans" },
     { id: "nst-cli-manchester", org: "Trafford Packaging Ltd", name: "Helen Marsh" },
@@ -667,18 +673,27 @@ export function getNorthstarExternalUsers() {
     { id: "nst-cli-chicago", org: "Lakefront Manufacturing", name: "Mike Sullivan" },
   ];
 
-  return clients.map((client, index) => ({
-    id: `nst-ext-${index + 1}`,
-    name: client.name,
-    organisation: client.org,
-    clientId: client.id,
-    username: client.name.toLowerCase().replace(/\s+/g, ".").replace("'", ""),
-    email: `${client.name.toLowerCase().replace(/\s+/g, ".").replace("'", "")}@${client.org.toLowerCase().replace(/\s+/g, "").slice(0, 12)}.demo`,
-    lastLoggedIn: index % 3 === 0 ? "2026-08-15T14:30:00.000Z" : "2026-08-10T09:00:00.000Z",
-    isActive: index !== 5,
-    redirectPath: "/client/portal",
-    createdAt: "2026-06-01T10:00:00.000Z",
-  }));
+  return clients.map((client, index) => {
+    const defaultUsername = client.name.toLowerCase().replace(/\s+/g, ".").replace("'", "");
+    const username = "username" in client && client.username ? client.username : defaultUsername;
+    const email =
+      "username" in client && client.username
+        ? client.username
+        : `${defaultUsername}@${client.org.toLowerCase().replace(/\s+/g, "").slice(0, 12)}.demo`;
+    return {
+      id: `nst-ext-${index + 1}`,
+      name: client.name,
+      organisation: client.org,
+      clientId: client.id,
+      username,
+      email,
+      lastLoggedIn: index % 3 === 0 ? "2026-08-15T14:30:00.000Z" : "2026-08-10T09:00:00.000Z",
+      isActive: index !== 5,
+      redirectPath:
+        "redirectPath" in client && client.redirectPath ? client.redirectPath : "/client/portal",
+      createdAt: "2026-06-01T10:00:00.000Z",
+    };
+  });
 }
 
 export function getNorthstarOnboardingQuestionnaire(recordId: string) {

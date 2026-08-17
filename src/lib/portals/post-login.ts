@@ -1,5 +1,9 @@
 import { customerWorkspaceOrigin, parseSafePostLoginNext } from "@/lib/app-domains";
 import {
+  resolveNorthstarDemoClientPortalPostLoginUrl,
+  resolveNorthstarDemoClientPortalRedirect,
+} from "@/lib/demo/northstar-client-portal-routes";
+import {
   canonicalizePortalRedirect,
   getPortalPackBySlug,
   listPortalWorkspacePacks,
@@ -112,6 +116,9 @@ export function resolveAnyPortalPostLoginUrl(options: {
   requestHost?: string | null;
   username?: string | null;
 }): string | null {
+  const northstarDemo = resolveNorthstarDemoClientPortalPostLoginUrl(options);
+  if (northstarDemo) return northstarDemo;
+
   for (const pack of listPortalWorkspacePacks()) {
     const url = resolvePortalPostLoginUrl({
       workspaceSlug: pack.slug,
@@ -134,6 +141,9 @@ export function resolveAnyPortalSessionRedirect(options: {
   nextRaw?: string | null;
   username?: string | null;
 }): string | null {
+  const northstarDemo = resolveNorthstarDemoClientPortalRedirect(options);
+  if (northstarDemo) return northstarDemo;
+
   const canonical = canonicalizePortalRedirect(options.redirectPath);
   if (canonical) {
     for (const pack of listPortalWorkspacePacks()) {

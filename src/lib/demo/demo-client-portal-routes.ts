@@ -58,10 +58,21 @@ export function getDemoClientPortal(slug: string): DemoClientPortalConfig | null
 
 /** Match `/{slug}` on demo host — e.g. /sheffield-precision */
 export function matchDemoClientPortalSlug(pathname: string): string | null {
-  const segment = pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean)[0];
-  if (!segment || segment.includes(".")) return null;
-  if (RESERVED_DEMO_PATHS.has(segment.toLowerCase())) return null;
-  return getDemoClientPortal(segment)?.slug ?? null;
+  return matchDemoClientPortalPathname(pathname)?.slug ?? null;
+}
+
+/** Match `/{slug}/...` on demo host with remainder path. */
+export function matchDemoClientPortalPathname(
+  pathname: string,
+): { slug: string; rest: string } | null {
+  const cleaned = pathname.split("?")[0] || "/";
+  const parts = cleaned.split("/").filter(Boolean);
+  if (!parts.length || parts[0].includes(".")) return null;
+  if (RESERVED_DEMO_PATHS.has(parts[0].toLowerCase())) return null;
+  const portal = getDemoClientPortal(parts[0]);
+  if (!portal) return null;
+  const rest = parts.length > 1 ? `/${parts.slice(1).join("/")}` : "";
+  return { slug: portal.slug, rest };
 }
 
 export const PRIMARY_DEMO_CLIENT_PORTAL_SLUG = DEMO_CLIENT_PORTALS[0]?.slug ?? "sheffield-precision";

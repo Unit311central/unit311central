@@ -44,9 +44,10 @@ import { isOverviewPortalAccessAllowed, isFreshOverviewDocumentNavigation, isOve
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug, TALANTON_HOST_ALIAS_SLUG, TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 import {
-  matchDemoClientPortalSlug,
+  matchDemoClientPortalPathname,
   PRIMARY_DEMO_CLIENT_PORTAL_SLUG,
 } from "@/lib/demo/demo-client-portal-routes";
+import { matchNorthstarDemoClientPortalPathname } from "@/lib/demo/northstar-client-portal-routes";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
 import {
   applyOverviewViewCookie,
@@ -718,9 +719,83 @@ export async function middleware(request: NextRequest) {
       return redirectPermanent(request, `/${PRIMARY_DEMO_CLIENT_PORTAL_SLUG}${search}`);
     }
 
-    const demoClientSlug = matchDemoClientPortalSlug(pathname);
-    if (demoClientSlug) {
-      const response = rewriteTo(request, `/demo-client/${demoClientSlug}`, headers, shellHeaders);
+    const sheffieldPortalMatch = matchNorthstarDemoClientPortalPathname(pathname);
+    if (sheffieldPortalMatch) {
+      const { route, rest } = sheffieldPortalMatch;
+      const isLoginRest = rest === "/login" || rest.startsWith("/login/");
+      const gate = await evaluateCustomerHostSessionGate(request, DEMO_WORKSPACE_SLUG);
+
+      const sheffieldPortalLoginGate = (clearSession = false) => {
+        if (!isLoginRest) {
+          const response = redirectExternal(`${demoOrigin}/${route.path}/login${search}`);
+          if (clearSession) clearPlatformSessionCookie(response, request);
+          return response;
+        }
+        const response = rewriteTo(
+          request,
+          `/demo-client/${route.slug}/login`,
+          headers,
+          shellHeaders,
+        );
+        for (const [key, value] of Object.entries(shellHeaders)) {
+          response.headers.set(key, value);
+        }
+        response.headers.set(
+          "Cache-Control",
+          "private, no-cache, no-store, max-age=0, must-revalidate",
+        );
+        if (clearSession) clearPlatformSessionCookie(response, request);
+        return response;
+      };
+
+      if (gate.status === "anonymous") {
+        return sheffieldPortalLoginGate();
+      }
+
+      if (
+        gate.status === "invalid" ||
+        gate.status === "forbidden" ||
+        gate.status === "workspace_missing"
+      ) {
+        return sheffieldPortalLoginGate(true);
+      }
+
+      if (gate.session.userType !== "external") {
+        return sheffieldPortalLoginGate();
+      }
+
+      const sessionHome = (gate.session.redirectPath || "").replace(/\/$/, "") || "/";
+      const expectedHome = route.redirectPath.replace(/\/$/, "") || "/";
+      if (sessionHome !== expectedHome && !sessionHome.startsWith(`${expectedHome}/`)) {
+        return sheffieldPortalLoginGate(true);
+      }
+
+      if (isLoginRest) {
+        const bounce = redirectExternal(`${demoOrigin}/${route.path}${search}`);
+        return applyCustomerHostRebindIfNeeded({ request, response: bounce, gate });
+      }
+
+      const response = rewriteTo(
+        request,
+        `/demo-client/${route.slug}${rest}`,
+        headers,
+        shellHeaders,
+      );
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return applyCustomerHostRebindIfNeeded({ request, response, gate });
+    }
+
+    const demoClientMatch = matchDemoClientPortalPathname(pathname);
+    if (demoClientMatch) {
+      const response = rewriteTo(
+        request,
+        `/demo-client/${demoClientMatch.slug}${demoClientMatch.rest}`,
+        headers,
+        shellHeaders,
+      );
       response.headers.set(
         "Cache-Control",
         "private, no-cache, no-store, max-age=0, must-revalidate",
