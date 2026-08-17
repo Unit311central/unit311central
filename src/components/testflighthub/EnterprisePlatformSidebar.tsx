@@ -160,6 +160,10 @@ const EXPAND_MS = 110;
 const WORKSPACE_HEADER_H = 36;
 const CARD_PAD_X = 8;
 const CARD_GAP = 10;
+/** Primary module row typography — compact so full labels stay readable in the LHS column. */
+const SIDEBAR_LEAF_FONT_PX = 10.5;
+const SIDEBAR_NESTED_FONT_PX = 9.5;
+const SIDEBAR_MODULE_HEADER_FONT_PX = 9.5;
 /** Compact module rows on /overview “CLICK BELOW TO VIEW” rail. */
 const OVERVIEW_EMBED_ITEM_H = 30;
 const OVERVIEW_EMBED_GAP = 5;
@@ -329,17 +333,23 @@ export default function EnterprisePlatformSidebar({
       "flex w-full items-center text-left transition-colors duration-75",
       nested
         ? cn(
-            "h-6 gap-0 rounded-md py-0 pl-6 pr-1 text-[11px] font-normal leading-[1.2]",
+            "h-6 gap-0 rounded-md py-0 pl-6 pr-1 font-normal leading-[1.25]",
             NESTED_TEXT,
           )
-        : "h-[26px] gap-1.5 rounded-md py-0 pl-1 pr-1 text-[12px] font-medium leading-[1.2] text-white/88",
+        : "h-[26px] gap-1.5 rounded-md py-0 pl-1 pr-1 font-medium leading-[1.25] text-white/88",
       active
         ? "text-white"
         : nested
           ? "hover:bg-white/[0.04] hover:text-white"
           : "hover:bg-white/[0.04] hover:text-white",
     );
-    const style = active ? { background: "#1F4FBF", color: "#FFFFFF" } : undefined;
+    const style = active
+      ? {
+          background: "#1F4FBF",
+          color: "#FFFFFF",
+          fontSize: nested ? SIDEBAR_NESTED_FONT_PX : SIDEBAR_LEAF_FONT_PX,
+        }
+      : { fontSize: nested ? SIDEBAR_NESTED_FONT_PX : SIDEBAR_LEAF_FONT_PX };
 
     const content = (
       <>
@@ -462,11 +472,12 @@ export default function EnterprisePlatformSidebar({
           ) : null}
           <span
             className={cn(
-              "min-w-0 flex-1 whitespace-normal break-words text-left leading-[1.2]",
+              "min-w-0 flex-1 whitespace-normal break-words text-left leading-[1.25]",
               depth > 0
-                ? "text-[11px] font-normal text-white/65 group-hover:text-white/85"
-                : "text-[12px] font-medium text-white/72 group-hover:text-white/90",
+                ? "font-normal text-white/65 group-hover:text-white/85"
+                : "font-medium text-white/72 group-hover:text-white/90",
             )}
+            style={{ fontSize: depth > 0 ? SIDEBAR_NESTED_FONT_PX : SIDEBAR_LEAF_FONT_PX }}
           >
             {item.label}
           </span>
@@ -536,12 +547,12 @@ export default function EnterprisePlatformSidebar({
             overviewEmbed ? "tracking-[0.03em]" : "tracking-[0.08em]",
             active ? "text-white" : "text-white/88 hover:text-white",
           )}
-          style={{ fontSize: overviewEmbed ? OVERVIEW_EMBED_FONT_PX : 10.5 }}
+          style={{ fontSize: overviewEmbed ? OVERVIEW_EMBED_FONT_PX : SIDEBAR_MODULE_HEADER_FONT_PX }}
           title={item.label}
         >
           <Icon
             className={cn(
-              overviewEmbed ? "h-3 w-3" : "h-3.5 w-3.5",
+              overviewEmbed ? "h-3 w-3" : "h-3 w-3",
               "shrink-0",
               active ? "text-white" : SUBMENU_ICON,
             )}
@@ -550,9 +561,11 @@ export default function EnterprisePlatformSidebar({
           />
           <span
             className={cn(
-              "min-w-0 flex-1 truncate whitespace-nowrap",
-              overviewEmbed && "leading-none",
+              "min-w-0 flex-1 whitespace-normal break-words leading-[1.2] font-semibold uppercase tracking-[0.04em] text-white",
+              overviewEmbed && "truncate whitespace-nowrap leading-none tracking-[0.03em]",
             )}
+            style={{ fontSize: overviewEmbed ? OVERVIEW_EMBED_FONT_PX : SIDEBAR_MODULE_HEADER_FONT_PX }}
+            title={item.label}
           >
             {item.label}
           </span>
@@ -655,8 +668,10 @@ export default function EnterprisePlatformSidebar({
           }}
           className="group flex w-full items-center gap-1.5 text-left"
           style={{
-            height: overviewEmbed ? OVERVIEW_EMBED_ITEM_H : WORKSPACE_HEADER_H,
+            height: overviewEmbed ? OVERVIEW_EMBED_ITEM_H : undefined,
             minHeight: overviewEmbed ? OVERVIEW_EMBED_ITEM_H : WORKSPACE_HEADER_H,
+            paddingTop: overviewEmbed ? 0 : 4,
+            paddingBottom: overviewEmbed ? 0 : 4,
           }}
         >
           <Icon
@@ -666,10 +681,12 @@ export default function EnterprisePlatformSidebar({
           />
           <span
             className={cn(
-              "min-w-0 flex-1 truncate whitespace-nowrap font-semibold uppercase leading-none tracking-[0.04em] text-white",
-              overviewEmbed && "leading-none tracking-[0.03em]",
+              "min-w-0 flex-1 font-semibold uppercase leading-[1.2] tracking-[0.04em] text-white",
+              overviewEmbed
+                ? "truncate whitespace-nowrap leading-none tracking-[0.03em]"
+                : "whitespace-normal break-words",
             )}
-            style={{ fontSize: overviewEmbed ? OVERVIEW_EMBED_FONT_PX : 10.5 }}
+            style={{ fontSize: overviewEmbed ? OVERVIEW_EMBED_FONT_PX : SIDEBAR_MODULE_HEADER_FONT_PX }}
             title={section.label ?? undefined}
           >
             {section.label}
@@ -822,7 +839,7 @@ export default function EnterprisePlatformSidebar({
         >
           <button
             type="button"
-            className="flex w-full touch-manipulation items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-white/70 transition-colors duration-75 hover:bg-white/[0.06] hover:text-white"
+            className="flex w-full touch-manipulation items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-[11px] font-medium text-white/70 transition-colors duration-75 hover:bg-white/[0.06] hover:text-white"
             onClick={() => {
               void (async () => {
                 try {
