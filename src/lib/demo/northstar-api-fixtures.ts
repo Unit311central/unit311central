@@ -13,13 +13,75 @@ import { type HrEmployee } from "@/lib/hr-data";
 import type { MarketingDashboardKpis } from "@/lib/marketing/types";
 import type { SoftwareAsset, SoftwareAssetsSummary } from "@/lib/software-assets-data";
 import type { SupportTicket } from "@/lib/support-data";
+import type { IntegrationConnectionPublic } from "@/lib/integration-framework-data";
 import type { ManagedUser } from "@/lib/user-management-data";
 import { computeSoftwareAssetsSummary } from "@/lib/software-assets-data";
+import { DEMO_PROSPECT_USERNAME } from "@/lib/demo/read-only";
+import type { PlatformSession } from "@/lib/platform-session";
 
 import { northstarFinancialMonths } from "@/lib/demo/northstar-financial-model";
 
 const WS = "demo-workspace";
 const NOW = "2026-08-16T10:00:00.000Z";
+
+export function getNorthstarWhoamiPayload(session: PlatformSession | null) {
+  const fixtures = getDemoEnterpriseFixtures();
+  const directory = fixtures.directory;
+  const matched =
+    directory.find((row) => row.email.toLowerCase() === session?.username?.toLowerCase()) ??
+    directory.find((row) => row.role.toLowerCase().includes("chief executive")) ??
+    directory[0];
+
+  return {
+    displayName: session?.displayName?.trim() || matched?.fullName || fixtures.company.tradingName,
+    username: session?.username || DEMO_PROSPECT_USERNAME,
+    email: matched?.email || session?.username || DEMO_PROSPECT_USERNAME,
+    role: matched?.role || "Admin",
+    roles: matched ? [matched.role] : null,
+    department: matched?.department || "Executive",
+    departments: matched ? [matched.department] : null,
+    allowedViews: null as string[] | null,
+    dashboardPrefs: null as { homeTiles: string[] } | null,
+    userType: session?.userType ?? "internal",
+    userId: session?.sub ?? matched?.id ?? "nst-demo-operator",
+    workspaceId: WS,
+    workspaceSlug: "demo",
+    workspaceName: fixtures.company.tradingName,
+    workspaceLogoUrl: null as string | null,
+  };
+}
+
+export function getNorthstarWebsiteCmsConnections(): IntegrationConnectionPublic[] {
+  const fixtures = getDemoEnterpriseFixtures();
+  return [
+    {
+      id: "nst-cms-northstar",
+      workspaceId: WS,
+      providerId: "provider-cms-northstar",
+      providerCode: "cms.wordpress",
+      providerDisplayName: "Northstar CMS",
+      category: "website",
+      enabled: true,
+      status: "connected",
+      manualMode: false,
+      authMethod: "api_key",
+      isDefaultForCategory: true,
+      displayLabel: "Northstar",
+      credentialsSet: true,
+      config: { siteUrl: `https://www.${fixtures.company.domain}` },
+      capabilities: ["content", "deploy"],
+      notes: null,
+      lastHealthAt: NOW,
+      lastHealthStatus: "healthy",
+      lastError: null,
+      lastTestedAt: NOW,
+      createdBy: null,
+      updatedBy: null,
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+  ];
+}
 
 const EXPENSE_TEMPLATES = [
   { supplier: "Amazon Web Services", category: "5030", purpose: "Cloud infrastructure", base: 980 },

@@ -105,7 +105,7 @@ export function resolveSidebarNavWorkspaceSlug(): string {
     return canonicalizeTalantonImpactSlug(slug) ?? slug;
   }
   if (host === "internal.unit311central.com" || host === "internal.localhost") return "internal";
-  if (host === "demo.unit311central.com" || host === "demo.localhost") return "demo";
+  if (host === "demo.unit311central.com" || host === "demo.localhost") return "central";
   return "";
 }
 
@@ -131,6 +131,14 @@ function migrateLegacySidebarNavCustom(
   const scopedKey = sidebarNavCustomStorageKey(slug);
   const scoped = window.localStorage.getItem(scopedKey);
   if (scoped) return scoped;
+
+  if (slug === "central") {
+    const demoScoped = window.localStorage.getItem(`${SIDEBAR_NAV_CUSTOM_STORAGE_KEY}:demo`);
+    if (demoScoped) {
+      window.localStorage.setItem(scopedKey, demoScoped);
+      return demoScoped;
+    }
+  }
 
   const legacy = window.localStorage.getItem(LEGACY_SIDEBAR_NAV_CUSTOM_STORAGE_KEY);
   if (!legacy) return null;

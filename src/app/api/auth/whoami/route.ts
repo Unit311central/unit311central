@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarWhoamiPayload } from "@/lib/demo/northstar-api-fixtures";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -7,10 +9,52 @@ import { getCurrentWorkspace } from "@/lib/workspace-context";
 
 export const dynamic = "force-dynamic";
 
+const WHOAMI_CACHE_HEADERS = {
+  "Cache-Control": "private, max-age=60, stale-while-revalidate=120",
+};
+
 export async function GET() {
+  const demoRequest = await isDemoApiRequest();
   const session = await getPlatformSession();
+
   if (!session) {
+    if (demoRequest) {
+      return NextResponse.json(getNorthstarWhoamiPayload(null), {
+        headers: WHOAMI_CACHE_HEADERS,
+      });
+    }
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+
+  if (demoRequest) {
+    const workspace = await getCurrentWorkspace().catch(() => null);
+    const payload = getNorthstarWhoamiPayload(session);
+
+    if (workspace?.id) {
+      payload.workspaceId = workspace.id;
+      payload.workspaceSlug = workspace.slug;
+      payload.workspaceName = workspace.name;
+    }
+
+    if (session.userType === "internal" && isSupabaseConfigured()) {
+      try {
+        const operator = await getInternalOperatorByUsername(session.username);
+        if (operator) {
+          payload.email = operator.email?.trim() || payload.email;
+          payload.role = operator.role ?? payload.role;
+          payload.roles = operator.roles ?? (operator.role ? [operator.role] : payload.roles);
+          payload.department = operator.department ?? payload.department;
+          payload.departments =
+            operator.departments ?? (operator.department ? [operator.department] : payload.departments);
+          payload.allowedViews = operator.allowedViews;
+          payload.dashboardPrefs = operator.dashboardPrefs;
+        }
+      } catch {
+        // Northstar fixture profile is enough for demo.
+      }
+    }
+
+    return NextResponse.json(payload, { headers: WHOAMI_CACHE_HEADERS });
   }
 
   // Active workspace comes from host → authz → getCurrentWorkspace only.
@@ -78,9 +122,7 @@ export async function GET() {
       workspaceLogoUrl,
     },
     {
-      headers: {
-        "Cache-Control": "private, max-age=60, stale-while-revalidate=120",
-      },
+      headers: WHOAMI_CACHE_HEADERS,
     },
   );
 }

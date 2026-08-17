@@ -18,7 +18,6 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   ChevronDown,
   ChevronRight,
-  ChevronUp,
   Eye,
   EyeOff,
   GripVertical,
@@ -119,25 +118,20 @@ function FixedModuleRow({
 
 function DraggableModuleRow({
   section,
-  movableKeys,
   expanded,
   navCustom,
   onToggleExpanded,
-  onMove,
   onToggleNavHidden,
 }: {
   section: InternalNavSection;
-  movableKeys: string[];
   expanded: boolean;
   navCustom: SidebarNavCustomStorage;
   onToggleExpanded: () => void;
-  onMove: (direction: -1 | 1) => void;
   onToggleNavHidden: (itemId: string) => void;
 }) {
   const sectionKey = getNavSectionKey(section);
   const title = getNavSectionTitle(section);
   const leaves = listSectionLeafItems(section);
-  const movableIndex = movableKeys.indexOf(sectionKey);
 
   const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
     id: sectionKey,
@@ -172,28 +166,6 @@ function DraggableModuleRow({
           >
             <GripVertical className="h-3.5 w-3.5" />
           </button>
-        }
-        trailing={
-          <div className="flex flex-col gap-0.5">
-            <button
-              type="button"
-              onClick={() => onMove(-1)}
-              disabled={movableIndex <= 0}
-              className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
-              aria-label={`Move ${title} up`}
-            >
-              <ChevronUp className="h-3 w-3" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onMove(1)}
-              disabled={movableIndex < 0 || movableIndex >= movableKeys.length - 1}
-              className="rounded border border-white/10 p-0.5 text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-30"
-              aria-label={`Move ${title} down`}
-            >
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </div>
         }
         expanded={expanded}
         onToggleExpanded={onToggleExpanded}
@@ -407,15 +379,6 @@ export function SettingsSidebarReorderPanel({
     });
   }
 
-  function moveModule(sectionKey: string, direction: -1 | 1) {
-    const index = movableKeys.indexOf(sectionKey);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= movableKeys.length) return;
-    const next = [...movableKeys];
-    [next[index], next[target]] = [next[target]!, next[index]!];
-    applyMovableOrder(next);
-  }
-
   function handleDragStart(event: DragStartEvent) {
     setActiveKey(String(event.active.id));
   }
@@ -435,10 +398,9 @@ export function SettingsSidebarReorderPanel({
   return (
     <>
       <p className="mb-3 text-[10px] leading-relaxed text-white/40">
-        Home and Executive Assistant stay at the top; Settings stays at the bottom. In this panel only:
-        drag the <span className="text-white/55">⠿ grip</span> on a module, or use the{" "}
-        <span className="text-white/55">▲ ▼</span> arrows. Changes apply to the main left nav
-        immediately.
+        Home and Executive Assistant stay at the top; Settings stays at the bottom. Drag the{" "}
+        <span className="text-white/55">⠿ grip</span> on any module to reorder — the same order
+        applies across the whole workspace shell.
       </p>
 
       {pinSections.length > 0 ? (
@@ -482,11 +444,9 @@ export function SettingsSidebarReorderPanel({
                 <DraggableModuleRow
                   key={sectionKey}
                   section={section}
-                  movableKeys={movableKeys}
                   expanded={Boolean(expandedModules[sectionKey])}
                   navCustom={navCustom}
                   onToggleExpanded={() => onToggleModuleExpanded(sectionKey)}
-                  onMove={(direction) => moveModule(sectionKey, direction)}
                   onToggleNavHidden={onToggleNavHidden}
                 />
               );

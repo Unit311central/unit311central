@@ -6,8 +6,11 @@ import {
   WorkspaceError,
   WorkspaceLoading,
 } from "@/components/testflighthub/workspace-chrome";
+import { getDemoEnterpriseFixtures, isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { DEMO_PROSPECT_USERNAME } from "@/lib/demo/read-only";
 import {
   fetchCachedJson,
+  invalidateCachedJson,
   PLATFORM_CACHE_KEYS,
 } from "@/lib/platform-fetch-cache";
 
@@ -23,19 +26,39 @@ type ProfilePayload = {
   workspaceName: string | null;
 };
 
+function buildDemoProfileFallback(): ProfilePayload {
+  const fixtures = getDemoEnterpriseFixtures();
+  const leader =
+    fixtures.directory.find((row) => row.role.toLowerCase().includes("chief executive")) ??
+    fixtures.directory[0];
+
+  return {
+    displayName: leader?.fullName ?? fixtures.company.tradingName,
+    username: leader?.email ?? DEMO_PROSPECT_USERNAME,
+    email: leader?.email ?? DEMO_PROSPECT_USERNAME,
+    role: leader?.role ?? "Chief Executive Officer",
+    userType: "internal",
+    userId: leader?.id ?? "nst-demo-operator",
+    workspaceId: "demo-workspace",
+    workspaceSlug: "demo",
+    workspaceName: fixtures.company.tradingName,
+  };
+}
+
 export default function ProfileWorkspace() {
   const [profile, setProfile] = useState<ProfilePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function loadProfile() {
+  async function loadProfile(force = false) {
     setLoading(true);
     setError(null);
+    if (force) invalidateCachedJson(PLATFORM_CACHE_KEYS.whoami);
     try {
       const body = await fetchCachedJson<ProfilePayload & { error?: string }>(
         PLATFORM_CACHE_KEYS.whoami,
         "/api/auth/whoami",
-        { ttlMs: 120_000 },
+        { ttlMs: 120_000, force, credentials: "include" },
       );
       setProfile({
         displayName: body.displayName?.trim() || "Operator",
@@ -49,8 +72,13 @@ export default function ProfileWorkspace() {
         workspaceName: body.workspaceName ?? null,
       });
     } catch (err) {
-      setProfile(null);
-      setError(err instanceof Error ? err.message : "Failed to load profile.");
+      if (isBrowserDemoSurface()) {
+        setProfile(buildDemoProfileFallback());
+        setError(null);
+      } else {
+        setProfile(null);
+        setError(err instanceof Error ? err.message : "Failed to load profile.");
+      }
     } finally {
       setLoading(false);
     }
@@ -64,7 +92,7 @@ export default function ProfileWorkspace() {
     <div className="space-y-6">
       {loading ? <WorkspaceLoading label="Loading profile…" /> : null}
       {!loading && error ? (
-        <WorkspaceError message={error} onRetry={() => void loadProfile()} />
+        <WorkspaceError message={error} onRetry={() => void loadProfile(true)} />
       ) : null}
       {!loading && !error && profile ? (
         <section className="grid gap-4 md:grid-cols-2">

@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
-import { createInitialUsers } from "@/lib/user-management-data";
+import { createInitialUsers, type ManagedUser } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import {
   fetchCachedJson,
@@ -18,6 +18,7 @@ import {
 import {
   Activity,
   Bell,
+  ChevronDown,
   Globe,
   Link2,
   Loader2,
@@ -43,6 +44,8 @@ import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import type { InternalNavSection } from "@/lib/internal-operations-data";
 import {
   applySidebarSectionOrder,
+  getNavSectionTitle,
+  isSettingsSection,
   loadSidebarNavCustom,
   saveSidebarNavCustom,
   type SidebarNavCustomStorage,
@@ -216,8 +219,109 @@ function resolveSettingsPlatforms(): PlatformCredentials[] {
   return INTERNAL_PLATFORMS;
 }
 
-const NOTIFICATION_FUNCTIONS = ["Projects", "Support", "Finance"] as const;
 const NOTIFICATION_FREQUENCIES = ["Immediate", "Hourly digest", "Daily digest", "Weekly summary"] as const;
+
+function buildNotificationFunctionOptions(sections: InternalNavSection[]): string[] {
+  const labels: string[] = [];
+  for (const section of sections) {
+    if (section.kind === "pin") {
+      for (const item of section.items) {
+        if (item.label) labels.push(item.label);
+      }
+      continue;
+    }
+    if (section.kind === "workspace") {
+      const title = getNavSectionTitle(section);
+      if (title) labels.push(title);
+    }
+    if (isSettingsSection(section)) labels.push("Settings");
+  }
+  return [...new Set(labels)];
+}
+
+function NotificationMultiSelect({
+  label,
+  options,
+  selected,
+  onChange,
+  inputClassName,
+}: {
+  label: string;
+  options: Array<{ id: string; label: string }>;
+  selected: string[];
+  onChange: (next: string[]) => void;
+  inputClassName: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const allSelected = options.length > 0 && options.every((option) => selected.includes(option.id));
+
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [open]);
+
+  const summary =
+    selected.length === 0
+      ? "None selected"
+      : selected.length === options.length
+        ? "All selected"
+        : `${selected.length} selected`;
+
+  return (
+    <div ref={rootRef} className="relative">
+      <FieldLabel>{label}</FieldLabel>
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className={cn(inputClassName, "mt-1.5 flex items-center justify-between gap-2 text-left")}
+        aria-expanded={open}
+      >
+        <span className="truncate text-sm text-white/85">{summary}</span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-white/45 transition", open && "rotate-180")} />
+      </button>
+      {open ? (
+        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-white/10 bg-[#0b1524] p-1.5 shadow-xl">
+          <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-white/5">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() =>
+                onChange(allSelected ? [] : options.map((option) => option.id))
+              }
+              className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-sky-500"
+            />
+            <span className="font-medium text-white/85">Select all</span>
+          </label>
+          {options.map((option) => (
+            <label
+              key={option.id}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-white/5"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(option.id)}
+                onChange={() =>
+                  onChange(
+                    selected.includes(option.id)
+                      ? selected.filter((id) => id !== option.id)
+                      : [...selected, option.id],
+                  )
+                }
+                className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-sky-500"
+              />
+              <span className="truncate text-white/85">{option.label}</span>
+            </label>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function buildLiveNavSections(
   allowedViews: Parameters<typeof filterInternalNavSectionsByGrants>[1],
@@ -570,12 +674,10 @@ export default function SettingsWorkspace() {
 
   const [phoneNotifications, setPhoneNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [notificationFunctions, setNotificationFunctions] = useState<Record<string, boolean>>({
-    Projects: true,
-    Support: true,
-    Finance: false,
-  });
-  const [alertUserIds, setAlertUserIds] = useState<string[]>([MOCK_USERS[0]?.id ?? ""]);
+  const [notificationFunctionIds, setNotificationFunctionIds] = useState<string[]>([]);
+  const [alertUserIds, setAlertUserIds] = useState<string[]>([]);
+  const [platformUsers, setPlatformUsers] = useState<ManagedUser[]>(MOCK_USERS);
+  const [usersLoading, setUsersLoading] = useState(true);
   const [notificationFrequency, setNotificationFrequency] =
     useState<(typeof NOTIFICATION_FREQUENCIES)[number]>("Daily digest");
 
@@ -701,6 +803,50 @@ export default function SettingsWorkspace() {
     [liveSections, navCustom],
   );
 
+  const notificationFunctionOptions = useMemo(
+    () => buildNotificationFunctionOptions(orderedSections),
+    [orderedSections],
+  );
+
+  useEffect(() => {
+    if (notificationFunctionOptions.length === 0) return;
+    setNotificationFunctionIds((current) =>
+      current.length > 0 ? current : [...notificationFunctionOptions],
+    );
+  }, [notificationFunctionOptions]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setUsersLoading(true);
+    void fetch("/api/messaging/operators", { cache: "no-store", credentials: "include" })
+      .then(async (response) => {
+        const payload = (await response.json()) as { users?: ManagedUser[]; error?: string };
+        if (!response.ok) throw new Error(payload.error ?? "Failed to load users");
+        return payload.users ?? [];
+      })
+      .then((users) => {
+        if (cancelled) return;
+        const activeUsers = users.filter((user) => user.status === "Active");
+        setPlatformUsers(activeUsers.length > 0 ? activeUsers : MOCK_USERS);
+        setAlertUserIds((current) =>
+          current.length > 0 ? current : activeUsers.map((user) => user.id),
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPlatformUsers(MOCK_USERS);
+        setAlertUserIds((current) =>
+          current.length > 0 ? current : MOCK_USERS.map((user) => user.id),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setUsersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const persistNavCustom = useCallback((next: NavCustomStorage) => {
     setNavCustom(next);
     saveSidebarNavCustom(next);
@@ -734,13 +880,22 @@ export default function SettingsWorkspace() {
     setCustomNavLabel("");
   }
 
-  function toggleAlertUser(userId: string) {
-    setAlertUserIds((current) =>
-      current.includes(userId)
-        ? current.filter((id) => id !== userId)
-        : [...current, userId],
-    );
-  }
+  const demoSurface = hydrated && isBrowserDemoSurface();
+  const websiteConnectionsForDisplay = useMemo(() => {
+    if (demoSurface) {
+      return [
+        {
+          id: "nst-cms-northstar",
+          displayLabel: "Northstar",
+          providerCode: "cms.wordpress",
+          providerDisplayName: "Northstar CMS",
+          status: "connected" as const,
+          credentialsSet: true,
+        },
+      ];
+    }
+    return websiteConnections;
+  }, [demoSurface, websiteConnections]);
 
   return (
     <div className="space-y-4">
@@ -800,15 +955,16 @@ export default function SettingsWorkspace() {
                 </p>
               </div>
               <p className="mb-3 text-[11px] leading-relaxed text-white/45">
-                Managed through Website Management and stored in the Integration Framework — not a
-                second credential store.
+                {demoSurface
+                  ? "Northstar public website CMS — connected through the Integration Framework."
+                  : "Managed through Website Management and stored in the Integration Framework — not a second credential store."}
               </p>
-              {frameworkLoadState === "loading" ? (
+              {frameworkLoadState === "loading" && !demoSurface ? (
                 <p className="text-xs text-white/45">Loading framework connections…</p>
               ) : null}
-              {websiteConnections.length > 0 ? (
+              {websiteConnectionsForDisplay.length > 0 ? (
                 <ul className="space-y-2">
-                  {websiteConnections.map((connection) => (
+                  {websiteConnectionsForDisplay.map((connection) => (
                     <li
                       key={connection.id}
                       className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-2"
@@ -823,7 +979,7 @@ export default function SettingsWorkspace() {
                     </li>
                   ))}
                 </ul>
-              ) : (
+              ) : !demoSurface ? (
                 <ul className="space-y-2">
                   {websiteStore.websites.map((site) => (
                     <li
@@ -837,8 +993,8 @@ export default function SettingsWorkspace() {
                     </li>
                   ))}
                 </ul>
-              )}
-              {frameworkLoadState === "error" ? (
+              ) : null}
+              {frameworkLoadState === "error" && !demoSurface ? (
                 <p className="mt-2 text-[10px] text-amber-200/80">
                   Framework API unavailable — showing Website Management local connections until
                   migration 099 is applied.
@@ -994,7 +1150,7 @@ export default function SettingsWorkspace() {
 
         <SettingsColumn
           title="Sidebar"
-          description="Home and Executive Assistant stay at the top; Settings at the bottom. Drag or use arrows to reorder modules in between."
+          description="Drag modules to reorder the left nav. One shared order applies across the whole workspace."
           icon={<Menu className="h-4 w-4" />}
           accentClass="border-violet-400/20"
         >
@@ -1014,7 +1170,7 @@ export default function SettingsWorkspace() {
 
         <SettingsColumn
           title="Notifications"
-          description="Phone, email, and digest preferences."
+          description="Phone, email, module alerts, and digest preferences for platform users."
           icon={<Bell className="h-4 w-4" />}
           accentClass="border-amber-400/20"
         >
@@ -1038,50 +1194,27 @@ export default function SettingsWorkspace() {
               />
             </label>
 
-            <div>
-              <FieldLabel>Functions</FieldLabel>
-              <div className="mt-1.5 space-y-1.5">
-                {NOTIFICATION_FUNCTIONS.map((fn) => (
-                  <label
-                    key={fn}
-                    className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#0b1524]/60 px-3 py-2"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={notificationFunctions[fn] ?? false}
-                      onChange={(event) =>
-                        setNotificationFunctions((current) => ({
-                          ...current,
-                          [fn]: event.target.checked,
-                        }))
-                      }
-                      className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-sky-500"
-                    />
-                    <span className="text-xs text-white/75">{fn}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            <NotificationMultiSelect
+              label="Functions"
+              options={notificationFunctionOptions.map((label) => ({ id: label, label }))}
+              selected={notificationFunctionIds}
+              onChange={setNotificationFunctionIds}
+              inputClassName={inputClassName()}
+            />
 
-            <div>
-              <FieldLabel>Alert users</FieldLabel>
-              <div className="mt-1.5 max-h-36 overflow-y-auto rounded-lg border border-white/10 bg-[#0b1524] p-1.5">
-                {MOCK_USERS.map((user) => (
-                  <label
-                    key={user.id}
-                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-white/5"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={alertUserIds.includes(user.id)}
-                      onChange={() => toggleAlertUser(user.id)}
-                      className="h-3.5 w-3.5 rounded border-white/20 bg-transparent accent-sky-500"
-                    />
-                    <span className="truncate text-white/85">{user.fullName}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            <NotificationMultiSelect
+              label="Alert users"
+              options={platformUsers.map((user) => ({
+                id: user.id,
+                label: user.fullName || user.username,
+              }))}
+              selected={alertUserIds}
+              onChange={setAlertUserIds}
+              inputClassName={inputClassName()}
+            />
+            {usersLoading ? (
+              <p className="text-[10px] text-white/40">Loading platform users…</p>
+            ) : null}
 
             <div>
               <FieldLabel>Frequency</FieldLabel>

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getNorthstarWebsiteCmsConnections } from "@/lib/demo/northstar-api-fixtures";
 import { requireInternalAdministratorWorkspaceSession } from "@/lib/internal-admin-auth";
 import { INTEGRATION_FRAMEWORK_MIGRATION_REQUIRED } from "@/lib/integration-framework-data";
 import { listWorkspaceIntegrationConnections } from "@/lib/integration-framework-service";
@@ -8,6 +10,10 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ connections: getNorthstarWebsiteCmsConnections() });
+  }
+
   const auth = await requireInternalAdministratorWorkspaceSession();
   if ("error" in auth) return auth.error;
 

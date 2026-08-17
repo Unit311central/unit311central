@@ -107,7 +107,7 @@ export function createSeedWebsites(): ManagedWebsite[] {
         return [
           {
             id: "web-mag-001",
-            name: `${fixtures.company.tradingName} Marketing`,
+            name: "Northstar",
             cms: "WordPress",
             url: `https://www.${domain}`,
             restApiUrl: `https://www.${domain}/wp-json`,
