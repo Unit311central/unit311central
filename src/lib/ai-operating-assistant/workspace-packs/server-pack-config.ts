@@ -160,7 +160,7 @@ export async function enrichServerBusinessSnapshotForPackId(
   snapshot: Record<string, unknown>,
 ) {
   const enrichers = await loadServerSnapshotEnrichers();
-  const enricher = packId ? enrichers[packId] : null;
+  const enricher = packId && enrichers ? enrichers[packId] : null;
   return enricher ? enricher(context, domain, snapshot) : snapshot;
 }
 

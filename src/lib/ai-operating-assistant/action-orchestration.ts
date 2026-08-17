@@ -136,6 +136,16 @@ export async function resolveOrchestrationRoute(
 
   const catalogueOptions = { workspaceSlug: business.workspace.slug };
 
+  // Workspace packs (Northstar / ABHI / Talanton / OnwardAir) win before generic routing.
+  const workspacePackRoute = await resolveEaWorkspacePackOrchestration({
+    message,
+    business,
+    history,
+  });
+  if (workspacePackRoute) {
+    return workspacePackRoute;
+  }
+
   // Navigation — Application Catalogue wins over coarse business "where/find" routing.
   if (/\b(where|open|navigate|take\s+me\s+to|go\s+to)\b/i.test(message)) {
     const navigationAnswer = answerPlatformQuestion(message, catalogueOptions);
@@ -190,15 +200,6 @@ export async function resolveOrchestrationRoute(
     if (answered) {
       return { kind: "capability_answer", message: answered.answer };
     }
-  }
-
-  const workspacePackRoute = await resolveEaWorkspacePackOrchestration({
-    message,
-    business,
-    history,
-  });
-  if (workspacePackRoute) {
-    return workspacePackRoute;
   }
 
   // Document / PDF / export intents win before any write propose path.

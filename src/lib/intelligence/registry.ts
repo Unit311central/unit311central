@@ -113,6 +113,7 @@ export function listIntelligencePacks(): readonly RegisteredIntelligenceWorkspac
 export function getIntelligencePackBySlug(
   workspaceSlug: string | null | undefined,
 ): RegisteredIntelligenceWorkspacePack | null {
+  ensureIntelligencePacksBootstrapped();
   const normalized = normalizeSlug(workspaceSlug);
   if (!normalized) return null;
   return packsBySlug.get(normalized) ?? null;

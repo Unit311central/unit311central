@@ -40,8 +40,6 @@ const DEMO_LLM_SYNTHESIS_TOOLS = new Set([
   "searchApplications",
   "listPlatformModules",
   "getDailyBrief",
-  "queryPayroll",
-  "getMonthlyPayrollObligation",
   "northstar.getExecutiveBriefing",
   "northstar.getOrgHealth",
   "northstar.queryActions",

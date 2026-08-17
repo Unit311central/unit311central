@@ -9,7 +9,7 @@ import { shouldSynthesizeExecutiveToolResult } from "@/lib/ai-operating-assistan
 import { getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service";
 import { getPackToolHandlers } from "@/lib/ai-operating-assistant/workspace-packs/handlers-registry";
 import { getServerBoardPackConfigForPackId } from "@/lib/ai-operating-assistant/workspace-packs/server-pack-config";
-import { SERVER_PACK_TOOL_DEFINITIONS } from "@/lib/ai-operating-assistant/workspace-packs/server-pack-tools";
+import { SERVER_PACK_TOOL_DEFINITIONS } from "@/lib/ai-operating-assistant/workspace-packs/server-pack-tool-definitions";
 import {
   EA_PROVISIONING_REQUIRED_PACK_IDS,
   ensureEaWorkspacePacksRegistered,

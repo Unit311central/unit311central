@@ -999,7 +999,7 @@ async function* runAssistantTurnInner(input: {
   const turnStartedAt = Date.now();
   let recordedDataGaps = 0;
 
-  const tools = getOpenAIToolSchemas(context.workspace.slug);
+  let tools: ReturnType<typeof getOpenAIToolSchemas> = [];
   let inputItems: EasyInputMessage[] = toInputMessages(resolved.history, message);
   let assistantText = "";
   let toolLoops = 0;
@@ -1008,6 +1008,7 @@ async function* runAssistantTurnInner(input: {
   let turnArtifacts: NonNullable<AssistantChatMessage["artifacts"]> = [];
 
   try {
+    tools = getOpenAIToolSchemas(context.workspace.slug);
     ensureActionModulesRegistered();
 
     // Intent → registered action → propose/execute. Never fall through to workflow teaching.
