@@ -31,9 +31,9 @@ export async function assertDemoMutationAllowed(): Promise<NextResponse | null> 
 
 /** Route-handler guard: respects exempt paths (EA, auth, analytics, etc.). */
 export async function assertDemoMutationAllowedForRequest(
-  request: NextRequest,
+  request: NextRequest | Request,
 ): Promise<NextResponse | null> {
-  const pathname = request.nextUrl.pathname;
+  const pathname = new URL(request.url).pathname;
   if (isDemoMutationExemptApiPath(pathname)) return null;
   return assertDemoMutationAllowed();
 }

@@ -1,0 +1,25 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
+
+import { requireInternalSoftwareBillingAccess } from "@/lib/software-billing/internal-api-auth";
+import { buildSoftwareBillingSummary } from "@/lib/software-billing/software-cost-summary";
+import { syncCursorSoftwareBilling } from "@/lib/software-billing/cursor-sync";
+
+export const dynamic = "force-dynamic";
+
+export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
+  const auth = await requireInternalSoftwareBillingAccess(request);
+  if ("error" in auth) return auth.error;
+
+  try {
+    const result = await syncCursorSoftwareBilling(auth.workspaceId);
+    const summary = await buildSoftwareBillingSummary(auth.workspaceId);
+    return NextResponse.json({ result, summary });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Cursor billing sync failed.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
