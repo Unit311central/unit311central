@@ -1,4 +1,5 @@
 import PptxGenJSImport from "pptxgenjs";
+import type PptxGenType from "pptxgenjs";
 
 type PptxGenConstructor = typeof import("pptxgenjs").default;
 
@@ -12,6 +13,9 @@ function resolvePptxGenConstructor(): PptxGenConstructor {
 }
 
 export type PptxGenInstance = InstanceType<PptxGenConstructor>;
+export type PptxSlide = PptxGenType.Slide;
+export type PptxTableRow = PptxGenType.TableRow;
+export type PptxShapeName = PptxGenType.SHAPE_NAME;
 
 export function createPptxGen(): PptxGenInstance {
   const PptxGen = resolvePptxGenConstructor();

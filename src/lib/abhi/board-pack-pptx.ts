@@ -1,4 +1,9 @@
-import { createPptxGen, type PptxGenInstance } from "@/lib/pptxgen-client";
+import {
+  createPptxGen,
+  type PptxShapeName,
+  type PptxSlide,
+  type PptxTableRow,
+} from "@/lib/pptxgen-client";
 
 import {
   ABHI_LOGO_INTRINSIC_HEIGHT,
@@ -69,10 +74,6 @@ function varianceText(value: number): string {
   const prefix = value >= 0 ? "+" : "";
   return `${prefix}${formatAbhiBoardGbp(value, true)}`;
 }
-
-type PptxSlide = PptxGenInstance["Slide"];
-type PptxTableRow = PptxGenInstance["TableRow"];
-type PptxShapeName = PptxGenInstance["SHAPE_NAME"];
 
 function paintSlide(slide: PptxSlide) {
   slide.background = { color: C.page };
