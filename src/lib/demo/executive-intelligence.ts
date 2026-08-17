@@ -21,11 +21,13 @@ import {
 import {
   NORTHSTAR_CASH_GBP,
   NORTHSTAR_MONTHLY_OPEX,
+  NORTHSTAR_MONTHLY_REVENUE,
   NORTHSTAR_NET_PROFIT_YTD,
   NORTHSTAR_REVENUE_YTD,
   northstarDemoAsAtLabel,
   northstarGrossMarginPct,
   northstarReportingPlMonthLabel,
+  northstarYtdPeriodLabel,
 } from "@/lib/demo/northstar-financial-model";
 import { buildNorthstarBoardPackData } from "@/lib/demo/northstar-board-pack-model";
 import {
@@ -187,7 +189,7 @@ export function assessNorthstarOrgHealth(asOf?: string | null): NorthstarOrgHeal
   const eng = getNorthstarEngineeringSummary();
   const actions = openBoardActions();
   const overdue = actions.filter((a) => isOverdue(a.dueDate));
-  const margin = northstarGrossMarginPct();
+  const margin = northstarGrossMarginPct(NORTHSTAR_MONTHLY_REVENUE);
   const runwayMonths = Math.round(NORTHSTAR_CASH_GBP / NORTHSTAR_MONTHLY_OPEX);
 
   const financial: NorthstarHealthDimension = {
@@ -282,7 +284,7 @@ export function buildNorthstarExecutiveBriefing(asOf?: string | null): Northstar
     financialSummary: [
       `Revenue YTD ${formatGbp(NORTHSTAR_REVENUE_YTD, true)} (${northstarYtdPeriodLabel()}).`,
       `Cash ${formatGbp(NORTHSTAR_CASH_GBP, true)}; monthly opex ${formatGbp(NORTHSTAR_MONTHLY_OPEX, true)}.`,
-      `Gross margin ${northstarGrossMarginPct()}% in ${northstarReportingPlMonthLabel()} — target 58%.`,
+      `Gross margin ${northstarGrossMarginPct(NORTHSTAR_MONTHLY_REVENUE)}% in ${northstarReportingPlMonthLabel()} — target 58%.`,
       data.financialInsights.cash.assessment,
     ],
     commercialSummary: [
@@ -444,7 +446,7 @@ export function buildNorthstarBoardInsights(
       .map((r) => `${r.title} (${r.owner})`),
     financial: [
       `Cash ${formatGbp(NORTHSTAR_CASH_GBP, true)}; revenue YTD ${formatGbp(NORTHSTAR_REVENUE_YTD, true)}.`,
-      `Gross margin ${northstarGrossMarginPct()}% — recovery programme to 58% target.`,
+      `Gross margin ${northstarGrossMarginPct(NORTHSTAR_MONTHLY_REVENUE)}% — recovery programme to 58% target.`,
       data.financialInsights.cash.assessment,
     ],
     engineering: [
@@ -518,7 +520,7 @@ export function queryNorthstarModule(
       return {
         asOf,
         module,
-        headline: `Revenue YTD ${formatGbp(NORTHSTAR_REVENUE_YTD, true)} · margin ${northstarGrossMarginPct()}% · cash ${formatGbp(NORTHSTAR_CASH_GBP, true)}`,
+        headline: `Revenue YTD ${formatGbp(NORTHSTAR_REVENUE_YTD, true)} · margin ${northstarGrossMarginPct(NORTHSTAR_MONTHLY_REVENUE)}% · cash ${formatGbp(NORTHSTAR_CASH_GBP, true)}`,
         bullets: [
           `Net profit YTD ${formatGbp(NORTHSTAR_NET_PROFIT_YTD, true)}.`,
           ...company.costDrivers.slice(0, 3).map((c) => `${c.label}: ${formatGbp(c.amountGbp, true)} — ${c.detail}`),
@@ -526,7 +528,7 @@ export function queryNorthstarModule(
         ],
         metrics: {
           revenueYtd: NORTHSTAR_REVENUE_YTD,
-          grossMarginPct: northstarGrossMarginPct(),
+          grossMarginPct: northstarGrossMarginPct(NORTHSTAR_MONTHLY_REVENUE),
           cashGbp: NORTHSTAR_CASH_GBP,
           monthlyOpex: NORTHSTAR_MONTHLY_OPEX,
         },
