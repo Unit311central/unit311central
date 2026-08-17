@@ -16,7 +16,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 /**
  * MOD-103 — ensure / repair Client Directory files root folder.
  */
-export async function POST(request: NextRequest, _request: Request, context: RouteContext) {
+export async function POST(request: NextRequest, context: RouteContext) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
   if (demoMutationBlock) return demoMutationBlock;
 
@@ -61,6 +61,6 @@ export async function POST(request: NextRequest, _request: Request, context: Rou
 }
 
 /** GET returns current root context (ensures if missing). */
-export async function GET(request: Request, context: RouteContext) {
+export async function GET(request: NextRequest, context: RouteContext) {
   return POST(request, context);
 }

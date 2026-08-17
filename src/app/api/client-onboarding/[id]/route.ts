@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   return NextResponse.json({ error: "Onboarding updates require Supabase." }, { status: 503 });
 }
 
-export async function DELETE(request: NextRequest, _request: NextRequest, context: RouteContext) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
   if (demoMutationBlock) return demoMutationBlock;
 

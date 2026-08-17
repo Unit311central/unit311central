@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function POST(request: NextRequest, _request: NextRequest, context: RouteContext) {
+export async function POST(request: NextRequest, context: RouteContext) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
   if (demoMutationBlock) return demoMutationBlock;
 

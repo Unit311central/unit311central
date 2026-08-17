@@ -7,8 +7,10 @@ import { allowsLmsAiCourseGeneration } from "@/lib/lms/workspace-gates";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest, _request: Request,
-  context: { params: Promise<{ slug: string }> },) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ slug: string }> },
+) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
   if (demoMutationBlock) return demoMutationBlock;
 

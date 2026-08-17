@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function POST(request: NextRequest, _request: NextRequest, { params }: Params) {
+export async function POST(request: NextRequest, { params }: Params) {
   const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
   if (demoMutationBlock) return demoMutationBlock;
 
