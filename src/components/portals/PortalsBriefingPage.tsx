@@ -12,6 +12,7 @@ import {
 import PortalsBriefingShell from "@/components/portals/PortalsBriefingShell";
 import {
   AbhiLogoMark,
+  getPortalsBriefingUiConfig,
   OnwardAirLogoMark,
   TalantonLogoMark,
 } from "@/lib/portals/briefing/pack-ui-configs";
@@ -28,10 +29,27 @@ const UNIT311_LOGO = "/images/unit311central-login.webp";
 const BRIEFING_CONTENT_API = "/api/portals/briefing-content";
 
 export type PortalsBriefingPageProps = {
+  workspaceSlug: string;
+};
+
+export default function PortalsBriefingPage({ workspaceSlug }: PortalsBriefingPageProps) {
+  const config = getPortalsBriefingUiConfig(workspaceSlug);
+  if (!config) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#070b14] px-6 text-sm text-white/60">
+        Portals briefing is not available for this workspace.
+      </div>
+    );
+  }
+
+  return <PortalsBriefingPageBody config={config} />;
+}
+
+type PortalsBriefingPageBodyProps = {
   config: PortalsBriefingUiConfig;
 };
 
-export default function PortalsBriefingPage({ config }: PortalsBriefingPageProps) {
+function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
   const [content, setContent] = useState<PortalsEditableContent>(() => config.defaultContent());
   const [canEdit, setCanEdit] = useState(false);
   const [username, setUsername] = useState<string | null>(null);

@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 
 import PortalsBriefingPage from "@/components/portals/PortalsBriefingPage";
 import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
-import { getPortalsBriefingUiConfig } from "@/lib/portals/briefing/pack-ui-configs";
 import { getPortalPackBySlug } from "@/lib/portals/registry";
 
 export const metadata: Metadata = {
@@ -29,10 +28,5 @@ export default async function PortalsPage() {
     notFound();
   }
 
-  const uiConfig = getPortalsBriefingUiConfig(pack.slug);
-  if (!uiConfig) {
-    notFound();
-  }
-
-  return <PortalsBriefingPage config={uiConfig} />;
+  return <PortalsBriefingPage workspaceSlug={pack.slug} />;
 }

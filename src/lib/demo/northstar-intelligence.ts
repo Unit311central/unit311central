@@ -18,7 +18,7 @@ import {
   northstarYtdPeriodLabel,
 } from "@/lib/demo/northstar-financial-model";
 import { getNorthstarClients } from "@/lib/demo/module-fixtures";
-import type { IntelligenceRecord, IntelligenceSeverity } from "@/lib/intelligence/types";
+import type { IntelligenceRecord, IntelligenceScoreBand, IntelligenceSeverity } from "@/lib/intelligence/types";
 
 export type NorthstarIntelPosture = "healthy" | "watch" | "elevated" | "critical";
 
@@ -126,8 +126,16 @@ function estimateArr(contractType: string, clientId: string): number {
   return 48_000;
 }
 
+function mapClientHealthBand(band: NorthstarClientIntelRow["healthBand"]): IntelligenceScoreBand {
+  if (band === "at-risk") return "critical";
+  if (band === "watch") return "watch";
+  return "healthy";
+}
+
 function buildSheffieldRow(): NorthstarClientIntelRow {
-  const sheffieldInvoices = getNorthstarInvoices().filter((row) => row.clientName.includes("Sheffield"));
+  const sheffieldInvoices = getNorthstarInvoices().filter((row) =>
+    row.clientName?.includes("Sheffield"),
+  );
   const overdue = sheffieldInvoices.some((row) => row.status === "overdue");
   return {
     id: "nst-cli-sheffield",
@@ -561,7 +569,7 @@ export function northstarClientIntelligenceRecords(): IntelligenceRecord[] {
       title: `${row.name} — ${row.healthBand === "at-risk" ? "at risk" : "watch"}`,
       summary: row.issues[0] ?? "Account requires review",
       severity: row.healthBand === "at-risk" ? "high" : "medium",
-      score: { value: row.healthScore, band: row.healthBand, label: "Health" },
+      score: { value: row.healthScore, band: mapClientHealthBand(row.healthBand), label: "Health" },
       categories: [{ id: "retention", label: "Retention" }],
       tags: [{ id: row.id, label: row.name }],
     }));

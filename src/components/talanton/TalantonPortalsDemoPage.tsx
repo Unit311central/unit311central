@@ -1,8 +1,8 @@
 ﻿"use client";
 
 import PortalsBriefingPage from "@/components/portals/PortalsBriefingPage";
-import { talantonBriefingUiConfig } from "@/lib/portals/briefing/pack-ui-configs";
+import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 
 export default function TalantonPortalsDemoPage() {
-  return <PortalsBriefingPage config={talantonBriefingUiConfig} />;
+  return <PortalsBriefingPage workspaceSlug={TALANTON_IMPACT_SLUG} />;
 }

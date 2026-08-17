@@ -1,8 +1,8 @@
 "use client";
 
 import PortalsBriefingPage from "@/components/portals/PortalsBriefingPage";
-import { abhiBriefingUiConfig } from "@/lib/portals/briefing/pack-ui-configs";
+import { ABHI_SLUG } from "@/lib/abhi-surface";
 
 export default function AbhiPortalsDemoPage() {
-  return <PortalsBriefingPage config={abhiBriefingUiConfig} />;
+  return <PortalsBriefingPage workspaceSlug={ABHI_SLUG} />;
 }
