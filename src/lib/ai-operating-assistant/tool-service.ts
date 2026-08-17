@@ -971,6 +971,32 @@ export async function executeAssistantTool(
   }
 
   try {
+    if (
+      name === "boardpack.generate" &&
+      businessContext.workspace.slug?.trim() === "demo"
+    ) {
+      const when = [args.when, args.meetingDate, args.date, args.focus]
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
+        .find(Boolean);
+      let meetingDate: string | undefined;
+      if (when) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(when)) {
+          meetingDate = when;
+        } else if (/\btomorrow\b/i.test(when)) {
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          meetingDate = d.toISOString().slice(0, 10);
+        }
+      }
+      const { tryNorthstarProductionBoardPackBridge } = await import(
+        "./boardpack-production-bridge"
+      );
+      const bridged = await tryNorthstarProductionBoardPackBridge(meetingDate, {
+        business: businessContext,
+      });
+      if (bridged) return bridged;
+    }
+
     return await handler(args, { business: businessContext });
   } catch (error) {
     return {
