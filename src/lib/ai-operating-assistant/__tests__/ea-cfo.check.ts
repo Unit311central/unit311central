@@ -1,10 +1,12 @@
 /**
- * CFO-grade EA routing — open questions, composite PDFs, client shock, crisis planning.
+ * CFO-grade EA routing — legacy intent-router only (EA_LEGACY_INTENT_ROUTER=1).
+ * Real EA default: npm run prove:ea-real
  * Run: npm run prove:ea-cfo
  */
 import assert from "node:assert/strict";
 
 import { extractClientNameFromScenario } from "@/lib/ai-operating-assistant/client-scenario-tools";
+import { isEaGeneralIntentMode } from "@/lib/ai-operating-assistant/ea-general-mode";
 import { classifyKnowledgeDomain } from "@/lib/ai-operating-assistant/knowledge-domains";
 import { resolveDirectIntent } from "@/lib/ai-operating-assistant/intent-router";
 import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
@@ -91,6 +93,25 @@ const CFO_ROUTE_CASES: CfoRouteCase[] = [
 ];
 
 export function runEaCfoRouteSuite() {
+  const scoped = parseScopedPdfRequest(
+    "Make me a PDF report for the last 6 months with P&L, balance sheet, and cash position",
+  );
+  assert.ok(scoped.metrics.includes("balance_sheet"), "balance_sheet metric registered");
+  assert.ok(scoped.metrics.includes("pnl"));
+  assert.ok(scoped.metrics.includes("cash"));
+
+  assert.equal(
+    extractClientNameFromScenario("Client Meridian Packaging has just gone bankrupt"),
+    "Meridian Packaging",
+  );
+
+  if (isEaGeneralIntentMode()) {
+    console.log(
+      "prove:ea-cfo: skipped legacy route cases (real EA mode). Primitives OK. Use EA_LEGACY_INTENT_ROUTER=1 for full CFO routing suite.\n",
+    );
+    return;
+  }
+
   const failures: string[] = [];
 
   for (const testCase of CFO_ROUTE_CASES) {
@@ -120,18 +141,6 @@ export function runEaCfoRouteSuite() {
       }
     }
   }
-
-  const scoped = parseScopedPdfRequest(
-    "Make me a PDF report for the last 6 months with P&L, balance sheet, and cash position",
-  );
-  assert.ok(scoped.metrics.includes("balance_sheet"), "balance_sheet metric registered");
-  assert.ok(scoped.metrics.includes("pnl"));
-  assert.ok(scoped.metrics.includes("cash"));
-
-  assert.equal(
-    extractClientNameFromScenario("Client Meridian Packaging has just gone bankrupt"),
-    "Meridian Packaging",
-  );
 
   if (failures.length > 0) {
     console.error("prove:ea-cfo route failures:\n", failures.join("\n"));

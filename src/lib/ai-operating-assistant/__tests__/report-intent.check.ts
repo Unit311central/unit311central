@@ -4,6 +4,7 @@ import {
   inferReportTypeFromHistory,
   reportDisplayMeta,
 } from "../report-intent";
+import { isEaGeneralIntentMode } from "../ea-general-mode";
 import { resolveDirectIntent } from "../intent-router";
 
 function check(label: string, condition: boolean) {
@@ -20,17 +21,20 @@ function check(label: string, condition: boolean) {
     "engineering filename",
     classified?.filename === "Engineering Status Report.pdf",
   );
-  const intent = resolveDirectIntent(
-    "Create me an engineering report PDF for my boss",
-    [],
-  );
-  check("engineering tool", intent?.tool === "generateReportPdf");
-  check(
-    "engineering args",
-    intent?.args.reportType === "engineering",
-  );
+  if (!isEaGeneralIntentMode()) {
+    const intent = resolveDirectIntent(
+      "Create me an engineering report PDF for my boss",
+      [],
+    );
+    check("engineering tool", intent?.tool === "generateReportPdf");
+    check(
+      "engineering args",
+      intent?.args.reportType === "engineering",
+    );
+  }
 }
 
+if (!isEaGeneralIntentMode()) {
 {
   const intent = resolveDirectIntent("Create a financial report", []);
   check("financial tool", intent?.tool === "generateFinancialReportPdf");
@@ -70,6 +74,7 @@ function check(label: string, condition: boolean) {
   const intent = resolveDirectIntent("Create a client report PDF", []);
   check("client tool", intent?.tool === "generateReportPdf");
   check("client type", intent?.args.reportType === "client");
+}
 }
 
 // Follow-up after engineering discussion — must NOT default to financial

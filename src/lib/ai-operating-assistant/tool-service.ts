@@ -77,6 +77,7 @@ import {
   searchPerformanceReviews,
 } from "./platform-tools";
 import { analyzeClientScenarioTool } from "./client-scenario-tools";
+import { getOrgContextTool } from "./org-context-tools";
 
 /**
  * Tool Service — register OpenAI function tools and handlers here.
@@ -84,6 +85,26 @@ import { analyzeClientScenarioTool } from "./client-scenario-tools";
  */
 
 export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
+  {
+    name: "getOrgContext",
+    description:
+      "Primary grounding tool for executive Q&A. Returns a unified live snapshot (clients, projects, finance, HR, CRM) plus balance-sheet totals when permitted. Call before answering with numbers, risks, runway, or cross-domain status. Never invent figures not in the result.",
+    parameters: {
+      type: "object",
+      properties: {
+        question: {
+          type: "string",
+          description: "The user question being answered",
+        },
+        focus: {
+          type: "string",
+          enum: ["all", "overview"],
+          description: "Optional focus. Default all (full cross-domain context).",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
   {
     name: "queryBusiness",
     description:
@@ -866,6 +887,7 @@ type ContextualToolHandler = (
 ) => Promise<unknown>;
 
 const handlers: Record<string, ContextualToolHandler> = {
+  getOrgContext: getOrgContextTool,
   queryBusiness: queryBusinessTool,
   analyzeClientScenario: analyzeClientScenarioTool,
   searchClients,

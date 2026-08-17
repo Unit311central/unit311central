@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { classifyKnowledgeDomain } from "../knowledge-domains";
+import { isEaGeneralIntentMode } from "../ea-general-mode";
 import { answerPlatformQuestion } from "../application-catalogue";
 import { answerCapabilityQuestion } from "../actions/capability-service";
 import { resolveOrchestrationRoute } from "../action-orchestration";
@@ -69,9 +70,13 @@ async function main() {
       `expected business/unknown for: ${prompt} → ${domain}`,
     );
     const route = await resolveOrchestrationRoute(prompt, [], business);
-    assert.equal(route.kind, "tool", `expected tool route for: ${prompt} → ${route.kind}`);
-    if (route.kind === "tool") {
-      assert.equal(route.intent.tool, "queryBusiness", prompt);
+    if (isEaGeneralIntentMode()) {
+      assert.equal(route.kind, "none", `expected model path for: ${prompt}`);
+    } else {
+      assert.equal(route.kind, "tool", `expected tool route for: ${prompt} → ${route.kind}`);
+      if (route.kind === "tool") {
+        assert.equal(route.intent.tool, "queryBusiness", prompt);
+      }
     }
   }
 

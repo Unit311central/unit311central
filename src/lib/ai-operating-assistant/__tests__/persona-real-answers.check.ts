@@ -5,6 +5,7 @@
  * Run: node --import tsx src/lib/ai-operating-assistant/__tests__/persona-real-answers.check.ts
  */
 import assert from "node:assert/strict";
+import { isEaGeneralIntentMode } from "../ea-general-mode";
 import { resolveDirectIntent } from "../intent-router";
 import { resolveExecutivePersona, getRoleFocusProfile } from "../role-awareness";
 
@@ -63,6 +64,11 @@ function main() {
   assert.ok(getRoleFocusProfile("sales").answerDomains.includes("sales_opportunities"));
 
   let failed = 0;
+  if (isEaGeneralIntentMode()) {
+    console.log(
+      `skipped ${CASES.length} legacy routing cases (real EA mode — use prove:ea-real)`,
+    );
+  } else {
   for (const testCase of CASES) {
     const intent = resolveDirectIntent(testCase.question, []);
     const expected = Array.isArray(testCase.expectTool)
@@ -78,11 +84,13 @@ function main() {
     }
   }
 
-  if (failed > 0) {
+  if (!isEaGeneralIntentMode() && failed > 0) {
     console.error(`\n${failed} golden question(s) failed routing.`);
     process.exit(1);
   }
+  if (!isEaGeneralIntentMode()) {
   console.log(`\nAll ${CASES.length} golden questions route to live tools.`);
+  }
 }
 
 main();

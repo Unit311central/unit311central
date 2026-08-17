@@ -43,6 +43,7 @@ import {
 } from "./application-catalogue";
 import { classifyKnowledgeDomain, isBusinessStatusRead } from "./knowledge-domains";
 import { eaStage } from "./ea-forensic-trace";
+import { isEaGeneralIntentMode } from "./ea-general-mode";
 
 export { formatActionSuccess, formatPlanReadyMessage };
 /** @deprecated Prefer formatActionSuccess */
@@ -205,12 +206,14 @@ export async function resolveOrchestrationRoute(
   // Document / PDF / export intents win before any write propose path.
   // Prevents "create me a pdf…" becoming Create client location.
   // Preference changes that merely mention PDF must not steal this path.
-  const documentIntent = resolveDirectIntent(message, history);
+  // Real EA mode: model picks PDF tools — skip deterministic document routing.
+  const documentIntent = isEaGeneralIntentMode() ? null : resolveDirectIntent(message, history);
   const isRealDocumentAsk =
     /\b(create|make|generate|export|produce|build|prepare|give|get|show)\b/i.test(message) &&
     /\b(pdf|report|pack|directory|document)\b/i.test(message) &&
     !/\b(preference|switch\s+the|delivery\s+preference)\b/i.test(message);
   if (
+    !isEaGeneralIntentMode() &&
     isRealDocumentAsk &&
     documentIntent &&
     [
@@ -234,6 +237,9 @@ export async function resolveOrchestrationRoute(
 
   // BUSINESS — live data tools (deterministic read intents).
   if (domain.domain === "business") {
+    if (isEaGeneralIntentMode() && !hasExplicitWriteIntent(message)) {
+      return { kind: "none" };
+    }
     const direct = resolveDirectIntent(message, history);
     if (
       direct &&
@@ -353,7 +359,7 @@ export async function resolveOrchestrationRoute(
     };
   }
 
-  // BUSINESS / other reads — deterministic tools (PDF, email, search*).
+  // BUSINESS / other reads — conversational shortcuts (PDF follow-up, email) or legacy deterministic tools.
   const direct = resolveDirectIntent(message, history);
   if (direct?.tool === "proposeBusinessActionPlan" || direct?.tool === "planBusinessGoal") {
     return { kind: "tool", intent: direct };
@@ -402,8 +408,12 @@ export async function resolveOrchestrationRoute(
     }
   }
 
-  // Unknown CEO status/lookup reads → live business query (never freeform Application Catalogue).
-  if (isBusinessStatusRead(message) && !hasExplicitWriteIntent(message)) {
+  // Unknown CEO status/lookup reads → model tools in real EA mode; legacy uses queryBusiness snapshot.
+  if (
+    !isEaGeneralIntentMode() &&
+    isBusinessStatusRead(message) &&
+    !hasExplicitWriteIntent(message)
+  ) {
     return {
       kind: "tool",
       intent: {

@@ -8,6 +8,7 @@ import {
   isPlatformBillingQuery,
   parseExpectedBillingFromQuestion,
 } from "../billing-query";
+import { isEaGeneralIntentMode } from "../ea-general-mode";
 import { resolveDirectIntent } from "../intent-router";
 import { classifyKnowledgeDomain } from "../knowledge-domains";
 
@@ -29,17 +30,25 @@ const QUESTION =
 
 {
   const intent = resolveDirectIntent(QUESTION, []);
-  assert.ok(intent, "expected direct intent");
-  assert.equal(intent?.tool, "searchPlatformSubscriptions");
-  assert.equal(intent?.args.status, "active");
-  assert.equal(intent?.args.expectedMonthlyUsd, 1300);
-  assert.equal(intent?.args.expectedQuarterlyUsd, 3900);
-  assert.equal(intent?.args.expectedFrequency, "quarterly");
+  if (isEaGeneralIntentMode()) {
+    assert.equal(intent, null, "real EA: model picks searchPlatformSubscriptions");
+  } else {
+    assert.ok(intent, "expected direct intent");
+    assert.equal(intent?.tool, "searchPlatformSubscriptions");
+    assert.equal(intent?.args.status, "active");
+    assert.equal(intent?.args.expectedMonthlyUsd, 1300);
+    assert.equal(intent?.args.expectedQuarterlyUsd, 3900);
+    assert.equal(intent?.args.expectedFrequency, "quarterly");
+  }
 }
 
 {
   const summaryIntent = resolveDirectIntent("summarise the business", []);
-  assert.equal(summaryIntent?.tool, "queryBusiness");
+  if (isEaGeneralIntentMode()) {
+    assert.equal(summaryIntent, null);
+  } else {
+    assert.equal(summaryIntent?.tool, "queryBusiness");
+  }
 }
 
 console.log("billing-subscriptions.check.ts: OK");

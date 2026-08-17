@@ -1,4 +1,5 @@
 import type { AssistantChatMessage } from "./types";
+import { isEaGeneralIntentMode } from "./ea-general-mode";
 import { resolveTalantonStoriesRoute } from "@/lib/talanton/executive-stories-intent";
 import {
   classifyReportIntent,
@@ -155,6 +156,41 @@ function resolveGoalPlanningIntent(
 }
 
 /**
+ * Real EA mode — only conversational follow-ups (PDF/email), never vertical regex lanes.
+ */
+function resolveConversationalShortcuts(
+  text: string,
+  history: AssistantChatMessage[],
+): DirectAssistantIntent | null {
+  const hasPdf = historyHasPdfArtifact(history);
+
+  if (isFollowUpPdfCommand(text)) {
+    const inferred = inferReportTypeFromHistory(history);
+    if (inferred) {
+      return intentForReportType(inferred, `followup_pdf_${inferred}`);
+    }
+    return intentForReportType("board", "followup_pdf_default_board");
+  }
+
+  if (
+    hasPdf &&
+    (/email\s+(it|the\s+pdf|this|that|the\s+report|the\s+file)/i.test(text) ||
+      /^email\s+(to\s+)?(the\s+)?board/i.test(text) ||
+      /send\s+(it|the\s+pdf).*(board|email)/i.test(text) ||
+      /email\s+artifact\s+art_/i.test(text))
+  ) {
+    const artifactIdMatch = text.match(/art_[a-z0-9]+/i);
+    return {
+      tool: "emailAssistantArtifact",
+      args: artifactIdMatch ? { artifactId: artifactIdMatch[0] } : {},
+      reason: "email_existing_pdf",
+    };
+  }
+
+  return null;
+}
+
+/**
  * Deterministic short-circuit for clear executive follow-ups.
  * Prefer executing tools over asking the model what the user meant.
  * Write mutations are NOT resolved here — only via Action Registry capability matching.
@@ -166,6 +202,10 @@ export function resolveDirectIntent(
   const text = message.trim();
   const lower = text.toLowerCase();
   const hasPdf = historyHasPdfArtifact(history);
+
+  if (isEaGeneralIntentMode()) {
+    return resolveConversationalShortcuts(text, history);
+  }
 
   // —— Goal-oriented Planning Engine ——
   const goalIntent = resolveGoalPlanningIntent(text, lower);

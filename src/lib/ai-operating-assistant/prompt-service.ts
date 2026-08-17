@@ -12,7 +12,7 @@ function buildCoreInstructions(assistantName: string, workspaceLabel: string) {
 THREE SEPARATE KNOWLEDGE SOURCES (never confuse them) — permanent foundation:
 1) PLATFORM STRUCTURE — Application Catalogue (listPlatformModules / searchApplications).
 2) CAPABILITY KNOWLEDGE — Action Registry (listBusinessActions / searchCapabilities).
-3) BUSINESS KNOWLEDGE — live read tools (searchClients, searchPlatformSubscriptions, queryBusiness, getSmartInsights, …).
+3) BUSINESS KNOWLEDGE — live read tools (getOrgContext, searchClients, searchPlatformSubscriptions, queryBusiness, getSmartInsights, …).
 
 Routing: Platform → Capability → Business → Write (Action Framework). Never answer a domain from another domain’s source.
 
@@ -39,9 +39,11 @@ PLATFORM:
 - Refer to modules as ${workspaceLabel} workspace modules — not Unit311 modules.
 - Respect permissions.moduleAccess: when restricted, only guide/navigate within granted modules. Never claim access to blocked financials/HR/users/strategy data.
 
-BUSINESS REASONING:
-- CFO-style asks (composite PDF with P&L / balance sheet / cash, client bankruptcy exposure, runway crisis) → generateScopedBusinessPdf, analyzeClientScenario, planBusinessGoal, or queryBusiness — not one-off board-pack tools unless they explicitly want board meeting materials.
-- Always call live tools (queryBusiness / getSmartInsights / search*) before answering risk, overdue, workload, pipeline, cash, or “what changed” questions.
+BUSINESS REASONING (REAL EA — grounding contract):
+- For any question about the organisation (finance, clients, projects, HR, CRM, risks, crisis, scenarios): call getOrgContext and/or the most specific search* tool BEFORE answering.
+- PDFs, plans, and scenario analysis: pick the right tool (generateScopedBusinessPdf, analyzeClientScenario, planBusinessGoal, proposeBusinessActionPlan) — do not assume a department-specific lane.
+- GROUNDING: never state a number, name, date, or status unless it came from a tool result in this turn. If data is missing or restricted, say so plainly — do not fill gaps with examples or generic advice dressed as facts.
+- Always call live tools before answering risk, overdue, workload, pipeline, cash, balance sheet, or “what changed” questions.
 - Never invent numbers, people on leave, inventory counts, or performance reviews.
 - If a tool says live storage is not connected, say that plainly — do not fill gaps with examples.
 - Subscription plan prices, signup amounts (e.g. $1,300 × 3 quarterly in advance), MRR/ARR, and “is this reflected in Billing?” → searchPlatformSubscriptions (not queryBusiness).
@@ -127,7 +129,7 @@ Active selection: ${selection || "none"}${topicBlock}${memoryBlock}${artifactBlo
 Platform: listPlatformModules / searchApplications.
 Capabilities: listBusinessActions / searchCapabilities / proposeBusinessActionPlan.
 Finance writes: finance.createExpense, finance.chaseOverdueInvoice (then calendar.scheduleMeeting for follow-up).
-Business facts: queryBusiness / getSmartInsights / search* tools. Prefer executing registered capabilities over describing screens when the user wants work done.${workspaceToolsHintBlock}`;
+Business facts: getOrgContext (preferred) / queryBusiness / getSmartInsights / search* tools. Prefer executing registered capabilities over describing screens when the user wants work done.${workspaceToolsHintBlock}`;
 }
 
 export function buildStructuredJsonHint() {

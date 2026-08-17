@@ -3,6 +3,7 @@
  * Run: node --import tsx src/lib/ai-operating-assistant/__tests__/scoped-pdf.check.ts
  */
 import assert from "node:assert/strict";
+import { isEaGeneralIntentMode } from "../ea-general-mode";
 import { resolveDirectIntent } from "../intent-router";
 import { parseReportPeriod, lastNMonthKeys } from "../report-period";
 import { parseScopedPdfRequest } from "../scoped-pdf-metrics";
@@ -33,8 +34,12 @@ async function main() {
     ]);
     assert.deepEqual(scoped.unknownTopics, []);
     const intent = resolveDirectIntent(DEMO, []);
-    assert.equal(intent?.tool, "generateScopedBusinessPdf");
-    assert.deepEqual(intent?.args.metrics, scoped.metrics);
+    if (isEaGeneralIntentMode()) {
+      assert.equal(intent, null, "real EA: model picks PDF tool");
+    } else {
+      assert.equal(intent?.tool, "generateScopedBusinessPdf");
+      assert.deepEqual(intent?.args.metrics, scoped.metrics);
+    }
   }
 
   // Regression: "create me a pdf…" must never become Create client location.
@@ -73,12 +78,17 @@ async function main() {
       generatedAt: new Date().toISOString(),
     };
     const route = await resolveOrchestrationRoute(DEMO, [], business);
-    assert.equal(route.kind, "tool");
-    if (route.kind === "tool") {
-      assert.equal(route.intent.tool, "generateScopedBusinessPdf");
+    if (isEaGeneralIntentMode()) {
+      assert.equal(route.kind, "none");
+    } else {
+      assert.equal(route.kind, "tool");
+      if (route.kind === "tool") {
+        assert.equal(route.intent.tool, "generateScopedBusinessPdf");
+      }
     }
   }
 
+  if (!isEaGeneralIntentMode()) {
   {
     const intent = resolveDirectIntent("Create a financial report PDF", []);
     assert.equal(intent?.tool, "generateFinancialReportPdf");
@@ -92,6 +102,7 @@ async function main() {
   {
     const intent = resolveDirectIntent("Export all employees to PDF", []);
     assert.equal(intent?.tool, "generateEmployeeListPdf");
+  }
   }
 
   {
