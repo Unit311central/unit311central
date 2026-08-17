@@ -27,6 +27,27 @@ async function loadStaticNorthstarBoardDeckPdf(meetingDate: string): Promise<Uin
     "northstar-board-deck-2026-06-19.pdf",
     "northstar-board-deck-2026-03-20.pdf",
   ];
+
+  if (process.env.VERCEL === "1") {
+    const origin =
+      process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : "https://demo.unit311central.com";
+    for (const filename of candidates) {
+      try {
+        const res = await fetch(`${origin}/samples/${filename}`, { cache: "no-store" });
+        const contentType = res.headers.get("content-type") ?? "";
+        if (res.ok && contentType.includes("pdf")) {
+          return new Uint8Array(await res.arrayBuffer());
+        }
+      } catch {
+        /* try next */
+      }
+    }
+  }
+
   for (const filename of candidates) {
     try {
       const bytes = await readFile(join(process.cwd(), "public", "samples", filename));
@@ -49,23 +70,39 @@ export const demoBoardPackConfig: EaBoardPackConfig = {
   loadLogoDataUrl: loadLogo,
   async generateArtifacts(_data, logoDataUrl, meetingDate) {
     const pack = buildNorthstarBoardPackData(meetingDate);
-    let deck;
-    try {
-      deck = await generateNorthstarBoardDeck(meetingDate);
-    } catch (error) {
+    let deck: Awaited<ReturnType<typeof generateNorthstarBoardDeck>> | null = null;
+
+    if (process.env.VERCEL === "1") {
       const staticPdf = await loadStaticNorthstarBoardDeckPdf(pack.meetingDate);
-      if (!staticPdf) {
-        const detail = error instanceof Error ? error.message : "PDF generation failed";
-        throw new Error(`Northstar board deck PDF: ${detail}`);
+      if (staticPdf) {
+        deck = {
+          data: pack,
+          pdfBytes: staticPdf,
+          filename: northstarBoardDeckPdfFileName(pack.meetingDate),
+          pageCount: pack.pageSummaries?.length ?? 11,
+          build: "static-fallback",
+        };
       }
-      console.error("[northstar-board-pack] live PDF failed — static sample fallback", error);
-      deck = {
-        data: pack,
-        pdfBytes: staticPdf,
-        filename: northstarBoardDeckPdfFileName(pack.meetingDate),
-        pageCount: pack.pageSummaries?.length ?? 11,
-        build: "static-fallback",
-      };
+    }
+
+    if (!deck) {
+      try {
+        deck = await generateNorthstarBoardDeck(meetingDate);
+      } catch (error) {
+        const staticPdf = await loadStaticNorthstarBoardDeckPdf(pack.meetingDate);
+        if (!staticPdf) {
+          const detail = error instanceof Error ? error.message : "PDF generation failed";
+          throw new Error(`Northstar board deck PDF: ${detail}`);
+        }
+        console.error("[northstar-board-pack] live PDF failed — static sample fallback", error);
+        deck = {
+          data: pack,
+          pdfBytes: staticPdf,
+          filename: northstarBoardDeckPdfFileName(pack.meetingDate),
+          pageCount: pack.pageSummaries?.length ?? 11,
+          build: "static-fallback",
+        };
+      }
     }
 
     const resolved = (deck.data ?? pack) as import("@/lib/abhi/board-pack-model").AbhiBoardPackData;
