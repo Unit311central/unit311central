@@ -78,23 +78,32 @@ async function runStagedAnalysis(stages: readonly EaBoardPackStage[]): Promise<v
 }
 
 async function fetchDemoNorthstarBoardDeckPdf(meetingDate: string): Promise<Uint8Array | null> {
-  try {
-    const res = await fetch(
-      `https://demo.unit311central.com/api/demo/board-deck?meetingDate=${encodeURIComponent(meetingDate)}`,
-      {
-        cache: "no-store",
-        headers: {
-          "x-unit311-demo": "1",
-          "x-unit311-workspace-slug": "demo",
+  const origins = [
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+    "https://demo.unit311central.com",
+    "https://unit311central.com",
+  ].filter((value): value is string => Boolean(value));
+
+  for (const origin of origins) {
+    try {
+      const res = await fetch(
+        `${origin}/api/demo/board-deck?meetingDate=${encodeURIComponent(meetingDate)}`,
+        {
+          cache: "no-store",
+          headers: {
+            "x-unit311-demo": "1",
+            "x-unit311-workspace-slug": "demo",
+          },
         },
-      },
-    );
-    const contentType = res.headers.get("content-type") ?? "";
-    if (!res.ok || !contentType.includes("pdf")) return null;
-    return new Uint8Array(await res.arrayBuffer());
-  } catch {
-    return null;
+      );
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!res.ok || !contentType.includes("pdf")) continue;
+      return new Uint8Array(await res.arrayBuffer());
+    } catch {
+      /* try next origin */
+    }
   }
+  return null;
 }
 
 export async function generateBoardPackTool(
@@ -130,19 +139,32 @@ export async function generateBoardPackTool(
     const meetingDate = parseMeetingDate(
       asString(args.meetingDate) || asString(args.date) || asString(args.when),
     );
-    const data = boardPack.buildPackData(meetingDate);
 
     let generated: Awaited<ReturnType<NonNullable<typeof boardPack.generateArtifacts>>> | null =
       null;
+    let data:
+      | ReturnType<NonNullable<typeof boardPack.buildPackData>>
+      | {
+          packName?: string;
+          meetingDate?: string;
+          status?: string;
+          pageSummaries?: string[];
+          folderPath?: string;
+        }
+      | null = null;
 
     if (slug === "demo" && (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")) {
-      const packRecord = data as { meetingDate?: string; packName?: string };
-      const resolvedMeetingDate = packRecord.meetingDate || meetingDate || "2026-03-20";
+      const resolvedMeetingDate = meetingDate || "2026-03-20";
       const pdfBytes = await fetchDemoNorthstarBoardDeckPdf(resolvedMeetingDate);
       if (pdfBytes) {
-        const { northstarBoardDeckPdfFileName } = await import(
+        const { buildNorthstarBoardPackData, northstarBoardDeckPdfFileName } = await import(
           "@/lib/demo/northstar-board-pack-model"
         );
+        try {
+          data = boardPack.buildPackData(meetingDate);
+        } catch {
+          data = buildNorthstarBoardPackData(meetingDate);
+        }
         const pack = data as {
           packName?: string;
           meetingDate?: string;
@@ -152,9 +174,9 @@ export async function generateBoardPackTool(
         };
         generated = {
           pdfBytes,
-          pdfFilename: northstarBoardDeckPdfFileName(resolvedMeetingDate),
+          pdfFilename: northstarBoardDeckPdfFileName(pack.meetingDate || resolvedMeetingDate),
           packName: pack.packName || "Northstar Board Pack",
-          meetingDate: resolvedMeetingDate,
+          meetingDate: pack.meetingDate || resolvedMeetingDate,
           status: pack.status || "draft",
           folderPath: pack.folderPath,
           pageSummaries: pack.pageSummaries,
@@ -165,13 +187,14 @@ export async function generateBoardPackTool(
     }
 
     if (!generated) {
+      data = boardPack.buildPackData(meetingDate);
       const logoDataUrl = await boardPack.loadLogoDataUrl();
       const analysisPromise = runStagedAnalysis(boardPack.stages);
       generated = await boardPack.generateArtifacts(data, logoDataUrl, meetingDate);
       await analysisPromise;
     }
 
-    const packRecord = data as {
+    const packRecord = (data ?? {}) as {
       packName?: string;
       meetingDate?: string;
       status?: string;
