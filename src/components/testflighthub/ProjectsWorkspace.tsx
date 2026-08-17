@@ -22,6 +22,8 @@ import {
 } from "@/lib/project-portfolios";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { getNorthstarDemoProjects } from "@/lib/demo/northstar-projects-data";
+import { isOnDemoHostBrowser } from "@/lib/demo/workspace-preview";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { createInitialUsers } from "@/lib/user-management-data";
@@ -184,7 +186,9 @@ export default function ProjectsWorkspace({
   const isPortfolioLayout = scope === "internal" || scope === "external";
   const isCorpCentre = isBrowserCorpCentreSurface();
   const isNorthstarDemo =
-    typeof window !== "undefined" ? isBrowserDemoSurface() : false;
+    typeof window !== "undefined"
+      ? isBrowserDemoSurface() || isOnDemoHostBrowser()
+      : false;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel(false);
 
   const [projects, setProjects] = useState<InternalProject[]>([]);
@@ -276,31 +280,23 @@ export default function ProjectsWorkspace({
       return;
     }
 
-    if (typeof window !== "undefined") {
-      try {
-        const { isNorthstarDemoBrowser, getNorthstarProjects } =
-          require("@/lib/demo/module-fixtures") as typeof import("@/lib/demo/module-fixtures");
-        if (isNorthstarDemoBrowser()) {
-          const all = getNorthstarProjects();
-          const next =
-            scope === "internal"
-              ? all.filter((project) => !project.clientId)
-              : scope === "external"
-                ? all.filter((project) => Boolean(project.clientId))
-                : all;
-          setProjects(next);
-          setSelectedIds((current) => current.filter((id) => next.some((project) => project.id === id)));
-          const live = sortLatestFirst(next.filter((project) => project.phase === "live"));
-          setSelectedProjectId((current) => {
-            if (current && next.some((project) => project.id === current)) return current;
-            return live[0]?.id ?? next[0]?.id ?? null;
-          });
-          setLoading(false);
-          return;
-        }
-      } catch {
-        /* optional */
-      }
+    if (typeof window !== "undefined" && isOnDemoHostBrowser()) {
+      const all = getNorthstarDemoProjects();
+      const next =
+        scope === "internal"
+          ? all.filter((project) => !project.clientId)
+          : scope === "external"
+            ? all.filter((project) => Boolean(project.clientId))
+            : all;
+      setProjects(next);
+      setSelectedIds((current) => current.filter((id) => next.some((project) => project.id === id)));
+      const live = sortLatestFirst(next.filter((project) => project.phase === "live"));
+      setSelectedProjectId((current) => {
+        if (current && next.some((project) => project.id === current)) return current;
+        return live[0]?.id ?? next[0]?.id ?? null;
+      });
+      setLoading(false);
+      return;
     }
 
     try {
@@ -504,6 +500,19 @@ export default function ProjectsWorkspace({
   if (isPortfolioLayout) {
     return (
       <div className="space-y-5">
+        {isNorthstarDemo ? (
+          <NorthstarProjectsDashboardStrip projects={projects} scope={scope} />
+        ) : (
+          <DashboardTopTilesBar
+            storageKey={`unit311-projects-portfolio-tiles-${scope}`}
+            catalog={portfolioTiles}
+            defaultLayout={DEFAULT_PROJECTS_TILE_LAYOUT}
+            tiles={portfolioTiles}
+            title="Portfolio summary"
+            showCustomizeHint={false}
+          />
+        )}
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-white">
             {scope === "internal" ? "Internal Projects" : "External Projects"}
@@ -530,15 +539,6 @@ export default function ProjectsWorkspace({
             </button>
           </div>
         </div>
-
-        <DashboardTopTilesBar
-          storageKey={`unit311-projects-portfolio-tiles-${scope}`}
-          catalog={portfolioTiles}
-          defaultLayout={DEFAULT_PROJECTS_TILE_LAYOUT}
-          tiles={portfolioTiles}
-          title="Portfolio summary"
-          showCustomizeHint={false}
-        />
 
         {error ? (
           <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">

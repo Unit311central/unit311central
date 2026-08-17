@@ -53,6 +53,7 @@ const DEMO_PROJECTS_NAV: InternalNavSection = {
   icon: "FolderKanban",
   color: "#2563EB",
   items: [
+    { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" as const },
     { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
     { label: "External Projects", icon: "FolderOpen", view: "projects-external" as const },
   ],

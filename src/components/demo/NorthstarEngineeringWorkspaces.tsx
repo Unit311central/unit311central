@@ -224,34 +224,16 @@ export function NorthstarEngineeringDashboardWorkspace() {
             <Link
               key={tile.label}
               href={href(tile.view)}
-              className="group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-teal-500/15 via-white/[0.04] to-sky-500/10 px-4 py-4 transition-colors hover:border-teal-400/35"
+              className="group rounded-2xl border border-white/10 bg-gradient-to-br from-teal-500/15 via-white/[0.04] to-sky-500/10 px-4 py-4 transition-colors hover:border-teal-400/35"
             >
-              <div
-                className="pointer-events-none absolute inset-0 opacity-30"
-                aria-hidden
-              >
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <LineChart data={VELOCITY_TREND}>
-                    <Line
-                      type="monotone"
-                      dataKey="points"
-                      stroke="#2dd4bf"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
+                  {tile.label}
+                </p>
+                <Icon className="h-4 w-4 text-teal-300/80" aria-hidden />
               </div>
-              <div className="relative">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-                    {tile.label}
-                  </p>
-                  <Icon className="h-4 w-4 text-teal-300/80" aria-hidden />
-                </div>
-                <p className="mt-3 text-2xl font-semibold tabular-nums text-white">{tile.value}</p>
-                <p className="mt-1 text-xs text-white/40">{tile.hint}</p>
-              </div>
+              <p className="mt-3 text-2xl font-semibold tabular-nums text-white">{tile.value}</p>
+              <p className="mt-1 text-xs text-white/40">{tile.hint}</p>
             </Link>
           );
         })}
@@ -261,9 +243,9 @@ export function NorthstarEngineeringDashboardWorkspace() {
         <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-4 sm:p-5">
           <h2 className="text-sm font-semibold text-white">Delivery velocity</h2>
           <p className="mt-1 text-xs text-white/45">Story points completed per sprint</p>
-          <div className="mt-4 h-52">
+          <div className="mt-4 h-56">
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <LineChart data={VELOCITY_TREND} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+              <LineChart data={VELOCITY_TREND} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis
                   dataKey="month"
@@ -293,9 +275,9 @@ export function NorthstarEngineeringDashboardWorkspace() {
         <section className="rounded-2xl border border-white/12 bg-white/[0.03] p-4 sm:p-5">
           <h2 className="text-sm font-semibold text-white">Engineering spend</h2>
           <p className="mt-1 text-xs text-white/45">Cumulative portfolio burn (£k)</p>
-          <div className="mt-4 h-52">
+          <div className="mt-4 h-56">
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <BarChart data={BUDGET_BURN} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
+              <BarChart data={BUDGET_BURN} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
                 <XAxis
                   dataKey="month"
