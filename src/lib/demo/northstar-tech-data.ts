@@ -1,3 +1,7 @@
+/** Northstar demo Technology Management spend fixtures. */
+
+import { NORTHSTAR_TELECOM_MONTHLY_TOTAL } from "@/lib/demo/northstar-telecom-data";
+
 export type NorthstarTechSpendSnapshot = {
   lastMonthGbp: number;
   upcomingGbp: number;
@@ -12,7 +16,7 @@ export const NORTHSTAR_TECH_HARDWARE: NorthstarTechSpendSnapshot & {
 };
 
 export const NORTHSTAR_TECH_TELECOM: NorthstarTechSpendSnapshot = {
-  lastMonthGbp: 4_280,
+  lastMonthGbp: NORTHSTAR_TELECOM_MONTHLY_TOTAL,
   upcomingGbp: 1_890,
 };
 

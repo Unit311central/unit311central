@@ -46,6 +46,8 @@ import {
   sumTiTelecomMonthlySpend,
 } from "@/lib/talanton/tech-fake-data";
 import { cn } from "@/lib/utils";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import NorthstarTelecomsRegister from "@/components/demo/NorthstarTelecomsRegister";
 import { WsEmpty, WsSection } from "./domain-workspace-ui";
 
 type TechnologyPlaceholderModule =
@@ -1013,6 +1015,8 @@ export default function TechnologyPlaceholderWorkspace({
   const isAbhi = isBrowserAbhiSurface();
   const isOa = isBrowserOnwardAirSurface();
   const isTi = isBrowserTalantonImpactSurface();
+  const isDemo = isBrowserDemoSurface();
+  if (isDemo && module === "telecommunications") return <NorthstarTelecomsRegister />;
   if (isAbhi && module === "devices") return <AbhiDevicesRegister />;
   if (isAbhi && module === "telecommunications") return <AbhiTelecomsRegister />;
   if (isAbhi && module === "reports") return <AbhiReportsRegister />;
