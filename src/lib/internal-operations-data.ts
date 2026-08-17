@@ -117,6 +117,7 @@ export type InternalOperationsView =
   | "engineering-risks"
   | "technology"
   | "technology-dashboard"
+  | "technology-architecture"
   | "technology-devices"
   | "technology-software-dashboard"
   | "technology-software"
@@ -378,6 +379,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "engineering-risks",
   "technology",
   "technology-dashboard",
+  "technology-architecture",
   "technology-devices",
   "technology-software-dashboard",
   "technology-software",
@@ -498,13 +500,11 @@ export const ENGINEERING_NAV_VIEWS = [
 export const TECHNOLOGY_NAV_VIEWS = [
   "technology",
   "technology-dashboard",
+  "technology-architecture",
   "technology-devices",
   "technology-software-dashboard",
   "technology-software",
   "technology-telecommunications",
-  "technology-infrastructure",
-  "technology-reports",
-  "technology-settings",
 ] as const satisfies readonly InternalOperationsView[];
 
 export const ASSETS_NAV_VIEWS = [
@@ -868,6 +868,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     color: "#4F46E5",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "technology-dashboard" as const },
+      { label: "Architecture Diagrams", icon: "Network", view: "technology-architecture" as const },
       { label: "Technology Assets", icon: "Laptop", view: "technology-devices" as const },
       {
         label: "Software & SaaS Dashboard",
@@ -880,24 +881,6 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         icon: "Radio",
         view: "technology-telecommunications" as const,
       },
-      {
-        label: "Infrastructure & Cloud",
-        icon: "Server",
-        view: "technology-infrastructure" as const,
-      },
-      {
-        label: "Networks & Domains",
-        icon: "Globe",
-        view: "technology-infrastructure" as const,
-      },
-      {
-        label: "Certificates & Identity",
-        icon: "ShieldCheck",
-        view: "technology-infrastructure" as const,
-      },
-      { label: "Security", icon: "ShieldCheck", view: "technology-reports" as const },
-      { label: "Reports", icon: "ScrollText", view: "technology-reports" as const },
-      { label: "Settings", icon: "Settings", view: "technology-settings" as const },
     ],
   },
   {
@@ -1207,6 +1190,10 @@ export const internalViewTitles: Record<
   "engineering-risks": { title: "Risks", subtitle: "Engineering" },
   technology: { title: "Technology Management", subtitle: "Technology Management" },
   "technology-dashboard": { title: "Dashboard", subtitle: "Technology Management" },
+  "technology-architecture": {
+    title: "Architecture Diagrams",
+    subtitle: "Technology Management",
+  },
   "technology-devices": { title: "Technology Assets", subtitle: "Technology Management" },
   "technology-software-dashboard": {
     title: "Software & SaaS Dashboard",
@@ -1591,6 +1578,9 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
         if (activeView === "unit311-details") {
+          return { title: "Architecture Diagrams", subtitle: "Technology Management" };
+        }
+        if (activeView === "technology-architecture") {
           return { title: "Architecture Diagrams", subtitle: "Technology Management" };
         }
         if (activeView === "corporate-cap-table") {

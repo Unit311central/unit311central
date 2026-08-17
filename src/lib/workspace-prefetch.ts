@@ -59,6 +59,8 @@ export const WORKSPACE_CHUNK_LOADERS: Partial<
   technology: () => import("@/components/testflighthub/TechnologyDashboardWorkspace"),
   "technology-dashboard": () =>
     import("@/components/testflighthub/TechnologyDashboardWorkspace"),
+  "technology-architecture": () =>
+    import("@/components/testflighthub/TechnologyArchitectureWorkspace"),
   "technology-devices": () =>
     import("@/components/testflighthub/TechnologyPlaceholderWorkspace"),
   "technology-software": () =>
@@ -197,51 +199,48 @@ export const VIEW_NEIGHBOR_PREFETCH: Partial<
   "oa-engineering-integrations": ["oa-engineering-overview"],
   technology: [
     "technology-dashboard",
+    "technology-architecture",
     "technology-devices",
     "technology-software-dashboard",
     "technology-software",
     "technology-telecommunications",
   ],
   "technology-dashboard": [
+    "technology-architecture",
     "technology-devices",
     "technology-software-dashboard",
     "technology-software",
     "technology-telecommunications",
-    "technology-infrastructure",
+  ],
+  "technology-architecture": [
+    "technology-dashboard",
+    "technology-software",
+    "technology-devices",
   ],
   "technology-devices": [
     "technology-software",
     "technology-software-dashboard",
     "technology-dashboard",
+    "technology-architecture",
     "assets",
   ],
   "technology-software-dashboard": [
     "technology-software",
     "technology-dashboard",
     "technology-devices",
+    "technology-architecture",
   ],
   "technology-software": [
     "technology-software-dashboard",
     "technology-devices",
     "technology-dashboard",
-    "technology-reports",
+    "technology-architecture",
   ],
   "technology-telecommunications": [
     "technology-devices",
     "technology-dashboard",
-    "technology-infrastructure",
+    "technology-architecture",
   ],
-  "technology-infrastructure": [
-    "technology-dashboard",
-    "technology-telecommunications",
-    "technology-reports",
-  ],
-  "technology-reports": [
-    "technology-dashboard",
-    "technology-software",
-    "technology-software-dashboard",
-  ],
-  "technology-settings": ["technology-dashboard", "settings"],
   settings: ["profile", "users"],
   profile: ["settings"],
   users: ["settings", "users-external"],

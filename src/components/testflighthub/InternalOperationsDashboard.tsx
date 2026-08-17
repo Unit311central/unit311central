@@ -248,6 +248,7 @@ import {
   TelemetryDashboard,
   TestingWeatherPanel,
   TechnologyDashboardWorkspace,
+  TechnologyArchitectureWorkspace,
   TechnologyPlaceholderWorkspace,
   TechnologySoftwareWorkspace,
   SoftwareSaasDashboardWorkspace,
@@ -1236,6 +1237,8 @@ export default function InternalOperationsDashboard({
           {(activeView === "technology" || activeView === "technology-dashboard") && (
             <TechnologyDashboardWorkspace />
           )}
+
+          {activeView === "technology-architecture" && <TechnologyArchitectureWorkspace />}
 
           {activeView === "technology-devices" && (
             <TechnologyPlaceholderWorkspace module="devices" />

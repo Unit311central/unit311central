@@ -22,6 +22,8 @@ import {
   loadOaTelecoms,
   sumOaTelecomMonthlySpend,
 } from "@/lib/onwardair/tech-fake-data";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import NorthstarTechnologyDashboard from "@/components/demo/NorthstarTechnologyDashboard";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import {
   TI_TECH_DEVICES,
@@ -58,6 +60,7 @@ export default function TechnologyDashboardWorkspace() {
   const isAbhi = isBrowserAbhiSurface();
   const isOa = isBrowserOnwardAirSurface();
   const isTi = isBrowserTalantonImpactSurface();
+  const isDemo = isBrowserDemoSurface();
   const hasEstate = isAbhi || isOa || isTi;
   const [assets, setAssets] = useState<SoftwareAssetRow[]>([]);
   const [summary, setSummary] = useState<{
@@ -210,6 +213,32 @@ export default function TechnologyDashboardWorkspace() {
       estate,
     });
   }, [assets, summary, isAbhi, isOa, isTi, telecomMonthly]);
+
+  const softwareUpcomingGbp = useMemo(() => {
+    return assets.reduce((sum, row) => {
+      const days = daysUntil(row.nextRenewalDate);
+      if (days == null || days < 0 || days > 90) return sum;
+      const monthly = Number(row.monthlyCost ?? 0);
+      const annual = Number(row.annualCost ?? 0);
+      const amount = monthly > 0 ? monthly * 3 : annual > 0 ? annual / 4 : 0;
+      return sum + amount;
+    }, 0);
+  }, [assets]);
+
+  if (isDemo) {
+    return (
+      <div className="space-y-3">
+        {!loaded ? <p className="text-sm text-white/45">Loading technology estate…</p> : null}
+        {loaded ? (
+          <NorthstarTechnologyDashboard
+            softwareProducts={assets.length}
+            softwareLastMonthGbp={Math.round(summary?.monthlySpend ?? 0)}
+            softwareUpcomingGbp={Math.round(softwareUpcomingGbp || (summary?.monthlySpend ?? 0) * 2.4)}
+          />
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">

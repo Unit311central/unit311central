@@ -183,13 +183,7 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
     }
 
     if (section.label === "Technology Management") {
-      out.push({
-        ...section,
-        items: [
-          { label: "Architecture Diagrams", icon: "Network", view: "unit311-details" as const },
-          ...section.items,
-        ],
-      });
+      out.push(section);
       continue;
     }
 
