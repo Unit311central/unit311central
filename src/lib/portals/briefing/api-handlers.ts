@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
+import { getRequestHost } from "@/lib/app-domains";
+import { resolveWorkspaceSlugFromHost } from "@/lib/intelligence/workspace-context";
 import { getPlatformSession } from "@/lib/platform-session";
 import { applyPortalsBriefingViewCookie } from "@/lib/portals/briefing/cookies";
 import { readPortalsBriefingContent, writePortalsBriefingContent } from "@/lib/portals/briefing/content-service";
@@ -27,7 +28,7 @@ function portalsJson(
 
 function resolveWorkspaceSlugFromRequest(request: NextRequest): string | null {
   const host = getRequestHost(request);
-  return parseClientPlatformSubdomainSafe(host);
+  return resolveWorkspaceSlugFromHost(host);
 }
 
 export async function handleGetPortalsBriefingContent(

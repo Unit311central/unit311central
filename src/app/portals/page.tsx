@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import PortalsBriefingPage from "@/components/portals/PortalsBriefingPage";
-import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
+import { getRequestHost } from "@/lib/app-domains";
+import { resolveWorkspaceSlugFromHost } from "@/lib/intelligence/workspace-context";
 import { getPortalsBriefingPackBySlug } from "@/lib/portals/briefing/pack-registry";
 
 export const metadata: Metadata = {
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 
 export default async function PortalsPage() {
   const host = getRequestHost({ headers: await headers() });
-  const workspaceSlug = parseClientPlatformSubdomainSafe(host);
+  const workspaceSlug = resolveWorkspaceSlugFromHost(host);
   const pack = workspaceSlug ? getPortalsBriefingPackBySlug(workspaceSlug) : null;
 
   if (!pack) {
