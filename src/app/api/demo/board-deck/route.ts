@@ -58,6 +58,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function asciiHeaderValue(value: string): string {
+  return value.replace(/\u2014/g, "-").replace(/[^\x00-\xFF]/g, "?");
+}
+
 function pdfResponse(
   pdfBytes: Uint8Array | Buffer,
   filename: string,
@@ -68,11 +72,11 @@ function pdfResponse(
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `${disposition}; filename="${filename}"`,
+      "Content-Disposition": `${disposition}; filename="${asciiHeaderValue(filename)}"`,
       "Cache-Control": "public, max-age=3600",
-      "X-Northstar-Pack-Name": meta.packName,
-      "X-Northstar-Meeting-Date": meta.meetingDate,
-      "X-Northstar-Deck-Build": meta.build,
+      "X-Northstar-Pack-Name": asciiHeaderValue(meta.packName),
+      "X-Northstar-Meeting-Date": asciiHeaderValue(meta.meetingDate),
+      "X-Northstar-Deck-Build": asciiHeaderValue(meta.build),
     },
   });
 }

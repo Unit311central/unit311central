@@ -6,6 +6,7 @@ import type { NextConfig } from "next";
  */
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
+  serverExternalPackages: ["jspdf", "pptxgenjs"],
   async redirects() {
     // Public destinations must be /dashboard?... so customer-host middleware can
     // authenticate and keep Talanton externals out of the admin shell.

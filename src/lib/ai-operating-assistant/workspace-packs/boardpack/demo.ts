@@ -1,8 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { buildAbhiBoardPackPptx } from "@/lib/abhi/board-pack-pptx";
-import type { AbhiBoardPackData } from "@/lib/abhi/board-pack-model";
 import {
   buildNorthstarBoardPackData,
   northstarBoardDeckPdfFileName,
@@ -22,6 +20,24 @@ async function loadLogo(): Promise<string | null> {
   }
 }
 
+async function loadStaticNorthstarBoardDeckPdf(meetingDate: string): Promise<Uint8Array | null> {
+  const candidates = [
+    northstarBoardDeckPdfFileName(meetingDate),
+    "northstar-board-deck-2026-09-18.pdf",
+    "northstar-board-deck-2026-06-19.pdf",
+    "northstar-board-deck-2026-03-20.pdf",
+  ];
+  for (const filename of candidates) {
+    try {
+      const bytes = await readFile(join(process.cwd(), "public", "samples", filename));
+      if (bytes.length > 0) return new Uint8Array(bytes);
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
 export function northstarBoardPackPptxFileName(meetingDate: string): string {
   return `northstar-board-deck-${meetingDate}.pptx`;
 }
@@ -33,14 +49,35 @@ export const demoBoardPackConfig: EaBoardPackConfig = {
   loadLogoDataUrl: loadLogo,
   async generateArtifacts(_data, logoDataUrl, meetingDate) {
     const pack = buildNorthstarBoardPackData(meetingDate);
-    const deck = await generateNorthstarBoardDeck(meetingDate);
-    const resolved = (deck.data ?? pack) as AbhiBoardPackData;
-    let pptxBytes: Uint8Array | undefined;
+    let deck;
     try {
-      pptxBytes = await buildAbhiBoardPackPptx(resolved, logoDataUrl);
+      deck = await generateNorthstarBoardDeck(meetingDate);
     } catch (error) {
-      console.error("[northstar-board-pack] PPTX generation failed — PDF only", error);
-      pptxBytes = undefined;
+      const staticPdf = await loadStaticNorthstarBoardDeckPdf(pack.meetingDate);
+      if (!staticPdf) {
+        const detail = error instanceof Error ? error.message : "PDF generation failed";
+        throw new Error(`Northstar board deck PDF: ${detail}`);
+      }
+      console.error("[northstar-board-pack] live PDF failed — static sample fallback", error);
+      deck = {
+        data: pack,
+        pdfBytes: staticPdf,
+        filename: northstarBoardDeckPdfFileName(pack.meetingDate),
+        pageCount: pack.pageSummaries?.length ?? 11,
+        build: "static-fallback",
+      };
+    }
+
+    const resolved = (deck.data ?? pack) as import("@/lib/abhi/board-pack-model").AbhiBoardPackData;
+    let pptxBytes: Uint8Array | undefined;
+    if (process.env.VERCEL !== "1") {
+      try {
+        const { buildAbhiBoardPackPptx } = await import("@/lib/abhi/board-pack-pptx");
+        pptxBytes = await buildAbhiBoardPackPptx(resolved, logoDataUrl);
+      } catch (error) {
+        console.error("[northstar-board-pack] PPTX generation failed — PDF only", error);
+        pptxBytes = undefined;
+      }
     }
     return {
       pdfBytes: deck.pdfBytes,
@@ -58,7 +95,7 @@ export const demoBoardPackConfig: EaBoardPackConfig = {
         "northstar:board-pack",
         "northstar:financial-model",
         "northstar:board-data",
-        "assistant:pptx",
+        ...(pptxBytes ? ["assistant:pptx"] : []),
         "assistant:pdf",
       ],
       successMessage: "Northstar Board Pack Generated Successfully",
