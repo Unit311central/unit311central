@@ -80,21 +80,36 @@ function isNorthstarBoardPack(brand?: AbhiBoardPackData | null): boolean {
 }
 
 /** Vector wordmark for white PDF pages — avoids the dark-UI PNG with grey box. */
-function drawNorthstarWordmark(doc: JsPdfDocument, x: number, y: number, width: number): number {
-  const titlePt = Math.max(15, width * 0.19);
-  const subPt = Math.max(6.5, width * 0.052);
+function drawNorthstarWordmark(
+  doc: JsPdfDocument,
+  anchorX: number,
+  y: number,
+  width: number,
+  align: "left" | "right" = "left",
+): number {
+  const compact = align === "right";
+  const titlePt = compact ? Math.max(8.5, width * 0.24) : Math.max(15, width * 0.19);
+  const subPt = compact ? Math.max(5, width * 0.11) : Math.max(6.5, width * 0.052);
   const titleY = y + titlePt * 0.35;
+  const textOpts =
+    align === "right"
+      ? ({ align: "right" as const, charSpace: 0.9 } as const)
+      : ({ charSpace: 2.4 } as const);
+  const subTextOpts =
+    align === "right"
+      ? ({ align: "right" as const, charSpace: 0.15 } as const)
+      : ({ charSpace: 0.45 } as const);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(titlePt);
   setText(doc, C.navy);
-  doc.text("NORTHSTAR", x, titleY, { charSpace: 2.4 });
+  doc.text("NORTHSTAR", anchorX, titleY, textOpts);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(subPt);
   setText(doc, NORTHSTAR_SKY);
   const subY = titleY + subPt * 0.95;
-  doc.text("INDUSTRIAL TECHNOLOGIES", x, subY, { charSpace: 0.45 });
+  doc.text("INDUSTRIAL TECHNOLOGIES", anchorX, subY, subTextOpts);
 
   return subY - y + subPt * 0.35;
 }
@@ -106,10 +121,11 @@ function drawLogo(
   placement: "header" | "cover" = "header",
 ) {
   if (isNorthstarBoardPack(brand)) {
-    const width = placement === "cover" ? 78 : 36;
-    const x = placement === "cover" ? MARGIN : SLIDE_W - MARGIN - width;
-    const y = placement === "cover" ? 7 : 4.5;
-    drawNorthstarWordmark(doc, x, y, width);
+    if (placement === "cover") {
+      drawNorthstarWordmark(doc, MARGIN, 7, 78, "left");
+      return;
+    }
+    drawNorthstarWordmark(doc, SLIDE_W - MARGIN, 4, 44, "right");
     return;
   }
   if (!logoDataUrl) return;
@@ -370,18 +386,30 @@ export async function buildOnwardAirBoardPackPdf(
     addSlide(doc);
     drawHeader(doc, "Executive Summary", logoDataUrl, undefined, data);
 
+    const northstarExec = isNorthstarBoardPack(data);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     setText(doc, C.muted);
-    doc.text("Organisation Status", 230, 8);
     const statusColor =
       data.orgStatus === "Green" ? C.green : data.orgStatus === "Red" ? C.subtleRed : C.amber;
-    setFill(doc, statusColor);
-    doc.circle(232, 14, 2.2, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    setText(doc, C.text);
-    doc.text(data.orgStatus, 237, 15.5);
+    if (northstarExec) {
+      const statusAnchorX = SLIDE_W - MARGIN;
+      doc.text("Organisation Status", statusAnchorX, 23, { align: "right" });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      setText(doc, C.text);
+      doc.text(data.orgStatus, statusAnchorX, 28.5, { align: "right" });
+      setFill(doc, statusColor);
+      doc.circle(statusAnchorX - 16, 27.2, 2, "F");
+    } else {
+      doc.text("Organisation Status", 230, 8);
+      setFill(doc, statusColor);
+      doc.circle(232, 14, 2.2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      setText(doc, C.text);
+      doc.text(data.orgStatus, 237, 15.5);
+    }
 
     // Agenda
     doc.setFont("helvetica", "bold");
