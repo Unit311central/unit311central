@@ -50,7 +50,10 @@ type PortalsBriefingPageBodyProps = {
 };
 
 function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
-  const [content, setContent] = useState<PortalsEditableContent>(() => config.defaultContent());
+  const [content, setContent] = useState<PortalsEditableContent>({
+    majorModules: [],
+    customModules: [],
+  });
   const [canEdit, setCanEdit] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
