@@ -127,28 +127,6 @@ export function createSeedWebsites(): ManagedWebsite[] {
             providerCode: "cms.wordpress",
             clientName: fixtures.company.tradingName,
           },
-          {
-            id: "web-mag-002",
-            name: "Harbor Energy Microsite",
-            cms: "WordPress",
-            url: "https://transform.harborenergy.demo",
-            restApiUrl: "https://transform.harborenergy.demo/wp-json",
-            environment: "Staging",
-            domain: "transform.harborenergy.demo",
-            sslStatus: "Valid",
-            lastDeployment: "2026-07-17T11:00:00Z",
-            lastSync: "2026-07-18T08:40:00Z",
-            pages: 12,
-            posts: 8,
-            media: 64,
-            pluginUpdates: 1,
-            themeUpdates: 0,
-            backups: 6,
-            analyticsVisitors: 3180,
-            connectionStatus: "connected",
-            providerCode: "cms.wordpress",
-            clientName: "Harbor Energy",
-          },
         ];
       }
     } catch {

@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import {
+  getNorthstarIntegrations,
+  groupNorthstarIntegrationsByCategory,
+} from "@/lib/demo/northstar-integrations-data";
 import { ensureIntegrationsRegistryTables } from "@/lib/internal-db-migrations";
 import { listIntegrationRegistry } from "@/lib/integrations-registry-service";
 import { groupIntegrationsByCategory } from "@/lib/integrations-registry";
@@ -9,6 +14,16 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    const integrations = getNorthstarIntegrations();
+    return NextResponse.json({
+      integrations,
+      groups: groupNorthstarIntegrationsByCategory(integrations),
+      source: "northstar-demo",
+      count: integrations.length,
+    });
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

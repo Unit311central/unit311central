@@ -13,7 +13,7 @@ import { type HrEmployee } from "@/lib/hr-data";
 import type { MarketingDashboardKpis } from "@/lib/marketing/types";
 import type { SoftwareAsset, SoftwareAssetsSummary } from "@/lib/software-assets-data";
 import type { SupportTicket } from "@/lib/support-data";
-import { createInitialUsers, type ManagedUser } from "@/lib/user-management-data";
+import type { ManagedUser } from "@/lib/user-management-data";
 import { computeSoftwareAssetsSummary } from "@/lib/software-assets-data";
 
 import { northstarFinancialMonths } from "@/lib/demo/northstar-financial-model";
@@ -129,14 +129,9 @@ export function getNorthstarEmployees(): HrEmployee[] {
 }
 
 export function getNorthstarDemoUsers(): ManagedUser[] {
-  const fixtures = getDemoEnterpriseFixtures();
-  const [admin, ..._rest] = createInitialUsers();
-  return [
-    {
-      ...admin,
-      notes: `Primary admin for ${fixtures.company.tradingName} demo.`,
-    },
-  ];
+  const { buildNorthstarDemoUsers } =
+    require("./northstar-users-data") as typeof import("./northstar-users-data");
+  return buildNorthstarDemoUsers();
 }
 
 const emptyCredentials = {

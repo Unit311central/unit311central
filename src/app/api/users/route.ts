@@ -37,6 +37,10 @@ function isCustomerWorkspaceSlug(slug: string) {
 }
 
 export async function GET() {
+  if (await isDemoApiRequest()) {
+    return NextResponse.json({ users: getNorthstarDemoUsers() });
+  }
+
   const auth = await requireUsersModuleAdministratorSession();
   if ("error" in auth) return auth.error;
 
@@ -45,7 +49,7 @@ export async function GET() {
   }
 
   try {
-    if ((await isDemoApiRequest()) || isDemoWorkspaceSlug(auth.workspace.slug)) {
+    if (isDemoWorkspaceSlug(auth.workspace.slug)) {
       return NextResponse.json({ users: getNorthstarDemoUsers() });
     }
 

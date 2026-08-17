@@ -14,6 +14,7 @@ import {
 
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
 import { isAbhiManagedWebsite } from "@/lib/abhi-website-insights";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
   WEBSITE_CMS_TYPES,
@@ -332,6 +333,7 @@ export default function WebsiteManagementWorkspace() {
   const store = useWebsiteMockStore();
   const basePath = useInternalOperationsBasePath();
   const showUkPavilion = isBrowserAbhiSurface();
+  const isNorthstarDemo = isBrowserDemoSurface();
   const [selectedWebsiteId, setSelectedWebsiteId] = useState<string | null>(
     store.websites[0]?.id ?? null,
   );
@@ -595,31 +597,37 @@ export default function WebsiteManagementWorkspace() {
         <NoticeBanner notice={actionNotice} onDismiss={() => setActionNotice(null)} />
       ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-10">
-        <WsKpiTile label="Connected" value={dashboardKpis.connected} hint="Active CMS links" />
-        <WsKpiTile
-          label="Last deploy"
-          value={dashboardKpis.lastDeploy ? formatDateTime(dashboardKpis.lastDeploy) : "—"}
-          hint="Most recent release"
-        />
-        <WsKpiTile label="Pages" value={dashboardKpis.pages} />
-        <WsKpiTile label="Posts" value={dashboardKpis.posts} />
-        <WsKpiTile label="Media" value={dashboardKpis.media} />
-        <WsKpiTile label="Plugin updates" value={dashboardKpis.pluginUpdates} />
-        <WsKpiTile label="Theme updates" value={dashboardKpis.themeUpdates} />
-        <WsKpiTile label="SSL valid" value={dashboardKpis.sslValid} hint="Certificates OK" />
-        <WsKpiTile label="Backups" value={dashboardKpis.backups} />
-        <WsKpiTile
-          label="Analytics"
-          value={dashboardKpis.analytics.toLocaleString()}
-          hint="30-day visitors"
-        />
-      </section>
+      {!isNorthstarDemo ? (
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-10">
+          <WsKpiTile label="Connected" value={dashboardKpis.connected} hint="Active CMS links" />
+          <WsKpiTile
+            label="Last deploy"
+            value={dashboardKpis.lastDeploy ? formatDateTime(dashboardKpis.lastDeploy) : "—"}
+            hint="Most recent release"
+          />
+          <WsKpiTile label="Pages" value={dashboardKpis.pages} />
+          <WsKpiTile label="Posts" value={dashboardKpis.posts} />
+          <WsKpiTile label="Media" value={dashboardKpis.media} />
+          <WsKpiTile label="Plugin updates" value={dashboardKpis.pluginUpdates} />
+          <WsKpiTile label="Theme updates" value={dashboardKpis.themeUpdates} />
+          <WsKpiTile label="SSL valid" value={dashboardKpis.sslValid} hint="Certificates OK" />
+          <WsKpiTile label="Backups" value={dashboardKpis.backups} />
+          <WsKpiTile
+            label="Analytics"
+            value={dashboardKpis.analytics.toLocaleString()}
+            hint="30-day visitors"
+          />
+        </section>
+      ) : null}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         <WsSection
           title="Connected websites"
-          subtitle="Select a site to manage content, SEO, and deployments."
+          subtitle={
+            isNorthstarDemo
+              ? "Northstar Industrial Technologies — corporate marketing site."
+              : "Select a site to manage content, SEO, and deployments."
+          }
         >
           <div className="space-y-2">
             {store.websites.map((site) => {
