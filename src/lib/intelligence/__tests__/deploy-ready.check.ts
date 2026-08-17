@@ -7,8 +7,9 @@ import { bootstrapIntelligenceWorkspacePacks } from "@/lib/intelligence/workspac
 bootstrapIntelligenceWorkspacePacks();
 
 assert.equal(isIntelligenceOperationsView("oa-competitor-intelligence"), true);
-assert.equal(isIntelligenceOperationsView("demo-intelligence"), true);
-assert.equal(isIntelligenceOperationsView("demo-market-radar"), true);
+assert.equal(isIntelligenceOperationsView("demo-company-intelligence"), true);
+assert.equal(isIntelligenceOperationsView("demo-client-intelligence"), true);
+assert.equal(isIntelligenceOperationsView("demo-market-intelligence"), true);
 assert.equal(isIntelligenceOperationsView("financials"), false);
 assert.equal(CENTRAL_INTELLIGENCE_TOOL_DEFINITIONS.length, 3);
 

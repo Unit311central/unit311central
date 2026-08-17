@@ -35,12 +35,12 @@ async function runPhase2Checks() {
   assert.ok(talanton);
   assert.ok(abhi);
   assert.ok(demo);
-  assert.equal(listIntelligenceDomainsForWorkspace("demo").length, 2);
+  assert.equal(listIntelligenceDomainsForWorkspace("demo").length, 3);
   assert.equal(getIntelligencePackBySlug("onward")?.id, "onwardair-intelligence");
   assert.equal(talanton?.slug, "talantonimpact");
 
   assert.equal(matchIntelligenceDomainByView("onwardair", "oa-competitor-intelligence")?.id, "competitor");
-  assert.equal(matchIntelligenceDomainByView("demo", "demo-intelligence")?.id, "workspace-signals");
+  assert.equal(matchIntelligenceDomainByView("demo", "demo-company-intelligence")?.id, "company-intelligence");
 
   const competitorSearch = await searchIntelligenceRecords({
     workspaceSlug: "onwardair",
@@ -51,9 +51,9 @@ async function runPhase2Checks() {
   assert.equal(competitorSearch.records[0]?.workspaceSlug, "onwardair");
   assert.equal(competitorSearch.records[0]?.domainId, "competitor");
 
-  const demoBriefing = await buildIntelligenceBriefing("demo", "workspace-signals");
+  const demoBriefing = await buildIntelligenceBriefing("demo", "company-intelligence");
   assert.equal(demoBriefing.workspaceSlug, "demo");
-  assert.equal(demoBriefing.domainId, "workspace-signals");
+  assert.equal(demoBriefing.domainId, "company-intelligence");
 
   clearIntelligenceRegistryForTests();
 

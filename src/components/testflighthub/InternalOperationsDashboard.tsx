@@ -296,6 +296,7 @@ import {
   OnwardAirBoardMeetingsWorkspace,
 } from "@/components/onwardair/OnwardAirBoardWorkspaces";
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
+import { NorthstarIntelligenceRouter } from "@/components/demo/intelligence/NorthstarIntelligenceWorkspaces";
 import IntelligenceCentralWorkspace from "@/components/intelligence/IntelligenceCentralWorkspace";
 import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
 import NorthstarBusinessCentralDashboard from "@/components/demo/NorthstarBusinessCentralDashboard";
@@ -807,7 +808,11 @@ export default function InternalOperationsDashboard({
 
           {isIntelligenceOperationsView(activeView) ? (
             <WorkspaceErrorBoundary title="Intelligence">
-              <IntelligenceCentralWorkspace activeView={activeView} clients={clients} />
+              {isDemoSurface ? (
+                <NorthstarIntelligenceRouter activeView={activeView} clients={clients} />
+              ) : (
+                <IntelligenceCentralWorkspace activeView={activeView} clients={clients} />
+              )}
             </WorkspaceErrorBoundary>
           ) : null}
 
