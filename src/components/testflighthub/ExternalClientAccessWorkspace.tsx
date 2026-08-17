@@ -4,12 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
-  ArrowUpRight,
-  Building2,
-  FolderKanban,
-  LifeBuoy,
   Mail,
-  Shield,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -171,45 +166,23 @@ export default function ExternalClientAccessWorkspace() {
 
   const kpis = useMemo(() => {
     const portalUsers = store.portals.reduce((sum, portal) => sum + portal.users, 0);
-    const activeSessions = store.portals.reduce((sum, portal) => sum + portal.activeSessions, 0);
-    const pendingInvitations =
-      store.invitations.filter((row) => row.status !== "Accepted").length +
-      store.portals.reduce((sum, portal) => sum + portal.pendingInvites, 0);
     const lockedAccounts = store.portals.reduce((sum, portal) => sum + portal.lockedAccounts, 0);
     const storageUsed = store.portals.reduce((sum, portal) => sum + portal.storageGb, 0);
-    const lastLogin = store.portals.reduce<string | null>((latest, portal) => {
-      if (!portal.lastLogin) return latest;
-      if (!latest || portal.lastLogin > latest) return portal.lastLogin;
-      return latest;
-    }, null);
 
     return {
       clients: store.portals.length,
       portalUsers,
-      activeSessions,
-      pendingInvitations,
       lockedAccounts,
-      portalUsage: activeSessions,
       storageUsed,
       recentActivity: store.audit.length,
-      lastLogin,
     };
-  }, [store.audit.length, store.invitations, store.portals]);
+  }, [store.audit.length, store.portals]);
 
   const filteredAudit = useMemo(() => {
     const rows =
       auditFilter === "All" ? store.audit : store.audit.filter((row) => row.kind === auditFilter);
     return rows.slice(0, 20);
   }, [auditFilter, store.audit]);
-
-  const quickLinks = [
-    { label: "External users", view: "users-external" as const, icon: Users },
-    { label: "Client directory", view: "clients" as const, icon: Building2 },
-    { label: "Client files", view: "files-client" as const, icon: FolderKanban },
-    { label: "Projects", view: "projects" as const, icon: FolderKanban },
-    { label: "Support desk", view: "support" as const, icon: LifeBuoy },
-    { label: "Training", view: "training" as const, icon: Shield },
-  ];
 
   const resetInviteWizard = () => {
     setInviteStep(1);
@@ -287,40 +260,13 @@ export default function ExternalClientAccessWorkspace() {
 
       {notice ? <NoticeBanner notice={notice} onDismiss={() => setNotice(null)} /> : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-9">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <WsKpiTile label="Clients" value={kpis.clients} hint="Configured portals" />
         <WsKpiTile label="Portal users" value={kpis.portalUsers} />
-        <WsKpiTile label="Active sessions" value={kpis.activeSessions} />
-        <WsKpiTile label="Pending invitations" value={kpis.pendingInvitations} />
         <WsKpiTile label="Locked accounts" value={kpis.lockedAccounts} />
-        <WsKpiTile label="Portal usage" value={kpis.portalUsage} hint="Current sessions" />
         <WsKpiTile label="Storage used" value={`${kpis.storageUsed.toFixed(1)} GB`} />
         <WsKpiTile label="Recent activity" value={kpis.recentActivity} hint="Audit events" />
-        <WsKpiTile
-          label="Last logins"
-          value={kpis.lastLogin ? formatDateTime(kpis.lastLogin) : "—"}
-          hint="Most recent portal access"
-        />
       </section>
-
-      <WsSection title="Related workspaces" subtitle="Jump to linked client operations modules.">
-        <div className="flex flex-wrap gap-2">
-          {quickLinks.map((link) => {
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.view}
-                href={getInternalNavHref(link.view, basePath)}
-                className={WsSecondaryButtonClass()}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {link.label}
-                <ArrowUpRight className="h-3.5 w-3.5 opacity-60" />
-              </Link>
-            );
-          })}
-        </div>
-      </WsSection>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
         <WsSection title="Client portals" subtitle="Select a portal to configure branding and modules.">
@@ -343,6 +289,9 @@ export default function ExternalClientAccessWorkspace() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-white">{portal.portalName}</p>
                       <p className="truncate text-xs text-white/45">{portal.clientName}</p>
+                      {portal.portalUrl ? (
+                        <p className="mt-1 truncate text-[11px] text-emerald-200/80">{portal.portalUrl}</p>
+                      ) : null}
                     </div>
                     <span
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white"
@@ -353,8 +302,6 @@ export default function ExternalClientAccessWorkspace() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/45">
                     <span>{portal.users} users</span>
-                    <span>·</span>
-                    <span>{portal.activeSessions} sessions</span>
                     <span>·</span>
                     <span>{portal.storageGb.toFixed(1)} GB</span>
                   </div>
@@ -615,41 +562,6 @@ export default function ExternalClientAccessWorkspace() {
           </div>
         ) : (
           <WsEmpty message="No audit events match the selected filter." />
-        )}
-      </WsSection>
-
-      <WsSection title="Pending invitations" subtitle="Outstanding portal invitations across clients.">
-        {store.invitations.length ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-[11px] uppercase tracking-[0.12em] text-white/40">
-                  <th className="px-2 py-2 font-medium">Email</th>
-                  <th className="px-2 py-2 font-medium">Client</th>
-                  <th className="px-2 py-2 font-medium">Role</th>
-                  <th className="px-2 py-2 font-medium">Modules</th>
-                  <th className="px-2 py-2 font-medium">Status</th>
-                  <th className="px-2 py-2 font-medium">Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {store.invitations.map((row) => (
-                  <tr key={row.id} className="border-b border-white/5">
-                    <td className="px-2 py-2.5 font-medium text-white">{row.email}</td>
-                    <td className="px-2 py-2.5 text-white/75">{row.clientName}</td>
-                    <td className="px-2 py-2.5 text-white/75">{row.role}</td>
-                    <td className="px-2 py-2.5 text-white/75">{row.modules.join(", ")}</td>
-                    <td className="px-2 py-2.5">
-                      <WsStatusPill className={ecaStatusClass(row.status)}>{row.status}</WsStatusPill>
-                    </td>
-                    <td className="px-2 py-2.5 text-white/75">{row.createdAt}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <WsEmpty message="No invitations have been issued yet." />
         )}
       </WsSection>
 

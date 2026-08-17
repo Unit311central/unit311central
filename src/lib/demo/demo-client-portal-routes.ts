@@ -11,10 +11,26 @@ export const DEMO_CLIENT_PORTALS: readonly DemoClientPortalConfig[] = [
   {
     slug: "sheffield-precision",
     companyName: "Sheffield Precision Engineering",
-    companyId: "nst-client-sheffield",
+    companyId: "nst-cli-sheffield",
     contactFirst: "Tom",
     contactLast: "Bradley",
     contactEmail: "t.bradley@sheffieldprecision.co.uk",
+  },
+  {
+    slug: "peak-district-breweries",
+    companyName: "Peak District Breweries",
+    companyId: "nst-cli-peak",
+    contactFirst: "Daniel",
+    contactLast: "Wright",
+    contactEmail: "d.wright@peakbrew.co.uk",
+  },
+  {
+    slug: "midlands-food-processing",
+    companyName: "Midlands Food Processing Co",
+    companyId: "nst-cli-midlands",
+    contactFirst: "Helen",
+    contactLast: "Marsh",
+    contactEmail: "h.marsh@midlandsfood.co.uk",
   },
 ] as const;
 

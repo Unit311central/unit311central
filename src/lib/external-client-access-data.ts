@@ -1,6 +1,8 @@
 /** External Client Access (MOD-160 / program MOD-620). */
 
 import { ABHI_SLUG } from "@/lib/abhi-surface";
+import { DEMO_SITE_URL } from "@/lib/app-domains";
+import { demoClientPortalPublicPath } from "@/lib/demo/demo-client-portal-routes";
 import { buildEcaPortalConfigsForWorkspace } from "@/lib/portals/eca-seed";
 import { resolvePortalWorkspaceSlugFromBrowser } from "@/lib/portals/resolve-browser-workspace";
 import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
@@ -198,6 +200,78 @@ function createAbhiSeedEcaPortals(): EcaPortalConfig[] {
   }));
 }
 
+function createNorthstarDemoEcaPortals(): EcaPortalConfig[] {
+  const base = DEMO_SITE_URL.replace(/\/$/, "");
+  return [
+    {
+      id: "portal-nst-sheffield",
+      clientId: "nst-cli-sheffield",
+      clientName: "Sheffield Precision Engineering",
+      portalName: "Sheffield Precision Client Portal",
+      logoLabel: "SP",
+      brandPrimary: "#0ea5e9",
+      brandAccent: "#0369a1",
+      modules: ["Projects", "Files", "Support", "Documents", "Reports", "Invoices"],
+      landingPage: "Projects",
+      supportContact: "t.bradley@sheffieldprecision.co.uk",
+      notificationsEnabled: true,
+      documentBranding: "Northstar client letterhead",
+      users: 6,
+      activeSessions: 2,
+      pendingInvites: 0,
+      lockedAccounts: 0,
+      storageGb: 14.2,
+      lastLogin: "2026-08-15T09:40:00Z",
+      portalAccessEnabled: true,
+      portalUrl: `${base}${demoClientPortalPublicPath("sheffield-precision")}`,
+    },
+    {
+      id: "portal-nst-peak",
+      clientId: "nst-cli-peak",
+      clientName: "Peak District Breweries",
+      portalName: "Peak District Breweries Portal",
+      logoLabel: "PD",
+      brandPrimary: "#34d399",
+      brandAccent: "#059669",
+      modules: ["Projects", "Files", "Support", "Documents", "Reports", "Training"],
+      landingPage: "Projects",
+      supportContact: "d.wright@peakbrew.co.uk",
+      notificationsEnabled: true,
+      documentBranding: "Northstar client letterhead",
+      users: 4,
+      activeSessions: 1,
+      pendingInvites: 0,
+      lockedAccounts: 0,
+      storageGb: 8.6,
+      lastLogin: "2026-08-14T16:22:00Z",
+      portalAccessEnabled: true,
+      portalUrl: `${base}${demoClientPortalPublicPath("peak-district-breweries")}`,
+    },
+    {
+      id: "portal-nst-midlands",
+      clientId: "nst-cli-midlands",
+      clientName: "Midlands Food Processing Co",
+      portalName: "Midlands Food Client Portal",
+      logoLabel: "MF",
+      brandPrimary: "#f59e0b",
+      brandAccent: "#b45309",
+      modules: ["Projects", "Files", "Support", "Documents", "Reports", "Calendar"],
+      landingPage: "Files",
+      supportContact: "h.marsh@midlandsfood.co.uk",
+      notificationsEnabled: true,
+      documentBranding: "Northstar client letterhead",
+      users: 5,
+      activeSessions: 1,
+      pendingInvites: 0,
+      lockedAccounts: 0,
+      storageGb: 11.3,
+      lastLogin: "2026-08-13T11:05:00Z",
+      portalAccessEnabled: true,
+      portalUrl: `${base}${demoClientPortalPublicPath("midlands-food-processing")}`,
+    },
+  ];
+}
+
 export function createSeedEcaPortals(): EcaPortalConfig[] {
   const portalSlug = resolvePortalWorkspaceSlugFromBrowser();
   if (portalSlug) {
@@ -211,71 +285,7 @@ export function createSeedEcaPortals(): EcaPortalConfig[] {
       const { isBrowserDemoSurface, getDemoEnterpriseFixtures } =
         require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
-        const fixtures = getDemoEnterpriseFixtures();
-        const company = fixtures.company.tradingName;
-        const domain = fixtures.company.domain;
-        return [
-          {
-            id: "portal-mag-1",
-            clientId: "dme-cli-001",
-            clientName: "Helix Capital Partners",
-            portalName: "Helix Client Portal",
-            logoLabel: "HC",
-            brandPrimary: "#0ea5e9",
-            brandAccent: "#0369a1",
-            modules: ["Projects", "Files", "Support", "Documents", "Reports", "Training"],
-            landingPage: "Projects",
-            supportContact: `support@${domain}`,
-            notificationsEnabled: true,
-            documentBranding: `${company} letterhead`,
-            users: 18,
-            activeSessions: 4,
-            pendingInvites: 2,
-            lockedAccounts: 0,
-            storageGb: 42.6,
-            lastLogin: "2026-07-20T21:14:00Z",
-          },
-          {
-            id: "portal-mag-2",
-            clientId: "dme-cli-002",
-            clientName: "Northbridge Retail Group",
-            portalName: "Northbridge Portal",
-            logoLabel: "NR",
-            brandPrimary: "#34d399",
-            brandAccent: "#059669",
-            modules: ["Projects", "Files", "Support", "Calendar", "Communications", "Assets"],
-            landingPage: "Files",
-            supportContact: `help@${domain}`,
-            notificationsEnabled: true,
-            documentBranding: "Northbridge branded PDF",
-            users: 9,
-            activeSessions: 1,
-            pendingInvites: 1,
-            lockedAccounts: 1,
-            storageGb: 18.2,
-            lastLogin: "2026-07-19T10:02:00Z",
-          },
-          {
-            id: "portal-mag-3",
-            clientId: "dme-cli-003",
-            clientName: "Cascade Health Systems",
-            portalName: "Cascade Portal",
-            logoLabel: "CH",
-            brandPrimary: "#a78bfa",
-            brandAccent: "#7c3aed",
-            modules: ["Projects", "Invoices", "Contracts", "Documents", "Reports"],
-            landingPage: "Documents",
-            supportContact: `portal@${domain}`,
-            notificationsEnabled: false,
-            documentBranding: "Cascade standard",
-            users: 12,
-            activeSessions: 2,
-            pendingInvites: 0,
-            lockedAccounts: 0,
-            storageGb: 27.4,
-            lastLogin: "2026-07-20T08:40:00Z",
-          },
-        ];
+        return createNorthstarDemoEcaPortals();
       }
     } catch {
       // Fall through to Internal seed.
@@ -408,11 +418,46 @@ export function createSeedEcaAudit(): EcaAuditEvent[] {
       const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
         return [
-          { id: "aud-1", at: "2026-07-20T21:14:00Z", kind: "Successful Login", actor: "ops@helix.demo", detail: "Portal session started", clientName: "Helix Capital Partners" },
-          { id: "aud-2", at: "2026-07-20T16:05:00Z", kind: "Invitation", actor: "Operations", detail: "Invited leo@northbridge.demo as Contributor", clientName: "Northbridge Retail Group" },
-          { id: "aud-3", at: "2026-07-19T19:22:00Z", kind: "Failed Login", actor: "unknown@external.example", detail: "Invalid password (3rd attempt)", clientName: "Northbridge Retail Group" },
-          { id: "aud-4", at: "2026-07-19T12:10:00Z", kind: "Permission Change", actor: "Operations", detail: "Enabled Invoices module for Cascade", clientName: "Cascade Health Systems" },
-          { id: "aud-5", at: "2026-07-18T09:45:00Z", kind: "Password Reset", actor: "Operations", detail: "Reset issued for maria@helix.demo", clientName: "Helix Capital Partners" },
+          {
+            id: "aud-nst-1",
+            at: "2026-08-15T09:40:00Z",
+            kind: "Successful Login",
+            actor: "t.bradley@sheffieldprecision.co.uk",
+            detail: "Portal session started",
+            clientName: "Sheffield Precision Engineering",
+          },
+          {
+            id: "aud-nst-2",
+            at: "2026-08-14T16:22:00Z",
+            kind: "Portal Activity",
+            actor: "d.wright@peakbrew.co.uk",
+            detail: "Downloaded IoT monitoring rollout pack",
+            clientName: "Peak District Breweries",
+          },
+          {
+            id: "aud-nst-3",
+            at: "2026-08-13T11:05:00Z",
+            kind: "Successful Login",
+            actor: "h.marsh@midlandsfood.co.uk",
+            detail: "Portal session started",
+            clientName: "Midlands Food Processing Co",
+          },
+          {
+            id: "aud-nst-4",
+            at: "2026-08-12T14:18:00Z",
+            kind: "Permission Change",
+            actor: "Operations",
+            detail: "Enabled Reports module for Peak District Breweries",
+            clientName: "Peak District Breweries",
+          },
+          {
+            id: "aud-nst-5",
+            at: "2026-08-10T08:55:00Z",
+            kind: "Failed Login",
+            actor: "unknown@external.example",
+            detail: "Invalid password (2nd attempt)",
+            clientName: "Sheffield Precision Engineering",
+          },
         ];
       }
     } catch {
@@ -480,26 +525,7 @@ export function createSeedEcaInvitations(): EcaInvitation[] {
     try {
       const { isBrowserDemoSurface } = require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
       if (isBrowserDemoSurface()) {
-        return [
-          {
-            id: "inv-1",
-            email: "leo@northbridge.demo",
-            clientName: "Northbridge Retail Group",
-            role: "Contributor",
-            modules: ["Projects", "Files", "Support"],
-            status: "Sent",
-            createdAt: "2026-07-20",
-          },
-          {
-            id: "inv-2",
-            email: "ana@helix.demo",
-            clientName: "Helix Capital Partners",
-            role: "Viewer",
-            modules: ["Documents", "Reports"],
-            status: "Draft",
-            createdAt: "2026-07-19",
-          },
-        ];
+        return [];
       }
     } catch {
       // Fall through.

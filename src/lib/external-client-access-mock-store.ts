@@ -33,6 +33,22 @@ export function subscribeEcaMockStore(listener: () => void) {
 export function getEcaMockSnapshot() {
   if (typeof window !== "undefined") {
     try {
+      const { isBrowserDemoSurface } =
+        require("@/lib/demo-enterprise") as typeof import("@/lib/demo-enterprise");
+      if (
+        isBrowserDemoSurface() &&
+        !state.portals.every((portal) => portal.id.startsWith("portal-nst-"))
+      ) {
+        state = {
+          portals: createSeedEcaPortals(),
+          audit: createSeedEcaAudit(),
+          invitations: createSeedEcaInvitations(),
+        };
+      }
+    } catch {
+      // Fall through.
+    }
+    try {
       const { isBrowserTalantonImpactSurface } =
         require("@/lib/talanton-surface") as typeof import("@/lib/talanton-surface");
       if (
