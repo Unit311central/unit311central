@@ -74,7 +74,9 @@ export function NorthstarClientPortalLogin({ route }: Props) {
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
           Client Portal
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">Sign in</h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+          {route.companyName}
+        </h1>
         <p className="mt-2 text-sm text-white/65">
           View programme status, documents, invoices, and support for your Atlas deployment.
         </p>

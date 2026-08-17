@@ -3,7 +3,7 @@
  *
  * Portal: https://demo.unit311central.com/sheffield-precision
  *   demo@sheffieldprecision.com  -> /sheffield-precision
- *   Password: Letmein2026$
+ *   Password: Sheffield2026$
  *
  *   node scripts/provision-northstar-sheffield-portal.mjs
  */
@@ -40,7 +40,7 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
 });
 
 const SLUG = "demo";
-const PASSWORD = "Letmein2026$";
+const PASSWORD = "Sheffield2026$";
 const PORTAL_PATH = "sheffield-precision";
 const PORTAL_USER = {
   path: PORTAL_PATH,
