@@ -7,6 +7,7 @@ import { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import {
   getRequestHost,
   isCentralDomainHost,
+  isDemoDomainHost,
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
 import { isAbhiSlug } from "@/lib/abhi-surface";
@@ -60,6 +61,14 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
 
+  if (isDemoDomainHost(host)) {
+    return {
+      title: "Reset Password | Northstar Industrial Technologies",
+      description: "Reset your Northstar Industrial Technologies demo password.",
+      robots: { index: false, follow: false },
+    };
+  }
+
   const isCentral = isCentralDomainHost(host);
   return {
     title: isCentral ? "Reset Password | Unit311 Central" : "Reset Password | Unit311",
@@ -80,11 +89,13 @@ export default async function ResetPasswordRoute() {
         ? "abhi"
         : isOnwardAirSlug(slug)
           ? "onwardair"
-          : slug
-            ? "customer"
-            : isCentralDomainHost(host)
-              ? "central"
-              : "default";
+          : isDemoDomainHost(host) || slug === "demo"
+            ? "northstar"
+            : slug
+              ? "customer"
+              : isCentralDomainHost(host)
+                ? "central"
+                : "default";
 
   return (
     <Suspense fallback={null}>

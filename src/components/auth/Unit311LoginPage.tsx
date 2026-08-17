@@ -35,6 +35,12 @@ import {
   ABHI_LOGIN_BACKGROUND_QUALITY,
   ABHI_LOGIN_OVERLAY_CLASS,
 } from "@/lib/abhi/login-branding";
+import {
+  NORTHSTAR_LOGIN_BACKGROUND,
+  NORTHSTAR_LOGIN_BACKGROUND_CLASS,
+  NORTHSTAR_LOGIN_BACKGROUND_QUALITY,
+  NORTHSTAR_LOGIN_OVERLAY_CLASS,
+} from "@/lib/demo/login-branding";
 
 /** Dark engineering/infrastructure background (4K). */
 const LOGIN_BACKGROUND = "/images/login-workspace-bg.webp";
@@ -354,7 +360,9 @@ export default function Unit311LoginPage({
               ? TALANTON_LOGIN_BACKGROUND
               : isAbhi
                 ? ABHI_LOGIN_BACKGROUND
-                : LOGIN_BACKGROUND
+                : isNorthstar
+                  ? NORTHSTAR_LOGIN_BACKGROUND
+                  : LOGIN_BACKGROUND
       }
       backgroundImageClassName={
         isOnwardAir
@@ -365,10 +373,18 @@ export default function Unit311LoginPage({
               ? TALANTON_LOGIN_BACKGROUND_CLASS
               : isAbhi
                 ? ABHI_LOGIN_BACKGROUND_CLASS
-                : "object-cover object-[center_35%] opacity-80 sm:object-center"
+                : isNorthstar
+                  ? NORTHSTAR_LOGIN_BACKGROUND_CLASS
+                  : "object-cover object-[center_35%] opacity-80 sm:object-center"
       }
       backgroundImageQuality={
-        isTalanton ? TALANTON_LOGIN_BACKGROUND_QUALITY : isAbhi ? ABHI_LOGIN_BACKGROUND_QUALITY : 92
+        isTalanton
+          ? TALANTON_LOGIN_BACKGROUND_QUALITY
+          : isAbhi
+            ? ABHI_LOGIN_BACKGROUND_QUALITY
+            : isNorthstar
+              ? NORTHSTAR_LOGIN_BACKGROUND_QUALITY
+              : 92
       }
       overlayClassName={
         isOnwardAir
@@ -379,7 +395,9 @@ export default function Unit311LoginPage({
               ? TALANTON_LOGIN_OVERLAY_CLASS
               : isAbhi
                 ? ABHI_LOGIN_OVERLAY_CLASS
-                : "absolute inset-0 bg-[#020617]/45"
+                : isNorthstar
+                  ? NORTHSTAR_LOGIN_OVERLAY_CLASS
+                  : "absolute inset-0 bg-[#020617]/45"
       }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >

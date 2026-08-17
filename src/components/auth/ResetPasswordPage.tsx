@@ -10,6 +10,7 @@ import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import CorpCentreLogoMark from "@/components/layout/CorpCentreLogoMark";
 import OnwardAirLogoMark from "@/components/layout/OnwardAirLogoMark";
+import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
 import { marketingFadeIn, MARKETING_CONTENT_CLASS } from "@/lib/marketing-ui";
 import { PLATFORM_PASSWORD_POLICY_HINT } from "@/lib/platform-password-validation";
@@ -26,6 +27,12 @@ import {
   ABHI_LOGIN_BACKGROUND_QUALITY,
   ABHI_LOGIN_OVERLAY_CLASS,
 } from "@/lib/abhi/login-branding";
+import {
+  NORTHSTAR_LOGIN_BACKGROUND,
+  NORTHSTAR_LOGIN_BACKGROUND_CLASS,
+  NORTHSTAR_LOGIN_BACKGROUND_QUALITY,
+  NORTHSTAR_LOGIN_OVERLAY_CLASS,
+} from "@/lib/demo/login-branding";
 
 /** Match Workspace Login visuals. */
 const LOGIN_BACKGROUND = "/images/login-workspace-bg.webp";
@@ -34,7 +41,7 @@ const LOGIN_LOGO = "/images/unit311central-login.webp";
 const LOGIN_LOGO_WIDTH = 1462;
 const LOGIN_LOGO_HEIGHT = 334;
 
-type ResetBrand = "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer";
+type ResetBrand = "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "northstar" | "customer";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -58,6 +65,7 @@ function BrandMark({
   if (brand === "talanton") return <TalantonLogoMark height={56} />;
   if (brand === "abhi") return <AbhiLogoMark height={50} tone="onDark" priority />;
   if (brand === "onwardair") return <OnwardAirLogoMark height={90} maxWidth={500} priority />;
+  if (brand === "northstar") return <NorthstarLogoMark height={70} maxWidth={400} priority />;
   if (brand === "customer") {
     return (
       <div className="rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4">
@@ -258,7 +266,9 @@ export default function ResetPasswordPage({
             ? TALANTON_LOGIN_BACKGROUND
             : brand === "abhi"
               ? ABHI_LOGIN_BACKGROUND
-              : LOGIN_BACKGROUND
+              : brand === "northstar"
+                ? NORTHSTAR_LOGIN_BACKGROUND
+                : LOGIN_BACKGROUND
       }
       backgroundImageClassName={
         brand === "onwardair"
@@ -267,14 +277,18 @@ export default function ResetPasswordPage({
             ? TALANTON_LOGIN_BACKGROUND_CLASS
             : brand === "abhi"
               ? ABHI_LOGIN_BACKGROUND_CLASS
-              : "object-cover object-[center_35%] opacity-80 sm:object-center"
+              : brand === "northstar"
+                ? NORTHSTAR_LOGIN_BACKGROUND_CLASS
+                : "object-cover object-[center_35%] opacity-80 sm:object-center"
       }
       backgroundImageQuality={
         brand === "talanton"
           ? TALANTON_LOGIN_BACKGROUND_QUALITY
           : brand === "abhi"
             ? ABHI_LOGIN_BACKGROUND_QUALITY
-            : 92
+            : brand === "northstar"
+              ? NORTHSTAR_LOGIN_BACKGROUND_QUALITY
+              : 92
       }
       overlayClassName={
         brand === "onwardair"
@@ -283,7 +297,9 @@ export default function ResetPasswordPage({
             ? TALANTON_LOGIN_OVERLAY_CLASS
             : brand === "abhi"
               ? ABHI_LOGIN_OVERLAY_CLASS
-              : "absolute inset-0 bg-[#020617]/45"
+              : brand === "northstar"
+                ? NORTHSTAR_LOGIN_OVERLAY_CLASS
+                : "absolute inset-0 bg-[#020617]/45"
       }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >
