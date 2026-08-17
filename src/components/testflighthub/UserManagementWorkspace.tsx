@@ -8,6 +8,7 @@ import {
   USER_ROLE_OPTIONS,
   USER_STATUS_OPTIONS,
   formatUserDepartments,
+  formatUserHandle,
   formatUserRoles,
   primaryUserDepartment,
   primaryUserRole,
@@ -439,26 +440,30 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                           openDetail();
                         }}
                         className={cn(
-                          "w-full rounded-xl border px-4 py-3 text-left transition-colors",
+                          "w-full rounded-xl border px-4 py-3.5 text-left transition-colors",
                           selected
                             ? "border-sky-400/40 bg-sky-500/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
                             : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-sky-300/80">
                               {user.operatorLabel}
                             </p>
-                            <p className="mt-1 text-sm font-semibold text-white">{user.fullName}</p>
-                            <p className="mt-1 text-[11px] text-white/45">
+                            <p className="mt-1 text-sm font-semibold leading-snug text-white">
+                              {user.fullName}
+                            </p>
+                            <p className="mt-1 truncate text-[11px] text-white/45">
                               {formatUserRoles(user)} · {formatUserDepartments(user)}
                             </p>
-                            <p className="mt-1 font-mono text-xs text-white/45">@{user.username}</p>
+                            <p className="mt-1 truncate font-mono text-xs text-white/45">
+                              {formatUserHandle(user.username)}
+                            </p>
                           </div>
                           <span
                             className={cn(
-                              "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
+                              "shrink-0 self-start whitespace-nowrap rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
                               userStatusClass(user.status),
                             )}
                           >
@@ -481,7 +486,9 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
                       {selectedUser.operatorLabel}
                     </p>
                     <h2 className="mt-1 text-lg font-semibold text-white">{selectedUser.fullName}</h2>
-                    <p className="mt-1 font-mono text-sm text-white/50">@{selectedUser.username}</p>
+                    <p className="mt-1 font-mono text-sm text-white/50">
+                      {formatUserHandle(selectedUser.username)}
+                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span

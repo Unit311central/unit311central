@@ -296,6 +296,14 @@ export function userStatusClass(status: UserStatus) {
   }
 }
 
+/** Display handle for list rows — avoids `@@` when username is already an email. */
+export function formatUserHandle(username: string): string {
+  const value = username.trim();
+  if (!value) return "—";
+  if (value.includes("@")) return value;
+  return `@${value}`;
+}
+
 type DbInternalOperator = {
   id: string;
   operator_label: string;
