@@ -32,6 +32,9 @@ export type ResponsesCreateParams = Parameters<OpenAI["responses"]["create"]>[0]
 
 export type AssistantResponseTelemetryOptions = {
   callSite?: ModelUsageCallSite | string;
+  userId?: string | null;
+  workspaceId?: string | null;
+  conversationId?: string | null;
 };
 
 type StreamEvent = {
@@ -52,6 +55,9 @@ async function* instrumentResponseStream(
     callSite: string;
     model: string;
     startedAt: number;
+    userId: string | null;
+    workspaceId: string | null;
+    conversationId: string | null;
   },
 ): AsyncIterable<StreamEvent> {
   let recorded = false;
@@ -69,6 +75,9 @@ async function* instrumentResponseStream(
       success,
       responseId,
       correlationId: getEaCorrelationId(),
+      userId: context.userId,
+      workspaceId: context.workspaceId,
+      conversationId: context.conversationId,
       ...tokens,
       meta,
     });
@@ -110,6 +119,11 @@ export async function createAssistantResponse(
   const model = String(params.model ?? DEFAULT_MODEL);
   const startedAt = Date.now();
   const isStream = params.stream === true;
+  const usageContext = {
+    userId: telemetry?.userId ?? null,
+    workspaceId: telemetry?.workspaceId ?? null,
+    conversationId: telemetry?.conversationId ?? null,
+  };
 
   try {
     const client = createOpenAIClient();
@@ -121,7 +135,7 @@ export async function createAssistantResponse(
     if (isStream) {
       return instrumentResponseStream(
         result as AsyncIterable<StreamEvent>,
-        { callSite, model, startedAt },
+        { callSite, model, startedAt, ...usageContext },
       );
     }
 
@@ -135,6 +149,7 @@ export async function createAssistantResponse(
       success: true,
       responseId: response.id ?? null,
       correlationId: getEaCorrelationId(),
+      ...usageContext,
       ...tokens,
     });
 
@@ -147,6 +162,7 @@ export async function createAssistantResponse(
       stream: isStream,
       success: false,
       correlationId: getEaCorrelationId(),
+      ...usageContext,
       meta: {
         reason: "openai_request_error",
         message: error instanceof Error ? error.message : String(error),

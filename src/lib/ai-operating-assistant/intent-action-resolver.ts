@@ -674,7 +674,7 @@ Rules:
       text: { format: { type: "json_object" as const } },
       store: false,
       },
-      { callSite: "write_intent_classifier" },
+      { callSite: "write_intent_classifier", userId: business.user.id, workspaceId: business.workspace.id },
     );
 
     const text =

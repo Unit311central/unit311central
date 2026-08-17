@@ -14,6 +14,7 @@ import type {
   PlatformAnalyticsSummary,
   WorkspaceAdoptionRow,
 } from "@/lib/platform-analytics/types";
+import { formatUsd } from "@/lib/ai-operating-assistant/model-cost";
 import { cn } from "@/lib/utils";
 import { TqmsSection } from "./tqms-ui";
 
@@ -505,6 +506,20 @@ function WorkspaceDrillDown({
           <Kpi label="Actions" value={String(eaRow?.actions ?? 0)} />
           <Kpi label="Users" value={String(eaRow?.users ?? 0)} />
         </div>
+        {(() => {
+          const costRow = ea.openAi.byWorkspace.find((w) => w.workspaceKey === row.workspaceKey);
+          if (!costRow || costRow.calls === 0) return null;
+          return (
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <Kpi label="OpenAI est. cost" value={formatUsd(costRow.estimatedCostUsd)} />
+              <Kpi label="API calls" value={String(costRow.calls)} />
+              <Kpi
+                label="Tokens"
+                value={`${costRow.inputTokens.toLocaleString()} in / ${costRow.outputTokens.toLocaleString()} out`}
+              />
+            </div>
+          );
+        })()}
       </TqmsSection>
     </div>
   );
@@ -512,10 +527,11 @@ function WorkspaceDrillDown({
 
 function EaSection({ summary }: { summary: PlatformAnalyticsSummary }) {
   const ea = summary.executiveAssistant;
+  const openAi = ea.openAi;
   return (
     <TqmsSection
       title="Executive Assistant"
-      subtitle="Conversations, users, workspaces, actions, and request categories."
+      subtitle="Conversations, users, workspaces, actions, request categories, and OpenAI usage."
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Conversations" value={String(ea.conversations)} />
@@ -523,6 +539,90 @@ function EaSection({ summary }: { summary: PlatformAnalyticsSummary }) {
         <Kpi label="Workspaces" value={String(ea.workspacesActive)} />
         <Kpi label="Actions" value={String(ea.actions)} />
       </div>
+
+      <div className="mb-4 rounded-xl border border-sky-400/20 bg-sky-500/5 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-sky-200/80">
+          OpenAI usage (Executive Assistant)
+        </p>
+        <p className="mt-1 text-xs text-white/45">
+          Token telemetry from live EA turns. Costs are estimates from published list prices — set
+          OPENAI_ASSISTANT_INPUT_USD_PER_1M / OUTPUT env vars to override.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Kpi label="Est. cost (period)" value={formatUsd(openAi.estimatedCostUsd)} />
+          <Kpi label="API calls" value={String(openAi.apiCalls)} />
+          <Kpi label="Total tokens" value={openAi.totalTokens.toLocaleString()} />
+          <Kpi
+            label="Failed calls"
+            value={openAi.failedCalls > 0 ? String(openAi.failedCalls) : "0"}
+          />
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <MiniTable
+            headers={["Model", "Calls", "Est. cost"]}
+            rows={openAi.byModel.map((r) => [
+              r.model,
+              String(r.calls),
+              formatUsd(r.estimatedCostUsd),
+            ])}
+            empty="No OpenAI calls recorded yet — chat in EA after migration 137 is applied."
+          />
+          <MiniTable
+            headers={["Call site", "Calls", "Est. cost"]}
+            rows={openAi.byCallSite.map((r) => [
+              r.callSite,
+              String(r.calls),
+              formatUsd(r.estimatedCostUsd),
+            ])}
+            empty="No call-site breakdown yet."
+          />
+        </div>
+        <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-white/[0.04] text-xs uppercase tracking-wide text-white/45">
+              <tr>
+                <th className="px-3 py-2.5">Workspace</th>
+                <th className="px-3 py-2.5">API calls</th>
+                <th className="px-3 py-2.5">Input tokens</th>
+                <th className="px-3 py-2.5">Output tokens</th>
+                <th className="px-3 py-2.5">Est. cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {openAi.byWorkspace.length === 0 ? (
+                <tr className="border-t border-white/8 text-white/55">
+                  <td className="px-3 py-6" colSpan={5}>
+                    No OpenAI usage by workspace yet.
+                  </td>
+                </tr>
+              ) : (
+                openAi.byWorkspace.map((row) => (
+                  <tr key={row.workspaceKey} className="border-t border-white/8 text-white/80">
+                    <td className="px-3 py-2.5 font-medium text-white">{row.workspaceLabel}</td>
+                    <td className="px-3 py-2.5 tabular-nums">{row.calls}</td>
+                    <td className="px-3 py-2.5 tabular-nums">{row.inputTokens.toLocaleString()}</td>
+                    <td className="px-3 py-2.5 tabular-nums">{row.outputTokens.toLocaleString()}</td>
+                    <td className="px-3 py-2.5 tabular-nums">{formatUsd(row.estimatedCostUsd)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-4">
+          <MiniTable
+            headers={["Trend bucket", "API calls", "Tokens", "Est. cost"]}
+            rows={openAi.trend.map((r) => [
+              r.bucket,
+              String(r.calls),
+              r.totalTokens.toLocaleString(),
+              formatUsd(r.estimatedCostUsd),
+            ])}
+            empty="No OpenAI cost trend yet."
+          />
+        </div>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <MiniTable
           headers={["Most used actions", "Count"]}

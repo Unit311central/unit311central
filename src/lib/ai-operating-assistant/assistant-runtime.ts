@@ -1401,7 +1401,7 @@ async function* runAssistantTurnInner(input: {
               }
             : {}),
         },
-        { callSite: "assistant_chat_stream" },
+        { callSite: "assistant_chat_stream", userId: input.session.sub, workspaceId: context.workspace.id, conversationId: resolved.conversationId },
       );
 
       let pendingToolCalls: Array<{ callId: string; name: string; arguments: string }> = [];

@@ -257,7 +257,7 @@ Rules:
       },
       store: false,
       },
-      { callSite: "goal_planner" },
+      { callSite: "goal_planner", userId: business.user.id, workspaceId: business.workspace.id },
     );
 
     const text =

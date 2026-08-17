@@ -29,6 +29,8 @@ import type {
   UsageTrendPoint,
   WorkspaceAdoptionRow,
 } from "@/lib/platform-analytics/types";
+import { buildEaOpenAiUsageSummary } from "@/lib/platform-analytics/ea-openai-usage";
+import { loadEaModelUsageRows } from "@/lib/ai-operating-assistant/model-usage-service";
 import {
   createSupabaseServiceRoleClient,
   isSupabaseServiceRoleConfigured,
@@ -368,6 +370,17 @@ export async function buildPlatformAnalyticsSummary(
   const usageTrend = buildUsageTrend(events, from, now);
   const eaTrend = buildEaTrend(eaConversations, eaAudit, from, now);
 
+  const modelUsageRows = await loadEaModelUsageRows(from, to);
+  const workspaceIdsForUsage = [
+    ...new Set([
+      ...eaConversations.map((c) => c.workspace_id).filter(Boolean),
+      ...eaAudit.map((a) => a.workspace_id).filter(Boolean),
+      ...modelUsageRows.map((r) => r.workspace_id).filter(Boolean),
+    ]),
+  ] as string[];
+  const usageWorkspaceKeyById = await mapWorkspaceIdsToKeys(workspaceIdsForUsage);
+  const openAi = await buildEaOpenAiUsageSummary(from, to, workspaceFilter, usageWorkspaceKeyById);
+
   const featureOpportunities = buildOpportunities(modules, allPages, events, priorEvents);
 
   return {
@@ -401,6 +414,7 @@ export async function buildPlatformAnalyticsSummary(
       topics,
       byWorkspace,
       trend: eaTrend,
+      openAi,
     },
     featureOpportunities,
   };

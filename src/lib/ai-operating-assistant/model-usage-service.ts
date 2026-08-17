@@ -56,6 +56,43 @@ export function parseResponseUsage(usage: unknown): {
   return { inputTokens, outputTokens, totalTokens };
 }
 
+export type EaModelUsageRow = {
+  id: string;
+  model: string;
+  call_site: string;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
+  duration_ms: number;
+  success: boolean;
+  user_id: string | null;
+  workspace_id: string | null;
+  created_at: string;
+};
+
+export async function loadEaModelUsageRows(
+  fromIso: string | null,
+  toIso: string,
+): Promise<EaModelUsageRow[]> {
+  if (!isSupabaseServiceRoleConfigured()) return [];
+  const supabase = createSupabaseServiceRoleClient();
+  let query = supabase
+    .from(TABLE)
+    .select(
+      "id, model, call_site, input_tokens, output_tokens, total_tokens, duration_ms, success, user_id, workspace_id, created_at",
+    )
+    .lte("created_at", toIso)
+    .order("created_at", { ascending: false })
+    .limit(20000);
+  if (fromIso) query = query.gte("created_at", fromIso);
+  const { data, error } = await query;
+  if (error) {
+    console.warn("[EA] model usage load failed:", error.message);
+    return [];
+  }
+  return (data ?? []) as EaModelUsageRow[];
+}
+
 /**
  * Persist one OpenAI Responses API call. Never throws — failures are swallowed.
  */

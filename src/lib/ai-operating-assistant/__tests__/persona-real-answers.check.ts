@@ -83,13 +83,14 @@ function main() {
       console.log(`ok  [${testCase.persona}] ${intent.tool} ← ${testCase.question}`);
     }
   }
+  }
 
   if (!isEaGeneralIntentMode() && failed > 0) {
     console.error(`\n${failed} golden question(s) failed routing.`);
     process.exit(1);
   }
   if (!isEaGeneralIntentMode()) {
-  console.log(`\nAll ${CASES.length} golden questions route to live tools.`);
+    console.log(`\nAll ${CASES.length} golden questions route to live tools.`);
   }
 }
 

@@ -77,6 +77,51 @@ export type EaWorkspaceRow = {
 };
 export type EaTrendPoint = { bucket: string; conversations: number; actions: number };
 
+export type EaOpenAiModelRow = {
+  model: string;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCostUsd: number;
+};
+
+export type EaOpenAiCallSiteRow = {
+  callSite: string;
+  calls: number;
+  estimatedCostUsd: number;
+};
+
+export type EaOpenAiWorkspaceCostRow = {
+  workspaceKey: string;
+  workspaceLabel: string;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  estimatedCostUsd: number;
+};
+
+export type EaOpenAiTrendPoint = {
+  bucket: string;
+  calls: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+};
+
+export type EaOpenAiUsageSummary = {
+  apiCalls: number;
+  successfulCalls: number;
+  failedCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+  costIsEstimate: boolean;
+  byModel: EaOpenAiModelRow[];
+  byCallSite: EaOpenAiCallSiteRow[];
+  byWorkspace: EaOpenAiWorkspaceCostRow[];
+  trend: EaOpenAiTrendPoint[];
+};
+
 export type FeatureOpportunityRow = {
   type:
     | "high_visibility_low_adoption"
@@ -126,6 +171,7 @@ export type PlatformAnalyticsSummary = {
     topics: EaTopicRow[];
     byWorkspace: EaWorkspaceRow[];
     trend: EaTrendPoint[];
+    openAi: EaOpenAiUsageSummary;
   };
   featureOpportunities: FeatureOpportunityRow[];
 };

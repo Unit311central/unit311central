@@ -24,6 +24,7 @@ export const TRACKED_WORKSPACES = [
   { key: "demo", label: "Demo" },
   { key: "abhi", label: "ABHI" },
   { key: "talantonimpact", label: "Talanton" },
+  { key: "onwardair", label: "OnwardAir" },
   { key: "corpcentre", label: "CorpCentre" },
 ] as const;
 
