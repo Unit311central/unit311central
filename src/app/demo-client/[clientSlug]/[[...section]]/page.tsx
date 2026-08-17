@@ -6,6 +6,10 @@ import { OnwardAirClientPortalApp } from "@/components/onwardair/portal/OnwardAi
 import { getDemoClientPortal } from "@/lib/demo/demo-client-portal-routes";
 import { getNorthstarDemoClientPortalBySlug } from "@/lib/demo/northstar-client-portal-routes";
 import { parseOaClientPortalSection } from "@/lib/onwardair/client-portal-data";
+import {
+  northstarSectionToAppSection,
+  parseNorthstarClientPortalSection,
+} from "@/lib/demo/northstar-client-portal-data";
 
 type Props = {
   params: Promise<{ clientSlug: string; section?: string[] }>;
@@ -30,12 +34,12 @@ export default async function DemoClientPortalSectionPage({ params }: Props) {
   const { clientSlug, section = [] } = await params;
   const route = getNorthstarDemoClientPortalBySlug(clientSlug);
   if (route) {
-    const portalSection = parseOaClientPortalSection(section);
+    const portalSection = parseNorthstarClientPortalSection(section);
     if (!portalSection) notFound();
     return (
       <OnwardAirClientPortalApp
         companyName={route.companyName}
-        section={portalSection}
+        section={northstarSectionToAppSection(portalSection)}
         variant="northstar"
       />
     );

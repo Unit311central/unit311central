@@ -7,9 +7,9 @@ import { LogOut, Menu, X } from "lucide-react";
 
 import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
 import {
-  OA_CLIENT_PORTAL_NAV,
-  oaClientPortalHref,
-} from "@/lib/onwardair/client-portal-data";
+  NORTHSTAR_CLIENT_PORTAL_NAV,
+  northstarClientPortalHref,
+} from "@/lib/demo/northstar-client-portal-data";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -53,9 +53,25 @@ export function NorthstarClientPortalShell({
   }
 
   function isActive(hrefSuffix: string) {
-    const href = oaClientPortalHref(companyPath, hrefSuffix);
+    const href = northstarClientPortalHref(companyPath, hrefSuffix);
     if (!hrefSuffix) {
       return pathname === `/${companyPath}` || pathname === `/${companyPath}/`;
+    }
+    if (hrefSuffix === "/projects") {
+      return (
+        pathname === href ||
+        pathname.startsWith(`${href}/`) ||
+        pathname === `/${companyPath}/fleet` ||
+        pathname.startsWith(`/${companyPath}/fleet/`)
+      );
+    }
+    if (hrefSuffix === "/milestones") {
+      return (
+        pathname === href ||
+        pathname.startsWith(`${href}/`) ||
+        pathname === `/${companyPath}/missions` ||
+        pathname.startsWith(`/${companyPath}/missions/`)
+      );
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   }
@@ -84,7 +100,7 @@ export function NorthstarClientPortalShell({
       </div>
 
       <nav className="flex flex-1 flex-col gap-4 overflow-y-auto">
-        {OA_CLIENT_PORTAL_NAV.map((group) => (
+        {NORTHSTAR_CLIENT_PORTAL_NAV.map((group) => (
           <div key={group.id}>
             {group.label ? (
               <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
@@ -93,7 +109,7 @@ export function NorthstarClientPortalShell({
             ) : null}
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => {
-                const href = oaClientPortalHref(companyPath, item.hrefSuffix);
+                const href = northstarClientPortalHref(companyPath, item.hrefSuffix);
                 const active = isActive(item.hrefSuffix);
                 return (
                   <Link

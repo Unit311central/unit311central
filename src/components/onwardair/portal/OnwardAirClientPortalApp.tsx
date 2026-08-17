@@ -4,12 +4,20 @@ import {
   getCoastalFreightPortalData,
   type OaClientPortalSection,
 } from "@/lib/onwardair/client-portal-data";
-import { getSheffieldPortalData } from "@/lib/demo/northstar-client-portal-data";
+import {
+  getSheffieldPortalData,
+  getSheffieldPortalInvoices,
+  summarizeSheffieldPortalInvoices,
+} from "@/lib/demo/northstar-client-portal-data";
 import { cn } from "@/lib/utils";
+
+type PortalAppSection =
+  | OaClientPortalSection
+  | "invoices";
 
 type Props = {
   companyName: string;
-  section: OaClientPortalSection;
+  section: PortalAppSection;
   variant?: "onwardair" | "northstar";
 };
 
@@ -64,10 +72,10 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
       <div className="space-y-5">
         <header>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
-            {isNorthstar ? "Edge Sites" : "Fleet & VTOL"}
+            {isNorthstar ? "Active Projects" : "Fleet & VTOL"}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {isNorthstar ? "Production monitoring sites" : "Assigned Vertex aircraft"}
+            {isNorthstar ? "Atlas deployment sites" : "Assigned Vertex aircraft"}
           </h1>
           <p className="mt-1 text-sm text-white/50">
             {isNorthstar
@@ -110,10 +118,10 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
       <div className="space-y-5">
         <header>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
-            {isNorthstar ? "Programme Milestones" : "Missions & Corridors"}
+            {isNorthstar ? "Milestones" : "Missions & Corridors"}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-            {isNorthstar ? "Delivery milestones" : "Programme missions"}
+            {isNorthstar ? "Programme milestones" : "Programme missions"}
           </h1>
           <p className="mt-1 text-sm text-white/50">
             {isNorthstar
@@ -214,6 +222,76 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
               </li>
             ))}
           </ul>
+        </Panel>
+      </div>
+    );
+  }
+
+  if (section === "invoices" && isNorthstar) {
+    const invoiceSummary = summarizeSheffieldPortalInvoices(getSheffieldPortalInvoices());
+    return (
+      <div className="space-y-5">
+        <header>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
+            Invoices
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Billing & statements</h1>
+          <p className="mt-1 text-sm text-white/50">
+            Atlas programme invoices issued to {companyName} by Northstar Industrial Technologies.
+          </p>
+        </header>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-white/40">Outstanding</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{invoiceSummary.outstandingLabel}</p>
+            <p className="mt-0.5 text-xs text-white/45">{invoiceSummary.unpaidCount} unpaid</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-white/40">Paid YTD</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{invoiceSummary.paidCount}</p>
+            <p className="mt-0.5 text-xs text-white/45">Settled invoices</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <p className="text-[11px] uppercase tracking-wide text-white/40">Currency</p>
+            <p className="mt-1 text-2xl font-semibold text-white">GBP</p>
+            <p className="mt-0.5 text-xs text-white/45">Wise settlement preferred</p>
+          </div>
+        </div>
+
+        <Panel title="Invoice register">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="text-[11px] uppercase tracking-wide text-white/40">
+                <tr className="border-b border-white/10">
+                  <th className="py-2 pr-3 font-medium">Invoice</th>
+                  <th className="py-2 pr-3 font-medium">Issued</th>
+                  <th className="py-2 pr-3 font-medium">Due</th>
+                  <th className="py-2 pr-3 font-medium">Amount</th>
+                  <th className="py-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoiceSummary.rows.map((invoice) => (
+                  <tr key={invoice.id} className="border-b border-white/5 text-white/75">
+                    <td className="py-2.5 pr-3 font-medium text-white">{invoice.invoiceNumber}</td>
+                    <td className="py-2.5 pr-3">{invoice.issueDate}</td>
+                    <td className="py-2.5 pr-3">{invoice.dueDate}</td>
+                    <td className="py-2.5 pr-3">
+                      {new Intl.NumberFormat("en-GB", {
+                        style: "currency",
+                        currency: "GBP",
+                        maximumFractionDigits: 0,
+                      }).format(invoice.amount)}
+                    </td>
+                    <td className="py-2.5">
+                      <StatusChip status={invoice.status === "paid" ? "Resolved" : invoice.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Panel>
       </div>
     );

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
 import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
@@ -24,6 +25,7 @@ type Props = {
 export function NorthstarClientPortalLogin({ route }: Props) {
   const [username, setUsername] = useState(route.username || SHEFFIELD_PORTAL_USERNAME);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -59,7 +61,7 @@ export function NorthstarClientPortalLogin({ route }: Props) {
   const formCard = (
     <div className={`relative w-full max-w-md ${marketingFadeIn}`}>
       <div className="mb-5 flex flex-col items-center gap-3">
-        <NorthstarLogoMark height={52} maxWidth={280} priority />
+        <NorthstarLogoMark height={52} maxWidth={280} />
         <span className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-4 py-2.5 shadow-[0_1px_0_rgba(255,255,255,0.35)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -95,14 +97,24 @@ export function NorthstarClientPortalLogin({ route }: Props) {
           </label>
           <label className="block text-sm">
             <span className="text-white/55">Password</span>
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none focus:border-teal-400/60"
-            />
+            <div className="relative mt-1">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 pr-11 text-white outline-none focus:border-teal-400/60"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-white/45 transition-colors hover:text-white/80"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </label>
           {error ? (
             <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
