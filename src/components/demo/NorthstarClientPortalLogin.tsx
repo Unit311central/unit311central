@@ -4,7 +4,6 @@ import { FormEvent, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
 import MarketingPageShell from "@/components/layout/MarketingPageShell";
-import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
 import {
   BOARD_PORTAL_LOGIN_BACKGROUND,
   BOARD_PORTAL_LOGIN_BACKGROUND_CLASS,
@@ -61,26 +60,23 @@ export function NorthstarClientPortalLogin({ route }: Props) {
   const formCard = (
     <div className={`relative w-full max-w-md ${marketingFadeIn}`}>
       <div className="mb-5 flex flex-col items-center gap-3">
-        <NorthstarLogoMark height={52} maxWidth={280} />
-        <span className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-4 py-2.5 shadow-[0_1px_0_rgba(255,255,255,0.35)]">
+        <span className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-5 py-3 shadow-[0_1px_0_rgba(255,255,255,0.35)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={route.companyLogoSrc}
             alt={route.companyName}
-            className="h-10 w-auto max-w-[220px] object-contain object-center"
+            className="h-12 w-auto max-w-[240px] object-contain object-center"
             decoding="async"
           />
         </span>
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
-          Northstar Client Portal
+          Client Portal
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-          {route.companyName} Portal Login
-        </h1>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">Sign in</h1>
         <p className="mt-2 text-sm text-white/65">
-          Sign in to view programme status, documents, and support for your Atlas deployment.
+          View programme status, documents, invoices, and support for your Atlas deployment.
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={(e) => void handleSubmit(e)}>
@@ -130,9 +126,7 @@ export function NorthstarClientPortalLogin({ route }: Props) {
           </button>
         </form>
       </div>
-      <p className="mt-4 text-center text-xs text-white/35">
-        Northstar Industrial Technologies · {route.companyName}
-      </p>
+      <p className="mt-4 text-center text-xs text-white/35">{route.companyName}</p>
     </div>
   );
 

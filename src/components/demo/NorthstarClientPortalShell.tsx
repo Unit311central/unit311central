@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogOut, Menu, X } from "lucide-react";
 
-import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
 import {
   NORTHSTAR_CLIENT_PORTAL_NAV,
   northstarClientPortalHref,
@@ -79,14 +78,13 @@ export function NorthstarClientPortalShell({
   const nav = (
     <>
       <div className="mb-6 space-y-3 px-1">
-        <NorthstarLogoMark height={36} maxWidth={180} />
         {companyLogoSrc ? (
-          <span className="inline-flex w-full items-center justify-center overflow-hidden rounded-lg bg-white px-2.5 py-1">
+          <span className="inline-flex w-full items-center justify-center overflow-hidden rounded-lg bg-white px-3 py-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={companyLogoSrc}
               alt={companyName}
-              className="h-7 w-auto max-w-full object-contain object-center"
+              className="h-9 w-auto max-w-full object-contain object-center"
               decoding="async"
             />
           </span>
@@ -189,7 +187,17 @@ export function NorthstarClientPortalShell({
             <p className="truncate text-sm font-semibold text-white">{companyName}</p>
             <p className="truncate text-[10px] uppercase tracking-wide text-teal-300/60">Client Portal</p>
           </div>
-          <NorthstarLogoMark height={28} maxWidth={120} />
+          {companyLogoSrc ? (
+            <span className="inline-flex shrink-0 items-center overflow-hidden rounded-md bg-white px-2 py-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={companyLogoSrc}
+                alt={companyName}
+                className="h-6 w-auto max-w-[96px] object-contain object-center"
+                decoding="async"
+              />
+            </span>
+          ) : null}
         </header>
         <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-8 sm:py-6">
           {children}

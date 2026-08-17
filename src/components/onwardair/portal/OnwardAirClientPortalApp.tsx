@@ -94,7 +94,7 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
                 <p>{ac.location}</p>
                 <div>
                   <div className="mb-1 flex justify-between text-xs text-white/45">
-                    <span>Utilization</span>
+                    <span>{isNorthstar ? "Coverage" : "Utilization"}</span>
                     <span>{ac.utilizationPct}%</span>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -129,15 +129,15 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
               : "Houston–Galveston–Corpus Christi middle-mile corridor activity."}
           </p>
         </header>
-        <Panel title="Mission board">
+        <Panel title={isNorthstar ? "Milestone tracker" : "Mission board"}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="text-[11px] uppercase tracking-wide text-white/40">
                 <tr className="border-b border-white/10">
-                  <th className="py-2 pr-3 font-medium">Mission</th>
-                  <th className="py-2 pr-3 font-medium">Corridor</th>
-                  <th className="py-2 pr-3 font-medium">Payload</th>
-                  <th className="py-2 pr-3 font-medium">Aircraft</th>
+                  <th className="py-2 pr-3 font-medium">{isNorthstar ? "Milestone" : "Mission"}</th>
+                  <th className="py-2 pr-3 font-medium">{isNorthstar ? "Workstream" : "Corridor"}</th>
+                  <th className="py-2 pr-3 font-medium">{isNorthstar ? "Deliverable" : "Payload"}</th>
+                  <th className="py-2 pr-3 font-medium">{isNorthstar ? "Owner" : "Aircraft"}</th>
                   <th className="py-2 pr-3 font-medium">Date</th>
                   <th className="py-2 font-medium">Status</th>
                 </tr>
@@ -173,7 +173,7 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Shared data room</h1>
           <p className="mt-1 text-sm text-white/50">
             {isNorthstar
-              ? `Controlled artefacts for the ${companyName} × Northstar Atlas programme.`
+              ? `Controlled artefacts for the ${companyName} Atlas programme.`
               : `Controlled artefacts for the ${companyName} × OnwardAir Vertex trial.`}
           </p>
         </header>
@@ -206,7 +206,7 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Programme support</h1>
           <p className="mt-1 text-sm text-white/50">
             {isNorthstar
-              ? "Tickets routed to Northstar customer success and engineering."
+              ? "Tickets routed to the Atlas programme support and engineering teams."
               : "Tickets routed to OnwardAir Flight Test and account teams."}
           </p>
         </header>
@@ -237,7 +237,7 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Billing & statements</h1>
           <p className="mt-1 text-sm text-white/50">
-            Atlas programme invoices issued to {companyName} by Northstar Industrial Technologies.
+            Atlas programme invoices issued to {companyName}.
           </p>
         </header>
 
@@ -306,7 +306,7 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">{companyName}</h1>
         <p className="mt-1 max-w-2xl text-sm text-white/50">
           {isNorthstar
-            ? "Atlas Monitoring Platform deployment with Northstar — edge telemetry, predictive maintenance, and executive reporting for Sheffield Precision Engineering."
+            ? "Atlas Monitoring Platform — edge telemetry, predictive maintenance, and executive reporting for your production sites."
             : "Vertex VTOL™ middle-mile trial with OnwardAir — FLEX Pod™ cargo demos across the Gulf Coast corridor network."}
         </p>
       </header>
@@ -336,7 +336,8 @@ export function OnwardAirClientPortalApp({ companyName, section, variant = "onwa
                     <StatusChip status={m.status} />
                   </div>
                   <p className="mt-1 text-xs text-white/45">
-                    {m.date} · {m.aircraft} · {m.corridor}
+                    {m.date}
+                    {isNorthstar ? ` · ${m.aircraft}` : ` · ${m.aircraft} · ${m.corridor}`}
                   </p>
                 </li>
               ))}
