@@ -13,6 +13,7 @@ import {
 import {
   buildStartTourAction,
   dispatchGuidedLearning,
+  GUIDED_LEARNING_ENABLED,
   GUIDED_LEARNING_EVENT,
   hasNeverShowTours,
   hasSeenPageTour,
@@ -292,6 +293,7 @@ export function useOptionalGuidedLearning() {
 }
 
 /** Convenience for panels that want to trigger a tour without importing dispatch helpers. */
-export function requestShowMeAround(viewId: string) {
-  dispatchGuidedLearning(buildStartTourAction(viewId));
+export function requestShowMeAround(_viewId: string) {
+  if (!GUIDED_LEARNING_ENABLED) return;
+  dispatchGuidedLearning(buildStartTourAction(_viewId));
 }

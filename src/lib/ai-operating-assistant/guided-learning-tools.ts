@@ -1,4 +1,5 @@
 import {
+  GUIDED_LEARNING_ENABLED,
   buildHighlightAction,
   buildStartTourAction,
 } from "./guided-learning";
@@ -41,12 +42,16 @@ export async function getPageGuideTool(
       commonQuestions: page.commonQuestions,
     },
     followUpActions: [
-      {
-        id: "start_tour",
-        label: "Show Me Around",
-        kind: "navigate",
-        href: `guided://start_tour?view=${encodeURIComponent(viewId)}`,
-      },
+      ...(GUIDED_LEARNING_ENABLED
+        ? [
+            {
+              id: "start_tour",
+              label: "Show Me Around",
+              kind: "navigate" as const,
+              href: `guided://start_tour?view=${encodeURIComponent(viewId)}`,
+            },
+          ]
+        : []),
       ...page.commonQuestions.slice(0, 3).map((question, index) => ({
         id: `ask_${index}`,
         label: question,
@@ -61,6 +66,12 @@ export async function startGuidedTour(
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ) {
+  if (!GUIDED_LEARNING_ENABLED) {
+    return toolError(
+      "startGuidedTour",
+      "Module tutorials are temporarily unavailable. I can still answer questions about this page.",
+    );
+  }
   const viewId = asString(args.viewId) || ctx.business.page.activeView || "home";
   const denied = denyIfViewBlocked(viewId, ctx, "startGuidedTour");
   if (denied) return denied;
@@ -92,6 +103,12 @@ export async function highlightUiTarget(
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ) {
+  if (!GUIDED_LEARNING_ENABLED) {
+    return toolError(
+      "highlightUiTarget",
+      "UI walkthrough highlights are temporarily unavailable.",
+    );
+  }
   const viewId = asString(args.viewId) || ctx.business.page.activeView || "home";
   const denied = denyIfViewBlocked(viewId, ctx, "highlightUiTarget");
   if (denied) return denied;

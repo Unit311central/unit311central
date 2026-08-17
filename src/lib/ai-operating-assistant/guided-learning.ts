@@ -1,5 +1,8 @@
 import { buildTourSteps, findPageTarget, getPageGuide } from "./page-registry";
 
+/** Temporarily off — broken in production; re-enable when tours are fixed. */
+export const GUIDED_LEARNING_ENABLED = false;
+
 export const GUIDED_LEARNING_EVENT = "unit311:guided-learning";
 export const GUIDED_LEARNING_STORAGE_PREFIX = "unit311-guided-tour-seen";
 export const GUIDED_LEARNING_NEVER_KEY = "unit311-guided-never-show";
@@ -73,7 +76,7 @@ export function markPageTourSeen(viewId: string, userId?: string | null) {
 }
 
 export function dispatchGuidedLearning(action: GuidedLearningClientAction) {
-  if (typeof window === "undefined") return;
+  if (!GUIDED_LEARNING_ENABLED || typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(GUIDED_LEARNING_EVENT, { detail: action }));
 }
 
@@ -133,11 +136,13 @@ export function extractGuidedClientAction(result: unknown): GuidedLearningClient
 }
 
 export function applyGuidedToolResult(result: unknown) {
+  if (!GUIDED_LEARNING_ENABLED) return;
   const action = extractGuidedClientAction(result);
   if (action) dispatchGuidedLearning(action);
 }
 
 export function handleGuidedHref(href: string, fallbackViewId?: string) {
+  if (!GUIDED_LEARNING_ENABLED) return false;
   try {
     const url = new URL(href);
     if (url.protocol !== "guided:") return false;

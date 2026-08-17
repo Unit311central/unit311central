@@ -2,17 +2,7 @@
 
 import { startTransition, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { BookOpen, Menu, Sparkles, X } from "lucide-react";
-
-import GuidedLearningOverlay from "@/components/executive-assistant/GuidedLearningOverlay";
-import {
-  GuidedLearningProvider,
-  requestShowMeAround,
-} from "@/components/executive-assistant/GuidedLearningProvider";
-import {
-  hasNeverShowTours,
-  markNeverShowTours,
-} from "@/lib/ai-operating-assistant/guided-learning";
+import { Menu, Sparkles, X } from "lucide-react";
 import {
   getInternalNavBreadcrumb,
   isInternalOperationsView,
@@ -64,7 +54,6 @@ export default function SurveyOperationsShell({
 }: SurveyOperationsShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const [tutorialOpen, setTutorialOpen] = useState(false);
   const pathname = usePathname() ?? "";
   const [isInternalHost] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -115,15 +104,6 @@ export default function SurveyOperationsShell({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mobileNavOpen]);
 
-  useEffect(() => {
-    if (!tutorialOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setTutorialOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [tutorialOpen]);
-
   const resolvedTitle =
     activeView != null
       ? mode === "internal" && isInternalOperationsView(activeView)
@@ -142,9 +122,6 @@ export default function SurveyOperationsShell({
       : subtitle;
 
   const showPlatformAi = PLATFORM_AI_ASSISTANT_VISIBLE && mode === "internal";
-
-  const guidedViewId =
-    mode === "internal" && activeView != null ? String(activeView) : "home";
 
   const breadcrumbCrumbs =
     mode === "internal" &&
@@ -284,19 +261,6 @@ export default function SurveyOperationsShell({
                     <Sparkles className="h-3.5 w-3.5" />
                     <span className={cn(isCorpCentre && "hidden lg:inline")}>Assistant</span>
                   </button>
-                  <button
-                    type="button"
-                    aria-label="Tutorial"
-                    aria-expanded={tutorialOpen}
-                    onClick={() => setTutorialOpen(true)}
-                    className={cn(
-                      "inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 px-2.5 text-[11px] font-semibold text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white",
-                      isCorpCentre && "hidden lg:inline-flex",
-                    )}
-                  >
-                    <BookOpen className="h-3.5 w-3.5" />
-                    Tutorial
-                  </button>
                 </>
               ) : null}
             </div>
@@ -311,91 +275,14 @@ export default function SurveyOperationsShell({
         </div>
       </div>
 
-      {showPlatformAi && tutorialOpen ? (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-[2px]"
-          role="presentation"
-          onClick={() => setTutorialOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="tutorial-modal-title"
-            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-sky-400/35 bg-gradient-to-br from-[#122038] via-[#0e1a2e] to-[#0a1424] p-6 shadow-[0_28px_80px_-24px_rgba(14,165,233,0.55)]"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-400 via-cyan-300 to-sky-500" />
-            <button
-              type="button"
-              aria-label="Close tutorial"
-              onClick={() => setTutorialOpen(false)}
-              className="absolute right-3 top-3 rounded-lg p-1.5 text-white/45 transition-colors hover:bg-white/[0.06] hover:text-white"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/20 ring-1 ring-sky-400/40">
-                <BookOpen className="h-5 w-5 text-sky-200" />
-              </span>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/90">
-                  Guided learning
-                </p>
-                <h2 id="tutorial-modal-title" className="mt-0.5 text-lg font-semibold tracking-tight text-white">
-                  Module tutorial
-                </h2>
-              </div>
-            </div>
-            <p className="mt-4 text-sm leading-relaxed text-white/60">
-              A short walkthrough of this module. Optional voice narration is available once the tour starts.
-            </p>
-            <div className="mt-5 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  requestShowMeAround(guidedViewId);
-                  setTutorialOpen(false);
-                }}
-                className="rounded-xl border border-sky-400/40 bg-sky-500/20 px-4 py-2.5 text-sm font-semibold text-sky-50 transition-colors hover:bg-sky-500/30"
-              >
-                Start tutorial
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  markNeverShowTours();
-                  setTutorialOpen(false);
-                }}
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white/80"
-              >
-                Don&apos;t show again
-              </button>
-            </div>
-            {hasNeverShowTours() ? (
-              <p className="mt-3 text-center text-[11px] text-white/35">Tours are currently disabled.</p>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-
       <PlatformFloatingAiAssistant
         open={assistantOpen}
         onOpenChange={setAssistantOpen}
         activeView={activeView}
         mode={mode}
       />
-
-      {showPlatformAi ? <GuidedLearningOverlay /> : null}
     </div>
   );
-
-  if (mode === "internal" && showPlatformAi) {
-    return (
-      <PlatformThemeProvider>
-        <GuidedLearningProvider activeView={guidedViewId}>{shell}</GuidedLearningProvider>
-      </PlatformThemeProvider>
-    );
-  }
 
   return <PlatformThemeProvider>{shell}</PlatformThemeProvider>;
 }

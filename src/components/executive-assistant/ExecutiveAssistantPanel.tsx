@@ -28,7 +28,6 @@ import { cardsFromBoardPackSuccess } from "@/lib/ai-operating-assistant/executio
 import { actionConfirmationToPlanViewer } from "@/lib/ai-operating-assistant/actions/planning/summaries";
 import type { PlanViewerModel } from "@/lib/ai-operating-assistant/actions/planning/types";
 import type { ActionConfirmationView } from "@/components/executive-assistant/ActionConfirmationCard";
-import { requestShowMeAround } from "@/components/executive-assistant/GuidedLearningProvider";
 import {
   getHomeSuggestedActions,
   resolveExecutiveAssistantContext,
@@ -1665,13 +1664,6 @@ export default function ExecutiveAssistantPanel({
               <ActionButton
                 label="Employee PDF"
                 onClick={() => void handleSend(undefined, "Create a PDF of all employees.")}
-              />
-              <ActionButton
-                label="30-second tour"
-                onClick={() => {
-                  requestShowMeAround(activeView || "home");
-                  showNotice("Starting walkthrough");
-                }}
               />
               {suggested.slice(0, 2).map((action) => (
                 <ActionButton
