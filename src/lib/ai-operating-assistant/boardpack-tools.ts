@@ -106,6 +106,102 @@ async function fetchDemoNorthstarBoardDeckPdf(meetingDate: string): Promise<Uint
   return null;
 }
 
+function northstarPackNameForDate(meetingDate: string): string {
+  const d = new Date(`${meetingDate}T12:00:00`);
+  const quarter = Math.floor(d.getMonth() / 3) + 1;
+  return `Northstar Board Pack — Q${quarter} ${d.getFullYear()}`;
+}
+
+async function tryNorthstarProductionBoardPackBridge(
+  meetingDate: string | undefined,
+  ctx: AssistantToolExecutionContext,
+  stages: readonly EaBoardPackStage[],
+): Promise<AssistantToolResult | null> {
+  if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") return null;
+
+  const resolvedMeetingDate = meetingDate || "2026-03-20";
+  const pdfBytes = await fetchDemoNorthstarBoardDeckPdf(resolvedMeetingDate);
+  if (!pdfBytes) {
+    return toolError(
+      "boardpack.generate",
+      "Northstar board deck PDF is temporarily unavailable. Please try again in a moment.",
+    );
+  }
+
+  const { northstarBoardDeckPdfFileName } = await import("@/lib/demo/northstar-board-pack-model");
+  const packName = northstarPackNameForDate(resolvedMeetingDate);
+  const filename = northstarBoardDeckPdfFileName(resolvedMeetingDate);
+  const slug = ctx.business.workspace.slug?.trim() || "demo";
+
+  let pdfArtifact = putAssistantArtifact({
+    id: createArtifactId(),
+    kind: "pdf",
+    title: packName,
+    filename,
+    mimeType: "application/pdf",
+    bytes: Buffer.from(pdfBytes),
+    userId: ctx.business.user.id,
+    meta: {
+      workspaceSlug: slug,
+      packName,
+      meetingDate: resolvedMeetingDate,
+      status: "draft",
+      format: "pdf",
+    },
+  });
+  pdfArtifact = await persistArtifactToStorage(pdfArtifact);
+
+  const pdfOpenUrl = `/api/executive-assistant/artifacts/${pdfArtifact.id}?disposition=inline`;
+  const pdfDownloadUrl = `/api/executive-assistant/artifacts/${pdfArtifact.id}?disposition=attachment`;
+
+  return toolOk(
+    "boardpack.generate",
+    [
+      {
+        artifactId: pdfArtifact.id,
+        title: pdfArtifact.title,
+        filename: pdfArtifact.filename,
+        openUrl: pdfOpenUrl,
+        downloadUrl: pdfDownloadUrl,
+        kind: "pdf",
+        contentBase64: pdfArtifact.contentBase64,
+      },
+    ],
+    {
+      source: ["northstar:board-pack", "assistant:pdf", "northstar:api-bridge"],
+      pageSize: 1,
+      summary: {
+        executed: true,
+        message: "Northstar Board Pack Generated Successfully",
+        artifactId: pdfArtifact.id,
+        pdfArtifactId: pdfArtifact.id,
+        pdfOpenUrl,
+        pdfDownloadUrl,
+        title: packName,
+        filename,
+        meetingDate: resolvedMeetingDate,
+        status: "draft",
+        folderPath: `Board/Northstar/${packName}`,
+        boardDeckHref: "/dashboard?view=board-pack",
+        pageSummaries: [
+          "Cover Page",
+          "Executive Summary",
+          "Previous Meeting",
+          "Risk Register",
+          "KPI Dashboard",
+          "Financial Overview",
+          "Profit & Loss",
+          "Balance Sheet & Cash",
+          "Commercial Performance",
+          "Team & Organisation",
+          "Strategic Discussion & AOB",
+        ],
+        stages: [...stages],
+      },
+    },
+  );
+}
+
 export async function generateBoardPackTool(
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
@@ -129,6 +225,19 @@ export async function generateBoardPackTool(
     );
   }
 
+  const meetingDate = parseMeetingDate(
+    asString(args.meetingDate) || asString(args.date) || asString(args.when),
+  );
+
+  if (slug === "demo") {
+    const bridged = await tryNorthstarProductionBoardPackBridge(
+      meetingDate,
+      ctx,
+      boardPack.stages,
+    );
+    if (bridged) return bridged;
+  }
+
   try {
     if (typeof boardPack.generateArtifacts !== "function") {
       return toolError(
@@ -136,65 +245,14 @@ export async function generateBoardPackTool(
         "Board pack artifact generator is unavailable for this workspace.",
       );
     }
-    const meetingDate = parseMeetingDate(
-      asString(args.meetingDate) || asString(args.date) || asString(args.when),
-    );
+    const meetingDateArg = meetingDate;
+    const data = boardPack.buildPackData(meetingDateArg);
+    const logoDataUrl = await boardPack.loadLogoDataUrl();
+    const analysisPromise = runStagedAnalysis(boardPack.stages);
+    const generated = await boardPack.generateArtifacts(data, logoDataUrl, meetingDateArg);
+    await analysisPromise;
 
-    let generated: Awaited<ReturnType<NonNullable<typeof boardPack.generateArtifacts>>> | null =
-      null;
-    let data:
-      | ReturnType<NonNullable<typeof boardPack.buildPackData>>
-      | {
-          packName?: string;
-          meetingDate?: string;
-          status?: string;
-          pageSummaries?: string[];
-          folderPath?: string;
-        }
-      | null = null;
-
-    if (slug === "demo" && (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")) {
-      const resolvedMeetingDate = meetingDate || "2026-03-20";
-      const pdfBytes = await fetchDemoNorthstarBoardDeckPdf(resolvedMeetingDate);
-      if (pdfBytes) {
-        const { buildNorthstarBoardPackData, northstarBoardDeckPdfFileName } = await import(
-          "@/lib/demo/northstar-board-pack-model"
-        );
-        try {
-          data = boardPack.buildPackData(meetingDate);
-        } catch {
-          data = buildNorthstarBoardPackData(meetingDate);
-        }
-        const pack = data as {
-          packName?: string;
-          meetingDate?: string;
-          status?: string;
-          pageSummaries?: string[];
-          folderPath?: string;
-        };
-        generated = {
-          pdfBytes,
-          pdfFilename: northstarBoardDeckPdfFileName(pack.meetingDate || resolvedMeetingDate),
-          packName: pack.packName || "Northstar Board Pack",
-          meetingDate: pack.meetingDate || resolvedMeetingDate,
-          status: pack.status || "draft",
-          folderPath: pack.folderPath,
-          pageSummaries: pack.pageSummaries,
-          sourceTags: ["northstar:board-pack", "assistant:pdf", "northstar:api-bridge"],
-          successMessage: "Northstar Board Pack Generated Successfully",
-        };
-      }
-    }
-
-    if (!generated) {
-      data = boardPack.buildPackData(meetingDate);
-      const logoDataUrl = await boardPack.loadLogoDataUrl();
-      const analysisPromise = runStagedAnalysis(boardPack.stages);
-      generated = await boardPack.generateArtifacts(data, logoDataUrl, meetingDate);
-      await analysisPromise;
-    }
-
-    const packRecord = (data ?? {}) as {
+    const packRecord = data as {
       packName?: string;
       meetingDate?: string;
       status?: string;
@@ -203,7 +261,8 @@ export async function generateBoardPackTool(
     };
 
     const packName = generated.packName || packRecord.packName || "Board Pack";
-    const resolvedMeetingDate = generated.meetingDate || packRecord.meetingDate || meetingDate || "";
+    const resolvedMeetingDate =
+      generated.meetingDate || packRecord.meetingDate || meetingDateArg || "";
     const status = generated.status || packRecord.status || "draft";
 
     let pdfArtifact = putAssistantArtifact({
