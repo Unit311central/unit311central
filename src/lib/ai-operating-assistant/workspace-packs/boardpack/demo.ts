@@ -35,7 +35,13 @@ export const demoBoardPackConfig: EaBoardPackConfig = {
     const pack = buildNorthstarBoardPackData(meetingDate);
     const deck = await generateNorthstarBoardDeck(meetingDate);
     const resolved = (deck.data ?? pack) as AbhiBoardPackData;
-    const pptxBytes = await buildAbhiBoardPackPptx(resolved, logoDataUrl);
+    let pptxBytes: Uint8Array;
+    try {
+      pptxBytes = await buildAbhiBoardPackPptx(resolved, logoDataUrl);
+    } catch (error) {
+      console.error("[northstar-board-pack] PPTX generation failed", error);
+      throw error instanceof Error ? error : new Error("Northstar board pack PPTX failed.");
+    }
     return {
       pdfBytes: deck.pdfBytes,
       pptxBytes,

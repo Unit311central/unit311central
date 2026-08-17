@@ -65,7 +65,7 @@ function parseMeetingDate(raw: string | undefined): string | undefined {
 import type { EaBoardPackStage } from "@/lib/ai-operating-assistant/workspace-packs/types";
 
 async function runStagedAnalysis(stages: readonly EaBoardPackStage[]): Promise<void> {
-  if (process.env.EA_SKIP_BOARDPACK_STAGES === "1") return;
+  if (process.env.EA_SKIP_BOARDPACK_STAGES === "1" || process.env.VERCEL === "1") return;
   for (let index = 0; index < stages.length; index += 1) {
     await sleep(STAGE_MS[index] ?? 1000);
   }

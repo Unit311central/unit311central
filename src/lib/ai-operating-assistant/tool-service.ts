@@ -930,7 +930,11 @@ export async function executeAssistantTool(
   businessContext?: AssistantBusinessContext,
 ) {
   ensureEaWorkspacePacksRegistered();
-  const handler = handlers[name] ?? getPackToolHandlers()[name];
+  let handler = handlers[name] ?? getPackToolHandlers()[name];
+  if (name === "boardpack.generate" && typeof handler !== "function") {
+    const { generateBoardPackTool } = await import("./boardpack-tools");
+    handler = generateBoardPackTool;
+  }
   if (!handler) {
     return {
       status: "error",
