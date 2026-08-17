@@ -259,6 +259,7 @@ export default function ResetPasswordPage({
 
   return (
     <MarketingPageShell
+      hideAccentGradients={brand === "northstar"}
       backgroundImage={
         brand === "onwardair"
           ? ONWARDAIR_LOGIN_BACKGROUND

@@ -351,6 +351,7 @@ export default function Unit311LoginPage({
 
   return (
     <MarketingPageShell
+      hideAccentGradients={isNorthstar}
       backgroundImage={
         isOnwardAir
           ? ONWARDAIR_LOGIN_BACKGROUND

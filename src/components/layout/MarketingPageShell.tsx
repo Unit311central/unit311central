@@ -18,6 +18,8 @@ type MarketingPageShellProps = {
   backgroundImageUnoptimized?: boolean;
   /** Use CSS background-image (full static file, best for marketing heroes). */
   backgroundImageViaCss?: boolean;
+  /** Hide default blue/teal radial accents (cleaner tenant backdrops). */
+  hideAccentGradients?: boolean;
 };
 
 export default function MarketingPageShell({
@@ -30,6 +32,7 @@ export default function MarketingPageShell({
   backgroundImageQuality = 75,
   backgroundImageUnoptimized = false,
   backgroundImageViaCss = false,
+  hideAccentGradients = false,
 }: MarketingPageShellProps) {
   return (
     <section className={`relative min-h-[100dvh] overflow-x-hidden bg-[#020617] ${className}`}>
@@ -52,13 +55,15 @@ export default function MarketingPageShell({
           />
         )}
         <div className={overlayClassName} />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 70% 55% at 15% 20%, rgba(37,99,235,0.18), transparent 55%), radial-gradient(ellipse 60% 45% at 85% 80%, rgba(6,182,212,0.1), transparent 60%)",
-          }}
-        />
+        {!hideAccentGradients ? (
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse 70% 55% at 15% 20%, rgba(37,99,235,0.18), transparent 55%), radial-gradient(ellipse 60% 45% at 85% 80%, rgba(6,182,212,0.1), transparent 60%)",
+            }}
+          />
+        ) : null}
       </div>
 
       <div className={contentClassName}>{children}</div>

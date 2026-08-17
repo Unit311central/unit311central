@@ -1,9 +1,9 @@
 /** Full-screen backdrop for Northstar demo workspace login + password reset. */
 export const NORTHSTAR_LOGIN_BACKGROUND = "/images/workspaces/northstar-login-bg.png";
 
-/** Corporate interior — keep structure visible behind the login card. */
+/** Corporate interior — lounge left, avoid bright server-room panel on the right. */
 export const NORTHSTAR_LOGIN_BACKGROUND_CLASS =
-  "object-cover object-[center_45%] opacity-[0.48] sm:object-center sm:opacity-[0.54]";
+  "object-cover object-[18%_46%] opacity-[0.5] sm:object-[20%_44%] sm:opacity-[0.54]";
 
 /** Navy + teal fade for Northstar wordmark contrast. */
 export const NORTHSTAR_LOGIN_OVERLAY_CLASS =
