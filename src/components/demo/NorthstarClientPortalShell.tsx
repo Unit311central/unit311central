@@ -90,10 +90,7 @@ export function NorthstarClientPortalShell({
           </span>
         ) : null}
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/60">
-            Client Portal
-          </p>
-          <p className="mt-1 text-sm font-semibold leading-snug text-white">{companyName}</p>
+          <p className="text-sm font-semibold leading-snug text-white">{companyName}</p>
         </div>
       </div>
 
@@ -185,7 +182,6 @@ export function NorthstarClientPortalShell({
           </button>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-white">{companyName}</p>
-            <p className="truncate text-[10px] uppercase tracking-wide text-teal-300/60">Client Portal</p>
           </div>
           {companyLogoSrc ? (
             <span className="inline-flex shrink-0 items-center overflow-hidden rounded-md bg-white px-2 py-1">

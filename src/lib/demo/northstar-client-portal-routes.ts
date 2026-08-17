@@ -22,7 +22,7 @@ const SHEFFIELD_ROUTE: NorthstarDemoClientPortalRoute = {
   contactEmail: "t.bradley@sheffieldprecision.co.uk",
   username: SHEFFIELD_PORTAL_USERNAME,
   redirectPath: `/${SHEFFIELD_PORTAL_PATH}`,
-  companyLogoSrc: "/images/portals/sheffield-precision.svg",
+  companyLogoSrc: "/images/portals/sheffield-precision.svg?v=sheffield-client",
 };
 
 export function getNorthstarDemoClientPortalBySlug(

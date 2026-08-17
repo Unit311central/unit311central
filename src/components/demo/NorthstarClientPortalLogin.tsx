@@ -71,10 +71,7 @@ export function NorthstarClientPortalLogin({ route }: Props) {
         </span>
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-6 py-7 shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-teal-300/70">
-          Client Portal
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+        <h1 className="text-2xl font-semibold tracking-tight text-white">
           {route.companyName}
         </h1>
         <p className="mt-2 text-sm text-white/65">
