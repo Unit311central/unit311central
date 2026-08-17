@@ -33,6 +33,7 @@ import {
   northstarYtdPeriodLabel,
 } from "@/lib/demo/northstar-financial-model";
 import type { GrantApplication } from "@/lib/grants-data";
+import { getNorthstarDemoProjects } from "@/lib/demo/northstar-projects-data";
 import type { InternalProject } from "@/lib/projects-data";
 import type { PotentialClientsCountrySnapshot } from "@/lib/potential-clients-data";
 import {
@@ -212,72 +213,7 @@ export function getNorthstarDiscoveryMeetings() {
 }
 
 export function getNorthstarProjects(): InternalProject[] {
-  return [
-    {
-      id: "nst-prj-001",
-      name: "Edge Controller Rollout — Sheffield Precision",
-      clientId: "nst-cli-sheffield",
-      clientName: "Sheffield Precision Engineering",
-      site: "Sheffield, UK",
-      region: "UK",
-      operator: "Marcus Reed",
-      phase: "live",
-      startDate: "2026-03-01",
-      endDate: "2026-09-30",
-      progressPct: 62,
-      notes: "Phase 2 gateway deployment in progress.",
-      createdAt: NOW,
-      updatedAt: NOW,
-    },
-    {
-      id: "nst-prj-002",
-      name: "IoT Monitoring Platform — Peak District Breweries",
-      clientId: "nst-cli-peak",
-      clientName: "Peak District Breweries",
-      site: "Bakewell, UK",
-      region: "UK",
-      operator: "Elena Hart",
-      phase: "live",
-      startDate: "2026-01-15",
-      endDate: "2026-08-31",
-      progressPct: 88,
-      notes: "UAT sign-off scheduled.",
-      createdAt: NOW,
-      updatedAt: NOW,
-    },
-    {
-      id: "nst-prj-003",
-      name: "Predictive Maintenance Pilot — Bristol Composites",
-      clientId: "nst-cli-bristol",
-      clientName: "Bristol Composites Ltd",
-      site: "Bristol, UK",
-      region: "UK",
-      operator: "James Okonkwo",
-      phase: "upcoming",
-      startDate: "2026-09-01",
-      endDate: "2026-12-15",
-      progressPct: 12,
-      notes: "Discovery complete — SOW in legal review.",
-      createdAt: NOW,
-      updatedAt: NOW,
-    },
-    {
-      id: "nst-prj-004",
-      name: "Legacy PLC Integration — Cardiff Port Logistics",
-      clientId: "nst-cli-cardiff",
-      clientName: "Cardiff Port Logistics",
-      site: "Cardiff, UK",
-      region: "UK",
-      operator: "Priya Shah",
-      phase: "live",
-      startDate: "2026-05-01",
-      endDate: "2026-11-30",
-      progressPct: 41,
-      notes: "Behind plan — waiting on client OT network access.",
-      createdAt: NOW,
-      updatedAt: NOW,
-    },
-  ];
+  return getNorthstarDemoProjects();
 }
 
 export function getNorthstarOnboardingRecords(): ClientOnboardingRecord[] {

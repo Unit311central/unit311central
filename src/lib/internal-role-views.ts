@@ -1002,11 +1002,6 @@ const ONWARDAIR_ENGINEERING_NAV_SECTION: InternalNavSection = {
       view: "oa-team-capacity" as const,
     },
     {
-      label: "Supply & Dependencies",
-      icon: "Truck",
-      view: "oa-supply-dependencies" as const,
-    },
-    {
       label: "Assurance & Certification",
       icon: "ShieldCheck",
       view: "oa-assurance-certification" as const,

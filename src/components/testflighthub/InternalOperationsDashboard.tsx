@@ -280,7 +280,6 @@ import {
   EngineeringOverviewWorkspace,
   EngineeringProgramsWorkspace,
   EngineeringRisksWorkspace,
-  EngineeringSupplyWorkspace,
   EngineeringTeamWorkspace,
 } from "@/components/onwardair/OnwardAirEngineeringWorkspaces";
 import {
@@ -1204,13 +1203,35 @@ export default function InternalOperationsDashboard({
             </WorkspaceErrorBoundary>
           )}
 
-          {(activeView === "engineering" || activeView === "engineering-dashboard") && (
-            <EngineeringDashboardWorkspace />
-          )}
+          {(activeView === "engineering" || activeView === "engineering-dashboard") &&
+            (isDemoSurface ? (
+              <NorthstarEngineeringDashboardWorkspace />
+            ) : (
+              <EngineeringDashboardWorkspace />
+            ))}
+
+          {activeView === "engineering-programs" &&
+            (isDemoSurface ? (
+              <NorthstarEngineeringProgramsWorkspace />
+            ) : (
+              <EngineeringResourcesWorkspace />
+            ))}
 
           {activeView === "engineering-resources" && <EngineeringResourcesWorkspace />}
 
-          {activeView === "engineering-capacity" && <EngineeringCapacityWorkspace />}
+          {activeView === "engineering-capacity" &&
+            (isDemoSurface ? (
+              <NorthstarEngineeringCapacityWorkspace />
+            ) : (
+              <EngineeringCapacityWorkspace />
+            ))}
+
+          {activeView === "engineering-risks" &&
+            (isDemoSurface ? (
+              <NorthstarEngineeringRisksWorkspace />
+            ) : (
+              <EngineeringCapacityWorkspace />
+            ))}
 
           {(activeView === "technology" || activeView === "technology-dashboard") && (
             <TechnologyDashboardWorkspace />
@@ -1284,12 +1305,34 @@ export default function InternalOperationsDashboard({
               <FundraisingDataRoomsWorkspace />
             ))}
 
-          {activeView === "oa-engineering-overview" && <EngineeringOverviewWorkspace />}
-          {activeView === "oa-programs-milestones" && <EngineeringProgramsWorkspace />}
-          {activeView === "oa-team-capacity" && <EngineeringTeamWorkspace />}
-          {activeView === "oa-supply-dependencies" && <EngineeringSupplyWorkspace />}
+          {activeView === "oa-engineering-overview" &&
+            (isDemoSurface ? (
+              <NorthstarEngineeringDashboardWorkspace />
+            ) : (
+              <EngineeringOverviewWorkspace />
+            ))}
+          {activeView === "oa-programs-milestones" &&
+            (isDemoSurface ? (
+              <NorthstarEngineeringProgramsWorkspace />
+            ) : (
+              <EngineeringProgramsWorkspace />
+            ))}
+          {activeView === "oa-team-capacity" &&
+            (isDemoSurface ? (
+              <NorthstarEngineeringCapacityWorkspace />
+            ) : (
+              <EngineeringTeamWorkspace />
+            ))}
+          {activeView === "oa-supply-dependencies" && (
+            <ProcurementWorkspace />
+          )}
           {activeView === "oa-assurance-certification" && <EngineeringAssuranceWorkspace />}
-          {activeView === "oa-engineering-risks" && <EngineeringRisksWorkspace />}
+          {activeView === "oa-engineering-risks" &&
+            (isDemoSurface ? (
+              <NorthstarEngineeringRisksWorkspace />
+            ) : (
+              <EngineeringRisksWorkspace />
+            ))}
           {activeView === "oa-engineering-integrations" && <EngineeringIntegrationsWorkspace />}
 
           {activeView === "oa-test-plans" && (

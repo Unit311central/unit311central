@@ -1,4 +1,4 @@
-import type { InternalNavSection, InternalOperationsView } from "@/lib/internal-operations-data";
+import type { InternalNavSection } from "@/lib/internal-operations-data";
 
 /** Generic Demo nav sections — central view IDs only (no OA/Talanton/ABHI specialist views). */
 const DEMO_FUNDRAISING_NAV: InternalNavSection = {
@@ -47,21 +47,31 @@ const DEMO_MARKETING_NAV: InternalNavSection = {
   ],
 };
 
+const DEMO_PROJECTS_NAV: InternalNavSection = {
+  kind: "workspace",
+  label: "Projects",
+  icon: "FolderKanban",
+  color: "#2563EB",
+  items: [
+    { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
+    { label: "External Projects", icon: "FolderOpen", view: "projects-external" as const },
+  ],
+};
+
 const DEMO_ENGINEERING_NAV: InternalNavSection = {
   kind: "workspace",
   label: "Engineering",
   icon: "Wrench",
   color: "#0D9488",
   items: [
-    { label: "Overview", icon: "LayoutDashboard", view: "engineering-dashboard" as const },
-    { label: "Programs & Milestones", icon: "Milestone", view: "engineering-resources" as const },
+    { label: "Dashboard", icon: "LayoutDashboard", view: "engineering-dashboard" as const },
+    { label: "Programs & Milestones", icon: "Milestone", view: "engineering-programs" as const },
     { label: "Team & Capacity", icon: "Users", view: "engineering-capacity" as const },
-    { label: "Supply & Dependencies", icon: "Package", view: "engineering-capacity" as const },
-    { label: "Risks", icon: "AlertTriangle", view: "engineering-capacity" as const },
+    { label: "Risks", icon: "AlertTriangle", view: "engineering-risks" as const },
   ],
 };
 
-const CORPORATE_BOARD_VIEWS = new Set<InternalOperationsView>([
+const CORPORATE_BOARD_VIEWS = new Set([
   "board-meetings",
   "board-pack",
   "corporate-risk-register",
@@ -75,6 +85,7 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
   let insertedFundraising = false;
   let insertedBoard = false;
   let insertedMarketing = false;
+  let insertedProjects = false;
   let insertedEngineering = false;
 
   for (const section of sections) {
@@ -125,7 +136,7 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
             item.label !== "Board of Directors" &&
             item.label !== "Cap Table Management" &&
             item.label !== "Unit311 Details" &&
-            (!item.view || !CORPORATE_BOARD_VIEWS.has(item.view as InternalOperationsView)) &&
+            (!item.view || !CORPORATE_BOARD_VIEWS.has(item.view)) &&
             !item.children?.some(
               (child) => child.view === "unit311-details" || child.view === "module-go-live",
             ),
@@ -159,6 +170,14 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
         out.push(DEMO_MARKETING_NAV);
         insertedMarketing = true;
       }
+      if (!insertedProjects) {
+        out.push(DEMO_PROJECTS_NAV);
+        insertedProjects = true;
+      }
+      if (!insertedEngineering) {
+        out.push(DEMO_ENGINEERING_NAV);
+        insertedEngineering = true;
+      }
       continue;
     }
 
@@ -190,10 +209,6 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
               ...section.items,
             ],
       });
-      if (!insertedEngineering) {
-        out.push(DEMO_ENGINEERING_NAV);
-        insertedEngineering = true;
-      }
       continue;
     }
 
@@ -203,6 +218,7 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
   if (!insertedFundraising) out.push(DEMO_FUNDRAISING_NAV);
   if (!insertedBoard) out.push(DEMO_BOARD_NAV);
   if (!insertedMarketing) out.push(DEMO_MARKETING_NAV);
+  if (!insertedProjects) out.push(DEMO_PROJECTS_NAV);
   if (!insertedEngineering) out.push(DEMO_ENGINEERING_NAV);
 
   return out;

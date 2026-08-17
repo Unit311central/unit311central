@@ -21,6 +21,7 @@ import {
   type ProjectPortfolioScope,
 } from "@/lib/project-portfolios";
 import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
+import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 import { createInitialUsers } from "@/lib/user-management-data";
@@ -30,6 +31,7 @@ import { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 
 import ProjectDetailWorkspace from "./ProjectDetailWorkspace";
 import ProjectsDashboardStrip from "./ProjectsDashboardStrip";
+import NorthstarProjectsDashboardStrip from "@/components/demo/NorthstarProjectsDashboardStrip";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
 import {
   DEFAULT_PROJECTS_TILE_LAYOUT,
@@ -181,6 +183,8 @@ export default function ProjectsWorkspace({
     (scope === "internal" && isBrowserCorpCentreSurface());
   const isPortfolioLayout = scope === "internal" || scope === "external";
   const isCorpCentre = isBrowserCorpCentreSurface();
+  const isNorthstarDemo =
+    typeof window !== "undefined" ? isBrowserDemoSurface() : false;
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel(false);
 
   const [projects, setProjects] = useState<InternalProject[]>([]);
@@ -204,12 +208,42 @@ export default function ProjectsWorkspace({
   }, [filteredClient, projects, isPortfolioLayout]);
 
   const upcomingProjects = useMemo(() => {
-    const upcoming = projects.filter((project) => project.phase === "upcoming");
+    const upcoming = projects.filter(
+      (project) =>
+        project.phase === "upcoming" &&
+        !project.notes?.toLowerCase().includes("on hold"),
+    );
     if (!filteredClient || scope === "internal") return upcoming;
     return upcoming.filter(
       (project) =>
         project.clientId === filteredClient.id ||
         project.clientName === filteredClient.companyName,
+    );
+  }, [filteredClient, projects, scope]);
+
+  const onHoldProjects = useMemo(() => {
+    const onHold = projects.filter((project) =>
+      project.notes?.toLowerCase().includes("on hold"),
+    );
+    if (!filteredClient || scope === "internal") return sortLatestFirst(onHold);
+    return sortLatestFirst(
+      onHold.filter(
+        (project) =>
+          project.clientId === filteredClient.id ||
+          project.clientName === filteredClient.companyName,
+      ),
+    );
+  }, [filteredClient, projects, scope]);
+
+  const completedProjects = useMemo(() => {
+    const completed = projects.filter((project) => project.phase === "completed");
+    if (!filteredClient || scope === "internal") return sortLatestFirst(completed);
+    return sortLatestFirst(
+      completed.filter(
+        (project) =>
+          project.clientId === filteredClient.id ||
+          project.clientName === filteredClient.companyName,
+      ),
     );
   }, [filteredClient, projects, scope]);
 
@@ -751,6 +785,59 @@ export default function ProjectsWorkspace({
                   })
                 )}
               </div>
+
+              {isNorthstarDemo ? (
+                <>
+                  <div className="mt-5 border-t border-white/10 pt-4">
+                    <div className="mb-2 flex items-center justify-between px-1">
+                      <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-white/55">
+                        On hold
+                      </h3>
+                      <span className="text-[10px] text-white/40">{onHoldProjects.length}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {onHoldProjects.length === 0 ? (
+                        <p className="px-1 text-xs text-white/40">None</p>
+                      ) : (
+                        onHoldProjects.map((project) => (
+                          <button
+                            key={project.id}
+                            type="button"
+                            onClick={() => setSelectedProjectId(project.id)}
+                            className="w-full rounded-lg border border-amber-400/20 bg-amber-500/5 px-2.5 py-2 text-left text-xs text-white/80 hover:bg-amber-500/10"
+                          >
+                            <p className="font-medium text-white">{project.name}</p>
+                            <p className="mt-0.5 text-[10px] text-white/45">{project.notes}</p>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-4 border-t border-white/10 pt-4">
+                    <div className="mb-2 flex items-center justify-between px-1">
+                      <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-white/55">
+                        Finished
+                      </h3>
+                      <span className="text-[10px] text-white/40">{completedProjects.length}</span>
+                    </div>
+                    <div className="max-h-48 space-y-1.5 overflow-y-auto">
+                      {completedProjects.map((project) => (
+                        <button
+                          key={project.id}
+                          type="button"
+                          onClick={() => setSelectedProjectId(project.id)}
+                          className="w-full rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2 text-left text-xs text-white/70 hover:bg-white/[0.05]"
+                        >
+                          <p className="font-medium text-white/90">{project.name}</p>
+                          <p className="mt-0.5 text-[10px] text-white/40">
+                            {formatProjectDate(project.endDate)}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </aside>
 
             <section
@@ -793,15 +880,24 @@ export default function ProjectsWorkspace({
   // Field-ops / dashboard path (scope=all)
   return (
     <div className="space-y-6">
-      <DashboardTopTilesBar
-        storageKey="unit311-projects-dashboard-tiles-all"
-        catalog={portfolioTiles}
-        defaultLayout={DEFAULT_PROJECTS_TILE_LAYOUT}
-        tiles={portfolioTiles}
-        title="Project key details"
-        showCustomizeHint={false}
-      />
-      <ProjectsDashboardStrip projects={projects} clients={clients} scope={scope} />
+      {isNorthstarDemo ? (
+        <NorthstarProjectsDashboardStrip
+          projects={projects}
+          scope={scope === "all" ? "all" : scope}
+        />
+      ) : (
+        <>
+          <DashboardTopTilesBar
+            storageKey="unit311-projects-dashboard-tiles-all"
+            catalog={portfolioTiles}
+            defaultLayout={DEFAULT_PROJECTS_TILE_LAYOUT}
+            tiles={portfolioTiles}
+            title="Project key details"
+            showCustomizeHint={false}
+          />
+          <ProjectsDashboardStrip projects={projects} clients={clients} scope={scope} />
+        </>
+      )}
 
       {filteredClient ? (
         <p className="rounded-xl border border-amber-400/25 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">

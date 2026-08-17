@@ -529,7 +529,6 @@ export const OA_ENGINEERING_NAV_VIEWS = [
   "oa-engineering-overview",
   "oa-programs-milestones",
   "oa-team-capacity",
-  "oa-supply-dependencies",
   "oa-assurance-certification",
   "oa-engineering-risks",
   "oa-engineering-integrations",
@@ -1197,7 +1196,7 @@ export const internalViewTitles: Record<
     subtitle: "Website Management",
   },
   integrations: { title: "Integrations", subtitle: "Tools" },
-  engineering: { title: "Technology Overview", subtitle: "Technology Management" },
+  engineering: { title: "Dashboard", subtitle: "Engineering" },
   "engineering-dashboard": { title: "Dashboard", subtitle: "Engineering" },
   "engineering-programs": { title: "Programs & Milestones", subtitle: "Engineering" },
   "engineering-resources": {

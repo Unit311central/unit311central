@@ -163,7 +163,6 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "oa-engineering-overview",
       "oa-programs-milestones",
       "oa-team-capacity",
-      "oa-supply-dependencies",
       "oa-assurance-certification",
       "oa-engineering-risks",
       "oa-engineering-integrations",
@@ -219,7 +218,14 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     id: "engineering",
     label: "Engineering",
     section: "Operations",
-    views: ["engineering", "engineering-dashboard", "engineering-resources", "engineering-capacity"],
+    views: [
+      "engineering",
+      "engineering-dashboard",
+      "engineering-programs",
+      "engineering-resources",
+      "engineering-capacity",
+      "engineering-risks",
+    ],
   },
   {
     id: "qms",
