@@ -564,19 +564,30 @@ export default function ProductivityDashboardWorkspace() {
   }
 
   if (isDemo) {
+    const callsScheduled = TODAY_SCHEDULE.filter((row) =>
+      /video|teams|call|zoom/i.test(row.meta),
+    ).length;
+    const callsSummary = TODAY_SCHEDULE.filter((row) => /video|teams|call|zoom/i.test(row.meta))
+      .slice(0, 2)
+      .map((row) => row.title.replace(/^[^:]+:\s*/, "").slice(0, 28))
+      .join(" · ");
+    const supportOver24h = SUPPORT.waiting + SUPPORT.critical;
+    const supportSummary = SUPPORT.items
+      .slice(0, 2)
+      .map((row) => row.title.replace(/\s+—.*/, "").slice(0, 32))
+      .join(" · ");
+
     return (
       <NorthstarProductivityDashboard
         headline={SUMMARY.headline}
-        nextUp={SUMMARY.nextUp}
-        attention={SUMMARY.attention}
-        changed={SUMMARY.changed}
-        meetingsLeft={TODAY_SCHEDULE.length}
-        unreadEmail={EMAILS.filter((row) => row.unread).length}
-        messageCount={MESSAGES.length}
-        supportOpen={SUPPORT.open}
-        supportCritical={SUPPORT.critical}
-        emailHint={`${EMAILS.filter((row) => row.unread).length} unread · demo@unit311central.com`}
-        messageHint={MESSAGES[0]?.channel ?? "Channels"}
+        emails={EMAILS}
+        schedule={TODAY_SCHEDULE}
+        messages={MESSAGES}
+        files={FILES}
+        callsScheduled={callsScheduled || 2}
+        callsSummary={callsSummary || "Leadership sync · Client demo"}
+        supportOver24h={supportOver24h}
+        supportSummary={supportSummary || `${SUPPORT.open} tickets in queue`}
       />
     );
   }
