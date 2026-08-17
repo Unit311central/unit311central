@@ -1,9 +1,19 @@
-import { jsPDF } from "jspdf";
+import { jsPDF, type jsPDF as JsPdfDocument } from "jspdf";
 
-type JsPdfConstructor = typeof jsPDF;
+type JsPdfOptions = {
+  orientation?: "portrait" | "landscape" | "p" | "l";
+  unit?: string;
+  format?: string | number[];
+  compress?: boolean;
+  precision?: number;
+  userUnit?: number;
+  encryption?: object;
+  putOnlyUsedFonts?: boolean;
+  floatPrecision?: number | "smart";
+};
 
-export function createJsPdf(...args: ConstructorParameters<JsPdfConstructor>): InstanceType<JsPdfConstructor> {
-  return new jsPDF(...args);
+export function createJsPdf(options?: JsPdfOptions): JsPdfDocument {
+  return new jsPDF(options as never);
 }
 
-export type JsPdfDocument = InstanceType<JsPdfConstructor>;
+export type { JsPdfDocument };

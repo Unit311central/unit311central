@@ -1,11 +1,11 @@
+import PptxGenJSImport from "pptxgenjs";
 import type PptxGenType from "pptxgenjs";
 
 type PptxGenConstructor = typeof import("pptxgenjs").default;
 
 function resolvePptxGenConstructor(mod: unknown): PptxGenConstructor {
   const candidate =
-    (mod as { default?: PptxGenConstructor }).default ??
-  (mod as PptxGenConstructor);
+    (mod as { default?: PptxGenConstructor }).default ?? (mod as PptxGenConstructor);
   if (typeof candidate === "function") return candidate;
   const nested = (candidate as { default?: PptxGenConstructor }).default;
   if (typeof nested === "function") return nested;
@@ -18,9 +18,7 @@ export type PptxTableRow = PptxGenType.TableRow;
 export type PptxShapeName = PptxGenType.SHAPE_NAME;
 
 export function createPptxGen(): PptxGenInstance {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require("pptxgenjs") as unknown;
-  const PptxGen = resolvePptxGenConstructor(mod);
+  const PptxGen = resolvePptxGenConstructor(PptxGenJSImport);
   return new PptxGen();
 }
 
