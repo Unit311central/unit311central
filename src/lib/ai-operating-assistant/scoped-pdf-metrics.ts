@@ -11,6 +11,7 @@ import {
 
 export type ScopedPdfMetricId =
   | "pnl"
+  | "balance_sheet"
   | "burn_rate"
   | "runway"
   | "payroll_total"
@@ -53,6 +54,18 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
     label: "Profit & Loss",
     match: /\b(p\s*&\s*l|p\s+and\s+l|pnl|profit\s*(and|&)\s*loss)\b/i,
     phrases: ["profit and loss", "p and l", "pnl", "p&l"],
+    permission: "financials",
+  },
+  {
+    id: "balance_sheet",
+    label: "Balance sheet",
+    match: /\b(balance\s*sheet|statement\s+of\s+financial\s+position|assets\s+and\s+liabilities)\b/i,
+    phrases: [
+      "balance sheet",
+      "statement of financial position",
+      "assets and liabilities",
+      "balancesheet",
+    ],
     permission: "financials",
   },
   {

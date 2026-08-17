@@ -5,6 +5,7 @@
 import { jsPDF } from "jspdf";
 
 import { getFinancialOverview } from "@/lib/accounting/overview-service";
+import { getTypeTotals } from "@/lib/accounting/balances";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import {
   createArtifactId,
@@ -192,6 +193,7 @@ export async function loadScopedPdfBundle(input: {
 
   const financeIds: ScopedPdfMetricId[] = [
     "pnl",
+    "balance_sheet",
     "burn_rate",
     "runway",
     "cash",
@@ -310,6 +312,36 @@ export async function loadScopedPdfBundle(input: {
         } else {
           const built = pnlForPeriod(overview, input.period);
           sections.push({ metricId, heading, rows: built.rows, note: built.note });
+        }
+        break;
+      }
+      case "balance_sheet": {
+        if (!input.canAccessFinancials) {
+          denyFinance(metricId, heading);
+          break;
+        }
+        try {
+          const totals = await getTypeTotals();
+          sections.push({
+            metricId,
+            heading,
+            rows: [
+              { label: "Total assets", value: money(totals.assets) },
+              { label: "Total liabilities", value: money(totals.liabilities) },
+              { label: "Total equity", value: money(totals.equity) },
+              {
+                label: "Cash (GL Wise accounts)",
+                value: money(totals.cashPosition ?? overview?.cashPosition ?? 0),
+              },
+            ],
+            note: "From live general ledger account balances — not forecast figures.",
+          });
+        } catch {
+          sections.push({
+            metricId,
+            heading,
+            rows: [{ label: "Status", value: "Balance sheet unavailable (GL not configured)" }],
+          });
         }
         break;
       }

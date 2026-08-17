@@ -76,6 +76,7 @@ import {
   searchLeave,
   searchPerformanceReviews,
 } from "./platform-tools";
+import { analyzeClientScenarioTool } from "./client-scenario-tools";
 
 /**
  * Tool Service — register OpenAI function tools and handlers here.
@@ -101,6 +102,19 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
             "Optional domain focus. Use assets for physical Assets register / fleet / equipment. Use finance for cash/Wise/bank. Default all/overview.",
         },
         topic: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "analyzeClientScenario",
+    description:
+      "Analyse live financial and delivery exposure when a client or customer faces insolvency, bankruptcy, or similar shock. Returns AR outstanding, overdue invoices, and linked projects — never invent figures.",
+    parameters: {
+      type: "object",
+      properties: {
+        question: { type: "string", description: "Full user question" },
+        clientName: { type: "string", description: "Client or customer name if known" },
       },
       additionalProperties: false,
     },
@@ -478,7 +492,7 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
   {
     name: "generateScopedBusinessPdf",
     description:
-      "Generate a custom PDF containing ONLY the live metrics the user asked for (e.g. P&L last 6 months + burn rate + payroll + CRM pipeline). Prefer this for multi-metric or natural-language composite PDF requests. Never invent figures; list unregistered topics as unavailable.",
+      "Generate a custom PDF containing ONLY the live metrics the user asked for (e.g. last 6 months P&L + balance sheet + cash, burn rate + payroll + CRM pipeline). Prefer this for multi-metric or natural-language composite CFO PDF requests. Never invent figures; list unregistered topics as unavailable.",
     parameters: {
       type: "object",
       properties: {
@@ -853,6 +867,7 @@ type ContextualToolHandler = (
 
 const handlers: Record<string, ContextualToolHandler> = {
   queryBusiness: queryBusinessTool,
+  analyzeClientScenario: analyzeClientScenarioTool,
   searchClients,
   searchPlatformSubscriptions,
   searchProjects,

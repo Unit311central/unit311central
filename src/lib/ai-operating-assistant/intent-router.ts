@@ -35,6 +35,7 @@ export type DirectAssistantIntent = {
     | "platformSearch"
     | "queryPayroll"
     | "queryBusiness"
+    | "analyzeClientScenario"
     | "getSmartInsights"
     | "getBusinessHealth"
     | "getDailyBrief"
@@ -137,7 +138,12 @@ function resolveGoalPlanningIntent(
       lower,
     ) ||
     /^(hire|recruit)\s+(a\s+|an\s+)?/i.test(lower) ||
-    /\b(open\s+a\s+new\s+office|hire\s+a\s+)/i.test(lower)
+    /\b(open\s+a\s+new\s+office|hire\s+a\s+)/i.test(lower) ||
+    /\b(going\s+out\s+of\s+business|going\s+broke|run\s+out\s+of\s+cash|save\s+the\s+company|company\s+is\s+dying)\b/i.test(
+      lower,
+    ) ||
+    (/\b(worried|scared|nervous|anxious|concerned)\b/i.test(lower) &&
+      /\b(business|company|finances?|cash|runway|bankrupt|insolvent)\b/i.test(lower))
   ) {
     return {
       tool: "planBusinessGoal",
@@ -185,6 +191,20 @@ export function resolveDirectIntent(
         pageSize: 50,
       },
       reason: "platform_billing_subscriptions",
+    };
+  }
+
+  // —— Client shock / insolvency (live exposure, not generic chat) ——
+  if (
+    /\b(insolvency|insolvent|bankrupt|bankruptcy|liquidat|gone\s+bust|in\s+administration|chapter\s+11)\b/i.test(
+      lower,
+    ) &&
+    !/\b(pdf|export)\b/i.test(lower)
+  ) {
+    return {
+      tool: "analyzeClientScenario",
+      args: { question: text },
+      reason: "client_insolvency_exposure",
     };
   }
 

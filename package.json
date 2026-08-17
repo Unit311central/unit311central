@@ -40,6 +40,7 @@
     "prove:northstar-demo": "node scripts/prove-northstar-demo.mjs",
     "prove:demo-readonly": "node scripts/prove-demo-readonly.mjs",
     "prove:pm-nav": "node --import tsx src/lib/__tests__/project-management-nav.check.ts",
+    "prove:ea-cfo": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-cfo.check.ts",
     "prove:branch-protection": "node scripts/prove-github-branch-protection.mjs",
     "prove:ea-provisioning": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-provisioning.check.ts",
     "prove:ea-inheritance": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-inheritance.check.ts",
