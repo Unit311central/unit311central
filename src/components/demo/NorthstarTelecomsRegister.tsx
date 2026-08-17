@@ -12,7 +12,7 @@ import {
 } from "@/lib/demo/northstar-telecom-data";
 import { formatNorthstarTechGbp } from "@/lib/demo/northstar-tech-data";
 import { cn } from "@/lib/utils";
-import { WsSection } from "./domain-workspace-ui";
+import { WsSection } from "@/components/testflighthub/domain-workspace-ui";
 
 function statusClass(status: string) {
   if (/active/i.test(status)) return "bg-emerald-500/15 text-emerald-200";
