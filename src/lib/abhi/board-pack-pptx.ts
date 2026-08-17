@@ -1,4 +1,4 @@
-import pptxgen from "pptxgenjs";
+import { createPptxGen, type PptxGenInstance } from "@/lib/pptxgen-client";
 
 import {
   ABHI_LOGO_INTRINSIC_HEIGHT,
@@ -70,7 +70,11 @@ function varianceText(value: number): string {
   return `${prefix}${formatAbhiBoardGbp(value, true)}`;
 }
 
-function paintSlide(slide: pptxgen.Slide) {
+type PptxSlide = PptxGenInstance["Slide"];
+type PptxTableRow = PptxGenInstance["TableRow"];
+type PptxShapeName = PptxGenInstance["SHAPE_NAME"];
+
+function paintSlide(slide: PptxSlide) {
   slide.background = { color: C.page };
 }
 
@@ -78,7 +82,7 @@ function paintSlide(slide: pptxgen.Slide) {
 const LOGO_W = 1.35;
 const LOGO_H = LOGO_W * (ABHI_LOGO_INTRINSIC_HEIGHT / ABHI_LOGO_INTRINSIC_WIDTH);
 
-function addLogo(slide: pptxgen.Slide, logoDataUrl: string | null) {
+function addLogo(slide: PptxSlide, logoDataUrl: string | null) {
   if (!logoDataUrl) return;
   slide.addImage({
     data: logoDataUrl,
@@ -99,7 +103,7 @@ function boardAttentionForRisk(risk: AbhiBoardRisk): string {
 }
 
 function addProgressBar(
-  slide: pptxgen.Slide,
+  slide: PptxSlide,
   x: number,
   y: number,
   w: number,
@@ -108,7 +112,7 @@ function addProgressBar(
   fillColor: string,
 ) {
   const clamped = Math.max(0, Math.min(1, ratio));
-  slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+  slide.addShape("roundRect" as PptxShapeName, {
     x,
     y,
     w,
@@ -118,7 +122,7 @@ function addProgressBar(
     rectRadius: 0.08,
   });
   if (clamped > 0.02) {
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    slide.addShape("roundRect" as PptxShapeName, {
       x,
       y,
       w: Math.max(0.12, w * clamped),
@@ -131,7 +135,7 @@ function addProgressBar(
 }
 
 function addStatusPill(
-  slide: pptxgen.Slide,
+  slide: PptxSlide,
   x: number,
   y: number,
   w: number,
@@ -155,7 +159,7 @@ function addStatusPill(
         : tone === "red"
           ? C.chipRedText
           : C.navy;
-  slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+  slide.addShape("roundRect" as PptxShapeName, {
     x,
     y,
     w,
@@ -179,7 +183,7 @@ function addStatusPill(
 }
 
 function addHeader(
-  slide: pptxgen.Slide,
+  slide: PptxSlide,
   title: string,
   opts?: { subtitle?: string; logoDataUrl?: string | null; titleWidth?: number },
 ) {
@@ -205,7 +209,7 @@ function addHeader(
       fontFace: "Calibri",
     });
   }
-  slide.addShape("rect" as pptxgen.SHAPE_NAME, {
+  slide.addShape("rect" as PptxShapeName, {
     x: MARGIN,
     y: 0.95,
     w: SLIDE_W - MARGIN * 2,
@@ -215,8 +219,8 @@ function addHeader(
   });
 }
 
-function addFooter(slide: pptxgen.Slide, packName: string, slideNumber: number) {
-  slide.addShape("rect" as pptxgen.SHAPE_NAME, {
+function addFooter(slide: PptxSlide, packName: string, slideNumber: number) {
+  slide.addShape("rect" as PptxShapeName, {
     x: 0,
     y: FOOTER_Y,
     w: SLIDE_W,
@@ -246,7 +250,7 @@ function addFooter(slide: pptxgen.Slide, packName: string, slideNumber: number) 
 }
 
 function sectionLabel(
-  slide: pptxgen.Slide,
+  slide: PptxSlide,
   text: string,
   x: number,
   y: number,
@@ -274,7 +278,7 @@ export async function buildAbhiBoardPackPptx(
   );
   data = validateAndSanitizeAbhiBoardPackData(data).data;
 
-  const pptx = new pptxgen();
+  const pptx = createPptxGen();
   pptx.layout = "LAYOUT_WIDE";
   pptx.author = "Association of British HealthTech Industries";
   pptx.company = "ABHI";
@@ -283,7 +287,7 @@ export async function buildAbhiBoardPackPptx(
   pptx.theme = { headFontFace: "Calibri", bodyFontFace: "Calibri" };
 
   let slideNumber = 0;
-  const finish = (slide: pptxgen.Slide) => {
+  const finish = (slide: PptxSlide) => {
     slideNumber += 1;
     addFooter(slide, data.packName, slideNumber);
   };
@@ -340,13 +344,13 @@ export async function buildAbhiBoardPackPptx(
       fontFace: "Calibri",
     });
 
-    const attendeeRows: pptxgen.TableRow[] = [
+    const attendeeRows: PptxTableRow[] = [
       [
         { text: "Name", options: { bold: true, color: C.white, fill: { color: C.navy } } },
         { text: "Role", options: { bold: true, color: C.white, fill: { color: C.navy } } },
       ],
       ...data.attendees.map(
-        (person, index): pptxgen.TableRow => [
+        (person, index): PptxTableRow => [
           {
             text: person.name,
             options: {
@@ -396,7 +400,7 @@ export async function buildAbhiBoardPackPptx(
     });
     const statusColor =
       data.orgStatus === "Green" ? C.green : data.orgStatus === "Red" ? C.subtleRed : C.amber;
-    slide.addShape("ellipse" as pptxgen.SHAPE_NAME, {
+    slide.addShape("ellipse" as PptxShapeName, {
       x: 9.2,
       y: 0.54,
       w: 0.2,
@@ -439,7 +443,7 @@ export async function buildAbhiBoardPackPptx(
     sectionLabel(slide, "Key Highlights", centreX, cardsTop, centreW, C.green);
     data.highlightCards.forEach((card, index) => {
       const y = cardsTop + 0.4 + index * 0.72;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x: centreX,
         y,
         w: centreW,
@@ -484,7 +488,7 @@ export async function buildAbhiBoardPackPptx(
     sectionLabel(slide, "Key Concerns", rightX, cardsTop, rightW, C.amber);
     data.concernCards.forEach((card, index) => {
       const y = cardsTop + 0.4 + index * 0.72;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x: rightX,
         y,
         w: rightW,
@@ -517,7 +521,7 @@ export async function buildAbhiBoardPackPptx(
 
     // Board Decisions — white text on navy band (subtle, prominent)
     const dy = 5.75;
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    slide.addShape("roundRect" as PptxShapeName, {
       x: MARGIN,
       y: dy,
       w: SLIDE_W - MARGIN * 2,
@@ -560,7 +564,7 @@ export async function buildAbhiBoardPackPptx(
     });
 
     const actions = abhiSortedBoardActions(data);
-    const rows: pptxgen.TableRow[] = [
+    const rows: PptxTableRow[] = [
       [
         { text: "Ref", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
         { text: "Action", options: { bold: true, color: C.white, fill: { color: C.navy } } },
@@ -568,7 +572,7 @@ export async function buildAbhiBoardPackPptx(
         { text: "Due Date", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
         { text: "Status", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
       ],
-      ...actions.map((action, index): pptxgen.TableRow => {
+      ...actions.map((action, index): PptxTableRow => {
         const fill = index % 2 ? C.soft : C.white;
         const chip = actionChip(action.status);
         return [
@@ -633,7 +637,7 @@ export async function buildAbhiBoardPackPptx(
     ];
     summary.forEach((item, index) => {
       const x = MARGIN + index * 4.2;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x,
         y: CONTENT_TOP + 0.05,
         w: 4.0,
@@ -664,7 +668,7 @@ export async function buildAbhiBoardPackPptx(
       });
     });
 
-    const rows: pptxgen.TableRow[] = [
+    const rows: PptxTableRow[] = [
       [
         { text: "Risk", options: { bold: true, color: C.white, fill: { color: C.navy } } },
         { text: "Owner", options: { bold: true, color: C.white, fill: { color: C.navy } } },
@@ -674,7 +678,7 @@ export async function buildAbhiBoardPackPptx(
           options: { bold: true, color: C.white, fill: { color: C.navy } },
         },
       ],
-      ...sorted.map((risk, index): pptxgen.TableRow => {
+      ...sorted.map((risk, index): PptxTableRow => {
         const fill = index % 2 ? C.soft : C.white;
         const trend = abhiRiskTrendLabel(risk.trend);
         return [
@@ -726,7 +730,7 @@ export async function buildAbhiBoardPackPptx(
       subtitle: "Actual vs budget with performance indicator",
     });
 
-    const rows: pptxgen.TableRow[] = [
+    const rows: PptxTableRow[] = [
       [
         { text: "KPI", options: { bold: true, color: C.white, fill: { color: C.navy } } },
         { text: "Actual", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
@@ -734,7 +738,7 @@ export async function buildAbhiBoardPackPptx(
         { text: "Variance", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
         { text: "Status", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "center" } },
       ],
-      ...data.kpis.map((kpi: AbhiBoardKpi, index): pptxgen.TableRow => {
+      ...data.kpis.map((kpi: AbhiBoardKpi, index): PptxTableRow => {
         const fill = index % 2 ? C.soft : C.white;
         const chip = indicatorChip(kpi.indicator);
         return [
@@ -822,7 +826,7 @@ export async function buildAbhiBoardPackPptx(
 
     metricCards.forEach((card, index) => {
       const x = MARGIN + index * 4.2;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x,
         y: CONTENT_TOP + 0.05,
         w: 4.0,
@@ -869,7 +873,7 @@ export async function buildAbhiBoardPackPptx(
     });
 
     // Forecast panel
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    slide.addShape("roundRect" as PptxShapeName, {
       x: MARGIN,
       y: 3.9,
       w: SLIDE_W - MARGIN * 2,
@@ -907,7 +911,7 @@ export async function buildAbhiBoardPackPptx(
     ];
     forecastCards.forEach((card, index) => {
       const x = MARGIN + 0.35 + index * 4.05;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x,
         y: 4.85,
         w: 3.85,
@@ -949,7 +953,7 @@ export async function buildAbhiBoardPackPptx(
       subtitle: "YTD actual vs budget",
     });
 
-    const rows: pptxgen.TableRow[] = [
+    const rows: PptxTableRow[] = [
       [
         { text: "Line", options: { bold: true, color: C.white, fill: { color: C.navy } } },
         { text: "Actual", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "right" } },
@@ -957,7 +961,7 @@ export async function buildAbhiBoardPackPptx(
         { text: "Variance", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "right" } },
         { text: "Prior Year", options: { bold: true, color: C.white, fill: { color: C.navy }, align: "right" } },
       ],
-      ...data.pnl.rows.map((row, index): pptxgen.TableRow => {
+      ...data.pnl.rows.map((row, index): PptxTableRow => {
         const fill = row.emphasis ? C.decision : index % 2 ? C.soft : C.white;
         const varColor = row.variance < 0 ? C.subtleRed : C.green;
         return [
@@ -1007,7 +1011,7 @@ export async function buildAbhiBoardPackPptx(
       rowH: 0.42,
     });
 
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    slide.addShape("roundRect" as PptxShapeName, {
       x: MARGIN,
       y: 5.7,
       w: SLIDE_W - MARGIN * 2,
@@ -1056,7 +1060,7 @@ export async function buildAbhiBoardPackPptx(
     ];
     position.forEach((item, index) => {
       const x = MARGIN + index * 4.2;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x,
         y: CONTENT_TOP + 0.05,
         w: 4.0,
@@ -1088,7 +1092,7 @@ export async function buildAbhiBoardPackPptx(
     });
 
     // Central cash graphic
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    slide.addShape("roundRect" as PptxShapeName, {
       x: MARGIN,
       y: 2.5,
       w: 5.5,
@@ -1161,7 +1165,7 @@ export async function buildAbhiBoardPackPptx(
     ];
     support.forEach((item, index) => {
       const y = 2.5 + index * 0.72;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x: 6.3,
         y,
         w: 6.5,
@@ -1216,7 +1220,7 @@ export async function buildAbhiBoardPackPptx(
       fontFace: "Calibri",
     });
 
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    slide.addShape("roundRect" as PptxShapeName, {
       x: 6.3,
       y: 5.22,
       w: 3.15,
@@ -1250,7 +1254,7 @@ export async function buildAbhiBoardPackPptx(
       );
     });
 
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    slide.addShape("roundRect" as PptxShapeName, {
       x: 9.65,
       y: 5.22,
       w: 3.15,
@@ -1298,7 +1302,7 @@ export async function buildAbhiBoardPackPptx(
     // Membership
     {
       const x = MARGIN;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x,
         y: CONTENT_TOP + 0.05,
         w: 4.0,
@@ -1373,7 +1377,7 @@ export async function buildAbhiBoardPackPptx(
       const x = 4.8;
       const s = data.commercial.sponsorship;
       const progress = s.actual / s.budget;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x,
         y: CONTENT_TOP + 0.05,
         w: 4.0,
@@ -1465,7 +1469,7 @@ export async function buildAbhiBoardPackPptx(
       const x = 9.05;
       const secured = 28;
       const target = 32;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x,
         y: CONTENT_TOP + 0.05,
         w: 3.75,
@@ -1562,7 +1566,7 @@ export async function buildAbhiBoardPackPptx(
     ];
     tiles.forEach((tile, index) => {
       const x = MARGIN + index * 3.3;
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x,
         y: CONTENT_TOP + 0.1,
         w: 3.1,
@@ -1593,14 +1597,14 @@ export async function buildAbhiBoardPackPptx(
       });
     });
 
-    const joinerRows: pptxgen.TableRow[] = [
+    const joinerRows: PptxTableRow[] = [
       [
         { text: "Recent joiners", options: { bold: true, color: C.white, fill: { color: C.navy } } },
         { text: "Role", options: { bold: true, color: C.white, fill: { color: C.navy } } },
         { text: "Start", options: { bold: true, color: C.white, fill: { color: C.navy } } },
       ],
       ...data.team.joiners.map(
-        (person, index): pptxgen.TableRow => [
+        (person, index): PptxTableRow => [
           { text: person.name, options: { color: C.text, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
           { text: person.role, options: { color: C.muted, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
           { text: person.startDate, options: { color: C.muted, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
@@ -1617,14 +1621,14 @@ export async function buildAbhiBoardPackPptx(
       rowH: 0.5,
     });
 
-    const leaverRows: pptxgen.TableRow[] = [
+    const leaverRows: PptxTableRow[] = [
       [
         { text: "Recent leavers", options: { bold: true, color: C.white, fill: { color: C.navy } } },
         { text: "Role", options: { bold: true, color: C.white, fill: { color: C.navy } } },
         { text: "End", options: { bold: true, color: C.white, fill: { color: C.navy } } },
       ],
       ...data.team.leavers.map(
-        (person, index): pptxgen.TableRow => [
+        (person, index): PptxTableRow => [
           { text: person.name, options: { color: C.text, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
           { text: person.role, options: { color: C.muted, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
           { text: person.endDate, options: { color: C.muted, fontSize: 13, fill: { color: index % 2 ? C.soft : C.white } } },
@@ -1641,7 +1645,7 @@ export async function buildAbhiBoardPackPptx(
       rowH: 0.5,
     });
 
-    slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+    slide.addShape("roundRect" as PptxShapeName, {
       x: MARGIN,
       y: 4.6,
       w: SLIDE_W - MARGIN * 2,
@@ -1690,7 +1694,7 @@ export async function buildAbhiBoardPackPptx(
       const priorityTone =
         topic.priority === "HIGH" ? "red" : topic.priority === "MEDIUM" ? "amber" : "green";
 
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x,
         y,
         w: 6.15,
@@ -1745,7 +1749,7 @@ export async function buildAbhiBoardPackPptx(
       });
 
       // Decision panel — most prominent
-      slide.addShape("roundRect" as pptxgen.SHAPE_NAME, {
+      slide.addShape("roundRect" as PptxShapeName, {
         x: x + 0.2,
         y: y + 1.2,
         w: 5.75,

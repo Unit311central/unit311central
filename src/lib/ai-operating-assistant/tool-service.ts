@@ -958,7 +958,23 @@ export async function executeAssistantTool(
     };
   }
 
-  return handler(args, { business: businessContext });
+  if (!handler || typeof handler !== "function") {
+    return {
+      status: "error",
+      tool: name,
+      message: `Tool handler unavailable: ${name}`,
+    };
+  }
+
+  try {
+    return await handler(args, { business: businessContext });
+  } catch (error) {
+    return {
+      status: "error",
+      tool: name,
+      message: error instanceof Error ? error.message : "Tool execution failed.",
+    };
+  }
 }
 
 export function listAssistantToolNames() {
