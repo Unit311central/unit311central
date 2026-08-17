@@ -77,7 +77,16 @@ export async function generateBoardPackTool(
 ): Promise<AssistantToolResult> {
   ensureEaWorkspacePacksRegistered();
   const slug = ctx.business.workspace.slug?.trim() || null;
-  const boardPack = getEaWorkspacePackBoardPackConfig(slug);
+  let boardPack = getEaWorkspacePackBoardPackConfig(slug);
+  if (
+    slug === "demo" &&
+    (!boardPack || typeof boardPack.generateArtifacts !== "function")
+  ) {
+    const { demoBoardPackConfig } = await import(
+      "@/lib/ai-operating-assistant/workspace-packs/boardpack/demo"
+    );
+    boardPack = demoBoardPackConfig;
+  }
   if (!slug || !boardPack?.supportsBoardPack) {
     return toolForbidden(
       "boardpack.generate",

@@ -1,4 +1,4 @@
-import { jsPDF } from "jspdf";
+import { createJsPdf, type JsPdfDocument } from "@/lib/jspdf-client";
 
 import {
   ONWARDAIR_LOGO_INTRINSIC_HEIGHT,
@@ -47,13 +47,13 @@ const C = {
   decision: [232, 244, 247] as const,
 };
 
-function setFill(doc: jsPDF, rgb: readonly [number, number, number]) {
+function setFill(doc: JsPdfDocument, rgb: readonly [number, number, number]) {
   doc.setFillColor(rgb[0], rgb[1], rgb[2]);
 }
-function setDraw(doc: jsPDF, rgb: readonly [number, number, number]) {
+function setDraw(doc: JsPdfDocument, rgb: readonly [number, number, number]) {
   doc.setDrawColor(rgb[0], rgb[1], rgb[2]);
 }
-function setText(doc: jsPDF, rgb: readonly [number, number, number]) {
+function setText(doc: JsPdfDocument, rgb: readonly [number, number, number]) {
   doc.setTextColor(rgb[0], rgb[1], rgb[2]);
 }
 
@@ -61,7 +61,7 @@ export function oaBoardPackPdfFileName(meetingDate: string): string {
   return `Board Pack - ${meetingDate}.pdf`;
 }
 
-function paintBackground(doc: jsPDF) {
+function paintBackground(doc: JsPdfDocument) {
   setFill(doc, C.page);
   doc.rect(0, 0, SLIDE_W, SLIDE_H, "F");
 }
@@ -80,7 +80,7 @@ function isNorthstarBoardPack(brand?: AbhiBoardPackData | null): boolean {
 }
 
 /** Vector wordmark for white PDF pages — avoids the dark-UI PNG with grey box. */
-function drawNorthstarWordmark(doc: jsPDF, x: number, y: number, width: number): number {
+function drawNorthstarWordmark(doc: JsPdfDocument, x: number, y: number, width: number): number {
   const titlePt = Math.max(15, width * 0.19);
   const subPt = Math.max(6.5, width * 0.052);
   const titleY = y + titlePt * 0.35;
@@ -100,7 +100,7 @@ function drawNorthstarWordmark(doc: jsPDF, x: number, y: number, width: number):
 }
 
 function drawLogo(
-  doc: jsPDF,
+  doc: JsPdfDocument,
   logoDataUrl: string | null,
   brand?: AbhiBoardPackData | null,
   placement: "header" | "cover" = "header",
@@ -143,7 +143,7 @@ function boardAttentionForRisk(risk: AbhiBoardRisk): string {
 }
 
 function drawHeader(
-  doc: jsPDF,
+  doc: JsPdfDocument,
   title: string,
   logoDataUrl: string | null,
   subtitle?: string,
@@ -165,7 +165,7 @@ function drawHeader(
   doc.line(MARGIN, 20, SLIDE_W - MARGIN, 20);
 }
 
-function drawFooter(doc: jsPDF, packName: string, slideNumber: number) {
+function drawFooter(doc: JsPdfDocument, packName: string, slideNumber: number) {
   setFill(doc, C.navy);
   doc.rect(0, SLIDE_H - 8, SLIDE_W, 8, "F");
   doc.setFont("helvetica", "normal");
@@ -202,7 +202,7 @@ function pillColors(tone: PillTone) {
 }
 
 function drawStatusPill(
-  doc: jsPDF,
+  doc: JsPdfDocument,
   x: number,
   y: number,
   w: number,
@@ -220,7 +220,7 @@ function drawStatusPill(
 }
 
 function drawProgressBar(
-  doc: jsPDF,
+  doc: JsPdfDocument,
   x: number,
   y: number,
   w: number,
@@ -238,7 +238,7 @@ function drawProgressBar(
 }
 
 function drawSparkline(
-  doc: jsPDF,
+  doc: JsPdfDocument,
   x: number,
   y: number,
   w: number,
@@ -261,7 +261,7 @@ function drawSparkline(
 }
 
 function drawCashTrendChart(
-  doc: jsPDF,
+  doc: JsPdfDocument,
   x: number,
   y: number,
   w: number,
@@ -306,7 +306,7 @@ function drawCashTrendChart(
   });
 }
 
-function addSlide(doc: jsPDF) {
+function addSlide(doc: JsPdfDocument) {
   doc.addPage([SLIDE_W, SLIDE_H], "landscape");
   paintBackground(doc);
 }
@@ -320,7 +320,7 @@ export async function buildOnwardAirBoardPackPdf(
   );
   data = validateAndSanitizeAbhiBoardPackData(data).data;
 
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: [SLIDE_W, SLIDE_H] });
+  const doc = createJsPdf({ orientation: "landscape", unit: "mm", format: [SLIDE_W, SLIDE_H] });
   doc.deletePage(1);
 
   // Slide 1 — Cover
