@@ -39,7 +39,7 @@ function isLockedHostSectionBundle(
   );
 }
 
-function targetStorageVersion(sections: readonly InternalNavSection[]): 4 | 6 | 7 | 8 {
+function targetStorageVersion(sections: readonly InternalNavSection[]): 4 | 6 | 7 | 8 | 9 {
   if (isTalantonLockedSectionBundle(sections)) return TALANTON_SIDEBAR_FACTORY_REVISION;
   if (isAbhiLockedSectionBundle(sections)) return ABHI_SIDEBAR_FACTORY_REVISION;
   if (isOnwardAirLockedSectionBundle(sections)) return 6;
@@ -182,7 +182,7 @@ export type SidebarNavCustomStorage = {
    * v7: Talanton owner factory order reset (Aug 2026).
    * v8: ABHI locked factory order + Settings-owned reorder persistence.
    */
-  version: 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  version: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   /** Ordered workspace section keys (excludes fixed pins + Settings). */
   sectionOrder: string[];
   /** User explicitly reordered in Settings → General → Sidebar. */

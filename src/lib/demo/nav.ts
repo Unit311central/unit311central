@@ -1,4 +1,8 @@
 import type { InternalNavSection } from "@/lib/internal-operations-data";
+import {
+  PROJECT_MANAGEMENT_MODULE_LABEL,
+  buildProjectManagementNavSection,
+} from "@/lib/project-management-nav";
 
 /** Generic Demo nav sections — central view IDs only (no OA/Talanton/ABHI specialist views). */
 const DEMO_FUNDRAISING_NAV: InternalNavSection = {
@@ -47,17 +51,7 @@ const DEMO_MARKETING_NAV: InternalNavSection = {
   ],
 };
 
-const DEMO_PROJECTS_NAV: InternalNavSection = {
-  kind: "workspace",
-  label: "Projects",
-  icon: "FolderKanban",
-  color: "#2563EB",
-  items: [
-    { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" as const },
-    { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
-    { label: "External Projects", icon: "FolderOpen", view: "projects-external" as const },
-  ],
-};
+const DEMO_PROJECT_MANAGEMENT_NAV = buildProjectManagementNavSection();
 
 const DEMO_ENGINEERING_NAV: InternalNavSection = {
   kind: "workspace",
@@ -109,7 +103,10 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
             view: "business-central-dashboard" as const,
           },
           ...section.items
-            .filter((item) => item.label !== "Projects")
+            .filter(
+              (item) =>
+                item.label !== "Projects" && item.label !== PROJECT_MANAGEMENT_MODULE_LABEL,
+            )
             .map((item) => {
               if (item.label !== "Projects" || !item.children) return item;
               return {
@@ -172,7 +169,7 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
         insertedMarketing = true;
       }
       if (!insertedProjects) {
-        out.push(DEMO_PROJECTS_NAV);
+        out.push(DEMO_PROJECT_MANAGEMENT_NAV);
         insertedProjects = true;
       }
       if (!insertedEngineering) {
@@ -213,7 +210,7 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
   if (!insertedFundraising) out.push(DEMO_FUNDRAISING_NAV);
   if (!insertedBoard) out.push(DEMO_BOARD_NAV);
   if (!insertedMarketing) out.push(DEMO_MARKETING_NAV);
-  if (!insertedProjects) out.push(DEMO_PROJECTS_NAV);
+  if (!insertedProjects) out.push(DEMO_PROJECT_MANAGEMENT_NAV);
   if (!insertedEngineering) out.push(DEMO_ENGINEERING_NAV);
 
   return out;

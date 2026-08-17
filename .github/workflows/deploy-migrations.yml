@@ -1,0 +1,75 @@
+name: Post-deploy migrations
+
+on:
+  workflow_run:
+    workflows: ["Web CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  migrate-and-verify:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Wait for Vercel production deploy
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPOSITORY: ${{ github.event.workflow_run.repository.full_name }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            state=$(curl -fsS "https://api.github.com/repos/${REPOSITORY}/commits/${HEAD_SHA}/status" | jq -r '.state')
+            echo "attempt ${attempt}: vercel/github state=${state}"
+            if [ "$state" = "success" ]; then
+              exit 0
+            fi
+            if [ "$state" = "failure" ]; then
+              echo "Vercel deploy failed for ${HEAD_SHA}"
+              exit 1
+            fi
+            sleep 20
+          done
+          echo "Timed out waiting for Vercel deploy on ${HEAD_SHA}"
+          exit 1
+
+      - name: Apply pending Supabase migrations
+        env:
+          SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SETUP_SECRET:-}" ]; then
+            echo "Skipping migrations: INTERNAL_FILES_SETUP_SECRET is not configured on this repo."
+            exit 0
+          fi
+          response=$(curl -fsS -X POST \
+            -H "x-setup-secret: ${SETUP_SECRET}" \
+            -H "Content-Type: application/json" \
+            "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
+          echo "$response" | jq .
+          echo "$response" | jq -e '.ok == true' >/dev/null
+
+      - name: Verify Wave 0 foundation health
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 10); do
+            body=$(curl -fsS "https://unit311central.com/api/internal/wave0-foundation-health" || true)
+            echo "attempt ${attempt}: ${body}"
+            if echo "$body" | jq -e '.ok == true and .ready == true' >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Wave 0 foundation health check failed"
+          exit 1
+
+      - name: Verify company details health
+        run: |
+          set -euo pipefail
+          body=$(curl -fsS "https://unit311central.com/api/internal/company-details-health")
+          echo "$body" | jq .
+          echo "$body" | jq -e '.ok == true and .ready == true' >/dev/null

@@ -32,7 +32,7 @@ export const ABHI_LOCKED_SECTION_ORDER_KEYS: readonly string[] =
   ABHI_LOCKED_WORKSPACE_SECTION_ORDER.map((label) => `workspace:${label}`);
 
 /** Bump when factory ABHI sidebar order changes — one-time reset for non-customized storage only. */
-export const ABHI_SIDEBAR_FACTORY_REVISION = 8;
+export const ABHI_SIDEBAR_FACTORY_REVISION = 9;
 
 export function isAbhiLockedSectionBundle(
   sections: readonly { kind?: string; label?: string | null }[],

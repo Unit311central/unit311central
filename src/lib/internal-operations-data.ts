@@ -1518,6 +1518,23 @@ export function resolveInternalViewTitles(activeView: InternalOperationsView): {
         if (activeView === "social") {
           return { title: "Social", subtitle: "Marketing & Events" };
         }
+        if (
+          activeView === "projects" ||
+          activeView === "projects-dashboard" ||
+          activeView === "projects-internal" ||
+          activeView === "projects-external"
+        ) {
+          return {
+            title: base.title,
+            subtitle: "Project Management",
+          };
+        }
+        if (activeView === "grants") {
+          return {
+            title: base.title,
+            subtitle: "Business Central",
+          };
+        }
       }
     } catch {
       /* ignore */

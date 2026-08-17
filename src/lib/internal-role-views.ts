@@ -1,6 +1,10 @@
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { normalizePlatformUsername } from "@/lib/platform-auth";
 import {
+  buildProjectManagementNavSection,
+  stripProjectsFromBusinessCentral,
+} from "@/lib/project-management-nav";
+import {
   ONWARDAIR_EA_ACCENT,
   ONWARDAIR_HOME_ACCENT,
   ONWARDAIR_MODULE_ACCENTS,
@@ -1381,13 +1385,23 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
     let insertedMarketing = false;
     let insertedIntelligence = false;
     let insertedBoard = false;
+    let insertedProjectManagement = false;
     for (const section of sections) {
       if (section.label === "Regulatory Intelligence" || section.label === "ABHI Intelligence") {
         continue;
       }
       const next = reshapeAbhiNavSection(section);
-      // Drop Board Meetings / Board deck / Risk from Corporate Information when BOARD section exists.
-      if (next.label === "Corporate Information") {
+      if (next.label === "Business Central") {
+        out.push(stripProjectsFromBusinessCentral(next));
+        if (!insertedProjectManagement) {
+          out.push(
+            buildProjectManagementNavSection({
+              color: ONWARDAIR_MODULE_ACCENTS["Project Management"],
+            }),
+          );
+          insertedProjectManagement = true;
+        }
+      } else if (next.label === "Corporate Information") {
         out.push({
           ...next,
           items: next.items.filter(
@@ -1434,6 +1448,13 @@ function insertAbhiMarketingSection(sections: readonly InternalNavSection[]): In
     }
     if (!insertedMarketing) out.push(ABHI_MARKETING_NAV_SECTION);
     if (!insertedBoard) out.push(ABHI_BOARD_NAV_SECTION);
+    if (!insertedProjectManagement) {
+      out.push(
+        buildProjectManagementNavSection({
+          color: ONWARDAIR_MODULE_ACCENTS["Project Management"],
+        }),
+      );
+    }
     // Module order is applied from Settings / localStorage — do not pre-sort here.
     return out.filter((section) => section.items.length > 0);
   } catch {

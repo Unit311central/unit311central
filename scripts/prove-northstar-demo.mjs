@@ -21,6 +21,9 @@ const demoNav = read("src/lib/demo/nav.ts");
 assert.doesNotMatch(demoNav, /corpcentre/i);
 assert.match(demoNav, /fundraising-dashboard/);
 assert.match(demoNav, /board-dashboard/);
+assert.match(demoNav, /buildProjectManagementNavSection/);
+assert.match(demoNav, /PROJECT_MANAGEMENT_MODULE_LABEL/);
+assert.doesNotMatch(demoNav, /label: "Projects",/);
 
 // Northstar seed constants
 const company = read("scripts/demo-enterprise/company.mjs");
