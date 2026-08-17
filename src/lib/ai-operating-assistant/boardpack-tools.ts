@@ -65,9 +65,35 @@ function parseMeetingDate(raw: string | undefined): string | undefined {
 import type { EaBoardPackStage } from "@/lib/ai-operating-assistant/workspace-packs/types";
 
 async function runStagedAnalysis(stages: readonly EaBoardPackStage[]): Promise<void> {
-  if (process.env.EA_SKIP_BOARDPACK_STAGES === "1" || process.env.VERCEL === "1") return;
+  if (
+    process.env.EA_SKIP_BOARDPACK_STAGES === "1" ||
+    process.env.VERCEL === "1" ||
+    process.env.NODE_ENV === "production"
+  ) {
+    return;
+  }
   for (let index = 0; index < stages.length; index += 1) {
     await sleep(STAGE_MS[index] ?? 1000);
+  }
+}
+
+async function fetchDemoNorthstarBoardDeckPdf(meetingDate: string): Promise<Uint8Array | null> {
+  try {
+    const res = await fetch(
+      `https://demo.unit311central.com/api/demo/board-deck?meetingDate=${encodeURIComponent(meetingDate)}`,
+      {
+        cache: "no-store",
+        headers: {
+          "x-unit311-demo": "1",
+          "x-unit311-workspace-slug": "demo",
+        },
+      },
+    );
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!res.ok || !contentType.includes("pdf")) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
   }
 }
 
@@ -105,11 +131,45 @@ export async function generateBoardPackTool(
       asString(args.meetingDate) || asString(args.date) || asString(args.when),
     );
     const data = boardPack.buildPackData(meetingDate);
-    const logoDataUrl = await boardPack.loadLogoDataUrl();
 
-    const analysisPromise = runStagedAnalysis(boardPack.stages);
-    const generated = await boardPack.generateArtifacts(data, logoDataUrl, meetingDate);
-    await analysisPromise;
+    let generated: Awaited<ReturnType<NonNullable<typeof boardPack.generateArtifacts>>> | null =
+      null;
+
+    if (slug === "demo" && (process.env.NODE_ENV === "production" || process.env.VERCEL === "1")) {
+      const packRecord = data as { meetingDate?: string; packName?: string };
+      const resolvedMeetingDate = packRecord.meetingDate || meetingDate || "2026-03-20";
+      const pdfBytes = await fetchDemoNorthstarBoardDeckPdf(resolvedMeetingDate);
+      if (pdfBytes) {
+        const { northstarBoardDeckPdfFileName } = await import(
+          "@/lib/demo/northstar-board-pack-model"
+        );
+        const pack = data as {
+          packName?: string;
+          meetingDate?: string;
+          status?: string;
+          pageSummaries?: string[];
+          folderPath?: string;
+        };
+        generated = {
+          pdfBytes,
+          pdfFilename: northstarBoardDeckPdfFileName(resolvedMeetingDate),
+          packName: pack.packName || "Northstar Board Pack",
+          meetingDate: resolvedMeetingDate,
+          status: pack.status || "draft",
+          folderPath: pack.folderPath,
+          pageSummaries: pack.pageSummaries,
+          sourceTags: ["northstar:board-pack", "assistant:pdf", "northstar:api-bridge"],
+          successMessage: "Northstar Board Pack Generated Successfully",
+        };
+      }
+    }
+
+    if (!generated) {
+      const logoDataUrl = await boardPack.loadLogoDataUrl();
+      const analysisPromise = runStagedAnalysis(boardPack.stages);
+      generated = await boardPack.generateArtifacts(data, logoDataUrl, meetingDate);
+      await analysisPromise;
+    }
 
     const packRecord = data as {
       packName?: string;
