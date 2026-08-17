@@ -1,12 +1,13 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import {
-  DEMO_ADMIN_USERNAME,
-  demoMutationBlockedMessage,
-  isDemoReadOnlySession,
-} from "@/lib/demo/read-only";
+  evaluateDemoProspectMutationBlock,
+  isDemoMutationExemptApiPath,
+} from "@/lib/demo/mutation-guard-core";
+import { isDemoAdminUsername } from "@/lib/demo/read-only";
 import { PLATFORM_SESSION_COOKIE, readPlatformSessionToken } from "@/lib/platform-session-token";
 
 export async function getDemoSessionContext() {
@@ -21,20 +22,20 @@ export async function getDemoSessionContext() {
 
 export async function assertDemoMutationAllowed(): Promise<NextResponse | null> {
   const ctx = await getDemoSessionContext();
-  if (!ctx) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (
-    isDemoReadOnlySession({
-      workspaceSlug: ctx.workspaceSlug,
-      username: ctx.session.username,
-    })
-  ) {
-    return NextResponse.json({ error: demoMutationBlockedMessage() }, { status: 403 });
-  }
-  return null;
+  return evaluateDemoProspectMutationBlock({
+    session: ctx?.session ?? null,
+    workspaceSlug: ctx?.workspaceSlug,
+    requireSession: false,
+  });
 }
 
-export function isDemoAdminUsername(username: string | null | undefined): boolean {
-  return String(username ?? "").trim().toLowerCase() === DEMO_ADMIN_USERNAME;
+/** Route-handler guard: respects exempt paths (EA, auth, analytics, etc.). */
+export async function assertDemoMutationAllowedForRequest(
+  request: NextRequest,
+): Promise<NextResponse | null> {
+  const pathname = request.nextUrl.pathname;
+  if (isDemoMutationExemptApiPath(pathname)) return null;
+  return assertDemoMutationAllowed();
 }
+
+export { isDemoAdminUsername };

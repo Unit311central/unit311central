@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { approvePayrollRun } from "@/lib/payroll/payroll-service";
@@ -8,7 +9,10 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function POST(_request: NextRequest, { params }: Params) {
+export async function POST(request: NextRequest, _request: NextRequest, { params }: Params) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();

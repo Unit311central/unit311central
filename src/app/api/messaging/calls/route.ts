@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { CENTRAL_SITE_URL } from "@/lib/app-domains";
@@ -25,6 +26,9 @@ function authErrorStatus(message: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const body = (await request.json()) as {
     sessionId?: string;
     callType?: MessagingCallType;

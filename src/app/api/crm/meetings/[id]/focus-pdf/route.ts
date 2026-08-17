@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
 
 import { submitFounderSessionFocusSelections } from "@/lib/founder-booking/focus-submission-service";
 import { getFounderSessionBookingById } from "@/lib/founder-booking/service";
@@ -10,7 +11,10 @@ export const maxDuration = 60;
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function POST(_request: Request, context: RouteContext) {
+export async function POST(request: NextRequest, _request: Request, context: RouteContext) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const session = await getPlatformSession();
   if (!session) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });

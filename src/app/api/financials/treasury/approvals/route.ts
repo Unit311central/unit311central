@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 
@@ -39,6 +40,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   try {
     const session = await requirePlatformSession();
     await requireCurrentWorkspace();
@@ -68,6 +72,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   try {
     const gate = await requireWiseTreasuryConnection();
     if ("error" in gate) return gate.error;

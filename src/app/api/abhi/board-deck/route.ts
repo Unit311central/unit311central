@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { generateAbhiBoardDeck } from "@/lib/abhi/board-deck-generator";
@@ -18,6 +19,9 @@ function asciiHeaderValue(value: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const denied = await assertAbhiEaAccess();
   if (denied) return denied;
 

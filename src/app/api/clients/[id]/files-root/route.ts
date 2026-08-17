@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
 
 import type { ManagedClient } from "@/lib/client-management-data";
 import { ClientFilesError } from "@/lib/client-files-root";
@@ -15,7 +16,10 @@ type RouteContext = { params: Promise<{ id: string }> };
 /**
  * MOD-103 — ensure / repair Client Directory files root folder.
  */
-export async function POST(_request: Request, context: RouteContext) {
+export async function POST(request: NextRequest, _request: Request, context: RouteContext) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const { id } = await context.params;
 
   if (await isDemoApiRequest()) {

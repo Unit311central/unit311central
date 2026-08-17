@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 
 import { isInternalDomainHost } from "@/lib/app-domains";
@@ -30,7 +31,10 @@ async function assertInternalAccess() {
 }
 
 /** Create platform_customer_subscriptions if missing, then return current rows. */
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   try {
     const denied = await assertInternalAccess();
     if (denied) return denied;

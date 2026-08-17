@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest } from "next/server";
 
 import {
@@ -17,6 +18,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   return handlePutPortalsBriefingContent(request);
 }
 

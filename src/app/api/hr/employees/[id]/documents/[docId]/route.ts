@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
 
 import {
   deleteEmployeeDocument,
@@ -31,7 +32,10 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: NextRequest, _request: Request, context: RouteContext) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }

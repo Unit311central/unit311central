@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { deleteClientOnboardingRecord } from "@/lib/client-onboarding-service";
@@ -13,6 +14,9 @@ export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const { id } = await context.params;
   const body = (await request.json()) as Partial<
     Pick<ClientOnboardingRecord, "currentStatus" | "currentStage" | "progressPercent">
@@ -34,7 +38,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   return NextResponse.json({ error: "Onboarding updates require Supabase." }, { status: 503 });
 }
 
-export async function DELETE(_request: NextRequest, context: RouteContext) {
+export async function DELETE(request: NextRequest, _request: NextRequest, context: RouteContext) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   if (await isDemoApiRequest()) {
     return NextResponse.json({ ok: true });
   }

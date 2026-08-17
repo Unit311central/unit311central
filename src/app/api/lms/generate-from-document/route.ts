@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import {
@@ -16,6 +17,9 @@ export const maxDuration = 60;
  * ABHI / Talanton Impact / OnwardAir staff: upload PDF/DOCX → AI course draft persisted to LMS.
  */
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const auth = await requireLmsWorkspaceSession();
   if ("error" in auth) return auth.error;
   if (auth.session.userType !== "internal") {

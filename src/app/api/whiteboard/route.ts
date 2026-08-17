@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
 
 import { ensureWhiteboardProjectsTable, withWhiteboardProjectsTable } from "@/lib/internal-db-migrations";
 import { listWhiteboardProjects } from "@/lib/whiteboard-service";
@@ -31,7 +32,10 @@ export async function GET() {
   }
 }
 
-export async function PUT() {
+export async function PUT(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   return NextResponse.json(
     { error: "Use /api/whiteboard/projects instead." },
     { status: 410 },

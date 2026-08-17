@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { blockDemoProspectApiMutation } from "@/lib/demo/mutation-guard-middleware";
+
 import {
   CENTRAL_SITE_URL,
   DEMO_SITE_URL,
@@ -168,6 +170,9 @@ function rewriteTo(
  * unauthorised sessions are sent to login.
  */
 export async function middleware(request: NextRequest) {
+  const demoMutationBlock = await blockDemoProspectApiMutation(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const host = getRequestHost(request);
   const { pathname, search } = request.nextUrl;
   const normalizedHost = normalizeHost(host);

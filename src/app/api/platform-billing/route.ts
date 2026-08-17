@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 
 import { isInternalDomainHost } from "@/lib/app-domains";
@@ -105,6 +106,9 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   try {
     const denied = await assertInternalPlatformBillingAccess();
     if (denied) return denied;

@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
-import { isDemoAdminUsername, getDemoSessionContext } from "@/lib/demo/mutation-guard";
+import { assertDemoMutationAllowedForRequest, isDemoAdminUsername, getDemoSessionContext } from "@/lib/demo/mutation-guard";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -29,7 +29,10 @@ function runSeed(): Promise<{ ok: boolean; output: string }> {
   });
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const ctx = await getDemoSessionContext();
   if (!ctx?.session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireLmsWorkspaceSession, resolveLmsClientId } from "@/lib/lms/auth";
@@ -12,6 +13,9 @@ import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const auth = await requireLmsWorkspaceSession();
   if ("error" in auth) return auth.error;
 

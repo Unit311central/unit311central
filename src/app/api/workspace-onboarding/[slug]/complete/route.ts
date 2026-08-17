@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getPlatformSession } from "@/lib/platform-session";
@@ -11,6 +12,9 @@ export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ slug: string }> };
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const session = await getPlatformSession();
   if (!session) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });

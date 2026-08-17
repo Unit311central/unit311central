@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getTreasurySettings, saveTreasurySettings } from "@/lib/treasury/treasury-store";
@@ -24,6 +25,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();

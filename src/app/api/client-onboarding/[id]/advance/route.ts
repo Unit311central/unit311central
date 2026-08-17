@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { advanceClientOnboardingStage } from "@/lib/client-onboarding-service";
@@ -21,6 +22,9 @@ const ADVANCE_ACTIONS = new Set<ClientOnboardingAdvanceAction>([
 ]);
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const { id } = await context.params;
   const body = (await request.json()) as { action?: string; actorLabel?: string };
   const action = body.action as ClientOnboardingAdvanceAction | undefined;

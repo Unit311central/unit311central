@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
 
 import { getPlatformSession } from "@/lib/platform-session";
 import { isTalantonPortalsAllowedUsername } from "@/lib/talanton/portals-auth";
@@ -48,6 +49,9 @@ export async function GET() {
   return NextResponse.json(report, { headers: NO_STORE_HEADERS });
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   return GET();
 }

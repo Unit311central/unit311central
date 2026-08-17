@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireLmsWorkspaceSession } from "@/lib/lms/auth";
@@ -27,6 +28,9 @@ export async function GET(request: NextRequest) {
 
 /** Create a draft/published course tree (ABHI staff). */
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const auth = await requireLmsWorkspaceSession();
   if ("error" in auth) return auth.error;
   if (auth.session.userType !== "internal") {

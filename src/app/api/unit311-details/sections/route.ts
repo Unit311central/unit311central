@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireInternalWorkspaceSession } from "@/lib/internal-admin-auth";
@@ -7,6 +8,9 @@ import { createUnit311DetailSection } from "@/lib/unit311-details-service";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const auth = await requireInternalWorkspaceSession();
   if ("error" in auth) return auth.error;
 

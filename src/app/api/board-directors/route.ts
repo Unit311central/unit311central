@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import {
@@ -43,6 +44,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const session = await getPlatformSession();
   if (!session) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 });

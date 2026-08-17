@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireInternalSoftwareBillingAccess } from "@/lib/software-billing/internal-api-auth";
@@ -7,6 +8,9 @@ import { syncVercelSoftwareBilling } from "@/lib/software-billing/vercel-sync";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const auth = await requireInternalSoftwareBillingAccess(request);
   if ("error" in auth) return auth.error;
 

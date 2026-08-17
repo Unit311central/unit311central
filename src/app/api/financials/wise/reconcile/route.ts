@@ -1,11 +1,15 @@
-import { NextResponse } from "next/server";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
 
 import { requireInternalWiseWorkspace } from "@/lib/treasury/treasury-api-auth";
 import { reconcileWiseIncomingPayments } from "@/lib/accounting/wise-reconcile";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const gate = await requireInternalWiseWorkspace();
   if ("error" in gate) return gate.error;
 

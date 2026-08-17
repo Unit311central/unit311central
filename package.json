@@ -38,6 +38,7 @@
     "prove:internal-ea": "node --import tsx src/lib/internal/__tests__/ea-test-suite.check.ts",
     "prove:demo-ea": "node --import tsx src/lib/demo/__tests__/ea-test-suite.check.ts",
     "prove:northstar-demo": "node scripts/prove-northstar-demo.mjs",
+    "prove:demo-readonly": "node scripts/prove-demo-readonly.mjs",
     "prove:ea-provisioning": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-provisioning.check.ts",
     "prove:ea-inheritance": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-inheritance.check.ts",
     "prove:workspace-tenancy": "node --import tsx src/lib/supabase/__tests__/workspace-tenancy-security.check.ts",

@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
+import { NextRequest, NextResponse } from "next/server";
 
 import { requireLmsWorkspaceSession } from "@/lib/lms/auth";
 import { getCourseTree, updateCourseMeta } from "@/lib/lms/service";
@@ -29,6 +30,9 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const auth = await requireLmsWorkspaceSession();
   if ("error" in auth) return auth.error;
   if (auth.session.userType !== "internal") {

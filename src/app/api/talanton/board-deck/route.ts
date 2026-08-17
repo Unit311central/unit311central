@@ -1,3 +1,4 @@
+import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getPlatformSession } from "@/lib/platform-session";
@@ -49,6 +50,9 @@ async function assertTalantonEaAccess(): Promise<NextResponse | null> {
 }
 
 export async function POST(request: NextRequest) {
+  const demoMutationBlock = await assertDemoMutationAllowedForRequest(request);
+  if (demoMutationBlock) return demoMutationBlock;
+
   const denied = await assertTalantonEaAccess();
   if (denied) return denied;
 
