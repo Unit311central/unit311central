@@ -108,7 +108,7 @@ export async function getNorthstarExecutiveBriefingTool(
     source: ["northstar:executive-intelligence", "northstar:financial-model", "northstar:intelligence"],
     pageSize: 1,
     summary: { message: prose },
-    suggestedFollowUps: FOLLOW_UPS,
+    followUpActions: FOLLOW_UPS,
   });
 }
 
@@ -124,7 +124,7 @@ export async function getNorthstarOrgHealthTool(
     source: ["northstar:executive-intelligence"],
     pageSize: 1,
     summary: { message: prose },
-    suggestedFollowUps: FOLLOW_UPS,
+    followUpActions: FOLLOW_UPS,
   });
 }
 
@@ -141,7 +141,7 @@ export async function queryNorthstarActionsTool(
     source: ["northstar:board-data"],
     pageSize: result.actions.length || 1,
     summary: { message: prose, query },
-    suggestedFollowUps: FOLLOW_UPS,
+    followUpActions: FOLLOW_UPS,
   });
 }
 
@@ -158,7 +158,7 @@ export async function getNorthstarBoardInsightsTool(
     source: ["northstar:board-data", "northstar:executive-intelligence"],
     pageSize: 1,
     summary: { message: prose, focus },
-    suggestedFollowUps: FOLLOW_UPS,
+    followUpActions: FOLLOW_UPS,
   });
 }
 
@@ -176,7 +176,7 @@ export async function queryNorthstarModuleTool(
     source: [`northstar:module:${moduleId}`],
     pageSize: result.bullets.length || 1,
     summary: { message: prose, module: moduleId },
-    suggestedFollowUps: FOLLOW_UPS,
+    followUpActions: FOLLOW_UPS,
   });
 }
 

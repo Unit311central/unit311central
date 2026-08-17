@@ -10,6 +10,7 @@ import {
   type AssistantToolExecutionContext,
   type AssistantToolResult,
 } from "@/lib/ai-operating-assistant/tool-result";
+import { persistArtifactToStorage } from "@/lib/ai-operating-assistant/artifact-store";
 import { isBoardPackPayrollEligible } from "@/lib/hr-data";
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { calculateEmployeePayroll } from "@/lib/payroll/engine";
