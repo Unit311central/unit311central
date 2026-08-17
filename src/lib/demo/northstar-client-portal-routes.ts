@@ -2,7 +2,7 @@ import { DEMO_SITE_URL } from "@/lib/app-domains";
 import { getDemoClientPortal, type DemoClientPortalConfig } from "@/lib/demo/demo-client-portal-routes";
 
 export const SHEFFIELD_PORTAL_USERNAME = "demo@sheffieldprecision.com";
-export const SHEFFIELD_PORTAL_PASSWORD = "Sheffield2026$";
+export const SHEFFIELD_PORTAL_PASSWORD = "Letmein2026$";
 export const SHEFFIELD_PORTAL_PATH = "sheffield-precision";
 
 export type NorthstarDemoClientPortalRoute = DemoClientPortalConfig & {
