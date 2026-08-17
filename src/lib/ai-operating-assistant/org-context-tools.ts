@@ -58,10 +58,8 @@ export async function getOrgContextTool(
         message: question
           ? `Unified org context for: ${question}`
           : "Unified org context ready.",
-      },
-      groundingContract: {
-        rule: "Answer only from this payload. Never invent figures, people, or statuses.",
-        onMissing: "Say plainly what is unknown or restricted — do not guess.",
+        groundingRule:
+          "Answer only from this payload. Never invent figures, people, or statuses. Say plainly what is unknown or restricted.",
       },
     });
   } catch (error) {
