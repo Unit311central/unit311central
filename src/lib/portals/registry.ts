@@ -116,13 +116,19 @@ export function isPortalsBriefingAllowedUsername(
   username: string | null | undefined,
   workspaceSlug: string,
 ): boolean {
-  const pack = getPortalPackBySlug(workspaceSlug);
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getPortalsBriefingPackBySlug } =
+    require("@/lib/portals/briefing/pack-registry") as typeof import("@/lib/portals/briefing/pack-registry");
+  const pack = getPortalsBriefingPackBySlug(workspaceSlug);
   if (!pack?.briefing) return false;
   return pack.briefing.isAllowedUsername(username);
 }
 
 export function portalsBriefingLoginUrl(origin: string, workspaceSlug: string): string {
-  const pack = getPortalPackBySlug(workspaceSlug);
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getPortalsBriefingPackBySlug } =
+    require("@/lib/portals/briefing/pack-registry") as typeof import("@/lib/portals/briefing/pack-registry");
+  const pack = getPortalsBriefingPackBySlug(workspaceSlug);
   const base = origin.replace(/\/$/, "");
   if (!pack?.briefing) {
     return `${base}/login?next=${encodeURIComponent("/portals")}`;

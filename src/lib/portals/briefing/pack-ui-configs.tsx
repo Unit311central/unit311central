@@ -1,14 +1,25 @@
 import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
+import NorthstarLogoMark from "@/components/layout/NorthstarLogoMark";
 import OnwardAirLogoMark from "@/components/layout/OnwardAirLogoMark";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
 import type { PortalsBriefingUiConfig } from "@/lib/portals/briefing/ui-config";
-import { getPortalPackBySlug } from "@/lib/portals/registry";
+import { getPortalsBriefingPackBySlug } from "@/lib/portals/briefing/pack-registry";
 import { defaultAbhiPortalsContent } from "@/lib/abhi/portals-demo";
+import { defaultNorthstarDemoPortalsContent } from "@/lib/demo/portals-demo";
 import { defaultOnwardAirPortalsContent } from "@/lib/onwardair/portals-demo";
 import { defaultTalantonPortalsContent } from "@/lib/talanton/portals-demo";
 import { ABHI_SLUG } from "@/lib/abhi-surface";
+import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import {
+  NORTHSTAR_BOARD_USERNAME,
+} from "@/lib/demo/northstar-board-portal-data";
+import {
+  SHEFFIELD_PORTAL_PASSWORD,
+  SHEFFIELD_PORTAL_USERNAME,
+} from "@/lib/demo/northstar-client-portal-routes";
+import { DEMO_PORTALS_PLATFORM_PASSWORD, DEMO_PORTALS_PLATFORM_USERNAME } from "@/lib/demo/portals-auth";
 
 const onwardAirBriefingUiConfig: PortalsBriefingUiConfig = {
   workspaceSlug: ONWARDAIR_SLUG,
@@ -147,25 +158,71 @@ const abhiBriefingUiConfig: PortalsBriefingUiConfig = {
   ],
 };
 
+const northstarDemoBriefingUiConfig: PortalsBriefingUiConfig = {
+  workspaceSlug: DEMO_WORKSPACE_SLUG,
+  headerLayout: "northstar",
+  shellClassName: "bg-[#07111f]",
+  title: "Northstar Overview Portal",
+  titleClassName: "whitespace-nowrap",
+  description:
+    "Credential and capability overview for the Northstar Industrial Technologies demonstration on Unit311 Central.",
+  showCustomModulesColumn: false,
+  footerLabel: "Confidential demonstration material for Northstar",
+  loginRedirectOnAuthFailure: "/login?next=%2Fportals",
+  loginRedirectOnLogout: "/login?next=%2Fportals",
+  defaultContent: defaultNorthstarDemoPortalsContent,
+  credentials: [
+    {
+      title: "Northstar Platform Login",
+      url: "https://demo.unit311central.com/login",
+      urlLabel: "demo.unit311central.com/login",
+      username: DEMO_PORTALS_PLATFORM_USERNAME,
+      password: DEMO_PORTALS_PLATFORM_PASSWORD,
+    },
+    {
+      title: "Board Portal Login",
+      url: "https://demo.unit311central.com/board",
+      urlLabel: "demo.unit311central.com/board",
+      username: NORTHSTAR_BOARD_USERNAME,
+      password: DEMO_PORTALS_PLATFORM_PASSWORD,
+    },
+    {
+      title: "Client Portal — Sheffield Precision Engineering",
+      url: "https://demo.unit311central.com/sheffield-precision",
+      urlLabel: "demo.unit311central.com/sheffield-precision",
+      username: SHEFFIELD_PORTAL_USERNAME,
+      password: SHEFFIELD_PORTAL_PASSWORD,
+    },
+  ],
+};
+
 const CONFIGS: Record<string, PortalsBriefingUiConfig> = {
   [ONWARDAIR_SLUG]: onwardAirBriefingUiConfig,
   [TALANTON_IMPACT_SLUG]: talantonBriefingUiConfig,
   [ABHI_SLUG]: abhiBriefingUiConfig,
+  [DEMO_WORKSPACE_SLUG]: northstarDemoBriefingUiConfig,
 };
 
 export function getPortalsBriefingUiConfig(
   workspaceSlug: string | null | undefined,
 ): PortalsBriefingUiConfig | null {
-  const pack = getPortalPackBySlug(workspaceSlug);
+  const normalized = String(workspaceSlug ?? "")
+    .trim()
+    .toLowerCase();
+  if (CONFIGS[normalized]) return CONFIGS[normalized];
+
+  const pack = getPortalsBriefingPackBySlug(workspaceSlug);
   if (!pack) return null;
   return CONFIGS[pack.slug] ?? null;
 }
 
 export {
   abhiBriefingUiConfig,
+  northstarDemoBriefingUiConfig,
   onwardAirBriefingUiConfig,
   talantonBriefingUiConfig,
   AbhiLogoMark,
+  NorthstarLogoMark,
   OnwardAirLogoMark,
   TalantonLogoMark,
 };

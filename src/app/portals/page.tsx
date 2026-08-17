@@ -4,27 +4,21 @@ import { notFound } from "next/navigation";
 
 import PortalsBriefingPage from "@/components/portals/PortalsBriefingPage";
 import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
-import { getPortalPackBySlug } from "@/lib/portals/registry";
+import { getPortalsBriefingPackBySlug } from "@/lib/portals/briefing/pack-registry";
 
 export const metadata: Metadata = {
   title: "Demo Portals | Unit311 Central",
   description:
-    "Pre-demo briefing for Unit311 Central customer workspaces — platform logins, major modules, and custom capabilities.",
+    "Pre-demo briefing for Northstar on Unit311 Central — platform logins and major modules.",
   robots: { index: false, follow: false },
 };
 
 export default async function PortalsPage() {
   const host = getRequestHost({ headers: await headers() });
   const workspaceSlug = parseClientPlatformSubdomainSafe(host);
+  const pack = workspaceSlug ? getPortalsBriefingPackBySlug(workspaceSlug) : null;
 
-  if (workspaceSlug === "demo") {
-    const DemoPortalsShowcase = (await import("@/components/demo/DemoPortalsShowcase")).default;
-    return <DemoPortalsShowcase />;
-  }
-
-  const pack = workspaceSlug ? getPortalPackBySlug(workspaceSlug) : null;
-
-  if (!pack?.briefing) {
+  if (!pack) {
     notFound();
   }
 

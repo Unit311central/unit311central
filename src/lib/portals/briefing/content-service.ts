@@ -1,6 +1,6 @@
+import { getPortalsBriefingPackBySlug } from "@/lib/portals/briefing/pack-registry";
 import { createSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { PortalsEditableContent } from "@/lib/portals/types";
-import { getPortalPackBySlug } from "@/lib/portals/registry";
 
 const CONTENT_KEY = "default";
 
@@ -19,7 +19,7 @@ function memoryCache(): Record<string, PortalsEditableContent> {
 export async function readPortalsBriefingContent(
   workspaceSlug: string,
 ): Promise<PortalsEditableContent> {
-  const pack = getPortalPackBySlug(workspaceSlug);
+  const pack = getPortalsBriefingPackBySlug(workspaceSlug);
   if (!pack?.briefing) {
     throw new Error(`No portals briefing configured for workspace: ${workspaceSlug}`);
   }
@@ -61,7 +61,7 @@ export async function writePortalsBriefingContent(
   workspaceSlug: string,
   next: PortalsEditableContent,
 ): Promise<PortalsEditableContent> {
-  const pack = getPortalPackBySlug(workspaceSlug);
+  const pack = getPortalsBriefingPackBySlug(workspaceSlug);
   if (!pack?.briefing) {
     throw new Error(`No portals briefing configured for workspace: ${workspaceSlug}`);
   }

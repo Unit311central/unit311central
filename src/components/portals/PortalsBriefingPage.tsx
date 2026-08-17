@@ -13,6 +13,7 @@ import PortalsBriefingShell from "@/components/portals/PortalsBriefingShell";
 import {
   AbhiLogoMark,
   getPortalsBriefingUiConfig,
+  NorthstarLogoMark,
   OnwardAirLogoMark,
   TalantonLogoMark,
 } from "@/lib/portals/briefing/pack-ui-configs";
@@ -178,7 +179,8 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
     if (!canEdit || !ready || !dirtyRef.current) return;
     const hasBlankDraft =
       content.majorModules.some((row) => !row.text.trim()) ||
-      content.customModules.some((row) => !row.text.trim());
+      (config.showCustomModulesColumn !== false &&
+        content.customModules.some((row) => !row.text.trim()));
     if (hasBlankDraft) return;
     const timer = window.setTimeout(() => {
       void saveContent(content);
@@ -270,6 +272,31 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
       );
     }
 
+    if (config.headerLayout === "northstar") {
+      return (
+        <header className="relative flex items-center justify-between gap-4">
+          <Link href="https://demo.unit311central.com" className="shrink-0" aria-label="Northstar">
+            <NorthstarLogoMark height={36} />
+          </Link>
+          <div className="flex items-center gap-3">
+            {editControls}
+            <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
+              <div className="relative h-9 w-[160px] sm:h-10 sm:w-[190px]">
+                <Image
+                  src={UNIT311_LOGO}
+                  alt={SITE_NAME}
+                  fill
+                  priority
+                  sizes="190px"
+                  className="object-contain object-right drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+                />
+              </div>
+            </Link>
+          </div>
+        </header>
+      );
+    }
+
     return (
       <header className="relative flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
@@ -347,7 +374,12 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
             Loading briefing…
           </div>
         ) : (
-          <div className="relative mt-8 grid flex-1 items-stretch gap-5 lg:mt-10 lg:grid-cols-3 lg:gap-6">
+          <div
+            className={cn(
+              "relative mt-8 grid flex-1 items-stretch gap-5 lg:mt-10 lg:gap-6",
+              config.showCustomModulesColumn === false ? "lg:grid-cols-2" : "lg:grid-cols-3",
+            )}
+          >
             <section className="flex h-full min-h-0 flex-col">
               <div className="border-b border-white/10 pb-3">
                 <h2 className="text-lg font-semibold tracking-tight text-white">Platform Login</h2>
@@ -376,23 +408,25 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
               </div>
             </section>
 
-            <section className="flex h-full min-h-0 flex-col">
-              <div className="border-b border-white/10 pb-3">
-                <h2 className="text-lg font-semibold tracking-tight text-white">
-                  {config.customModulesTitle}
-                </h2>
-              </div>
-              <div className="mt-3 flex h-full flex-col rounded-2xl border border-[#C2185B]/25 bg-gradient-to-b from-[#C2185B]/12 to-white/[0.03] p-4 backdrop-blur-md">
-                <PortalsBriefingEditableRows
-                  rows={content.customModules}
-                  canEdit={canEdit}
-                  accent="pink"
-                  onChange={(customModules) =>
-                    applyContent({ ...contentRef.current, customModules }, true)
-                  }
-                />
-              </div>
-            </section>
+            {config.showCustomModulesColumn !== false ? (
+              <section className="flex h-full min-h-0 flex-col">
+                <div className="border-b border-white/10 pb-3">
+                  <h2 className="text-lg font-semibold tracking-tight text-white">
+                    {config.customModulesTitle ?? "Customised Modules"}
+                  </h2>
+                </div>
+                <div className="mt-3 flex h-full flex-col rounded-2xl border border-[#C2185B]/25 bg-gradient-to-b from-[#C2185B]/12 to-white/[0.03] p-4 backdrop-blur-md">
+                  <PortalsBriefingEditableRows
+                    rows={content.customModules}
+                    canEdit={canEdit}
+                    accent="pink"
+                    onChange={(customModules) =>
+                      applyContent({ ...contentRef.current, customModules }, true)
+                    }
+                  />
+                </div>
+              </section>
+            ) : null}
           </div>
         )}
 

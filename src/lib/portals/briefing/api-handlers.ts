@@ -4,7 +4,7 @@ import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-doma
 import { getPlatformSession } from "@/lib/platform-session";
 import { applyPortalsBriefingViewCookie } from "@/lib/portals/briefing/cookies";
 import { readPortalsBriefingContent, writePortalsBriefingContent } from "@/lib/portals/briefing/content-service";
-import { getPortalPackBySlug } from "@/lib/portals/registry";
+import { getPortalsBriefingPackBySlug } from "@/lib/portals/briefing/pack-registry";
 
 const NO_STORE_HEADERS = {
   "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
@@ -35,7 +35,7 @@ export async function handleGetPortalsBriefingContent(
   workspaceSlugOverride?: string,
 ) {
   const workspaceSlug = workspaceSlugOverride ?? resolveWorkspaceSlugFromRequest(request);
-  const pack = workspaceSlug ? getPortalPackBySlug(workspaceSlug) : null;
+  const pack = workspaceSlug ? getPortalsBriefingPackBySlug(workspaceSlug) : null;
   if (!pack?.briefing) {
     return portalsJson({ error: "Portals briefing not available for this host." }, { status: 404 });
   }
@@ -61,7 +61,7 @@ export async function handlePutPortalsBriefingContent(
   workspaceSlugOverride?: string,
 ) {
   const workspaceSlug = workspaceSlugOverride ?? resolveWorkspaceSlugFromRequest(request);
-  const pack = workspaceSlug ? getPortalPackBySlug(workspaceSlug) : null;
+  const pack = workspaceSlug ? getPortalsBriefingPackBySlug(workspaceSlug) : null;
   if (!pack?.briefing) {
     return portalsJson({ error: "Portals briefing not available for this host." }, { status: 404 });
   }
