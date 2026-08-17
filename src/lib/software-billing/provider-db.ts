@@ -173,6 +173,7 @@ export async function upsertPeriodSnapshot(input: {
   planIteration: string;
   seatCount: number | null;
   rawSummary: Record<string, unknown>;
+  source?: string;
 }) {
   return withSoftwareProviderBillingTables(async () => {
     const supabase = requireServiceClient();
@@ -197,7 +198,7 @@ export async function upsertPeriodSnapshot(input: {
       plan_iteration: input.planIteration,
       seat_count: input.seatCount,
       raw_summary: input.rawSummary,
-      source: "vercel_api",
+      source: input.source ?? "vercel_api",
       updated_at: new Date().toISOString(),
     };
 
