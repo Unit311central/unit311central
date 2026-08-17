@@ -66,9 +66,9 @@ export type EaOperationalDataProvider = {
 
 export type EaBoardPackGeneratedArtifacts = {
   pdfBytes: Uint8Array;
-  pptxBytes: Uint8Array;
+  pptxBytes?: Uint8Array;
   pdfFilename: string;
-  pptxFilename: string;
+  pptxFilename?: string;
   packName: string;
   meetingDate: string;
   status: string;

@@ -86,6 +86,12 @@ export async function generateBoardPackTool(
   }
 
   try {
+    if (typeof boardPack.generateArtifacts !== "function") {
+      return toolError(
+        "boardpack.generate",
+        "Board pack artifact generator is unavailable for this workspace.",
+      );
+    }
     const meetingDate = parseMeetingDate(
       asString(args.meetingDate) || asString(args.date) || asString(args.when),
     );
@@ -126,28 +132,32 @@ export async function generateBoardPackTool(
     });
     pdfArtifact = await persistArtifactToStorage(pdfArtifact);
 
-    let pptxArtifact = putAssistantArtifact({
-      id: createArtifactId(),
-      kind: "pptx",
-      title: `${packName} (PowerPoint)`,
-      filename: generated.pptxFilename,
-      mimeType:
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      bytes: Buffer.from(generated.pptxBytes),
-      userId: ctx.business.user.id,
-      meta: {
-        workspaceSlug: slug,
-        packName,
-        meetingDate: resolvedMeetingDate,
-        status,
-        format: "pptx",
-      },
-    });
-    pptxArtifact = await persistArtifactToStorage(pptxArtifact);
+    let pptxArtifact: typeof pdfArtifact | null = null;
+    let pptxDownloadUrl = "";
+    if (generated.pptxBytes && generated.pptxBytes.length > 0 && generated.pptxFilename) {
+      pptxArtifact = putAssistantArtifact({
+        id: createArtifactId(),
+        kind: "pptx",
+        title: `${packName} (PowerPoint)`,
+        filename: generated.pptxFilename,
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        bytes: Buffer.from(generated.pptxBytes),
+        userId: ctx.business.user.id,
+        meta: {
+          workspaceSlug: slug,
+          packName,
+          meetingDate: resolvedMeetingDate,
+          status,
+          format: "pptx",
+        },
+      });
+      pptxArtifact = await persistArtifactToStorage(pptxArtifact);
+      pptxDownloadUrl = `/api/executive-assistant/artifacts/${pptxArtifact.id}?disposition=attachment`;
+    }
 
     const pdfOpenUrl = `/api/executive-assistant/artifacts/${pdfArtifact.id}?disposition=inline`;
     const pdfDownloadUrl = `/api/executive-assistant/artifacts/${pdfArtifact.id}?disposition=attachment`;
-    const pptxDownloadUrl = `/api/executive-assistant/artifacts/${pptxArtifact.id}?disposition=attachment`;
     const boardDeckHref = "/dashboard?view=board-pack";
     const folderPath =
       generated.folderPath ??
@@ -184,28 +194,32 @@ export async function generateBoardPackTool(
           kind: "pdf",
           contentBase64: pdfArtifact.contentBase64,
         },
-        {
-          artifactId: pptxArtifact.id,
-          title: pptxArtifact.title,
-          filename: pptxArtifact.filename,
-          openUrl: pptxDownloadUrl,
-          downloadUrl: pptxDownloadUrl,
-          kind: "pptx",
-          contentBase64: pptxArtifact.contentBase64,
-        },
+        ...(pptxArtifact
+          ? [
+              {
+                artifactId: pptxArtifact.id,
+                title: pptxArtifact.title,
+                filename: pptxArtifact.filename,
+                openUrl: pptxDownloadUrl,
+                downloadUrl: pptxDownloadUrl,
+                kind: "pptx" as const,
+                contentBase64: pptxArtifact.contentBase64,
+              },
+            ]
+          : []),
       ],
       {
         source: generated.sourceTags,
-        pageSize: 2,
+        pageSize: pptxArtifact ? 2 : 1,
         summary: {
           executed: true,
           message: generated.successMessage,
           artifactId: pdfArtifact.id,
           pdfArtifactId: pdfArtifact.id,
-          pptxArtifactId: pptxArtifact.id,
+          pptxArtifactId: pptxArtifact?.id,
           pdfOpenUrl,
           pdfDownloadUrl,
-          pptxDownloadUrl,
+          pptxDownloadUrl: pptxDownloadUrl || undefined,
           title: packName,
           filename: generated.pdfFilename,
           pptxFilename: generated.pptxFilename,

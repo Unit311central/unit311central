@@ -35,18 +35,20 @@ export const demoBoardPackConfig: EaBoardPackConfig = {
     const pack = buildNorthstarBoardPackData(meetingDate);
     const deck = await generateNorthstarBoardDeck(meetingDate);
     const resolved = (deck.data ?? pack) as AbhiBoardPackData;
-    let pptxBytes: Uint8Array;
+    let pptxBytes: Uint8Array | undefined;
     try {
       pptxBytes = await buildAbhiBoardPackPptx(resolved, logoDataUrl);
     } catch (error) {
-      console.error("[northstar-board-pack] PPTX generation failed", error);
-      throw error instanceof Error ? error : new Error("Northstar board pack PPTX failed.");
+      console.error("[northstar-board-pack] PPTX generation failed — PDF only", error);
+      pptxBytes = undefined;
     }
     return {
       pdfBytes: deck.pdfBytes,
       pptxBytes,
       pdfFilename: northstarBoardDeckPdfFileName(pack.meetingDate),
-      pptxFilename: northstarBoardPackPptxFileName(pack.meetingDate),
+      pptxFilename: pptxBytes
+        ? northstarBoardPackPptxFileName(pack.meetingDate)
+        : undefined,
       packName: pack.packName,
       meetingDate: pack.meetingDate,
       status: pack.status,
