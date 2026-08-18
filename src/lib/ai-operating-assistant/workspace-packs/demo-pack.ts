@@ -125,6 +125,17 @@ export const demoWorkspacePack: EaWorkspacePack = {
   intentResolvers: [
     ({ message }) => {
       const lower = message.toLowerCase();
+      if (/\bon leave|leave request|who is on leave|absence|time off|pto\b|out of office\b/.test(lower)) {
+        return packToolRoute({
+          tool: "northstar.queryModule",
+          args: { module: "hr", question: message, focus: "leave attendance" },
+          reason: "northstar_hr_leave",
+        });
+      }
+      return null;
+    },
+    ({ message }) => {
+      const lower = message.toLowerCase();
       if (
         /\b(hr|headcount|staff|employee|people|fte)\b/.test(lower) &&
         (/\b(year\s+by\s+year|yoy|growth|graph|chart|trend|all\s+locations?|by\s+location)\b/.test(

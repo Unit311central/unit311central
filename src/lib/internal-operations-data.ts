@@ -8,6 +8,7 @@ export type InternalOperationsView =
   | "member-intelligence"
   | "crm"
   | "crm-meetings"
+  | "sales-quotes"
   | "crm-questions-test"
   | "connections"
   | "representatives"
@@ -273,6 +274,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "member-intelligence",
   "crm",
   "crm-meetings",
+  "sales-quotes",
   "crm-questions-test",
   "connections",
   "representatives",
@@ -732,6 +734,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         children: [
           { label: "Pipeline", view: "crm" as const },
           { label: "Discovery", view: "crm-meetings" as const },
+          { label: "Sales Quotes", view: "sales-quotes" as const },
           { label: "Client Onboarding", view: "client-onboarding" as const },
           { label: "Potential Clients", view: "potential-clients" as const },
           ],
@@ -1076,6 +1079,10 @@ export const internalViewTitles: Record<
   crm: { title: "Pipeline", subtitle: "Customer Management" },
   "crm-meetings": {
     title: "Discovery",
+    subtitle: "Customer Management",
+  },
+  "sales-quotes": {
+    title: "Sales Quotes",
     subtitle: "Customer Management",
   },
   "crm-questions-test": {

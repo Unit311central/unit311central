@@ -49,6 +49,7 @@ export const CalendarWorkspace = lazyWorkspace(() => import("./CalendarWorkspace
 export const CompetitorsWorkspace = lazyWorkspace(() => import("./CompetitorsWorkspace"));
 export const CrmWorkspace = lazyWorkspace(() => import("./CrmWorkspace"));
 export const CrmQuestionsTestWorkspace = lazyWorkspace(() => import("./CrmQuestionsTestWorkspace"));
+export const SalesQuotesWorkspace = lazyWorkspace(() => import("./SalesQuotesWorkspace"));
 export const MeetingsWorkspace = lazyWorkspace(() => import("./MeetingsWorkspace"));
 export const ConnectionsWorkspace = lazyWorkspace(() => import("./ConnectionsWorkspace"));
 export const FileRepositoryWorkspace = lazyWorkspace(() => import("./FileRepositoryWorkspace"));

@@ -32,7 +32,9 @@ export function resolveNorthstarModuleId(raw: string): NorthstarModuleId | null 
   if (/\bhome\b|executive\s+dashboard/.test(lower)) return "home";
   if (/\bexecutive\s+assistant\b|\bea\b/.test(lower) && !/briefing/.test(lower)) return "executive-assistant";
   if (
-    /hr|human\s+resources|headcount|staff|employee|people|fte|hiring|org\s+chart/.test(lower) &&
+    /hr|human\s+resources|headcount|staff|employee|people|fte|hiring|org\s+chart|\bleave\b|absence|time\s+off|on\s+leave|pto\b|attendance/.test(
+      lower,
+    ) &&
     !/\bpayroll\b/.test(lower)
   )
     return "hr";

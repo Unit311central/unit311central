@@ -179,6 +179,10 @@ export function resolveNorthstarEaDataRoute(message: string): NorthstarEaRoute |
     return { tool: "queryPayroll", args: { intent: "trend" }, reason: "northstar_payroll_trend" };
   }
 
+  if (/\bon leave|leave request|who is on leave|absence|time off|pto\b|out of office\b/.test(lower)) {
+    return moduleRoute("hr", text, "northstar_hr_leave", "leave attendance");
+  }
+
   for (const [viewId, mapping] of Object.entries(VIEW_TO_MODULE)) {
     const page = listPlatformModules({ workspaceSlug: DEMO_WORKSPACE_SLUG })
       .flatMap((m) => m.applications.flatMap((a) => a.pages))

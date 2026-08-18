@@ -84,6 +84,42 @@ export type LedgerInvoice = {
   updatedAt: string;
 };
 
+export type SalesQuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired";
+
+export type SalesQuoteLineItem = {
+  id: string;
+  lineNumber: number;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+};
+
+export type SalesQuote = {
+  id: string;
+  workspaceId: string;
+  quoteNumber: string;
+  crmLeadId: string | null;
+  clientId: string | null;
+  companyName: string;
+  contactName: string | null;
+  contactEmail: string | null;
+  title: string;
+  currency: string;
+  subtotal: number;
+  taxAmount: number;
+  totalAmount: number;
+  status: SalesQuoteStatus;
+  validUntil: string | null;
+  pdfPath: string | null;
+  invoiceId: string | null;
+  stripePaymentLinkUrl: string | null;
+  notes: string | null;
+  lineItems: SalesQuoteLineItem[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TrialBalanceRow = {
   accountId: string;
   code: string;

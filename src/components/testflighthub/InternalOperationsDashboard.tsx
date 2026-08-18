@@ -219,6 +219,7 @@ import {
   LogisticsWorkspace,
   ManagementReviewWorkspace,
   MeetingsWorkspace,
+  SalesQuotesWorkspace,
   CommunicationsWorkspace,
   MessagingWorkspace,
   ModuleGoLiveWorkspace,
@@ -922,6 +923,8 @@ export default function InternalOperationsDashboard({
               <MeetingsWorkspace />
             </WorkspacePane>
           )}
+
+          {activeView === "sales-quotes" && <SalesQuotesWorkspace />}
 
           {activeView === "crm-questions-test" && <CrmQuestionsTestWorkspace />}
 

@@ -51,6 +51,14 @@ export function resolveNorthstarExecutiveIntelligenceIntent(
     };
   }
 
+  if (/\bon leave|leave request|who is on leave|absence|time off|pto\b|out of office\b/.test(lower)) {
+    return {
+      tool: "northstar.queryModule",
+      args: { module: "hr", question: text, focus: "leave attendance" },
+      reason: "northstar_hr_leave",
+    };
+  }
+
   if (
     /\bexecutive\s+briefing\b/.test(lower) ||
     /\b(give|get|provide|prepare|show|send)\s+(me\s+)?(an?\s+)?(executive\s+)?briefing\b/.test(
