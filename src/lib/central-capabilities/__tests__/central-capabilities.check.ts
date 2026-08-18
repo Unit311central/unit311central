@@ -38,4 +38,15 @@ import { isInternalOperationsView } from "@/lib/internal-operations-data";
   assert.ok(getVisibleContentStudioFunctions(engineer).length === 0);
 }
 
+{
+  const admin = managementAccessFromEntitlements({
+    roleView: "admin",
+    roles: ["Admin"],
+    departments: ["Corporate"],
+  });
+  assert.equal(canAccessManagementWorkspace(admin), true);
+  assert.ok(getVisibleManagementFunctionPacks(admin).length >= 4);
+  assert.ok(getVisibleContentStudioFunctions(admin).length >= 8);
+}
+
 console.log("prove:central-capabilities: OK");

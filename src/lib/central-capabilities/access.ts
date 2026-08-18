@@ -17,6 +17,10 @@ function isExecutive(access: CentralCapabilityAccessContext): boolean {
   );
 }
 
+function isPlatformAdmin(access: CentralCapabilityAccessContext): boolean {
+  return access.roleView === "admin" || hasRole(access, "Admin");
+}
+
 function hasDepartment(access: CentralCapabilityAccessContext, ...names: string[]): boolean {
   const normalized = new Set(
     access.departments.map((department) => department.toLowerCase()),
@@ -68,7 +72,7 @@ const PACK_ROLE_MATCH: Record<string, (access: CentralCapabilityAccessContext) =
 };
 
 export function canAccessManagementWorkspace(access: CentralCapabilityAccessContext): boolean {
-  if (isExecutive(access)) return true;
+  if (isExecutive(access) || isPlatformAdmin(access)) return true;
   return hasDepartment(
     access,
     "Finance",
@@ -83,7 +87,7 @@ export function canAccessManagementWorkspace(access: CentralCapabilityAccessCont
 export function getVisibleManagementFunctionPacks(
   access: CentralCapabilityAccessContext,
 ): ManagementFunctionPackPlaceholder[] {
-  if (isExecutive(access)) return MANAGEMENT_FUNCTION_PACKS;
+  if (isExecutive(access) || isPlatformAdmin(access)) return MANAGEMENT_FUNCTION_PACKS;
   return MANAGEMENT_FUNCTION_PACKS.filter((pack) => {
     const matcher = PACK_ROLE_MATCH[pack.ownerRole];
     return matcher ? matcher(access) : false;
@@ -93,6 +97,9 @@ export function getVisibleManagementFunctionPacks(
 export function getVisibleContentStudioFunctions(
   access: CentralCapabilityAccessContext,
 ): ContentStudioFunctionId[] {
+  if (isExecutive(access) || isPlatformAdmin(access)) {
+    return CONTENT_STUDIO_FUNCTIONS.map((node) => node.id);
+  }
   return CONTENT_STUDIO_FUNCTIONS.filter((node) =>
     CONTENT_STUDIO_ACCESS[node.id](access),
   ).map((node) => node.id);

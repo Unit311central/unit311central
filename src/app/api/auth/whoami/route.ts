@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { DEMO_ADMIN_USERNAME } from "@/lib/demo/read-only";
 import { getNorthstarWhoamiPayload } from "@/lib/demo/northstar-api-fixtures";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
 import { getPlatformSession } from "@/lib/platform-session";
@@ -52,6 +53,14 @@ export async function GET() {
       } catch {
         // Northstar fixture profile is enough for demo.
       }
+    }
+
+    if (session.username?.trim().toLowerCase() === DEMO_ADMIN_USERNAME) {
+      payload.role = "Admin";
+      payload.roles = ["Admin"];
+      payload.department = payload.department ?? "Corporate";
+      payload.departments = payload.departments?.length ? payload.departments : ["Corporate"];
+      payload.allowedViews = null;
     }
 
     return NextResponse.json(payload, { headers: WHOAMI_CACHE_HEADERS });
