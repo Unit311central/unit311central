@@ -50,7 +50,7 @@ const SECTIONS: CentralSubnavItem<ManagementSectionId>[] = [
 ];
 
 const MANAGEMENT_SUBTITLE =
-  "Recurring meetings, function packs, actions, and decisions for your management committee.";
+  "Recurring meetings, function packs, actions, and decisions for your leadership team.";
 
 function readinessClass(status: string) {
   if (status === "ready") return "border-emerald-400/30 bg-emerald-500/15 text-emerald-100";
@@ -87,7 +87,7 @@ function ManagementDashboard({
   return (
     <WorkspaceSection
       title="Upcoming management meeting"
-      subtitle="Function pack readiness across the management committee."
+      subtitle="Function pack readiness for the weekly management meeting."
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <div className="rounded-xl border border-white/10 bg-[#0b1524]/80 p-4">
@@ -267,7 +267,7 @@ function ManagementMeetingsPanel() {
               value={draft.functionPackLabel}
               onChange={(event) => setDraft({ ...draft, functionPackLabel: event.target.value })}
               className={workspaceInputClass()}
-              placeholder="March 2026 management cycle"
+              placeholder="August 2026 operating cycle"
             />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -470,7 +470,7 @@ function ManagementFunctionPacksPanel({
               value={draft.reportingPeriod}
               onChange={(event) => setDraft({ ...draft, reportingPeriod: event.target.value })}
               className={workspaceInputClass()}
-              placeholder="March 2026"
+              placeholder="August 2026"
             />
           </label>
           <label className="block text-sm text-white/70">

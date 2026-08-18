@@ -10,6 +10,7 @@ export type ManagementSectionId =
 export type ContentStudioFunctionId =
   | "corporate"
   | "management"
+  | "fundraising"
   | "sales"
   | "marketing"
   | "projects"
@@ -78,4 +79,23 @@ export type ContentStudioFunctionNode = {
   id: ContentStudioFunctionId;
   label: string;
   description: string;
+};
+
+export type ContentStudioPageConfig = {
+  id: string;
+  label: string;
+  enabled: boolean;
+};
+
+export type ContentStudioSavedContent = {
+  id: string;
+  templateId: string;
+  templateName: string;
+  functionId: ContentStudioFunctionId;
+  name: string;
+  frequency: string;
+  pages: ContentStudioPageConfig[];
+  status: "active" | "archived";
+  createdAt: string;
+  updatedAt: string;
 };

@@ -590,7 +590,7 @@ function reshapeTalantonCorporateSection(section: InternalNavSection): InternalN
   };
 }
 
-/** Talanton — dashboard, Content Studio, Management, and file explorer only. */
+/** Talanton — full Business Productivity with Management and Content Studio surfaced in-section. */
 function reshapeTalantonProductivitySection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Business Productivity") return section;
   return {
@@ -598,15 +598,22 @@ function reshapeTalantonProductivitySection(section: InternalNavSection): Intern
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "productivity-dashboard" as const },
       { label: "Content Studio", icon: "Presentation", view: "content-studio" as const },
-      { label: "Management", icon: "ClipboardList", view: "management" as const },
       {
         label: "File Explorer",
         icon: "FolderOpen",
         children: [
           { label: "Internal Files", view: "files-internal" as const },
           { label: "External Files", view: "files-external" as const },
+          { label: "Client Explorer", view: "files-client" as const },
         ],
       },
+      { label: "Email", icon: "Mail", view: "info-email" as const },
+      { label: "Calendar", icon: "CalendarDays", view: "calendar" as const },
+      { label: "Messaging", icon: "MessageSquare", view: "messaging" as const },
+      { label: "Communications", icon: "Video", view: "communications" as const },
+      { label: "Social", icon: "Share2", view: "social" as const },
+      { label: "Whiteboard", icon: "PenLine", view: "whiteboard" as const },
+      { label: "Management", icon: "ClipboardList", view: "management" as const },
     ],
   };
 }

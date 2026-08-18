@@ -41,6 +41,8 @@ const CONTENT_STUDIO_ACCESS: Record<
   management: (access) =>
     isExecutive(access) ||
     hasDepartment(access, "Finance", "Operations", "Technology", "Sales", "Engineering"),
+  fundraising: (access) =>
+    isExecutive(access) || hasDepartment(access, "Finance", "Sales", "Operations"),
   sales: (access) => isExecutive(access) || hasDepartment(access, "Sales", "Marketing"),
   marketing: (access) => isExecutive(access) || hasDepartment(access, "Marketing", "Sales"),
   projects: (access) =>

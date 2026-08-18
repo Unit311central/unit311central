@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutGrid, Plus, RotateCcw, X } from "lucide-react";
 
+import ExecutiveMyWorkspace from "@/components/central-capabilities/ExecutiveMyWorkspace";
 import NorthstarCompanyOverview from "@/components/demo/NorthstarCompanyOverview";
 
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
@@ -369,6 +370,8 @@ export default function ExecutiveHomeDashboard() {
           ) : null}
         </>
       ) : null}
+
+      <ExecutiveMyWorkspace />
 
       <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">

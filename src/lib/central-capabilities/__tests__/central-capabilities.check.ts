@@ -1,10 +1,16 @@
 /**
- * Central capabilities placeholder shells — navigation + permission smoke.
+ * Central capabilities — navigation, permissions, content studio, and management smoke.
  * Run: npm run prove:central-capabilities
  */
 import assert from "node:assert/strict";
 
 import { injectDemoNavSections } from "@/lib/demo/nav";
+import {
+  canAccessManagementWorkspace,
+  getVisibleContentStudioFunctions,
+  getVisibleManagementFunctionPacks,
+  managementAccessFromEntitlements,
+} from "@/lib/central-capabilities/access";
 import {
   deleteManagementAction,
   deleteManagementFunctionPack,
@@ -16,12 +22,7 @@ import {
   upsertManagementMeeting,
   uploadManagementFunctionPack,
 } from "@/lib/central-capabilities/management-store";
-import {
-  canAccessManagementWorkspace,
-  getVisibleContentStudioFunctions,
-  getVisibleManagementFunctionPacks,
-  managementAccessFromEntitlements,
-} from "@/lib/central-capabilities/access";
+import { CONTENT_STUDIO_FUNCTIONS } from "@/lib/central-capabilities/content-studio-placeholder";
 import {
   buildAbhiNavSections,
   buildOnwardAirNavSections,
@@ -31,6 +32,7 @@ import {
   internalSurveyNavSections,
   isInternalOperationsView,
   type InternalNavSection,
+  type InternalNavItem,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 
@@ -45,6 +47,10 @@ function navIncludesView(
     }
   }
   return false;
+}
+
+function sectionItems(sections: readonly InternalNavSection[], label: string): readonly InternalNavItem[] {
+  return sections.find((section) => section.label === label)?.items ?? [];
 }
 
 function assertSurfaceNav(
@@ -75,6 +81,10 @@ function assertSurfaceNav(
   assert.equal(canAccessManagementWorkspace(executive), true);
   assert.ok(getVisibleManagementFunctionPacks(executive).length >= 4);
   assert.ok(getVisibleContentStudioFunctions(executive).length >= 8);
+  assert.ok(
+    getVisibleContentStudioFunctions(executive).includes("fundraising"),
+    "executive must see fundraising in Content Studio",
+  );
 }
 
 {
@@ -101,7 +111,39 @@ function assertSurfaceNav(
 assertSurfaceNav("Demo", injectDemoNavSections(internalSurveyNavSections));
 assertSurfaceNav("OnwardAir", buildOnwardAirNavSections(internalSurveyNavSections));
 assertSurfaceNav("ABHI", buildAbhiNavSections(internalSurveyNavSections));
-assertSurfaceNav("Talanton", getTalantonImpactNavSections());
+
+{
+  const talanton = getTalantonImpactNavSections();
+  assertSurfaceNav("Talanton", talanton);
+  assert.ok(
+    !talanton.some((section) => section.label === "Business Central"),
+    "Talanton must not expose Business Central",
+  );
+  const productivity = sectionItems(talanton, "Business Productivity");
+  const labels = productivity.flatMap((item) => [
+    item.label,
+    ...(item.children?.map((child) => child.label) ?? []),
+  ]);
+  for (const expected of [
+    "Dashboard",
+    "Content Studio",
+    "Management",
+    "Email",
+    "Calendar",
+    "Messaging",
+    "Client Explorer",
+    "Whiteboard",
+  ]) {
+    assert.ok(labels.includes(expected), `Talanton Business Productivity must include ${expected}`);
+  }
+}
+
+{
+  assert.ok(
+    CONTENT_STUDIO_FUNCTIONS.some((node) => node.id === "fundraising"),
+    "Content Studio catalogue must include Fundraising",
+  );
+}
 
 {
   const slug = resolveManagementWorkspaceSlug("demo.unit311central.com");
@@ -119,7 +161,7 @@ assertSurfaceNav("Talanton", getTalantonImpactNavSections());
   const pack = upsertManagementFunctionPack(slug, {
     title: "Test pack",
     ownerRole: "CFO",
-    reportingPeriod: "March 2026",
+    reportingPeriod: "August 2026",
   });
   uploadManagementFunctionPack(slug, pack.id, "cfo-pack.pdf");
   assert.equal(
@@ -131,7 +173,7 @@ assertSurfaceNav("Talanton", getTalantonImpactNavSections());
   const action = upsertManagementAction(slug, {
     title: "Test action",
     owner: "CFO",
-    dueDate: "2026-03-20",
+    dueDate: "2026-08-20",
     meeting: "Test meeting",
     kind: "action",
     status: "open",
