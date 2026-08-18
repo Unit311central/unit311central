@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
-import { DEMO_ADMIN_USERNAME } from "@/lib/demo/read-only";
+import { DEMO_ADMIN_USERNAME, applyUnit311GlobalAdminEntitlements, isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
 import { getNorthstarWhoamiPayload } from "@/lib/demo/northstar-api-fixtures";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
 import { getPlatformSession } from "@/lib/platform-session";
@@ -56,11 +56,7 @@ export async function GET() {
     }
 
     if (session.username?.trim().toLowerCase() === DEMO_ADMIN_USERNAME) {
-      payload.role = "Admin";
-      payload.roles = ["Admin"];
-      payload.department = payload.department ?? "Corporate";
-      payload.departments = payload.departments?.length ? payload.departments : ["Corporate"];
-      payload.allowedViews = null;
+      Object.assign(payload, applyUnit311GlobalAdminEntitlements(payload));
     }
 
     return NextResponse.json(payload, { headers: WHOAMI_CACHE_HEADERS });
@@ -95,6 +91,14 @@ export async function GET() {
     } catch {
       // Profile still returns session identity if operator lookup fails.
     }
+  }
+
+  if (isUnit311GlobalAdminUsername(session.username)) {
+    role = "Admin";
+    roles = ["Admin"];
+    department = department ?? "Corporate";
+    departments = departments?.length ? departments : ["Corporate"];
+    allowedViews = null;
   }
 
   if (workspace?.id && isSupabaseConfigured()) {

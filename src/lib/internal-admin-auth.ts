@@ -9,7 +9,7 @@ import {
   isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
 import { userHasRole } from "@/lib/user-management-data";
-import { isDemoAdminUsername, isDemoWorkspaceSlug } from "@/lib/demo/read-only";
+import { isDemoWorkspaceSlug, isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
 import {
   WorkspaceAccessError,
   requireCurrentWorkspace,
@@ -44,21 +44,8 @@ export async function requireInternalAdministratorSession(): Promise<
     };
   }
 
-  try {
-    const workspace = await requireCurrentWorkspace();
-    if (
-      isDemoWorkspaceSlug(workspace.slug) &&
-      isDemoAdminUsername(session.username)
-    ) {
-      return { session };
-    }
-  } catch {
-    if (
-      isDemoWorkspaceSlug(session.workspaceSlug) &&
-      isDemoAdminUsername(session.username)
-    ) {
-      return { session };
-    }
+  if (isUnit311GlobalAdminUsername(session.username)) {
+    return { session };
   }
 
   try {

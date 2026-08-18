@@ -20,6 +20,28 @@ export function isDemoAdminUsername(username: string | null | undefined): boolea
   return resolveDemoRole(username) === "admin";
 }
 
+/** Global Unit311 platform admin (internal + demo). */
+export const isUnit311GlobalAdminUsername = isDemoAdminUsername;
+
+export function applyUnit311GlobalAdminEntitlements<
+  T extends {
+    role?: string | null;
+    roles?: string[] | null;
+    department?: string | null;
+    departments?: string[] | null;
+    allowedViews?: string[] | null;
+  },
+>(payload: T): T {
+  return {
+    ...payload,
+    role: "Admin",
+    roles: ["Admin"],
+    department: payload.department ?? "Corporate",
+    departments: payload.departments?.length ? payload.departments : ["Corporate"],
+    allowedViews: null,
+  };
+}
+
 export function isDemoWorkspaceSlug(slug: string | null | undefined): boolean {
   return String(slug ?? "").trim().toLowerCase() === DEMO_WORKSPACE_SLUG;
 }
