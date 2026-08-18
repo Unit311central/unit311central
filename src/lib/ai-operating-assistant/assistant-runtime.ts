@@ -1178,8 +1178,11 @@ async function* runAssistantTurnInner(input: {
       eaStop("Intent resolved", "no executable business action matched — continuing to model tools", {
         message,
       });
-      const domain = classifyKnowledgeDomain(message).domain;
-      if (domain === "business" || domain === "write") {
+      const classification = classifyKnowledgeDomain(message);
+      if (
+        (classification.domain === "business" || classification.domain === "write") &&
+        classification.reason !== "document_generation_request"
+      ) {
         requireToolOnFirstModelTurn = true;
         inputItems = [
           ...inputItems,

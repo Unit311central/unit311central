@@ -115,8 +115,9 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
   {
     id: "cash",
     label: "Cash position",
-    match: /\b(cash\s+position|how\s+much\s+cash|cash\s+balance|cash\s+on\s+hand)\b/i,
-    phrases: ["cash position", "cash balance", "cash on hand", "how much cash"],
+    match:
+      /\b(cash\s+position|how\s+much\s+cash|cash\s+balance|cash\s+on\s+hand|(?:^|[,&\s])cash(?:\s|$|[,&]))\b/i,
+    phrases: ["cash position", "cash balance", "cash on hand", "how much cash", "cash"],
     permission: "financials",
   },
   {

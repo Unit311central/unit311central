@@ -20,8 +20,11 @@ import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/type
 
 registerAllActionModules();
 
-const OPEN_QUESTIONS = [
+const COMPOSITOR_PDF_PROMPTS = [
   "Make me a PDF report for the last 6 months with P&L, balance sheet, and cash position",
+] as const;
+
+const OPEN_QUESTIONS = [
   "Client Meridian Packaging has just gone bankrupt — what are the ramifications?",
   "I'm worried we are going out of business — what should I do?",
   "Summarise the business — cash, pipeline, and risks",
@@ -103,6 +106,14 @@ async function runEaRealSuite() {
   }
 
   const orchestrationFailures: string[] = [];
+  for (const prompt of COMPOSITOR_PDF_PROMPTS) {
+    const route = await resolveOrchestrationRoute(prompt, [], business);
+    if (route.kind !== "tool" || route.intent.tool !== "generateScopedBusinessPdf") {
+      orchestrationFailures.push(
+        `${prompt} → expected generateScopedBusinessPdf, got ${JSON.stringify(route)}`,
+      );
+    }
+  }
   for (const prompt of OPEN_QUESTIONS) {
     const route = await resolveOrchestrationRoute(prompt, [], business);
     if (route.kind === "tool" && route.intent.tool !== "searchApplications") {
@@ -116,7 +127,7 @@ async function runEaRealSuite() {
     process.exit(1);
   }
 
-  const scoped = parseScopedPdfRequest(OPEN_QUESTIONS[0]);
+  const scoped = parseScopedPdfRequest(COMPOSITOR_PDF_PROMPTS[0]);
   assert.ok(scoped.metrics.includes("pnl"));
   assert.ok(scoped.metrics.includes("balance_sheet"));
   assert.ok(scoped.metrics.includes("cash"));

@@ -34,12 +34,8 @@ async function main() {
     ]);
     assert.deepEqual(scoped.unknownTopics, []);
     const intent = resolveDirectIntent(DEMO, []);
-    if (isEaGeneralIntentMode()) {
-      assert.equal(intent, null, "real EA: model picks PDF tool");
-    } else {
-      assert.equal(intent?.tool, "generateScopedBusinessPdf");
-      assert.deepEqual(intent?.args.metrics, scoped.metrics);
-    }
+    assert.equal(intent?.tool, "generateScopedBusinessPdf");
+    assert.deepEqual(intent?.args.metrics, scoped.metrics);
   }
 
   // Regression: "create me a pdf…" must never become Create client location.
@@ -78,13 +74,9 @@ async function main() {
       generatedAt: new Date().toISOString(),
     };
     const route = await resolveOrchestrationRoute(DEMO, [], business);
-    if (isEaGeneralIntentMode()) {
-      assert.equal(route.kind, "none");
-    } else {
-      assert.equal(route.kind, "tool");
-      if (route.kind === "tool") {
-        assert.equal(route.intent.tool, "generateScopedBusinessPdf");
-      }
+    assert.equal(route.kind, "tool");
+    if (route.kind === "tool") {
+      assert.equal(route.intent.tool, "generateScopedBusinessPdf");
     }
   }
 

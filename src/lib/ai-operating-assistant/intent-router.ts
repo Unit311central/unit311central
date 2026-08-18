@@ -190,6 +190,30 @@ function resolveConversationalShortcuts(
   return null;
 }
 
+/** Compositor PDFs stay deterministic — Real EA defers open questions, not known PDF builders. */
+function resolveCompositorDocumentIntent(text: string): DirectAssistantIntent | null {
+  const scoped = parseScopedPdfRequest(text);
+  if (!scoped.useScopedPath) return null;
+  return {
+    tool: "generateScopedBusinessPdf",
+    args: {
+      question: text,
+      metrics: scoped.metrics,
+      unknownTopics: scoped.unknownTopics,
+      title: scoped.title,
+      period:
+        scoped.period.kind === "last_n_months"
+          ? `last ${scoped.period.n} months`
+          : scoped.period.kind === "ytd"
+            ? "ytd"
+            : scoped.period.kind === "quarter"
+              ? `Q${scoped.period.quarter} ${scoped.period.year}`
+              : scoped.period.key,
+    },
+    reason: "scoped_business_pdf",
+  };
+}
+
 /**
  * Deterministic short-circuit for clear executive follow-ups.
  * Prefer executing tools over asking the model what the user meant.
@@ -202,6 +226,9 @@ export function resolveDirectIntent(
   const text = message.trim();
   const lower = text.toLowerCase();
   const hasPdf = historyHasPdfArtifact(history);
+
+  const compositor = resolveCompositorDocumentIntent(text);
+  if (compositor) return compositor;
 
   if (isEaGeneralIntentMode()) {
     return resolveConversationalShortcuts(text, history);
@@ -632,29 +659,6 @@ export function resolveDirectIntent(
         reason: "cross_module_search",
       };
     }
-  }
-
-  // —— Scoped multi-metric NL PDF (before payroll / fixed templates) ——
-  const scoped = parseScopedPdfRequest(text);
-  if (scoped.useScopedPath) {
-    return {
-      tool: "generateScopedBusinessPdf",
-      args: {
-        question: text,
-        metrics: scoped.metrics,
-        unknownTopics: scoped.unknownTopics,
-        title: scoped.title,
-        period:
-          scoped.period.kind === "last_n_months"
-            ? `last ${scoped.period.n} months`
-            : scoped.period.kind === "ytd"
-              ? "ytd"
-              : scoped.period.kind === "quarter"
-                ? `Q${scoped.period.quarter} ${scoped.period.year}`
-                : scoped.period.key,
-      },
-      reason: "scoped_business_pdf",
-    };
   }
 
   // —— Payroll PDF (payroll-only; composites already handled above) ——
