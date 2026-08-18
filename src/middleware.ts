@@ -539,14 +539,23 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    // EA test suite GUI (Talanton + ABHI hosts).
+    // EA test suite GUI (Talanton + ABHI + Northstar demo hosts).
     if (pathname === "/testing" || pathname.startsWith("/testing/")) {
-      if (!isTalantonImpactSlug(workspaceSlug) && workspaceSlug !== ABHI_SLUG) {
+      if (
+        !isTalantonImpactSlug(workspaceSlug) &&
+        workspaceSlug !== ABHI_SLUG &&
+        workspaceSlug !== DEMO_WORKSPACE_SLUG
+      ) {
         return redirectExternal(`${workspaceOrigin}/dashboard`);
       }
 
       // ABHI — public EA test suite (no login required).
       if (workspaceSlug === ABHI_SLUG) {
+        return rewriteTo(request, "/testing", headers, workspaceResponseHeaders);
+      }
+
+      // Northstar demo — public EA test suite (no login required).
+      if (workspaceSlug === DEMO_WORKSPACE_SLUG) {
         return rewriteTo(request, "/testing", headers, workspaceResponseHeaders);
       }
 

@@ -17,6 +17,7 @@ export const DEMO_MUTATION_EXEMPT_API_PREFIXES = [
   "/api/auth/",
   "/api/executive-assistant/",
   "/api/demo/board-deck",
+  "/api/demo/ea-tests",
   "/api/demo/preview-workspace",
   "/api/telemetry",
   "/api/website-analytics/",
