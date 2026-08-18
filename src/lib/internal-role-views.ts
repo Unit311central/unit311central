@@ -275,7 +275,7 @@ export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
   "External Client Access",
 ]);
 
-export const TALANTON_HIDDEN_SECTION_LABELS = new Set(["QMS", "Business Productivity"]);
+export const TALANTON_HIDDEN_SECTION_LABELS = new Set(["QMS"]);
 
 export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
   "Unit311 Details",
@@ -590,11 +590,20 @@ function reshapeTalantonCorporateSection(section: InternalNavSection): InternalN
   };
 }
 
-/** Ensure File Explorer stays with Internal + External only (no Client Explorer). */
+const TALANTON_PRODUCTIVITY_VIEWS = new Set<InternalOperationsView>([
+  "productivity-dashboard",
+  "content-studio",
+]);
+
+/** Talanton — Content Studio + file explorer only (no calendar/comms clutter). */
 function reshapeTalantonProductivitySection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Business Productivity") return section;
   const items = section.items
-    .filter((item) => item.label !== "Social" && item.view !== "social")
+    .filter(
+      (item) =>
+        item.label === "File Explorer" ||
+        (item.view != null && TALANTON_PRODUCTIVITY_VIEWS.has(item.view)),
+    )
     .map((item) => {
     if (item.label !== "File Explorer") return item;
     const children = (item.children ?? []).filter(
@@ -640,6 +649,7 @@ function reshapeTalantonBusinessCentralSection(section: InternalNavSection): Int
       { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" as const },
       { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
       { label: "External Projects", icon: "FolderOpen", view: "projects-external" as const },
+      { label: "Management", icon: "ClipboardList", view: "management" as const },
     ],
   };
 }

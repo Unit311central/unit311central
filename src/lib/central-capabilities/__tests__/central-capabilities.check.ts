@@ -4,13 +4,51 @@
  */
 import assert from "node:assert/strict";
 
+import { injectDemoNavSections } from "@/lib/demo/nav";
 import {
   canAccessManagementWorkspace,
   getVisibleContentStudioFunctions,
   getVisibleManagementFunctionPacks,
   managementAccessFromEntitlements,
 } from "@/lib/central-capabilities/access";
-import { isInternalOperationsView } from "@/lib/internal-operations-data";
+import {
+  buildAbhiNavSections,
+  buildOnwardAirNavSections,
+  getTalantonImpactNavSections,
+} from "@/lib/internal-role-views";
+import {
+  internalSurveyNavSections,
+  isInternalOperationsView,
+  type InternalNavSection,
+  type InternalOperationsView,
+} from "@/lib/internal-operations-data";
+
+function navIncludesView(
+  sections: readonly InternalNavSection[],
+  view: InternalOperationsView,
+): boolean {
+  for (const section of sections) {
+    for (const item of section.items) {
+      if (item.view === view) return true;
+      if (item.children?.some((child) => child.view === view)) return true;
+    }
+  }
+  return false;
+}
+
+function assertSurfaceNav(
+  label: string,
+  sections: readonly InternalNavSection[],
+): void {
+  assert.ok(
+    navIncludesView(sections, "management"),
+    `${label} nav must include Management`,
+  );
+  assert.ok(
+    navIncludesView(sections, "content-studio"),
+    `${label} nav must include Content Studio`,
+  );
+}
 
 {
   assert.equal(isInternalOperationsView("management"), true);
@@ -48,5 +86,10 @@ import { isInternalOperationsView } from "@/lib/internal-operations-data";
   assert.ok(getVisibleManagementFunctionPacks(admin).length >= 4);
   assert.ok(getVisibleContentStudioFunctions(admin).length >= 8);
 }
+
+assertSurfaceNav("Demo", injectDemoNavSections(internalSurveyNavSections));
+assertSurfaceNav("OnwardAir", buildOnwardAirNavSections(internalSurveyNavSections));
+assertSurfaceNav("ABHI", buildAbhiNavSections(internalSurveyNavSections));
+assertSurfaceNav("Talanton", getTalantonImpactNavSections());
 
 console.log("prove:central-capabilities: OK");

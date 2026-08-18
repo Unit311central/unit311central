@@ -267,6 +267,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "files-external",
       "files-client",
       "productivity-dashboard",
+      "content-studio",
       "social",
     ],
   },
@@ -504,7 +505,7 @@ export function defaultAllowedViews(
     } else if (department === "Technology") {
       groupIds = ["technology", "engineering", "projects", "productivity"];
     } else if (department === "Board" || department === "Exec" || department === "Manager" || department === "Corporate") {
-      groupIds = ["strategy", "corporate", "clients", "projects", "productivity"];
+      groupIds = ["strategy", "corporate", "clients", "projects", "productivity", "management"];
     }
   } else {
     // Manager
