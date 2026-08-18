@@ -6,6 +6,17 @@ import assert from "node:assert/strict";
 
 import { injectDemoNavSections } from "@/lib/demo/nav";
 import {
+  deleteManagementAction,
+  deleteManagementFunctionPack,
+  deleteManagementMeeting,
+  getManagementState,
+  resolveManagementWorkspaceSlug,
+  upsertManagementAction,
+  upsertManagementFunctionPack,
+  upsertManagementMeeting,
+  uploadManagementFunctionPack,
+} from "@/lib/central-capabilities/management-store";
+import {
   canAccessManagementWorkspace,
   getVisibleContentStudioFunctions,
   getVisibleManagementFunctionPacks,
@@ -91,5 +102,42 @@ assertSurfaceNav("Demo", injectDemoNavSections(internalSurveyNavSections));
 assertSurfaceNav("OnwardAir", buildOnwardAirNavSections(internalSurveyNavSections));
 assertSurfaceNav("ABHI", buildAbhiNavSections(internalSurveyNavSections));
 assertSurfaceNav("Talanton", getTalantonImpactNavSections());
+
+{
+  const slug = resolveManagementWorkspaceSlug("demo.unit311central.com");
+  const meeting = upsertManagementMeeting(slug, {
+    name: "Test meeting",
+    schedule: "Monday 10:00",
+    participants: ["CEO"],
+    functionPackLabel: "Test cycle",
+    packsReady: 1,
+    packsTotal: 2,
+  });
+  assert.equal(getManagementState(slug).meetings.some((row) => row.id === meeting.id), true);
+  deleteManagementMeeting(slug, meeting.id);
+
+  const pack = upsertManagementFunctionPack(slug, {
+    title: "Test pack",
+    ownerRole: "CFO",
+    reportingPeriod: "March 2026",
+  });
+  uploadManagementFunctionPack(slug, pack.id, "cfo-pack.pdf");
+  assert.equal(
+    getManagementState(slug).functionPacks.find((row) => row.id === pack.id)?.uploadedFileName,
+    "cfo-pack.pdf",
+  );
+  deleteManagementFunctionPack(slug, pack.id);
+
+  const action = upsertManagementAction(slug, {
+    title: "Test action",
+    owner: "CFO",
+    dueDate: "2026-03-20",
+    meeting: "Test meeting",
+    kind: "action",
+    status: "open",
+  });
+  assert.equal(getManagementState(slug).actions.some((row) => row.id === action.id), true);
+  deleteManagementAction(slug, action.id);
+}
 
 console.log("prove:central-capabilities: OK");

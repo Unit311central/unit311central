@@ -87,8 +87,15 @@ export function canAccessManagementWorkspace(access: CentralCapabilityAccessCont
 export function getVisibleManagementFunctionPacks(
   access: CentralCapabilityAccessContext,
 ): ManagementFunctionPackPlaceholder[] {
-  if (isExecutive(access) || isPlatformAdmin(access)) return MANAGEMENT_FUNCTION_PACKS;
-  return MANAGEMENT_FUNCTION_PACKS.filter((pack) => {
+  return filterVisibleManagementFunctionPacks(access, MANAGEMENT_FUNCTION_PACKS);
+}
+
+export function filterVisibleManagementFunctionPacks(
+  access: CentralCapabilityAccessContext,
+  packs: readonly ManagementFunctionPackPlaceholder[],
+): ManagementFunctionPackPlaceholder[] {
+  if (isExecutive(access) || isPlatformAdmin(access)) return [...packs];
+  return packs.filter((pack) => {
     const matcher = PACK_ROLE_MATCH[pack.ownerRole];
     return matcher ? matcher(access) : false;
   });

@@ -34,7 +34,7 @@ export function CentralSubnavShell<T extends string>({
   onSelect,
   children,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   subtitle: string;
   items: CentralSubnavItem<T>[];
@@ -42,9 +42,12 @@ export function CentralSubnavShell<T extends string>({
   onSelect: (id: T) => void;
   children: ReactNode;
 }) {
-  const [brandLabel, moduleLabel] = eyebrow.includes(" · ")
-    ? (eyebrow.split(" · ", 2) as [string, string])
-    : [eyebrow, undefined];
+  const [brandLabel, moduleLabel] =
+    eyebrow && eyebrow.includes(" · ")
+      ? (eyebrow.split(" · ", 2) as [string, string])
+      : eyebrow
+        ? [eyebrow, undefined]
+        : [undefined, undefined];
 
   return (
     <div className="space-y-5">
