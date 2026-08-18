@@ -9,12 +9,16 @@ import {
   ABHI_LOGO_INTRINSIC_WIDTH,
 } from "@/lib/abhi-surface";
 import {
+  NORTHSTAR_LOGO_INTRINSIC_HEIGHT,
+  NORTHSTAR_LOGO_INTRINSIC_WIDTH,
+} from "@/lib/demo/northstar-surface";
+import {
   ensureEaWorkspacePacksRegistered,
   resolveEaWorkspacePdfBrand,
 } from "@/lib/ai-operating-assistant/workspace-packs";
 import { brandFromWorkspaceClaim, type WorkspaceBrandKind } from "@/lib/workspace-brand";
 
-export type AssistantPdfBrandKind = WorkspaceBrandKind | "unit311";
+export type AssistantPdfBrandKind = WorkspaceBrandKind | "unit311" | "northstar";
 
 export type AssistantPdfRgb = readonly [number, number, number];
 
@@ -99,7 +103,15 @@ export function drawAssistantPdfHeader(
     doc.rect(0, 0, pageWidth, doc.internal.pageSize.getHeight(), "F");
   }
 
-  if (brand.kind === "abhi" && brand.logoDataUrl && brand.logoFormat) {
+  if (brand.kind === "northstar" && brand.logoDataUrl && brand.logoFormat) {
+    const logoW = 110;
+    const logoH = logoW * (NORTHSTAR_LOGO_INTRINSIC_HEIGHT / NORTHSTAR_LOGO_INTRINSIC_WIDTH);
+    doc.addImage(brand.logoDataUrl, brand.logoFormat, 40, 36, logoW, logoH);
+    doc.setTextColor(...colors.muted);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(org, 40, 36 + logoH + 14);
+  } else if (brand.kind === "abhi" && brand.logoDataUrl && brand.logoFormat) {
     const logoW = 92;
     const logoH =
       logoW * (ABHI_LOGO_INTRINSIC_HEIGHT / ABHI_LOGO_INTRINSIC_WIDTH);
@@ -126,7 +138,9 @@ export function drawAssistantPdfHeader(
         ? "CC"
         : brand.kind === "talanton"
           ? "TI"
-          : "U3";
+          : brand.kind === "northstar"
+            ? "NS"
+            : "U3";
     doc.text(mark, 48, 54);
 
     doc.setTextColor(...colors.text);
@@ -138,7 +152,7 @@ export function drawAssistantPdfHeader(
     doc.text(org, 78, 62);
   }
 
-  let y = brand.kind === "abhi" ? 108 : 100;
+  let y = brand.kind === "abhi" || brand.kind === "northstar" ? 108 : 100;
 
   doc.setDrawColor(...colors.line);
   doc.setLineWidth(0.75);

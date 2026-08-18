@@ -39,6 +39,17 @@ export function resolveNorthstarExecutiveIntelligenceIntent(
   if (isDocumentGenerateAsk(lower)) return null;
 
   if (
+    /\b(year\s+by\s+year|yoy|year-on-year|growth|graph|chart|trend)\b/.test(lower) &&
+    /\b(staff|headcount|employee|people|fte|location|office|hiring)\b/.test(lower)
+  ) {
+    return {
+      tool: "northstar.queryModule",
+      args: { module: "hr", question: text, focus: "headcount_growth" },
+      reason: "northstar_hr_headcount_growth",
+    };
+  }
+
+  if (
     /\bexecutive\s+briefing\b/.test(lower) ||
     /\b(give|get|provide|prepare|show|send)\s+(me\s+)?(an?\s+)?(executive\s+)?briefing\b/.test(
       lower,

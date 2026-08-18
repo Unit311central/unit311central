@@ -246,7 +246,7 @@ export const NORTHSTAR_EXECUTIVE_TOOL_DEFINITIONS = [
   {
     name: "northstar.queryModule",
     description:
-      "Northstar only. Live read of a workspace module: financials, engineering, fundraising, grants, board, intelligence, clients, support, qms. Use for Atlas, Sheffield, Voltex, margin, seed round, grants, pipeline, etc.",
+      "Northstar only. Live read of a workspace module: financials, engineering, fundraising, grants, board, intelligence, clients, HR/headcount, support, qms. Use for Atlas, Sheffield, Voltex, margin, seed round, grants, pipeline, staff growth, etc.",
     parameters: {
       type: "object",
       properties: {
@@ -260,6 +260,7 @@ export const NORTHSTAR_EXECUTIVE_TOOL_DEFINITIONS = [
             "intelligence",
             "clients",
             "grants",
+            "hr",
             "support",
             "qms",
           ],

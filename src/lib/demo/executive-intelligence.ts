@@ -34,6 +34,7 @@ import {
   getNorthstarFundraisingPipeline,
   getNorthstarGrantApplications,
 } from "@/lib/demo/module-fixtures";
+import { buildNorthstarHeadcountGrowthSummary } from "@/lib/demo/northstar-hr-headcount-history";
 import { NORTHSTAR_SEED_TARGET_GBP } from "@/lib/demo/fundraising-data";
 
 export type NorthstarHealthStatus = "Green" | "Amber" | "Red";
@@ -121,7 +122,8 @@ export type NorthstarModuleId =
   | "clients"
   | "grants"
   | "support"
-  | "qms";
+  | "qms"
+  | "hr";
 
 export type NorthstarModuleQueryResult = {
   asOf: string;
@@ -487,6 +489,11 @@ export function formatNorthstarBoardInsightsText(insights: NorthstarBoardInsight
 
 export function resolveNorthstarModuleId(raw: string): NorthstarModuleId | null {
   const lower = raw.toLowerCase();
+  if (
+    /hr|human\s+resources|headcount|staff|employee|people|fte|hiring|org\s+chart/.test(lower) &&
+    !/\bpayroll\b/.test(lower)
+  )
+    return "hr";
   if (/financial|margin|revenue|cash|p\s*&\s*l|gl|treasury|ar\b|ap\b/.test(lower)) return "financials";
   if (/engineering|atlas|firmware|voltex|programme|program|milestone|edge\s+controller/.test(lower))
     return "engineering";
@@ -652,6 +659,36 @@ export function queryNorthstarModule(
         navigationHint: "Northstar Intelligence → Company / Client / Market",
         records: { company, clients, market },
       };
+    case "hr": {
+      const hr = buildNorthstarHeadcountGrowthSummary();
+      return {
+        asOf: hr.asOf,
+        module,
+        headline: hr.headline,
+        bullets: hr.bullets,
+        metrics: {
+          headcount2026: hr.series[hr.series.length - 1]?.total ?? 25,
+          manchester: hr.locations.find((l) => l.id === "manchester")?.current ?? 0,
+          bristol: hr.locations.find((l) => l.id === "bristol")?.current ?? 0,
+          austin: hr.locations.find((l) => l.id === "austin")?.current ?? 0,
+        },
+        navigationHint: "Human Resources → Reports → Headcount",
+        records: {
+          headcountByYear: hr.series,
+          chart: {
+            type: "stacked_bar",
+            title: "Staff growth by location (year-end FTE)",
+            xKey: "year",
+            series: [
+              { key: "manchester", label: "Manchester" },
+              { key: "bristol", label: "Bristol" },
+              { key: "austin", label: "Austin" },
+            ],
+            rows: hr.series,
+          },
+        },
+      };
+    }
     case "support":
       return {
         asOf,

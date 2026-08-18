@@ -536,6 +536,10 @@ export default function ExecutiveAssistantPanel({
 
     const url =
       disposition === "attachment" ? artifact.downloadUrl : artifact.openUrl;
+    if (disposition === "inline" && url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
     try {
       const response = await fetch(url, { credentials: "include" });
       if (!response.ok) {

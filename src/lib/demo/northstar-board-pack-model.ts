@@ -33,9 +33,15 @@ function formatGbp(value: number, compact = false): string {
   return `${sign}£${abs.toLocaleString("en-GB")}`;
 }
 
+import { NORTHSTAR_BOARD_MEETINGS } from "@/lib/demo/board-data";
+
 function resolveMeetingDate(meetingDateIso?: string): string {
   if (meetingDateIso && /^\d{4}-\d{2}-\d{2}$/.test(meetingDateIso)) return meetingDateIso;
-  return "2026-03-20";
+  const scheduled = NORTHSTAR_BOARD_MEETINGS.find((m) => m.status === "scheduled");
+  if (scheduled) return scheduled.date;
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function buildPackName(meetingDate: string): string {

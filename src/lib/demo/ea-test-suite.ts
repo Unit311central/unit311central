@@ -4,10 +4,9 @@
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
-import { assertOpenBusinessReadRoute } from "@/lib/ai-operating-assistant/ea-route-assertions";
 import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
 import { shouldSynthesizeExecutiveToolResult } from "@/lib/ai-operating-assistant/ea-llm-synthesis";
-import { getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service";
+import { getOpenAIToolSchemas, toOpenAiFunctionToolName } from "@/lib/ai-operating-assistant/tool-service";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import {
   ensureEaWorkspacePacksRegistered,
@@ -117,20 +116,27 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
     const schemas = getOpenAIToolSchemas(DEMO_WORKSPACE_SLUG);
     const names = new Set(schemas.map((s) => s.name));
     if (!names.has("queryBusiness")) throw new Error("missing queryBusiness");
-    if (!names.has("northstar.getExecutiveBriefing")) throw new Error("missing northstar.getExecutiveBriefing");
-    if (!names.has("northstar.queryModule")) throw new Error("missing northstar.queryModule");
+    if (!names.has(toOpenAiFunctionToolName("northstar.getExecutiveBriefing")))
+      throw new Error("missing northstar.getExecutiveBriefing");
+    if (!names.has(toOpenAiFunctionToolName("northstar.queryModule")))
+      throw new Error("missing northstar.queryModule");
     if (names.has("onwardair.queryModule")) throw new Error("unexpected OA tool on demo");
   });
 
   const orchestration = new SectionRunner("Orchestration");
   sections.push(orchestration);
-  await orchestration.run("open business question routes to queryBusiness", async () => {
+  await orchestration.run("headcount question routes to northstar HR module", async () => {
     const route = await resolveOrchestrationRoute(
       "How many employees do we have?",
       [],
       business,
     );
-    assertOpenBusinessReadRoute(route);
+    if (route.kind !== "tool" || route.intent.tool !== "northstar.queryModule") {
+      throw new Error(`expected northstar.queryModule, got ${JSON.stringify(route)}`);
+    }
+    if (String(route.intent.args.module ?? "") !== "hr") {
+      throw new Error(`expected hr module, got ${JSON.stringify(route.intent.args)}`);
+    }
   });
   await orchestration.run("margin question routes to northstar briefing", async () => {
     const route = await resolveOrchestrationRoute("Why did margin fall?", [], business);

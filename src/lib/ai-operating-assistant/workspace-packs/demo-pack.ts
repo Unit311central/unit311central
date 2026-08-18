@@ -48,7 +48,7 @@ const DEMO_LLM_SYNTHESIS_TOOLS = new Set([
   "northstar.queryModule",
 ]);
 
-const NORTHSTAR_SYNTHESIS_MODULES = new Set(["engineering", "financials", "fundraising", "clients"]);
+const NORTHSTAR_SYNTHESIS_MODULES = new Set(["engineering", "financials", "fundraising", "clients", "hr"]);
 
 const NORTHSTAR_TOOLS_HINT = `
 Northstar Industrial Technologies — reporting currency is GBP. Use industrial IoT / manufacturing / edge monitoring language (not ABHI membership, Talanton portfolio, or OnwardAir aviation).
@@ -123,6 +123,23 @@ export const demoWorkspacePack: EaWorkspacePack = {
     },
   ],
   intentResolvers: [
+    ({ message }) => {
+      const lower = message.toLowerCase();
+      if (
+        /\b(hr|headcount|staff|employee|people|fte)\b/.test(lower) &&
+        (/\b(year\s+by\s+year|yoy|growth|graph|chart|trend|all\s+locations?|by\s+location)\b/.test(
+          lower,
+        ) ||
+          /\bgive\s+me\b.*\bgraph\b/.test(lower))
+      ) {
+        return packToolRoute({
+          tool: "northstar.queryModule",
+          args: { module: "hr", question: message, focus: "headcount_growth" },
+          reason: "northstar_hr_headcount_growth",
+        });
+      }
+      return null;
+    },
     ({ message }) => {
       const lower = message.toLowerCase();
       if (

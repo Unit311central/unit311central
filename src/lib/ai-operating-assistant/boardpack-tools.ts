@@ -12,6 +12,8 @@ import {
   ensureEaWorkspacePacksRegistered,
   getEaWorkspacePackBoardPackConfig,
 } from "@/lib/ai-operating-assistant/workspace-packs";
+import { resolveNorthstarBoardPackMeetingDate } from "@/lib/demo/northstar-board-pack-date";
+import { parseExplicitAbhiBoardMeetingDate } from "@/lib/abhi/board-pack-date";
 import {
   toolError,
   toolForbidden,
@@ -119,7 +121,33 @@ async function tryNorthstarProductionBoardPackBridge(
 ): Promise<AssistantToolResult | null> {
   if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") return null;
 
-  const resolvedMeetingDate = meetingDate || "2026-03-20";
+  if (!meetingDate) {
+    const resolution = resolveNorthstarBoardPackMeetingDate({});
+    if (!resolution.ok) {
+      return toolOk(
+        "boardpack.generate",
+        [],
+        {
+          source: ["northstar:board-pack"],
+          pageSize: 0,
+          summary: {
+            executed: false,
+            needsMeetingDate: true,
+            message: resolution.message,
+            meetingOptions: resolution.options,
+          },
+          followUpActions: resolution.options.map((option) => ({
+            id: `board_meeting_${option.date}`,
+            label: `Create board deck for ${option.date}`,
+            kind: "generate" as const,
+          })),
+        },
+      );
+    }
+    meetingDate = resolution.meetingDate;
+  }
+
+  const resolvedMeetingDate = meetingDate;
   const pdfBytes = await fetchDemoNorthstarBoardDeckPdf(resolvedMeetingDate);
   if (!pdfBytes) {
     return toolError(
@@ -225,18 +253,62 @@ export async function generateBoardPackTool(
     );
   }
 
-  const meetingDate = parseMeetingDate(
-    asString(args.meetingDate) || asString(args.date) || asString(args.when),
-  );
+  const meetingDate =
+    parseMeetingDate(asString(args.meetingDate) || asString(args.date)) ??
+    parseExplicitAbhiBoardMeetingDate(asString(args.when));
+
+  if (slug === "demo" && !meetingDate) {
+    const resolution = resolveNorthstarBoardPackMeetingDate({
+      meetingDate: asString(args.meetingDate),
+      when: asString(args.when),
+    });
+    if (!resolution.ok) {
+      return toolOk(
+        "boardpack.generate",
+        [],
+        {
+          source: ["northstar:board-pack"],
+          pageSize: 0,
+          summary: {
+            executed: false,
+            needsMeetingDate: true,
+            message: resolution.message,
+            meetingOptions: resolution.options,
+          },
+          followUpActions: resolution.options.map((option) => ({
+            id: `board_meeting_${option.date}`,
+            label: `Create board deck for ${option.date}`,
+            kind: "generate" as const,
+          })),
+        },
+      );
+    }
+  }
+
+  const resolvedMeetingDateForDemo =
+    meetingDate ??
+    (slug === "demo"
+      ? (() => {
+          const resolution = resolveNorthstarBoardPackMeetingDate({
+            meetingDate: asString(args.meetingDate),
+            when: asString(args.when),
+          });
+          return resolution.ok ? resolution.meetingDate : undefined;
+        })()
+      : undefined);
 
   if (slug === "demo") {
     const bridged = await tryNorthstarProductionBoardPackBridge(
-      meetingDate,
+      resolvedMeetingDateForDemo,
       ctx,
       boardPack.stages,
     );
     if (bridged) return bridged;
   }
+
+  const meetingDateArg =
+    resolvedMeetingDateForDemo ??
+    parseMeetingDate(asString(args.meetingDate) || asString(args.date) || asString(args.when));
 
   try {
     if (typeof boardPack.generateArtifacts !== "function") {
@@ -245,7 +317,6 @@ export async function generateBoardPackTool(
         "Board pack artifact generator is unavailable for this workspace.",
       );
     }
-    const meetingDateArg = meetingDate;
     const data = boardPack.buildPackData(meetingDateArg);
     const logoDataUrl = await boardPack.loadLogoDataUrl();
     const analysisPromise = runStagedAnalysis(boardPack.stages);
