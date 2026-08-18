@@ -122,13 +122,12 @@ export function getEaWorkspacePackSynthesisGuidance(ctx: EaSynthesisContext): st
   return guidanceForToolName(ctx.toolName, ctx.toolArgs);
 }
 
-export function getEaWorkspacePackBoardPackConfig(
+export async function getEaWorkspacePackBoardPackConfig(
   slug: string | null | undefined,
-): EaBoardPackConfig | null {
+): Promise<EaBoardPackConfig | null> {
   const pack = getEaWorkspacePackForSlug(slug);
   if (!pack) return null;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getServerBoardPackConfigForPackId } = require("./server-pack-config") as typeof import("./server-pack-config");
+  const { getServerBoardPackConfigForPackId } = await import("./server-pack-config");
   return getServerBoardPackConfigForPackId(pack.id);
 }
 
@@ -193,7 +192,7 @@ export async function resolveEaWorkspacePdfBrand(
   const pack = getEaWorkspacePackForSlug(workspaceSlug);
   if (!pack) return null;
   const { resolveServerPdfBrandForPackId } =
-    await import("./server-pack-config");
+    await import("./server-pdf-brand");
   return resolveServerPdfBrandForPackId(pack.id, workspaceSlug, workspaceName);
 }
 

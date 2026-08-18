@@ -208,7 +208,7 @@ export async function generateBoardPackTool(
 ): Promise<AssistantToolResult> {
   ensureEaWorkspacePacksRegistered();
   const slug = ctx.business.workspace.slug?.trim() || null;
-  let boardPack = getEaWorkspacePackBoardPackConfig(slug);
+  let boardPack = await getEaWorkspacePackBoardPackConfig(slug);
   if (
     slug === "demo" &&
     (!boardPack || typeof boardPack.generateArtifacts !== "function")

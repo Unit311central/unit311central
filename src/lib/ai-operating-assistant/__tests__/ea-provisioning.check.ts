@@ -36,7 +36,7 @@ function assertGenericCentralTools(slug: string, packId: string) {
   }
 }
 
-function main() {
+async function main() {
   ensureEaWorkspacePacksRegistered();
   const packs = listEaWorkspacePacks();
   const packIds = new Set(packs.map((pack) => pack.id));
@@ -74,13 +74,15 @@ function main() {
     }
 
     if (pack.clientSupportsBoardPack) {
+      const boardPack = await getServerBoardPackConfigForPackId(pack.id);
       assert.ok(
-        getServerBoardPackConfigForPackId(pack.id)?.supportsBoardPack,
+        boardPack?.supportsBoardPack,
         `${pack.id}: client board-pack flag without server config`,
       );
     } else {
+      const boardPack = await getServerBoardPackConfigForPackId(pack.id);
       assert.equal(
-        getServerBoardPackConfigForPackId(pack.id)?.supportsBoardPack ?? false,
+        boardPack?.supportsBoardPack ?? false,
         false,
         `${pack.id}: unexpected server board-pack config without client flag`,
       );
@@ -101,4 +103,7 @@ function main() {
   );
 }
 
-main();
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
