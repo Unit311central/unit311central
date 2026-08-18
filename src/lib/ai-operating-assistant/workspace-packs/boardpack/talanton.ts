@@ -7,7 +7,6 @@ import {
   talantonBoardPackPdfFileName,
   talantonBoardPackPptxFileName,
 } from "@/lib/talanton/board-pack-model";
-import { buildAbhiBoardPackPptx } from "@/lib/abhi/board-pack-pptx";
 import type { AbhiBoardPackData } from "@/lib/abhi/board-pack-model";
 import { TALANTON_BOARD_PACK_STAGES } from "@/lib/talanton/board-pack-stages";
 import type { EaBoardPackConfig } from "@/lib/ai-operating-assistant/workspace-packs/types";
@@ -31,6 +30,7 @@ export const talantonBoardPackConfig: EaBoardPackConfig = {
     const pack = buildTalantonBoardPackData(meetingDate);
     const deck = await generateTalantonBoardDeck(meetingDate);
     const resolved = (deck.data ?? pack) as AbhiBoardPackData;
+    const { buildAbhiBoardPackPptx } = await import("@/lib/abhi/board-pack-pptx");
     const pptxBytes = await buildAbhiBoardPackPptx(resolved, _logoDataUrl);
     return {
       pdfBytes: deck.pdfBytes,

@@ -1,5 +1,5 @@
 import {
-  createPptxGen,
+  createPptxGenAsync,
   type PptxShapeName,
   type PptxSlide,
   type PptxTableRow,
@@ -279,7 +279,7 @@ export async function buildAbhiBoardPackPptx(
   );
   data = validateAndSanitizeAbhiBoardPackData(data).data;
 
-  const pptx = createPptxGen();
+  const pptx = await createPptxGenAsync();
   pptx.layout = "LAYOUT_WIDE";
   pptx.author = "Association of British HealthTech Industries";
   pptx.company = "ABHI";

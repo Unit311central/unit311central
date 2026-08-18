@@ -1,7 +1,30 @@
-import PptxGenJSImport from "pptxgenjs";
-import type PptxGenType from "pptxgenjs";
+import { createRequire } from "node:module";
 
-type PptxGenConstructor = typeof import("pptxgenjs").default;
+type PptxGenConstructor = new () => PptxGenInstance;
+
+export type PptxGenInstance = {
+  addSlide: () => PptxSlide;
+  defineSlideMaster: (master: Record<string, unknown>) => void;
+  write: (options: { outputType: "nodebuffer" }) => Promise<Buffer>;
+  layout?: string;
+  author?: string;
+  company?: string;
+  title?: string;
+  subject?: string;
+  theme?: Record<string, unknown>;
+};
+
+export type PptxSlide = {
+  addText: (...args: unknown[]) => void;
+  addShape: (...args: unknown[]) => void;
+  addImage: (...args: unknown[]) => void;
+  addTable: (...args: unknown[]) => void;
+};
+
+export type PptxTableRow = unknown[];
+export type PptxShapeName = string;
+
+let cachedConstructor: PptxGenConstructor | null = null;
 
 function resolvePptxGenConstructor(mod: unknown): PptxGenConstructor {
   const candidate =
@@ -12,20 +35,19 @@ function resolvePptxGenConstructor(mod: unknown): PptxGenConstructor {
   throw new Error("pptxgenjs is unavailable in this runtime.");
 }
 
-export type PptxGenInstance = InstanceType<PptxGenConstructor>;
-export type PptxSlide = PptxGenType.Slide;
-export type PptxTableRow = PptxGenType.TableRow;
-export type PptxShapeName = PptxGenType.SHAPE_NAME;
+function loadPptxGenConstructor(): PptxGenConstructor {
+  if (cachedConstructor) return cachedConstructor;
+  const require = createRequire(import.meta.url);
+  const mod = require("pptxgenjs");
+  cachedConstructor = resolvePptxGenConstructor(mod);
+  return cachedConstructor;
+}
 
 export function createPptxGen(): PptxGenInstance {
-  const PptxGen = resolvePptxGenConstructor(PptxGenJSImport);
+  const PptxGen = loadPptxGenConstructor();
   return new PptxGen();
 }
 
 export async function createPptxGenAsync(): Promise<PptxGenInstance> {
-  const mod = await import("pptxgenjs");
-  const PptxGen = resolvePptxGenConstructor(mod);
-  return new PptxGen();
+  return createPptxGen();
 }
-
-export type { default as PptxGenType } from "pptxgenjs";

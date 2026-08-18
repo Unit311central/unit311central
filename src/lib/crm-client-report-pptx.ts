@@ -1,4 +1,4 @@
-import pptxgen from "pptxgenjs";
+import { createPptxGenAsync } from "@/lib/pptxgen-client";
 
 import {
   buildClientReportSections,
@@ -30,7 +30,19 @@ export async function buildCrmClientReportPptx(
 ): Promise<Uint8Array> {
   const generatedAt = new Date().toISOString();
   const sections = buildClientReportSections({ lead, questionnaire });
-  const pptx = new pptxgen();
+  const pptx = (await createPptxGenAsync()) as {
+    author: string;
+    title: string;
+    layout: string;
+    addSlide: () => {
+      addShape: (shape: string, opts: Record<string, unknown>) => void;
+      addText: (...args: unknown[]) => void;
+      addTable: (...args: unknown[]) => void;
+      addImage: (...args: unknown[]) => void;
+    };
+    ShapeType: { roundRect: string };
+    write: (options: { outputType: "nodebuffer" }) => Promise<Buffer>;
+  };
   pptx.author = "Unit311 Central";
   pptx.title = `Executive Report — ${lead.companyName}`;
   pptx.layout = "LAYOUT_WIDE";
