@@ -4,6 +4,7 @@ import { blockDemoProspectApiMutation } from "@/lib/demo/mutation-guard-middlewa
 
 import {
   CENTRAL_SITE_URL,
+  DEMO_SITE_HOST,
   DEMO_SITE_URL,
   DEMO_WORKSPACE_SLUG,
   INTERNAL_SITE_URL,
@@ -158,6 +159,34 @@ function rewriteTo(
   return response;
 }
 
+const DEMO_EA_TESTING_SHELL_HEADERS = {
+  "x-unit311-internal": "1",
+  "x-unit311-demo": "1",
+  "x-unit311-workspace-slug": DEMO_WORKSPACE_SLUG,
+} as const;
+
+function isDemoEaTestingPath(pathname: string): boolean {
+  return pathname === "/testing" || pathname.startsWith("/testing/");
+}
+
+function isDemoEaTestingApiPath(pathname: string): boolean {
+  return pathname === "/api/demo/ea-tests" || pathname.startsWith("/api/demo/ea-tests/");
+}
+
+function isDemoHostForEaTesting(host: string | null | undefined, normalizedHost: string): boolean {
+  return isDemoDomainHost(host) || normalizedHost === DEMO_SITE_HOST || normalizedHost.startsWith("demo.");
+}
+
+function demoEaTestingPublicResponse(request: NextRequest, pathname: string): NextResponse {
+  const headers = withHostHeaders(request, { demo: true });
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next({ request: { headers } });
+  }
+  const response = rewriteTo(request, "/testing", headers, DEMO_EA_TESTING_SHELL_HEADERS);
+  response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
+  return response;
+}
+
 /**
  * Apex (public site): marketing + permanent redirects of legacy internal paths.
  * Internal host: rewrite `/` onto /internaldashboard (App Router); never
@@ -176,6 +205,14 @@ export async function middleware(request: NextRequest) {
   const host = getRequestHost(request);
   const { pathname, search } = request.nextUrl;
   const normalizedHost = normalizeHost(host);
+
+  // Northstar demo EA test suite — public (no login), must run before any auth gate.
+  if (
+    isDemoHostForEaTesting(host, normalizedHost) &&
+    (isDemoEaTestingPath(pathname) || isDemoEaTestingApiPath(pathname))
+  ) {
+    return demoEaTestingPublicResponse(request, pathname);
+  }
 
   // Internal workspace slug must never be a customer subdomain host.
   if (normalizedHost === `unit311.${UNIT311_SITE_HOST}`) {
@@ -889,16 +926,6 @@ export async function middleware(request: NextRequest) {
       return applyCustomerHostRebindIfNeeded({ request, response, gate });
     }
 
-    // EA test suite — public on demo host (no login required).
-    if (pathname === "/testing" || pathname.startsWith("/testing/")) {
-      const response = rewriteTo(request, "/testing", headers, shellHeaders);
-      response.headers.set(
-        "Cache-Control",
-        "private, no-cache, no-store, max-age=0, must-revalidate",
-      );
-      return response;
-    }
-
     if (isPublicMarketingPath(pathname)) {
       if (isLocalDevHost(host)) {
         const port = request.nextUrl.port || "3000";
@@ -1063,9 +1090,11 @@ export async function middleware(request: NextRequest) {
   }
 
   if (normalizedHost.startsWith("demo.")) {
-    const headers = withHostHeaders(request, { demo: true });
     const legacyBrowserRedirect = redirectLegacyInternalBrowserPath(request, pathname, search);
     if (legacyBrowserRedirect) return legacyBrowserRedirect;
+    if (isDemoEaTestingPath(pathname) || isDemoEaTestingApiPath(pathname)) {
+      return demoEaTestingPublicResponse(request, pathname);
+    }
     // Defer to the primary isDemoDomainHost branch above whenever possible.
     // Fallback: never serve the shell without auth.
     return redirectExternal(`${DEMO_SITE_URL}/login`);
