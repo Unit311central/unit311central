@@ -25,7 +25,6 @@ import AddUserAccessWizard from "./AddUserAccessWizard";
 import { setCachedJson, PLATFORM_CACHE_KEYS } from "@/lib/platform-fetch-cache";
 import { validatePlatformSignupPasswordConfirmation } from "@/lib/platform-password-validation";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
-import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserTalantonImpactSurface } from "@/lib/talanton-surface";
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -77,7 +76,6 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
 
   const isTalantonUsers = isBrowserTalantonImpactSurface();
   const isAbhiUsers = isBrowserAbhiSurface();
-  const isNorthstarDemo = typeof window !== "undefined" ? isBrowserDemoSurface() : false;
   const showCityCountry = isTalantonUsers || isAbhiUsers;
 
   const isDirty = useMemo(() => {
@@ -98,23 +96,6 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
     setLoading(true);
     setError(null);
 
-    if (isNorthstarDemo && typeof window !== "undefined") {
-      try {
-        const { buildNorthstarDemoUsers } =
-          require("@/lib/demo/northstar-users-data") as typeof import("@/lib/demo/northstar-users-data");
-        const nextUsers = buildNorthstarDemoUsers();
-        syncUsers(nextUsers);
-        setSelectedUserId((current) => {
-          if (current && nextUsers.some((user) => user.id === current)) return current;
-          return nextUsers[0]?.id ?? null;
-        });
-        setLoading(false);
-        return;
-      } catch {
-        // Fall through to API.
-      }
-    }
-
     try {
       const response = await fetch("/api/users", { cache: "no-store" });
       const data = await readApiJson<{ users?: ManagedUser[]; error?: string }>(response);
@@ -133,7 +114,7 @@ export default function UserManagementWorkspace({ onUsersChange }: UserManagemen
     } finally {
       setLoading(false);
     }
-  }, [syncUsers, isNorthstarDemo]);
+  }, [syncUsers]);
 
   useEffect(() => {
     startTransition(() => {

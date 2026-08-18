@@ -9,7 +9,7 @@ import {
   isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
 import { userHasRole } from "@/lib/user-management-data";
-import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
+import { isDemoAdminUsername, isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 import {
   WorkspaceAccessError,
   requireCurrentWorkspace,
@@ -42,6 +42,23 @@ export async function requireInternalAdministratorSession(): Promise<
     return {
       error: NextResponse.json({ error: "Supabase is not configured." }, { status: 503 }),
     };
+  }
+
+  try {
+    const workspace = await requireCurrentWorkspace();
+    if (
+      isDemoWorkspaceSlug(workspace.slug) &&
+      isDemoAdminUsername(session.username)
+    ) {
+      return { session };
+    }
+  } catch {
+    if (
+      isDemoWorkspaceSlug(session.workspaceSlug) &&
+      isDemoAdminUsername(session.username)
+    ) {
+      return { session };
+    }
   }
 
   try {

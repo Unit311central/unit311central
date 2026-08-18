@@ -22,7 +22,7 @@ import type {
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
-import { getNorthstarDemoUsers } from "@/lib/demo/northstar-api-fixtures";
+import { listDemoWorkspaceUsers } from "@/lib/demo/demo-users-service";
 import { isDemoWorkspaceSlug } from "@/lib/demo/read-only";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,7 @@ function isCustomerWorkspaceSlug(slug: string) {
 
 export async function GET() {
   if (await isDemoApiRequest()) {
-    return NextResponse.json({ users: getNorthstarDemoUsers() });
+    return NextResponse.json({ users: await listDemoWorkspaceUsers() });
   }
 
   const auth = await requireUsersModuleAdministratorSession();
@@ -51,7 +51,7 @@ export async function GET() {
 
   try {
     if (isDemoWorkspaceSlug(auth.workspace.slug)) {
-      return NextResponse.json({ users: getNorthstarDemoUsers() });
+      return NextResponse.json({ users: await listDemoWorkspaceUsers() });
     }
 
     if (isCustomerWorkspaceSlug(auth.workspace.slug)) {
