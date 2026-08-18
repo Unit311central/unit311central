@@ -889,6 +889,16 @@ export async function middleware(request: NextRequest) {
       return applyCustomerHostRebindIfNeeded({ request, response, gate });
     }
 
+    // EA test suite — public on demo host (no login required).
+    if (pathname === "/testing" || pathname.startsWith("/testing/")) {
+      const response = rewriteTo(request, "/testing", headers, shellHeaders);
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return response;
+    }
+
     if (isPublicMarketingPath(pathname)) {
       if (isLocalDevHost(host)) {
         const port = request.nextUrl.port || "3000";
