@@ -590,53 +590,25 @@ function reshapeTalantonCorporateSection(section: InternalNavSection): InternalN
   };
 }
 
-const TALANTON_PRODUCTIVITY_VIEWS = new Set<InternalOperationsView>([
-  "productivity-dashboard",
-  "content-studio",
-]);
-
-/** Talanton — Content Studio + file explorer only (no calendar/comms clutter). */
+/** Talanton — dashboard, Content Studio, Management, and file explorer only. */
 function reshapeTalantonProductivitySection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Business Productivity") return section;
-  const items = section.items
-    .filter(
-      (item) =>
-        item.label === "File Explorer" ||
-        (item.view != null && TALANTON_PRODUCTIVITY_VIEWS.has(item.view)),
-    )
-    .map((item) => {
-    if (item.label !== "File Explorer") return item;
-    const children = (item.children ?? []).filter(
-      (child) =>
-        child.view !== "files-client" &&
-        child.label !== "Client Explorer" &&
-        child.label !== "Member Explorer",
-    );
-    return {
-      ...item,
-      children:
-        children.length > 0
-          ? children
-          : [
-              { label: "Internal Files", view: "files-internal" as const },
-              { label: "External Files", view: "files-external" as const },
-            ],
-    };
-  });
-  const hasFileExplorer = items.some((item) => item.label === "File Explorer");
-  if (hasFileExplorer) return { ...section, items };
-
-  const dashboardIdx = items.findIndex((item) => item.view === "productivity-dashboard");
-  const next = [...items];
-  next.splice(dashboardIdx >= 0 ? dashboardIdx + 1 : 0, 0, {
-    label: "File Explorer",
-    icon: "FolderOpen",
-    children: [
-      { label: "Internal Files", view: "files-internal" as const },
-      { label: "External Files", view: "files-external" as const },
+  return {
+    ...section,
+    items: [
+      { label: "Dashboard", icon: "LayoutDashboard", view: "productivity-dashboard" as const },
+      { label: "Content Studio", icon: "Presentation", view: "content-studio" as const },
+      { label: "Management", icon: "ClipboardList", view: "management" as const },
+      {
+        label: "File Explorer",
+        icon: "FolderOpen",
+        children: [
+          { label: "Internal Files", view: "files-internal" as const },
+          { label: "External Files", view: "files-external" as const },
+        ],
+      },
     ],
-  });
-  return { ...section, items: next };
+  };
 }
 
 function reshapeTalantonBusinessCentralSection(section: InternalNavSection): InternalNavSection {
@@ -649,7 +621,6 @@ function reshapeTalantonBusinessCentralSection(section: InternalNavSection): Int
       { label: "Dashboard", icon: "LayoutDashboard", view: "projects-dashboard" as const },
       { label: "Internal Projects", icon: "FolderKanban", view: "projects-internal" as const },
       { label: "External Projects", icon: "FolderOpen", view: "projects-external" as const },
-      { label: "Management", icon: "ClipboardList", view: "management" as const },
     ],
   };
 }

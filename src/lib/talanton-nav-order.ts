@@ -6,7 +6,8 @@
  * Owner order (Aug 2026):
  * Talanton Intelligence → Portfolio Companies → Board → Marketing & Stories → Training →
  * Corporate Information → Funds → Financials → Project Management → Human Resources →
- * Operations → Technology Management → Support Desk → Tools → External Client Access
+ * Business Productivity → Operations → Technology Management → Support Desk → Tools →
+ * External Client Access
  */
 
 export const TALANTON_LOCKED_WORKSPACE_SECTION_ORDER = [
@@ -20,6 +21,7 @@ export const TALANTON_LOCKED_WORKSPACE_SECTION_ORDER = [
   "Financials",
   "Project Management",
   "Human Resources",
+  "Business Productivity",
   "Operations",
   "Technology Management",
   "Support Desk",
@@ -34,7 +36,7 @@ export const TALANTON_LOCKED_SECTION_ORDER_KEYS: readonly string[] =
   TALANTON_LOCKED_WORKSPACE_SECTION_ORDER.map((label) => `workspace:${label}`);
 
 /** Bump when factory Talanton sidebar order changes — forces one-time localStorage reset. */
-export const TALANTON_SIDEBAR_FACTORY_REVISION = 7;
+export const TALANTON_SIDEBAR_FACTORY_REVISION = 8;
 
 export function isTalantonLockedSectionBundle(
   sections: readonly { kind?: string; label?: string | null }[],
@@ -46,4 +48,4 @@ export function isTalantonLockedSectionBundle(
       section.label === "Marketing & Stories",
   );
 }
-
+
