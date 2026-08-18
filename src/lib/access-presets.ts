@@ -64,6 +64,12 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     views: ["projects-dashboard", "projects", "projects-internal", "projects-external", "grants"],
   },
   {
+    id: "management",
+    label: "Management",
+    section: "Business Central",
+    views: ["management"],
+  },
+  {
     id: "financials",
     label: "Financials",
     section: "Financials",
@@ -265,6 +271,12 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     ],
   },
   {
+    id: "content-studio",
+    label: "Content Studio",
+    section: "Business Productivity",
+    views: ["content-studio"],
+  },
+  {
     id: "support-desk",
     label: "Support Desk",
     section: "Support Desk",
@@ -411,6 +423,18 @@ export const WORKSPACE_DASHBOARD_OPTIONS: ReadonlyArray<{
     title: "Productivity Dashboard",
     description: "Calendar, files, and communications.",
     section: "Business Productivity",
+  },
+  {
+    id: "content-studio",
+    title: "Content Studio",
+    description: "Approved presentation and marketing templates.",
+    section: "Business Productivity",
+  },
+  {
+    id: "management",
+    title: "Management",
+    description: "Management meetings, function packs, and actions.",
+    section: "Business Central",
   },
   {
     id: "training-dashboard",

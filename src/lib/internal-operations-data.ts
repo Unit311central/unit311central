@@ -216,7 +216,9 @@ export type InternalOperationsView =
   | "oa-competitor-intelligence"
   | "oa-ecosystem-partners"
   | "oa-marketing-dashboard"
-  | "business-central-dashboard";
+  | "business-central-dashboard"
+  | "management"
+  | "content-studio";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -480,6 +482,8 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "oa-ecosystem-partners",
   "oa-marketing-dashboard",
   "business-central-dashboard",
+  "management",
+  "content-studio",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -747,6 +751,11 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         icon: "Handshake",
         view: "representatives" as const,
       },
+      {
+        label: "Management",
+        icon: "ClipboardList",
+        view: "management" as const,
+      },
     ],
   },
   {
@@ -892,6 +901,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     color: "#0891B2",
     items: [
       { label: "Dashboard", icon: "LayoutDashboard", view: "productivity-dashboard" as const },
+      { label: "Content Studio", icon: "Presentation", view: "content-studio" as const },
       {
         label: "File Explorer",
         icon: "FolderOpen",
@@ -1134,6 +1144,8 @@ export const internalViewTitles: Record<
   "info-email": { title: "Email", subtitle: "Business Productivity" },
   files: { title: "Dashboard", subtitle: "Business Productivity" },
   "productivity-dashboard": { title: "Dashboard", subtitle: "Business Productivity" },
+  management: { title: "Management", subtitle: "Business Central" },
+  "content-studio": { title: "Content Studio", subtitle: "Business Productivity" },
   "files-internal": { title: "Internal Files", subtitle: "File Explorer" },
   "unit311-details": { title: "Dashboard", subtitle: "Unit311 Details" },
   "module-go-live": {

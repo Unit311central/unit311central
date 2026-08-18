@@ -262,6 +262,8 @@ import {
   IntegrationsWorkspace,
   PlatformAnalyticsWorkspace,
   WebsiteAnalyticsWorkspace,
+  ManagementWorkspace,
+  ContentStudioWorkspace,
   WhiteboardWorkspace,
   WiseWorkspace,
 } from "./lazy-workspaces";
@@ -1164,6 +1166,8 @@ export default function InternalOperationsDashboard({
           {activeView === "files-client" && <ClientFilesExplorerWorkspace />}
 
           {activeView === "productivity-dashboard" && <ProductivityDashboardWorkspace />}
+          {activeView === "management" && <ManagementWorkspace />}
+          {activeView === "content-studio" && <ContentStudioWorkspace />}
 
           {activeView === "support-overview" && <SupportWorkspace scope="overview" />}
 

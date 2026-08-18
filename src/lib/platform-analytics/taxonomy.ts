@@ -130,6 +130,7 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
     sectionLabel: "Projects",
   }),
   page("business-central", "Business Central", "representatives", "Partners", { core: true }),
+  page("business-central", "Business Central", "management", "Management", { core: true }),
 
   // Financials
   page("financials", "Financials", "financials", "Dashboard", { core: true }),
@@ -203,6 +204,7 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
 
   // Business Productivity
   page("productivity", "Business Productivity", "productivity-dashboard", "Dashboard", { core: true }),
+  page("productivity", "Business Productivity", "content-studio", "Content Studio", { core: true }),
   page("productivity", "Business Productivity", "files-internal", "Internal Files", {
     sectionKey: "file-explorer",
     sectionLabel: "File Explorer",

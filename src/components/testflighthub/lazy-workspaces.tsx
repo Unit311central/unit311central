@@ -131,5 +131,11 @@ export const IntegrationsWorkspace = lazyWorkspace(() => import("./IntegrationsW
 export const PlatformAnalyticsWorkspace = lazyWorkspace(() => import("./PlatformAnalyticsWorkspace"));
 export const WebsiteAnalyticsWorkspace = lazyWorkspace(() => import("./WebsiteAnalyticsWorkspace"));
 export const WebODMWorkspace = lazyWorkspace(() => import("./WebODMWorkspace"));
+export const ManagementWorkspace = lazyWorkspace(
+  () => import("@/components/central-capabilities/ManagementWorkspace"),
+);
+export const ContentStudioWorkspace = lazyWorkspace(
+  () => import("@/components/central-capabilities/ContentStudioWorkspace"),
+);
 
 export const TelemetryDashboard = lazyWorkspace(() => import("@/components/telemetry/TelemetryDashboard"));
