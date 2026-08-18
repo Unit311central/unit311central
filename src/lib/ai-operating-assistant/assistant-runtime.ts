@@ -21,7 +21,7 @@ import {
 } from "./openai-client";
 import { buildBusinessContext } from "./context-service";
 import { buildStructuredJsonHint, buildSystemInstructions } from "./prompt-service";
-import { executeAssistantTool, getOpenAIToolSchemas } from "./tool-service";
+import { executeAssistantTool, getOpenAIToolSchemas, resolveAssistantToolName } from "./tool-service";
 import { getAssistantArtifact } from "./artifact-store";
 import {
   createConversation,
@@ -1504,7 +1504,7 @@ async function* runAssistantTurnInner(input: {
           message,
           context,
         );
-        const effectiveName = redirected?.tool ?? call.name;
+        const effectiveName = resolveAssistantToolName(redirected?.tool ?? call.name);
         const effectiveArgs = redirected?.args ?? call.arguments;
 
         if (redirected) {

@@ -948,17 +948,53 @@ export function registerAssistantTool(name: string, handler: ContextualToolHandl
   handlers[name] = handler;
 }
 
+/** OpenAI function tool names must match ^[a-zA-Z0-9_-]+$ (Terra rejects dots). */
+const OPENAI_FUNCTION_TOOL_NAME = /^[a-zA-Z0-9_-]+$/;
+const OPENAI_TOOL_NAME_DOT_PREFIXES =
+  /^(boardpack|lms|intelligence|onwardair|talanton|abhi|northstar)_/;
+
+export function toOpenAiFunctionToolName(canonicalName: string): string {
+  return canonicalName.replace(/\./g, "_");
+}
+
+/** Map model-returned OpenAI-safe names back to canonical handler keys. */
+export function resolveAssistantToolName(openAiName: string): string {
+  const name = openAiName.trim();
+  if (!name) return name;
+  if (handlers[name] || getPackToolHandlers()[name]) return name;
+  const dotted = name.replace(OPENAI_TOOL_NAME_DOT_PREFIXES, "$1.");
+  if (dotted !== name && (handlers[dotted] || getPackToolHandlers()[dotted])) {
+    return dotted;
+  }
+  return name;
+}
+
+export function assertOpenAiToolNamesValid(
+  schemas: Array<{ name: string }>,
+  context = "EA tools",
+): void {
+  for (const schema of schemas) {
+    if (!OPENAI_FUNCTION_TOOL_NAME.test(schema.name)) {
+      throw new Error(
+        `${context}: invalid OpenAI tool name "${schema.name}" (expected ${OPENAI_FUNCTION_TOOL_NAME})`,
+      );
+    }
+  }
+}
+
 export function getOpenAIToolSchemas(workspaceSlug?: string | null) {
   ensureEaWorkspacePacksRegistered();
   const slug = workspaceSlug?.trim().toLowerCase() ?? "";
   const packTools = getEaWorkspacePackToolDefinitions(slug);
-  return [...ASSISTANT_TOOL_DEFINITIONS, ...packTools].map((tool) => ({
+  const schemas = [...ASSISTANT_TOOL_DEFINITIONS, ...packTools].map((tool) => ({
     type: "function" as const,
-    name: tool.name,
+    name: toOpenAiFunctionToolName(tool.name),
     description: tool.description,
     parameters: tool.parameters,
     strict: false,
   }));
+  assertOpenAiToolNamesValid(schemas, `workspace:${slug || "default"}`);
+  return schemas;
 }
 
 export async function executeAssistantTool(
@@ -967,16 +1003,17 @@ export async function executeAssistantTool(
   businessContext?: AssistantBusinessContext,
 ) {
   ensureEaWorkspacePacksRegistered();
-  let handler = handlers[name] ?? getPackToolHandlers()[name];
-  if (name === "boardpack.generate" && typeof handler !== "function") {
+  const resolvedName = resolveAssistantToolName(name);
+  let handler = handlers[resolvedName] ?? getPackToolHandlers()[resolvedName];
+  if (resolvedName === "boardpack.generate" && typeof handler !== "function") {
     const { generateBoardPackTool } = await import("./boardpack-tools");
     handler = generateBoardPackTool;
   }
   if (!handler) {
     return {
       status: "error",
-      tool: name,
-      message: `Unknown tool: ${name}`,
+      tool: resolvedName,
+      message: `Unknown tool: ${resolvedName}`,
     };
   }
 
@@ -994,7 +1031,7 @@ export async function executeAssistantTool(
   if (!businessContext) {
     return {
       status: "error",
-      tool: name,
+      tool: resolvedName,
       message: "Business context is required for tool execution.",
     };
   }
@@ -1002,14 +1039,14 @@ export async function executeAssistantTool(
   if (!handler || typeof handler !== "function") {
     return {
       status: "error",
-      tool: name,
-      message: `Tool handler unavailable: ${name}`,
+      tool: resolvedName,
+      message: `Tool handler unavailable: ${resolvedName}`,
     };
   }
 
   try {
     if (
-      name === "boardpack.generate" &&
+      resolvedName === "boardpack.generate" &&
       businessContext.workspace.slug?.trim() === "demo"
     ) {
       const when = [args.when, args.meetingDate, args.date, args.focus]
@@ -1038,7 +1075,7 @@ export async function executeAssistantTool(
   } catch (error) {
     return {
       status: "error",
-      tool: name,
+      tool: resolvedName,
       message: error instanceof Error ? error.message : "Tool execution failed.",
     };
   }

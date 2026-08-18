@@ -15,6 +15,7 @@ import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-m
 import {
   ASSISTANT_TOOL_DEFINITIONS,
   getOpenAIToolSchemas,
+  resolveAssistantToolName,
 } from "@/lib/ai-operating-assistant/tool-service";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 
@@ -83,6 +84,15 @@ async function runEaRealSuite() {
     schemas.some((schema) => schema.name === "getOrgContext"),
     "getOrgContext exposed to model",
   );
+  for (const schema of schemas) {
+    assert.match(
+      schema.name,
+      /^[a-zA-Z0-9_-]+$/,
+      `OpenAI-safe tool name: ${schema.name}`,
+    );
+  }
+  assert.equal(resolveAssistantToolName("boardpack_generate"), "boardpack.generate");
+  assert.equal(resolveAssistantToolName("intelligence_getBriefing"), "intelligence.getBriefing");
 
   const instructions = buildSystemInstructions(business);
   assert.match(instructions, /answer ANY executive question/i, "open Q&A contract in system prompt");
