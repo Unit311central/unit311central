@@ -6,6 +6,11 @@ import {
   markSalesQuoteSent,
   renderSalesQuotePdf,
 } from "@/lib/accounting/sales-quotes-service";
+import {
+  attachPaymentLinkToQuote,
+  renderClientInvoicePdfForQuote,
+  sendClientInvoiceForQuote,
+} from "@/lib/accounting/client-invoice-service";
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { requirePlatformSession } from "@/lib/platform-session";
@@ -72,6 +77,35 @@ export async function POST(
           "Content-Disposition": `attachment; filename="${quote.quoteNumber}.pdf"`,
         },
       });
+    }
+
+    if (action === "invoice-pdf") {
+      const quote = await getSalesQuoteById(id, scope);
+      if (!quote) {
+        return NextResponse.json({ error: "Quote not found." }, { status: 404 });
+      }
+      if (quote.status !== "accepted") {
+        return NextResponse.json({ error: "Accept the quote before downloading the invoice." }, { status: 400 });
+      }
+      const pdf = renderClientInvoicePdfForQuote(quote);
+      return new NextResponse(Buffer.from(pdf), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${quote.quoteNumber}-invoice.pdf"`,
+        },
+      });
+    }
+
+    if (action === "send-invoice") {
+      const origin = request.headers.get("origin") ?? request.nextUrl.origin;
+      const result = await sendClientInvoiceForQuote(id, scope, origin);
+      return NextResponse.json(result);
+    }
+
+    if (action === "payment-link") {
+      const origin = request.headers.get("origin") ?? request.nextUrl.origin;
+      const quote = await attachPaymentLinkToQuote(id, scope, origin);
+      return NextResponse.json({ quote });
     }
 
     const result = await acceptSalesQuote(id, scope);

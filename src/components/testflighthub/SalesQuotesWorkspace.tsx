@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileText, Loader2, Plus, RefreshCw } from "lucide-react";
+import { Copy, FileText, Link2, Loader2, Mail, Plus, RefreshCw } from "lucide-react";
 
 import type { SalesQuote } from "@/lib/accounting/types";
 import { cn } from "@/lib/utils";
@@ -33,10 +33,12 @@ export default function SalesQuotesWorkspace() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setNotice(null);
     try {
       const response = await fetch("/api/financials/quotes", { cache: "no-store" });
       const body = (await response.json()) as { quotes?: SalesQuote[]; error?: string };
@@ -63,15 +65,19 @@ export default function SalesQuotesWorkspace() {
     };
   }, [quotes]);
 
-  async function runAction(id: string, action: "send" | "accept" | "pdf") {
+  async function runAction(
+    id: string,
+    action: "send" | "accept" | "pdf" | "send-invoice" | "payment-link" | "invoice-pdf",
+  ) {
     setBusyId(id);
     setError(null);
+    setNotice(null);
     try {
-      if (action === "pdf") {
+      if (action === "pdf" || action === "invoice-pdf") {
         const response = await fetch(`/api/financials/quotes/${id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "pdf" }),
+          body: JSON.stringify({ action }),
         });
         if (!response.ok) {
           const body = (await response.json().catch(() => ({}))) as { error?: string };
@@ -82,9 +88,38 @@ export default function SalesQuotesWorkspace() {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = `${quote?.quoteNumber ?? "quote"}.pdf`;
+        anchor.download =
+          action === "invoice-pdf"
+            ? `${quote?.quoteNumber ?? "invoice"}-invoice.pdf`
+            : `${quote?.quoteNumber ?? "quote"}.pdf`;
         anchor.click();
         URL.revokeObjectURL(url);
+        return;
+      }
+
+      if (action === "send-invoice" || action === "payment-link") {
+        const response = await fetch(`/api/financials/quotes/${id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+        const body = (await response.json()) as {
+          quote?: SalesQuote;
+          simulated?: boolean;
+          messageId?: string | null;
+          error?: string;
+        };
+        if (!response.ok) throw new Error(body.error ?? "Action failed");
+        if (body.quote) {
+          setQuotes((rows) => rows.map((row) => (row.id === id ? body.quote! : row)));
+        }
+        if (action === "send-invoice") {
+          setNotice(
+            body.simulated
+              ? `Invoice email simulated (${body.messageId ?? "demo"}).`
+              : `Invoice sent (${body.messageId ?? "ok"}).`,
+          );
+        }
         return;
       }
 
@@ -110,6 +145,7 @@ export default function SalesQuotesWorkspace() {
   async function createSampleQuote() {
     setBusyId("create");
     setError(null);
+    setNotice(null);
     try {
       const response = await fetch("/api/financials/quotes", {
         method: "POST",
@@ -180,6 +216,12 @@ export default function SalesQuotesWorkspace() {
           <p className="mt-2 text-2xl font-semibold text-white">{totals.acceptedCount}</p>
         </div>
       </div>
+
+      {notice ? (
+        <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          {notice}
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
@@ -266,7 +308,47 @@ export default function SalesQuotesWorkspace() {
                           Accept → invoice
                         </button>
                       ) : (
-                        <span className="text-xs text-emerald-300">Invoiced</span>
+                        <>
+                          <button
+                            type="button"
+                            disabled={busyId === quote.id}
+                            onClick={() => void runAction(quote.id, "invoice-pdf")}
+                            className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-xs hover:bg-white/5"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            Invoice PDF
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busyId === quote.id}
+                            onClick={() => void runAction(quote.id, "send-invoice")}
+                            className="inline-flex items-center gap-1 rounded border border-sky-400/30 bg-sky-500/10 px-2 py-1 text-xs text-sky-200 hover:bg-sky-500/20"
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                            {quote.invoiceSentAt ? "Resend" : "Send invoice"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busyId === quote.id}
+                            onClick={() => void runAction(quote.id, "payment-link")}
+                            className="inline-flex items-center gap-1 rounded border border-violet-400/30 bg-violet-500/10 px-2 py-1 text-xs text-violet-200 hover:bg-violet-500/20"
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            Payment link
+                          </button>
+                          {quote.stripePaymentLinkUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => void navigator.clipboard.writeText(quote.stripePaymentLinkUrl!)}
+                              className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-xs hover:bg-white/5"
+                              title={quote.stripePaymentLinkUrl}
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              Copy link
+                            </button>
+                          ) : null}
+                          <span className="text-xs text-emerald-300">Invoiced</span>
+                        </>
                       )}
                     </div>
                   </td>

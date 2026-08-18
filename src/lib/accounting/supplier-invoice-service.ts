@@ -1,0 +1,158 @@
+import { parseSupplierInvoiceText } from "@/lib/accounting/supplier-invoice-parse";
+import type { SupplierInvoiceDraft } from "@/lib/accounting/types";
+import {
+  getNorthstarSupplierInvoiceDraftById,
+  getNorthstarSupplierInvoiceDrafts,
+  upsertNorthstarSupplierInvoiceDraft,
+} from "@/lib/demo/northstar-supplier-invoices-fixtures";
+import { createExpense, listExpenses, updateExpense } from "@/lib/financial-expenses-service";
+import { getInternalUserById, type ExpenseCurrency } from "@/lib/expenses-data";
+import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
+import { requirePlatformSession } from "@/lib/platform-session";
+
+function addDays(isoDate: string, days: number) {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function mapExpenseToDraft(expense: {
+  id: string;
+  workspaceId?: string;
+  supplier: string | null;
+  reference: string | null;
+  amount: number;
+  currency: string;
+  expenseDate: string;
+  purposeDescription: string;
+  recordStatus: string;
+  journalEntryId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}): SupplierInvoiceDraft {
+  return {
+    id: expense.id,
+    workspaceId: expense.workspaceId ?? "",
+    supplier: expense.supplier ?? "Supplier",
+    reference: expense.reference,
+    amount: expense.amount,
+    currency: expense.currency,
+    invoiceDate: expense.expenseDate,
+    dueDate: addDays(expense.expenseDate, 30),
+    description: expense.purposeDescription,
+    status: expense.recordStatus === "draft" ? "draft" : "approved",
+    journalEntryId: expense.journalEntryId,
+    sourceText: null,
+    createdAt: expense.createdAt,
+    updatedAt: expense.updatedAt,
+  };
+}
+
+export async function listSupplierInvoiceDrafts(
+  scope: FinancialsWorkspaceScope,
+): Promise<SupplierInvoiceDraft[]> {
+  if (scope.workspaceSlug === "demo") {
+    return getNorthstarSupplierInvoiceDrafts();
+  }
+
+  const expenses = await listExpenses(scope);
+  return expenses
+    .filter((expense) => expense.recordStatus === "draft")
+    .map((expense) => mapExpenseToDraft(expense));
+}
+
+export async function ingestSupplierInvoice(
+  scope: FinancialsWorkspaceScope,
+  input: {
+    text?: string;
+    supplier?: string;
+    reference?: string | null;
+    amount?: number;
+    currency?: string;
+    invoiceDate?: string | null;
+    dueDate?: string | null;
+    description?: string;
+  },
+): Promise<SupplierInvoiceDraft> {
+  const parsed = input.text?.trim() ? parseSupplierInvoiceText(input.text) : null;
+  const supplier = input.supplier?.trim() || parsed?.supplier;
+  const amount = input.amount ?? parsed?.amount;
+  const currency = input.currency ?? parsed?.currency ?? "GBP";
+  const reference = input.reference ?? parsed?.reference ?? null;
+  const invoiceDate = input.invoiceDate ?? parsed?.invoiceDate ?? new Date().toISOString().slice(0, 10);
+  const dueDate = input.dueDate ?? parsed?.dueDate ?? addDays(invoiceDate, 30);
+  const description = input.description?.trim() || parsed?.description || "Supplier invoice";
+
+  if (!supplier?.trim()) throw new Error("Supplier name is required.");
+  if (!amount || amount <= 0) throw new Error("A valid invoice amount is required.");
+
+  const now = new Date().toISOString();
+
+  if (scope.workspaceSlug === "demo") {
+    const draft: SupplierInvoiceDraft = {
+      id: `nst-ap-draft-${Date.now()}`,
+      workspaceId: "demo-workspace",
+      supplier: supplier.trim(),
+      reference,
+      amount,
+      currency,
+      invoiceDate,
+      dueDate,
+      description,
+      status: "draft",
+      journalEntryId: null,
+      sourceText: input.text?.trim() ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    return upsertNorthstarSupplierInvoiceDraft(draft);
+  }
+
+  const session = await requirePlatformSession();
+  const user = getInternalUserById(session.sub);
+  if (!user) throw new Error("User not found.");
+
+  const expense = await createExpense(
+    {
+      submitterUserId: session.sub,
+      purposeDescription: description,
+      amount,
+      currency: currency as ExpenseCurrency,
+      supplier: supplier.trim(),
+      reference: reference ?? undefined,
+      expenseDate: invoiceDate,
+      recordStatus: "draft",
+      paid: false,
+      workspaceId: scope.workspaceId ?? undefined,
+    },
+    scope,
+  );
+
+  return mapExpenseToDraft(expense);
+}
+
+export async function approveSupplierInvoiceDraft(
+  id: string,
+  scope: FinancialsWorkspaceScope,
+): Promise<SupplierInvoiceDraft> {
+  if (scope.workspaceSlug === "demo") {
+    const draft = getNorthstarSupplierInvoiceDraftById(id);
+    if (!draft) throw new Error("Supplier invoice not found.");
+    if (draft.status === "approved") return draft;
+    return upsertNorthstarSupplierInvoiceDraft({
+      ...draft,
+      status: "approved",
+      journalEntryId: `nst-je-ap-${id}`,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  const updated = await updateExpense(
+    id,
+    { recordStatus: "finalized" },
+    scope,
+  );
+  return mapExpenseToDraft(updated);
+}
+
+export { parseSupplierInvoiceText };

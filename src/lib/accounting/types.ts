@@ -114,8 +114,29 @@ export type SalesQuote = {
   pdfPath: string | null;
   invoiceId: string | null;
   stripePaymentLinkUrl: string | null;
+  paymentReference?: string | null;
+  invoiceSentAt?: string | null;
   notes: string | null;
   lineItems: SalesQuoteLineItem[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SupplierInvoiceDraftStatus = "draft" | "approved";
+
+export type SupplierInvoiceDraft = {
+  id: string;
+  workspaceId: string;
+  supplier: string;
+  reference: string | null;
+  amount: number;
+  currency: string;
+  invoiceDate: string;
+  dueDate: string | null;
+  description: string;
+  status: SupplierInvoiceDraftStatus;
+  journalEntryId: string | null;
+  sourceText: string | null;
   createdAt: string;
   updatedAt: string;
 };

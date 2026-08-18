@@ -1,6 +1,7 @@
 import { postInvoiceIssueJournal } from "@/lib/accounting/posting-rules";
 import { buildSalesQuotePdf } from "@/lib/accounting/sales-quote-pdf";
 import type { LedgerInvoice, SalesQuote, SalesQuoteLineItem, SalesQuoteStatus } from "@/lib/accounting/types";
+import { getNorthstarCrmLeads } from "@/lib/demo/module-fixtures";
 import {
   getNorthstarSalesQuoteById,
   getNorthstarSalesQuotes,
@@ -11,6 +12,7 @@ import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/l
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { generateInvoiceNumber } from "@/lib/subscription-invoice-pdf";
+import { getLeadById } from "@/lib/crm-leads-service";
 
 function requireSupabase() {
   if (!isSupabaseConfigured()) {
@@ -221,6 +223,38 @@ export async function createSalesQuote(
   return (await getSalesQuoteById(quoteId, scope))!;
 }
 
+export async function createSalesQuoteFromLead(
+  scope: FinancialsWorkspaceScope,
+  input: { leadId: string; title?: string; currency?: string },
+): Promise<SalesQuote> {
+  const lead =
+    scope.workspaceSlug === "demo"
+      ? getNorthstarCrmLeads().find((row) => row.id === input.leadId) ?? null
+      : await getLeadById(input.leadId, { workspaceId: scope.workspaceId });
+
+  if (!lead) throw new Error("CRM lead not found.");
+
+  const estimatedValue = lead.estimatedValue ?? 50_000;
+  const subtotal = Math.round((estimatedValue / 1.2) * 100) / 100;
+  const unitPrice = subtotal;
+
+  return createSalesQuote(scope, {
+    crmLeadId: lead.id,
+    companyName: lead.companyName,
+    contactName: lead.contactName,
+    contactEmail: lead.email,
+    title: input.title ?? `${lead.companyName} — platform proposal`,
+    currency: input.currency ?? "GBP",
+    lineItems: [
+      {
+        description: "Atlas platform licence & onboarding",
+        quantity: 1,
+        unitPrice,
+      },
+    ],
+  });
+}
+
 async function issueInvoiceForQuote(
   quote: SalesQuote,
   scope: FinancialsWorkspaceScope,
@@ -312,10 +346,13 @@ export async function acceptSalesQuote(
 
   if (scope.workspaceSlug === "demo") {
     const invoiceId = `nst-inv-quote-${quote.id}`;
+    const paymentReference = `INV-${generateInvoiceNumber()}`;
     const accepted: SalesQuote = {
       ...quote,
       status: "accepted",
       invoiceId,
+      clientId: quote.clientId ?? "nst-cli-001",
+      paymentReference,
       updatedAt: new Date().toISOString(),
     };
     upsertNorthstarSalesQuote(accepted);
@@ -333,7 +370,7 @@ export async function acceptSalesQuote(
         currency: quote.currency,
         amount: quote.totalAmount,
         status: "issued",
-        paymentReference: `INV-${generateInvoiceNumber()}`,
+        paymentReference,
         pdfPath: null,
         journalEntryId: null,
         paymentJournalEntryId: null,

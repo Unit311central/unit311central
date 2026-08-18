@@ -34,6 +34,7 @@ export const DEMO_MUTATION_EXEMPT_API_PREFIXES = [
   "/api/module-review/submit",
   "/api/payment/",
   "/api/financials/quotes",
+  "/api/financials/supplier-invoices",
 ] as const;
 
 export function isApiMutationMethod(method: string): boolean {

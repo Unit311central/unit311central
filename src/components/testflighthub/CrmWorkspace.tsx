@@ -27,7 +27,7 @@ import {
   buildCrmDashboardCatalog,
   crmEstimatedValueCurrencyLabel,
 } from "@/lib/view-dashboard-tile-catalogs";
-import { CheckCircle2, ClipboardList, FileText, FileType, Loader2, Network, Plus, Presentation, Save, Trash2, UserPlus } from "lucide-react";
+import { CheckCircle2, ClipboardList, FileText, FileType, Loader2, Network, Plus, Presentation, Receipt, Save, Trash2, UserPlus } from "lucide-react";
 
 async function readApiJson<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -494,6 +494,32 @@ export default function CrmWorkspace({
     }
   }
 
+  async function handleCreateQuote() {
+    if (!selectedLead) return;
+
+    setBusy(true);
+    setError(null);
+    setSaveMessage(null);
+
+    try {
+      const response = await fetch("/api/financials/quotes/from-lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leadId: selectedLead.id }),
+      });
+      const data = await readApiJson<{ quote?: { quoteNumber: string }; error?: string }>(response);
+      if (!response.ok) throw new Error(data.error ?? "Failed to create quote");
+
+      const quoteNumber = data.quote?.quoteNumber ?? "quote";
+      setSaveMessage(`Quote ${quoteNumber} created. Opening Sales Quotes…`);
+      window.location.href = `${window.location.pathname}?view=sales-quotes`;
+    } catch (quoteError) {
+      setError(quoteError instanceof Error ? quoteError.message : "Failed to create quote");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleDeleteLead() {
     if (!selectedLead) return;
     if (!window.confirm(`Delete lead "${selectedLead.companyName}"?`)) return;
@@ -796,6 +822,15 @@ export default function CrmWorkspace({
                     Generate PDF
                   </button>
                 ) : null}
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void handleCreateQuote()}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/15 px-3 text-xs font-semibold text-cyan-200 transition-colors hover:border-cyan-400/60 hover:bg-cyan-500/25 disabled:opacity-50"
+                >
+                  <Receipt className="h-3.5 w-3.5" />
+                  Create quote
+                </button>
                 <button
                   type="button"
                   disabled={busy}

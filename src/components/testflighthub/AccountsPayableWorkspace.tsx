@@ -9,6 +9,7 @@ import { isBrowserCorpCentreSurface } from "@/lib/corpcentre-surface";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { resolveBrowserReportingCurrency } from "@/lib/financial-reporting-currency";
+import type { SupplierInvoiceDraft } from "@/lib/accounting/types";
 import type { NorthstarPayableCategory } from "@/lib/demo/northstar-ap-ar-fixtures";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,11 @@ export default function AccountsPayableWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<NorthstarPayableCategory | "all">("all");
+  const [drafts, setDrafts] = useState<SupplierInvoiceDraft[]>([]);
+  const [ingestText, setIngestText] = useState(
+    "Supplier: Acme Parts Ltd\nInvoice number: AP-99201\nTotal due: GBP 1,240.50\nDue date: 30/09/2026",
+  );
+  const [ingestBusy, setIngestBusy] = useState(false);
   const isDemo = isBrowserDemoSurface();
 
   const load = useCallback(async () => {
@@ -94,6 +100,63 @@ export default function AccountsPayableWorkspace() {
       setLoading(false);
     }
   }, [isDemo]);
+
+  const loadDrafts = useCallback(async () => {
+    try {
+      const response = await fetch("/api/financials/supplier-invoices", { cache: "no-store" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Failed to load supplier invoice drafts");
+      setDrafts((data.drafts ?? []) as SupplierInvoiceDraft[]);
+    } catch {
+      setDrafts([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    startTransition(() => {
+      void loadDrafts();
+    });
+  }, [loadDrafts]);
+
+  async function handleIngestSupplierInvoice() {
+    setIngestBusy(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/financials/supplier-invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: ingestText }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Ingest failed");
+      setIngestText("");
+      await loadDrafts();
+    } catch (ingestError) {
+      setError(ingestError instanceof Error ? ingestError.message : "Ingest failed");
+    } finally {
+      setIngestBusy(false);
+    }
+  }
+
+  async function handleApproveDraft(id: string) {
+    setIngestBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/financials/supplier-invoices/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve" }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Approve failed");
+      await loadDrafts();
+      await load();
+    } catch (approveError) {
+      setError(approveError instanceof Error ? approveError.message : "Approve failed");
+    } finally {
+      setIngestBusy(false);
+    }
+  }
 
   useEffect(() => {
     startTransition(() => {
@@ -209,6 +272,76 @@ export default function AccountsPayableWorkspace() {
           {error}
         </p>
       ) : null}
+
+      {error ? (
+        <p className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+          {error}
+        </p>
+      ) : null}
+
+      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <p className="text-sm font-medium text-white/80">Ingest supplier invoice</p>
+        <p className="mt-1 text-xs text-white/45">
+          Paste invoice text (or email body) to create a draft AP bill, then approve to post to the ledger.
+        </p>
+        <textarea
+          value={ingestText}
+          onChange={(event) => setIngestText(event.target.value)}
+          rows={4}
+          className="mt-3 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
+        />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={ingestBusy || !ingestText.trim()}
+            onClick={() => void handleIngestSupplierInvoice()}
+            className="inline-flex h-9 items-center rounded-xl bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-500 disabled:opacity-50"
+          >
+            {ingestBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Extract & draft bill"}
+          </button>
+        </div>
+        {drafts.length > 0 ? (
+          <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
+            <table className="w-full min-w-[40rem] text-left text-sm">
+              <thead className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em] text-white/40">
+                <tr>
+                  <th className="px-3 py-2">Supplier</th>
+                  <th className="px-3 py-2">Reference</th>
+                  <th className="px-3 py-2 text-right">Amount</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {drafts.map((draft) => (
+                  <tr key={draft.id} className="border-b border-white/[0.05]">
+                    <td className="px-3 py-2 text-white/80">{draft.supplier}</td>
+                    <td className="px-3 py-2 text-white/55">{draft.reference ?? "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-white/80">
+                      {formatMoney(draft.amount, draft.currency)}
+                    </td>
+                    <td className="px-3 py-2 capitalize text-white/55">{draft.status}</td>
+                    <td className="px-3 py-2">
+                      {draft.status === "draft" ? (
+                        <button
+                          type="button"
+                          disabled={ingestBusy}
+                          onClick={() => void handleApproveDraft(draft.id)}
+                          className="rounded border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-200"
+                        >
+                          Approve → GL
+                        </button>
+                      ) : (
+                        <span className="text-xs text-emerald-300">Posted</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </section>
 
       <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
