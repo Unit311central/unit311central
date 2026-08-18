@@ -26,6 +26,7 @@ import {
   listPlatformModules,
   searchApplicationCatalogue,
 } from "@/lib/ai-operating-assistant/application-catalogue";
+import { assertOpenBusinessReadRoute } from "@/lib/ai-operating-assistant/ea-route-assertions";
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
 import { ABHI_EA_PHASE1_DEMO_CHECKS } from "@/lib/abhi/ea-phase1-demo-checks";
 import { buildAbhiModuleNlCases } from "@/lib/abhi/ea-module-nl-cases";
@@ -512,10 +513,7 @@ export async function runAbhiEaTestSuite(): Promise<EaTestSuiteReport> {
       [],
       abhiBusiness(),
     );
-    if (route.kind !== "tool") throw new Error(`expected tool route, got ${route.kind}`);
-    if (route.intent.tool !== "queryBusiness") {
-      throw new Error(`expected queryBusiness, got ${route.intent.tool}`);
-    }
+    assertOpenBusinessReadRoute(route);
   });
 
   const moduleNl = new SectionRunner("Module natural language");
@@ -559,6 +557,7 @@ export async function runAbhiEaTestSuite(): Promise<EaTestSuiteReport> {
       id: "query-business",
       prompt: "How many employees do we have?",
       expectedTool: "queryBusiness",
+      realEaDefer: true,
     },
     {
       id: "board-pack",

@@ -7,7 +7,9 @@ import {
   type ModelUsageCallSite,
 } from "./model-usage-service";
 
-const DEFAULT_MODEL = process.env.OPENAI_ASSISTANT_MODEL?.trim() || "gpt-4o-mini";
+/** Production EA default — override with OPENAI_ASSISTANT_MODEL (e.g. gpt-4o-mini for local dev). */
+const DEFAULT_MODEL =
+  process.env.OPENAI_ASSISTANT_MODEL?.trim() || "gpt-5.6-terra";
 const MAX_RETRIES = 3;
 
 export function getAssistantModel() {

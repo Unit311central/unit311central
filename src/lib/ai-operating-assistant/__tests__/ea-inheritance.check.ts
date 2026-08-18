@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
+import { assertOpenBusinessReadRoute } from "@/lib/ai-operating-assistant/ea-route-assertions";
 import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
 import { shouldSynthesizeExecutiveToolResult } from "@/lib/ai-operating-assistant/ea-llm-synthesis";
 import { buildSystemInstructions } from "@/lib/ai-operating-assistant/prompt-service";
@@ -133,10 +134,7 @@ async function main() {
   assert.ok(modules.length >= 8, "catalogue should resolve via pack nav");
 
   const route = await resolveOrchestrationRoute("How many employees do we have?", [], business);
-  assert.equal(route.kind, "tool");
-  if (route.kind === "tool") {
-    assert.equal(route.intent.tool, "queryBusiness");
-  }
+  assertOpenBusinessReadRoute(route);
 
   const synthesizes = shouldSynthesizeExecutiveToolResult({
     workspaceSlug: FUTURE_WORKSPACE_SLUG,

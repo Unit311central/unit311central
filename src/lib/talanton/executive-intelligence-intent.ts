@@ -23,6 +23,13 @@ export type TalantonExecutiveIntelligenceIntent = {
 };
 
 function isDocumentGenerateAsk(lower: string) {
+  if (
+    /\b(create|generate|prepare|build|make|produce|draft|assemble|export|give\s+me)\b/.test(lower) &&
+    /\b(report|pdf|document)\b/.test(lower) &&
+    /\b(impact|portfolio|journey|field)?\s*stor(y|ies)\b/.test(lower)
+  ) {
+    return true;
+  }
   return (
     /\b(create|generate|prepare|build|make|produce|draft|assemble|export)\b/.test(lower) &&
     /\b(board\s+pack|board\s+deck|board\s+papers?|powerpoint|pptx|pdf|quarterly\s+portfolio|annual\s+impact)\b/.test(

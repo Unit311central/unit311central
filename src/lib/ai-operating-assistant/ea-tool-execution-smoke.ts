@@ -1,11 +1,15 @@
 import { resolveOrchestrationRoute } from "./action-orchestration";
+import { isEaGeneralIntentMode } from "./ea-general-mode";
+import { assertOpenBusinessReadRoute } from "./ea-route-assertions";
 import type { AssistantBusinessContext, AssistantChatMessage } from "./types";
-import { executeAssistantTool } from "./tool-service";
+import { executeAssistantTool, getOpenAIToolSchemas } from "./tool-service";
 
 export type EaToolSmokeCase = {
   id: string;
   prompt: string;
   expectedTool?: string;
+  /** Real EA defers open business reads to the model — assert none + tool availability. */
+  realEaDefer?: boolean;
 };
 
 export async function runEaToolExecutionSmoke(input: {
@@ -18,6 +22,21 @@ export async function runEaToolExecutionSmoke(input: {
   for (const testCase of input.cases) {
     try {
       const route = await resolveOrchestrationRoute(testCase.prompt, history, input.business);
+      if (testCase.realEaDefer && isEaGeneralIntentMode()) {
+        assertOpenBusinessReadRoute(route, testCase.expectedTool ?? "queryBusiness");
+        const schemas = getOpenAIToolSchemas(input.business.workspace.slug ?? undefined);
+        const names = new Set(schemas.map((schema) => schema.name));
+        const required = testCase.expectedTool ?? "queryBusiness";
+        if (
+          !names.has(required) &&
+          !names.has("getOrgContext") &&
+          !names.has("queryBusiness")
+        ) {
+          throw new Error(`real EA missing ${required} / getOrgContext / queryBusiness tools`);
+        }
+        results.push({ id: testCase.id, ok: true });
+        continue;
+      }
       if (route.kind !== "tool") {
         throw new Error(`expected tool route, got ${route.kind}`);
       }

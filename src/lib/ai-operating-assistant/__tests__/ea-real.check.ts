@@ -9,6 +9,7 @@ import { registerAllActionModules } from "@/lib/ai-operating-assistant/actions/r
 import { extractClientNameFromScenario } from "@/lib/ai-operating-assistant/client-scenario-tools";
 import { isEaGeneralIntentMode } from "@/lib/ai-operating-assistant/ea-general-mode";
 import { resolveDirectIntent } from "@/lib/ai-operating-assistant/intent-router";
+import { getAssistantModel } from "@/lib/ai-operating-assistant/openai-client";
 import { buildSystemInstructions } from "@/lib/ai-operating-assistant/prompt-service";
 import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
 import {
@@ -62,6 +63,11 @@ const business: AssistantBusinessContext = {
 
 async function runEaRealSuite() {
   assert.equal(isEaGeneralIntentMode(), true, "real EA mode should be default");
+  assert.equal(
+    getAssistantModel(),
+    "gpt-5.6-terra",
+    "production EA should default to Terra unless OPENAI_ASSISTANT_MODEL is set",
+  );
 
   const toolNames = new Set(ASSISTANT_TOOL_DEFINITIONS.map((tool) => tool.name));
   assert.ok(toolNames.has("getOrgContext"), "getOrgContext registered");
@@ -76,7 +82,7 @@ async function runEaRealSuite() {
   );
 
   const instructions = buildSystemInstructions(business);
-  assert.match(instructions, /GROUNDING/i, "grounding contract in system prompt");
+  assert.match(instructions, /answer ANY executive question/i, "open Q&A contract in system prompt");
   assert.match(instructions, /getOrgContext/i, "getOrgContext in system prompt");
   assert.doesNotMatch(
     instructions,

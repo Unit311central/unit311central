@@ -166,7 +166,7 @@ export async function runOnwardAirEaTestSuite(): Promise<EaTestSuiteReport> {
       prompt: "What screen shows procurement?",
       expectedTool: "onwardair.queryModule",
     },
-    { id: "cash", prompt: "How much cash do we have?", expectedTool: "getCashPosition" },
+    { id: "cash", prompt: "How much cash do we have?", expectedTool: "getCashPosition", realEaDefer: true },
     { id: "board-pack", prompt: "Create a board pack for tomorrow", expectedTool: "boardpack.generate" },
   ];
   const smokeResults = await runEaToolExecutionSmoke({ business, cases: smokeCases });

@@ -4,6 +4,7 @@
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
+import { assertOpenBusinessReadRoute } from "@/lib/ai-operating-assistant/ea-route-assertions";
 import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
 import { shouldSynthesizeExecutiveToolResult } from "@/lib/ai-operating-assistant/ea-llm-synthesis";
 import { getOpenAIToolSchemas } from "@/lib/ai-operating-assistant/tool-service";
@@ -129,9 +130,7 @@ export async function runDemoEaTestSuite(): Promise<EaTestSuiteReport> {
       [],
       business,
     );
-    if (route.kind !== "tool" || route.intent.tool !== "queryBusiness") {
-      throw new Error(`expected queryBusiness, got ${JSON.stringify(route)}`);
-    }
+    assertOpenBusinessReadRoute(route);
   });
   await orchestration.run("margin question routes to northstar briefing", async () => {
     const route = await resolveOrchestrationRoute("Why did margin fall?", [], business);

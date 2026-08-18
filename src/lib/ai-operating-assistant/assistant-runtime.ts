@@ -43,6 +43,7 @@ import {
   buildExecutiveSynthesisDeveloperMessage,
   shouldSynthesizeExecutiveToolResult,
 } from "./ea-llm-synthesis";
+import { classifyKnowledgeDomain } from "./knowledge-domains";
 
 type EasyInputMessage = {
   role: "user" | "assistant" | "system" | "developer";
@@ -1004,6 +1005,7 @@ async function* runAssistantTurnInner(input: {
   let assistantText = "";
   let toolLoops = 0;
   let awaitingSynthesis = false;
+  let requireToolOnFirstModelTurn = false;
   let turnFollowUps: NonNullable<AssistantChatMessage["followUpActions"]> = [];
   let turnArtifacts: NonNullable<AssistantChatMessage["artifacts"]> = [];
 
@@ -1176,6 +1178,18 @@ async function* runAssistantTurnInner(input: {
       eaStop("Intent resolved", "no executable business action matched — continuing to model tools", {
         message,
       });
+      const domain = classifyKnowledgeDomain(message).domain;
+      if (domain === "business" || domain === "write") {
+        requireToolOnFirstModelTurn = true;
+        inputItems = [
+          ...inputItems,
+          {
+            role: "developer",
+            content:
+              "REAL EA TURN: Ground this answer in live workspace data. Call getOrgContext and/or the most specific search/query tool before you reply. Do not invent numbers, names, or statuses.",
+          },
+        ];
+      }
     }
 
     if (route.kind === "tool") {
@@ -1390,7 +1404,14 @@ async function* runAssistantTurnInner(input: {
           model: getAssistantModel(),
           instructions,
           input: inputItems,
-          ...(synthesisOnly ? {} : { tools }),
+          ...(synthesisOnly
+            ? {}
+            : {
+                tools,
+                ...(requireToolOnFirstModelTurn && toolLoops === 0
+                  ? { tool_choice: "required" as const }
+                  : {}),
+              }),
           stream: true,
           store: false,
           ...(input.request.structuredJson
