@@ -6,7 +6,6 @@ import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { resolveNorthstarExecutiveIntelligenceIntent } from "@/lib/demo/executive-intelligence-intent";
-import { resolveNorthstarEaDataRoute } from "@/lib/demo/northstar-ea-route-resolver";
 import { injectDemoNavSections } from "@/lib/demo/nav";
 import { injectIntelligenceNavIfMissing } from "@/lib/intelligence/nav";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
@@ -124,11 +123,6 @@ export const demoWorkspacePack: EaWorkspacePack = {
     },
   ],
   intentResolvers: [
-    ({ message }) => {
-      const route = resolveNorthstarEaDataRoute(message);
-      if (route) return packToolRoute(route);
-      return null;
-    },
     ({ message }) => {
       const lower = message.toLowerCase();
       if (

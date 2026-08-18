@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       body.sectionId ? { sectionId: body.sectionId } : undefined,
     );
     const pdf = buildNorthstarEaSummaryReportPdf(report);
-    return new NextResponse(pdf, {
+    return new NextResponse(Buffer.from(pdf), {
       headers: {
         ...DEMO_EA_NO_STORE_HEADERS,
         "Content-Type": "application/pdf",
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
   if (body.section) {
     const pdf = buildNorthstarEaModuleReportPdf(body.section);
     const slug = body.section.label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    return new NextResponse(pdf, {
+    return new NextResponse(Buffer.from(pdf), {
       headers: {
         ...DEMO_EA_NO_STORE_HEADERS,
         "Content-Type": "application/pdf",

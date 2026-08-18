@@ -6,6 +6,7 @@ export type PptxGenInstance = {
   addSlide: () => PptxSlide;
   defineSlideMaster: (master: Record<string, unknown>) => void;
   write: (options: { outputType: "nodebuffer" }) => Promise<Buffer>;
+  ShapeType?: Record<string, string>;
   layout?: string;
   author?: string;
   company?: string;
@@ -15,6 +16,7 @@ export type PptxGenInstance = {
 };
 
 export type PptxSlide = {
+  background?: { color?: string; fill?: string };
   addText: (...args: unknown[]) => void;
   addShape: (...args: unknown[]) => void;
   addImage: (...args: unknown[]) => void;

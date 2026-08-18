@@ -2,12 +2,11 @@
  * Deterministic EA routing for Northstar demo — maps NL / catalogue views to queryModule.
  */
 
+import "server-only";
+
 import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
-import {
-  resolveNorthstarModuleId,
-  type NorthstarModuleId,
-} from "@/lib/demo/executive-intelligence";
+import { resolveNorthstarModuleId, type NorthstarModuleId } from "@/lib/demo/northstar-module-id";
 import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
 import { resolveNorthstarExecutiveIntelligenceIntent } from "@/lib/demo/executive-intelligence-intent";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";

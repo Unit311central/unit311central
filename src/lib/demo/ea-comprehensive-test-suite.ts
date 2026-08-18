@@ -2,6 +2,8 @@
  * Northstar EA comprehensive test suite + PDF report builders.
  */
 
+import "server-only";
+
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import {
   buildNorthstarEaTestBank,

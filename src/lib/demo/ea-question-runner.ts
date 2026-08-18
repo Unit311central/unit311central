@@ -2,6 +2,8 @@
  * Run a single Northstar EA test question (orchestration + tool execution).
  */
 
+import "server-only";
+
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
 import { resolveNorthstarEaDataRoute } from "@/lib/demo/northstar-ea-route-resolver";
 import { executeAssistantTool } from "@/lib/ai-operating-assistant/tool-service";

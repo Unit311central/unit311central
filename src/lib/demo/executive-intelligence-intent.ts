@@ -5,9 +5,11 @@
 import type {
   NorthstarActionCentreQuery,
   NorthstarBoardInsightsFocus,
-  NorthstarModuleId,
 } from "@/lib/demo/executive-intelligence";
-import { resolveNorthstarModuleId } from "@/lib/demo/executive-intelligence";
+import {
+  resolveNorthstarModuleId,
+  type NorthstarModuleId,
+} from "@/lib/demo/northstar-module-id";
 
 export type NorthstarExecutiveIntelligenceTool =
   | "northstar.getExecutiveBriefing"

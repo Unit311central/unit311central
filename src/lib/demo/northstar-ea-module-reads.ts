@@ -2,6 +2,8 @@
  * Northstar demo — EA module read adapters (all sidebar modules + sub-pages).
  */
 
+import "server-only";
+
 import { getNorthstarMarketingBundle } from "@/lib/demo/northstar-marketing-store";
 import {
   buildNorthstarCapTableSnapshot,
@@ -31,7 +33,7 @@ import {
   buildNorthstarHrMockState,
 } from "@/lib/demo/northstar-hr-data";
 import { buildNorthstarHeadcountGrowthSummary } from "@/lib/demo/northstar-hr-headcount-history";
-import { getNorthstarProjects } from "@/lib/demo/northstar-projects-data";
+import { getNorthstarDemoProjects } from "@/lib/demo/northstar-projects-data";
 import { NORTHSTAR_TRAINING_EVENTS } from "@/lib/demo/northstar-tqms-training";
 import { buildNorthstarDemoUsers } from "@/lib/demo/northstar-users-data";
 import { getNorthstarIntegrations } from "@/lib/demo/northstar-integrations-data";
@@ -48,7 +50,8 @@ import {
   getNorthstarDataRooms,
 } from "@/lib/demo/module-fixtures";
 import { getTqmsMockSnapshot } from "@/lib/tqms-mock-store";
-import type { NorthstarModuleId, NorthstarModuleQueryResult } from "@/lib/demo/executive-intelligence";
+import type { NorthstarModuleQueryResult } from "@/lib/demo/executive-intelligence";
+import type { NorthstarModuleId } from "@/lib/demo/northstar-module-id";
 import { northstarDemoAsAtLabel } from "@/lib/demo/northstar-financial-model";
 
 export type NorthstarModuleReadOptions = {
@@ -203,7 +206,7 @@ export function readNorthstarEaModule(
         return base(
           module,
           `${bundle.externalEvents.length} external events · ${kpis.externalEventsConfirmed} confirmed`,
-          bundle.externalEvents.slice(0, 5).map((e) => `${e.title} — ${e.startDate} — ${e.location ?? "TBC"}`),
+          bundle.externalEvents.slice(0, 5).map((e) => `${e.name} — ${e.startDate} — ${e.city ?? "TBC"}`),
           { events: bundle.externalEvents.length },
           "Marketing & Events → External Events",
           { events: bundle.externalEvents },
@@ -398,7 +401,7 @@ export function readNorthstarEaModule(
         return base(
           module,
           `${NORTHSTAR_CORPORATE_CONTRACTS.length} corporate contracts on file`,
-          NORTHSTAR_CORPORATE_CONTRACTS.slice(0, 5).map((c) => `${c.title} — ${c.counterparty} — ${c.status}`),
+          NORTHSTAR_CORPORATE_CONTRACTS.slice(0, 5).map((c) => `${c.name} — ${c.supplier} — ${c.status}`),
           { contracts: NORTHSTAR_CORPORATE_CONTRACTS.length },
           "Corporate Information → Contracts",
           { contracts: NORTHSTAR_CORPORATE_CONTRACTS },
@@ -408,7 +411,7 @@ export function readNorthstarEaModule(
         return base(
           module,
           `${NORTHSTAR_OFFICE_MAP_MARKERS.length} Northstar office locations`,
-          NORTHSTAR_OFFICE_MAP_MARKERS.map((m) => `${m.label} — ${m.city}, ${m.country}`),
+          NORTHSTAR_OFFICE_MAP_MARKERS.map((m) => `${m.city}, ${m.country} — ${m.employees} staff`),
           { offices: NORTHSTAR_OFFICE_MAP_MARKERS.length },
           "Corporate Information → Office Locations",
           { offices: NORTHSTAR_OFFICE_MAP_MARKERS },
@@ -428,7 +431,7 @@ export function readNorthstarEaModule(
     }
 
     case "project-management": {
-      const projects = getNorthstarProjects();
+      const projects = getNorthstarDemoProjects();
       const internal = projects.filter((p) => !p.clientId);
       const external = projects.filter((p) => p.clientId);
       if (/internal/.test(f)) {
@@ -731,7 +734,7 @@ export function readNorthstarEaModule(
         return base(
           module,
           `${rooms.length} data rooms prepared`,
-          rooms.map((r) => `${r.name} — ${r.status} — ${r.lastActivity}`),
+          rooms.map((r) => `${r.investor} — ${r.status} — ${r.lastUpdatedAt}`),
           { dataRooms: rooms.length },
           "Fundraising → Data Rooms",
           { dataRooms: rooms },
@@ -742,7 +745,7 @@ export function readNorthstarEaModule(
         return base(
           module,
           `${decks.length} pitch deck versions`,
-          decks.map((d) => `${d.title} — v${d.version} — ${d.updatedAt}`),
+          decks.map((d) => `${d.title} — v${d.version} — ${d.lastUpdatedAt}`),
           { decks: decks.length },
           "Fundraising → Pitch Decks",
           { decks },

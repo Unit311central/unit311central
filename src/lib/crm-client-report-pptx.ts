@@ -30,7 +30,7 @@ export async function buildCrmClientReportPptx(
 ): Promise<Uint8Array> {
   const generatedAt = new Date().toISOString();
   const sections = buildClientReportSections({ lead, questionnaire });
-  const pptx = (await createPptxGenAsync()) as {
+  const pptx = (await createPptxGenAsync()) as unknown as {
     author: string;
     title: string;
     layout: string;
