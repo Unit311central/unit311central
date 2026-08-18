@@ -83,6 +83,9 @@ function parseInsightsFocus(raw: string): NorthstarBoardInsightsFocus {
 function parseModuleId(raw: string): NorthstarModuleId {
   const value = raw.toLowerCase() as NorthstarModuleId;
   const allowed: NorthstarModuleId[] = [
+    "home",
+    "executive-assistant",
+    "business-central",
     "financials",
     "engineering",
     "fundraising",
@@ -90,8 +93,19 @@ function parseModuleId(raw: string): NorthstarModuleId {
     "intelligence",
     "clients",
     "grants",
+    "hr",
     "support",
     "qms",
+    "marketing",
+    "operations",
+    "technology",
+    "training",
+    "corporate",
+    "project-management",
+    "productivity",
+    "tools",
+    "external-client-access",
+    "settings",
   ];
   return allowed.includes(value) ? value : "intelligence";
 }
@@ -170,7 +184,15 @@ export async function queryNorthstarModuleTool(
   if (blocked) return blocked;
   const moduleId = parseModuleId(asString(args.module) || "intelligence");
   const question = asString(args.question);
-  const result = queryNorthstarModule(moduleId, question || undefined);
+  const focus = asString(args.focus);
+  const pageLabel = asString(args.pageLabel);
+  const viewId = asString(args.viewId);
+  const result = queryNorthstarModule(moduleId, {
+    question: question || undefined,
+    focus: focus || undefined,
+    pageLabel: pageLabel || undefined,
+    viewId: viewId || undefined,
+  });
   const prose = formatNorthstarModuleQueryText(result);
   return toolOk("northstar.queryModule", [{ ...result, prose }], {
     source: [`northstar:module:${moduleId}`],
@@ -246,28 +268,44 @@ export const NORTHSTAR_EXECUTIVE_TOOL_DEFINITIONS = [
   {
     name: "northstar.queryModule",
     description:
-      "Northstar only. Live read of a workspace module: financials, engineering, fundraising, grants, board, intelligence, clients, HR/headcount, support, qms. Use for Atlas, Sheffield, Voltex, margin, seed round, grants, pipeline, staff growth, etc.",
-    parameters: {
-      type: "object",
-      properties: {
-        module: {
-          type: "string",
-          enum: [
-            "financials",
-            "engineering",
-            "fundraising",
-            "board",
-            "intelligence",
-            "clients",
-            "grants",
-            "hr",
-            "support",
-            "qms",
-          ],
+      "Northstar only. Live read of any workspace module and sub-page — financials, engineering, fundraising, marketing, operations, technology, training, HR, QMS, corporate, projects, business central, productivity, tools, settings, board, intelligence, clients, support, etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          module: {
+            type: "string",
+            enum: [
+              "home",
+              "executive-assistant",
+              "business-central",
+              "financials",
+              "engineering",
+              "fundraising",
+              "board",
+              "intelligence",
+              "clients",
+              "grants",
+              "hr",
+              "support",
+              "qms",
+              "marketing",
+              "operations",
+              "technology",
+              "training",
+              "corporate",
+              "project-management",
+              "productivity",
+              "tools",
+              "external-client-access",
+              "settings",
+            ],
+          },
+          question: { type: "string" },
+          focus: { type: "string", description: "Sub-page or topic focus (e.g. onboarding, capa, payroll)." },
+          pageLabel: { type: "string" },
+          viewId: { type: "string" },
         },
-        question: { type: "string" },
+        additionalProperties: false,
       },
-      additionalProperties: false,
-    },
   },
 ];

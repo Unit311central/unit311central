@@ -1,5 +1,14 @@
 ﻿import { getFinancialOverview } from "@/lib/accounting/overview-service";
 import { northstarDemoPayrollDashboard } from "@/lib/demo/northstar-payroll-bridge";
+import {
+  buildNorthstarLeaveRequests,
+  buildNorthstarHrMockState,
+} from "@/lib/demo/northstar-hr-data";
+import {
+  getNorthstarInventoryCharts,
+  getNorthstarOperationsDashboardSummary,
+} from "@/lib/demo/northstar-operations-data";
+import { isNorthstarDemoSlug } from "@/lib/demo/northstar-surface";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import { listHrEmployees } from "@/lib/hr-employees-service";
 import { listInternalClients } from "@/lib/internal-clients-service";
@@ -33,6 +42,26 @@ export async function searchPerformanceReviews(
       "Your current role cannot access HR performance data.",
     );
   }
+  if (isNorthstarDemoSlug(ctx.business.workspace.slug)) {
+    const reviews = buildNorthstarHrMockState().reviews;
+    return toolOk(
+      "searchPerformanceReviews",
+      reviews.map((r) => ({
+        id: r.id,
+        employeeName: r.employeeName,
+        status: r.status,
+        overallRating: r.overallRating,
+        reviewPeriod: r.reviewPeriod,
+      })),
+      {
+        source: ["northstar:hr-performance"],
+        summary: {
+          matched: reviews.length,
+          message: `${reviews.length} performance reviews in the Northstar demo cycle.`,
+        },
+      },
+    );
+  }
   return toolError(
     "searchPerformanceReviews",
     "Waiting for live business data ÔÇö performance reviews are not connected to live storage yet. I will not invent review records.",
@@ -46,6 +75,27 @@ export async function searchLeave(
 ): Promise<AssistantToolResult> {
   if (!ctx.business.permissions.canAccessHr) {
     return toolForbidden("searchLeave", "Your current role cannot access HR leave data.");
+  }
+  if (isNorthstarDemoSlug(ctx.business.workspace.slug)) {
+    const leave = buildNorthstarLeaveRequests();
+    return toolOk(
+      "searchLeave",
+      leave.map((r) => ({
+        id: r.id,
+        employeeName: r.employeeName,
+        startDate: r.startDate,
+        endDate: r.endDate,
+        status: r.status,
+        type: r.type,
+      })),
+      {
+        source: ["northstar:hr-leave"],
+        summary: {
+          matched: leave.length,
+          message: `${leave.filter((r) => r.status === "approved").length} approved leave requests on the Northstar calendar.`,
+        },
+      },
+    );
   }
   return toolError(
     "searchLeave",
@@ -354,10 +404,27 @@ export async function getMonthlyPayrollObligation(
 
 export async function searchInventory(
   _args: Record<string, unknown>,
-  _ctx: AssistantToolExecutionContext,
+  ctx: AssistantToolExecutionContext,
 ): Promise<AssistantToolResult> {
-  void _args;
-  void _ctx;
+  if (isNorthstarDemoSlug(ctx.business.workspace.slug)) {
+    const ops = getNorthstarOperationsDashboardSummary();
+    const charts = getNorthstarInventoryCharts();
+    return toolOk(
+      "searchInventory",
+      charts.valueByLocation.map((row) => ({
+        location: row.location,
+        valueGbp: row.value,
+      })),
+      {
+        source: ["northstar:operations-inventory"],
+        summary: {
+          skuCount: ops.inventorySkuCount,
+          onHandGbp: ops.inventoryOnHandValueGbp,
+          message: `${ops.inventorySkuCount} SKUs on hand (${ops.inventoryOnHandValueGbp.toLocaleString("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 })}).`,
+        },
+      },
+    );
+  }
   return toolError(
     "searchInventory",
     "Waiting for live business data ÔÇö inventory is not connected to live storage yet. I will not invent stock or asset counts.",

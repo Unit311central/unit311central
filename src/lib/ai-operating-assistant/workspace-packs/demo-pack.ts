@@ -6,6 +6,7 @@ import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { resolveNorthstarExecutiveIntelligenceIntent } from "@/lib/demo/executive-intelligence-intent";
+import { resolveNorthstarEaDataRoute } from "@/lib/demo/northstar-ea-route-resolver";
 import { injectDemoNavSections } from "@/lib/demo/nav";
 import { injectIntelligenceNavIfMissing } from "@/lib/intelligence/nav";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
@@ -58,7 +59,7 @@ Executive intelligence tools (prefer for briefing, health, actions, board Q&A, m
 - northstar.getOrgHealth — RAG health across financial, commercial, operational, governance
 - northstar.queryActions — overdue / due this week / by owner board actions
 - northstar.getBoardInsights — risks, decisions, financial, engineering, clients (analysis only — not a PDF)
-- northstar.queryModule — live read for financials, engineering, fundraising, grants, board, intelligence, clients, support, qms
+- northstar.queryModule — live read for all Northstar modules (financials, engineering, fundraising, marketing, operations, technology, training, HR, QMS, corporate, projects, productivity, tools, settings, etc.)
 Intelligence tools: intelligence.getBriefing / intelligence.searchRecords for Company, Client, and Market Intelligence domains.
 Document tools: boardpack.generate — Northstar board pack PDF + PowerPoint (margin recovery, Atlas, Sheffield, cash runway).
 For module navigation ("where is …") always use searchApplications. For any cross-domain executive question start with getOrgContext; also queryBusiness / getCashPosition for focused reads.
@@ -123,6 +124,11 @@ export const demoWorkspacePack: EaWorkspacePack = {
     },
   ],
   intentResolvers: [
+    ({ message }) => {
+      const route = resolveNorthstarEaDataRoute(message);
+      if (route) return packToolRoute(route);
+      return null;
+    },
     ({ message }) => {
       const lower = message.toLowerCase();
       if (

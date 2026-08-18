@@ -3,10 +3,13 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AbhiEaTestingWorkspace } from "@/components/abhi/AbhiEaTestingWorkspace";
+import { NorthstarEaTestingWorkspace } from "@/components/demo/NorthstarEaTestingWorkspace";
 import { TalantonEaTestingWorkspace } from "@/components/talanton/TalantonEaTestingWorkspace";
 import { isAbhiCustomerHostRequest } from "@/lib/abhi/ea-testing-auth";
 import { isAbhiSlug } from "@/lib/abhi-surface";
-import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
+import { getRequestHost, isDemoDomainHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
+import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { isDemoCustomerHostRequest } from "@/lib/demo/ea-testing-auth";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -17,18 +20,29 @@ export const metadata: Metadata = {
 };
 
 export default async function WorkspaceEaTestingPage() {
+  if (await isDemoCustomerHostRequest()) {
+    return <NorthstarEaTestingWorkspace />;
+  }
+
   if (await isAbhiCustomerHostRequest()) {
     return <AbhiEaTestingWorkspace />;
   }
 
   const requestHeaders = await headers();
-  const hostSlug = parseClientPlatformSubdomainSafe(getRequestHost({ headers: requestHeaders }));
+  const host = getRequestHost({ headers: requestHeaders });
+  const hostSlug = parseClientPlatformSubdomainSafe(host);
+  if (isDemoDomainHost(host) || hostSlug === DEMO_WORKSPACE_SLUG) {
+    return <NorthstarEaTestingWorkspace />;
+  }
   if (isAbhiSlug(hostSlug)) {
     return <AbhiEaTestingWorkspace />;
   }
 
   try {
     const workspace = await requireCurrentWorkspace();
+    if (workspace.slug === DEMO_WORKSPACE_SLUG) {
+      return <NorthstarEaTestingWorkspace />;
+    }
     if (isAbhiSlug(workspace.slug)) {
       return <AbhiEaTestingWorkspace />;
     }
