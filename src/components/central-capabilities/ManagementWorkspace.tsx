@@ -816,6 +816,7 @@ export default function ManagementWorkspace() {
       items={SECTIONS}
       activeId={section}
       onSelect={setSection}
+      layout="horizontal"
     >
       {section === "dashboard" ? (
         <ManagementDashboard

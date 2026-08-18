@@ -25,6 +25,15 @@ export function centralSubnavItemClass(active: boolean) {
   );
 }
 
+export function centralSubnavHorizontalItemClass(active: boolean) {
+  return cn(
+    "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+    active
+      ? "border border-sky-400/35 bg-sky-500/15 text-sky-50"
+      : "border border-transparent text-white/65 hover:border-white/10 hover:bg-white/[0.04] hover:text-white",
+  );
+}
+
 export function CentralSubnavShell<T extends string>({
   eyebrow,
   title,
@@ -32,6 +41,7 @@ export function CentralSubnavShell<T extends string>({
   items,
   activeId,
   onSelect,
+  layout = "vertical",
   children,
 }: {
   eyebrow?: string;
@@ -40,6 +50,7 @@ export function CentralSubnavShell<T extends string>({
   items: CentralSubnavItem<T>[];
   activeId: T;
   onSelect: (id: T) => void;
+  layout?: "vertical" | "horizontal";
   children: ReactNode;
 }) {
   const [brandLabel, moduleLabel] =
@@ -58,30 +69,56 @@ export function CentralSubnavShell<T extends string>({
         description={subtitle}
       />
 
-      <div className="grid min-h-[32rem] gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <nav aria-label={`${title} sections`} className={centralSubnavAsideClass()}>
-          <ul className="space-y-1">
+      {layout === "horizontal" ? (
+        <>
+          <nav
+            aria-label={`${title} sections`}
+            className="flex flex-wrap gap-1 border-b border-white/10 pb-2"
+          >
             {items.map((item) => {
               const Icon = item.icon;
               const active = item.id === activeId;
               return (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelect(item.id)}
-                    className={centralSubnavItemClass(active)}
-                  >
-                    {Icon ? <Icon className="h-4 w-4 shrink-0 opacity-80" /> : null}
-                    {item.label}
-                  </button>
-                </li>
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onSelect(item.id)}
+                  className={centralSubnavHorizontalItemClass(active)}
+                >
+                  {Icon ? <Icon className="h-4 w-4 shrink-0 opacity-80" /> : null}
+                  {item.label}
+                </button>
               );
             })}
-          </ul>
-        </nav>
+          </nav>
+          <div className="min-w-0 space-y-4">{children}</div>
+        </>
+      ) : (
+        <div className="grid min-h-[32rem] gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <nav aria-label={`${title} sections`} className={centralSubnavAsideClass()}>
+            <ul className="space-y-1">
+              {items.map((item) => {
+                const Icon = item.icon;
+                const active = item.id === activeId;
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelect(item.id)}
+                      className={centralSubnavItemClass(active)}
+                    >
+                      {Icon ? <Icon className="h-4 w-4 shrink-0 opacity-80" /> : null}
+                      {item.label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
 
-        <div className="min-w-0 space-y-4">{children}</div>
-      </div>
+          <div className="min-w-0 space-y-4">{children}</div>
+        </div>
+      )}
     </div>
   );
 }
