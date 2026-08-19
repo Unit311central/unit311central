@@ -1068,7 +1068,14 @@ export async function middleware(request: NextRequest) {
       return redirectExternal(buildInternalHostRedirectUrl(pathname, search), 308);
     }
 
-    return NextResponse.next({ request: { headers } });
+    const response = NextResponse.next({ request: { headers } });
+    if (pathname === "/" || pathname === "") {
+      response.headers.append(
+        "Link",
+        "</images/video.mp4>; rel=preload; as=video; type=video/mp4",
+      );
+    }
+    return response;
   }
 
   if (isLocalDevHost(host)) {

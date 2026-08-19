@@ -47,6 +47,7 @@ export default function HeroVideoBackground() {
     };
 
     const markReady = () => {
+      if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
       setVideoReady(true);
       setVideoFailed(false);
     };
@@ -71,6 +72,7 @@ export default function HeroVideoBackground() {
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("loadeddata", markReady);
     video.addEventListener("canplay", markReady);
+    video.addEventListener("playing", markReady);
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("error", handleError);
 
@@ -92,13 +94,14 @@ export default function HeroVideoBackground() {
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       video.removeEventListener("loadeddata", markReady);
       video.removeEventListener("canplay", markReady);
+      video.removeEventListener("playing", markReady);
       video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("error", handleError);
       observer.disconnect();
     };
   }, [prefersReducedMotion]);
 
-  const showPoster = prefersReducedMotion || videoFailed;
+  const showPosterFallback = prefersReducedMotion || videoFailed;
 
   return (
     <div
@@ -108,23 +111,21 @@ export default function HeroVideoBackground() {
     >
       <div className="absolute inset-0" style={{ background: HERO_GRADIENT }} />
 
-      {/* Poster stays visible until video frames are ready — avoids a blank dark hero. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={HERO_POSTER}
-        alt=""
-        className={`absolute inset-0 h-full w-full object-cover object-[50%_42%] transition-opacity duration-500 ${
-          showPoster || !videoReady ? "opacity-100" : "opacity-0"
-        }`}
-        fetchPriority="high"
-      />
+      {/* Poster only for reduced-motion / playback failure — not while video buffers. */}
+      {showPosterFallback ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={HERO_POSTER}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-[50%_42%]"
+        />
+      ) : null}
 
       {!prefersReducedMotion && !videoFailed ? (
         <video
           ref={videoRef}
           src={HERO_VIDEO}
-          poster={HERO_POSTER}
-          className={`absolute inset-0 h-full w-full object-cover object-[50%_42%] transition-opacity duration-500 ${
+          className={`absolute inset-0 h-full w-full object-cover object-[50%_42%] transition-opacity duration-300 ${
             videoReady ? "opacity-100" : "opacity-0"
           }`}
           autoPlay
