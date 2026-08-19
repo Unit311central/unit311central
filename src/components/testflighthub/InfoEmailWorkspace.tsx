@@ -275,6 +275,9 @@ export default function InfoEmailWorkspace() {
 
   const selectedAccountConfigured = selectedAccount?.configured ?? false;
   const selectedAccountIsPlatformManaged = isPlatformManagedMailboxEmail(selectedAccount?.email);
+  const showPlatformCredentialRepair =
+    selectedAccountIsPlatformManaged &&
+    Boolean(error?.toLowerCase().includes("invalid credentials"));
   const showManualCredentialConnect =
     !selectedAccountConfigured && Boolean(selectedAccount) && !selectedAccountIsPlatformManaged;
 
@@ -1024,9 +1027,43 @@ export default function InfoEmailWorkspace() {
         <section className="rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-4 sm:px-5">
           <h3 className="text-sm font-semibold text-rose-100">{mailboxEmail} is not connected</h3>
           <p className="mt-1 text-sm text-rose-100/80">
-            This Unit311 platform inbox is managed on the server. If messages do not load, an
-            operator needs to verify the Zoho credentials for this mailbox in production.
+            This Unit311 platform inbox is managed on the server. Each mailbox needs its own Zoho
+            app-specific password — it cannot share info@ credentials.
           </p>
+        </section>
+      )}
+
+      {!accountsLoading && showPlatformCredentialRepair && (
+        <section className="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-4 sm:px-5">
+          <h3 className="text-sm font-semibold text-amber-100">Repair {mailboxEmail} connection</h3>
+          <p className="mt-1 text-sm text-amber-100/80">
+            Zoho rejected the server password for {mailboxEmail}. Generate an app-specific password
+            in Zoho Mail (Security → App passwords), paste it below, and save. This override is
+            stored for this workspace and takes priority over the shared Vercel secret.
+          </p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-amber-100/70">
+                Zoho app password for {mailboxEmail}
+              </label>
+              <input
+                type="password"
+                value={setupPassword}
+                onChange={(event) => setSetupPassword(event.target.value)}
+                placeholder="Paste app-specific password"
+                className={cn(inputClassName(), "mt-1.5 border-amber-400/20")}
+              />
+            </div>
+            <button
+              type="button"
+              disabled={savingCredentials || !setupPassword.trim()}
+              onClick={() => void saveMailboxCredentials()}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-medium text-[#0a1422] transition-colors hover:bg-amber-400 disabled:opacity-60"
+            >
+              {savingCredentials ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Save & reconnect
+            </button>
+          </div>
         </section>
       )}
 

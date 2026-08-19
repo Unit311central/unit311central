@@ -106,10 +106,9 @@ export async function resolveAccountCredentials(
   id: EmailAccountId,
   scope?: EmailWorkspaceScope,
 ): Promise<MemoryCredential | null> {
-  // Platform env secrets win first (Internal/Demo + shared Zoho app passwords).
-  // Tenant DB / memory credentials cover customer hosts that persist their own row.
   const envCredential = readEnvCredential(id);
-  if (envCredential) return envCredential;
+  const definitionEmail = getAccountDefinition(id).email;
+  const isPlatformMailbox = isPlatformManagedMailboxEmail(definitionEmail);
 
   let workspaceId: string | null = null;
   try {
@@ -117,6 +116,27 @@ export async function resolveAccountCredentials(
   } catch {
     workspaceId = null;
   }
+
+  if (workspaceId) {
+    const stored =
+      readMemoryCredential(workspaceId, id) ??
+      (await readSupabaseCredential(id, workspaceId));
+
+    // Operator DB override wins for platform mailboxes when it differs from env bootstrap secrets
+    // (e.g. ZOHO_PAUL_PASSWORD copied from info@ by mistake).
+    if (
+      stored?.password &&
+      isPlatformMailbox &&
+      stored.password !== envCredential?.password
+    ) {
+      return stored;
+    }
+
+    if (!envCredential && stored) return stored;
+  }
+
+  if (envCredential) return envCredential;
+
   if (!workspaceId) return null;
 
   return (
@@ -147,6 +167,8 @@ export async function ensureWorkspaceMailboxCredentialsFromEnv(
     if (!envCredential?.password) continue;
     const existing = await readSupabaseCredential(id, workspaceId);
     if (existing?.password === envCredential.password) continue;
+    // Do not overwrite operator overrides saved from the Email UI.
+    if (existing?.password && existing.password !== envCredential.password) continue;
     try {
       await saveMailboxCredentials(id, envCredential.password, envCredential.email, {
         workspaceId,
