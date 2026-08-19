@@ -91,7 +91,13 @@ export default function ContentStudioWorkspace() {
         </WorkspaceSection>
       ) : (
         <div className="grid min-h-[36rem] gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-          <nav aria-label="Content Studio functions" className={cn(centralSubnavAsideClass(), "lg:min-h-[36rem]")}>
+          <nav
+            aria-label="Content Studio functions"
+            className={cn(
+              centralSubnavAsideClass(),
+              "border-white/20 bg-white/[0.09] lg:min-h-[36rem]",
+            )}
+          >
             <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/50">
               Functions
             </p>
