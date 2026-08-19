@@ -1,7 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight, FileText, Layers } from "lucide-react";
+import {
+  Briefcase,
+  Building2,
+  FileText,
+  FolderKanban,
+  Landmark,
+  Layers,
+  Megaphone,
+  Palette,
+  Scale,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  Users,
+  Wrench,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import {
   canEditContentStudioTemplates,
@@ -9,10 +26,18 @@ import {
   managementAccessFromEntitlements,
 } from "@/lib/central-capabilities/access";
 import { CONTENT_STUDIO_FUNCTIONS, getContentStudioTemplates } from "@/lib/central-capabilities/content-studio-placeholder";
-import type { ContentStudioFunctionId, ContentStudioTemplatePlaceholder } from "@/lib/central-capabilities/types";
+import {
+  CONTENT_STUDIO_FUNCTION_THEMES,
+  contentStudioMediaKindLabel,
+  getContentStudioMediaLibrary,
+} from "@/lib/central-capabilities/content-studio-theme";
+import type {
+  ContentStudioFunctionId,
+  ContentStudioMediaAsset,
+  ContentStudioTemplatePlaceholder,
+} from "@/lib/central-capabilities/types";
 import {
   WorkspaceEmpty,
-  WorkspaceModuleHeader,
   WorkspaceSection,
   WorkspaceStatusPill,
   workspaceSecondaryButtonClass,
@@ -20,17 +45,91 @@ import {
 import { useOperatorEntitlements } from "@/components/testflighthub/OperatorEntitlementsProvider";
 import { cn } from "@/lib/utils";
 
-import { centralSubnavAsideClass, centralSubnavItemClass } from "./CentralSubnavShell";
 import { ContentStudioCreateContent } from "./ContentStudioCreateContent";
 import { useContentStudioStore } from "./useContentStudioStore";
 
 const CONTENT_STUDIO_SUBTITLE =
   "Create and maintain approved company content from master templates — presentations, decks, and collateral.";
 
+const FUNCTION_ICONS: Record<ContentStudioFunctionId, LucideIcon> = {
+  corporate: Building2,
+  management: Briefcase,
+  fundraising: TrendingUp,
+  sales: Megaphone,
+  marketing: Palette,
+  projects: FolderKanban,
+  operations: Wrench,
+  finance: Landmark,
+  hr: Users,
+  engineering: Settings2,
+  qms: ShieldCheck,
+  regulatory: Scale,
+  administration: Sparkles,
+};
+
 function statusClass(status: string) {
   if (status === "approved") return "border-emerald-400/30 bg-emerald-500/15 text-emerald-100";
   if (status === "review") return "border-amber-400/30 bg-amber-500/15 text-amber-100";
   return "border-white/15 bg-white/[0.05] text-white/60";
+}
+
+function mediaKindIcon(kind: ContentStudioMediaAsset["kind"]) {
+  if (kind === "video") return "▶";
+  if (kind === "document") return "PDF";
+  if (kind === "logo") return "◎";
+  if (kind === "deck") return "PPT";
+  return "IMG";
+}
+
+function ContentStudioMediaCard({
+  asset,
+  theme,
+}: {
+  asset: ContentStudioMediaAsset;
+  theme: (typeof CONTENT_STUDIO_FUNCTION_THEMES)[ContentStudioFunctionId];
+}) {
+  return (
+    <article
+      className={cn(
+        "group overflow-hidden rounded-2xl border bg-[#0b1524]/80 transition-transform hover:-translate-y-0.5",
+        theme.border,
+      )}
+    >
+      <div className={cn("relative flex h-28 items-center justify-center", theme.swatch)}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.22),transparent_55%)]" />
+        <span className="relative rounded-full border border-white/25 bg-black/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/90">
+          {mediaKindIcon(asset.kind)}
+        </span>
+      </div>
+      <div className="space-y-2 p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-sm font-semibold text-white">{asset.name}</h3>
+          <WorkspaceStatusPill className="border-emerald-400/30 bg-emerald-500/15 text-emerald-100">
+            Approved
+          </WorkspaceStatusPill>
+        </div>
+        <p className="text-xs text-white/50">
+          {contentStudioMediaKindLabel(asset.kind)} · {asset.format} · {asset.sizeLabel}
+        </p>
+        <p className="text-xs text-white/40">
+          Approved {asset.approvedAt} · {asset.approvedBy}
+        </p>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {asset.tags.map((tag) => (
+            <span
+              key={tag}
+              className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide", theme.accentSoft, theme.accent)}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+        <button type="button" className={cn(workspaceSecondaryButtonClass(), "mt-2 w-full sm:w-auto")}>
+          Open asset
+        </button>
+      </div>
+    </article>
+  );
 }
 
 export default function ContentStudioWorkspace() {
@@ -58,7 +157,10 @@ export default function ContentStudioWorkspace() {
 
   const selectedId = activeFunction ?? visibleFunctions[0]?.id ?? null;
   const selectedNode = visibleFunctions.find((node) => node.id === selectedId) ?? null;
+  const theme = selectedId ? CONTENT_STUDIO_FUNCTION_THEMES[selectedId] : null;
+  const FunctionIcon = selectedId ? FUNCTION_ICONS[selectedId] : Building2;
   const templates = selectedId ? getContentStudioTemplates(selectedId) : [];
+  const mediaLibrary = selectedId ? getContentStudioMediaLibrary(selectedId) : [];
   const savedForFunction = state.savedContent.filter(
     (row) => row.functionId === selectedId && row.status === "active",
   );
@@ -67,7 +169,11 @@ export default function ContentStudioWorkspace() {
   if (createTemplate && selectedId) {
     return (
       <div className="space-y-5">
-        <WorkspaceModuleHeader title="Content Studio" description={CONTENT_STUDIO_SUBTITLE} />
+        <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-fuchsia-500/10 via-violet-500/5 to-transparent p-5 sm:p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-200/80">Content Studio</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Create content</h1>
+          <p className="mt-2 max-w-3xl text-sm text-white/55">{CONTENT_STUDIO_SUBTITLE}</p>
+        </div>
         <ContentStudioCreateContent
           template={createTemplate}
           functionId={selectedId}
@@ -83,194 +189,245 @@ export default function ContentStudioWorkspace() {
 
   return (
     <div className="space-y-5">
-      <WorkspaceModuleHeader title="Content Studio" description={CONTENT_STUDIO_SUBTITLE} />
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#07111f] p-5 sm:p-6">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_0%_0%,rgba(168,85,247,0.16),transparent_55%),radial-gradient(ellipse_70%_50%_at_100%_0%,rgba(56,189,248,0.12),transparent_60%)]" />
+        <div className="relative">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-fuchsia-200/80">Business Productivity</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
+            Content Studio
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-white/55">{CONTENT_STUDIO_SUBTITLE}</p>
+        </div>
+      </div>
 
       {visibleFunctions.length === 0 ? (
         <WorkspaceSection title="Content Studio" subtitle="Permission-aware content workspace.">
           <WorkspaceEmpty message="No Content Studio functions are visible for your role." />
         </WorkspaceSection>
       ) : (
-        <div className="grid min-h-[36rem] gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <>
           <nav
             aria-label="Content Studio functions"
-            className={cn(
-              centralSubnavAsideClass(),
-              "border-white/20 bg-white/[0.09] lg:min-h-[36rem]",
-            )}
+            className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-[0.12em] text-white/50">
-              Functions
-            </p>
-            <ul className="space-y-1">
-              {visibleFunctions.map((node) => {
-                const active = node.id === selectedId;
-                return (
-                  <li key={node.id}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveFunction(node.id)}
-                      className={centralSubnavItemClass(active)}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{node.label}</span>
-                      {active ? <ChevronRight className="h-4 w-4 shrink-0 opacity-70" /> : null}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            {visibleFunctions.map((node) => {
+              const active = node.id === selectedId;
+              const nodeTheme = CONTENT_STUDIO_FUNCTION_THEMES[node.id];
+              const Icon = FUNCTION_ICONS[node.id];
+              return (
+                <button
+                  key={node.id}
+                  type="button"
+                  onClick={() => setActiveFunction(node.id)}
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all",
+                    active ? nodeTheme.tabActive : nodeTheme.tabIdle,
+                  )}
+                >
+                  <span className={cn("inline-flex h-6 w-6 items-center justify-center rounded-full", nodeTheme.swatch)}>
+                    <Icon className="h-3.5 w-3.5 text-white" />
+                  </span>
+                  {node.label}
+                </button>
+              );
+            })}
           </nav>
 
-          <div className="min-w-0 space-y-4">
-            {selectedNode ? (
-              <>
-                <WorkspaceSection title={selectedNode.label} subtitle={selectedNode.description}>
-                  <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-white/45">
-                    Master templates
-                  </p>
-                  {templates.length === 0 ? (
-                    <WorkspaceEmpty message="No templates are configured for this function yet." />
-                  ) : (
-                    <div className="grid gap-3">
-                      {templates.map((template) => (
-                        <article
-                          key={template.id}
-                          className="rounded-xl border border-white/10 bg-[#0b1524]/80 p-4"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                                <Layers className="h-3.5 w-3.5" />
-                                Master template
-                              </div>
-                              <h3 className="text-base font-semibold text-white">{template.name}</h3>
-                              <p className="mt-1 max-w-2xl text-sm text-white/55">{template.description}</p>
-                              <p className="mt-2 text-xs text-white/40">
-                                Last updated: {template.lastUpdated}
-                              </p>
-                            </div>
-                            <WorkspaceStatusPill className={statusClass(template.status)}>
-                              {template.status}
-                            </WorkspaceStatusPill>
-                          </div>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <button type="button" className={workspaceSecondaryButtonClass()}>
-                              View template
-                            </button>
-                            <button
-                              type="button"
-                              className={workspaceSecondaryButtonClass()}
-                              onClick={() => {
-                                setCreateTemplate(template);
-                                setEditContentId(null);
-                              }}
-                            >
-                              Create content
-                            </button>
-                            {canEditTemplates && template.canEdit ? (
-                              <>
-                                <button type="button" className={workspaceSecondaryButtonClass()}>
-                                  Edit template
-                                </button>
-                                <button type="button" className={workspaceSecondaryButtonClass()}>
-                                  Duplicate
-                                </button>
-                                <button type="button" className={workspaceSecondaryButtonClass()}>
-                                  Archive
-                                </button>
-                              </>
-                            ) : null}
-                          </div>
-                        </article>
-                      ))}
+          {selectedNode && theme ? (
+            <div className="space-y-4">
+              <div
+                className={cn(
+                  "relative overflow-hidden rounded-2xl border p-5 sm:p-6",
+                  theme.border,
+                  theme.glow,
+                  "bg-gradient-to-r",
+                  theme.heroGradient,
+                )}
+              >
+                <div className="relative flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-start gap-4">
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/15",
+                        theme.swatch,
+                      )}
+                    >
+                      <FunctionIcon className="h-6 w-6 text-white" />
                     </div>
-                  )}
-                </WorkspaceSection>
+                    <div>
+                      <p className={cn("text-xs font-semibold uppercase tracking-[0.12em]", theme.accent)}>
+                        {selectedNode.label} function
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold text-white">{selectedNode.label}</h2>
+                      <p className="mt-1 max-w-2xl text-sm text-white/60">{selectedNode.description}</p>
+                    </div>
+                  </div>
+                  <div className={cn("rounded-xl border px-4 py-3 text-right", theme.border, theme.accentSoft)}>
+                    <p className={cn("text-[10px] font-semibold uppercase tracking-wide", theme.accent)}>
+                      Approved assets
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold text-white">{mediaLibrary.length}</p>
+                  </div>
+                </div>
+              </div>
 
-                <WorkspaceSection
-                  title="Created content"
-                  subtitle="Saved configurations derived from master templates — separate from the master assets."
-                >
-                  {savedForFunction.length === 0 ? (
-                    <WorkspaceEmpty message="No saved content for this function yet. Create content from a master template above." />
-                  ) : (
-                    <div className="grid gap-3">
-                      {savedForFunction.map((content) => (
-                        <article
-                          key={content.id}
-                          className="rounded-xl border border-white/10 bg-[#0b1524]/80 p-4"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-200/70">
-                                <FileText className="h-3.5 w-3.5" />
-                                Created content
-                              </div>
-                              <h3 className="text-base font-semibold text-white">{content.name}</h3>
-                              <p className="mt-1 text-sm text-white/55">
-                                From template: {content.templateName} · {content.frequency}
-                              </p>
-                              <p className="mt-2 text-xs text-white/40">
-                                {content.pages.filter((page) => page.enabled).length} active pages · Updated{" "}
-                                {content.updatedAt.slice(0, 10)}
-                              </p>
+              <WorkspaceSection title="Master templates" subtitle="Approved starting points for this function.">
+                {templates.length === 0 ? (
+                  <WorkspaceEmpty message="No templates are configured for this function yet." />
+                ) : (
+                  <div className="grid gap-3">
+                    {templates.map((template) => (
+                      <article
+                        key={template.id}
+                        className="rounded-xl border border-white/10 bg-[#0b1524]/80 p-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                              <Layers className="h-3.5 w-3.5" />
+                              Master template
                             </div>
+                            <h3 className="text-base font-semibold text-white">{template.name}</h3>
+                            <p className="mt-1 max-w-2xl text-sm text-white/55">{template.description}</p>
+                            <p className="mt-2 text-xs text-white/40">Last updated: {template.lastUpdated}</p>
                           </div>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              className={workspaceSecondaryButtonClass()}
-                              onClick={() => {
-                                const template = templates.find((row) => row.id === content.templateId);
-                                if (!template) return;
-                                setCreateTemplate(template);
-                                setEditContentId(content.id);
-                              }}
-                            >
-                              Open
-                            </button>
-                            <button
-                              type="button"
-                              className={workspaceSecondaryButtonClass()}
-                              onClick={() => {
-                                const template = templates.find((row) => row.id === content.templateId);
-                                if (!template) return;
-                                setCreateTemplate(template);
-                                setEditContentId(content.id);
-                              }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className={workspaceSecondaryButtonClass()}
-                              onClick={() => duplicateContent(content.id)}
-                            >
-                              Duplicate
-                            </button>
-                            <button
-                              type="button"
-                              className={workspaceSecondaryButtonClass()}
-                              onClick={() => archiveContent(content.id)}
-                            >
-                              Archive
-                            </button>
-                            <button
-                              type="button"
-                              className={workspaceSecondaryButtonClass()}
-                              onClick={() => deleteContent(content.id)}
-                            >
-                              Delete
-                            </button>
+                          <WorkspaceStatusPill className={statusClass(template.status)}>
+                            {template.status}
+                          </WorkspaceStatusPill>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button type="button" className={workspaceSecondaryButtonClass()}>
+                            View template
+                          </button>
+                          <button
+                            type="button"
+                            className={workspaceSecondaryButtonClass()}
+                            onClick={() => {
+                              setCreateTemplate(template);
+                              setEditContentId(null);
+                            }}
+                          >
+                            Create content
+                          </button>
+                          {canEditTemplates && template.canEdit ? (
+                            <>
+                              <button type="button" className={workspaceSecondaryButtonClass()}>
+                                Edit template
+                              </button>
+                              <button type="button" className={workspaceSecondaryButtonClass()}>
+                                Duplicate
+                              </button>
+                              <button type="button" className={workspaceSecondaryButtonClass()}>
+                                Archive
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </WorkspaceSection>
+
+              <WorkspaceSection
+                title="Approved media library"
+                subtitle="Brand-safe images, logos, documents, and decks approved for this function."
+              >
+                {mediaLibrary.length === 0 ? (
+                  <WorkspaceEmpty message="No approved media assets for this function yet." />
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {mediaLibrary.map((asset) => (
+                      <ContentStudioMediaCard key={asset.id} asset={asset} theme={theme} />
+                    ))}
+                  </div>
+                )}
+              </WorkspaceSection>
+
+              <WorkspaceSection
+                title="Created content"
+                subtitle="Saved configurations derived from master templates — separate from the master assets."
+              >
+                {savedForFunction.length === 0 ? (
+                  <WorkspaceEmpty message="No saved content for this function yet. Create content from a master template above." />
+                ) : (
+                  <div className="grid gap-3">
+                    {savedForFunction.map((content) => (
+                      <article
+                        key={content.id}
+                        className="rounded-xl border border-white/10 bg-[#0b1524]/80 p-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-200/70">
+                              <FileText className="h-3.5 w-3.5" />
+                              Created content
+                            </div>
+                            <h3 className="text-base font-semibold text-white">{content.name}</h3>
+                            <p className="mt-1 text-sm text-white/55">
+                              From template: {content.templateName} · {content.frequency}
+                            </p>
+                            <p className="mt-2 text-xs text-white/40">
+                              {content.pages.filter((page) => page.enabled).length} active pages · Updated{" "}
+                              {content.updatedAt.slice(0, 10)}
+                            </p>
                           </div>
-                        </article>
-                      ))}
-                    </div>
-                  )}
-                </WorkspaceSection>
-              </>
-            ) : null}
-          </div>
-        </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className={workspaceSecondaryButtonClass()}
+                            onClick={() => {
+                              const template = templates.find((row) => row.id === content.templateId);
+                              if (!template) return;
+                              setCreateTemplate(template);
+                              setEditContentId(content.id);
+                            }}
+                          >
+                            Open
+                          </button>
+                          <button
+                            type="button"
+                            className={workspaceSecondaryButtonClass()}
+                            onClick={() => {
+                              const template = templates.find((row) => row.id === content.templateId);
+                              if (!template) return;
+                              setCreateTemplate(template);
+                              setEditContentId(content.id);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className={workspaceSecondaryButtonClass()}
+                            onClick={() => duplicateContent(content.id)}
+                          >
+                            Duplicate
+                          </button>
+                          <button
+                            type="button"
+                            className={workspaceSecondaryButtonClass()}
+                            onClick={() => archiveContent(content.id)}
+                          >
+                            Archive
+                          </button>
+                          <button
+                            type="button"
+                            className={workspaceSecondaryButtonClass()}
+                            onClick={() => deleteContent(content.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </WorkspaceSection>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );

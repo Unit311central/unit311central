@@ -81,6 +81,20 @@ export type ContentStudioFunctionNode = {
   description: string;
 };
 
+export type ContentStudioMediaKind = "image" | "video" | "document" | "logo" | "deck";
+
+export type ContentStudioMediaAsset = {
+  id: string;
+  functionId: ContentStudioFunctionId;
+  name: string;
+  kind: ContentStudioMediaKind;
+  format: string;
+  sizeLabel: string;
+  approvedAt: string;
+  approvedBy: string;
+  tags: string[];
+};
+
 export type ContentStudioPageConfig = {
   id: string;
   label: string;
