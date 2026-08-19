@@ -317,6 +317,26 @@ export function NorthstarEaTestingWorkspace() {
                               {result?.error && (
                                 <p className="mt-2 text-xs text-rose-300/90">{result.error}</p>
                               )}
+                              {result && (result.capabilityId || result.tool || result.routeKind) && (
+                                <p className="mt-2 text-[10px] text-white/40">
+                                  route={result.routeKind}
+                                  {result.capabilityId ? ` · cap=${result.capabilityId}` : ""}
+                                  {result.tool ? ` · tool=${result.tool}` : ""}
+                                  {result.deterministic ? " · deterministic" : ""}
+                                  {result.gptRequired ? " · gpt" : ""}
+                                </p>
+                              )}
+                              {result?.checks?.some((check) => !check.passed) && (
+                                <ul className="mt-2 space-y-1 text-xs text-rose-200/80">
+                                  {result.checks
+                                    .filter((check) => !check.passed)
+                                    .map((check) => (
+                                      <li key={check.id}>
+                                        {check.id}: {check.message}
+                                      </li>
+                                    ))}
+                                </ul>
+                              )}
                             </div>
                             {result?.tool && (
                               <span className="shrink-0 font-mono text-[10px] text-sky-300/70">{result.tool}</span>

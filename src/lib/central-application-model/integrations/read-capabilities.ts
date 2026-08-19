@@ -110,11 +110,13 @@ export function scoreLegacyReadCapability(
   capId: string,
   rawMessage: string,
 ): number {
-  if (capId === "financials.cashPosition.read" && matchesCashCapability(rawMessage)) {
+  const wantsPdf = matchesScopedPdfCapability(rawMessage);
+  if (capId === "reports.scopedPdf.generate" && wantsPdf) {
     return 100;
   }
-  if (capId === "reports.scopedPdf.generate" && matchesScopedPdfCapability(rawMessage)) {
-    return 95;
+  if (capId === "financials.cashPosition.read" && matchesCashCapability(rawMessage)) {
+    if (wantsPdf) return 0;
+    return 100;
   }
   return 0;
 }

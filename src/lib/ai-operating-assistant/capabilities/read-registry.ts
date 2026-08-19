@@ -64,11 +64,12 @@ function scoreCapabilityMatch(
 ): number {
   if (cap.exclude?.some((p) => p.test(raw) || p.test(normalized))) return 0;
 
-  if (cap.id === "financials.cashPosition.read" && matchesCashCapability(raw)) {
+  if (cap.id === "reports.scopedPdf.generate" && matchesScopedPdfCapability(raw)) {
     return 100;
   }
-  if (cap.id === "reports.scopedPdf.generate" && matchesScopedPdfCapability(raw)) {
-    return 95;
+  if (cap.id === "financials.cashPosition.read" && matchesCashCapability(raw)) {
+    if (matchesScopedPdfCapability(raw)) return 0;
+    return 100;
   }
 
   let score = 0;

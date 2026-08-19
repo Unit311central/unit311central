@@ -34,7 +34,7 @@ export type NorthstarEaComprehensiveReport = {
   }>;
 };
 
-const SUITE_VERSION = "northstar-ea-comprehensive-v1";
+const SUITE_VERSION = "northstar-ea-comprehensive-v2-acceptance";
 
 export function demoEaTestBusiness(): AssistantBusinessContext {
   return {
