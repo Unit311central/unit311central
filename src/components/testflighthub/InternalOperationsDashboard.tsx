@@ -36,6 +36,8 @@ import {
 } from "@/lib/potential-clients-data";
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import { InternalOperationsBasePathProvider } from "./InternalOperationsBasePathContext";
+import GuidedTutorialOverlay from "@/components/guided-tutorials/GuidedTutorialOverlay";
+import { GuidedTutorialProvider } from "@/components/guided-tutorials/GuidedTutorialProvider";
 import SurveyOperationsShell from "./SurveyOperationsShell";
 import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
@@ -751,6 +753,7 @@ export default function InternalOperationsDashboard({
           isInternalHost={isInternalHost}
         />
         <PlatformAnalyticsBeacon pageKey={activeView} />
+        <GuidedTutorialProvider activeView={activeView}>
         <SurveyOperationsShell
           mode="internal"
           activeView={activeView}
@@ -1498,6 +1501,8 @@ export default function InternalOperationsDashboard({
       </div>
       <AdminPerformanceMode activeView={activeView} />
       </SurveyOperationsShell>
+      <GuidedTutorialOverlay />
+        </GuidedTutorialProvider>
     </InternalOperationsBasePathProvider>
     </OperatorEntitlementsProvider>
   );

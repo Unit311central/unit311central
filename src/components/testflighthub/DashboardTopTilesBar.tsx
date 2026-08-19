@@ -22,6 +22,7 @@ type DashboardTopTilesBarProps = {
   customizeOpen?: boolean;
   onCustomizeOpenChange?: (open: boolean) => void;
   onTileClick?: (tileId: string) => void;
+  tileTutorialTargetId?: (tileId: string) => string;
 };
 
 export default function DashboardTopTilesBar({
@@ -35,6 +36,7 @@ export default function DashboardTopTilesBar({
   customizeOpen: customizeOpenProp,
   onCustomizeOpenChange,
   onTileClick,
+  tileTutorialTargetId,
 }: DashboardTopTilesBarProps) {
   const [hydrated, setHydrated] = useState(false);
   const [layout, setLayout] = useState<string[]>(defaultLayout);
@@ -78,7 +80,10 @@ export default function DashboardTopTilesBar({
   }
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#0a1422]/80 p-4 shadow-[0_12px_40px_rgba(0,0,0,0.35)] sm:p-5">
+    <section
+      data-tutorial-target="fin-dashboard-tiles"
+      className="rounded-2xl border border-white/10 bg-[#0a1422]/80 p-4 shadow-[0_12px_40px_rgba(0,0,0,0.35)] sm:p-5"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
@@ -158,6 +163,7 @@ export default function DashboardTopTilesBar({
           return (
             <article
               key={tile.id}
+              data-tutorial-target={tileTutorialTargetId?.(tile.id)}
               className={cn(
                 "relative rounded-xl border p-4",
                 accentClass,

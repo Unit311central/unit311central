@@ -2,6 +2,7 @@
 
 import { startTransition, useEffect, useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import TutorialShellButton from "@/components/guided-tutorials/TutorialShellButton";
 import { Menu, Sparkles, X } from "lucide-react";
 import {
   getInternalNavBreadcrumb,
@@ -252,6 +253,7 @@ export default function SurveyOperationsShell({
               {showPlatformAi ? (
                 <>
                   {isDemoHost && activeView === "home" ? <DemoWorkspacePreviewSwitcher /> : null}
+                  <TutorialShellButton />
                   <button
                     type="button"
                     data-ai-target="ai-assistant"

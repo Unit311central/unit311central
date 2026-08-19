@@ -356,7 +356,10 @@ export default function FinancialsWorkspace() {
 
   return (
     <div className="space-y-4">
-      <section className="overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#0c1a2e] via-[#0a1422] to-[#08101c] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45)]">
+      <section
+        data-tutorial-target="fin-dashboard-hero"
+        className="overflow-hidden rounded-2xl border border-white/12 bg-gradient-to-br from-[#0c1a2e] via-[#0a1422] to-[#08101c] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45)]"
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300/90">
@@ -371,6 +374,7 @@ export default function FinancialsWorkspace() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
+              data-tutorial-target="fin-dashboard-customize"
               onClick={() => setTilesCustomizeOpen((open) => !open)}
               className={cn(
                 "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition",
@@ -426,6 +430,7 @@ export default function FinancialsWorkspace() {
           showCustomizeButton={false}
           customizeOpen={tilesCustomizeOpen}
           onCustomizeOpenChange={setTilesCustomizeOpen}
+          tileTutorialTargetId={(tileId) => `fin-tile-${tileId}`}
           onTileClick={(tileId) => {
             if (tileId === "burn-rate") setBurnDrillOpen(true);
           }}
@@ -459,7 +464,7 @@ export default function FinancialsWorkspace() {
       ) : null}
 
       {overview ? (
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div data-tutorial-target="fin-dashboard-charts" className="grid gap-4 xl:grid-cols-3">
           <ChartCard
             title="Liquidity mix"
             subtitle="Cash vs receivables vs payables"
@@ -604,6 +609,7 @@ export default function FinancialsWorkspace() {
       ) : null}
 
       {overview ? (
+        <div data-tutorial-target="fin-dashboard-revenue-chart">
         <ChartCard
           title="Revenue vs outgoings"
           subtitle="Monthly income against operating spend"
@@ -658,6 +664,7 @@ export default function FinancialsWorkspace() {
             )}
           </div>
         </ChartCard>
+        </div>
       ) : null}
 
       {overview?.burnRate ? (
