@@ -201,7 +201,9 @@ async function resolvePostLoginRedirect(options: {
   const hostSlug = parseClientPlatformSubdomainSafe(requestHost);
   const portalsAllowed = hostSlug
     ? isPortalsBriefingAllowedUsername(username, hostSlug)
-    : listPortalWorkspacePacks().some((pack) => pack.briefing?.isAllowedUsername(username));
+    : isDemoDomainHost(requestHost)
+      ? isPortalsBriefingAllowedUsername(username, DEMO_WORKSPACE_SLUG)
+      : listPortalWorkspacePacks().some((pack) => pack.briefing?.isAllowedUsername(username));
 
   // Prefer /portals whenever the deep-link asked for it (demo/admin only).
   // Do this before the generic workspace → dashboard default.
@@ -226,7 +228,9 @@ async function resolvePostLoginRedirect(options: {
           ? customerWorkspaceOrigin(hostSlug!)
           : isOnwardAirSlug(hostSlug)
             ? customerWorkspaceOrigin(hostSlug!)
-            : null);
+            : isDemoDomainHost(requestHost)
+              ? DEMO_SITE_URL
+              : null);
     if (origin) {
       return `${origin.replace(/\/$/, "")}/portals`;
     }
@@ -585,7 +589,7 @@ export async function POST(request: NextRequest) {
       body.returnTo?.trim() ||
       returnToFromReferer(request) ||
       hostWorkspaceOrigin;
-    const nextRaw = body.next?.trim() || null;
+    const nextRaw = body.next?.trim() || nextFromReferer(request) || null;
 
     const loginReturn = parseLoginReturnTo(returnToRaw);
     const resolvedWorkspaceSlug =

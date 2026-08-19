@@ -945,7 +945,12 @@ export async function middleware(request: NextRequest) {
       gate.status === "forbidden" ||
       gate.status === "workspace_missing"
     ) {
-      const bounce = redirectExternal(`${demoOrigin}/login`);
+      const isPortalsPath =
+        pathname === "/portals" || pathname.startsWith("/portals/");
+      const loginPath = isPortalsPath
+        ? `/login?next=${encodeURIComponent("/portals")}`
+        : "/login";
+      const bounce = redirectExternal(`${demoOrigin}${loginPath}`);
       if (gate.status !== "anonymous") {
         clearPlatformSessionCookie(bounce, request);
       }
