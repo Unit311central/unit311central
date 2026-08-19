@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { useSearchParams } from "next/navigation";
 
 import {
@@ -32,6 +32,7 @@ import {
   RefreshCw,
   Reply,
   Send,
+  Forward,
   X,
 } from "lucide-react";
 
@@ -61,6 +62,42 @@ type ZohoCalendarPayload = {
 
 function normalizeEmailId(value: string | null | undefined) {
   return (value ?? "").trim().replace(/^<|>$/g, "").toLowerCase();
+}
+
+function extractEmailAddress(value: string | null | undefined) {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return "";
+  const match = trimmed.match(/<([^>]+)>/);
+  return (match?.[1] ?? trimmed).trim();
+}
+
+function resolveReplyTargetMessage(thread: EmailThread) {
+  return (
+    [...thread.messages].reverse().find((message) => message.direction === "inbound") ??
+    thread.messages[thread.messages.length - 1] ??
+    null
+  );
+}
+
+function resolveReplyRecipient(thread: EmailThread, mailboxEmail: string) {
+  const inbound = [...thread.messages].reverse().find((message) => message.direction === "inbound");
+  if (inbound) {
+    return inbound.fromEmail || extractEmailAddress(inbound.from) || null;
+  }
+
+  const last = thread.messages[thread.messages.length - 1];
+  if (!last) return thread.fromEmail || null;
+
+  const mailbox = mailboxEmail.trim().toLowerCase();
+  const externalRecipient = last.to
+    .map((entry) => extractEmailAddress(entry))
+    .find((entry) => entry && entry.toLowerCase() !== mailbox);
+  if (externalRecipient) return externalRecipient;
+
+  const fromExternal = extractEmailAddress(last.fromEmail || last.from);
+  if (fromExternal && fromExternal.toLowerCase() !== mailbox) return fromExternal;
+
+  return thread.fromEmail || null;
 }
 
 const DEFAULT_MAILBOXES: EmailAccountOption[] = [
@@ -254,7 +291,9 @@ export default function InfoEmailWorkspace() {
   const [composeCc, setComposeCc] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
+  const [replyOpen, setReplyOpen] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
   const mailFolder: EmailMailboxFolder = mailboxView === "sent" ? "sent" : "inbox";
@@ -272,6 +311,11 @@ export default function InfoEmailWorkspace() {
   );
 
   const replyAsUser = operators.find((operator) => operator.id === replyAsUserId);
+
+  const replyRecipient = useMemo(() => {
+    if (!selectedThread || !selectedAccount?.email) return null;
+    return resolveReplyRecipient(selectedThread, selectedAccount.email);
+  }, [selectedAccount?.email, selectedThread]);
 
   const selectedAccountConfigured = selectedAccount?.configured ?? false;
   const selectedAccountIsPlatformManaged = isPlatformManagedMailboxEmail(selectedAccount?.email);
@@ -539,9 +583,18 @@ export default function InfoEmailWorkspace() {
     startTransition(() => {
       setSelectedThreadId(null);
       setReplyBody("");
+      setReplyOpen(true);
       closeDetail();
     });
   }, [selectedAccountId, mailboxView, closeDetail]);
+
+  useEffect(() => {
+    if (!selectedThread) return;
+    startTransition(() => {
+      setReplyOpen(true);
+      setReplyBody("");
+    });
+  }, [selectedThread?.id]);
 
   useEffect(() => {
     startTransition(() => {
@@ -645,17 +698,10 @@ export default function InfoEmailWorkspace() {
   async function sendReply() {
     if (!selectedThread || !replyBody.trim() || !replyAsUser) return;
 
-    const replyTarget =
-      [...selectedThread.messages].reverse().find((message) => message.direction === "inbound") ??
-      selectedThread.messages[selectedThread.messages.length - 1];
-
+    const replyTarget = resolveReplyTargetMessage(selectedThread);
     if (!replyTarget) return;
 
-    const replyTo =
-      replyTarget.direction === "inbound"
-        ? replyTarget.fromEmail || replyTarget.from
-        : selectedThread.fromEmail;
-
+    const replyTo = resolveReplyRecipient(selectedThread, mailboxEmail);
     if (!replyTo) {
       setError("Cannot determine reply recipient for this thread.");
       return;
@@ -704,10 +750,42 @@ export default function InfoEmailWorkspace() {
 
   function openCompose() {
     setComposeOpen(true);
+    setReplyOpen(false);
     setComposeTo("");
     setComposeCc("");
     setComposeSubject("");
     setComposeBody("");
+    setError(null);
+    setSuccessMessage(null);
+  }
+
+  function focusReplyComposer() {
+    setComposeOpen(false);
+    setReplyOpen(true);
+    window.requestAnimationFrame(() => {
+      replyTextareaRef.current?.focus();
+      replyTextareaRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }
+
+  function startForward() {
+    if (!selectedThread) return;
+    const last = selectedThread.messages[selectedThread.messages.length - 1];
+    const quoted = last?.body?.trim() || last?.snippet?.trim() || "";
+    setComposeOpen(true);
+    setReplyOpen(false);
+    setComposeTo("");
+    setComposeCc("");
+    setComposeSubject(
+      selectedThread.subject.trim().toLowerCase().startsWith("fwd:")
+        ? selectedThread.subject
+        : `Fwd: ${selectedThread.subject}`,
+    );
+    setComposeBody(
+      quoted
+        ? `\n\n---------- Forwarded message ---------\nFrom: ${last?.fromName ?? "Unknown"} <${last?.fromEmail ?? ""}>\nDate: ${last ? formatEmailDateLong(last.date) : ""}\nSubject: ${selectedThread.subject}\n\n${quoted}`
+        : "",
+    );
     setError(null);
     setSuccessMessage(null);
   }
@@ -1232,7 +1310,7 @@ export default function InfoEmailWorkspace() {
           </section>
         }
         detail={
-          <section className="flex min-h-[24rem] min-h-0 flex-col rounded-2xl border border-white/10 bg-[#0a1422]/80 xl:min-h-0">
+          <section className="flex max-h-[min(72vh,48rem)] min-h-[24rem] min-h-0 flex-col rounded-2xl border border-white/10 bg-[#0a1422]/80 xl:min-h-0">
             {!selectedThread ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-16 text-center text-white/45">
                 <Mail className="h-8 w-8 text-white/25" />
@@ -1241,14 +1319,38 @@ export default function InfoEmailWorkspace() {
             ) : (
               <>
                 <div className="border-b border-white/10 px-4 py-4 sm:px-5">
-                  <h3 className="text-lg font-semibold text-white">{selectedThread.subject}</h3>
-                  <p className="mt-1 text-sm text-white/50">
-                    From {selectedThread.fromName} &lt;{selectedThread.fromEmail}&gt;
-                  </p>
-                  <p className="mt-0.5 text-xs text-white/40">
-                    {isSentView ? "Sent" : "Received"}{" "}
-                    {formatEmailDateLong(selectedThread.receivedAt)}
-                  </p>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-lg font-semibold text-white">{selectedThread.subject}</h3>
+                      <p className="mt-1 text-sm text-white/50">
+                        From {selectedThread.fromName} &lt;{selectedThread.fromEmail}&gt;
+                      </p>
+                      <p className="mt-0.5 text-xs text-white/40">
+                        {isSentView ? "Sent" : "Received"}{" "}
+                        {formatEmailDateLong(selectedThread.receivedAt)}
+                      </p>
+                    </div>
+                    {selectedAccountConfigured ? (
+                      <div className="flex shrink-0 flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={focusReplyComposer}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/30 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-200 transition-colors hover:bg-sky-500/15"
+                        >
+                          <Reply className="h-3.5 w-3.5" />
+                          Reply
+                        </button>
+                        <button
+                          type="button"
+                          onClick={startForward}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/75 transition-colors hover:bg-white/[0.04]"
+                        >
+                          <Forward className="h-3.5 w-3.5" />
+                          Forward
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
@@ -1314,11 +1416,18 @@ export default function InfoEmailWorkspace() {
                   })}
                 </div>
 
-                {!isSentView ? (
-                <div className="border-t border-white/10 px-4 py-4 sm:px-5">
-                  <div className="mb-3 flex items-center gap-2 text-sm text-white/60">
-                    <Reply className="h-4 w-4" />
-                    Reply from {mailboxEmail}
+                {selectedAccountConfigured && replyOpen ? (
+                <div className="shrink-0 border-t border-white/10 px-4 py-4 sm:px-5">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm text-white/60">
+                      <Reply className="h-4 w-4" />
+                      Reply from {mailboxEmail}
+                    </div>
+                    {replyRecipient ? (
+                      <p className="text-xs text-white/45">
+                        To <span className="text-white/70">{replyRecipient}</span>
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-[minmax(0,12rem)_1fr]">
@@ -1343,10 +1452,11 @@ export default function InfoEmailWorkspace() {
                         Message
                       </label>
                       <textarea
+                        ref={replyTextareaRef}
                         value={replyBody}
                         onChange={(event) => setReplyBody(event.target.value)}
                         rows={4}
-                        placeholder="Write a reply visible to the whole team…"
+                        placeholder="Write your reply…"
                         className={cn(inputClassName(), "mt-1.5 resize-y")}
                       />
                     </div>
@@ -1354,7 +1464,7 @@ export default function InfoEmailWorkspace() {
 
                   <button
                     type="button"
-                    disabled={sending || !replyBody.trim()}
+                    disabled={sending || !replyBody.trim() || !replyRecipient}
                     onClick={() => void sendReply()}
                     className="mt-3 inline-flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-400 disabled:opacity-60"
                   >
