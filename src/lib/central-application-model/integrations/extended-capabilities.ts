@@ -17,7 +17,48 @@ function formatCurrency(amount: number, currency = "GBP"): string {
 
 export const EXTENDED_SEMANTIC_CAPABILITIES: EaSemanticCapabilityBinding[] = [
   {
-    id: "crm.clients.count.read",
+    id: "abhi.members.count.read",
+    kind: "read",
+    moduleIds: ["business-central"],
+    domainId: FUNCTIONAL_DOMAINS.members,
+    entity: "member_count",
+    description: "Count of active ABHI member organisations",
+    keywords: [
+      "how many members",
+      "member count",
+      "membership count",
+      "number of members",
+      "total members",
+      "active members",
+      "members we have",
+    ],
+    phrases: [
+      "how many people are members",
+      "what is our membership count",
+      "what's our membership count",
+    ],
+    negativeKeywords: ["employees", "staff", "headcount", "payroll"],
+    permissions: ["authenticated"],
+    workspaceAllowList: ["abhi"],
+    requiredModules: ["business-central"],
+    tool: "abhi.getMemberPortfolio",
+    buildArgs: () => ({}),
+    executionStrategy: "deterministic",
+    deterministic: true,
+    skipSynthesis: true,
+    formatAnswer(result) {
+      const summary = (result as { summary?: { activeMembers?: number; message?: string } }).summary;
+      const count = summary?.activeMembers ?? 0;
+      return {
+        text: summary?.message ?? `ABHI has ${count} active member organisations.`,
+        blocks: [
+          { type: "kpi", label: "Active members", value: count },
+          { type: "text", content: summary?.message ?? `ABHI has ${count} active member organisations.` },
+        ],
+      };
+    },
+  },
+  {
     kind: "read",
     moduleIds: ["business-central"],
     domainId: FUNCTIONAL_DOMAINS.clients,

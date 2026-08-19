@@ -46,6 +46,7 @@
     "prove:ea-capabilities": "node --import tsx src/lib/ai-operating-assistant/capabilities/__tests__/read-capabilities.check.ts",
     "prove:ea-semantic": "node --import tsx src/lib/central-application-model/__tests__/semantic-architecture.check.ts",
     "prove:ea-acceptance": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/ea-acceptance/__tests__/acceptance-suite.check.ts",
+    "prove:ea-coverage": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/ea-acceptance/__tests__/coverage-suite.check.ts",
     "prove:ea-openai-usage": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-openai-usage.check.ts",
     "prove:central-capabilities": "node --import tsx src/lib/central-capabilities/__tests__/central-capabilities.check.ts",
     "prove:branch-protection": "node scripts/prove-github-branch-protection.mjs",

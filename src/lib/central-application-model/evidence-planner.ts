@@ -26,9 +26,15 @@ export function planEvidenceGathering(
   message: string,
   business: AssistantBusinessContext,
 ): EaEvidencePlan | null {
-  const isStrategic = STRATEGIC_KEYWORDS.some((kw) =>
-    message.toLowerCase().includes(kw),
-  );
+  const lower = message.toLowerCase();
+  const isStrategic =
+    STRATEGIC_KEYWORDS.some((kw) => lower.includes(kw)) ||
+    (/\bincrease\b/.test(lower) && /\brevenue\b/.test(lower)) ||
+    (/\breduce\b/.test(lower) && /\bburn\b/.test(lower)) ||
+    (/\bhow can we\b/.test(lower) &&
+      /\b(revenue|burn|costs|risk|growth|profit|margin|runway)\b/.test(lower)) ||
+    /\bbiggest operational risks?\b/.test(lower) ||
+    /\bwhat should management focus\b/.test(lower);
   if (!isStrategic) return null;
 
   const tools: EaEvidencePlan["tools"] = [];

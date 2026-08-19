@@ -3,7 +3,7 @@ import {
   EA_ACCEPTANCE_WORKSPACES,
 } from "./workspace-context";
 import { runEaAcceptanceCase } from "./execute-case";
-import { buildMandatoryAcceptanceScenarios } from "./scenarios";
+import { buildAllAcceptanceScenarios } from "./scenarios";
 import type { EaAcceptanceCaseResult } from "./types";
 
 export type EaAcceptanceSuiteReport = {
@@ -44,7 +44,7 @@ export async function runEaAcceptanceSuite(input?: {
 
   for (const slug of slugs) {
     const business = businessContextForWorkspace(slug);
-    const scenarios = buildMandatoryAcceptanceScenarios(slug);
+    const scenarios = buildAllAcceptanceScenarios(slug);
     const cases: EaAcceptanceCaseResult[] = [];
 
     for (const scenario of scenarios) {

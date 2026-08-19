@@ -11,6 +11,7 @@ import {
   generateAbhiRegulatoryImpactPdfTool,
   queryAbhiProjectPortfolioTool,
 } from "@/lib/abhi/ea-pdf-tools";
+import { getAbhiMemberPortfolioTool } from "@/lib/abhi/member-portfolio-tool";
 
 import type { EaPackToolHandler } from "../handlers-registry";
 
@@ -19,6 +20,7 @@ export const abhiPackToolHandlers: Record<string, EaPackToolHandler> = {
   "abhi.getOrgHealth": getAbhiOrgHealthTool,
   "abhi.queryActions": queryAbhiActionsTool,
   "abhi.getBoardInsights": getAbhiBoardInsightsTool,
+  "abhi.getMemberPortfolio": getAbhiMemberPortfolioTool,
   "abhi.generateRegulatoryImpactPdf": generateAbhiRegulatoryImpactPdfTool,
   "abhi.generateQuarterlyFinancialDeltaPdf": generateAbhiQuarterlyFinancialDeltaPdfTool,
   "abhi.generateProjectHealthPdf": generateAbhiProjectHealthPdfTool,

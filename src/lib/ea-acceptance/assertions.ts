@@ -193,7 +193,10 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
   }
 
   if (input.kind === "clarification") {
-    const clarifyOk = input.routeKind === "need_info" || /which|clarify|need (a |more )/i.test(text);
+    const clarifyOk =
+      input.routeKind === "need_info" ||
+      (input.routeKind === "capability_answer" &&
+        /which|do you mean|clarify|need (a |more )/i.test(text));
     checks.push(
       check(
         "clarification",
@@ -299,7 +302,7 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
   }
 
   if (input.kind === "composite") {
-    if (input.gptRequired) {
+    if (input.gptRequired || input.routeKind === "evidence_gpt") {
       checks.push(
         check(
           "composite_evidence_route",

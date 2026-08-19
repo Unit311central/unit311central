@@ -57,6 +57,7 @@ import {
   executeSemanticCapability,
   planEvidenceGathering,
   resolveSemanticCapability,
+  detectAmbiguousEaQuery,
 } from "@/lib/central-application-model";
 
 export { formatActionSuccess, formatPlanReadyMessage };
@@ -163,6 +164,20 @@ export async function resolveOrchestrationRoute(
           skipSynthesis: semantic.binding.skipSynthesis,
         };
       }
+    }
+  }
+
+  {
+    const clarify = detectAmbiguousEaQuery(message);
+    if (clarify) {
+      return { kind: "capability_answer", message: clarify };
+    }
+  }
+
+  {
+    const strategicPlan = planEvidenceGathering(message, business);
+    if (strategicPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(message)) {
+      return { kind: "evidence_gpt", plan: strategicPlan, message };
     }
   }
 

@@ -93,6 +93,12 @@ async function main() {
   assert.ok(strategic);
   assert.ok(strategic.tools.length > 0);
 
+  // H. ABHI member count
+  const abhi = businessFor("abhi");
+  const members = resolveSemanticCapability("How many members do we have?", abhi);
+  assert.ok(members && !("denied" in members));
+  assert.equal(members.binding.id, "abhi.members.count.read");
+
   // I. Employee growth chart capability
   const growth = resolveSemanticCapability("Show employee growth", demo);
   assert.ok(growth && !("denied" in growth));

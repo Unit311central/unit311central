@@ -72,4 +72,6 @@ export const FUNCTIONAL_DOMAINS = {
   cash: "cash",
   supportTickets: "support-tickets",
   intelligence: "intelligence",
+  members: "members",
+  funds: "funds",
 } as const;

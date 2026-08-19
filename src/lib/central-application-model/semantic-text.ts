@@ -46,6 +46,8 @@ export function scoreSemanticOverlap(
       keywordHits += k.includes(" ") ? 3 : 1;
     } else if (tokens.has(k)) {
       keywordHits += 1;
+    } else if (k.length >= 5 && fuzzyTokenMatch(message, k)) {
+      keywordHits += 2;
     }
   }
 

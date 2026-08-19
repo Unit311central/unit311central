@@ -18,6 +18,7 @@ const PROMPT_OVERRIDES: Record<string, string> = {
   "content.deck.create": "Create a weekly management deck in Content Studio.",
   "funds.summary.read": "How is capital deployment performing?",
   "portfolio.companies.summary.read": "Summarise portfolio companies.",
+  "abhi.members.count.read": "How many members do we have?",
 };
 
 function promptFromCapability(cap: {
@@ -130,18 +131,147 @@ export function buildMandatoryAcceptanceScenarios(workspaceSlug: string): EaAcce
     });
   }
   if (slug.includes("abhi")) {
-    workspaceSpecific.push({
-      id: `${slug}-members`,
-      prompt: "How many members do we have?",
-      kind: "data",
-      workspaceSlug: slug,
-      moduleLabel: "business-central",
-    });
+    workspaceSpecific.push(
+      {
+        id: `${slug}-members`,
+        prompt: "How many members do we have?",
+        kind: "data",
+        workspaceSlug: slug,
+        expectCapabilityId: "abhi.members.count.read",
+        expectDeterministic: true,
+        moduleLabel: "business-central",
+      },
+      {
+        id: `${slug}-membership-count`,
+        prompt: "What's our membership count?",
+        kind: "data",
+        workspaceSlug: slug,
+        expectCapabilityId: "abhi.members.count.read",
+        expectDeterministic: true,
+        moduleLabel: "business-central",
+      },
+    );
   }
 
   const semantic = buildSemanticAcceptanceScenarios(slug);
   const byId = new Map<string, EaAcceptanceScenario>();
   for (const row of [...shared, ...workspaceSpecific, ...semantic]) {
+    byId.set(row.id, row);
+  }
+  return [...byId.values()];
+}
+
+function buildNlVariationScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
+  const slug = workspaceSlug.trim().toLowerCase();
+  const rows: EaAcceptanceScenario[] = [
+    {
+      id: `${slug}-cash-synonym-1`,
+      prompt: "How much cash do we have?",
+      kind: "data",
+      workspaceSlug: slug,
+      expectCapabilityId: "financials.cashPosition.read",
+      expectDeterministic: true,
+      moduleLabel: "financials",
+    },
+    {
+      id: `${slug}-cash-synonym-2`,
+      prompt: "What's in the bank?",
+      kind: "data",
+      workspaceSlug: slug,
+      expectCapabilityId: "financials.cashPosition.read",
+      expectDeterministic: true,
+      moduleLabel: "financials",
+    },
+    {
+      id: `${slug}-headcount-typo`,
+      prompt: "how many emploassd do we have?",
+      kind: "data",
+      workspaceSlug: slug,
+      expectCapabilityId: "hr.employees.count.read",
+      expectDeterministic: true,
+      moduleLabel: "human-resources",
+    },
+  ];
+  return rows;
+}
+
+function buildCrossModuleScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
+  const slug = workspaceSlug.trim().toLowerCase();
+  return [
+    {
+      id: `${slug}-cross-invoices-tickets`,
+      prompt: "Which customers have overdue invoices and open support tickets?",
+      kind: "composite",
+      workspaceSlug: slug,
+      expectCapabilityId: "cross.clients.overdueInvoicesOpenTickets.read",
+      moduleLabel: "cross-module",
+    },
+    {
+      id: `${slug}-strategic-burn`,
+      prompt: "How can we reduce burn rate?",
+      kind: "composite",
+      workspaceSlug: slug,
+      moduleLabel: "strategy",
+    },
+    {
+      id: `${slug}-strategic-revenue`,
+      prompt: "How can we increase monthly revenue?",
+      kind: "composite",
+      workspaceSlug: slug,
+      moduleLabel: "strategy",
+    },
+  ];
+}
+
+function buildChartPdfScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
+  const slug = workspaceSlug.trim().toLowerCase();
+  return [
+    {
+      id: `${slug}-chart-employee-growth`,
+      prompt: "Show employee growth.",
+      kind: "chart",
+      workspaceSlug: slug,
+      expectCapabilityId: "hr.employees.growth.read",
+      moduleLabel: "human-resources",
+    },
+    {
+      id: `${slug}-pdf-financial`,
+      prompt: "Create a monthly financial report PDF with P&L and cash.",
+      kind: "pdf",
+      workspaceSlug: slug,
+      expectCapabilityId: "reports.scopedPdf.generate",
+      moduleLabel: "financials",
+    },
+  ];
+}
+
+function buildPermissionScenarios(_workspaceSlug: string): EaAcceptanceScenario[] {
+  // Permission-negative scenarios require dedicated business contexts — wired in run-suite.
+  return [];
+}
+
+function buildClarificationScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
+  const slug = workspaceSlug.trim().toLowerCase();
+  return [
+    {
+      id: `${slug}-clarify-performance`,
+      prompt: "Show me performance.",
+      kind: "clarification",
+      workspaceSlug: slug,
+      moduleLabel: "executive-assistant",
+    },
+  ];
+}
+
+export function buildAllAcceptanceScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
+  const byId = new Map<string, EaAcceptanceScenario>();
+  for (const row of [
+    ...buildMandatoryAcceptanceScenarios(workspaceSlug),
+    ...buildNlVariationScenarios(workspaceSlug),
+    ...buildCrossModuleScenarios(workspaceSlug),
+    ...buildChartPdfScenarios(workspaceSlug),
+    ...buildClarificationScenarios(workspaceSlug),
+  ]) {
     byId.set(row.id, row);
   }
   return [...byId.values()];
