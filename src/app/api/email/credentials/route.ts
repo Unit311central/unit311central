@@ -3,13 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { parseAccountId } from "@/lib/email/accounts";
 import {
+  ensureWorkspaceMailboxCredentialsFromEnv,
   getMailboxCredentialStatus,
   saveMailboxCredentials,
 } from "@/lib/email/credentials-service";
+import { PLATFORM_EMAIL_ACCOUNT_IDS } from "@/lib/email/platform-mailbox";
 import { emailErrorResponse } from "@/lib/email/api-utils";
 import type { EmailAccountId } from "@/lib/email/types";
 import { withEmailMailboxCredentials } from "@/lib/internal-db-migrations";
 import { requirePlatformSession } from "@/lib/platform-session";
+import { isPlatformWorkspaceSlug } from "@/lib/workspace-brand";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const runtime = "nodejs";
@@ -25,6 +28,11 @@ export async function GET() {
   try {
     await requirePlatformSession();
     const workspace = await requireCurrentWorkspace();
+    if (isPlatformWorkspaceSlug(workspace.slug)) {
+      await ensureWorkspaceMailboxCredentialsFromEnv(PLATFORM_EMAIL_ACCOUNT_IDS, {
+        workspaceId: workspace.id,
+      });
+    }
     const status = await getMailboxCredentialStatus({ workspaceId: workspace.id });
     return NextResponse.json(status);
   } catch (error) {

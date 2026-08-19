@@ -7,8 +7,10 @@ import {
   listDemoMailboxMessages,
 } from "@/lib/email/demo-mailbox";
 import { getPublicEmailAccounts, isAccountConfigured } from "@/lib/email/accounts";
+import { PLATFORM_EMAIL_ACCOUNT_IDS } from "@/lib/email/platform-mailbox";
 import { requirePlatformSession } from "@/lib/platform-session";
 import { isDemoWiseWorkspaceSlug } from "@/lib/treasury/bank-provider";
+import { isPlatformWorkspaceSlug } from "@/lib/workspace-brand";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
 export const runtime = "nodejs";
@@ -37,9 +39,14 @@ export async function GET() {
     const demo = isDemoWiseWorkspaceSlug(workspace.slug);
     const accounts = getPublicEmailAccounts({ demo, workspaceSlug: workspace.slug });
 
-    // Persist shared Zoho demo secrets into this workspace so Email stays
-    // connected on OnwardAir / Talanton without a manual connect prompt.
-    if (accounts.some((account) => account.id === "demo")) {
+    if (isPlatformWorkspaceSlug(workspace.slug)) {
+      const { ensureWorkspaceMailboxCredentialsFromEnv } = await import(
+        "@/lib/email/credentials-service"
+      );
+      await ensureWorkspaceMailboxCredentialsFromEnv(PLATFORM_EMAIL_ACCOUNT_IDS, {
+        workspaceId: workspace.id,
+      });
+    } else if (accounts.some((account) => account.id === "demo")) {
       const { ensureWorkspaceMailboxCredentialsFromEnv } = await import(
         "@/lib/email/credentials-service"
       );

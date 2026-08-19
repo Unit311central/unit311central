@@ -2,6 +2,7 @@ import type { EmailAccount, EmailAccountId, EmailMailboxFolder } from "@/lib/ema
 import type { EmailWorkspaceScope } from "@/lib/email-workspace";
 
 import { resolveAccountCredentials } from "@/lib/email/credentials-service";
+import { resolvePlatformMailboxEmailFromEnv } from "@/lib/email/platform-mailbox";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
@@ -84,11 +85,10 @@ export function getAccountDefinition(id: EmailAccountId): EmailAccount {
   };
 }
 
-function isPlainEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
-
 function resolveAccountEmailFromEnv(id: EmailAccountId): string | null {
+  const account = ACCOUNT_DEFINITIONS.find((entry) => entry.id === id);
+  const defaultEmail = account?.email ?? "";
+
   const candidates: Array<string | undefined> =
     id === "info"
       ? [process.env.ZOHO_INFO_EMAIL, process.env.ZOHO_EMAIL]
@@ -98,12 +98,7 @@ function resolveAccountEmailFromEnv(id: EmailAccountId): string | null {
           ? [process.env.ZOHO_ADMIN_EMAIL, process.env.ZOHO_EMAIL]
           : [process.env.ZOHO_DEMO_EMAIL, process.env.ZOHO_EMAIL];
 
-  for (const raw of candidates) {
-    const value = raw?.trim();
-    if (value && isPlainEmail(value)) return value;
-  }
-
-  return null;
+  return resolvePlatformMailboxEmailFromEnv(id, defaultEmail, candidates);
 }
 
 export async function getAccountCredentials(

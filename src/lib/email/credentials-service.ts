@@ -3,6 +3,7 @@ import type { EmailAccountId } from "@/lib/email/types";
 import { resolveEmailWorkspaceId, type EmailWorkspaceScope } from "@/lib/email-workspace";
 
 import { getAccountDefinition, listEmailAccountIds } from "@/lib/email/accounts";
+import { isPlatformManagedMailboxEmail } from "@/lib/email/platform-mailbox";
 
 type DbCredential = {
   account_id: string;
@@ -87,8 +88,16 @@ async function readSupabaseCredential(
   if (error || !data?.password) return null;
 
   const row = data as Pick<DbCredential, "email" | "password">;
+  const definitionEmail = getAccountDefinition(id).email;
+  const storedEmail = row.email.trim();
+  const email =
+    isPlatformManagedMailboxEmail(definitionEmail) &&
+    storedEmail &&
+    !isPlatformManagedMailboxEmail(storedEmail)
+      ? definitionEmail
+      : storedEmail || definitionEmail;
   return {
-    email: row.email.trim() || getAccountDefinition(id).email,
+    email,
     password: row.password.trim(),
   };
 }

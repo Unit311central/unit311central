@@ -11,6 +11,7 @@ import {
   type InfoEmailThreadStatus,
 } from "@/lib/info-email-data";
 import type { EmailAccount, EmailAccountId, EmailMailboxFolder, EmailMessage } from "@/lib/email/types";
+import { isPlatformManagedMailboxEmail } from "@/lib/email/platform-mailbox";
 import {
   filterRemovedMailboxes,
   REMOVED_MAILBOXES_CHANGED_EVENT,
@@ -273,6 +274,9 @@ export default function InfoEmailWorkspace() {
   const replyAsUser = operators.find((operator) => operator.id === replyAsUserId);
 
   const selectedAccountConfigured = selectedAccount?.configured ?? false;
+  const selectedAccountIsPlatformManaged = isPlatformManagedMailboxEmail(selectedAccount?.email);
+  const showManualCredentialConnect =
+    !selectedAccountConfigured && Boolean(selectedAccount) && !selectedAccountIsPlatformManaged;
 
   const loadWhatsAppStatus = useCallback(async () => {
     if (selectedAccountId !== "info") {
@@ -1016,7 +1020,17 @@ export default function InfoEmailWorkspace() {
         </section>
       )}
 
-      {!accountsLoading && accounts.length > 0 && !selectedAccountConfigured && (
+      {!accountsLoading && accounts.length > 0 && !selectedAccountConfigured && selectedAccountIsPlatformManaged && (
+        <section className="rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-4 sm:px-5">
+          <h3 className="text-sm font-semibold text-rose-100">{mailboxEmail} is not connected</h3>
+          <p className="mt-1 text-sm text-rose-100/80">
+            This Unit311 platform inbox is managed on the server. If messages do not load, an
+            operator needs to verify the Zoho credentials for this mailbox in production.
+          </p>
+        </section>
+      )}
+
+      {!accountsLoading && showManualCredentialConnect && (
         <section className="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-4 sm:px-5">
           <h3 className="text-sm font-semibold text-amber-100">Connect {mailboxEmail}</h3>
           <p className="mt-1 text-sm text-amber-100/80">
