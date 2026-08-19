@@ -21,7 +21,8 @@ import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { listLeads } from "@/lib/crm-leads-service";
 import { calculateLivePayrollSnapshot } from "@/lib/payroll/payroll-service";
-import { isLiveInvoiceOverdue, loadLiveInvoices } from "./live-finance";
+import { loadInvoicesForAssistant, listClientsForAssistant, listLeadsForAssistant, listProjectsForAssistant } from "@/lib/demo/assistant-live-data";
+import { isLiveInvoiceOverdue } from "./live-finance";
 import type { AssistantToolExecutionContext } from "./tool-result";
 import {
   asNumber,
@@ -122,11 +123,14 @@ export async function searchInvoices(
   }
 
   try {
-    const load = await loadLiveInvoices();
+    const load = await loadInvoicesForAssistant({
+      workspaceId: ctx.business.workspace?.id,
+      workspaceSlug: ctx.business.workspace?.slug,
+    });
     const invoices = load.invoices;
     const query = asString(args.query);
-    const outstandingOnly = Boolean(args.outstandingOnly ?? true);
-    const overdueOnly = Boolean(args.overdueOnly);
+    const outstandingOnly = args.outstandingOnly !== false;
+    const overdueOnly = Boolean(args.overdueOnly) || asString(args.status) === "overdue";
 
     const filtered = invoices.filter((invoice) => {
       const paid = invoice.status === "paid";
@@ -392,6 +396,28 @@ export async function getFinancialChartData(
   const months = asNumber(args.months, 12);
 
   try {
+    if (series === "sales") {
+      const leads = await listLeadsForAssistant("All", {
+        workspaceId: ctx.business.workspace?.id,
+        workspaceSlug: ctx.business.workspace?.slug,
+      });
+      const statuses = ["Hot", "Warm", "Cold", "Won", "Lost"] as const;
+      const counts = statuses.map((status) => leads.filter((lead) => lead.status === status).length);
+      const openPipeline = leads
+        .filter((lead) => lead.status !== "Won" && lead.status !== "Lost")
+        .reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0);
+      const payload = {
+        title: "Sales pipeline performance",
+        labels: [...statuses],
+        datasets: [{ label: "Opportunities", data: counts }],
+        message: `CRM pipeline: ${leads.length} opportunities with ${formatCurrency(openPipeline)} open value.`,
+      };
+      return toolOk("getFinancialChartData", [payload], {
+        source: ["crm:leads", "crm:pipeline"],
+        summary: { series, months, message: payload.message },
+      });
+    }
+
     let overview = await getFinancialOverview({
       workspaceId: ctx.business.workspace?.id,
       workspaceSlug: ctx.business.workspace?.slug,
@@ -573,15 +599,19 @@ export async function platformSearch(
   }
 
   try {
+    const scope = {
+      workspaceId: ctx.business.workspace?.id,
+      workspaceSlug: ctx.business.workspace?.slug,
+    };
     const [employees, clients, projects, leads, invoiceLoad] = await Promise.all([
       ctx.business.permissions.canAccessHr
         ? listHrEmployees().catch(() => [])
         : Promise.resolve([]),
-      listInternalClients().catch(() => []),
-      listProjects().catch(() => []),
-      listLeads().catch(() => []),
+      listClientsForAssistant(scope).catch(() => []),
+      listProjectsForAssistant(scope).catch(() => []),
+      listLeadsForAssistant("All", scope).catch(() => []),
       ctx.business.permissions.canAccessFinancials
-        ? loadLiveInvoices()
+        ? loadInvoicesForAssistant(scope)
         : Promise.resolve({ ok: true as const, invoices: [], overdue: [] }),
     ]);
 

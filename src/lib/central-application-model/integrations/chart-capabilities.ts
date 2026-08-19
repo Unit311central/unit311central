@@ -28,12 +28,21 @@ export function matchesFinancialChartCapability(
   if (!wantsVisual && !wantsTimeSeries) return null;
 
   if (
+    /\b(sales\s+performance|pipeline\s+performance|graph\s+sales|sales\s+pipeline|crm\s+performance|sales\s+chart)\b/i.test(
+      lower,
+    ) ||
+    (wantsVisual && /\b(sales\s+performance|pipeline)\b/i.test(lower) && !/\brevenue\b/i.test(lower))
+  ) {
+    return { capabilityId: "crm.chart.salesPerformance.read", series: "sales" };
+  }
+
+  if (
     /\b(revenue|sales)\b[\s\S]{0,40}\b(expenses?|costs)\b/i.test(lower) ||
     /\b(expenses?|costs)\b[\s\S]{0,40}\b(revenue|sales)\b/i.test(lower)
   ) {
     return { capabilityId: "financials.chart.revenueVsExpenses.read", series: "revenue_vs_expenses" };
   }
-  if (/\b(revenue|sales)\b/i.test(lower) && !/\b(expenses?|costs)\b/i.test(lower)) {
+  if (/\brevenue\b/i.test(lower) && !/\b(expenses?|costs)\b/i.test(lower)) {
     return { capabilityId: "financials.chart.revenue.read", series: "revenue" };
   }
   if (/\b(ar\b|accounts?\s+receivable|receivables?)\b/i.test(lower)) {
@@ -83,7 +92,9 @@ function chartFromToolResult(
   if (!labels.length || !datasets.length) return null;
 
   const chartType =
-    input.series === "revenue_vs_expenses" ? ("bar_chart" as const) : ("line_chart" as const);
+    input.series === "revenue_vs_expenses" || input.series === "sales"
+      ? ("bar_chart" as const)
+      : ("line_chart" as const);
   const title = String(row.title ?? "Chart");
   const summary = String(
     (result as { summary?: { message?: string } }).summary?.message ?? `${title} is shown below.`,

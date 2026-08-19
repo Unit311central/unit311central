@@ -10,7 +10,8 @@ import { runNorthstarEaTestQuestion } from "@/lib/demo/ea-question-runner";
 import { demoEaTestBusiness } from "@/lib/demo/ea-comprehensive-test-suite";
 import { buildNorthstarEaTestBank } from "@/lib/demo/ea-module-test-bank";
 import { executeEaAcceptanceCase } from "@/lib/ea-acceptance/execute-case";
-import type { EaAcceptanceQuestionKind } from "@/lib/ea-acceptance/types";
+import { businessContextForPermissionProfile, businessContextForWorkspace } from "@/lib/ea-acceptance/workspace-context";
+import type { EaAcceptancePermissionProfile, EaAcceptanceQuestionKind } from "@/lib/ea-acceptance/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,17 +30,25 @@ export async function POST(request: NextRequest) {
     prompt?: string;
     kind?: EaAcceptanceQuestionKind;
     expectCapabilityId?: string;
+    permissionProfile?: EaAcceptancePermissionProfile;
+    workspaceSlug?: string;
   };
 
   if (body.prompt?.trim()) {
+    const business = body.permissionProfile
+      ? businessContextForPermissionProfile(body.permissionProfile, body.workspaceSlug)
+      : body.workspaceSlug
+        ? businessContextForWorkspace(body.workspaceSlug)
+        : demoEaTestBusiness();
     const execution = await executeEaAcceptanceCase(
       {
         id: `probe-${Date.now()}`,
         prompt: body.prompt.trim(),
         kind: body.kind ?? "data",
         expectCapabilityId: body.expectCapabilityId,
+        permissionProfile: body.permissionProfile,
       },
-      demoEaTestBusiness(),
+      business,
       { executeTools: true },
     );
     return NextResponse.json(execution, { headers: DEMO_EA_NO_STORE_HEADERS });

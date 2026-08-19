@@ -1,8 +1,12 @@
-import { listInternalClients } from "@/lib/internal-clients-service";
-import { listProjects } from "@/lib/internal-projects-service";
 import { listHrEmployeesForAssistant } from "@/lib/hr-employees-service";
+import {
+  listClientsForAssistant,
+  listLeadsForAssistant,
+  listProjectsForAssistant,
+  loadInvoicesForAssistant,
+  type AssistantWorkspaceScope,
+} from "@/lib/demo/assistant-live-data";
 import { vacationDaysRemaining } from "@/lib/hr-data";
-import { listLeads } from "@/lib/crm-leads-service";
 import { browseFolder, getFileDownloadUrl } from "@/lib/internal-files-service";
 import { listExpenses } from "@/lib/financial-expenses-service";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -15,7 +19,6 @@ import {
   PLATFORM_BILLING_SEED_FALLBACK,
 } from "@/lib/platform-billing-data";
 import { listPlatformCustomerSubscriptions } from "@/lib/platform-billing-service";
-import { loadLiveInvoices } from "./live-finance";
 import {
   chargeForFrequency,
   parseExpectedBillingFromQuestion,
@@ -45,7 +48,13 @@ function exportActions(_entity: string): AssistantFollowUpAction[] {
   return [];
 }
 
-function resolveClientFilter(
+function assistantWorkspaceScope(ctx: AssistantToolExecutionContext): AssistantWorkspaceScope {
+  return {
+    workspaceId: ctx.business.workspace?.id,
+    workspaceSlug: ctx.business.workspace?.slug,
+  };
+}
+
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ) {
@@ -68,7 +77,7 @@ export async function searchClients(
   ctx: AssistantToolExecutionContext,
 ): Promise<AssistantToolResult> {
   try {
-    const clients = await listInternalClients();
+    const clients = await listClientsForAssistant(assistantWorkspaceScope(ctx));
     const query = asString(args.query);
     const status = asString(args.status);
     const country = asString(args.country);
@@ -191,7 +200,7 @@ export async function searchProjects(
   ctx: AssistantToolExecutionContext,
 ): Promise<AssistantToolResult> {
   try {
-    const projects = await listProjects();
+    const projects = await listProjectsForAssistant(assistantWorkspaceScope(ctx));
     const query = asString(args.query);
     const phase = asString(args.phase) ?? "all";
     const overdueOnly = args.overdue === true || args.overdue === "true";
@@ -405,7 +414,7 @@ export async function searchTasks(
     const status = asString(args.status);
     const now = new Date();
 
-    const leads = await listLeads("All").catch(() => []);
+    const leads = await listLeadsForAssistant("All", assistantWorkspaceScope(ctx)).catch(() => []);
     const crmTasks = leads
       .filter((lead) => lead.nextAction?.trim())
       .map((lead) => ({
@@ -592,7 +601,7 @@ export async function searchContracts(
   ctx: AssistantToolExecutionContext,
 ): Promise<AssistantToolResult> {
   try {
-    const clients = await listInternalClients();
+    const clients = await listClientsForAssistant(assistantWorkspaceScope(ctx));
     const employees = ctx.business.permissions.canAccessHr
       ? await listHrEmployeesForAssistant({
           workspaceId: ctx.business.workspace?.id,
@@ -690,10 +699,11 @@ export async function searchCRM(
 ): Promise<AssistantToolResult> {
   try {
     const statusFilter = asString(args.status);
-    const leads = await listLeads(
+    const leads = await listLeadsForAssistant(
       statusFilter && ["Cold", "Warm", "Hot", "Won", "Lost"].includes(statusFilter)
         ? (statusFilter as "Cold" | "Warm" | "Hot" | "Won" | "Lost")
         : "All",
+      assistantWorkspaceScope(ctx),
     );
     const query = asString(args.query);
     const filtered = leads.filter((lead) => {
@@ -781,10 +791,11 @@ export async function generateReport(
       return toolForbidden("generateReport", "Your role cannot access HR reports.");
     }
 
+    const scope = assistantWorkspaceScope(ctx);
     const [clients, projects, leads, expenses, employees] = await Promise.all([
-      listInternalClients().catch(() => []),
-      listProjects().catch(() => []),
-      listLeads("All").catch(() => []),
+      listClientsForAssistant(scope).catch(() => []),
+      listProjectsForAssistant(scope).catch(() => []),
+      listLeadsForAssistant("All", scope).catch(() => []),
       ctx.business.permissions.canAccessFinancials
         ? listExpenses().catch(() => [])
         : Promise.resolve([]),
@@ -799,7 +810,7 @@ export async function generateReport(
     const overdueProjects = projects.filter((project) => isOverdue(project.endDate));
     const unpaidExpenses = expenses.filter((expense) => !expense.paid);
     const invoiceLoad = ctx.business.permissions.canAccessFinancials
-      ? await loadLiveInvoices()
+      ? await loadInvoicesForAssistant(scope)
       : { ok: false as const, invoices: [], overdue: [], error: "Finance restricted" };
 
     const sections: Array<{ title: string; bullets: string[]; citations: string[] }> = [];

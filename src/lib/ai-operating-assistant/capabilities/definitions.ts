@@ -158,7 +158,7 @@ export const CENTRAL_READ_CAPABILITIES: EaReadCapabilityDefinition[] = [
     permissions: ["canAccessFinancials"],
     workspaces: "*",
     tool: "searchInvoices",
-    buildArgs: () => ({ status: "overdue" }),
+    buildArgs: () => ({ overdueOnly: true, outstandingOnly: true }),
     deterministic: true,
     skipSynthesis: true,
     formatAnswer(result) {
