@@ -282,6 +282,7 @@ export async function listHrEmployees(
 
 export type HrEmployeesAssistantScope = HrWorkspaceScope & {
   workspaceSlug?: string | null;
+  includeArchived?: boolean;
 };
 
 /**
