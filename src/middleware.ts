@@ -11,6 +11,7 @@ import {
   UNIT311_SITE_HOST,
   WORKSPACE_HOST_ROUTE_PREFIX,
   buildInternalHostRedirectUrl,
+  centralLoginUrl,
   getRequestHost,
   isDemoDomainHost,
   isInternalDomainHost,
@@ -22,6 +23,7 @@ import {
   mapLegacyInternalPathToInternalHostPath,
   normalizeHost,
   parseClientPlatformSubdomainSafe,
+  parseSafePostLoginNext,
 } from "@/lib/app-domains";
 import {
   applyCustomerHostRebindIfNeeded,
@@ -66,6 +68,7 @@ import {
   DEMO_PREVIEW_HEADER,
   normalizeDemoPreviewSlug,
 } from "@/lib/demo/workspace-preview";
+import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 /** Next.js / browser prefetch must not clear auth gates or bounce live sessions. */
 function isNextPrefetchRequest(request: NextRequest): boolean {
@@ -996,14 +999,29 @@ export async function middleware(request: NextRequest) {
 
   // --- Internal application host ---
   if (isInternalDomainHost(host)) {
-    const headers = withHostHeaders(request, { internal: true });
+    const headers = withHostHeaders(request, {
+      internal: true,
+      workspaceSlug: INTERNAL_WORKSPACE_SLUG,
+    });
+    const shellHeaders = {
+      "x-unit311-internal": "1",
+      "x-unit311-workspace-slug": INTERNAL_WORKSPACE_SLUG,
+    };
+    const internalOrigin = isLocalDevHost(host)
+      ? `${request.nextUrl.protocol}//${host}`
+      : INTERNAL_SITE_URL;
 
     if (pathname === "/login" || pathname.startsWith("/login/")) {
       if (isLocalDevHost(host)) {
         const port = request.nextUrl.port || "3000";
         return redirectExternal(`http://localhost:${port}/login${search}`);
       }
-      return redirectExternal(`${CENTRAL_SITE_URL}/login${search}`);
+      const loginUrl = new URL(centralLoginUrl(internalOrigin));
+      for (const [key, value] of request.nextUrl.searchParams) {
+        if (key === "return_to") continue;
+        loginUrl.searchParams.set(key, value);
+      }
+      return redirectExternal(loginUrl.toString());
     }
 
     if (isPublicMarketingPath(pathname)) {
@@ -1021,8 +1039,28 @@ export async function middleware(request: NextRequest) {
     const legacyBrowserRedirect = redirectLegacyInternalBrowserPath(request, pathname, search);
     if (legacyBrowserRedirect) return legacyBrowserRedirect;
 
+    const gate = await evaluateCustomerHostSessionGate(request, INTERNAL_WORKSPACE_SLUG);
+    if (
+      gate.status === "anonymous" ||
+      gate.status === "invalid" ||
+      gate.status === "forbidden" ||
+      gate.status === "workspace_missing"
+    ) {
+      const safeNext = parseSafePostLoginNext(`${pathname}${search}`);
+      const loginUrl = new URL(centralLoginUrl(internalOrigin));
+      if (safeNext && safeNext !== "/") {
+        loginUrl.searchParams.set("next", safeNext);
+      }
+      const bounce = redirectExternal(loginUrl.toString());
+      if (gate.status !== "anonymous") {
+        clearPlatformSessionCookie(bounce, request);
+      }
+      return bounce;
+    }
+
     if (pathname === "/" || pathname === "") {
-      return rewriteTo(request, "/internaldashboard", headers, { "x-unit311-internal": "1" });
+      const response = rewriteTo(request, "/internaldashboard", headers, shellHeaders);
+      return applyCustomerHostRebindIfNeeded({ request, response, gate });
     }
 
     const hardPathRedirect = mapHardPathToViewQuery(pathname, search);
@@ -1036,8 +1074,10 @@ export async function middleware(request: NextRequest) {
     }
 
     const response = NextResponse.next({ request: { headers } });
-    response.headers.set("x-unit311-internal", "1");
-    return response;
+    for (const [key, value] of Object.entries(shellHeaders)) {
+      response.headers.set(key, value);
+    }
+    return applyCustomerHostRebindIfNeeded({ request, response, gate });
   }
 
   // --- Public apex / www ---
