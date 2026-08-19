@@ -4,7 +4,7 @@
  */
 import { writeFileSync } from "node:fs";
 
-const DEPLOY_COMMIT = "4e80a66";
+const DEPLOY_COMMIT = "a730989";
 const DEMO = "https://demo.unit311central.com";
 
 const PROBES = [

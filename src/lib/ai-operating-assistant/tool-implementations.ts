@@ -594,7 +594,10 @@ export async function searchContracts(
   try {
     const clients = await listInternalClients();
     const employees = ctx.business.permissions.canAccessHr
-      ? await listHrEmployees().catch(() => [])
+      ? await listHrEmployeesForAssistant({
+          workspaceId: ctx.business.workspace?.id,
+          workspaceSlug: ctx.business.workspace?.slug,
+        }).catch(() => [])
       : [];
     const query = asString(args.query);
     const clientId = resolveClientFilter(args, ctx);
@@ -786,7 +789,10 @@ export async function generateReport(
         ? listExpenses().catch(() => [])
         : Promise.resolve([]),
       ctx.business.permissions.canAccessHr
-        ? listHrEmployees().catch(() => [])
+        ? listHrEmployeesForAssistant({
+            workspaceId: ctx.business.workspace?.id,
+            workspaceSlug: ctx.business.workspace?.slug,
+          }).catch(() => [])
         : Promise.resolve([]),
     ]);
 
