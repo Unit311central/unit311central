@@ -9,6 +9,7 @@ import {
   parseClientPlatformSubdomainSafe,
 } from "@/lib/app-domains";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
+import { GUIDED_TUTORIALS_FINGERPRINT } from "@/lib/guided-tutorials/fingerprint";
 
 export async function generateMetadata(): Promise<Metadata> {
   const host = getRequestHost({ headers: await headers() });
@@ -22,6 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: `${name} | Dashboard`,
       description: `${name} workspace — operations, finance, and delivery.`,
       robots: { index: false, follow: false },
+      other: { "unit311-guided-tutorials": GUIDED_TUTORIALS_FINGERPRINT },
     };
   }
 
@@ -31,6 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description:
         "Northstar Industrial Technologies demo workspace — operations, finance, marketing, and delivery.",
       robots: { index: false, follow: false },
+      other: { "unit311-guided-tutorials": GUIDED_TUTORIALS_FINGERPRINT },
     };
   }
 
@@ -42,6 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ? "Unit311 Central internal operations — clients, projects, finance, files, logistics, and more."
       : "Unit311 internal operations workspace — clients, projects, finance, files, logistics, and more.",
     robots: { index: false, follow: false },
+    other: { "unit311-guided-tutorials": GUIDED_TUTORIALS_FINGERPRINT },
   };
 }
 
