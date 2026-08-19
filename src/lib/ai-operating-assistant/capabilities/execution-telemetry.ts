@@ -4,7 +4,7 @@
 
 import { eaStage } from "@/lib/ai-operating-assistant/ea-forensic-trace";
 
-export type EaExecutionPath = "deterministic" | "gpt_terra" | "hybrid";
+export type EaExecutionPath = "deterministic" | "gpt_terra" | "hybrid" | "evidence_gpt";
 
 export type EaExecutionTelemetryEvent = {
   path: EaExecutionPath;

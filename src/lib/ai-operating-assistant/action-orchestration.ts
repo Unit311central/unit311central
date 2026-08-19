@@ -52,6 +52,12 @@ import {
   normalizeEaMessage,
   resolveReadCapability,
 } from "./capabilities";
+import {
+  ensureCentralApplicationModel,
+  executeSemanticCapability,
+  planEvidenceGathering,
+  resolveSemanticCapability,
+} from "@/lib/central-application-model";
 
 export { formatActionSuccess, formatPlanReadyMessage };
 /** @deprecated Prefer formatActionSuccess */
@@ -106,8 +112,61 @@ export async function resolveOrchestrationRoute(
   business: AssistantBusinessContext,
 ): Promise<OrchestrationRoute> {
   ensureActionModulesRegistered();
+  ensureCentralApplicationModel();
 
-  // CENTRAL READ CAPABILITIES — deterministic path before workspace-specific resolvers.
+  // CENTRAL SEMANTIC MODEL — deterministic-first before workspace packs / GPT.
+  {
+    const semantic = resolveSemanticCapability(message, business);
+    if (semantic && "denied" in semantic) {
+      eaStage("Semantic capability denied", {
+        reason: semantic.reason,
+        message: semantic.message,
+      });
+      return { kind: "capability_answer", message: semantic.message };
+    }
+    if (semantic) {
+      eaStage("Semantic capability matched", {
+        capabilityId: semantic.binding.id,
+        score: semantic.score,
+        strategy: semantic.strategy,
+        modules: semantic.binding.moduleIds,
+      });
+      if (semantic.binding.executionStrategy === "multi_tool") {
+        const executed = await executeSemanticCapability(semantic.binding, {
+          message,
+          business,
+        });
+        return {
+          kind: "semantic_answer",
+          message: executed.answer.text,
+          responseBlocks: executed.answer.blocks,
+          capabilityId: executed.capabilityId,
+          deterministic: executed.deterministic,
+          skipSynthesis: executed.skipSynthesis,
+        };
+      }
+      if (semantic.binding.tool) {
+        return {
+          kind: "tool",
+          intent: {
+            tool: semantic.binding.tool as DirectAssistantIntent["tool"],
+            args:
+              semantic.binding.buildArgs?.({
+                message,
+                normalized: normalizeEaMessage(message),
+                business,
+              }) ?? {},
+            reason: `semantic:${semantic.binding.id}`,
+          },
+          capabilityId: semantic.binding.id,
+          deterministic: semantic.binding.deterministic,
+          skipSynthesis: semantic.binding.skipSynthesis,
+        };
+      }
+    }
+  }
+
+  // Legacy read capability path — retained for regex-only patterns during migration.
   {
     const capResult = resolveReadCapability(message, business);
     if (capResult && "denied" in capResult) {
@@ -282,8 +341,9 @@ export async function resolveOrchestrationRoute(
 
   // BUSINESS — live data tools (deterministic read intents).
   if (domain.domain === "business") {
-    if (isEaGeneralIntentMode() && !hasExplicitWriteIntent(message)) {
-      return { kind: "none" };
+    const evidencePlan = planEvidenceGathering(message, business);
+    if (evidencePlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(message)) {
+      return { kind: "evidence_gpt", plan: evidencePlan, message };
     }
     const direct = resolveDirectIntent(message, history);
     if (
@@ -467,6 +527,11 @@ export async function resolveOrchestrationRoute(
         reason: "unknown_business_read_fallback",
       },
     };
+  }
+
+  const strategicEvidence = planEvidenceGathering(message, business);
+  if (strategicEvidence && isEaGeneralIntentMode()) {
+    return { kind: "evidence_gpt", plan: strategicEvidence, message };
   }
 
   return { kind: "none" };

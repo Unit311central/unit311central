@@ -25,7 +25,11 @@ export function getEaClientWorkspacePackForSlug(
 ): EaWorkspacePack | null {
   const normalized = slug?.trim().toLowerCase() ?? "";
   if (!normalized) return null;
-  return packs.find((pack) => pack.matchesSlug(normalized)) ?? null;
+  const specific = packs.find(
+    (pack) => pack.id !== "generic" && pack.matchesSlug(normalized),
+  );
+  if (specific) return specific;
+  return packs.find((pack) => pack.id === "generic") ?? null;
 }
 
 export function resolveEaSuggestedPromptsFromPack(

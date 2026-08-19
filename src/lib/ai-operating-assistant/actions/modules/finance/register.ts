@@ -1,8 +1,9 @@
 import { registerAssistantAction, upsertAssistantAction } from "../../registry";
 import { chaseOverdueInvoiceAction } from "./chase-overdue-invoice";
 import { createExpenseAction } from "./create-expense";
+import { createInvoiceAction } from "./create-invoice";
 
-const FINANCE_ACTIONS = [createExpenseAction, chaseOverdueInvoiceAction] as const;
+const FINANCE_ACTIONS = [createExpenseAction, chaseOverdueInvoiceAction, createInvoiceAction] as const;
 
 let registered = false;
 

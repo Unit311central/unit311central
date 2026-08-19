@@ -44,6 +44,7 @@
     "prove:ea-cfo": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-cfo.check.ts",
     "prove:ea-real": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-real.check.ts",
     "prove:ea-capabilities": "node --import tsx src/lib/ai-operating-assistant/capabilities/__tests__/read-capabilities.check.ts",
+    "prove:ea-semantic": "node --import tsx src/lib/central-application-model/__tests__/semantic-architecture.check.ts",
     "prove:ea-openai-usage": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-openai-usage.check.ts",
     "prove:central-capabilities": "node --import tsx src/lib/central-capabilities/__tests__/central-capabilities.check.ts",
     "prove:branch-protection": "node scripts/prove-github-branch-protection.mjs",

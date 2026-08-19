@@ -1,6 +1,10 @@
 import type { AssistantBusinessContext, AssistantToolDefinition, AssistantToolHandler } from "./types";
 import type { AssistantToolExecutionContext } from "./tool-result";
 import {
+  contentStudioCreateDeck,
+  contentStudioListTemplates,
+} from "./content-studio-tools";
+import {
   generateReport,
   searchClients,
   searchContracts,
@@ -11,6 +15,7 @@ import {
   searchProjects,
   searchTasks,
 } from "./tool-implementations";
+import { searchSupportTickets } from "./support-ticket-tools";
 import {
   emailAssistantArtifact,
   generateEmployeeListPdf,
@@ -274,6 +279,45 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
         outstandingOnly: { type: "boolean" },
         overdueOnly: { type: "boolean" },
         pageSize: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "searchSupportTickets",
+    description: "Query live support desk tickets. Use status open for open tickets.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        status: { type: "string", enum: ["open", "closed", "all"] },
+        pageSize: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "contentStudioListTemplates",
+    description: "List approved Content Studio templates by business function category.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        functionId: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "contentStudioCreateDeck",
+    description:
+      "Create a presentation deck from an approved Content Studio template (management, HR, sales, etc.).",
+    parameters: {
+      type: "object",
+      properties: {
+        prompt: { type: "string" },
+        templateId: { type: "string" },
+        functionId: { type: "string" },
       },
       additionalProperties: false,
     },
@@ -897,6 +941,9 @@ const handlers: Record<string, ContextualToolHandler> = {
   searchPerformanceReviews,
   searchLeave,
   searchInvoices,
+  searchSupportTickets,
+  contentStudioListTemplates,
+  contentStudioCreateDeck,
   searchExpenses,
   getCashPosition,
   getMonthlyPayrollObligation,

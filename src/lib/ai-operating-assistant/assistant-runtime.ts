@@ -47,6 +47,10 @@ import {
 import { classifyKnowledgeDomain } from "./knowledge-domains";
 import { getReadCapability } from "./capabilities/read-registry";
 import { recordEaExecutionTelemetry } from "./capabilities/execution-telemetry";
+import {
+  gatherAuthorisedEvidence,
+  getSemanticCapability,
+} from "@/lib/central-application-model";
 
 type EasyInputMessage = {
   role: "user" | "assistant" | "system" | "developer";
@@ -1186,7 +1190,96 @@ async function* runAssistantTurnInner(input: {
       return;
     }
 
-    if (route.kind === "none") {
+    if (route.kind === "semantic_answer") {
+      eaStage("Intent resolved", {
+        actionId: null,
+        confidence: null,
+        "extracted input": null,
+        kind: "semantic_answer",
+        capabilityId: route.capabilityId,
+      });
+      recordEaExecutionTelemetry({
+        path: "deterministic",
+        capabilityId: route.capabilityId,
+        workspaceSlug: context.workspace.slug,
+        workspaceId: context.workspace.id,
+        userId: input.session.sub,
+        responseType: route.responseBlocks?.some(
+          (b) => b.type === "line_chart" || b.type === "bar_chart" || b.type === "pie_chart",
+        )
+          ? "chart"
+          : route.responseBlocks?.some((b) => b.type === "table")
+            ? "table"
+            : route.responseBlocks?.some((b) => b.type === "kpi")
+              ? "kpi"
+              : "text",
+      });
+      assistantText = route.message;
+      yield { type: "delta", text: assistantText };
+      const assistantMessage: AssistantChatMessage = {
+        id: createMessageId(),
+        role: "assistant",
+        content: assistantText,
+        createdAt: new Date().toISOString(),
+        executionCards: route.executionCards,
+        responseBlocks: route.responseBlocks,
+      };
+      const saved = await persistTurn({
+        session: input.session,
+        conversationId: resolved.conversationId,
+        history: resolved.history,
+        userMessage,
+        assistantMessage,
+        context,
+        title: resolved.title,
+      });
+      yield {
+        type: "done",
+        message: assistantMessage,
+        conversationId: saved.conversationId,
+        correlationId: getEaCorrelationId(),
+      };
+      return;
+    }
+
+    if (route.kind === "evidence_gpt") {
+      eaStage("Intent resolved", {
+        actionId: null,
+        confidence: null,
+        "extracted input": null,
+        kind: "evidence_gpt",
+      });
+      recordEaExecutionTelemetry({
+        path: "evidence_gpt",
+        workspaceSlug: context.workspace.slug,
+        workspaceId: context.workspace.id,
+        userId: input.session.sub,
+        escalationReason: "strategic_reasoning_with_authorised_evidence",
+        gptCallCount: 1,
+      });
+      const evidence = await gatherAuthorisedEvidence(route.plan, context);
+      const evidencePayload = evidence.map((entry) => ({
+        tool: entry.tool,
+        status: (entry.result as { status?: string }).status ?? "unknown",
+        summary: (entry.result as { summary?: Record<string, unknown> }).summary ?? null,
+        items: Array.isArray((entry.result as { items?: unknown[] }).items)
+          ? (entry.result as { items: unknown[] }).items.slice(0, 25)
+          : [],
+      }));
+      inputItems = [
+        ...toInputMessages(resolved.history, message),
+        {
+          role: "developer",
+          content: [
+            "AUTHORISED EVIDENCE ONLY — you must not invent numbers, names, or statuses.",
+            "Reason over the evidence below to answer the user's strategic question.",
+            JSON.stringify(evidencePayload, null, 2),
+          ].join("\n\n"),
+        },
+      ];
+      tools = [];
+      requireToolOnFirstModelTurn = false;
+    } else if (route.kind === "none") {
       eaStage("Intent resolved", {
         actionId: null,
         confidence: null,
@@ -1328,11 +1421,16 @@ async function* runAssistantTurnInner(input: {
 
       if (route.capabilityId) {
         const cap = getReadCapability(route.capabilityId);
-        if (cap) {
-          capabilityFormatted = cap.formatAnswer(result as import("./tool-result").AssistantToolResult, {
-            message,
-            business: context,
-          });
+        const semanticCap = getSemanticCapability(route.capabilityId);
+        const formatter = cap ?? semanticCap;
+        if (formatter?.formatAnswer) {
+          capabilityFormatted = formatter.formatAnswer(
+            result as import("./tool-result").AssistantToolResult,
+            {
+              message,
+              business: context,
+            },
+          );
           if (capabilityFormatted?.text) {
             assistantText = capabilityFormatted.text;
           }
@@ -1342,7 +1440,7 @@ async function* runAssistantTurnInner(input: {
               path: "deterministic",
               capabilityId: route.capabilityId,
               tool: directIntent.tool,
-              module: cap.module,
+              module: cap?.module ?? semanticCap?.moduleIds?.[0] ?? "unknown",
               workspaceSlug: context.workspace.slug,
               workspaceId: context.workspace.id,
               userId: input.session.sub,
