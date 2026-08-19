@@ -1,6 +1,6 @@
 import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
-import { listHrEmployees } from "@/lib/hr-employees-service";
+import { listHrEmployeesForAssistant } from "@/lib/hr-employees-service";
 import { vacationDaysRemaining } from "@/lib/hr-data";
 import { listLeads } from "@/lib/crm-leads-service";
 import { browseFolder, getFileDownloadUrl } from "@/lib/internal-files-service";
@@ -295,8 +295,16 @@ export async function searchEmployees(
   }
 
   try {
-    const employees = await listHrEmployees();
-    const query = asString(args.query);
+    const employees = await listHrEmployeesForAssistant({
+      workspaceId: ctx.business.workspace?.id,
+      workspaceSlug: ctx.business.workspace?.slug,
+    });
+    const headcountOnly =
+      args.headcount === true ||
+      args.headcount === "true" ||
+      args.countOnly === true ||
+      args.countOnly === "true";
+    const query = headcountOnly ? undefined : asString(args.query);
     const onLeave = args.onLeave === true || args.onLeave === "true";
     const selectedId =
       asString(args.employeeId) || ctx.business.selection.employeeId || undefined;
@@ -352,8 +360,9 @@ export async function searchEmployees(
           headcount: employees.length,
           openRecruitmentPositions: null,
           openRoles: [] as string[],
-          message:
-            filtered.length === 0
+          message: headcountOnly
+            ? `You currently have ${employees.length} employee${employees.length === 1 ? "" : "s"}.`
+            : filtered.length === 0
               ? "There are currently no employees matching that request."
               : `I found ${filtered.length} employee${filtered.length === 1 ? "" : "s"}.`,
         },

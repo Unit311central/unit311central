@@ -280,6 +280,35 @@ export async function listHrEmployees(
   });
 }
 
+export type HrEmployeesAssistantScope = HrWorkspaceScope & {
+  workspaceSlug?: string | null;
+};
+
+/**
+ * Resolve HR employees for EA tools — demo workspace uses Northstar fixtures
+ * (same source as /api/hr/employees on demo hosts).
+ */
+export async function listHrEmployeesForAssistant(
+  scope?: HrEmployeesAssistantScope,
+): Promise<HrEmployee[]> {
+  const { isDemoWorkspaceSlug } = await import("@/lib/demo/read-only");
+  const slug = String(scope?.workspaceSlug ?? "").trim().toLowerCase();
+  if (isDemoWorkspaceSlug(slug)) {
+    const { getNorthstarEmployees } = await import("@/lib/demo/northstar-api-fixtures");
+    const rows = getNorthstarEmployees();
+    return scope?.includeArchived
+      ? rows
+      : rows.filter((row) => row.employmentStatus !== "archived");
+  }
+
+  const explicitId = scope?.workspaceId?.trim();
+  if (explicitId && !explicitId.startsWith("ws-")) {
+    return listHrEmployees({ workspaceId: explicitId, includeArchived: scope?.includeArchived });
+  }
+
+  return listHrEmployees({ includeArchived: scope?.includeArchived });
+}
+
 export async function getHrEmployee(
   id: string,
   scope?: HrWorkspaceScope,

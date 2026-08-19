@@ -1,4 +1,10 @@
 ﻿import { getFinancialOverview } from "@/lib/accounting/overview-service";
+import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
+import {
+  formatCurrency,
+  monthLabel,
+  type FinancialChartSeriesKind,
+} from "@/lib/central-application-model/integrations/chart-capabilities";
 import { northstarDemoPayrollDashboard } from "@/lib/demo/northstar-payroll-bridge";
 import {
   buildNorthstarLeaveRequests,
@@ -298,6 +304,131 @@ export async function getCashPosition(
     return toolError(
       "getCashPosition",
       error instanceof Error ? error.message : "Failed to load cash position.",
+    );
+  }
+}
+
+function lastNChartPoints<T extends { month: string }>(
+  rows: T[],
+  months: number,
+): T[] {
+  if (!rows.length) return [];
+  return rows.slice(-Math.max(1, months));
+}
+
+function buildFinancialChartPayload(
+  overview: FinancialOverviewSnapshot,
+  series: FinancialChartSeriesKind,
+  months: number,
+) {
+  const charts = overview.charts;
+
+  if (series === "revenue") {
+    const points = lastNChartPoints(charts.monthlyRevenue, months);
+    return {
+      title: `Revenue — last ${points.length} months`,
+      labels: points.map((p) => monthLabel(p.month)),
+      datasets: [{ label: "Revenue", data: points.map((p) => p.amount) }],
+      message: `Revenue trend for the last ${points.length} months.`,
+    };
+  }
+
+  if (series === "revenue_vs_expenses") {
+    const revenuePoints = lastNChartPoints(charts.monthlyRevenue, months);
+    const expensePoints = lastNChartPoints(charts.monthlyOutgoings, months);
+    const labels = revenuePoints.map((p) => monthLabel(p.month));
+    return {
+      title: "Revenue vs expenses",
+      labels,
+      datasets: [
+        { label: "Revenue", data: revenuePoints.map((p) => p.amount) },
+        { label: "Expenses", data: expensePoints.map((p) => p.amount) },
+      ],
+      message: "Revenue versus expenses over the selected period.",
+    };
+  }
+
+  if (series === "cash") {
+    const points = lastNChartPoints(charts.cashPosition, months);
+    return {
+      title: `Cash position — last ${points.length} months`,
+      labels: points.map((p) => monthLabel(p.month)),
+      datasets: [{ label: "Cash", data: points.map((p) => p.amount) }],
+      message: `Cash position trend for the last ${points.length} months.`,
+    };
+  }
+
+  if (series === "ar") {
+    const ageing = overview.ar.ageing ?? [];
+    return {
+      title: "Accounts receivable ageing",
+      labels: ageing.map((row) => row.bucket),
+      datasets: [{ label: "AR", data: ageing.map((row) => row.amount) }],
+      message: `Accounts receivable total ${formatCurrency(overview.ar.outstanding)}.`,
+    };
+  }
+
+  const revenuePoints = lastNChartPoints(charts.monthlyRevenue, months);
+  return {
+    title: `Sales performance — last ${revenuePoints.length} months`,
+    labels: revenuePoints.map((p) => monthLabel(p.month)),
+    datasets: [{ label: "Revenue", data: revenuePoints.map((p) => p.amount) }],
+    message: "Sales performance proxy from recognised revenue.",
+  };
+}
+
+export async function getFinancialChartData(
+  args: Record<string, unknown>,
+  ctx: AssistantToolExecutionContext,
+): Promise<AssistantToolResult> {
+  if (!ctx.business.permissions.canAccessFinancials) {
+    return toolForbidden(
+      "getFinancialChartData",
+      "Your current role cannot access finance chart data.",
+    );
+  }
+
+  const series = (asString(args.series) || "revenue") as FinancialChartSeriesKind;
+  const months = asNumber(args.months, 12);
+
+  try {
+    let overview = await getFinancialOverview({
+      workspaceId: ctx.business.workspace?.id,
+      workspaceSlug: ctx.business.workspace?.slug,
+    });
+
+    const chartEmpty =
+      !overview.charts.monthlyRevenue.some((p) => p.amount > 0) &&
+      !overview.charts.cashPosition.some((p) => p.amount > 0);
+    const { isDemoWorkspaceSlug } = await import("@/lib/demo/read-only");
+    if (chartEmpty && isDemoWorkspaceSlug(ctx.business.workspace?.slug)) {
+      const { buildNorthstarFinancialOverview } = await import("@/lib/demo/module-fixtures");
+      overview = buildNorthstarFinancialOverview();
+    }
+
+    const payload = buildFinancialChartPayload(overview, series, months);
+    const hasData = payload.datasets.some((set) => set.data.some((value) => value > 0));
+    if (!hasData && payload.datasets.every((set) => set.data.length === 0)) {
+      return toolError(
+        "getFinancialChartData",
+        "No chartable financial time-series is available for your workspace yet.",
+        ["finance:overview"],
+      );
+    }
+
+    return toolOk("getFinancialChartData", [payload], {
+      source: ["finance:overview", "finance:charts"],
+      summary: {
+        series,
+        months,
+        message: payload.message,
+      },
+    });
+  } catch (error) {
+    return toolError(
+      "getFinancialChartData",
+      error instanceof Error ? error.message : "Failed to load chart data.",
+      ["finance:overview"],
     );
   }
 }

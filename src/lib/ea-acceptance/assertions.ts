@@ -180,15 +180,46 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
 
   if (input.kind === "denied") {
     const deniedOk =
-      input.routeKind === "capability_answer" &&
-      /can'?t|cannot|not enabled|not available|only access data for your current workspace/i.test(text);
+      (input.routeKind === "capability_answer" &&
+        /can'?t|cannot|not enabled|not available|only access data for your current workspace|don'?t have permission/i.test(
+          text,
+        )) ||
+      (input.toolResult &&
+        String((input.toolResult as { status?: string }).status) === "forbidden");
     checks.push(
       check(
         "denied_message",
-        deniedOk,
+        Boolean(deniedOk),
         deniedOk ? "Request correctly denied" : `Expected denial message, got route=${input.routeKind}`,
       ),
     );
+    return checks;
+  }
+
+  if (input.kind === "action") {
+    const actionOk =
+      input.routeKind === "tool" ||
+      input.routeKind === "workflow_read" ||
+      input.routeKind === "capability_answer";
+    checks.push(
+      check(
+        "action_route",
+        actionOk,
+        actionOk
+          ? `Action route ${input.routeKind}`
+          : `Expected action/workflow route, got ${input.routeKind}`,
+      ),
+    );
+    if (executed && input.toolResult) {
+      const status = String((input.toolResult as { status?: string }).status ?? "");
+      checks.push(
+        check(
+          "action_tool_status",
+          status === "ok" || status === "partial" || status === "forbidden",
+          `Action tool status ${status || "unknown"}`,
+        ),
+      );
+    }
     return checks;
   }
 

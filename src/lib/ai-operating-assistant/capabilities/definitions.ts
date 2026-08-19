@@ -71,11 +71,14 @@ export const CENTRAL_READ_CAPABILITIES: EaReadCapabilityDefinition[] = [
       /\b(employee|staff|headcount)\s+count\b/i,
       /\bnumber\s+of\s+(employees?|staff|people)\b/i,
       /\bwho\s+works\s+here\b/i,
+      /^\s*headcount\s*\??\s*$/i,
+      /\bheadcount\b/i,
     ],
+    exclude: [/\b(growth|graph|chart|trend|pdf|export|list|show|find)\b/i],
     permissions: ["canAccessHr"],
     workspaces: "*",
     tool: "searchEmployees",
-    buildArgs: ({ message }) => ({ query: message }),
+    buildArgs: () => ({ query: "", headcount: true }),
     deterministic: true,
     skipSynthesis: true,
     formatAnswer(result) {
@@ -99,7 +102,6 @@ export const CENTRAL_READ_CAPABILITIES: EaReadCapabilityDefinition[] = [
       const msg = toolMessage(result);
       return msg ? { text: msg } : null;
     },
-    supportsVisualisation: true,
   },
   {
     id: "hr.employees.search.read",
@@ -223,10 +225,35 @@ export function matchesCashCapability(message: string): boolean {
   return isLiveFinancialBalanceQuestion(message);
 }
 
+/** Headcount / employee count — not employee directory search */
+export function matchesHeadcountCapability(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  if (!lower) return false;
+  if (
+    /\b(list|show|find|search|every|directory)\b/.test(lower) &&
+    /\b(employees?|staff|people)\b/.test(lower)
+  ) {
+    return false;
+  }
+  if (/^\s*headcount\s*\??\s*$/i.test(message.trim())) return true;
+  return (
+    /\b(headcount|employee\s+count|staff\s+count|how\s+many\s+(employees?|staff|people|fte))\b/i.test(
+      lower,
+    ) || /\bnumber\s+of\s+(employees?|staff|people)\b/i.test(lower)
+  );
+}
+
 export function matchesScopedPdfCapability(message: string): boolean {
   const scoped = parseScopedPdfRequest(message);
-  return (
+  if (
     scoped.wantsDocument &&
     (scoped.metrics.length > 0 || scoped.unknownTopics.length > 0 || /\bpdf\b/i.test(message))
+  ) {
+    return true;
+  }
+  return (
+    /\b(create|make|generate|export|produce|build|prepare)\b[\s\S]{0,40}\b(executive\s+financial\s+summary|financial\s+summary|financial\s+report|ar\s+report)\b/i.test(
+      message,
+    ) && scoped.metrics.length > 0
   );
 }

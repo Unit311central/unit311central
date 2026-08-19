@@ -30,7 +30,7 @@ import {
 import { isOverdue } from "@/lib/ai-operating-assistant/tool-result";
 import { listLeads } from "@/lib/crm-leads-service";
 import { listLeaveRequests, listVacancies } from "@/lib/hr-mock-store";
-import { listHrEmployees } from "@/lib/hr-employees-service";
+import { listHrEmployeesForAssistant } from "@/lib/hr-employees-service";
 import { listInternalClients } from "@/lib/internal-clients-service";
 import { listProjects } from "@/lib/internal-projects-service";
 import { calculateLivePayrollSnapshot } from "@/lib/payroll/payroll-service";
@@ -186,6 +186,8 @@ export async function loadScopedPdfBundle(input: {
   unknownTopics: string[];
   canAccessFinancials: boolean;
   canAccessHr: boolean;
+  workspaceId?: string | null;
+  workspaceSlug?: string | null;
 }): Promise<ScopedPdfLiveBundle> {
   const sources = new Set<string>();
   const blocked: string[] = [];
@@ -201,6 +203,8 @@ export async function loadScopedPdfBundle(input: {
     "ar_outstanding",
     "ap_outstanding",
     "revenue_ytd",
+    "revenue",
+    "expenses",
     "net_profit",
     "outstanding_invoices",
     "payroll_total",
@@ -220,7 +224,10 @@ export async function loadScopedPdfBundle(input: {
 
   const [overview, payrollSnap, leads, clients, employees, projects] = await Promise.all([
     needsFinance && input.canAccessFinancials
-      ? getFinancialOverview().catch(() => null)
+      ? getFinancialOverview({
+          workspaceId: input.workspaceId,
+          workspaceSlug: input.workspaceSlug,
+        }).catch(() => null)
       : Promise.resolve(null),
     needsPayroll && (input.canAccessHr || input.canAccessFinancials)
       ? calculateLivePayrollSnapshot().catch(() => null)
@@ -228,7 +235,10 @@ export async function loadScopedPdfBundle(input: {
     needsCrm ? listLeads("All").catch(() => []) : Promise.resolve([]),
     needsClients ? listInternalClients().catch(() => []) : Promise.resolve([]),
     needsHr && input.canAccessHr && input.metrics.includes("headcount")
-      ? listHrEmployees().catch(() => [])
+      ? listHrEmployeesForAssistant({
+          workspaceId: input.workspaceId,
+          workspaceSlug: input.workspaceSlug,
+        }).catch(() => [])
       : Promise.resolve([]),
     needsProjects ? listProjects().catch(() => []) : Promise.resolve([]),
   ]);
@@ -421,6 +431,48 @@ export async function loadScopedPdfBundle(input: {
               value: money(overview?.revenueYtd ?? overview?.annualRevenue ?? 0),
             },
           ],
+        });
+        break;
+      }
+      case "revenue": {
+        if (!overview) {
+          sections.push({
+            metricId,
+            heading,
+            rows: [{ label: "Status", value: "No live financial data" }],
+          });
+          break;
+        }
+        const built = pnlForPeriod(overview, input.period);
+        const revenueRow =
+          built.rows.find((row) => /revenue/i.test(row.label)) ??
+          ({ label: "Revenue", value: money(overview.monthlyRevenue ?? 0) } as const);
+        sections.push({
+          metricId,
+          heading,
+          rows: [revenueRow],
+          note: built.note,
+        });
+        break;
+      }
+      case "expenses": {
+        if (!overview) {
+          sections.push({
+            metricId,
+            heading,
+            rows: [{ label: "Status", value: "No live financial data" }],
+          });
+          break;
+        }
+        const built = pnlForPeriod(overview, input.period);
+        const expenseRow =
+          built.rows.find((row) => /expense/i.test(row.label)) ??
+          ({ label: "Expenses", value: money(overview.monthlyExpenses ?? 0) } as const);
+        sections.push({
+          metricId,
+          heading,
+          rows: [expenseRow],
+          note: built.note,
         });
         break;
       }

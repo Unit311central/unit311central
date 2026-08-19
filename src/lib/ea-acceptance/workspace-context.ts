@@ -4,6 +4,8 @@ import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 
+import type { EaAcceptancePermissionProfile } from "./types";
+
 export const EA_ACCEPTANCE_WORKSPACES = [
   DEMO_WORKSPACE_SLUG,
   ONWARDAIR_SLUG,
@@ -55,4 +57,44 @@ export function businessContextForWorkspace(slug: string): AssistantBusinessCont
     return baseBusiness(TALANTON_IMPACT_SLUG, "Talanton Impact", "Talanton Impact");
   }
   return baseBusiness(normalized, normalized, normalized);
+}
+
+export function businessContextForPermissionProfile(
+  profile: EaAcceptancePermissionProfile,
+  workspaceSlug: string = DEMO_WORKSPACE_SLUG,
+): AssistantBusinessContext {
+  const base = businessContextForWorkspace(workspaceSlug);
+  if (profile === "executive") return base;
+  if (profile === "manager") {
+    return {
+      ...base,
+      permissions: {
+        ...base.permissions,
+        roleView: "manager",
+        canAccessStrategy: false,
+      },
+    };
+  }
+  if (profile === "employee") {
+    return {
+      ...base,
+      permissions: {
+        roleView: "employee",
+        canAccessFinancials: false,
+        canAccessUsers: false,
+        canAccessStrategy: false,
+        canAccessHr: false,
+      },
+    };
+  }
+  return {
+    ...base,
+    permissions: {
+      roleView: "sales",
+      canAccessFinancials: false,
+      canAccessUsers: false,
+      canAccessStrategy: false,
+      canAccessHr: false,
+    },
+  };
 }

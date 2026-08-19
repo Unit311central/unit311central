@@ -21,6 +21,8 @@ export type ScopedPdfMetricId =
   | "ar_outstanding"
   | "ap_outstanding"
   | "revenue_ytd"
+  | "revenue"
+  | "expenses"
   | "net_profit"
   | "outstanding_invoices"
   | "headcount"
@@ -169,6 +171,20 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
       "year to date revenue",
       "ytd sales",
     ],
+    permission: "financials",
+  },
+  {
+    id: "revenue",
+    label: "Revenue",
+    match: /\b(revenue|income|sales\s+revenue)\b/i,
+    phrases: ["revenue", "income", "sales revenue"],
+    permission: "financials",
+  },
+  {
+    id: "expenses",
+    label: "Expenses",
+    match: /\b(expenses?|operating\s+expenses?|costs|outgoings)\b/i,
+    phrases: ["expenses", "operating expenses", "costs", "outgoings"],
     permission: "financials",
   },
   {
@@ -323,6 +339,9 @@ export type ScopedPdfRequest = {
 function wantsDocument(lower: string): boolean {
   return (
     /\b(pdf|report|pack|directory|export|document)\b/.test(lower) ||
+    /\b(executive\s+financial\s+summary|financial\s+summary|financial\s+position\s+report|ar\s+report)\b/.test(
+      lower,
+    ) ||
     /\b(generate|create|make|export|produce|build|prepare)\s+(a\s+|the\s+|me\s+a\s+|me\s+)?(pdf|report|pack|directory|document)\b/.test(
       lower,
     ) ||
@@ -419,7 +438,39 @@ function detectMetrics(lower: string): ScopedPdfMetricId[] {
       found.push(def.id);
     }
   }
-  return found;
+  return applyCompositePdfMappings(lower, found);
+}
+
+function addUnique(target: ScopedPdfMetricId[], ...ids: ScopedPdfMetricId[]) {
+  for (const id of ids) {
+    if (!target.includes(id)) target.push(id);
+  }
+}
+
+/** Expand NL report intents into concrete live metrics. */
+function applyCompositePdfMappings(
+  lower: string,
+  metrics: ScopedPdfMetricId[],
+): ScopedPdfMetricId[] {
+  const out = [...metrics];
+
+  if (/\brevenue\s+and\s+expenses?\b/i.test(lower)) {
+    addUnique(out, "revenue", "expenses");
+  }
+  if (/\bfinancial\s+position\b/i.test(lower)) {
+    addUnique(out, "balance_sheet", "cash", "net_profit");
+  }
+  if (/\b(ar\s+report|accounts?\s+receivable\s+report)\b/i.test(lower)) {
+    addUnique(out, "ar_outstanding", "ar_overdue");
+  }
+  if (/\bexecutive\s+financial\s+summary\b/i.test(lower)) {
+    addUnique(out, "pnl", "cash", "revenue_ytd", "net_profit", "burn_rate");
+  }
+  if (/\bmonthly\s+financial\s+report\b/i.test(lower) && out.length === 0) {
+    addUnique(out, "pnl", "cash");
+  }
+
+  return out;
 }
 
 /** Strip period / PDF chrome so leftover segments can be flagged as unknown. */

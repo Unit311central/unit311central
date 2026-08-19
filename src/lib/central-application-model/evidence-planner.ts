@@ -22,10 +22,63 @@ const STRATEGIC_KEYWORDS = [
   "scenario",
 ];
 
+function pushTool(
+  plan: EaEvidencePlan,
+  tool: EaEvidencePlan["tools"][number]["tool"],
+  args: Record<string, unknown>,
+  capabilityId?: string,
+) {
+  plan.tools.push({ tool, args });
+  if (capabilityId && !plan.capabilityIds.includes(capabilityId)) {
+    plan.capabilityIds.push(capabilityId);
+  }
+}
+
+export function planCrossModuleEvidence(
+  message: string,
+  business: AssistantBusinessContext,
+): EaEvidencePlan | null {
+  const lower = message.toLowerCase();
+
+  const mentionsSales = /\b(sales|selling|pipeline|deals?|crm)\b/.test(lower);
+  const mentionsRevenue = /\b(revenue|income|earnings|turnover)\b/.test(lower);
+  const mentionsClients = /\b(clients?|customers?)\b/.test(lower);
+  const mentionsOwe = /\b(owe|owing|outstanding|overdue|receivable|ar\b)\b/.test(lower);
+  const mentionsSupport = /\b(support|tickets?|help\s+desk)\b/.test(lower);
+  const crossVerb = /\b(affect|affecting|affects|impact|impacting|relate|drive|influence|connect|link|between)\b/.test(
+    lower,
+  );
+
+  if (mentionsSales && mentionsRevenue && crossVerb) {
+    const plan: EaEvidencePlan = {
+      capabilityIds: [],
+      tools: [],
+      reasoningGoal: message,
+      permissionsRequired: ["authenticated"],
+    };
+    pushTool(plan, "searchCRM", { question: message }, "crm.pipeline.summary.read");
+    if (business.permissions.canAccessFinancials) {
+      pushTool(plan, "getFinancialChartData", { series: "revenue", months: 12 });
+      pushTool(plan, "getCashPosition", {});
+      plan.capabilityIds.push("financials.cashPosition.read");
+    }
+    return plan.tools.length >= 2 ? plan : null;
+  }
+
+  if (mentionsClients && mentionsOwe && mentionsSupport) {
+    return null;
+  }
+
+  return null;
+}
+
 export function planEvidenceGathering(
   message: string,
   business: AssistantBusinessContext,
 ): EaEvidencePlan | null {
+  const cross = planCrossModuleEvidence(message, business);
+  if (cross) return cross;
+
   const lower = message.toLowerCase();
   const isStrategic =
     STRATEGIC_KEYWORDS.some((kw) => lower.includes(kw)) ||
@@ -46,7 +99,7 @@ export function planEvidenceGathering(
     capabilityIds.push("financials.cashPosition.read");
   }
   if (business.permissions.canAccessHr) {
-    tools.push({ tool: "searchEmployees", args: { query: "" } });
+    tools.push({ tool: "searchEmployees", args: { query: "", headcount: true } });
     capabilityIds.push("hr.employees.count.read");
   }
   tools.push({ tool: "searchClients", args: { query: "" } });

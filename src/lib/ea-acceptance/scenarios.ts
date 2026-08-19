@@ -220,6 +220,21 @@ function buildCrossModuleScenarios(workspaceSlug: string): EaAcceptanceScenario[
       workspaceSlug: slug,
       moduleLabel: "strategy",
     },
+    {
+      id: `${slug}-cross-sales-revenue`,
+      prompt: "How are sales affecting revenue?",
+      kind: "composite",
+      workspaceSlug: slug,
+      moduleLabel: "cross-module",
+    },
+    {
+      id: `${slug}-cross-clients-owe-support`,
+      prompt: "Which clients owe us money and have open support issues?",
+      kind: "composite",
+      workspaceSlug: slug,
+      expectCapabilityId: "cross.clients.overdueInvoicesOpenTickets.read",
+      moduleLabel: "cross-module",
+    },
   ];
 }
 
@@ -235,8 +250,64 @@ function buildChartPdfScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
       moduleLabel: "human-resources",
     },
     {
+      id: `${slug}-chart-revenue-12m`,
+      prompt: "Show revenue for the last 12 months as a graph.",
+      kind: "chart",
+      workspaceSlug: slug,
+      expectCapabilityId: "financials.chart.revenue.read",
+      moduleLabel: "financials",
+    },
+    {
+      id: `${slug}-chart-revenue-expenses`,
+      prompt: "Graph revenue versus expenses.",
+      kind: "chart",
+      workspaceSlug: slug,
+      expectCapabilityId: "financials.chart.revenueVsExpenses.read",
+      moduleLabel: "financials",
+    },
+    {
+      id: `${slug}-chart-cash-year`,
+      prompt: "Show our cash position over the last year.",
+      kind: "chart",
+      workspaceSlug: slug,
+      expectCapabilityId: "financials.chart.cash.read",
+      moduleLabel: "financials",
+    },
+    {
       id: `${slug}-pdf-financial`,
       prompt: "Create a monthly financial report PDF with P&L and cash.",
+      kind: "pdf",
+      workspaceSlug: slug,
+      expectCapabilityId: "reports.scopedPdf.generate",
+      moduleLabel: "financials",
+    },
+    {
+      id: `${slug}-pdf-revenue-expenses`,
+      prompt: "Create a PDF showing revenue and expenses.",
+      kind: "pdf",
+      workspaceSlug: slug,
+      expectCapabilityId: "reports.scopedPdf.generate",
+      moduleLabel: "financials",
+    },
+    {
+      id: `${slug}-pdf-financial-position`,
+      prompt: "Create a financial position PDF.",
+      kind: "pdf",
+      workspaceSlug: slug,
+      expectCapabilityId: "reports.scopedPdf.generate",
+      moduleLabel: "financials",
+    },
+    {
+      id: `${slug}-pdf-ar-report`,
+      prompt: "Create an AR report.",
+      kind: "pdf",
+      workspaceSlug: slug,
+      expectCapabilityId: "reports.scopedPdf.generate",
+      moduleLabel: "financials",
+    },
+    {
+      id: `${slug}-pdf-executive-summary`,
+      prompt: "Create an executive financial summary.",
       kind: "pdf",
       workspaceSlug: slug,
       expectCapabilityId: "reports.scopedPdf.generate",
@@ -245,9 +316,50 @@ function buildChartPdfScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
   ];
 }
 
-function buildPermissionScenarios(_workspaceSlug: string): EaAcceptanceScenario[] {
-  // Permission-negative scenarios require dedicated business contexts — wired in run-suite.
-  return [];
+function buildPermissionScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
+  const slug = workspaceSlug.trim().toLowerCase();
+  if (slug !== "demo" && !slug.includes("demo")) return [];
+  return [
+    {
+      id: `${slug}-perm-sales-commissions-denied`,
+      prompt: "Show me everyone's commissions.",
+      kind: "denied",
+      workspaceSlug: slug,
+      permissionProfile: "sales_rep",
+      moduleLabel: "permissions",
+    },
+    {
+      id: `${slug}-perm-employee-cash-denied`,
+      prompt: "Show me company cash balance.",
+      kind: "denied",
+      workspaceSlug: slug,
+      permissionProfile: "employee",
+      moduleLabel: "permissions",
+    },
+    {
+      id: `${slug}-perm-demo-talanton-clients-denied`,
+      prompt: "Show me Talanton's clients.",
+      kind: "denied",
+      workspaceSlug: slug,
+      permissionProfile: "executive",
+      moduleLabel: "permissions",
+    },
+  ];
+}
+
+function buildActionScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
+  const slug = workspaceSlug.trim().toLowerCase();
+  if (slug !== "demo" && !slug.includes("demo")) return [];
+  return [
+    {
+      id: `${slug}-action-create-client-dry`,
+      prompt: "Create a client called EA Acceptance Test Co.",
+      kind: "action",
+      workspaceSlug: slug,
+      permissionProfile: "executive",
+      moduleLabel: "actions",
+    },
+  ];
 }
 
 function buildClarificationScenarios(workspaceSlug: string): EaAcceptanceScenario[] {
@@ -260,6 +372,29 @@ function buildClarificationScenarios(workspaceSlug: string): EaAcceptanceScenari
       workspaceSlug: slug,
       moduleLabel: "executive-assistant",
     },
+    {
+      id: `${slug}-clarify-how-doing`,
+      prompt: "How are we doing?",
+      kind: "clarification",
+      workspaceSlug: slug,
+      moduleLabel: "executive-assistant",
+    },
+    {
+      id: `${slug}-clarify-situation`,
+      prompt: "What is the situation?",
+      kind: "clarification",
+      workspaceSlug: slug,
+      moduleLabel: "executive-assistant",
+    },
+    {
+      id: `${slug}-no-clarify-bank`,
+      prompt: "What is our bank balance?",
+      kind: "data",
+      workspaceSlug: slug,
+      expectCapabilityId: "financials.cashPosition.read",
+      expectDeterministic: true,
+      moduleLabel: "financials",
+    },
   ];
 }
 
@@ -271,6 +406,8 @@ export function buildAllAcceptanceScenarios(workspaceSlug: string): EaAcceptance
     ...buildCrossModuleScenarios(workspaceSlug),
     ...buildChartPdfScenarios(workspaceSlug),
     ...buildClarificationScenarios(workspaceSlug),
+    ...buildPermissionScenarios(workspaceSlug),
+    ...buildActionScenarios(workspaceSlug),
   ]) {
     byId.set(row.id, row);
   }

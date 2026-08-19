@@ -3,6 +3,12 @@ import type { OrchestrationRoute } from "@/lib/ai-operating-assistant/orchestrat
 import type { AssistantToolResult } from "@/lib/ai-operating-assistant/tool-result";
 import type { EaEvidencePlan } from "@/lib/central-application-model/types";
 
+export type EaAcceptancePermissionProfile =
+  | "executive"
+  | "manager"
+  | "employee"
+  | "sales_rep";
+
 export type EaAcceptanceQuestionKind =
   | "data"
   | "navigation"
@@ -41,6 +47,7 @@ export type EaAcceptanceScenario = {
   prompt: string;
   kind: EaAcceptanceQuestionKind;
   workspaceSlug: string;
+  permissionProfile?: EaAcceptancePermissionProfile;
   expectCapabilityId?: string;
   expectTool?: string;
   expectDeterministic?: boolean;
@@ -51,6 +58,7 @@ export type EaAcceptanceCaseInput = {
   id: string;
   prompt: string;
   kind: EaAcceptanceQuestionKind;
+  permissionProfile?: EaAcceptancePermissionProfile;
   expectTool?: string;
   expectCapabilityId?: string;
   expectDeterministic?: boolean;

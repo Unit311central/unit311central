@@ -73,6 +73,7 @@ import {
 import "./actions/register-all-modules";
 import {
   getCashPosition,
+  getFinancialChartData,
   getMonthlyPayrollObligation,
   platformSearch,
   searchExpenses,
@@ -345,6 +346,22 @@ export const ASSISTANT_TOOL_DEFINITIONS: AssistantToolDefinition[] = [
     parameters: {
       type: "object",
       properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "getFinancialChartData",
+    description:
+      "Return chart-ready time-series for revenue, expenses, AR ageing, cash position, or sales performance.",
+    parameters: {
+      type: "object",
+      properties: {
+        series: {
+          type: "string",
+          enum: ["revenue", "revenue_vs_expenses", "ar", "cash", "sales"],
+        },
+        months: { type: "number" },
+      },
       additionalProperties: false,
     },
   },
@@ -946,6 +963,7 @@ const handlers: Record<string, ContextualToolHandler> = {
   contentStudioCreateDeck,
   searchExpenses,
   getCashPosition,
+  getFinancialChartData,
   getMonthlyPayrollObligation,
   searchInventory,
   platformSearch,

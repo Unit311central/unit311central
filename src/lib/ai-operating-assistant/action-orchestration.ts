@@ -56,6 +56,7 @@ import {
   ensureCentralApplicationModel,
   executeSemanticCapability,
   planEvidenceGathering,
+  planCrossModuleEvidence,
   resolveSemanticCapability,
   detectAmbiguousEaQuery,
 } from "@/lib/central-application-model";
@@ -126,6 +127,23 @@ export async function resolveOrchestrationRoute(
       return { kind: "capability_answer", message: semantic.message };
     }
     if (semantic) {
+      const crossPlan = planCrossModuleEvidence(message, business);
+      const isCompositeMultiTool =
+        semantic.binding.executionStrategy === "multi_tool" && semantic.binding.crossModule;
+      if (
+        crossPlan &&
+        crossPlan.tools.length >= 2 &&
+        !isCompositeMultiTool &&
+        isEaGeneralIntentMode() &&
+        !hasExplicitWriteIntent(message)
+      ) {
+        eaStage("Cross-module evidence plan", {
+          tools: crossPlan.tools.map((t) => t.tool),
+          capabilityIds: crossPlan.capabilityIds,
+        });
+        return { kind: "evidence_gpt", plan: crossPlan, message };
+      }
+
       eaStage("Semantic capability matched", {
         capabilityId: semantic.binding.id,
         score: semantic.score,
@@ -171,6 +189,24 @@ export async function resolveOrchestrationRoute(
     const clarify = detectAmbiguousEaQuery(message);
     if (clarify) {
       return { kind: "capability_answer", message: clarify };
+    }
+  }
+
+  if (
+    /\b(commissions?|compensation|salaries|payroll|bonus(?:es)?)\b/i.test(message) &&
+    !business.permissions.canAccessFinancials &&
+    !business.permissions.canAccessHr
+  ) {
+    return {
+      kind: "capability_answer",
+      message: "You don't have permission to access payroll or compensation data.",
+    };
+  }
+
+  {
+    const crossPlan = planCrossModuleEvidence(message, business);
+    if (crossPlan && isEaGeneralIntentMode() && !hasExplicitWriteIntent(message)) {
+      return { kind: "evidence_gpt", plan: crossPlan, message };
     }
   }
 

@@ -5,11 +5,13 @@
 import {
   CENTRAL_READ_CAPABILITIES,
   matchesCashCapability,
+  matchesHeadcountCapability,
   matchesScopedPdfCapability,
 } from "@/lib/ai-operating-assistant/capabilities/definitions";
 import type { EaReadCapabilityDefinition } from "@/lib/ai-operating-assistant/capabilities/types";
 import { FUNCTIONAL_DOMAINS } from "../canonical-modules";
 import type { EaSemanticCapabilityBinding } from "../types";
+import { matchesFinancialChartCapability } from "./chart-capabilities";
 
 const MODULE_MAP: Record<string, string> = {
   financials: "financials",
@@ -114,7 +116,16 @@ export function scoreLegacyReadCapability(
   if (capId === "reports.scopedPdf.generate" && wantsPdf) {
     return 100;
   }
+  const chartMatch = matchesFinancialChartCapability(rawMessage);
+  if (chartMatch && capId === chartMatch.capabilityId) {
+    if (wantsPdf) return 0;
+    return 100;
+  }
   if (capId === "financials.cashPosition.read" && matchesCashCapability(rawMessage)) {
+    if (wantsPdf || chartMatch) return 0;
+    return 100;
+  }
+  if (capId === "hr.employees.count.read" && matchesHeadcountCapability(rawMessage)) {
     if (wantsPdf) return 0;
     return 100;
   }

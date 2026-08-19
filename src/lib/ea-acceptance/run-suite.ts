@@ -1,4 +1,5 @@
 import {
+  businessContextForPermissionProfile,
   businessContextForWorkspace,
   EA_ACCEPTANCE_WORKSPACES,
 } from "./workspace-context";
@@ -43,16 +44,19 @@ export async function runEaAcceptanceSuite(input?: {
   let failed = 0;
 
   for (const slug of slugs) {
-    const business = businessContextForWorkspace(slug);
     const scenarios = buildAllAcceptanceScenarios(slug);
     const cases: EaAcceptanceCaseResult[] = [];
 
     for (const scenario of scenarios) {
+      const business = scenario.permissionProfile
+        ? businessContextForPermissionProfile(scenario.permissionProfile, slug)
+        : businessContextForWorkspace(slug);
       const result = await runEaAcceptanceCase(
         {
           id: scenario.id,
           prompt: scenario.prompt,
           kind: scenario.kind,
+          permissionProfile: scenario.permissionProfile,
           expectCapabilityId: scenario.expectCapabilityId,
           expectTool: scenario.expectTool,
           expectDeterministic: scenario.expectDeterministic,

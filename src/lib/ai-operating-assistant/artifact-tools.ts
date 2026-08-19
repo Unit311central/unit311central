@@ -247,6 +247,8 @@ export async function generateScopedBusinessPdf(
       unknownTopics,
       canAccessFinancials: ctx.business.permissions.canAccessFinancials,
       canAccessHr: ctx.business.permissions.canAccessHr,
+      workspaceId: ctx.business.workspace?.id,
+      workspaceSlug: ctx.business.workspace?.slug,
     });
 
     let artifact = await renderScopedBusinessPdf({

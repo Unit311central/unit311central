@@ -43,7 +43,7 @@ export function isLiveFinancialBalanceQuestion(message: string): boolean {
   if (/\b(bank\s+account\s+details?|list\s+bank\s+accounts?|corporate\s+bank|open\s+bank)\b/i.test(lower)) {
     return false;
   }
-  return /\b(bank\s+balance|cash\s+balance|how\s+much\s+cash|cash\s+do\s+we\s+have|cash\s+position|treasury\s+balance|money\s+in\s+(the\s+)?bank|our\s+bank|wise\s+balance|what\s+is\s+our\s+bank)\b/i.test(
+  return /\b(bank\s+balance|cash\s+balance|how\s+much\s+cash|cash\s+do\s+we\s+have|cash\s+position|treasury\s+balance|money\s+in\s+(the\s+)?bank|our\s+bank|wise\s+balance|what\s+is\s+our\s+bank|(what'?s|what is)\s+(in\s+the\s+)?bank|how\s+much\s+money\b[\s\S]{0,24}\bbank)\b/i.test(
     lower,
   );
 }

@@ -5,13 +5,18 @@
 import type { EaSemanticCapabilityBinding } from "./types";
 import { buildReadCapabilityBindings } from "./integrations/read-capabilities";
 import { buildExtendedCapabilityBindings } from "./integrations/extended-capabilities";
+import { buildChartCapabilityBindings } from "./integrations/chart-capabilities";
 
 const capabilityRegistry = new Map<string, EaSemanticCapabilityBinding>();
 let bootstrapped = false;
 
 export function ensureCentralApplicationModel(): void {
   if (bootstrapped) return;
-  for (const binding of [...buildReadCapabilityBindings(), ...buildExtendedCapabilityBindings()]) {
+  for (const binding of [
+    ...buildReadCapabilityBindings(),
+    ...buildExtendedCapabilityBindings(),
+    ...buildChartCapabilityBindings(),
+  ]) {
     capabilityRegistry.set(binding.id, binding);
   }
   bootstrapped = true;

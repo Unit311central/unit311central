@@ -59,6 +59,7 @@ export const EXTENDED_SEMANTIC_CAPABILITIES: EaSemanticCapabilityBinding[] = [
     },
   },
   {
+    id: "crm.clients.count.read",
     kind: "read",
     moduleIds: ["business-central"],
     domainId: FUNCTIONAL_DOMAINS.clients,
@@ -120,6 +121,10 @@ export const EXTENDED_SEMANTIC_CAPABILITIES: EaSemanticCapabilityBinding[] = [
       "overdue invoices and open tickets",
       "customers with overdue invoices and tickets",
       "clients with overdue invoices and support",
+      "clients owe us money",
+      "owe us money and open support",
+      "open support issues",
+      "which clients owe",
     ],
     permissions: ["canAccessFinancials", "authenticated"],
     requiredModules: ["financials", "support-desk"],
