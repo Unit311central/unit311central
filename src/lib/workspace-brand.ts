@@ -12,7 +12,9 @@ import {
   CENTRAL_SITE_URL,
   customerWorkspaceOrigin,
   DEMO_WORKSPACE_SLUG,
+  isDemoDomainHost,
 } from "@/lib/app-domains";
+import { readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isCorpCentreWorkspaceSlug } from "@/lib/corpcentre-financials";
 import { CONTACT, SITE_NAME } from "@/lib/site";
@@ -154,6 +156,65 @@ export function brandFromWorkspaceClaim(input: {
   return buildWorkspaceBrand(input);
 }
 
+/** Short product name for chrome buttons (Northstar, OnwardAir, Talanton Impact, ABHI). */
+export function resolveBrowserWorkspaceProductName(): string {
+  if (typeof window === "undefined") return "Workspace";
+
+  const host = window.location.hostname.toLowerCase();
+
+  if (isDemoDomainHost(host)) {
+    const preview = readBrowserDemoPreviewSlug();
+    if (preview === "onwardair") return "OnwardAir";
+    if (preview === "talantonimpact") return "Talanton Impact";
+    if (preview === "abhi") return "ABHI";
+    return "Northstar";
+  }
+
+  if (
+    host === "internal.unit311central.com" ||
+    host === "unit311central.com" ||
+    host === "www.unit311central.com" ||
+    host === "internal.localhost" ||
+    host === "localhost"
+  ) {
+    return "Unit311 Central";
+  }
+
+  try {
+    const cached = window.sessionStorage.getItem("unit311-whoami-workspace-name")?.trim();
+    if (cached) {
+      if (/northstar/i.test(cached)) return "Northstar";
+      return cached;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const brandKind = resolveBrandKindFromSlug(
+    host.match(/^([a-z0-9-]+)\.unit311central\.com$/i)?.[1] ?? null,
+  );
+  if (brandKind === "talanton") return "Talanton Impact";
+  if (brandKind === "abhi") return "ABHI";
+  if (brandKind === "corpcentre") return "Corp.Centre";
+  if (host.includes("onwardair")) return "OnwardAir";
+
+  const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
+  if (match?.[1] && !["www", "app", "login"].includes(match[1])) {
+    return titleCaseSlug(match[1]);
+  }
+  if (host.endsWith(".localhost") && host !== "localhost") {
+    const slug = host.split(".")[0] || "";
+    return slug ? titleCaseSlug(slug) : "Workspace";
+  }
+
+  return "Unit311 Central";
+}
+
+export function resolveBrowserWorkspaceAssistantButtonLabel(): string {
+  const name = resolveBrowserWorkspaceProductName().trim();
+  return name ? `${name} Assistant` : "Assistant";
+}
+
 /**
  * Browser-side display name for PDF/export chrome.
  * Uses whoami cache, then customer subdomain, then platform default.
@@ -167,16 +228,10 @@ export function resolveBrowserWorkspaceDisplayName(): string {
     /* ignore */
   }
   const host = window.location.hostname.toLowerCase();
-  if (
-    host === "internal.unit311central.com" ||
-    host === "demo.unit311central.com" ||
-    host === "unit311central.com" ||
-    host === "www.unit311central.com" ||
-    host === "localhost" ||
-    host === "internal.localhost" ||
-    host === "demo.localhost"
-  ) {
-    return "Unit311 Central";
+  if (isDemoDomainHost(host)) {
+    const preview = readBrowserDemoPreviewSlug();
+    if (preview === DEMO_WORKSPACE_SLUG) return "Northstar Industrial Technologies";
+    return resolveBrowserWorkspaceProductName();
   }
   const match = host.match(/^([a-z0-9-]+)\.unit311central\.com$/i);
   if (match?.[1] && match[1] !== "www" && match[1] !== "app" && match[1] !== "login") {

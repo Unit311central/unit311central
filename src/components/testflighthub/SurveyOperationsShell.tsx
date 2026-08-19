@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, Sparkles, X } from "lucide-react";
 import {
@@ -19,6 +19,10 @@ import {
 } from "@/lib/onwardair-surface";
 import { PLATFORM_AI_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
 import { cn } from "@/lib/utils";
+import {
+  resolveBrowserWorkspaceAssistantButtonLabel,
+  resolveBrowserWorkspaceProductName,
+} from "@/lib/workspace-brand";
 import {
   surveyViewTitles,
   type SurveyOperationsBasePath,
@@ -73,6 +77,13 @@ export default function SurveyOperationsShell({
     if (typeof window === "undefined") return false;
     return isBrowserCorpCentreSurface();
   });
+  const [assistantButtonLabel, setAssistantButtonLabel] = useState("Assistant");
+  const [assistantProductName, setAssistantProductName] = useState("");
+
+  useLayoutEffect(() => {
+    setAssistantProductName(resolveBrowserWorkspaceProductName());
+    setAssistantButtonLabel(resolveBrowserWorkspaceAssistantButtonLabel());
+  }, [demoPreviewLabel]);
 
   useEffect(() => {
     if (!isDemoHost) return;
@@ -244,7 +255,7 @@ export default function SurveyOperationsShell({
                   <button
                     type="button"
                     data-ai-target="ai-assistant"
-                    aria-label="Open Executive Assistant"
+                    aria-label={`Open ${assistantButtonLabel}`}
                     aria-expanded={assistantOpen}
                     onClick={() => setAssistantOpen(true)}
                     className={cn(
@@ -258,8 +269,13 @@ export default function SurveyOperationsShell({
                       color: "color-mix(in srgb, var(--platform-accent, #2F80ED) 85%, white)",
                     }}
                   >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span className={cn(isCorpCentre && "hidden lg:inline")}>Assistant</span>
+                    <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                    <span className={cn("hidden max-w-[10rem] truncate sm:inline", isCorpCentre && "lg:inline")}>
+                      {assistantButtonLabel}
+                    </span>
+                    <span className={cn("sm:hidden", isCorpCentre && "hidden")}>
+                      {assistantProductName || "AI"}
+                    </span>
                   </button>
                 </>
               ) : null}

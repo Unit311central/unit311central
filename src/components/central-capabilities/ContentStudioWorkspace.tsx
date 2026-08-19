@@ -81,6 +81,68 @@ function mediaKindIcon(kind: ContentStudioMediaAsset["kind"]) {
   return "IMG";
 }
 
+function ContentStudioTemplateCard({
+  template,
+  theme,
+  canEditTemplates,
+  onCreate,
+}: {
+  template: ContentStudioTemplatePlaceholder;
+  theme: (typeof CONTENT_STUDIO_FUNCTION_THEMES)[ContentStudioFunctionId];
+  canEditTemplates: boolean;
+  onCreate: () => void;
+}) {
+  const approved = template.status === "approved";
+
+  return (
+    <article
+      className={cn(
+        "group overflow-hidden rounded-2xl border bg-[#0b1524]/80 transition-transform hover:-translate-y-0.5",
+        theme.border,
+      )}
+    >
+      <div className={cn("relative flex h-28 items-center justify-center", theme.swatch)}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.2),transparent_55%)]" />
+        <Layers className="relative h-8 w-8 text-white/90" />
+      </div>
+      <div className="space-y-2 p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">Master template</p>
+            <h3 className="mt-1 text-sm font-semibold text-white">{template.name}</h3>
+          </div>
+          <WorkspaceStatusPill className={statusClass(template.status)}>{template.status}</WorkspaceStatusPill>
+        </div>
+        <p className="line-clamp-2 text-xs text-white/55">{template.description}</p>
+        <p className="text-xs text-white/40">Updated {template.lastUpdated}</p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button type="button" className={workspaceSecondaryButtonClass()}>
+            View template
+          </button>
+          <button type="button" className={workspaceSecondaryButtonClass()} onClick={onCreate}>
+            Create content
+          </button>
+          {canEditTemplates && template.canEdit ? (
+            <>
+              <button type="button" className={workspaceSecondaryButtonClass()}>
+                Edit
+              </button>
+              <button type="button" className={workspaceSecondaryButtonClass()}>
+                Duplicate
+              </button>
+            </>
+          ) : null}
+        </div>
+        {approved ? (
+          <p className={cn("text-[10px] font-semibold uppercase tracking-wide", theme.accent)}>
+            Approved for production use
+          </p>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 function ContentStudioMediaCard({
   asset,
   theme,
@@ -262,68 +324,42 @@ export default function ContentStudioWorkspace() {
                       <p className="mt-1 max-w-2xl text-sm text-white/60">{selectedNode.description}</p>
                     </div>
                   </div>
-                  <div className={cn("rounded-xl border px-4 py-3 text-right", theme.border, theme.accentSoft)}>
-                    <p className={cn("text-[10px] font-semibold uppercase tracking-wide", theme.accent)}>
-                      Approved assets
-                    </p>
-                    <p className="mt-1 text-2xl font-semibold text-white">{mediaLibrary.length}</p>
+                  <div className="flex flex-wrap gap-3">
+                    <div className={cn("rounded-xl border px-4 py-3 text-right", theme.border, theme.accentSoft)}>
+                      <p className={cn("text-[10px] font-semibold uppercase tracking-wide", theme.accent)}>
+                        Approved templates
+                      </p>
+                      <p className="mt-1 text-2xl font-semibold text-white">{templates.length}</p>
+                    </div>
+                    <div className={cn("rounded-xl border px-4 py-3 text-right", theme.border, theme.accentSoft)}>
+                      <p className={cn("text-[10px] font-semibold uppercase tracking-wide", theme.accent)}>
+                        Media assets
+                      </p>
+                      <p className="mt-1 text-2xl font-semibold text-white">{mediaLibrary.length}</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <WorkspaceSection title="Master templates" subtitle="Approved starting points for this function.">
+              <WorkspaceSection
+                title="Approved templates"
+                subtitle="Master templates approved for this function — starting points for new content."
+              >
                 {templates.length === 0 ? (
                   <WorkspaceEmpty message="No templates are configured for this function yet." />
                 ) : (
-                  <div className="grid gap-3">
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     {templates.map((template) => (
-                      <article
+                      <ContentStudioTemplateCard
                         key={template.id}
-                        className="rounded-xl border border-white/10 bg-[#0b1524]/80 p-4"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                              <Layers className="h-3.5 w-3.5" />
-                              Master template
-                            </div>
-                            <h3 className="text-base font-semibold text-white">{template.name}</h3>
-                            <p className="mt-1 max-w-2xl text-sm text-white/55">{template.description}</p>
-                            <p className="mt-2 text-xs text-white/40">Last updated: {template.lastUpdated}</p>
-                          </div>
-                          <WorkspaceStatusPill className={statusClass(template.status)}>
-                            {template.status}
-                          </WorkspaceStatusPill>
-                        </div>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <button type="button" className={workspaceSecondaryButtonClass()}>
-                            View template
-                          </button>
-                          <button
-                            type="button"
-                            className={workspaceSecondaryButtonClass()}
-                            onClick={() => {
-                              setCreateTemplate(template);
-                              setEditContentId(null);
-                            }}
-                          >
-                            Create content
-                          </button>
-                          {canEditTemplates && template.canEdit ? (
-                            <>
-                              <button type="button" className={workspaceSecondaryButtonClass()}>
-                                Edit template
-                              </button>
-                              <button type="button" className={workspaceSecondaryButtonClass()}>
-                                Duplicate
-                              </button>
-                              <button type="button" className={workspaceSecondaryButtonClass()}>
-                                Archive
-                              </button>
-                            </>
-                          ) : null}
-                        </div>
-                      </article>
+                        template={template}
+                        theme={theme}
+                        canEditTemplates={canEditTemplates}
+                        onCreate={() => {
+                          setCreateTemplate(template);
+                          setEditContentId(null);
+                        }}
+                      />
                     ))}
                   </div>
                 )}

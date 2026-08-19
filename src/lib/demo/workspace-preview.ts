@@ -7,7 +7,7 @@ export const DEMO_PREVIEW_COOKIE = "unit311_demo_preview_slug";
 export const DEMO_PREVIEW_HEADER = "x-unit311-demo-preview-slug";
 
 export const DEMO_PREVIEW_WORKSPACES = [
-  { slug: DEMO_WORKSPACE_SLUG, label: "Demo" },
+  { slug: DEMO_WORKSPACE_SLUG, label: "Northstar" },
   { slug: "onwardair", label: "OnwardAir" },
   { slug: "talantonimpact", label: "Talanton Impact" },
   { slug: "abhi", label: "ABHI" },
