@@ -1,4 +1,4 @@
-import { resolveBoardPackSummaryName } from "./boardpack-tools";
+import { resolveBoardPackSummaryName } from "./boardpack-summary";
 import {
   ensureActionModulesRegistered,
   redirectManualGuidanceToActionPlan,

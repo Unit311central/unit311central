@@ -22,21 +22,9 @@ import {
   type AssistantToolResult,
 } from "@/lib/ai-operating-assistant/tool-result";
 
-const STAGE_MS = [1100, 1000, 1100, 1200, 1100, 900, 1100, 1400, 1000] as const;
+export { resolveBoardPackSummaryName } from "@/lib/ai-operating-assistant/boardpack-summary";
 
-/** Board pack tool summaries historically used `title` — normalize for UI + runtime cards. */
-export function resolveBoardPackSummaryName(
-  summary: Record<string, unknown> | null | undefined,
-): string | null {
-  if (!summary) return null;
-  if (typeof summary.packName === "string" && summary.packName.trim()) {
-    return summary.packName.trim();
-  }
-  if (typeof summary.title === "string" && summary.title.trim()) {
-    return summary.title.trim();
-  }
-  return null;
-}
+const STAGE_MS = [1100, 1000, 1100, 1200, 1100, 900, 1100, 1400, 1000] as const;
 
 function asString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";

@@ -24,7 +24,7 @@ import AbhiBoardPackProgress from "@/components/executive-assistant/AbhiBoardPac
 import { PlanViewer } from "@/components/executive-assistant/PlanViewer";
 import { ExecutionCardsList } from "@/components/executive-assistant/execution-cards";
 import type { EaCardAction, EaExecutionCard } from "@/lib/ai-operating-assistant/execution-cards";
-import { resolveBoardPackSummaryName } from "@/lib/ai-operating-assistant/boardpack-tools";
+import { resolveBoardPackSummaryName } from "@/lib/ai-operating-assistant/boardpack-summary";
 import { cardsFromBoardPackSuccess } from "@/lib/ai-operating-assistant/execution-card-adapters";
 import { actionConfirmationToPlanViewer } from "@/lib/ai-operating-assistant/actions/planning/summaries";
 import type { PlanViewerModel } from "@/lib/ai-operating-assistant/actions/planning/types";
