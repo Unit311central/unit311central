@@ -9,6 +9,8 @@ import {
 import { runNorthstarEaTestQuestion } from "@/lib/demo/ea-question-runner";
 import { demoEaTestBusiness } from "@/lib/demo/ea-comprehensive-test-suite";
 import { buildNorthstarEaTestBank } from "@/lib/demo/ea-module-test-bank";
+import { executeEaAcceptanceCase } from "@/lib/ea-acceptance/execute-case";
+import type { EaAcceptanceQuestionKind } from "@/lib/ea-acceptance/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
