@@ -15,7 +15,7 @@ import {
   type GuidedTutorialClientAction,
 } from "@/lib/guided-tutorials/client-actions";
 import { tutorialProgressStore } from "@/lib/guided-tutorials/progress";
-import { resolveTutorial } from "@/lib/guided-tutorials/resolver";
+import { resolveTutorial } from "@/lib/guided-tutorials/client-resolver";
 import { measureTutorialTarget } from "@/lib/guided-tutorials/targets";
 import type { TutorialDefinition, TutorialResolution, TutorialStep } from "@/lib/guided-tutorials/types";
 import { resolveBrowserTutorialWorkspaceSlug } from "@/lib/guided-tutorials/workspace-slug";

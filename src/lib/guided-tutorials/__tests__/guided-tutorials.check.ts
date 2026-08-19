@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { FINANCIALS_DASHBOARD_TUTORIAL } from "@/lib/guided-tutorials/content/financials-dashboard";
+import { resolveTutorialForView as resolveClientTutorialForView } from "@/lib/guided-tutorials/client-resolver";
 import { resolveTutorial, resolveTutorialForView } from "@/lib/guided-tutorials/resolver";
 import { listTutorialDefinitions } from "@/lib/guided-tutorials/registry";
 import {
@@ -103,6 +104,18 @@ function testWorkspaceSlugResolution() {
   assert.equal(resolveWorkspaceSlugFromHost("internal.unit311central.com"), INTERNAL_WORKSPACE_SLUG);
 }
 
+function testClientServerResolverParity() {
+  const workspaces = ["demo", "onwardair", "abhi", "talantonimpact", "unit311"] as const;
+  for (const workspaceSlug of workspaces) {
+    const server = resolveTutorialForView(workspaceSlug, "financials");
+    const client = resolveClientTutorialForView(workspaceSlug, "financials");
+    assert.equal(server.status, client.status, `parity failed for ${workspaceSlug}`);
+    if (server.status === "available" && client.status === "available") {
+      assert.equal(server.tutorial.tutorialId, client.tutorial.tutorialId);
+    }
+  }
+}
+
 function testContentDescribesRealFeatures() {
   const body = FINANCIALS_DASHBOARD_TUTORIAL.steps.map((step) => step.body).join(" ");
   assert.ok(/cash position/i.test(body));
@@ -123,6 +136,7 @@ function run() {
   testRegistryValidation();
   testCoverageReport();
   testWorkspaceSlugResolution();
+  testClientServerResolverParity();
   testContentDescribesRealFeatures();
   assert.equal(listTutorialDefinitions().length, 1);
   console.log("guided-tutorials.check.ts: all assertions passed");
