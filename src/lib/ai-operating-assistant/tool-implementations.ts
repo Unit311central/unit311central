@@ -55,6 +55,7 @@ function assistantWorkspaceScope(ctx: AssistantToolExecutionContext): AssistantW
   };
 }
 
+function resolveClientFilter(
   args: Record<string, unknown>,
   ctx: AssistantToolExecutionContext,
 ) {
