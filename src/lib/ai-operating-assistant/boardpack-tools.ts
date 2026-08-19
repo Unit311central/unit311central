@@ -24,6 +24,20 @@ import {
 
 const STAGE_MS = [1100, 1000, 1100, 1200, 1100, 900, 1100, 1400, 1000] as const;
 
+/** Board pack tool summaries historically used `title` — normalize for UI + runtime cards. */
+export function resolveBoardPackSummaryName(
+  summary: Record<string, unknown> | null | undefined,
+): string | null {
+  if (!summary) return null;
+  if (typeof summary.packName === "string" && summary.packName.trim()) {
+    return summary.packName.trim();
+  }
+  if (typeof summary.title === "string" && summary.title.trim()) {
+    return summary.title.trim();
+  }
+  return null;
+}
+
 function asString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -205,6 +219,7 @@ async function tryNorthstarProductionBoardPackBridge(
         pdfArtifactId: pdfArtifact.id,
         pdfOpenUrl,
         pdfDownloadUrl,
+        packName,
         title: packName,
         filename,
         meetingDate: resolvedMeetingDate,
@@ -442,6 +457,7 @@ export async function generateBoardPackTool(
           pdfOpenUrl,
           pdfDownloadUrl,
           pptxDownloadUrl: pptxDownloadUrl || undefined,
+          packName,
           title: packName,
           filename: generated.pdfFilename,
           pptxFilename: generated.pptxFilename,

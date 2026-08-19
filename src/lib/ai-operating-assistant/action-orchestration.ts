@@ -41,7 +41,11 @@ import {
   isPlatformQuestion,
   searchApplicationCatalogue,
 } from "./application-catalogue";
-import { classifyKnowledgeDomain, isBusinessStatusRead } from "./knowledge-domains";
+import {
+  classifyKnowledgeDomain,
+  isBusinessStatusRead,
+  isLiveFinancialBalanceQuestion,
+} from "./knowledge-domains";
 import { eaStage } from "./ea-forensic-trace";
 import { isEaGeneralIntentMode } from "./ea-general-mode";
 
@@ -171,8 +175,9 @@ export async function resolveOrchestrationRoute(
   // Do not override an explicit business-domain classification with catalogue hits
   // ("List our office locations" must stay live-data, not navigation copy).
   if (
-    domain.domain === "platform" ||
-    (domain.domain === "unknown" && isPlatformQuestion(message, catalogueOptions))
+    (domain.domain === "platform" ||
+      (domain.domain === "unknown" && isPlatformQuestion(message, catalogueOptions))) &&
+    !isLiveFinancialBalanceQuestion(message)
   ) {
     const answered = answerPlatformQuestion(message, catalogueOptions);
     if (answered) {

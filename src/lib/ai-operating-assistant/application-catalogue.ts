@@ -22,6 +22,7 @@ import {
   getEaWorkspacePackForSlug,
   getEaWorkspacePackNavSections,
 } from "@/lib/ai-operating-assistant/workspace-packs";
+import { isLiveFinancialBalanceQuestion } from "@/lib/ai-operating-assistant/knowledge-domains";
 
 export type ApplicationCataloguePage = {
   id: string;
@@ -618,6 +619,10 @@ export function answerPlatformQuestion(
     ) ||
     /\b(capabilities?|actions?)\s+for\b/i.test(lower)
   ) {
+    return null;
+  }
+
+  if (isLiveFinancialBalanceQuestion(text)) {
     return null;
   }
 

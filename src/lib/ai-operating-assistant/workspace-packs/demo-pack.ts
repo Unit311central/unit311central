@@ -18,6 +18,7 @@ import {
 
 import { packToolRoute } from "./orchestration-helpers";
 import type { EaWorkspacePack } from "./types";
+import { isLiveFinancialBalanceQuestion } from "@/lib/ai-operating-assistant/knowledge-domains";
 
 const DEMO_DEFAULT_PROMPTS = [
   "Why did margin fall?",
@@ -123,6 +124,16 @@ export const demoWorkspacePack: EaWorkspacePack = {
     },
   ],
   intentResolvers: [
+    ({ message }) => {
+      if (isLiveFinancialBalanceQuestion(message)) {
+        return packToolRoute({
+          tool: "getCashPosition",
+          args: {},
+          reason: "northstar_cash_balance",
+        });
+      }
+      return null;
+    },
     ({ message }) => {
       const lower = message.toLowerCase();
       if (/\bon leave|leave request|who is on leave|absence|time off|pto\b|out of office\b/.test(lower)) {

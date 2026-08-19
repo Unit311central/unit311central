@@ -24,6 +24,7 @@ import AbhiBoardPackProgress from "@/components/executive-assistant/AbhiBoardPac
 import { PlanViewer } from "@/components/executive-assistant/PlanViewer";
 import { ExecutionCardsList } from "@/components/executive-assistant/execution-cards";
 import type { EaCardAction, EaExecutionCard } from "@/lib/ai-operating-assistant/execution-cards";
+import { resolveBoardPackSummaryName } from "@/lib/ai-operating-assistant/boardpack-tools";
 import { cardsFromBoardPackSuccess } from "@/lib/ai-operating-assistant/execution-card-adapters";
 import { actionConfirmationToPlanViewer } from "@/lib/ai-operating-assistant/actions/planning/summaries";
 import type { PlanViewerModel } from "@/lib/ai-operating-assistant/actions/planning/types";
@@ -738,6 +739,7 @@ export default function ExecutiveAssistantPanel({
 
     let finalReply: string | null = null;
     let sawBoardPackTool = false;
+    let boardPackSucceeded = false;
     let sawTerminalStreamEvent = false;
     const correlationId =
       typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -809,9 +811,10 @@ export default function ExecutiveAssistantPanel({
               } else if (summary && typeof summary.packName === "string") {
                 setBoardPackProgress({ active: true, complete: true });
               }
+              const packName = resolveBoardPackSummaryName(summary);
               if (
                 summary &&
-                typeof summary.packName === "string" &&
+                packName &&
                 !summary.needsMeetingDate &&
                 typeof summary.pdfOpenUrl === "string"
               ) {
@@ -821,7 +824,8 @@ export default function ExecutiveAssistantPanel({
                 );
                 const pptxDownloadUrl = String(summary.pptxDownloadUrl ?? "");
                 const meetingDate = String(summary.meetingDate ?? "");
-                const packName = String(summary.packName);
+                boardPackSucceeded = true;
+                sawTerminalStreamEvent = true;
                 const successCards = cardsFromBoardPackSuccess({
                   packName,
                   meetingDate,
@@ -1003,6 +1007,10 @@ export default function ExecutiveAssistantPanel({
             );
           }
           if (event.type === "error") {
+            if (boardPackSucceeded) {
+              sawTerminalStreamEvent = true;
+              return;
+            }
             sawTerminalStreamEvent = true;
             console.error("[EA] Chat stream error");
             console.error(`- correlationId: ${correlationId}`);
@@ -1056,6 +1064,7 @@ export default function ExecutiveAssistantPanel({
       return finalReply;
     } catch (error) {
       if ((error as Error).name === "AbortError") return null;
+      if (boardPackSucceeded) return finalReply;
       const detail = error instanceof Error ? error.message : "Assistant unavailable";
       console.error("[EA] Chat request failed:", detail);
       setMessages((current) =>

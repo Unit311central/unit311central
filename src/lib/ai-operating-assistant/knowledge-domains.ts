@@ -34,8 +34,19 @@ const WRITE_HINT =
   /\b(create|add|register|archive|restore|activate|assign|merge|update|delete|terminate|approve|reject|cancel|book|reserve|reschedule|move|mark|qualify|chase|switch|confirm|write\s*off|approve\s+payment|signed|signing|we've\s+just\s+signed|just\s+signed|onboard|set\s*up|schedule|send|convert|close|tag|record|enrol|enroll|publish|retire|deactivate|revoke|connect|wire|remit|transfer\s+(?:funds|money|£|\$|€))\b/i;
 
 const BUSINESS_HINT =
-  /\b(show\s+(my\s+|our\s+|the\s+)?|list\s+(my\s+|our\s+|the\s+)?|how\s+many|how\s+much\s+cash|how\s+healthy|who\s+(manages|owns|is|owes|can\s+grant)|overdue|at\s+risk|biggest\s+risks|outstanding|which\s+(projects|clients|customers|modules|locations|certificates|integrations|courses|environments|tools|careers?)|clients?\b|customers?\b|employees?\b|invoices?\b|subscriptions?\b|billing\b|mrr\b|signup|quarterly\s+in\s+advance|should\s+pay|headcount|cash\s+(position|do\s+we\s+have|balance)|overloaded|workload|what\s+(has\s+)?changed|what\s+happened|miss\s+deadlines?|highest\s+overdue|summarise|summarize|attention|focus\s+on\s+today|opportunities|pipeline|behind\s+schedule|delegate|meeting\s+with|leave|overnight|since\s+yesterday|portfolio|status|quiet|joined|blocking|one-line|overview|cap\s*table|office\s+locations?|bank\s+accounts?|share\s+classes?|advisers?|advisors?|go\s*live|sign-?off|enabled|production-critical|mfa|vendor\s+sync|api\s+credentials?|security\s+brief|wordmark|sops?\b|careers?\s+listings?)\b/i;
+  /\b(show\s+(my\s+|our\s+|the\s+)?|list\s+(my\s+|our\s+|the\s+)?|how\s+many|how\s+much\s+cash|how\s+healthy|who\s+(manages|owns|is|owes|can\s+grant)|overdue|at\s+risk|biggest\s+risks|outstanding|which\s+(projects|clients|customers|modules|locations|certificates|integrations|courses|environments|tools|careers?)|clients?\b|customers?\b|employees?\b|invoices?\b|subscriptions?\b|billing\b|mrr\b|signup|quarterly\s+in\s+advance|should\s+pay|headcount|cash\s+(position|do\s+we\s+have|balance)|bank\s+balance|our\s+bank|treasury\s+balance|overloaded|workload|what\s+(has\s+)?changed|what\s+happened|miss\s+deadlines?|highest\s+overdue|summarise|summarize|attention|focus\s+on\s+today|opportunities|pipeline|behind\s+schedule|delegate|meeting\s+with|leave|overnight|since\s+yesterday|portfolio|status|quiet|joined|blocking|one-line|overview|cap\s*table|office\s+locations?|bank\s+accounts?|share\s+classes?|advisers?|advisors?|go\s*live|sign-?off|enabled|production-critical|mfa|vendor\s+sync|api\s+credentials?|security\s+brief|wordmark|sops?\b|careers?\s+listings?)\b/i;
 
+/** Live treasury/cash reads — not Application Catalogue navigation. */
+export function isLiveFinancialBalanceQuestion(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  if (!lower) return false;
+  if (/\b(bank\s+account\s+details?|list\s+bank\s+accounts?|corporate\s+bank|open\s+bank)\b/i.test(lower)) {
+    return false;
+  }
+  return /\b(bank\s+balance|cash\s+balance|how\s+much\s+cash|cash\s+do\s+we\s+have|cash\s+position|treasury\s+balance|money\s+in\s+(the\s+)?bank|our\s+bank|wise\s+balance|what\s+is\s+our\s+bank)\b/i.test(
+    lower,
+  );
+}
 /** Org rollout / enablement state — live business, not Application Catalogue. */
 export function isOrgModuleStateQuestion(message: string): boolean {
   const lower = message.toLowerCase();

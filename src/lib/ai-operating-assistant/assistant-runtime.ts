@@ -1,3 +1,4 @@
+import { resolveBoardPackSummaryName } from "./boardpack-tools";
 import {
   ensureActionModulesRegistered,
   redirectManualGuidanceToActionPlan,
@@ -829,6 +830,16 @@ function extractActiveArtifact(history: AssistantChatMessage[]) {
   return null;
 }
 
+function stripArtifactBytesForStorage(
+  message: AssistantChatMessage,
+): AssistantChatMessage {
+  if (!message.artifacts?.length) return message;
+  return {
+    ...message,
+    artifacts: message.artifacts.map(({ contentBase64: _bytes, ...artifact }) => artifact),
+  };
+}
+
 async function persistTurn(input: {
   session: PlatformSession;
   conversationId: string | null;
@@ -838,21 +849,21 @@ async function persistTurn(input: {
   context: AssistantBusinessContext;
   title: string;
 }) {
-  const assistantMessage = messageHasDurableArtifacts(input.assistantMessage)
-    ? {
+  const hasDurableArtifacts = messageHasDurableArtifacts(input.assistantMessage);
+  const assistantMessage = hasDurableArtifacts
+    ? stripArtifactBytesForStorage({
         ...input.assistantMessage,
         artifacts: enrichArtifactsFromMemory(
           input.assistantMessage.artifacts ?? [],
           input.session.sub,
         ),
-      }
+      })
     : input.assistantMessage;
   const messages = [...input.history, input.userMessage, assistantMessage];
   const title = titleFromMessages(messages);
   const localId = input.conversationId?.startsWith("local_")
     ? input.conversationId
     : `local_${createMessageId()}`;
-  const hasDurableArtifacts = messageHasDurableArtifacts(assistantMessage);
   const persistedId =
     input.conversationId &&
     !input.conversationId.startsWith("local_") &&
@@ -885,16 +896,21 @@ async function persistTurn(input: {
   // Auto-save a hidden draft when PDFs/PPTX are generated so View Pack still works
   // after switching ABHI ↔ OnwardAir (serverless cold starts, new browser tabs).
   if (hasDurableArtifacts) {
-    const created = await createConversation({
-      userId: input.session.sub,
-      workspaceId: input.context.workspace.id,
-      organisationId: input.context.organisation?.id ?? null,
-      messages,
-      workspaceContext: input.context,
-      title,
-      isSaved: false,
-    });
-    return { conversationId: created.id, title: created.title };
+    try {
+      const created = await createConversation({
+        userId: input.session.sub,
+        workspaceId: input.context.workspace.id,
+        organisationId: input.context.organisation?.id ?? null,
+        messages,
+        workspaceContext: input.context,
+        title,
+        isSaved: false,
+      });
+      return { conversationId: created.id, title: created.title };
+    } catch (error) {
+      console.error("[EA] persistTurn draft save failed — using local conversation id", error);
+      return { conversationId: localId, title };
+    }
   }
 
   return {
@@ -1300,6 +1316,7 @@ async function* runAssistantTurnInner(input: {
           ? ((result as { summary?: Record<string, unknown> }).summary ?? null)
           : null;
       const boardPackNeedsDate = Boolean(boardPackSummary?.needsMeetingDate);
+      const boardPackLabel = resolveBoardPackSummaryName(boardPackSummary);
       const boardPackCards =
         boardPackSummary && boardPackNeedsDate
           ? cardsFromBoardPackNeedsDate({
@@ -1310,10 +1327,10 @@ async function* runAssistantTurnInner(input: {
               followUpActions: turnFollowUps,
             })
           : boardPackSummary &&
-              typeof boardPackSummary.packName === "string" &&
+              boardPackLabel &&
               typeof boardPackSummary.pdfOpenUrl === "string"
             ? cardsFromBoardPackSuccess({
-                packName: String(boardPackSummary.packName),
+                packName: boardPackLabel,
                 meetingDate: String(boardPackSummary.meetingDate ?? ""),
                 status: String(boardPackSummary.status ?? "Draft"),
                 folderPath: String(
