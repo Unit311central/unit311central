@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutGrid, Plus, RotateCcw, X } from "lucide-react";
 
 import ExecutiveMyWorkspace from "@/components/central-capabilities/ExecutiveMyWorkspace";
-import NorthstarCompanyOverview from "@/components/demo/NorthstarCompanyOverview";
 
 import { WorkspaceDashboard } from "@/components/dashboard-framework";
 import PortfolioCompanyMap from "@/components/testflighthub/talanton/PortfolioCompanyMap";
@@ -206,10 +204,8 @@ export default function ExecutiveHomeDashboard() {
   const [loading, setLoading] = useState(true);
   const [layout, setLayout] = useState<ExecutiveHomeTileId[]>([...DEFAULT_EXECUTIVE_HOME_LAYOUT]);
   const [customizeOpen, setCustomizeOpen] = useState(false);
-  const [overviewOpen, setOverviewOpen] = useState(false);
   const [layoutHydrated, setLayoutHydrated] = useState(false);
   const isTalanton = typeof window !== "undefined" ? isBrowserTalantonImpactSurface() : false;
-  const isDemo = typeof window !== "undefined" ? isBrowserDemoSurface() : false;
 
   useEffect(() => {
     setLayout(loadExecutiveHomeLayout());
@@ -338,41 +334,6 @@ export default function ExecutiveHomeDashboard() {
 
   return (
     <div data-ai-target="home-tiles" className="space-y-3">
-      {isDemo ? (
-        <>
-          <button
-            type="button"
-            data-ai-target="demo-company-overview"
-            onClick={() => setOverviewOpen(true)}
-            className="block w-full rounded-2xl border border-sky-400/35 bg-gradient-to-r from-sky-950/50 to-[#121C2D] p-5 text-left transition hover:border-sky-300/50"
-          >
-            <h2 className="text-xl font-bold tracking-tight text-sky-400">Company overview</h2>
-            <p className="mt-2 text-sm text-white/60">
-              Offices, burn rate, annual revenue and cash — Northstar snapshot (opens in place).
-            </p>
-            <span className="mt-3 inline-block text-sm font-medium text-sky-300">Open overview →</span>
-          </button>
-          {overviewOpen ? (
-            <div
-              className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Company overview"
-              onClick={() => setOverviewOpen(false)}
-            >
-              <div
-                className="max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-white/10 bg-[#07111f] shadow-2xl"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <NorthstarCompanyOverview embedded onClose={() => setOverviewOpen(false)} />
-              </div>
-            </div>
-          ) : null}
-        </>
-      ) : null}
-
-      <ExecutiveMyWorkspace />
-
       <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
           Executive dashboard
@@ -466,6 +427,8 @@ export default function ExecutiveHomeDashboard() {
         loading={loading && !bundle}
         preserveSectionOrder
       />
+
+      <ExecutiveMyWorkspace />
 
       {isTalanton ? <PortfolioCompanyMap /> : null}
     </div>
