@@ -63,32 +63,9 @@ export function portalsRowBlockEnd(rows: PortalsModuleRow[], start: number): num
 }
 
 export function sanitizeNorthstarDemoPortalsContent(raw: unknown): NorthstarDemoPortalsEditableContent {
-  const fallback = defaultNorthstarDemoPortalsContent();
-  if (!raw || typeof raw !== "object") return fallback;
-  const body = raw as Partial<NorthstarDemoPortalsEditableContent>;
-
-  function cleanRows(value: unknown, prefix: string): PortalsModuleRow[] {
-    if (!Array.isArray(value)) return fallback.majorModules;
-    const rows: PortalsModuleRow[] = [];
-    for (const entry of value) {
-      if (!entry || typeof entry !== "object") continue;
-      const text = String((entry as PortalsModuleRow).text ?? "");
-      const rawIndent = (entry as PortalsModuleRow).indent;
-      const indent: PortalsIndent =
-        rawIndent === 3 ? 3 : rawIndent === 2 ? 2 : rawIndent === 1 ? 1 : 0;
-      const id =
-        typeof (entry as PortalsModuleRow).id === "string" && (entry as PortalsModuleRow).id
-          ? String((entry as PortalsModuleRow).id)
-          : newPortalsRowId(prefix);
-      rows.push({ id, text, indent });
-    }
-    return rows.length > 0 ? rows : fallback.majorModules;
-  }
-
-  const majorModules = cleanRows(body.majorModules, "m");
-
+  void raw;
   return {
-    majorModules: majorModules.length ? majorModules : loadDemoPortalsMajorModules(),
+    majorModules: loadDemoPortalsMajorModules().map((entry) => ({ ...entry })),
     customModules: [],
   };
 }

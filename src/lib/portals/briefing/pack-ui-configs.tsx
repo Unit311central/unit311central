@@ -30,8 +30,7 @@ const onwardAirBriefingUiConfig: PortalsBriefingUiConfig = {
   description: (
     <>
       Credential and capability overview for your demonstration. Sign in with{" "}
-      <span className="text-white/90">demo@onwardair.tech</span> to view, or{" "}
-      <span className="text-white/90">admin@onwardair.tech</span> to edit columns 2 and 3.
+      <span className="text-white/90">demo@onwardair.tech</span> to view the briefing.
     </>
   ),
   customModulesTitle: "OnwardAir Customised Modules",

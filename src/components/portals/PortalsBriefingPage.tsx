@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, Check, Loader2, LogOut } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUpRight, Loader2, LogOut } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   PortalsBriefingCredentialCard,
@@ -17,10 +17,6 @@ import {
   OnwardAirLogoMark,
   TalantonLogoMark,
 } from "@/lib/portals/briefing/pack-ui-configs";
-import {
-  readPortalsBriefingAdminLock,
-  writePortalsBriefingAdminLock,
-} from "@/lib/portals/briefing/admin-lock";
 import type { PortalsBriefingUiConfig } from "@/lib/portals/briefing/ui-config";
 import type { PortalsEditableContent } from "@/lib/portals/types";
 import { SITE_NAME } from "@/lib/site";
@@ -51,146 +47,46 @@ type PortalsBriefingPageBodyProps = {
 };
 
 function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
-  const [content, setContent] = useState<PortalsEditableContent>({
-    majorModules: [],
-    customModules: [],
-  });
-  const [canEdit, setCanEdit] = useState(false);
+  const [content, setContent] = useState<PortalsEditableContent>(() => config.defaultContent());
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-  const dirtyRef = useRef(false);
-  const adminLockRef = useRef(false);
-  const contentRef = useRef(content);
-  contentRef.current = content;
 
-  useEffect(() => {
-    if (!readPortalsBriefingAdminLock(config.workspaceSlug)) return;
-    adminLockRef.current = true;
-    setCanEdit(true);
-  }, [config.workspaceSlug]);
-
-  const applyContent = useCallback((next: PortalsEditableContent, markDirty: boolean) => {
-    if (markDirty) dirtyRef.current = true;
-    setContent(next);
-  }, []);
-
-  const loadContent = useCallback(
-    async (options?: { silent?: boolean }) => {
-      const silent = options?.silent ?? false;
-      if (!silent) {
-        setLoading(true);
-        setLoadError(null);
+  const loadContent = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const response = await fetch(BRIEFING_CONTENT_API, {
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      if (response.status === 401) {
+        window.location.assign(config.loginRedirectOnAuthFailure);
+        return;
       }
-      try {
-        const response = await fetch(BRIEFING_CONTENT_API, {
-          cache: "no-store",
-          credentials: "same-origin",
-          headers: { Accept: "application/json" },
-        });
-        if (response.status === 401) {
-          if (!silent && !adminLockRef.current) {
-            window.location.assign(config.loginRedirectOnAuthFailure);
-          }
-          return;
-        }
-        const data = (await response.json()) as {
-          content?: PortalsEditableContent;
-          canEdit?: boolean;
-          username?: string;
-          error?: string;
-        };
-        if (!response.ok) throw new Error(data.error ?? "Failed to load portals content");
-        if (data.content && !dirtyRef.current) {
-          setContent(data.content);
-        }
-        const nextCanEdit = Boolean(data.canEdit) || adminLockRef.current;
-        if (nextCanEdit) {
-          adminLockRef.current = true;
-          writePortalsBriefingAdminLock(config.workspaceSlug, true);
-        }
-        setCanEdit(nextCanEdit);
-        if (data.username) setUsername(data.username);
-      } catch (error) {
-        if (!silent) {
-          setLoadError(error instanceof Error ? error.message : "Failed to load");
-        }
-      } finally {
-        if (!silent) setLoading(false);
-        setReady(true);
+      const data = (await response.json()) as {
+        content?: PortalsEditableContent;
+        username?: string;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error ?? "Failed to load portals content");
+      if (data.content) {
+        setContent(data.content);
       }
-    },
-    [config.loginRedirectOnAuthFailure, config.workspaceSlug],
-  );
+      if (data.username) setUsername(data.username);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Failed to load");
+    } finally {
+      setLoading(false);
+    }
+  }, [config.loginRedirectOnAuthFailure]);
 
   useEffect(() => {
     void loadContent();
   }, [loadContent]);
 
-  useEffect(() => {
-    if (!ready || canEdit || adminLockRef.current) return;
-    const timer = window.setInterval(() => {
-      if (dirtyRef.current || saving || adminLockRef.current) return;
-      void loadContent({ silent: true });
-    }, 4000);
-    return () => window.clearInterval(timer);
-  }, [ready, canEdit, saving, loadContent]);
-
-  const saveContent = useCallback(
-    async (payload?: PortalsEditableContent) => {
-      if (!canEdit && !adminLockRef.current) return;
-      const body = payload ?? contentRef.current;
-      dirtyRef.current = false;
-      setSaving(true);
-      setSaveMessage("Saving…");
-      try {
-        const response = await fetch(BRIEFING_CONTENT_API, {
-          method: "PUT",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ content: body }),
-        });
-        const data = (await response.json()) as {
-          content?: PortalsEditableContent;
-          error?: string;
-        };
-        if (!response.ok) {
-          dirtyRef.current = true;
-          throw new Error(data.error ?? "Save failed");
-        }
-        if (data.content && !dirtyRef.current) {
-          setContent(data.content);
-        }
-        setSaveMessage("Saved");
-        window.setTimeout(() => setSaveMessage(null), 2000);
-      } catch (error) {
-        setSaveMessage(error instanceof Error ? error.message : "Save failed");
-      } finally {
-        setSaving(false);
-      }
-    },
-    [canEdit],
-  );
-
-  useEffect(() => {
-    if (!canEdit || !ready || !dirtyRef.current) return;
-    const hasBlankDraft =
-      content.majorModules.some((row) => !row.text.trim()) ||
-      (config.showCustomModulesColumn !== false &&
-        content.customModules.some((row) => !row.text.trim()));
-    if (hasBlankDraft) return;
-    const timer = window.setTimeout(() => {
-      void saveContent(content);
-    }, 900);
-    return () => window.clearTimeout(timer);
-  }, [content, canEdit, ready, saveContent]);
-
   async function handleLogout() {
-    adminLockRef.current = false;
-    writePortalsBriefingAdminLock(config.workspaceSlug, false);
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
@@ -205,46 +101,24 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
   }
 
   function renderHeader() {
-    const editControls = canEdit ? (
-      <>
-        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-100 sm:min-h-0">
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-          <span className="hidden sm:inline">{saveMessage ?? "Auto-save on"}</span>
-          <span className="sm:hidden">{saving ? "Saving…" : "Saved"}</span>
-        </span>
-        <button
-          type="button"
-          onClick={() => void saveContent()}
-          disabled={saving}
-          className="inline-flex min-h-11 touch-manipulation items-center gap-1.5 rounded-lg border border-sky-400/40 bg-sky-500/20 px-3 py-1.5 text-[11px] font-semibold text-sky-50 hover:bg-sky-500/30 disabled:opacity-50 sm:min-h-0"
-        >
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-          Save
-        </button>
-      </>
-    ) : null;
-
     if (config.headerLayout === "abhi") {
       return (
         <header className="relative flex items-center justify-between gap-4">
           <Link href="https://abhi.unit311central.com" className="shrink-0" aria-label="ABHI">
             <AbhiLogoMark height={36} tone="onDark" priority />
           </Link>
-          <div className="flex items-center gap-3">
-            {editControls}
-            <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
-              <div className="relative h-9 w-[160px] sm:h-10 sm:w-[190px]">
-                <Image
-                  src={UNIT311_LOGO}
-                  alt={SITE_NAME}
-                  fill
-                  priority
-                  sizes="190px"
-                  className="object-contain object-right drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
-                />
-              </div>
-            </Link>
-          </div>
+          <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
+            <div className="relative h-9 w-[160px] sm:h-10 sm:w-[190px]">
+              <Image
+                src={UNIT311_LOGO}
+                alt={SITE_NAME}
+                fill
+                priority
+                sizes="190px"
+                className="object-contain object-right drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+              />
+            </div>
+          </Link>
         </header>
       );
     }
@@ -264,10 +138,7 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
               />
             </div>
           </Link>
-          <div className="flex items-center gap-3">
-            {editControls}
-            <TalantonLogoMark height={36} />
-          </div>
+          <TalantonLogoMark height={36} />
         </header>
       );
     }
@@ -278,21 +149,18 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
           <Link href="https://demo.unit311central.com" className="shrink-0" aria-label="Northstar">
             <NorthstarLogoMark height={36} />
           </Link>
-          <div className="flex items-center gap-3">
-            {editControls}
-            <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
-              <div className="relative h-9 w-[160px] sm:h-10 sm:w-[190px]">
-                <Image
-                  src={UNIT311_LOGO}
-                  alt={SITE_NAME}
-                  fill
-                  priority
-                  sizes="190px"
-                  className="object-contain object-right drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
-                />
-              </div>
-            </Link>
-          </div>
+          <Link href="https://unit311central.com" className="shrink-0" aria-label={SITE_NAME}>
+            <div className="relative h-9 w-[160px] sm:h-10 sm:w-[190px]">
+              <Image
+                src={UNIT311_LOGO}
+                alt={SITE_NAME}
+                fill
+                priority
+                sizes="190px"
+                className="object-contain object-right drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+              />
+            </div>
+          </Link>
         </header>
       );
     }
@@ -315,7 +183,6 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
           {config.showUsernameInHeader && username ? (
             <p className="hidden max-w-[10rem] truncate text-[11px] text-white/50 md:block">{username}</p>
           ) : null}
-          {editControls}
           {config.showLogoutInHeader ? (
             <button
               type="button"
@@ -358,13 +225,6 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
           <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-white/65 sm:text-[15px]">
             {config.description}
           </p>
-          {canEdit ? (
-            <p className="mt-2 text-[12px] text-emerald-200/80">
-              Admin edit mode — use Save or wait for auto-save. Nested rows support sub-rows and
-              sub-sub-rows.
-              {saveMessage ? ` ${saveMessage}` : ""}
-            </p>
-          ) : null}
           {loadError ? <p className="mt-2 text-[12px] text-rose-200">{loadError}</p> : null}
         </section>
 
@@ -398,12 +258,10 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
               <div className="mt-3 flex h-full flex-col rounded-2xl border border-white/12 bg-white/[0.04] p-4 backdrop-blur-md">
                 <PortalsBriefingEditableRows
                   rows={content.majorModules}
-                  canEdit={canEdit}
+                  canEdit={false}
                   accent="sky"
                   collapsible
-                  onChange={(majorModules) =>
-                    applyContent({ ...contentRef.current, majorModules }, true)
-                  }
+                  onChange={() => {}}
                 />
               </div>
             </section>
@@ -418,11 +276,9 @@ function PortalsBriefingPageBody({ config }: PortalsBriefingPageBodyProps) {
                 <div className="mt-3 flex h-full flex-col rounded-2xl border border-[#C2185B]/25 bg-gradient-to-b from-[#C2185B]/12 to-white/[0.03] p-4 backdrop-blur-md">
                   <PortalsBriefingEditableRows
                     rows={content.customModules}
-                    canEdit={canEdit}
+                    canEdit={false}
                     accent="pink"
-                    onChange={(customModules) =>
-                      applyContent({ ...contentRef.current, customModules }, true)
-                    }
+                    onChange={() => {}}
                   />
                 </div>
               </section>

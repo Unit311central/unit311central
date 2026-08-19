@@ -50,7 +50,6 @@ export async function handleGetPortalsBriefingContent(
   return portalsJson(
     {
       content,
-      canEdit: pack.briefing.isAdminUsername(session.username),
       username: session.username,
     },
     { request, refreshView: true },
