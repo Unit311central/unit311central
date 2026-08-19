@@ -48,6 +48,10 @@ import {
 } from "./knowledge-domains";
 import { eaStage } from "./ea-forensic-trace";
 import { isEaGeneralIntentMode } from "./ea-general-mode";
+import {
+  normalizeEaMessage,
+  resolveReadCapability,
+} from "./capabilities";
 
 export { formatActionSuccess, formatPlanReadyMessage };
 /** @deprecated Prefer formatActionSuccess */
@@ -102,6 +106,43 @@ export async function resolveOrchestrationRoute(
   business: AssistantBusinessContext,
 ): Promise<OrchestrationRoute> {
   ensureActionModulesRegistered();
+
+  // CENTRAL READ CAPABILITIES — deterministic path before workspace-specific resolvers.
+  {
+    const capResult = resolveReadCapability(message, business);
+    if (capResult && "denied" in capResult) {
+      eaStage("Read capability denied", {
+        reason: capResult.reason,
+        message: capResult.message,
+      });
+      return { kind: "capability_answer", message: capResult.message };
+    }
+    if (capResult) {
+      const cap = capResult.capability;
+      eaStage("Read capability matched", {
+        capabilityId: cap.id,
+        module: cap.module,
+        submodule: cap.submodule,
+        score: capResult.score,
+        tool: cap.tool,
+      });
+      return {
+        kind: "tool",
+        intent: {
+          tool: cap.tool as DirectAssistantIntent["tool"],
+          args: cap.buildArgs({
+            message,
+            normalized: normalizeEaMessage(message),
+            business,
+          }),
+          reason: `capability:${cap.id}`,
+        },
+        capabilityId: cap.id,
+        deterministic: cap.deterministic,
+        skipSynthesis: cap.skipSynthesis,
+      };
+    }
+  }
 
   // Meeting invite follow-up: emails after "Meeting created — please give me…"
   {

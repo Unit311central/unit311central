@@ -45,6 +45,8 @@ import {
   shouldSynthesizeExecutiveToolResult,
 } from "./ea-llm-synthesis";
 import { classifyKnowledgeDomain } from "./knowledge-domains";
+import { getReadCapability } from "./capabilities/read-registry";
+import { recordEaExecutionTelemetry } from "./capabilities/execution-telemetry";
 
 type EasyInputMessage = {
   role: "user" | "assistant" | "system" | "developer";
@@ -1191,6 +1193,14 @@ async function* runAssistantTurnInner(input: {
         "extracted input": null,
         kind: "none",
       });
+      recordEaExecutionTelemetry({
+        path: "gpt_terra",
+        workspaceSlug: context.workspace.slug,
+        workspaceId: context.workspace.id,
+        userId: input.session.sub,
+        escalationReason: "no_deterministic_capability_match",
+        gptCallCount: 1,
+      });
       eaStop("Intent resolved", "no executable business action matched — continuing to model tools", {
         message,
       });
@@ -1263,6 +1273,10 @@ async function* runAssistantTurnInner(input: {
       turnFollowUps = extracted.followUps;
       turnArtifacts = extracted.artifacts;
 
+      let capabilityFormatted: ReturnType<
+        NonNullable<ReturnType<typeof getReadCapability>>["formatAnswer"]
+      > | null = null;
+
       if (
         (directIntent.tool === "proposeBusinessActionPlan" ||
           directIntent.tool === "planBusinessGoal") &&
@@ -1310,6 +1324,41 @@ async function* runAssistantTurnInner(input: {
           extracted.errorText ??
           extracted.successText ??
           "Done.";
+      }
+
+      if (route.capabilityId) {
+        const cap = getReadCapability(route.capabilityId);
+        if (cap) {
+          capabilityFormatted = cap.formatAnswer(result as import("./tool-result").AssistantToolResult, {
+            message,
+            business: context,
+          });
+          if (capabilityFormatted?.text) {
+            assistantText = capabilityFormatted.text;
+          }
+          if (route.deterministic) {
+            const blocks = capabilityFormatted?.blocks;
+            recordEaExecutionTelemetry({
+              path: "deterministic",
+              capabilityId: route.capabilityId,
+              tool: directIntent.tool,
+              module: cap.module,
+              workspaceSlug: context.workspace.slug,
+              workspaceId: context.workspace.id,
+              userId: input.session.sub,
+              responseType: blocks?.some(
+                (b) => b.type === "line_chart" || b.type === "bar_chart" || b.type === "pie_chart",
+              )
+                ? "chart"
+                : blocks?.some((b) => b.type === "table")
+                  ? "table"
+                  : blocks?.some((b) => b.type === "kpi")
+                    ? "kpi"
+                    : "text",
+              gptCallCount: 0,
+            });
+          }
+        }
       }
       const boardPackSummary =
         directIntent.tool === "boardpack.generate"
@@ -1366,7 +1415,11 @@ async function* runAssistantTurnInner(input: {
       };
 
       const synthesizeExecutive =
-        shouldSynthesizeExecutiveToolResult(synthesisCtx) && !extracted.errorText;
+        !route.skipSynthesis &&
+        shouldSynthesizeExecutiveToolResult(synthesisCtx) &&
+        !extracted.errorText;
+
+      const capabilityBlocks = capabilityFormatted?.blocks;
 
       if (synthesizeExecutive) {
         inputItems = [
@@ -1394,6 +1447,7 @@ async function* runAssistantTurnInner(input: {
         followUpActions: turnFollowUps.length > 0 ? turnFollowUps : undefined,
         artifacts: turnArtifacts.length > 0 ? turnArtifacts : undefined,
         executionCards: executionCards.length > 0 ? executionCards : undefined,
+        responseBlocks: capabilityBlocks?.length ? capabilityBlocks : undefined,
       };
 
       const saved = await persistTurn({

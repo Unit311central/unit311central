@@ -6,6 +6,10 @@ export type OrchestrationRoute =
       kind: "tool";
       intent: DirectAssistantIntent;
       executionCards?: EaExecutionCard[];
+      /** Central read capability — when set, runtime skips GPT-Terra if deterministic */
+      capabilityId?: string;
+      deterministic?: boolean;
+      skipSynthesis?: boolean;
     }
   | {
       kind: "need_info";

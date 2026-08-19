@@ -23,6 +23,7 @@ import type { AiExplanation } from "@/lib/ai-operating-assistant/explainability"
 import AbhiBoardPackProgress from "@/components/executive-assistant/AbhiBoardPackProgress";
 import { PlanViewer } from "@/components/executive-assistant/PlanViewer";
 import { ExecutionCardsList } from "@/components/executive-assistant/execution-cards";
+import EaResponseBlocks from "@/components/executive-assistant/EaResponseBlocks";
 import type { EaCardAction, EaExecutionCard } from "@/lib/ai-operating-assistant/execution-cards";
 import { resolveBoardPackSummaryName } from "@/lib/ai-operating-assistant/boardpack-summary";
 import { cardsFromBoardPackSuccess } from "@/lib/ai-operating-assistant/execution-card-adapters";
@@ -1394,6 +1395,9 @@ export default function ExecutiveAssistantPanel({
                   {entry.content || (sending ? "…" : "")}
                 </p>
               )}
+              {entry.role === "assistant" && entry.responseBlocks?.length ? (
+                <EaResponseBlocks blocks={entry.responseBlocks} />
+              ) : null}
               {entry.role === "assistant" && entry.executionCards?.length ? (
                 <div className="space-y-2.5">
                   {entry.content?.trim() ? (

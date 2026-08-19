@@ -5,7 +5,6 @@
 import "server-only";
 
 import { resolveOrchestrationRoute } from "@/lib/ai-operating-assistant/action-orchestration";
-import { resolveNorthstarEaDataRoute } from "@/lib/demo/northstar-ea-route-resolver";
 import { executeAssistantTool } from "@/lib/ai-operating-assistant/tool-service";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import type { NorthstarEaTestQuestion } from "@/lib/demo/ea-module-test-bank";
@@ -49,36 +48,29 @@ export async function runNorthstarEaTestQuestion(
 ): Promise<NorthstarEaQuestionResult> {
   const t0 = Date.now();
   try {
-    const deterministic = resolveNorthstarEaDataRoute(question.prompt);
+    const route = await resolveOrchestrationRoute(question.prompt, [], business);
     let tool: string | undefined;
     let args: Record<string, unknown> = {};
-    let routeKind = "deterministic";
+    let routeKind = route.kind;
 
-    if (deterministic) {
-      tool = deterministic.tool;
-      args = deterministic.args;
+    if (route.kind === "tool") {
+      tool = route.intent.tool;
+      args = (route.intent.args ?? {}) as Record<string, unknown>;
       if (question.viewId) args.viewId = question.viewId;
       if (question.subModuleLabel) args.pageLabel = question.subModuleLabel;
+    } else if (route.kind === "platform_answer" || route.kind === "capability_answer") {
+      return {
+        id: question.id,
+        prompt: question.prompt,
+        moduleLabel: question.moduleLabel,
+        subModuleLabel: question.subModuleLabel,
+        status: "pass",
+        routeKind: route.kind,
+        summary: "Catalogue/capability answer",
+        durationMs: Date.now() - t0,
+      };
     } else {
-      const route = await resolveOrchestrationRoute(question.prompt, [], business);
-      routeKind = route.kind;
-      if (route.kind === "tool") {
-        tool = route.intent.tool;
-        args = (route.intent.args ?? {}) as Record<string, unknown>;
-      } else if (route.kind === "platform_answer" || route.kind === "capability_answer") {
-        return {
-          id: question.id,
-          prompt: question.prompt,
-          moduleLabel: question.moduleLabel,
-          subModuleLabel: question.subModuleLabel,
-          status: "pass",
-          routeKind: route.kind,
-          summary: "Catalogue/capability answer",
-          durationMs: Date.now() - t0,
-        };
-      } else {
-        throw new Error(`No tool route (${route.kind})`);
-      }
+      throw new Error(`No tool route (${route.kind})`);
     }
 
     if (!tool) throw new Error("No tool resolved");
