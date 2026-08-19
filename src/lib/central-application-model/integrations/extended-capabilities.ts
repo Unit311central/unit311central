@@ -75,7 +75,8 @@ export const EXTENDED_SEMANTIC_CAPABILITIES: EaSemanticCapabilityBinding[] = [
     skipSynthesis: true,
     formatAnswer(result) {
       const items = (result as { items?: unknown[] }).items ?? [];
-      const count = items.length;
+      const summary = (result as { summary?: { matched?: number; totalClients?: number } }).summary;
+      const count = summary?.totalClients ?? summary?.matched ?? items.length;
       return {
         text: `You have ${count} client${count === 1 ? "" : "s"} in your workspace.`,
         blocks: [

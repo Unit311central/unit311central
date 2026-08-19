@@ -17,7 +17,10 @@ export type AssistantWorkspaceScope = {
 
 async function isDemoWorkspace(scope?: AssistantWorkspaceScope): Promise<boolean> {
   const { isDemoWorkspaceSlug } = await import("@/lib/demo/read-only");
-  return isDemoWorkspaceSlug(scope?.workspaceSlug);
+  const slug = String(scope?.workspaceSlug ?? "").trim().toLowerCase();
+  if (isDemoWorkspaceSlug(slug)) return true;
+  const id = String(scope?.workspaceId ?? "").trim().toLowerCase();
+  return id === "ws-demo" || id === "demo-workspace";
 }
 
 export async function listLeadsForAssistant(

@@ -34,7 +34,7 @@ const PROBES = [
   { group: "permissions", id: "perm-cross-ws", prompt: "Show me Talanton's clients.", kind: "denied" },
   { group: "cliFailures", id: "overdue-inv", prompt: "List overdue invoices.", kind: "data", expectCap: "finance.invoices.overdue.read", expectData: /overdue|outstanding|£/i },
   { group: "cliFailures", id: "crm-pipeline", prompt: "What is our CRM pipeline value?", kind: "data", expectCap: "crm.pipeline.summary.read", expectData: /pipeline|£|opportunit/i },
-  { group: "cliFailures", id: "client-count", prompt: "How many clients do we have?", kind: "data", expectCap: "crm.clients.count.read", expectData: /\b(100|[1-9]\d+)\b/ },
+  { group: "cliFailures", id: "client-count", prompt: "How many clients do we have?", kind: "data", expectCap: "crm.clients.count.read", expectData: /\b([1-9]\d*)\b/ },
   { group: "cliFailures", id: "project-count", prompt: "How many projects do we have?", kind: "data", expectCap: "project-management.projects.count.read", expectData: /\b[1-9]\d*\b/ },
   { group: "isolation", id: "iso-demo-bank", prompt: "What is our bank balance?", kind: "data", workspaceSlug: "demo", expectCap: "financials.cashPosition.read", expectData: /£[\d,]+/ },
   { group: "isolation", id: "iso-demo-headcount", prompt: "How many employees?", kind: "data", workspaceSlug: "demo", expectCap: "hr.employees.count.read", expectData: /\b25\b/ },
