@@ -24,9 +24,37 @@ export async function POST(request: NextRequest) {
   const denied = await assertDemoEaAccess();
   if (denied) return denied;
 
-  const body = (await request.json()) as { questionId: string };
+  const body = (await request.json()) as {
+    questionId?: string;
+    prompt?: string;
+    kind?: EaAcceptanceQuestionKind;
+    expectCapabilityId?: string;
+  };
+
+  if (body.prompt?.trim()) {
+    const execution = await executeEaAcceptanceCase(
+      {
+        id: `probe-${Date.now()}`,
+        prompt: body.prompt.trim(),
+        kind: body.kind ?? "data",
+        expectCapabilityId: body.expectCapabilityId,
+      },
+      demoEaTestBusiness(),
+      { executeTools: true },
+    );
+    return NextResponse.json(execution, { headers: DEMO_EA_NO_STORE_HEADERS });
+  }
+
+  const questionId = body.questionId;
+  if (!questionId) {
+    return NextResponse.json(
+      { error: "questionId or prompt is required" },
+      { status: 400, headers: DEMO_EA_NO_STORE_HEADERS },
+    );
+  }
+
   const bank = buildNorthstarEaTestBank();
-  const question = bank.flatMap((s) => s.questions).find((q) => q.id === body.questionId);
+  const question = bank.flatMap((s) => s.questions).find((q) => q.id === questionId);
   if (!question) {
     return NextResponse.json({ error: "Unknown question id" }, { status: 404, headers: DEMO_EA_NO_STORE_HEADERS });
   }

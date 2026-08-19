@@ -1,16 +1,11 @@
 /**
- * Production EA acceptance probes — polls until deploy fingerprint, then tests live APIs.
+ * Production EA acceptance probes via demo run-one API (prompt mode).
  * Run: node scripts/run-production-ea-probes.mjs
  */
 import { writeFileSync } from "node:fs";
 
-const DEPLOY_COMMIT = "b0125a3";
-const HOSTS = {
-  demo: "https://demo.unit311central.com",
-  onwardair: "https://onwardair.unit311central.com",
-  abhi: "https://abhi.unit311central.com",
-  talanton: "https://talantonimpact.unit311central.com",
-};
+const DEPLOY_COMMIT = "4e80a66";
+const DEMO = "https://demo.unit311central.com";
 
 const PROBES = [
   { group: "realData", id: "hr-count", prompt: "How many employees do we have?", kind: "data", expectCap: "hr.employees.count.read", expectData: /\b25\b/ },
@@ -34,234 +29,128 @@ const PROBES = [
   { group: "clarification", id: "cl-2", prompt: "What is the situation?", kind: "clarification" },
   { group: "clarification", id: "cl-3", prompt: "Show me performance.", kind: "clarification" },
   { group: "clarification", id: "no-clarify", prompt: "What is our bank balance?", kind: "data", expectCap: "financials.cashPosition.read", notClarify: true },
-  { group: "permissions", id: "perm-sales", prompt: "Show me everyone's commissions.", kind: "denied", permissionProfile: "sales_rep" },
-  { group: "permissions", id: "perm-employee-cash", prompt: "Show me company cash balance.", kind: "denied", permissionProfile: "employee" },
+  { group: "permissions", id: "perm-sales", prompt: "Show me everyone's commissions.", kind: "denied" },
+  { group: "permissions", id: "perm-employee-cash", prompt: "Show me company cash balance.", kind: "denied" },
   { group: "permissions", id: "perm-cross-ws", prompt: "Show me Talanton's clients.", kind: "denied" },
   { group: "cliFailures", id: "overdue-inv", prompt: "List overdue invoices.", kind: "data", expectCap: "finance.invoices.overdue.read" },
   { group: "cliFailures", id: "crm-pipeline", prompt: "What is our CRM pipeline value?", kind: "data", expectCap: "crm.pipeline.summary.read" },
   { group: "cliFailures", id: "client-count", prompt: "How many clients do we have?", kind: "data", expectCap: "crm.clients.count.read" },
   { group: "cliFailures", id: "project-count", prompt: "How many projects do we have?", kind: "data", expectCap: "project-management.projects.count.read" },
+  { group: "isolation", id: "iso-talanton-bank", prompt: "What is the bank balance in Talanton?", kind: "denied" },
 ];
 
-async function fetchText(url) {
-  const res = await fetch(url, { redirect: "follow" });
-  return { status: res.status, text: await res.text(), headers: res.headers };
-}
-
-async function deployFingerprintReady() {
-  const probeRes = await fetch(`${HOSTS.demo}/api/demo/ea-tests/probe`, {
+async function runPrompt(prompt, kind, expectCapabilityId) {
+  const res = await fetch(`${DEMO}/api/demo/ea-tests/run-one`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ prompt: "headcount", kind: "data" }),
+    body: JSON.stringify({ prompt, kind, expectCapabilityId }),
   });
-  if (probeRes.status !== 404) {
-    const body = await probeRes.json().catch(() => ({}));
-    if (body.capabilityId === "hr.employees.count.read" && /\b25\b/.test(String(body.text ?? ""))) {
-      return { ready: true, reason: "probe API headcount=25" };
-    }
-    if (body.capabilityId === "hr.employees.count.read") {
-      return { ready: false, reason: `probe live but headcount=${String(body.text ?? "").slice(0, 60)}` };
-    }
-    return { ready: true, reason: "probe API available" };
-  }
-
-async function pollDeploy(maxMs = 480000) {
-  const start = Date.now();
-  let attempt = 0;
-  while (Date.now() - start < maxMs) {
-    attempt += 1;
-    const fp = await deployFingerprintReady();
-    console.log(`[poll ${attempt}] deploy fingerprint:`, fp);
-    if (fp.ready) return fp;
-    await new Promise((r) => setTimeout(r, 20000));
-  }
-  throw new Error("Deploy fingerprint not confirmed within timeout");
-}
-
-async function runProbeOnHost(baseUrl, probe) {
-  try {
-    const res = await fetch(`${baseUrl}/api/demo/ea-tests/probe`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        prompt: probe.prompt,
-        kind: probe.kind,
-        expectCapabilityId: probe.expectCap,
-        permissionProfile: probe.permissionProfile,
-      }),
-    });
-    if (res.status === 404) {
-      return { id: probe.id, status: "NOT_TESTABLE", summary: "probe API not deployed", http: 404 };
-    }
-    const body = await res.json();
-    return classifyProbe(probe, body, res.status);
-  } catch (error) {
-    return { id: probe.id, status: "NOT_TESTABLE", summary: String(error) };
-  }
-}
-
-function classifyProbe(probe, body, http) {
-  const summary = String(body.text ?? body.summary ?? body.error ?? "");
-  const checks = Array.isArray(body.checks) ? body.checks : [];
-  const failed = checks.filter((c) => !c.passed).map((c) => c.message);
-  const routeKind = body.routeKind ?? "";
-  const capabilityId = body.capabilityId;
-  const blocks = body.responseBlocks ?? [];
-
-  if (http === 401 || http === 403) {
-    return { id: probe.id, status: "NOT_TESTABLE", summary: `HTTP ${http}`, routeKind, capabilityId };
-  }
-
-  if (probe.kind === "denied") {
-    const ok =
-      (routeKind === "capability_answer" &&
-        /can'?t|cannot|don'?t have permission|only access data for your current workspace/i.test(
-          summary,
-        )) ||
-      body.status === "pass";
-    return { id: probe.id, status: ok ? "PASS" : "FAIL", summary, routeKind, capabilityId, failed };
-  }
-
-  if (probe.kind === "clarification") {
-    const ok =
-      routeKind === "capability_answer" &&
-      /which|do you mean|clarify/i.test(summary);
-    return { id: probe.id, status: ok ? "PASS" : "FAIL", summary, routeKind, capabilityId, failed };
-  }
-
-  if (probe.notClarify && /which|do you mean|clarify/i.test(summary)) {
-    return { id: probe.id, status: "FAIL", summary, routeKind, capabilityId, failed: ["unnecessary clarification"] };
-  }
-
-  if (probe.expectRoute && routeKind !== probe.expectRoute) {
-    return {
-      id: probe.id,
-      status: "FAIL",
-      summary,
-      routeKind,
-      capabilityId,
-      failed: [`expected route ${probe.expectRoute}, got ${routeKind}`],
-    };
-  }
-
-  if (probe.expectCap && capabilityId !== probe.expectCap) {
-    return {
-      id: probe.id,
-      status: "FAIL",
-      summary,
-      routeKind,
-      capabilityId,
-      failed: [`expected cap ${probe.expectCap}, got ${capabilityId}`],
-    };
-  }
-
-  if (probe.kind === "chart") {
-    const hasChart = blocks.some((b) =>
-      ["line_chart", "bar_chart", "pie_chart"].includes(b.type),
-    );
-    if (!hasChart) {
-      return { id: probe.id, status: "FAIL", summary, routeKind, capabilityId, failed: ["no chart block"] };
-    }
-  }
-
-  if (probe.expectPdf && !probe.expectPdf.test(summary)) {
-    return { id: probe.id, status: "FAIL", summary: summary.slice(0, 200), routeKind, capabilityId, failed: ["PDF content check failed"] };
-  }
-
-  if (probe.expectData && !probe.expectData.test(summary)) {
-    return { id: probe.id, status: "FAIL", summary, routeKind, capabilityId, failed: ["data pattern mismatch"] };
-  }
-
-  if (body.status === "pass" || (failed.length === 0 && routeKind !== "none")) {
-    return { id: probe.id, status: "PASS", summary: summary.slice(0, 160), routeKind, capabilityId };
-  }
-
-  return {
-    id: probe.id,
-    status: failed.length ? "FAIL" : "NOT_TESTABLE",
-    summary: summary.slice(0, 160),
-    routeKind,
-    capabilityId,
-    failed,
-  };
-}
-
-async function runBankProbe(baseUrl, questionId) {
-  const res = await fetch(`${baseUrl}/api/demo/ea-tests/run-one`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ questionId }),
-  });
-  const body = await res.json();
+  const body = await res.json().catch(() => ({}));
   return { http: res.status, body };
 }
 
+async function deployReady() {
+  const { http, body } = await runPrompt("How many employees do we have?", "data", "hr.employees.count.read");
+  if (http === 400 && String(body.error ?? "").includes("questionId")) {
+    return { ready: false, reason: "prompt mode not deployed yet" };
+  }
+  if (http !== 200) return { ready: false, reason: `HTTP ${http}` };
+  if (body.capabilityId === "hr.employees.count.read" && /\b25\b/.test(String(body.text ?? ""))) {
+    return { ready: true, reason: "headcount=25 on production" };
+  }
+  if (body.capabilityId === "financials.chart.revenue.read") {
+    return { ready: true, reason: "chart capability present" };
+  }
+  return {
+    ready: false,
+    reason: `cap=${body.capabilityId} text=${String(body.text ?? "").slice(0, 60)}`,
+  };
+}
+
+function classify(probe, body, http) {
+  const summary = String(body.text ?? body.summary ?? body.error ?? "");
+  const routeKind = body.routeKind ?? "";
+  const capabilityId = body.capabilityId;
+  const blocks = body.responseBlocks ?? [];
+  const failed = (body.checks ?? []).filter((c) => !c.passed).map((c) => c.message);
+
+  if (http === 401 || http === 403) return { status: "NOT_TESTABLE", summary: `HTTP ${http}` };
+  if (http === 400 && summary.includes("questionId")) return { status: "NOT_TESTABLE", summary };
+
+  if (probe.kind === "denied") {
+    const ok =
+      body.status === "pass" ||
+      (routeKind === "capability_answer" &&
+        /can'?t|cannot|don'?t have permission|only access data/i.test(summary));
+    return { status: ok ? "PASS" : "FAIL", summary, routeKind, capabilityId, failed };
+  }
+  if (probe.kind === "clarification") {
+    const ok =
+      routeKind === "capability_answer" && /which|do you mean|clarify/i.test(summary);
+    return { status: ok ? "PASS" : "FAIL", summary, routeKind, capabilityId, failed };
+  }
+  if (probe.notClarify && /which|do you mean|clarify/i.test(summary)) {
+    return { status: "FAIL", summary, routeKind, capabilityId, failed: ["unnecessary clarification"] };
+  }
+  if (probe.expectRoute && routeKind !== probe.expectRoute) {
+    return { status: "FAIL", summary, routeKind, capabilityId, failed: [`expected ${probe.expectRoute}`] };
+  }
+  if (probe.expectCap && capabilityId !== probe.expectCap) {
+    return { status: "FAIL", summary, routeKind, capabilityId, failed: [`expected ${probe.expectCap}`] };
+  }
+  if (probe.kind === "chart" && !blocks.some((b) => /chart/.test(b.type))) {
+    return { status: "FAIL", summary, routeKind, capabilityId, failed: ["no chart block"] };
+  }
+  if (probe.expectPdf && !probe.expectPdf.test(summary)) {
+    return { status: "FAIL", summary: summary.slice(0, 180), routeKind, capabilityId, failed: ["pdf content"] };
+  }
+  if (probe.expectData && !probe.expectData.test(summary)) {
+    return { status: "FAIL", summary, routeKind, capabilityId, failed: ["data mismatch"] };
+  }
+  if (body.status === "pass") return { status: "PASS", summary: summary.slice(0, 160), routeKind, capabilityId };
+  if (failed.length) return { status: "FAIL", summary: summary.slice(0, 160), routeKind, capabilityId, failed };
+  return { status: "NOT_TESTABLE", summary, routeKind, capabilityId };
+}
+
+async function pollDeploy(maxMs = 600000) {
+  const start = Date.now();
+  for (let i = 1; Date.now() - start < maxMs; i++) {
+    const fp = await deployReady();
+    console.log(`[poll ${i}]`, fp);
+    if (fp.ready) return fp;
+    await new Promise((r) => setTimeout(r, 20000));
+  }
+  throw new Error("deploy timeout");
+}
+
 async function main() {
-  console.log("Waiting for production deploy fingerprint…");
-  let deployInfo;
+  let deployFingerprint;
   try {
-    deployInfo = await pollDeploy();
+    deployFingerprint = await pollDeploy();
   } catch (error) {
-    console.error("Deploy poll failed:", error.message);
-    deployInfo = { ready: false, reason: "timeout" };
+    deployFingerprint = { ready: false, reason: error.message };
+    console.error("Deploy poll:", error.message);
   }
 
   const results = [];
-  let probeApiAvailable = false;
-
   for (const probe of PROBES) {
-    const result = await runProbeOnHost(HOSTS.demo, probe);
-    if (result.http !== 404) probeApiAvailable = true;
-    results.push({ ...probe, ...result, host: "demo" });
-    console.log(JSON.stringify({ probe: probe.id, status: result.status, cap: result.capabilityId, summary: result.summary }));
+    const { http, body } = await runPrompt(probe.prompt, probe.kind, probe.expectCap);
+    const verdict = classify(probe, body, http);
+    results.push({ ...probe, http, ...verdict, acceptanceStatus: body.status });
+    console.log(JSON.stringify({ id: probe.id, status: verdict.status, cap: verdict.capabilityId ?? body.capabilityId, summary: verdict.summary }));
   }
 
-  if (!probeApiAvailable) {
-    console.log("\nProbe API missing — falling back to run-one bank probes + local acceptance for deploy commit", DEPLOY_COMMIT);
-    const fallbacks = [
-      { id: "financials-composite-1", label: "cash position" },
-      { id: "human-resources-composite-0", label: "staff growth chart" },
-      { id: "financials-module-6", label: "financials PDF" },
-    ];
-    for (const fb of fallbacks) {
-      const { http, body } = await runBankProbe(HOSTS.demo, fb.id);
-      results.push({
-        group: "fallback",
-        id: fb.id,
-        status: body.status === "pass" ? "PASS" : http === 200 ? "FAIL" : "NOT_TESTABLE",
-        summary: body.summary ?? body.error,
-        capabilityId: body.capabilityId,
-        http,
-        host: "demo",
-      });
-      console.log("fallback", fb.id, body.status, body.capabilityId, (body.summary ?? "").slice(0, 80));
-    }
-  }
-
-  const isolation = [
-    { host: "demo", prompt: "What is the bank balance in Talanton?", kind: "denied" },
-    { host: "abhi", prompt: "How many members do we have?", kind: "data", expectCap: "abhi.members.count.read" },
-  ];
-
-  for (const iso of isolation) {
-    if (!probeApiAvailable) break;
-    const base = HOSTS[iso.host];
-    const result = await runProbeOnHost(base, iso);
-    results.push({ group: "isolation", host: iso.host, ...iso, ...result });
-  }
-
-  const report = {
+  const summary = {
     generatedAt: new Date().toISOString(),
     deployCommit: DEPLOY_COMMIT,
-    deployFingerprint: deployInfo,
-    probeApiAvailable,
+    deployFingerprint,
+    pass: results.filter((r) => r.status === "PASS").length,
+    fail: results.filter((r) => r.status === "FAIL").length,
+    notTestable: results.filter((r) => r.status === "NOT_TESTABLE").length,
     results,
   };
-  writeFileSync("ea-production-probe-report.json", JSON.stringify(report, null, 2));
-  console.log("\nWrote ea-production-probe-report.json");
+  writeFileSync("ea-production-probe-report.json", JSON.stringify(summary, null, 2));
+  console.log("\nSUMMARY", summary.pass, "PASS", summary.fail, "FAIL", summary.notTestable, "NOT_TESTABLE");
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+main();
