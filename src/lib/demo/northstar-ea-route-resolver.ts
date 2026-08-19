@@ -10,6 +10,7 @@ import { resolveNorthstarModuleId, type NorthstarModuleId } from "@/lib/demo/nor
 import { parseScopedPdfRequest } from "@/lib/ai-operating-assistant/scoped-pdf-metrics";
 import { resolveNorthstarExecutiveIntelligenceIntent } from "@/lib/demo/executive-intelligence-intent";
 import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
+import { isLiveFinancialBalanceQuestion } from "@/lib/ai-operating-assistant/knowledge-domains";
 
 export type NorthstarEaRoute = {
   tool: string;
@@ -181,6 +182,10 @@ export function resolveNorthstarEaDataRoute(message: string): NorthstarEaRoute |
 
   if (/\bon leave|leave request|who is on leave|absence|time off|pto\b|out of office\b/.test(lower)) {
     return moduleRoute("hr", text, "northstar_hr_leave", "leave attendance");
+  }
+
+  if (isLiveFinancialBalanceQuestion(text)) {
+    return { tool: "getCashPosition", args: {}, reason: "northstar_cash_balance" };
   }
 
   for (const [viewId, mapping] of Object.entries(VIEW_TO_MODULE)) {

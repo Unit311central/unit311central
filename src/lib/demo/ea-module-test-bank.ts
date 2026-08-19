@@ -69,6 +69,7 @@ const COMPOSITE_BY_MODULE: Record<string, string[]> = {
     "Show payroll trend for the last six months.",
     "List outstanding invoices and total AR.",
     "Summarise general ledger and expenses for August.",
+    "What is our bank balance?",
   ],
   "human-resources": [
     "Give me a graph of staff growth year by year in all locations.",
