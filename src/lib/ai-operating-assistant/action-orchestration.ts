@@ -55,8 +55,10 @@ import {
 import {
   ensureCentralApplicationModel,
   executeSemanticCapability,
+  executeEvidencePlan,
   planEvidenceGathering,
   planCrossModuleEvidence,
+  planInvestigation,
   resolveSemanticCapability,
   detectAmbiguousEaQuery,
 } from "@/lib/central-application-model";
@@ -115,6 +117,40 @@ export async function resolveOrchestrationRoute(
 ): Promise<OrchestrationRoute> {
   ensureActionModulesRegistered();
   ensureCentralApplicationModel();
+
+  // General investigation / cross-module evidence — before single-capability routing.
+  {
+    const investigationPlan = planInvestigation(message, business);
+    if (
+      investigationPlan &&
+      isEaGeneralIntentMode() &&
+      (!hasExplicitWriteIntent(message) ||
+        investigationPlan.synthesisKind === "investigation" ||
+        investigationPlan.synthesisKind === "comparative")
+    ) {
+      if (investigationPlan.synthesisKind === "composite_chart") {
+        eaStage("Investigation plan (deterministic synthesis)", {
+          synthesisKind: investigationPlan.synthesisKind,
+          tools: investigationPlan.tools.map((t) => t.tool),
+        });
+        const executed = await executeEvidencePlan(investigationPlan, { message, business });
+        return {
+          kind: "semantic_answer",
+          message: executed.answer.text,
+          responseBlocks: executed.answer.blocks,
+          capabilityId: executed.capabilityId,
+          deterministic: executed.deterministic,
+          skipSynthesis: executed.skipSynthesis,
+        };
+      }
+      eaStage("Investigation evidence plan", {
+        synthesisKind: investigationPlan.synthesisKind,
+        tools: investigationPlan.tools.map((t) => t.tool),
+        domains: investigationPlan.domains,
+      });
+      return { kind: "evidence_gpt", plan: investigationPlan, message };
+    }
+  }
 
   // CENTRAL SEMANTIC MODEL — deterministic-first before workspace packs / GPT.
   {

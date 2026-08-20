@@ -101,9 +101,18 @@ export type EaSemanticDenied = {
   message: string;
 };
 
+export type EaEvidenceSynthesisKind =
+  | "investigation"
+  | "comparative"
+  | "composite_chart"
+  | "board_report";
+
 export type EaEvidencePlan = {
   capabilityIds: string[];
   tools: Array<{ tool: string; args: Record<string, unknown> }>;
   reasoningGoal: string;
   permissionsRequired: EaReadCapabilityPermission[];
+  synthesisKind: EaEvidenceSynthesisKind;
+  /** Domains identified for this plan (cash, revenue, sales, etc.) */
+  domains: string[];
 };

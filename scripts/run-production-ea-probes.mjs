@@ -80,7 +80,43 @@ const BLIND_SCENARIOS = [
       "Create a PDF for the board explaining our financial position, the key risks you found, the evidence supporting them, and what management should consider doing next.",
     kind: "pdf",
     requirePdfBytes: 100_000,
-    followUp: true,
+    requireAnalyticalPdf: true,
+  },
+  {
+    id: "blind-e-financial",
+    label: "Open-ended financial concern (variant)",
+    prompt: "Cash feels tight and I'm not sure we can make payroll next quarter — what should I know?",
+    requireSubstance: true,
+    requireRiskLanguage: true,
+  },
+  {
+    id: "blind-f-hr",
+    label: "Open-ended HR concern",
+    prompt: "I'm worried our team is stretched too thin and we might start losing people — help me understand the risk.",
+    requireSubstance: true,
+  },
+  {
+    id: "blind-g-sales-finance",
+    label: "Sales vs finance comparative (variant)",
+    prompt: "Why does our pipeline look healthy but revenue growth feels flat?",
+    expectRoute: "evidence_gpt",
+    requireSubstance: true,
+  },
+  {
+    id: "blind-h-composite-chart",
+    label: "Multi-metric chart (variant)",
+    prompt: "Plot revenue, cash and headcount together for the past year.",
+    kind: "chart",
+    requireChart: true,
+  },
+  {
+    id: "blind-i-board-pdf",
+    label: "Executive analytical PDF (variant)",
+    prompt:
+      "Generate an executive PDF with findings, risks, supporting evidence, trends, and recommended management actions.",
+    kind: "pdf",
+    requirePdfBytes: 100_000,
+    requireAnalyticalPdf: true,
   },
 ];
 
@@ -176,8 +212,11 @@ function classifyBlind(scenario, body, http) {
   if (scenario.requireSubstance && summary.trim().length < 80) {
     failed.push("answer too short");
   }
-  if (scenario.requireRiskLanguage && !/risk|cash|runway|debt|revenue|limitation|evidence|concern/i.test(summary)) {
+  if (scenario.requireRiskLanguage && !/risk|cash|runway|debt|revenue|limitation|evidence|concern|headcount|pipeline|burn|payroll/i.test(summary)) {
     failed.push("missing risk/evidence language");
+  }
+  if (scenario.requireAnalyticalPdf && !/findings|risks?|evidence|recommend|management/i.test(summary)) {
+    failed.push("pdf missing analytical sections");
   }
   if (body.status === "fail") failed.push(body.error ?? "acceptance fail");
   if (failed.length) return { status: "FAIL", summary: summary.slice(0, 200), failed, routeKind: body.routeKind, capabilityId: body.capabilityId };

@@ -9,6 +9,7 @@ import { normalizeEaMessage } from "@/lib/ai-operating-assistant/capabilities/me
 
 import type { EaSemanticCapabilityBinding } from "./types";
 import type { EaEvidencePlan } from "./types";
+import { synthesizeEvidenceAnswer } from "./evidence-synthesis";
 
 export type EaOrchestrationResult = {
   capabilityId: string;
@@ -105,4 +106,29 @@ export async function gatherAuthorisedEvidence(
   return evidence;
 }
 
+export async function executeEvidencePlan(
+  plan: EaEvidencePlan,
+  input: { message: string; business: AssistantBusinessContext },
+): Promise<EaOrchestrationResult> {
+  const evidence = await gatherAuthorisedEvidence(plan, input.business);
+  const synthesized = await synthesizeEvidenceAnswer({
+    plan,
+    evidence,
+    message: input.message,
+    business: input.business,
+  });
+  const toolResults = evidence.map((entry) => entry.result);
+  if (synthesized.extraToolResult) {
+    toolResults.push(synthesized.extraToolResult);
+  }
+  return {
+    capabilityId: `ea.evidence.${plan.synthesisKind}`,
+    answer: synthesized.answer,
+    deterministic: true,
+    skipSynthesis: true,
+    toolResults,
+  };
+}
+
 export { planEvidenceGathering, scoreReasoningIntent } from "./evidence-planner";
+export { planInvestigation } from "./investigation-planner";

@@ -6,6 +6,7 @@ export * from "./registry";
 export * from "./resolver";
 export * from "./evidence-planner";
 export { planCrossModuleEvidence } from "./evidence-planner";
+export { planInvestigation } from "./investigation-planner";
 export * from "./orchestrate";
 export { detectAmbiguousEaQuery } from "./clarification";
 export { buildReadCapabilityBindings } from "./integrations/read-capabilities";

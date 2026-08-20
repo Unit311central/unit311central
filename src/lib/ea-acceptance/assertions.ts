@@ -252,13 +252,15 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
     const pdfTool =
       input.tool === "generateScopedBusinessPdf" ||
       input.tool === "boardpack.generate" ||
-      input.tool === "generateBusinessReportPdf";
+      input.tool === "generateBusinessReportPdf" ||
+      input.tool === "generateAnalyticalBoardPdf" ||
+      (input.routeKind === "evidence_gpt" && input.capabilityId === "ea.evidence.board_report");
     checks.push(
       check(
         "pdf_tool",
         pdfTool || input.routeKind === "semantic_answer",
         pdfTool
-          ? `PDF tool ${input.tool}`
+          ? `PDF route ${input.tool ?? input.capabilityId ?? input.routeKind}`
           : `Expected PDF tool route, got ${input.routeKind}${input.tool ? ` (${input.tool})` : ""}`,
       ),
     );
@@ -402,6 +404,17 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
         "Routed to authorised-evidence GPT path (acceptable for strategic questions)",
       ),
     );
+    if (text) {
+      checks.push(
+        check(
+          "evidence_substance",
+          hasSubstantiveDataSignal(text, input.prompt, input.responseBlocks),
+          hasSubstantiveDataSignal(text, input.prompt, input.responseBlocks)
+            ? "Evidence synthesis returned substantive answer"
+            : "Evidence synthesis answer lacked live data signals",
+        ),
+      );
+    }
     return checks;
   }
 

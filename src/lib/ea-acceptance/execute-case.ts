@@ -5,7 +5,7 @@ import { executeAssistantTool } from "@/lib/ai-operating-assistant/tool-service"
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import type { AssistantToolResult } from "@/lib/ai-operating-assistant/tool-result";
 import { getSemanticCapability } from "@/lib/central-application-model/registry";
-import { executeSemanticCapability } from "@/lib/central-application-model/orchestrate";
+import { executeSemanticCapability, executeEvidencePlan } from "@/lib/central-application-model/orchestrate";
 
 import {
   acceptanceChecksPassed,
@@ -37,6 +37,18 @@ function extractArtifactByteLength(result: unknown): number | undefined {
   if (!result || typeof result !== "object") return undefined;
   const summary = (result as { summary?: { byteLength?: number } }).summary;
   return typeof summary?.byteLength === "number" ? summary.byteLength : undefined;
+}
+
+function extractArtifactFromToolResults(results: AssistantToolResult[]): {
+  toolResult?: AssistantToolResult;
+  byteLength?: number;
+} {
+  for (let i = results.length - 1; i >= 0; i -= 1) {
+    const bytes = extractArtifactByteLength(results[i]);
+    if (bytes != null) return { toolResult: results[i], byteLength: bytes };
+  }
+  const last = results[results.length - 1];
+  return last ? { toolResult: last } : {};
 }
 
 function mapQuestionKind(
@@ -126,7 +138,23 @@ export async function executeEaAcceptanceCase(
     } else if (route.kind === "evidence_gpt") {
       gptRequired = true;
       evidencePlan = route.plan;
-      text = route.message;
+      if (executeTools) {
+        const evidenceExecuted = await executeEvidencePlan(route.plan, {
+          message: question.prompt,
+          business,
+        });
+        capabilityId = evidenceExecuted.capabilityId;
+        deterministic = evidenceExecuted.deterministic;
+        text = evidenceExecuted.answer.text;
+        responseBlocks = evidenceExecuted.answer.blocks;
+        const artifactPick = extractArtifactFromToolResults(evidenceExecuted.toolResults);
+        toolResult = artifactPick.toolResult ?? evidenceExecuted.toolResults[evidenceExecuted.toolResults.length - 1];
+        tool = toolResult?.tool;
+        artifactByteLength = artifactPick.byteLength;
+        executed = true;
+      } else {
+        text = route.message;
+      }
     } else if (route.kind === "need_info") {
       text = route.message;
     } else if (route.kind === "workflow_read") {
