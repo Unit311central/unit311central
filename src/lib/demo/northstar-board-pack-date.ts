@@ -52,10 +52,6 @@ export function resolveNorthstarBoardPackMeetingDate(input?: {
     needsMeetingDate: true,
     message:
       "Which board meeting is this deck for? Pick a meeting date below or tell me the date (e.g. 18 August 2026).",
-    options: options.length
-      ? options
-      : scheduled
-        ? [{ date: scheduled.date, title: scheduled.title }]
-        : [],
+    options: options.length ? options : [],
   };
 }
