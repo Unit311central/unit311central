@@ -102,14 +102,16 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
     id: "crm_pipeline_value",
     label: "CRM pipeline value",
     match:
-      /\b((value\s+of\s+(the\s+)?)?crm\s+pipelin\w*|open\s+pipelin\w*|pipelin\w*\s+value|sales\s+pipelin\w*)\b/i,
+      /\b((value\s+of\s+(the\s+)?)?crm\s+pipelin\w*|open\s+pipelin\w*|pipelin\w*\s+(value|coverage)|sales\s+pipelin\w*|pipeline\s+coverage)\b/i,
     phrases: [
       "crm pipeline",
       "crm pipeline value",
       "value of crm pipeline",
       "open pipeline",
       "pipeline value",
+      "pipeline coverage",
       "sales pipeline",
+      "sales pipeline coverage",
       "pipeline",
     ],
     permission: "crm",
@@ -118,19 +120,28 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
     id: "cash",
     label: "Cash position",
     match:
-      /\b(cash\s+position|how\s+much\s+cash|cash\s+balance|cash\s+on\s+hand|(?:^|[,&\s])cash(?:\s|$|[,&]))\b/i,
-    phrases: ["cash position", "cash balance", "cash on hand", "how much cash", "cash"],
+      /\b(cash\s+position|how\s+much\s+cash|cash\s+balance|cash\s+on\s+hand|liquidity|(?:^|[,&\s])cash(?:\s|$|[,&]))\b/i,
+    phrases: [
+      "cash position",
+      "cash balance",
+      "cash on hand",
+      "how much cash",
+      "liquidity",
+      "cash",
+    ],
     permission: "financials",
   },
   {
     id: "ar_overdue",
     label: "AR overdue",
     match:
-      /\b(ar\s+overdue|overdue\s+(invoices?|receivables?)|accounts?\s+receivable\s+overdue)\b/i,
+      /\b(ar\s+overdue|overdue\s+(invoices?|receivables?|collections?)|accounts?\s+receivable\s+overdue|collections?\s+overdue)\b/i,
     phrases: [
       "ar overdue",
       "overdue invoices",
       "overdue receivables",
+      "overdue collections",
+      "collections overdue",
       "accounts receivable overdue",
     ],
     permission: "financials",
@@ -209,8 +220,18 @@ export const SCOPED_PDF_METRICS: ScopedPdfMetricDef[] = [
   {
     id: "headcount",
     label: "Headcount",
-    match: /\b(headcount|how\s+many\s+employees|employee\s+count|staff\s+count)\b/i,
-    phrases: ["headcount", "employee count", "staff count", "how many employees"],
+    match:
+      /\b(headcount|how\s+many\s+employees|employee\s+count|staff\s+count|workforce\s+load|workforce|staffing\s+load|team\s+load)\b/i,
+    phrases: [
+      "headcount",
+      "employee count",
+      "staff count",
+      "how many employees",
+      "workforce load",
+      "workforce",
+      "staffing load",
+      "team load",
+    ],
     permission: "hr",
   },
   {
@@ -500,9 +521,9 @@ function detectUnknownTopics(message: string, metrics: ScopedPdfMetricId[]): str
   const lower = message.toLowerCase();
   const afterFor =
     lower.match(
-      /\b(?:pdf|report|document|export)\b[\s\S]{0,40}?\b(?:for|showing|including|with)\s+(.+)$/i,
+      /\b(?:pdf|report|document|export)\b[\s\S]{0,60}?\b(?:for|showing|including|with|covering)\s+(.+)$/i,
     )?.[1] ??
-    lower.match(/\b(?:for|showing|including)\s+(.+)$/i)?.[1] ??
+    lower.match(/\b(?:for|showing|including|covering)\s+(.+)$/i)?.[1] ??
     lower;
 
   // Soft-protect common compound phrases before splitting on "and".
@@ -532,10 +553,18 @@ function detectUnknownTopics(message: string, metrics: ScopedPdfMetricId[]): str
 
   const unknowns: string[] = [];
   for (const seg of segments) {
-    const cleaned = seg.replace(/^(the|a|an|our|my)\s+/i, "").trim();
+    const cleaned = seg
+      .replace(/^(the|a|an|our|my|and)\s+/i, "")
+      .replace(/^board[- ]ready\s+/i, "")
+      .trim();
+    const topic = cleaned.match(/\bcovering\s+(.+)$/i)?.[1]?.trim() ?? cleaned;
+    if (knownIds.has(topic as ScopedPdfMetricId)) continue;
     if (knownIds.has(cleaned as ScopedPdfMetricId)) continue;
     if (isNoiseSegment(seg)) continue;
+    if (isNoiseSegment(topic)) continue;
+    if (segmentMatchesMetric(topic)) continue;
     if (segmentMatchesMetric(seg)) continue;
+    if (segmentMatchesMetric(topic.replace(/\bfor\s+last\s+\d+\s+months?\b/i, ""))) continue;
     if (segmentMatchesMetric(seg.replace(/\bfor\s+last\s+\d+\s+months?\b/i, ""))) continue;
     if (/\blast\s+\d+\s+months?\b/.test(seg) && metrics.includes("pnl")) continue;
     if (/\b(financials?|board|engineering|employees?|directory)\b/.test(seg) && metrics.length <= 1) {
@@ -544,6 +573,8 @@ function detectUnknownTopics(message: string, metrics: ScopedPdfMetricId[]): str
     // Truly unknown marketing/product metrics stay listed.
     if (cleaned.length >= 3 && !unknowns.includes(cleaned)) {
       unknowns.push(cleaned);
+    } else if (topic.length >= 3 && topic !== cleaned && !unknowns.includes(topic)) {
+      unknowns.push(topic);
     }
   }
   return unknowns;

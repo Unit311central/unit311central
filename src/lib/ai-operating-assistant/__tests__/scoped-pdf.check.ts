@@ -128,6 +128,26 @@ async function main() {
   }
 
   {
+    const multiDomain = parseScopedPdfRequest(
+      "Generate an executive PDF covering treasury liquidity, sales pipeline coverage, staffing load, and collections overdue.",
+    );
+    assert.ok(multiDomain.metrics.includes("cash"), `cash missing: ${multiDomain.metrics.join(",")}`);
+    assert.ok(
+      multiDomain.metrics.includes("crm_pipeline_value"),
+      `pipeline missing: ${multiDomain.metrics.join(",")}`,
+    );
+    assert.ok(
+      multiDomain.metrics.includes("headcount"),
+      `headcount missing: ${multiDomain.metrics.join(",")}`,
+    );
+    assert.ok(
+      multiDomain.metrics.includes("ar_overdue"),
+      `ar_overdue missing: ${multiDomain.metrics.join(",")}`,
+    );
+    assert.equal(multiDomain.unknownTopics.length, 0, `unknowns: ${multiDomain.unknownTopics.join(", ")}`);
+  }
+
+  {
     const scoped = parseScopedPdfRequest("create a pdf for P&L and marketing CAC");
     assert.equal(scoped.useScopedPath, true);
     assert.ok(scoped.metrics.includes("pnl"));
