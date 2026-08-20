@@ -1270,7 +1270,7 @@ async function* runAssistantTurnInner(input: {
             : adapted.responseBlocks?.some((b) => b.type === "kpi")
               ? "kpi"
               : adapted.artifacts.length
-                ? "artifact"
+                ? "pdf"
                 : "text",
       });
       assistantText = adapted.text;
