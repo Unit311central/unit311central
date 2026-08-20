@@ -17,7 +17,6 @@ import {
 import {
   applyProactiveToolResult,
   handleExecutiveActionHref,
-  startWorkflowGuide,
 } from "@/lib/ai-operating-assistant/proactive-client";
 import type { AiExplanation } from "@/lib/ai-operating-assistant/explainability";
 import AbhiBoardPackProgress from "@/components/executive-assistant/AbhiBoardPackProgress";
@@ -31,7 +30,6 @@ import { actionConfirmationToPlanViewer } from "@/lib/ai-operating-assistant/act
 import type { PlanViewerModel } from "@/lib/ai-operating-assistant/actions/planning/types";
 import type { ActionConfirmationView } from "@/components/executive-assistant/ActionConfirmationCard";
 import {
-  getHomeSuggestedActions,
   resolveExecutiveAssistantContext,
   type ExecutiveAssistantVariant,
 } from "@/lib/executive-assistant-ui";
@@ -278,7 +276,6 @@ export default function ExecutiveAssistantPanel({
     [activeView, mode],
   );
   const isPage = variant === "page" || variant === "home";
-  const suggested = isPage ? getHomeSuggestedActions() : context.suggestedPrompts;
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -1377,7 +1374,7 @@ export default function ExecutiveAssistantPanel({
         <div ref={threadRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5">
           {messages.length === 0 && embedded && !sending ? (
             <p className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-3.5 py-3 text-[12px] leading-relaxed text-white/40">
-              Start with a quick prompt, or type below — I already have live business context.
+              Ask a question or describe what you need — I already have live business context.
             </p>
           ) : null}
           {messages.map((entry) => (
@@ -1674,36 +1671,6 @@ export default function ExecutiveAssistantPanel({
                 })();
               }}
             />
-          ) : null}
-
-          {!sending && messages.length <= 1 ? (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              <ActionButton
-                label="Employee PDF"
-                onClick={() => void handleSend(undefined, "Create a PDF of all employees.")}
-              />
-              {suggested.slice(0, 2).map((action) => (
-                <ActionButton
-                  key={action}
-                  label={action}
-                  onClick={() => {
-                    if (handleExecutiveActionHref(action, activeView || "home")) return;
-                    if (handleGuidedHref(action, activeView || "home")) return;
-                    void handleSend(undefined, action);
-                  }}
-                />
-              ))}
-              <ActionButton
-                label="Onboard a client"
-                onClick={() => {
-                  startWorkflowGuide("onboard_client", 0);
-                  void handleSend(
-                    undefined,
-                    "I need to onboard a client. Guide me through the workflow.",
-                  );
-                }}
-              />
-            </div>
           ) : null}
         </div>
 
