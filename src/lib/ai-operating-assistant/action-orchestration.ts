@@ -118,6 +118,26 @@ export async function resolveOrchestrationRoute(
   ensureActionModulesRegistered();
   ensureCentralApplicationModel();
 
+  // Board pack generation wins over scoped PDF semantic scoring.
+  {
+    const { resolveAbhiBoardPackIntent } = await import("@/lib/abhi/board-pack-intent");
+    const boardPackIntent = resolveAbhiBoardPackIntent(message);
+    if (boardPackIntent) {
+      eaStage("Board pack generation intent", { tool: boardPackIntent.tool });
+      return {
+        kind: "tool",
+        intent: {
+          tool: boardPackIntent.tool,
+          args: boardPackIntent.args,
+          reason: boardPackIntent.reason,
+        },
+        capabilityId: "boardpack.generate",
+        deterministic: true,
+        skipSynthesis: true,
+      };
+    }
+  }
+
   // General investigation / cross-module evidence — before single-capability routing.
   {
     const investigationPlan = planInvestigation(message, business);

@@ -260,6 +260,12 @@ export function matchesHeadcountCapability(message: string): boolean {
 }
 
 export function matchesScopedPdfCapability(message: string): boolean {
+  if (
+    /\bboard\s+(pack|packs|deck|decks|papers?|presentation|materials)\b/i.test(message) ||
+    /\bboard\s+meeting\s+(pack|papers?|materials|deck|presentation)\b/i.test(message)
+  ) {
+    return false;
+  }
   const scoped = parseScopedPdfRequest(message);
   if (
     scoped.wantsDocument &&
