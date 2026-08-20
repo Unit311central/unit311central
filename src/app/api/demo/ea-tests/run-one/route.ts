@@ -56,8 +56,17 @@ export async function POST(request: NextRequest) {
     const fingerprint = validateWorkspaceFingerprint(workspaceSlug, String(execution.text ?? ""), {
       requiresCashEvidence: /\b(cash|bank|financial position|runway)\b/i.test(body.prompt),
     });
+    const fingerprintFailed = body.workspaceSlug && !fingerprint.ok;
     return NextResponse.json(
-      { ...execution, workspaceSlug, workspaceFingerprint: fingerprint },
+      {
+        ...execution,
+        workspaceSlug,
+        workspaceFingerprint: fingerprint,
+        status: fingerprintFailed ? "fail" : execution.status,
+        error: fingerprintFailed
+          ? `${execution.error ? `${execution.error}; ` : ""}${fingerprint.reason}`
+          : execution.error,
+      },
       { headers: DEMO_EA_NO_STORE_HEADERS },
     );
   }
