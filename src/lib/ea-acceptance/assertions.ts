@@ -116,12 +116,21 @@ export type EaAssertionInput = {
   responseBlocks?: EaResponseBlock[];
   toolResult?: AssistantToolResult;
   artifactByteLength?: number;
+  artifactIds?: string[];
   expectTool?: string;
   expectCapabilityId?: string;
   expectDeterministic?: boolean;
   /** When false, only routing/orchestration checks run (no live tool execution). */
   executed?: boolean;
 };
+
+function isEvidencePdfRoute(input: EaAssertionInput): boolean {
+  return (
+    input.routeKind === "evidence_gpt" &&
+    (input.capabilityId === "reports.scopedPdf.generate" ||
+      input.capabilityId === "ea.evidence.board_report")
+  );
+}
 
 export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptanceCheck[] {
   const checks: EaAcceptanceCheck[] = [];
@@ -240,11 +249,17 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
 
   if (input.kind === "pdf") {
     if (!executed) {
+      const routeOk =
+        (input.routeKind === "tool" &&
+          Boolean(input.tool?.toLowerCase().includes("pdf") || input.tool === "boardpack.generate")) ||
+        isEvidencePdfRoute(input);
       checks.push(
         check(
           "pdf_route",
-          input.routeKind === "tool" && Boolean(input.tool?.toLowerCase().includes("pdf") || input.tool === "boardpack.generate"),
-          `Expected PDF tool route, got ${input.routeKind}${input.tool ? ` (${input.tool})` : ""}`,
+          routeOk,
+          routeOk
+            ? `PDF route ${input.routeKind}${input.capabilityId ? ` (${input.capabilityId})` : ""}`
+            : `Expected PDF tool route, got ${input.routeKind}${input.tool ? ` (${input.tool})` : ""}`,
         ),
       );
       return checks;
@@ -254,7 +269,7 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
       input.tool === "boardpack.generate" ||
       input.tool === "generateBusinessReportPdf" ||
       input.tool === "generateAnalyticalBoardPdf" ||
-      (input.routeKind === "evidence_gpt" && input.capabilityId === "ea.evidence.board_report");
+      isEvidencePdfRoute(input);
     checks.push(
       check(
         "pdf_tool",
@@ -283,6 +298,14 @@ export function runEaAcceptanceAssertions(input: EaAssertionInput): EaAcceptance
           "pdf_byte_length",
           bytes >= 1500,
           bytes >= 1500 ? `PDF size ${bytes} bytes` : `PDF too small (${bytes} bytes) — likely empty`,
+        ),
+      );
+    } else if (input.artifactIds?.length) {
+      checks.push(
+        check(
+          "pdf_artifact_id",
+          true,
+          `PDF artifact id ${input.artifactIds.join(", ")}`,
         ),
       );
     }

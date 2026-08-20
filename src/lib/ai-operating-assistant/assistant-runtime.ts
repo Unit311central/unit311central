@@ -51,6 +51,7 @@ import {
   executeEvidencePlan,
   getSemanticCapability,
 } from "@/lib/central-application-model";
+import { adaptExecutiveOrchestrationResult } from "./artifact-output";
 
 type EasyInputMessage = {
   role: "user" | "assistant" | "system" | "developer";
@@ -1251,6 +1252,7 @@ async function* runAssistantTurnInner(input: {
         capabilityId: route.plan.synthesisKind,
       });
       const executed = await executeEvidencePlan(route.plan, { message, business: context });
+      const adapted = adaptExecutiveOrchestrationResult(executed);
       recordEaExecutionTelemetry({
         path: "evidence_gpt",
         capabilityId: executed.capabilityId,
@@ -1259,25 +1261,29 @@ async function* runAssistantTurnInner(input: {
         userId: input.session.sub,
         escalationReason: "deterministic_evidence_synthesis",
         gptCallCount: 0,
-        responseType: executed.answer.blocks?.some(
+        responseType: adapted.responseBlocks?.some(
           (b) => b.type === "line_chart" || b.type === "bar_chart" || b.type === "pie_chart",
         )
           ? "chart"
-          : executed.answer.blocks?.some((b) => b.type === "table")
+          : adapted.responseBlocks?.some((b) => b.type === "table")
             ? "table"
-            : executed.answer.blocks?.some((b) => b.type === "kpi")
+            : adapted.responseBlocks?.some((b) => b.type === "kpi")
               ? "kpi"
-              : "text",
+              : adapted.artifacts.length
+                ? "artifact"
+                : "text",
       });
-      assistantText = executed.answer.text;
+      assistantText = adapted.text;
+      turnArtifacts = adapted.artifacts;
       yield { type: "delta", text: assistantText };
       const assistantMessage: AssistantChatMessage = {
         id: createMessageId(),
         role: "assistant",
         content: assistantText,
         createdAt: new Date().toISOString(),
-        responseBlocks: executed.answer.blocks,
-        followUpActions: executed.answer.followUpActions,
+        responseBlocks: adapted.responseBlocks,
+        followUpActions: adapted.followUpActions,
+        artifacts: adapted.artifacts.length > 0 ? adapted.artifacts : undefined,
       };
       const saved = await persistTurn({
         session: input.session,

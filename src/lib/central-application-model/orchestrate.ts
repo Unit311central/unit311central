@@ -122,7 +122,10 @@ export async function executeEvidencePlan(
     toolResults.push(synthesized.extraToolResult);
   }
   return {
-    capabilityId: `ea.evidence.${plan.synthesisKind}`,
+    capabilityId:
+      plan.synthesisKind === "scoped_pdf"
+        ? "reports.scopedPdf.generate"
+        : `ea.evidence.${plan.synthesisKind}`,
     answer: synthesized.answer,
     deterministic: true,
     skipSynthesis: true,

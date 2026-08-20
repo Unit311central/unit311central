@@ -4,6 +4,7 @@ import type { EaResponseBlock } from "@/lib/ai-operating-assistant/capabilities/
 import { executeAssistantTool } from "@/lib/ai-operating-assistant/tool-service";
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import type { AssistantToolResult } from "@/lib/ai-operating-assistant/tool-result";
+import { adaptExecutiveOrchestrationResult } from "@/lib/ai-operating-assistant/artifact-output";
 import { getSemanticCapability } from "@/lib/central-application-model/registry";
 import { executeSemanticCapability, executeEvidencePlan } from "@/lib/central-application-model/orchestrate";
 
@@ -76,6 +77,7 @@ export async function executeEaAcceptanceCase(
   let responseBlocks: EaResponseBlock[] | undefined;
   let toolResult: AssistantToolResult | undefined;
   let artifactByteLength: number | undefined;
+  let artifactIds: string[] | undefined;
   let evidencePlan: import("@/lib/central-application-model/types").EaEvidencePlan | undefined;
   let executed = false;
 
@@ -143,10 +145,12 @@ export async function executeEaAcceptanceCase(
           message: question.prompt,
           business,
         });
+        const adapted = adaptExecutiveOrchestrationResult(evidenceExecuted);
         capabilityId = evidenceExecuted.capabilityId;
         deterministic = evidenceExecuted.deterministic;
-        text = evidenceExecuted.answer.text;
-        responseBlocks = evidenceExecuted.answer.blocks;
+        text = adapted.text;
+        responseBlocks = adapted.responseBlocks;
+        artifactIds = adapted.artifactIds;
         const artifactPick = extractArtifactFromToolResults(evidenceExecuted.toolResults);
         toolResult = artifactPick.toolResult ?? evidenceExecuted.toolResults[evidenceExecuted.toolResults.length - 1];
         tool = toolResult?.tool;
@@ -154,6 +158,13 @@ export async function executeEaAcceptanceCase(
         executed = true;
       } else {
         text = route.message;
+        if (route.plan.synthesisKind === "scoped_pdf") {
+          capabilityId = "reports.scopedPdf.generate";
+        } else if (route.plan.synthesisKind === "board_report") {
+          capabilityId = "ea.evidence.board_report";
+        } else {
+          capabilityId = `ea.evidence.${route.plan.synthesisKind}`;
+        }
       }
     } else if (route.kind === "need_info") {
       text = route.message;
@@ -177,6 +188,7 @@ export async function executeEaAcceptanceCase(
       responseBlocks,
       toolResult,
       artifactByteLength,
+      artifactIds,
       expectTool: question.expectTool,
       expectCapabilityId: question.expectCapabilityId,
       expectDeterministic: question.expectDeterministic,
@@ -195,6 +207,7 @@ export async function executeEaAcceptanceCase(
       responseBlocks,
       toolResult,
       artifactByteLength,
+      artifactIds,
       checks,
       status: acceptanceChecksPassed(checks) ? "pass" : "fail",
       error: acceptanceChecksPassed(checks) ? undefined : formatFailedChecks(checks),
@@ -213,6 +226,7 @@ export async function executeEaAcceptanceCase(
       responseBlocks,
       toolResult,
       artifactByteLength,
+      artifactIds,
       expectTool: question.expectTool,
       expectCapabilityId: question.expectCapabilityId,
       expectDeterministic: question.expectDeterministic,
@@ -230,6 +244,7 @@ export async function executeEaAcceptanceCase(
       responseBlocks,
       toolResult,
       artifactByteLength,
+      artifactIds,
       checks,
       status: "fail",
       error: message,

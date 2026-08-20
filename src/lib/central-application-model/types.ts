@@ -105,7 +105,31 @@ export type EaEvidenceSynthesisKind =
   | "investigation"
   | "comparative"
   | "composite_chart"
-  | "board_report";
+  | "board_report"
+  | "scoped_pdf";
+
+export type ExecutiveJob =
+  | "lookup"
+  | "explain"
+  | "compare"
+  | "investigate"
+  | "brief"
+  | "visualise"
+  | "report";
+
+export type ExecutiveOutputContract =
+  | { kind: "answer" }
+  | { kind: "chart"; metrics: string[] }
+  | { kind: "scoped_pdf"; metrics: string[] }
+  | { kind: "analytical_pdf"; sections: string[] };
+
+export type ExecutiveTask = {
+  job: ExecutiveJob;
+  focusDomains: string[];
+  focusMetrics: string[];
+  outputContract: ExecutiveOutputContract;
+  comparisonPair?: [string, string];
+};
 
 export type EaEvidencePlan = {
   capabilityIds: string[];
@@ -117,4 +141,6 @@ export type EaEvidencePlan = {
   domains: string[];
   /** Evidence domains required by the question but blocked by permissions */
   restrictedEvidence?: string[];
+  /** Executive task driving evidence selection and synthesis */
+  task: ExecutiveTask;
 };

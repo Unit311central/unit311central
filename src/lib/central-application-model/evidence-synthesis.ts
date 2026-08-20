@@ -4,9 +4,11 @@
 
 import type { AssistantBusinessContext } from "@/lib/ai-operating-assistant/types";
 import type { AssistantToolResult } from "@/lib/ai-operating-assistant/tool-result";
+import { executeAssistantTool } from "@/lib/ai-operating-assistant/tool-service";
 import type { EaFormattedCapabilityAnswer } from "@/lib/ai-operating-assistant/capabilities/types";
 import type { EaEvidencePlan } from "./types";
 import { buildEvidenceSnapshot, formatMoney, type EvidenceSnapshot } from "./evidence-snapshot";
+import { assessMateriality } from "./materiality";
 import { renderAnalyticalBoardPdf } from "./analytical-board-pdf";
 
 export type SynthesisInput = {
@@ -26,7 +28,11 @@ function estimateHeadcountSeries(current: number, labels: string[]): number[] {
   });
 }
 
-function buildCompositeChart(snapshot: EvidenceSnapshot, message: string): EaFormattedCapabilityAnswer {
+function buildCompositeChart(
+  snapshot: EvidenceSnapshot,
+  plan: EaEvidencePlan,
+): EaFormattedCapabilityAnswer {
+  const focus = new Set(plan.task.focusDomains);
   const revenueSeries = snapshot.chartSeries.find((s) => /revenue/i.test(s.label));
   const expenseSeries = snapshot.chartSeries.find((s) => /expense/i.test(s.label));
   const cashSeries = snapshot.chartSeries.find((s) => /cash/i.test(s.label));
@@ -39,10 +45,16 @@ function buildCompositeChart(snapshot: EvidenceSnapshot, message: string): EaFor
     [];
 
   const datasets: Array<{ label: string; data: number[] }> = [];
-  if (revenueSeries?.data.length) datasets.push({ label: "Revenue", data: revenueSeries.data });
-  if (expenseSeries?.data.length) datasets.push({ label: "Expenses", data: expenseSeries.data });
-  if (cashSeries?.data.length) datasets.push({ label: "Cash", data: cashSeries.data });
-  if (snapshot.headcount !== undefined && baseLabels.length) {
+  if (focus.has("revenue") && revenueSeries?.data.length) {
+    datasets.push({ label: "Revenue", data: revenueSeries.data });
+  }
+  if (focus.has("expenses") && expenseSeries?.data.length) {
+    datasets.push({ label: "Expenses", data: expenseSeries.data });
+  }
+  if (focus.has("cash") && cashSeries?.data.length) {
+    datasets.push({ label: "Cash", data: cashSeries.data });
+  }
+  if (focus.has("headcount") && snapshot.headcount !== undefined && baseLabels.length) {
     datasets.push({
       label: "Headcount",
       data: estimateHeadcountSeries(snapshot.headcount, baseLabels),
@@ -155,6 +167,31 @@ function assessFinancialDistress(snapshot: EvidenceSnapshot): string[] {
   return risks;
 }
 
+function snapshotEvidenceLines(snapshot: EvidenceSnapshot): string[] {
+  const evidenceLines: string[] = [];
+  if (snapshot.cash !== undefined) evidenceLines.push(`Cash / bank balance: ${formatMoney(snapshot.cash)}.`);
+  if (snapshot.monthlyBurn !== undefined) evidenceLines.push(`Estimated monthly burn: ${formatMoney(snapshot.monthlyBurn)}.`);
+  if (snapshot.runwayMonths !== undefined) evidenceLines.push(`Runway: ~${snapshot.runwayMonths.toFixed(1)} months.`);
+  if (snapshot.revenueLatest !== undefined) evidenceLines.push(`Latest revenue month: ${formatMoney(snapshot.revenueLatest)}.`);
+  if (snapshot.expensesLatest !== undefined) evidenceLines.push(`Latest expenses month: ${formatMoney(snapshot.expensesLatest)}.`);
+  if (snapshot.accountsReceivable !== undefined) {
+    evidenceLines.push(`Accounts receivable: ${formatMoney(snapshot.accountsReceivable)}.`);
+  }
+  if (snapshot.accountsPayable !== undefined) {
+    evidenceLines.push(`Accounts payable: ${formatMoney(snapshot.accountsPayable)}.`);
+  }
+  if (snapshot.headcount !== undefined) evidenceLines.push(`Headcount: ${snapshot.headcount}.`);
+  if (snapshot.pipelineValue !== undefined) {
+    evidenceLines.push(`Open sales pipeline value: ${formatMoney(snapshot.pipelineValue)}.`);
+  }
+  if (snapshot.clientCount !== undefined) evidenceLines.push(`Active clients: ${snapshot.clientCount}.`);
+  if (snapshot.projectCount !== undefined) evidenceLines.push(`Active projects: ${snapshot.projectCount}.`);
+  if (snapshot.businessRiskCount !== undefined && snapshot.businessRiskCount > 0) {
+    evidenceLines.push(`Operational risk signals flagged: ${snapshot.businessRiskCount}.`);
+  }
+  return evidenceLines;
+}
+
 function synthesizeInvestigation(
   snapshot: EvidenceSnapshot,
   message: string,
@@ -174,24 +211,7 @@ function synthesizeInvestigation(
   }
 
   const risks = assessFinancialDistress(snapshot);
-  const evidenceLines: string[] = [];
-
-  if (snapshot.cash !== undefined) evidenceLines.push(`Cash / bank balance: ${formatMoney(snapshot.cash)}.`);
-  if (snapshot.monthlyBurn !== undefined) evidenceLines.push(`Estimated monthly burn: ${formatMoney(snapshot.monthlyBurn)}.`);
-  if (snapshot.runwayMonths !== undefined) evidenceLines.push(`Runway: ~${snapshot.runwayMonths.toFixed(1)} months.`);
-  if (snapshot.revenueLatest !== undefined) evidenceLines.push(`Latest revenue month: ${formatMoney(snapshot.revenueLatest)}.`);
-  if (snapshot.expensesLatest !== undefined) evidenceLines.push(`Latest expenses month: ${formatMoney(snapshot.expensesLatest)}.`);
-  if (snapshot.accountsReceivable !== undefined) {
-    evidenceLines.push(`Accounts receivable: ${formatMoney(snapshot.accountsReceivable)}.`);
-  }
-  if (snapshot.accountsPayable !== undefined) {
-    evidenceLines.push(`Accounts payable: ${formatMoney(snapshot.accountsPayable)}.`);
-  }
-  if (snapshot.headcount !== undefined) evidenceLines.push(`Headcount: ${snapshot.headcount}.`);
-  if (snapshot.pipelineValue !== undefined) {
-    evidenceLines.push(`Open sales pipeline value: ${formatMoney(snapshot.pipelineValue)}.`);
-  }
-  if (snapshot.clientCount !== undefined) evidenceLines.push(`Active clients: ${snapshot.clientCount}.`);
+  const evidenceLines = snapshotEvidenceLines(snapshot);
 
   const findings =
     risks.length === 0
@@ -248,15 +268,13 @@ function synthesizeInvestigation(
 
 function synthesizeComparative(
   snapshot: EvidenceSnapshot,
-  message: string,
+  _message: string,
   plan: EaEvidencePlan,
 ): EaFormattedCapabilityAnswer {
   const permissionNotes = formatEvidenceAvailability(snapshot, plan);
-  const needsFinance =
-    plan.restrictedEvidence?.includes("financials") ||
-    (messageNeedsFinanceDomains(plan) && snapshot.revenueLatest === undefined && snapshot.cash === undefined);
-
+  const pair = plan.task.comparisonPair;
   const parts: string[] = [];
+
   if (snapshot.pipelineValue !== undefined || snapshot.pipelineCount !== undefined) {
     parts.push(
       `Sales pipeline: ${snapshot.pipelineCount ?? "—"} opportunities${snapshot.pipelineValue !== undefined ? ` with ${formatMoney(snapshot.pipelineValue)} open value` : ""}.`,
@@ -265,15 +283,19 @@ function synthesizeComparative(
   if (snapshot.revenueLatest !== undefined) {
     parts.push(`Recognised revenue (latest month in chart data): ${formatMoney(snapshot.revenueLatest)}.`);
   }
-  if (snapshot.cash !== undefined) {
-    parts.push(`Cash position: ${formatMoney(snapshot.cash)}.`);
-  }
-  if (snapshot.expensesLatest !== undefined) {
+  if (snapshot.expensesLatest !== undefined && pair?.includes("expenses")) {
     parts.push(`Expenses (latest month): ${formatMoney(snapshot.expensesLatest)}.`);
   }
-  if (snapshot.headcount !== undefined) {
+  if (snapshot.headcount !== undefined && pair?.includes("headcount")) {
     parts.push(`Headcount: ${snapshot.headcount}.`);
   }
+  if (snapshot.cash !== undefined && pair?.includes("cash")) {
+    parts.push(`Cash position: ${formatMoney(snapshot.cash)}.`);
+  }
+
+  const needsFinance =
+    plan.restrictedEvidence?.includes("financials") ||
+    (messageNeedsFinanceDomains(plan) && snapshot.revenueLatest === undefined);
 
   const analysis =
     needsFinance && plan.restrictedEvidence?.includes("financials")
@@ -284,7 +306,9 @@ function synthesizeComparative(
           : "Pipeline value and recent revenue are in a tighter band — focus on deal velocity and any stalled opportunities."
         : permissionNotes.length
           ? "Comparison is partial — gather the missing restricted evidence or escalate access before drawing firm conclusions."
-          : "Compare pipeline momentum with recognised revenue and cash collection to explain any gap.";
+          : pair
+            ? `Compare ${pair[0]} momentum with ${pair[1]} to explain alignment, gaps, and what management should watch next.`
+            : "Compare the authorised evidence streams to explain any gap between activity and outcomes.";
 
   const text = [
     needsFinance && plan.restrictedEvidence?.includes("financials")
@@ -388,14 +412,33 @@ async function synthesizeBoardReport(
   return { answer: { text }, toolResult };
 }
 
+async function synthesizeScopedPdf(
+  message: string,
+  business: AssistantBusinessContext,
+): Promise<{ answer: EaFormattedCapabilityAnswer; toolResult?: AssistantToolResult }> {
+  const result = (await executeAssistantTool(
+    "generateScopedBusinessPdf",
+    { question: message },
+    business,
+  )) as AssistantToolResult;
+  const summary = result.summary as { message?: string } | undefined;
+  const text = summary?.message ?? "Scoped business PDF generated.";
+  return { answer: { text }, toolResult: result.status === "ok" ? result : undefined };
+}
+
 export async function synthesizeEvidenceAnswer(
   input: SynthesisInput,
 ): Promise<{ answer: EaFormattedCapabilityAnswer; extraToolResult?: AssistantToolResult }> {
-  const snapshot = buildEvidenceSnapshot(input.evidence);
+  const rawSnapshot = buildEvidenceSnapshot(input.evidence);
+  const snapshot = assessMateriality(rawSnapshot, input.plan.task);
 
   switch (input.plan.synthesisKind) {
+    case "scoped_pdf": {
+      const scoped = await synthesizeScopedPdf(input.message, input.business);
+      return { answer: scoped.answer, extraToolResult: scoped.toolResult };
+    }
     case "composite_chart":
-      return { answer: buildCompositeChart(snapshot, input.message) };
+      return { answer: buildCompositeChart(snapshot, input.plan) };
     case "comparative":
       return { answer: synthesizeComparative(snapshot, input.message, input.plan) };
     case "board_report": {

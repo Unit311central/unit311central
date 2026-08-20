@@ -7,6 +7,8 @@ export * from "./resolver";
 export * from "./evidence-planner";
 export { planCrossModuleEvidence } from "./evidence-planner";
 export { planInvestigation } from "./investigation-planner";
+export { classifyExecutiveTask, synthesisKindForTask } from "./executive-task";
+export { assessMateriality, offFocusDomainsMentioned } from "./materiality";
 export * from "./orchestrate";
 export { detectAmbiguousEaQuery } from "./clarification";
 export { buildReadCapabilityBindings } from "./integrations/read-capabilities";

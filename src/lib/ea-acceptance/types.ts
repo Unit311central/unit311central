@@ -37,6 +37,7 @@ export type EaAcceptanceExecution = {
   responseBlocks?: EaResponseBlock[];
   toolResult?: AssistantToolResult;
   artifactByteLength?: number;
+  artifactIds?: string[];
   checks: EaAcceptanceCheck[];
   status: "pass" | "fail";
   error?: string;
