@@ -197,7 +197,7 @@ export function cardsFromBoardPackSuccess(input: {
       actions: [
         {
           id: "preview",
-          label: "Preview Board Pack",
+          label: "View PDF",
           variant: "primary",
           intent: "open",
           href: input.pdfOpenUrl,

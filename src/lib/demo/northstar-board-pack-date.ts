@@ -33,6 +33,14 @@ export function resolveNorthstarBoardPackMeetingDate(input?: {
   }
 
   const scheduled = nextScheduledNorthstarBoardMeeting();
+  if (scheduled) {
+    return {
+      ok: true,
+      meetingDate: scheduled.date,
+      meetingTitle: scheduled.title,
+    };
+  }
+
   const options = NORTHSTAR_BOARD_MEETINGS.filter(
     (m) => m.status === "scheduled" || m.status === "draft",
   )

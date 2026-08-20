@@ -31,10 +31,20 @@ function annotatePermissionGaps(
 
 function planIsViable(plan: EaEvidencePlan): boolean {
   if (plan.synthesisKind === "scoped_pdf" || plan.synthesisKind === "board_report") return true;
-  if (plan.synthesisKind === "comparative") return plan.tools.length >= 2;
+  if (plan.synthesisKind === "comparative") {
+    if (plan.tools.length >= 2) return true;
+    return Boolean(plan.restrictedEvidence?.length && plan.tools.length >= 1);
+  }
   if (
     (plan.synthesisKind === "investigation" || plan.task.job === "brief") &&
     plan.tools.length >= 1
+  ) {
+    return true;
+  }
+  if (
+    (plan.synthesisKind === "investigation" || plan.task.job === "brief") &&
+    plan.restrictedEvidence?.length &&
+    plan.task.focusDomains.length
   ) {
     return true;
   }
