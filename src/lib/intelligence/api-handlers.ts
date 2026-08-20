@@ -20,7 +20,7 @@ import {
   resolveIntelligencePackSlugForWorkspace,
   resolveIntelligenceWorkspaceSlugFromHost,
 } from "@/lib/intelligence/workspace-context";
-import { isAbhiPlatformDemoSession } from "@/lib/abhi/platform-demo";
+import { isAbhiPlatformDemoSession, isAbhiInternalStaffSession } from "@/lib/abhi/platform-demo";
 import { getAbhiMemberFixtureClients } from "@/lib/abhi/member-intelligence";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import type { IntelligenceFilter, IntelligenceSeverity } from "@/lib/intelligence/types";
@@ -97,6 +97,15 @@ async function buildAccessContext(
   if (isAbhiSlug(workspaceSlug) && isAbhiPlatformDemoSession(session)) {
     return {
       roleView: "c-suite",
+      hostSurface: "abhi",
+      isExternal: false,
+      isAdmin: true,
+    };
+  }
+
+  if (isAbhiSlug(workspaceSlug) && isAbhiInternalStaffSession(session)) {
+    return {
+      roleView: "admin",
       hostSurface: "abhi",
       isExternal: false,
       isAdmin: true,

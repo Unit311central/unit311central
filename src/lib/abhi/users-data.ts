@@ -208,7 +208,6 @@ function mapDepartment(department: string): UserDepartment {
   return "Corporate";
 }
 
-/** ABHI Tools → Users list from staff roster (city + country). */
 export function listAbhiTenantUsers(): ManagedUser[] {
   return ABHI_STAFF.map((member, index) => {
     const roles: UserRole[] = [member.userRole];
@@ -237,4 +236,20 @@ export function listAbhiTenantUsers(): ManagedUser[] {
       dashboardPrefs: null,
     } satisfies ManagedUser;
   });
+}
+
+export function findAbhiTenantUserByUsername(
+  username: string | null | undefined,
+): ManagedUser | null {
+  const normalized = String(username ?? "")
+    .trim()
+    .toLowerCase();
+  if (!normalized) return null;
+  return (
+    listAbhiTenantUsers().find(
+      (user) =>
+        user.username.trim().toLowerCase() === normalized ||
+        user.email?.trim().toLowerCase() === normalized,
+    ) ?? null
+  );
 }

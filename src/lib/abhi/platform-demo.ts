@@ -19,6 +19,12 @@ export function isAbhiPlatformDemoSession(session: PlatformSession | null | unde
   return isAbhiPortalsAllowedUsername(session.username);
 }
 
+/** Internal staff on abhi.* (not external portal members). */
+export function isAbhiInternalStaffSession(session: PlatformSession | null | undefined): boolean {
+  if (!session) return false;
+  return session.userType === "internal";
+}
+
 /** True when ABHI should use curated fixtures instead of missing/partial DB tables. */
 export function usesAbhiFixtureApis(workspaceSlug: string | null | undefined): boolean {
   return isAbhiSlug(workspaceSlug);
@@ -29,7 +35,8 @@ export function allowsAbhiPlatformWorkspaceAccess(
   workspaceSlug: string | null | undefined,
 ): boolean {
   if (!isAbhiSlug(workspaceSlug)) return false;
-  return isAbhiPortalsAllowedUsername(session.username);
+  if (isAbhiPortalsAllowedUsername(session.username)) return true;
+  return session.userType === "internal";
 }
 
 export type AbhiPlatformWhoamiEntitlements = {
@@ -48,6 +55,17 @@ export function getAbhiPlatformWhoamiEntitlements(): AbhiPlatformWhoamiEntitleme
     roles: ["Exec", "Admin"],
     department: "Corporate",
     departments: ["Corporate", "Operations"],
+    allowedViews: null,
+    dashboardPrefs: null,
+  };
+}
+
+/** Full ABHI workspace nav for internal staff (working groups, accelerators, intelligence, LMS). */
+export function getAbhiInternalStaffWhoamiEntitlements(): Pick<
+  AbhiPlatformWhoamiEntitlements,
+  "allowedViews" | "dashboardPrefs"
+> {
+  return {
     allowedViews: null,
     dashboardPrefs: null,
   };

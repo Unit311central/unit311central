@@ -5,7 +5,13 @@ import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
 import { DEMO_ADMIN_USERNAME, applyUnit311GlobalAdminEntitlements, isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
 import { getNorthstarWhoamiPayload } from "@/lib/demo/northstar-api-fixtures";
-import { getAbhiPlatformWhoamiEntitlements, isAbhiPlatformDemoSession } from "@/lib/abhi/platform-demo";
+import {
+  getAbhiInternalStaffWhoamiEntitlements,
+  getAbhiPlatformWhoamiEntitlements,
+  isAbhiInternalStaffSession,
+  isAbhiPlatformDemoSession,
+} from "@/lib/abhi/platform-demo";
+import { findAbhiTenantUserByUsername } from "@/lib/abhi/users-data";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
 import { getPlatformSession } from "@/lib/platform-session";
@@ -105,7 +111,12 @@ export async function GET() {
     allowedViews = null;
   }
 
-  if (workspace && isAbhiSlug(workspace.slug) && isAbhiPlatformDemoSession(session)) {
+  const host = getRequestHost({ headers: await headers() });
+  const hostSlug = parseClientPlatformSubdomainSafe(host);
+  const abhiHost =
+    (workspace && isAbhiSlug(workspace.slug)) || isAbhiSlug(hostSlug);
+
+  if (abhiHost && isAbhiPlatformDemoSession(session)) {
     const abhi = getAbhiPlatformWhoamiEntitlements();
     role = abhi.role;
     roles = [...abhi.roles];
@@ -113,17 +124,21 @@ export async function GET() {
     departments = [...abhi.departments];
     allowedViews = abhi.allowedViews;
     dashboardPrefs = abhi.dashboardPrefs;
-  } else {
-    const host = getRequestHost({ headers: await headers() });
-    const hostSlug = parseClientPlatformSubdomainSafe(host);
-    if (isAbhiSlug(hostSlug) && isAbhiPlatformDemoSession(session)) {
-      const abhi = getAbhiPlatformWhoamiEntitlements();
-      role = abhi.role;
-      roles = [...abhi.roles];
-      department = abhi.department;
-      departments = [...abhi.departments];
-      allowedViews = abhi.allowedViews;
-      dashboardPrefs = abhi.dashboardPrefs;
+  } else if (abhiHost && isAbhiInternalStaffSession(session)) {
+    const staff = findAbhiTenantUserByUsername(session.username);
+    const staffEntitlements = getAbhiInternalStaffWhoamiEntitlements();
+    allowedViews = staffEntitlements.allowedViews;
+    dashboardPrefs = staffEntitlements.dashboardPrefs;
+    if (staff) {
+      role = staff.role;
+      roles = [...staff.roles];
+      department = staff.department;
+      departments = [...staff.departments];
+    } else if (!roles?.length) {
+      role = role ?? "Manager";
+      roles = ["Manager"];
+      department = department ?? "Operations";
+      departments = departments?.length ? departments : ["Operations"];
     }
   }
 

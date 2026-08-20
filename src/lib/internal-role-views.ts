@@ -833,7 +833,7 @@ function reshapeAbhiProductivitySection(section: InternalNavSection): InternalNa
 
 function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSection {
   if (section.label !== "Training") return section;
-  // ABHI Training: Dashboard + Courses only (no QMS Courses, no Internal Training).
+  // ABHI Training: dashboard, course builder, and staff courses (no QMS / external training clutter).
   return {
     ...section,
     items: [
@@ -841,6 +841,11 @@ function reshapeAbhiTrainingSection(section: InternalNavSection): InternalNavSec
         label: "Dashboard",
         icon: "LayoutDashboard",
         view: "training-dashboard" as const,
+      },
+      {
+        label: "Course Builder",
+        icon: "Sparkles",
+        view: "course-builder" as const,
       },
       {
         label: "Courses",
