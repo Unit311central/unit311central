@@ -14,6 +14,10 @@ import {
   type CrmLead,
   type LeadStatus,
 } from "@/lib/crm-data";
+import {
+  filterLeadsBySalesSegment,
+  type SalesManagementCrmVariant,
+} from "@/lib/sales-management-insights";
 import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
 import DashboardTopTilesBar from "@/components/testflighthub/DashboardTopTilesBar";
@@ -68,8 +72,18 @@ function leadFieldsEqual(a: CrmLead, b: CrmLead) {
 
 export default function CrmWorkspace({
   onOpenConnections,
+  variant = "default",
+  embedded = false,
+  quotesReturnHref,
+  title,
+  subtitle,
 }: {
   onOpenConnections?: () => void;
+  variant?: SalesManagementCrmVariant;
+  embedded?: boolean;
+  quotesReturnHref?: string;
+  title?: string;
+  subtitle?: string;
 }) {
   const searchParams = useSearchParams();
   const [leads, setLeads] = useState<CrmLead[]>([]);
@@ -84,9 +98,15 @@ export default function CrmWorkspace({
   const snapshottedIdRef = useRef<string | null>(null);
   const { showDetail, openDetail, closeDetail } = useMobileDetailPanel();
 
+  const visibleLeads = useMemo(() => {
+    if (variant === "prospects") return filterLeadsBySalesSegment(leads, "prospects");
+    if (variant === "opportunities") return filterLeadsBySalesSegment(leads, "opportunities");
+    return leads;
+  }, [leads, variant]);
+
   const selectedLead = useMemo(
-    () => leads.find((lead) => lead.id === selectedLeadId) ?? leads[0] ?? null,
-    [leads, selectedLeadId],
+    () => visibleLeads.find((lead) => lead.id === selectedLeadId) ?? visibleLeads[0] ?? null,
+    [visibleLeads, selectedLeadId],
   );
 
   const isDirty = useMemo(() => {
@@ -512,7 +532,8 @@ export default function CrmWorkspace({
 
       const quoteNumber = data.quote?.quoteNumber ?? "quote";
       setSaveMessage(`Quote ${quoteNumber} created. Opening Sales Quotes…`);
-      window.location.href = `${window.location.pathname}?view=sales-quotes`;
+      window.location.href =
+        quotesReturnHref ?? `${window.location.pathname}?view=sales-quotes`;
     } catch (quoteError) {
       setError(quoteError instanceof Error ? quoteError.message : "Failed to create quote");
     } finally {
@@ -552,31 +573,45 @@ export default function CrmWorkspace({
       "Active Customer": 0,
       Lost: 0,
     };
-    for (const lead of leads) {
+    for (const lead of visibleLeads) {
       counts[lead.status] += 1;
     }
     return counts;
-  }, [leads]);
+  }, [visibleLeads]);
 
-  const crmTileCatalog = useMemo(() => buildCrmDashboardCatalog(leads), [leads]);
+  const crmTileCatalog = useMemo(() => buildCrmDashboardCatalog(visibleLeads), [visibleLeads]);
+
+  const panelTitle =
+    title ??
+    (variant === "prospects"
+      ? "Prospects"
+      : variant === "opportunities"
+        ? "Opportunities"
+        : "Pipeline");
+  const panelSubtitle =
+    subtitle ??
+    (variant === "prospects"
+      ? "Early-stage CRM leads before qualification."
+      : variant === "opportunities"
+        ? "Qualified and active deals from the shared CRM register."
+        : `${visibleLeads.length} leads · ${statusCounts.Hot} hot · ${statusCounts.Warm} warm · ${statusCounts.Cold} cold`);
 
   return (
     <div className="space-y-6">
-      <DashboardTopTilesBar
-        storageKey="unit311-crm-dashboard-tiles"
-        catalog={crmTileCatalog}
-        defaultLayout={DEFAULT_CRM_TILE_LAYOUT}
-        title="CRM key details"
-        showCustomizeHint={false}
-      />
+      {!embedded ? (
+        <DashboardTopTilesBar
+          storageKey="unit311-crm-dashboard-tiles"
+          catalog={crmTileCatalog}
+          defaultLayout={DEFAULT_CRM_TILE_LAYOUT}
+          title="CRM key details"
+          showCustomizeHint={false}
+        />
+      ) : null}
       <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h3 className="text-sm font-semibold text-white">Pipeline</h3>
-            <p className="mt-1 text-xs text-white/45">
-              {leads.length} leads · {statusCounts.Hot} hot · {statusCounts.Warm} warm ·{" "}
-              {statusCounts.Cold} cold
-            </p>
+            <h3 className="text-sm font-semibold text-white">{panelTitle}</h3>
+            <p className="mt-1 text-xs text-white/45">{panelSubtitle}</p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
             {onOpenConnections && (
@@ -589,6 +624,7 @@ export default function CrmWorkspace({
                 Connections
               </button>
             )}
+            {variant === "default" ? (
             <div className="min-w-[180px]">
               <FieldLabel>Filter by status</FieldLabel>
             <select
@@ -604,6 +640,7 @@ export default function CrmWorkspace({
               ))}
             </select>
             </div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -637,7 +674,7 @@ export default function CrmWorkspace({
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-white">Leads</h2>
-              <p className="mt-1 text-xs text-white/45">{leads.length} in view</p>
+              <p className="mt-1 text-xs text-white/45">{visibleLeads.length} in view</p>
             </div>
             <button
               type="button"
@@ -655,13 +692,13 @@ export default function CrmWorkspace({
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading leads…
             </div>
-          ) : leads.length === 0 ? (
+          ) : visibleLeads.length === 0 ? (
             <p className="mt-6 text-sm text-white/45">
               No leads yet. Add your first prospect to start tracking outreach.
             </p>
           ) : (
             <ul className="mt-4 max-h-[560px] space-y-2 overflow-y-auto pr-1">
-              {leads.map((lead) => {
+              {visibleLeads.map((lead) => {
                 const selected = lead.id === selectedLead?.id;
 
                 return (

@@ -190,7 +190,7 @@ const MODULE_DESCRIPTIONS: Record<string, string> = {
     "Competitor intelligence, ecosystem partners, and IP & patents landscape for eVTOL programmes.",
   "project-management": "Client project delivery, timelines, and portfolio tracking.",
   "sales-management":
-    "Operational sales workspace shell — dashboard, pipeline, team performance, commissions, and forecast tabs. Phase 0 is navigation only; detailed sales data capabilities arrive in later phases.",
+    "Operational sales workspace — dashboard, prospects, discovery, opportunities, pipeline, and sales quotes re-homed from CRM (single `crm_leads` source of truth).",
 };
 
 const DISPLAY_NAMES: Record<string, string> = {

@@ -28,7 +28,13 @@ function money(amount: number, currency: string) {
   }
 }
 
-export default function SalesQuotesWorkspace() {
+export default function SalesQuotesWorkspace({
+  embedded = false,
+  title = "Sales quotes",
+}: {
+  embedded?: boolean;
+  title?: string;
+}) {
   const [quotes, setQuotes] = useState<SalesQuote[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -176,9 +182,11 @@ export default function SalesQuotesWorkspace() {
     <div className="flex h-full min-h-0 flex-col gap-4 p-4 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-white">Sales Quotes</h1>
+          <h1 className="text-xl font-semibold text-white">{title}</h1>
           <p className="mt-1 text-sm text-white/60">
-            CRM opportunity → quote PDF → accept → client invoice (Track C).
+            {embedded
+              ? "Shared sales quote register linked to CRM opportunities and Financials invoicing."
+              : "CRM opportunity → quote PDF → accept → client invoice (Track C)."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

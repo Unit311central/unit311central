@@ -61,7 +61,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     id: "sales-management",
     label: "Sales Management",
     section: "Sales Management",
-    views: ["sales-management"],
+    views: ["sales-management", "crm", "crm-meetings", "sales-quotes"],
   },
   {
     id: "projects",

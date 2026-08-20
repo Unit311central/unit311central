@@ -701,7 +701,10 @@ export default function InternalOperationsDashboard({
       url.searchParams.delete("tab");
     } else {
       url.searchParams.set("view", activeView);
-      url.searchParams.delete("tab");
+      if (activeView !== "sales-management") {
+        url.searchParams.delete("tab");
+        url.searchParams.delete("panel");
+      }
       if (activeView !== "potential-clients") {
         url.searchParams.delete("country");
       } else if (!isPotentialClientsCountryId(url.searchParams.get("country"))) {
