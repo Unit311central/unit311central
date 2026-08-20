@@ -12,6 +12,8 @@ import { resolveDemoRole } from "@/lib/demo/read-only";
 import { getPlatformSession, type PlatformSession } from "@/lib/platform-session";
 import { demoWorkspaceSlug } from "@/lib/runtime-surface";
 import { authorizeUserForWorkspace } from "@/lib/workspace-authorization";
+import { allowsAbhiPlatformWorkspaceAccess } from "@/lib/abhi/platform-demo";
+import { ABHI_SLUG } from "@/lib/abhi-surface";
 import {
   INTERNAL_WORKSPACE_SLUG,
   findWorkspaceById,
@@ -42,6 +44,7 @@ export type WorkspaceContextSource =
   | "host_slug"
   | "internal_default"
   | "demo_default"
+  | "abhi_demo_default"
   | "session_claim"
   | "none";
 
@@ -151,6 +154,10 @@ async function authorizeActiveWorkspace(
   workspace: CurrentWorkspace,
 ): Promise<boolean> {
   const slug = workspace.slug.trim().toLowerCase();
+  if (allowsAbhiPlatformWorkspaceAccess(session, slug)) {
+    return true;
+  }
+
   const demoSlug = (demoWorkspaceSlug() || DEMO_WORKSPACE_SLUG).trim().toLowerCase();
   if (slug === demoSlug || slug === DEMO_WORKSPACE_SLUG) {
     if (resolveDemoRole(session.username)) return true;
@@ -227,6 +234,21 @@ export const getWorkspaceContextDiagnostics = cache(
     if (customerSlug) {
       const record = await findWorkspaceBySlug(customerSlug);
       if (!record) {
+        if (session && allowsAbhiPlatformWorkspaceAccess(session, customerSlug)) {
+          return {
+            host,
+            sessionUser,
+            sessionWorkspace: fromSession,
+            resolvedWorkspace: {
+              id: "abhi-workspace",
+              slug: ABHI_SLUG,
+              name: "ABHI",
+            },
+            source: "abhi_demo_default",
+            authenticated: true,
+            authorized: true,
+          };
+        }
         return {
           host,
           sessionUser,

@@ -20,6 +20,9 @@ import {
   resolveIntelligencePackSlugForWorkspace,
   resolveIntelligenceWorkspaceSlugFromHost,
 } from "@/lib/intelligence/workspace-context";
+import { isAbhiPlatformDemoSession } from "@/lib/abhi/platform-demo";
+import { getAbhiMemberFixtureClients } from "@/lib/abhi/member-intelligence";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import type { IntelligenceFilter, IntelligenceSeverity } from "@/lib/intelligence/types";
 
 const NO_STORE_HEADERS = {
@@ -33,6 +36,16 @@ function json(body: unknown, status = 200) {
 
 function unauthorized() {
   return json({ error: "Authentication required." }, 401);
+}
+
+function resolveIntelligenceProviderData(
+  workspaceSlug: string,
+  data?: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!isAbhiSlug(workspaceSlug)) return data;
+  const clients = data?.clients;
+  if (Array.isArray(clients) && clients.length > 0) return data;
+  return { ...data, clients: getAbhiMemberFixtureClients() };
 }
 
 async function requireIntelligenceSession(request: NextRequest) {
@@ -80,6 +93,16 @@ async function buildAccessContext(
     }
     return undefined;
   }
+
+  if (isAbhiSlug(workspaceSlug) && isAbhiPlatformDemoSession(session)) {
+    return {
+      roleView: "c-suite",
+      hostSurface: "abhi",
+      isExternal: false,
+      isAdmin: true,
+    };
+  }
+
   return {
     roleView: "admin",
     hostSurface: resolveIntelligenceHostSurface(workspaceSlug),
@@ -149,6 +172,7 @@ export async function handleSearchIntelligenceRecords(
 
   try {
     const access = await buildAccessContext(request, workspaceSlug);
+    const providerData = resolveIntelligenceProviderData(workspaceSlug, data);
     const result = await searchIntelligenceRecords(
       {
         workspaceSlug,
@@ -156,7 +180,7 @@ export async function handleSearchIntelligenceRecords(
         limit: Number(params.get("limit") ?? "50"),
         offset: Number(params.get("offset") ?? "0"),
       },
-      { access, data },
+      { access, data: providerData },
     );
     return json(result);
   } catch (error) {
@@ -211,9 +235,23 @@ export async function handleGetIntelligenceBriefing(
     return json({ error: "domainId is required." }, 400);
   }
 
+  const providerDataRaw = request.nextUrl.searchParams.get("providerData");
+  let data: Record<string, unknown> | undefined;
+  if (providerDataRaw) {
+    try {
+      data = JSON.parse(providerDataRaw) as Record<string, unknown>;
+    } catch {
+      return json({ error: "Invalid providerData JSON." }, 400);
+    }
+  }
+
   try {
     const access = await buildAccessContext(request, workspaceSlug);
-    const briefing = await buildIntelligenceBriefing(workspaceSlug, domainId, { access });
+    const providerData = resolveIntelligenceProviderData(workspaceSlug, data);
+    const briefing = await buildIntelligenceBriefing(workspaceSlug, domainId, {
+      access,
+      data: providerData,
+    });
     return json({ briefing });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Briefing failed.";

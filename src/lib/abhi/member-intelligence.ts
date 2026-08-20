@@ -615,6 +615,11 @@ const FALLBACK_CLIENTS: ManagedClient[] = Object.values(PROFILE_OVERRIDES).map((
   renewalDate: row.renewalDate,
 }));
 
+/** Curated ABHI member clients for intelligence + CRM when DB rows are unavailable. */
+export function getAbhiMemberFixtureClients(): ManagedClient[] {
+  return FALLBACK_CLIENTS.map((client) => ({ ...client }));
+}
+
 function isActiveMemberClient(client: ManagedClient) {
   if (isClientPreActiveStatus(client.accountStatus)) return false;
   if (client.accountStatus === "Dormant" || client.accountStatus === "Archived") {

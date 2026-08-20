@@ -7,6 +7,7 @@ import {
 } from "@/lib/demo/northstar-supplier-invoices-fixtures";
 import { createExpense, listExpenses, updateExpense } from "@/lib/financial-expenses-service";
 import { getInternalUserById, type ExpenseCurrency } from "@/lib/expenses-data";
+import { usesNorthstarStyleAccountingFixtures } from "@/lib/workspace-accounting-fixtures";
 import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
 import { requirePlatformSession } from "@/lib/platform-session";
 
@@ -51,7 +52,7 @@ function mapExpenseToDraft(expense: {
 export async function listSupplierInvoiceDrafts(
   scope: FinancialsWorkspaceScope,
 ): Promise<SupplierInvoiceDraft[]> {
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     return getNorthstarSupplierInvoiceDrafts();
   }
 
@@ -88,7 +89,7 @@ export async function ingestSupplierInvoice(
 
   const now = new Date().toISOString();
 
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     const draft: SupplierInvoiceDraft = {
       id: `nst-ap-draft-${Date.now()}`,
       workspaceId: "demo-workspace",
@@ -135,7 +136,7 @@ export async function approveSupplierInvoiceDraft(
   id: string,
   scope: FinancialsWorkspaceScope,
 ): Promise<SupplierInvoiceDraft> {
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     const draft = getNorthstarSupplierInvoiceDraftById(id);
     if (!draft) throw new Error("Supplier invoice not found.");
     if (draft.status === "approved") return draft;

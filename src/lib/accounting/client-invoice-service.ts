@@ -3,6 +3,7 @@ import { buildClientInvoicePdfFromQuote } from "@/lib/accounting/client-invoice-
 import type { SalesQuote } from "@/lib/accounting/types";
 import { getNorthstarSalesQuoteById, upsertNorthstarSalesQuote } from "@/lib/demo/northstar-sales-quotes-fixtures";
 import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
+import { usesNorthstarStyleAccountingFixtures } from "@/lib/workspace-accounting-fixtures";
 import { sendMailboxEmail } from "@/lib/email/smtp";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
@@ -46,7 +47,7 @@ export async function attachPaymentLinkToQuote(
   origin?: string | null,
 ): Promise<SalesQuote> {
   const quote =
-    scope.workspaceSlug === "demo"
+    usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)
       ? getNorthstarSalesQuoteById(quoteId)
       : await import("@/lib/accounting/sales-quotes-service").then((mod) =>
           mod.getSalesQuoteById(quoteId, scope),
@@ -64,7 +65,7 @@ export async function attachPaymentLinkToQuote(
     currency: quote.currency,
   });
 
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     return upsertNorthstarSalesQuote({
       ...quote,
       paymentReference,
@@ -99,7 +100,7 @@ export async function sendClientInvoiceForQuote(
   origin?: string | null,
 ): Promise<{ quote: SalesQuote; messageId: string | null; simulated: boolean }> {
   const quote =
-    scope.workspaceSlug === "demo"
+    usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)
       ? getNorthstarSalesQuoteById(quoteId)
       : await import("@/lib/accounting/sales-quotes-service").then((mod) =>
           mod.getSalesQuoteById(quoteId, scope),
@@ -142,7 +143,7 @@ export async function sendClientInvoiceForQuote(
   let messageId: string | null = null;
   let simulated = false;
 
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     simulated = true;
     messageId = `demo-msg-${Date.now()}`;
   } else {
@@ -165,7 +166,7 @@ export async function sendClientInvoiceForQuote(
     messageId = info.messageId ?? null;
   }
 
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     const updated = upsertNorthstarSalesQuote({
       ...quote,
       paymentReference,

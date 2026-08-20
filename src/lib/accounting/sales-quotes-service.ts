@@ -8,6 +8,7 @@ import {
   nextNorthstarQuoteNumber,
   upsertNorthstarSalesQuote,
 } from "@/lib/demo/northstar-sales-quotes-fixtures";
+import { usesNorthstarStyleAccountingFixtures } from "@/lib/workspace-accounting-fixtures";
 import { resolveFinancialsWorkspaceId, type FinancialsWorkspaceScope } from "@/lib/financials-workspace";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
@@ -88,7 +89,7 @@ async function loadQuoteLines(quoteIds: string[], workspaceId: string) {
 }
 
 export async function listSalesQuotes(scope: FinancialsWorkspaceScope): Promise<SalesQuote[]> {
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     return getNorthstarSalesQuotes();
   }
 
@@ -108,7 +109,7 @@ export async function listSalesQuotes(scope: FinancialsWorkspaceScope): Promise<
 }
 
 export async function getSalesQuoteById(id: string, scope: FinancialsWorkspaceScope): Promise<SalesQuote | null> {
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     return getNorthstarSalesQuoteById(id);
   }
 
@@ -146,7 +147,7 @@ export async function createSalesQuote(
   const totalAmount = subtotal + taxAmount;
   const now = new Date().toISOString();
 
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     const id = `nst-quote-${Date.now()}`;
     const quote: SalesQuote = {
       id,
@@ -228,7 +229,7 @@ export async function createSalesQuoteFromLead(
   input: { leadId: string; title?: string; currency?: string },
 ): Promise<SalesQuote> {
   const lead =
-    scope.workspaceSlug === "demo"
+    usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)
       ? getNorthstarCrmLeads().find((row) => row.id === input.leadId) ?? null
       : await getLeadById(input.leadId, { workspaceId: scope.workspaceId });
 
@@ -344,7 +345,7 @@ export async function acceptSalesQuote(
     throw new Error(`Quote is ${quote.status} and cannot be accepted.`);
   }
 
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     const invoiceId = `nst-inv-quote-${quote.id}`;
     const paymentReference = `INV-${generateInvoiceNumber()}`;
     const accepted: SalesQuote = {
@@ -405,7 +406,7 @@ export function renderSalesQuotePdf(quote: SalesQuote) {
 }
 
 export async function markSalesQuoteSent(id: string, scope: FinancialsWorkspaceScope) {
-  if (scope.workspaceSlug === "demo") {
+  if (usesNorthstarStyleAccountingFixtures(scope.workspaceSlug)) {
     const quote = getNorthstarSalesQuoteById(id);
     if (!quote) throw new Error("Quote not found.");
     return upsertNorthstarSalesQuote({ ...quote, status: "sent", updatedAt: new Date().toISOString() });

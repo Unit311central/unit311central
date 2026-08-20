@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 
 import { isDemoApiRequest } from "@/lib/demo/demo-request";
+import { getRequestHost, parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
 import { DEMO_ADMIN_USERNAME, applyUnit311GlobalAdminEntitlements, isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
 import { getNorthstarWhoamiPayload } from "@/lib/demo/northstar-api-fixtures";
+import { getAbhiPlatformWhoamiEntitlements, isAbhiPlatformDemoSession } from "@/lib/abhi/platform-demo";
+import { isAbhiSlug } from "@/lib/abhi-surface";
 import { getInternalOperatorByUsername } from "@/lib/internal-operators-service";
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -99,6 +103,28 @@ export async function GET() {
     department = department ?? "Corporate";
     departments = departments?.length ? departments : ["Corporate"];
     allowedViews = null;
+  }
+
+  if (workspace && isAbhiSlug(workspace.slug) && isAbhiPlatformDemoSession(session)) {
+    const abhi = getAbhiPlatformWhoamiEntitlements();
+    role = abhi.role;
+    roles = [...abhi.roles];
+    department = abhi.department;
+    departments = [...abhi.departments];
+    allowedViews = abhi.allowedViews;
+    dashboardPrefs = abhi.dashboardPrefs;
+  } else {
+    const host = getRequestHost({ headers: await headers() });
+    const hostSlug = parseClientPlatformSubdomainSafe(host);
+    if (isAbhiSlug(hostSlug) && isAbhiPlatformDemoSession(session)) {
+      const abhi = getAbhiPlatformWhoamiEntitlements();
+      role = abhi.role;
+      roles = [...abhi.roles];
+      department = abhi.department;
+      departments = [...abhi.departments];
+      allowedViews = abhi.allowedViews;
+      dashboardPrefs = abhi.dashboardPrefs;
+    }
   }
 
   if (workspace?.id && isSupabaseConfigured()) {

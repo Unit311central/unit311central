@@ -7,6 +7,8 @@ import {
   type ClientAccountStatus,
   type ManagedClient,
 } from "@/lib/client-management-data";
+import { getAbhiMemberFixtureClients } from "@/lib/abhi/member-intelligence";
+import { isAbhiWorkspaceSlug } from "@/lib/abhi-financials";
 import {
   ensureClientBillingProfileColumns,
   ensureInternalClientsSignupProfileColumns,
@@ -221,7 +223,11 @@ export async function listInternalClients(
       const clients = (data as unknown as DbClient[]).map((row) =>
         mapInternalClient(row, mapOptions),
       );
-      return attachDerivedActiveProjects(clients, workspaceId, supabase);
+      const withProjects = await attachDerivedActiveProjects(clients, workspaceId, supabase);
+      if (isAbhiWorkspaceSlug(mapOptions.workspaceSlug) && withProjects.length === 0) {
+        return getAbhiMemberFixtureClients();
+      }
+      return withProjects;
     }),
   );
 }
