@@ -10,6 +10,7 @@
 
 export const ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER = [
   "Business Central",
+  "Sales Management",
   "OnwardAir Intelligence",
   "Financials",
   "Fundraising",

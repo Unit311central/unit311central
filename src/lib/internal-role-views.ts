@@ -253,6 +253,7 @@ export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "clients-dashboard",
   "crm",
   "crm-meetings",
+  "sales-management",
   "client-onboarding",
   "potential-clients",
   "representatives",
@@ -275,7 +276,7 @@ export const CORPCENTRE_HIDDEN_SECTION_LABELS = new Set([
   "External Client Access",
 ]);
 
-export const TALANTON_HIDDEN_SECTION_LABELS = new Set(["QMS"]);
+export const TALANTON_HIDDEN_SECTION_LABELS = new Set(["QMS", "Sales Management"]);
 
 export const CORPCENTRE_HIDDEN_ITEM_LABELS = new Set([
   "Unit311 Details",

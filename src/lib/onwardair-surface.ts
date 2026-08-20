@@ -36,6 +36,8 @@ export const ONWARDAIR_EA_ACCENT = "#12B886";
 export const ONWARDAIR_MODULE_ACCENTS: Readonly<Record<string, string>> = {
   /** RGB(37, 99, 235) */
   "Business Central": "#2563EB",
+  /** RGB(124, 58, 237) */
+  "Sales Management": "#7C3AED",
   /** RGB(192, 38, 211) */
   "OnwardAir Intelligence": "#C026D3",
   /** RGB(22, 101, 52) */

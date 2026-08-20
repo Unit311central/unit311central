@@ -1,5 +1,10 @@
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
 import { EXECUTIVE_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
+import { buildSalesManagementNavSection } from "@/lib/sales-management-nav";
+import {
+  DEFAULT_SALES_MANAGEMENT_TAB,
+  isSalesManagementTab,
+} from "@/lib/sales-management-tabs";
 
 export type InternalOperationsView =
   | "home"
@@ -219,7 +224,8 @@ export type InternalOperationsView =
   | "oa-marketing-dashboard"
   | "business-central-dashboard"
   | "management"
-  | "content-studio";
+  | "content-studio"
+  | "sales-management";
 
 /** App Router folder path (middleware may rewrite `/` → this on the internal host). */
 export const INTERNAL_OPERATIONS_APP_PATH = "/internaldashboard";
@@ -486,6 +492,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "business-central-dashboard",
   "management",
   "content-studio",
+  "sales-management",
 ];
 
 /** Nav aliases that share one implementation until modules are redesigned. */
@@ -761,6 +768,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
       },
     ],
   },
+  buildSalesManagementNavSection(),
   {
     kind: "workspace",
     label: "Financials",
@@ -1153,6 +1161,7 @@ export const internalViewTitles: Record<
   "productivity-dashboard": { title: "Dashboard", subtitle: "Business Productivity" },
   management: { title: "Management", subtitle: "Business Central" },
   "content-studio": { title: "Content Studio", subtitle: "Business Productivity" },
+  "sales-management": { title: "Dashboard", subtitle: "Sales Management" },
   "files-internal": { title: "Internal Files", subtitle: "File Explorer" },
   "unit311-details": { title: "Dashboard", subtitle: "Unit311 Details" },
   "module-go-live": {
@@ -1809,6 +1818,23 @@ export function getInternalNavHref(
     const params = new URLSearchParams({
       view: "corporate-information",
       tab: query?.tab && isCorporateInformationTab(query.tab) ? query.tab : "company-details",
+    });
+    if (query) {
+      for (const [key, value] of Object.entries(query)) {
+        if (key === "view" || key === "tab") continue;
+        params.set(key, value);
+      }
+    }
+    return `${basePath === "/" ? "/" : basePath}?${params.toString()}`;
+  }
+
+  if (view === "sales-management") {
+    const params = new URLSearchParams({
+      view: "sales-management",
+      tab:
+        query?.tab && isSalesManagementTab(query.tab)
+          ? query.tab
+          : DEFAULT_SALES_MANAGEMENT_TAB,
     });
     if (query) {
       for (const [key, value] of Object.entries(query)) {

@@ -15,6 +15,7 @@ import {
   type InternalNavSection,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
+import { SALES_MANAGEMENT_TABS } from "@/lib/sales-management-tabs";
 import { isViewAllowedForGrants } from "@/lib/internal-role-views";
 import { brandFromWorkspaceClaim } from "@/lib/workspace-brand";
 import {
@@ -150,6 +151,16 @@ const MODULE_ALIASES: Record<string, string[]> = {
     "ip",
   ],
   "project-management": ["project management", "delivery", "portfolio projects"],
+  "sales-management": [
+    "sales management",
+    "sales workspace",
+    "sales pipeline",
+    "sales team",
+    "sales forecast",
+    "commissions",
+    "sales performance",
+    "sales reports",
+  ],
 };
 
 const MODULE_DESCRIPTIONS: Record<string, string> = {
@@ -178,6 +189,8 @@ const MODULE_DESCRIPTIONS: Record<string, string> = {
   "onwardair-intelligence":
     "Competitor intelligence, ecosystem partners, and IP & patents landscape for eVTOL programmes.",
   "project-management": "Client project delivery, timelines, and portfolio tracking.",
+  "sales-management":
+    "Operational sales workspace shell — dashboard, pipeline, team performance, commissions, and forecast tabs. Phase 0 is navigation only; detailed sales data capabilities arrive in later phases.",
 };
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -247,6 +260,40 @@ function appFromItem(item: InternalNavItem, moduleId: string): ApplicationCatalo
   };
 }
 
+function enrichSalesManagementCatalogue(
+  modules: ApplicationCatalogueModule[],
+): ApplicationCatalogueModule[] {
+  return modules.map((module) => {
+    if (module.id !== "sales-management") return module;
+
+    const tabPages: ApplicationCataloguePage[] = SALES_MANAGEMENT_TABS.map((tab) => ({
+      id: `${module.id}.dashboard.${tab.id}`,
+      label: tab.label,
+      viewId: "sales-management",
+      href: `/internaldashboard?view=sales-management&tab=${tab.id}`,
+      description: `${tab.label} tab (Sales Management shell — navigation only in Phase 0).`,
+    }));
+
+    const applications = module.applications.map((app) => {
+      if (app.viewId !== "sales-management") return app;
+      return {
+        ...app,
+        pages: tabPages,
+        href: `/internaldashboard?view=sales-management&tab=dashboard`,
+      };
+    });
+
+    return {
+      ...module,
+      applications,
+      navigation: {
+        defaultViewId: "sales-management",
+        href: `/internaldashboard?view=sales-management&tab=dashboard`,
+      },
+    };
+  });
+}
+
 function moduleFromSection(section: InternalNavSection): ApplicationCatalogueModule | null {
   if (section.kind === "pin" || !section.label) return null;
   const id = slugify(section.label);
@@ -308,17 +355,19 @@ export function listPlatformModules(
     return cachedModules;
   }
 
-  const built = navSectionsForSurface(options?.workspaceSlug)
-    .map(moduleFromSection)
-    .filter((m): m is ApplicationCatalogueModule => Boolean(m))
-    .map((module) =>
-      pack?.catalogueDescriptionTransform
-        ? {
-            ...module,
-            description: pack.catalogueDescriptionTransform(module.description),
-          }
-        : module,
-    );
+  const built = enrichSalesManagementCatalogue(
+    navSectionsForSurface(options?.workspaceSlug)
+      .map(moduleFromSection)
+      .filter((m): m is ApplicationCatalogueModule => Boolean(m))
+      .map((module) =>
+        pack?.catalogueDescriptionTransform
+          ? {
+              ...module,
+              description: pack.catalogueDescriptionTransform(module.description),
+            }
+          : module,
+      ),
+  );
 
   if (cacheKey === "default") {
     cachedModules = built;

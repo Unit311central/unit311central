@@ -58,6 +58,12 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
     views: ["crm", "crm-meetings", "client-onboarding", "potential-clients"],
   },
   {
+    id: "sales-management",
+    label: "Sales Management",
+    section: "Sales Management",
+    views: ["sales-management"],
+  },
+  {
     id: "projects",
     label: "Projects",
     section: "Business Central",
@@ -321,7 +327,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
 ];
 
 const FINANCE_GROUP_IDS = new Set(["financials"]);
-const SALES_GROUP_IDS = new Set(["clients", "crm", "projects"]);
+const SALES_GROUP_IDS = new Set(["clients", "crm", "projects", "sales-management"]);
 const ENGINEERING_GROUP_IDS = new Set([
   "operations-assets",
   "engineering",

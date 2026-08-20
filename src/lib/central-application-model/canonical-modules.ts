@@ -14,6 +14,7 @@ export const CANONICAL_MODULES: readonly CanonicalModuleDefinition[] = [
     "Talanton Intelligence",
   ] },
   { id: "business-central", label: "Business Central", navLabelAliases: ["Business Central"] },
+  { id: "sales-management", label: "Sales Management", navLabelAliases: ["Sales Management"] },
   { id: "financials", label: "Financials", navLabelAliases: ["Financials"] },
   { id: "fundraising", label: "Fundraising", optional: true, navLabelAliases: ["Fundraising"] },
   { id: "board", label: "Board", navLabelAliases: ["Board"] },

@@ -1,0 +1,88 @@
+/**
+ * Phase 0 — Sales Management central module shell.
+ */
+import assert from "node:assert/strict";
+
+import { ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/onwardair-nav-order";
+import { injectDemoNavSections } from "@/lib/demo/nav";
+import {
+  TALANTON_HIDDEN_SECTION_LABELS,
+  TALANTON_HIDDEN_VIEWS,
+} from "@/lib/internal-role-views";
+import { internalSurveyNavSections } from "@/lib/internal-operations-data";
+import { getCanonicalModule } from "@/lib/central-application-model/canonical-modules";
+import {
+  DEFAULT_SALES_MANAGEMENT_TAB,
+  SALES_MANAGEMENT_TABS,
+  isSalesManagementTab,
+} from "@/lib/sales-management-tabs";
+import {
+  SALES_MANAGEMENT_MODULE_LABEL,
+  buildSalesManagementNavSection,
+} from "@/lib/sales-management-nav";
+import { getInternalNavHref } from "@/lib/internal-operations-data";
+import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
+
+function sectionLabels(sections: readonly { label?: string | null }[]): string[] {
+  return sections.map((section) => String(section.label ?? ""));
+}
+
+assert.equal(getCanonicalModule("sales-management")?.label, "Sales Management");
+
+const baseLabels = sectionLabels(internalSurveyNavSections);
+const bcIdx = baseLabels.indexOf("Business Central");
+const smIdx = baseLabels.indexOf(SALES_MANAGEMENT_MODULE_LABEL);
+const finIdx = baseLabels.indexOf("Financials");
+assert.ok(bcIdx >= 0, "base nav must include Business Central");
+assert.ok(smIdx >= 0, "base nav must include Sales Management");
+assert.ok(finIdx >= 0, "base nav must include Financials");
+assert.ok(bcIdx < smIdx && smIdx < finIdx, "Sales Management must sit between BC and Financials");
+
+const smSection = internalSurveyNavSections.find(
+  (section) => section.label === SALES_MANAGEMENT_MODULE_LABEL,
+);
+assert.ok(smSection, "Sales Management section must exist");
+assert.equal(smSection?.items.length, 1, "Sales Management LHS must be a single entry");
+assert.equal(smSection?.items[0]?.view, "sales-management");
+
+assert.equal(SALES_MANAGEMENT_TABS.length, 13);
+assert.equal(DEFAULT_SALES_MANAGEMENT_TAB, "dashboard");
+assert.equal(isSalesManagementTab("pipeline"), true);
+assert.equal(isSalesManagementTab("not-a-tab"), false);
+
+const href = getInternalNavHref("sales-management", "/internaldashboard", { tab: "pipeline" });
+assert.ok(href.includes("view=sales-management"));
+assert.ok(href.includes("tab=pipeline"));
+
+const demoNav = injectDemoNavSections(internalSurveyNavSections);
+const demoLabels = sectionLabels(demoNav);
+assert.ok(
+  demoLabels.indexOf(SALES_MANAGEMENT_MODULE_LABEL) > demoLabels.indexOf("Business Central"),
+  "demo nav must keep Sales Management after Business Central",
+);
+
+assert.ok(
+  TALANTON_HIDDEN_SECTION_LABELS.has(SALES_MANAGEMENT_MODULE_LABEL),
+  "Talanton must hide Sales Management section",
+);
+assert.ok(TALANTON_HIDDEN_VIEWS.has("sales-management"), "Talanton must hide sales-management view");
+
+assert.ok(
+  ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER.includes(SALES_MANAGEMENT_MODULE_LABEL),
+  "OnwardAir locked order must include Sales Management",
+);
+
+const built = buildSalesManagementNavSection();
+assert.equal(built.label, SALES_MANAGEMENT_MODULE_LABEL);
+
+const catalogueModule = listPlatformModules().find((module) => module.id === "sales-management");
+assert.ok(catalogueModule, "EA Application Catalogue must include Sales Management");
+assert.equal(
+  catalogueModule?.navigation.href,
+  "/internaldashboard?view=sales-management&tab=dashboard",
+);
+assert.equal(catalogueModule?.applications[0]?.pages.length, 13);
+const pipelinePage = catalogueModule?.applications[0]?.pages.find((page) => page.label === "Pipeline");
+assert.ok(pipelinePage?.href?.includes("tab=pipeline"), "EA catalogue must route Pipeline tab");
+
+console.log("ok  sales-management-nav checks passed\n");
