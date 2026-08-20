@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       business,
       { executeTools: true },
     );
-    const workspaceSlug = body.workspaceSlug ?? business.workspace.slug;
+    const workspaceSlug = body.workspaceSlug ?? business.workspace.slug ?? undefined;
     const fingerprint = validateWorkspaceFingerprint(workspaceSlug, String(execution.text ?? ""), {
       requiresCashEvidence: /\b(cash|bank|financial position|runway)\b/i.test(body.prompt),
     });
