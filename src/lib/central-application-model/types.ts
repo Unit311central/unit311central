@@ -115,4 +115,6 @@ export type EaEvidencePlan = {
   synthesisKind: EaEvidenceSynthesisKind;
   /** Domains identified for this plan (cash, revenue, sales, etc.) */
   domains: string[];
+  /** Evidence domains required by the question but blocked by permissions */
+  restrictedEvidence?: string[];
 };

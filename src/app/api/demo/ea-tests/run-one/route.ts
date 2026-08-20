@@ -11,6 +11,7 @@ import { demoEaTestBusiness } from "@/lib/demo/ea-comprehensive-test-suite";
 import { buildNorthstarEaTestBank } from "@/lib/demo/ea-module-test-bank";
 import { executeEaAcceptanceCase } from "@/lib/ea-acceptance/execute-case";
 import { businessContextForPermissionProfile, businessContextForWorkspace } from "@/lib/ea-acceptance/workspace-context";
+import { validateWorkspaceFingerprint } from "@/lib/ea-acceptance/workspace-fingerprints";
 import type { EaAcceptancePermissionProfile, EaAcceptanceQuestionKind } from "@/lib/ea-acceptance/types";
 
 export const runtime = "nodejs";
@@ -51,7 +52,14 @@ export async function POST(request: NextRequest) {
       business,
       { executeTools: true },
     );
-    return NextResponse.json(execution, { headers: DEMO_EA_NO_STORE_HEADERS });
+    const workspaceSlug = body.workspaceSlug ?? business.workspace.slug;
+    const fingerprint = validateWorkspaceFingerprint(workspaceSlug, String(execution.text ?? ""), {
+      requiresCashEvidence: /\b(cash|bank|financial position|runway)\b/i.test(body.prompt),
+    });
+    return NextResponse.json(
+      { ...execution, workspaceSlug, workspaceFingerprint: fingerprint },
+      { headers: DEMO_EA_NO_STORE_HEADERS },
+    );
   }
 
   const questionId = body.questionId;

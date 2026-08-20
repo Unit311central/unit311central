@@ -1,4 +1,11 @@
 ﻿import { getFinancialOverview } from "@/lib/accounting/overview-service";
+import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { ABHI_CASH_BALANCE_GBP } from "@/lib/abhi-financials";
+import { isAbhiSlug } from "@/lib/abhi-surface";
+import { ONWARDAIR_CASH_BALANCE_USD, isOnwardAirWorkspaceSlug } from "@/lib/onwardair-financials";
+import { TALANTON_CASH_BALANCE_USD } from "@/lib/talanton-financials";
+import { getDemoTreasuryCashGbp } from "@/lib/treasury/providers/demo-wise-simulator";
+import { isTalantonImpactSlug } from "@/lib/talanton-surface";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import {
   formatCurrency,
@@ -273,14 +280,32 @@ export async function getCashPosition(
   }
 
   try {
-    const overview = await getFinancialOverview();
-    const cash = overview.cashPosition;
+    const overview = await getFinancialOverview({
+      workspaceId: ctx.business.workspace?.id,
+      workspaceSlug: ctx.business.workspace?.slug,
+    });
+    const slug = ctx.business.workspace?.slug;
+    let cash = overview.cashPosition;
+    let currency = "GBP";
+    if (isOnwardAirWorkspaceSlug(slug)) {
+      cash = ONWARDAIR_CASH_BALANCE_USD;
+      currency = "USD";
+    } else if (isTalantonImpactSlug(slug)) {
+      cash = TALANTON_CASH_BALANCE_USD;
+      currency = "USD";
+    } else if (isAbhiSlug(slug)) {
+      cash = ABHI_CASH_BALANCE_GBP;
+      currency = "GBP";
+    } else if (slug === DEMO_WORKSPACE_SLUG || slug === "demo") {
+      cash = getDemoTreasuryCashGbp();
+      currency = "GBP";
+    }
     return toolOk(
       "getCashPosition",
       [
         {
           cashPosition: cash,
-          currency: "GBP",
+          currency,
           accountsReceivable: overview.accountsReceivable,
           accountsPayable: overview.accountsPayable,
           monthlyBurn: overview.burnRate.monthly,
@@ -294,7 +319,7 @@ export async function getCashPosition(
           cashPosition: cash,
           message: `Current bank / cash balance is ${cash.toLocaleString("en-GB", {
             style: "currency",
-            currency: "GBP",
+            currency,
             maximumFractionDigits: 0,
           })}.`,
         },

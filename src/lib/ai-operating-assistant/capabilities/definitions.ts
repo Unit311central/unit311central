@@ -45,6 +45,23 @@ export const CENTRAL_READ_CAPABILITIES: EaReadCapabilityDefinition[] = [
     deterministic: true,
     skipSynthesis: true,
     formatAnswer(result) {
+      const msg = toolMessage(result);
+      if (msg) {
+        const display = msg.replace(
+          /^Current bank \/ cash balance is /i,
+          "Your current bank balance is ",
+        );
+        const valueMatch = /is (.+)\.$/.exec(msg);
+        return {
+          text: display,
+          blocks: valueMatch
+            ? [
+                { type: "kpi", label: "Bank balance", value: valueMatch[1] },
+                { type: "text", content: display },
+              ]
+            : [{ type: "text", content: display }],
+        };
+      }
       const summary = (result as { summary?: { cashPosition?: number; message?: string } }).summary;
       const cash = summary?.cashPosition;
       if (typeof cash === "number") {
@@ -56,8 +73,7 @@ export const CENTRAL_READ_CAPABILITIES: EaReadCapabilityDefinition[] = [
           ],
         };
       }
-      const msg = toolMessage(result);
-      return msg ? { text: msg } : null;
+      return null;
     },
   },
   {

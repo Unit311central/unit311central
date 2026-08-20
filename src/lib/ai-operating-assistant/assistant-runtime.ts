@@ -48,7 +48,7 @@ import { classifyKnowledgeDomain } from "./knowledge-domains";
 import { getReadCapability } from "./capabilities/read-registry";
 import { recordEaExecutionTelemetry } from "./capabilities/execution-telemetry";
 import {
-  gatherAuthorisedEvidence,
+  executeEvidencePlan,
   getSemanticCapability,
 } from "@/lib/central-application-model";
 
@@ -1248,37 +1248,53 @@ async function* runAssistantTurnInner(input: {
         confidence: null,
         "extracted input": null,
         kind: "evidence_gpt",
+        capabilityId: route.plan.synthesisKind,
       });
+      const executed = await executeEvidencePlan(route.plan, { message, business: context });
       recordEaExecutionTelemetry({
         path: "evidence_gpt",
+        capabilityId: executed.capabilityId,
         workspaceSlug: context.workspace.slug,
         workspaceId: context.workspace.id,
         userId: input.session.sub,
-        escalationReason: "strategic_reasoning_with_authorised_evidence",
-        gptCallCount: 1,
+        escalationReason: "deterministic_evidence_synthesis",
+        gptCallCount: 0,
+        responseType: executed.answer.blocks?.some(
+          (b) => b.type === "line_chart" || b.type === "bar_chart" || b.type === "pie_chart",
+        )
+          ? "chart"
+          : executed.answer.blocks?.some((b) => b.type === "table")
+            ? "table"
+            : executed.answer.blocks?.some((b) => b.type === "kpi")
+              ? "kpi"
+              : "text",
       });
-      const evidence = await gatherAuthorisedEvidence(route.plan, context);
-      const evidencePayload = evidence.map((entry) => ({
-        tool: entry.tool,
-        status: (entry.result as { status?: string }).status ?? "unknown",
-        summary: (entry.result as { summary?: Record<string, unknown> }).summary ?? null,
-        items: Array.isArray((entry.result as { items?: unknown[] }).items)
-          ? (entry.result as { items: unknown[] }).items.slice(0, 25)
-          : [],
-      }));
-      inputItems = [
-        ...toInputMessages(resolved.history, message),
-        {
-          role: "developer",
-          content: [
-            "AUTHORISED EVIDENCE ONLY — you must not invent numbers, names, or statuses.",
-            "Reason over the evidence below to answer the user's strategic question.",
-            JSON.stringify(evidencePayload, null, 2),
-          ].join("\n\n"),
-        },
-      ];
-      tools = [];
-      requireToolOnFirstModelTurn = false;
+      assistantText = executed.answer.text;
+      yield { type: "delta", text: assistantText };
+      const assistantMessage: AssistantChatMessage = {
+        id: createMessageId(),
+        role: "assistant",
+        content: assistantText,
+        createdAt: new Date().toISOString(),
+        responseBlocks: executed.answer.blocks,
+        followUpActions: executed.answer.followUpActions,
+      };
+      const saved = await persistTurn({
+        session: input.session,
+        conversationId: resolved.conversationId,
+        history: resolved.history,
+        userMessage,
+        assistantMessage,
+        context,
+        title: resolved.title,
+      });
+      yield {
+        type: "done",
+        message: assistantMessage,
+        conversationId: saved.conversationId,
+        correlationId: getEaCorrelationId(),
+      };
+      return;
     } else if (route.kind === "none") {
       eaStage("Intent resolved", {
         actionId: null,

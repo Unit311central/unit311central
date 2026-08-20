@@ -73,6 +73,58 @@ function buildCompositeChart(snapshot: EvidenceSnapshot, message: string): EaFor
   };
 }
 
+function formatPermissionGaps(plan: EaEvidencePlan): string[] {
+  const gaps: string[] = [];
+  if (plan.restrictedEvidence?.includes("financials")) {
+    gaps.push(
+      "Financial evidence (cash, revenue, P&L, AR/AP, runway) is restricted for your role — that part of the analysis cannot be completed from live finance data.",
+    );
+  }
+  if (plan.restrictedEvidence?.includes("hr")) {
+    gaps.push(
+      "HR / headcount / payroll evidence is restricted for your role — workforce parts of this analysis are omitted.",
+    );
+  }
+  return gaps;
+}
+
+function formatEvidenceAvailability(snapshot: EvidenceSnapshot, plan: EaEvidencePlan): string[] {
+  const notes: string[] = [...formatPermissionGaps(plan)];
+  const hasFinancialEvidence =
+    snapshot.cash !== undefined ||
+    snapshot.revenueLatest !== undefined ||
+    snapshot.expensesLatest !== undefined ||
+    snapshot.overdueInvoiceCount !== undefined;
+  const needsFinance = messageNeedsFinanceDomains(plan);
+  if (needsFinance && !hasFinancialEvidence && !plan.restrictedEvidence?.includes("financials")) {
+    notes.push(
+      "Insufficient financial evidence was returned for this workspace — I cannot confirm finance-related risks from live data.",
+    );
+  }
+  if (snapshot.limitations.length) {
+    notes.push(...snapshot.limitations.map((line) => `Evidence limitation: ${line}`));
+  }
+  return notes;
+}
+
+function messageNeedsFinanceDomains(plan: EaEvidencePlan): boolean {
+  return plan.domains.some((d) =>
+    ["cash", "revenue", "expenses", "profitability", "ar", "ap", "payroll"].includes(d),
+  );
+}
+
+function insufficientEvidenceVerdict(snapshot: EvidenceSnapshot, plan: EaEvidencePlan): boolean {
+  const permissionGaps = formatPermissionGaps(plan);
+  const hasUsableEvidence =
+    snapshot.pipelineValue !== undefined ||
+    snapshot.clientCount !== undefined ||
+    snapshot.headcount !== undefined ||
+    snapshot.cash !== undefined ||
+    snapshot.revenueLatest !== undefined ||
+    snapshot.businessHealthScore !== undefined;
+  return permissionGaps.length > 0 && !hasUsableEvidence;
+}
+
 function assessFinancialDistress(snapshot: EvidenceSnapshot): string[] {
   const risks: string[] = [];
   if (snapshot.cash !== undefined && snapshot.monthlyBurn !== undefined && snapshot.monthlyBurn > 0) {
@@ -103,7 +155,24 @@ function assessFinancialDistress(snapshot: EvidenceSnapshot): string[] {
   return risks;
 }
 
-function synthesizeInvestigation(snapshot: EvidenceSnapshot, message: string): EaFormattedCapabilityAnswer {
+function synthesizeInvestigation(
+  snapshot: EvidenceSnapshot,
+  message: string,
+  plan: EaEvidencePlan,
+): EaFormattedCapabilityAnswer {
+  const permissionNotes = formatEvidenceAvailability(snapshot, plan);
+  if (insufficientEvidenceVerdict(snapshot, plan)) {
+    return {
+      text: [
+        "I cannot complete a reliable investigation because required evidence is restricted or unavailable for your role/workspace.",
+        "",
+        ...permissionNotes.map((n) => `• ${n}`),
+        "",
+        "Provide access to the relevant modules or ask a narrower question scoped to data you can access.",
+      ].join("\n"),
+    };
+  }
+
   const risks = assessFinancialDistress(snapshot);
   const evidenceLines: string[] = [];
 
@@ -126,7 +195,9 @@ function synthesizeInvestigation(snapshot: EvidenceSnapshot, message: string): E
 
   const findings =
     risks.length === 0
-      ? "Authorised evidence does not show immediate distress signals, but this is not a substitute for full statutory accounts or management review."
+      ? permissionNotes.length > 0
+        ? "From the evidence I can access, no immediate distress signals appear — but the analysis is incomplete because some required evidence is restricted or missing."
+        : "Authorised evidence does not show immediate distress signals, but this is not a substitute for full statutory accounts or management review."
       : `Key concern signals from live data: ${risks.join(" ")}`;
 
   const recommendations = [
@@ -140,9 +211,11 @@ function synthesizeInvestigation(snapshot: EvidenceSnapshot, message: string): E
   ];
 
   const limitationNote =
-    snapshot.limitations.length > 0
-      ? `\n\nLimitations: ${snapshot.limitations.join("; ")}.`
-      : "";
+    permissionNotes.length > 0
+      ? `\n\nLimitations:\n${permissionNotes.map((n) => `• ${n}`).join("\n")}`
+      : snapshot.limitations.length > 0
+        ? `\n\nLimitations: ${snapshot.limitations.join("; ")}.`
+        : "";
 
   const text = [
     findings,
@@ -173,7 +246,16 @@ function synthesizeInvestigation(snapshot: EvidenceSnapshot, message: string): E
   return { text, blocks };
 }
 
-function synthesizeComparative(snapshot: EvidenceSnapshot, message: string): EaFormattedCapabilityAnswer {
+function synthesizeComparative(
+  snapshot: EvidenceSnapshot,
+  message: string,
+  plan: EaEvidencePlan,
+): EaFormattedCapabilityAnswer {
+  const permissionNotes = formatEvidenceAvailability(snapshot, plan);
+  const needsFinance =
+    plan.restrictedEvidence?.includes("financials") ||
+    (messageNeedsFinanceDomains(plan) && snapshot.revenueLatest === undefined && snapshot.cash === undefined);
+
   const parts: string[] = [];
   if (snapshot.pipelineValue !== undefined || snapshot.pipelineCount !== undefined) {
     parts.push(
@@ -194,19 +276,25 @@ function synthesizeComparative(snapshot: EvidenceSnapshot, message: string): EaF
   }
 
   const analysis =
-    snapshot.pipelineValue !== undefined && snapshot.revenueLatest !== undefined
-      ? snapshot.pipelineValue > snapshot.revenueLatest * 3
-        ? "Pipeline value is materially larger than a single month of revenue — conversion timing and win rates will drive near-term revenue recognition."
-        : "Pipeline value and recent revenue are in a tighter band — focus on deal velocity and any stalled opportunities."
-      : "Compare pipeline momentum with recognised revenue and cash collection to explain any gap.";
+    needsFinance && plan.restrictedEvidence?.includes("financials")
+      ? "I can only report sales-side evidence you are permitted to access. Financial performance comparison requires finance permissions that your role does not have."
+      : snapshot.pipelineValue !== undefined && snapshot.revenueLatest !== undefined
+        ? snapshot.pipelineValue > snapshot.revenueLatest * 3
+          ? "Pipeline value is materially larger than a single month of revenue — conversion timing and win rates will drive near-term revenue recognition."
+          : "Pipeline value and recent revenue are in a tighter band — focus on deal velocity and any stalled opportunities."
+        : permissionNotes.length
+          ? "Comparison is partial — gather the missing restricted evidence or escalate access before drawing firm conclusions."
+          : "Compare pipeline momentum with recognised revenue and cash collection to explain any gap.";
 
   const text = [
-    "Cross-module comparison from authorised evidence:",
+    needsFinance && plan.restrictedEvidence?.includes("financials")
+      ? "Partial cross-module comparison (restricted evidence):"
+      : "Cross-module comparison from authorised evidence:",
     "",
     ...parts.map((p) => `• ${p}`),
-    "",
+    ...(parts.length ? [""] : []),
     analysis,
-    snapshot.limitations.length ? `\nLimitations: ${snapshot.limitations.join("; ")}.` : "",
+    permissionNotes.length ? `\nLimitations:\n${permissionNotes.map((n) => `• ${n}`).join("\n")}` : "",
   ]
     .join("\n")
     .trim();
@@ -309,13 +397,13 @@ export async function synthesizeEvidenceAnswer(
     case "composite_chart":
       return { answer: buildCompositeChart(snapshot, input.message) };
     case "comparative":
-      return { answer: synthesizeComparative(snapshot, input.message) };
+      return { answer: synthesizeComparative(snapshot, input.message, input.plan) };
     case "board_report": {
       const board = await synthesizeBoardReport(snapshot, input.message, input.business);
       return { answer: board.answer, extraToolResult: board.toolResult };
     }
     case "investigation":
     default:
-      return { answer: synthesizeInvestigation(snapshot, input.message) };
+      return { answer: synthesizeInvestigation(snapshot, input.message, input.plan) };
   }
 }
