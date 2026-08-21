@@ -47,6 +47,14 @@ import {
 const WS = "demo";
 const NOW = "2026-08-16T10:00:00.000Z";
 
+export const NORTHSTAR_DEMO_SALES_TEAM_ID = "nst-sales-team-uk";
+
+export const NORTHSTAR_DEMO_SALES_USER = {
+  director: "demo-user",
+  sarah: "nst-sales-sarah",
+  james: "nst-sales-james",
+} as const;
+
 function lead(partial: {
   id: string;
   companyName: string;
@@ -56,6 +64,7 @@ function lead(partial: {
   estimatedValue: number;
   source?: string;
   nextAction?: string;
+  ownerUserId?: string | null;
 }): CrmLead {
   const [firstName, ...rest] = partial.contactName.split(" ");
   const surname = rest.join(" ") || "Contact";
@@ -100,13 +109,14 @@ function lead(partial: {
     clientChatAccessToken: null,
     companyLogoFileId: null,
     companyLogoFileName: null,
-    ownerUserId: null,
+    ownerUserId: partial.ownerUserId ?? null,
     createdAt: NOW,
     updatedAt: NOW,
   };
 }
 
 export function getNorthstarCrmLeads(): CrmLead[] {
+  const { director, sarah, james } = NORTHSTAR_DEMO_SALES_USER;
   return [
     lead({
       id: "nst-lead-001",
@@ -117,6 +127,7 @@ export function getNorthstarCrmLeads(): CrmLead[] {
       estimatedValue: 185_000,
       source: "Trade show",
       nextAction: "Send monitoring platform proposal",
+      ownerUserId: sarah,
     }),
     lead({
       id: "nst-lead-002",
@@ -126,6 +137,7 @@ export function getNorthstarCrmLeads(): CrmLead[] {
       email: "h.marsh@midlandsfood.co.uk",
       estimatedValue: 92_000,
       source: "LinkedIn",
+      ownerUserId: james,
     }),
     lead({
       id: "nst-lead-003",
@@ -134,6 +146,7 @@ export function getNorthstarCrmLeads(): CrmLead[] {
       status: "Warm",
       email: "o.grant@bristolcomposites.co.uk",
       estimatedValue: 128_000,
+      ownerUserId: sarah,
     }),
     lead({
       id: "nst-lead-004",
@@ -143,6 +156,7 @@ export function getNorthstarCrmLeads(): CrmLead[] {
       email: "a.hughes@yorkshiresteel.co.uk",
       estimatedValue: 64_000,
       source: "Cold outreach",
+      ownerUserId: james,
     }),
     lead({
       id: "nst-lead-005",
@@ -152,6 +166,7 @@ export function getNorthstarCrmLeads(): CrmLead[] {
       email: "d.wright@peakbrew.co.uk",
       estimatedValue: 210_000,
       nextAction: "Kick-off workshop",
+      ownerUserId: director,
     }),
     lead({
       id: "nst-lead-006",
@@ -160,7 +175,166 @@ export function getNorthstarCrmLeads(): CrmLead[] {
       status: "Hot",
       email: "s.evans@cardiffportlogistics.co.uk",
       estimatedValue: 156_000,
+      ownerUserId: sarah,
     }),
+  ];
+}
+
+export type NorthstarDemoSalesTargetSeed = {
+  id: string;
+  ownerUserId: string | null;
+  teamId: string | null;
+  periodType: "month" | "quarter" | "year";
+  periodStart: string;
+  periodEnd: string;
+  targetValue: number;
+  notes: string | null;
+};
+
+export function getNorthstarDemoSalesPeople() {
+  const { director, sarah, james } = NORTHSTAR_DEMO_SALES_USER;
+  return [
+    {
+      userId: director,
+      displayName: "Alex Morgan",
+      email: "alex.morgan@northstarindustrial.demo",
+      hrEmployeeId: null as string | null,
+      teamIds: [NORTHSTAR_DEMO_SALES_TEAM_ID],
+      roles: ["manager"] as Array<"member" | "manager">,
+      isManager: true,
+    },
+    {
+      userId: sarah,
+      displayName: "Sarah Chen",
+      email: "sarah.chen@northstarindustrial.demo",
+      hrEmployeeId: null as string | null,
+      teamIds: [NORTHSTAR_DEMO_SALES_TEAM_ID],
+      roles: ["member"] as Array<"member" | "manager">,
+      isManager: false,
+    },
+    {
+      userId: james,
+      displayName: "James Okonkwo",
+      email: "james.okonkwo@northstarindustrial.demo",
+      hrEmployeeId: null as string | null,
+      teamIds: [NORTHSTAR_DEMO_SALES_TEAM_ID],
+      roles: ["member"] as Array<"member" | "manager">,
+      isManager: false,
+    },
+  ];
+}
+
+export function getNorthstarDemoSalesTeams() {
+  const { director, sarah, james } = NORTHSTAR_DEMO_SALES_USER;
+  const memberUserIds = [director, sarah, james];
+  return [
+    {
+      id: NORTHSTAR_DEMO_SALES_TEAM_ID,
+      name: "UK Enterprise Sales",
+      managerUserId: director,
+      managerName: "Alex Morgan",
+      memberCount: memberUserIds.length,
+      memberUserIds,
+    },
+  ];
+}
+
+export function getNorthstarDemoSalesTargetSeeds(): NorthstarDemoSalesTargetSeed[] {
+  const { director, sarah, james } = NORTHSTAR_DEMO_SALES_USER;
+  return [
+    {
+      id: "nst-target-team-q3",
+      ownerUserId: null,
+      teamId: NORTHSTAR_DEMO_SALES_TEAM_ID,
+      periodType: "quarter",
+      periodStart: "2026-07-01",
+      periodEnd: "2026-09-30",
+      targetValue: 650_000,
+      notes: "UK enterprise new business target for Q3.",
+    },
+    {
+      id: "nst-target-sarah-q3",
+      ownerUserId: sarah,
+      teamId: null,
+      periodType: "quarter",
+      periodStart: "2026-07-01",
+      periodEnd: "2026-09-30",
+      targetValue: 240_000,
+      notes: "Sarah — manufacturing vertical focus.",
+    },
+    {
+      id: "nst-target-james-q3",
+      ownerUserId: james,
+      teamId: null,
+      periodType: "quarter",
+      periodStart: "2026-07-01",
+      periodEnd: "2026-09-30",
+      targetValue: 180_000,
+      notes: "James — food & logistics pipeline.",
+    },
+    {
+      id: "nst-target-alex-q3",
+      ownerUserId: director,
+      teamId: null,
+      periodType: "quarter",
+      periodStart: "2026-07-01",
+      periodEnd: "2026-09-30",
+      targetValue: 220_000,
+      notes: "Alex — strategic accounts and close support.",
+    },
+  ];
+}
+
+export function getNorthstarDemoSalesCommissionRules() {
+  return [
+    {
+      id: "nst-comm-rule-won",
+      name: "Won deal — standard rate",
+      ratePct: 8,
+      appliesTo: "won_deal" as const,
+      isActive: true,
+    },
+    {
+      id: "nst-comm-rule-quote",
+      name: "Accepted quote — accelerator",
+      ratePct: 5,
+      appliesTo: "accepted_quote" as const,
+      isActive: true,
+    },
+  ];
+}
+
+export function getNorthstarDemoSalesCommissions() {
+  const { director, sarah } = NORTHSTAR_DEMO_SALES_USER;
+  return [
+    {
+      id: "nst-comm-001",
+      userId: director,
+      userName: "Alex Morgan",
+      crmLeadId: "nst-lead-005",
+      companyName: "Peak District Breweries",
+      quoteId: null,
+      ruleId: "nst-comm-rule-won",
+      ruleName: "Won deal — standard rate",
+      commissionableValue: 210_000,
+      ratePct: 8,
+      earnedAmount: 16_800,
+      status: "approved" as const,
+    },
+    {
+      id: "nst-comm-002",
+      userId: sarah,
+      userName: "Sarah Chen",
+      crmLeadId: "nst-lead-001",
+      companyName: "Sheffield Precision Engineering",
+      quoteId: "nst-quote-001",
+      ruleId: "nst-comm-rule-quote",
+      ruleName: "Accepted quote — accelerator",
+      commissionableValue: 100_800,
+      ratePct: 5,
+      earnedAmount: 5_040,
+      status: "pending" as const,
+    },
   ];
 }
 

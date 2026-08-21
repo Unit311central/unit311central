@@ -19,6 +19,13 @@ import {
 } from "@/lib/sales-management-insights";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import {
+  getNorthstarDemoSalesCommissionRules,
+  getNorthstarDemoSalesCommissions,
+  getNorthstarDemoSalesPeople,
+  getNorthstarDemoSalesTargetSeeds,
+  getNorthstarDemoSalesTeams,
+} from "@/lib/demo/module-fixtures";
 
 export type SalesPerson = {
   userId: string;
@@ -593,6 +600,81 @@ export async function loadSalesWorkspaceBundle(input: {
     targets,
     commissionRules,
     commissions,
+    metrics,
+  };
+}
+
+export function buildDemoSalesWorkspaceBundle(input: {
+  currentUserId: string;
+  currentUserName: string;
+  leads: CrmLead[];
+  quotes: SalesQuote[];
+  meetings: SalesDashboardMeetingSummary[];
+}): SalesWorkspaceBundle {
+  const people: SalesPerson[] = getNorthstarDemoSalesPeople();
+  const teams: SalesTeam[] = getNorthstarDemoSalesTeams();
+  const personByUserId = Object.fromEntries(people.map((person) => [person.userId, person]));
+  const displayNameForUserId = (userId: string | null | undefined) => {
+    if (!userId) return "Unassigned";
+    return personByUserId[userId]?.displayName ?? "Unknown";
+  };
+
+  const currentPerson = personByUserId[input.currentUserId];
+  const context: SalesWorkspaceContext = {
+    currency: "GBP",
+    currentUserId: input.currentUserId,
+    currentUserName: input.currentUserName,
+    isSalesperson: Boolean(currentPerson),
+    isManager:
+      Boolean(currentPerson?.isManager) ||
+      teams.some((team) => team.managerUserId === input.currentUserId),
+    people,
+    teams,
+    personByUserId,
+    displayNameForUserId,
+  };
+
+  const teamNameById = new Map(teams.map((team) => [team.id, team.name]));
+  const targets: SalesTargetRecord[] = getNorthstarDemoSalesTargetSeeds().map((seed) => {
+    const record: SalesTargetRecord = {
+      id: seed.id,
+      ownerUserId: seed.ownerUserId,
+      ownerName: seed.ownerUserId ? displayNameForUserId(seed.ownerUserId) : null,
+      teamId: seed.teamId,
+      teamName: seed.teamId ? teamNameById.get(seed.teamId) ?? null : null,
+      periodType: seed.periodType,
+      periodStart: seed.periodStart,
+      periodEnd: seed.periodEnd,
+      targetValue: seed.targetValue,
+      actualValue: 0,
+      progressPct: null,
+      currency: "GBP",
+      notes: seed.notes,
+    };
+    record.actualValue = computeActualForTarget(record, input.leads, input.quotes);
+    record.progressPct =
+      record.targetValue > 0
+        ? Math.min(100, Math.round((record.actualValue / record.targetValue) * 100))
+        : null;
+    return record;
+  });
+
+  const metrics = buildSalesDashboardMetrics({
+    leads: input.leads,
+    quotes: input.quotes,
+    meetings: input.meetings,
+    displayNameForUserId,
+  });
+
+  return {
+    context,
+    leads: input.leads,
+    quotes: input.quotes,
+    meetings: input.meetings,
+    activities: [],
+    targets,
+    commissionRules: getNorthstarDemoSalesCommissionRules(),
+    commissions: getNorthstarDemoSalesCommissions(),
     metrics,
   };
 }

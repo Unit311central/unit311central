@@ -7,14 +7,15 @@ import { requirePlatformSession } from "@/lib/platform-session";
 import { ensureSalesManagementFoundationTables } from "@/lib/internal-db-migrations";
 import {
   buildForecastSummary,
+  buildDemoSalesWorkspaceBundle,
   buildMySalesSummary,
   buildPerformanceSummary,
   buildReportsSummary,
   buildSalesActivities,
   buildSalesTeamSummary,
   loadSalesWorkspaceBundle,
+  type SalesWorkspaceBundle,
 } from "@/lib/sales-management-service";
-import { buildSalesDashboardMetrics } from "@/lib/sales-management-insights";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireCurrentWorkspace } from "@/lib/workspace-context";
 
@@ -42,17 +43,23 @@ export async function resolveSalesManagementAuth() {
       formattedWhen: meeting.formattedWhenGmt,
       status: meeting.status,
     }));
-    const displayNameForUserId = () => "Demo Rep";
-    return {
-      demo: true as const,
-      workspace: { id: "demo", slug: "demo", name: "Demo" },
-      session: { sub: "demo-user", displayName: "Demo Rep", username: "client" },
-      bundle: null,
+    const bundle = buildDemoSalesWorkspaceBundle({
+      currentUserId: "demo-user",
+      currentUserName: "Alex Morgan",
       leads,
       quotes,
       meetings,
-      displayNameForUserId,
-      metrics: buildSalesDashboardMetrics({ leads, quotes, meetings, displayNameForUserId }),
+    });
+    return {
+      demo: true as const,
+      workspace: { id: "demo", slug: "demo", name: "Demo" },
+      session: { sub: "demo-user", displayName: "Alex Morgan", username: "client" },
+      bundle,
+      leads: bundle.leads,
+      quotes: bundle.quotes,
+      meetings: bundle.meetings,
+      displayNameForUserId: bundle.context.displayNameForUserId,
+      metrics: bundle.metrics,
     };
   }
 
@@ -92,64 +99,11 @@ export function salesManagementErrorResponse(error: unknown) {
 }
 
 export function buildSectionPayload(section: SalesManagementSection, auth: Awaited<ReturnType<typeof resolveSalesManagementAuth>>) {
-  if (auth.demo) {
-    const activities = buildSalesActivities({
-      leads: auth.leads,
-      meetings: auth.meetings,
-      crmActivities: [],
-      displayNameForUserId: auth.displayNameForUserId,
-    });
-    const forecast = buildForecastSummary(auth.leads, auth.quotes);
-    const performance = buildPerformanceSummary(auth.leads, [], auth.displayNameForUserId);
-    return {
-      section,
-      workspace: auth.workspace,
-      context: {
-        currentUserId: auth.session.sub,
-        currentUserName: auth.session.displayName,
-        isManager: true,
-        isSalesperson: true,
-        people: [],
-        teams: [],
-      },
-      metrics: auth.metrics,
-      mySales: {
-        prospects: auth.leads.filter((l) => l.status === "Cold" || l.status === "Warm"),
-        opportunities: auth.leads.filter((l) => ["Warm", "Hot", "Won", "Active Customer"].includes(l.status)),
-        pipeline: auth.leads.filter((l) => ["Cold", "Warm", "Hot"].includes(l.status)),
-        quotes: auth.quotes,
-        activities,
-        metrics: {
-          pipelineValue: auth.metrics.pipelineValue,
-          openOpportunities: auth.metrics.openOpportunityCount,
-          overdueActivities: activities.filter((a) => a.status === "overdue").length,
-          upcomingMeetings: auth.metrics.upcomingMeetingsCount,
-        },
-      },
-      salesTeam: [],
-      activities,
-      targets: [],
-      performance,
-      forecast,
-      commissionRules: [],
-      commissions: [],
-      reports: {
-        pipelineByStage: auth.metrics.byStatus,
-        pipelineByPerson: auth.metrics.pipelineByAssignee,
-        wonLost: [
-          { label: "Won", count: auth.metrics.wonCount, value: 0 },
-          { label: "Lost", count: auth.metrics.lostCount, value: 0 },
-        ],
-        leadTrend: auth.metrics.leadsCreatedByMonth,
-        forecast,
-        targetProgress: [],
-        activitySummary: { upcoming: activities.filter((a) => a.status === "upcoming").length, overdue: activities.filter((a) => a.status === "overdue").length },
-        conversionPct: auth.metrics.winRatePct,
-      },
-    };
+  const bundle: SalesWorkspaceBundle | null = auth.bundle;
+  if (!bundle) {
+    throw new Error("Sales workspace bundle is missing.");
   }
 
-  const bundle = auth.bundle!;
   const activities = buildSalesActivities({
     leads: bundle.leads,
     meetings: bundle.meetings,
@@ -165,8 +119,18 @@ export function buildSectionPayload(section: SalesManagementSection, auth: Await
       currentUserName: bundle.context.currentUserName,
       isManager: bundle.context.isManager,
       isSalesperson: bundle.context.isSalesperson,
-      people: bundle.context.people,
-      teams: bundle.context.teams,
+      people: bundle.context.people.map(({ userId, displayName, email, isManager }) => ({
+        userId,
+        displayName,
+        email,
+        isManager,
+      })),
+      teams: bundle.context.teams.map(({ id, name, managerName, memberCount }) => ({
+        id,
+        name,
+        managerName,
+        memberCount,
+      })),
     },
     metrics: bundle.metrics,
     mySales: buildMySalesSummary(bundle),
