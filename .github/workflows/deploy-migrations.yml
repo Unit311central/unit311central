@@ -1,7 +1,7 @@
 name: Post-deploy migrations
 
 # POST pending migrations via authenticated production runner (apply step only).
-# Step 2: apply migration 149 after GET dry-run verification (fc652629).
+# Step 2: apply migration 149 after idempotency fix (4e9fc65c).
 on:
   workflow_dispatch:
   push:
