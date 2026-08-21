@@ -16,7 +16,6 @@ function isAuthorized(request: NextRequest) {
   if (setupSecret && auth === `Bearer ${setupSecret}`) return true;
   if (setupSecret && request.headers.get("x-setup-secret") === setupSecret) return true;
   if (request.headers.get("x-vercel-cron-auth-token")) return true;
-  if (request.headers.get("user-agent")?.startsWith("vercel-cron/")) return true;
   return false;
 }
 
