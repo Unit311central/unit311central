@@ -127,6 +127,8 @@ export type InternalOperationsView =
   | "demo-market-intelligence"
   | "platform-analytics"
   | "website-analytics"
+  | "workspaces-overview"
+  | "workspaces-new"
   | "website-management"
   | "website-uk-pavilion"
   | "integrations"
@@ -408,6 +410,8 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "demo-market-intelligence",
   "platform-analytics",
   "website-analytics",
+  "workspaces-overview",
+  "workspaces-new",
   "website-management",
   "website-uk-pavilion",
   "integrations",
@@ -1231,6 +1235,8 @@ export const internalViewTitles: Record<
   "demo-market-intelligence": { title: "Market Intelligence", subtitle: "Northstar Intelligence" },
   "platform-analytics": { title: "Platform Analytics", subtitle: "Analytics" },
   "website-analytics": { title: "Website Analytics", subtitle: "Analytics" },
+  "workspaces-overview": { title: "Workspace Overview", subtitle: "Workspaces" },
+  "workspaces-new": { title: "New Workspace", subtitle: "Workspaces" },
   "website-management": { title: "Website Management", subtitle: "Tools" },
   "website-uk-pavilion": {
     title: "UK Healthcare Pavilion Management",

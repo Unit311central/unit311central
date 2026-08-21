@@ -1,5 +1,6 @@
 import { FINANCES_MODULE_LABEL } from "@/lib/finances-nav";
 import { isInternalDomainHost } from "@/lib/app-domains";
+import { buildWorkspacesNavSection } from "@/lib/workspaces-nav";
 import { normalizePlatformUsername } from "@/lib/platform-auth";
 import {
   buildProjectManagementNavSection,
@@ -207,12 +208,16 @@ const DEMO_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "telemetry",
   "platform-analytics",
   "website-analytics",
+  "workspaces-overview",
+  "workspaces-new",
 ]);
 export const CORPCENTRE_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "testing",
   "telemetry",
   "platform-analytics",
   "website-analytics",
+  "workspaces-overview",
+  "workspaces-new",
   "unit311-details",
   "module-go-live",
   "quality-management",
@@ -240,6 +245,8 @@ export const TALANTON_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "telemetry",
   "platform-analytics",
   "website-analytics",
+  "workspaces-overview",
+  "workspaces-new",
   "unit311-details",
   "module-go-live",
   "quality-management",
@@ -699,6 +706,8 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "telemetry",
   "platform-analytics",
   "website-analytics",
+  "workspaces-overview",
+  "workspaces-new",
   "potential-clients",
   "qms-training",
   "marketing-training",
@@ -712,6 +721,8 @@ export const ABHI_HIDDEN_VIEWS = new Set<InternalOperationsView>([
 export const CUSTOMER_PLATFORM_HIDDEN_VIEWS = new Set<InternalOperationsView>([
   "unit311-details",
   "module-go-live",
+  "workspaces-overview",
+  "workspaces-new",
 ]);
 
 const ABHI_HIDDEN_ITEM_LABELS = new Set([
@@ -1541,6 +1552,36 @@ function injectInternalPlatformAnalytics(
   return out;
 }
 
+/**
+ * Workspaces — Internal host only.
+ * Top-level section after Settings with Workspace Overview + New Workspace.
+ * Never in shared tenant catalogues or customer surfaces.
+ */
+function injectInternalWorkspacesNav(
+  sections: readonly InternalNavSection[],
+): InternalNavSection[] {
+  if (typeof window === "undefined") return [...sections];
+  if (!isInternalDomainHost(window.location.hostname)) return [...sections];
+
+  const cleaned = sections.filter((section) => section.label !== "Workspaces");
+  if (cleaned.some((section) => section.label === "Workspaces")) {
+    return cleaned;
+  }
+
+  const workspacesSection = buildWorkspacesNavSection();
+  const settingsIdx = cleaned.findIndex((section) => section.label === "Settings");
+  if (settingsIdx >= 0) {
+    const out = [...cleaned];
+    out.splice(settingsIdx + 1, 0, workspacesSection);
+    return out;
+  }
+  return [...cleaned, workspacesSection];
+}
+
+function injectInternalOnlyNav(sections: readonly InternalNavSection[]): InternalNavSection[] {
+  return injectInternalWorkspacesNav(injectInternalPlatformAnalytics(sections));
+}
+
 function stripMemberIntelligenceNav(
   sections: readonly InternalNavSection[],
 ): InternalNavSection[] {
@@ -1643,9 +1684,9 @@ export function filterInternalNavSectionsForDemoSurface(
       }
     }
     if (!isPlatformHost) {
-      return injectInternalPlatformAnalytics(stripCustomerPlatformNav(base));
+      return injectInternalOnlyNav(stripCustomerPlatformNav(base));
     }
-    return injectInternalPlatformAnalytics(base);
+    return injectInternalOnlyNav(base);
   }
 
   const hideViews =
@@ -1695,7 +1736,7 @@ export function filterInternalNavSectionsForDemoSurface(
     })
     .filter((section) => section.items.length > 0);
 
-  return applyDemoNavExtensions(injectInternalPlatformAnalytics(filtered), options);
+  return applyDemoNavExtensions(injectInternalOnlyNav(filtered), options);
 }
 
 function isDemoNavSurface(): boolean {
