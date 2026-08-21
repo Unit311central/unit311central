@@ -23,7 +23,7 @@ create table if not exists public.sales_team_members (
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
   team_id uuid not null references public.sales_teams (id) on delete cascade,
   user_id uuid not null references public.platform_users (id) on delete cascade,
-  hr_employee_id uuid references public.hr_employees (id) on delete set null,
+  hr_employee_id text references public.hr_employees (id) on delete set null,
   role text not null default 'member'
     check (role in ('member', 'manager')),
   is_active boolean not null default true,
