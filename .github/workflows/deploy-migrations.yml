@@ -1,5 +1,6 @@
 name: Post-deploy migrations
 
+# POST pending migrations via authenticated production runner (apply step only).
 on:
   workflow_dispatch:
   push:
