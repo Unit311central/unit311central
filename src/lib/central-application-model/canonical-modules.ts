@@ -7,7 +7,7 @@ import type { CanonicalModuleDefinition } from "./types";
 export const CANONICAL_MODULES: readonly CanonicalModuleDefinition[] = [
   { id: "home", label: "Home", navLabelAliases: ["Home", "PIN"] },
   { id: "executive-assistant", label: "Executive Assistant", navLabelAliases: ["Executive Assistant"] },
-  { id: "northstar-intelligence", label: "Northstar Intelligence", optional: true, navLabelAliases: [
+  { id: "intelligence", label: "Intelligence", optional: true, navLabelAliases: [
     "Northstar Intelligence",
     "OnwardAir Intelligence",
     "ABHI Intelligence",
