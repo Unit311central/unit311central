@@ -260,7 +260,11 @@ export default function NorthstarBusinessCentralDashboard() {
           return (
             <Link
               key={tile.id}
-              href={href(tile.href)}
+              href={
+                tile.id === "partners"
+                  ? getInternalNavHref("sales-management", basePath, { tab: "partners" })
+                  : href(tile.href)
+              }
               className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 transition-colors hover:border-sky-400/35 hover:bg-sky-500/[0.07]"
             >
               {content}

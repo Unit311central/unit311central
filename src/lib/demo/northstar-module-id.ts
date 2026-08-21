@@ -6,6 +6,7 @@ export type NorthstarModuleId =
   | "home"
   | "executive-assistant"
   | "business-central"
+  | "sales-management"
   | "financials"
   | "engineering"
   | "fundraising"
@@ -49,6 +50,8 @@ export function resolveNorthstarModuleId(raw: string): NorthstarModuleId | null 
   if (/sheffield|client|account|renewal|churn|customer|crm|onboarding|discovery|partner/.test(lower))
     return "clients";
   if (/business\s+central|member\s+intelligence/.test(lower)) return "business-central";
+  if (/sales\s+management|sales\s+pipeline|sales\s+team|commissions|sales\s+forecast/.test(lower))
+    return "sales-management";
   if (/support|ticket|helpdesk|mag-sup/.test(lower)) return "support";
   if (/qms|quality|capa|audit|iso/.test(lower)) return "qms";
   if (/intelligence|competitor|senseforge|market|regulatory/.test(lower)) return "intelligence";

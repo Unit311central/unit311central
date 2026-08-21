@@ -56,6 +56,7 @@ export default function OnwardAirBusinessCentralDashboard() {
   const basePath = useInternalOperationsBasePath();
   const summary = getOaBcDashboardSummary();
   const href = (view: InternalOperationsView) => getInternalNavHref(view, basePath);
+  const salesPartnersHref = getInternalNavHref("sales-management", basePath, { tab: "partners" });
 
   const tiles: Tile[] = [
     {
@@ -90,14 +91,14 @@ export default function OnwardAirBusinessCentralDashboard() {
       label: "Partners",
       value: String(summary.partnersCount),
       hint: summary.partnerRegions.slice(0, 3).join(" · ") || "Active regions",
-      href: href("representatives"),
+      href: salesPartnersHref,
       icon: Handshake,
     },
     {
       label: "Commission pipeline",
       value: usd(summary.commissionPipelineUsd),
       hint: "Outstanding + upcoming (USD)",
-      href: href("representatives"),
+      href: salesPartnersHref,
       icon: Handshake,
     },
     {

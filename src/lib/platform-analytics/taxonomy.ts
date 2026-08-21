@@ -129,7 +129,7 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
     sectionKey: "projects",
     sectionLabel: "Projects",
   }),
-  page("business-central", "Business Central", "representatives", "Partners", { core: true }),
+  page("sales-management", "Sales Management", "partners", "Partners", { core: true }),
   page("business-central", "Business Central", "management", "Management", { core: true }),
 
   // Financials

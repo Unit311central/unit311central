@@ -784,11 +784,6 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
         ],
       },
       {
-        label: "Partners",
-        icon: "Handshake",
-        view: "representatives" as const,
-      },
-      {
         label: "Management",
         icon: "ClipboardList",
         view: "management" as const,
@@ -1107,7 +1102,7 @@ export const internalViewTitles: Record<
     subtitle: "Internal test workspace",
   },
   connections: { title: "Connections", subtitle: "Internal Operations" },
-  representatives: { title: "Partners", subtitle: "Business Central" },
+  representatives: { title: "Partners", subtitle: "Sales Management" },
   "office-locations": { title: "Office Locations", subtitle: "Corporate Information" },
   "corporate-dashboard": { title: "Dashboard", subtitle: "Corporate Information" },
   "corporate-information": { title: "Company Details", subtitle: "Corporate Information" },
