@@ -11,8 +11,29 @@ permissions:
 jobs:
   dry-run:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
+      - name: Wait for Vercel production deploy
+        env:
+          HEAD_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            state=$(curl -fsS "https://api.github.com/repos/${REPOSITORY}/commits/${HEAD_SHA}/status" | jq -r '.state')
+            echo "attempt ${attempt}: vercel/github state=${state}"
+            if [ "$state" = "success" ]; then
+              exit 0
+            fi
+            if [ "$state" = "failure" ]; then
+              echo "Vercel deploy failed for ${HEAD_SHA}"
+              exit 1
+            fi
+            sleep 20
+          done
+          echo "Timed out waiting for Vercel deploy on ${HEAD_SHA}"
+          exit 1
+
       - name: GET pending migration plan
         env:
           SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
