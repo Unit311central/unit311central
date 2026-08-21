@@ -114,6 +114,7 @@ export async function GET(request: NextRequest) {
     readiness,
     migrations: UNIT311_PENDING_MIGRATIONS,
     queryBackend,
+    deploymentCommitSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
     plan,
     queryError,
   });

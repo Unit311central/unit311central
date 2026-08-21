@@ -19,13 +19,17 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 30); do
-            state=$(curl -fsS "https://api.github.com/repos/${REPOSITORY}/commits/${HEAD_SHA}/status" | jq -r '.state')
-            echo "attempt ${attempt}: vercel/github state=${state}"
-            if [ "$state" = "success" ]; then
+          for attempt in $(seq 1 45); do
+            payload=$(curl -fsS "https://api.github.com/repos/${REPOSITORY}/commits/${HEAD_SHA}/status")
+            state=$(echo "$payload" | jq -r '.state')
+            vercel_status=$(echo "$payload" | jq -r '.statuses[]? | select(.context == "Vercel") | .state' | head -n1)
+            echo "attempt ${attempt}: aggregate=${state} vercel=${vercel_status:-unknown}"
+            if [ "$state" = "success" ] && [ "${vercel_status:-}" = "success" ]; then
+              echo "Waiting 90s for Vercel edge/serverless propagation..."
+              sleep 90
               exit 0
             fi
-            if [ "$state" = "failure" ]; then
+            if [ "$state" = "failure" ] || [ "$vercel_status" = "failure" ]; then
               echo "Vercel deploy failed for ${HEAD_SHA}"
               exit 1
             fi
@@ -50,6 +54,9 @@ jobs:
           echo "$response" | jq -e '.queryBackend != null' >/dev/null
           echo "$response" | jq -e '.plan != null' >/dev/null
           echo "$response" | jq -e '.queryError == null' >/dev/null
+          echo "$response" | jq -e --arg sha "${GITHUB_SHA}" '
+            (.deploymentCommitSha == $sha)
+          ' >/dev/null
           echo "$response" | jq -e '
             ([.plan.actions[] | select(.kind == "apply")] | length) == 1
           ' >/dev/null
