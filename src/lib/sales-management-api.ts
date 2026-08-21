@@ -4,6 +4,7 @@ import { isDemoApiRequest } from "@/lib/demo/demo-request";
 import { getNorthstarCrmLeads, getNorthstarDiscoveryMeetings } from "@/lib/demo/module-fixtures";
 import { listSalesQuotes } from "@/lib/accounting/sales-quotes-service";
 import { requirePlatformSession } from "@/lib/platform-session";
+import { ensureSalesManagementFoundationTables } from "@/lib/internal-db-migrations";
 import {
   buildForecastSummary,
   buildMySalesSummary,
@@ -58,6 +59,8 @@ export async function resolveSalesManagementAuth() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
+
+  await ensureSalesManagementFoundationTables();
 
   const session = await requirePlatformSession();
   const workspace = await requireCurrentWorkspace();

@@ -115,6 +115,8 @@ export const SOFTWARE_ASSET_REGISTER_MIGRATION_PATH =
   "supabase/migrations/086_software_asset_register.sql";
 export const SOFTWARE_PROVIDER_BILLING_MIGRATION_PATH =
   "supabase/migrations/138_software_provider_billing.sql";
+export const SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH =
+  "supabase/migrations/149_sales_management_foundation.sql";
 export const SOFTWARE_PROVIDER_INVOICES_MIGRATION_PATH =
   "supabase/migrations/139_software_provider_invoices.sql";
 export const INTEGRATIONS_REGISTRY_MIGRATION_PATH =
@@ -3138,4 +3140,51 @@ export async function withMarketingEventsTables<T>(operation: () => Promise<T>):
   }
 
   throw new Error("Failed to access marketing tables.");
+}
+
+export async function ensureSalesManagementFoundationTables(): Promise<boolean> {
+  return onceEnsured("table:sales_teams", async () => {
+    const exists = await tableExistsViaManagementApi("sales_teams");
+    if (exists === true) return true;
+    if (await tableExistsViaServiceRole("sales_teams")) return true;
+
+    const dbUrl = getDatabaseUrl();
+    if (dbUrl) {
+      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+      try {
+        await client.connect();
+        if (await tableExists(client, "sales_teams")) {
+          await reloadPostgrestSchema();
+          return true;
+        }
+        await applyMigration(client, SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH);
+        await reloadPostgrestSchema();
+        return true;
+      } catch (error) {
+        if (!isDirectDbConnectionError(error)) {
+          console.warn("[sales-management] direct DB ensure failed", error);
+        }
+      } finally {
+        await client.end().catch(() => undefined);
+      }
+    }
+
+    const applied = await applyMigrationViaManagementApi(SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH);
+    if (applied) {
+      await reloadPostgrestSchema();
+      return true;
+    }
+
+    const appliedViaResolved = await withResolvedDatabaseClient(async (client) => {
+      if (await tableExists(client, "sales_teams")) return true;
+      await applyMigration(client, SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH);
+      return true;
+    });
+    if (appliedViaResolved) {
+      await reloadPostgrestSchema();
+      return true;
+    }
+
+    return tableExistsViaServiceRole("sales_teams");
+  });
 }
