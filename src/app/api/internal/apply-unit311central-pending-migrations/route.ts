@@ -102,6 +102,7 @@ const MIGRATIONS = [
   "supabase/migrations/140_financial_expenses_bulk_entry.sql",
   "supabase/migrations/141_marketing_events_module.sql",
   "supabase/migrations/148_sales_quotes.sql",
+  "supabase/migrations/149_sales_management_foundation.sql",
 ];
 
 function isAuthorized(request: NextRequest) {

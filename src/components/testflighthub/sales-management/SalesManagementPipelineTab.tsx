@@ -23,7 +23,13 @@ import {
   isOpenPipelineLead,
 } from "@/lib/sales-management-insights";
 
-import { WsKpiTile, WsSection } from "../domain-workspace-ui";
+import { WsSection } from "../domain-workspace-ui";
+import {
+  SalesChartFrame,
+  SalesKpiGrid,
+  SalesKpiTile,
+  SalesTabHeader,
+} from "./sales-management-ui";
 
 const STAGE_ORDER: LeadStatus[] = ["Cold", "Warm", "Hot"];
 const STAGE_COLORS: Record<LeadStatus, string> = {
@@ -104,18 +110,23 @@ export default function SalesManagementPipelineTab() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <WsKpiTile label="Open pipeline" value={formatSalesMoney(pipelineValue)} hint="Cold, warm, and hot value" />
-        <WsKpiTile label="Open deals" value={String(pipelineLeads.length)} hint="Active pipeline records" />
-        <WsKpiTile label="Won" value={String(wonCount)} hint="Closed-won CRM leads" />
-        <WsKpiTile label="Lost" value={String(lostCount)} hint="Closed-lost CRM leads" />
-      </div>
+    <div className="space-y-4">
+      <SalesTabHeader
+        title="Pipeline"
+        description="Analytical funnel and stage view over existing CRM leads — single source of truth."
+      />
 
-      <WsSection title="Pipeline funnel" subtitle="Analytical view over existing CRM leads — single source of truth">
-        <div className="h-64">
+      <SalesKpiGrid>
+        <SalesKpiTile label="Open pipeline" value={formatSalesMoney(pipelineValue)} hint="Cold, warm, and hot value" />
+        <SalesKpiTile label="Open deals" value={String(pipelineLeads.length)} hint="Active pipeline records" />
+        <SalesKpiTile label="Won" value={String(wonCount)} hint="Closed-won CRM leads" />
+        <SalesKpiTile label="Lost" value={String(lostCount)} hint="Closed-lost CRM leads" />
+      </SalesKpiGrid>
+
+      <WsSection title="Pipeline funnel" subtitle="Opportunity count by stage" className="p-4 sm:p-5">
+        <SalesChartFrame heightClassName="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
+            <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
               <XAxis dataKey="stage" tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }} />
               <YAxis tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
@@ -137,7 +148,7 @@ export default function SalesManagementPipelineTab() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </SalesChartFrame>
       </WsSection>
 
       <div className="grid gap-4 xl:grid-cols-3">
@@ -150,8 +161,9 @@ export default function SalesManagementPipelineTab() {
               subtitle={`${columnLeads.length} open · ${formatSalesMoney(
                 columnLeads.reduce((sum, lead) => sum + (lead.estimatedValue ?? 0), 0),
               )}`}
+              className="p-4 sm:p-5"
             >
-              <div className="space-y-2">
+              <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
                 {columnLeads.length ? (
                   columnLeads.map((lead) => (
                     <Link
@@ -160,7 +172,7 @@ export default function SalesManagementPipelineTab() {
                         tab: "opportunities",
                         leadId: lead.id,
                       })}
-                      className="block rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 transition-colors hover:border-violet-400/30 hover:bg-violet-500/10"
+                      className="block rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 transition-colors hover:border-violet-400/30 hover:bg-violet-500/10"
                     >
                       <p className="text-sm font-medium text-white">{lead.companyName}</p>
                       <p className="text-[11px] text-white/45">{lead.contactName}</p>

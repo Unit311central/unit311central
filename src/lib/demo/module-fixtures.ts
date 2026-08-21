@@ -100,6 +100,7 @@ function lead(partial: {
     clientChatAccessToken: null,
     companyLogoFileId: null,
     companyLogoFileName: null,
+    ownerUserId: null,
     createdAt: NOW,
     updatedAt: NOW,
   };

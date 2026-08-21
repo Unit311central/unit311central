@@ -179,11 +179,11 @@ export default function SalesQuotesWorkspace({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4 md:p-6">
+    <div className={cn("flex h-full min-h-0 flex-col", embedded ? "gap-3" : "gap-4 p-4 md:p-6")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-white">{title}</h1>
-          <p className="mt-1 text-sm text-white/60">
+          <h1 className={cn("font-semibold text-white", embedded ? "text-lg" : "text-xl")}>{title}</h1>
+          <p className={cn("mt-1 text-white/60", embedded ? "text-sm" : "text-sm")}>
             {embedded
               ? "Shared sales quote register linked to CRM opportunities and Financials invoicing."
               : "CRM opportunity → quote PDF → accept → client invoice (Track C)."}
@@ -193,7 +193,7 @@ export default function SalesQuotesWorkspace({
           <button
             type="button"
             onClick={() => void load()}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3.5 py-2 text-sm font-medium text-white/80 hover:bg-white/10"
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             Refresh
@@ -211,17 +211,17 @@ export default function SalesQuotesWorkspace({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-xs uppercase tracking-wider text-white/40">Open quotes</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{totals.openCount}</p>
+        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Open quotes</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{totals.openCount}</p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-xs uppercase tracking-wider text-white/40">Open pipeline value</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{money(totals.openValue, "GBP")}</p>
+        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Open pipeline value</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{money(totals.openValue, "GBP")}</p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-          <p className="text-xs uppercase tracking-wider text-white/40">Accepted</p>
-          <p className="mt-2 text-2xl font-semibold text-white">{totals.acceptedCount}</p>
+        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/45">Accepted</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums text-white">{totals.acceptedCount}</p>
         </div>
       </div>
 
@@ -237,16 +237,16 @@ export default function SalesQuotesWorkspace({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10">
+      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10 bg-[#07111f]/50">
         <table className="min-w-full text-left text-sm">
-          <thead className="sticky top-0 bg-[#0b1220] text-xs uppercase tracking-wider text-white/40">
+          <thead className="sticky top-0 bg-[#0b1220] text-[11px] uppercase tracking-[0.12em] text-white/45">
             <tr>
-              <th className="px-4 py-3">Quote</th>
-              <th className="px-4 py-3">Customer</th>
-              <th className="px-4 py-3">Total</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Valid until</th>
-              <th className="px-4 py-3">Actions</th>
+              <th className="px-4 py-3 font-semibold">Quote</th>
+              <th className="px-4 py-3 font-semibold">Customer</th>
+              <th className="px-4 py-3 font-semibold">Total</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold">Valid until</th>
+              <th className="px-4 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>

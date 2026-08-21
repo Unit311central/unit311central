@@ -52,7 +52,7 @@ function statusClass(status: ExecutiveMeetingStatus) {
   }
 }
 
-export default function MeetingsWorkspace() {
+export default function MeetingsWorkspace({ salesEmbedded = false }: { salesEmbedded?: boolean }) {
   const [meetings, setMeetings] = useState<MeetingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -209,75 +209,104 @@ export default function MeetingsWorkspace() {
     }
   }
 
+  const cellPad = salesEmbedded ? "px-5 py-4" : "px-4 py-3";
+  const headPad = salesEmbedded ? "px-5 py-3.5" : "px-4 py-3";
+  const secondaryActionClass = salesEmbedded
+    ? "inline-flex h-8 items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] px-2.5 text-xs font-medium text-white/70 hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+    : "inline-flex h-7 items-center gap-1 rounded-md border border-sky-400/25 bg-sky-500/10 px-2 text-[10px] font-semibold text-sky-100 hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50";
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/70">
-          <Video className="h-4 w-4 text-sky-300" />
-          {meetings.length} meeting{meetings.length === 1 ? "" : "s"}
+      {salesEmbedded ? (
+        <>
+          <header className="border-b border-white/10 pb-4">
+            <h2 className="text-lg font-semibold tracking-tight text-white">Discovery</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-white/50">
+              Executive discovery sessions, meeting status, and follow-up artefacts from your workspace register.
+            </p>
+          </header>
+          <p className="text-sm text-white/50">
+            {meetings.length} scheduled session{meetings.length === 1 ? "" : "s"}
+          </p>
+        </>
+      ) : (
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white/70">
+            <Video className="h-4 w-4 text-sky-300" />
+            {meetings.length} meeting{meetings.length === 1 ? "" : "s"}
+          </div>
         </div>
-      </div>
+      )}
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
       {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#07111f]/88">
         {loading ? (
-          <div className="flex items-center gap-2 px-5 py-10 text-sm text-white/50">
+          <div className="flex items-center gap-2 px-5 py-8 text-sm text-white/50">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading meetings…
           </div>
         ) : meetings.length === 0 ? (
-          <p className="px-5 py-10 text-sm text-white/50">No executive meetings booked yet.</p>
+          <div className="px-6 py-10 text-center">
+            <p className="text-sm font-semibold text-white/75">No discovery sessions scheduled</p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-white/45">
+              Booked executive discovery meetings will appear here with status, links, and follow-up artefacts.
+            </p>
+          </div>
         ) : (
           <div>
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-white/10 bg-black/20 text-[10px] uppercase tracking-[0.12em] text-white/40">
+            <table className={cn("w-full text-left", salesEmbedded ? "text-[15px]" : "text-sm")}>
+              <thead className={cn("border-b border-white/10 bg-black/20 uppercase text-white/45", salesEmbedded ? "text-xs tracking-wide" : "text-[11px] tracking-[0.12em]")}>
                 <tr>
-                  <th className="px-2.5 py-2 font-semibold">Name</th>
-                  <th className="px-2.5 py-2 font-semibold">Organisation</th>
-                  <th className="hidden px-2.5 py-2 font-semibold lg:table-cell">Role</th>
-                  <th className="px-2.5 py-2 font-semibold">Email</th>
-                  <th className="px-2.5 py-2 font-semibold">Date / time</th>
-                  <th className="hidden px-2.5 py-2 font-semibold xl:table-cell">Client timezone</th>
-                  <th className="px-2.5 py-2 font-semibold">Status</th>
-                  <th className="px-2.5 py-2 font-semibold text-right">Actions</th>
+                  <th className={cn(headPad, "min-w-[10rem] font-semibold")}>Name</th>
+                  <th className={cn(headPad, "min-w-[11rem] font-semibold")}>Organisation</th>
+                  <th className={cn(headPad, "hidden font-semibold lg:table-cell")}>Role</th>
+                  <th className={cn(headPad, "min-w-[12rem] font-semibold")}>Email</th>
+                  <th className={cn(headPad, "min-w-[11rem] font-semibold")}>Date / time</th>
+                  <th className={cn(headPad, "hidden font-semibold xl:table-cell")}>Client timezone</th>
+                  <th className={cn(headPad, "font-semibold")}>Status</th>
+                  <th className={cn(headPad, "min-w-[14rem] text-right font-semibold")}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {meetings.map((meeting) => (
                   <tr key={meeting.id} className="border-b border-white/5 text-white/75">
-                    <td className="px-2.5 py-2 font-medium text-white">{meeting.name}</td>
-                    <td className="px-2.5 py-2">{meeting.organization}</td>
-                    <td className="hidden px-2.5 py-2 lg:table-cell">{meeting.role ?? "—"}</td>
-                    <td className="max-w-[9rem] truncate px-2.5 py-2" title={meeting.email}>
+                    <td className={cn(cellPad, "font-medium text-white")}>{meeting.name}</td>
+                    <td className={cellPad}>{meeting.organization}</td>
+                    <td className={cn(cellPad, "hidden lg:table-cell")}>{meeting.role ?? "—"}</td>
+                    <td className={cn(cellPad, "max-w-[14rem] truncate")} title={meeting.email}>
                       <a href={`mailto:${meeting.email}`} className="text-sky-300 hover:underline">
                         {meeting.email}
                       </a>
                     </td>
-                    <td className="max-w-[11rem] px-2.5 py-2 text-[11px] leading-snug text-white/80">
+                    <td className={cn(cellPad, "max-w-[14rem] leading-snug text-white/80")}>
                       {meeting.formattedWhenClient ?? meeting.formattedWhenGmt}
                     </td>
-                    <td className="hidden max-w-[8rem] truncate px-2.5 py-2 xl:table-cell" title={meeting.clientTimezone}>
+                    <td className={cn(cellPad, "hidden max-w-[10rem] truncate xl:table-cell")} title={meeting.clientTimezone}>
                       {meeting.clientTimezone}
                     </td>
-                    <td className="px-2.5 py-2">
+                    <td className={cellPad}>
                       <span
                         className={cn(
-                          "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                          "inline-flex rounded-full border px-2.5 py-0.5 font-medium",
+                          salesEmbedded ? "text-xs" : "text-[10px]",
                           statusClass(meeting.status),
                         )}
                       >
                         {meeting.statusLabel}
                       </span>
                     </td>
-                    <td className="px-2.5 py-2">
-                      <div className="flex flex-wrap items-center justify-end gap-1">
+                    <td className={cellPad}>
+                      <div className={cn("flex flex-wrap items-center justify-end", salesEmbedded ? "gap-2" : "gap-1.5")}>
                         <a
                           href={meeting.meetingLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-black/20 text-white/70 hover:text-white"
+                          className={cn(
+                            "inline-flex items-center justify-center rounded-md border border-white/10 bg-black/20 text-white/70 hover:text-white",
+                            salesEmbedded ? "h-8 w-8" : "h-7 w-7",
+                          )}
                           aria-label="Open meeting room"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -286,7 +315,10 @@ export default function MeetingsWorkspace() {
                           type="button"
                           disabled={!meeting.meetingLink || meeting.status === "cancelled"}
                           onClick={() => handleStartMeeting(meeting)}
-                          className="inline-flex h-7 items-center rounded-md bg-[#2563eb] px-2 text-[10px] font-semibold text-white hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50"
+                          className={cn(
+                            "inline-flex items-center rounded-md bg-[#2563eb] font-semibold text-white hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-50",
+                            salesEmbedded ? "h-8 px-3 text-xs" : "h-7 px-2 text-[10px]",
+                          )}
                         >
                           Start
                         </button>
@@ -299,7 +331,11 @@ export default function MeetingsWorkspace() {
                               ? "Open pre-meeting focus overview PDF"
                               : "Available after the client submits focus areas on /book"
                           }
-                          className="inline-flex h-7 items-center gap-1 rounded-md border border-sky-400/25 bg-sky-500/10 px-2 text-[10px] font-semibold text-sky-100 hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          className={
+                            salesEmbedded
+                              ? secondaryActionClass
+                              : "inline-flex h-7 items-center gap-1 rounded-md border border-sky-400/25 bg-sky-500/10 px-2 text-[10px] font-semibold text-sky-100 hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          }
                         >
                           <FileText className="h-3 w-3" />
                           Focus
@@ -313,7 +349,11 @@ export default function MeetingsWorkspace() {
                               ? "Open saved transcript"
                               : "Notes available after the host ends the call"
                           }
-                          className="inline-flex h-7 items-center gap-1 rounded-md border border-violet-400/25 bg-violet-500/10 px-2 text-[10px] font-semibold text-violet-100 hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          className={
+                            salesEmbedded
+                              ? secondaryActionClass
+                              : "inline-flex h-7 items-center gap-1 rounded-md border border-violet-400/25 bg-violet-500/10 px-2 text-[10px] font-semibold text-violet-100 hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          }
                         >
                           <FileText className="h-3 w-3" />
                           Notes

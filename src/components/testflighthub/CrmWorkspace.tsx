@@ -43,16 +43,24 @@ async function readApiJson<T>(response: Response): Promise<T> {
   }
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({ children, embeddedLayout }: { children: React.ReactNode; embeddedLayout?: boolean }) {
   return (
-    <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+    <label
+      className={cn(
+        "font-medium uppercase tracking-[0.1em] text-white/50",
+        embeddedLayout ? "text-xs" : "text-[10px] tracking-[0.12em] text-white/45",
+      )}
+    >
       {children}
     </label>
   );
 }
 
-function inputClassName() {
-  return "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-sky-400/50";
+function inputClassName(embeddedLayout?: boolean) {
+  return cn(
+    "mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b1524] text-white outline-none transition-colors focus:border-sky-400/50",
+    embeddedLayout ? "px-3.5 py-2.5 text-[15px]" : "px-3 py-2 text-sm",
+  );
 }
 
 function leadFieldsEqual(a: CrmLead, b: CrmLead) {
@@ -597,7 +605,7 @@ export default function CrmWorkspace({
         : `${visibleLeads.length} leads · ${statusCounts.Hot} hot · ${statusCounts.Warm} warm · ${statusCounts.Cold} cold`);
 
   return (
-    <div className="space-y-6">
+    <div className={cn(embedded ? "space-y-4" : "space-y-6")}>
       {!embedded ? (
         <DashboardTopTilesBar
           storageKey="unit311-crm-dashboard-tiles"
@@ -607,7 +615,11 @@ export default function CrmWorkspace({
           showCustomizeHint={false}
         />
       ) : null}
-      <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+      {!embedded ? (
+      <section className={cn(
+        "rounded-2xl border border-white/15 bg-white/[0.04] shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl",
+        "p-5 sm:p-6",
+      )}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold text-white">{panelTitle}</h3>
@@ -626,9 +638,9 @@ export default function CrmWorkspace({
             )}
             {variant === "default" ? (
             <div className="min-w-[180px]">
-              <FieldLabel>Filter by status</FieldLabel>
+              <FieldLabel embeddedLayout={embedded}>Filter by status</FieldLabel>
             <select
-              className={inputClassName()}
+              className={inputClassName(embedded)}
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as LeadStatus | "All")}
             >
@@ -644,6 +656,7 @@ export default function CrmWorkspace({
           </div>
         </div>
       </section>
+      ) : null}
 
       {saveMessage && (
         <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
@@ -669,12 +682,21 @@ export default function CrmWorkspace({
         showDetail={showDetail && !!selectedLead}
         onBack={closeDetail}
         backLabel="Back to leads"
+        columnsClassName={
+          embedded
+            ? "lg:grid-cols-[minmax(320px,36%)_minmax(0,1fr)] xl:grid-cols-[minmax(360px,34%)_minmax(0,1fr)]"
+            : "xl:grid-cols-[minmax(0,340px)_minmax(0,1fr)]"
+        }
         master={
-        <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+        <section className={cn(
+          embedded
+            ? "rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
+            : "rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6",
+        )}>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-white">Leads</h2>
-              <p className="mt-1 text-xs text-white/45">{visibleLeads.length} in view</p>
+              <h2 className={cn("font-semibold text-white", embedded ? "text-base" : "text-lg")}>Leads</h2>
+              <p className="mt-1 text-sm text-white/45">{visibleLeads.length} in view</p>
             </div>
             <button
               type="button"
@@ -697,7 +719,7 @@ export default function CrmWorkspace({
               No leads yet. Add your first prospect to start tracking outreach.
             </p>
           ) : (
-            <ul className="mt-4 max-h-[560px] space-y-2 overflow-y-auto pr-1">
+            <ul className={cn("mt-4 space-y-2 overflow-y-auto pr-1", embedded ? "max-h-[620px]" : "max-h-[560px]")}>
               {visibleLeads.map((lead) => {
                 const selected = lead.id === selectedLead?.id;
 
@@ -710,7 +732,7 @@ export default function CrmWorkspace({
                         openDetail();
                       }}
                       className={cn(
-                        "w-full rounded-xl border px-4 py-3 text-left transition-colors",
+                        "w-full rounded-xl border px-3.5 py-3 text-left transition-colors",
                         selected
                           ? "border-sky-400/40 bg-sky-500/10 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.15)]"
                           : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
@@ -718,12 +740,12 @@ export default function CrmWorkspace({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-white">
+                          <p className={cn("truncate font-semibold text-white", embedded ? "text-base" : "text-sm")}>
                             {lead.companyName}
                           </p>
-                          <p className="mt-1 text-xs text-white/45">{lead.contactName}</p>
+                          <p className={cn("text-white/50", embedded ? "mt-1 text-sm" : "mt-1 text-xs")}>{lead.contactName}</p>
                           {lead.nextAction && (
-                            <p className="mt-1 truncate text-[11px] text-white/35">
+                            <p className={cn("truncate text-white/40", embedded ? "mt-1 text-xs" : "mt-1 text-[11px]")}>
                               Next: {lead.nextAction}
                             </p>
                           )}
@@ -738,7 +760,8 @@ export default function CrmWorkspace({
                           />
                           <span
                             className={cn(
-                              "rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em]",
+                              "rounded-full border px-2.5 py-0.5 font-semibold uppercase tracking-[0.1em]",
+                              embedded ? "text-[10px]" : "text-[9px] tracking-[0.12em]",
                               leadStatusClass(lead.status),
                             )}
                           >
@@ -756,7 +779,11 @@ export default function CrmWorkspace({
         }
         detail={
         selectedLead ? (
-          <section className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6">
+          <section className={cn(
+            embedded
+              ? "rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:p-5"
+              : "rounded-2xl border border-white/15 bg-white/[0.04] p-4 shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-6",
+          )}>
             {detailView === "discovery" ? (
               <CrmLeadDiscoveryEditor
                 companyName={selectedLead.companyName}
@@ -795,8 +822,8 @@ export default function CrmWorkspace({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#60a5fa]">
                   Lead record
                 </p>
-                <h2 className="mt-1 text-lg font-semibold text-white">{selectedLead.companyName}</h2>
-                <p className="mt-1 text-sm text-white/50">{selectedLead.contactName}</p>
+                <h2 className={cn("mt-1 font-semibold text-white", embedded ? "text-xl" : "text-lg")}>{selectedLead.companyName}</h2>
+                <p className={cn("text-white/55", embedded ? "mt-1 text-base" : "mt-1 text-sm")}>{selectedLead.contactName}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span
@@ -900,16 +927,16 @@ export default function CrmWorkspace({
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <FieldLabel>Company</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Company</FieldLabel>
                 <input
-                  className={inputClassName()}
+                  className={inputClassName(embedded)}
                   value={selectedLead.companyName}
                   onChange={(event) => patchSelected({ companyName: event.target.value })}
                   disabled={busy}
                 />
               </div>
               <div className="sm:col-span-2">
-                <FieldLabel>Company logo</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Company logo</FieldLabel>
                 <CrmLeadLogoUpload
                   lead={selectedLead}
                   busy={busy}
@@ -918,18 +945,18 @@ export default function CrmWorkspace({
                 />
               </div>
               <div>
-                <FieldLabel>Contact name</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Contact name</FieldLabel>
                 <input
-                  className={inputClassName()}
+                  className={inputClassName(embedded)}
                   value={selectedLead.contactName}
                   onChange={(event) => patchSelected({ contactName: event.target.value })}
                   disabled={busy}
                 />
               </div>
               <div>
-                <FieldLabel>Status</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Status</FieldLabel>
                 <select
-                  className={inputClassName()}
+                  className={inputClassName(embedded)}
                   value={selectedLead.status}
                   onChange={(event) =>
                     patchSelected({ status: event.target.value as LeadStatus })
@@ -944,28 +971,28 @@ export default function CrmWorkspace({
                 </select>
               </div>
               <div>
-                <FieldLabel>Email</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Email</FieldLabel>
                 <input
                   type="email"
-                  className={inputClassName()}
+                  className={inputClassName(embedded)}
                   value={selectedLead.email}
                   onChange={(event) => patchSelected({ email: event.target.value })}
                   disabled={busy}
                 />
               </div>
               <div>
-                <FieldLabel>Phone</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Phone</FieldLabel>
                 <input
-                  className={inputClassName()}
+                  className={inputClassName(embedded)}
                   value={selectedLead.phone}
                   onChange={(event) => patchSelected({ phone: event.target.value })}
                   disabled={busy}
                 />
               </div>
               <div>
-                <FieldLabel>Source</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Source</FieldLabel>
                 <select
-                  className={inputClassName()}
+                  className={inputClassName(embedded)}
                   value={selectedLead.source || LEAD_SOURCE_OPTIONS[0]}
                   onChange={(event) => patchSelected({ source: event.target.value })}
                   disabled={busy}
@@ -980,14 +1007,14 @@ export default function CrmWorkspace({
                 </select>
               </div>
               <div>
-                <FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>
                   Estimated value ({crmEstimatedValueCurrencyLabel()})
                 </FieldLabel>
                 <input
                   type="number"
                   min={0}
                   step={1000}
-                  className={inputClassName()}
+                  className={inputClassName(embedded)}
                   value={selectedLead.estimatedValue ?? ""}
                   onChange={(event) =>
                     patchSelected({
@@ -998,9 +1025,9 @@ export default function CrmWorkspace({
                 />
               </div>
               <div className="sm:col-span-2">
-                <FieldLabel>Next action</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Next action</FieldLabel>
                 <input
-                  className={inputClassName()}
+                  className={inputClassName(embedded)}
                   value={selectedLead.nextAction}
                   onChange={(event) => patchSelected({ nextAction: event.target.value })}
                   placeholder="e.g. Send proposal, book demo call…"
@@ -1008,10 +1035,10 @@ export default function CrmWorkspace({
                 />
               </div>
               <div>
-                <FieldLabel>Next action date</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Next action date</FieldLabel>
                 <input
                   type="date"
-                  className={inputClassName()}
+                  className={inputClassName(embedded)}
                   value={selectedLead.nextActionDate ?? ""}
                   onChange={(event) =>
                     patchSelected({ nextActionDate: event.target.value || null })
@@ -1020,13 +1047,13 @@ export default function CrmWorkspace({
                 />
               </div>
               <div>
-                <FieldLabel>Last updated</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Last updated</FieldLabel>
                 <p className={cn(inputClassName(), "mt-1.5 flex items-center text-white/55")}>
                   {formatLeadDate(selectedLead.updatedAt)}
                 </p>
               </div>
               <div className="sm:col-span-2">
-                <FieldLabel>Client report</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Client report</FieldLabel>
                 <div className="mt-1.5 rounded-xl border border-white/10 bg-[#0b1524] px-3 py-3 text-sm text-white/75">
                   {selectedLead.clientReportGeneratedAt ? (
                     <div className="space-y-2">
@@ -1089,7 +1116,7 @@ export default function CrmWorkspace({
                 </div>
               </div>
               <div className="sm:col-span-2">
-                <FieldLabel>Notes</FieldLabel>
+                <FieldLabel embeddedLayout={embedded}>Notes</FieldLabel>
                 <textarea
                   rows={4}
                   className={cn(inputClassName(), "resize-y")}

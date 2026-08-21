@@ -770,7 +770,10 @@ export default function InternalOperationsDashboard({
         >
       <div
         className={
-          activeView === "home" || activeView === "settings" || activeView === "billing"
+          activeView === "home" ||
+          activeView === "settings" ||
+          activeView === "billing" ||
+          activeView === "sales-management"
             ? "relative mx-auto w-full min-w-0 px-1 py-1 sm:px-2 md:px-3 lg:px-4 lg:py-2 xl:max-w-[100rem]"
             : "relative mx-auto w-full min-w-0 max-w-7xl px-1 py-2 sm:px-2 md:px-3 lg:px-5 lg:py-3 xl:max-w-[90rem] xl:px-6 xl:py-4"
         }
@@ -1505,7 +1508,9 @@ export default function InternalOperationsDashboard({
           )}
         </div>
       </div>
-      <AdminPerformanceMode activeView={activeView} />
+      {activeView !== "sales-management" ? (
+        <AdminPerformanceMode activeView={activeView} />
+      ) : null}
       </SurveyOperationsShell>
       <GuidedTutorialOverlay />
         </GuidedTutorialProvider>

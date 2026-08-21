@@ -43,6 +43,7 @@ export type CrmLead = {
   clientChatAccessToken: string | null;
   companyLogoFileId: string | null;
   companyLogoFileName: string | null;
+  ownerUserId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -108,6 +109,7 @@ type DbLead = {
   client_chat_access_token?: string | null;
   company_logo_file_id?: string | null;
   company_logo_file_name?: string | null;
+  owner_user_id?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -173,6 +175,7 @@ export function mapCrmLead(row: DbLead): CrmLead {
     companyLogoFileId: row.company_logo_file_id ?? notesFallback?.companyLogoFileId ?? null,
     companyLogoFileName:
       row.company_logo_file_name ?? notesFallback?.companyLogoFileName ?? null,
+    ownerUserId: row.owner_user_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

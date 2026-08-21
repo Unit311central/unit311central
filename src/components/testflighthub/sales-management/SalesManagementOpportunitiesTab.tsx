@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 import CrmWorkspace from "@/components/testflighthub/CrmWorkspace";
 import SalesQuotesWorkspace from "@/components/testflighthub/SalesQuotesWorkspace";
-import { cn } from "@/lib/utils";
+import { SalesFilterBar, SalesFilterButton, SalesTabHeader } from "./sales-management-ui";
 
 type OpportunitiesSubview = "deals" | "quotes";
 
@@ -34,23 +34,18 @@ export default function SalesManagementOpportunitiesTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1 rounded-xl border border-white/10 bg-white/[0.02] p-1">
+      <SalesTabHeader
+        title="Opportunities"
+        description="Qualified and active deals from the shared CRM register, with optional quote panel."
+      />
+
+      <SalesFilterBar>
         {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setSubview(tab.id)}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors",
-              subview === tab.id
-                ? "bg-white/10 text-white"
-                : "text-white/50 hover:bg-white/[0.04] hover:text-white/80",
-            )}
-          >
+          <SalesFilterButton key={tab.id} active={subview === tab.id} onClick={() => setSubview(tab.id)}>
             {tab.label}
-          </button>
+          </SalesFilterButton>
         ))}
-      </div>
+      </SalesFilterBar>
 
       {subview === "deals" ? (
         <CrmWorkspace

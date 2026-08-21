@@ -13,6 +13,7 @@ import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import { getCanonicalModule } from "@/lib/central-application-model/canonical-modules";
 import {
   DEFAULT_SALES_MANAGEMENT_TAB,
+  SALES_MANAGEMENT_NAV_GROUPS,
   SALES_MANAGEMENT_TABS,
   isSalesManagementTab,
 } from "@/lib/sales-management-tabs";
@@ -45,9 +46,11 @@ assert.ok(smSection, "Sales Management section must exist");
 assert.equal(smSection?.items.length, 1, "Sales Management LHS must be a single entry");
 assert.equal(smSection?.items[0]?.view, "sales-management");
 
-assert.equal(SALES_MANAGEMENT_TABS.length, 13);
+assert.equal(SALES_MANAGEMENT_TABS.length, 14);
+assert.equal(SALES_MANAGEMENT_NAV_GROUPS.length, 3);
 assert.equal(DEFAULT_SALES_MANAGEMENT_TAB, "dashboard");
 assert.equal(isSalesManagementTab("pipeline"), true);
+assert.equal(isSalesManagementTab("sales-quotes"), true);
 assert.equal(isSalesManagementTab("not-a-tab"), false);
 
 const href = getInternalNavHref("sales-management", "/internaldashboard", { tab: "pipeline" });
@@ -81,7 +84,7 @@ assert.equal(
   catalogueModule?.navigation.href,
   "/internaldashboard?view=sales-management&tab=dashboard",
 );
-assert.equal(catalogueModule?.applications[0]?.pages.length, 13);
+assert.equal(catalogueModule?.applications[0]?.pages.length, 14);
 const pipelinePage = catalogueModule?.applications[0]?.pages.find((page) => page.label === "Pipeline");
 assert.ok(pipelinePage?.href?.includes("tab=pipeline"), "EA catalogue must route Pipeline tab");
 

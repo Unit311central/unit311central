@@ -89,6 +89,13 @@ export type SalesDashboardMetrics = {
     nextActionDate: string | null;
     status: LeadStatus;
   }>;
+  overdueActions: Array<{
+    id: string;
+    companyName: string;
+    nextAction: string;
+    nextActionDate: string | null;
+    status: LeadStatus;
+  }>;
   upcomingMeetings: SalesDashboardMeetingSummary[];
 };
 
@@ -98,11 +105,24 @@ function monthKey(iso: string): string {
   return date.toLocaleDateString("en-GB", { month: "short", year: "2-digit" });
 }
 
+function isOverdueDate(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return false;
+  return date < startOfTodayForInsights();
+}
+
+function startOfTodayForInsights() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 function isUpcomingDate(iso: string | null | undefined, withinDays = 14): boolean {
   if (!iso) return false;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return false;
-  const now = new Date();
+  const now = startOfTodayForInsights();
   const end = new Date(now);
   end.setDate(end.getDate() + withinDays);
   return date >= now && date <= end;
@@ -112,6 +132,7 @@ export function buildSalesDashboardMetrics(input: {
   leads: CrmLead[];
   quotes?: SalesQuote[];
   meetings?: SalesDashboardMeetingSummary[];
+  displayNameForUserId?: (userId: string | null | undefined) => string;
 }): SalesDashboardMetrics {
   const { leads, quotes = [], meetings = [] } = input;
   const currency = salesReportingCurrency();
@@ -137,7 +158,11 @@ export function buildSalesDashboardMetrics(input: {
 
   const assigneeMap = new Map<string, { count: number; value: number }>();
   for (const lead of openLeads) {
-    const assignee = "Unassigned";
+    const assignee = input.displayNameForUserId
+      ? input.displayNameForUserId(lead.ownerUserId)
+      : lead.ownerUserId
+        ? lead.ownerUserId
+        : "Unassigned";
     const current = assigneeMap.get(assignee) ?? { count: 0, value: 0 };
     current.count += 1;
     current.value += lead.estimatedValue ?? 0;
@@ -152,6 +177,18 @@ export function buildSalesDashboardMetrics(input: {
 
   const upcomingActions = leads
     .filter((lead) => isOpenPipelineLead(lead.status) && isUpcomingDate(lead.nextActionDate))
+    .sort((a, b) => String(a.nextActionDate).localeCompare(String(b.nextActionDate)))
+    .slice(0, 8)
+    .map((lead) => ({
+      id: lead.id,
+      companyName: lead.companyName,
+      nextAction: lead.nextAction || "Follow up",
+      nextActionDate: lead.nextActionDate,
+      status: lead.status,
+    }));
+
+  const overdueActions = leads
+    .filter((lead) => isOpenPipelineLead(lead.status) && isOverdueDate(lead.nextActionDate))
     .sort((a, b) => String(a.nextActionDate).localeCompare(String(b.nextActionDate)))
     .slice(0, 8)
     .map((lead) => ({
@@ -188,6 +225,7 @@ export function buildSalesDashboardMetrics(input: {
       .map(([month, count]) => ({ month, count }))
       .slice(-6),
     upcomingActions,
+    overdueActions,
     upcomingMeetings,
   };
 }
