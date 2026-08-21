@@ -8,7 +8,9 @@ import { join } from "node:path";
 import {
   fetchRecordedMigrationVersions,
   migrationVersion,
+  RECORD_MIGRATION_APPLIED_SQL,
   recordMigrationApplied,
+  shouldUpgradeVerifiedSkipLedgerOnConflict,
   type MigrationLedgerMethod,
   type MigrationQueryClient,
 } from "@/lib/migration-ledger";
@@ -55,7 +57,13 @@ class MockMigrationClient implements MigrationQueryClient {
       const version = params?.[0];
       const method = params?.[1];
       if (typeof version === "string" && typeof method === "string") {
-        this.ledger.set(version, method as MigrationLedgerMethod);
+        const incoming = method as MigrationLedgerMethod;
+        const existing = this.ledger.get(version);
+        if (existing === undefined) {
+          this.ledger.set(version, incoming);
+        } else if (shouldUpgradeVerifiedSkipLedgerOnConflict(existing, incoming)) {
+          this.ledger.set(version, incoming);
+        }
       }
       return { rows: [] as T[] };
     }
@@ -265,6 +273,18 @@ assert.match(migration149Sql, /add column if not exists owner_user_id/, "crm_lea
 assert.match(migration149Sql, /create table if not exists public\.sales_teams/, "sales tables must stay idempotent");
 assert.match(migration149Sql, /create index if not exists sales_teams_workspace_idx/, "indexes must stay idempotent");
 
+assert.equal(shouldUpgradeVerifiedSkipLedgerOnConflict("verified_skip", "management-api"), true);
+assert.equal(shouldUpgradeVerifiedSkipLedgerOnConflict("verified_skip", "postgres"), true);
+assert.equal(shouldUpgradeVerifiedSkipLedgerOnConflict("verified_skip", "verified_skip"), false);
+assert.equal(shouldUpgradeVerifiedSkipLedgerOnConflict("management-api", "verified_skip"), false);
+assert.equal(shouldUpgradeVerifiedSkipLedgerOnConflict("management-api", "postgres"), false);
+assert.equal(shouldUpgradeVerifiedSkipLedgerOnConflict(undefined, "management-api"), false);
+assert.match(
+  RECORD_MIGRATION_APPLIED_SQL,
+  /on conflict \(version\) do update[\s\S]*verified_skip[\s\S]*management-api.*postgres/,
+  "ledger upsert must upgrade verified_skip to runner-confirmed methods only",
+);
+
 void (async () => {
   const client = new MockMigrationClient();
   for (const migration of UNIT311_PENDING_MIGRATIONS) {
@@ -429,6 +449,53 @@ void (async () => {
   assert.equal(confirmedApplyAttempts, 0, "149 with management-api ledger must not apply again");
   assert.equal(confirmedResult.applied.length, 0);
   assert.deepEqual(confirmedResult.pending, []);
+
+  const staleVerifiedSkipClient = new MockMigrationClient();
+  staleVerifiedSkipClient.probeResults.set(SALES_MANAGEMENT_FOUNDATION_MIGRATION, true);
+  staleVerifiedSkipClient.ledger.set(
+    migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
+    "verified_skip",
+  );
+  const stalePlan = await describePendingMigrationPlan(
+    [SALES_MANAGEMENT_FOUNDATION_MIGRATION],
+    staleVerifiedSkipClient,
+  );
+  assert.equal(
+    staleVerifiedSkipClient.ledger.get(migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION)),
+    "management-api",
+    "GET must upgrade stale verified_skip via recordMigrationApplied after runner-confirmed apply",
+  );
+  assert.deepEqual(stalePlan.pending, []);
+  assert.equal(
+    stalePlan.actions.find((action) => action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION)?.kind,
+    "skip",
+  );
+
+  const ledgerUpgradeClient = new MockMigrationClient();
+  await recordMigrationApplied(
+    ledgerUpgradeClient,
+    SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    "verified_skip",
+  );
+  await recordMigrationApplied(
+    ledgerUpgradeClient,
+    SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    "management-api",
+  );
+  assert.equal(
+    ledgerUpgradeClient.ledger.get(migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION)),
+    "management-api",
+  );
+  await recordMigrationApplied(
+    ledgerUpgradeClient,
+    SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    "verified_skip",
+  );
+  assert.equal(
+    ledgerUpgradeClient.ledger.get(migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION)),
+    "management-api",
+    "confirmed ledger rows must not downgrade to verified_skip",
+  );
 
   const dryRunClient = new MockMigrationClient();
   for (const migration of UNIT311_PENDING_MIGRATIONS) {

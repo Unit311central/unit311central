@@ -168,6 +168,23 @@ export async function collectMigrationSatisfactionForPost(
   return satisfied;
 }
 
+/** Repair stale verified_skip ledger rows after a successful runner apply (149 only). */
+async function reconcileStaleVerifiedSkipRunnerConfirmation(
+  migrations: readonly string[],
+  client: MigrationQueryClient,
+  recordedMethods: Map<string, MigrationLedgerMethod>,
+  satisfiedMap: Map<string, boolean>,
+): Promise<void> {
+  for (const migration of migrations) {
+    if (migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION) continue;
+    const version = migrationVersion(migration);
+    if (recordedMethods.get(version) !== "verified_skip") continue;
+    if (satisfiedMap.get(migration) !== true) continue;
+    await recordMigrationApplied(client, migration, "management-api");
+    recordedMethods.set(version, "management-api");
+  }
+}
+
 export function computePendingMigrations(input: {
   migrations: readonly string[];
   recordedMethods: ReadonlyMap<string, MigrationLedgerMethod>;
@@ -199,6 +216,7 @@ export async function describePendingMigrationPlan(
 ): Promise<MigrationDryRunStatus> {
   const recordedMethods = await fetchRecordedMigrationEntries(client);
   const satisfiedMap = await collectMigrationSatisfaction(migrations, client);
+  await reconcileStaleVerifiedSkipRunnerConfirmation(migrations, client, recordedMethods, satisfiedMap);
   const actions = planMigrationActions({
     migrations,
     recordedMethods,

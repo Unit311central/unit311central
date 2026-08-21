@@ -46,16 +46,32 @@ export function isLedgerAppliedMethod(method: MigrationLedgerMethod | undefined)
   return method === "management-api" || method === "postgres";
 }
 
+export const RECORD_MIGRATION_APPLIED_SQL = `insert into public.${UNIT311_MIGRATION_LEDGER_TABLE} (version, method)
+     values ($1, $2)
+     on conflict (version) do update
+     set method = excluded.method,
+         applied_at = now()
+     where public.${UNIT311_MIGRATION_LEDGER_TABLE}.method = 'verified_skip'
+       and excluded.method in ('management-api', 'postgres')`;
+
+export function shouldUpgradeVerifiedSkipLedgerOnConflict(
+  existingMethod: MigrationLedgerMethod | undefined,
+  incomingMethod: MigrationLedgerMethod,
+): boolean {
+  return (
+    existingMethod === "verified_skip" &&
+    isLedgerAppliedMethod(incomingMethod)
+  );
+}
+
 export async function recordMigrationApplied(
   client: MigrationQueryClient,
   migrationPath: string,
   method: MigrationLedgerMethod,
 ): Promise<void> {
   await ensureMigrationLedger(client);
-  await client.query(
-    `insert into public.${UNIT311_MIGRATION_LEDGER_TABLE} (version, method)
-     values ($1, $2)
-     on conflict (version) do nothing`,
-    [migrationVersion(migrationPath), method],
-  );
+  await client.query(RECORD_MIGRATION_APPLIED_SQL, [
+    migrationVersion(migrationPath),
+    method,
+  ]);
 }
