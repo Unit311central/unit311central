@@ -10,7 +10,7 @@
 export const ABHI_LOCKED_WORKSPACE_SECTION_ORDER = [
   "Business Central",
   "ABHI Intelligence",
-  "Financials",
+  "Finances",
   "Human Resources",
   "Marketing & Events",
   "Corporate Information",

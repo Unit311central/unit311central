@@ -69,7 +69,7 @@ export const ONBOARDING_MODULES: readonly OnboardingModule[] = [
   },
   {
     id: "financials",
-    label: "Financials",
+    label: "Finances",
     groupId: "business-central",
     description:
       "Debtors, creditors, expenses, and financial overview — operational finance without leaving the platform.",

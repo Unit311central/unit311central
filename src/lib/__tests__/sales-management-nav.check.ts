@@ -3,6 +3,7 @@
  */
 import assert from "node:assert/strict";
 
+import { FINANCES_MODULE_LABEL } from "@/lib/finances-nav";
 import { ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/onwardair-nav-order";
 import { injectDemoNavSections } from "@/lib/demo/nav";
 import {
@@ -33,11 +34,11 @@ assert.equal(getCanonicalModule("sales-management")?.label, "Sales Management");
 const baseLabels = sectionLabels(internalSurveyNavSections);
 const bcIdx = baseLabels.indexOf("Business Central");
 const smIdx = baseLabels.indexOf(SALES_MANAGEMENT_MODULE_LABEL);
-const finIdx = baseLabels.indexOf("Financials");
+const finIdx = baseLabels.indexOf(FINANCES_MODULE_LABEL);
 assert.ok(bcIdx >= 0, "base nav must include Business Central");
 assert.ok(smIdx >= 0, "base nav must include Sales Management");
-assert.ok(finIdx >= 0, "base nav must include Financials");
-assert.ok(bcIdx < smIdx && smIdx < finIdx, "Sales Management must sit between BC and Financials");
+assert.ok(finIdx >= 0, "base nav must include Finances");
+assert.ok(bcIdx < smIdx && smIdx < finIdx, "Sales Management must sit between BC and Finances");
 
 const smSection = internalSurveyNavSections.find(
   (section) => section.label === SALES_MANAGEMENT_MODULE_LABEL,

@@ -15,7 +15,7 @@ export const CANONICAL_MODULES: readonly CanonicalModuleDefinition[] = [
   ] },
   { id: "business-central", label: "Business Central", navLabelAliases: ["Business Central"] },
   { id: "sales-management", label: "Sales Management", navLabelAliases: ["Sales Management"] },
-  { id: "financials", label: "Financials", navLabelAliases: ["Financials"] },
+  { id: "financials", label: "Finances", navLabelAliases: ["Finances", "Financials"] },
   { id: "fundraising", label: "Fundraising", optional: true, navLabelAliases: ["Fundraising"] },
   { id: "board", label: "Board", navLabelAliases: ["Board"] },
   { id: "corporate-information", label: "Corporate Information", navLabelAliases: ["Corporate Information"] },

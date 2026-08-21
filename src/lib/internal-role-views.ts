@@ -1,3 +1,4 @@
+import { FINANCES_MODULE_LABEL } from "@/lib/finances-nav";
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { normalizePlatformUsername } from "@/lib/platform-auth";
 import {
@@ -1169,7 +1170,7 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
       continue;
     }
 
-    if (section.label === "Financials") {
+    if (section.label === FINANCES_MODULE_LABEL) {
       out.push(stripOnwardAirPlatformItems(section));
       out.push(ONWARDAIR_FUNDRAISING_NAV_SECTION);
       insertedFundraising = true;
@@ -1287,7 +1288,7 @@ function insertOnwardAirNavSections(sections: readonly InternalNavSection[]): In
   }
 
   if (!insertedFundraising) {
-    const financialsIdx = out.findIndex((s) => s.label === "Financials");
+    const financialsIdx = out.findIndex((s) => s.label === FINANCES_MODULE_LABEL);
     if (financialsIdx >= 0) {
       out.splice(financialsIdx + 1, 0, ONWARDAIR_FUNDRAISING_NAV_SECTION);
     } else {

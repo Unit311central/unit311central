@@ -133,13 +133,13 @@ export const NAV_PAGE_NODES: NavPageNode[] = [
   page("business-central", "Business Central", "management", "Management", { core: true }),
 
   // Financials
-  page("financials", "Financials", "financials", "Dashboard", { core: true }),
-  page("financials", "Financials", "general-ledger", "General Ledger", { core: true }),
-  page("financials", "Financials", "accounts-receivable", "Accounts Receivable", { core: true }),
-  page("financials", "Financials", "accounts-payable", "Accounts Payable"),
-  page("financials", "Financials", "expenses", "Expenses"),
-  page("financials", "Financials", "wise", "Bank"),
-  page("financials", "Financials", "financial-reports", "Financial Reports"),
+  page("financials", "Finances", "financials", "Dashboard", { core: true }),
+  page("financials", "Finances", "general-ledger", "General Ledger", { core: true }),
+  page("financials", "Finances", "accounts-receivable", "Accounts Receivable", { core: true }),
+  page("financials", "Finances", "accounts-payable", "Accounts Payable"),
+  page("financials", "Finances", "expenses", "Expenses"),
+  page("financials", "Finances", "wise", "Bank"),
+  page("financials", "Finances", "financial-reports", "Financial Reports"),
 
   // Human Resources
   page("human-resources", "Human Resources", "hr-dashboard", "Dashboard", { core: true }),

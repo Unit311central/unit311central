@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ChevronDown,
@@ -51,6 +52,11 @@ type Totals = {
 
 type Tab = "journal" | "accounts" | "trial";
 
+function resolveLedgerTab(value: string | null): Tab {
+  if (value === "accounts" || value === "trial" || value === "journal") return value;
+  return "journal";
+}
+
 type AccountTransaction = {
   journalId: string;
   reference: string;
@@ -83,8 +89,9 @@ function sourceLabel(sourceType: string | null): string {
 }
 
 export default function GeneralLedgerWorkspace() {
+  const searchParams = useSearchParams();
   const [journalParam, setJournalParam] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("journal");
+  const [tab, setTab] = useState<Tab>(() => resolveLedgerTab(searchParams.get("tab")));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [journals, setJournals] = useState<JournalEntry[]>([]);
@@ -244,12 +251,11 @@ export default function GeneralLedgerWorkspace() {
   }, [load]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
     startTransition(() => {
-      setJournalParam(params.get("journal"));
+      setTab(resolveLedgerTab(searchParams.get("tab")));
+      setJournalParam(searchParams.get("journal"));
     });
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!journalParam) return;

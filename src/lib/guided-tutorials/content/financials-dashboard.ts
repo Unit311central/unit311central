@@ -8,9 +8,9 @@ export const FINANCIALS_DASHBOARD_TUTORIAL: TutorialDefinition = {
   tutorialId: "financials.dashboard",
   viewId: "financials",
   workspaces: "*",
-  moduleLabel: "Financials",
+  moduleLabel: "Finances",
   functionLabel: "Dashboard",
-  title: "Financials Dashboard",
+  title: "Finances Dashboard",
   description:
     "Learn how to read cash, revenue, burn, receivables and payables — and where to drill down.",
   estimatedMinutes: 3,

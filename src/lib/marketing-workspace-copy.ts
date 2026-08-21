@@ -131,7 +131,7 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
   },
   {
     id: "financials",
-    title: "Financials",
+    title: "Finances",
     outcome: "Run finance as a live command centre—not a month-end scramble.",
     description:
       "Run the full finance stack—from ledger and payables through cashflow, forecasting and live bank connections—in one place.",
@@ -354,7 +354,7 @@ export const MARKETING_WORKSPACE_COPY: MarketingWorkspaceCopy[] = [
         ],
       },
       {
-        name: "Financials",
+        name: "Finances",
         outcome: "Connect accounting and financial data.",
         tools: [
           { name: "Xero", logo: "xero.svg" },
