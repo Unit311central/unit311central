@@ -5,7 +5,7 @@
  *
  * Owner order (Aug 2026):
  * Talanton Intelligence → Portfolio Companies → Board → Marketing & Stories → Training →
- * Corporate Information → Funds → Financials → Project Management → Human Resources →
+ * Corporate Information → Funds → Finances → Project Management → Human Resources →
  * Business Productivity → Operations → Technology Management → Support Desk → Tools →
  * External Client Access
  */
@@ -18,7 +18,7 @@ export const TALANTON_LOCKED_WORKSPACE_SECTION_ORDER = [
   "Training",
   "Corporate Information",
   "Funds",
-  "Financials",
+  "Finances",
   "Project Management",
   "Human Resources",
   "Business Productivity",

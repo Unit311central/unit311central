@@ -201,7 +201,7 @@ export const financialsDashboardConfig: WorkspaceDashboardConfig = {
         {
           id: "fin-header",
           type: "header",
-          workspaceName: "Financials",
+          workspaceName: "Finances",
           eyebrow: "Finance command",
           description: "Cash, receivables and spend posture across the operating company.",
         },

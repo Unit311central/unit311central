@@ -1,4 +1,5 @@
 import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data";
+import { buildFinancesNavSection } from "@/lib/finances-nav";
 import { EXECUTIVE_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
 import { buildSalesManagementNavSection } from "@/lib/sales-management-nav";
 import {
@@ -38,6 +39,19 @@ export type InternalOperationsView =
   | "accounts-receivable"
   | "accounts-payable"
   | "financial-reports"
+  | "finances-ar-collections"
+  | "finances-ar-reporting"
+  | "finances-ap-payments"
+  | "finances-expense-approvals"
+  | "finances-expense-categories"
+  | "finances-banking-cash-position"
+  | "finances-banking-reconciliation"
+  | "finances-planning-budget"
+  | "finances-planning-actual-vs-budget"
+  | "finances-planning-cash-flow"
+  | "finances-planning-forecast"
+  | "finances-planning-kpis"
+  | "finances-planning-management-accounts"
   | "opex"
   | "wise"
   | "board-pack"
@@ -305,6 +319,19 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "accounts-receivable",
   "accounts-payable",
   "financial-reports",
+  "finances-ar-collections",
+  "finances-ar-reporting",
+  "finances-ap-payments",
+  "finances-expense-approvals",
+  "finances-expense-categories",
+  "finances-banking-cash-position",
+  "finances-banking-reconciliation",
+  "finances-planning-budget",
+  "finances-planning-actual-vs-budget",
+  "finances-planning-cash-flow",
+  "finances-planning-forecast",
+  "finances-planning-kpis",
+  "finances-planning-management-accounts",
   "opex",
   "wise",
   "board-pack",
@@ -769,25 +796,7 @@ export const internalSurveyNavSections: readonly InternalNavSection[] = [
     ],
   },
   buildSalesManagementNavSection(),
-  {
-    kind: "workspace",
-    label: "Financials",
-    icon: "Wallet",
-    color: "#166534",
-    items: [
-      { label: "Dashboard", icon: "LayoutDashboard", view: "financials" as const },
-      { label: "General Ledger", icon: "ScrollText", view: "general-ledger" as const },
-      { label: "Accounts Receivable", icon: "ArrowDownLeft", view: "accounts-receivable" as const },
-      { label: "Accounts Payable", icon: "ArrowUpRight", view: "accounts-payable" as const },
-      { label: "Expenses", icon: "Receipt", view: "expenses" as const },
-      { label: "Bank", icon: "Landmark", view: "wise" as const },
-      {
-        label: "Financial Reports",
-        icon: "ScrollText",
-        view: "financial-reports" as const,
-      },
-    ],
-  },
+  buildFinancesNavSection(),
   {
     kind: "workspace",
     label: "Human Resources",
@@ -1115,17 +1124,36 @@ export const internalViewTitles: Record<
   "board-meetings": { title: "Board Meetings", subtitle: "Board" },
   "board-minutes": { title: "Minutes & Decisions", subtitle: "Board" },
   "board-members": { title: "Board Members", subtitle: "Board" },
-  financials: { title: "Dashboard", subtitle: "Financials" },
-  "general-ledger": { title: "General Ledger", subtitle: "Financials" },
-  "accounts-receivable": { title: "Accounts Receivable", subtitle: "Financials" },
-  "accounts-payable": { title: "Accounts Payable", subtitle: "Financials" },
-  "financial-reports": { title: "Financial Reports", subtitle: "Financials" },
-  opex: { title: "Opex", subtitle: "Financials" },
-  wise: { title: "Bank", subtitle: "Financials" },
+  financials: { title: "Dashboard", subtitle: "Finances" },
+  "general-ledger": { title: "General Ledger", subtitle: "Finances · Accounting" },
+  "accounts-receivable": { title: "Accounts Receivable", subtitle: "Finances" },
+  "accounts-payable": { title: "Accounts Payable", subtitle: "Finances" },
+  "financial-reports": { title: "Financial Reports", subtitle: "Finances" },
+  "finances-ar-collections": { title: "Collections", subtitle: "Finances · Accounts Receivable" },
+  "finances-ar-reporting": { title: "AR Reporting", subtitle: "Finances · Accounts Receivable" },
+  "finances-ap-payments": { title: "Payments", subtitle: "Finances · Accounts Payable" },
+  "finances-expense-approvals": { title: "Approvals", subtitle: "Finances · Expenses" },
+  "finances-expense-categories": { title: "Categories", subtitle: "Finances · Expenses" },
+  "finances-banking-cash-position": { title: "Cash Position", subtitle: "Finances · Banking & Cash" },
+  "finances-banking-reconciliation": { title: "Reconciliation", subtitle: "Finances · Banking & Cash" },
+  "finances-planning-budget": { title: "Budget", subtitle: "Finances · Planning & Management" },
+  "finances-planning-actual-vs-budget": {
+    title: "Actual vs Budget",
+    subtitle: "Finances · Planning & Management",
+  },
+  "finances-planning-cash-flow": { title: "Cash Flow", subtitle: "Finances · Planning & Management" },
+  "finances-planning-forecast": { title: "Forecast", subtitle: "Finances · Planning & Management" },
+  "finances-planning-kpis": { title: "Financial KPIs", subtitle: "Finances · Planning & Management" },
+  "finances-planning-management-accounts": {
+    title: "Management Accounts",
+    subtitle: "Finances · Planning & Management",
+  },
+  opex: { title: "Opex", subtitle: "Finances" },
+  wise: { title: "Bank", subtitle: "Finances · Banking & Cash" },
   "board-pack": { title: "Board deck", subtitle: "Corporate Information" },
-  debtors: { title: "Accounts Receivable", subtitle: "Financials" },
-  creditors: { title: "Accounts Payable", subtitle: "Financials" },
-  expenses: { title: "Expenses", subtitle: "Financials" },
+  debtors: { title: "Accounts Receivable", subtitle: "Finances" },
+  creditors: { title: "Accounts Payable", subtitle: "Finances" },
+  expenses: { title: "Expenses", subtitle: "Finances" },
   hr: { title: "Employees", subtitle: "Human Resources" },
   "hr-dashboard": { title: "Dashboard", subtitle: "Human Resources" },
   "hr-org-chart": { title: "Org Chart", subtitle: "Human Resources" },

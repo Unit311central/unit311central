@@ -44,7 +44,7 @@ type SurveyOperationsShellProps = {
   subtitle?: string;
   mode?: "survey" | "internal";
   activeView?: SurveyOperationsView | InternalOperationsView;
-  onViewChange?: (view: SurveyOperationsView | InternalOperationsView) => void;
+  onViewChange?: (view: SurveyOperationsView | InternalOperationsView, query?: Record<string, string>) => void;
   basePath?: SurveyOperationsBasePath;
 };
 

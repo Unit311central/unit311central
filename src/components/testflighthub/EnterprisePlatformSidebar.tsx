@@ -177,7 +177,7 @@ type EnterprisePlatformSidebarProps = {
   mobileOpen?: boolean;
   onClose?: () => void;
   activeView?: InternalOperationsView;
-  onViewChange?: (view: InternalOperationsView) => void;
+  onViewChange?: (view: InternalOperationsView, query?: Record<string, string>) => void;
   basePath?: SurveyOperationsBasePath;
   onPrefetchView?: (view: InternalOperationsView) => void;
   /** Overview invite: hide brand/logout; show “CLICK BELOW TO VIEW”. */
@@ -308,8 +308,8 @@ export default function EnterprisePlatformSidebar({
     });
   }
 
-  function navigate(view: InternalOperationsView) {
-    onViewChange?.(view);
+  function navigate(view: InternalOperationsView, query?: Record<string, string>) {
+    onViewChange?.(view, query);
     onClose?.();
   }
 
@@ -326,6 +326,7 @@ export default function EnterprisePlatformSidebar({
     opts: {
       view?: InternalOperationsView;
       href?: string;
+      query?: Record<string, string>;
       icon?: string;
       depth: number;
       badge?: "demo";
@@ -410,7 +411,7 @@ export default function EnterprisePlatformSidebar({
           key={key}
           type="button"
           aria-current={active ? "page" : undefined}
-          onClick={() => navigate(opts.view!)}
+          onClick={() => navigate(opts.view!, opts.query)}
           onPointerEnter={() => onPrefetchView?.(opts.view!)}
           onFocus={() => onPrefetchView?.(opts.view!)}
           className={className}
@@ -447,6 +448,7 @@ export default function EnterprisePlatformSidebar({
       ), {
         view: item.view,
         href: item.href,
+        query: "query" in item ? item.query : undefined,
         icon: itemIcon,
         depth,
         badge: item.badge,

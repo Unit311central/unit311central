@@ -64,7 +64,11 @@ import {
   CUSTOMER_PLATFORM_HIDDEN_VIEWS,
   isViewAllowedForGrants,
 } from "@/lib/internal-role-views";
-import { resolveRuntimeSurface } from "@/lib/runtime-surface";
+import {
+  FINANCES_QUERY_PARAM_VIEWS,
+  isFinancesShellView,
+} from "@/lib/finances-nav";
+import FinancesSubsectionShell from "./FinancesSubsectionShell";
 import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
 import WorkspacePane from "./WorkspacePane";
 import WorkspaceErrorBoundary from "./WorkspaceErrorBoundary";
@@ -77,6 +81,7 @@ import {
   WORKSPACE_CHUNK_LOADERS,
 } from "@/lib/workspace-prefetch";
 import { markWorkspaceView } from "@/lib/platform-performance";
+import { resolveRuntimeSurface } from "@/lib/runtime-surface";
 import { isMarketingModuleView } from "@/lib/marketing/views";
 import { MarketingViewHost } from "@/components/marketing";
 
@@ -682,6 +687,8 @@ export default function InternalOperationsDashboard({
     window.history.replaceState({}, "", url.toString());
   }, [activeView, searchParams]);
 
+  const [financeNavQuery, setFinanceNavQuery] = useState<Record<string, string> | null>(null);
+
   useEffect(() => {
     const url = new URL(window.location.href);
     const host = window.location.hostname;
@@ -699,11 +706,24 @@ export default function InternalOperationsDashboard({
       url.searchParams.delete("view");
       url.searchParams.delete("country");
       url.searchParams.delete("tab");
+      url.searchParams.delete("filter");
+      url.searchParams.delete("section");
     } else {
       url.searchParams.set("view", activeView);
       if (activeView !== "sales-management") {
-        url.searchParams.delete("tab");
         url.searchParams.delete("panel");
+      }
+      if (financeNavQuery) {
+        url.searchParams.delete("tab");
+        url.searchParams.delete("filter");
+        url.searchParams.delete("section");
+        for (const [key, value] of Object.entries(financeNavQuery)) {
+          url.searchParams.set(key, value);
+        }
+      } else if (!FINANCES_QUERY_PARAM_VIEWS.has(activeView)) {
+        url.searchParams.delete("tab");
+        url.searchParams.delete("filter");
+        url.searchParams.delete("section");
       }
       if (activeView !== "potential-clients") {
         url.searchParams.delete("country");
@@ -712,7 +732,10 @@ export default function InternalOperationsDashboard({
       }
     }
     window.history.replaceState({}, "", url.toString());
-  }, [activeView, basePath]);
+    if (financeNavQuery) {
+      setFinanceNavQuery(null);
+    }
+  }, [activeView, basePath, financeNavQuery]);
 
   useLayoutEffect(() => {
     const host = activeView === "testing" ? testingSandboxHostRef.current : null;
@@ -742,11 +765,15 @@ export default function InternalOperationsDashboard({
     }
   }, [activeView]);
 
-  const handleViewChange = useCallback((view: InternalOperationsView) => {
-    const normalized = normalizeInternalOperationsView(view);
-    prefetchViewOnIntent(normalized);
-    setActiveView(normalized);
-  }, []);
+  const handleViewChange = useCallback(
+    (view: InternalOperationsView, query?: Record<string, string>) => {
+      const normalized = normalizeInternalOperationsView(view);
+      prefetchViewOnIntent(normalized);
+      setFinanceNavQuery(query ?? {});
+      setActiveView(normalized);
+    },
+    [],
+  );
 
   return (
     <OperatorEntitlementsProvider>
@@ -761,9 +788,9 @@ export default function InternalOperationsDashboard({
         <SurveyOperationsShell
           mode="internal"
           activeView={activeView}
-          onViewChange={(view) => {
+          onViewChange={(view, query) => {
             if (isInternalOperationsView(view)) {
-              handleViewChange(view);
+              handleViewChange(view, query);
             }
           }}
           basePath={basePath}
@@ -1006,6 +1033,10 @@ export default function InternalOperationsDashboard({
             ))}
 
           {activeView === "expenses" && <ExpensesWorkspace />}
+
+          {isFinancesShellView(activeView) ? (
+            <FinancesSubsectionShell view={activeView} basePath={basePath} />
+          ) : null}
 
           {activeView === "hr" && <HrWorkspace mode="employees" />}
 
