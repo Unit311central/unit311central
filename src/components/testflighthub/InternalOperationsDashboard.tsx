@@ -68,6 +68,7 @@ import {
   FINANCES_QUERY_PARAM_VIEWS,
   isFinancesShellView,
 } from "@/lib/finances-nav";
+import { SALES_MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/sales-management-nav";
 import FinancesSubsectionShell from "./FinancesSubsectionShell";
 import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
 import WorkspacePane from "./WorkspacePane";
@@ -720,7 +721,10 @@ export default function InternalOperationsDashboard({
         for (const [key, value] of Object.entries(financeNavQuery)) {
           url.searchParams.set(key, value);
         }
-      } else if (!FINANCES_QUERY_PARAM_VIEWS.has(activeView)) {
+      } else if (
+        !FINANCES_QUERY_PARAM_VIEWS.has(activeView) &&
+        !SALES_MANAGEMENT_QUERY_PARAM_VIEWS.has(activeView)
+      ) {
         url.searchParams.delete("tab");
         url.searchParams.delete("filter");
         url.searchParams.delete("section");

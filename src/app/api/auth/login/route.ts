@@ -30,6 +30,7 @@ import {
   parseLoginReturnTo,
   parseSafePostLoginNext,
   parseValidWorkspaceReturnTo,
+  clampAbsolutePostLoginRedirect,
   resolveBrowserRedirectPathForHost,
   workspacePostLoginUrl,
 } from "@/lib/app-domains";
@@ -196,6 +197,10 @@ async function resolvePostLoginRedirect(options: {
 }): Promise<string> {
   const { redirectPath, requestHost, returnToRaw, nextRaw, userType, username } = options;
   const loginReturn = parseLoginReturnTo(returnToRaw);
+  const opsOriginFromReturn =
+    loginReturn?.kind === "demo" || loginReturn?.kind === "internal"
+      ? loginReturn.origin
+      : undefined;
   const nextPath = parseSafePostLoginNext(nextRaw);
   const wantsPortalsNext = wantsAbhiPortalsNext(nextRaw);
   const hostSlug = parseClientPlatformSubdomainSafe(requestHost);
@@ -241,11 +246,13 @@ async function resolvePostLoginRedirect(options: {
   // Demo apex `/` always clears the session and forces /login, so land on /dashboard.
   if (userType !== "external" && isDemoDomainHost(requestHost)) {
     const path = nextPath && nextPath !== "/" ? nextPath : "/dashboard";
-    return `${DEMO_SITE_URL}${path}`;
+    return clampAbsolutePostLoginRedirect(`${DEMO_SITE_URL}${path}`, returnToRaw);
   }
   if (userType !== "external" && isInternalDomainHost(requestHost)) {
     const path = nextPath && nextPath !== "/" ? nextPath : "/";
-    return path === "/" ? `${INTERNAL_SITE_URL}/` : `${INTERNAL_SITE_URL}${path}`;
+    const target =
+      path === "/" ? `${INTERNAL_SITE_URL}/` : `${INTERNAL_SITE_URL}${path}`;
+    return clampAbsolutePostLoginRedirect(target, returnToRaw);
   }
 
   // Company/member portal externals must never land in the admin shell.
@@ -283,14 +290,15 @@ async function resolvePostLoginRedirect(options: {
   }
 
   if (loginReturn?.kind === "demo" || loginReturn?.kind === "internal") {
-    const path = nextPath || "/";
-    if (path === "/" || path === "") {
-      return `${loginReturn.origin.replace(/\/$/, "")}/`;
-    }
-    return resolveBrowserRedirectPathForHost(path, requestHost, {
-      userType: "internal",
-      opsOrigin: loginReturn.origin,
-    });
+    const defaultPath = loginReturn.kind === "demo" ? "/dashboard" : "/";
+    const path = nextPath && nextPath !== "/" ? nextPath : defaultPath;
+    return clampAbsolutePostLoginRedirect(
+      resolveBrowserRedirectPathForHost(path, requestHost, {
+        userType: "internal",
+        opsOrigin: loginReturn.origin,
+      }),
+      returnToRaw,
+    );
   }
 
   // Workspace-only helper still used by older clients that only send validated workspace URLs.
@@ -317,14 +325,22 @@ async function resolvePostLoginRedirect(options: {
   }
 
   if (nextPath) {
-    return resolveBrowserRedirectPathForHost(nextPath, requestHost, {
-      userType: userType === "external" ? "external" : "internal",
-    });
+    return clampAbsolutePostLoginRedirect(
+      resolveBrowserRedirectPathForHost(nextPath, requestHost, {
+        userType: userType === "external" ? "external" : "internal",
+        opsOrigin: opsOriginFromReturn,
+      }),
+      returnToRaw,
+    );
   }
 
-  return resolveBrowserRedirectPathForHost(redirectPath, requestHost, {
-    userType,
-  });
+  return clampAbsolutePostLoginRedirect(
+    resolveBrowserRedirectPathForHost(redirectPath, requestHost, {
+      userType,
+      opsOrigin: opsOriginFromReturn,
+    }),
+    returnToRaw,
+  );
 }
 
 async function createDemoLoginResponse(

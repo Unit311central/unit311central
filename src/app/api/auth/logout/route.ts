@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { workspaceLoginUrl, parseValidWorkspaceReturnTo } from "@/lib/app-domains";
+import {
+  getRequestHost,
+  normalizeHost,
+  resolveValidatedLoginReturnOrigin,
+  workspaceLoginUrl,
+} from "@/lib/app-domains";
 import {
   clearAbhiPortalsGateCookie,
   clearOverviewGateCookie,
@@ -18,25 +23,22 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   const session = await getPlatformSession();
 
-  let returnTo: string | null = null;
+  let returnOrigin: string | null = null;
   try {
     const body = (await request.json().catch(() => null)) as { returnTo?: string } | null;
-    returnTo = parseValidWorkspaceReturnTo(body?.returnTo ?? null);
+    returnOrigin = resolveValidatedLoginReturnOrigin(body?.returnTo ?? null);
   } catch {
-    returnTo = null;
+    returnOrigin = null;
   }
 
-  if (!returnTo) {
-    const host =
-      request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
-      request.headers.get("host") ||
-      "";
-    if (/\.unit311central\.com$/i.test(host) && !/^www\./i.test(host)) {
-      returnTo = parseValidWorkspaceReturnTo(`https://${host}`);
+  if (!returnOrigin) {
+    const host = normalizeHost(getRequestHost(request));
+    if (host.endsWith(".unit311central.com") && host !== "unit311central.com" && host !== "www.unit311central.com") {
+      returnOrigin = resolveValidatedLoginReturnOrigin(`https://${host}`);
     }
   }
 
-  const loginUrl = workspaceLoginUrl(returnTo);
+  const loginUrl = workspaceLoginUrl(returnOrigin);
   const response = NextResponse.json({
     ok: true,
     loginUrl,

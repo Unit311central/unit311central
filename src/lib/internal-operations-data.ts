@@ -707,6 +707,7 @@ export type InternalNavItem = {
   readonly icon: string;
   readonly view?: InternalOperationsView;
   readonly href?: string;
+  readonly query?: Record<string, string>;
   readonly indented?: boolean;
   readonly children?: readonly InternalNavChildItem[];
   readonly badge?: "demo";
@@ -1944,6 +1945,10 @@ export function isInternalNavItemActive(
 
   if (pathname !== basePath) {
     return childHrefActive;
+  }
+
+  if (item.view && item.query) {
+    return item.view === activeView && internalNavQueryMatches(item.query, searchParams);
   }
 
   if (item.view) {

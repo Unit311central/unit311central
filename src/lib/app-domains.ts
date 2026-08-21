@@ -293,10 +293,7 @@ export function parseSafePostLoginNext(value: string | null | undefined): string
 
 export function centralLoginUrl(returnTo?: string | null) {
   const base = `${CENTRAL_SITE_URL}${centralLoginPath()}`;
-  const validated =
-    parseValidWorkspaceReturnTo(returnTo) ??
-    parseLoginReturnTo(returnTo)?.origin ??
-    null;
+  const validated = resolveValidatedLoginReturnOrigin(returnTo);
   if (!validated) return base;
   const url = new URL(base);
   url.searchParams.set("return_to", validated);
@@ -304,13 +301,96 @@ export function centralLoginUrl(returnTo?: string | null) {
 }
 
 /**
+ * Validated login/logout return origin: customer workspace, Demo, or Internal.
+ * Rejects apex/www and other reserved infrastructure hosts.
+ */
+export function resolveValidatedLoginReturnOrigin(
+  value: string | null | undefined,
+): string | null {
+  return (
+    parseValidWorkspaceReturnTo(value) ??
+    parseLoginReturnTo(value)?.origin ??
+    null
+  );
+}
+
+/**
+ * On-host login for a validated return origin (`https://{host}/login`).
+ * Demo and Internal never fall back to bare apex login.
+ */
+export function opsShellLoginUrl(returnOrigin: string | null | undefined): string {
+  const origin = resolveValidatedLoginReturnOrigin(returnOrigin);
+  if (!origin) return centralLoginUrl(null);
+  return `${origin.replace(/\/$/, "")}${centralLoginPath()}`;
+}
+
+/**
  * Prefer on-host login for customer workspaces (`https://{slug}.…/login`).
- * Falls back to apex `/login?return_to=` when no validated workspace origin.
+ * Demo/Internal use on-host login; otherwise falls back to apex `/login?return_to=`.
  */
 export function workspaceLoginUrl(returnTo?: string | null) {
-  const validated = parseValidWorkspaceReturnTo(returnTo);
-  if (validated) return `${validated}${centralLoginPath()}`;
+  const origin = resolveValidatedLoginReturnOrigin(returnTo);
+  if (origin) return opsShellLoginUrl(origin);
   return centralLoginUrl(returnTo);
+}
+
+/**
+ * Keep demo/internal post-login redirects on the intended ops shell.
+ * Blocks accidental demo → internal (or internal → demo) absolute URL hand-offs.
+ */
+export function clampAbsolutePostLoginRedirect(
+  redirectPath: string,
+  returnToRaw: string | null | undefined,
+): string {
+  const trimmed = redirectPath.trim();
+  if (!/^https?:\/\//i.test(trimmed)) return redirectPath;
+
+  const loginReturn = parseLoginReturnTo(returnToRaw);
+  if (!loginReturn || (loginReturn.kind !== "demo" && loginReturn.kind !== "internal")) {
+    return redirectPath;
+  }
+
+  try {
+    const redirectUrl = new URL(trimmed);
+    const expectedOrigin = loginReturn.origin.replace(/\/$/, "");
+    if (redirectUrl.origin === expectedOrigin) return redirectPath;
+
+    if (loginReturn.kind === "demo" && isInternalDomainHost(redirectUrl.host)) {
+      const path = `${redirectUrl.pathname}${redirectUrl.search}`;
+      const landing = path === "/" || path === "" ? "/dashboard" : path;
+      return `${expectedOrigin}${landing}`;
+    }
+
+    if (loginReturn.kind === "internal" && isDemoDomainHost(redirectUrl.host)) {
+      const path = `${redirectUrl.pathname}${redirectUrl.search}` || "/";
+      return `${expectedOrigin}${path === "/" ? "/" : path}`;
+    }
+  } catch {
+    return redirectPath;
+  }
+
+  return redirectPath;
+}
+
+/** Resolve a Demo post-login URL from return_to and/or request host. */
+export function resolveDemoPostLoginUrl(options: {
+  returnToRaw: string | null | undefined;
+  nextRaw?: string | null | undefined;
+  requestHost?: string | null;
+}): string | null {
+  const loginReturn = parseLoginReturnTo(options.returnToRaw);
+  const nextPath = parseSafePostLoginNext(options.nextRaw ?? null);
+  const path = nextPath && nextPath !== "/" ? nextPath : "/dashboard";
+
+  if (loginReturn?.kind === "demo") {
+    return `${loginReturn.origin.replace(/\/$/, "")}${path}`;
+  }
+
+  if (isDemoDomainHost(options.requestHost)) {
+    return `${DEMO_SITE_URL}${path}`;
+  }
+
+  return null;
 }
 
 /** Post-login destination on a validated workspace origin. */

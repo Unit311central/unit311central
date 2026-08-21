@@ -15,6 +15,7 @@ import { getCanonicalModule } from "@/lib/central-application-model/canonical-mo
 import {
   DEFAULT_SALES_MANAGEMENT_TAB,
   SALES_MANAGEMENT_NAV_GROUPS,
+  SALES_MANAGEMENT_ROOT_TAB,
   SALES_MANAGEMENT_TABS,
   isSalesManagementTab,
 } from "@/lib/sales-management-tabs";
@@ -44,13 +45,38 @@ const smSection = internalSurveyNavSections.find(
   (section) => section.label === SALES_MANAGEMENT_MODULE_LABEL,
 );
 assert.ok(smSection, "Sales Management section must exist");
-assert.equal(smSection?.items.length, 1, "Sales Management LHS must be a single entry");
-assert.equal(smSection?.items[0]?.view, "sales-management");
+assert.equal(
+  smSection?.items.length,
+  1 + SALES_MANAGEMENT_NAV_GROUPS.length,
+  "Sales Management global LHS must expose Dashboard plus each nav group",
+);
+
+const dashboardItem = smSection?.items[0];
+assert.equal(dashboardItem?.label, SALES_MANAGEMENT_ROOT_TAB.label);
+assert.equal(dashboardItem?.view, "sales-management");
+assert.deepEqual(dashboardItem?.query, { tab: "dashboard" });
+
+const overviewGroup = smSection?.items.find((item) => item.label === "Overview");
+assert.ok(overviewGroup?.children?.length, "Overview group must have children");
+assert.ok(
+  overviewGroup?.children?.some((child) => child.query?.tab === "my-sales"),
+  "Overview must include My Sales tab link",
+);
+
+const managementGroup = smSection?.items.find((item) => item.label === "Management");
+assert.ok(
+  managementGroup?.children?.some((child) => child.label === "Targets & Forecast"),
+  "Management must include Targets & Forecast",
+);
+
+const salesGroup = smSection?.items.find((item) => item.label === "Sales");
+assert.ok(
+  salesGroup?.children?.some((child) => child.query?.tab === "partners"),
+  "Partners must remain under Sales group",
+);
 
 assert.equal(SALES_MANAGEMENT_TABS.length, 15);
 assert.equal(SALES_MANAGEMENT_NAV_GROUPS.length, 3);
-assert.equal(SALES_MANAGEMENT_NAV_GROUPS[0]?.tabs.length, 2, "Overview excludes Dashboard");
-assert.equal(SALES_MANAGEMENT_NAV_GROUPS[2]?.tabs.at(-1)?.id, "partners");
 assert.equal(DEFAULT_SALES_MANAGEMENT_TAB, "dashboard");
 assert.equal(isSalesManagementTab("pipeline"), true);
 assert.equal(isSalesManagementTab("sales-quotes"), true);
@@ -80,6 +106,7 @@ assert.ok(
 
 const built = buildSalesManagementNavSection();
 assert.equal(built.label, SALES_MANAGEMENT_MODULE_LABEL);
+assert.equal(built.items.length, 1 + SALES_MANAGEMENT_NAV_GROUPS.length);
 
 const catalogueModule = listPlatformModules().find((module) => module.id === "sales-management");
 assert.ok(catalogueModule, "EA Application Catalogue must include Sales Management");

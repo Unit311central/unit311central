@@ -13,6 +13,7 @@ import AbhiLogoMark from "@/components/layout/AbhiLogoMark";
 import OnwardAirLogoMark from "@/components/layout/OnwardAirLogoMark";
 import TalantonLogoMark from "@/components/layout/TalantonLogoMark";
 import {
+  clampAbsolutePostLoginRedirect,
   parseLoginReturnTo,
   parseSafePostLoginNext,
   workspacePostLoginUrl,
@@ -162,8 +163,10 @@ function resolveReturnNavigationTarget(
   apiRedirectPath: string,
   returnOrigin: string,
 ): string {
-  if (/^https?:\/\//i.test(apiRedirectPath)) {
-    return apiRedirectPath;
+  const clamped = clampAbsolutePostLoginRedirect(apiRedirectPath, returnOrigin);
+
+  if (/^https?:\/\//i.test(clamped)) {
+    return clamped;
   }
 
   const loginReturn = parseLoginReturnTo(returnOrigin);
@@ -171,10 +174,12 @@ function resolveReturnNavigationTarget(
     return workspacePostLoginUrl(returnOrigin, "dashboard");
   }
   if (loginReturn?.kind === "demo" || loginReturn?.kind === "internal") {
-    const next = parseSafePostLoginNext(apiRedirectPath) ?? "/";
-    return `${loginReturn.origin}${next === "/" ? "/" : next}`;
+    const next = parseSafePostLoginNext(clamped) ?? parseSafePostLoginNext(apiRedirectPath) ?? "/";
+    const defaultPath = loginReturn.kind === "demo" ? "/dashboard" : "/";
+    const path = next === "/" ? defaultPath : next;
+    return `${loginReturn.origin.replace(/\/$/, "")}${path}`;
   }
-  return apiRedirectPath;
+  return clamped;
 }
 
 async function readApiJson<T>(response: Response): Promise<T> {
@@ -321,9 +326,13 @@ export default function Unit311LoginPage({
 
       persistNext(null);
 
-      // Absolute API redirects are authoritative (dashboard vs /portals deep-link).
-      if (/^https?:\/\//i.test(data.redirectPath)) {
-        window.location.assign(data.redirectPath);
+      const navigationTarget = effectiveReturnTo
+        ? resolveReturnNavigationTarget(data.redirectPath, effectiveReturnTo)
+        : data.redirectPath;
+
+      // Absolute API redirects must respect demo/internal return_to (never bounce Demo → Internal).
+      if (/^https?:\/\//i.test(navigationTarget)) {
+        window.location.assign(navigationTarget);
         return;
       }
 
@@ -335,9 +344,7 @@ export default function Unit311LoginPage({
       }
 
       if (effectiveReturnTo) {
-        window.location.assign(
-          resolveReturnNavigationTarget(data.redirectPath, effectiveReturnTo),
-        );
+        window.location.assign(navigationTarget);
         return;
       }
 
