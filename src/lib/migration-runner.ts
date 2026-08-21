@@ -10,6 +10,7 @@ import {
   type MigrationQueryClient,
 } from "@/lib/migration-ledger";
 import { MIGRATION_SATISFACTION_PROBES } from "@/lib/migration-satisfaction-probes";
+import { SALES_MANAGEMENT_FOUNDATION_MIGRATION } from "@/lib/unit311-pending-migrations";
 
 export type MigrationSkipMethod = "ledger" | MigrationLedgerMethod;
 
@@ -57,6 +58,19 @@ export interface PendingMigrationRunnerDeps {
   applyMigrationFile: (migration: string) => Promise<MigrationApplyResult>;
 }
 
+export function migrationSatisfiedForPlanning(input: {
+  migration: string;
+  satisfied: ReadonlyMap<string, boolean>;
+  ledgerMethod: MigrationLedgerMethod | undefined;
+}): boolean {
+  const isSatisfied = input.satisfied.get(input.migration) === true;
+  if (!isSatisfied) return false;
+  if (input.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION) {
+    return isLedgerAppliedMethod(input.ledgerMethod);
+  }
+  return true;
+}
+
 export function planMigrationActions(input: {
   migrations: readonly string[];
   recordedMethods: ReadonlyMap<string, MigrationLedgerMethod>;
@@ -66,10 +80,15 @@ export function planMigrationActions(input: {
 
   for (const migration of input.migrations) {
     const version = migrationVersion(migration);
-    const isSatisfied = input.satisfied.get(migration) === true;
     const ledgerMethod = input.recordedMethods.get(version);
 
-    if (isSatisfied) {
+    if (
+      migrationSatisfiedForPlanning({
+        migration,
+        satisfied: input.satisfied,
+        ledgerMethod,
+      })
+    ) {
       actions.push({ kind: "skip", migration, method: "verified_skip" });
       continue;
     }
@@ -116,9 +135,18 @@ export function computePendingMigrations(input: {
   const applied = new Set(input.appliedMigrations);
   return input.migrations.filter((migration) => {
     if (applied.has(migration)) return false;
-    if (input.satisfied.get(migration) === true) return false;
     const version = migrationVersion(migration);
-    if (isLedgerAppliedMethod(input.recordedMethods.get(version))) return false;
+    const ledgerMethod = input.recordedMethods.get(version);
+    if (
+      migrationSatisfiedForPlanning({
+        migration,
+        satisfied: input.satisfied,
+        ledgerMethod,
+      })
+    ) {
+      return false;
+    }
+    if (isLedgerAppliedMethod(ledgerMethod)) return false;
     return true;
   });
 }

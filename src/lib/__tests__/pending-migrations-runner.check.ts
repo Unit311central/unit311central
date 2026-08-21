@@ -130,7 +130,27 @@ assert.ok(
   staleVerifiedSkipActions.find(
     (action) => action.kind === "apply" && action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION,
   ),
-  "stale verified_skip ledger rows must not block apply when the probe fails",
+  "149 must stay pending until runner-confirmed apply even when schema probes pass",
+);
+
+const satisfiedIncluding149 = new Map(satisfied053To148);
+satisfiedIncluding149.set(SALES_MANAGEMENT_FOUNDATION_MIGRATION, true);
+
+const ledgerConfirmed149Actions = planMigrationActions({
+  migrations: UNIT311_PENDING_MIGRATIONS,
+  recordedMethods: new Map([
+    [migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION), "management-api"],
+  ]),
+  satisfied: satisfiedIncluding149,
+});
+assert.ok(
+  ledgerConfirmed149Actions.find(
+    (action) =>
+      action.kind === "skip" &&
+      action.method === "verified_skip" &&
+      action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+  ),
+  "149 can verified_skip once ledger records a runner apply method",
 );
 
 const migration149Sql = readFileSync(
