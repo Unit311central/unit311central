@@ -70,6 +70,7 @@ const VIEW_TO_MODULE: Record<string, { module: NorthstarModuleId; focus?: string
   "engineering-programs": { module: "engineering", focus: "programs milestones" },
   "engineering-capacity": { module: "engineering", focus: "team capacity" },
   "engineering-risks": { module: "engineering", focus: "risks" },
+  "engineering-sops": { module: "engineering", focus: "standard operating procedures SOPs" },
   "corporate-dashboard": { module: "corporate" },
   "corporate-company-details": { module: "corporate", focus: "company details" },
   "office-locations": { module: "corporate", focus: "office locations" },

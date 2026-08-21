@@ -5,6 +5,7 @@ import {
   buildProjectManagementNavSection,
   stripProjectsFromBusinessCentral,
 } from "@/lib/project-management-nav";
+import { ENGINEERING_SOPS_NAV_ITEM } from "@/lib/engineering-nav";
 import {
   ONWARDAIR_EA_ACCENT,
   ONWARDAIR_HOME_ACCENT,
@@ -1015,6 +1016,7 @@ const ONWARDAIR_ENGINEERING_NAV_SECTION: InternalNavSection = {
       icon: "Plug",
       view: "oa-engineering-integrations" as const,
     },
+    ENGINEERING_SOPS_NAV_ITEM,
   ],
 };
 

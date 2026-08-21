@@ -136,6 +136,7 @@ export type InternalOperationsView =
   | "engineering-resources"
   | "engineering-capacity"
   | "engineering-risks"
+  | "engineering-sops"
   | "technology"
   | "technology-dashboard"
   | "technology-architecture"
@@ -416,6 +417,7 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "engineering-resources",
   "engineering-capacity",
   "engineering-risks",
+  "engineering-sops",
   "technology",
   "technology-dashboard",
   "technology-architecture",
@@ -537,6 +539,7 @@ export const ENGINEERING_NAV_VIEWS = [
   "engineering-resources",
   "engineering-capacity",
   "engineering-risks",
+  "engineering-sops",
 ] as const satisfies readonly InternalOperationsView[];
 
 export const TECHNOLOGY_NAV_VIEWS = [
@@ -1243,6 +1246,7 @@ export const internalViewTitles: Record<
   },
   "engineering-capacity": { title: "Team & Capacity", subtitle: "Engineering" },
   "engineering-risks": { title: "Risks", subtitle: "Engineering" },
+  "engineering-sops": { title: "Standard Operating Procedures", subtitle: "Engineering" },
   technology: { title: "Technology Management", subtitle: "Technology Management" },
   "technology-dashboard": { title: "Dashboard", subtitle: "Technology Management" },
   "technology-architecture": {

@@ -207,6 +207,7 @@ import {
   EngineeringCapacityWorkspace,
   EngineeringDashboardWorkspace,
   EngineeringResourcesWorkspace,
+  EngineeringSopWorkspace,
   ExecutiveAssistantWorkspace,
   ExpensesWorkspace,
   ExternalClientAccessWorkspace,
@@ -1292,6 +1293,12 @@ export default function InternalOperationsDashboard({
             ) : (
               <EngineeringCapacityWorkspace />
             ))}
+
+          {activeView === "engineering-sops" && (
+            <WorkspaceErrorBoundary title="Engineering SOPs">
+              <EngineeringSopWorkspace />
+            </WorkspaceErrorBoundary>
+          )}
 
           {(activeView === "technology" || activeView === "technology-dashboard") && (
             <TechnologyDashboardWorkspace />

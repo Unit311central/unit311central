@@ -1,5 +1,6 @@
 import type { InternalNavSection } from "@/lib/internal-operations-data";
 import { FINANCES_MODULE_LABEL } from "@/lib/finances-nav";
+import { ENGINEERING_SOPS_NAV_ITEM } from "@/lib/engineering-nav";
 import {
   PROJECT_MANAGEMENT_MODULE_LABEL,
   buildProjectManagementNavSection,
@@ -64,6 +65,7 @@ const DEMO_ENGINEERING_NAV: InternalNavSection = {
     { label: "Programs & Milestones", icon: "Milestone", view: "engineering-programs" as const },
     { label: "Team & Capacity", icon: "Users", view: "engineering-capacity" as const },
     { label: "Risks", icon: "AlertTriangle", view: "engineering-risks" as const },
+    ENGINEERING_SOPS_NAV_ITEM,
   ],
 };
 

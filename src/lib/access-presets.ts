@@ -250,6 +250,7 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "engineering-resources",
       "engineering-capacity",
       "engineering-risks",
+      "engineering-sops",
     ],
   },
   {
