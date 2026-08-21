@@ -14,8 +14,10 @@ import {
 } from "@/lib/migration-ledger";
 import {
   computePendingMigrations,
+  describePendingMigrationPlan,
   planMigrationActions,
   runPendingMigrations,
+  shouldPersistVerifiedSkipLedger,
 } from "@/lib/migration-runner";
 import {
   MIGRATION_SATISFACTION_PROBES,
@@ -43,7 +45,7 @@ class MockMigrationClient implements MigrationQueryClient {
 
     if (sql.startsWith("select version, method from public.unit311_applied_migrations")) {
       return {
-        rows: [...this.ledger.entries()].map(([version, method]) => ({ version, method })) as T[],
+        rows: [...this.ledger.entries()].map(([version, method]) => ({ version, method })) as unknown as T[],
       };
     }
 
@@ -59,7 +61,7 @@ class MockMigrationClient implements MigrationQueryClient {
     for (const [migration, probeSql] of Object.entries(MIGRATION_SATISFACTION_PROBES)) {
       if (sql === probeSql) {
         return {
-          rows: [{ satisfied: this.probeResults.get(migration) ?? false }] as T[],
+          rows: [{ satisfied: this.probeResults.get(migration) ?? false }] as unknown as T[],
         };
       }
     }
@@ -153,6 +155,47 @@ assert.ok(
   "149 can verified_skip once ledger records a runner apply method",
 );
 
+const satisfied059 = new Map([
+  ["supabase/migrations/059_email_mailbox_admin_account.sql", true],
+]);
+assert.equal(
+  shouldPersistVerifiedSkipLedger({
+    migration: "supabase/migrations/059_email_mailbox_admin_account.sql",
+    satisfied: satisfied059,
+    ledgerMethod: "verified_skip",
+  }),
+  false,
+  "existing verified_skip + satisfied probe must not rewrite ledger on POST",
+);
+assert.equal(
+  shouldPersistVerifiedSkipLedger({
+    migration: "supabase/migrations/059_email_mailbox_admin_account.sql",
+    satisfied: satisfied059,
+    ledgerMethod: undefined,
+  }),
+  true,
+  "first-time satisfied probe should persist verified_skip ledger on POST",
+);
+assert.equal(
+  shouldPersistVerifiedSkipLedger({
+    migration: SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    satisfied: satisfied053To148,
+    ledgerMethod: "verified_skip",
+  }),
+  false,
+  "stale verified_skip + satisfied 149 probe must not persist ledger",
+);
+assert.ok(
+  planMigrationActions({
+    migrations: UNIT311_PENDING_MIGRATIONS,
+    recordedMethods: new Map([
+      [migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION), "verified_skip"],
+    ]),
+    satisfied: satisfied053To148,
+  }).find((action) => action.kind === "apply" && action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION),
+  "stale verified_skip + satisfied 149 probe remains eligible for apply",
+);
+
 const migration149Sql = readFileSync(
   join(process.cwd(), "supabase/migrations/149_sales_management_foundation.sql"),
   "utf8",
@@ -236,6 +279,93 @@ void (async () => {
   );
   const afterManualRecord = await fetchRecordedMigrationVersions(client);
   assert.ok(afterManualRecord.has("060_crm_leads_discovery_notes.sql"));
+
+  const preseededClient = new MockMigrationClient();
+  for (const migration of UNIT311_PENDING_MIGRATIONS) {
+    preseededClient.probeResults.set(
+      migration,
+      migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    );
+    if (migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION) {
+      preseededClient.ledger.set(migrationVersion(migration), "verified_skip");
+    }
+  }
+  preseededClient.ledger.set(
+    migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
+    "verified_skip",
+  );
+
+  const insertQueriesBefore = preseededClient.queries.filter((sql) =>
+    sql.startsWith("insert into public.unit311_applied_migrations"),
+  ).length;
+
+  let preseededApplyAttempts = 0;
+  const preseededResult = await runPendingMigrations({
+    migrations: UNIT311_PENDING_MIGRATIONS,
+    client: preseededClient,
+    applyMigrationFile: async (migration) => {
+      preseededApplyAttempts += 1;
+      assert.equal(migration, SALES_MANAGEMENT_FOUNDATION_MIGRATION);
+      return { ok: true, method: "management-api" };
+    },
+  });
+
+  const insertQueriesAfter = preseededClient.queries.filter((sql) =>
+    sql.startsWith("insert into public.unit311_applied_migrations"),
+  ).length;
+
+  assert.equal(
+    insertQueriesAfter - insertQueriesBefore,
+    1,
+    "POST should only write one new ledger row for runner-confirmed 149 apply",
+  );
+  assert.equal(
+    preseededClient.ledger.get(migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION)),
+    "management-api",
+  );
+  assert.equal(
+    preseededClient.ledger.get(migrationVersion("supabase/migrations/053_founder_session_client_timezone.sql")),
+    "verified_skip",
+    "existing verified_skip rows must remain read-only skips",
+  );
+  assert.equal(preseededApplyAttempts, 1, "only migration 149 should attempt apply SQL");
+  assert.equal(preseededResult.applied.length, 1);
+  assert.equal(preseededResult.applied[0]?.migration, SALES_MANAGEMENT_FOUNDATION_MIGRATION);
+  assert.equal(preseededResult.applied[0]?.method, "management-api");
+  assert.deepEqual(preseededResult.pending, []);
+
+  const dryRunClient = new MockMigrationClient();
+  for (const migration of UNIT311_PENDING_MIGRATIONS) {
+    dryRunClient.probeResults.set(
+      migration,
+      migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    );
+    dryRunClient.ledger.set(migrationVersion(migration), "verified_skip");
+  }
+
+  const dryRunPlan = await describePendingMigrationPlan(UNIT311_PENDING_MIGRATIONS, dryRunClient);
+  const dryRunActions = planMigrationActions({
+    migrations: UNIT311_PENDING_MIGRATIONS,
+    recordedMethods: dryRunClient.ledger,
+    satisfied: new Map(
+      UNIT311_PENDING_MIGRATIONS.map((migration) => [
+        migration,
+        migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+      ]),
+    ),
+  });
+
+  assert.deepEqual(dryRunPlan.actions, dryRunActions, "GET dry-run plan must stay unchanged");
+  assert.ok(
+    dryRunPlan.pending.includes(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
+    "149 remains pending on GET dry-run until runner-confirmed apply",
+  );
+  assert.equal(
+    dryRunClient.queries.filter((sql) => sql.startsWith("insert into public.unit311_applied_migrations"))
+      .length,
+    0,
+    "GET dry-run must not execute migration SQL or ledger writes",
+  );
 
   console.log("ok  pending-migrations-runner checks passed\n");
 })();

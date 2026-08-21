@@ -71,6 +71,15 @@ export function migrationSatisfiedForPlanning(input: {
   return true;
 }
 
+export function shouldPersistVerifiedSkipLedger(input: {
+  migration: string;
+  satisfied: ReadonlyMap<string, boolean>;
+  ledgerMethod: MigrationLedgerMethod | undefined;
+}): boolean {
+  if (!migrationSatisfiedForPlanning(input)) return false;
+  return input.ledgerMethod === undefined;
+}
+
 export function planMigrationActions(input: {
   migrations: readonly string[];
   recordedMethods: ReadonlyMap<string, MigrationLedgerMethod>;
@@ -195,8 +204,18 @@ export async function runPendingMigrations(
   for (const action of actions) {
     if (action.kind === "skip") {
       if (action.method === "verified_skip") {
-        await recordMigrationApplied(deps.client, action.migration, "verified_skip");
-        recordedMethods.set(migrationVersion(action.migration), "verified_skip");
+        const version = migrationVersion(action.migration);
+        const ledgerMethod = recordedMethods.get(version);
+        if (
+          shouldPersistVerifiedSkipLedger({
+            migration: action.migration,
+            satisfied: satisfiedMap,
+            ledgerMethod,
+          })
+        ) {
+          await recordMigrationApplied(deps.client, action.migration, "verified_skip");
+          recordedMethods.set(version, "verified_skip");
+        }
       }
       skipped.push({ migration: action.migration, method: action.method });
       continue;
