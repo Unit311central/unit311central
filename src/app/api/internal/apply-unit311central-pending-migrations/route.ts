@@ -101,6 +101,7 @@ const MIGRATIONS = [
   "supabase/migrations/138_software_provider_billing.sql",
   "supabase/migrations/140_financial_expenses_bulk_entry.sql",
   "supabase/migrations/141_marketing_events_module.sql",
+  "supabase/migrations/148_sales_quotes.sql",
 ];
 
 function isAuthorized(request: NextRequest) {
@@ -246,6 +247,8 @@ export async function POST(request: NextRequest) {
     marketing_media_assets?: boolean;
     marketing_stories?: boolean;
     marketing_abhi_extensions?: boolean;
+    sales_quotes?: boolean;
+    sales_quote_line_items?: boolean;
   }>(
     `select
       (select exists (
@@ -327,7 +330,15 @@ export async function POST(request: NextRequest) {
       (select exists (
         select 1 from information_schema.tables
         where table_schema = 'public' and table_name = 'marketing_abhi_extensions'
-      )) as marketing_abhi_extensions`,
+      )) as marketing_abhi_extensions,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'sales_quotes'
+      )) as sales_quotes,
+      (select exists (
+        select 1 from information_schema.tables
+        where table_schema = 'public' and table_name = 'sales_quote_line_items'
+      )) as sales_quote_line_items`,
   );
 
   let verificationViaDb: typeof verification = null;
@@ -351,6 +362,8 @@ export async function POST(request: NextRequest) {
         marketing_media_assets: boolean;
         marketing_stories: boolean;
         marketing_abhi_extensions: boolean;
+        sales_quotes: boolean;
+        sales_quote_line_items: boolean;
       }>(
         `select
           (select exists (
@@ -432,7 +445,15 @@ export async function POST(request: NextRequest) {
           (select exists (
             select 1 from information_schema.tables
             where table_schema = 'public' and table_name = 'marketing_abhi_extensions'
-          )) as marketing_abhi_extensions`,
+          )) as marketing_abhi_extensions,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'sales_quotes'
+          )) as sales_quotes,
+          (select exists (
+            select 1 from information_schema.tables
+            where table_schema = 'public' and table_name = 'sales_quote_line_items'
+          )) as sales_quote_line_items`,
       );
       return result.rows[0] ?? null;
     });
