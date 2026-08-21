@@ -1,4 +1,5 @@
 import type { InternalNavSection } from "@/lib/internal-operations-data";
+import { FINANCES_MODULE_LABEL } from "@/lib/finances-nav";
 import {
   PROJECT_MANAGEMENT_MODULE_LABEL,
   buildProjectManagementNavSection,
@@ -84,7 +85,7 @@ export function injectDemoNavSections(sections: readonly InternalNavSection[]): 
   let insertedEngineering = false;
 
   for (const section of sections) {
-    if (section.label === "Financials") {
+    if (section.label === FINANCES_MODULE_LABEL) {
       out.push(section);
       if (!insertedFundraising) {
         out.push(DEMO_FUNDRAISING_NAV);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
+import Link from "next/link";
 import {
   Area,
   AreaChart,
@@ -30,6 +31,7 @@ import {
 } from "lucide-react";
 
 import { formatReportingMoney, roundReportingPercent } from "@/lib/financial-reporting-currency";
+import { FINANCES_DASHBOARD_AREAS } from "@/lib/finances-nav";
 import type { FinancialOverviewSnapshot } from "@/lib/accounting/types";
 import { isBrowserOnwardAirSurface } from "@/lib/onwardair-surface";
 import { useWorkspaceReportingCurrency } from "@/lib/workspace-reporting-currency";
@@ -367,8 +369,8 @@ export default function FinancialsWorkspace() {
             </p>
             <h2 className="mt-1 text-xl font-semibold text-white">Live performance snapshot</h2>
             <p className="mt-1 max-w-xl text-sm text-white/50">
-              Cash, revenue, receivables and burn with month-on-month movement from the shared GL /
-              AR / AP feed.
+              CFO entry point for Finances — cash, revenue, receivables and payables with
+              month-on-month movement from the shared GL / AR / AP feed.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -872,6 +874,39 @@ export default function FinancialsWorkspace() {
           </div>
         </>
       ) : null}
+
+      <section
+        data-tutorial-target="fin-dashboard-areas"
+        className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+      >
+        <h3 className="text-base font-semibold text-white">Functional areas</h3>
+        <p className="mt-1 text-sm text-white/50">
+          Role-aware drill-down into the Finances module — open the area you need without leaving
+          the integrated workspace.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {FINANCES_DASHBOARD_AREAS.map((area) => {
+            const params = new URLSearchParams({ view: area.view });
+            if (area.query) {
+              for (const [key, value] of Object.entries(area.query)) {
+                params.set(key, value);
+              }
+            }
+            return (
+              <Link
+                key={area.label}
+                href={`?${params.toString()}`}
+                className="group rounded-xl border border-white/10 bg-[#0b1524]/60 p-4 transition hover:border-emerald-400/30 hover:bg-emerald-500/[0.06]"
+              >
+                <p className="text-sm font-semibold text-white group-hover:text-emerald-100">
+                  {area.label}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-white/45">{area.description}</p>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

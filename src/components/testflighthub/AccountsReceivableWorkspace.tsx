@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FileText, Loader2, RefreshCw, X } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
@@ -90,6 +91,8 @@ function paidAtMonth(invoice: LedgerInvoice, monthPrefix: string) {
 }
 
 export default function AccountsReceivableWorkspace() {
+  const searchParams = useSearchParams();
+  const listFilter = searchParams.get("filter");
   const [invoices, setInvoices] = useState<LedgerInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [reconciling, setReconciling] = useState(false);
@@ -193,6 +196,27 @@ export default function AccountsReceivableWorkspace() {
     ? invoices.find((invoice) => invoice.id === selectedId) ?? null
     : null;
 
+  const visibleInvoices = useMemo(() => {
+    if (listFilter === "outstanding") {
+      return invoices.filter((invoice) => isUnpaid(invoice.status));
+    }
+    if (listFilter === "overdue") {
+      return invoices.filter(
+        (invoice) =>
+          invoice.status === "overdue" ||
+          (isUnpaid(invoice.status) && invoice.dueDate < todayIso),
+      );
+    }
+    return invoices;
+  }, [invoices, listFilter, todayIso]);
+
+  const filterLabel =
+    listFilter === "outstanding"
+      ? "Showing outstanding invoices"
+      : listFilter === "overdue"
+        ? "Showing overdue invoices"
+        : null;
+
   const cards = [
     {
       label: "Outstanding",
@@ -213,6 +237,9 @@ export default function AccountsReceivableWorkspace() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm text-white/55">Client invoices posted to the General Ledger.</p>
+            {filterLabel ? (
+              <p className="mt-1 text-xs font-medium text-sky-200/90">{filterLabel}</p>
+            ) : null}
             {isDemo ? (
               <p className="mt-1 text-xs text-white/40">
                 85 active subscription clients · ~£4.7k avg MRR · 12 open invoices totalling £420k
@@ -268,11 +295,13 @@ export default function AccountsReceivableWorkspace() {
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading invoices…
             </div>
-          ) : invoices.length === 0 ? (
+          ) : visibleInvoices.length === 0 ? (
             <div className="px-5 py-12 text-center">
               <FileText className="mx-auto h-8 w-8 text-white/25" />
               <p className="mt-3 text-sm text-white/50">
-                No invoices yet. Values will appear from live ledger postings.
+                {filterLabel
+                  ? "No invoices match this Finances view filter yet."
+                  : "No invoices yet. Values will appear from live ledger postings."}
               </p>
             </div>
           ) : (
@@ -292,7 +321,7 @@ export default function AccountsReceivableWorkspace() {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoices.map((invoice) => {
+                  {visibleInvoices.map((invoice) => {
                     const outstandingAmount = isUnpaid(invoice.status) ? invoice.amount : 0;
                     const journalId =
                       invoice.paymentJournalEntryId ?? invoice.journalEntryId;
