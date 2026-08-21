@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
-  ensureSalesManagementFoundationTables,
-  reloadPostgrestSchema,
+  applySalesManagementFoundationMigration,
   SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH,
 } from "@/lib/internal-db-migrations";
 
@@ -57,12 +56,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const pending = await applyViaPendingMigrationsEndpoint(request);
-    const ensured = await ensureSalesManagementFoundationTables();
-    await reloadPostgrestSchema();
+    const applied = await applySalesManagementFoundationMigration();
     return NextResponse.json({
-      ok: ensured || pending?.applied149 === true,
-      ensured,
+      ok: applied.ok,
       migration: SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH,
+      applied,
       pendingEndpoint: pending,
     });
   } catch (error) {

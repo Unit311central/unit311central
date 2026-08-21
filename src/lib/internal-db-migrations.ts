@@ -3144,47 +3144,106 @@ export async function withMarketingEventsTables<T>(operation: () => Promise<T>):
 
 export async function ensureSalesManagementFoundationTables(): Promise<boolean> {
   return onceEnsured("table:sales_teams", async () => {
-    const exists = await tableExistsViaManagementApi("sales_teams");
-    if (exists === true) return true;
-    if (await tableExistsViaServiceRole("sales_teams")) return true;
-
-    const dbUrl = getDatabaseUrl();
-    if (dbUrl) {
-      const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-      try {
-        await client.connect();
-        if (await tableExists(client, "sales_teams")) {
-          await reloadPostgrestSchema();
-          return true;
-        }
-        await applyMigration(client, SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH);
-        await reloadPostgrestSchema();
-        return true;
-      } catch (error) {
-        if (!isDirectDbConnectionError(error)) {
-          console.warn("[sales-management] direct DB ensure failed", error);
-        }
-      } finally {
-        await client.end().catch(() => undefined);
-      }
-    }
-
-    const applied = await applyMigrationViaManagementApi(SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH);
-    if (applied) {
-      await reloadPostgrestSchema();
-      return true;
-    }
-
-    const appliedViaResolved = await withResolvedDatabaseClient(async (client) => {
-      if (await tableExists(client, "sales_teams")) return true;
-      await applyMigration(client, SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH);
-      return true;
-    });
-    if (appliedViaResolved) {
-      await reloadPostgrestSchema();
-      return true;
-    }
-
-    return tableExistsViaServiceRole("sales_teams");
+    const result = await applySalesManagementFoundationMigration();
+    return result.ok;
   });
+}
+
+export async function applySalesManagementFoundationMigration(): Promise<{
+  ok: boolean;
+  method: string;
+  ownerUserId: boolean;
+  salesTeams: boolean;
+  salesTeamMembers: boolean;
+  salesTargets: boolean;
+  salesCommissionRules: boolean;
+  salesCommissions: boolean;
+}> {
+  const verifySql = `select
+    (select exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'crm_leads' and column_name = 'owner_user_id'
+    )) as owner_user_id,
+    (select exists (
+      select 1 from information_schema.tables
+      where table_schema = 'public' and table_name = 'sales_teams'
+    )) as sales_teams,
+    (select exists (
+      select 1 from information_schema.tables
+      where table_schema = 'public' and table_name = 'sales_team_members'
+    )) as sales_team_members,
+    (select exists (
+      select 1 from information_schema.tables
+      where table_schema = 'public' and table_name = 'sales_targets'
+    )) as sales_targets,
+    (select exists (
+      select 1 from information_schema.tables
+      where table_schema = 'public' and table_name = 'sales_commission_rules'
+    )) as sales_commission_rules,
+    (select exists (
+      select 1 from information_schema.tables
+      where table_schema = 'public' and table_name = 'sales_commissions'
+    )) as sales_commissions`;
+
+  const appliedViaResolved = await withResolvedDatabaseClient(async (client) => {
+    const existing = await client.query<{
+      owner_user_id: boolean;
+      sales_teams: boolean;
+      sales_team_members: boolean;
+      sales_targets: boolean;
+      sales_commission_rules: boolean;
+      sales_commissions: boolean;
+    }>(verifySql);
+    const row = existing.rows[0];
+    if (
+      row?.owner_user_id &&
+      row.sales_teams &&
+      row.sales_team_members &&
+      row.sales_targets &&
+      row.sales_commission_rules &&
+      row.sales_commissions
+    ) {
+      return { method: "postgres-verify", row };
+    }
+
+    await applyMigration(client, SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH);
+    const verified = await client.query<typeof row>(verifySql);
+    return { method: "postgres", row: verified.rows[0] };
+  });
+
+  if (!appliedViaResolved?.row) {
+    return {
+      ok: false,
+      method: "none",
+      ownerUserId: false,
+      salesTeams: false,
+      salesTeamMembers: false,
+      salesTargets: false,
+      salesCommissionRules: false,
+      salesCommissions: false,
+    };
+  }
+
+  await reloadPostgrestSchema();
+
+  const row = appliedViaResolved.row;
+  const ok = Boolean(
+    row.owner_user_id &&
+      row.sales_teams &&
+      row.sales_team_members &&
+      row.sales_targets &&
+      row.sales_commission_rules &&
+      row.sales_commissions,
+  );
+
+  return {
+    ok,
+    method: appliedViaResolved.method,
+    ownerUserId: row.owner_user_id === true,
+    salesTeams: row.sales_teams === true,
+    salesTeamMembers: row.sales_team_members === true,
+    salesTargets: row.sales_targets === true,
+    salesCommissionRules: row.sales_commission_rules === true,
+    salesCommissions: row.sales_commissions === true,
+  };
 }
