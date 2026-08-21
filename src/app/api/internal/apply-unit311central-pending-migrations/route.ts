@@ -81,7 +81,6 @@ const MIGRATIONS = [
   "supabase/migrations/117_messaging_message_actions.sql",
   "supabase/migrations/118_platform_billing_professional_1300.sql",
   "supabase/migrations/119_dual_demo_workspace_tenancy.sql",
-  "supabase/migrations/120_hr_employees_suburb.sql",
   "supabase/migrations/121_support_lounge.sql",
   "supabase/migrations/122_support_lounge_intake_fields.sql",
   "supabase/migrations/123_support_lounge_attachments.sql",
