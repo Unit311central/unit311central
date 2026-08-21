@@ -5,6 +5,12 @@ import assert from "node:assert/strict";
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { FINANCIALS_DASHBOARD_TUTORIAL } from "@/lib/guided-tutorials/content/financials-dashboard";
+import { SALES_MANAGEMENT_COMMISSIONS_TUTORIAL } from "@/lib/guided-tutorials/content/sales-management-commissions";
+import {
+  buildTutorialContext,
+  formatTutorialContextPath,
+  resolveTutorialTabKey,
+} from "@/lib/guided-tutorials/context";
 import { resolveTutorialForView as resolveClientTutorialForView } from "@/lib/guided-tutorials/client-resolver";
 import { resolveTutorial, resolveTutorialForView } from "@/lib/guided-tutorials/resolver";
 import { listTutorialDefinitions } from "@/lib/guided-tutorials/registry";
@@ -14,6 +20,10 @@ import {
   tutorialValidationPassed,
   validateTutorialRegistry,
 } from "@/lib/guided-tutorials/validation";
+import {
+  stepUsesDomHighlight,
+  stepUsesImmersiveMedia,
+} from "@/lib/guided-tutorials/step-presentation";
 import { resolveWorkspaceSlugFromHost } from "@/lib/guided-tutorials/workspace-slug";
 import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
@@ -126,6 +136,66 @@ function testContentDescribesRealFeatures() {
   assert.ok(!/placeholder/i.test(body));
 }
 
+function testCommissionsTutorialResolvesWithTabKey() {
+  const resolution = resolveTutorialForView(DEMO_WORKSPACE_SLUG, "sales-management", "commissions");
+  assert.equal(resolution.status, "available");
+  if (resolution.status === "available") {
+    assert.equal(resolution.tutorial.tutorialId, "sales-management.commissions");
+  }
+}
+
+function testCommissionsTutorialNotOnDashboardTab() {
+  const resolution = resolveTutorialForView(DEMO_WORKSPACE_SLUG, "sales-management", "dashboard");
+  assert.equal(resolution.status, "unavailable");
+}
+
+function testTutorialContextHierarchy() {
+  const context = buildTutorialContext({
+    workspaceSlug: DEMO_WORKSPACE_SLUG,
+    viewId: "sales-management",
+    tabKey: "commissions",
+  });
+  assert.equal(context.moduleLabel, "Sales Management");
+  assert.equal(context.sectionLabel, "Management");
+  assert.equal(context.functionLabel, "Commissions");
+  assert.equal(
+    formatTutorialContextPath(context),
+    "Sales Management → Management → Commissions",
+  );
+}
+
+function testFinancesContextHierarchy() {
+  const context = buildTutorialContext({
+    workspaceSlug: DEMO_WORKSPACE_SLUG,
+    viewId: "financials",
+  });
+  assert.equal(formatTutorialContextPath(context), "Finances → Dashboard");
+}
+
+function testResolveTutorialTabKeyForSales() {
+  const params = new URLSearchParams("view=sales-management&tab=commissions");
+  assert.equal(resolveTutorialTabKey("sales-management", params), "commissions");
+}
+
+function testCommissionsRichMediaSteps() {
+  const diagram = SALES_MANAGEMENT_COMMISSIONS_TUTORIAL.steps.find((s) => s.id === "flow-diagram");
+  const layout = SALES_MANAGEMENT_COMMISSIONS_TUTORIAL.steps.find((s) => s.id === "layout-visual");
+  assert.ok(diagram);
+  assert.ok(layout);
+  assert.equal(diagram?.presentation, "diagram");
+  assert.equal(layout?.presentation, "screenshot");
+  assert.ok(stepUsesImmersiveMedia(diagram));
+  assert.ok(stepUsesImmersiveMedia(layout));
+  assert.equal(stepUsesDomHighlight(diagram), false);
+  assert.ok(diagram?.media?.assetUrl.startsWith("/tutorials/"));
+}
+
+function testStepPresentationHelpers() {
+  const highlightStep = FINANCIALS_DASHBOARD_TUTORIAL.steps[0]!;
+  assert.ok(stepUsesDomHighlight(highlightStep));
+  assert.equal(stepUsesImmersiveMedia(highlightStep), false);
+}
+
 function run() {
   testValidResolution();
   testInvalidViewFailsSafely();
@@ -138,7 +208,14 @@ function run() {
   testWorkspaceSlugResolution();
   testClientServerResolverParity();
   testContentDescribesRealFeatures();
-  assert.equal(listTutorialDefinitions().length, 1);
+  testCommissionsTutorialResolvesWithTabKey();
+  testCommissionsTutorialNotOnDashboardTab();
+  testTutorialContextHierarchy();
+  testFinancesContextHierarchy();
+  testResolveTutorialTabKeyForSales();
+  testCommissionsRichMediaSteps();
+  testStepPresentationHelpers();
+  assert.equal(listTutorialDefinitions().length, 2);
   console.log("guided-tutorials.check.ts: all assertions passed");
 }
 

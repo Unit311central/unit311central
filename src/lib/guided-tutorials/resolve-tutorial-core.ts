@@ -14,11 +14,11 @@ function tutorialMatchesWorkspace(tutorial: TutorialDefinition, workspaceSlug: s
 
 function tutorialMatchesIdentity(tutorial: TutorialDefinition, identity: TutorialIdentity): boolean {
   if (tutorial.viewId !== identity.viewId) return false;
-  if (tutorial.tabKey && tutorial.tabKey !== identity.tabKey) return false;
-  if (identity.tabKey && !tutorial.tabKey) {
-    return true;
+  if (tutorial.tabKey) {
+    return tutorial.tabKey === identity.tabKey;
   }
-  return true;
+  // View-level tutorials apply only when no tab/section is active.
+  return !identity.tabKey;
 }
 
 /**

@@ -14,8 +14,14 @@ import {
   GUIDED_TUTORIAL_EVENT,
   type GuidedTutorialClientAction,
 } from "@/lib/guided-tutorials/client-actions";
+import {
+  buildTutorialContext,
+  formatTutorialContextPath,
+  type TutorialContext,
+} from "@/lib/guided-tutorials/context";
 import { tutorialProgressStore } from "@/lib/guided-tutorials/progress";
 import { resolveTutorial } from "@/lib/guided-tutorials/client-resolver";
+import { stepUsesDomHighlight } from "@/lib/guided-tutorials/step-presentation";
 import { measureTutorialTarget } from "@/lib/guided-tutorials/targets";
 import type { TutorialDefinition, TutorialResolution, TutorialStep } from "@/lib/guided-tutorials/types";
 import { resolveBrowserTutorialWorkspaceSlug } from "@/lib/guided-tutorials/workspace-slug";
@@ -27,6 +33,8 @@ type GuidedTutorialContextValue = {
   workspaceSlug: string;
   activeView: string;
   tabKey?: string;
+  context: TutorialContext;
+  contextPath: string;
   phase: GuidedTutorialPhase;
   resolution: TutorialResolution | null;
   tutorial: TutorialDefinition | null;
@@ -64,7 +72,19 @@ export function GuidedTutorialProvider({
 
   useEffect(() => {
     setWorkspaceSlug(resolveBrowserTutorialWorkspaceSlug());
-  }, [activeView]);
+  }, [activeView, tabKey]);
+
+  const context = useMemo(
+    () =>
+      buildTutorialContext({
+        workspaceSlug,
+        viewId: activeView,
+        tabKey,
+      }),
+    [activeView, tabKey, workspaceSlug],
+  );
+
+  const contextPath = useMemo(() => formatTutorialContextPath(context), [context]);
 
   const currentResolution = useMemo(
     () =>
@@ -80,8 +100,12 @@ export function GuidedTutorialProvider({
   const steps = tutorial?.steps ?? [];
   const currentStep = steps[stepIndex] ?? null;
 
-  const refreshHighlight = useCallback((targetId?: string) => {
-    const { rect } = measureTutorialTarget(targetId);
+  const applyStepHighlight = useCallback((step: TutorialStep | null | undefined) => {
+    if (!stepUsesDomHighlight(step)) {
+      setHighlightRect(null);
+      return;
+    }
+    const { rect } = measureTutorialTarget(step!.targetId);
     setHighlightRect(rect);
   }, []);
 
@@ -110,10 +134,9 @@ export function GuidedTutorialProvider({
     setStepIndex(0);
     setPhase("active");
     window.setTimeout(() => {
-      const first = nextResolution.tutorial.steps[0];
-      refreshHighlight(first?.targetId);
+      applyStepHighlight(nextResolution.tutorial.steps[0]);
     }, 80);
-  }, [activeView, refreshHighlight, tabKey]);
+  }, [activeView, applyStepHighlight, tabKey]);
 
   const closeTutorial = useCallback(() => {
     resetSession();
@@ -141,16 +164,16 @@ export function GuidedTutorialProvider({
     }
     setStepIndex(next);
     const step = resolution.tutorial.steps[next];
-    window.setTimeout(() => refreshHighlight(step?.targetId), 40);
-  }, [completeTutorial, refreshHighlight, resolution, stepIndex]);
+    window.setTimeout(() => applyStepHighlight(step), 40);
+  }, [applyStepHighlight, completeTutorial, resolution, stepIndex]);
 
   const prevStep = useCallback(() => {
     if (!resolution || resolution.status !== "available") return;
     const prev = Math.max(0, stepIndex - 1);
     setStepIndex(prev);
     const step = resolution.tutorial.steps[prev];
-    window.setTimeout(() => refreshHighlight(step?.targetId), 40);
-  }, [refreshHighlight, resolution, stepIndex]);
+    window.setTimeout(() => applyStepHighlight(step), 40);
+  }, [applyStepHighlight, resolution, stepIndex]);
 
   useEffect(() => {
     const onAction = (event: Event) => {
@@ -176,7 +199,7 @@ export function GuidedTutorialProvider({
   useEffect(() => {
     if (phase !== "active") return;
     const onLayout = () => {
-      if (currentStep?.targetId) refreshHighlight(currentStep.targetId);
+      if (stepUsesDomHighlight(currentStep)) applyStepHighlight(currentStep);
     };
     window.addEventListener("resize", onLayout);
     window.addEventListener("scroll", onLayout, true);
@@ -184,13 +207,15 @@ export function GuidedTutorialProvider({
       window.removeEventListener("resize", onLayout);
       window.removeEventListener("scroll", onLayout, true);
     };
-  }, [currentStep?.targetId, phase, refreshHighlight]);
+  }, [applyStepHighlight, currentStep, phase]);
 
   const value = useMemo<GuidedTutorialContextValue>(
     () => ({
       workspaceSlug,
       activeView,
       tabKey,
+      context,
+      contextPath,
       phase,
       resolution: resolution ?? currentResolution,
       tutorial,
@@ -221,6 +246,8 @@ export function GuidedTutorialProvider({
       stepIndex,
       steps,
       tabKey,
+      context,
+      contextPath,
       tutorial,
       workspaceSlug,
       nextStep,

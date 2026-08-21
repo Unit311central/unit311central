@@ -914,7 +914,7 @@ export function SalesManagementCommissionsTab() {
 
   return (
 
-    <div className="space-y-4">
+    <div className="space-y-4" data-tutorial-target="sm-commissions-header">
 
       <SalesTabHeader
 
@@ -928,6 +928,7 @@ export function SalesManagementCommissionsTab() {
 
       <div className="grid gap-4 xl:grid-cols-2">
 
+        <div data-tutorial-target="sm-commissions-rules">
         <WsSection title="Commission rules" subtitle="Configured calculation rules" className="p-4 sm:p-5">
 
           {!rules.length ? (
@@ -967,9 +968,11 @@ export function SalesManagementCommissionsTab() {
           )}
 
         </WsSection>
+        </div>
 
 
 
+        <div data-tutorial-target="sm-commissions-earned">
         <WsSection title="Earned commissions" subtitle="Recorded commission entries" className="p-4 sm:p-5">
 
           {!commissions.length ? (
@@ -1015,6 +1018,7 @@ export function SalesManagementCommissionsTab() {
           )}
 
         </WsSection>
+        </div>
 
       </div>
 

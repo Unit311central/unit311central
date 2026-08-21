@@ -15,6 +15,14 @@ export type TutorialPresentationKind =
   | "video"
   | "try";
 
+/** Static or hosted media for diagram / screenshot / video / animation steps. */
+export type TutorialStepMedia = {
+  assetUrl: string;
+  posterUrl?: string;
+  alt?: string;
+  caption?: string;
+};
+
 export type TutorialStep = {
   id: string;
   title: string;
@@ -26,6 +34,8 @@ export type TutorialStep = {
   actions?: string[];
   /** For presentation === "try" — what the user should attempt. */
   tryPrompt?: string;
+  /** Rich teaching asset — SVG, PNG, MP4, etc. */
+  media?: TutorialStepMedia;
 };
 
 export type TutorialDefinition = {

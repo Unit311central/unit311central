@@ -38,6 +38,7 @@ import type { SurveyOperationsBasePath } from "@/lib/survey-operations-mock-data
 import { InternalOperationsBasePathProvider } from "./InternalOperationsBasePathContext";
 import GuidedTutorialOverlay from "@/components/guided-tutorials/GuidedTutorialOverlay";
 import { GuidedTutorialProvider } from "@/components/guided-tutorials/GuidedTutorialProvider";
+import { resolveTutorialTabKey } from "@/lib/guided-tutorials/context";
 import SurveyOperationsShell from "./SurveyOperationsShell";
 import { OperatorEntitlementsProvider, useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 import { isBrowserAbhiSurface } from "@/lib/abhi-surface";
@@ -483,6 +484,10 @@ export default function InternalOperationsDashboard({
   const [activeView, setActiveView] = useState<InternalOperationsView>(() =>
     readInitialView(searchParams, pathname, initialView),
   );
+  const tutorialTabKey = useMemo(
+    () => resolveTutorialTabKey(activeView, searchParams),
+    [activeView, searchParams],
+  );
   const [warmViews, setWarmViews] = useState<InternalOperationsView[]>(() => [
     readInitialView(searchParams, pathname, initialView),
   ]);
@@ -789,7 +794,7 @@ export default function InternalOperationsDashboard({
           isInternalHost={isInternalHost}
         />
         <PlatformAnalyticsBeacon pageKey={activeView} />
-        <GuidedTutorialProvider activeView={activeView}>
+        <GuidedTutorialProvider activeView={activeView} tabKey={tutorialTabKey}>
         <SurveyOperationsShell
           mode="internal"
           activeView={activeView}

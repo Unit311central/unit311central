@@ -1,9 +1,11 @@
 import { FINANCIALS_DASHBOARD_TUTORIAL } from "@/lib/guided-tutorials/content/financials-dashboard";
+import { SALES_MANAGEMENT_COMMISSIONS_TUTORIAL } from "@/lib/guided-tutorials/content/sales-management-commissions";
 import type { TutorialDefinition } from "@/lib/guided-tutorials/types";
 
 /** All registered tutorials — add new entries here. */
 export const TUTORIAL_REGISTRY: readonly TutorialDefinition[] = [
   FINANCIALS_DASHBOARD_TUTORIAL,
+  SALES_MANAGEMENT_COMMISSIONS_TUTORIAL,
 ] as const;
 
 export function listTutorialDefinitions(): readonly TutorialDefinition[] {

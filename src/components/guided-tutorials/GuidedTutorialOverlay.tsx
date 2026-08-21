@@ -3,7 +3,9 @@
 import { CheckCircle2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { stepRequiresWidePanel, stepUsesDomHighlight } from "@/lib/guided-tutorials/step-presentation";
 
+import TutorialStepBody from "./TutorialStepBody";
 import { useOptionalGuidedTutorial } from "./GuidedTutorialProvider";
 
 function CalloutArrow({ side }: { side: "top" | "left" }) {
@@ -32,6 +34,8 @@ export default function GuidedTutorialOverlay() {
   const isComplete = guided.phase === "complete";
   const step = guided.currentStep;
   const rect = guided.highlightRect;
+  const showSpotlight = Boolean(rect && !isComplete && stepUsesDomHighlight(step));
+  const widePanel = stepRequiresWidePanel(step);
   const pad = 6;
 
   return (
@@ -44,7 +48,7 @@ export default function GuidedTutorialOverlay() {
         }}
       />
 
-      {rect && !isComplete ? (
+      {showSpotlight && rect ? (
         <>
           <div
             aria-hidden
@@ -73,7 +77,8 @@ export default function GuidedTutorialOverlay() {
         role="dialog"
         aria-modal="true"
         aria-label={isComplete ? "Tutorial complete" : `Tutorial: ${tutorial?.title ?? "Learn"}`}
-        className="pointer-events-none fixed top-[4.75rem] right-[max(1rem,env(safe-area-inset-right))] z-[71] w-[min(360px,calc(100vw-1.5rem))] sm:top-[5.25rem]"
+        className="pointer-events-none fixed top-[4.75rem] right-[max(1rem,env(safe-area-inset-right))] z-[71] sm:top-[5.25rem]"
+        style={{ width: widePanel ? "min(420px, calc(100vw - 1.5rem))" : "min(360px, calc(100vw - 1.5rem))" }}
       >
         <div className="pointer-events-auto overflow-hidden rounded-2xl border border-white/12 bg-[#0b1524]/98 text-white shadow-2xl">
           <div className="border-b border-white/8 bg-gradient-to-r from-sky-500/10 to-transparent px-4 py-3">
@@ -83,9 +88,7 @@ export default function GuidedTutorialOverlay() {
                   {isComplete ? "Tutorial complete" : "Learn"}
                 </p>
                 <p className="mt-0.5 truncate text-sm font-semibold">
-                  {tutorial
-                    ? `${tutorial.moduleLabel} → ${tutorial.functionLabel}`
-                    : "Guided learning"}
+                  {guided.contextPath || tutorial?.title || "Guided learning"}
                 </p>
               </div>
               <button
@@ -116,7 +119,7 @@ export default function GuidedTutorialOverlay() {
           </div>
 
           <div className="relative px-4 py-4">
-            {!isComplete && step ? <CalloutArrow side={rect ? "left" : "top"} /> : null}
+            {!isComplete && step ? <CalloutArrow side={showSpotlight ? "left" : "top"} /> : null}
 
             {isComplete ? (
               <div className="text-center">
@@ -136,32 +139,7 @@ export default function GuidedTutorialOverlay() {
               </div>
             ) : step ? (
               <>
-                <h3 className="text-sm font-semibold tracking-tight">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/70">{step.body}</p>
-
-                {step.presentation === "try" && step.tryPrompt ? (
-                  <p className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                    Try it: {step.tryPrompt}
-                  </p>
-                ) : null}
-
-                {step.actions?.length ? (
-                  <ul className="mt-3 space-y-1 text-xs text-white/50">
-                    {step.actions.map((action) => (
-                      <li key={action} className="flex gap-2">
-                        <span className="text-sky-300">•</span>
-                        <span>{action}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-
-                {!rect && step.targetId ? (
-                  <p className="mt-3 text-[11px] text-white/40">
-                    This area isn&apos;t visible right now — scroll or widen the window, then
-                    continue.
-                  </p>
-                ) : null}
+                <TutorialStepBody step={step} hasTarget={Boolean(rect && stepUsesDomHighlight(step))} />
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <button
