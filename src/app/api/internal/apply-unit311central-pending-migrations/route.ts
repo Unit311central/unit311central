@@ -5,6 +5,10 @@ import {
   withResolvedDatabaseClient,
 } from "@/lib/internal-db-migrations";
 import {
+  MigrationQueryError,
+  withMigrationQueryClient,
+} from "@/lib/migration-query-client";
+import {
   applyMigrationSqlViaClient,
   describePendingMigrationPlan,
   readMigrationSql,
@@ -16,7 +20,6 @@ import {
   UNIT311_PENDING_MIGRATIONS,
 } from "@/lib/unit311-pending-migrations";
 import { NextRequest, NextResponse } from "next/server";
-import type { ClientBase } from "pg";
 
 export const dynamic = "force-dynamic";
 
@@ -73,12 +76,6 @@ async function applyMigrationFile(
   return { ok: false, method: "postgres", data: "No database connection available." };
 }
 
-async function withMigrationRunnerClient<T>(
-  operation: (client: ClientBase) => Promise<T>,
-): Promise<T | null> {
-  return withResolvedDatabaseClient(operation);
-}
-
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -88,17 +85,37 @@ export async function GET(request: NextRequest) {
   const token = process.env.SUPABASE_ACCESS_TOKEN?.trim() ?? "";
 
   let plan: Awaited<ReturnType<typeof describePendingMigrationPlan>> | null = null;
+  let queryBackend: string | null = null;
+  let queryError: string | null = null;
+
   if (readiness.hasSupabaseDbUrl || readiness.hasSupabaseDbPassword || token.length >= 20) {
-    plan = await withMigrationRunnerClient(async (client) =>
-      describePendingMigrationPlan(UNIT311_PENDING_MIGRATIONS, client),
-    );
+    try {
+      const resolved = await withMigrationQueryClient(async (client) =>
+        describePendingMigrationPlan(UNIT311_PENDING_MIGRATIONS, client),
+      );
+      if (resolved) {
+        queryBackend = resolved.backend;
+        plan = resolved.result;
+      } else {
+        queryError = "No PostgreSQL or Supabase Management API credentials are configured.";
+      }
+    } catch (error) {
+      queryError =
+        error instanceof MigrationQueryError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Migration plan query failed.";
+    }
   }
 
   return NextResponse.json({
     targetProjectRef: UNIT311_CENTRAL_PROJECT_REF,
     readiness,
     migrations: UNIT311_PENDING_MIGRATIONS,
+    queryBackend,
     plan,
+    queryError,
   });
 }
 
@@ -130,13 +147,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const runnerResult = await withMigrationRunnerClient(async (client) =>
-    runPendingMigrations({
-      migrations: UNIT311_PENDING_MIGRATIONS,
-      client,
-      applyMigrationFile: (migration) => applyMigrationFile(migration, token),
-    }),
-  );
+  let runnerResult: Awaited<ReturnType<typeof runPendingMigrations>> | null = null;
+  let queryBackend: string | null = null;
+
+  try {
+    const resolved = await withMigrationQueryClient(async (client) =>
+      runPendingMigrations({
+        migrations: UNIT311_PENDING_MIGRATIONS,
+        client,
+        applyMigrationFile: (migration) => applyMigrationFile(migration, token),
+      }),
+    );
+    if (resolved) {
+      queryBackend = resolved.backend;
+      runnerResult = resolved.result;
+    }
+  } catch (error) {
+    const message =
+      error instanceof MigrationQueryError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : "Migration runner query failed.";
+    return NextResponse.json({ ok: false, error: message, readiness }, { status: 503 });
+  }
 
   if (!runnerResult) {
     return NextResponse.json(
@@ -397,6 +431,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: runnerResult.ok,
     targetProjectRef: UNIT311_CENTRAL_PROJECT_REF,
+    queryBackend,
     applied: runnerResult.applied,
     skipped: runnerResult.skipped,
     pending: runnerResult.pending,

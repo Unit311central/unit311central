@@ -1,8 +1,6 @@
 name: Post-deploy migrations
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
   workflow_run:
     workflows: ["Web CI"]
