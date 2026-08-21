@@ -1,5 +1,6 @@
 name: Migration dry-run (GET only)
 
+# Authenticated GET plan check against production (no migration SQL).
 on:
   workflow_dispatch:
   push:
