@@ -16,6 +16,7 @@ import {
 import {
   clearIntelligenceRegistryForTests,
   getIntelligenceDomain,
+  getIntelligencePackById,
   getIntelligencePackBySlug,
   isIntelligenceWorkspaceSlug,
   listIntelligenceDomainsForWorkspace,
@@ -77,7 +78,8 @@ function sampleRecord(workspaceSlug: string): IntelligenceRecord {
 
 clearIntelligenceRegistryForTests();
 assert.equal(listIntelligencePacks().length, 0);
-assert.equal(isIntelligenceWorkspaceSlug("mockworkspace"), false);
+// Avoid isIntelligenceWorkspaceSlug here — it bootstraps production packs via getIntelligencePackBySlug.
+assert.equal(getIntelligencePackById("mock-intelligence"), null);
 
 registerIntelligencePack(MOCK_PACK);
 
