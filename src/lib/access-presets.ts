@@ -22,6 +22,8 @@ export const ALWAYS_ALLOWED_VIEWS: readonly InternalOperationsView[] = [
   /** Internal host UI still host-gates these views; listed so Internal operators are never blocked by grants. */
   "platform-analytics",
   "website-analytics",
+  "workspaces-overview",
+  "workspaces-new",
 ];
 
 export type ModuleGrantGroup = {

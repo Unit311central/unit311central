@@ -46,6 +46,7 @@
     "prove:sales-management-insights": "node --import tsx src/lib/__tests__/sales-management-insights.check.ts",
     "prove:pending-migrations-runner": "node --import tsx src/lib/__tests__/pending-migrations-runner.check.ts && node --import tsx src/lib/__tests__/migration-query-client.check.ts",
     "prove:finances-nav": "node --import tsx src/lib/__tests__/finances-nav.check.ts",
+    "prove:workspaces-nav": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-nav.check.ts",
     "prove:ea-cfo": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-cfo.check.ts",
     "prove:ea-real": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-real.check.ts",
     "prove:ea-capabilities": "node --import tsx src/lib/ai-operating-assistant/capabilities/__tests__/read-capabilities.check.ts",

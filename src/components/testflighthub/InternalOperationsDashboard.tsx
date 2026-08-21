@@ -286,6 +286,7 @@ import {
 import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvider";
 import NorthstarAssetKpiBar from "@/components/demo/NorthstarAssetKpiBar";
 import { OnwardAirPlaceholderWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
+import { WorkspacesPlaceholderWorkspace } from "@/components/platform-workspaces/WorkspacesPlaceholderWorkspace";
 import { OperationsDashboardWorkspace } from "@/components/testflighthub/OperationsDashboardWorkspace";
 import {
   EngineeringAssuranceWorkspace,
@@ -1263,6 +1264,24 @@ export default function InternalOperationsDashboard({
             </WorkspaceErrorBoundary>
           )}
 
+          {activeView === "workspaces-overview" && isInternalHost && (
+            <WorkspaceErrorBoundary title="Workspace Overview">
+              <WorkspacesPlaceholderWorkspace
+                title="Workspace Overview"
+                description="Review customer and demo workspaces provisioned on the platform. Full administration workflows arrive in a later phase."
+              />
+            </WorkspaceErrorBoundary>
+          )}
+
+          {activeView === "workspaces-new" && isInternalHost && (
+            <WorkspaceErrorBoundary title="New Workspace">
+              <WorkspacesPlaceholderWorkspace
+                title="New Workspace"
+                description="Create and provision a new customer or demo workspace. The provisioning wizard ships in a later phase."
+              />
+            </WorkspaceErrorBoundary>
+          )}
+
           {(activeView === "engineering" || activeView === "engineering-dashboard") &&
             (isDemoSurface ? (
               <NorthstarEngineeringDashboardWorkspace />
@@ -1568,7 +1587,10 @@ function AccessViewGuard({
   useEffect(() => {
     if (!ready) return;
     if (
-      (activeView === "platform-analytics" || activeView === "website-analytics") &&
+      (activeView === "platform-analytics" ||
+        activeView === "website-analytics" ||
+        activeView === "workspaces-overview" ||
+        activeView === "workspaces-new") &&
       !isInternalHost
     ) {
       onRedirect("home");

@@ -125,6 +125,10 @@ Settings
 ├── Profile
 ├── General
 └── Platform Billing
+
+Workspaces
+├── Workspace Overview
+└── New Workspace
 ```
 
 ### Corporate Information tabs (single workspace)
