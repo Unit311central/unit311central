@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   applySalesManagementFoundationMigration,
+  getMigrationReadiness,
   SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH,
 } from "@/lib/internal-db-migrations";
 
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
       ok: applied.ok,
       migration: SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH,
       applied,
+      readiness: getMigrationReadiness(),
       pendingEndpoint: pending,
     });
   } catch (error) {
