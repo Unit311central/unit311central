@@ -80,6 +80,22 @@ export function shouldPersistVerifiedSkipLedger(input: {
   return input.ledgerMethod === undefined;
 }
 
+export function shouldSkipPostSatisfactionProbe(
+  ledgerMethod: MigrationLedgerMethod | undefined,
+): boolean {
+  return ledgerMethod !== undefined;
+}
+
+export function inferSatisfiedFromLedgerForPost(
+  migration: string,
+  ledgerMethod: MigrationLedgerMethod,
+): boolean {
+  if (migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION) {
+    return isLedgerAppliedMethod(ledgerMethod);
+  }
+  return ledgerMethod === "verified_skip";
+}
+
 export function planMigrationActions(input: {
   migrations: readonly string[];
   recordedMethods: ReadonlyMap<string, MigrationLedgerMethod>;
@@ -130,6 +146,23 @@ export async function collectMigrationSatisfaction(
 ): Promise<Map<string, boolean>> {
   const satisfied = new Map<string, boolean>();
   for (const migration of migrations) {
+    satisfied.set(migration, await checkMigrationSatisfied(migration, client));
+  }
+  return satisfied;
+}
+
+export async function collectMigrationSatisfactionForPost(
+  migrations: readonly string[],
+  recordedMethods: ReadonlyMap<string, MigrationLedgerMethod>,
+  client: MigrationQueryClient,
+): Promise<Map<string, boolean>> {
+  const satisfied = new Map<string, boolean>();
+  for (const migration of migrations) {
+    const ledgerMethod = recordedMethods.get(migrationVersion(migration));
+    if (shouldSkipPostSatisfactionProbe(ledgerMethod)) {
+      satisfied.set(migration, inferSatisfiedFromLedgerForPost(migration, ledgerMethod!));
+      continue;
+    }
     satisfied.set(migration, await checkMigrationSatisfied(migration, client));
   }
   return satisfied;
@@ -190,7 +223,11 @@ export async function runPendingMigrations(
   deps: PendingMigrationRunnerDeps,
 ): Promise<MigrationRunResult> {
   const recordedMethods = await fetchRecordedMigrationEntries(deps.client);
-  const satisfiedMap = await collectMigrationSatisfaction(deps.migrations, deps.client);
+  const satisfiedMap = await collectMigrationSatisfactionForPost(
+    deps.migrations,
+    recordedMethods,
+    deps.client,
+  );
   const actions = planMigrationActions({
     migrations: deps.migrations,
     recordedMethods,

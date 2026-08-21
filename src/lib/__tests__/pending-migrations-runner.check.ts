@@ -15,9 +15,11 @@ import {
 import {
   computePendingMigrations,
   describePendingMigrationPlan,
+  inferSatisfiedFromLedgerForPost,
   planMigrationActions,
   runPendingMigrations,
   shouldPersistVerifiedSkipLedger,
+  shouldSkipPostSatisfactionProbe,
 } from "@/lib/migration-runner";
 import {
   MIGRATION_SATISFACTION_PROBES,
@@ -68,6 +70,11 @@ class MockMigrationClient implements MigrationQueryClient {
 
     throw new Error(`Unexpected SQL in mock client: ${sql.slice(0, 120)}`);
   }
+}
+
+function countProbeQueries(client: MockMigrationClient): number {
+  const probeSqlSet = new Set(Object.values(MIGRATION_SATISFACTION_PROBES));
+  return client.queries.filter((sql) => probeSqlSet.has(sql)).length;
 }
 
 assert.deepEqual(
@@ -196,6 +203,25 @@ assert.ok(
   "stale verified_skip + satisfied 149 probe remains eligible for apply",
 );
 
+assert.equal(shouldSkipPostSatisfactionProbe("verified_skip"), true);
+assert.equal(shouldSkipPostSatisfactionProbe(undefined), false);
+assert.equal(
+  inferSatisfiedFromLedgerForPost("supabase/migrations/059_email_mailbox_admin_account.sql", "verified_skip"),
+  true,
+);
+assert.equal(
+  inferSatisfiedFromLedgerForPost("supabase/migrations/059_email_mailbox_admin_account.sql", "postgres"),
+  false,
+);
+assert.equal(
+  inferSatisfiedFromLedgerForPost(SALES_MANAGEMENT_FOUNDATION_MIGRATION, "verified_skip"),
+  false,
+);
+assert.equal(
+  inferSatisfiedFromLedgerForPost(SALES_MANAGEMENT_FOUNDATION_MIGRATION, "management-api"),
+  true,
+);
+
 const migration149Sql = readFileSync(
   join(process.cwd(), "supabase/migrations/149_sales_management_foundation.sql"),
   "utf8",
@@ -298,6 +324,7 @@ void (async () => {
   const insertQueriesBefore = preseededClient.queries.filter((sql) =>
     sql.startsWith("insert into public.unit311_applied_migrations"),
   ).length;
+  const probeQueriesBefore = countProbeQueries(preseededClient);
 
   let preseededApplyAttempts = 0;
   const preseededResult = await runPendingMigrations({
@@ -313,7 +340,13 @@ void (async () => {
   const insertQueriesAfter = preseededClient.queries.filter((sql) =>
     sql.startsWith("insert into public.unit311_applied_migrations"),
   ).length;
+  const probeQueriesAfter = countProbeQueries(preseededClient);
 
+  assert.equal(
+    probeQueriesAfter - probeQueriesBefore,
+    0,
+    "POST must not probe migrations that already have ledger rows",
+  );
   assert.equal(
     insertQueriesAfter - insertQueriesBefore,
     1,
@@ -333,6 +366,35 @@ void (async () => {
   assert.equal(preseededResult.applied[0]?.migration, SALES_MANAGEMENT_FOUNDATION_MIGRATION);
   assert.equal(preseededResult.applied[0]?.method, "management-api");
   assert.deepEqual(preseededResult.pending, []);
+
+  const confirmed149Client = new MockMigrationClient();
+  for (const migration of UNIT311_PENDING_MIGRATIONS) {
+    if (migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION) {
+      confirmed149Client.ledger.set(migrationVersion(migration), "verified_skip");
+    }
+  }
+  confirmed149Client.ledger.set(
+    migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
+    "management-api",
+  );
+  const confirmedProbeQueriesBefore = countProbeQueries(confirmed149Client);
+  let confirmedApplyAttempts = 0;
+  const confirmedResult = await runPendingMigrations({
+    migrations: UNIT311_PENDING_MIGRATIONS,
+    client: confirmed149Client,
+    applyMigrationFile: async () => {
+      confirmedApplyAttempts += 1;
+      return { ok: true, method: "management-api" };
+    },
+  });
+  assert.equal(
+    countProbeQueries(confirmed149Client) - confirmedProbeQueriesBefore,
+    0,
+    "POST must not probe runner-confirmed ledger rows",
+  );
+  assert.equal(confirmedApplyAttempts, 0, "149 with management-api ledger must not apply again");
+  assert.equal(confirmedResult.applied.length, 0);
+  assert.deepEqual(confirmedResult.pending, []);
 
   const dryRunClient = new MockMigrationClient();
   for (const migration of UNIT311_PENDING_MIGRATIONS) {
@@ -355,6 +417,11 @@ void (async () => {
     ),
   });
 
+  assert.equal(
+    countProbeQueries(dryRunClient),
+    UNIT311_PENDING_MIGRATIONS.length,
+    "GET dry-run must still probe every allowlisted migration",
+  );
   assert.deepEqual(dryRunPlan.actions, dryRunActions, "GET dry-run plan must stay unchanged");
   assert.ok(
     dryRunPlan.pending.includes(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
