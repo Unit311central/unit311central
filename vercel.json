@@ -25,7 +25,7 @@
     },
     {
       "path": "/api/cron/apply-sales-management-foundation",
-      "schedule": "*/10 * * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }
