@@ -1,0 +1,39 @@
+name: Migration dry-run (GET only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: GET pending migration plan
+        env:
+          SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SETUP_SECRET:-}" ]; then
+            echo "INTERNAL_FILES_SETUP_SECRET is not configured on this repo."
+            exit 1
+          fi
+          response=$(curl -fsS \
+            -H "x-setup-secret: ${SETUP_SECRET}" \
+            "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
+          echo "$response" | jq .
+          echo "$response" | jq -e '.plan != null' >/dev/null
+          echo "$response" | jq -e '
+            ([.plan.actions[] | select(.kind == "apply")] | length) == 1
+          ' >/dev/null
+          echo "$response" | jq -e '
+            ([.plan.actions[] | select(.kind == "apply" and .migration == "supabase/migrations/149_sales_management_foundation.sql")] | length) == 1
+          ' >/dev/null
+          echo "$response" | jq -e '
+            ([.plan.actions[] | select(.kind == "skip" and .method == "verified_skip")] | length) >= 85
+          ' >/dev/null
+          echo "$response" | jq -e '
+            (.plan.pending | index("supabase/migrations/149_sales_management_foundation.sql")) != null
+          ' >/dev/null
