@@ -1,108 +1,24 @@
 import { assertDemoMutationAllowedForRequest } from "@/lib/demo/mutation-guard";
-import { NextRequest, NextResponse } from "next/server";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import type { ClientBase } from "pg";
-
 import {
   getMigrationReadiness,
   queryScalarViaManagementApi,
   withResolvedDatabaseClient,
 } from "@/lib/internal-db-migrations";
+import {
+  applyMigrationSqlViaClient,
+  describePendingMigrationPlan,
+  readMigrationSql,
+  runPendingMigrations,
+  type MigrationApplyResult,
+} from "@/lib/migration-runner";
+import {
+  UNIT311_CENTRAL_PROJECT_REF,
+  UNIT311_PENDING_MIGRATIONS,
+} from "@/lib/unit311-pending-migrations";
+import { NextRequest, NextResponse } from "next/server";
+import type { ClientBase } from "pg";
 
 export const dynamic = "force-dynamic";
-
-/** Unit311 Central production Supabase (display name renamed from barcelonadronecenter; same project). */
-const TARGET_PROJECT_REF = "kkxtvzxqmbacjatkiupq";
-
-const MIGRATIONS = [
-  "supabase/migrations/053_founder_session_client_timezone.sql",
-  "supabase/migrations/054_founder_session_meeting_status.sql",
-  "supabase/migrations/055_unit311_messaging_cleanup.sql",
-  "supabase/migrations/056_messaging_system_sender_names.sql",
-  "supabase/migrations/057_founder_booking_workflow.sql",
-  "supabase/migrations/058_internal_clients_signup_profile.sql",
-  "supabase/migrations/059_email_mailbox_admin_account.sql",
-  "supabase/migrations/060_crm_leads_discovery_notes.sql",
-  "supabase/migrations/061_executive_call_transcription.sql",
-  "supabase/migrations/062_executive_call_guest_admission.sql",
-  "supabase/migrations/063_crm_leads_client_report.sql",
-  "supabase/migrations/064_crm_leads_client_report_approval.sql",
-  "supabase/migrations/065_founder_session_focus_overview.sql",
-  "supabase/migrations/066_crm_leads_discovery_questionnaire.sql",
-  "supabase/migrations/067_treasury_settings.sql",
-  "supabase/migrations/068_founder_session_booking_role.sql",
-  "supabase/migrations/069_crm_leads_client_report_reminders.sql",
-  "supabase/migrations/070_crm_leads_company_logo.sql",
-  "supabase/migrations/071_general_ledger.sql",
-  "supabase/migrations/072_client_payment_activation.sql",
-  "supabase/migrations/073_crm_contact_history.sql",
-  "supabase/migrations/074_crm_leads_manual_review.sql",
-  "supabase/migrations/075_crm_original_enquiry.sql",
-  "supabase/migrations/076_workspace_id_phase1.sql",
-  "supabase/migrations/077_workspace_id_phase1_defaults.sql",
-  "supabase/migrations/078_workspace_foundation_tables.sql",
-  "supabase/migrations/079_provision_workspace_function.sql",
-  "supabase/migrations/080_platform_users_crm_lead_id.sql",
-  "supabase/migrations/081_client_billing_profile.sql",
-  "supabase/migrations/082_workspace_onboarding_completed.sql",
-  "supabase/migrations/083_system_architecture_diagrams.sql",
-  "supabase/migrations/084_platform_customer_subscriptions.sql",
-  "supabase/migrations/085_executive_call_webrtc_signals.sql",
-  "supabase/migrations/086_software_asset_register.sql",
-  "supabase/migrations/087_crm_projects_workspace_isolation.sql",
-  "supabase/migrations/088_financials_files_workspace_isolation.sql",
-  "supabase/migrations/089_messaging_email_support_workspace_isolation.sql",
-  "supabase/migrations/090_accounts_workspace_code_unique.sql",
-  "supabase/migrations/091_hr_employee_foundation.sql",
-  "supabase/migrations/092_company_details.sql",
-  "supabase/migrations/093_integration_framework_phase0.sql",
-  "supabase/migrations/094_client_lifecycle_status.sql",
-  "supabase/migrations/095_platform_users_client_id.sql",
-  "supabase/migrations/096_client_files_root_integrity.sql",
-  "supabase/migrations/097_demo_workspace.sql",
-  "supabase/migrations/098_unit311_details_go_live_dedupe.sql",
-  "supabase/migrations/099_website_cms_integration_providers.sql",
-  "supabase/migrations/100_mod900_list_query_indexes.sql",
-  "supabase/migrations/101_executive_assistant_conversations.sql",
-  "supabase/migrations/102_executive_assistant_trust.sql",
-  "supabase/migrations/103_payroll_module.sql",
-  "supabase/migrations/104_messaging_call_rooms.sql",
-  "supabase/migrations/105_competitors_saas_markets.sql",
-  "supabase/migrations/106_executive_assistant_saved_flag.sql",
-  "supabase/migrations/107_procurement_module.sql",
-  "supabase/migrations/108_calendar_meeting_sessions.sql",
-  "supabase/migrations/109_executive_assistant_action_framework.sql",
-  "supabase/migrations/110_executive_assistant_planning_engine.sql",
-  "supabase/migrations/111_integrations_registry.sql",
-  "supabase/migrations/112_email_mailbox_demo_account.sql",
-  "supabase/migrations/113_messaging_instant_meetings.sql",
-  "supabase/migrations/114_payroll_bonus_pay_date.sql",
-  "supabase/migrations/117_messaging_message_actions.sql",
-  "supabase/migrations/118_platform_billing_professional_1300.sql",
-  "supabase/migrations/119_dual_demo_workspace_tenancy.sql",
-  "supabase/migrations/121_support_lounge.sql",
-  "supabase/migrations/122_support_lounge_intake_fields.sql",
-  "supabase/migrations/123_support_lounge_attachments.sql",
-  "supabase/migrations/124_support_ticket_public_url.sql",
-  "supabase/migrations/125_partners.sql",
-  "supabase/migrations/126_partner_jobs.sql",
-  "supabase/migrations/127_internal_project_tasks_description.sql",
-  "supabase/migrations/128_unit311_lms.sql",
-  "supabase/migrations/129_board_directors.sql",
-  "supabase/migrations/130_portfolio_companies.sql",
-  "supabase/migrations/131_platform_usage_events.sql",
-  "supabase/migrations/132_website_analytics.sql",
-  "supabase/migrations/133_platform_password_reset_otp.sql",
-  "supabase/migrations/135_board_directors_compensation.sql",
-  "supabase/migrations/136_onwardair_portals_page_content.sql",
-  "supabase/migrations/137_assistant_artifacts_storage.sql",
-  "supabase/migrations/138_software_provider_billing.sql",
-  "supabase/migrations/140_financial_expenses_bulk_entry.sql",
-  "supabase/migrations/141_marketing_events_module.sql",
-  "supabase/migrations/148_sales_quotes.sql",
-  "supabase/migrations/149_sales_management_foundation.sql",
-];
 
 function isAuthorized(request: NextRequest) {
   const secret = process.env.INTERNAL_FILES_SETUP_SECRET;
@@ -115,7 +31,7 @@ function isAuthorized(request: NextRequest) {
 
 async function queryViaManagementApi(token: string, sql: string) {
   const response = await fetch(
-    `https://api.supabase.com/v1/projects/${TARGET_PROJECT_REF}/database/query`,
+    `https://api.supabase.com/v1/projects/${UNIT311_CENTRAL_PROJECT_REF}/database/query`,
     {
       method: "POST",
       headers: {
@@ -130,23 +46,18 @@ async function queryViaManagementApi(token: string, sql: string) {
   return { ok: response.ok, status: response.status, data };
 }
 
-async function applySql(client: ClientBase, sql: string) {
-  await client.query(sql);
-}
-
 async function applyMigrationFile(
   migration: string,
   token: string,
-): Promise<{ ok: boolean; status?: number; data?: unknown; method: string }> {
-  const fileName = migration.replace(/^supabase\/migrations\//, "");
-  const sql = readFileSync(join(process.cwd(), "supabase", "migrations", fileName), "utf8");
+): Promise<MigrationApplyResult> {
+  const sql = readMigrationSql(migration);
 
   if (token.length >= 20) {
     const result = await queryViaManagementApi(token, sql);
     if (result.ok) return { ok: true, method: "management-api" };
 
     const appliedViaDbAfterMgmtFailure = await withResolvedDatabaseClient(async (client) => {
-      await applySql(client, sql);
+      await applyMigrationSqlViaClient(client, sql);
       return true;
     });
     if (appliedViaDbAfterMgmtFailure) return { ok: true, method: "postgres" };
@@ -154,12 +65,18 @@ async function applyMigrationFile(
   }
 
   const appliedViaDb = await withResolvedDatabaseClient(async (client) => {
-    await applySql(client, sql);
+    await applyMigrationSqlViaClient(client, sql);
     return true;
   });
 
   if (appliedViaDb) return { ok: true, method: "postgres" };
   return { ok: false, method: "postgres", data: "No database connection available." };
+}
+
+async function withMigrationRunnerClient<T>(
+  operation: (client: ClientBase) => Promise<T>,
+): Promise<T | null> {
+  return withResolvedDatabaseClient(operation);
 }
 
 export async function GET(request: NextRequest) {
@@ -168,10 +85,20 @@ export async function GET(request: NextRequest) {
   }
 
   const readiness = getMigrationReadiness();
+  const token = process.env.SUPABASE_ACCESS_TOKEN?.trim() ?? "";
+
+  let plan: Awaited<ReturnType<typeof describePendingMigrationPlan>> | null = null;
+  if (readiness.hasSupabaseDbUrl || readiness.hasSupabaseDbPassword || token.length >= 20) {
+    plan = await withMigrationRunnerClient(async (client) =>
+      describePendingMigrationPlan(UNIT311_PENDING_MIGRATIONS, client),
+    );
+  }
+
   return NextResponse.json({
-    targetProjectRef: TARGET_PROJECT_REF,
+    targetProjectRef: UNIT311_CENTRAL_PROJECT_REF,
     readiness,
-    migrations: MIGRATIONS,
+    migrations: UNIT311_PENDING_MIGRATIONS,
+    plan,
   });
 }
 
@@ -203,21 +130,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const applied: Array<{ migration: string; method: string }> = [];
-  const errors: Array<{ migration: string; method: string; status?: number; data: unknown }> = [];
+  const runnerResult = await withMigrationRunnerClient(async (client) =>
+    runPendingMigrations({
+      migrations: UNIT311_PENDING_MIGRATIONS,
+      client,
+      applyMigrationFile: (migration) => applyMigrationFile(migration, token),
+    }),
+  );
 
-  for (const migration of MIGRATIONS) {
-    const result = await applyMigrationFile(migration, token);
-    if (!result.ok) {
-      errors.push({
-        migration,
-        method: result.method,
-        status: result.status,
-        data: result.data ?? "Migration failed.",
-      });
-      continue;
-    }
-    applied.push({ migration, method: result.method });
+  if (!runnerResult) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Database connection unavailable for migration runner.",
+        readiness,
+      },
+      { status: 503 },
+    );
   }
 
   const backfillSql = `update public.founder_session_bookings
@@ -230,8 +159,8 @@ export async function POST(request: NextRequest) {
     await queryViaManagementApi(token, `notify pgrst, 'reload schema'`);
   } else {
     await withResolvedDatabaseClient(async (client) => {
-      await applySql(client, backfillSql);
-      await applySql(client, `notify pgrst, 'reload schema'`);
+      await applyMigrationSqlViaClient(client, backfillSql);
+      await applyMigrationSqlViaClient(client, `notify pgrst, 'reload schema'`);
     });
   }
 
@@ -466,10 +395,12 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({
-    ok: errors.length === 0,
-    targetProjectRef: TARGET_PROJECT_REF,
-    applied,
-    errors,
+    ok: runnerResult.ok,
+    targetProjectRef: UNIT311_CENTRAL_PROJECT_REF,
+    applied: runnerResult.applied,
+    skipped: runnerResult.skipped,
+    pending: runnerResult.pending,
+    errors: runnerResult.errors,
     readiness,
     verification: verification ?? verificationViaDb,
   });
