@@ -114,6 +114,7 @@ export async function sendMailboxReply(payload: EmailReplyPayload) {
 
   const replyTo =
     payload.context?.to?.trim() ||
+    original?.replyToEmail ||
     original?.fromEmail ||
     original?.from ||
     "";

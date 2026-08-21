@@ -148,6 +148,9 @@ async function parseMessageSource(
   const date = (parsed.date ?? new Date()).toISOString();
   const messageId = parsed.messageId ?? null;
   const inReplyTo = parsed.inReplyTo ?? null;
+  const replyToField = Array.isArray(parsed.replyTo) ? parsed.replyTo[0] : parsed.replyTo;
+  const replyToParsed = parseAddress(replyToField?.text ?? "");
+  const replyToEmail = replyToParsed.email || parseAddressList(replyToField)[0] || null;
   const references = parsed.references
     ? Array.isArray(parsed.references)
       ? parsed.references
@@ -176,6 +179,7 @@ async function parseMessageSource(
     messageId,
     inReplyTo,
     references,
+    replyToEmail,
     direction,
   };
 }

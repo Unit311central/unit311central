@@ -34,6 +34,13 @@ export async function POST(request: NextRequest) {
       subject?: string;
       html?: string;
       text?: string;
+      inReplyTo?: string | null;
+      references?: string[];
+      attachments?: Array<{
+        filename?: string;
+        contentType?: string;
+        contentBase64?: string;
+      }>;
     };
 
     const account = parseAccountId(body.account ?? null);
@@ -47,6 +54,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Subject is required." }, { status: 400 });
     }
 
+    const attachments = (body.attachments ?? [])
+      .filter((entry) => entry.filename?.trim() && entry.contentBase64?.trim())
+      .map((entry) => ({
+        filename: entry.filename!.trim(),
+        contentType: entry.contentType?.trim() || undefined,
+        content: Buffer.from(entry.contentBase64!.trim(), "base64"),
+      }));
+
     const result = await sendMailboxEmail({
       account,
       to: body.to,
@@ -55,6 +70,9 @@ export async function POST(request: NextRequest) {
       subject: body.subject,
       html: body.html,
       text: body.text,
+      inReplyTo: body.inReplyTo ?? undefined,
+      references: body.references,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     return NextResponse.json({ ok: true, ...result });

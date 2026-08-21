@@ -17,6 +17,15 @@ import {
   REMOVED_MAILBOXES_CHANGED_EVENT,
 } from "@/lib/email/removed-mailboxes";
 import { groupMessagesIntoThreads, type EmailThread } from "@/lib/email/threading";
+import {
+  buildForwardQuotedBody,
+  buildForwardSubject,
+  buildReplySubject,
+  resolveForwardAllRecipients,
+  resolveReplyAllRecipients,
+  resolveReplyTargetMessage,
+  resolveThreadReplyRecipient,
+} from "@/lib/email/compose-recipients";
 import { createInitialUsers } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import ResponsiveMasterDetail, { useMobileDetailPanel } from "@/components/ui/ResponsiveMasterDetail";
@@ -31,6 +40,7 @@ import {
   PenSquare,
   RefreshCw,
   Reply,
+  ReplyAll,
   Send,
   Forward,
   X,
@@ -64,41 +74,16 @@ function normalizeEmailId(value: string | null | undefined) {
   return (value ?? "").trim().replace(/^<|>$/g, "").toLowerCase();
 }
 
-function extractEmailAddress(value: string | null | undefined) {
-  const trimmed = String(value ?? "").trim();
-  if (!trimmed) return "";
-  const match = trimmed.match(/<([^>]+)>/);
-  return (match?.[1] ?? trimmed).trim();
-}
+type ComposeMode = "new" | "forward" | "forwardAll" | "replyAll";
 
-function resolveReplyTargetMessage(thread: EmailThread) {
-  return (
-    [...thread.messages].reverse().find((message) => message.direction === "inbound") ??
-    thread.messages[thread.messages.length - 1] ??
-    null
-  );
-}
+type ForwardAttachmentRef = {
+  messageId: string;
+  partId: string;
+  filename: string;
+  contentType: string;
+};
 
-function resolveReplyRecipient(thread: EmailThread, mailboxEmail: string) {
-  const inbound = [...thread.messages].reverse().find((message) => message.direction === "inbound");
-  if (inbound) {
-    return inbound.fromEmail || extractEmailAddress(inbound.from) || null;
-  }
-
-  const last = thread.messages[thread.messages.length - 1];
-  if (!last) return thread.fromEmail || null;
-
-  const mailbox = mailboxEmail.trim().toLowerCase();
-  const externalRecipient = last.to
-    .map((entry) => extractEmailAddress(entry))
-    .find((entry) => entry && entry.toLowerCase() !== mailbox);
-  if (externalRecipient) return externalRecipient;
-
-  const fromExternal = extractEmailAddress(last.fromEmail || last.from);
-  if (fromExternal && fromExternal.toLowerCase() !== mailbox) return fromExternal;
-
-  return thread.fromEmail || null;
-}
+const EMAIL_VIEWER_CLASS = "unit311-email-message-viewer";
 
 const DEFAULT_MAILBOXES: EmailAccountOption[] = [
   { id: "info", email: "info@unit311central.com", name: "Shared Inbox", configured: false },
@@ -226,12 +211,25 @@ function formatCalendarWhen(event: ZohoCalendarEvent) {
 }
 
 function MessageBody({ message }: { message: EmailMessage }) {
+  const scopedCss = `
+    .${EMAIL_VIEWER_CLASS} { color: rgba(226, 232, 240, 0.88); line-height: 1.6; }
+    .${EMAIL_VIEWER_CLASS} a { color: rgb(125, 211, 252) !important; text-decoration: underline; }
+    .${EMAIL_VIEWER_CLASS} h1, .${EMAIL_VIEWER_CLASS} h2, .${EMAIL_VIEWER_CLASS} h3, .${EMAIL_VIEWER_CLASS} h4, .${EMAIL_VIEWER_CLASS} h5, .${EMAIL_VIEWER_CLASS} h6 { color: rgb(248, 250, 252) !important; font-weight: 600; margin-top: 0.75em; margin-bottom: 0.35em; }
+    .${EMAIL_VIEWER_CLASS} blockquote, .${EMAIL_VIEWER_CLASS} .gmail_quote, .${EMAIL_VIEWER_CLASS} .moz-cite-prefix { color: rgba(148, 163, 184, 0.95) !important; border-left: 3px solid rgba(255, 255, 255, 0.15); padding-left: 0.75rem; margin: 0.75rem 0; }
+    .${EMAIL_VIEWER_CLASS} pre, .${EMAIL_VIEWER_CLASS} code { color: rgba(226, 232, 240, 0.9) !important; background: rgba(255, 255, 255, 0.04); border-radius: 0.375rem; }
+    .${EMAIL_VIEWER_CLASS} p, .${EMAIL_VIEWER_CLASS} div, .${EMAIL_VIEWER_CLASS} span, .${EMAIL_VIEWER_CLASS} li, .${EMAIL_VIEWER_CLASS} td, .${EMAIL_VIEWER_CLASS} th { color: inherit !important; }
+    .${EMAIL_VIEWER_CLASS} table { border-color: rgba(255, 255, 255, 0.12) !important; }
+  `;
+
   if (message.html) {
     return (
-      <div
-        className="prose prose-invert mt-3 max-w-none text-sm leading-relaxed text-white/80 prose-a:text-sky-300 prose-p:my-2"
-        dangerouslySetInnerHTML={{ __html: message.html }}
-      />
+      <>
+        <style>{scopedCss}</style>
+        <div
+          className={cn(EMAIL_VIEWER_CLASS, "mt-3 max-w-none text-sm leading-relaxed")}
+          dangerouslySetInnerHTML={{ __html: message.html }}
+        />
+      </>
     );
   }
 
@@ -287,6 +285,14 @@ export default function InfoEmailWorkspace() {
   const [setupPassword, setSetupPassword] = useState("");
   const [savingCredentials, setSavingCredentials] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [composeMode, setComposeMode] = useState<ComposeMode>("new");
+  const [composeForwardAttachments, setComposeForwardAttachments] = useState<ForwardAttachmentRef[]>(
+    [],
+  );
+  const [composeThreadContext, setComposeThreadContext] = useState<{
+    inReplyTo: string | null;
+    references: string[];
+  } | null>(null);
   const [composeTo, setComposeTo] = useState("");
   const [composeCc, setComposeCc] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
@@ -314,7 +320,7 @@ export default function InfoEmailWorkspace() {
 
   const replyRecipient = useMemo(() => {
     if (!selectedThread || !selectedAccount?.email) return null;
-    return resolveReplyRecipient(selectedThread, selectedAccount.email);
+    return resolveThreadReplyRecipient(selectedThread, selectedAccount.email);
   }, [selectedAccount?.email, selectedThread]);
 
   const selectedAccountConfigured = selectedAccount?.configured ?? false;
@@ -599,11 +605,7 @@ export default function InfoEmailWorkspace() {
   useEffect(() => {
     startTransition(() => {
       setSetupPassword("");
-      setComposeOpen(false);
-      setComposeTo("");
-      setComposeCc("");
-      setComposeSubject("");
-      setComposeBody("");
+      resetComposeFields();
       setSuccessMessage(null);
     });
   }, [selectedAccountId]);
@@ -701,7 +703,7 @@ export default function InfoEmailWorkspace() {
     const replyTarget = resolveReplyTargetMessage(selectedThread);
     if (!replyTarget) return;
 
-    const replyTo = resolveReplyRecipient(selectedThread, mailboxEmail);
+    const replyTo = resolveThreadReplyRecipient(selectedThread, mailboxEmail);
     if (!replyTo) {
       setError("Cannot determine reply recipient for this thread.");
       return;
@@ -748,9 +750,57 @@ export default function InfoEmailWorkspace() {
     }
   }
 
+  function resetComposeFields() {
+    setComposeOpen(false);
+    setComposeMode("new");
+    setComposeForwardAttachments([]);
+    setComposeThreadContext(null);
+    setComposeTo("");
+    setComposeCc("");
+    setComposeSubject("");
+    setComposeBody("");
+  }
+
+  async function loadComposeAttachmentPayload() {
+    if (composeForwardAttachments.length === 0) return undefined;
+
+    const attachmentFolder: EmailMailboxFolder = isSentView ? "sent" : "inbox";
+    const loaded = await Promise.all(
+      composeForwardAttachments.map(async (attachment) => {
+        const response = await fetch(
+          attachmentUrl(
+            selectedAccountId,
+            attachment.messageId,
+            attachment.partId,
+            attachmentFolder,
+          ),
+          { credentials: "same-origin" },
+        );
+        if (!response.ok) {
+          throw new Error(`Failed to load attachment ${attachment.filename}`);
+        }
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        let binary = "";
+        for (let index = 0; index < bytes.length; index += 1) {
+          binary += String.fromCharCode(bytes[index]!);
+        }
+        return {
+          filename: attachment.filename,
+          contentType: attachment.contentType,
+          contentBase64: btoa(binary),
+        };
+      }),
+    );
+
+    return loaded;
+  }
+
   function openCompose() {
     setComposeOpen(true);
     setReplyOpen(false);
+    setComposeMode("new");
+    setComposeForwardAttachments([]);
+    setComposeThreadContext(null);
     setComposeTo("");
     setComposeCc("");
     setComposeSubject("");
@@ -760,7 +810,7 @@ export default function InfoEmailWorkspace() {
   }
 
   function focusReplyComposer() {
-    setComposeOpen(false);
+    resetComposeFields();
     setReplyOpen(true);
     window.requestAnimationFrame(() => {
       replyTextareaRef.current?.focus();
@@ -771,20 +821,73 @@ export default function InfoEmailWorkspace() {
   function startForward() {
     if (!selectedThread) return;
     const last = selectedThread.messages[selectedThread.messages.length - 1];
-    const quoted = last?.body?.trim() || last?.snippet?.trim() || "";
     setComposeOpen(true);
     setReplyOpen(false);
+    setComposeMode("forward");
     setComposeTo("");
     setComposeCc("");
-    setComposeSubject(
-      selectedThread.subject.trim().toLowerCase().startsWith("fwd:")
-        ? selectedThread.subject
-        : `Fwd: ${selectedThread.subject}`,
+    setComposeSubject(buildForwardSubject(selectedThread.subject));
+    setComposeBody(buildForwardQuotedBody(selectedThread, last));
+    setComposeForwardAttachments(
+      (last?.attachments ?? []).map((attachment) => ({
+        messageId: last!.id,
+        partId: attachment.partId,
+        filename: attachment.filename,
+        contentType: attachment.contentType,
+      })),
     );
-    setComposeBody(
-      quoted
-        ? `\n\n---------- Forwarded message ---------\nFrom: ${last?.fromName ?? "Unknown"} <${last?.fromEmail ?? ""}>\nDate: ${last ? formatEmailDateLong(last.date) : ""}\nSubject: ${selectedThread.subject}\n\n${quoted}`
-        : "",
+    setComposeThreadContext(null);
+    setError(null);
+    setSuccessMessage(null);
+  }
+
+  function startForwardAll() {
+    if (!selectedThread) return;
+    const last = selectedThread.messages[selectedThread.messages.length - 1];
+    const { to, cc } = resolveForwardAllRecipients(selectedThread, mailboxEmail);
+    setComposeOpen(true);
+    setReplyOpen(false);
+    setComposeMode("forwardAll");
+    setComposeTo(to.join(", "));
+    setComposeCc(cc.join(", "));
+    setComposeSubject(buildForwardSubject(selectedThread.subject));
+    setComposeBody(buildForwardQuotedBody(selectedThread, last));
+    setComposeForwardAttachments(
+      (last?.attachments ?? []).map((attachment) => ({
+        messageId: last!.id,
+        partId: attachment.partId,
+        filename: attachment.filename,
+        contentType: attachment.contentType,
+      })),
+    );
+    setComposeThreadContext(null);
+    setError(null);
+    setSuccessMessage(null);
+  }
+
+  function startReplyAll() {
+    if (!selectedThread) return;
+    const target = resolveReplyTargetMessage(selectedThread);
+    const { to, cc } = resolveReplyAllRecipients(selectedThread, mailboxEmail);
+    if (!to) {
+      setError("Cannot determine reply-all recipients for this thread.");
+      return;
+    }
+    setComposeOpen(true);
+    setReplyOpen(false);
+    setComposeMode("replyAll");
+    setComposeTo(to);
+    setComposeCc(cc.join(", "));
+    setComposeSubject(buildReplySubject(selectedThread.subject));
+    setComposeBody("");
+    setComposeForwardAttachments([]);
+    setComposeThreadContext(
+      target
+        ? {
+            inReplyTo: target.messageId,
+            references: [...target.references, target.messageId].filter(Boolean) as string[],
+          }
+        : null,
     );
     setError(null);
     setSuccessMessage(null);
@@ -801,6 +904,7 @@ export default function InfoEmailWorkspace() {
     const html = `<p>${composeBody.trim().replace(/\n/g, "<br/>")}</p><p>${signature.replace(/\n/g, "<br/>")}</p>`;
 
     try {
+      const attachments = await loadComposeAttachmentPayload();
       const response = await fetch("/api/email/send", {
         method: "POST",
         credentials: "same-origin",
@@ -813,17 +917,16 @@ export default function InfoEmailWorkspace() {
           html,
           text: `${composeBody.trim()}${signature}`,
           repliedBy: replyAsUser.fullName,
+          inReplyTo: composeThreadContext?.inReplyTo ?? undefined,
+          references: composeThreadContext?.references,
+          attachments,
         }),
       });
 
       const data = await readApiJson<{ ok?: boolean; error?: string }>(response);
       if (!response.ok || !data.ok) throw new Error(data.error ?? "Failed to send email");
 
-      setComposeOpen(false);
-      setComposeTo("");
-      setComposeCc("");
-      setComposeSubject("");
-      setComposeBody("");
+      resetComposeFields();
       setSuccessMessage(`Email sent from ${mailboxEmail}`);
       await loadMailbox({ background: true });
     } catch (sendError) {
@@ -988,14 +1091,26 @@ export default function InfoEmailWorkspace() {
         <section className="rounded-2xl border border-sky-400/25 bg-sky-500/5 px-4 py-4 sm:px-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-white">New email from {mailboxEmail}</h3>
+              <h3 className="text-sm font-semibold text-white">
+                {composeMode === "forward"
+                  ? `Forward from ${mailboxEmail}`
+                  : composeMode === "forwardAll"
+                    ? `Forward all from ${mailboxEmail}`
+                    : composeMode === "replyAll"
+                      ? `Reply all from ${mailboxEmail}`
+                      : `New email from ${mailboxEmail}`}
+              </h3>
               <p className="mt-0.5 text-xs text-white/50">
-                Compose and send without opening a thread first.
+                {composeMode === "new"
+                  ? "Compose and send without opening a thread first."
+                  : composeMode === "replyAll"
+                    ? "Recipients are prefilled from the current thread."
+                    : "Original message content is included below."}
               </p>
             </div>
             <button
               type="button"
-              onClick={() => setComposeOpen(false)}
+              onClick={resetComposeFields}
               className="rounded-lg border border-white/10 p-1.5 text-white/60 transition-colors hover:bg-white/[0.04]"
               aria-label="Close compose"
             >
@@ -1070,6 +1185,20 @@ export default function InfoEmailWorkspace() {
             </div>
           </div>
 
+          {composeForwardAttachments.length > 0 && (
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {composeForwardAttachments.map((attachment) => (
+                <li
+                  key={`${attachment.messageId}-${attachment.partId}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-sky-300"
+                >
+                  <Paperclip className="h-3.5 w-3.5" />
+                  {attachment.filename}
+                </li>
+              ))}
+            </ul>
+          )}
+
           <button
             type="button"
             disabled={
@@ -1079,7 +1208,11 @@ export default function InfoEmailWorkspace() {
             className="mt-4 inline-flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-400 disabled:opacity-60"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Send email
+            {composeMode === "replyAll"
+              ? "Send reply all"
+              : composeMode === "forward" || composeMode === "forwardAll"
+                ? "Send forward"
+                : "Send email"}
           </button>
         </section>
       )}
@@ -1342,11 +1475,27 @@ export default function InfoEmailWorkspace() {
                         </button>
                         <button
                           type="button"
+                          onClick={startReplyAll}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/20 px-3 py-1.5 text-xs font-medium text-sky-200/90 transition-colors hover:bg-sky-500/10"
+                        >
+                          <ReplyAll className="h-3.5 w-3.5" />
+                          Reply all
+                        </button>
+                        <button
+                          type="button"
                           onClick={startForward}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/75 transition-colors hover:bg-white/[0.04]"
                         >
                           <Forward className="h-3.5 w-3.5" />
                           Forward
+                        </button>
+                        <button
+                          type="button"
+                          onClick={startForwardAll}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-white/75 transition-colors hover:bg-white/[0.04]"
+                        >
+                          <Forward className="h-3.5 w-3.5" />
+                          Forward all
                         </button>
                       </div>
                     ) : null}
