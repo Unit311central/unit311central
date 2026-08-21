@@ -47,8 +47,10 @@ assert.ok(smSection, "Sales Management section must exist");
 assert.equal(smSection?.items.length, 1, "Sales Management LHS must be a single entry");
 assert.equal(smSection?.items[0]?.view, "sales-management");
 
-assert.equal(SALES_MANAGEMENT_TABS.length, 14);
+assert.equal(SALES_MANAGEMENT_TABS.length, 15);
 assert.equal(SALES_MANAGEMENT_NAV_GROUPS.length, 3);
+assert.equal(SALES_MANAGEMENT_NAV_GROUPS[0]?.tabs.length, 2, "Overview excludes Dashboard");
+assert.equal(SALES_MANAGEMENT_NAV_GROUPS[2]?.tabs.at(-1)?.id, "partners");
 assert.equal(DEFAULT_SALES_MANAGEMENT_TAB, "dashboard");
 assert.equal(isSalesManagementTab("pipeline"), true);
 assert.equal(isSalesManagementTab("sales-quotes"), true);
@@ -85,7 +87,7 @@ assert.equal(
   catalogueModule?.navigation.href,
   "/internaldashboard?view=sales-management&tab=dashboard",
 );
-assert.equal(catalogueModule?.applications[0]?.pages.length, 14);
+assert.equal(catalogueModule?.applications[0]?.pages.length, 15);
 const pipelinePage = catalogueModule?.applications[0]?.pages.find((page) => page.label === "Pipeline");
 assert.ok(pipelinePage?.href?.includes("tab=pipeline"), "EA catalogue must route Pipeline tab");
 

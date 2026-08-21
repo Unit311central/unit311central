@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Target } from "lucide-react";
 
@@ -10,10 +10,12 @@ import {
   type SalesManagementTabId,
 } from "@/lib/sales-management-tabs";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
+import { createInitialRepresentatives, type Representative } from "@/lib/representatives-data";
 import { useInternalOperationsBasePath } from "@/components/testflighthub/InternalOperationsBasePathContext";
 
 import CrmWorkspace from "../CrmWorkspace";
 import MeetingsWorkspace from "../MeetingsWorkspace";
+import RepresentativesWorkspace from "../RepresentativesWorkspace";
 import SalesQuotesWorkspace from "../SalesQuotesWorkspace";
 import SalesManagementDashboard from "./SalesManagementDashboard";
 import { SalesManagementNav } from "./SalesManagementNav";
@@ -44,6 +46,15 @@ export default function SalesManagementWorkspace() {
   const router = useRouter();
   const pathname = usePathname();
   const activeTab = useMemo(() => resolveTab(searchParams), [searchParams]);
+  const [representatives, setRepresentatives] = useState<Representative[]>([]);
+  const [selectedRepresentativeId, setSelectedRepresentativeId] = useState("rep-1");
+
+  useEffect(() => {
+    if (activeTab !== "partners" || representatives.length > 0) return;
+    const seeded = createInitialRepresentatives();
+    setRepresentatives(seeded);
+    if (seeded[0]) setSelectedRepresentativeId(seeded[0].id);
+  }, [activeTab, representatives.length]);
 
   const basePath = useInternalOperationsBasePath();
   const quotesReturnHref = useMemo(
@@ -96,6 +107,21 @@ export default function SalesManagementWorkspace() {
         return <SalesManagementActivitiesTab />;
       case "sales-quotes":
         return <SalesQuotesWorkspace embedded title="Sales Quotes" />;
+      case "partners":
+        return (
+          <div className="space-y-4">
+            <SalesTabHeader
+              title="Partners"
+              description="Representatives, distributors, and referral partners — the same register previously under Business Central."
+            />
+            <RepresentativesWorkspace
+              representatives={representatives}
+              selectedRepresentativeId={selectedRepresentativeId}
+              onSelectRepresentative={setSelectedRepresentativeId}
+              onRepresentativesChange={setRepresentatives}
+            />
+          </div>
+        );
       case "targets":
         return <SalesManagementTargetsTab />;
       case "performance":
@@ -109,7 +135,7 @@ export default function SalesManagementWorkspace() {
       default:
         return null;
     }
-  }, [activeTab, quotesReturnHref]);
+  }, [activeTab, quotesReturnHref, representatives, selectedRepresentativeId]);
 
   return (
     <div className="w-full min-w-0 space-y-4" aria-label="Sales Management">
@@ -123,14 +149,17 @@ export default function SalesManagementWorkspace() {
         </p>
       </header>
 
-      <SalesManagementNav activeTab={activeTab} onTabChange={onTabChange} />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <SalesManagementNav activeTab={activeTab} onTabChange={onTabChange} />
 
-      <div
-        id={`sales-management-panel-${activeTab}`}
-        role="tabpanel"
-        aria-labelledby={`sales-management-tab-${activeTab}`}
-      >
-        {panel}
+        <div
+          id={`sales-management-panel-${activeTab}`}
+          role="tabpanel"
+          aria-labelledby={`sales-management-tab-${activeTab}`}
+          className="min-w-0 flex-1"
+        >
+          {panel}
+        </div>
       </div>
     </div>
   );
