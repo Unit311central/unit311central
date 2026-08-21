@@ -2,6 +2,10 @@ name: Post-deploy migrations
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/deploy-migrations.yml
   workflow_run:
     workflows: ["Web CI"]
     types: [completed]
@@ -26,13 +30,17 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 30); do
-            state=$(curl -fsS "https://api.github.com/repos/${REPOSITORY}/commits/${HEAD_SHA}/status" | jq -r '.state')
-            echo "attempt ${attempt}: vercel/github state=${state}"
-            if [ "$state" = "success" ]; then
+          for attempt in $(seq 1 45); do
+            payload=$(curl -fsS "https://api.github.com/repos/${REPOSITORY}/commits/${HEAD_SHA}/status")
+            state=$(echo "$payload" | jq -r '.state')
+            vercel_status=$(echo "$payload" | jq -r '.statuses[]? | select(.context == "Vercel") | .state' | head -n1)
+            echo "attempt ${attempt}: aggregate=${state} vercel=${vercel_status:-unknown}"
+            if [ "$state" = "success" ] && [ "${vercel_status:-}" = "success" ]; then
+              echo "Waiting 90s for Vercel edge/serverless propagation..."
+              sleep 90
               exit 0
             fi
-            if [ "$state" = "failure" ]; then
+            if [ "$state" = "failure" ] || [ "$vercel_status" = "failure" ]; then
               echo "Vercel deploy failed for ${HEAD_SHA}"
               exit 1
             fi
@@ -57,7 +65,30 @@ jobs:
           echo "$response" | jq .
           echo "$response" | jq -e '.ok == true' >/dev/null
           echo "$response" | jq -e '
-            ((.applied + .skipped) | map(.migration) | index("supabase/migrations/149_sales_management_foundation.sql")) != null
+            ([.applied[] | select(.migration == "supabase/migrations/149_sales_management_foundation.sql")] | length) == 1
+          ' >/dev/null
+          echo "$response" | jq -e '
+            ([.errors[]?] | length) == 0
+          ' >/dev/null
+
+      - name: GET verify migration plan after apply
+        env:
+          SETUP_SECRET: ${{ secrets.INTERNAL_FILES_SETUP_SECRET }}
+        run: |
+          set -euo pipefail
+          response=$(curl -fsS \
+            -H "x-setup-secret: ${SETUP_SECRET}" \
+            "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
+          echo "$response" | jq .
+          echo "$response" | jq -e '.queryError == null' >/dev/null
+          echo "$response" | jq -e '
+            ([.plan.pending[]? | select(. == "supabase/migrations/149_sales_management_foundation.sql")] | length) == 0
+          ' >/dev/null
+          echo "$response" | jq -e '
+            (.plan.satisfied | index("supabase/migrations/149_sales_management_foundation.sql")) != null
+          ' >/dev/null
+          echo "$response" | jq -e '
+            ([.plan.actions[] | select(.kind == "apply")] | length) == 0
           ' >/dev/null
 
       - name: Verify Wave 0 foundation health
