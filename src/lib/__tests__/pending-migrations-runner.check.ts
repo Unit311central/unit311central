@@ -232,6 +232,39 @@ assert.match(
   "migration 149 must keep hr_employee_id as text FK",
 );
 
+const migration149Policies = [
+  { table: "sales_teams", policy: "sales_teams_all" },
+  { table: "sales_team_members", policy: "sales_team_members_all" },
+  { table: "sales_targets", policy: "sales_targets_all" },
+  { table: "sales_commission_rules", policy: "sales_commission_rules_all" },
+  { table: "sales_commissions", policy: "sales_commissions_all" },
+] as const;
+
+for (const { table, policy } of migration149Policies) {
+  assert.match(
+    migration149Sql,
+    new RegExp(
+      `drop policy if exists "${policy}" on public\\.${table};[\\s\\S]*create policy "${policy}" on public\\.${table}`,
+    ),
+    `migration 149 must drop-then-create policy ${policy} for partial-apply recovery`,
+  );
+}
+
+assert.equal(
+  (migration149Sql.match(/drop policy if exists/g) ?? []).length,
+  migration149Policies.length,
+  "migration 149 must drop every RLS policy before recreate",
+);
+assert.equal(
+  (migration149Sql.match(/create policy "/g) ?? []).length,
+  migration149Policies.length,
+  "migration 149 must create exactly five RLS policies",
+);
+
+assert.match(migration149Sql, /add column if not exists owner_user_id/, "crm_leads owner column must stay idempotent");
+assert.match(migration149Sql, /create table if not exists public\.sales_teams/, "sales tables must stay idempotent");
+assert.match(migration149Sql, /create index if not exists sales_teams_workspace_idx/, "indexes must stay idempotent");
+
 void (async () => {
   const client = new MockMigrationClient();
   for (const migration of UNIT311_PENDING_MIGRATIONS) {
@@ -333,6 +366,7 @@ void (async () => {
     applyMigrationFile: async (migration) => {
       preseededApplyAttempts += 1;
       assert.equal(migration, SALES_MANAGEMENT_FOUNDATION_MIGRATION);
+      // Simulates idempotent re-apply after partial production apply (tables/policies already exist).
       return { ok: true, method: "management-api" };
     },
   });

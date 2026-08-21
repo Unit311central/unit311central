@@ -91,8 +91,18 @@ alter table public.sales_targets enable row level security;
 alter table public.sales_commission_rules enable row level security;
 alter table public.sales_commissions enable row level security;
 
+-- Idempotent for partial prior applies: policies may already exist without a runner-confirmed ledger row.
+drop policy if exists "sales_teams_all" on public.sales_teams;
 create policy "sales_teams_all" on public.sales_teams for all using (true) with check (true);
+
+drop policy if exists "sales_team_members_all" on public.sales_team_members;
 create policy "sales_team_members_all" on public.sales_team_members for all using (true) with check (true);
+
+drop policy if exists "sales_targets_all" on public.sales_targets;
 create policy "sales_targets_all" on public.sales_targets for all using (true) with check (true);
+
+drop policy if exists "sales_commission_rules_all" on public.sales_commission_rules;
 create policy "sales_commission_rules_all" on public.sales_commission_rules for all using (true) with check (true);
+
+drop policy if exists "sales_commissions_all" on public.sales_commissions;
 create policy "sales_commissions_all" on public.sales_commissions for all using (true) with check (true);
