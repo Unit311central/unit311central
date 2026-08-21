@@ -1,9 +1,42 @@
 import { listTutorialDefinitions } from "@/lib/guided-tutorials/registry";
+import {
+  buildTutorialContext,
+  formatTutorialContextPath,
+} from "@/lib/guided-tutorials/context";
+import { internalViewTitles, type InternalOperationsView } from "@/lib/internal-operations-data";
 import type {
   TutorialDefinition,
   TutorialIdentity,
   TutorialResolution,
 } from "@/lib/guided-tutorials/types";
+
+function contextPathForIdentity(identity: TutorialIdentity): string {
+  const titles = internalViewTitles[identity.viewId as InternalOperationsView];
+  if (!titles) {
+    return identity.tabKey ? `${identity.viewId} → ${identity.tabKey}` : identity.viewId;
+  }
+  return formatTutorialContextPath(
+    buildTutorialContext({
+      workspaceSlug: identity.workspaceSlug,
+      viewId: identity.viewId,
+      tabKey: identity.tabKey,
+    }),
+  );
+}
+
+export function formatTutorialUnavailableMessage(
+  identity: TutorialIdentity,
+  reason: "view_not_in_workspace" | "no_tutorial_defined" | "workspace_not_supported",
+): string {
+  const path = contextPathForIdentity(identity);
+  if (reason === "no_tutorial_defined") {
+    return `No tutorial is available yet for ${path}.`;
+  }
+  if (reason === "view_not_in_workspace") {
+    return `Learn is not available for ${path} on this workspace.`;
+  }
+  return `Learn is not available for ${path}.`;
+}
 
 function tutorialMatchesWorkspace(tutorial: TutorialDefinition, workspaceSlug: string): boolean {
   if (tutorial.workspaces === "*") return true;
@@ -35,7 +68,7 @@ export function resolveTutorialWithViewCheck(
       status: "unavailable",
       identity: { ...identity, workspaceSlug },
       reason: "view_not_in_workspace",
-      message: `The ${identity.viewId} function is not available in workspace "${workspaceSlug}".`,
+      message: formatTutorialUnavailableMessage(identity, "view_not_in_workspace"),
     };
   }
 
@@ -49,7 +82,7 @@ export function resolveTutorialWithViewCheck(
       status: "unavailable",
       identity: { ...identity, workspaceSlug },
       reason: "no_tutorial_defined",
-      message: `No tutorial is defined for ${identity.viewId} in workspace "${workspaceSlug}".`,
+      message: formatTutorialUnavailableMessage(identity, "no_tutorial_defined"),
     };
   }
 

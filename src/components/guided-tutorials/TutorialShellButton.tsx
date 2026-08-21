@@ -14,7 +14,7 @@ export default function TutorialShellButton({ className }: TutorialShellButtonPr
   const guided = useOptionalGuidedTutorial();
   if (!guided) return null;
 
-  const label = guided.isAvailable ? "Learn" : "Learn";
+  const label = "Learn";
   const title = guided.isAvailable
     ? "Open tutorial for this screen"
     : guided.unavailableMessage ?? "No tutorial for this screen yet";
@@ -26,14 +26,11 @@ export default function TutorialShellButton({ className }: TutorialShellButtonPr
       aria-label={title}
       title={title}
       onClick={() => {
-        if (guided.isAvailable) guided.openTutorial();
+        guided.openTutorial();
       }}
-      disabled={!guided.isAvailable}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-xl border px-2.5 text-[11px] font-semibold transition-colors",
-        guided.isAvailable
-          ? "border-violet-400/35 bg-violet-500/12 text-violet-100 hover:border-violet-300/45 hover:bg-violet-500/18"
-          : "cursor-not-allowed border-white/10 bg-white/[0.03] text-white/35",
+        "border-violet-400/35 bg-violet-500/12 text-violet-100 hover:border-violet-300/45 hover:bg-violet-500/18",
         className,
       )}
     >

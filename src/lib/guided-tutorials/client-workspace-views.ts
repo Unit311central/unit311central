@@ -44,7 +44,8 @@ function flattenViewIds(sections: readonly InternalNavSection[]): ReadonlySet<st
   return enabledViewIds;
 }
 
-function buildClientNavForSlug(slug: string): readonly InternalNavSection[] {
+/** Nav sections for a workspace slug — shared by tutorial coverage and client enablement. */
+export function buildClientNavSectionsForSlug(slug: string): readonly InternalNavSection[] {
   const normalized = slug.trim().toLowerCase();
 
   bootstrapIntelligenceWorkspacePacks();
@@ -74,7 +75,7 @@ export function getClientEnabledViewIds(slug: string | null | undefined): Readon
   const cached = viewIdCache.get(key);
   if (cached) return cached;
 
-  const viewIds = flattenViewIds(buildClientNavForSlug(key));
+  const viewIds = flattenViewIds(buildClientNavSectionsForSlug(key));
   viewIdCache.set(key, viewIds);
   return viewIds;
 }
