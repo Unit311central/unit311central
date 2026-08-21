@@ -145,6 +145,12 @@ async function applyMigrationFile(
   if (token.length >= 20) {
     const result = await queryViaManagementApi(token, sql);
     if (result.ok) return { ok: true, method: "management-api" };
+
+    const appliedViaDbAfterMgmtFailure = await withResolvedDatabaseClient(async (client) => {
+      await applySql(client, sql);
+      return true;
+    });
+    if (appliedViaDbAfterMgmtFailure) return { ok: true, method: "postgres" };
     return { ok: false, status: result.status, data: result.data, method: "management-api" };
   }
 

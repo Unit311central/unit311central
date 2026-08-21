@@ -1,6 +1,9 @@
 name: Post-deploy migrations
 
 on:
+  push:
+    branches: [main]
+  workflow_dispatch:
   workflow_run:
     workflows: ["Web CI"]
     types: [completed]
@@ -11,15 +14,18 @@ permissions:
 
 jobs:
   migrate-and-verify:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: Wait for Vercel production deploy
         env:
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          REPOSITORY: ${{ github.event.workflow_run.repository.full_name }}
+          HEAD_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           for attempt in $(seq 1 30); do
@@ -52,6 +58,9 @@ jobs:
             "https://unit311central.com/api/internal/apply-unit311central-pending-migrations")
           echo "$response" | jq .
           echo "$response" | jq -e '.ok == true' >/dev/null
+          echo "$response" | jq -e '
+            (.applied | map(.migration) | index("supabase/migrations/149_sales_management_foundation.sql")) != null
+          ' >/dev/null
 
       - name: Verify Wave 0 foundation health
         run: |
