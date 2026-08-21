@@ -57,6 +57,7 @@ export function listDemoMailboxMessages(
         messageId: `<${thread.id}@unit311central.com>`,
         inReplyTo: null,
         references: [],
+        replyToEmail: null,
         direction: folder === "sent" ? ("outbound" as const) : ("inbound" as const),
       };
     })

@@ -568,6 +568,19 @@ export function reorderSectionKeys(
   return next;
 }
 
+/** Move a workspace section key up or down by exactly one slot in the movable order list. */
+export function moveSectionKey(
+  keys: readonly string[],
+  key: string,
+  direction: "up" | "down",
+): string[] | null {
+  const index = keys.indexOf(key);
+  if (index < 0) return null;
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= keys.length) return null;
+  return reorderSectionKeys(keys, key, keys[targetIndex]!);
+}
+
 export function listSectionLeafItems(section: InternalNavSection): SidebarNavLeafItem[] {
   const sectionKey = getNavSectionKey(section);
   const sectionLabel = getNavSectionTitle(section);

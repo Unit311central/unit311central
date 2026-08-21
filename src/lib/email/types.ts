@@ -34,6 +34,7 @@ export type EmailMessage = {
   messageId: string | null;
   inReplyTo: string | null;
   references: string[];
+  replyToEmail: string | null;
   direction: "inbound" | "outbound";
 };
 
