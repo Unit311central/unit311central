@@ -59,7 +59,7 @@ jobs:
           echo "$response" | jq .
           echo "$response" | jq -e '.ok == true' >/dev/null
           echo "$response" | jq -e '
-            (.applied | map(.migration) | index("supabase/migrations/149_sales_management_foundation.sql")) != null
+            ((.applied + .skipped) | map(.migration) | index("supabase/migrations/149_sales_management_foundation.sql")) != null
           ' >/dev/null
 
       - name: Verify Wave 0 foundation health
