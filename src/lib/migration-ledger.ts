@@ -25,14 +25,25 @@ export async function ensureMigrationLedger(client: MigrationQueryClient): Promi
   await client.query(LEDGER_BOOTSTRAP_SQL);
 }
 
+export async function fetchRecordedMigrationEntries(
+  client: MigrationQueryClient,
+): Promise<Map<string, MigrationLedgerMethod>> {
+  await ensureMigrationLedger(client);
+  const result = await client.query<{ version: string; method: MigrationLedgerMethod }>(
+    `select version, method from public.${UNIT311_MIGRATION_LEDGER_TABLE}`,
+  );
+  return new Map(result.rows.map((row) => [row.version, row.method]));
+}
+
 export async function fetchRecordedMigrationVersions(
   client: MigrationQueryClient,
 ): Promise<Set<string>> {
-  await ensureMigrationLedger(client);
-  const result = await client.query<{ version: string }>(
-    `select version from public.${UNIT311_MIGRATION_LEDGER_TABLE}`,
-  );
-  return new Set(result.rows.map((row) => row.version));
+  const entries = await fetchRecordedMigrationEntries(client);
+  return new Set(entries.keys());
+}
+
+export function isLedgerAppliedMethod(method: MigrationLedgerMethod | undefined): boolean {
+  return method === "management-api" || method === "postgres";
 }
 
 export async function recordMigrationApplied(

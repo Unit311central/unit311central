@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  fetchRecordedMigrationVersions,
+  fetchRecordedMigrationEntries,
+  isLedgerAppliedMethod,
   migrationVersion,
   recordMigrationApplied,
   type MigrationLedgerMethod,
@@ -58,20 +59,23 @@ export interface PendingMigrationRunnerDeps {
 
 export function planMigrationActions(input: {
   migrations: readonly string[];
-  recordedVersions: Set<string>;
+  recordedMethods: ReadonlyMap<string, MigrationLedgerMethod>;
   satisfied: ReadonlyMap<string, boolean>;
 }): MigrationAction[] {
   const actions: MigrationAction[] = [];
 
   for (const migration of input.migrations) {
     const version = migrationVersion(migration);
-    if (input.recordedVersions.has(version)) {
-      actions.push({ kind: "skip", migration, method: "ledger" });
+    const isSatisfied = input.satisfied.get(migration) === true;
+    const ledgerMethod = input.recordedMethods.get(version);
+
+    if (isSatisfied) {
+      actions.push({ kind: "skip", migration, method: "verified_skip" });
       continue;
     }
 
-    if (input.satisfied.get(migration) === true) {
-      actions.push({ kind: "skip", migration, method: "verified_skip" });
+    if (isLedgerAppliedMethod(ledgerMethod)) {
+      actions.push({ kind: "skip", migration, method: "ledger" });
       continue;
     }
 
@@ -105,16 +109,17 @@ export async function collectMigrationSatisfaction(
 
 export function computePendingMigrations(input: {
   migrations: readonly string[];
-  recordedVersions: Set<string>;
+  recordedMethods: ReadonlyMap<string, MigrationLedgerMethod>;
   satisfied: ReadonlyMap<string, boolean>;
   appliedMigrations: readonly string[];
 }): string[] {
   const applied = new Set(input.appliedMigrations);
   return input.migrations.filter((migration) => {
     if (applied.has(migration)) return false;
+    if (input.satisfied.get(migration) === true) return false;
     const version = migrationVersion(migration);
-    if (input.recordedVersions.has(version)) return false;
-    return input.satisfied.get(migration) !== true;
+    if (isLedgerAppliedMethod(input.recordedMethods.get(version))) return false;
+    return true;
   });
 }
 
@@ -122,21 +127,21 @@ export async function describePendingMigrationPlan(
   migrations: readonly string[],
   client: MigrationQueryClient,
 ): Promise<MigrationDryRunStatus> {
-  const recordedVersions = await fetchRecordedMigrationVersions(client);
+  const recordedMethods = await fetchRecordedMigrationEntries(client);
   const satisfiedMap = await collectMigrationSatisfaction(migrations, client);
   const actions = planMigrationActions({
     migrations,
-    recordedVersions,
+    recordedMethods,
     satisfied: satisfiedMap,
   });
 
   const recorded = migrations
     .map(migrationVersion)
-    .filter((version) => recordedVersions.has(version));
+    .filter((version) => recordedMethods.has(version));
   const satisfied = migrations.filter((migration) => satisfiedMap.get(migration) === true);
   const pending = computePendingMigrations({
     migrations,
-    recordedVersions,
+    recordedMethods,
     satisfied: satisfiedMap,
     appliedMigrations: [],
   });
@@ -147,11 +152,11 @@ export async function describePendingMigrationPlan(
 export async function runPendingMigrations(
   deps: PendingMigrationRunnerDeps,
 ): Promise<MigrationRunResult> {
-  const recordedVersions = await fetchRecordedMigrationVersions(deps.client);
+  const recordedMethods = await fetchRecordedMigrationEntries(deps.client);
   const satisfiedMap = await collectMigrationSatisfaction(deps.migrations, deps.client);
   const actions = planMigrationActions({
     migrations: deps.migrations,
-    recordedVersions,
+    recordedMethods,
     satisfied: satisfiedMap,
   });
 
@@ -163,7 +168,7 @@ export async function runPendingMigrations(
     if (action.kind === "skip") {
       if (action.method === "verified_skip") {
         await recordMigrationApplied(deps.client, action.migration, "verified_skip");
-        recordedVersions.add(migrationVersion(action.migration));
+        recordedMethods.set(migrationVersion(action.migration), "verified_skip");
       }
       skipped.push({ migration: action.migration, method: action.method });
       continue;
@@ -181,13 +186,13 @@ export async function runPendingMigrations(
     }
 
     await recordMigrationApplied(deps.client, action.migration, result.method);
-    recordedVersions.add(migrationVersion(action.migration));
+    recordedMethods.set(migrationVersion(action.migration), result.method);
     applied.push({ migration: action.migration, method: result.method });
   }
 
   const pending = computePendingMigrations({
     migrations: deps.migrations,
-    recordedVersions,
+    recordedMethods,
     satisfied: satisfiedMap,
     appliedMigrations: applied.map((entry) => entry.migration),
   });

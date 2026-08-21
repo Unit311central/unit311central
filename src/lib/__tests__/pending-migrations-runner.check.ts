@@ -9,6 +9,7 @@ import {
   fetchRecordedMigrationVersions,
   migrationVersion,
   recordMigrationApplied,
+  type MigrationLedgerMethod,
   type MigrationQueryClient,
 } from "@/lib/migration-ledger";
 import {
@@ -26,7 +27,7 @@ import {
 } from "@/lib/unit311-pending-migrations";
 
 class MockMigrationClient implements MigrationQueryClient {
-  ledger = new Set<string>();
+  ledger = new Map<string, MigrationLedgerMethod>();
   probeResults = new Map<string, boolean>();
   queries: string[] = [];
 
@@ -40,15 +41,18 @@ class MockMigrationClient implements MigrationQueryClient {
       return { rows: [] as T[] };
     }
 
-    if (sql.startsWith("select version from public.unit311_applied_migrations")) {
+    if (sql.startsWith("select version, method from public.unit311_applied_migrations")) {
       return {
-        rows: [...this.ledger].map((version) => ({ version })) as T[],
+        rows: [...this.ledger.entries()].map(([version, method]) => ({ version, method })) as T[],
       };
     }
 
     if (sql.startsWith("insert into public.unit311_applied_migrations")) {
       const version = params?.[0];
-      if (typeof version === "string") this.ledger.add(version);
+      const method = params?.[1];
+      if (typeof version === "string" && typeof method === "string") {
+        this.ledger.set(version, method as MigrationLedgerMethod);
+      }
       return { rows: [] as T[] };
     }
 
@@ -79,7 +83,7 @@ const satisfied053To148 = new Map<string, boolean>(
 
 const historicalActions = planMigrationActions({
   migrations: UNIT311_PENDING_MIGRATIONS,
-  recordedVersions: new Set<string>(),
+  recordedMethods: new Map<string, MigrationLedgerMethod>(),
   satisfied: satisfied053To148,
 });
 
@@ -97,8 +101,12 @@ assert.ok(pending149Action, "149 must remain genuinely pending when its probe fa
 
 const ledgerSkipActions = planMigrationActions({
   migrations: UNIT311_PENDING_MIGRATIONS,
-  recordedVersions: new Set([migrationVersion("supabase/migrations/059_email_mailbox_admin_account.sql")]),
-  satisfied: new Map<string, boolean>(),
+  recordedMethods: new Map([
+    [migrationVersion("supabase/migrations/059_email_mailbox_admin_account.sql"), "postgres"],
+  ]),
+  satisfied: new Map([
+    ["supabase/migrations/059_email_mailbox_admin_account.sql", false],
+  ]),
 });
 assert.equal(
   ledgerSkipActions.find(
@@ -108,7 +116,21 @@ assert.equal(
       action.migration === "supabase/migrations/059_email_mailbox_admin_account.sql",
   )?.method,
   "ledger",
-  "ledger entries must skip without re-running SQL or probes",
+  "postgres ledger entries must skip without re-running SQL",
+);
+
+const staleVerifiedSkipActions = planMigrationActions({
+  migrations: UNIT311_PENDING_MIGRATIONS,
+  recordedMethods: new Map([
+    [migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION), "verified_skip"],
+  ]),
+  satisfied: satisfied053To148,
+});
+assert.ok(
+  staleVerifiedSkipActions.find(
+    (action) => action.kind === "apply" && action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+  ),
+  "stale verified_skip ledger rows must not block apply when the probe fails",
 );
 
 const migration149Sql = readFileSync(
@@ -181,7 +203,7 @@ void (async () => {
 
   const pendingOnly149 = computePendingMigrations({
     migrations: UNIT311_PENDING_MIGRATIONS,
-    recordedVersions: recordedAfterSuccess,
+    recordedMethods: client.ledger,
     satisfied: satisfied053To148,
     appliedMigrations: [SALES_MANAGEMENT_FOUNDATION_MIGRATION],
   });
