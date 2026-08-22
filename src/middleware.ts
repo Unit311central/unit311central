@@ -63,6 +63,7 @@ import {
   PLATFORM_SESSION_COOKIE,
   readPlatformSessionToken,
 } from "@/lib/platform-session-token";
+import { isDemoPortalsAllowedUsername } from "@/lib/demo/portals-auth";
 import {
   DEMO_PREVIEW_COOKIE,
   DEMO_PREVIEW_HEADER,
@@ -759,6 +760,51 @@ export async function middleware(request: NextRequest) {
       if (gate.status === "invalid" || gate.status === "forbidden") {
         clearPlatformSessionCookie(response, request);
       }
+      for (const [key, value] of Object.entries(shellHeaders)) {
+        response.headers.set(key, value);
+      }
+      response.headers.set(
+        "Cache-Control",
+        "private, no-cache, no-store, max-age=0, must-revalidate",
+      );
+      return response;
+    }
+
+    // Northstar /portals briefing — credential login uses synthetic session IDs, so gate
+    // on explicit portals login (session + briefing ticket) instead of workspace membership.
+    const isDemoPortalsLoginPath =
+      pathname === "/portals/login" || pathname.startsWith("/portals/login/");
+    if (
+      (pathname === "/portals" || pathname.startsWith("/portals/")) &&
+      !isDemoPortalsLoginPath
+    ) {
+      const loginUrl = `${demoOrigin}/login?next=${encodeURIComponent("/portals")}`;
+      const token = request.cookies.get(PLATFORM_SESSION_COOKIE)?.value;
+      const session = token ? await readPlatformSessionToken(token) : null;
+      const portalsEntry = readPortalsBriefingGateCookie(request);
+      const portalsView = readPortalsBriefingViewCookie(request);
+      const fetchMode = (request.headers.get("sec-fetch-mode") ?? "").toLowerCase();
+      const fetchSite = (request.headers.get("sec-fetch-site") ?? "").toLowerCase();
+      const isDocumentNav = fetchMode === "navigate" || fetchMode === "";
+      const isFreshEntry =
+        isDocumentNav && (fetchSite === "none" || fetchSite === "cross-site");
+      const allowed =
+        Boolean(session) &&
+        isDemoPortalsAllowedUsername(session?.username) &&
+        (isFreshEntry ? portalsEntry : portalsEntry || portalsView);
+
+      if (!allowed) {
+        const bounce = redirectExternal(loginUrl);
+        if (token && (!session || !isDemoPortalsAllowedUsername(session.username))) {
+          clearPlatformSessionCookie(bounce, request);
+        }
+        clearPortalsBriefingCookies(bounce, request);
+        return bounce;
+      }
+
+      const response = NextResponse.next({ request: { headers } });
+      clearPortalsBriefingCookies(response, request);
+      applyPortalsBriefingViewCookie(response, request);
       for (const [key, value] of Object.entries(shellHeaders)) {
         response.headers.set(key, value);
       }
