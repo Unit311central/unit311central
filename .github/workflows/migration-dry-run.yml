@@ -64,6 +64,9 @@ jobs:
             ([.plan.pending[]?] | length) == 0
           ' >/dev/null
           echo "$response" | jq -e '
+            (.plan.satisfied | index("supabase/migrations/151_workspace_phase3_provisioning.sql")) != null
+          ' >/dev/null
+          echo "$response" | jq -e '
             (.plan.satisfied | index("supabase/migrations/150_workspace_admin_metadata.sql")) != null
           ' >/dev/null
           echo "$response" | jq -e '

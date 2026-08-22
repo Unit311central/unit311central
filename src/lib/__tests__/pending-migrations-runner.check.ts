@@ -127,11 +127,13 @@ const ledgerSkipActions = planMigrationActions({
   ]),
 });
 assert.equal(
-  ledgerSkipActions.find(
-    (action) =>
-      action.kind === "skip" &&
-      action.method === "ledger" &&
-      action.migration === "supabase/migrations/059_email_mailbox_admin_account.sql",
+  (
+    ledgerSkipActions.find(
+      (action) =>
+        action.kind === "skip" &&
+        action.method === "ledger" &&
+        action.migration === "supabase/migrations/059_email_mailbox_admin_account.sql",
+    ) as { kind: "skip"; method: string } | undefined
   )?.method,
   "ledger",
   "postgres ledger entries must skip without re-running SQL",

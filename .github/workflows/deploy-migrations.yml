@@ -71,6 +71,15 @@ jobs:
           ' >/dev/null
           echo "$response" | jq -e '
             (
+              ([.applied[]? | select(.migration == "supabase/migrations/151_workspace_phase3_provisioning.sql")] | length) == 1
+            ) or (
+              ([.skipped[]? | select(.migration == "supabase/migrations/151_workspace_phase3_provisioning.sql")] | length) == 1
+            ) or (
+              (.pending | index("supabase/migrations/151_workspace_phase3_provisioning.sql")) == null
+            )
+          ' >/dev/null
+          echo "$response" | jq -e '
+            (
               ([.applied[]? | select(.migration == "supabase/migrations/150_workspace_admin_metadata.sql")] | length) == 1
             ) or (
               ([.skipped[]? | select(.migration == "supabase/migrations/150_workspace_admin_metadata.sql")] | length) == 1
@@ -91,6 +100,9 @@ jobs:
           echo "$response" | jq -e '.queryError == null' >/dev/null
           echo "$response" | jq -e '
             ([.plan.pending[]?] | length) == 0
+          ' >/dev/null
+          echo "$response" | jq -e '
+            (.plan.satisfied | index("supabase/migrations/151_workspace_phase3_provisioning.sql")) != null
           ' >/dev/null
           echo "$response" | jq -e '
             (.plan.satisfied | index("supabase/migrations/150_workspace_admin_metadata.sql")) != null
