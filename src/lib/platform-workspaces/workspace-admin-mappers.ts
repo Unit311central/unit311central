@@ -1,5 +1,8 @@
-import { UNIT311_SITE_HOST } from "@/lib/app-domains";
 import { countEnabledModules } from "@/lib/platform-workspaces/module-catalogue";
+import {
+  resolveCustomerHostname,
+  workspacePrimaryUrlForWorkspace,
+} from "@/lib/platform-workspaces/workspace-hostname";
 import type {
   WorkspaceAdminRecord,
   WorkspaceAdminStatus,
@@ -13,8 +16,8 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
-export function workspacePrimaryUrl(slug: string): string {
-  return `https://${slug.trim().toLowerCase()}.${UNIT311_SITE_HOST}`;
+export function workspacePrimaryUrl(slug: string, customerHostname?: string | null): string {
+  return workspacePrimaryUrlForWorkspace(slug, customerHostname);
 }
 
 export function normalizeSlug(value: string): string {
@@ -68,7 +71,9 @@ export type WorkspaceAdminMetadataRow = {
   provisioning_infrastructure_status?: string | null;
   provisioning_deployment_status?: string | null;
   provisioning_workspace_record_status?: string | null;
+  provisioning_overall_status?: string | null;
   provisioning_last_message?: string | null;
+  customer_hostname?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -97,6 +102,17 @@ function asProvisioningStatus(
   if (normalized === "pending") return "pending";
   if (normalized === "complete") return "complete";
   if (normalized === "skipped") return "skipped";
+  if (normalized === "failed") return "failed";
+  return "not_started";
+}
+
+function asOverallStatus(
+  value: string | null | undefined,
+): WorkspaceProvisioningState["overallStatus"] {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (normalized === "in_progress") return "in_progress";
+  if (normalized === "complete") return "complete";
+  if (normalized === "failed") return "failed";
   return "not_started";
 }
 
@@ -118,6 +134,7 @@ export function mapProvisioningState(metadata: WorkspaceAdminMetadataRow | null)
       infrastructureStatus: "not_started",
       deploymentStatus: "not_started",
       workspaceRecordStatus: "complete",
+      overallStatus: "not_started",
       lastMessage: "Workspace registry record loaded from database.",
     };
   }
@@ -128,6 +145,7 @@ export function mapProvisioningState(metadata: WorkspaceAdminMetadataRow | null)
     infrastructureStatus: asProvisioningStatus(metadata.provisioning_infrastructure_status),
     deploymentStatus: asProvisioningStatus(metadata.provisioning_deployment_status),
     workspaceRecordStatus: asWorkspaceRecordStatus(metadata.provisioning_workspace_record_status),
+    overallStatus: asOverallStatus(metadata.provisioning_overall_status),
     lastMessage: metadata.provisioning_last_message ?? undefined,
   };
 }
@@ -140,6 +158,10 @@ export function mapWorkspaceRowToRecord(
   const metadata = firstRelation(row.workspace_admin_metadata);
   const enabledModules = [...(metadata?.enabled_modules ?? [])];
   const enabledSubModules = [...(metadata?.enabled_sub_modules ?? [])];
+  const customerHostname = resolveCustomerHostname(
+    row.slug,
+    metadata?.customer_hostname,
+  );
 
   return {
     workspaceId: row.id,
@@ -171,7 +193,8 @@ export function mapWorkspaceRowToRecord(
       enabledModules.length > 0 || enabledSubModules.length > 0
         ? countEnabledModules(enabledModules, enabledSubModules)
         : counts.enabledModuleCount,
-    primaryUrl: workspacePrimaryUrl(row.slug),
+    primaryUrl: workspacePrimaryUrl(row.slug, customerHostname),
+    customerHostname,
     createdAt: metadata?.created_at ?? row.created_at,
     createdBy: metadata?.created_by?.trim() || "system",
     updatedAt: metadata?.updated_at ?? row.updated_at,

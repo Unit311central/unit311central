@@ -35,6 +35,12 @@ export async function createWorkspaceAdminRecord(
   return getWorkspaceAdminRepository().create(input, createdBy);
 }
 
+export async function provisionWorkspaceAdminRecord(
+  workspaceId: string,
+): Promise<WorkspaceAdminRecord> {
+  return getWorkspaceAdminRepository().provision(workspaceId);
+}
+
 export async function updateWorkspaceAdminRecord(
   workspaceId: string,
   patch: UpdateWorkspaceInput,

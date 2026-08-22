@@ -10,7 +10,12 @@ import {
   type WorkspaceAdminMetadataRow,
 } from "@/lib/platform-workspaces/workspace-admin-mappers";
 import type { WorkspaceAdminRepository } from "@/lib/platform-workspaces/workspace-admin-repository";
-import { queueWorkspaceUserProvisioning } from "@/lib/platform-workspaces/user-provisioning-adapter";
+import {
+  resolveCustomerHostname,
+  isValidCustomerHostname,
+} from "@/lib/platform-workspaces/workspace-hostname";
+import { isCustomerHostnameAvailable } from "@/lib/platform-workspaces/workspace-host-alias-service";
+import { runWorkspaceProvisioning } from "@/lib/platform-workspaces/workspace-provisioning-orchestrator";
 import type {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
@@ -54,7 +59,9 @@ const WORKSPACE_SELECT = `
     provisioning_infrastructure_status,
     provisioning_deployment_status,
     provisioning_workspace_record_status,
+    provisioning_overall_status,
     provisioning_last_message,
+    customer_hostname,
     created_at,
     updated_at
   )
@@ -145,6 +152,7 @@ function metadataPayload(
   input: CreateWorkspaceInput,
   createdBy: string,
   provisioning: WorkspaceProvisioningState,
+  customerHostname: string,
   timestamp: string,
 ): WorkspaceAdminMetadataRow & { workspace_id: string; updated_at: string } {
   return {
@@ -160,11 +168,13 @@ function metadataPayload(
     pending_employees: [...input.employees],
     pending_clients: [...input.clients],
     created_by: createdBy,
+    customer_hostname: customerHostname,
     provisioning_database_status: provisioning.databaseStatus,
     provisioning_authentication_status: provisioning.authenticationStatus,
     provisioning_infrastructure_status: provisioning.infrastructureStatus,
     provisioning_deployment_status: provisioning.deploymentStatus,
     provisioning_workspace_record_status: provisioning.workspaceRecordStatus,
+    provisioning_overall_status: provisioning.overallStatus ?? "not_started",
     provisioning_last_message: provisioning.lastMessage ?? null,
     created_at: timestamp,
     updated_at: timestamp,
@@ -270,6 +280,14 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
       if (!input.companyName.trim()) throw new Error("Company name is required.");
       if (!input.contactEmail.trim()) throw new Error("Primary contact email is required.");
 
+      const customerHostname = resolveCustomerHostname(slug, input.customerHostname);
+      if (!isValidCustomerHostname(customerHostname)) {
+        throw new Error(`Customer hostname "${customerHostname}" is not valid or is reserved.`);
+      }
+      if (!(await isCustomerHostnameAvailable(customerHostname))) {
+        throw new Error(`Customer hostname "${customerHostname}" is already in use.`);
+      }
+
       const moduleKeys = resolveProvisioningModuleKeys(input.enabledModules, input.enabledSubModules);
       const provisioning: WorkspaceProvisioningState = {
         databaseStatus: "not_started",
@@ -277,6 +295,7 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
         infrastructureStatus: "not_started",
         deploymentStatus: "not_started",
         workspaceRecordStatus: "pending",
+        overallStatus: "not_started",
         lastMessage: "Creating workspace record.",
       };
 
@@ -312,23 +331,14 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
           "Workspace database foundation provisioned via provision_workspace().";
       } catch (error) {
         provisioning.workspaceRecordStatus = "failed";
+        provisioning.overallStatus = "failed";
         provisioning.lastMessage =
           error instanceof Error ? error.message : "Workspace database provisioning failed.";
         throw error;
       }
 
-      const userProvisioning = await queueWorkspaceUserProvisioning({
-        workspaceId,
-        workspaceSlug: slug,
-        employees: input.employees,
-      });
-      if (userProvisioning.status === "queued") {
-        provisioning.authenticationStatus = "pending";
-        provisioning.lastMessage = `${provisioning.lastMessage} ${userProvisioning.message}`;
-      }
-
       const timestamp = nowIso();
-      const metadata = metadataPayload(input, createdBy, provisioning, timestamp);
+      const metadata = metadataPayload(input, createdBy, provisioning, customerHostname, timestamp);
       metadata.workspace_id = workspaceId;
 
       const supabase = createTenancyServerClient();
@@ -340,9 +350,44 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
         throw new Error(metadataError.message || "Failed to persist workspace admin metadata.");
       }
 
+      await runWorkspaceProvisioning({
+        workspaceId,
+        workspaceSlug: slug,
+        workspaceType: input.type,
+        companyName: input.companyName.trim(),
+        contactName: input.contactName.trim(),
+        contactEmail: input.contactEmail.trim().toLowerCase(),
+        customerHostname,
+        employees: input.employees,
+        clients: input.clients,
+      });
+
       const record = await this.getById(workspaceId);
       if (!record) {
         throw new Error("Workspace was created but could not be loaded.");
+      }
+      return record;
+    },
+
+    async provision(workspaceId) {
+      const existing = await this.getById(workspaceId);
+      if (!existing) throw new Error("Workspace not found.");
+
+      await runWorkspaceProvisioning({
+        workspaceId: existing.workspaceId,
+        workspaceSlug: existing.slug,
+        workspaceType: existing.type,
+        companyName: existing.companyName,
+        contactName: existing.contact.name,
+        contactEmail: existing.contact.email,
+        customerHostname: existing.customerHostname,
+        employees: existing.pendingEmployees,
+        clients: existing.pendingClients,
+      });
+
+      const record = await this.getById(workspaceId);
+      if (!record) {
+        throw new Error("Workspace was provisioned but could not be loaded.");
       }
       return record;
     },

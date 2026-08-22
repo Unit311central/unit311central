@@ -17,6 +17,7 @@ import {
   subModuleKey,
   syncModuleSelection,
 } from "@/lib/platform-workspaces/module-catalogue";
+import { deriveDefaultCustomerHostname } from "@/lib/platform-workspaces/workspace-hostname";
 import type {
   CreateWorkspaceInput,
   WorkspaceAdminRecord,
@@ -39,6 +40,8 @@ const WIZARD_STEPS = [
 type WizardState = CreateWorkspaceInput & {
   slugAvailable: boolean | null;
   slugMessage: string | null;
+  hostnameAvailable: boolean | null;
+  hostnameMessage: string | null;
   employeeErrors: Array<{ row: number; message: string }>;
   clientErrors: Array<{ row: number; message: string }>;
 };
@@ -49,6 +52,7 @@ function initialState(): WizardState {
     type: "Customer",
     name: "",
     slug: "",
+    customerHostname: "",
     companyName: "",
     contactName: "",
     contactEmail: "",
@@ -68,6 +72,8 @@ function initialState(): WizardState {
     clients: [],
     slugAvailable: null,
     slugMessage: null,
+    hostnameAvailable: null,
+    hostnameMessage: null,
     employeeErrors: [],
     clientErrors: [],
   };
@@ -86,7 +92,8 @@ export function NewWorkspaceWizard() {
   const [state, setState] = useState<WizardState>(initialState);
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<WorkspaceAdminRecord | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [provisioning, setProvisioning] = useState(false);
+  const [provisionError, setProvisionError] = useState<string | null>(null);
   const [employeeCsv, setEmployeeCsv] = useState("");
   const [clientCsv, setClientCsv] = useState("");
 
@@ -99,14 +106,33 @@ export function NewWorkspaceWizard() {
         state.companyName.trim().length > 0 &&
         state.contactName.trim().length > 0 &&
         state.contactEmail.trim().length > 0 &&
-        state.slugAvailable === true
+        state.slugAvailable === true &&
+        (state.customerHostname?.trim().length === 0 || state.hostnameAvailable === true)
       );
+    }
+    if (step === 5) {
+      const hostname = state.customerHostname?.trim() || deriveDefaultCustomerHostname(state.slug);
+      return hostname.length > 0 && state.hostnameAvailable !== false;
     }
     if (step === 2) return state.enabledModules.length > 0;
     if (step === 3) return state.employeeErrors.length === 0;
     if (step === 4) return state.clientErrors.length === 0;
     return true;
   }, [state, step]);
+
+  async function checkHostname(hostname: string) {
+    const response = await fetch(
+      `/api/internal/workspaces/check-hostname?hostname=${encodeURIComponent(hostname)}`,
+    );
+    const payload = await readJson<{ available: boolean; hostname: string; message?: string }>(
+      response,
+    );
+    setState((current) => ({
+      ...current,
+      hostnameAvailable: payload.available,
+      hostnameMessage: payload.message ?? (payload.available ? "Hostname is available." : "Hostname is unavailable."),
+    }));
+  }
 
   async function checkSlug(slug: string) {
     const response = await fetch(
@@ -157,9 +183,12 @@ export function NewWorkspaceWizard() {
   }
 
   async function createWorkspace() {
+    if (busy || provisioning || created) return;
     setBusy(true);
-    setError(null);
+    setProvisionError(null);
     try {
+      const customerHostname =
+        state.customerHostname?.trim() || deriveDefaultCustomerHostname(state.slug);
       const response = await fetch("/api/internal/workspaces", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -167,6 +196,7 @@ export function NewWorkspaceWizard() {
           type: state.type,
           name: state.name,
           slug: state.slug,
+          customerHostname,
           companyName: state.companyName,
           contactName: state.contactName,
           contactEmail: state.contactEmail,
@@ -185,15 +215,46 @@ export function NewWorkspaceWizard() {
         } satisfies CreateWorkspaceInput),
       });
       const payload = await readJson<{ workspace?: WorkspaceAdminRecord; error?: string }>(response);
-      if (!response.ok) throw new Error(payload.error || "Workspace creation failed.");
+      if (!response.ok) throw new Error(payload.error || "Workspace provisioning failed.");
       setCreated(payload.workspace ?? null);
       setStep(WIZARD_STEPS.length - 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Workspace creation failed.");
+      setProvisionError(err instanceof Error ? err.message : "Workspace provisioning failed.");
     } finally {
       setBusy(false);
+      setProvisioning(false);
     }
   }
+
+  async function retryProvisioning() {
+    if (!created || busy || provisioning) return;
+    setBusy(true);
+    setProvisionError(null);
+    try {
+      const response = await fetch(`/api/internal/workspaces/${created.workspaceId}/provision`, {
+        method: "POST",
+      });
+      const payload = await readJson<{ workspace?: WorkspaceAdminRecord; error?: string }>(response);
+      if (!response.ok) throw new Error(payload.error || "Workspace provisioning retry failed.");
+      setCreated(payload.workspace ?? null);
+    } catch (err) {
+      setProvisionError(err instanceof Error ? err.message : "Workspace provisioning retry failed.");
+    } finally {
+      setBusy(false);
+      setProvisioning(false);
+    }
+  }
+
+  const resolvedHostname =
+    state.customerHostname?.trim() || deriveDefaultCustomerHostname(state.slug) || "hostname";
+  const provisioningComplete =
+    created?.provisioning.overallStatus === "complete" ||
+    (created?.provisioning.databaseStatus === "complete" &&
+      created?.provisioning.deploymentStatus === "complete" &&
+      created?.provisioning.workspaceRecordStatus === "complete" &&
+      (created?.provisioning.authenticationStatus === "complete" ||
+        created?.provisioning.authenticationStatus === "skipped"));
+  const provisioningFailed = created?.provisioning.overallStatus === "failed";
 
   return (
     <div className="space-y-5">
@@ -207,8 +268,8 @@ export function NewWorkspaceWizard() {
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">New Workspace</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">
-            Configure a customer or demo workspace. Phase 2 creates the workspace record and
-            configuration; external infrastructure provisioning connects in a later phase.
+            Configure a customer or demo workspace. Phase 3 provisions the database foundation,
+            authentication, hostname routing, and optional imports when you create the workspace.
           </p>
         </div>
       </header>
@@ -265,15 +326,25 @@ export function NewWorkspaceWizard() {
             <WizardField
               label="Workspace slug *"
               value={state.slug}
-              onChange={(value) =>
+              onChange={(value) => {
+                const nextSlug = value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
                 setState({
                   ...state,
-                  slug: value.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+                  slug: nextSlug,
                   slugAvailable: null,
                   slugMessage: null,
-                })
-              }
-              onBlur={() => state.slug && void checkSlug(state.slug)}
+                  customerHostname: deriveDefaultCustomerHostname(nextSlug),
+                  hostnameAvailable: null,
+                  hostnameMessage: null,
+                });
+              }}
+              onBlur={() => {
+                if (state.slug) {
+                  void checkSlug(state.slug);
+                  const hostname = state.customerHostname || deriveDefaultCustomerHostname(state.slug);
+                  if (hostname) void checkHostname(hostname);
+                }
+              }}
             />
             {state.slugMessage ? (
               <p className={cn("md:col-span-2 text-sm", state.slugAvailable ? "text-emerald-200" : "text-rose-200")}>
@@ -394,7 +465,44 @@ export function NewWorkspaceWizard() {
             <WizardField label="Logo URL" value={state.branding.logoUrl ?? ""} onChange={(value) => setState({ ...state, branding: { ...state.branding, logoUrl: value || null } })} />
             <WizardField label="Primary colour" value={state.branding.primaryColour} onChange={(value) => setState({ ...state, branding: { ...state.branding, primaryColour: value } })} />
             <WizardField label="Secondary colour" value={state.branding.secondaryColour} onChange={(value) => setState({ ...state, branding: { ...state.branding, secondaryColour: value } })} />
-            <WizardField label="Primary workspace URL" value={`https://${state.slug || "slug"}.unit311central.com`} onChange={() => undefined} readOnly />
+            <WizardField
+              label="Customer-facing hostname *"
+              value={state.customerHostname || deriveDefaultCustomerHostname(state.slug)}
+              onChange={(value) =>
+                setState({
+                  ...state,
+                  customerHostname: value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+                  hostnameAvailable: null,
+                  hostnameMessage: null,
+                })
+              }
+              onBlur={() => {
+                const hostname = state.customerHostname || deriveDefaultCustomerHostname(state.slug);
+                if (hostname) void checkHostname(hostname);
+              }}
+            />
+            {state.hostnameMessage ? (
+              <p
+                className={cn(
+                  "md:col-span-2 text-sm",
+                  state.hostnameAvailable ? "text-emerald-200" : "text-rose-200",
+                )}
+              >
+                {state.hostnameMessage}
+              </p>
+            ) : null}
+            <WizardField
+              label="Primary workspace URL"
+              value={`https://${resolvedHostname}.unit311central.com`}
+              onChange={() => undefined}
+              readOnly
+            />
+            {state.slug && state.customerHostname && state.slug !== state.customerHostname ? (
+              <p className="md:col-span-2 text-xs text-white/45">
+                Workspace slug <span className="font-mono">{state.slug}</span> maps to customer host{" "}
+                <span className="font-mono">{state.customerHostname}</span>.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -405,35 +513,34 @@ export function NewWorkspaceWizard() {
         {step === 7 ? (
           <div className="space-y-4">
             {created ? (
-              <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4">
-                <div className="flex items-center gap-2 text-emerald-100">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <p className="font-medium">Workspace created</p>
-                </div>
-                <p className="mt-2 text-sm text-emerald-50/85">
-                  Workspace ID <span className="font-mono">{created.workspaceId}</span> ·{" "}
-                  {created.primaryUrl}
-                </p>
-                <p className="mt-2 text-sm text-white/65">{created.provisioning.lastMessage}</p>
-                <Link href={overviewHref} className="mt-4 inline-flex text-sm text-sky-200 hover:text-sky-100">
-                  Open Workspace Overview
-                </Link>
-              </div>
+              <ProvisioningResultPanel
+                workspace={created}
+                complete={provisioningComplete}
+                failed={provisioningFailed}
+                overviewHref={overviewHref}
+                onRetry={() => void retryProvisioning()}
+                retryBusy={busy}
+                error={provisionError}
+              />
             ) : (
               <>
                 <p className="text-sm text-white/60">
-                  This will create the workspace record and persist configuration. Authentication,
-                  DNS, and external infrastructure provisioning remain Phase 3.
+                  This will provision the workspace database, configuration, hostname routing,
+                  authentication accounts, and any optional client imports.
                 </p>
-                {error ? <p className="text-sm text-rose-200">{error}</p> : null}
+                <ProvisioningStepList />
+                {provisionError ? <p className="text-sm text-rose-200">{provisionError}</p> : null}
                 <button
                   type="button"
-                  disabled={busy}
-                  onClick={() => void createWorkspace()}
-                  className="inline-flex items-center gap-2 rounded-xl border border-sky-400/40 bg-sky-500/15 px-4 py-2 text-sm font-medium text-sky-100"
+                  disabled={busy || provisioning}
+                  onClick={() => {
+                    setProvisioning(true);
+                    void createWorkspace();
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-sky-400/40 bg-sky-500/15 px-4 py-2 text-sm font-medium text-sky-100 disabled:opacity-40"
                 >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Create workspace
+                  {busy || provisioning ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Create / provision workspace
                 </button>
               </>
             )}
@@ -609,6 +716,8 @@ function ReviewSummary({
   state: WizardState;
   onEdit: (step: number) => void;
 }) {
+  const resolvedHostname =
+    state.customerHostname?.trim() || deriveDefaultCustomerHostname(state.slug) || "hostname";
   return (
     <div className="space-y-4 text-sm text-white/75">
       <ReviewBlock title="Workspace" onEdit={() => onEdit(1)}>
@@ -628,8 +737,127 @@ function ReviewSummary({
       <ReviewBlock title="Branding" onEdit={() => onEdit(5)}>
         <p>{state.branding.displayName}</p>
         <p>{state.branding.primaryColour} / {state.branding.secondaryColour}</p>
-        <p>https://{state.slug}.unit311central.com</p>
+        <p>https://{resolvedHostname}.unit311central.com</p>
+        {state.slug !== resolvedHostname ? (
+          <p className="text-white/50">Slug: {state.slug}</p>
+        ) : null}
       </ReviewBlock>
+    </div>
+  );
+}
+
+function ProvisioningStepList() {
+  const steps = [
+    "Workspace database foundation",
+    "Configuration and modules",
+    "Customer hostname routing",
+    "Authentication accounts",
+    "Optional client imports",
+    "Application deployment",
+  ];
+  return (
+    <ul className="space-y-2 text-sm text-white/60">
+      {steps.map((label) => (
+        <li key={label} className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-300" aria-hidden />
+          {label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ProvisioningResultPanel({
+  workspace,
+  complete,
+  failed,
+  overviewHref,
+  onRetry,
+  retryBusy,
+  error,
+}: {
+  workspace: WorkspaceAdminRecord;
+  complete: boolean;
+  failed: boolean;
+  overviewHref: string;
+  onRetry: () => void;
+  retryBusy: boolean;
+  error: string | null;
+}) {
+  const borderClass = complete
+    ? "border-emerald-400/30 bg-emerald-500/10"
+    : failed
+      ? "border-rose-400/30 bg-rose-500/10"
+      : "border-sky-400/30 bg-sky-500/10";
+  const title = complete ? "Workspace ready" : failed ? "Provisioning failed" : "Provisioning";
+
+  return (
+    <div className={cn("rounded-xl border p-4", borderClass)}>
+      <div className="flex items-center gap-2 text-white">
+        {complete ? (
+          <CheckCircle2 className="h-5 w-5 text-emerald-200" />
+        ) : failed ? (
+          <Loader2 className="h-5 w-5 text-rose-200" />
+        ) : (
+          <Loader2 className="h-5 w-5 animate-spin text-sky-200" />
+        )}
+        <p className="font-medium">{title}</p>
+      </div>
+      <p className="mt-2 text-sm text-white/80">
+        Workspace ID <span className="font-mono">{workspace.workspaceId}</span>
+      </p>
+      <p className="mt-1 text-sm text-white/80">
+        URL{" "}
+        <a href={workspace.primaryUrl} className="font-mono text-sky-200 hover:text-sky-100">
+          {workspace.primaryUrl}
+        </a>
+      </p>
+      <ProvisioningStatusGrid provisioning={workspace.provisioning} />
+      <p className="mt-3 text-sm text-white/65">{workspace.provisioning.lastMessage}</p>
+      {error ? <p className="mt-2 text-sm text-rose-200">{error}</p> : null}
+      {failed ? (
+        <button
+          type="button"
+          disabled={retryBusy}
+          onClick={onRetry}
+          className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-sm text-white/80"
+        >
+          {retryBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Retry provisioning
+        </button>
+      ) : null}
+      {complete ? (
+        <Link href={overviewHref} className="mt-4 inline-flex text-sm text-sky-200 hover:text-sky-100">
+          Open Workspace Overview
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
+function ProvisioningStatusGrid({
+  provisioning,
+}: {
+  provisioning: WorkspaceAdminRecord["provisioning"];
+}) {
+  const rows: Array<{ label: string; status: string }> = [
+    { label: "Database", status: provisioning.databaseStatus },
+    { label: "Workspace record", status: provisioning.workspaceRecordStatus },
+    { label: "Hostname / routing", status: provisioning.infrastructureStatus },
+    { label: "Authentication", status: provisioning.authenticationStatus },
+    { label: "Deployment", status: provisioning.deploymentStatus },
+  ];
+  return (
+    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      {rows.map((row) => (
+        <div
+          key={row.label}
+          className="rounded-lg border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/70"
+        >
+          <span className="text-white/45">{row.label}</span>
+          <p className="mt-1 font-medium capitalize text-white">{row.status.replace(/_/g, " ")}</p>
+        </div>
+      ))}
     </div>
   );
 }

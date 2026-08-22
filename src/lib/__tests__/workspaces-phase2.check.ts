@@ -221,6 +221,7 @@ async function runPersistenceTests() {
     assert.equal(created.pendingEmployees.length, 1);
     assert.equal(created.pendingClients.length, 1);
     assert.equal(created.provisioning.workspaceRecordStatus, "complete");
+    assert.equal(created.provisioning.overallStatus, "complete");
     assert.equal(created.enabledModules.length, 3);
     assert.equal(created.enabledSubModules.length, 2);
     assert.equal(created.branding.displayName, "Phase 2 Test");
