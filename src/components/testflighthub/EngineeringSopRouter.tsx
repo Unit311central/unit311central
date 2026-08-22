@@ -61,7 +61,7 @@ export default function EngineeringSopRouter({ view }: Props) {
     const totals = dashboard?.totals;
     return (
       <div className="space-y-6">
-        <WsSection title="SOP Dashboard" description="Workspace-scoped engineering procedure health.">
+        <WsSection title="SOP Dashboard" subtitle="Workspace-scoped engineering procedure health.">
           {loading && !dashboard ? <p className="text-sm text-white/60">Loading…</p> : null}
           {totals ? (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -101,7 +101,7 @@ export default function EngineeringSopRouter({ view }: Props) {
 
   if (resolved === "engineering-sops-tasks") {
     return (
-      <WsSection title="My Tasks" description="Open step tasks from active SOP runs.">
+      <WsSection title="My Tasks" subtitle="Open step tasks from active SOP runs.">
         {tasks.length ? (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
             {tasks.map((task) => (
@@ -124,7 +124,7 @@ export default function EngineeringSopRouter({ view }: Props) {
   if (resolved === "engineering-sops-runs") {
     const active = runs.filter((r) => r.status === "in_progress" || r.status === "paused");
     return (
-      <WsSection title="Active Runs" description="In-progress and paused procedure executions.">
+      <WsSection title="Active Runs" subtitle="In-progress and paused procedure executions.">
         {active.length ? (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
             {active.map((run) => (
@@ -149,7 +149,7 @@ export default function EngineeringSopRouter({ view }: Props) {
   if (resolved === "engineering-sops-reviews") {
     const reviews = dashboard?.reviewsAwaiting ?? [];
     return (
-      <WsSection title="Reviews & Approvals" description="SOPs awaiting approver action.">
+      <WsSection title="Reviews & Approvals" subtitle="SOPs awaiting approver action.">
         {reviews.length ? (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
             {reviews.map((item) => (
@@ -173,7 +173,7 @@ export default function EngineeringSopRouter({ view }: Props) {
 
   if (resolved === "engineering-sops-templates") {
     return (
-      <WsSection title="SOP Templates" description="Approved templates for new procedures.">
+      <WsSection title="SOP Templates" subtitle="Approved templates for new procedures.">
         {templates.length ? (
           <ul className="divide-y divide-white/10 rounded-xl border border-white/10">
             {templates.map((tpl) => (
@@ -194,7 +194,7 @@ export default function EngineeringSopRouter({ view }: Props) {
 
   if (resolved === "engineering-sops-reports") {
     return (
-      <WsSection title="SOP Reports" description="Aggregate compliance and execution metrics.">
+      <WsSection title="SOP Reports" subtitle="Aggregate compliance and execution metrics.">
         {report ? (
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
