@@ -30,6 +30,7 @@ import {
 import {
   SALES_MANAGEMENT_FOUNDATION_MIGRATION,
   UNIT311_PENDING_MIGRATIONS,
+  WORKSPACE_ADMIN_METADATA_MIGRATION,
 } from "@/lib/unit311-pending-migrations";
 
 class MockMigrationClient implements MigrationQueryClient {
@@ -91,30 +92,30 @@ assert.deepEqual(
   "every allowlisted migration must have a satisfaction probe",
 );
 
-const satisfied053To148 = new Map<string, boolean>(
+const satisfied053To149 = new Map<string, boolean>(
   UNIT311_PENDING_MIGRATIONS.map((migration) => [
     migration,
-    migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    migration !== WORKSPACE_ADMIN_METADATA_MIGRATION,
   ]),
 );
 
 const historicalActions = planMigrationActions({
   migrations: UNIT311_PENDING_MIGRATIONS,
   recordedMethods: new Map<string, MigrationLedgerMethod>(),
-  satisfied: satisfied053To148,
+  satisfied: satisfied053To149,
 });
 
 assert.equal(
   historicalActions.filter((action) => action.kind === "skip" && action.method === "verified_skip")
     .length,
-  UNIT311_PENDING_MIGRATIONS.length - 1,
+  UNIT311_PENDING_MIGRATIONS.length - 2,
   "053–148 should be verified_skip when schema probes pass",
 );
 
-const pending149Action = historicalActions.find(
-  (action) => action.kind === "apply" && action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+const pending150Action = historicalActions.find(
+  (action) => action.kind === "apply" && action.migration === WORKSPACE_ADMIN_METADATA_MIGRATION,
 );
-assert.ok(pending149Action, "149 must remain genuinely pending when its probe fails");
+assert.ok(pending150Action, "150 must remain genuinely pending when its probe fails");
 
 const ledgerSkipActions = planMigrationActions({
   migrations: UNIT311_PENDING_MIGRATIONS,
@@ -139,35 +140,35 @@ assert.equal(
 const staleVerifiedSkipActions = planMigrationActions({
   migrations: UNIT311_PENDING_MIGRATIONS,
   recordedMethods: new Map([
-    [migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION), "verified_skip"],
+    [migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION), "verified_skip"],
   ]),
-  satisfied: satisfied053To148,
+  satisfied: satisfied053To149,
 });
 assert.ok(
   staleVerifiedSkipActions.find(
-    (action) => action.kind === "apply" && action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    (action) => action.kind === "apply" && action.migration === WORKSPACE_ADMIN_METADATA_MIGRATION,
   ),
-  "149 must stay pending until runner-confirmed apply even when schema probes pass",
+  "150 must stay pending until runner-confirmed apply even when schema probes pass",
 );
 
-const satisfiedIncluding149 = new Map(satisfied053To148);
-satisfiedIncluding149.set(SALES_MANAGEMENT_FOUNDATION_MIGRATION, true);
+const satisfiedIncluding150 = new Map(satisfied053To149);
+satisfiedIncluding150.set(WORKSPACE_ADMIN_METADATA_MIGRATION, true);
 
-const ledgerConfirmed149Actions = planMigrationActions({
+const ledgerConfirmed150Actions = planMigrationActions({
   migrations: UNIT311_PENDING_MIGRATIONS,
   recordedMethods: new Map([
-    [migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION), "management-api"],
+    [migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION), "management-api"],
   ]),
-  satisfied: satisfiedIncluding149,
+  satisfied: satisfiedIncluding150,
 });
 assert.ok(
-  ledgerConfirmed149Actions.find(
+  ledgerConfirmed150Actions.find(
     (action) =>
       action.kind === "skip" &&
       action.method === "verified_skip" &&
-      action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+      action.migration === WORKSPACE_ADMIN_METADATA_MIGRATION,
   ),
-  "149 can verified_skip once ledger records a runner apply method",
+  "150 can verified_skip once ledger records a runner apply method",
 );
 
 const satisfied059 = new Map([
@@ -193,22 +194,22 @@ assert.equal(
 );
 assert.equal(
   shouldPersistVerifiedSkipLedger({
-    migration: SALES_MANAGEMENT_FOUNDATION_MIGRATION,
-    satisfied: satisfied053To148,
+    migration: WORKSPACE_ADMIN_METADATA_MIGRATION,
+    satisfied: satisfied053To149,
     ledgerMethod: "verified_skip",
   }),
   false,
-  "stale verified_skip + satisfied 149 probe must not persist ledger",
+  "stale verified_skip + satisfied 150 probe must not persist ledger",
 );
 assert.ok(
   planMigrationActions({
     migrations: UNIT311_PENDING_MIGRATIONS,
     recordedMethods: new Map([
-      [migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION), "verified_skip"],
+      [migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION), "verified_skip"],
     ]),
-    satisfied: satisfied053To148,
-  }).find((action) => action.kind === "apply" && action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION),
-  "stale verified_skip + satisfied 149 probe remains eligible for apply",
+    satisfied: satisfied053To149,
+  }).find((action) => action.kind === "apply" && action.migration === WORKSPACE_ADMIN_METADATA_MIGRATION),
+  "stale verified_skip + satisfied 150 probe remains eligible for apply",
 );
 
 assert.equal(shouldSkipPostSatisfactionProbe("verified_skip"), true);
@@ -222,11 +223,11 @@ assert.equal(
   false,
 );
 assert.equal(
-  inferSatisfiedFromLedgerForPost(SALES_MANAGEMENT_FOUNDATION_MIGRATION, "verified_skip"),
+  inferSatisfiedFromLedgerForPost(WORKSPACE_ADMIN_METADATA_MIGRATION, "verified_skip"),
   false,
 );
 assert.equal(
-  inferSatisfiedFromLedgerForPost(SALES_MANAGEMENT_FOUNDATION_MIGRATION, "management-api"),
+  inferSatisfiedFromLedgerForPost(WORKSPACE_ADMIN_METADATA_MIGRATION, "management-api"),
   true,
 );
 
@@ -273,6 +274,26 @@ assert.match(migration149Sql, /add column if not exists owner_user_id/, "crm_lea
 assert.match(migration149Sql, /create table if not exists public\.sales_teams/, "sales tables must stay idempotent");
 assert.match(migration149Sql, /create index if not exists sales_teams_workspace_idx/, "indexes must stay idempotent");
 
+const migration150Sql = readFileSync(
+  join(process.cwd(), "supabase/migrations/150_workspace_admin_metadata.sql"),
+  "utf8",
+);
+assert.match(
+  migration150Sql,
+  /create table if not exists public\.workspace_admin_metadata/,
+  "migration 150 must create workspace_admin_metadata idempotently",
+);
+assert.match(
+  migration150Sql,
+  /branding_display_name text not null default ''/,
+  "migration 150 must include branding_display_name",
+);
+assert.match(
+  migration150Sql,
+  /drop policy if exists workspace_admin_metadata_deny_all/,
+  "migration 150 must drop-then-create RLS policy for partial-apply recovery",
+);
+
 assert.equal(shouldUpgradeVerifiedSkipLedgerOnConflict("verified_skip", "management-api"), true);
 assert.equal(shouldUpgradeVerifiedSkipLedgerOnConflict("verified_skip", "postgres"), true);
 assert.equal(shouldUpgradeVerifiedSkipLedgerOnConflict("verified_skip", "verified_skip"), false);
@@ -290,9 +311,13 @@ void (async () => {
   for (const migration of UNIT311_PENDING_MIGRATIONS) {
     client.probeResults.set(
       migration,
-      migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+      migration !== WORKSPACE_ADMIN_METADATA_MIGRATION,
     );
   }
+  client.ledger.set(
+    migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
+    "management-api",
+  );
 
   let applyAttempts = 0;
   const result = await runPendingMigrations({
@@ -300,16 +325,16 @@ void (async () => {
     client,
     applyMigrationFile: async (migration) => {
       applyAttempts += 1;
-      assert.equal(migration, SALES_MANAGEMENT_FOUNDATION_MIGRATION);
+      assert.equal(migration, WORKSPACE_ADMIN_METADATA_MIGRATION);
       return { ok: true, method: "postgres" };
     },
   });
 
-  assert.equal(applyAttempts, 1, "only migration 149 SQL should execute");
+  assert.equal(applyAttempts, 1, "only migration 150 SQL should execute");
   assert.equal(result.ok, true);
   assert.equal(result.skipped.length, UNIT311_PENDING_MIGRATIONS.length - 1);
   assert.equal(result.applied.length, 1);
-  assert.equal(result.applied[0]?.migration, SALES_MANAGEMENT_FOUNDATION_MIGRATION);
+  assert.equal(result.applied[0]?.migration, WORKSPACE_ADMIN_METADATA_MIGRATION);
   assert.deepEqual(result.pending, []);
   assert.equal(result.errors.length, 0);
 
@@ -337,19 +362,19 @@ void (async () => {
   assert.deepEqual(failure.pending, ["supabase/migrations/059_email_mailbox_admin_account.sql"]);
 
   const recordedAfterSuccess = await fetchRecordedMigrationVersions(client);
-  assert.ok(recordedAfterSuccess.has("149_sales_management_foundation.sql"));
+  assert.ok(recordedAfterSuccess.has("150_workspace_admin_metadata.sql"));
   assert.ok(recordedAfterSuccess.has("059_email_mailbox_admin_account.sql"));
 
   const failureRecorded = await fetchRecordedMigrationVersions(failureClient);
   assert.ok(!failureRecorded.has("059_email_mailbox_admin_account.sql"));
 
-  const pendingOnly149 = computePendingMigrations({
+  const pendingOnly150 = computePendingMigrations({
     migrations: UNIT311_PENDING_MIGRATIONS,
     recordedMethods: client.ledger,
-    satisfied: satisfied053To148,
-    appliedMigrations: [SALES_MANAGEMENT_FOUNDATION_MIGRATION],
+    satisfied: satisfied053To149,
+    appliedMigrations: [WORKSPACE_ADMIN_METADATA_MIGRATION],
   });
-  assert.deepEqual(pendingOnly149, []);
+  assert.deepEqual(pendingOnly150, []);
 
   await recordMigrationApplied(
     client,
@@ -363,14 +388,18 @@ void (async () => {
   for (const migration of UNIT311_PENDING_MIGRATIONS) {
     preseededClient.probeResults.set(
       migration,
-      migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+      migration !== WORKSPACE_ADMIN_METADATA_MIGRATION,
     );
-    if (migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION) {
+    if (migration !== WORKSPACE_ADMIN_METADATA_MIGRATION) {
       preseededClient.ledger.set(migrationVersion(migration), "verified_skip");
     }
   }
   preseededClient.ledger.set(
     migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
+    "management-api",
+  );
+  preseededClient.ledger.set(
+    migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION),
     "verified_skip",
   );
 
@@ -385,7 +414,7 @@ void (async () => {
     client: preseededClient,
     applyMigrationFile: async (migration) => {
       preseededApplyAttempts += 1;
-      assert.equal(migration, SALES_MANAGEMENT_FOUNDATION_MIGRATION);
+      assert.equal(migration, WORKSPACE_ADMIN_METADATA_MIGRATION);
       // Simulates idempotent re-apply after partial production apply (tables/policies already exist).
       return { ok: true, method: "management-api" };
     },
@@ -404,10 +433,10 @@ void (async () => {
   assert.equal(
     insertQueriesAfter - insertQueriesBefore,
     1,
-    "POST should only write one new ledger row for runner-confirmed 149 apply",
+    "POST should only write one new ledger row for runner-confirmed 150 apply",
   );
   assert.equal(
-    preseededClient.ledger.get(migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION)),
+    preseededClient.ledger.get(migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION)),
     "management-api",
   );
   assert.equal(
@@ -415,84 +444,88 @@ void (async () => {
     "verified_skip",
     "existing verified_skip rows must remain read-only skips",
   );
-  assert.equal(preseededApplyAttempts, 1, "only migration 149 should attempt apply SQL");
+  assert.equal(preseededApplyAttempts, 1, "only migration 150 should attempt apply SQL");
   assert.equal(preseededResult.applied.length, 1);
-  assert.equal(preseededResult.applied[0]?.migration, SALES_MANAGEMENT_FOUNDATION_MIGRATION);
+  assert.equal(preseededResult.applied[0]?.migration, WORKSPACE_ADMIN_METADATA_MIGRATION);
   assert.equal(preseededResult.applied[0]?.method, "management-api");
   assert.deepEqual(preseededResult.pending, []);
 
-  const confirmed149Client = new MockMigrationClient();
+  const confirmed150Client = new MockMigrationClient();
   for (const migration of UNIT311_PENDING_MIGRATIONS) {
-    if (migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION) {
-      confirmed149Client.ledger.set(migrationVersion(migration), "verified_skip");
+    if (migration !== WORKSPACE_ADMIN_METADATA_MIGRATION) {
+      confirmed150Client.ledger.set(migrationVersion(migration), "verified_skip");
     }
   }
-  confirmed149Client.ledger.set(
+  confirmed150Client.ledger.set(
     migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
     "management-api",
   );
-  const confirmedProbeQueriesBefore = countProbeQueries(confirmed149Client);
+  confirmed150Client.ledger.set(
+    migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION),
+    "management-api",
+  );
+  const confirmedProbeQueriesBefore = countProbeQueries(confirmed150Client);
   let confirmedApplyAttempts = 0;
   const confirmedResult = await runPendingMigrations({
     migrations: UNIT311_PENDING_MIGRATIONS,
-    client: confirmed149Client,
+    client: confirmed150Client,
     applyMigrationFile: async () => {
       confirmedApplyAttempts += 1;
       return { ok: true, method: "management-api" };
     },
   });
   assert.equal(
-    countProbeQueries(confirmed149Client) - confirmedProbeQueriesBefore,
+    countProbeQueries(confirmed150Client) - confirmedProbeQueriesBefore,
     0,
     "POST must not probe runner-confirmed ledger rows",
   );
-  assert.equal(confirmedApplyAttempts, 0, "149 with management-api ledger must not apply again");
+  assert.equal(confirmedApplyAttempts, 0, "150 with management-api ledger must not apply again");
   assert.equal(confirmedResult.applied.length, 0);
   assert.deepEqual(confirmedResult.pending, []);
 
   const staleVerifiedSkipClient = new MockMigrationClient();
-  staleVerifiedSkipClient.probeResults.set(SALES_MANAGEMENT_FOUNDATION_MIGRATION, true);
+  staleVerifiedSkipClient.probeResults.set(WORKSPACE_ADMIN_METADATA_MIGRATION, true);
   staleVerifiedSkipClient.ledger.set(
-    migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
+    migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION),
     "verified_skip",
   );
   const stalePlan = await describePendingMigrationPlan(
-    [SALES_MANAGEMENT_FOUNDATION_MIGRATION],
+    [WORKSPACE_ADMIN_METADATA_MIGRATION],
     staleVerifiedSkipClient,
   );
   assert.equal(
-    staleVerifiedSkipClient.ledger.get(migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION)),
+    staleVerifiedSkipClient.ledger.get(migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION)),
     "management-api",
     "GET must upgrade stale verified_skip via recordMigrationApplied after runner-confirmed apply",
   );
   assert.deepEqual(stalePlan.pending, []);
   assert.equal(
-    stalePlan.actions.find((action) => action.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION)?.kind,
+    stalePlan.actions.find((action) => action.migration === WORKSPACE_ADMIN_METADATA_MIGRATION)?.kind,
     "skip",
   );
 
   const ledgerUpgradeClient = new MockMigrationClient();
   await recordMigrationApplied(
     ledgerUpgradeClient,
-    SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    WORKSPACE_ADMIN_METADATA_MIGRATION,
     "verified_skip",
   );
   await recordMigrationApplied(
     ledgerUpgradeClient,
-    SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    WORKSPACE_ADMIN_METADATA_MIGRATION,
     "management-api",
   );
   assert.equal(
-    ledgerUpgradeClient.ledger.get(migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION)),
+    ledgerUpgradeClient.ledger.get(migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION)),
     "management-api",
   );
   await recordMigrationApplied(
     ledgerUpgradeClient,
-    SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+    WORKSPACE_ADMIN_METADATA_MIGRATION,
     "verified_skip",
   );
   assert.equal(
-    ledgerUpgradeClient.ledger.get(migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION)),
+    ledgerUpgradeClient.ledger.get(migrationVersion(WORKSPACE_ADMIN_METADATA_MIGRATION)),
     "management-api",
     "confirmed ledger rows must not downgrade to verified_skip",
   );
@@ -501,10 +534,14 @@ void (async () => {
   for (const migration of UNIT311_PENDING_MIGRATIONS) {
     dryRunClient.probeResults.set(
       migration,
-      migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+      migration !== WORKSPACE_ADMIN_METADATA_MIGRATION,
     );
     dryRunClient.ledger.set(migrationVersion(migration), "verified_skip");
   }
+  dryRunClient.ledger.set(
+    migrationVersion(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
+    "management-api",
+  );
 
   const dryRunPlan = await describePendingMigrationPlan(UNIT311_PENDING_MIGRATIONS, dryRunClient);
   const dryRunActions = planMigrationActions({
@@ -513,7 +550,7 @@ void (async () => {
     satisfied: new Map(
       UNIT311_PENDING_MIGRATIONS.map((migration) => [
         migration,
-        migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+        migration !== WORKSPACE_ADMIN_METADATA_MIGRATION,
       ]),
     ),
   });
@@ -525,8 +562,8 @@ void (async () => {
   );
   assert.deepEqual(dryRunPlan.actions, dryRunActions, "GET dry-run plan must stay unchanged");
   assert.ok(
-    dryRunPlan.pending.includes(SALES_MANAGEMENT_FOUNDATION_MIGRATION),
-    "149 remains pending on GET dry-run until runner-confirmed apply",
+    dryRunPlan.pending.includes(WORKSPACE_ADMIN_METADATA_MIGRATION),
+    "150 remains pending on GET dry-run until runner-confirmed apply",
   );
   assert.equal(
     dryRunClient.queries.filter((sql) => sql.startsWith("insert into public.unit311_applied_migrations"))
