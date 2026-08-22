@@ -288,7 +288,8 @@ import {
 import { useSurveyOperationsSimulator } from "./SurveyOperationsSimulatorProvider";
 import NorthstarAssetKpiBar from "@/components/demo/NorthstarAssetKpiBar";
 import { OnwardAirPlaceholderWorkspace } from "@/components/onwardair/OnwardAirPlaceholderWorkspace";
-import { WorkspacesPlaceholderWorkspace } from "@/components/platform-workspaces/WorkspacesPlaceholderWorkspace";
+import { WorkspacesOverviewWorkspace } from "@/components/platform-workspaces/WorkspacesOverviewWorkspace";
+import { NewWorkspaceWizard } from "@/components/platform-workspaces/NewWorkspaceWizard";
 import { OperationsDashboardWorkspace } from "@/components/testflighthub/OperationsDashboardWorkspace";
 import {
   EngineeringAssuranceWorkspace,
@@ -1272,19 +1273,13 @@ export default function InternalOperationsDashboard({
 
           {activeView === "workspaces-overview" && isInternalHost && (
             <WorkspaceErrorBoundary title="Workspace Overview">
-              <WorkspacesPlaceholderWorkspace
-                title="Workspace Overview"
-                description="Review customer and demo workspaces provisioned on the platform. Full administration workflows arrive in a later phase."
-              />
+              <WorkspacesOverviewWorkspace />
             </WorkspaceErrorBoundary>
           )}
 
           {activeView === "workspaces-new" && isInternalHost && (
             <WorkspaceErrorBoundary title="New Workspace">
-              <WorkspacesPlaceholderWorkspace
-                title="New Workspace"
-                description="Create and provision a new customer or demo workspace. The provisioning wizard ships in a later phase."
-              />
+              <NewWorkspaceWizard />
             </WorkspaceErrorBoundary>
           )}
 
