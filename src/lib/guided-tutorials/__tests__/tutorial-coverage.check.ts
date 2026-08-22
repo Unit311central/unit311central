@@ -79,7 +79,7 @@ function testPrimaryIdentityIsRuntimeBinding() {
 function testLiveTutorialsReconcile() {
   resetCanonicalLabelIndexForTests();
   const reconciliation = reconcileTutorialCoverage();
-  assert.equal(reconciliation.liveTutorials.length, 12);
+  assert.equal(reconciliation.liveTutorials.length, 22);
   assert.equal(reconciliation.orphanRegistryEntries.length, 0);
   assert.equal(reconciliation.duplicateTutorialIds.length, 0);
   assert.equal(reconciliation.duplicateRuntimeBindings.length, 0);
@@ -109,7 +109,7 @@ function testLiveTutorialsReconcile() {
 }
 
 function testRegistryMatchesCanonicalBindings() {
-  assert.equal(listTutorialDefinitions().length, 12);
+  assert.equal(listTutorialDefinitions().length, 22);
   for (const tutorial of listTutorialDefinitions()) {
     const derived = deriveTutorialId({
       viewId: tutorial.viewId,

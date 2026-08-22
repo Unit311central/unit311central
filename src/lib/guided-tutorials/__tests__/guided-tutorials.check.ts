@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { WAVE_1_TUTORIAL_IDS } from "@/lib/guided-tutorials/content/wave-1-scope";
+import { WAVE_2_TUTORIAL_IDS } from "@/lib/guided-tutorials/content/wave-2-scope";
 import { FINANCIALS_DASHBOARD_TUTORIAL } from "@/lib/guided-tutorials/content/financials-dashboard";
 import { SALES_MANAGEMENT_COMMISSIONS_TUTORIAL } from "@/lib/guided-tutorials/content/sales-management-commissions";
 import {
@@ -232,6 +233,46 @@ function testWave1TutorialsResolve() {
   assert.equal(WAVE_1_TUTORIAL_IDS.length, 10);
 }
 
+function testWave2TutorialsResolve() {
+  const cases: Array<{ viewId: string; tabKey?: string; tutorialId: string }> = [
+    { viewId: "fundraising-dashboard", tutorialId: "fundraising.dashboard" },
+    { viewId: "board-dashboard", tutorialId: "board.board-dashboard" },
+    { viewId: "corporate-dashboard", tutorialId: "corporate-information.dashboard" },
+    { viewId: "operations-dashboard", tutorialId: "operations.dashboard" },
+    { viewId: "oa-marketing-dashboard", tutorialId: "marketing-events.dashboard" },
+    { viewId: "technology-dashboard", tutorialId: "technology-management.dashboard" },
+    { viewId: "hr-dashboard", tutorialId: "human-resources.dashboard" },
+    { viewId: "productivity-dashboard", tutorialId: "business-productivity.dashboard" },
+    { viewId: "support", tutorialId: "support-desk.tickets" },
+    { viewId: "settings", tutorialId: "settings.general" },
+  ];
+
+  for (const row of cases) {
+    const resolution = resolveTutorialForView(DEMO_WORKSPACE_SLUG, row.viewId, row.tabKey);
+    assert.equal(resolution.status, "available", `${row.tutorialId} on demo`);
+    if (resolution.status === "available") {
+      assert.equal(resolution.tutorial.tutorialId, row.tutorialId);
+    }
+  }
+
+  assert.equal(WAVE_2_TUTORIAL_IDS.length, 10);
+}
+
+function testWave2ContentIsWorkspaceNeutral() {
+  const banned = /\b(demo|onwardair|talanton|abhi|northstar)\b/i;
+  for (const tutorial of listTutorialDefinitions()) {
+    if (!WAVE_2_TUTORIAL_IDS.includes(tutorial.tutorialId as (typeof WAVE_2_TUTORIAL_IDS)[number])) {
+      continue;
+    }
+    const text = [
+      tutorial.title,
+      tutorial.description,
+      ...tutorial.steps.map((step) => `${step.title} ${step.body} ${step.tryPrompt ?? ""}`),
+    ].join(" ");
+    assert.ok(!banned.test(text), `${tutorial.tutorialId} contains workspace-specific naming`);
+  }
+}
+
 function testStepPresentationHelpers() {
   const highlightStep = FINANCIALS_DASHBOARD_TUTORIAL.steps[0]!;
   assert.ok(stepUsesDomHighlight(highlightStep));
@@ -257,8 +298,10 @@ function run() {
   testResolveTutorialTabKeyForSales();
   testCommissionsRichMediaSteps();
   testWave1TutorialsResolve();
+  testWave2TutorialsResolve();
+  testWave2ContentIsWorkspaceNeutral();
   testStepPresentationHelpers();
-  assert.equal(listTutorialDefinitions().length, 12);
+  assert.equal(listTutorialDefinitions().length, 22);
   console.log("guided-tutorials.check.ts: all assertions passed");
 }
 
