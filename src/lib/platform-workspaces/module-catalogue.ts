@@ -248,6 +248,18 @@ export function defaultEnabledSubModules(moduleIds: readonly string[]): string[]
   return keys;
 }
 
+/** All catalogue modules and their sub-modules (for Workspaces wizard “select all”). */
+export function allCatalogueModuleSelections(): {
+  enabledModules: string[];
+  enabledSubModules: string[];
+} {
+  const enabledModules = [...WORKSPACE_MODULE_IDS];
+  return {
+    enabledModules,
+    enabledSubModules: defaultEnabledSubModules(enabledModules),
+  };
+}
+
 /** Resolve workspace_modules.module_key values from wizard selections. */
 export function resolveProvisioningModuleKeys(
   enabledModules: readonly string[],

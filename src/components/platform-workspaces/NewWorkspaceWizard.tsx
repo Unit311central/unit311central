@@ -12,6 +12,8 @@ import {
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import {
   WORKSPACE_MODULE_CATALOGUE,
+  WORKSPACE_MODULE_IDS,
+  allCatalogueModuleSelections,
   defaultEnabledModules,
   defaultEnabledSubModules,
   subModuleKey,
@@ -127,6 +129,13 @@ export function NewWorkspaceWizard() {
   const [provisionError, setProvisionError] = useState<string | null>(null);
   const [employeeCsv, setEmployeeCsv] = useState("");
   const [clientCsv, setClientCsv] = useState("");
+
+  const allModulesSelected = useMemo(
+    () =>
+      WORKSPACE_MODULE_IDS.length > 0 &&
+      WORKSPACE_MODULE_IDS.every((id) => state.enabledModules.includes(id)),
+    [state.enabledModules],
+  );
 
   const canContinue = useMemo(() => {
     if (step === 0) return state.type === "Customer" || state.type === "Demo";
@@ -418,7 +427,22 @@ export function NewWorkspaceWizard() {
         ) : null}
 
         {step === 2 ? (
-          <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
+          <div className="space-y-3">
+            <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm font-medium text-white">
+              <input
+                type="checkbox"
+                checked={allModulesSelected}
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    setState({ ...state, ...allCatalogueModuleSelections() });
+                    return;
+                  }
+                  setState({ ...state, enabledModules: [], enabledSubModules: [] });
+                }}
+              />
+              Select all modules
+            </label>
+            <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
             {WORKSPACE_MODULE_CATALOGUE.map((module) => {
               const enabled = state.enabledModules.includes(module.id);
               return (
@@ -477,6 +501,7 @@ export function NewWorkspaceWizard() {
                 </div>
               );
             })}
+            </div>
           </div>
         ) : null}
 
