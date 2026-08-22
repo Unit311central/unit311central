@@ -1,0 +1,2829 @@
+{
+  "generatedAt": "2026-08-22T00:24:17.755Z",
+  "stats": {
+    "totalCanonicalFunctions": 195,
+    "contentFunctions": 182,
+    "uniqueTutorialIds": 193,
+    "live": 2,
+    "stub": 0,
+    "missing": 180,
+    "shell": 13,
+    "confirmed": 25,
+    "derived": 145,
+    "needsMapping": 25
+  },
+  "rows": [
+    {
+      "tutorialId": "financials.payable-approvals",
+      "module": "financials",
+      "function": "payable-approvals",
+      "viewId": "accounts-payable",
+      "tabKey": "approvals",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "financials.due-dates",
+      "module": "financials",
+      "function": "due-dates",
+      "viewId": "accounts-payable",
+      "tabKey": "due-dates",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.supplier-invoices",
+      "module": "financials",
+      "function": "supplier-invoices",
+      "viewId": "accounts-payable",
+      "tabKey": "invoices",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "financials.payable-outstanding",
+      "module": "financials",
+      "function": "payable-outstanding",
+      "viewId": "accounts-payable",
+      "tabKey": "outstanding",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "financials.accounts-receivable",
+      "module": "financials",
+      "function": "accounts-receivable",
+      "viewId": "accounts-receivable",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "financials.receivable-outstanding",
+      "module": "financials",
+      "function": "receivable-outstanding",
+      "viewId": "accounts-receivable",
+      "tabKey": "outstanding",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "financials.overdue",
+      "module": "financials",
+      "function": "overdue",
+      "viewId": "accounts-receivable",
+      "tabKey": "overdue",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "needs-mapping.annual-impact-report",
+      "module": "needs-mapping",
+      "function": "annual-impact-report",
+      "viewId": "annual-impact-report",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "settings.appearance",
+      "module": "settings",
+      "function": "appearance",
+      "viewId": "appearance",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "operations.assets",
+      "module": "operations",
+      "function": "assets",
+      "viewId": "assets",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "settings.billing",
+      "module": "settings",
+      "function": "billing",
+      "viewId": "billing",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "board.board-dashboard",
+      "module": "board",
+      "function": "board-dashboard",
+      "viewId": "board-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.board-meetings",
+      "module": "corporate-information",
+      "function": "board-meetings",
+      "viewId": "board-meetings",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "board.board-members",
+      "module": "board",
+      "function": "board-members",
+      "viewId": "board-members",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "board.minutes-decisions",
+      "module": "board",
+      "function": "minutes-decisions",
+      "viewId": "board-minutes",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.board-deck",
+      "module": "corporate-information",
+      "function": "board-deck",
+      "viewId": "board-pack",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.dashboard",
+      "module": "business-central",
+      "function": "dashboard",
+      "viewId": "business-central-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-productivity.calendar",
+      "module": "business-productivity",
+      "function": "calendar",
+      "viewId": "calendar",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.client-onboarding",
+      "module": "business-central",
+      "function": "client-onboarding",
+      "viewId": "client-onboarding",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "business-central.clients",
+      "module": "business-central",
+      "function": "clients",
+      "viewId": "clients-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "business-central.client-directory",
+      "module": "business-central",
+      "function": "client-directory",
+      "viewId": "clients",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "business-productivity.communications",
+      "module": "business-productivity",
+      "function": "communications",
+      "viewId": "communications",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "training.company-progress",
+      "module": "training",
+      "function": "company-progress",
+      "viewId": "company-progress",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-productivity.content-studio",
+      "module": "business-productivity",
+      "function": "content-studio",
+      "viewId": "content-studio",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.professional-advisors",
+      "module": "corporate-information",
+      "function": "professional-advisors",
+      "viewId": "corporate-advisers",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.bank-accounts",
+      "module": "corporate-information",
+      "function": "bank-accounts",
+      "viewId": "corporate-bank-accounts",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.board-of-directors",
+      "module": "corporate-information",
+      "function": "board-of-directors",
+      "viewId": "corporate-board-directors",
+      "tabKey": null,
+      "workspaces": [
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.cap-table-management",
+      "module": "corporate-information",
+      "function": "cap-table-management",
+      "viewId": "corporate-cap-table",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.company-details",
+      "module": "corporate-information",
+      "function": "company-details",
+      "viewId": "corporate-company-details",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.contracts",
+      "module": "corporate-information",
+      "function": "contracts",
+      "viewId": "corporate-contracts",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.dashboard",
+      "module": "corporate-information",
+      "function": "dashboard",
+      "viewId": "corporate-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "corporate-information.risk-register",
+      "module": "corporate-information",
+      "function": "risk-register",
+      "viewId": "corporate-risk-register",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "training.course-builder",
+      "module": "training",
+      "function": "course-builder",
+      "viewId": "course-builder",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.discovery",
+      "module": "business-central",
+      "function": "discovery",
+      "viewId": "crm-meetings",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "business-central.pipeline",
+      "module": "business-central",
+      "function": "pipeline",
+      "viewId": "crm",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "engineering.team-capacity",
+      "module": "engineering",
+      "function": "team-capacity",
+      "viewId": "engineering-capacity",
+      "tabKey": null,
+      "workspaces": [
+        "demo"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "engineering.dashboard",
+      "module": "engineering",
+      "function": "dashboard",
+      "viewId": "engineering-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "demo"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "engineering.programs-milestones",
+      "module": "engineering",
+      "function": "programs-milestones",
+      "viewId": "engineering-programs",
+      "tabKey": null,
+      "workspaces": [
+        "demo"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "engineering.risks",
+      "module": "engineering",
+      "function": "risks",
+      "viewId": "engineering-risks",
+      "tabKey": null,
+      "workspaces": [
+        "demo"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "engineering.standard-operating-procedures",
+      "module": "engineering",
+      "function": "standard-operating-procedures",
+      "viewId": "engineering-sops",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "executive-assistant",
+      "module": "executive-assistant",
+      "function": "executive-assistant",
+      "viewId": "executive-assistant",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "financials.expense-management",
+      "module": "financials",
+      "function": "expense-management",
+      "viewId": "expenses",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "external-client-access.dashboard",
+      "module": "external-client-access",
+      "function": "dashboard",
+      "viewId": "external-client-access",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-productivity.client-explorer",
+      "module": "business-productivity",
+      "function": "client-explorer",
+      "viewId": "files-client",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-productivity.external-files",
+      "module": "business-productivity",
+      "function": "external-files",
+      "viewId": "files-external",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-productivity.internal-files",
+      "module": "business-productivity",
+      "function": "internal-files",
+      "viewId": "files-internal",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.payments",
+      "module": "financials",
+      "function": "payments",
+      "viewId": "finances-ap-payments",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.collections",
+      "module": "financials",
+      "function": "collections",
+      "viewId": "finances-ar-collections",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.ar-reporting",
+      "module": "financials",
+      "function": "ar-reporting",
+      "viewId": "finances-ar-reporting",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.cash-position",
+      "module": "financials",
+      "function": "cash-position",
+      "viewId": "finances-banking-cash-position",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.reconciliation",
+      "module": "financials",
+      "function": "reconciliation",
+      "viewId": "finances-banking-reconciliation",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.expense-approvals",
+      "module": "financials",
+      "function": "expense-approvals",
+      "viewId": "finances-expense-approvals",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "financials.categories",
+      "module": "financials",
+      "function": "categories",
+      "viewId": "finances-expense-categories",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.actual-vs-budget",
+      "module": "financials",
+      "function": "actual-vs-budget",
+      "viewId": "finances-planning-actual-vs-budget",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.budget",
+      "module": "financials",
+      "function": "budget",
+      "viewId": "finances-planning-budget",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.cash-flow",
+      "module": "financials",
+      "function": "cash-flow",
+      "viewId": "finances-planning-cash-flow",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.forecast",
+      "module": "financials",
+      "function": "forecast",
+      "viewId": "finances-planning-forecast",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.financial-kpis",
+      "module": "financials",
+      "function": "financial-kpis",
+      "viewId": "finances-planning-kpis",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.management-accounts",
+      "module": "financials",
+      "function": "management-accounts",
+      "viewId": "finances-planning-management-accounts",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "shell",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.financial-reports",
+      "module": "financials",
+      "function": "financial-reports",
+      "viewId": "financial-reports",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.dashboard",
+      "module": "financials",
+      "function": "dashboard",
+      "viewId": "financials",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "live",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "fundraising.cap-table-management",
+      "module": "fundraising",
+      "function": "cap-table-management",
+      "viewId": "fundraising-cap-table",
+      "tabKey": null,
+      "workspaces": [
+        "demo"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "fundraising.dashboard",
+      "module": "fundraising",
+      "function": "dashboard",
+      "viewId": "fundraising-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "fundraising.data-rooms",
+      "module": "fundraising",
+      "function": "data-rooms",
+      "viewId": "fundraising-data-rooms",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "fundraising.investors",
+      "module": "fundraising",
+      "function": "investors",
+      "viewId": "fundraising-investors",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "fundraising.meetings",
+      "module": "fundraising",
+      "function": "meetings",
+      "viewId": "fundraising-meetings",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "fundraising.pipeline",
+      "module": "fundraising",
+      "function": "pipeline",
+      "viewId": "fundraising-pipeline",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "fundraising.pitch-decks",
+      "module": "fundraising",
+      "function": "pitch-decks",
+      "viewId": "fundraising-pitch-decks",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "needs-mapping.funds-commitments",
+      "module": "needs-mapping",
+      "function": "funds-commitments",
+      "viewId": "funds-commitments",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.funds-dashboard",
+      "module": "needs-mapping",
+      "function": "funds-dashboard",
+      "viewId": "funds-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.funds-impact",
+      "module": "needs-mapping",
+      "function": "funds-impact",
+      "viewId": "funds-impact",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.funds-investors",
+      "module": "needs-mapping",
+      "function": "funds-investors",
+      "viewId": "funds-investors",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.funds-momentum",
+      "module": "needs-mapping",
+      "function": "funds-momentum",
+      "viewId": "funds-momentum",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.funds-performance",
+      "module": "needs-mapping",
+      "function": "funds-performance",
+      "viewId": "funds-performance",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.funds-stewards",
+      "module": "needs-mapping",
+      "function": "funds-stewards",
+      "viewId": "funds-stewards",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "financials.accounts",
+      "module": "financials",
+      "function": "accounts",
+      "viewId": "general-ledger",
+      "tabKey": "accounts",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.journal",
+      "module": "financials",
+      "function": "journal",
+      "viewId": "general-ledger",
+      "tabKey": "journal",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "financials.trial",
+      "module": "financials",
+      "function": "trial",
+      "viewId": "general-ledger",
+      "tabKey": "trial",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.grants",
+      "module": "business-central",
+      "function": "grants",
+      "viewId": "grants",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "home",
+      "module": "home",
+      "function": "home",
+      "viewId": "home",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "human-resources.dashboard",
+      "module": "human-resources",
+      "function": "dashboard",
+      "viewId": "hr-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "human-resources.time-attendance",
+      "module": "human-resources",
+      "function": "time-attendance",
+      "viewId": "hr-leave",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "human-resources.org-chart",
+      "module": "human-resources",
+      "function": "org-chart",
+      "viewId": "hr-org-chart",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "human-resources.payroll",
+      "module": "human-resources",
+      "function": "payroll",
+      "viewId": "hr-payroll",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "human-resources.performance",
+      "module": "human-resources",
+      "function": "performance",
+      "viewId": "hr-performance",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "human-resources.recruitment",
+      "module": "human-resources",
+      "function": "recruitment",
+      "viewId": "hr-recruitment",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "human-resources.hr-reports",
+      "module": "human-resources",
+      "function": "hr-reports",
+      "viewId": "hr-reports",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "human-resources.employees",
+      "module": "human-resources",
+      "function": "employees",
+      "viewId": "hr",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "needs-mapping.impact-intelligence-company",
+      "module": "needs-mapping",
+      "function": "impact-intelligence-company",
+      "viewId": "impact-intelligence-company",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.impact-intelligence-dashboard",
+      "module": "needs-mapping",
+      "function": "impact-intelligence-dashboard",
+      "viewId": "impact-intelligence-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "business-productivity.email",
+      "module": "business-productivity",
+      "function": "email",
+      "viewId": "info-email",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "tools.integrations",
+      "module": "tools",
+      "function": "integrations",
+      "viewId": "integrations",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "operations.inventory",
+      "module": "operations",
+      "function": "inventory",
+      "viewId": "inventory-management",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "needs-mapping.journey-stories",
+      "module": "needs-mapping",
+      "function": "journey-stories",
+      "viewId": "journey-stories",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "training.learning-library",
+      "module": "training",
+      "function": "learning-library",
+      "viewId": "learning-library",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "operations.logistics",
+      "module": "operations",
+      "function": "logistics",
+      "viewId": "logistics",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.management",
+      "module": "business-central",
+      "function": "management",
+      "viewId": "management",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "marketing-events.abhi-events",
+      "module": "marketing-events",
+      "function": "abhi-events",
+      "viewId": "marketing-abhi-events",
+      "tabKey": null,
+      "workspaces": [
+        "abhi"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "marketing-events.event-management",
+      "module": "marketing-events",
+      "function": "event-management",
+      "viewId": "marketing-event-management",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "marketing-events.external-events",
+      "module": "marketing-events",
+      "function": "external-events",
+      "viewId": "marketing-events",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "marketing-events.mailing-list-management",
+      "module": "marketing-events",
+      "function": "mailing-list-management",
+      "viewId": "marketing-mailing-list",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "marketing-events.abhi-middle-east-accelerator",
+      "module": "marketing-events",
+      "function": "abhi-middle-east-accelerator",
+      "viewId": "marketing-me-accelerator",
+      "tabKey": null,
+      "workspaces": [
+        "abhi"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "marketing-events.digital-newsletter",
+      "module": "marketing-events",
+      "function": "digital-newsletter",
+      "viewId": "marketing-newsletter",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "marketing-events.abhi-us-accelerator",
+      "module": "marketing-events",
+      "function": "abhi-us-accelerator",
+      "viewId": "marketing-us-accelerator",
+      "tabKey": null,
+      "workspaces": [
+        "abhi"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "marketing-events.abhi-working-groups",
+      "module": "marketing-events",
+      "function": "abhi-working-groups",
+      "viewId": "marketing-working-groups",
+      "tabKey": null,
+      "workspaces": [
+        "abhi"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.member-intelligence",
+      "module": "business-central",
+      "function": "member-intelligence",
+      "viewId": "member-intelligence",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-productivity.messaging",
+      "module": "business-productivity",
+      "function": "messaging",
+      "viewId": "messaging",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.module-go-live",
+      "module": "corporate-information",
+      "function": "module-go-live",
+      "viewId": "module-go-live",
+      "tabKey": null,
+      "workspaces": [
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "engineering.assurance-certification",
+      "module": "engineering",
+      "function": "assurance-certification",
+      "viewId": "oa-assurance-certification",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "intelligence.competitor-intelligence",
+      "module": "intelligence",
+      "function": "competitor-intelligence",
+      "viewId": "oa-competitor-intelligence",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "intelligence.ecosystem-partners",
+      "module": "intelligence",
+      "function": "ecosystem-partners",
+      "viewId": "oa-ecosystem-partners",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "engineering.integrations",
+      "module": "engineering",
+      "function": "integrations",
+      "viewId": "oa-engineering-integrations",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "engineering.engineering-overview",
+      "module": "engineering",
+      "function": "engineering-overview",
+      "viewId": "oa-engineering-overview",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "engineering.engineering-risks",
+      "module": "engineering",
+      "function": "engineering-risks",
+      "viewId": "oa-engineering-risks",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "intellectual-property.patents-dashboard",
+      "module": "intellectual-property",
+      "function": "patents-dashboard",
+      "viewId": "oa-ip-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "intellectual-property.patent-documents",
+      "module": "intellectual-property",
+      "function": "patent-documents",
+      "viewId": "oa-ip-documents",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "intellectual-property.ip-overview",
+      "module": "intellectual-property",
+      "function": "ip-overview",
+      "viewId": "oa-ip-overview",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "intellectual-property.patent-portfolio",
+      "module": "intellectual-property",
+      "function": "patent-portfolio",
+      "viewId": "oa-ip-portfolio",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "intellectual-property.patent-register",
+      "module": "intellectual-property",
+      "function": "patent-register",
+      "viewId": "oa-ip-register",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "intellectual-property.ip-search",
+      "module": "intellectual-property",
+      "function": "ip-search",
+      "viewId": "oa-ip-search",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "marketing-events.dashboard",
+      "module": "marketing-events",
+      "function": "dashboard",
+      "viewId": "oa-marketing-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "engineering.programs-milestones",
+      "module": "engineering",
+      "function": "programs-milestones",
+      "viewId": "oa-programs-milestones",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "engineering.team-capacity",
+      "module": "engineering",
+      "function": "team-capacity",
+      "viewId": "oa-team-capacity",
+      "tabKey": null,
+      "workspaces": [
+        "onwardair"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.office-locations",
+      "module": "corporate-information",
+      "function": "office-locations",
+      "viewId": "office-locations",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "operations.dashboard",
+      "module": "operations",
+      "function": "dashboard",
+      "viewId": "operations-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "needs-mapping.opportunity-intelligence",
+      "module": "needs-mapping",
+      "function": "opportunity-intelligence",
+      "viewId": "opportunity-intelligence",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "training.portfolio-courses",
+      "module": "training",
+      "function": "portfolio-courses",
+      "viewId": "portfolio-courses",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "needs-mapping.portfolio-dashboard",
+      "module": "needs-mapping",
+      "function": "portfolio-dashboard",
+      "viewId": "portfolio-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.portfolio-directory",
+      "module": "needs-mapping",
+      "function": "portfolio-directory",
+      "viewId": "portfolio-directory",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.portfolio-intelligence-briefing",
+      "module": "needs-mapping",
+      "function": "portfolio-intelligence-briefing",
+      "viewId": "portfolio-intelligence-briefing",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.portfolio-intelligence-company",
+      "module": "needs-mapping",
+      "function": "portfolio-intelligence-company",
+      "viewId": "portfolio-intelligence-company",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.portfolio-portal-overview",
+      "module": "needs-mapping",
+      "function": "portfolio-portal-overview",
+      "viewId": "portfolio-portal-overview",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "marketing-stories.portfolio-stories",
+      "module": "marketing-stories",
+      "function": "portfolio-stories",
+      "viewId": "portfolio-stories",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.potential-clients",
+      "module": "business-central",
+      "function": "potential-clients",
+      "viewId": "potential-clients",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "operations.procurement",
+      "module": "operations",
+      "function": "procurement",
+      "viewId": "procurement",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-productivity.dashboard",
+      "module": "business-productivity",
+      "function": "dashboard",
+      "viewId": "productivity-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "settings.profile",
+      "module": "settings",
+      "function": "profile",
+      "viewId": "profile",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.projects",
+      "module": "business-central",
+      "function": "projects",
+      "viewId": "projects-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "business-central.external-projects",
+      "module": "business-central",
+      "function": "external-projects",
+      "viewId": "projects-external",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.internal-projects",
+      "module": "business-central",
+      "function": "internal-projects",
+      "viewId": "projects-internal",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "qms.capa",
+      "module": "qms",
+      "function": "capa",
+      "viewId": "qms-capa",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "qms.document-control",
+      "module": "qms",
+      "function": "document-control",
+      "viewId": "qms-document-control",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "qms.internal-audits",
+      "module": "qms",
+      "function": "internal-audits",
+      "viewId": "qms-internal-audits",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "qms.management-review",
+      "module": "qms",
+      "function": "management-review",
+      "viewId": "qms-management-review",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "qms.reporting",
+      "module": "qms",
+      "function": "reporting",
+      "viewId": "qms-reports",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "training.qms-courses",
+      "module": "training",
+      "function": "qms-courses",
+      "viewId": "qms-training",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "qms.dashboard",
+      "module": "qms",
+      "function": "dashboard",
+      "viewId": "quality-management",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "needs-mapping.quarterly-portfolio-update",
+      "module": "needs-mapping",
+      "function": "quarterly-portfolio-update",
+      "viewId": "quarterly-portfolio-update",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.regulatory-alerts",
+      "module": "needs-mapping",
+      "function": "regulatory-alerts",
+      "viewId": "regulatory-alerts",
+      "tabKey": null,
+      "workspaces": [
+        "abhi"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.regulatory-dashboard",
+      "module": "needs-mapping",
+      "function": "regulatory-dashboard",
+      "viewId": "regulatory-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.regulatory-impact",
+      "module": "needs-mapping",
+      "function": "regulatory-impact",
+      "viewId": "regulatory-impact",
+      "tabKey": null,
+      "workspaces": [
+        "abhi"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.regulatory-updates",
+      "module": "needs-mapping",
+      "function": "regulatory-updates",
+      "viewId": "regulatory-updates",
+      "tabKey": null,
+      "workspaces": [
+        "abhi"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "sales-management.activities",
+      "module": "sales-management",
+      "function": "activities",
+      "viewId": "sales-management",
+      "tabKey": "activities",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.commissions",
+      "module": "sales-management",
+      "function": "commissions",
+      "viewId": "sales-management",
+      "tabKey": "commissions",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "live",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "sales-management.dashboard",
+      "module": "sales-management",
+      "function": "dashboard",
+      "viewId": "sales-management",
+      "tabKey": "dashboard",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "sales-management.discovery",
+      "module": "sales-management",
+      "function": "discovery",
+      "viewId": "sales-management",
+      "tabKey": "discovery",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.forecast",
+      "module": "sales-management",
+      "function": "forecast",
+      "viewId": "sales-management",
+      "tabKey": "forecast",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.my-sales",
+      "module": "sales-management",
+      "function": "my-sales",
+      "viewId": "sales-management",
+      "tabKey": "my-sales",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.opportunities",
+      "module": "sales-management",
+      "function": "opportunities",
+      "viewId": "sales-management",
+      "tabKey": "opportunities",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.partners",
+      "module": "sales-management",
+      "function": "partners",
+      "viewId": "sales-management",
+      "tabKey": "partners",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.performance",
+      "module": "sales-management",
+      "function": "performance",
+      "viewId": "sales-management",
+      "tabKey": "performance",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.pipeline",
+      "module": "sales-management",
+      "function": "pipeline",
+      "viewId": "sales-management",
+      "tabKey": "pipeline",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.prospects",
+      "module": "sales-management",
+      "function": "prospects",
+      "viewId": "sales-management",
+      "tabKey": "prospects",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.reports",
+      "module": "sales-management",
+      "function": "reports",
+      "viewId": "sales-management",
+      "tabKey": "reports",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.sales-quotes",
+      "module": "sales-management",
+      "function": "sales-quotes",
+      "viewId": "sales-management",
+      "tabKey": "sales-quotes",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.sales-team",
+      "module": "sales-management",
+      "function": "sales-team",
+      "viewId": "sales-management",
+      "tabKey": "sales-team",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "sales-management.targets",
+      "module": "sales-management",
+      "function": "targets",
+      "viewId": "sales-management",
+      "tabKey": "targets",
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-central.sales-quotes",
+      "module": "business-central",
+      "function": "sales-quotes",
+      "viewId": "sales-quotes",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "settings.general",
+      "module": "settings",
+      "function": "general",
+      "viewId": "settings",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-productivity.social",
+      "module": "business-productivity",
+      "function": "social",
+      "viewId": "social",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "needs-mapping.stories-mailing-list",
+      "module": "needs-mapping",
+      "function": "stories-mailing-list",
+      "viewId": "stories-mailing-list",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.stories-media-library",
+      "module": "needs-mapping",
+      "function": "stories-media-library",
+      "viewId": "stories-media-library",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "needs-mapping.stories-newsletter",
+      "module": "needs-mapping",
+      "function": "stories-newsletter",
+      "viewId": "stories-newsletter",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "needs_mapping"
+    },
+    {
+      "tutorialId": "support-desk.my-support-tickets",
+      "module": "support-desk",
+      "function": "my-support-tickets",
+      "viewId": "support-mine",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "support-desk.ticket-overview",
+      "module": "support-desk",
+      "function": "ticket-overview",
+      "viewId": "support-overview",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "support-desk.tickets",
+      "module": "support-desk",
+      "function": "tickets",
+      "viewId": "support",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "technology-management.architecture-diagrams",
+      "module": "technology-management",
+      "function": "architecture-diagrams",
+      "viewId": "technology-architecture",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "technology-management.dashboard",
+      "module": "technology-management",
+      "function": "dashboard",
+      "viewId": "technology-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "technology-management.technology-assets",
+      "module": "technology-management",
+      "function": "technology-assets",
+      "viewId": "technology-devices",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "technology-management.software-saas-dashboard",
+      "module": "technology-management",
+      "function": "software-saas-dashboard",
+      "viewId": "technology-software-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "technology-management.software-saas",
+      "module": "technology-management",
+      "function": "software-saas",
+      "viewId": "technology-software",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "technology-management.telecommunications",
+      "module": "technology-management",
+      "function": "telecommunications",
+      "viewId": "technology-telecommunications",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "tools.telemetry",
+      "module": "tools",
+      "function": "telemetry",
+      "viewId": "telemetry",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "tools.testing",
+      "module": "tools",
+      "function": "testing",
+      "viewId": "testing",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "training.certifications",
+      "module": "training",
+      "function": "certifications",
+      "viewId": "training-certifications",
+      "tabKey": null,
+      "workspaces": [
+        "talantonimpact"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "training.dashboard",
+      "module": "training",
+      "function": "dashboard",
+      "viewId": "training-dashboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "training.external-courses",
+      "module": "training",
+      "function": "external-courses",
+      "viewId": "training-external",
+      "tabKey": null,
+      "workspaces": [
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "training.staff-courses",
+      "module": "training",
+      "function": "staff-courses",
+      "viewId": "training",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "corporate-information.unit311-details",
+      "module": "corporate-information",
+      "function": "unit311-details",
+      "viewId": "unit311-details",
+      "tabKey": null,
+      "workspaces": [
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    },
+    {
+      "tutorialId": "external-client-access.external-users",
+      "module": "external-client-access",
+      "function": "external-users",
+      "viewId": "users-external",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "tools.users",
+      "module": "tools",
+      "function": "users",
+      "viewId": "users",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "tools.website-management",
+      "module": "tools",
+      "function": "website-management",
+      "viewId": "website-management",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "support-desk.whatsapp-integration",
+      "module": "support-desk",
+      "function": "whatsapp-integration",
+      "viewId": "whatsapp-integration",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "business-productivity.whiteboard",
+      "module": "business-productivity",
+      "function": "whiteboard",
+      "viewId": "whiteboard",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "derived"
+    },
+    {
+      "tutorialId": "financials.wise",
+      "module": "financials",
+      "function": "wise",
+      "viewId": "wise",
+      "tabKey": null,
+      "workspaces": [
+        "abhi",
+        "demo",
+        "onwardair",
+        "talantonimpact",
+        "unit311"
+      ],
+      "status": "missing",
+      "mappingConfidence": "confirmed"
+    }
+  ]
+}

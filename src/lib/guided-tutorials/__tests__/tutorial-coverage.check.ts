@@ -12,6 +12,7 @@ import {
 import {
   buildTutorialCoverageManifest,
   formatTutorialCoverageSummary,
+  listNeedsMappingEntries,
   reconcileTutorialCoverage,
 } from "@/lib/guided-tutorials/coverage/manifest";
 import {
@@ -53,17 +54,23 @@ function testCanonicalContentFunctionCount() {
   );
 }
 
-function testPrimaryIdentityIsTutorialId() {
+function testPrimaryIdentityIsRuntimeBinding() {
   resetCanonicalLabelIndexForTests();
   const manifest = buildTutorialCoverageManifest();
-  const ids = new Set(manifest.entries.map((entry) => entry.canonical.tutorialId));
-  assert.equal(ids.size, manifest.entries.length, "tutorialId must be unique per catalogue row");
+  const bindings = new Set(manifest.entries.map((entry) => entry.runtime.bindingKey));
+  assert.equal(bindings.size, manifest.entries.length, "runtime binding must be unique per catalogue row");
+  assert.ok(
+    manifest.stats.uniqueTutorialIds > 0 &&
+      manifest.stats.uniqueTutorialIds <= manifest.entries.length,
+    `unique tutorial IDs: ${manifest.stats.uniqueTutorialIds}`,
+  );
   assert.ok(
     manifest.entries.every(
       (entry) =>
         entry.canonical.tutorialId &&
         entry.runtime.bindingKey &&
-        entry.availability.workspaceSlugs.length > 0,
+        entry.availability.workspaceSlugs.length > 0 &&
+        entry.mappingConfidence,
     ),
   );
 }
@@ -131,6 +138,47 @@ function testTabSpecificBindings() {
   assert.equal(dashboard?.status, "missing");
 }
 
+function testCanonicalProductNaming() {
+  resetCanonicalLabelIndexForTests();
+  const manifest = buildTutorialCoverageManifest();
+
+  const home = findCatalogueEntryByBinding(manifest.entries, "home");
+  assert.ok(home);
+  assert.equal(home?.canonical.tutorialId, "home");
+  assert.equal(home?.canonical.moduleSlug, "home");
+  assert.equal(home?.mappingConfidence, "confirmed");
+
+  const ea = findCatalogueEntryByBinding(manifest.entries, "executive-assistant");
+  assert.ok(ea);
+  assert.equal(ea?.canonical.tutorialId, "executive-assistant");
+  assert.equal(ea?.canonical.moduleSlug, "executive-assistant");
+
+  const clientsDash = findCatalogueEntryByBinding(manifest.entries, "clients-dashboard");
+  assert.ok(clientsDash);
+  assert.equal(clientsDash?.canonical.tutorialId, "business-central.clients");
+  assert.equal(clientsDash?.canonical.moduleSlug, "business-central");
+
+  const pipeline = findCatalogueEntryByBinding(manifest.entries, "crm");
+  assert.ok(pipeline);
+  assert.equal(pipeline?.canonical.tutorialId, "business-central.pipeline");
+
+  const competitor = findCatalogueEntryByBinding(manifest.entries, "oa-competitor-intelligence");
+  assert.ok(competitor);
+  assert.equal(competitor?.canonical.moduleSlug, "intelligence");
+  assert.notEqual(competitor?.canonical.moduleSlug, "onwardair-intelligence");
+}
+
+function testNeedsMappingFlaggedExplicitly() {
+  resetCanonicalLabelIndexForTests();
+  const manifest = buildTutorialCoverageManifest();
+  const needsMapping = listNeedsMappingEntries(manifest);
+  for (const entry of needsMapping) {
+    assert.equal(entry.mappingConfidence, "needs_mapping");
+    assert.equal(entry.canonical.moduleSlug, "needs-mapping");
+    assert.ok(entry.canonical.tutorialId.startsWith("needs-mapping."));
+  }
+}
+
 function testStableCanonicalLabels() {
   resetCanonicalLabelIndexForTests();
   const manifest = buildTutorialCoverageManifest();
@@ -138,6 +186,7 @@ function testStableCanonicalLabels() {
   assert.ok(clients);
   assert.equal(clients?.canonical.moduleLabel, "Business Central");
   assert.equal(clients?.canonical.functionLabel, "Client Directory");
+  assert.equal(clients?.canonical.tutorialId, "business-central.client-directory");
   assert.notEqual(clients?.canonical.moduleLabel, "Members");
 }
 
@@ -198,7 +247,7 @@ function testCoverageSummaryFormat() {
   resetCanonicalLabelIndexForTests();
   const reconciliation = reconcileTutorialCoverage();
   const summary = formatTutorialCoverageSummary(reconciliation);
-  assert.ok(summary.includes("Canonical product functions"));
+  assert.ok(summary.includes("Unique product tutorial IDs"));
   assert.ok(summary.includes("financials.dashboard"));
   assert.ok(summary.includes("sales-management.commissions"));
   assert.ok(!summary.includes("195 screens across"));
@@ -207,10 +256,12 @@ function testCoverageSummaryFormat() {
 function run() {
   testCanonicalCatalogueFromNavigation();
   testCanonicalContentFunctionCount();
-  testPrimaryIdentityIsTutorialId();
+  testPrimaryIdentityIsRuntimeBinding();
   testLiveTutorialsReconcile();
   testRegistryMatchesCanonicalBindings();
   testTabSpecificBindings();
+  testCanonicalProductNaming();
+  testNeedsMappingFlaggedExplicitly();
   testStableCanonicalLabels();
   testWorkspaceAvailabilityIsMetadata();
   testCommissionsResolvesOnDemoAndOnwardAir();

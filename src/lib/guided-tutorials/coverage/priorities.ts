@@ -7,11 +7,12 @@ export type TutorialCoveragePriority = "P0" | "P1" | "P2";
 export type TutorialPresentationTier = "A" | "B" | "C";
 
 const P0_MODULES = new Set([
-  "pins",
+  "home",
+  "executive-assistant",
   "business-central",
   "sales-management",
-  "onwardair-intelligence",
-  "finances",
+  "intelligence",
+  "financials",
 ]);
 
 const P1_MODULES = new Set([
@@ -37,14 +38,14 @@ const TIER_C_TUTORIAL_IDS = new Set([
 const P0_TUTORIAL_IDS = new Set([
   "home",
   "executive-assistant",
-  "clients-dashboard",
-  "crm",
+  "business-central.clients",
+  "business-central.pipeline",
   "sales-management.dashboard",
   "sales-management.pipeline",
-  "oa-competitor-intelligence",
-  "general-ledger.journal",
-  "accounts-receivable",
-  "wise",
+  "intelligence.competitor-intelligence",
+  "financials.journal",
+  "financials.accounts-receivable",
+  "financials.wise",
 ]);
 
 export function resolveCoveragePriority(input: {

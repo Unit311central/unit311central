@@ -3,6 +3,8 @@ import type { TutorialPresentationTier, TutorialCoveragePriority } from "./prior
 /** Coverage status for a canonical product function. */
 export type TutorialCoverageStatus = "live" | "stub" | "missing" | "shell";
 
+export type TutorialMappingConfidence = "confirmed" | "derived" | "needs_mapping";
+
 /** Workspace-independent tutorial identity — module + function. */
 export type TutorialCanonicalEntry = {
   tutorialId: string;
@@ -31,6 +33,7 @@ export type TutorialCatalogueEntry = {
   canonical: TutorialCanonicalEntry;
   runtime: TutorialRuntimeBinding;
   availability: TutorialWorkspaceAvailability;
+  mappingConfidence: TutorialMappingConfidence;
   priority: TutorialCoveragePriority;
   presentationTier: TutorialPresentationTier;
   status: TutorialCoverageStatus;
@@ -57,17 +60,27 @@ export type TutorialCoverageManifest = {
     totalCanonicalFunctions: number;
     /** Functions with real UI (excludes Finances shell placeholders). */
     contentFunctions: number;
+    uniqueTutorialIds: number;
     live: number;
     stub: number;
     missing: number;
     shell: number;
+    confirmed: number;
+    derived: number;
+    needsMapping: number;
   };
 };
 
 export type TutorialCoverageReconciliation = {
   manifest: TutorialCoverageManifest;
   orphanRegistryEntries: readonly TutorialRegistryIdentity[];
+  /** Registry rows sharing the same tutorialId (invalid). */
   duplicateTutorialIds: readonly {
+    tutorialId: string;
+    bindingKeys: readonly string[];
+  }[];
+  /** Multiple runtime bindings intentionally mapped to one canonical tutorial. */
+  sharedTutorialIds: readonly {
     tutorialId: string;
     bindingKeys: readonly string[];
   }[];

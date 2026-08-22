@@ -72,9 +72,9 @@ function enrichCatalogueEntries(entries: TutorialCatalogueEntry[]): TutorialCata
   });
 }
 
-function findDuplicateTutorialIds(
+function findSharedTutorialIds(
   entries: readonly TutorialCatalogueEntry[],
-): TutorialCoverageReconciliation["duplicateTutorialIds"] {
+): TutorialCoverageReconciliation["sharedTutorialIds"] {
   const byTutorialId = new Map<string, string[]>();
   for (const entry of entries) {
     const list = byTutorialId.get(entry.canonical.tutorialId) ?? [];
@@ -124,10 +124,14 @@ export function buildTutorialCoverageManifest(): TutorialCoverageManifest {
     stats: {
       totalCanonicalFunctions: entries.length,
       contentFunctions,
+      uniqueTutorialIds: new Set(entries.map((entry) => entry.canonical.tutorialId)).size,
       live: entries.filter((entry) => entry.status === "live").length,
       stub: entries.filter((entry) => entry.status === "stub").length,
       missing: entries.filter((entry) => entry.status === "missing").length,
       shell,
+      confirmed: entries.filter((entry) => entry.mappingConfidence === "confirmed").length,
+      derived: entries.filter((entry) => entry.mappingConfidence === "derived").length,
+      needsMapping: entries.filter((entry) => entry.mappingConfidence === "needs_mapping").length,
     },
   };
 }
@@ -146,16 +150,15 @@ export function reconcileTutorialCoverage(): TutorialCoverageReconciliation {
 
   const liveTutorials = registered.filter((entry) => catalogueBindings.has(entry.bindingKey));
 
-  const duplicateTutorialIds = [
-    ...findDuplicateTutorialIds(manifest.entries),
-    ...findDuplicateRegistryTutorialIds(registered),
-  ];
+  const duplicateTutorialIds = findDuplicateRegistryTutorialIds(registered);
+  const sharedTutorialIds = findSharedTutorialIds(manifest.entries);
   const duplicateRuntimeBindings = findDuplicateRuntimeBindings(manifest.entries);
 
   return {
     manifest,
     orphanRegistryEntries,
     duplicateTutorialIds,
+    sharedTutorialIds,
     duplicateRuntimeBindings,
     liveTutorials,
   };
@@ -172,16 +175,20 @@ export function findCatalogueEntry(
 export function formatTutorialCoverageSummary(
   reconciliation: TutorialCoverageReconciliation,
 ): string {
-  const { manifest, orphanRegistryEntries, duplicateTutorialIds, duplicateRuntimeBindings, liveTutorials } =
+  const { manifest, orphanRegistryEntries, duplicateTutorialIds, sharedTutorialIds, duplicateRuntimeBindings, liveTutorials } =
     reconciliation;
   const lines = [
     "Canonical Tutorial Catalogue",
     "============================",
-    `Canonical product functions: ${manifest.stats.contentFunctions} (+ ${manifest.stats.shell} shell placeholders)`,
+    `Canonical runtime bindings: ${manifest.stats.totalCanonicalFunctions} (+ ${manifest.stats.shell} shell placeholders)`,
+    `Unique product tutorial IDs: ${manifest.stats.uniqueTutorialIds}`,
     `  live: ${manifest.stats.live}`,
     `  missing: ${manifest.stats.missing}`,
     `  shell: ${manifest.stats.shell}`,
     `  stub: ${manifest.stats.stub}`,
+    `  mapping confirmed: ${manifest.stats.confirmed}`,
+    `  mapping derived: ${manifest.stats.derived}`,
+    `  needs mapping: ${manifest.stats.needsMapping}`,
     "",
     "Live tutorials:",
   ];
@@ -201,6 +208,13 @@ export function formatTutorialCoverageSummary(
     }
   }
 
+  if (sharedTutorialIds.length > 0) {
+    lines.push("", `Shared tutorial IDs (multi-binding): ${sharedTutorialIds.length}`);
+    for (const shared of sharedTutorialIds) {
+      lines.push(`  - ${shared.tutorialId}: ${shared.bindingKeys.join(", ")}`);
+    }
+  }
+
   if (duplicateTutorialIds.length > 0) {
     lines.push("", `Duplicate tutorial IDs: ${duplicateTutorialIds.length}`);
     for (const dup of duplicateTutorialIds) {
@@ -216,4 +230,40 @@ export function formatTutorialCoverageSummary(
   }
 
   return lines.join("\n");
+}
+
+export function formatCanonicalCatalogueTable(
+  manifest: TutorialCoverageManifest,
+): string {
+  const header = [
+    "tutorialId",
+    "module",
+    "function",
+    "viewId",
+    "tabKey",
+    "workspaces",
+    "status",
+    "mappingConfidence",
+  ].join("\t");
+
+  const rows = manifest.entries.map((entry) =>
+    [
+      entry.canonical.tutorialId,
+      entry.canonical.moduleSlug,
+      entry.canonical.functionSlug,
+      entry.runtime.viewId,
+      entry.runtime.tabKey ?? "",
+      entry.availability.workspaceSlugs.join(","),
+      entry.status,
+      entry.mappingConfidence,
+    ].join("\t"),
+  );
+
+  return [header, ...rows].join("\n");
+}
+
+export function listNeedsMappingEntries(
+  manifest: TutorialCoverageManifest,
+): readonly TutorialCatalogueEntry[] {
+  return manifest.entries.filter((entry) => entry.mappingConfidence === "needs_mapping");
 }
