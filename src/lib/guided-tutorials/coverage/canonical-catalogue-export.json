@@ -1,17 +1,63 @@
 {
-  "generatedAt": "2026-08-22T00:24:17.755Z",
+  "architecture": "CENTRAL MODULE → CENTRAL PRODUCT FUNCTION → CENTRAL TUTORIAL → runtime binding → workspace availability",
+  "generatedAt": "2026-08-22T00:56:25.011Z",
   "stats": {
     "totalCanonicalFunctions": 195,
     "contentFunctions": 182,
-    "uniqueTutorialIds": 193,
+    "uniqueTutorialIds": 188,
     "live": 2,
     "stub": 0,
     "missing": 180,
     "shell": 13,
-    "confirmed": 25,
-    "derived": 145,
-    "needsMapping": 25
+    "confirmed": 54,
+    "derived": 141,
+    "needsMapping": 0
   },
+  "sharedTutorialIds": [
+    {
+      "tutorialId": "engineering.team-capacity",
+      "bindingKeys": [
+        "engineering-capacity:",
+        "oa-team-capacity:"
+      ]
+    },
+    {
+      "tutorialId": "engineering.programs-milestones",
+      "bindingKeys": [
+        "engineering-programs:",
+        "oa-programs-milestones:"
+      ]
+    },
+    {
+      "tutorialId": "fundraising.investors",
+      "bindingKeys": [
+        "fundraising-investors:",
+        "funds-investors:"
+      ]
+    },
+    {
+      "tutorialId": "fundraising.fund-profile",
+      "bindingKeys": [
+        "funds-impact:",
+        "funds-momentum:",
+        "funds-stewards:"
+      ]
+    },
+    {
+      "tutorialId": "marketing-events.mailing-list-management",
+      "bindingKeys": [
+        "marketing-mailing-list:",
+        "stories-mailing-list:"
+      ]
+    },
+    {
+      "tutorialId": "marketing-events.digital-newsletter",
+      "bindingKeys": [
+        "marketing-newsletter:",
+        "stories-newsletter:"
+      ]
+    }
+  ],
   "rows": [
     {
       "tutorialId": "financials.payable-approvals",
@@ -126,8 +172,8 @@
       "mappingConfidence": "derived"
     },
     {
-      "tutorialId": "needs-mapping.annual-impact-report",
-      "module": "needs-mapping",
+      "tutorialId": "intelligence.annual-impact-report",
+      "module": "intelligence",
       "function": "annual-impact-report",
       "viewId": "annual-impact-report",
       "tabKey": null,
@@ -135,7 +181,7 @@
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "settings.appearance",
@@ -992,7 +1038,7 @@
         "onwardair"
       ],
       "status": "missing",
-      "mappingConfidence": "derived"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "fundraising.meetings",
@@ -1034,88 +1080,88 @@
       "mappingConfidence": "derived"
     },
     {
-      "tutorialId": "needs-mapping.funds-commitments",
-      "module": "needs-mapping",
-      "function": "funds-commitments",
+      "tutorialId": "fundraising.capital-commitments",
+      "module": "fundraising",
+      "function": "capital-commitments",
       "viewId": "funds-commitments",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.funds-dashboard",
-      "module": "needs-mapping",
-      "function": "funds-dashboard",
+      "tutorialId": "fundraising.fund-platform-dashboard",
+      "module": "fundraising",
+      "function": "fund-platform-dashboard",
       "viewId": "funds-dashboard",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.funds-impact",
-      "module": "needs-mapping",
-      "function": "funds-impact",
+      "tutorialId": "fundraising.fund-profile",
+      "module": "fundraising",
+      "function": "fund-profile",
       "viewId": "funds-impact",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.funds-investors",
-      "module": "needs-mapping",
-      "function": "funds-investors",
+      "tutorialId": "fundraising.investors",
+      "module": "fundraising",
+      "function": "investors",
       "viewId": "funds-investors",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.funds-momentum",
-      "module": "needs-mapping",
-      "function": "funds-momentum",
+      "tutorialId": "fundraising.fund-profile",
+      "module": "fundraising",
+      "function": "fund-profile",
       "viewId": "funds-momentum",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.funds-performance",
-      "module": "needs-mapping",
-      "function": "funds-performance",
+      "tutorialId": "fundraising.fund-performance",
+      "module": "fundraising",
+      "function": "fund-performance",
       "viewId": "funds-performance",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.funds-stewards",
-      "module": "needs-mapping",
-      "function": "funds-stewards",
+      "tutorialId": "fundraising.fund-profile",
+      "module": "fundraising",
+      "function": "fund-profile",
       "viewId": "funds-stewards",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "financials.accounts",
@@ -1324,28 +1370,28 @@
       "mappingConfidence": "derived"
     },
     {
-      "tutorialId": "needs-mapping.impact-intelligence-company",
-      "module": "needs-mapping",
-      "function": "impact-intelligence-company",
+      "tutorialId": "intelligence.company-impact",
+      "module": "intelligence",
+      "function": "company-impact",
       "viewId": "impact-intelligence-company",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.impact-intelligence-dashboard",
-      "module": "needs-mapping",
-      "function": "impact-intelligence-dashboard",
+      "tutorialId": "intelligence.impact-dashboard",
+      "module": "intelligence",
+      "function": "impact-dashboard",
       "viewId": "impact-intelligence-dashboard",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "business-productivity.email",
@@ -1396,8 +1442,8 @@
       "mappingConfidence": "derived"
     },
     {
-      "tutorialId": "needs-mapping.journey-stories",
-      "module": "needs-mapping",
+      "tutorialId": "marketing-events.journey-stories",
+      "module": "marketing-events",
       "function": "journey-stories",
       "viewId": "journey-stories",
       "tabKey": null,
@@ -1405,7 +1451,7 @@
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "training.learning-library",
@@ -1503,7 +1549,7 @@
         "onwardair"
       ],
       "status": "missing",
-      "mappingConfidence": "derived"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "marketing-events.abhi-middle-east-accelerator",
@@ -1529,7 +1575,7 @@
         "onwardair"
       ],
       "status": "missing",
-      "mappingConfidence": "derived"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "marketing-events.abhi-us-accelerator",
@@ -1812,8 +1858,8 @@
       "mappingConfidence": "derived"
     },
     {
-      "tutorialId": "needs-mapping.opportunity-intelligence",
-      "module": "needs-mapping",
+      "tutorialId": "intelligence.opportunity-intelligence",
+      "module": "intelligence",
       "function": "opportunity-intelligence",
       "viewId": "opportunity-intelligence",
       "tabKey": null,
@@ -1821,7 +1867,7 @@
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "training.portfolio-courses",
@@ -1836,8 +1882,8 @@
       "mappingConfidence": "derived"
     },
     {
-      "tutorialId": "needs-mapping.portfolio-dashboard",
-      "module": "needs-mapping",
+      "tutorialId": "business-central.portfolio-dashboard",
+      "module": "business-central",
       "function": "portfolio-dashboard",
       "viewId": "portfolio-dashboard",
       "tabKey": null,
@@ -1845,11 +1891,11 @@
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.portfolio-directory",
-      "module": "needs-mapping",
+      "tutorialId": "business-central.portfolio-directory",
+      "module": "business-central",
       "function": "portfolio-directory",
       "viewId": "portfolio-directory",
       "tabKey": null,
@@ -1857,47 +1903,47 @@
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.portfolio-intelligence-briefing",
-      "module": "needs-mapping",
-      "function": "portfolio-intelligence-briefing",
+      "tutorialId": "intelligence.portfolio-briefing",
+      "module": "intelligence",
+      "function": "portfolio-briefing",
       "viewId": "portfolio-intelligence-briefing",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.portfolio-intelligence-company",
-      "module": "needs-mapping",
-      "function": "portfolio-intelligence-company",
+      "tutorialId": "intelligence.portfolio-company",
+      "module": "intelligence",
+      "function": "portfolio-company",
       "viewId": "portfolio-intelligence-company",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.portfolio-portal-overview",
-      "module": "needs-mapping",
-      "function": "portfolio-portal-overview",
+      "tutorialId": "external-client-access.portal-overview",
+      "module": "external-client-access",
+      "function": "portal-overview",
       "viewId": "portfolio-portal-overview",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "marketing-stories.portfolio-stories",
-      "module": "marketing-stories",
+      "tutorialId": "marketing-events.portfolio-stories",
+      "module": "marketing-events",
       "function": "portfolio-stories",
       "viewId": "portfolio-stories",
       "tabKey": null,
@@ -1906,7 +1952,7 @@
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "derived"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "business-central.potential-clients",
@@ -2122,8 +2168,8 @@
       "mappingConfidence": "derived"
     },
     {
-      "tutorialId": "needs-mapping.quarterly-portfolio-update",
-      "module": "needs-mapping",
+      "tutorialId": "intelligence.quarterly-portfolio-update",
+      "module": "intelligence",
       "function": "quarterly-portfolio-update",
       "viewId": "quarterly-portfolio-update",
       "tabKey": null,
@@ -2131,23 +2177,23 @@
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.regulatory-alerts",
-      "module": "needs-mapping",
-      "function": "regulatory-alerts",
+      "tutorialId": "intelligence.regulatory-member-alerts",
+      "module": "intelligence",
+      "function": "regulatory-member-alerts",
       "viewId": "regulatory-alerts",
       "tabKey": null,
       "workspaces": [
         "abhi"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.regulatory-dashboard",
-      "module": "needs-mapping",
+      "tutorialId": "intelligence.regulatory-dashboard",
+      "module": "intelligence",
       "function": "regulatory-dashboard",
       "viewId": "regulatory-dashboard",
       "tabKey": null,
@@ -2155,23 +2201,23 @@
         "abhi"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.regulatory-impact",
-      "module": "needs-mapping",
-      "function": "regulatory-impact",
+      "tutorialId": "intelligence.regulatory-impact-assessments",
+      "module": "intelligence",
+      "function": "regulatory-impact-assessments",
       "viewId": "regulatory-impact",
       "tabKey": null,
       "workspaces": [
         "abhi"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.regulatory-updates",
-      "module": "needs-mapping",
+      "tutorialId": "intelligence.regulatory-updates",
+      "module": "intelligence",
       "function": "regulatory-updates",
       "viewId": "regulatory-updates",
       "tabKey": null,
@@ -2179,7 +2225,7 @@
         "abhi"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "sales-management.activities",
@@ -2454,40 +2500,40 @@
       "mappingConfidence": "derived"
     },
     {
-      "tutorialId": "needs-mapping.stories-mailing-list",
-      "module": "needs-mapping",
-      "function": "stories-mailing-list",
+      "tutorialId": "marketing-events.mailing-list-management",
+      "module": "marketing-events",
+      "function": "mailing-list-management",
       "viewId": "stories-mailing-list",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.stories-media-library",
-      "module": "needs-mapping",
-      "function": "stories-media-library",
+      "tutorialId": "marketing-events.media-library",
+      "module": "marketing-events",
+      "function": "media-library",
       "viewId": "stories-media-library",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
-      "tutorialId": "needs-mapping.stories-newsletter",
-      "module": "needs-mapping",
-      "function": "stories-newsletter",
+      "tutorialId": "marketing-events.digital-newsletter",
+      "module": "marketing-events",
+      "function": "digital-newsletter",
       "viewId": "stories-newsletter",
       "tabKey": null,
       "workspaces": [
         "talantonimpact"
       ],
       "status": "missing",
-      "mappingConfidence": "needs_mapping"
+      "mappingConfidence": "confirmed"
     },
     {
       "tutorialId": "support-desk.my-support-tickets",

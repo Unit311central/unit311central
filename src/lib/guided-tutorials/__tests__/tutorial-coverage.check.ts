@@ -15,6 +15,7 @@ import {
   listNeedsMappingEntries,
   reconcileTutorialCoverage,
 } from "@/lib/guided-tutorials/coverage/manifest";
+import { isCentralPlatformModuleSlug } from "@/lib/guided-tutorials/coverage/central-catalogue-architecture";
 import {
   COVERAGE_WORKSPACE_SLUGS,
   extractAllDiscoveredNavLeaves,
@@ -168,15 +169,44 @@ function testCanonicalProductNaming() {
   assert.notEqual(competitor?.canonical.moduleSlug, "onwardair-intelligence");
 }
 
-function testNeedsMappingFlaggedExplicitly() {
+function testCentralCatalogueFullyMapped() {
   resetCanonicalLabelIndexForTests();
   const manifest = buildTutorialCoverageManifest();
   const needsMapping = listNeedsMappingEntries(manifest);
-  for (const entry of needsMapping) {
-    assert.equal(entry.mappingConfidence, "needs_mapping");
-    assert.equal(entry.canonical.moduleSlug, "needs-mapping");
-    assert.ok(entry.canonical.tutorialId.startsWith("needs-mapping."));
+  assert.equal(needsMapping.length, 0, `unmapped entries: ${needsMapping.map((e) => e.runtime.viewId).join(", ")}`);
+  assert.equal(manifest.stats.needsMapping, 0);
+}
+
+function testCentralModuleArchitecture() {
+  resetCanonicalLabelIndexForTests();
+  const manifest = buildTutorialCoverageManifest();
+  for (const entry of manifest.entries) {
+    if (entry.status === "shell") continue;
+    assert.ok(
+      isCentralPlatformModuleSlug(entry.canonical.moduleSlug),
+      `non-central module slug: ${entry.canonical.moduleSlug} (${entry.canonical.tutorialId})`,
+    );
   }
+}
+
+function testCentralTutorialMultiBindings() {
+  resetCanonicalLabelIndexForTests();
+  const manifest = buildTutorialCoverageManifest();
+
+  const newsletter = manifest.entries.filter(
+    (entry) => entry.canonical.tutorialId === "marketing-events.digital-newsletter",
+  );
+  assert.ok(newsletter.length >= 2);
+  assert.ok(newsletter.some((entry) => entry.runtime.viewId === "marketing-newsletter"));
+  assert.ok(newsletter.some((entry) => entry.runtime.viewId === "stories-newsletter"));
+
+  const fundProfile = manifest.entries.filter(
+    (entry) => entry.canonical.tutorialId === "fundraising.fund-profile",
+  );
+  assert.equal(fundProfile.length, 3);
+
+  const investors = manifest.entries.filter((entry) => entry.canonical.tutorialId === "fundraising.investors");
+  assert.ok(investors.length >= 2);
 }
 
 function testStableCanonicalLabels() {
@@ -261,7 +291,9 @@ function run() {
   testRegistryMatchesCanonicalBindings();
   testTabSpecificBindings();
   testCanonicalProductNaming();
-  testNeedsMappingFlaggedExplicitly();
+  testCentralCatalogueFullyMapped();
+  testCentralModuleArchitecture();
+  testCentralTutorialMultiBindings();
   testStableCanonicalLabels();
   testWorkspaceAvailabilityIsMetadata();
   testCommissionsResolvesOnDemoAndOnwardAir();
