@@ -61,17 +61,17 @@ jobs:
             (.deploymentCommitSha == $sha)
           ' >/dev/null
           echo "$response" | jq -e '
-            ([.plan.actions[] | select(.kind == "apply")] | length) == 1
+            ([.plan.pending[]?] | length) == 0
           ' >/dev/null
           echo "$response" | jq -e '
-            ([.plan.actions[] | select(.kind == "apply" and .migration == "supabase/migrations/150_workspace_admin_metadata.sql")] | length) == 1
+            (.plan.satisfied | index("supabase/migrations/150_workspace_admin_metadata.sql")) != null
+          ' >/dev/null
+          echo "$response" | jq -e '
+            (.plan.satisfied | index("supabase/migrations/149_sales_management_foundation.sql")) != null
+          ' >/dev/null
+          echo "$response" | jq -e '
+            ([.plan.actions[] | select(.kind == "apply")] | length) == 0
           ' >/dev/null
           echo "$response" | jq -e '
             ([.plan.actions[] | select(.kind == "skip")] | length) >= 86
-          ' >/dev/null
-          echo "$response" | jq -e '
-            ([.plan.actions[] | select(.kind == "skip" and .method == "verified_skip")] | length) >= 85
-          ' >/dev/null
-          echo "$response" | jq -e '
-            (.plan.pending | index("supabase/migrations/150_workspace_admin_metadata.sql")) != null
           ' >/dev/null

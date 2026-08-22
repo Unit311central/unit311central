@@ -1,7 +1,7 @@
 name: Post-deploy migrations
 
 # POST pending migrations via authenticated production runner (apply step only).
-# Step 2: apply migration 150 after Workspaces Phase 2 persistence fix.
+# Migration 150 satisfied in production (schema pre-existed; verified_skip is valid).
 on:
   workflow_dispatch:
   push:
@@ -67,10 +67,16 @@ jobs:
           echo "$response" | jq .
           echo "$response" | jq -e '.ok == true' >/dev/null
           echo "$response" | jq -e '
-            ([.applied[] | select(.migration == "supabase/migrations/150_workspace_admin_metadata.sql")] | length) == 1
+            ([.errors[]?] | length) == 0
           ' >/dev/null
           echo "$response" | jq -e '
-            ([.errors[]?] | length) == 0
+            (
+              ([.applied[]? | select(.migration == "supabase/migrations/150_workspace_admin_metadata.sql")] | length) == 1
+            ) or (
+              ([.skipped[]? | select(.migration == "supabase/migrations/150_workspace_admin_metadata.sql")] | length) == 1
+            ) or (
+              (.pending | index("supabase/migrations/150_workspace_admin_metadata.sql")) == null
+            )
           ' >/dev/null
 
       - name: GET verify migration plan after apply
@@ -84,10 +90,13 @@ jobs:
           echo "$response" | jq .
           echo "$response" | jq -e '.queryError == null' >/dev/null
           echo "$response" | jq -e '
-            ([.plan.pending[]? | select(. == "supabase/migrations/150_workspace_admin_metadata.sql")] | length) == 0
+            ([.plan.pending[]?] | length) == 0
           ' >/dev/null
           echo "$response" | jq -e '
             (.plan.satisfied | index("supabase/migrations/150_workspace_admin_metadata.sql")) != null
+          ' >/dev/null
+          echo "$response" | jq -e '
+            (.plan.satisfied | index("supabase/migrations/149_sales_management_foundation.sql")) != null
           ' >/dev/null
           echo "$response" | jq -e '
             ([.plan.actions[] | select(.kind == "apply")] | length) == 0
