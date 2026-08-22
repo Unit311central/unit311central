@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         | "Archived"
         | "Preparing"
         | "all"
-        | null) ?? "all",
+        | null) ?? "Active",
   });
 
   return NextResponse.json({ workspaces });

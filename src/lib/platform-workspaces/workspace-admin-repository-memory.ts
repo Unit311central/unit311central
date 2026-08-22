@@ -48,8 +48,8 @@ function seedRecords(): WorkspaceAdminRecord[] {
       pendingClients: [],
       userCount: 24,
       enabledModuleCount: 5,
-      primaryUrl: workspacePrimaryUrl(INTERNAL_WORKSPACE_SLUG, INTERNAL_WORKSPACE_SLUG),
-      customerHostname: INTERNAL_WORKSPACE_SLUG,
+      primaryUrl: workspacePrimaryUrl(INTERNAL_WORKSPACE_SLUG),
+      customerHostname: "internal",
       createdAt,
       createdBy: "system",
       updatedAt: createdAt,
@@ -87,7 +87,7 @@ function seedRecords(): WorkspaceAdminRecord[] {
       pendingClients: [],
       userCount: 12,
       enabledModuleCount: 5,
-      primaryUrl: workspacePrimaryUrl("demo", "demo"),
+      primaryUrl: workspacePrimaryUrl("demo"),
       customerHostname: "demo",
       createdAt: "2026-02-01T09:30:00.000Z",
       createdBy: "system",
@@ -204,11 +204,7 @@ export function createMemoryWorkspaceAdminRepository(
       if (!input.companyName.trim()) throw new Error("Company name is required.");
       if (!input.contactEmail.trim()) throw new Error("Primary contact email is required.");
 
-      const customerHostname = resolveCustomerHostname(
-        slug,
-        input.customerHostname,
-        input.name,
-      );
+      const customerHostname = resolveCustomerHostname(slug, input.customerHostname);
       const provisioning: WorkspaceProvisioningState = {
         databaseStatus: "complete",
         authenticationStatus:

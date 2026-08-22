@@ -57,6 +57,7 @@ export function WorkspacesOverviewWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | WorkspaceType>("all");
+  const [statusFilter, setStatusFilter] = useState<"Active" | "all">("Active");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [panelMode, setPanelMode] = useState<"view" | "edit" | "users" | "modules">("view");
 
@@ -67,6 +68,7 @@ export function WorkspacesOverviewWorkspace() {
       const params = new URLSearchParams();
       if (query.trim()) params.set("q", query.trim());
       if (typeFilter !== "all") params.set("type", typeFilter);
+      if (statusFilter !== "all") params.set("status", statusFilter);
       const response = await fetch(`/api/internal/workspaces?${params.toString()}`);
       if (!response.ok) {
         const payload = await readJson<{ error?: string }>(response).catch(() => ({ error: "" }));
@@ -79,7 +81,7 @@ export function WorkspacesOverviewWorkspace() {
     } finally {
       setLoading(false);
     }
-  }, [query, typeFilter]);
+  }, [query, typeFilter, statusFilter]);
 
   useEffect(() => {
     void loadWorkspaces();
@@ -131,6 +133,14 @@ export function WorkspacesOverviewWorkspace() {
               className="w-full rounded-xl border border-white/10 bg-[#0b1524] py-2 pl-10 pr-3 text-sm text-white outline-none focus:border-sky-400/50"
             />
           </div>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as "Active" | "all")}
+            className="rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/50"
+          >
+            <option value="Active">Active only</option>
+            <option value="all">All statuses</option>
+          </select>
           <select
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value as "all" | WorkspaceType)}

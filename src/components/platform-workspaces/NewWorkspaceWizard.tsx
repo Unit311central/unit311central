@@ -26,11 +26,8 @@ import type {
 } from "@/lib/platform-workspaces/types";
 import { cn } from "@/lib/utils";
 
-function defaultHostnameForWizard(state: { name: string; slug: string }): string {
-  return deriveDefaultCustomerHostname({
-    workspaceName: state.name,
-    workspaceSlug: state.slug,
-  });
+function defaultHostnameForWizard(state: { slug: string }): string {
+  return deriveDefaultCustomerHostname({ workspaceSlug: state.slug });
 }
 
 const WIZARD_STEPS = [
@@ -329,7 +326,7 @@ export function NewWorkspaceWizard() {
 
         {step === 1 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <WizardField label="Workspace name *" value={state.name} onChange={(value) => setState({ ...state, name: value, branding: { ...state.branding, displayName: value }, companyName: value, customerHostname: deriveDefaultCustomerHostname({ workspaceName: value, workspaceSlug: state.slug }), hostnameAvailable: null, hostnameMessage: null })} />
+            <WizardField label="Workspace name *" value={state.name} onChange={(value) => setState({ ...state, name: value, branding: { ...state.branding, displayName: value }, companyName: value })} />
             <WizardField
               label="Workspace slug *"
               value={state.slug}
@@ -340,10 +337,7 @@ export function NewWorkspaceWizard() {
                   slug: nextSlug,
                   slugAvailable: null,
                   slugMessage: null,
-                  customerHostname: deriveDefaultCustomerHostname({
-                    workspaceName: state.name,
-                    workspaceSlug: nextSlug,
-                  }),
+                  customerHostname: deriveDefaultCustomerHostname({ workspaceSlug: nextSlug }),
                   hostnameAvailable: null,
                   hostnameMessage: null,
                 });

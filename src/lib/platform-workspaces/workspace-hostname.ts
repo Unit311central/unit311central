@@ -1,7 +1,7 @@
-import { RESERVED_UNIT311_SUBDOMAINS, UNIT311_SITE_HOST } from "@/lib/app-domains";
+import { DEMO_WORKSPACE_SLUG, RESERVED_UNIT311_SUBDOMAINS, UNIT311_SITE_HOST } from "@/lib/app-domains";
+import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 export type WorkspaceHostnameInput = {
-  workspaceName?: string | null;
   workspaceSlug?: string | null;
 };
 
@@ -31,32 +31,36 @@ export function deriveCustomerHostnameFromLabel(label: string): string {
 
 /**
  * Default customer hostname when the wizard does not supply an override.
- * Prefers workspace display name, then canonical slug.
+ * Uses the workspace slug only — never the display name.
  */
 export function deriveDefaultCustomerHostname(
   input: WorkspaceHostnameInput | string,
 ): string {
   if (typeof input === "string") {
-    return deriveCustomerHostnameFromLabel(input);
+    return resolveCustomerHostname(input);
   }
-  const workspaceName = input.workspaceName?.trim() ?? "";
   const workspaceSlug = input.workspaceSlug?.trim() ?? "";
-  if (workspaceName) return deriveCustomerHostnameFromLabel(workspaceName);
-  if (workspaceSlug) return deriveCustomerHostnameFromLabel(workspaceSlug);
-  return "";
+  if (!workspaceSlug) return "";
+  return resolveCustomerHostname(workspaceSlug);
 }
 
+/**
+ * Resolve the customer-facing hostname for a workspace.
+ * Platform workspaces use reserved infrastructure hosts; customer workspaces use
+ * `customer_hostname` when provided, otherwise the canonical slug.
+ */
 export function resolveCustomerHostname(
   workspaceSlug: string,
   override?: string | null,
-  workspaceName?: string | null,
 ): string {
   const normalizedOverride = normalizeCustomerHostname(override ?? "");
   if (normalizedOverride) return normalizedOverride;
-  return deriveDefaultCustomerHostname({
-    workspaceName: workspaceName,
-    workspaceSlug,
-  });
+
+  const slug = workspaceSlug.trim().toLowerCase();
+  if (slug === INTERNAL_WORKSPACE_SLUG) return "internal";
+  if (slug === DEMO_WORKSPACE_SLUG) return "demo";
+
+  return normalizeCustomerHostname(slug);
 }
 
 export function isValidCustomerHostname(hostname: string): boolean {
@@ -74,9 +78,6 @@ export function workspacePrimaryUrlForHostname(customerHostname: string): string
 export function workspacePrimaryUrlForWorkspace(
   workspaceSlug: string,
   customerHostname?: string | null,
-  workspaceName?: string | null,
 ): string {
-  return workspacePrimaryUrlForHostname(
-    resolveCustomerHostname(workspaceSlug, customerHostname, workspaceName),
-  );
+  return workspacePrimaryUrlForHostname(resolveCustomerHostname(workspaceSlug, customerHostname));
 }

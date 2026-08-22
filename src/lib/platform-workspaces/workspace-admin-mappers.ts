@@ -161,7 +161,6 @@ export function mapWorkspaceRowToRecord(
   const customerHostname = resolveCustomerHostname(
     row.slug,
     metadata?.customer_hostname,
-    row.name,
   );
 
   return {

@@ -156,7 +156,6 @@ export async function runWorkspaceProvisioning(
   const customerHostname = resolveCustomerHostname(
     context.workspaceSlug,
     context.customerHostname,
-    context.workspaceName,
   );
   if (!isValidCustomerHostname(customerHostname)) {
     throw new Error(`Customer hostname "${customerHostname}" is not valid or is reserved.`);
@@ -173,7 +172,6 @@ export async function runWorkspaceProvisioning(
       primaryUrl: workspacePrimaryUrlForWorkspace(
         context.workspaceSlug,
         customerHostname,
-        context.workspaceName,
       ),
     };
   }
@@ -291,7 +289,6 @@ export async function runWorkspaceProvisioning(
       lastMessage: `Workspace ready at ${workspacePrimaryUrlForWorkspace(
         context.workspaceSlug,
         customerHostname,
-        context.workspaceName,
       )}.`,
     };
     await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
@@ -302,7 +299,6 @@ export async function runWorkspaceProvisioning(
       primaryUrl: workspacePrimaryUrlForWorkspace(
         context.workspaceSlug,
         customerHostname,
-        context.workspaceName,
       ),
     };
   } catch (error) {

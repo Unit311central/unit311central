@@ -25,79 +25,84 @@ import { parseClientPlatformSubdomainSafe } from "@/lib/app-domains";
 
 const HOSTNAME_CASES = [
   {
-    label: "multi-word company with Ltd suffix",
+    label: "multi-word company with hyphenated slug",
     name: "Acme Manufacturing Ltd",
     slug: "acme-manufacturing-ltd",
-    expectedHostname: "acmemanufacturingltd",
+    expectedHostname: "acme-manufacturing-ltd",
   },
   {
-    label: "two-word brand without legal suffix",
+    label: "two-word brand with compact slug",
     name: "North Star Analytics",
     slug: "north-star-analytics",
-    expectedHostname: "northstaranalytics",
+    expectedHostname: "north-star-analytics",
   },
   {
-    label: "short slug differs from name-derived hostname",
+    label: "short slug differs from company name",
     name: "Global Logistics Partners",
     slug: "glp",
-    expectedHostname: "globallogisticspartners",
+    expectedHostname: "glp",
   },
   {
-    label: "hyphenated slug derived from spaced name",
+    label: "hyphenated slug",
     name: "Blue Ocean Tech",
     slug: "blue-ocean-tech",
-    expectedHostname: "blueoceantech",
+    expectedHostname: "blue-ocean-tech",
   },
   {
     label: "apostrophe and punctuation in company name",
     name: "O'Brien & Sons",
     slug: "obrien-and-sons",
-    expectedHostname: "obriensons",
+    expectedHostname: "obrien-and-sons",
   },
 ] as const;
 
 for (const testCase of HOSTNAME_CASES) {
   assert.equal(
     deriveCustomerHostnameFromLabel(testCase.name),
-    testCase.expectedHostname,
-    `${testCase.label}: hostname from name`,
+    testCase.name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "")
+      .slice(0, 64),
+    `${testCase.label}: label helper still strips punctuation from names`,
   );
   assert.equal(
-    deriveDefaultCustomerHostname({
-      workspaceName: testCase.name,
-      workspaceSlug: testCase.slug,
-    }),
+    deriveDefaultCustomerHostname({ workspaceSlug: testCase.slug }),
     testCase.expectedHostname,
-    `${testCase.label}: default hostname prefers name`,
+    `${testCase.label}: default hostname uses slug only`,
   );
   assert.equal(
-    resolveCustomerHostname(testCase.slug, null, testCase.name),
+    resolveCustomerHostname(testCase.slug),
     testCase.expectedHostname,
-    `${testCase.label}: resolve without override`,
+    `${testCase.label}: resolve without override uses slug`,
   );
   assert.equal(
-    workspacePrimaryUrlForWorkspace(testCase.slug, null, testCase.name),
+    workspacePrimaryUrlForWorkspace(testCase.slug),
     `https://${testCase.expectedHostname}.unit311central.com`,
     `${testCase.label}: primary URL`,
   );
-  assert.notEqual(
-    testCase.slug,
-    testCase.expectedHostname,
-    `${testCase.label}: slug and hostname should differ when slug contains hyphens`,
-  );
 }
+
+assert.equal(resolveCustomerHostname("unit311"), "internal");
+assert.equal(resolveCustomerHostname("demo"), "demo");
+assert.equal(
+  workspacePrimaryUrlForWorkspace("unit311"),
+  "https://internal.unit311central.com",
+  "internal workspace primary URL",
+);
+assert.equal(
+  workspacePrimaryUrlForWorkspace("demo"),
+  "https://demo.unit311central.com",
+  "demo workspace primary URL",
+);
 
 assert.equal(
   deriveDefaultCustomerHostname({ workspaceSlug: "acme-mfg" }),
-  "acmemfg",
-  "slug-only fallback when name is absent",
+  "acme-mfg",
+  "slug-only default hostname",
 );
 
-assert.equal(
-  resolveCustomerHostname("acme-mfg", "customhost", "Acme Manufacturing Ltd"),
-  "customhost",
-  "explicit hostname override wins",
-);
+assert.equal(resolveCustomerHostname("acme-mfg", "customhost"), "customhost", "explicit hostname override wins");
 
 assert.ok(isValidCustomerHostname("acmemanufacturingltd"));
 assert.equal(isValidCustomerHostname("internal"), false);
@@ -121,11 +126,11 @@ assert.equal(
   "platform code alias still canonicalizes",
 );
 
-const acmeHost = "acmemanufacturingltd.unit311central.com";
+const acmeHost = "acme-manufacturing-ltd.unit311central.com";
 assert.equal(
   parseClientPlatformSubdomainSafe(acmeHost),
-  "acmemanufacturingltd",
-  "customer host parses to compact subdomain",
+  "acme-manufacturing-ltd",
+  "customer host parses to slug subdomain",
 );
 
 const provisionTargets = buildWorkspaceProvisionTargets({
@@ -183,8 +188,8 @@ async function runGenericProvisioningMemoryTests() {
       );
 
       assert.equal(created.slug, slug);
-      assert.equal(created.customerHostname, testCase.expectedHostname);
-      assert.equal(created.primaryUrl, `https://${testCase.expectedHostname}.unit311central.com`);
+      assert.equal(created.customerHostname, slug);
+      assert.equal(created.primaryUrl, `https://${slug}.unit311central.com`);
       assert.equal(created.provisioning.overallStatus, "complete");
       assert.ok(isWorkspaceProvisioningComplete(created.provisioning));
 
