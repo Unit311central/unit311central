@@ -41,7 +41,9 @@ type NavTree = Record<string, unknown>;
 
 function flattenNavItems(items: readonly InternalNavItem[]): unknown[] {
   return items.map((item) => {
-    if (item.children?.length) return { [item.label]: flattenNavItems(item.children) };
+    if (item.children?.length) {
+      return { [item.label]: item.children.map((child) => child.label) };
+    }
     return item.label;
   });
 }
