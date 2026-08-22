@@ -42,16 +42,12 @@ export async function findWorkspaceBySlug(
   if (!raw) return null;
   if (!isSupabaseConfigured()) return null;
 
-  // Short host aliases (e.g. onward → onwardair, talanton → talantonimpact).
-  const { canonicalizeOnwardAirSlug } = await import("@/lib/onwardair-surface");
-  const { canonicalizeTalantonImpactSlug } = await import("@/lib/talanton-surface");
-  const { findWorkspaceSlugByHostAlias } = await import(
+  // Short host aliases (e.g. onward → onwardair, talanton → talantonimpact, DB aliases).
+  const { findWorkspaceSlugByHostAlias, canonicalizeWorkspaceHostSubdomain } = await import(
     "@/lib/platform-workspaces/workspace-host-alias-service"
   );
-  const codeAlias =
-    canonicalizeOnwardAirSlug(raw) ?? canonicalizeTalantonImpactSlug(raw) ?? null;
-  const dbAlias = codeAlias ? null : await findWorkspaceSlugByHostAlias(raw);
-  const normalized = codeAlias ?? dbAlias ?? raw;
+  const dbAlias = await findWorkspaceSlugByHostAlias(raw);
+  const normalized = canonicalizeWorkspaceHostSubdomain(raw, dbAlias);
 
   const supabase = createTenancyServerClient();
   const { data, error } = await supabase

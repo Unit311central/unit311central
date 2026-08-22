@@ -27,6 +27,7 @@ export type WorkspaceProvisioningOverallStatus =
 export type WorkspaceProvisioningContext = {
   workspaceId: string;
   workspaceSlug: string;
+  workspaceName: string;
   workspaceType: WorkspaceType;
   companyName: string;
   contactName: string;
@@ -152,7 +153,11 @@ function isProvisioningComplete(state: WorkspaceProvisioningState): boolean {
 export async function runWorkspaceProvisioning(
   context: WorkspaceProvisioningContext,
 ): Promise<WorkspaceProvisioningRunResult> {
-  const customerHostname = resolveCustomerHostname(context.workspaceSlug, context.customerHostname);
+  const customerHostname = resolveCustomerHostname(
+    context.workspaceSlug,
+    context.customerHostname,
+    context.workspaceName,
+  );
   if (!isValidCustomerHostname(customerHostname)) {
     throw new Error(`Customer hostname "${customerHostname}" is not valid or is reserved.`);
   }
@@ -165,7 +170,11 @@ export async function runWorkspaceProvisioning(
     return {
       overallStatus: "complete",
       provisioning: current,
-      primaryUrl: workspacePrimaryUrlForWorkspace(context.workspaceSlug, customerHostname),
+      primaryUrl: workspacePrimaryUrlForWorkspace(
+        context.workspaceSlug,
+        customerHostname,
+        context.workspaceName,
+      ),
     };
   }
 
@@ -279,14 +288,22 @@ export async function runWorkspaceProvisioning(
     provisioning = {
       ...provisioning,
       overallStatus: "complete",
-      lastMessage: `Workspace ready at ${workspacePrimaryUrlForWorkspace(context.workspaceSlug, customerHostname)}.`,
+      lastMessage: `Workspace ready at ${workspacePrimaryUrlForWorkspace(
+        context.workspaceSlug,
+        customerHostname,
+        context.workspaceName,
+      )}.`,
     };
     await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
 
     return {
       overallStatus: "complete",
       provisioning,
-      primaryUrl: workspacePrimaryUrlForWorkspace(context.workspaceSlug, customerHostname),
+      primaryUrl: workspacePrimaryUrlForWorkspace(
+        context.workspaceSlug,
+        customerHostname,
+        context.workspaceName,
+      ),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Workspace provisioning failed.";

@@ -55,6 +55,13 @@ function buildProvisionTargets(request: UserProvisioningRequest): ProvisionTarge
   return targets;
 }
 
+/** @internal Exported for generic provisioning tests. */
+export function buildWorkspaceProvisionTargets(
+  request: UserProvisioningRequest,
+): ProvisionTarget[] {
+  return buildProvisionTargets(request);
+}
+
 async function upsertPlatformUser(input: {
   workspaceId: string;
   companyName: string;

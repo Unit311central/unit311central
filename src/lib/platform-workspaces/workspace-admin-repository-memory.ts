@@ -204,7 +204,11 @@ export function createMemoryWorkspaceAdminRepository(
       if (!input.companyName.trim()) throw new Error("Company name is required.");
       if (!input.contactEmail.trim()) throw new Error("Primary contact email is required.");
 
-      const customerHostname = resolveCustomerHostname(slug, input.customerHostname);
+      const customerHostname = resolveCustomerHostname(
+        slug,
+        input.customerHostname,
+        input.name,
+      );
       const provisioning: WorkspaceProvisioningState = {
         databaseStatus: "complete",
         authenticationStatus:

@@ -7,7 +7,7 @@ alter table public.workspace_admin_metadata
   add column if not exists provisioning_overall_status text not null default 'not_started';
 
 comment on column public.workspace_admin_metadata.customer_hostname is
-  'Customer-facing subdomain label (e.g. interfaceworx) — may differ from workspaces.slug (e.g. interface-worx).';
+  'Customer-facing subdomain label — may differ from workspaces.slug when compact hostnames are used.';
 
 comment on column public.workspace_admin_metadata.provisioning_overall_status is
   'Aggregate Phase 3 provisioning state: not_started | in_progress | complete | failed.';

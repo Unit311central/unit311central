@@ -26,6 +26,13 @@ import type {
 } from "@/lib/platform-workspaces/types";
 import { cn } from "@/lib/utils";
 
+function defaultHostnameForWizard(state: { name: string; slug: string }): string {
+  return deriveDefaultCustomerHostname({
+    workspaceName: state.name,
+    workspaceSlug: state.slug,
+  });
+}
+
 const WIZARD_STEPS = [
   "Workspace type",
   "Workspace details",
@@ -111,7 +118,7 @@ export function NewWorkspaceWizard() {
       );
     }
     if (step === 5) {
-      const hostname = state.customerHostname?.trim() || deriveDefaultCustomerHostname(state.slug);
+      const hostname = state.customerHostname?.trim() || defaultHostnameForWizard(state);
       return hostname.length > 0 && state.hostnameAvailable !== false;
     }
     if (step === 2) return state.enabledModules.length > 0;
@@ -188,7 +195,7 @@ export function NewWorkspaceWizard() {
     setProvisionError(null);
     try {
       const customerHostname =
-        state.customerHostname?.trim() || deriveDefaultCustomerHostname(state.slug);
+        state.customerHostname?.trim() || defaultHostnameForWizard(state);
       const response = await fetch("/api/internal/workspaces", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -246,7 +253,7 @@ export function NewWorkspaceWizard() {
   }
 
   const resolvedHostname =
-    state.customerHostname?.trim() || deriveDefaultCustomerHostname(state.slug) || "hostname";
+    state.customerHostname?.trim() || defaultHostnameForWizard(state) || "hostname";
   const provisioningComplete =
     created?.provisioning.overallStatus === "complete" ||
     (created?.provisioning.databaseStatus === "complete" &&
@@ -322,7 +329,7 @@ export function NewWorkspaceWizard() {
 
         {step === 1 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <WizardField label="Workspace name *" value={state.name} onChange={(value) => setState({ ...state, name: value, branding: { ...state.branding, displayName: value } })} />
+            <WizardField label="Workspace name *" value={state.name} onChange={(value) => setState({ ...state, name: value, branding: { ...state.branding, displayName: value }, companyName: value, customerHostname: deriveDefaultCustomerHostname({ workspaceName: value, workspaceSlug: state.slug }), hostnameAvailable: null, hostnameMessage: null })} />
             <WizardField
               label="Workspace slug *"
               value={state.slug}
@@ -333,7 +340,10 @@ export function NewWorkspaceWizard() {
                   slug: nextSlug,
                   slugAvailable: null,
                   slugMessage: null,
-                  customerHostname: deriveDefaultCustomerHostname(nextSlug),
+                  customerHostname: deriveDefaultCustomerHostname({
+                    workspaceName: state.name,
+                    workspaceSlug: nextSlug,
+                  }),
                   hostnameAvailable: null,
                   hostnameMessage: null,
                 });
@@ -341,7 +351,7 @@ export function NewWorkspaceWizard() {
               onBlur={() => {
                 if (state.slug) {
                   void checkSlug(state.slug);
-                  const hostname = state.customerHostname || deriveDefaultCustomerHostname(state.slug);
+                  const hostname = state.customerHostname || defaultHostnameForWizard(state);
                   if (hostname) void checkHostname(hostname);
                 }
               }}
@@ -467,7 +477,7 @@ export function NewWorkspaceWizard() {
             <WizardField label="Secondary colour" value={state.branding.secondaryColour} onChange={(value) => setState({ ...state, branding: { ...state.branding, secondaryColour: value } })} />
             <WizardField
               label="Customer-facing hostname *"
-              value={state.customerHostname || deriveDefaultCustomerHostname(state.slug)}
+              value={state.customerHostname || defaultHostnameForWizard(state)}
               onChange={(value) =>
                 setState({
                   ...state,
@@ -477,7 +487,7 @@ export function NewWorkspaceWizard() {
                 })
               }
               onBlur={() => {
-                const hostname = state.customerHostname || deriveDefaultCustomerHostname(state.slug);
+                const hostname = state.customerHostname || defaultHostnameForWizard(state);
                 if (hostname) void checkHostname(hostname);
               }}
             />
@@ -717,7 +727,7 @@ function ReviewSummary({
   onEdit: (step: number) => void;
 }) {
   const resolvedHostname =
-    state.customerHostname?.trim() || deriveDefaultCustomerHostname(state.slug) || "hostname";
+    state.customerHostname?.trim() || defaultHostnameForWizard(state) || "hostname";
   return (
     <div className="space-y-4 text-sm text-white/75">
       <ReviewBlock title="Workspace" onEdit={() => onEdit(1)}>

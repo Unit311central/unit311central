@@ -280,7 +280,11 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
       if (!input.companyName.trim()) throw new Error("Company name is required.");
       if (!input.contactEmail.trim()) throw new Error("Primary contact email is required.");
 
-      const customerHostname = resolveCustomerHostname(slug, input.customerHostname);
+      const customerHostname = resolveCustomerHostname(
+        slug,
+        input.customerHostname,
+        input.name,
+      );
       if (!isValidCustomerHostname(customerHostname)) {
         throw new Error(`Customer hostname "${customerHostname}" is not valid or is reserved.`);
       }
@@ -353,6 +357,7 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
       await runWorkspaceProvisioning({
         workspaceId,
         workspaceSlug: slug,
+        workspaceName: input.name.trim(),
         workspaceType: input.type,
         companyName: input.companyName.trim(),
         contactName: input.contactName.trim(),
@@ -376,6 +381,7 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
       await runWorkspaceProvisioning({
         workspaceId: existing.workspaceId,
         workspaceSlug: existing.slug,
+        workspaceName: existing.name,
         workspaceType: existing.type,
         companyName: existing.companyName,
         contactName: existing.contact.name,
