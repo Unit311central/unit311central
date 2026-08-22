@@ -2,6 +2,7 @@ name: Post-deploy migrations
 
 # POST pending migrations via authenticated production runner (apply step only).
 # Step 2: apply migration 150 after Workspaces Phase 2 persistence fix.
+# Runner apply triggered 2026-08-22 (migration 150 approval).
 on:
   workflow_dispatch:
   push:
