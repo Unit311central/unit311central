@@ -7,6 +7,7 @@ import type { WorkspaceAdminRecord } from "@/lib/platform-workspaces/types";
 import {
   WORKSPACE_MODULE_CATALOGUE,
   subModuleKey,
+  syncModuleSelection,
 } from "@/lib/platform-workspaces/module-catalogue";
 
 type PanelMode = "view" | "edit" | "users" | "modules";
@@ -221,10 +222,18 @@ export function WorkspaceDetailPanel({
                               type="checkbox"
                               checked={draft.enabledSubModules.includes(key)}
                               onChange={(event) => {
-                                const next = event.target.checked
-                                  ? [...draft.enabledSubModules, key]
-                                  : draft.enabledSubModules.filter((item) => item !== key);
-                                setDraft({ ...draft, enabledSubModules: next });
+                                const synced = syncModuleSelection(
+                                  module.id,
+                                  draft.enabledModules,
+                                  draft.enabledSubModules,
+                                  sub.id,
+                                  event.target.checked,
+                                );
+                                setDraft({
+                                  ...draft,
+                                  enabledModules: synced.enabledModules,
+                                  enabledSubModules: synced.enabledSubModules,
+                                });
                               }}
                             />
                             {sub.label}
