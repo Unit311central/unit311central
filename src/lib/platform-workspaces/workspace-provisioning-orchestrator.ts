@@ -1,4 +1,5 @@
 import { provisionWorkspaceClients } from "@/lib/platform-workspaces/client-provisioning-adapter";
+import { provisionInitialWorkspaceAdministrator } from "@/lib/platform-workspaces/initial-admin-provisioning-adapter";
 import { nowIso } from "@/lib/platform-workspaces/workspace-admin-mappers";
 import {
   isCustomerHostnameAvailable,
@@ -9,13 +10,20 @@ import {
   resolveCustomerHostname,
   workspacePrimaryUrlForWorkspace,
 } from "@/lib/platform-workspaces/workspace-hostname";
+import {
+  provisionWorkspaceLoginPage,
+  verifyWorkspaceLoginPageReady,
+} from "@/lib/platform-workspaces/workspace-login-page-service";
 import { provisionWorkspaceUsers } from "@/lib/platform-workspaces/user-provisioning-adapter";
 import type {
+  InitialWorkspaceAdministratorInput,
   WorkspaceImportClient,
   WorkspaceImportEmployee,
+  WorkspaceLoginPageInput,
   WorkspaceProvisioningState,
   WorkspaceType,
 } from "@/lib/platform-workspaces/types";
+import { findWorkspaceBySlug } from "@/lib/workspace-host";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 
 export type WorkspaceProvisioningOverallStatus =
@@ -35,12 +43,15 @@ export type WorkspaceProvisioningContext = {
   customerHostname: string;
   employees: WorkspaceImportEmployee[];
   clients: WorkspaceImportClient[];
+  loginPage: WorkspaceLoginPageInput;
+  initialAdministrator: InitialWorkspaceAdministratorInput;
 };
 
 export type WorkspaceProvisioningRunResult = {
   overallStatus: WorkspaceProvisioningOverallStatus;
   provisioning: WorkspaceProvisioningState;
   primaryUrl: string;
+  initialAdministratorEmail: string;
 };
 
 type MetadataProvisioningRow = {
@@ -49,9 +60,13 @@ type MetadataProvisioningRow = {
   provisioning_infrastructure_status?: string | null;
   provisioning_deployment_status?: string | null;
   provisioning_workspace_record_status?: string | null;
+  provisioning_login_page_status?: string | null;
+  provisioning_initial_admin_status?: string | null;
   provisioning_overall_status?: string | null;
   provisioning_last_message?: string | null;
   customer_hostname?: string | null;
+  initial_admin_email?: string | null;
+  initial_admin_user_id?: string | null;
 };
 
 const IN_PROGRESS_STALE_MS = 5 * 60 * 1000;
@@ -74,6 +89,8 @@ function buildProvisioningState(metadata: MetadataProvisioningRow | null): Works
     infrastructureStatus: asStepStatus(metadata?.provisioning_infrastructure_status),
     deploymentStatus: asStepStatus(metadata?.provisioning_deployment_status),
     workspaceRecordStatus: asStepStatus(metadata?.provisioning_workspace_record_status) as WorkspaceProvisioningState["workspaceRecordStatus"],
+    loginPageStatus: asStepStatus(metadata?.provisioning_login_page_status),
+    initialAdminStatus: asStepStatus(metadata?.provisioning_initial_admin_status),
     overallStatus: (metadata?.provisioning_overall_status?.trim().toLowerCase() ||
       "not_started") as WorkspaceProvisioningOverallStatus,
     lastMessage: metadata?.provisioning_last_message ?? undefined,
@@ -85,7 +102,7 @@ async function loadMetadata(workspaceId: string): Promise<MetadataProvisioningRo
   const { data, error } = await supabase
     .from("workspace_admin_metadata")
     .select(
-      "provisioning_database_status, provisioning_authentication_status, provisioning_infrastructure_status, provisioning_deployment_status, provisioning_workspace_record_status, provisioning_overall_status, provisioning_last_message, customer_hostname, updated_at",
+      "provisioning_database_status, provisioning_authentication_status, provisioning_infrastructure_status, provisioning_deployment_status, provisioning_workspace_record_status, provisioning_login_page_status, provisioning_initial_admin_status, provisioning_overall_status, provisioning_last_message, customer_hostname, initial_admin_email, initial_admin_user_id, updated_at",
     )
     .eq("workspace_id", workspaceId)
     .maybeSingle();
@@ -110,6 +127,8 @@ async function persistProvisioningState(
       provisioning_infrastructure_status: provisioning.infrastructureStatus,
       provisioning_deployment_status: provisioning.deploymentStatus,
       provisioning_workspace_record_status: provisioning.workspaceRecordStatus,
+      provisioning_login_page_status: provisioning.loginPageStatus ?? "not_started",
+      provisioning_initial_admin_status: provisioning.initialAdminStatus ?? "not_started",
       provisioning_overall_status: provisioning.overallStatus,
       provisioning_last_message: provisioning.lastMessage ?? null,
       updated_at: nowIso(),
@@ -136,11 +155,52 @@ async function markWorkspaceActive(workspaceId: string, workspaceType: Workspace
   }
 }
 
+async function verifyInitialAdministratorReady(
+  workspaceId: string,
+  expectedEmail: string,
+): Promise<boolean> {
+  const supabase = createTenancyServerClient();
+  const { data: metadata } = await supabase
+    .from("workspace_admin_metadata")
+    .select("initial_admin_user_id, initial_admin_email, provisioning_initial_admin_status")
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  if (metadata?.provisioning_initial_admin_status !== "complete") return false;
+  if (!metadata.initial_admin_user_id) return false;
+  if (
+    metadata.initial_admin_email &&
+    String(metadata.initial_admin_email).toLowerCase() !== expectedEmail.trim().toLowerCase()
+  ) {
+    return false;
+  }
+
+  const userId = String(metadata.initial_admin_user_id);
+  const { data: user } = await supabase
+    .from("platform_users")
+    .select("id, is_active, password_hash")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!user?.id || !user.is_active || !user.password_hash) return false;
+
+  const { data: membership } = await supabase
+    .from("workspace_users")
+    .select("role, is_owner")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return membership?.role === "admin" && membership?.is_owner === true;
+}
+
 function isProvisioningComplete(state: WorkspaceProvisioningState): boolean {
   const steps = [
     state.databaseStatus,
-    state.authenticationStatus,
     state.infrastructureStatus,
+    state.loginPageStatus,
+    state.initialAdminStatus,
+    state.authenticationStatus,
     state.deploymentStatus,
     state.workspaceRecordStatus,
   ];
@@ -164,6 +224,7 @@ export async function runWorkspaceProvisioning(
   const metadata = await loadMetadata(context.workspaceId);
   const updatedAt = (metadata as { updated_at?: string } | null)?.updated_at;
   const current = buildProvisioningState(metadata);
+  const adminEmail = context.initialAdministrator.email.trim().toLowerCase();
 
   if (current.overallStatus === "complete" && isProvisioningComplete(current)) {
     return {
@@ -173,6 +234,7 @@ export async function runWorkspaceProvisioning(
         context.workspaceSlug,
         customerHostname,
       ),
+      initialAdministratorEmail: metadata?.initial_admin_email?.trim().toLowerCase() || adminEmail,
     };
   }
 
@@ -199,6 +261,7 @@ export async function runWorkspaceProvisioning(
   await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
 
   try {
+    // 1–2. Workspace record + hostname registration
     if (provisioning.databaseStatus !== "complete") {
       provisioning = {
         ...provisioning,
@@ -240,6 +303,45 @@ export async function runWorkspaceProvisioning(
       await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
     }
 
+    // 3. Login page configuration
+    if (provisioning.loginPageStatus !== "complete") {
+      const login = await provisionWorkspaceLoginPage({
+        workspaceId: context.workspaceId,
+        loginPage: context.loginPage,
+      });
+      provisioning = {
+        ...provisioning,
+        loginPageStatus: login.status === "skipped" ? "skipped" : "complete",
+        lastMessage: login.message,
+      };
+      await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
+    }
+
+    // 4–6. Initial Full Workspace Administrator
+    if (provisioning.initialAdminStatus !== "complete") {
+      const admin = await provisionInitialWorkspaceAdministrator({
+        workspaceId: context.workspaceId,
+        workspaceSlug: context.workspaceSlug,
+        companyName: context.companyName,
+        administrator: context.initialAdministrator,
+      });
+      const supabase = createTenancyServerClient();
+      await supabase
+        .from("workspace_admin_metadata")
+        .update({
+          provisioning_initial_admin_status: "complete",
+          updated_at: nowIso(),
+        })
+        .eq("workspace_id", context.workspaceId);
+      provisioning = {
+        ...provisioning,
+        initialAdminStatus: admin.status === "skipped" ? "skipped" : "complete",
+        lastMessage: admin.message,
+      };
+      await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
+    }
+
+    // 7–9. Employee/user imports (excluding initial administrator)
     if (provisioning.authenticationStatus !== "complete" && provisioning.authenticationStatus !== "skipped") {
       const auth = await provisionWorkspaceUsers({
         workspaceId: context.workspaceId,
@@ -248,6 +350,7 @@ export async function runWorkspaceProvisioning(
         contactName: context.contactName,
         contactEmail: context.contactEmail,
         employees: context.employees,
+        excludeEmails: [adminEmail],
       });
       provisioning = {
         ...provisioning,
@@ -257,6 +360,7 @@ export async function runWorkspaceProvisioning(
       await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
     }
 
+    // 10. Client imports
     const clients = await provisionWorkspaceClients({
       workspaceId: context.workspaceId,
       workspaceSlug: context.workspaceSlug,
@@ -271,6 +375,27 @@ export async function runWorkspaceProvisioning(
       await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
     }
 
+    // 11. Activate workspace
+    await markWorkspaceActive(context.workspaceId, context.workspaceType);
+
+    // 12–14. Verification gates before reporting complete
+    const resolvedWorkspace = await findWorkspaceBySlug(customerHostname);
+    if (!resolvedWorkspace || resolvedWorkspace.slug !== context.workspaceSlug) {
+      throw new Error(
+        `Customer hostname ${customerHostname}.unit311central.com does not resolve to workspace ${context.workspaceSlug}.`,
+      );
+    }
+
+    const loginReady = await verifyWorkspaceLoginPageReady(context.workspaceId);
+    if (!loginReady) {
+      throw new Error("Customer login page configuration is not ready.");
+    }
+
+    const adminReady = await verifyInitialAdministratorReady(context.workspaceId, adminEmail);
+    if (!adminReady) {
+      throw new Error("Initial workspace administrator is not login-ready.");
+    }
+
     if (provisioning.deploymentStatus !== "complete") {
       provisioning = {
         ...provisioning,
@@ -281,25 +406,23 @@ export async function runWorkspaceProvisioning(
       await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
     }
 
-    await markWorkspaceActive(context.workspaceId, context.workspaceType);
+    const primaryUrl = workspacePrimaryUrlForWorkspace(
+      context.workspaceSlug,
+      customerHostname,
+    );
 
     provisioning = {
       ...provisioning,
       overallStatus: "complete",
-      lastMessage: `Workspace ready at ${workspacePrimaryUrlForWorkspace(
-        context.workspaceSlug,
-        customerHostname,
-      )}.`,
+      lastMessage: `Workspace ready at ${primaryUrl}. Administrator: ${adminEmail}.`,
     };
     await persistProvisioningState(context.workspaceId, provisioning, customerHostname);
 
     return {
       overallStatus: "complete",
       provisioning,
-      primaryUrl: workspacePrimaryUrlForWorkspace(
-        context.workspaceSlug,
-        customerHostname,
-      ),
+      primaryUrl,
+      initialAdministratorEmail: adminEmail,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Workspace provisioning failed.";

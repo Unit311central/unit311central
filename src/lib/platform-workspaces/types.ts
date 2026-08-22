@@ -52,8 +52,39 @@ export type WorkspaceProvisioningState = {
   infrastructureStatus: WorkspaceProvisioningStepStatus;
   deploymentStatus: WorkspaceProvisioningStepStatus;
   workspaceRecordStatus: "not_started" | "pending" | "complete" | "failed";
+  loginPageStatus?: WorkspaceProvisioningStepStatus;
+  initialAdminStatus?: WorkspaceProvisioningStepStatus;
   overallStatus?: WorkspaceProvisioningOverallStatus;
   lastMessage?: string;
+};
+
+export type InitialWorkspaceAdministratorInput = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+export type WorkspaceLoginPageInput = {
+  title: string;
+  /** Base64 data URL from wizard file upload — never persisted in metadata. */
+  logoDataUrl?: string | null;
+  /** Base64 data URL for JPG background — never persisted in metadata. */
+  backgroundDataUrl?: string | null;
+};
+
+export type WorkspaceLoginPageConfig = {
+  title: string;
+  logoUrl: string | null;
+  backgroundUrl: string | null;
+};
+
+export type InitialWorkspaceAdministratorSummary = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  userId?: string;
 };
 
 export type WorkspaceAdminRecord = {
@@ -81,6 +112,8 @@ export type WorkspaceAdminRecord = {
   createdBy: string;
   updatedAt: string;
   provisioning: WorkspaceProvisioningState;
+  loginPage: WorkspaceLoginPageConfig;
+  initialAdministrator: InitialWorkspaceAdministratorSummary | null;
 };
 
 export type CreateWorkspaceInput = {
@@ -100,6 +133,8 @@ export type CreateWorkspaceInput = {
   branding: WorkspaceBranding;
   employees: WorkspaceImportEmployee[];
   clients: WorkspaceImportClient[];
+  loginPage: WorkspaceLoginPageInput;
+  initialAdministrator: InitialWorkspaceAdministratorInput;
 };
 
 export type UpdateWorkspaceInput = Partial<

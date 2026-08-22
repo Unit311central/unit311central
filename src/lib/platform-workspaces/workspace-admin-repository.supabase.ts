@@ -26,6 +26,7 @@ import type {
 } from "@/lib/platform-workspaces/types";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { provisionCustomerWorkspace } from "@/lib/workspace-provisioning-service";
+import { validateCreateWorkspaceInput } from "@/lib/platform-workspaces/create-workspace-validation";
 
 const WORKSPACE_SELECT = `
   id,
@@ -62,6 +63,15 @@ const WORKSPACE_SELECT = `
     provisioning_overall_status,
     provisioning_last_message,
     customer_hostname,
+    login_page_title,
+    login_logo_storage_path,
+    login_background_storage_path,
+    provisioning_login_page_status,
+    provisioning_initial_admin_status,
+    initial_admin_email,
+    initial_admin_first_name,
+    initial_admin_last_name,
+    initial_admin_user_id,
     created_at,
     updated_at
   )
@@ -176,6 +186,12 @@ function metadataPayload(
     provisioning_workspace_record_status: provisioning.workspaceRecordStatus,
     provisioning_overall_status: provisioning.overallStatus ?? "not_started",
     provisioning_last_message: provisioning.lastMessage ?? null,
+    login_page_title: input.loginPage.title.trim(),
+    provisioning_login_page_status: "not_started",
+    provisioning_initial_admin_status: "not_started",
+    initial_admin_email: input.initialAdministrator.email.trim().toLowerCase(),
+    initial_admin_first_name: input.initialAdministrator.firstName.trim(),
+    initial_admin_last_name: input.initialAdministrator.lastName.trim(),
     created_at: timestamp,
     updated_at: timestamp,
   };
@@ -271,6 +287,7 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
     },
 
     async create(input, createdBy) {
+      validateCreateWorkspaceInput(input);
       const slug = normalizeSlug(input.slug);
       if (!slug) throw new Error("Workspace slug is required.");
       if (!(await this.isSlugAvailable(slug))) {
@@ -361,6 +378,8 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
         customerHostname,
         employees: input.employees,
         clients: input.clients,
+        loginPage: input.loginPage,
+        initialAdministrator: input.initialAdministrator,
       });
 
       const record = await this.getById(workspaceId);
@@ -385,6 +404,18 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
         customerHostname: existing.customerHostname,
         employees: existing.pendingEmployees,
         clients: existing.pendingClients,
+        loginPage: {
+          title: existing.loginPage.title,
+          logoDataUrl: null,
+          backgroundDataUrl: null,
+        },
+        initialAdministrator: {
+          firstName: existing.initialAdministrator?.firstName ?? "",
+          lastName: existing.initialAdministrator?.lastName ?? "",
+          email: existing.initialAdministrator?.email ?? existing.contact.email,
+          password: "",
+          confirmPassword: "",
+        },
       });
 
       const record = await this.getById(workspaceId);

@@ -14,6 +14,8 @@ export type UserProvisioningRequest = {
   contactName: string;
   contactEmail: string;
   employees: WorkspaceImportEmployee[];
+  /** Emails that must not be re-provisioned (e.g. initial workspace administrator). */
+  excludeEmails?: string[];
 };
 
 export type UserProvisioningResult = {
@@ -27,31 +29,12 @@ type ProvisionTarget = WorkspaceImportEmployee & {
 };
 
 function buildProvisionTargets(request: UserProvisioningRequest): ProvisionTarget[] {
-  const targets: ProvisionTarget[] = request.employees.map((employee) => ({ ...employee }));
-  const contactEmail = request.contactEmail.trim().toLowerCase();
-  if (!contactEmail) return targets;
-
-  const existing = targets.find(
-    (row) => row.email.trim().toLowerCase() === contactEmail,
+  const exclude = new Set(
+    (request.excludeEmails ?? []).map((email) => email.trim().toLowerCase()).filter(Boolean),
   );
-  if (existing) {
-    existing.isOwner = true;
-    if (!existing.firstName && request.contactName.trim()) {
-      const parts = request.contactName.trim().split(/\s+/);
-      existing.firstName = parts[0] ?? "";
-      existing.lastName = parts.slice(1).join(" ");
-    }
-    return targets;
-  }
-
-  const nameParts = request.contactName.trim().split(/\s+/);
-  targets.unshift({
-    email: contactEmail,
-    firstName: nameParts[0] ?? "Owner",
-    lastName: nameParts.slice(1).join(" ") || request.companyName.trim() || "Contact",
-    role: "owner",
-    isOwner: true,
-  });
+  const targets: ProvisionTarget[] = request.employees
+    .filter((employee) => !exclude.has(employee.email.trim().toLowerCase()))
+    .map((employee) => ({ ...employee }));
   return targets;
 }
 
@@ -132,7 +115,7 @@ export async function provisionWorkspaceUsers(
     return {
       status: "skipped",
       provisionedCount: 0,
-      message: "No employees or primary contact were provided for authentication provisioning.",
+      message: "No additional employees were provided for authentication provisioning.",
     };
   }
 

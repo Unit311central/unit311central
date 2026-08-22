@@ -109,6 +109,19 @@ export async function isCustomerHostnameAvailable(
     return false;
   }
 
+  const { data: metadataRow } = await supabase
+    .from("workspace_admin_metadata")
+    .select("workspace_id")
+    .eq("customer_hostname", normalized)
+    .maybeSingle();
+
+  if (metadataRow?.workspace_id) {
+    if (workspaceIdToIgnore && String(metadataRow.workspace_id) === workspaceIdToIgnore) {
+      return true;
+    }
+    return false;
+  }
+
   return true;
 }
 

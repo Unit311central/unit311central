@@ -18,6 +18,7 @@ import { isCorpCentreSlug } from "@/components/layout/CorpCentreLogoMark";
 import { isAbhiSlug } from "@/lib/abhi-surface";
 import { isOnwardAirSlug } from "@/lib/onwardair-surface";
 import { isTalantonImpactSlug } from "@/lib/talanton-surface";
+import { loadWorkspaceLoginBrandingBySlug } from "@/lib/platform-workspaces/workspace-login-page-service";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 
 function workspaceSlugFromReturnTo(returnTo: string | null | undefined): string | null {
@@ -148,6 +149,10 @@ export default async function LoginPage({ searchParams }: PageProps) {
               : isCentral
                 ? "central"
                 : "default";
+  const loginBranding =
+    workspaceSlug && brand === "customer"
+      ? await loadWorkspaceLoginBrandingBySlug(workspaceSlug)
+      : null;
 
   return (
     <Unit311LoginPage
@@ -163,6 +168,9 @@ export default async function LoginPage({ searchParams }: PageProps) {
       }
       brand={brand}
       workspaceName={customerWorkspaceName}
+      loginTitle={loginBranding?.title ?? null}
+      loginLogoUrl={loginBranding?.logoUrl ?? null}
+      loginBackgroundUrl={loginBranding?.backgroundUrl ?? null}
       returnTo={returnTo}
       nextPath={nextPath}
     />

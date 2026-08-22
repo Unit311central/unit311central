@@ -18,6 +18,10 @@ import {
   syncModuleSelection,
 } from "@/lib/platform-workspaces/module-catalogue";
 import { deriveDefaultCustomerHostname } from "@/lib/platform-workspaces/workspace-hostname";
+import {
+  validateInitialWorkspaceAdministrator,
+  validateLoginPageTitle,
+} from "@/lib/platform-workspaces/provisioning-validation";
 import type {
   CreateWorkspaceInput,
   WorkspaceAdminRecord,
@@ -26,8 +30,11 @@ import type {
 } from "@/lib/platform-workspaces/types";
 import { cn } from "@/lib/utils";
 
-function defaultHostnameForWizard(state: { slug: string }): string {
-  return deriveDefaultCustomerHostname({ workspaceSlug: state.slug });
+function defaultHostnameForWizard(state: { slug: string; name: string }): string {
+  return deriveDefaultCustomerHostname({
+    workspaceSlug: state.slug,
+    workspaceName: state.name,
+  });
 }
 
 const WIZARD_STEPS = [
@@ -36,6 +43,8 @@ const WIZARD_STEPS = [
   "Modules",
   "Users / employees",
   "Clients",
+  "Login page",
+  "Initial workspace administrator",
   "Branding / configuration",
   "Review",
   "Create / provision",
@@ -48,6 +57,9 @@ type WizardState = CreateWorkspaceInput & {
   hostnameMessage: string | null;
   employeeErrors: Array<{ row: number; message: string }>;
   clientErrors: Array<{ row: number; message: string }>;
+  loginPageLogoPreview: string | null;
+  loginPageBackgroundPreview: string | null;
+  initialAdminError: string | null;
 };
 
 function initialState(): WizardState {
@@ -74,12 +86,27 @@ function initialState(): WizardState {
     },
     employees: [],
     clients: [],
+    loginPage: {
+      title: "",
+      logoDataUrl: null,
+      backgroundDataUrl: null,
+    },
+    initialAdministrator: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
     slugAvailable: null,
     slugMessage: null,
     hostnameAvailable: null,
     hostnameMessage: null,
     employeeErrors: [],
     clientErrors: [],
+    loginPageLogoPreview: null,
+    loginPageBackgroundPreview: null,
+    initialAdminError: null,
   };
 }
 
@@ -115,6 +142,13 @@ export function NewWorkspaceWizard() {
       );
     }
     if (step === 5) {
+      return !validateLoginPageTitle(state.loginPage.title);
+    }
+    if (step === 6) {
+      const validation = validateInitialWorkspaceAdministrator(state.initialAdministrator);
+      return validation.ok;
+    }
+    if (step === 7) {
       const hostname = state.customerHostname?.trim() || defaultHostnameForWizard(state);
       return hostname.length > 0 && state.hostnameAvailable !== false;
     }
@@ -216,6 +250,8 @@ export function NewWorkspaceWizard() {
           },
           employees: state.employees,
           clients: state.clients,
+          loginPage: state.loginPage,
+          initialAdministrator: state.initialAdministrator,
         } satisfies CreateWorkspaceInput),
       });
       const payload = await readJson<{ workspace?: WorkspaceAdminRecord; error?: string }>(response);
@@ -326,7 +362,7 @@ export function NewWorkspaceWizard() {
 
         {step === 1 ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <WizardField label="Workspace name *" value={state.name} onChange={(value) => setState({ ...state, name: value, branding: { ...state.branding, displayName: value }, companyName: value })} />
+            <WizardField label="Workspace name *" value={state.name} onChange={(value) => setState({ ...state, name: value, branding: { ...state.branding, displayName: value }, companyName: value, loginPage: { ...state.loginPage, title: value }, customerHostname: deriveDefaultCustomerHostname({ workspaceSlug: state.slug, workspaceName: value }), hostnameAvailable: null, hostnameMessage: null })} />
             <WizardField
               label="Workspace slug *"
               value={state.slug}
@@ -337,7 +373,10 @@ export function NewWorkspaceWizard() {
                   slug: nextSlug,
                   slugAvailable: null,
                   slugMessage: null,
-                  customerHostname: deriveDefaultCustomerHostname({ workspaceSlug: nextSlug }),
+                  customerHostname: deriveDefaultCustomerHostname({
+                    workspaceSlug: nextSlug,
+                    workspaceName: state.name,
+                  }),
                   hostnameAvailable: null,
                   hostnameMessage: null,
                 });
@@ -464,6 +503,20 @@ export function NewWorkspaceWizard() {
         ) : null}
 
         {step === 5 ? (
+          <LoginPageStep
+            state={state}
+            onChange={(patch) => setState((current) => ({ ...current, ...patch }))}
+          />
+        ) : null}
+
+        {step === 6 ? (
+          <InitialAdministratorStep
+            state={state}
+            onChange={(patch) => setState((current) => ({ ...current, ...patch }))}
+          />
+        ) : null}
+
+        {step === 7 ? (
           <div className="grid gap-4 md:grid-cols-2">
             <WizardField label="Display name" value={state.branding.displayName} onChange={(value) => setState({ ...state, branding: { ...state.branding, displayName: value } })} />
             <WizardField label="Logo URL" value={state.branding.logoUrl ?? ""} onChange={(value) => setState({ ...state, branding: { ...state.branding, logoUrl: value || null } })} />
@@ -510,11 +563,11 @@ export function NewWorkspaceWizard() {
           </div>
         ) : null}
 
-        {step === 6 ? (
+        {step === 8 ? (
           <ReviewSummary state={state} onEdit={setStep} />
         ) : null}
 
-        {step === 7 ? (
+        {step === 9 ? (
           <div className="space-y-4">
             {created ? (
               <ProvisioningResultPanel
@@ -738,7 +791,16 @@ function ReviewSummary({
       <ReviewBlock title="Clients" onEdit={() => onEdit(4)}>
         <p>{state.clients.length} client row(s) queued</p>
       </ReviewBlock>
-      <ReviewBlock title="Branding" onEdit={() => onEdit(5)}>
+      <ReviewBlock title="Login page" onEdit={() => onEdit(5)}>
+        <p>{state.loginPage.title}</p>
+        <p>{state.loginPageLogoPreview ? "Logo uploaded" : "No logo uploaded"}</p>
+        <p>{state.loginPageBackgroundPreview ? "Background uploaded" : "No background uploaded"}</p>
+      </ReviewBlock>
+      <ReviewBlock title="Initial administrator" onEdit={() => onEdit(6)}>
+        <p>{state.initialAdministrator.firstName} {state.initialAdministrator.lastName}</p>
+        <p>{state.initialAdministrator.email}</p>
+      </ReviewBlock>
+      <ReviewBlock title="Branding" onEdit={() => onEdit(7)}>
         <p>{state.branding.displayName}</p>
         <p>{state.branding.primaryColour} / {state.branding.secondaryColour}</p>
         <p>https://{resolvedHostname}.unit311central.com</p>
@@ -755,9 +817,12 @@ function ProvisioningStepList() {
     "Workspace database foundation",
     "Configuration and modules",
     "Customer hostname routing",
-    "Authentication accounts",
+    "Customer login page",
+    "Initial workspace administrator",
+    "Additional employee accounts",
     "Optional client imports",
     "Application deployment",
+    "Hostname and login verification",
   ];
   return (
     <ul className="space-y-2 text-sm text-white/60">
@@ -811,11 +876,16 @@ function ProvisioningResultPanel({
         Workspace ID <span className="font-mono">{workspace.workspaceId}</span>
       </p>
       <p className="mt-1 text-sm text-white/80">
-        URL{" "}
+        Customer URL{" "}
         <a href={workspace.primaryUrl} className="font-mono text-sky-200 hover:text-sky-100">
           {workspace.primaryUrl}
         </a>
       </p>
+      {workspace.initialAdministrator?.email ? (
+        <p className="mt-1 text-sm text-white/80">
+          Administrator <span className="font-mono">{workspace.initialAdministrator.email}</span>
+        </p>
+      ) : null}
       <ProvisioningStatusGrid provisioning={workspace.provisioning} />
       <p className="mt-3 text-sm text-white/65">{workspace.provisioning.lastMessage}</p>
       {error ? <p className="mt-2 text-sm text-rose-200">{error}</p> : null}
@@ -848,7 +918,9 @@ function ProvisioningStatusGrid({
     { label: "Database", status: provisioning.databaseStatus },
     { label: "Workspace record", status: provisioning.workspaceRecordStatus },
     { label: "Hostname / routing", status: provisioning.infrastructureStatus },
-    { label: "Authentication", status: provisioning.authenticationStatus },
+    { label: "Login page", status: provisioning.loginPageStatus ?? "not_started" },
+    { label: "Initial administrator", status: provisioning.initialAdminStatus ?? "not_started" },
+    { label: "Employee accounts", status: provisioning.authenticationStatus },
     { label: "Deployment", status: provisioning.deploymentStatus },
   ];
   return (
@@ -862,6 +934,175 @@ function ProvisioningStatusGrid({
           <p className="mt-1 font-medium capitalize text-white">{row.status.replace(/_/g, " ")}</p>
         </div>
       ))}
+    </div>
+  );
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function LoginPageStep({
+  state,
+  onChange,
+}: {
+  state: WizardState;
+  onChange: (patch: Partial<WizardState>) => void;
+}) {
+  const previewBackground = state.loginPageBackgroundPreview;
+  const previewLogo = state.loginPageLogoPreview;
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <WizardField
+        label="Login page title *"
+        value={state.loginPage.title}
+        onChange={(value) =>
+          onChange({
+            loginPage: { ...state.loginPage, title: value },
+          })
+        }
+      />
+      <div className="md:col-span-2">
+        <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+          Logo
+        </label>
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          className="mt-1.5 block w-full text-sm text-white/70"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            void readFileAsDataUrl(file).then((dataUrl) => {
+              onChange({
+                loginPage: { ...state.loginPage, logoDataUrl: dataUrl },
+                loginPageLogoPreview: dataUrl,
+              });
+            });
+          }}
+        />
+      </div>
+      <div className="md:col-span-2">
+        <label className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/45">
+          Background image (JPG)
+        </label>
+        <input
+          type="file"
+          accept="image/jpeg,image/jpg"
+          className="mt-1.5 block w-full text-sm text-white/70"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            void readFileAsDataUrl(file).then((dataUrl) => {
+              onChange({
+                loginPage: { ...state.loginPage, backgroundDataUrl: dataUrl },
+                loginPageBackgroundPreview: dataUrl,
+              });
+            });
+          }}
+        />
+      </div>
+      <div className="md:col-span-2 rounded-xl border border-white/10 bg-[#0b1524] p-4">
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">Preview</p>
+        <div className="relative mt-3 min-h-56 overflow-hidden rounded-xl border border-white/10">
+          {previewBackground ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewBackground} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-[#0b1524]" />
+          )}
+          <div className="absolute inset-0 bg-[#020617]/55" />
+          <div className="relative flex min-h-56 flex-col items-center justify-center gap-4 p-6 text-center">
+            {previewLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={previewLogo} alt="" className="max-h-16 max-w-[200px] object-contain" />
+            ) : (
+              <div className="rounded-xl border border-white/12 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-white">
+                {state.loginPage.title || "Workspace"}
+              </div>
+            )}
+            <p className="text-lg font-semibold text-white">
+              {(state.loginPage.title || "Workspace").trim()} Login
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InitialAdministratorStep({
+  state,
+  onChange,
+}: {
+  state: WizardState;
+  onChange: (patch: Partial<WizardState>) => void;
+}) {
+  const validation = validateInitialWorkspaceAdministrator(state.initialAdministrator);
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-white/55">
+        This person will be the first login for the new workspace and is automatically assigned Full
+        Workspace Administrator rights.
+      </p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <WizardField
+          label="First name *"
+          value={state.initialAdministrator.firstName}
+          onChange={(value) =>
+            onChange({
+              initialAdministrator: { ...state.initialAdministrator, firstName: value },
+            })
+          }
+        />
+        <WizardField
+          label="Last name *"
+          value={state.initialAdministrator.lastName}
+          onChange={(value) =>
+            onChange({
+              initialAdministrator: { ...state.initialAdministrator, lastName: value },
+            })
+          }
+        />
+        <WizardField
+          label="Email address *"
+          value={state.initialAdministrator.email}
+          onChange={(value) =>
+            onChange({
+              initialAdministrator: { ...state.initialAdministrator, email: value },
+            })
+          }
+        />
+        <div />
+        <WizardField
+          label="Password *"
+          value={state.initialAdministrator.password}
+          onChange={(value) =>
+            onChange({
+              initialAdministrator: { ...state.initialAdministrator, password: value },
+            })
+          }
+        />
+        <WizardField
+          label="Confirm password *"
+          value={state.initialAdministrator.confirmPassword}
+          onChange={(value) =>
+            onChange({
+              initialAdministrator: { ...state.initialAdministrator, confirmPassword: value },
+            })
+          }
+        />
+      </div>
+      {!validation.ok ? (
+        <p className="text-sm text-rose-200">{validation.message}</p>
+      ) : null}
     </div>
   );
 }

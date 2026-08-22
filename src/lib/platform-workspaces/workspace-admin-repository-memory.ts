@@ -10,7 +10,8 @@ import {
   workspacePrimaryUrl,
 } from "@/lib/platform-workspaces/workspace-admin-mappers";
 import type { WorkspaceAdminRepository } from "@/lib/platform-workspaces/workspace-admin-repository";
-import { resolveCustomerHostname } from "@/lib/platform-workspaces/workspace-hostname";
+import { resolveCustomerHostname, deriveDefaultCustomerHostname } from "@/lib/platform-workspaces/workspace-hostname";
+import { validateCreateWorkspaceInput } from "@/lib/platform-workspaces/create-workspace-validation";
 import type {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
@@ -62,6 +63,8 @@ function seedRecords(): WorkspaceAdminRecord[] {
         overallStatus: "complete",
         lastMessage: "Live internal workspace.",
       },
+      loginPage: { title: "Unit311 Central", logoUrl: null, backgroundUrl: null },
+      initialAdministrator: null,
     },
     {
       workspaceId: "seed-demo-workspace",
@@ -101,6 +104,8 @@ function seedRecords(): WorkspaceAdminRecord[] {
         overallStatus: "complete",
         lastMessage: "Demo workspace is live.",
       },
+      loginPage: { title: "Northstar Industrial Technologies", logoUrl: null, backgroundUrl: null },
+      initialAdministrator: null,
     },
     {
       workspaceId: "seed-onwardair-customer",
@@ -147,6 +152,8 @@ function seedRecords(): WorkspaceAdminRecord[] {
         overallStatus: "complete",
         lastMessage: "Customer workspace provisioned and live.",
       },
+      loginPage: { title: "OnwardAir", logoUrl: null, backgroundUrl: null },
+      initialAdministrator: null,
     },
   ];
 }
@@ -195,6 +202,7 @@ export function createMemoryWorkspaceAdminRepository(
     },
 
     async create(input, createdBy) {
+      validateCreateWorkspaceInput(input);
       const slug = normalizeSlug(input.slug);
       if (!slug) throw new Error("Workspace slug is required.");
       if (!(await this.isSlugAvailable(slug))) {
@@ -204,16 +212,20 @@ export function createMemoryWorkspaceAdminRepository(
       if (!input.companyName.trim()) throw new Error("Company name is required.");
       if (!input.contactEmail.trim()) throw new Error("Primary contact email is required.");
 
-      const customerHostname = resolveCustomerHostname(slug, input.customerHostname);
+      const customerHostname = resolveCustomerHostname(
+        slug,
+        input.customerHostname || deriveDefaultCustomerHostname({ workspaceSlug: slug, workspaceName: input.name }),
+      );
       const provisioning: WorkspaceProvisioningState = {
         databaseStatus: "complete",
-        authenticationStatus:
-          input.employees.length > 0 || input.contactEmail.trim() ? "complete" : "skipped",
+        authenticationStatus: input.employees.length > 0 ? "complete" : "skipped",
         infrastructureStatus: "complete",
         deploymentStatus: "complete",
         workspaceRecordStatus: "complete",
+        loginPageStatus: "complete",
+        initialAdminStatus: "complete",
         overallStatus: "complete",
-        lastMessage: "In-memory test repository — Phase 3 provisioning simulated.",
+        lastMessage: "In-memory test repository — provisioning simulated.",
       };
 
       const timestamp = nowIso();
@@ -246,6 +258,16 @@ export function createMemoryWorkspaceAdminRepository(
         createdBy,
         updatedAt: timestamp,
         provisioning,
+        loginPage: {
+          title: input.loginPage.title.trim(),
+          logoUrl: input.loginPage.logoDataUrl ? "memory://login-logo" : null,
+          backgroundUrl: input.loginPage.backgroundDataUrl ? "memory://login-background" : null,
+        },
+        initialAdministrator: {
+          email: input.initialAdministrator.email.trim().toLowerCase(),
+          firstName: input.initialAdministrator.firstName.trim(),
+          lastName: input.initialAdministrator.lastName.trim(),
+        },
       };
 
       records.push(record);
@@ -268,8 +290,10 @@ export function createMemoryWorkspaceAdminRepository(
           infrastructureStatus: "complete",
           deploymentStatus: "complete",
           workspaceRecordStatus: "complete",
+          loginPageStatus: "complete",
+          initialAdminStatus: "complete",
           overallStatus: "complete",
-          lastMessage: "In-memory test repository — Phase 3 provisioning simulated.",
+          lastMessage: "In-memory test repository — provisioning simulated.",
         },
         updatedAt: nowIso(),
       };

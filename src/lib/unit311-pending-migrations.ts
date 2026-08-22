@@ -91,6 +91,7 @@ export const UNIT311_PENDING_MIGRATIONS = [
   "supabase/migrations/149_sales_management_foundation.sql",
   "supabase/migrations/150_workspace_admin_metadata.sql",
   "supabase/migrations/151_workspace_phase3_provisioning.sql",
+  "supabase/migrations/152_workspace_login_page_and_initial_admin.sql",
 ] as const;
 
 export const SALES_MANAGEMENT_FOUNDATION_MIGRATION =
@@ -101,3 +102,6 @@ export const WORKSPACE_ADMIN_METADATA_MIGRATION =
 
 export const WORKSPACE_PHASE3_PROVISIONING_MIGRATION =
   "supabase/migrations/151_workspace_phase3_provisioning.sql";
+
+export const WORKSPACE_LOGIN_PAGE_MIGRATION =
+  "supabase/migrations/152_workspace_login_page_and_initial_admin.sql";

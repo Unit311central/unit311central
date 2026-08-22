@@ -195,6 +195,9 @@ export default function Unit311LoginPage({
   variant = "default",
   brand = "default",
   workspaceName = null,
+  loginTitle = null,
+  loginLogoUrl = null,
+  loginBackgroundUrl = null,
   returnTo = null,
   nextPath = null,
   portalsLogin = false,
@@ -204,6 +207,12 @@ export default function Unit311LoginPage({
   brand?: "default" | "central" | "corpcentre" | "talanton" | "abhi" | "onwardair" | "customer" | "northstar";
   /** Display name for generic customer hosts (e.g. Acme). */
   workspaceName?: string | null;
+  /** Persisted customer login page title from workspace provisioning. */
+  loginTitle?: string | null;
+  /** Signed or proxied URL for customer login logo. */
+  loginLogoUrl?: string | null;
+  /** Signed or proxied URL for customer login background JPG. */
+  loginBackgroundUrl?: string | null;
   /** Validated return origin (`return_to`) for workspace / demo / internal. */
   returnTo?: string | null;
   /** Canonical deep-link path (`next`), e.g. `/?view=clients`. */
@@ -225,7 +234,8 @@ export default function Unit311LoginPage({
   const isOnwardAir = brand === "onwardair";
   const isNorthstar = brand === "northstar";
   const isCustomer = brand === "customer";
-  const customerLabel = workspaceName?.trim() || "Workspace";
+  const customerLabel = loginTitle?.trim() || workspaceName?.trim() || "Workspace";
+  const customerBackground = loginBackgroundUrl?.trim() || LOGIN_BACKGROUND;
   const portalsNext =
     nextPath === "/portals" ||
     Boolean(nextPath?.startsWith("/portals/") || nextPath?.startsWith("/portals?"));
@@ -370,7 +380,9 @@ export default function Unit311LoginPage({
                 ? ABHI_LOGIN_BACKGROUND
                 : isNorthstar
                   ? NORTHSTAR_LOGIN_BACKGROUND
-                  : LOGIN_BACKGROUND
+                  : isCustomer && loginBackgroundUrl
+                    ? customerBackground
+                    : LOGIN_BACKGROUND
       }
       backgroundImageClassName={
         isOnwardAir
@@ -383,7 +395,9 @@ export default function Unit311LoginPage({
                 ? ABHI_LOGIN_BACKGROUND_CLASS
                 : isNorthstar
                   ? NORTHSTAR_LOGIN_BACKGROUND_CLASS
-                  : "object-cover object-[center_35%] opacity-80 sm:object-center"
+                  : isCustomer && loginBackgroundUrl
+                    ? "object-cover object-center opacity-90"
+                    : "object-cover object-[center_35%] opacity-80 sm:object-center"
       }
       backgroundImageQuality={
         isTalanton
@@ -405,7 +419,9 @@ export default function Unit311LoginPage({
                 ? ABHI_LOGIN_OVERLAY_CLASS
                 : isNorthstar
                   ? NORTHSTAR_LOGIN_OVERLAY_CLASS
-                  : "absolute inset-0 bg-[#020617]/45"
+                  : isCustomer && loginBackgroundUrl
+                    ? "absolute inset-0 bg-gradient-to-b from-[#020617]/65 via-[#020617]/72 to-[#020617]/82"
+                    : "absolute inset-0 bg-[#020617]/45"
       }
       contentClassName={`${MARKETING_CONTENT_CLASS} flex min-h-[100dvh] flex-col items-center justify-center py-12 sm:py-16`}
     >
@@ -425,11 +441,22 @@ export default function Unit311LoginPage({
           ) : isNorthstar ? (
             <NorthstarLogoMark height={70} maxWidth={400} priority />
           ) : isCustomer ? (
-            <div className="rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4">
-              <p className="text-center text-[1.35rem] font-semibold tracking-tight text-white">
-                {customerLabel}
-              </p>
-            </div>
+            loginLogoUrl ? (
+              <div className="relative flex h-24 w-full max-w-[280px] items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={loginLogoUrl}
+                  alt={`${customerLabel} logo`}
+                  className="max-h-24 w-auto max-w-full object-contain object-center drop-shadow-[0_8px_28px_rgba(0,0,0,0.45)]"
+                />
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/12 bg-white/[0.06] px-6 py-4">
+                <p className="text-center text-[1.35rem] font-semibold tracking-tight text-white">
+                  {customerLabel}
+                </p>
+              </div>
+            )
           ) : (
             <div
               className="relative w-full max-w-[min(100%,240px)] sm:max-w-[280px]"

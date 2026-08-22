@@ -25,6 +25,7 @@ import {
   resolveProvisioningModuleKeys,
   subModuleKey,
 } from "@/lib/platform-workspaces/module-catalogue";
+import { workspaceCreateFixture } from "@/lib/platform-workspaces/workspace-create-test-fixture";
 import { createMemoryWorkspaceAdminRepository } from "@/lib/platform-workspaces/workspace-admin-repository-memory";
 import {
   setWorkspaceAdminRepositoryForTests,
@@ -188,16 +189,12 @@ async function runPersistenceTests() {
     assert.equal(await isWorkspaceSlugAvailable(slug), true);
 
     const created = await createWorkspaceAdminRecord(
-      {
-        type: "Customer",
+      workspaceCreateFixture({
         name: "Phase 2 Test Workspace",
         slug,
         companyName: "Phase 2 Test Ltd",
         contactName: "Ops Lead",
         contactEmail: "ops@phase2.example.com",
-        country: "United Kingdom",
-        timezone: "Europe/London",
-        currency: "GBP",
         description: "Phase 2 acceptance workspace",
         enabledModules: ["home", "business-central", "settings"],
         enabledSubModules: [
@@ -212,7 +209,14 @@ async function runPersistenceTests() {
         },
         employees: employeeValidation.rows.slice(0, 1),
         clients: clientValidation.rows.slice(0, 1),
-      },
+        initialAdministrator: {
+          firstName: "Ops",
+          lastName: "Lead",
+          email: "admin@phase2.example.com",
+          password: "SecurePass123!",
+          confirmPassword: "SecurePass123!",
+        },
+      }),
       "phase2-test",
     );
 

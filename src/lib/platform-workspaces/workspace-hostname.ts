@@ -3,6 +3,8 @@ import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 
 export type WorkspaceHostnameInput = {
   workspaceSlug?: string | null;
+  /** Workspace display name — used for default customer hostname derivation in the wizard. */
+  workspaceName?: string | null;
 };
 
 /** Normalize a customer-facing hostname label (subdomain part only). */
@@ -31,7 +33,8 @@ export function deriveCustomerHostnameFromLabel(label: string): string {
 
 /**
  * Default customer hostname when the wizard does not supply an override.
- * Uses the workspace slug only — never the display name.
+ * Derives from the workspace display name (e.g. "Interface Worx" → interfaceworx).
+ * Platform Internal/Demo slugs keep reserved infrastructure hosts.
  */
 export function deriveDefaultCustomerHostname(
   input: WorkspaceHostnameInput | string,
@@ -41,7 +44,14 @@ export function deriveDefaultCustomerHostname(
   }
   const workspaceSlug = input.workspaceSlug?.trim() ?? "";
   if (!workspaceSlug) return "";
-  return resolveCustomerHostname(workspaceSlug);
+  const slug = workspaceSlug.toLowerCase();
+  if (slug === INTERNAL_WORKSPACE_SLUG) return "internal";
+  if (slug === DEMO_WORKSPACE_SLUG) return "demo";
+  const nameLabel = input.workspaceName?.trim();
+  if (nameLabel) {
+    return deriveCustomerHostnameFromLabel(nameLabel);
+  }
+  return normalizeCustomerHostname(slug);
 }
 
 /**

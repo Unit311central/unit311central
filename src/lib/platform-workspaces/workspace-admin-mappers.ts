@@ -74,6 +74,15 @@ export type WorkspaceAdminMetadataRow = {
   provisioning_overall_status?: string | null;
   provisioning_last_message?: string | null;
   customer_hostname?: string | null;
+  login_page_title?: string | null;
+  login_logo_storage_path?: string | null;
+  login_background_storage_path?: string | null;
+  provisioning_login_page_status?: string | null;
+  provisioning_initial_admin_status?: string | null;
+  initial_admin_email?: string | null;
+  initial_admin_first_name?: string | null;
+  initial_admin_last_name?: string | null;
+  initial_admin_user_id?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -145,6 +154,8 @@ export function mapProvisioningState(metadata: WorkspaceAdminMetadataRow | null)
     infrastructureStatus: asProvisioningStatus(metadata.provisioning_infrastructure_status),
     deploymentStatus: asProvisioningStatus(metadata.provisioning_deployment_status),
     workspaceRecordStatus: asWorkspaceRecordStatus(metadata.provisioning_workspace_record_status),
+    loginPageStatus: asProvisioningStatus(metadata.provisioning_login_page_status),
+    initialAdminStatus: asProvisioningStatus(metadata.provisioning_initial_admin_status),
     overallStatus: asOverallStatus(metadata.provisioning_overall_status),
     lastMessage: metadata.provisioning_last_message ?? undefined,
   };
@@ -199,5 +210,20 @@ export function mapWorkspaceRowToRecord(
     createdBy: metadata?.created_by?.trim() || "system",
     updatedAt: metadata?.updated_at ?? row.updated_at,
     provisioning: mapProvisioningState(metadata),
+    loginPage: {
+      title: metadata?.login_page_title?.trim() || row.name,
+      logoUrl: metadata?.login_logo_storage_path ? `/api/public/workspace-login-asset?workspaceId=${row.id}&kind=logo` : null,
+      backgroundUrl: metadata?.login_background_storage_path
+        ? `/api/public/workspace-login-asset?workspaceId=${row.id}&kind=background`
+        : null,
+    },
+    initialAdministrator: metadata?.initial_admin_email
+      ? {
+          email: metadata.initial_admin_email.trim().toLowerCase(),
+          firstName: metadata.initial_admin_first_name?.trim() || "",
+          lastName: metadata.initial_admin_last_name?.trim() || "",
+          userId: metadata.initial_admin_user_id ? String(metadata.initial_admin_user_id) : undefined,
+        }
+      : null,
   };
 }
