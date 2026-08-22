@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isTestWorkspaceSlug } from "@/lib/qa-workspace/surface";
-import { requirePlatformSession } from "@/lib/platform-session";
+import { getPlatformSession } from "@/lib/platform-session";
 import { requireCurrentWorkspace, type CurrentWorkspace } from "@/lib/workspace-context";
 import type { PlatformSession } from "@/lib/platform-session";
 
