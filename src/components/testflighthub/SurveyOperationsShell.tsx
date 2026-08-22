@@ -37,6 +37,9 @@ import { WorkspaceBreadcrumb } from "./workspace-chrome";
 import { prefetchViewOnIntent } from "@/lib/workspace-prefetch";
 import DemoWorkspacePreviewSwitcher from "@/components/demo/DemoWorkspacePreviewSwitcher";
 import { demoPreviewWorkspaceLabel, readBrowserDemoPreviewSlug } from "@/lib/demo/workspace-preview";
+import QaWorkspaceProvider from "@/components/qa-workspace/QaWorkspaceProvider";
+import QaModeButton from "@/components/qa-workspace/QaModeButton";
+import { useOperatorEntitlements } from "./OperatorEntitlementsProvider";
 
 type SurveyOperationsShellProps = {
   children: React.ReactNode;
@@ -57,6 +60,7 @@ export default function SurveyOperationsShell({
   onViewChange,
   basePath = "/testflighthub",
 }: SurveyOperationsShellProps) {
+  const { workspaceSlug } = useOperatorEntitlements();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const pathname = usePathname() ?? "";
@@ -250,6 +254,7 @@ export default function SurveyOperationsShell({
             </div>
 
             <div className="relative flex shrink-0 items-center gap-2">
+              <QaModeButton />
               {showPlatformAi ? (
                 <>
                   {isDemoHost && activeView === "home" ? <DemoWorkspacePreviewSwitcher /> : null}
@@ -302,5 +307,14 @@ export default function SurveyOperationsShell({
     </div>
   );
 
-  return <PlatformThemeProvider>{shell}</PlatformThemeProvider>;
+  return (
+    <PlatformThemeProvider>
+      <QaWorkspaceProvider
+        activeView={activeView as InternalOperationsView | undefined}
+        workspaceSlug={workspaceSlug}
+      >
+        {shell}
+      </QaWorkspaceProvider>
+    </PlatformThemeProvider>
+  );
 }

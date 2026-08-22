@@ -314,6 +314,8 @@ import {
 import { OnwardAirIpPatentsWorkspace } from "@/components/onwardair/OnwardAirIpPatentsWorkspace";
 import { NorthstarIntelligenceRouter } from "@/components/demo/intelligence/NorthstarIntelligenceWorkspaces";
 import IntelligenceCentralWorkspace from "@/components/intelligence/IntelligenceCentralWorkspace";
+import QaTasksWorkspace from "@/components/qa-workspace/QaTasksWorkspace";
+import { isTestWorkspaceSlug } from "@/lib/qa-workspace/surface";
 import { isIntelligenceOperationsView } from "@/lib/intelligence/views";
 import NorthstarBusinessCentralDashboard from "@/components/demo/NorthstarBusinessCentralDashboard";
 import {
@@ -915,6 +917,8 @@ export default function InternalOperationsDashboard({
               <TestingWeatherPanel liveTelemetry={liveTelemetry} />
             </div>
           )}
+
+          {activeView === "qa-tasks" && <QaTasksWorkspace />}
 
           {(isWarm("projects") ||
             isWarm("projects-dashboard") ||
@@ -1589,7 +1593,7 @@ function AccessViewGuard({
   onRedirect: (view: InternalOperationsView) => void;
   isInternalHost: boolean;
 }) {
-  const { allowedViews, ready } = useOperatorEntitlements();
+  const { allowedViews, ready, workspaceSlug } = useOperatorEntitlements();
 
   useEffect(() => {
     if (!ready) return;
@@ -1603,10 +1607,13 @@ function AccessViewGuard({
       onRedirect("home");
       return;
     }
+    if (activeView === "qa-tasks" && isTestWorkspaceSlug(workspaceSlug)) {
+      return;
+    }
     if (!isViewAllowedForGrants(activeView, allowedViews)) {
       onRedirect("home");
     }
-  }, [activeView, allowedViews, isInternalHost, onRedirect, ready]);
+  }, [activeView, allowedViews, isInternalHost, onRedirect, ready, workspaceSlug]);
 
   return null;
 }

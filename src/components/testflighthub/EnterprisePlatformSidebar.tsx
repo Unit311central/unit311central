@@ -74,6 +74,7 @@ import {
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
+import { injectTestWorkspaceQaNav } from "@/lib/qa-workspace/nav";
 import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
 import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import { isInternalDomainHost } from "@/lib/app-domains";
@@ -773,11 +774,12 @@ export default function EnterprisePlatformSidebar({
       // Host overlays: available on first client paint for customer hosts.
       { allowHostSurfaces: hydrated || customerHostNav },
     );
+    const withQaNav = injectTestWorkspaceQaNav(filtered, workspaceSlug);
     if (typeof window !== "undefined" && (hydrated || customerHostNav)) {
-      const custom = loadSidebarNavCustom(filtered);
-      return applySidebarSectionOrder(filtered, custom);
+      const custom = loadSidebarNavCustom(withQaNav);
+      return applySidebarSectionOrder(withQaNav, custom);
     }
-    return filtered;
+    return withQaNav;
     // sectionOrderTick forces re-read after Settings saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowedViews, entitlementsReady, hydrated, sectionOrderTick, workspaceNavBase, customerHostNav]);

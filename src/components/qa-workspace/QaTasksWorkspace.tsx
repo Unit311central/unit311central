@@ -1,0 +1,366 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Download, Pencil, Trash2 } from "lucide-react";
+
+import type { QaTaskStatus } from "@/lib/qa-workspace/constants";
+import type { QaWorkspaceTask } from "@/lib/qa-workspace/types";
+import { cn } from "@/lib/utils";
+
+type Filters = {
+  module: string;
+  page: string;
+  status: QaTaskStatus | "all";
+  elementType: string;
+};
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-GB");
+}
+
+export default function QaTasksWorkspace() {
+  const [tasks, setTasks] = useState<QaWorkspaceTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<Filters>({
+    module: "",
+    page: "",
+    status: "all",
+    elementType: "",
+  });
+  const [editing, setEditing] = useState<QaWorkspaceTask | null>(null);
+
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (filters.module) params.set("module", filters.module);
+    if (filters.page) params.set("page", filters.page);
+    if (filters.status !== "all") params.set("status", filters.status);
+    if (filters.elementType) params.set("elementType", filters.elementType);
+    const value = params.toString();
+    return value ? `?${value}` : "";
+  }, [filters]);
+
+  const loadTasks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/qa/tasks${queryString}`);
+      const payload = (await response.json()) as { tasks?: QaWorkspaceTask[]; error?: string };
+      if (!response.ok) throw new Error(payload.error || "Failed to load QA tasks.");
+      setTasks(payload.tasks ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load QA tasks.");
+    } finally {
+      setLoading(false);
+    }
+  }, [queryString]);
+
+  useEffect(() => {
+    void loadTasks();
+  }, [loadTasks]);
+
+  const moduleOptions = useMemo(
+    () => [...new Set(tasks.map((task) => task.moduleLabel))].sort(),
+    [tasks],
+  );
+  const pageOptions = useMemo(
+    () => [...new Set(tasks.map((task) => task.pageLabel))].sort(),
+    [tasks],
+  );
+  const elementTypeOptions = useMemo(
+    () => [...new Set(tasks.map((task) => task.elementType).filter(Boolean))].sort() as string[],
+    [tasks],
+  );
+
+  async function toggleCompleted(task: QaWorkspaceTask, completed: boolean) {
+    const response = await fetch(`/api/qa/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed, status: completed ? "completed" : "open" }),
+    });
+    const payload = (await response.json()) as { error?: string };
+    if (!response.ok) throw new Error(payload.error || "Failed to update QA task.");
+    await loadTasks();
+  }
+
+  async function deleteTask(task: QaWorkspaceTask) {
+    const confirmed = window.confirm("Delete this QA task?");
+    if (!confirmed) return;
+    const response = await fetch(`/api/qa/tasks/${task.id}`, { method: "DELETE" });
+    const payload = (await response.json()) as { error?: string };
+    if (!response.ok) throw new Error(payload.error || "Failed to delete QA task.");
+    await loadTasks();
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    const response = await fetch(`/api/qa/tasks/${editing.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        moduleLabel: editing.moduleLabel,
+        pageLabel: editing.pageLabel,
+        elementLabel: editing.elementLabel,
+        description: editing.description,
+        completed: editing.completed,
+        status: editing.completed ? "completed" : "open",
+      }),
+    });
+    const payload = (await response.json()) as { error?: string };
+    if (!response.ok) throw new Error(payload.error || "Failed to update QA task.");
+    setEditing(null);
+    await loadTasks();
+  }
+
+  return (
+    <div className="space-y-4 p-1">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-white">QA Tasks</h2>
+          <p className="text-sm text-white/55">
+            Master backlog for Test workspace QA capture. Use QA Mode on any page to add tasks quickly.
+          </p>
+        </div>
+        <a
+          href={`/api/qa/tasks/export${queryString}`}
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/80 hover:bg-white/[0.06]"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </a>
+      </div>
+
+      <div className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3 md:grid-cols-4">
+        <FilterSelect
+          label="Module / Area"
+          value={filters.module}
+          onChange={(value) => setFilters((current) => ({ ...current, module: value }))}
+          options={moduleOptions}
+        />
+        <FilterSelect
+          label="Page"
+          value={filters.page}
+          onChange={(value) => setFilters((current) => ({ ...current, page: value }))}
+          options={pageOptions}
+        />
+        <label className="text-xs text-white/50">
+          Status
+          <select
+            value={filters.status}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                status: event.target.value as Filters["status"],
+              }))
+            }
+            className="mt-1 block w-full rounded-lg border border-white/10 bg-[#0b1524] px-2 py-2 text-sm text-white"
+          >
+            <option value="all">All</option>
+            <option value="open">Open</option>
+            <option value="completed">Completed</option>
+          </select>
+        </label>
+        <FilterSelect
+          label="Element type"
+          value={filters.elementType}
+          onChange={(value) => setFilters((current) => ({ ...current, elementType: value }))}
+          options={elementTypeOptions}
+        />
+      </div>
+
+      {loading ? <p className="text-sm text-white/60">Loading QA tasks...</p> : null}
+      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+
+      <div className="overflow-x-auto rounded-xl border border-white/10">
+        <table className="min-w-full text-left text-sm text-white/80">
+          <thead className="bg-white/[0.03] text-xs uppercase tracking-wide text-white/45">
+            <tr>
+              <th className="px-3 py-2">Done</th>
+              <th className="px-3 py-2">Module / Area</th>
+              <th className="px-3 py-2">Page</th>
+              <th className="px-3 py-2">Element</th>
+              <th className="px-3 py-2">Description</th>
+              <th className="px-3 py-2">Created</th>
+              <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tasks.map((task) => (
+              <tr key={task.id} className="border-t border-white/10 align-top">
+                <td className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={(event) => void toggleCompleted(task, event.target.checked)}
+                  />
+                </td>
+                <td className="px-3 py-2">{task.moduleLabel}</td>
+                <td className="px-3 py-2">{task.pageLabel}</td>
+                <td className="px-3 py-2">{task.elementLabel}</td>
+                <td className="max-w-md px-3 py-2 whitespace-pre-wrap">{task.description}</td>
+                <td className="px-3 py-2">{formatDate(task.createdAt)}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className={cn(
+                      "rounded px-2 py-0.5 text-xs font-medium uppercase",
+                      task.completed
+                        ? "bg-emerald-500/15 text-emerald-200"
+                        : "bg-amber-500/15 text-amber-200",
+                    )}
+                  >
+                    {task.completed ? "Completed" : "Open"}
+                  </span>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="rounded border border-white/10 p-1 text-white/70 hover:bg-white/[0.05]"
+                      onClick={() => setEditing({ ...task })}
+                      aria-label="Edit task"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded border border-white/10 p-1 text-rose-300 hover:bg-rose-500/10"
+                      onClick={() => void deleteTask(task)}
+                      aria-label="Delete task"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!loading && tasks.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-3 py-8 text-center text-white/45">
+                  No QA tasks yet. Turn on QA Mode and click an element to capture your first task.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+
+      {editing ? (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0b1524] p-5">
+            <h3 className="text-lg font-semibold text-white">Edit QA Task</h3>
+            <div className="mt-4 space-y-3">
+              <EditField
+                label="Module"
+                value={editing.moduleLabel}
+                onChange={(value) => setEditing({ ...editing, moduleLabel: value })}
+              />
+              <EditField
+                label="Page"
+                value={editing.pageLabel}
+                onChange={(value) => setEditing({ ...editing, pageLabel: value })}
+              />
+              <EditField
+                label="Element"
+                value={editing.elementLabel}
+                onChange={(value) => setEditing({ ...editing, elementLabel: value })}
+              />
+              <label className="block text-sm text-white/60">
+                Comment
+                <textarea
+                  value={editing.description}
+                  onChange={(event) => setEditing({ ...editing, description: event.target.value })}
+                  rows={4}
+                  className="mt-1 w-full rounded-xl border border-white/10 bg-[#050b16] px-3 py-2 text-sm text-white"
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm text-white/70">
+                <input
+                  type="checkbox"
+                  checked={editing.completed}
+                  onChange={(event) =>
+                    setEditing({
+                      ...editing,
+                      completed: event.target.checked,
+                      status: event.target.checked ? "completed" : "open",
+                    })
+                  }
+                />
+                Completed
+              </label>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-xl border border-white/10 px-4 py-2 text-sm text-white/70"
+                onClick={() => setEditing(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-xl border border-sky-400/40 bg-sky-500/20 px-4 py-2 text-sm text-sky-100"
+                onClick={() => void saveEdit()}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+}) {
+  return (
+    <label className="text-xs text-white/50">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 block w-full rounded-lg border border-white/10 bg-[#0b1524] px-2 py-2 text-sm text-white"
+      >
+        <option value="">All</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function EditField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block text-sm text-white/60">
+      {label}
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full rounded-xl border border-white/10 bg-[#050b16] px-3 py-2 text-sm text-white"
+      />
+    </label>
+  );
+}

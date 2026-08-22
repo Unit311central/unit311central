@@ -50,6 +50,7 @@
     "prove:workspaces-phase2": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase2.check.ts",
     "prove:workspaces-phase3": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-phase3.check.ts",
     "prove:workspaces-provisioning-final": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-provisioning-final.check.ts",
+    "prove:qa-workspace": "node --import tsx src/lib/__tests__/qa-workspace.check.ts",
     "prove:initial-admin-password": "node --import tsx src/lib/__tests__/initial-admin-password.check.ts",
     "prove:customer-nav-parity": "node --import tsx src/lib/__tests__/customer-nav-parity.check.ts",
     "prove:internal-nav-regression": "node --import tsx src/lib/__tests__/internal-nav-regression.check.ts",
