@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import { createInitialUsers, type ManagedUser } from "@/lib/user-management-data";
 import { cn } from "@/lib/utils";
 import {
@@ -325,10 +327,25 @@ function NotificationMultiSelect({
 
 function buildLiveNavSections(
   allowedViews: Parameters<typeof filterInternalNavSectionsByGrants>[1],
+  workspaceSlug: string | null,
+  workspaceType: string | null,
+  enabledModules: string[] | null,
+  enabledSubModules: string[] | null,
 ): InternalNavSection[] {
   if (typeof window === "undefined") return [...internalSurveyNavSections];
+  const enablement = resolveWorkspaceNavEnablement({
+    workspaceSlug,
+    workspaceType,
+    enabledModules,
+    enabledSubModules,
+  });
+  const base = resolveWorkspaceNavBaseSections({
+    workspaceSlug,
+    workspaceType,
+    enablement,
+  });
   return filterInternalNavSectionsForDemoSurface(
-    filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
+    filterInternalNavSectionsByGrants(base, allowedViews),
     { allowHostSurfaces: true },
   );
 }
@@ -626,13 +643,19 @@ function DemoResetSettingsColumn() {
 
 export default function SettingsWorkspace() {
   const [hydrated, setHydrated] = useState(false);
-  const { allowedViews, ready: entitlementsReady } = useOperatorEntitlements();
+  const { allowedViews, ready: entitlementsReady, workspaceSlug, workspaceType, enabledModules, enabledSubModules } = useOperatorEntitlements();
   const liveSections = useMemo(
     () =>
       hydrated
-        ? buildLiveNavSections(entitlementsReady ? allowedViews : null)
+        ? buildLiveNavSections(
+            entitlementsReady ? allowedViews : null,
+            workspaceSlug,
+            workspaceType,
+            enabledModules,
+            enabledSubModules,
+          )
         : [...internalSurveyNavSections],
-    [hydrated, allowedViews, entitlementsReady],
+    [hydrated, allowedViews, entitlementsReady, workspaceSlug, workspaceType, enabledModules, enabledSubModules],
   );
   const [navCustom, setNavCustom] = useState<NavCustomStorage>(() => ({
     version: 6,

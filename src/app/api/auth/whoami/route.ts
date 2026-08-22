@@ -17,6 +17,7 @@ import { getInternalOperatorByUsername } from "@/lib/internal-operators-service"
 import { getPlatformSession } from "@/lib/platform-session";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentWorkspace } from "@/lib/workspace-context";
+import { findWorkspaceById } from "@/lib/workspace-host";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,7 @@ export async function GET() {
   // Active workspace comes from host → authz → getCurrentWorkspace only.
   // Never fall back to session workspace claim fields for tenancy.
   const workspace = await getCurrentWorkspace();
+  const workspaceRecord = workspace?.id ? await findWorkspaceById(workspace.id).catch(() => null) : null;
 
   let email: string | null = null;
   let role: string | null = null;
@@ -84,6 +86,9 @@ export async function GET() {
   let allowedViews: string[] | null = null;
   let dashboardPrefs: { homeTiles: string[] } | null = null;
   let workspaceLogoUrl: string | null = null;
+  let enabledModules: string[] | null = null;
+  let enabledSubModules: string[] | null = null;
+  const workspaceType: string | null = workspaceRecord?.workspaceType ?? null;
 
   if (session.userType === "internal" && isSupabaseConfigured()) {
     try {
@@ -152,8 +157,18 @@ export async function GET() {
         .eq("workspace_id", workspace.id)
         .maybeSingle();
       workspaceLogoUrl = settings?.logo_url?.trim() || null;
+
+      const { data: metadata } = await supabase
+        .from("workspace_admin_metadata")
+        .select("enabled_modules, enabled_sub_modules")
+        .eq("workspace_id", workspace.id)
+        .maybeSingle();
+      enabledModules = metadata?.enabled_modules?.length ? [...metadata.enabled_modules] : null;
+      enabledSubModules = metadata?.enabled_sub_modules?.length
+        ? [...metadata.enabled_sub_modules]
+        : null;
     } catch {
-      /* optional branding */
+      /* optional branding / nav enablement */
     }
   }
 
@@ -173,7 +188,10 @@ export async function GET() {
       workspaceId: workspace?.id ?? null,
       workspaceSlug: workspace?.slug ?? null,
       workspaceName: workspace?.name ?? null,
+      workspaceType,
       workspaceLogoUrl,
+      enabledModules,
+      enabledSubModules,
     },
     {
       headers: WHOAMI_CACHE_HEADERS,

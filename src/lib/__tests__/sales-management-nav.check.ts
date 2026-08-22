@@ -5,7 +5,6 @@ import assert from "node:assert/strict";
 
 import { FINANCES_MODULE_LABEL } from "@/lib/finances-nav";
 import { ONWARDAIR_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/onwardair-nav-order";
-import { injectDemoNavSections } from "@/lib/demo/nav";
 import {
   TALANTON_HIDDEN_SECTION_LABELS,
   TALANTON_HIDDEN_VIEWS,
@@ -25,6 +24,8 @@ import {
 } from "@/lib/sales-management-nav";
 import { getInternalNavHref } from "@/lib/internal-operations-data";
 import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 
 function sectionLabels(sections: readonly { label?: string | null }[]): string[] {
   return sections.map((section) => String(section.label ?? ""));
@@ -86,7 +87,15 @@ const href = getInternalNavHref("sales-management", "/internaldashboard", { tab:
 assert.ok(href.includes("view=sales-management"));
 assert.ok(href.includes("tab=pipeline"));
 
-const demoNav = injectDemoNavSections(internalSurveyNavSections);
+const demoEnablement = resolveWorkspaceNavEnablement({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+});
+const demoNav = resolveWorkspaceNavBaseSections({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+  enablement: demoEnablement,
+});
 const demoLabels = sectionLabels(demoNav);
 assert.ok(
   demoLabels.indexOf(SALES_MANAGEMENT_MODULE_LABEL) > demoLabels.indexOf("Business Central"),

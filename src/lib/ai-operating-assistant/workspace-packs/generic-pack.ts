@@ -2,9 +2,8 @@
  * Generic workspace EA pack — automatic Central EA for new/unknown workspaces.
  */
 
-import { internalSurveyNavSections } from "@/lib/internal-operations-data";
-import { injectIntelligenceNavIfMissing } from "@/lib/intelligence/nav";
-import { bootstrapIntelligenceWorkspacePacks } from "@/lib/intelligence/workspace-packs";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import type { EaWorkspacePack } from "./types";
 import { EA_DEFAULT_SYNTHESIS_GUIDANCE } from "./synthesis-guidance";
 
@@ -17,11 +16,16 @@ export const genericWorkspacePack: EaWorkspacePack = {
   label: "Standard Workspace",
   matchesSlug: matchesAnyWorkspace,
   navProvider: (slug) => {
-    bootstrapIntelligenceWorkspacePacks();
-    return injectIntelligenceNavIfMissing(
-      internalSurveyNavSections,
-      slug ?? "generic",
-    );
+    const normalized = String(slug ?? "").trim().toLowerCase();
+    const enablement = resolveWorkspaceNavEnablement({
+      workspaceSlug: normalized,
+      workspaceType: "Customer",
+    });
+    return resolveWorkspaceNavBaseSections({
+      workspaceSlug: normalized,
+      workspaceType: "Customer",
+      enablement,
+    });
   },
   promptExtensions: () => ({
     systemHint: EA_DEFAULT_SYNTHESIS_GUIDANCE,

@@ -1,14 +1,13 @@
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
-import { injectDemoNavSections } from "@/lib/demo/nav";
 import type { PortalsIndent, PortalsModuleRow } from "@/lib/demo/portals-demo";
-import { injectIntelligenceNavIfMissing } from "@/lib/intelligence/nav";
 import type {
   InternalNavChildItem,
   InternalNavItem,
   InternalNavSection,
 } from "@/lib/internal-operations-data";
-import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import { filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import {
   applySidebarSectionOrder,
   defaultSectionOrder,
@@ -83,13 +82,19 @@ function flattenNavSection(
 
 /** Major Modules column — mirrors the Northstar demo sidebar order and nesting. */
 export function buildDemoPortalsMajorModules(): PortalsModuleRow[] {
-  const filtered = filterInternalNavSectionsForDemoSurface(internalSurveyNavSections, {
+  const enablement = resolveWorkspaceNavEnablement({
+    workspaceSlug: DEMO_WORKSPACE_SLUG,
+    workspaceType: "Demo",
+  });
+  const base = resolveWorkspaceNavBaseSections({
+    workspaceSlug: DEMO_WORKSPACE_SLUG,
+    workspaceType: "Demo",
+    enablement,
+  });
+  const filtered = filterInternalNavSectionsForDemoSurface(base, {
     allowHostSurfaces: false,
   });
-  const sections = injectIntelligenceNavIfMissing(
-    injectDemoNavSections(filtered),
-    DEMO_WORKSPACE_SLUG,
-  );
+  const sections = filtered;
   const ordered = applySidebarSectionOrder(sections, {
     sectionOrder: defaultSectionOrder(sections),
     customized: false,

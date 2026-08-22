@@ -3,7 +3,6 @@
  */
 import assert from "node:assert/strict";
 
-import { injectDemoNavSections } from "@/lib/demo/nav";
 import {
   ENG_SOP_AUDIENCES,
   canRunEngSop,
@@ -27,6 +26,8 @@ import {
 } from "@/lib/engineering-sop-store";
 import { buildOnwardAirNavSections } from "@/lib/internal-role-views";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 
 resetEngineeringSopStoreForTests();
 
@@ -34,7 +35,15 @@ const seeds = createSeedEngineeringSops();
 assert.ok(seeds[0]!.approver);
 assert.ok(ENG_SOP_AUDIENCES.includes("internal"));
 
-const demoNav = injectDemoNavSections(internalSurveyNavSections);
+const demoEnablement = resolveWorkspaceNavEnablement({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+});
+const demoNav = resolveWorkspaceNavBaseSections({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+  enablement: demoEnablement,
+});
 assert.ok(demoNav.some((s) => s.label === "Engineering" && s.items.some((i) => i.view === "engineering-sops")));
 
 const oaNav = buildOnwardAirNavSections(internalSurveyNavSections);

@@ -1,10 +1,8 @@
 /**
- * Workspace enablement — derived from live nav configuration per workspace slug.
+ * Workspace enablement — derived from canonical product nav per workspace slug.
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
-import { injectDemoNavSections } from "@/lib/demo/nav";
-import { injectIntelligenceNavIfMissing } from "@/lib/intelligence/nav";
 import { bootstrapIntelligenceWorkspacePacks } from "@/lib/intelligence/workspace-packs";
 import {
   internalSurveyNavSections,
@@ -20,11 +18,31 @@ import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
 import { getEaWorkspacePackNavSections } from "@/lib/ai-operating-assistant/workspace-packs/registry";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import {
+  resolveWorkspaceNavEnablement,
+  type WorkspaceNavEnablement,
+} from "@/lib/platform-workspaces/workspace-product-nav";
 
 import { resolveModuleIdFromNavLabel } from "./canonical-modules";
 import type { WorkspaceEnablementSnapshot } from "./types";
 
 const enablementCache = new Map<string, WorkspaceEnablementSnapshot>();
+const navEnablementOverrides = new Map<string, WorkspaceNavEnablement>();
+
+export function setWorkspaceNavEnablementForTests(
+  slug: string | null | undefined,
+  enablement: WorkspaceNavEnablement | null,
+): void {
+  const key = String(slug ?? "default").trim().toLowerCase();
+  if (!enablement) {
+    navEnablementOverrides.delete(key);
+    enablementCache.delete(key);
+    return;
+  }
+  navEnablementOverrides.set(key, enablement);
+  enablementCache.delete(key);
+}
 
 function collectViewIds(items: readonly InternalNavItem[], acc: Set<string>): void {
   for (const item of items) {
@@ -87,9 +105,6 @@ function buildNavForSlug(slug: string): readonly InternalNavSection[] {
 
   bootstrapIntelligenceWorkspacePacks();
 
-  if (normalized === DEMO_WORKSPACE_SLUG || normalized === "demo") {
-    return injectDemoNavSections(internalSurveyNavSections);
-  }
   if (normalized === ONWARDAIR_SLUG || normalized.includes("onwardair")) {
     return buildOnwardAirNavSections(internalSurveyNavSections);
   }
@@ -104,7 +119,20 @@ function buildNavForSlug(slug: string): readonly InternalNavSection[] {
     return getTalantonImpactNavSections();
   }
 
-  return injectIntelligenceNavIfMissing(internalSurveyNavSections, slug);
+  const override = navEnablementOverrides.get(normalized);
+  const isDemo = normalized === DEMO_WORKSPACE_SLUG || normalized === "demo";
+  const enablement =
+    override ??
+    resolveWorkspaceNavEnablement({
+      workspaceSlug: normalized,
+      workspaceType: isDemo ? "Demo" : "Customer",
+    });
+
+  return resolveWorkspaceNavBaseSections({
+    workspaceSlug: normalized,
+    workspaceType: isDemo ? "Demo" : "Customer",
+    enablement,
+  });
 }
 
 export function getWorkspaceEnablement(slug: string | null | undefined): WorkspaceEnablementSnapshot {
@@ -146,4 +174,5 @@ export function assertModulesEnabled(
 
 export function resetWorkspaceEnablementCacheForTests(): void {
   enablementCache.clear();
+  navEnablementOverrides.clear();
 }

@@ -4,7 +4,6 @@
  */
 import assert from "node:assert/strict";
 
-import { injectDemoNavSections } from "@/lib/demo/nav";
 import {
   canAccessManagementWorkspace,
   getVisibleContentStudioFunctions,
@@ -35,6 +34,8 @@ import {
   type InternalNavItem,
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 
 function navIncludesView(
   sections: readonly InternalNavSection[],
@@ -108,7 +109,18 @@ function assertSurfaceNav(
   assert.ok(getVisibleContentStudioFunctions(admin).length >= 8);
 }
 
-assertSurfaceNav("Demo", injectDemoNavSections(internalSurveyNavSections));
+const demoEnablement = resolveWorkspaceNavEnablement({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+});
+assertSurfaceNav(
+  "Demo",
+  resolveWorkspaceNavBaseSections({
+    workspaceSlug: "demo",
+    workspaceType: "Demo",
+    enablement: demoEnablement,
+  }),
+);
 assertSurfaceNav("OnwardAir", buildOnwardAirNavSections(internalSurveyNavSections));
 assertSurfaceNav("ABHI", buildAbhiNavSections(internalSurveyNavSections));
 

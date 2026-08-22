@@ -1183,7 +1183,7 @@ export const internalViewTitles: Record<
   webodm: { title: "WebODM Processing", subtitle: "Internal Operations" },
   messaging: { title: "Messaging", subtitle: "Business Productivity" },
   communications: { title: "Communications", subtitle: "Business Productivity" },
-  social: { title: "Social", subtitle: "Business Productivity" },
+  social: { title: "Social", subtitle: "Marketing & Events" },
   settings: { title: "General", subtitle: "Settings" },
   billing: { title: "Billing", subtitle: "Settings" },
   calendar: { title: "Calendar", subtitle: "Business Productivity" },

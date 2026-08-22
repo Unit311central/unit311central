@@ -74,6 +74,8 @@ import {
   type InternalOperationsView,
 } from "@/lib/internal-operations-data";
 import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurface } from "@/lib/internal-role-views";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import { isInternalDomainHost } from "@/lib/app-domains";
 import { isAbsoluteHttpUrl } from "@/lib/clarity";
 import {
@@ -267,18 +269,39 @@ export default function EnterprisePlatformSidebar({
     };
   }, []);
 
-  const { allowedViews, ready: entitlementsReady } = useOperatorEntitlements();
+  const { allowedViews, ready: entitlementsReady, workspaceSlug, workspaceType, enabledModules, enabledSubModules } = useOperatorEntitlements();
+
+  const workspaceNavEnablement = useMemo(
+    () =>
+      resolveWorkspaceNavEnablement({
+        workspaceSlug,
+        workspaceType,
+        enabledModules,
+        enabledSubModules,
+      }),
+    [workspaceSlug, workspaceType, enabledModules, enabledSubModules],
+  );
+
+  const workspaceNavBase = useMemo(
+    () =>
+      resolveWorkspaceNavBaseSections({
+        workspaceSlug,
+        workspaceType,
+        enablement: workspaceNavEnablement,
+      }),
+    [workspaceSlug, workspaceType, workspaceNavEnablement],
+  );
 
   // Only migrate / insert brand-new module keys. Do not rewrite storage when
   // entitlements or host filters change — that was wiping Settings reorders.
   useEffect(() => {
     if (!hydrated || !entitlementsReady) return;
     const filtered = filterInternalNavSectionsForDemoSurface(
-      filterInternalNavSectionsByGrants(internalSurveyNavSections, allowedViews),
+      filterInternalNavSectionsByGrants(workspaceNavBase, allowedViews),
       { allowHostSurfaces: true },
     );
     reconcileSidebarNavCustom(filtered);
-  }, [hydrated, allowedViews, entitlementsReady]);
+  }, [hydrated, allowedViews, entitlementsReady, workspaceNavBase]);
 
   useEffect(() => {
     const onTheme = (event: Event) => {
@@ -742,7 +765,7 @@ export default function EnterprisePlatformSidebar({
   const navSections = useMemo(() => {
     const filtered = filterInternalNavSectionsForDemoSurface(
       filterInternalNavSectionsByGrants(
-        internalSurveyNavSections,
+        workspaceNavBase,
         // Hold grants filter until whoami resolves so sections don't vanish then
         // reappear at the bottom of the custom order.
         entitlementsReady ? allowedViews : null,
@@ -757,7 +780,7 @@ export default function EnterprisePlatformSidebar({
     return filtered;
     // sectionOrderTick forces re-read after Settings saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowedViews, entitlementsReady, hydrated, sectionOrderTick]);
+  }, [allowedViews, entitlementsReady, hydrated, sectionOrderTick, workspaceNavBase, customerHostNav]);
 
   const pinSections = navSections.filter((section) => section.kind === "pin");
   // Avoid flashing the generic (non-host) workspace list before OA/ABHI inject.

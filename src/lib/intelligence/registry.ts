@@ -116,7 +116,10 @@ export function getIntelligencePackBySlug(
   ensureIntelligencePacksBootstrapped();
   const normalized = normalizeSlug(workspaceSlug);
   if (!normalized) return null;
-  return packsBySlug.get(normalized) ?? null;
+  const specific = packsBySlug.get(normalized);
+  if (specific) return specific;
+  // Generic customer workspaces — no per-slug registration required.
+  return packsById.get("customer-intelligence") ?? null;
 }
 
 export function getIntelligencePackById(

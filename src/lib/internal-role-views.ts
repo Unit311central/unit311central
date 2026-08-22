@@ -1754,11 +1754,7 @@ export function applyDemoNavExtensions(
   sections: readonly InternalNavSection[],
   options?: { allowHostSurfaces?: boolean },
 ): InternalNavSection[] {
-  const allowHostSurfaces = options?.allowHostSurfaces !== false;
-  if (!allowHostSurfaces || !isDemoNavSurface()) return [...sections];
-  const { injectDemoNavSections } = require("@/lib/demo/nav") as typeof import("@/lib/demo/nav");
-  const { injectIntelligenceNavIfMissing } =
-    require("@/lib/intelligence/nav") as typeof import("@/lib/intelligence/nav");
-  const { DEMO_WORKSPACE_SLUG } = require("@/lib/app-domains") as typeof import("@/lib/app-domains");
-  return injectIntelligenceNavIfMissing(injectDemoNavSections(sections), DEMO_WORKSPACE_SLUG);
+  // Canonical product nav is built upstream; no demo-only injection.
+  void options;
+  return [...sections];
 }

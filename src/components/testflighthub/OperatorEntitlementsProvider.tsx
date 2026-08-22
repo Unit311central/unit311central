@@ -31,6 +31,10 @@ export type OperatorEntitlements = {
   homeTiles: CommandCentreHomeTileId[] | null;
   /** Mapped InternalRoleView for EA / shell (from primary access tier). */
   roleView: InternalRoleView | null;
+  workspaceSlug: string | null;
+  workspaceType: string | null;
+  enabledModules: string[] | null;
+  enabledSubModules: string[] | null;
   ready: boolean;
 };
 
@@ -42,6 +46,10 @@ const OperatorEntitlementsContext = createContext<OperatorEntitlements>({
   allowedViews: null,
   homeTiles: null,
   roleView: null,
+  workspaceSlug: null,
+  workspaceType: null,
+  enabledModules: null,
+  enabledSubModules: null,
   ready: false,
 });
 
@@ -54,6 +62,10 @@ export function OperatorEntitlementsProvider({ children }: { children: ReactNode
     allowedViews: null,
     homeTiles: null,
     roleView: null,
+    workspaceSlug: null,
+    workspaceType: null,
+    enabledModules: null,
+    enabledSubModules: null,
     ready: false,
   });
 
@@ -67,6 +79,10 @@ export function OperatorEntitlementsProvider({ children }: { children: ReactNode
         allowedViews?: InternalOperationsView[] | null;
         dashboardPrefs?: { homeTiles?: CommandCentreHomeTileId[] } | null;
         workspaceName?: string | null;
+        workspaceSlug?: string | null;
+        workspaceType?: string | null;
+        enabledModules?: string[] | null;
+        enabledSubModules?: string[] | null;
       }>(PLATFORM_CACHE_KEYS.whoami, "/api/auth/whoami", { ttlMs: 60_000 });
 
       if (data.workspaceName?.trim()) {
@@ -99,6 +115,10 @@ export function OperatorEntitlementsProvider({ children }: { children: ReactNode
         allowedViews: data.allowedViews ?? null,
         homeTiles: data.dashboardPrefs?.homeTiles ?? null,
         roleView,
+        workspaceSlug: data.workspaceSlug ?? null,
+        workspaceType: data.workspaceType ?? null,
+        enabledModules: data.enabledModules ?? null,
+        enabledSubModules: data.enabledSubModules ?? null,
         ready: true,
       });
     } catch {

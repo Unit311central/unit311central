@@ -6,9 +6,6 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
-import { injectDemoNavSections } from "@/lib/demo/nav";
-import { injectIntelligenceNavIfMissing } from "@/lib/intelligence/nav";
-import { bootstrapIntelligenceWorkspacePacks } from "@/lib/intelligence/workspace-packs";
 import {
   internalSurveyNavSections,
   type InternalNavItem,
@@ -22,6 +19,8 @@ import {
 import { ABHI_SLUG } from "@/lib/abhi-surface";
 import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 import { TALANTON_IMPACT_SLUG } from "@/lib/talanton-surface";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 
 const viewIdCache = new Map<string, ReadonlySet<string>>();
 
@@ -48,11 +47,6 @@ function flattenViewIds(sections: readonly InternalNavSection[]): ReadonlySet<st
 export function buildClientNavSectionsForSlug(slug: string): readonly InternalNavSection[] {
   const normalized = slug.trim().toLowerCase();
 
-  bootstrapIntelligenceWorkspacePacks();
-
-  if (normalized === DEMO_WORKSPACE_SLUG || normalized === "demo") {
-    return injectDemoNavSections(internalSurveyNavSections);
-  }
   if (normalized === ONWARDAIR_SLUG || normalized.includes("onwardair")) {
     return buildOnwardAirNavSections(internalSurveyNavSections);
   }
@@ -67,7 +61,16 @@ export function buildClientNavSectionsForSlug(slug: string): readonly InternalNa
     return getTalantonImpactNavSections();
   }
 
-  return injectIntelligenceNavIfMissing(internalSurveyNavSections, slug);
+  const isDemo = normalized === DEMO_WORKSPACE_SLUG || normalized === "demo";
+  const enablement = resolveWorkspaceNavEnablement({
+    workspaceSlug: normalized,
+    workspaceType: isDemo ? "Demo" : "Customer",
+  });
+  return resolveWorkspaceNavBaseSections({
+    workspaceSlug: normalized,
+    workspaceType: isDemo ? "Demo" : "Customer",
+    enablement,
+  });
 }
 
 export function getClientEnabledViewIds(slug: string | null | undefined): ReadonlySet<string> {

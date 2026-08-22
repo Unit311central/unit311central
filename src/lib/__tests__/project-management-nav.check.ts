@@ -4,9 +4,10 @@
 import assert from "node:assert/strict";
 
 import { ABHI_LOCKED_WORKSPACE_SECTION_ORDER } from "@/lib/abhi-nav-order";
-import { injectDemoNavSections } from "@/lib/demo/nav";
 import { buildAbhiNavSections } from "@/lib/internal-role-views";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import {
   PROJECT_MANAGEMENT_MODULE_LABEL,
   buildProjectManagementNavSection,
@@ -17,7 +18,15 @@ function sectionLabels(sections: readonly { label?: string | null }[]): string[]
   return sections.map((section) => String(section.label ?? ""));
 }
 
-const demoNav = injectDemoNavSections(internalSurveyNavSections);
+const demoEnablement = resolveWorkspaceNavEnablement({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+});
+const demoNav = resolveWorkspaceNavBaseSections({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+  enablement: demoEnablement,
+});
 assert.ok(
   demoNav.some((section) => section.label === PROJECT_MANAGEMENT_MODULE_LABEL),
   "demo nav must expose top-level Project Management",

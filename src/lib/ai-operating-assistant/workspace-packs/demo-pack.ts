@@ -2,13 +2,12 @@
  * Northstar Demo workspace EA pack — Chief-of-Staff executive tools + central EA.
  */
 
-import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import { isBrowserDemoSurface } from "@/lib/demo-enterprise";
+import { resolveAbhiBoardPackIntent } from "@/lib/abhi/board-pack-intent";
 import { resolveNorthstarExecutiveIntelligenceIntent } from "@/lib/demo/executive-intelligence-intent";
-import { injectDemoNavSections } from "@/lib/demo/nav";
-import { injectIntelligenceNavIfMissing } from "@/lib/intelligence/nav";
-import { internalSurveyNavSections } from "@/lib/internal-operations-data";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import type { EaSynthesisContext } from "@/lib/ai-operating-assistant/ea-llm-synthesis";
 import {
   EA_DEFAULT_SYNTHESIS_GUIDANCE,
@@ -76,8 +75,17 @@ export const demoWorkspacePack: EaWorkspacePack = {
   matchesSlug: (slug) => String(slug ?? "").trim().toLowerCase() === DEMO_WORKSPACE_SLUG,
   matchesBrowserSurface: isBrowserDemoSurface,
   clientSupportsBoardPack: true,
-  navProvider: () =>
-    injectIntelligenceNavIfMissing(injectDemoNavSections(internalSurveyNavSections), DEMO_WORKSPACE_SLUG),
+  navProvider: () => {
+    const enablement = resolveWorkspaceNavEnablement({
+      workspaceSlug: DEMO_WORKSPACE_SLUG,
+      workspaceType: "Demo",
+    });
+    return resolveWorkspaceNavBaseSections({
+      workspaceSlug: DEMO_WORKSPACE_SLUG,
+      workspaceType: "Demo",
+      enablement,
+    });
+  },
   promptExtensions: () => ({
     systemHint: NORTHSTAR_TOOLS_HINT,
     reportingCurrency: "GBP",

@@ -160,6 +160,8 @@ export function buildCentralCorporateInformationNavSection(): InternalNavSection
   };
 }
 
+const BUSINESS_PRODUCTIVITY_EXCLUDED_VIEWS = new Set(["social"]);
+
 /** Central Marketing & Events — generic product functions (not ABHI-only accelerators). */
 export function buildCentralMarketingEventsNavSection(): InternalNavSection {
   return {
@@ -174,7 +176,21 @@ export function buildCentralMarketingEventsNavSection(): InternalNavSection {
       { label: "Event Management", icon: "Ticket", view: "marketing-event-management" },
       { label: "Mailing List", icon: "Users", view: "marketing-mailing-list" },
       { label: "Client Stories", icon: "BookOpen", view: "portfolio-stories" },
+      { label: "Social", icon: "Share2", view: "social" },
     ],
+  };
+}
+
+/** Central Business Productivity — collaboration tools (Social lives under Marketing & Events). */
+export function buildCentralBusinessProductivityNavSection(): InternalNavSection {
+  const base = findWorkspaceSection("Business Productivity");
+  const items = filterNavItems(base?.items ?? [], BUSINESS_PRODUCTIVITY_EXCLUDED_VIEWS);
+  return {
+    kind: "workspace",
+    label: "Business Productivity",
+    icon: base?.icon ?? "MessageSquare",
+    color: base?.color ?? "#0891B2",
+    items,
   };
 }
 
@@ -299,7 +315,7 @@ export function buildCentralProductNavSections(): readonly CentralProductModuleS
       number: 14,
       id: "business-productivity",
       label: "BUSINESS PROD",
-      section: requireSection("Business Productivity"),
+      section: buildCentralBusinessProductivityNavSection(),
     },
     {
       number: 15,

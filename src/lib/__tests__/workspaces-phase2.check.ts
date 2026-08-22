@@ -6,11 +6,12 @@ import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { INTERNAL_SITE_HOST } from "@/lib/app-domains";
-import { injectDemoNavSections } from "@/lib/demo/nav";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import {
   filterInternalNavSectionsForDemoSurface,
 } from "@/lib/internal-role-views";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import {
   CLIENT_CSV_TEMPLATE,
   EMPLOYEE_CSV_TEMPLATE,
@@ -124,12 +125,19 @@ const internalNav = withMockHostname(INTERNAL_SITE_HOST, () =>
 );
 assert.ok(internalNav.some((section) => section.label === WORKSPACES_MODULE_LABEL));
 
+const demoEnablement = resolveWorkspaceNavEnablement({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+});
+const demoBase = resolveWorkspaceNavBaseSections({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+  enablement: demoEnablement,
+});
 const demoNav = withMockHostname("demo.unit311central.com", () =>
-  injectDemoNavSections(
-    filterInternalNavSectionsForDemoSurface(internalSurveyNavSections, {
-      allowHostSurfaces: true,
-    }),
-  ),
+  filterInternalNavSectionsForDemoSurface(demoBase, {
+    allowHostSurfaces: true,
+  }),
 );
 assert.ok(!demoNav.some((section) => section.label === WORKSPACES_MODULE_LABEL));
 

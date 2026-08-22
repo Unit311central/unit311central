@@ -4,16 +4,17 @@
 import assert from "node:assert/strict";
 
 import { INTERNAL_SITE_HOST } from "@/lib/app-domains";
-import { injectDemoNavSections } from "@/lib/demo/nav";
 import { listPlatformModules } from "@/lib/ai-operating-assistant/application-catalogue";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 import {
-  ABHI_HIDDEN_VIEWS,
   CORPCENTRE_HIDDEN_VIEWS,
   CUSTOMER_PLATFORM_HIDDEN_VIEWS,
   TALANTON_HIDDEN_VIEWS,
+  ABHI_HIDDEN_VIEWS,
   filterInternalNavSectionsForDemoSurface,
 } from "@/lib/internal-role-views";
+import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
+import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
 import {
   WORKSPACES_MODULE_LABEL,
   buildWorkspacesNavSection,
@@ -99,12 +100,19 @@ assert.deepEqual(
   ["workspaces-overview", "workspaces-new"],
 );
 
+const demoEnablement = resolveWorkspaceNavEnablement({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+});
+const demoBase = resolveWorkspaceNavBaseSections({
+  workspaceSlug: "demo",
+  workspaceType: "Demo",
+  enablement: demoEnablement,
+});
 const demoNav = withMockHostname("demo.unit311central.com", () =>
-  injectDemoNavSections(
-    filterInternalNavSectionsForDemoSurface(internalSurveyNavSections, {
-      allowHostSurfaces: true,
-    }),
-  ),
+  filterInternalNavSectionsForDemoSurface(demoBase, {
+    allowHostSurfaces: true,
+  }),
 );
 const demoLabels = sectionLabels(demoNav);
 assert.ok(

@@ -2,6 +2,7 @@ import { registerIntelligencePack } from "@/lib/intelligence/registry";
 import type { IntelligenceWorkspacePackRegistration } from "@/lib/intelligence/types";
 
 import { abhiIntelligencePack } from "@/lib/intelligence/workspace-packs/abhi";
+import { customerIntelligencePack } from "@/lib/intelligence/workspace-packs/customer";
 import { demoIntelligencePack } from "@/lib/intelligence/workspace-packs/demo";
 import { onwardAirIntelligencePack } from "@/lib/intelligence/workspace-packs/onwardair";
 import { talantonIntelligencePack } from "@/lib/intelligence/workspace-packs/talanton";
@@ -16,6 +17,7 @@ const INTELLIGENCE_WORKSPACE_PACKS: readonly IntelligenceWorkspacePackRegistrati
   talantonIntelligencePack,
   abhiIntelligencePack,
   demoIntelligencePack,
+  customerIntelligencePack,
 ];
 
 let bootstrapped = false;
@@ -35,6 +37,7 @@ export function resetIntelligenceWorkspacePackBootstrapForTests(): void {
 
 export {
   abhiIntelligencePack,
+  customerIntelligencePack,
   demoIntelligencePack,
   onwardAirIntelligencePack,
   talantonIntelligencePack,
