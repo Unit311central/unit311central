@@ -52,6 +52,7 @@
     "prove:workspaces-provisioning-final": "node --require ./scripts/test-server-only-hook.cjs --import tsx src/lib/__tests__/workspaces-provisioning-final.check.ts",
     "prove:initial-admin-password": "node --import tsx src/lib/__tests__/initial-admin-password.check.ts",
     "prove:customer-nav-parity": "node --import tsx src/lib/__tests__/customer-nav-parity.check.ts",
+    "prove:internal-nav-regression": "node --import tsx src/lib/__tests__/internal-nav-regression.check.ts",
     "prove:ea-cfo": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-cfo.check.ts",
     "prove:ea-real": "node --import tsx src/lib/ai-operating-assistant/__tests__/ea-real.check.ts",
     "prove:ea-capabilities": "node --import tsx src/lib/ai-operating-assistant/capabilities/__tests__/read-capabilities.check.ts",

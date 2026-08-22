@@ -10,6 +10,7 @@ import {
   resolveWorkspaceNavEnablement,
   type WorkspaceNavEnablement,
 } from "@/lib/platform-workspaces/workspace-product-nav";
+import { INTERNAL_WORKSPACE_SLUG } from "@/lib/workspace-host";
 import type { InternalNavSection } from "@/lib/internal-operations-data";
 
 export type WorkspaceNavContext = {
@@ -22,13 +23,27 @@ function usesLegacySpecialistNav(slug: string | null | undefined): boolean {
   return isSpecialistWorkspaceSlug(slug);
 }
 
+/** Internal Central uses the full platform nav and ignores wizard enablement metadata. */
+export function usesInternalPlatformNav(
+  slug: string | null | undefined,
+  workspaceType: string | null | undefined,
+): boolean {
+  const normalizedType = String(workspaceType ?? "").trim().toLowerCase();
+  const normalizedSlug = String(slug ?? "").trim().toLowerCase();
+  return normalizedType === "internal" || normalizedSlug === INTERNAL_WORKSPACE_SLUG;
+}
+
 /**
  * Base nav tree before grants / host overlays (Talanton, ABHI, OnwardAir, internal Workspaces).
- * Specialist workspaces keep legacy internalSurveyNavSections; all other workspaces use the
- * canonical product catalogue filtered by enablement.
+ * Specialist and Internal Central workspaces keep internalSurveyNavSections; Demo and generic
+ * customers use the canonical product catalogue filtered by enablement.
  */
 export function resolveWorkspaceNavBaseSections(ctx: WorkspaceNavContext): readonly InternalNavSection[] {
   if (usesLegacySpecialistNav(ctx.workspaceSlug)) {
+    return internalSurveyNavSections;
+  }
+
+  if (usesInternalPlatformNav(ctx.workspaceSlug, ctx.workspaceType)) {
     return internalSurveyNavSections;
   }
 
