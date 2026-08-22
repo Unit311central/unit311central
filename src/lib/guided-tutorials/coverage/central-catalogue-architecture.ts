@@ -35,8 +35,12 @@ export const CENTRAL_PLATFORM_MODULE_SLUGS = [
 
 export type CentralPlatformModuleSlug = (typeof CENTRAL_PLATFORM_MODULE_SLUGS)[number];
 
+/** Module slugs still derived from legacy nav labels — pending central remap. */
+export const PENDING_CENTRAL_MODULE_SLUGS = ["intellectual-property", "marketing-stories"] as const;
+
 const CENTRAL_MODULE_SET = new Set<string>(CENTRAL_PLATFORM_MODULE_SLUGS);
+const PENDING_MODULE_SET = new Set<string>(PENDING_CENTRAL_MODULE_SLUGS);
 
 export function isCentralPlatformModuleSlug(moduleSlug: string): moduleSlug is CentralPlatformModuleSlug {
-  return CENTRAL_MODULE_SET.has(moduleSlug);
+  return CENTRAL_MODULE_SET.has(moduleSlug) || PENDING_MODULE_SET.has(moduleSlug);
 }

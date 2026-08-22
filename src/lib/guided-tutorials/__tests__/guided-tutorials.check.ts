@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import { WAVE_1_TUTORIAL_IDS } from "@/lib/guided-tutorials/content/wave-1-scope";
 import { FINANCIALS_DASHBOARD_TUTORIAL } from "@/lib/guided-tutorials/content/financials-dashboard";
 import { SALES_MANAGEMENT_COMMISSIONS_TUTORIAL } from "@/lib/guided-tutorials/content/sales-management-commissions";
 import {
@@ -46,7 +47,7 @@ function testInvalidViewFailsSafely() {
 }
 
 function testMissingTutorialDoesNotCrash() {
-  const resolution = resolveTutorialForView(DEMO_WORKSPACE_SLUG, "home");
+  const resolution = resolveTutorialForView(DEMO_WORKSPACE_SLUG, "messaging");
   assert.equal(resolution.status, "unavailable");
   if (resolution.status === "unavailable") {
     assert.equal(resolution.reason, "no_tutorial_defined");
@@ -145,8 +146,17 @@ function testCommissionsTutorialResolvesWithTabKey() {
 }
 
 function testCommissionsTutorialNotOnDashboardTab() {
-  const resolution = resolveTutorialForView(DEMO_WORKSPACE_SLUG, "sales-management", "dashboard");
-  assert.equal(resolution.status, "unavailable");
+  const dashboard = resolveTutorialForView(DEMO_WORKSPACE_SLUG, "sales-management", "dashboard");
+  assert.equal(dashboard.status, "available");
+  if (dashboard.status === "available") {
+    assert.equal(dashboard.tutorial.tutorialId, "sales-management.dashboard");
+  }
+
+  const commissions = resolveTutorialForView(DEMO_WORKSPACE_SLUG, "sales-management", "commissions");
+  assert.equal(commissions.status, "available");
+  if (commissions.status === "available") {
+    assert.equal(commissions.tutorial.tutorialId, "sales-management.commissions");
+  }
 }
 
 function testTutorialContextHierarchy() {
@@ -190,6 +200,38 @@ function testCommissionsRichMediaSteps() {
   assert.ok(diagram?.media?.assetUrl.startsWith("/tutorials/"));
 }
 
+function testWave1TutorialsResolve() {
+  const cases: Array<{ viewId: string; tabKey?: string; tutorialId: string }> = [
+    { viewId: "home", tutorialId: "home" },
+    { viewId: "executive-assistant", tutorialId: "executive-assistant" },
+    { viewId: "clients-dashboard", tutorialId: "business-central.clients" },
+    { viewId: "crm", tutorialId: "business-central.pipeline" },
+    { viewId: "sales-management", tabKey: "dashboard", tutorialId: "sales-management.dashboard" },
+    { viewId: "sales-management", tabKey: "pipeline", tutorialId: "sales-management.pipeline" },
+    {
+      viewId: "oa-competitor-intelligence",
+      tutorialId: "intelligence.competitor-intelligence",
+    },
+    { viewId: "general-ledger", tabKey: "journal", tutorialId: "financials.journal" },
+    { viewId: "accounts-receivable", tutorialId: "financials.accounts-receivable" },
+    { viewId: "wise", tutorialId: "financials.wise" },
+  ];
+
+  for (const row of cases) {
+    const workspace =
+      row.tutorialId === "intelligence.competitor-intelligence"
+        ? ONWARDAIR_SLUG
+        : DEMO_WORKSPACE_SLUG;
+    const resolution = resolveTutorialForView(workspace, row.viewId, row.tabKey);
+    assert.equal(resolution.status, "available", `${row.tutorialId} on ${workspace}`);
+    if (resolution.status === "available") {
+      assert.equal(resolution.tutorial.tutorialId, row.tutorialId);
+    }
+  }
+
+  assert.equal(WAVE_1_TUTORIAL_IDS.length, 10);
+}
+
 function testStepPresentationHelpers() {
   const highlightStep = FINANCIALS_DASHBOARD_TUTORIAL.steps[0]!;
   assert.ok(stepUsesDomHighlight(highlightStep));
@@ -214,8 +256,9 @@ function run() {
   testFinancesContextHierarchy();
   testResolveTutorialTabKeyForSales();
   testCommissionsRichMediaSteps();
+  testWave1TutorialsResolve();
   testStepPresentationHelpers();
-  assert.equal(listTutorialDefinitions().length, 2);
+  assert.equal(listTutorialDefinitions().length, 12);
   console.log("guided-tutorials.check.ts: all assertions passed");
 }
 

@@ -79,7 +79,7 @@ function testPrimaryIdentityIsRuntimeBinding() {
 function testLiveTutorialsReconcile() {
   resetCanonicalLabelIndexForTests();
   const reconciliation = reconcileTutorialCoverage();
-  assert.equal(reconciliation.liveTutorials.length, 2);
+  assert.equal(reconciliation.liveTutorials.length, 12);
   assert.equal(reconciliation.orphanRegistryEntries.length, 0);
   assert.equal(reconciliation.duplicateTutorialIds.length, 0);
   assert.equal(reconciliation.duplicateRuntimeBindings.length, 0);
@@ -109,7 +109,7 @@ function testLiveTutorialsReconcile() {
 }
 
 function testRegistryMatchesCanonicalBindings() {
-  assert.equal(listTutorialDefinitions().length, 2);
+  assert.equal(listTutorialDefinitions().length, 12);
   for (const tutorial of listTutorialDefinitions()) {
     const derived = deriveTutorialId({
       viewId: tutorial.viewId,
@@ -136,7 +136,7 @@ function testTabSpecificBindings() {
   const dashboard = findCatalogueEntryByBinding(manifest.entries, "sales-management", "dashboard");
   assert.ok(dashboard);
   assert.equal(dashboard?.canonical.tutorialId, "sales-management.dashboard");
-  assert.equal(dashboard?.status, "missing");
+  assert.equal(dashboard?.status, "live");
 }
 
 function testCanonicalProductNaming() {
