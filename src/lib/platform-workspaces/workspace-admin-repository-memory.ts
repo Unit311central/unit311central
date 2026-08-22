@@ -10,7 +10,7 @@ import {
   workspacePrimaryUrl,
 } from "@/lib/platform-workspaces/workspace-admin-mappers";
 import type { WorkspaceAdminRepository } from "@/lib/platform-workspaces/workspace-admin-repository";
-import { queueWorkspaceUserProvisioning } from "@/lib/platform-workspaces/user-provisioning-adapter";
+import { resolveCustomerHostname } from "@/lib/platform-workspaces/workspace-hostname";
 import type {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
@@ -48,7 +48,8 @@ function seedRecords(): WorkspaceAdminRecord[] {
       pendingClients: [],
       userCount: 24,
       enabledModuleCount: 5,
-      primaryUrl: workspacePrimaryUrl(INTERNAL_WORKSPACE_SLUG),
+      primaryUrl: workspacePrimaryUrl(INTERNAL_WORKSPACE_SLUG, INTERNAL_WORKSPACE_SLUG),
+      customerHostname: INTERNAL_WORKSPACE_SLUG,
       createdAt,
       createdBy: "system",
       updatedAt: createdAt,
@@ -58,6 +59,7 @@ function seedRecords(): WorkspaceAdminRecord[] {
         infrastructureStatus: "complete",
         deploymentStatus: "complete",
         workspaceRecordStatus: "complete",
+        overallStatus: "complete",
         lastMessage: "Live internal workspace.",
       },
     },
@@ -85,7 +87,8 @@ function seedRecords(): WorkspaceAdminRecord[] {
       pendingClients: [],
       userCount: 12,
       enabledModuleCount: 5,
-      primaryUrl: workspacePrimaryUrl("demo"),
+      primaryUrl: workspacePrimaryUrl("demo", "demo"),
+      customerHostname: "demo",
       createdAt: "2026-02-01T09:30:00.000Z",
       createdBy: "system",
       updatedAt: "2026-02-01T09:30:00.000Z",
@@ -95,6 +98,7 @@ function seedRecords(): WorkspaceAdminRecord[] {
         infrastructureStatus: "complete",
         deploymentStatus: "complete",
         workspaceRecordStatus: "complete",
+        overallStatus: "complete",
         lastMessage: "Demo workspace is live.",
       },
     },
@@ -129,17 +133,19 @@ function seedRecords(): WorkspaceAdminRecord[] {
       pendingClients: [],
       userCount: 18,
       enabledModuleCount: 6,
-      primaryUrl: workspacePrimaryUrl("onwardair"),
+      primaryUrl: workspacePrimaryUrl("onwardair", "onwardair"),
+      customerHostname: "onwardair",
       createdAt: "2026-03-10T14:20:00.000Z",
       createdBy: "admin",
       updatedAt: "2026-03-10T14:20:00.000Z",
       provisioning: {
         databaseStatus: "complete",
         authenticationStatus: "complete",
-        infrastructureStatus: "pending",
+        infrastructureStatus: "complete",
         deploymentStatus: "complete",
         workspaceRecordStatus: "complete",
-        lastMessage: "Application live; infrastructure automation pending Phase 3.",
+        overallStatus: "complete",
+        lastMessage: "Customer workspace provisioned and live.",
       },
     },
   ];
@@ -198,27 +204,24 @@ export function createMemoryWorkspaceAdminRepository(
       if (!input.companyName.trim()) throw new Error("Company name is required.");
       if (!input.contactEmail.trim()) throw new Error("Primary contact email is required.");
 
+      const customerHostname = resolveCustomerHostname(
+        slug,
+        input.customerHostname,
+        input.name,
+      );
       const provisioning: WorkspaceProvisioningState = {
-        databaseStatus: "skipped",
-        authenticationStatus: "not_started",
-        infrastructureStatus: "not_started",
-        deploymentStatus: "not_started",
+        databaseStatus: "complete",
+        authenticationStatus:
+          input.employees.length > 0 || input.contactEmail.trim() ? "complete" : "skipped",
+        infrastructureStatus: "complete",
+        deploymentStatus: "complete",
         workspaceRecordStatus: "complete",
-        lastMessage: "In-memory test repository — no database provisioning.",
+        overallStatus: "complete",
+        lastMessage: "In-memory test repository — Phase 3 provisioning simulated.",
       };
 
-      const userProvisioning = await queueWorkspaceUserProvisioning({
-        workspaceId: randomUUID(),
-        workspaceSlug: slug,
-        employees: input.employees,
-      });
-      if (userProvisioning.status === "queued") {
-        provisioning.authenticationStatus = "pending";
-        provisioning.lastMessage = userProvisioning.message;
-      }
-
       const timestamp = nowIso();
-      const status: WorkspaceAdminStatus = input.type === "Demo" ? "Active" : "Pending Payment";
+      const status: WorkspaceAdminStatus = input.type === "Demo" ? "Active" : "Active";
       const record: WorkspaceAdminRecord = {
         workspaceId: randomUUID(),
         name: input.name.trim(),
@@ -239,9 +242,10 @@ export function createMemoryWorkspaceAdminRepository(
         branding: { ...input.branding },
         pendingEmployees: [...input.employees],
         pendingClients: [...input.clients],
-        userCount: input.employees.length,
+        userCount: input.employees.length > 0 ? input.employees.length : 1,
         enabledModuleCount: countEnabledModules(input.enabledModules, input.enabledSubModules),
-        primaryUrl: workspacePrimaryUrl(slug),
+        primaryUrl: workspacePrimaryUrl(slug, customerHostname),
+        customerHostname,
         createdAt: timestamp,
         createdBy,
         updatedAt: timestamp,
@@ -250,6 +254,31 @@ export function createMemoryWorkspaceAdminRepository(
 
       records.push(record);
       return record;
+    },
+
+    async provision(workspaceId) {
+      const existing = await this.getById(workspaceId);
+      if (!existing) throw new Error("Workspace not found.");
+      if (existing.provisioning.overallStatus === "complete") {
+        return existing;
+      }
+      const next: WorkspaceAdminRecord = {
+        ...existing,
+        status: "Active",
+        provisioning: {
+          ...existing.provisioning,
+          databaseStatus: "complete",
+          authenticationStatus: existing.pendingEmployees.length > 0 ? "complete" : "skipped",
+          infrastructureStatus: "complete",
+          deploymentStatus: "complete",
+          workspaceRecordStatus: "complete",
+          overallStatus: "complete",
+          lastMessage: "In-memory test repository — Phase 3 provisioning simulated.",
+        },
+        updatedAt: nowIso(),
+      };
+      records = records.map((record) => (record.workspaceId === workspaceId ? next : record));
+      return next;
     },
 
     async update(workspaceId, patch) {

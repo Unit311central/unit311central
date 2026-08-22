@@ -33,12 +33,26 @@ export type WorkspaceImportClient = {
   country?: string;
 };
 
+export type WorkspaceProvisioningStepStatus =
+  | "not_started"
+  | "pending"
+  | "complete"
+  | "skipped"
+  | "failed";
+
+export type WorkspaceProvisioningOverallStatus =
+  | "not_started"
+  | "in_progress"
+  | "complete"
+  | "failed";
+
 export type WorkspaceProvisioningState = {
-  databaseStatus: "not_started" | "pending" | "complete" | "skipped";
-  authenticationStatus: "not_started" | "pending" | "complete" | "skipped";
-  infrastructureStatus: "not_started" | "pending" | "complete" | "skipped";
-  deploymentStatus: "not_started" | "pending" | "complete" | "skipped";
+  databaseStatus: WorkspaceProvisioningStepStatus;
+  authenticationStatus: WorkspaceProvisioningStepStatus;
+  infrastructureStatus: WorkspaceProvisioningStepStatus;
+  deploymentStatus: WorkspaceProvisioningStepStatus;
   workspaceRecordStatus: "not_started" | "pending" | "complete" | "failed";
+  overallStatus?: WorkspaceProvisioningOverallStatus;
   lastMessage?: string;
 };
 
@@ -62,6 +76,7 @@ export type WorkspaceAdminRecord = {
   userCount: number;
   enabledModuleCount: number;
   primaryUrl: string;
+  customerHostname: string;
   createdAt: string;
   createdBy: string;
   updatedAt: string;
@@ -72,6 +87,7 @@ export type CreateWorkspaceInput = {
   type: "Customer" | "Demo";
   name: string;
   slug: string;
+  customerHostname?: string;
   companyName: string;
   contactName: string;
   contactEmail: string;

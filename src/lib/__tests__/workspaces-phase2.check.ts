@@ -221,6 +221,7 @@ async function runPersistenceTests() {
     assert.equal(created.pendingEmployees.length, 1);
     assert.equal(created.pendingClients.length, 1);
     assert.equal(created.provisioning.workspaceRecordStatus, "complete");
+    assert.equal(created.provisioning.overallStatus, "complete");
     assert.equal(created.enabledModules.length, 3);
     assert.equal(created.enabledSubModules.length, 2);
     assert.equal(created.branding.displayName, "Phase 2 Test");
@@ -234,7 +235,7 @@ async function runPersistenceTests() {
       enabledSubModules: [subModuleKey("settings", "settings")],
       pendingEmployees: employeeValidation.rows,
       pendingClients: clientValidation.rows,
-      branding: { displayName: "Updated Phase 2 Test" },
+      branding: { ...created.branding, displayName: "Updated Phase 2 Test" },
     });
     assert.equal(updated.description, "Updated by Phase 2 test");
     assert.deepEqual(updated.enabledModules, ["home", "settings"]);
@@ -250,12 +251,15 @@ async function runPersistenceTests() {
 
     await assertJsonStoreNotWritten(jsonStoreMtimeBefore);
 
-    process.env.NODE_ENV = "production";
+    const priorRepository = process.env.WORKSPACE_ADMIN_REPOSITORY;
     process.env.WORKSPACE_ADMIN_REPOSITORY = "supabase";
     setWorkspaceAdminRepositoryForTests(null);
     assert.equal(resolveWorkspaceAdminRepositoryKind(), "supabase");
-    delete process.env.WORKSPACE_ADMIN_REPOSITORY;
-    delete process.env.NODE_ENV;
+    if (priorRepository === undefined) {
+      Reflect.deleteProperty(process.env, "WORKSPACE_ADMIN_REPOSITORY");
+    } else {
+      process.env.WORKSPACE_ADMIN_REPOSITORY = priorRepository;
+    }
   } finally {
     delete process.env.WORKSPACE_ADMIN_REPOSITORY;
     setWorkspaceAdminRepositoryForTests(null);

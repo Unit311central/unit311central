@@ -13,6 +13,7 @@ export interface WorkspaceAdminRepository {
   getById(workspaceId: string): Promise<WorkspaceAdminRecord | null>;
   isSlugAvailable(slug: string): Promise<boolean>;
   create(input: CreateWorkspaceInput, createdBy: string): Promise<WorkspaceAdminRecord>;
+  provision(workspaceId: string): Promise<WorkspaceAdminRecord>;
   update(workspaceId: string, patch: UpdateWorkspaceInput): Promise<WorkspaceAdminRecord>;
   archive(workspaceId: string): Promise<WorkspaceAdminRecord>;
 }
