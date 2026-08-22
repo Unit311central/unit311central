@@ -10,7 +10,7 @@ const QA_FORBIDDEN = "QA features are only available on the dedicated Test works
 export async function requireTestWorkspaceAccess(): Promise<
   { error: NextResponse } | { workspace: CurrentWorkspace; session: PlatformSession }
 > {
-  const session = await requirePlatformSession();
+  const session = await getPlatformSession();
   if (!session) {
     return { error: NextResponse.json({ error: "Authentication required." }, { status: 401 }) };
   }
