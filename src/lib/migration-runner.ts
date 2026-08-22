@@ -10,7 +10,19 @@ import {
   type MigrationQueryClient,
 } from "@/lib/migration-ledger";
 import { MIGRATION_SATISFACTION_PROBES } from "@/lib/migration-satisfaction-probes";
-import { SALES_MANAGEMENT_FOUNDATION_MIGRATION } from "@/lib/unit311-pending-migrations";
+import {
+  SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+  WORKSPACE_ADMIN_METADATA_MIGRATION,
+} from "@/lib/unit311-pending-migrations";
+
+const RUNNER_CONFIRMED_MIGRATIONS = new Set([
+  SALES_MANAGEMENT_FOUNDATION_MIGRATION,
+  WORKSPACE_ADMIN_METADATA_MIGRATION,
+]);
+
+function requiresRunnerLedgerConfirmation(migration: string): boolean {
+  return RUNNER_CONFIRMED_MIGRATIONS.has(migration);
+}
 
 export type MigrationSkipMethod = "ledger" | MigrationLedgerMethod;
 
@@ -65,7 +77,7 @@ export function migrationSatisfiedForPlanning(input: {
 }): boolean {
   const isSatisfied = input.satisfied.get(input.migration) === true;
   if (!isSatisfied) return false;
-  if (input.migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION) {
+  if (requiresRunnerLedgerConfirmation(input.migration)) {
     return isLedgerAppliedMethod(input.ledgerMethod);
   }
   return true;
@@ -90,7 +102,7 @@ export function inferSatisfiedFromLedgerForPost(
   migration: string,
   ledgerMethod: MigrationLedgerMethod,
 ): boolean {
-  if (migration === SALES_MANAGEMENT_FOUNDATION_MIGRATION) {
+  if (requiresRunnerLedgerConfirmation(migration)) {
     return isLedgerAppliedMethod(ledgerMethod);
   }
   return ledgerMethod === "verified_skip";
@@ -168,7 +180,7 @@ export async function collectMigrationSatisfactionForPost(
   return satisfied;
 }
 
-/** Repair stale verified_skip ledger rows after a successful runner apply (149 only). */
+/** Repair stale verified_skip ledger rows after a successful runner apply. */
 async function reconcileStaleVerifiedSkipRunnerConfirmation(
   migrations: readonly string[],
   client: MigrationQueryClient,
@@ -176,7 +188,7 @@ async function reconcileStaleVerifiedSkipRunnerConfirmation(
   satisfiedMap: Map<string, boolean>,
 ): Promise<void> {
   for (const migration of migrations) {
-    if (migration !== SALES_MANAGEMENT_FOUNDATION_MIGRATION) continue;
+    if (!requiresRunnerLedgerConfirmation(migration)) continue;
     const version = migrationVersion(migration);
     if (recordedMethods.get(version) !== "verified_skip") continue;
     if (satisfiedMap.get(migration) !== true) continue;

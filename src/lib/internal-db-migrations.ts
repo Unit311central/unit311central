@@ -117,6 +117,8 @@ export const SOFTWARE_PROVIDER_BILLING_MIGRATION_PATH =
   "supabase/migrations/138_software_provider_billing.sql";
 export const SALES_MANAGEMENT_FOUNDATION_MIGRATION_PATH =
   "supabase/migrations/149_sales_management_foundation.sql";
+export const WORKSPACE_ADMIN_METADATA_MIGRATION_PATH =
+  "supabase/migrations/150_workspace_admin_metadata.sql";
 export const SOFTWARE_PROVIDER_INVOICES_MIGRATION_PATH =
   "supabase/migrations/139_software_provider_invoices.sql";
 export const INTEGRATIONS_REGISTRY_MIGRATION_PATH =
