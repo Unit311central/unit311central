@@ -1,17 +1,14 @@
 import { listTutorialDefinitions } from "@/lib/guided-tutorials/registry";
 
-import {
-  COVERAGE_WORKSPACE_SLUGS,
-  extractAllCoverageNavLeaves,
-  tutorialIdentityKey,
-} from "./nav-leaves";
+import { buildCanonicalCatalogue, findCatalogueEntryByBinding } from "./canonical-catalogue";
+import { runtimeBindingKey } from "./nav-leaves";
 import {
   isShellCoverageView,
   resolveCoveragePriority,
   resolvePresentationTier,
 } from "./priorities";
 import type {
-  TutorialCoverageEntry,
+  TutorialCatalogueEntry,
   TutorialCoverageManifest,
   TutorialCoverageReconciliation,
   TutorialCoverageStatus,
@@ -23,34 +20,20 @@ function registryIdentities(): TutorialRegistryIdentity[] {
     tutorialId: tutorial.tutorialId,
     viewId: tutorial.viewId,
     tabKey: tutorial.tabKey,
-    identityKey: tutorialIdentityKey(tutorial.viewId, tutorial.tabKey),
+    bindingKey: runtimeBindingKey(tutorial.viewId, tutorial.tabKey),
   }));
 }
 
-function findDuplicateRegistryIdentities(
-  registered: readonly TutorialRegistryIdentity[],
-): TutorialCoverageReconciliation["duplicateRegistryIdentities"] {
-  const byKey = new Map<string, string[]>();
-  for (const entry of registered) {
-    const list = byKey.get(entry.identityKey) ?? [];
-    list.push(entry.tutorialId);
-    byKey.set(entry.identityKey, list);
-  }
-  return [...byKey.entries()]
-    .filter(([, ids]) => ids.length > 1)
-    .map(([identityKey, tutorialIds]) => ({ identityKey, tutorialIds }));
-}
-
 function resolveEntryStatus(
-  identityKey: string,
+  bindingKey: string,
   viewId: string,
-  registryByKey: ReadonlyMap<string, TutorialRegistryIdentity>,
+  registryByBinding: ReadonlyMap<string, TutorialRegistryIdentity>,
 ): { status: TutorialCoverageStatus; tutorialId?: string } {
   if (isShellCoverageView(viewId)) {
     return { status: "shell" };
   }
 
-  const registered = registryByKey.get(identityKey);
+  const registered = registryByBinding.get(bindingKey);
   if (registered) {
     return { status: "live", tutorialId: registered.tutorialId };
   }
@@ -58,95 +41,143 @@ function resolveEntryStatus(
   return { status: "missing" };
 }
 
-export function buildTutorialCoverageManifest(): TutorialCoverageManifest {
-  const leaves = extractAllCoverageNavLeaves();
-  const registryByKey = new Map(
-    registryIdentities().map((entry) => [entry.identityKey, entry]),
+function enrichCatalogueEntries(entries: TutorialCatalogueEntry[]): TutorialCatalogueEntry[] {
+  const registryByBinding = new Map(
+    registryIdentities().map((entry) => [entry.bindingKey, entry]),
   );
 
-  const entries: TutorialCoverageEntry[] = leaves.map((leaf) => {
-    const identityKey = tutorialIdentityKey(leaf.viewId, leaf.tabKey);
+  return entries.map((entry) => {
     const { status, tutorialId } = resolveEntryStatus(
-      identityKey,
-      leaf.viewId,
-      registryByKey,
+      entry.runtime.bindingKey,
+      entry.runtime.viewId,
+      registryByBinding,
     );
-    const priority = resolveCoveragePriority({
-      moduleLabel: leaf.moduleLabel,
-      viewId: leaf.viewId,
-      functionLabel: leaf.functionLabel,
-      tabKey: leaf.tabKey,
-    });
+    const priority = resolveCoveragePriority({ moduleSlug: entry.canonical.moduleSlug });
     const presentationTier = resolvePresentationTier({
-      viewId: leaf.viewId,
-      tabKey: leaf.tabKey,
-      functionLabel: leaf.functionLabel,
+      tutorialId: tutorialId ?? entry.canonical.tutorialId,
+      functionSlug: entry.canonical.functionSlug,
       status,
     });
 
     return {
-      ...leaf,
-      identityKey,
+      ...entry,
+      canonical: {
+        ...entry.canonical,
+        tutorialId: tutorialId ?? entry.canonical.tutorialId,
+      },
       priority,
       presentationTier,
       status,
-      tutorialId,
     };
   });
+}
 
-  const stats = {
-    total: entries.length,
-    live: entries.filter((entry) => entry.status === "live").length,
-    stub: entries.filter((entry) => entry.status === "stub").length,
-    missing: entries.filter((entry) => entry.status === "missing").length,
-    shell: entries.filter((entry) => entry.status === "shell").length,
-  };
+function findDuplicateTutorialIds(
+  entries: readonly TutorialCatalogueEntry[],
+): TutorialCoverageReconciliation["duplicateTutorialIds"] {
+  const byTutorialId = new Map<string, string[]>();
+  for (const entry of entries) {
+    const list = byTutorialId.get(entry.canonical.tutorialId) ?? [];
+    list.push(entry.runtime.bindingKey);
+    byTutorialId.set(entry.canonical.tutorialId, list);
+  }
+  return [...byTutorialId.entries()]
+    .filter(([, bindings]) => bindings.length > 1)
+    .map(([tutorialId, bindingKeys]) => ({ tutorialId, bindingKeys }));
+}
+
+function findDuplicateRuntimeBindings(
+  entries: readonly TutorialCatalogueEntry[],
+): TutorialCoverageReconciliation["duplicateRuntimeBindings"] {
+  const byBinding = new Map<string, string[]>();
+  for (const entry of entries) {
+    const list = byBinding.get(entry.runtime.bindingKey) ?? [];
+    list.push(entry.canonical.tutorialId);
+    byBinding.set(entry.runtime.bindingKey, list);
+  }
+  return [...byBinding.entries()]
+    .filter(([, tutorialIds]) => tutorialIds.length > 1)
+    .map(([bindingKey, tutorialIds]) => ({ bindingKey, tutorialIds }));
+}
+
+function findDuplicateRegistryTutorialIds(
+  registered: readonly TutorialRegistryIdentity[],
+): TutorialCoverageReconciliation["duplicateTutorialIds"] {
+  const byId = new Map<string, string[]>();
+  for (const entry of registered) {
+    const list = byId.get(entry.tutorialId) ?? [];
+    list.push(entry.bindingKey);
+    byId.set(entry.tutorialId, list);
+  }
+  return [...byId.entries()]
+    .filter(([, bindings]) => bindings.length > 1)
+    .map(([tutorialId, bindingKeys]) => ({ tutorialId, bindingKeys }));
+}
+
+export function buildTutorialCoverageManifest(): TutorialCoverageManifest {
+  const entries = enrichCatalogueEntries(buildCanonicalCatalogue());
+  const shell = entries.filter((entry) => entry.status === "shell").length;
+  const contentFunctions = entries.length - shell;
 
   return {
     entries,
-    workspaceSlugs: COVERAGE_WORKSPACE_SLUGS,
-    stats,
+    stats: {
+      totalCanonicalFunctions: entries.length,
+      contentFunctions,
+      live: entries.filter((entry) => entry.status === "live").length,
+      stub: entries.filter((entry) => entry.status === "stub").length,
+      missing: entries.filter((entry) => entry.status === "missing").length,
+      shell,
+    },
   };
 }
 
 export function reconcileTutorialCoverage(): TutorialCoverageReconciliation {
   const manifest = buildTutorialCoverageManifest();
   const registered = registryIdentities();
-  const manifestKeys = new Set(manifest.entries.map((entry) => entry.identityKey));
+  const catalogueTutorialIds = new Set(
+    manifest.entries.map((entry) => entry.canonical.tutorialId),
+  );
+  const catalogueBindings = new Set(manifest.entries.map((entry) => entry.runtime.bindingKey));
 
   const orphanRegistryEntries = registered.filter(
-    (entry) => !manifestKeys.has(entry.identityKey),
+    (entry) => !catalogueBindings.has(entry.bindingKey),
   );
 
-  const liveTutorials = registered.filter((entry) => manifestKeys.has(entry.identityKey));
+  const liveTutorials = registered.filter((entry) => catalogueBindings.has(entry.bindingKey));
+
+  const duplicateTutorialIds = [
+    ...findDuplicateTutorialIds(manifest.entries),
+    ...findDuplicateRegistryTutorialIds(registered),
+  ];
+  const duplicateRuntimeBindings = findDuplicateRuntimeBindings(manifest.entries);
 
   return {
     manifest,
     orphanRegistryEntries,
-    duplicateRegistryIdentities: findDuplicateRegistryIdentities(registered),
+    duplicateTutorialIds,
+    duplicateRuntimeBindings,
     liveTutorials,
   };
 }
 
-export function findCoverageEntry(
+export function findCatalogueEntry(
   manifest: TutorialCoverageManifest,
   viewId: string,
   tabKey?: string,
-): TutorialCoverageEntry | undefined {
-  const key = tutorialIdentityKey(viewId, tabKey);
-  return manifest.entries.find((entry) => entry.identityKey === key);
+): TutorialCatalogueEntry | undefined {
+  return findCatalogueEntryByBinding(manifest.entries, viewId, tabKey);
 }
 
 export function formatTutorialCoverageSummary(
   reconciliation: TutorialCoverageReconciliation,
 ): string {
-  const { manifest, orphanRegistryEntries, duplicateRegistryIdentities, liveTutorials } =
+  const { manifest, orphanRegistryEntries, duplicateTutorialIds, duplicateRuntimeBindings, liveTutorials } =
     reconciliation;
   const lines = [
-    "Tutorial Coverage Manifest",
-    "==========================",
-    `Workspace packs: ${manifest.workspaceSlugs.join(", ")}`,
-    `Nav-derived screens: ${manifest.stats.total}`,
+    "Canonical Tutorial Catalogue",
+    "============================",
+    `Canonical product functions: ${manifest.stats.contentFunctions} (+ ${manifest.stats.shell} shell placeholders)`,
     `  live: ${manifest.stats.live}`,
     `  missing: ${manifest.stats.missing}`,
     `  shell: ${manifest.stats.shell}`,
@@ -156,24 +187,31 @@ export function formatTutorialCoverageSummary(
   ];
 
   for (const tutorial of liveTutorials) {
-    const entry = findCoverageEntry(manifest, tutorial.viewId, tutorial.tabKey);
+    const entry = findCatalogueEntry(manifest, tutorial.viewId, tutorial.tabKey);
     const path = entry
-      ? `${entry.moduleLabel} → ${entry.functionLabel}`
-      : tutorial.identityKey;
+      ? `${entry.canonical.moduleLabel} → ${entry.canonical.functionLabel}`
+      : tutorial.bindingKey;
     lines.push(`  - ${tutorial.tutorialId} (${path})`);
   }
 
   if (orphanRegistryEntries.length > 0) {
     lines.push("", `Orphan registry entries: ${orphanRegistryEntries.length}`);
     for (const orphan of orphanRegistryEntries) {
-      lines.push(`  - ${orphan.tutorialId} (${orphan.identityKey})`);
+      lines.push(`  - ${orphan.tutorialId} (${orphan.bindingKey})`);
     }
   }
 
-  if (duplicateRegistryIdentities.length > 0) {
-    lines.push("", `Duplicate registry identities: ${duplicateRegistryIdentities.length}`);
-    for (const dup of duplicateRegistryIdentities) {
-      lines.push(`  - ${dup.identityKey}: ${dup.tutorialIds.join(", ")}`);
+  if (duplicateTutorialIds.length > 0) {
+    lines.push("", `Duplicate tutorial IDs: ${duplicateTutorialIds.length}`);
+    for (const dup of duplicateTutorialIds) {
+      lines.push(`  - ${dup.tutorialId}: ${dup.bindingKeys.join(", ")}`);
+    }
+  }
+
+  if (duplicateRuntimeBindings.length > 0) {
+    lines.push("", `Duplicate runtime bindings: ${duplicateRuntimeBindings.length}`);
+    for (const dup of duplicateRuntimeBindings) {
+      lines.push(`  - ${dup.bindingKey}: ${dup.tutorialIds.join(", ")}`);
     }
   }
 

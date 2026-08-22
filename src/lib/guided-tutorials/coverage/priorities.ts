@@ -7,87 +7,63 @@ export type TutorialCoveragePriority = "P0" | "P1" | "P2";
 export type TutorialPresentationTier = "A" | "B" | "C";
 
 const P0_MODULES = new Set([
-  "Pins",
-  "Business Central",
-  "Sales Management",
-  "OnwardAir Intelligence",
-  "Finances",
+  "pins",
+  "business-central",
+  "sales-management",
+  "onwardair-intelligence",
+  "finances",
 ]);
 
 const P1_MODULES = new Set([
-  "Fundraising",
-  "Board",
-  "Corporate Information",
-  "Operations",
-  "Marketing & Events",
-  "Technology Management",
-  "Human Resources",
-  "Business Productivity",
-  "Support Desk",
-  "Project Management",
-  "Settings",
+  "fundraising",
+  "board",
+  "corporate-information",
+  "operations",
+  "marketing-events",
+  "technology-management",
+  "human-resources",
+  "business-productivity",
+  "support-desk",
+  "project-management",
+  "settings",
 ]);
 
-/** Tier C reference tutorials — frozen rich-media pattern. */
-const TIER_C_IDENTITIES = new Set([
-  "financials:",
-  "sales-management:commissions",
+/** Frozen rich-media reference tutorials (workspace-independent tutorialId). */
+const TIER_C_TUTORIAL_IDS = new Set([
+  "financials.dashboard",
+  "sales-management.commissions",
 ]);
 
-const P0_WORKFLOW_IDENTITIES = new Set([
-  "crm:",
-  "sales-management:pipeline",
-  "sales-management:dashboard",
-  "general-ledger:journal",
-  "accounts-receivable:",
-  "accounts-payable:",
-  "wise:",
-  "oa-competitor-intelligence:",
+const P0_TUTORIAL_IDS = new Set([
+  "home",
+  "executive-assistant",
+  "clients-dashboard",
+  "crm",
+  "sales-management.dashboard",
+  "sales-management.pipeline",
+  "oa-competitor-intelligence",
+  "general-ledger.journal",
+  "accounts-receivable",
+  "wise",
 ]);
-
-function identityKey(viewId: string, tabKey?: string): string {
-  return `${viewId}:${tabKey ?? ""}`;
-}
 
 export function resolveCoveragePriority(input: {
-  moduleLabel: string;
-  viewId: string;
-  functionLabel: string;
-  tabKey?: string;
+  moduleSlug: string;
 }): TutorialCoveragePriority {
-  if (P0_MODULES.has(input.moduleLabel)) {
-    return "P0";
-  }
-  if (P1_MODULES.has(input.moduleLabel)) {
-    return "P1";
-  }
+  if (P0_MODULES.has(input.moduleSlug)) return "P0";
+  if (P1_MODULES.has(input.moduleSlug)) return "P1";
   return "P2";
 }
 
 export function resolvePresentationTier(input: {
-  viewId: string;
-  tabKey?: string;
-  functionLabel: string;
+  tutorialId: string;
+  functionSlug: string;
   status: TutorialCoverageStatus;
 }): TutorialPresentationTier {
-  const key = identityKey(input.viewId, input.tabKey);
-
-  if (TIER_C_IDENTITIES.has(key)) {
-    return "C";
-  }
-
-  if (input.status === "shell") {
-    return "A";
-  }
-
-  if (P0_WORKFLOW_IDENTITIES.has(key)) {
-    return "B";
-  }
-
-  if (/^dashboard$/i.test(input.functionLabel.trim())) {
-    return "A";
-  }
-
+  if (TIER_C_TUTORIAL_IDS.has(input.tutorialId)) return "C";
+  if (input.status === "shell") return "A";
+  if (P0_TUTORIAL_IDS.has(input.tutorialId)) return "B";
+  if (input.functionSlug === "dashboard") return "A";
   return "B";
 }
 

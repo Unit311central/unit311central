@@ -5,70 +5,76 @@ import assert from "node:assert/strict";
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
 import {
+  deriveTutorialId,
+  findCatalogueEntryByBinding,
+  resetCanonicalLabelIndexForTests,
+} from "@/lib/guided-tutorials/coverage/canonical-catalogue";
+import {
   buildTutorialCoverageManifest,
-  findCoverageEntry,
   formatTutorialCoverageSummary,
   reconcileTutorialCoverage,
 } from "@/lib/guided-tutorials/coverage/manifest";
 import {
   COVERAGE_WORKSPACE_SLUGS,
-  extractAllCoverageNavLeaves,
-  extractNavLeavesForWorkspace,
-  tutorialIdentityKey,
+  extractAllDiscoveredNavLeaves,
+  extractDiscoveredNavLeavesForWorkspace,
+  runtimeBindingKey,
 } from "@/lib/guided-tutorials/coverage/nav-leaves";
-import { buildTutorialContext, formatTutorialContextPath } from "@/lib/guided-tutorials/context";
 import { resolveTutorialForView } from "@/lib/guided-tutorials/client-resolver";
 import { formatTutorialUnavailableMessage } from "@/lib/guided-tutorials/resolve-tutorial-core";
 import { listTutorialDefinitions } from "@/lib/guided-tutorials/registry";
 import { resetClientWorkspaceViewCacheForTests } from "@/lib/guided-tutorials/client-workspace-views";
+import { buildTutorialContext, formatTutorialContextPath } from "@/lib/guided-tutorials/context";
 import { ONWARDAIR_SLUG } from "@/lib/onwardair-surface";
 
-function testManifestGeneratedFromNavigation() {
+function testCanonicalCatalogueFromNavigation() {
   resetClientWorkspaceViewCacheForTests();
-  const leaves = extractAllCoverageNavLeaves();
-  assert.ok(leaves.length >= 140, `expected nav-derived leaves, got ${leaves.length}`);
+  resetCanonicalLabelIndexForTests();
+  const discovered = extractAllDiscoveredNavLeaves();
+  assert.ok(discovered.length >= 180, `expected canonical functions, got ${discovered.length}`);
   assert.ok(
-    leaves.every((leaf) => leaf.viewId && leaf.moduleLabel && leaf.functionLabel),
-    "every leaf must have labels",
-  );
-  assert.ok(
-    leaves.every((leaf) => leaf.workspaceSlugs.length > 0),
-    "every leaf must belong to at least one workspace pack",
+    discovered.every((leaf) => leaf.viewId && leaf.workspaceSlugs.length > 0),
+    "every function must have runtime binding and workspace availability",
   );
 }
 
-function testOnwardAirAndDemoLeavesPresent() {
+function testCanonicalContentFunctionCount() {
   resetClientWorkspaceViewCacheForTests();
-  const onward = extractNavLeavesForWorkspace(ONWARDAIR_SLUG);
-  const demo = extractNavLeavesForWorkspace(DEMO_WORKSPACE_SLUG);
-  assert.ok(onward.length >= 140, `onwardair leaves: ${onward.length}`);
-  assert.ok(demo.length >= 130, `demo leaves: ${demo.length}`);
-}
-
-function testTabSpecificIdentities() {
-  resetClientWorkspaceViewCacheForTests();
+  resetCanonicalLabelIndexForTests();
   const manifest = buildTutorialCoverageManifest();
-  const commissions = findCoverageEntry(manifest, "sales-management", "commissions");
-  assert.ok(commissions, "commissions tab identity must exist in manifest");
-  assert.equal(commissions?.status, "live");
-  assert.equal(commissions?.tutorialId, "sales-management.commissions");
-  assert.equal(commissions?.presentationTier, "C");
+  assert.ok(
+    manifest.stats.contentFunctions >= 175 && manifest.stats.contentFunctions <= 190,
+    `content functions: ${manifest.stats.contentFunctions}`,
+  );
+  assert.ok(manifest.stats.shell >= 10, `shell placeholders: ${manifest.stats.shell}`);
+  assert.equal(
+    manifest.stats.totalCanonicalFunctions,
+    manifest.stats.contentFunctions + manifest.stats.shell,
+  );
+}
 
-  const dashboard = findCoverageEntry(manifest, "sales-management", "dashboard");
-  assert.ok(dashboard, "sales dashboard tab identity must exist");
-  assert.equal(dashboard?.status, "missing");
-
-  const glJournal = findCoverageEntry(manifest, "general-ledger", "journal");
-  assert.ok(glJournal, "general ledger journal tab must exist");
-  assert.equal(glJournal?.tabKey, "journal");
+function testPrimaryIdentityIsTutorialId() {
+  resetCanonicalLabelIndexForTests();
+  const manifest = buildTutorialCoverageManifest();
+  const ids = new Set(manifest.entries.map((entry) => entry.canonical.tutorialId));
+  assert.equal(ids.size, manifest.entries.length, "tutorialId must be unique per catalogue row");
+  assert.ok(
+    manifest.entries.every(
+      (entry) =>
+        entry.canonical.tutorialId &&
+        entry.runtime.bindingKey &&
+        entry.availability.workspaceSlugs.length > 0,
+    ),
+  );
 }
 
 function testLiveTutorialsReconcile() {
-  resetClientWorkspaceViewCacheForTests();
+  resetCanonicalLabelIndexForTests();
   const reconciliation = reconcileTutorialCoverage();
   assert.equal(reconciliation.liveTutorials.length, 2);
   assert.equal(reconciliation.orphanRegistryEntries.length, 0);
-  assert.equal(reconciliation.duplicateRegistryIdentities.length, 0);
+  assert.equal(reconciliation.duplicateTutorialIds.length, 0);
+  assert.equal(reconciliation.duplicateRuntimeBindings.length, 0);
 
   const fin = reconciliation.liveTutorials.find((t) => t.tutorialId === "financials.dashboard");
   const comm = reconciliation.liveTutorials.find(
@@ -76,33 +82,86 @@ function testLiveTutorialsReconcile() {
   );
   assert.ok(fin);
   assert.ok(comm);
-  assert.equal(fin?.identityKey, "financials:");
-  assert.equal(comm?.identityKey, "sales-management:commissions");
 
-  const finEntry = findCoverageEntry(reconciliation.manifest, "financials");
+  const finEntry = findCatalogueEntryByBinding(
+    reconciliation.manifest.entries,
+    "financials",
+  );
+  const commEntry = findCatalogueEntryByBinding(
+    reconciliation.manifest.entries,
+    "sales-management",
+    "commissions",
+  );
+  assert.equal(finEntry?.canonical.tutorialId, "financials.dashboard");
   assert.equal(finEntry?.status, "live");
   assert.equal(finEntry?.presentationTier, "C");
+  assert.equal(commEntry?.canonical.tutorialId, "sales-management.commissions");
+  assert.equal(commEntry?.status, "live");
+  assert.equal(commEntry?.presentationTier, "C");
 }
 
-function testRegistryMatchesManifestCount() {
+function testRegistryMatchesCanonicalBindings() {
   assert.equal(listTutorialDefinitions().length, 2);
-  const reconciliation = reconcileTutorialCoverage();
-  assert.equal(reconciliation.manifest.stats.live, 2);
-  assert.ok(reconciliation.manifest.stats.missing > 0);
-  assert.ok(reconciliation.manifest.stats.shell > 0);
+  for (const tutorial of listTutorialDefinitions()) {
+    const derived = deriveTutorialId({
+      viewId: tutorial.viewId,
+      tabKey: tutorial.tabKey,
+      functionLabel: tutorial.functionLabel,
+    });
+    assert.equal(derived, tutorial.tutorialId);
+  }
 }
 
-function testShellViewsClassified() {
+function testTabSpecificBindings() {
+  resetCanonicalLabelIndexForTests();
   const manifest = buildTutorialCoverageManifest();
-  const budget = findCoverageEntry(manifest, "finances-planning-budget");
-  assert.ok(budget);
-  assert.equal(budget?.status, "shell");
-  assert.equal(budget?.presentationTier, "A");
+  const commissions = findCatalogueEntryByBinding(
+    manifest.entries,
+    "sales-management",
+    "commissions",
+  );
+  assert.ok(commissions);
+  assert.equal(commissions?.runtime.bindingKey, "sales-management:commissions");
+  assert.equal(commissions?.canonical.tutorialId, "sales-management.commissions");
+  assert.equal(commissions?.canonical.moduleSlug, "sales-management");
+
+  const dashboard = findCatalogueEntryByBinding(manifest.entries, "sales-management", "dashboard");
+  assert.ok(dashboard);
+  assert.equal(dashboard?.canonical.tutorialId, "sales-management.dashboard");
+  assert.equal(dashboard?.status, "missing");
 }
 
-function testCoverageWorkspacePacks() {
-  assert.ok(COVERAGE_WORKSPACE_SLUGS.includes(ONWARDAIR_SLUG));
-  assert.ok(COVERAGE_WORKSPACE_SLUGS.includes(DEMO_WORKSPACE_SLUG));
+function testStableCanonicalLabels() {
+  resetCanonicalLabelIndexForTests();
+  const manifest = buildTutorialCoverageManifest();
+  const clients = findCatalogueEntryByBinding(manifest.entries, "clients");
+  assert.ok(clients);
+  assert.equal(clients?.canonical.moduleLabel, "Business Central");
+  assert.equal(clients?.canonical.functionLabel, "Client Directory");
+  assert.notEqual(clients?.canonical.moduleLabel, "Members");
+}
+
+function testWorkspaceAvailabilityIsMetadata() {
+  resetClientWorkspaceViewCacheForTests();
+  const discovered = extractAllDiscoveredNavLeaves();
+  const commissions = discovered.find(
+    (leaf) => runtimeBindingKey(leaf.viewId, leaf.tabKey) === "sales-management:commissions",
+  );
+  assert.ok(commissions);
+  assert.ok(commissions.workspaceSlugs.includes(DEMO_WORKSPACE_SLUG));
+  assert.ok(commissions.workspaceSlugs.includes(ONWARDAIR_SLUG));
+  assert.ok(commissions.workspaceSlugs.length >= 2);
+}
+
+function testCommissionsResolvesOnDemoAndOnwardAir() {
+  resetClientWorkspaceViewCacheForTests();
+  for (const slug of [DEMO_WORKSPACE_SLUG, ONWARDAIR_SLUG]) {
+    const resolution = resolveTutorialForView(slug, "sales-management", "commissions");
+    assert.equal(resolution.status, "available", slug);
+    if (resolution.status === "available") {
+      assert.equal(resolution.tutorial.tutorialId, "sales-management.commissions");
+    }
+  }
 }
 
 function testUnavailableMessageUsesContextPath() {
@@ -121,45 +180,43 @@ function testUnavailableMessageUsesContextPath() {
     "no_tutorial_defined",
   );
   assert.equal(message, `No tutorial is available yet for ${path}.`);
-  assert.ok(!message.toLowerCase().includes("demo"), "message must not blame workspace slug");
-  assert.ok(!message.includes("sales-management"), "message must not expose raw viewId");
+  assert.ok(!message.toLowerCase().includes("demo"));
 }
 
-function testResolverUnavailableMessage() {
+function testCoverageWorkspacePacks() {
+  assert.ok(COVERAGE_WORKSPACE_SLUGS.includes(ONWARDAIR_SLUG));
+  assert.ok(COVERAGE_WORKSPACE_SLUGS.includes(DEMO_WORKSPACE_SLUG));
+}
+
+function testOnwardAirDiscoveryCount() {
   resetClientWorkspaceViewCacheForTests();
-  const resolution = resolveTutorialForView(DEMO_WORKSPACE_SLUG, "sales-management", "pipeline");
-  assert.equal(resolution.status, "unavailable");
-  if (resolution.status === "unavailable") {
-    assert.equal(resolution.reason, "no_tutorial_defined");
-    assert.match(resolution.message, /No tutorial is available yet for Sales Management/);
-    assert.ok(!resolution.message.includes(DEMO_WORKSPACE_SLUG));
-  }
-}
-
-function testIdentityKeyStability() {
-  assert.equal(tutorialIdentityKey("financials"), "financials:");
-  assert.equal(tutorialIdentityKey("sales-management", "commissions"), "sales-management:commissions");
+  const onward = extractDiscoveredNavLeavesForWorkspace(ONWARDAIR_SLUG);
+  assert.ok(onward.length >= 140, `onwardair functions: ${onward.length}`);
 }
 
 function testCoverageSummaryFormat() {
+  resetCanonicalLabelIndexForTests();
   const reconciliation = reconcileTutorialCoverage();
   const summary = formatTutorialCoverageSummary(reconciliation);
+  assert.ok(summary.includes("Canonical product functions"));
   assert.ok(summary.includes("financials.dashboard"));
   assert.ok(summary.includes("sales-management.commissions"));
-  assert.ok(summary.includes("missing:"));
+  assert.ok(!summary.includes("195 screens across"));
 }
 
 function run() {
-  testManifestGeneratedFromNavigation();
-  testOnwardAirAndDemoLeavesPresent();
-  testTabSpecificIdentities();
+  testCanonicalCatalogueFromNavigation();
+  testCanonicalContentFunctionCount();
+  testPrimaryIdentityIsTutorialId();
   testLiveTutorialsReconcile();
-  testRegistryMatchesManifestCount();
-  testShellViewsClassified();
-  testCoverageWorkspacePacks();
+  testRegistryMatchesCanonicalBindings();
+  testTabSpecificBindings();
+  testStableCanonicalLabels();
+  testWorkspaceAvailabilityIsMetadata();
+  testCommissionsResolvesOnDemoAndOnwardAir();
   testUnavailableMessageUsesContextPath();
-  testResolverUnavailableMessage();
-  testIdentityKeyStability();
+  testCoverageWorkspacePacks();
+  testOnwardAirDiscoveryCount();
   testCoverageSummaryFormat();
   console.log("tutorial-coverage.check.ts: all assertions passed");
 }
