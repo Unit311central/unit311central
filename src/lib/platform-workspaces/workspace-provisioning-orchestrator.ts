@@ -25,6 +25,7 @@ import type {
 } from "@/lib/platform-workspaces/types";
 import { findWorkspaceBySlug } from "@/lib/workspace-host";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
+import { assertInitialAdministratorPasswordForProvisioning } from "@/lib/platform-workspaces/initial-admin-password";
 
 export type WorkspaceProvisioningOverallStatus =
   | "not_started"
@@ -319,6 +320,7 @@ export async function runWorkspaceProvisioning(
 
     // 4–6. Initial Full Workspace Administrator
     if (provisioning.initialAdminStatus !== "complete") {
+      assertInitialAdministratorPasswordForProvisioning(context.initialAdministrator);
       const admin = await provisionInitialWorkspaceAdministrator({
         workspaceId: context.workspaceId,
         workspaceSlug: context.workspaceSlug,

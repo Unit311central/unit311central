@@ -1,4 +1,5 @@
 import { normalizeSlug } from "@/lib/platform-workspaces/workspace-admin-mappers";
+import type { ProvisionWorkspaceOptions } from "@/lib/platform-workspaces/workspace-admin-repository";
 import {
   getWorkspaceAdminRepository,
   resolveWorkspaceAdminRepositoryKind,
@@ -37,8 +38,9 @@ export async function createWorkspaceAdminRecord(
 
 export async function provisionWorkspaceAdminRecord(
   workspaceId: string,
+  options?: ProvisionWorkspaceOptions,
 ): Promise<WorkspaceAdminRecord> {
-  return getWorkspaceAdminRepository().provision(workspaceId);
+  return getWorkspaceAdminRepository().provision(workspaceId, options);
 }
 
 export async function updateWorkspaceAdminRecord(

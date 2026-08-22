@@ -2,7 +2,11 @@
  * One-off: archive the incorrectly provisioned Interface Worx workspace and
  * reprovision a fresh workspace with the same slug, hostname, and full module set.
  *
- * Usage: SUPABASE_ACCESS_TOKEN=... npx tsx scripts/reprovision-interface-worx.ts
+ * Usage:
+ *   SUPABASE_ACCESS_TOKEN=... INITIAL_ADMIN_PASSWORD='...' npx tsx scripts/reprovision-interface-worx.ts
+ *
+ * INITIAL_ADMIN_PASSWORD must be the exact password from the provisioning wizard.
+ * Passwords are never stored in workspace metadata and cannot be recovered later.
  */
 import {
   WORKSPACE_MODULE_IDS,
@@ -179,6 +183,13 @@ async function main() {
   const enabledModules = [...WORKSPACE_MODULE_IDS];
   const enabledSubModules = defaultEnabledSubModules(enabledModules);
 
+  const initialAdminPassword = process.env.INITIAL_ADMIN_PASSWORD?.trim();
+  if (!initialAdminPassword) {
+    throw new Error(
+      "INITIAL_ADMIN_PASSWORD is required. Set it to the exact administrator password from the provisioning wizard.",
+    );
+  }
+
   console.log("Creating fresh Interface Worx workspace...");
   const created = await createWorkspaceAdminRecord(
     workspaceCreateFixture({
@@ -210,8 +221,8 @@ async function main() {
         firstName: "Paul",
         lastName: "Fotheringham",
         email: "admin@interfaceworx.com",
-        password: "InterfaceWorx2026!",
-        confirmPassword: "InterfaceWorx2026!",
+        password: initialAdminPassword,
+        confirmPassword: initialAdminPassword,
       },
     }),
     "reprovision-interface-worx",

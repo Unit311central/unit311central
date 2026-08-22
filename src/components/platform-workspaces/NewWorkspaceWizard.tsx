@@ -273,6 +273,10 @@ export function NewWorkspaceWizard() {
     try {
       const response = await fetch(`/api/internal/workspaces/${created.workspaceId}/provision`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          initialAdministrator: state.initialAdministrator,
+        }),
       });
       const payload = await readJson<{ workspace?: WorkspaceAdminRecord; error?: string }>(response);
       if (!response.ok) throw new Error(payload.error || "Workspace provisioning retry failed.");

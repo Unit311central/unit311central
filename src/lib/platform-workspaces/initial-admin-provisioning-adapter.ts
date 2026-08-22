@@ -2,6 +2,7 @@ import {
   hashPlatformPasswordForUser,
   normalizePlatformUsername,
 } from "@/lib/platform-auth";
+import { hasInitialAdministratorPassword } from "@/lib/platform-workspaces/initial-admin-password";
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import type { InitialWorkspaceAdministratorInput } from "@/lib/platform-workspaces/types";
 
@@ -70,7 +71,9 @@ export async function provisionInitialWorkspaceAdministrator(
   const password = request.administrator.password;
   const username = normalizePlatformUsername(email);
   const displayName = `${firstName} ${lastName}`.trim() || email;
-  const passwordHash = hashPlatformPasswordForUser(username, password);
+  const passwordHash = hasInitialAdministratorPassword(password)
+    ? hashPlatformPasswordForUser(username, password)
+    : null;
 
   const supabase = createTenancyServerClient();
 
@@ -89,7 +92,7 @@ export async function provisionInitialWorkspaceAdministrator(
       email_verified_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    if (password) {
+    if (passwordHash) {
       patch.password_hash = passwordHash;
     }
     const { error } = await supabase
@@ -157,21 +160,24 @@ export async function provisionInitialWorkspaceAdministrator(
       );
     }
     const userId = String(byEmail.id);
+    const updatePatch: Record<string, unknown> = {
+      username,
+      display_name: displayName,
+      user_type: "internal",
+      redirect_path: "/dashboard",
+      client_name: request.companyName,
+      is_active: true,
+      email,
+      email_verified_at: new Date().toISOString(),
+      workspace_id: request.workspaceId,
+      updated_at: new Date().toISOString(),
+    };
+    if (passwordHash) {
+      updatePatch.password_hash = passwordHash;
+    }
     const { error } = await supabase
       .from("platform_users")
-      .update({
-        username,
-        display_name: displayName,
-        password_hash: passwordHash,
-        user_type: "internal",
-        redirect_path: "/dashboard",
-        client_name: request.companyName,
-        is_active: true,
-        email,
-        email_verified_at: new Date().toISOString(),
-        workspace_id: request.workspaceId,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePatch)
       .eq("id", userId);
     if (error) {
       throw new Error(error.message || "Failed to update existing platform user for administrator.");
@@ -196,6 +202,12 @@ export async function provisionInitialWorkspaceAdministrator(
       email,
       message: "Initial workspace administrator account updated.",
     };
+  }
+
+  if (!passwordHash) {
+    throw new Error(
+      "Initial administrator password is required when creating the workspace administrator account.",
+    );
   }
 
   const { data: created, error: createError } = await supabase

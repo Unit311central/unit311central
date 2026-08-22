@@ -9,7 +9,10 @@ import {
   nowIso,
   workspacePrimaryUrl,
 } from "@/lib/platform-workspaces/workspace-admin-mappers";
-import type { WorkspaceAdminRepository } from "@/lib/platform-workspaces/workspace-admin-repository";
+import type {
+  ProvisionWorkspaceOptions,
+  WorkspaceAdminRepository,
+} from "@/lib/platform-workspaces/workspace-admin-repository";
 import { resolveCustomerHostname, deriveDefaultCustomerHostname } from "@/lib/platform-workspaces/workspace-hostname";
 import { validateCreateWorkspaceInput } from "@/lib/platform-workspaces/create-workspace-validation";
 import type {
@@ -274,7 +277,7 @@ export function createMemoryWorkspaceAdminRepository(
       return record;
     },
 
-    async provision(workspaceId) {
+    async provision(workspaceId, _options?: ProvisionWorkspaceOptions) {
       const existing = await this.getById(workspaceId);
       if (!existing) throw new Error("Workspace not found.");
       if (existing.provisioning.overallStatus === "complete") {

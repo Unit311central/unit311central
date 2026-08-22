@@ -9,7 +9,7 @@ import {
   nowIso,
   type WorkspaceAdminMetadataRow,
 } from "@/lib/platform-workspaces/workspace-admin-mappers";
-import type { WorkspaceAdminRepository } from "@/lib/platform-workspaces/workspace-admin-repository";
+import type { WorkspaceAdminRepository, ProvisionWorkspaceOptions } from "@/lib/platform-workspaces/workspace-admin-repository";
 import {
   resolveCustomerHostname,
   isValidCustomerHostname,
@@ -18,6 +18,7 @@ import { isCustomerHostnameAvailable } from "@/lib/platform-workspaces/workspace
 import { runWorkspaceProvisioning } from "@/lib/platform-workspaces/workspace-provisioning-orchestrator";
 import type {
   CreateWorkspaceInput,
+  InitialWorkspaceAdministratorInput,
   UpdateWorkspaceInput,
   WorkspaceAdminRecord,
   WorkspaceAdminStatus,
@@ -389,9 +390,18 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
       return record;
     },
 
-    async provision(workspaceId) {
+    async provision(workspaceId, options?: ProvisionWorkspaceOptions) {
       const existing = await this.getById(workspaceId);
       if (!existing) throw new Error("Workspace not found.");
+
+      const retryAdministrator: InitialWorkspaceAdministratorInput =
+        options?.initialAdministrator ?? {
+          firstName: existing.initialAdministrator?.firstName ?? "",
+          lastName: existing.initialAdministrator?.lastName ?? "",
+          email: existing.initialAdministrator?.email ?? existing.contact.email,
+          password: "",
+          confirmPassword: "",
+        };
 
       await runWorkspaceProvisioning({
         workspaceId: existing.workspaceId,
@@ -409,13 +419,7 @@ export function createSupabaseWorkspaceAdminRepository(): WorkspaceAdminReposito
           logoDataUrl: null,
           backgroundDataUrl: null,
         },
-        initialAdministrator: {
-          firstName: existing.initialAdministrator?.firstName ?? "",
-          lastName: existing.initialAdministrator?.lastName ?? "",
-          email: existing.initialAdministrator?.email ?? existing.contact.email,
-          password: "",
-          confirmPassword: "",
-        },
+        initialAdministrator: retryAdministrator,
       });
 
       const record = await this.getById(workspaceId);
