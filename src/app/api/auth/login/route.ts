@@ -65,6 +65,11 @@ import {
 } from "@/lib/talanton-surface";
 import { workspaceNeedsCustomerOnboarding } from "@/lib/workspace-customer-onboarding-service";
 import {
+  DEMO_PORTALS_ADMIN_USERNAME,
+  DEMO_PORTALS_PLATFORM_PASSWORD,
+  isDemoPortalsAllowedUsername,
+} from "@/lib/demo/portals-auth";
+import {
   INTERNAL_WORKSPACE_SLUG,
   resolveWorkspaceBinding,
   withSessionWorkspace,
@@ -578,6 +583,72 @@ async function createOnwardAirPortalsCredentialLoginResponse(
   return response;
 }
 
+async function createDemoPortalsCredentialLoginResponse(
+  request: NextRequest,
+  usernameRaw: string,
+  returnToRaw: string | null,
+  nextRaw: string | null,
+  workspaceSlug: string | null,
+) {
+  const username = normalizePlatformUsername(usernameRaw);
+  const onDemoHost = isDemoDomainHost(getRequestHost(request));
+  if (
+    (workspaceSlug !== DEMO_WORKSPACE_SLUG && !onDemoHost) ||
+    !isDemoPortalsAllowedUsername(username)
+  ) {
+    return null;
+  }
+
+  const workspace = await resolveWorkspaceBinding({
+    workspaceSlug: DEMO_WORKSPACE_SLUG,
+    fallbackInternal: false,
+  });
+
+  const displayName =
+    username === DEMO_PORTALS_ADMIN_USERNAME ? "Northstar Portals Admin" : "Northstar Demo";
+  const session: PlatformSession = withSessionWorkspace(
+    {
+      sub:
+        username === DEMO_PORTALS_ADMIN_USERNAME
+          ? "00000000-0000-4000-8000-00000000ns01"
+          : "00000000-0000-4000-8000-00000000ns02",
+      username,
+      displayName,
+      userType: "internal",
+      redirectPath: "/dashboard",
+      exp: Date.now() + PLATFORM_SESSION_MAX_AGE_SECONDS * 1000,
+    },
+    workspace,
+  );
+
+  const redirectPath = await resolvePostLoginRedirect({
+    redirectPath: "/dashboard",
+    requestHost: getRequestHost(request),
+    returnToRaw,
+    nextRaw,
+    userType: "internal",
+    username,
+  });
+
+  const response = NextResponse.json({
+    redirectPath,
+    userType: session.userType,
+    displayName: session.displayName,
+    workspace: workspace
+      ? { id: workspace.id, slug: workspace.slug, name: workspace.name }
+      : null,
+  });
+
+  applyPlatformSessionCookie(response, await createPlatformSessionToken(session), request);
+  applyPortalsGateIfNeeded(response, request, {
+    nextRaw,
+    username,
+    userType: "internal",
+    workspaceSlug: DEMO_WORKSPACE_SLUG,
+  });
+  return response;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
@@ -780,6 +851,17 @@ export async function POST(request: NextRequest) {
 
     if (body.password === ONWARDAIR_PORTALS_SHARED_PASSWORD) {
       const portalsLogin = await createOnwardAirPortalsCredentialLoginResponse(
+        request,
+        body.username,
+        returnToRaw,
+        nextRaw,
+        workspaceSlug,
+      );
+      if (portalsLogin) return portalsLogin;
+    }
+
+    if (body.password === DEMO_PORTALS_PLATFORM_PASSWORD) {
+      const portalsLogin = await createDemoPortalsCredentialLoginResponse(
         request,
         body.username,
         returnToRaw,
