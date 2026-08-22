@@ -15,6 +15,7 @@ import {
   defaultEnabledModules,
   defaultEnabledSubModules,
   subModuleKey,
+  syncModuleSelection,
 } from "@/lib/platform-workspaces/module-catalogue";
 import type {
   CreateWorkspaceInput,
@@ -335,10 +336,18 @@ export function NewWorkspaceWizard() {
                               type="checkbox"
                               checked={state.enabledSubModules.includes(key)}
                               onChange={(event) => {
-                                const next = event.target.checked
-                                  ? [...state.enabledSubModules, key]
-                                  : state.enabledSubModules.filter((item) => item !== key);
-                                setState({ ...state, enabledSubModules: next });
+                                const synced = syncModuleSelection(
+                                  module.id,
+                                  state.enabledModules,
+                                  state.enabledSubModules,
+                                  sub.id,
+                                  event.target.checked,
+                                );
+                                setState({
+                                  ...state,
+                                  enabledModules: synced.enabledModules,
+                                  enabledSubModules: synced.enabledSubModules,
+                                });
                               }}
                             />
                             {sub.label}

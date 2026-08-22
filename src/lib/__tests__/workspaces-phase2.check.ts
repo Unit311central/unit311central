@@ -19,6 +19,7 @@ import {
 } from "@/lib/platform-workspaces/csv-import";
 import {
   WORKSPACE_MODULE_CATALOGUE,
+  WORKSPACE_PROVISIONING_FUNCTION_COUNT,
   defaultEnabledModules,
   defaultEnabledSubModules,
   resolveProvisioningModuleKeys,
@@ -75,6 +76,18 @@ function withMockHostname<T>(hostname: string, fn: () => T): T {
 assert.equal(WORKSPACE_MODULE_CATALOGUE.length, 22);
 assert.equal(WORKSPACE_MODULE_CATALOGUE[0]?.label, "HOME");
 assert.equal(WORKSPACE_MODULE_CATALOGUE[21]?.label, "SETTINGS");
+assert.equal(WORKSPACE_PROVISIONING_FUNCTION_COUNT, 148);
+assert.equal(
+  WORKSPACE_MODULE_CATALOGUE.find((m) => m.id === "human-resources")?.subModules.length,
+  8,
+  "HR must expose all eight central functions",
+);
+assert.ok(
+  WORKSPACE_MODULE_CATALOGUE.find((m) => m.id === "engineering")?.subModules.some(
+    (sub) => sub.id === "engineering-sops",
+  ),
+  "Engineering SOPs must remain optional central capability",
+);
 
 const defaultModules = defaultEnabledModules();
 assert.ok(defaultModules.includes("home"));
@@ -84,7 +97,10 @@ assert.ok(defaultSubs.some((key) => key.startsWith("business-central:")));
 
 const moduleKeys = resolveProvisioningModuleKeys(
   ["business-central", "financials"],
-  [subModuleKey("business-central", "clients"), subModuleKey("financials", "overview")],
+  [
+    subModuleKey("business-central", "clients"),
+    subModuleKey("financials", "financials"),
+  ],
 );
 assert.ok(moduleKeys.includes("clients"));
 assert.ok(moduleKeys.includes("financials"));
@@ -186,7 +202,7 @@ async function runPersistenceTests() {
         enabledModules: ["home", "business-central", "settings"],
         enabledSubModules: [
           subModuleKey("business-central", "clients"),
-          subModuleKey("settings", "general"),
+          subModuleKey("settings", "settings"),
         ],
         branding: {
           displayName: "Phase 2 Test",
@@ -215,7 +231,7 @@ async function runPersistenceTests() {
     const updated = await updateWorkspaceAdminRecord(created.workspaceId, {
       description: "Updated by Phase 2 test",
       enabledModules: ["home", "settings"],
-      enabledSubModules: [subModuleKey("settings", "general")],
+      enabledSubModules: [subModuleKey("settings", "settings")],
       pendingEmployees: employeeValidation.rows,
       pendingClients: clientValidation.rows,
       branding: { displayName: "Updated Phase 2 Test" },
