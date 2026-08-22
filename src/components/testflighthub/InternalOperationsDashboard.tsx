@@ -15,6 +15,7 @@ import {
   createInitialRepresentatives,
   type Representative,
 } from "@/lib/representatives-data";
+import { isEngineeringSopView } from "@/lib/engineering-nav";
 import { isDemoDomainHost, isInternalDomainHost } from "@/lib/app-domains";
 import { EXECUTIVE_ASSISTANT_VISIBLE } from "@/lib/product-surface-flags";
 import {
@@ -208,7 +209,7 @@ import {
   EngineeringCapacityWorkspace,
   EngineeringDashboardWorkspace,
   EngineeringResourcesWorkspace,
-  EngineeringSopWorkspace,
+  EngineeringSopRouter,
   ExecutiveAssistantWorkspace,
   ExpensesWorkspace,
   ExternalClientAccessWorkspace,
@@ -1317,9 +1318,9 @@ export default function InternalOperationsDashboard({
               <EngineeringCapacityWorkspace />
             ))}
 
-          {activeView === "engineering-sops" && (
+          {isEngineeringSopView(activeView) && (
             <WorkspaceErrorBoundary title="Engineering SOPs">
-              <EngineeringSopWorkspace />
+              <EngineeringSopRouter view={activeView} />
             </WorkspaceErrorBoundary>
           )}
 

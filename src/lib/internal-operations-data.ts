@@ -140,6 +140,13 @@ export type InternalOperationsView =
   | "engineering-capacity"
   | "engineering-risks"
   | "engineering-sops"
+  | "engineering-sops-dashboard"
+  | "engineering-sops-library"
+  | "engineering-sops-tasks"
+  | "engineering-sops-runs"
+  | "engineering-sops-reviews"
+  | "engineering-sops-templates"
+  | "engineering-sops-reports"
   | "technology"
   | "technology-dashboard"
   | "technology-architecture"
@@ -424,6 +431,13 @@ export const internalOperationsViews: InternalOperationsView[] = [
   "engineering-capacity",
   "engineering-risks",
   "engineering-sops",
+  "engineering-sops-dashboard",
+  "engineering-sops-library",
+  "engineering-sops-tasks",
+  "engineering-sops-runs",
+  "engineering-sops-reviews",
+  "engineering-sops-templates",
+  "engineering-sops-reports",
   "technology",
   "technology-dashboard",
   "technology-architecture",
@@ -546,6 +560,13 @@ export const ENGINEERING_NAV_VIEWS = [
   "engineering-capacity",
   "engineering-risks",
   "engineering-sops",
+  "engineering-sops-dashboard",
+  "engineering-sops-library",
+  "engineering-sops-tasks",
+  "engineering-sops-runs",
+  "engineering-sops-reviews",
+  "engineering-sops-templates",
+  "engineering-sops-reports",
 ] as const satisfies readonly InternalOperationsView[];
 
 export const TECHNOLOGY_NAV_VIEWS = [
@@ -1256,6 +1277,13 @@ export const internalViewTitles: Record<
   "engineering-capacity": { title: "Team & Capacity", subtitle: "Engineering" },
   "engineering-risks": { title: "Risks", subtitle: "Engineering" },
   "engineering-sops": { title: "Standard Operating Procedures", subtitle: "Engineering" },
+  "engineering-sops-dashboard": { title: "SOP Dashboard", subtitle: "Engineering" },
+  "engineering-sops-library": { title: "SOP Library", subtitle: "Engineering" },
+  "engineering-sops-tasks": { title: "My Tasks", subtitle: "Engineering" },
+  "engineering-sops-runs": { title: "Active Runs", subtitle: "Engineering" },
+  "engineering-sops-reviews": { title: "Reviews & Approvals", subtitle: "Engineering" },
+  "engineering-sops-templates": { title: "SOP Templates", subtitle: "Engineering" },
+  "engineering-sops-reports": { title: "SOP Reports", subtitle: "Engineering" },
   technology: { title: "Technology Management", subtitle: "Technology Management" },
   "technology-dashboard": { title: "Dashboard", subtitle: "Technology Management" },
   "technology-architecture": {

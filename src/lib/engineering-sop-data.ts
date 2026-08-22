@@ -1,12 +1,12 @@
 /** Engineering Standard Operating Procedures — domain types and seed data. */
 
-export const ENG_SOP_STATUSES = ["Draft", "In Review", "Approved", "Obsolete"] as const;
+export const ENG_SOP_STATUSES = ["Draft", "In Review", "Approved", "Retired", "Obsolete"] as const;
 export type EngSopStatus = (typeof ENG_SOP_STATUSES)[number];
 
 export const ENG_SOP_AUDIENCES = ["internal", "client", "both"] as const;
 export type EngSopAudience = (typeof ENG_SOP_AUDIENCES)[number];
 
-export const ENG_SOP_RUN_STATUSES = ["in_progress", "completed", "failed", "abandoned"] as const;
+export const ENG_SOP_RUN_STATUSES = ["in_progress", "paused", "completed", "failed", "abandoned"] as const;
 export type EngSopRunStatus = (typeof ENG_SOP_RUN_STATUSES)[number];
 
 export const ENG_SOP_STEP_OUTCOMES = ["pass", "fail", "na"] as const;
@@ -38,10 +38,12 @@ export type EngSopWorkflowState = {
 
 export type EngSop = {
   id: string;
+  workspaceId?: string;
   number: string;
   title: string;
   version: string;
   status: EngSopStatus;
+  category?: string | null;
   owner: string;
   approver: string;
   audience: EngSopAudience;
@@ -51,6 +53,8 @@ export type EngSop = {
   tags: string[];
   sections: EngSopSection[];
   workflow: EngSopWorkflowState;
+  isTemplate?: boolean;
+  templateSourceId?: string | null;
   /** When this row is a draft revision of an approved SOP. */
   supersedesId: string | null;
   createdAt: string;
@@ -74,6 +78,7 @@ export type EngSopRunSignOff = {
 
 export type EngSopRun = {
   runId: string;
+  id?: string;
   sopId: string;
   sopVersion: string;
   startedBy: string;
@@ -82,6 +87,8 @@ export type EngSopRun = {
   stepStates: EngSopStepRunState[];
   signOff: EngSopRunSignOff | null;
   completedAt: string | null;
+  pausedAt?: string | null;
+  lastActivityAt?: string;
 };
 
 export type FlatEngSopStep = {
@@ -101,6 +108,7 @@ export function engSopStatusClass(status: EngSopStatus | string): string {
     case "Draft":
       return "border-amber-400/30 bg-amber-500/10 text-amber-100";
     case "Obsolete":
+    case "Retired":
       return "border-white/15 bg-white/[0.04] text-white/50";
     default:
       return "border-white/15 bg-white/[0.04] text-white/70";
@@ -115,6 +123,8 @@ export function engSopRunStatusClass(status: EngSopRunStatus | string): string {
       return "border-rose-400/30 bg-rose-500/10 text-rose-100";
     case "in_progress":
       return "border-sky-400/30 bg-sky-500/10 text-sky-100";
+    case "paused":
+      return "border-amber-400/30 bg-amber-500/10 text-amber-100";
     case "abandoned":
       return "border-white/15 bg-white/[0.04] text-white/50";
     default:

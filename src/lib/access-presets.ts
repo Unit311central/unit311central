@@ -253,6 +253,13 @@ export const MODULE_GRANT_GROUPS: ModuleGrantGroup[] = [
       "engineering-capacity",
       "engineering-risks",
       "engineering-sops",
+      "engineering-sops-dashboard",
+      "engineering-sops-library",
+      "engineering-sops-tasks",
+      "engineering-sops-runs",
+      "engineering-sops-reviews",
+      "engineering-sops-templates",
+      "engineering-sops-reports",
     ],
   },
   {

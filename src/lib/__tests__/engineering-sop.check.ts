@@ -9,7 +9,7 @@ import {
   countSopSteps,
   createSeedEngineeringSops,
 } from "@/lib/engineering-sop-data";
-import { ENGINEERING_SOPS_NAV_ITEM } from "@/lib/engineering-nav";
+import { ENGINEERING_SOPS_NAV_ITEM, ENGINEERING_SOP_CHILD_VIEWS } from "@/lib/engineering-nav";
 import {
   approveEngSop,
   completeEngSopRunStep,
@@ -44,11 +44,28 @@ const demoNav = resolveWorkspaceNavBaseSections({
   workspaceType: "Demo",
   enablement: demoEnablement,
 });
-assert.ok(demoNav.some((s) => s.label === "Engineering" && s.items.some((i) => i.view === "engineering-sops")));
+assert.ok(
+  demoNav.some(
+    (s) =>
+      s.label === "Engineering" &&
+      s.items.some(
+        (i) => i.children?.some((c) => c.view === "engineering-sops-library") ?? i.view === "engineering-sops-library",
+      ),
+  ),
+);
 
 const oaNav = buildOnwardAirNavSections(internalSurveyNavSections);
-assert.ok(oaNav.some((s) => s.label === "Engineering" && s.items.some((i) => i.view === "engineering-sops")));
-assert.equal(ENGINEERING_SOPS_NAV_ITEM.view, "engineering-sops");
+assert.ok(
+  oaNav.some(
+    (s) =>
+      s.label === "Engineering" &&
+      s.items.some(
+        (i) => i.children?.some((c) => c.view === "engineering-sops-library") ?? i.view === "engineering-sops-library",
+      ),
+  ),
+);
+assert.ok(ENGINEERING_SOPS_NAV_ITEM.children?.some((c) => c.view === "engineering-sops-library"));
+assert.equal(ENGINEERING_SOP_CHILD_VIEWS.length, 7);
 
 const approved = getEngSopById("eng-sop-001")!;
 assert.ok(canRunEngSop(approved));

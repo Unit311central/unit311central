@@ -80,11 +80,51 @@ export default function EngineeringSopWorkspace() {
     return rows.sort((a, b) => a.title.localeCompare(b.title));
   }, [filtered]);
 
-  function handleRun(sop: EngSop) {
+  async function handleRun(sop: EngSop) {
     if (!canRunEngSop(sop)) {
       setNotice("Only approved procedures can be run.");
       return;
     }
+    setNotice(null);
+    try {
+      const response = await fetch(`/api/engineering/sops/${sop.id}/run`, {
+        method: "POST",
+        cache: "no-store",
+      });
+      const data = (await response.json()) as {
+        run?: {
+          id: string;
+          sopId: string;
+          sopVersion: string;
+          startedBy: string;
+          startedAt: string;
+          status: EngSopRun["status"];
+          stepStates: EngSopRun["stepStates"];
+        };
+        error?: string;
+      };
+      if (response.ok && data.run) {
+        setActiveRun({
+          sop,
+          run: {
+            runId: data.run.id,
+            id: data.run.id,
+            sopId: data.run.sopId,
+            sopVersion: data.run.sopVersion,
+            startedBy: data.run.startedBy,
+            startedAt: data.run.startedAt,
+            status: data.run.status,
+            stepStates: data.run.stepStates,
+            signOff: null,
+            completedAt: null,
+          },
+        });
+        return;
+      }
+    } catch {
+      // Fall through to local store when API unavailable.
+    }
+
     const run = startEngSopRun(sop.id, DEFAULT_SOP_RUNNER);
     if (!run) {
       setNotice("Could not start run.");
