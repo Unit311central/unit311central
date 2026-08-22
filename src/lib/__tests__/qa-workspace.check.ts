@@ -15,7 +15,19 @@ import { assertTestWorkspaceSlug } from "@/lib/qa-workspace/auth";
 import {
   TEST_WORKSPACE_SLUG,
   QA_PAGE_LEVEL_ELEMENT,
+  QA_MODULE_LEVEL_ELEMENT,
+  QA_WORKSPACE_LEVEL_ELEMENT,
 } from "@/lib/qa-workspace/constants";
+import {
+  buildElementCapture,
+  buildModuleCapture,
+  buildPageCapture,
+  buildWorkspaceCapture,
+  captureContextToTaskInput,
+  formatQaTaskScopeLabel,
+  inferScopeFromLegacyTask,
+  validateQaWorkspaceTaskInput,
+} from "@/lib/qa-workspace/scope";
 import {
   isBrowserTestWorkspaceSurface,
   isTestWorkspaceSlug,
@@ -74,15 +86,15 @@ assert.ok(qaItem, "Test workspace must get QA Tasks under Tools");
 assert.equal(qaItem!.label, "QA Tasks");
 
 // --- Page / module context ---
-const arContext = resolveQaPageContext({
+const pageContext = resolveQaPageContext({
   activeView: "accounts-receivable",
   pathname: "/dashboard",
   search: "?view=accounts-receivable",
 });
-assert.equal(arContext.moduleLabel, "Finances");
-assert.equal(arContext.pageLabel, "Invoices");
-assert.equal(arContext.pageViewId, "accounts-receivable");
-assert.match(arContext.routePath, /accounts-receivable/);
+assert.equal(pageContext.moduleLabel, "Finances");
+assert.equal(pageContext.pageLabel, "Invoices");
+assert.equal(pageContext.pageViewId, "accounts-receivable");
+assert.match(pageContext.routePath, /accounts-receivable/);
 
 const homeContext = resolveQaPageContext({
   activeView: "home",
@@ -92,21 +104,71 @@ const homeContext = resolveQaPageContext({
 assert.equal(homeContext.moduleLabel, "HOME");
 assert.equal(homeContext.pageLabel, "Home");
 
+// --- Scope capture builders ---
+const elementCapture = buildElementCapture(pageContext, {
+  elementLabel: "Invoice Total",
+  elementType: "calculation",
+  elementId: "invoice-total",
+});
+assert.equal(elementCapture.scope, "element");
+assert.equal(elementCapture.elementLabel, "Invoice Total");
+
+const pageCapture = buildPageCapture(homeContext);
+assert.equal(pageCapture.scope, "page");
+assert.equal(pageCapture.elementLabel, QA_PAGE_LEVEL_ELEMENT);
+assert.equal(pageCapture.moduleLabel, "HOME");
+assert.equal(pageCapture.pageLabel, "Home");
+assert.equal(pageCapture.pageViewId, "home");
+
+const moduleCapture = buildModuleCapture(homeContext);
+assert.equal(moduleCapture.scope, "module");
+assert.equal(moduleCapture.moduleLabel, "HOME");
+assert.equal(moduleCapture.pageLabel, QA_MODULE_LEVEL_ELEMENT);
+assert.equal(moduleCapture.routePath, null);
+
+const workspaceCapture = buildWorkspaceCapture(homeContext);
+assert.equal(workspaceCapture.scope, "workspace");
+assert.equal(workspaceCapture.elementLabel, QA_WORKSPACE_LEVEL_ELEMENT);
+assert.equal(workspaceCapture.moduleLabel, "Workspace");
+
+assert.equal(
+  validateQaWorkspaceTaskInput(
+    captureContextToTaskInput(pageCapture, "Dashboard client count mismatch"),
+  ),
+  null,
+);
+assert.equal(
+  validateQaWorkspaceTaskInput({
+    scope: "element",
+    moduleLabel: "Home",
+    pageLabel: "Home",
+    elementLabel: "",
+    description: "missing element",
+  }),
+  "Module, page, and element are required for element-scoped tasks.",
+);
+
+assert.equal(inferScopeFromLegacyTask({ elementLabel: QA_PAGE_LEVEL_ELEMENT }), "page");
+assert.equal(inferScopeFromLegacyTask({ elementLabel: QA_MODULE_LEVEL_ELEMENT }), "module");
+assert.equal(inferScopeFromLegacyTask({ elementLabel: QA_WORKSPACE_LEVEL_ELEMENT }), "workspace");
+assert.equal(formatQaTaskScopeLabel("page"), "Page");
+
 // --- CSV export ---
 const sampleTask: QaWorkspaceTask = {
   id: "task-1",
   workspaceId: "ws-test",
+  scope: "page",
   status: "open",
   completed: false,
-  moduleLabel: "Finances",
-  moduleId: "finances",
-  pageLabel: "Accounts Receivable",
-  pageViewId: "accounts-receivable",
-  routePath: "/dashboard?view=accounts-receivable",
-  elementLabel: "Invoice Total",
-  elementType: "calculation",
-  elementId: "invoice-total",
-  description: 'VAT is wrong, includes "quotes" and, commas',
+  moduleLabel: "HOME",
+  moduleId: "home",
+  pageLabel: "Home",
+  pageViewId: "home",
+  routePath: "/dashboard?view=home",
+  elementLabel: QA_PAGE_LEVEL_ELEMENT,
+  elementType: "page",
+  elementId: "home",
+  description: 'Dashboard shows 3 clients but BC shows 0',
   createdBy: null,
   createdByEmail: null,
   createdAt: "2026-08-22T12:00:00.000Z",
@@ -114,19 +176,26 @@ const sampleTask: QaWorkspaceTask = {
 };
 
 const csv = qaTasksToCsv([sampleTask], "test");
-assert.match(csv, /^ID,Status,Completed,Module,Page,Element/);
-assert.match(csv, /"VAT is wrong, includes ""quotes"" and, commas"/);
+assert.match(csv, /^ID,Scope,Status,Completed,Module,Page,Element/);
+assert.match(csv, /Page,open,false,HOME,Home,Page-level/);
 assert.match(csv, /,test,/);
 
 // --- Migration registered ---
-const migrationPath = "supabase/migrations/153_qa_workspace_tasks.sql";
-assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migrationPath as never));
-assert.ok(MIGRATION_SATISFACTION_PROBES[migrationPath]);
+const migration153 = "supabase/migrations/153_qa_workspace_tasks.sql";
+const migration154 = "supabase/migrations/154_qa_workspace_tasks_scope.sql";
+assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration153 as never));
+assert.ok(UNIT311_PENDING_MIGRATIONS.includes(migration154 as never));
+assert.ok(MIGRATION_SATISFACTION_PROBES[migration153]);
+assert.ok(MIGRATION_SATISFACTION_PROBES[migration154]);
 
-const migrationSql = readRepoFile(migrationPath);
+const migrationSql = readRepoFile(migration153);
 assert.match(migrationSql, /create table if not exists public\.qa_workspace_tasks/);
-assert.match(migrationSql, /enable row level security/);
+assert.match(migrationSql, /scope text not null default 'element'/);
 assert.match(migrationSql, /qa_workspace_tasks_deny_all/);
+
+const scopeMigrationSql = readRepoFile(migration154);
+assert.match(scopeMigrationSql, /add column if not exists scope text/);
+assert.match(scopeMigrationSql, /set scope = 'page'/);
 
 // --- Not in product catalogue / provisioning ---
 const catalogueSelections = allCatalogueModuleSelections();
@@ -154,10 +223,15 @@ assert.ok(!/qa-tasks/i.test(wizardSource), "New Workspace wizard must not includ
 // --- API routes enforce test workspace ---
 const qaApiRoute = readRepoFile("src/app/api/qa/tasks/route.ts");
 assert.match(qaApiRoute, /requireTestWorkspaceAccess/);
+assert.match(qaApiRoute, /validateQaWorkspaceTaskInput/);
+assert.match(qaApiRoute, /scope/);
+
+const qaOverlay = readRepoFile("src/components/qa-workspace/QaModeOverlay.tsx");
+assert.match(qaOverlay, /onWorkspaceLevelTask/);
+assert.match(qaOverlay, /onModuleLevelTask/);
+assert.match(qaOverlay, /onPageLevelTask/);
 
 // --- Browser surface helper returns false without window (SSR) ---
 assert.equal(isBrowserTestWorkspaceSurface(), false);
-
-assert.equal(QA_PAGE_LEVEL_ELEMENT, "Page-level");
 
 console.log("ok  qa-workspace checks passed\n");

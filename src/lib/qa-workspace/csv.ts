@@ -1,3 +1,4 @@
+import { formatQaTaskScopeLabel } from "@/lib/qa-workspace/scope";
 import type { QaWorkspaceTask } from "@/lib/qa-workspace/types";
 
 function escapeCsvCell(value: string | null | undefined): string {
@@ -11,6 +12,7 @@ function escapeCsvCell(value: string | null | undefined): string {
 export function qaTasksToCsv(tasks: QaWorkspaceTask[], workspaceSlug: string): string {
   const headers = [
     "ID",
+    "Scope",
     "Status",
     "Completed",
     "Module",
@@ -19,6 +21,7 @@ export function qaTasksToCsv(tasks: QaWorkspaceTask[], workspaceSlug: string): s
     "Element Type",
     "Description",
     "Route",
+    "View ID",
     "Workspace",
     "Created At",
     "Updated At",
@@ -26,6 +29,7 @@ export function qaTasksToCsv(tasks: QaWorkspaceTask[], workspaceSlug: string): s
 
   const rows = tasks.map((task) => [
     task.id,
+    formatQaTaskScopeLabel(task.scope),
     task.status,
     task.completed ? "true" : "false",
     task.moduleLabel,
@@ -34,6 +38,7 @@ export function qaTasksToCsv(tasks: QaWorkspaceTask[], workspaceSlug: string): s
     task.elementType ?? "",
     task.description,
     task.routePath ?? "",
+    task.pageViewId ?? "",
     workspaceSlug,
     task.createdAt,
     task.updatedAt,

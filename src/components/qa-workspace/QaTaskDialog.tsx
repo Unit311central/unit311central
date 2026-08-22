@@ -2,21 +2,26 @@
 
 import { useState } from "react";
 
-import type { QaElementContext, QaPageContext } from "@/lib/qa-workspace/types";
+import { captureContextToTaskInput, formatQaTaskScopeLabel } from "@/lib/qa-workspace/scope";
+import type { QaTaskCaptureContext } from "@/lib/qa-workspace/types";
 
 type QaTaskDialogProps = {
   open: boolean;
-  pageContext: QaPageContext;
-  elementContext: QaElementContext;
+  captureContext: QaTaskCaptureContext;
   onClose: () => void;
 };
 
-export default function QaTaskDialog({
-  open,
-  pageContext,
-  elementContext,
-  onClose,
-}: QaTaskDialogProps) {
+function ContextField({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <>
+      <dt className="text-white/45">{label}</dt>
+      <dd>{value}</dd>
+    </>
+  );
+}
+
+export default function QaTaskDialog({ open, captureContext, onClose }: QaTaskDialogProps) {
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,17 +39,7 @@ export default function QaTaskDialog({
       const response = await fetch("/api/qa/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          moduleLabel: pageContext.moduleLabel,
-          moduleId: pageContext.moduleId,
-          pageLabel: pageContext.pageLabel,
-          pageViewId: pageContext.pageViewId,
-          routePath: pageContext.routePath,
-          elementLabel: elementContext.elementLabel,
-          elementType: elementContext.elementType,
-          elementId: elementContext.elementId,
-          description: comment.trim(),
-        }),
+        body: JSON.stringify(captureContextToTaskInput(captureContext, comment.trim())),
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(payload.error || "Failed to save QA task.");
@@ -56,6 +51,8 @@ export default function QaTaskDialog({
       setBusy(false);
     }
   }
+
+  const { scope } = captureContext;
 
   return (
     <div
@@ -70,12 +67,29 @@ export default function QaTaskDialog({
         <h2 className="text-lg font-semibold text-white">QA Task</h2>
         <dl className="mt-4 space-y-2 text-sm text-white/75">
           <div className="grid grid-cols-[7rem_1fr] gap-2">
-            <dt className="text-white/45">Module</dt>
-            <dd>{pageContext.moduleLabel}</dd>
-            <dt className="text-white/45">Page</dt>
-            <dd>{pageContext.pageLabel}</dd>
-            <dt className="text-white/45">Element</dt>
-            <dd>{elementContext.elementLabel}</dd>
+            <dt className="text-white/45">Scope</dt>
+            <dd className="font-medium text-rose-200">{formatQaTaskScopeLabel(scope)}</dd>
+            {(scope === "module" || scope === "page" || scope === "element") && (
+              <ContextField label="Module" value={captureContext.moduleLabel} />
+            )}
+            {(scope === "page" || scope === "element") && (
+              <ContextField label="Page" value={captureContext.pageLabel} />
+            )}
+            {scope === "element" && (
+              <ContextField label="Element" value={captureContext.elementLabel} />
+            )}
+            {(scope === "page" || scope === "element") && captureContext.routePath ? (
+              <>
+                <dt className="text-white/45">Route</dt>
+                <dd className="break-all text-xs text-white/60">{captureContext.routePath}</dd>
+              </>
+            ) : null}
+            {(scope === "page" || scope === "element") && captureContext.pageViewId ? (
+              <>
+                <dt className="text-white/45">View ID</dt>
+                <dd className="text-xs text-white/60">{captureContext.pageViewId}</dd>
+              </>
+            ) : null}
           </div>
         </dl>
         <label className="mt-4 block text-sm text-white/60">

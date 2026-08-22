@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { qaApiErrorResponse } from "@/lib/qa-workspace/api-error";
 import { requireTestWorkspaceAccess } from "@/lib/qa-workspace/auth";
-import type { QaTaskStatus } from "@/lib/qa-workspace/constants";
+import type { QaTaskScope, QaTaskStatus } from "@/lib/qa-workspace/constants";
+import { isQaTaskScope, validateQaWorkspaceTaskInput } from "@/lib/qa-workspace/scope";
 import { createQaWorkspaceTask, listQaWorkspaceTasks } from "@/lib/qa-workspace/service";
 import type { QaWorkspaceTaskInput } from "@/lib/qa-workspace/types";
 
@@ -15,12 +16,15 @@ export async function GET(request: NextRequest) {
 
     const params = request.nextUrl.searchParams;
     const status = (params.get("status") ?? "all") as QaTaskStatus | "all";
+    const scopeParam = params.get("scope") ?? "all";
+    const scope = scopeParam === "all" || isQaTaskScope(scopeParam) ? scopeParam : "all";
     const moduleLabel = params.get("module") ?? undefined;
     const pageLabel = params.get("page") ?? undefined;
     const elementType = params.get("elementType") ?? undefined;
 
     const tasks = await listQaWorkspaceTasks(auth.workspace.id, {
       status,
+      scope: scope as QaTaskScope | "all",
       moduleLabel,
       pageLabel,
       elementType,
@@ -43,11 +47,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
-    if (!body.moduleLabel?.trim() || !body.pageLabel?.trim() || !body.elementLabel?.trim()) {
-      return NextResponse.json({ error: "Module, page, and element are required." }, { status: 400 });
-    }
-    if (!body.description?.trim()) {
-      return NextResponse.json({ error: "Description is required." }, { status: 400 });
+    const validationError = validateQaWorkspaceTaskInput(body);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     const task = await createQaWorkspaceTask(auth.workspace.id, body, {

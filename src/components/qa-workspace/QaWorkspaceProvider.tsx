@@ -13,8 +13,14 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 import type { InternalOperationsView } from "@/lib/internal-operations-data";
 import { resolveQaPageContext } from "@/lib/qa-workspace/page-context";
+import {
+  buildElementCapture,
+  buildModuleCapture,
+  buildPageCapture,
+  buildWorkspaceCapture,
+} from "@/lib/qa-workspace/scope";
 import { isBrowserTestWorkspaceSurface } from "@/lib/qa-workspace/surface";
-import type { QaElementContext, QaPageContext } from "@/lib/qa-workspace/types";
+import type { QaPageContext, QaTaskCaptureContext } from "@/lib/qa-workspace/types";
 
 import QaModeOverlay from "./QaModeOverlay";
 import QaTaskDialog from "./QaTaskDialog";
@@ -25,6 +31,8 @@ type QaWorkspaceContextValue = {
   setQaMode: (value: boolean) => void;
   pageContext: QaPageContext | null;
   openPageLevelTask: () => void;
+  openModuleLevelTask: () => void;
+  openWorkspaceLevelTask: () => void;
 };
 
 const QaWorkspaceContext = createContext<QaWorkspaceContextValue>({
@@ -33,6 +41,8 @@ const QaWorkspaceContext = createContext<QaWorkspaceContextValue>({
   setQaMode: () => undefined,
   pageContext: null,
   openPageLevelTask: () => undefined,
+  openModuleLevelTask: () => undefined,
+  openWorkspaceLevelTask: () => undefined,
 });
 
 export function useQaWorkspace() {
@@ -57,7 +67,7 @@ export default function QaWorkspaceProvider({
   const search = searchParams?.toString() ? `?${searchParams.toString()}` : "";
   const [qaMode, setQaMode] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [elementContext, setElementContext] = useState<QaElementContext | null>(null);
+  const [captureContext, setCaptureContext] = useState<QaTaskCaptureContext | null>(null);
 
   const pageContext = useMemo(() => {
     if (!enabled || !activeView) return null;
@@ -71,23 +81,40 @@ export default function QaWorkspaceProvider({
   useEffect(() => {
     setQaMode(false);
     setDialogOpen(false);
-    setElementContext(null);
+    setCaptureContext(null);
   }, [activeView, pathname, search]);
 
-  const openPageLevelTask = useCallback(() => {
-    if (!enabled || !pageContext) return;
-    setElementContext({
-      elementLabel: "Page-level",
-      elementType: "page",
-      elementId: pageContext.pageViewId,
-    });
-    setDialogOpen(true);
-  }, [enabled, pageContext]);
+  const openCapture = useCallback(
+    (context: QaTaskCaptureContext) => {
+      if (!enabled) return;
+      setCaptureContext(context);
+      setDialogOpen(true);
+    },
+    [enabled],
+  );
 
-  const handleElementSelected = useCallback((context: QaElementContext) => {
-    setElementContext(context);
-    setDialogOpen(true);
-  }, []);
+  const openPageLevelTask = useCallback(() => {
+    if (!pageContext) return;
+    openCapture(buildPageCapture(pageContext));
+  }, [openCapture, pageContext]);
+
+  const openModuleLevelTask = useCallback(() => {
+    if (!pageContext) return;
+    openCapture(buildModuleCapture(pageContext));
+  }, [openCapture, pageContext]);
+
+  const openWorkspaceLevelTask = useCallback(() => {
+    if (!pageContext) return;
+    openCapture(buildWorkspaceCapture(pageContext));
+  }, [openCapture, pageContext]);
+
+  const handleElementSelected = useCallback(
+    (elementContext: Parameters<typeof buildElementCapture>[1]) => {
+      if (!pageContext) return;
+      openCapture(buildElementCapture(pageContext, elementContext));
+    },
+    [openCapture, pageContext],
+  );
 
   const value = useMemo(
     () => ({
@@ -96,8 +123,10 @@ export default function QaWorkspaceProvider({
       setQaMode,
       pageContext,
       openPageLevelTask,
+      openModuleLevelTask,
+      openWorkspaceLevelTask,
     }),
-    [enabled, qaMode, pageContext, openPageLevelTask],
+    [enabled, qaMode, pageContext, openPageLevelTask, openModuleLevelTask, openWorkspaceLevelTask],
   );
 
   return (
@@ -105,19 +134,19 @@ export default function QaWorkspaceProvider({
       {children}
       {enabled && qaMode && pageContext ? (
         <QaModeOverlay
-          pageContext={pageContext}
           onElementSelected={handleElementSelected}
           onPageLevelTask={openPageLevelTask}
+          onModuleLevelTask={openModuleLevelTask}
+          onWorkspaceLevelTask={openWorkspaceLevelTask}
         />
       ) : null}
-      {enabled && pageContext && elementContext ? (
+      {enabled && captureContext ? (
         <QaTaskDialog
           open={dialogOpen}
-          pageContext={pageContext}
-          elementContext={elementContext}
+          captureContext={captureContext}
           onClose={() => {
             setDialogOpen(false);
-            setElementContext(null);
+            setCaptureContext(null);
           }}
         />
       ) : null}

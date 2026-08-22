@@ -1,5 +1,6 @@
 import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
-import type { QaTaskStatus } from "@/lib/qa-workspace/constants";
+import type { QaTaskScope, QaTaskStatus } from "@/lib/qa-workspace/constants";
+import { inferScopeFromLegacyTask } from "@/lib/qa-workspace/scope";
 import type {
   QaWorkspaceTask,
   QaWorkspaceTaskFilters,
@@ -9,6 +10,7 @@ import type {
 type QaTaskRow = {
   id: string;
   workspace_id: string;
+  scope?: string | null;
   status: string;
   completed: boolean;
   module_label: string;
@@ -27,9 +29,16 @@ type QaTaskRow = {
 };
 
 function mapRow(row: QaTaskRow): QaWorkspaceTask {
+  const scope = inferScopeFromLegacyTask({
+    scope: row.scope,
+    elementLabel: row.element_label,
+    elementType: row.element_type,
+  });
+
   return {
     id: row.id,
     workspaceId: row.workspace_id,
+    scope,
     status: row.status === "completed" ? "completed" : "open",
     completed: Boolean(row.completed),
     moduleLabel: row.module_label,
@@ -72,6 +81,7 @@ export async function listQaWorkspaceTasks(
     .eq("workspace_id", workspaceId)
     .order("created_at", { ascending: false });
 
+  if (filters.scope && filters.scope !== "all") query = query.eq("scope", filters.scope);
   if (filters.moduleLabel) query = query.eq("module_label", filters.moduleLabel);
   if (filters.pageLabel) query = query.eq("page_label", filters.pageLabel);
   if (filters.elementType) query = query.eq("element_type", filters.elementType);
@@ -97,6 +107,7 @@ export async function createQaWorkspaceTask(
     .from("qa_workspace_tasks")
     .insert({
       workspace_id: workspaceId,
+      scope: input.scope,
       status: status.status,
       completed: status.completed,
       module_label: input.moduleLabel.trim(),
@@ -128,6 +139,7 @@ export async function updateQaWorkspaceTask(
   const supabase = createTenancyServerClient();
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
+  if (patch.scope !== undefined) update.scope = patch.scope;
   if (patch.moduleLabel !== undefined) update.module_label = patch.moduleLabel.trim();
   if (patch.moduleId !== undefined) update.module_id = patch.moduleId?.trim() || null;
   if (patch.pageLabel !== undefined) update.page_label = patch.pageLabel.trim();

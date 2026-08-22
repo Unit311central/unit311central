@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, Pencil, Trash2 } from "lucide-react";
 
-import type { QaTaskStatus } from "@/lib/qa-workspace/constants";
+import type { QaTaskScope, QaTaskStatus } from "@/lib/qa-workspace/constants";
+import { QA_TASK_SCOPES } from "@/lib/qa-workspace/constants";
+import { formatQaTaskScopeLabel } from "@/lib/qa-workspace/scope";
 import type { QaWorkspaceTask } from "@/lib/qa-workspace/types";
 import { cn } from "@/lib/utils";
 
 type Filters = {
+  scope: QaTaskScope | "all";
   module: string;
   page: string;
   status: QaTaskStatus | "all";
@@ -25,6 +28,7 @@ export default function QaTasksWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>({
+    scope: "all",
     module: "",
     page: "",
     status: "all",
@@ -34,6 +38,7 @@ export default function QaTasksWorkspace() {
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
+    if (filters.scope !== "all") params.set("scope", filters.scope);
     if (filters.module) params.set("module", filters.module);
     if (filters.page) params.set("page", filters.page);
     if (filters.status !== "all") params.set("status", filters.status);
@@ -100,6 +105,7 @@ export default function QaTasksWorkspace() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        scope: editing.scope,
         moduleLabel: editing.moduleLabel,
         pageLabel: editing.pageLabel,
         elementLabel: editing.elementLabel,
@@ -132,7 +138,27 @@ export default function QaTasksWorkspace() {
         </a>
       </div>
 
-      <div className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3 md:grid-cols-4">
+      <div className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3 md:grid-cols-5">
+        <label className="text-xs text-white/50">
+          Scope
+          <select
+            value={filters.scope}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                scope: event.target.value as Filters["scope"],
+              }))
+            }
+            className="mt-1 block w-full rounded-lg border border-white/10 bg-[#0b1524] px-2 py-2 text-sm text-white"
+          >
+            <option value="all">All</option>
+            {QA_TASK_SCOPES.map((scope) => (
+              <option key={scope} value={scope}>
+                {formatQaTaskScopeLabel(scope)}
+              </option>
+            ))}
+          </select>
+        </label>
         <FilterSelect
           label="Module / Area"
           value={filters.module}
@@ -178,6 +204,7 @@ export default function QaTasksWorkspace() {
           <thead className="bg-white/[0.03] text-xs uppercase tracking-wide text-white/45">
             <tr>
               <th className="px-3 py-2">Done</th>
+              <th className="px-3 py-2">Scope</th>
               <th className="px-3 py-2">Module / Area</th>
               <th className="px-3 py-2">Page</th>
               <th className="px-3 py-2">Element</th>
@@ -196,6 +223,11 @@ export default function QaTasksWorkspace() {
                     checked={task.completed}
                     onChange={(event) => void toggleCompleted(task, event.target.checked)}
                   />
+                </td>
+                <td className="px-3 py-2">
+                  <span className="rounded bg-white/[0.06] px-2 py-0.5 text-xs font-medium text-white/75">
+                    {formatQaTaskScopeLabel(task.scope)}
+                  </span>
                 </td>
                 <td className="px-3 py-2">{task.moduleLabel}</td>
                 <td className="px-3 py-2">{task.pageLabel}</td>
@@ -238,7 +270,7 @@ export default function QaTasksWorkspace() {
             ))}
             {!loading && tasks.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-white/45">
+                <td colSpan={9} className="px-3 py-8 text-center text-white/45">
                   No QA tasks yet. Turn on QA Mode and click an element to capture your first task.
                 </td>
               </tr>
@@ -252,6 +284,25 @@ export default function QaTasksWorkspace() {
           <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0b1524] p-5">
             <h3 className="text-lg font-semibold text-white">Edit QA Task</h3>
             <div className="mt-4 space-y-3">
+              <label className="block text-sm text-white/60">
+                Scope
+                <select
+                  value={editing.scope}
+                  onChange={(event) =>
+                    setEditing({
+                      ...editing,
+                      scope: event.target.value as QaTaskScope,
+                    })
+                  }
+                  className="mt-1 block w-full rounded-xl border border-white/10 bg-[#050b16] px-3 py-2 text-sm text-white"
+                >
+                  {QA_TASK_SCOPES.map((scope) => (
+                    <option key={scope} value={scope}>
+                      {formatQaTaskScopeLabel(scope)}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <EditField
                 label="Module"
                 value={editing.moduleLabel}

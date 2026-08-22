@@ -5,6 +5,7 @@ create table if not exists public.qa_workspace_tasks (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null references public.workspaces (id) on delete cascade,
   status text not null default 'open' check (status in ('open', 'completed')),
+  scope text not null default 'element' check (scope in ('workspace', 'module', 'page', 'element')),
   completed boolean not null default false,
   module_label text not null,
   module_id text,
@@ -35,6 +36,9 @@ create index if not exists qa_workspace_tasks_workspace_page_idx
 
 create index if not exists qa_workspace_tasks_workspace_created_at_idx
   on public.qa_workspace_tasks (workspace_id, created_at desc);
+
+create index if not exists qa_workspace_tasks_workspace_scope_idx
+  on public.qa_workspace_tasks (workspace_id, scope);
 
 alter table public.qa_workspace_tasks enable row level security;
 
