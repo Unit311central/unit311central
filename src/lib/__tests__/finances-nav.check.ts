@@ -10,6 +10,7 @@ import {
   FINANCES_MODULE_LABEL,
   FINANCES_SHELL_VIEWS,
   buildFinancesNavSection,
+  shouldHideFinancesShellLeaves,
 } from "@/lib/finances-nav";
 import { internalSurveyNavSections } from "@/lib/internal-operations-data";
 
@@ -43,5 +44,18 @@ assert.deepEqual(
 const built = buildFinancesNavSection();
 assert.equal(built.label, FINANCES_MODULE_LABEL);
 assert.equal(FINANCES_SHELL_VIEWS.length, 13);
+
+assert.equal(shouldHideFinancesShellLeaves({ workspaceType: "Demo", workspaceSlug: "demo" }), false);
+assert.equal(shouldHideFinancesShellLeaves({ workspaceType: "Internal", workspaceSlug: "unit311" }), false);
+assert.equal(shouldHideFinancesShellLeaves({ workspaceType: "Customer", workspaceSlug: "greendesert" }), true);
+
+const customerFinances = buildFinancesNavSection({ hideUnfinishedLeaves: true });
+const arChildren = customerFinances.items.find((item) => item.label === "Accounts Receivable")?.children ?? [];
+assert.deepEqual(
+  arChildren.map((child) => child.label),
+  ["Invoices", "Outstanding", "Overdue"],
+);
+const planning = customerFinances.items.find((item) => item.label === "Planning & Management");
+assert.equal(planning, undefined);
 
 console.log("ok  finances-nav checks passed\n");

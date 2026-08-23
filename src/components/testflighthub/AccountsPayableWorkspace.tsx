@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, startTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Loader2, RefreshCw, Receipt } from "lucide-react";
 
 import { formatMoney } from "@/lib/accounting/chart-of-accounts";
@@ -33,7 +34,37 @@ const CATEGORY_LABELS: Record<NorthstarPayableCategory, string> = {
   expense: "Operating expenses",
 };
 
+type ApSection = "invoices" | "approvals" | "outstanding" | "due-dates";
+
+function resolveApSection(value: string | null): ApSection {
+  if (value === "approvals" || value === "outstanding" || value === "due-dates" || value === "invoices") {
+    return value;
+  }
+  return "invoices";
+}
+
+const SECTION_COPY: Record<ApSection, { title: string; description: string }> = {
+  invoices: {
+    title: "Supplier invoices",
+    description: "Ingest supplier bills, approve drafts, and review open payables.",
+  },
+  approvals: {
+    title: "Supplier invoice approvals",
+    description: "Review draft supplier invoices before posting them to the ledger.",
+  },
+  outstanding: {
+    title: "Outstanding payables",
+    description: "Open supplier liabilities awaiting settlement.",
+  },
+  "due-dates": {
+    title: "Due dates",
+    description: "Open payables ordered by due date, including overdue items.",
+  },
+};
+
 export default function AccountsPayableWorkspace() {
+  const searchParams = useSearchParams();
+  const section = resolveApSection(searchParams.get("section"));
   const [rows, setRows] = useState<PayableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -201,9 +232,21 @@ export default function AccountsPayableWorkspace() {
   }, [isDemo, monthEnd, rows, todayIso]);
 
   const filteredRows = useMemo(() => {
-    if (categoryFilter === "all") return rows;
-    return rows.filter((row) => row.category === categoryFilter);
-  }, [categoryFilter, rows]);
+    let next = categoryFilter === "all" ? rows : rows.filter((row) => row.category === categoryFilter);
+    if (section === "outstanding" || section === "due-dates") {
+      next = next.filter((row) => !row.paid);
+    }
+    if (section === "due-dates") {
+      next = [...next].sort((a, b) => String(a.dueDate).localeCompare(String(b.dueDate)));
+    }
+    return next;
+  }, [categoryFilter, rows, section]);
+
+  const pendingDrafts = useMemo(() => drafts.filter((draft) => draft.status === "draft"), [drafts]);
+  const visibleDrafts = section === "approvals" ? pendingDrafts : drafts;
+  const showIngest = section === "invoices" || section === "approvals";
+  const showPayablesTable = section !== "approvals";
+  const sectionCopy = SECTION_COPY[section];
 
   const currency = (() => {
     const workspaceCurrency = resolveBrowserReportingCurrency();
@@ -235,11 +278,10 @@ export default function AccountsPayableWorkspace() {
     <div className="space-y-4">
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <p className="text-sm text-white/55">
-            {isDemo
-              ? "Supplier liabilities — payroll accruals, opex invoices and operating expenses (not employee expense claims)."
-              : "Supplier expenses awaiting settlement, driven by the ledger."}
-          </p>
+          <div>
+            <h2 className="text-lg font-semibold text-white">{sectionCopy.title}</h2>
+            <p className="mt-1 text-sm text-white/55">{sectionCopy.description}</p>
+          </div>
           <button
             type="button"
             onClick={() => void load()}
@@ -279,17 +321,25 @@ export default function AccountsPayableWorkspace() {
         </p>
       ) : null}
 
+      {showIngest ? (
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-        <p className="text-sm font-medium text-white/80">Ingest supplier invoice</p>
-        <p className="mt-1 text-xs text-white/45">
-          Paste invoice text (or email body) to create a draft AP bill, then approve to post to the ledger.
+        <p className="text-sm font-medium text-white/80">
+          {section === "approvals" ? "Draft supplier invoices" : "Ingest supplier invoice"}
         </p>
+        <p className="mt-1 text-xs text-white/45">
+          {section === "approvals"
+            ? "Approve extracted supplier bills to post them to the general ledger."
+            : "Paste invoice text (or email body) to create a draft AP bill, then approve to post to the ledger."}
+        </p>
+        {section === "invoices" ? (
         <textarea
           value={ingestText}
           onChange={(event) => setIngestText(event.target.value)}
           rows={4}
           className="mt-3 w-full rounded-xl border border-white/10 bg-[#0b1524] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/40"
         />
+        ) : null}
+        {section === "invoices" ? (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -300,7 +350,8 @@ export default function AccountsPayableWorkspace() {
             {ingestBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Extract & draft bill"}
           </button>
         </div>
-        {drafts.length > 0 ? (
+        ) : null}
+        {visibleDrafts.length > 0 ? (
           <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
             <table className="w-full min-w-[40rem] text-left text-sm">
               <thead className="border-b border-white/10 text-[10px] uppercase tracking-[0.12em] text-white/40">
@@ -313,7 +364,7 @@ export default function AccountsPayableWorkspace() {
                 </tr>
               </thead>
               <tbody>
-                {drafts.map((draft) => (
+                {visibleDrafts.map((draft) => (
                   <tr key={draft.id} className="border-b border-white/[0.05]">
                     <td className="px-3 py-2 text-white/80">{draft.supplier}</td>
                     <td className="px-3 py-2 text-white/55">{draft.reference ?? "—"}</td>
@@ -340,12 +391,22 @@ export default function AccountsPayableWorkspace() {
               </tbody>
             </table>
           </div>
+        ) : section === "approvals" ? (
+          <div className="mt-4 rounded-xl border border-dashed border-white/15 px-4 py-8 text-center text-sm text-white/50">
+            No supplier invoice drafts awaiting approval.
+          </div>
         ) : null}
       </section>
+      ) : null}
 
+      {showPayablesTable ? (
       <section className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-          <p className="text-sm font-medium text-white/70">{filteredRows.length} open payables</p>
+          <p className="text-sm font-medium text-white/70">
+            {section === "due-dates"
+              ? `${filteredRows.length} open items by due date`
+              : `${filteredRows.length} ${section === "outstanding" ? "outstanding" : "open"} payables`}
+          </p>
           {isDemo ? (
             <div className="flex flex-wrap gap-1.5">
               {(["all", "payroll", "opex", "expense"] as const).map((option) => (
@@ -427,6 +488,7 @@ export default function AccountsPayableWorkspace() {
           </div>
         )}
       </section>
+      ) : null}
     </div>
   );
 }

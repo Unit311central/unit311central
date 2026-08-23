@@ -45,11 +45,11 @@ export default function FinancesSubsectionShell({ view, basePath = INTERNAL_OPER
             <Construction className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-white">Section in development</h3>
+            <h3 className="text-base font-semibold text-white">Coming soon</h3>
             <p className="mt-1 text-sm text-white/50">
-              Navigation is wired to the agreed Finances structure. Underlying workflows for{" "}
-              <span className="text-white/75">{config.sectionLabel}</span> are not live on this
-              workspace yet — no demo financial records are shown here.
+              <span className="text-white/75">{config.sectionLabel}</span> is on the Finances roadmap for
+              customer workspaces. Use the related live area below while this section is being built — no
+              prototype financial records are shown here.
             </p>
             {config.relatedView ? (
               <Link

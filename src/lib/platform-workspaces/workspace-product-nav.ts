@@ -4,6 +4,10 @@
  */
 
 import { DEMO_WORKSPACE_SLUG } from "@/lib/app-domains";
+import {
+  buildFinancesNavSection,
+  shouldHideFinancesShellLeaves,
+} from "@/lib/finances-nav";
 import type {
   InternalNavChildItem,
   InternalNavItem,
@@ -200,6 +204,13 @@ export function buildWorkspaceProductNavSections(
 
     if (spec.id === "intelligence") {
       section = { ...section, label: intelligenceLabel };
+    }
+
+    if (spec.id === "financials" && shouldHideFinancesShellLeaves({
+      workspaceSlug: options.workspaceSlug,
+      workspaceType: options.workspaceType,
+    })) {
+      section = buildFinancesNavSection({ hideUnfinishedLeaves: true });
     }
 
     if (section.kind === "pin") {

@@ -151,10 +151,46 @@ export function isFinancesShellView(view: string | null | undefined): view is Fi
   return (FINANCES_SHELL_VIEWS as readonly string[]).includes(String(view ?? ""));
 }
 
+/** Customer workspaces hide unfinished Finances leaves from navigation. */
+export function shouldHideFinancesShellLeaves(input: {
+  workspaceSlug?: string | null;
+  workspaceType?: string | null;
+}): boolean {
+  const slug = String(input.workspaceSlug ?? "")
+    .trim()
+    .toLowerCase();
+  const type = String(input.workspaceType ?? "")
+    .trim()
+    .toLowerCase();
+  if (type === "demo" || slug === "demo") return false;
+  if (type === "internal") return false;
+  return true;
+}
+
+function filterFinancesNavItem(
+  item: InternalNavItem,
+  hideUnfinishedLeaves: boolean,
+): InternalNavItem | null {
+  if (!item.children?.length) {
+    if (!hideUnfinishedLeaves || !item.view || !isFinancesShellView(item.view)) {
+      return item;
+    }
+    return null;
+  }
+
+  const children = item.children.filter(
+    (child) => !hideUnfinishedLeaves || !child.view || !isFinancesShellView(child.view),
+  );
+  if (children.length === 0) return null;
+  return { ...item, children };
+}
+
 export function buildFinancesNavSection(options?: {
   color?: string;
   icon?: string;
+  hideUnfinishedLeaves?: boolean;
 }): InternalNavSection {
+  const hideUnfinishedLeaves = options?.hideUnfinishedLeaves === true;
   const items: InternalNavItem[] = [
     { label: "Dashboard", icon: "LayoutDashboard", view: "financials" },
     {
@@ -222,12 +258,18 @@ export function buildFinancesNavSection(options?: {
     { label: "Financial Reports", icon: "FileText", view: "financial-reports" },
   ];
 
+  const filteredItems = hideUnfinishedLeaves
+    ? items
+        .map((item) => filterFinancesNavItem(item, hideUnfinishedLeaves))
+        .filter((item): item is InternalNavItem => item !== null)
+    : items;
+
   return {
     kind: "workspace",
     label: FINANCES_MODULE_LABEL,
     icon: options?.icon ?? "Wallet",
     color: options?.color ?? FINANCES_ACCENT,
-    items,
+    items: filteredItems,
   };
 }
 
