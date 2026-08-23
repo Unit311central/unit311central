@@ -26,6 +26,9 @@ export const MARKETING_ENTERPRISE_MONTHLY_FROM_USD = 4000;
 export const MARKETING_IMPLEMENTATION_LOW_USD = 1500;
 export const MARKETING_IMPLEMENTATION_HIGH_USD = 25000;
 
+/** Default marketing subscription billing period (months per invoice). */
+export const MARKETING_BILLING_PERIOD_MONTHS = 6;
+
 /** Annual prepay discount shown on marketing site (e.g. 0.12 = 12% off). */
 export const MARKETING_ANNUAL_PREPAY_DISCOUNT = 0.12;
 

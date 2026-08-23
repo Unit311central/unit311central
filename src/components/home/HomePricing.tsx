@@ -8,6 +8,7 @@ import {
   MARKETING_ANNUAL_PREPAY_DISCOUNT,
   MARKETING_CORE_MONTHLY_FROM_USD,
   MARKETING_ENTERPRISE_MONTHLY_FROM_USD,
+  MARKETING_BILLING_PERIOD_MONTHS,
   MARKETING_IMPLEMENTATION_HIGH_USD,
   MARKETING_IMPLEMENTATION_LOW_USD,
   MARKETING_OPERATOR_MONTHLY_FROM_USD,
@@ -144,6 +145,16 @@ export default function HomePricing() {
                       From {formatProfessionalUsd(tier.monthlyFrom)}
                       <span className="text-base font-semibold text-white/50 sm:text-lg"> / month</span>
                     </p>
+                    <div className="mt-3 space-y-1 text-sm text-white/55">
+                      <p>Billed every {MARKETING_BILLING_PERIOD_MONTHS} months</p>
+                      <p className="font-medium text-white/70">
+                        {formatProfessionalUsd(tier.monthlyFrom * MARKETING_BILLING_PERIOD_MONTHS)}{" "}
+                        every {MARKETING_BILLING_PERIOD_MONTHS} months
+                      </p>
+                      <p className="text-white/45">
+                        Initial commitment: {MARKETING_BILLING_PERIOD_MONTHS} months
+                      </p>
+                    </div>
                     <p className="mt-3 text-sm leading-relaxed text-white/55">{tier.description}</p>
                     <ul className="mt-6 space-y-3">
                       {tier.features.map((feature) => (
@@ -205,7 +216,8 @@ export default function HomePricing() {
                 ))}
               </ul>
               <p className="mt-5 text-sm text-white/45">
-                Billed quarterly by default. Initial commitment: 3 months. Annual prepay:{" "}
+                Billed every {MARKETING_BILLING_PERIOD_MONTHS} months by default. Initial commitment:{" "}
+                {MARKETING_BILLING_PERIOD_MONTHS} months. Annual prepay:{" "}
                 {annualDiscountPct}% discount.
               </p>
             </div>
