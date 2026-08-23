@@ -59,6 +59,11 @@ export function resolveWorkspaceNavEnablement(input: {
   workspaceType?: string | null;
   enabledModules?: readonly string[] | null;
   enabledSubModules?: readonly string[] | null;
+  /**
+   * When false, an empty module list stays empty instead of the 5-module starter
+   * fallback — used while whoami is still loading to avoid a nav flash.
+   */
+  allowDefaultFallback?: boolean;
 }): WorkspaceNavEnablement {
   const normalizedType = String(input.workspaceType ?? "").trim().toLowerCase();
   const normalizedSlug = String(input.workspaceSlug ?? "").trim().toLowerCase();
@@ -84,6 +89,10 @@ export function resolveWorkspaceNavEnablement(input: {
       enabledSubModules:
         subModules.length > 0 ? subModules : defaultEnabledSubModules(modules),
     };
+  }
+
+  if (!input.allowDefaultFallback) {
+    return { enabledModules: [], enabledSubModules: [] };
   }
 
   const fallbackModules = WORKSPACE_MODULE_IDS.filter((id) =>

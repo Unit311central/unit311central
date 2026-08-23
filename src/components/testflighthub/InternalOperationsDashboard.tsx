@@ -68,6 +68,7 @@ import {
   isFundraisingModuleEnabled,
   isFundraisingModuleView,
 } from "@/lib/fundraising-workspace-surface";
+import type { OperatorEntitlementsSnapshot } from "@/lib/operator-entitlements-server";
 import { SALES_MANAGEMENT_QUERY_PARAM_VIEWS } from "@/lib/sales-management-nav";
 import FinancesSubsectionShell from "./FinancesSubsectionShell";
 import WorkspaceLoadingFallback from "./WorkspaceLoadingFallback";
@@ -449,9 +450,11 @@ function readInitialView(
 export default function InternalOperationsDashboard({
   basePath: basePathProp,
   initialView,
+  initialEntitlementsSnapshot,
 }: {
   basePath?: SurveyOperationsBasePath;
   initialView?: InternalOperationsView;
+  initialEntitlementsSnapshot?: OperatorEntitlementsSnapshot | null;
 }) {
   const searchParams = useSearchParams();
   const pathname = usePathname() ?? "";
@@ -790,7 +793,7 @@ export default function InternalOperationsDashboard({
   );
 
   return (
-    <OperatorEntitlementsProvider>
+    <OperatorEntitlementsProvider initialSnapshot={initialEntitlementsSnapshot}>
       <InternalOperationsBasePathProvider basePath={basePath}>
         <AccessViewGuard
           activeView={activeView}
