@@ -7,9 +7,16 @@ import { buildRunStepRows } from "@/lib/engineering-sop/mappers";
 import { buildNorthstarEngineeringSopCatalogue } from "@/lib/engineering-sop/northstar-seed";
 import { canRunEngSop, countSopSteps, createSeedEngineeringSops } from "@/lib/engineering-sop-data";
 import {
+  getEngineeringSopSnapshot,
   resetEngineeringSopStoreForTests,
   startEngSopRun,
 } from "@/lib/engineering-sop-store";
+
+assert.equal(
+  getEngineeringSopSnapshot().sops.length,
+  0,
+  "prototype SOP catalogue must not load globally — Library uses workspace API",
+);
 
 resetEngineeringSopStoreForTests();
 

@@ -24,6 +24,11 @@ import { requireCurrentWorkspace } from "@/lib/workspace-context";
 export type EngineeringSopActor = { userId?: string | null; displayName: string };
 export type EngineeringSopWorkspaceScope = { workspaceId?: string };
 
+function isUuid(value: string | null | undefined): value is string {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 function db() {
   if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
   return createTenancyServerClient();
@@ -108,7 +113,7 @@ export async function createEngineeringSop(
   scope?: EngineeringSopWorkspaceScope,
 ) {
   const ws = await workspaceId(scope);
-  const insert = sopToDbInsert(ws, input, actor.userId);
+  const insert = sopToDbInsert(ws, input, isUuid(actor.userId) ? actor.userId : null);
   const payload = {
     ...insert,
     version: input.version?.trim() || insert.version,
@@ -215,7 +220,7 @@ export async function startEngineeringSopRun(sopId: string, actor: EngineeringSo
       sop_id: sop.id,
       sop_version: sop.version,
       started_by: actor.displayName,
-      started_by_user_id: actor.userId ?? null,
+      started_by_user_id: isUuid(actor.userId) ? actor.userId : null,
       status: "in_progress",
     })
     .select("*")

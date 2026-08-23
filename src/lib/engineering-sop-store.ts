@@ -25,7 +25,7 @@ export type EngineeringSopState = {
 let state: EngineeringSopState = createInitialState();
 
 function createInitialState(): EngineeringSopState {
-  return { sops: createSeedEngineeringSops(), runs: [] };
+  return { sops: [], runs: [] };
 }
 
 const listeners = new Set<() => void>();
@@ -45,7 +45,7 @@ export function getEngineeringSopSnapshot(): EngineeringSopState {
 
 /** Test-only reset — restores seed catalogue and clears runs. */
 export function resetEngineeringSopStoreForTests() {
-  state = createInitialState();
+  state = { sops: createSeedEngineeringSops(), runs: [] };
   emit();
 }
 

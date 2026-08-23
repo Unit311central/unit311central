@@ -24,17 +24,13 @@ import {
   type EngSopStepOutcome,
 } from "@/lib/engineering-sop-data";
 import {
-  abandonEngSopRun,
-  approveEngSop,
-  archiveEngSop,
-  completeEngSopRunStep,
-  createDraftFromApproved,
-  createEngSop,
-  deleteEngSop,
-  signOffEngSopRun,
-  submitEngSopForReview,
-  updateEngSop,
-} from "@/lib/engineering-sop-store";
+  createEngineeringSopApi,
+  completeEngineeringSopRunApi,
+  completeEngineeringSopRunStepApi,
+  deleteEngineeringSopApi,
+  engineeringSopActionApi,
+  updateEngineeringSopApi,
+} from "@/lib/engineering-sop/client-api";
 import {
   WsInputClass,
   WsLabelClass,
@@ -186,6 +182,19 @@ export function EngSopManagePanel({
   const editable = isEngSopDefinitionEditable(sop);
   const [form, setForm] = useState<ManageForm>(() => sopToManageForm(sop));
   const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function runAction(action: () => Promise<void>) {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await action();
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Action failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (!editable) {
     return (
@@ -201,14 +210,15 @@ export function EngSopManagePanel({
             </button>
             <button
               type="button"
-              className={WsPrimaryButtonClass()}
-              onClick={() => {
-                const draft = createDraftFromApproved(sop.id);
-                if (draft) {
+              className={WsPrimaryButtonClass(busy)}
+              disabled={busy}
+              onClick={() =>
+                void runAction(async () => {
+                  const draft = await engineeringSopActionApi(sop.id, "version");
                   onDraftCreated(draft);
                   onClose();
-                }
-              }}
+                })
+              }
             >
               Create revision draft
             </button>
@@ -219,25 +229,18 @@ export function EngSopManagePanel({
   }
 
   function save() {
-    const updated = updateEngSop(sop.id, {
-      title: form.title.trim(),
-      version: form.version.trim(),
-      owner: form.owner.trim(),
-      approver: form.approver.trim(),
-      audience: form.audience,
-      status: form.status,
-      effectiveDate: form.effectiveDate.trim() || null,
-      reviewDate: form.reviewDate,
-      summary: form.summary.trim(),
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      sections: form.sections,
+    void runAction(async () => {
+      const updated = await updateEngineeringSopApi(sop.id, {
+        title: form.title.trim(),
+        owner: form.owner.trim(),
+        approver: form.approver.trim(),
+        reviewDate: form.reviewDate,
+        summary: form.summary.trim(),
+        sections: form.sections,
+      });
+      onSaved(`${updated.number} saved.`);
+      onClose();
     });
-    if (!updated) {
-      setNotice("Could not save — approved definitions cannot be edited in place.");
-      return;
-    }
-    onSaved(`${updated.number} saved.`);
-    onClose();
   }
 
   return (
@@ -256,11 +259,14 @@ export function EngSopManagePanel({
             <button
               type="button"
               className={WsSecondaryButtonClass()}
-              onClick={() => {
-                submitEngSopForReview(sop.id);
-                onSaved(`${sop.number} submitted for review.`);
-                onClose();
-              }}
+              disabled={busy}
+              onClick={() =>
+                void runAction(async () => {
+                  await engineeringSopActionApi(sop.id, "submit");
+                  onSaved(`${sop.number} submitted for review.`);
+                  onClose();
+                })
+              }
             >
               Submit for review
             </button>
@@ -269,24 +275,30 @@ export function EngSopManagePanel({
             <button
               type="button"
               className={WsSecondaryButtonClass()}
-              onClick={() => {
-                approveEngSop(sop.id);
-                onSaved(`${sop.number} approved.`);
-                onClose();
-              }}
+              disabled={busy}
+              onClick={() =>
+                void runAction(async () => {
+                  await engineeringSopActionApi(sop.id, "approve");
+                  onSaved(`${sop.number} approved.`);
+                  onClose();
+                })
+              }
             >
               Approve
             </button>
           ) : null}
-          {sop.status !== "Obsolete" ? (
+          {sop.status !== "Obsolete" && sop.status !== "Retired" ? (
             <button
               type="button"
               className={WsSecondaryButtonClass()}
-              onClick={() => {
-                archiveEngSop(sop.id);
-                onSaved(`${sop.number} archived.`);
-                onClose();
-              }}
+              disabled={busy}
+              onClick={() =>
+                void runAction(async () => {
+                  await engineeringSopActionApi(sop.id, "retire");
+                  onSaved(`${sop.number} archived.`);
+                  onClose();
+                })
+              }
             >
               Archive
             </button>
@@ -294,18 +306,20 @@ export function EngSopManagePanel({
           <button
             type="button"
             className={WsSecondaryButtonClass()}
+            disabled={busy}
             onClick={() => {
-              if (window.confirm(`Delete ${sop.number}?`)) {
-                deleteEngSop(sop.id);
+              if (!window.confirm(`Delete ${sop.number}?`)) return;
+              void runAction(async () => {
+                await deleteEngineeringSopApi(sop.id);
                 onSaved(`${sop.number} deleted.`);
                 onClose();
-              }
+              });
             }}
           >
             Delete
           </button>
           <div className="flex-1" />
-          <button type="button" className={WsPrimaryButtonClass()} onClick={save}>
+          <button type="button" className={WsPrimaryButtonClass(busy)} disabled={busy} onClick={save}>
             Save changes
           </button>
         </div>
@@ -336,24 +350,29 @@ export function EngSopCreatePanel({
     sections: [createEmptyEngSopSection(1)],
   });
 
+  const [busy, setBusy] = useState(false);
+
   function submit() {
     if (!form.number.trim() || !form.title.trim() || !form.owner.trim() || !form.approver.trim()) {
       return;
     }
-    createEngSop({
+    setBusy(true);
+    void createEngineeringSopApi({
       number: form.number.trim(),
       title: form.title.trim(),
-      version: form.version.trim(),
       owner: form.owner.trim(),
       approver: form.approver.trim(),
-      audience: form.audience,
       reviewDate: form.reviewDate,
       summary: form.summary.trim(),
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       sections: form.sections,
-    });
-    onCreated(`${form.number} created.`);
-    onClose();
+    })
+      .then((created) => {
+        onCreated(`${created.number} created.`);
+        onClose();
+      })
+      .catch(() => {
+        setBusy(false);
+      });
   }
 
   return (
@@ -370,7 +389,7 @@ export function EngSopCreatePanel({
           <button type="button" className={WsSecondaryButtonClass()} onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className={WsPrimaryButtonClass()} onClick={submit}>
+          <button type="button" className={WsPrimaryButtonClass(busy)} disabled={busy} onClick={submit}>
             Create procedure
           </button>
         </div>
@@ -531,6 +550,7 @@ export function EngSopRunPanel({
   const [phase, setPhase] = useState<"steps" | "signoff" | "summary">("steps");
   const [signComment, setSignComment] = useState("");
   const [finishedRun, setFinishedRun] = useState<EngSopRun | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const completedCount = runState.stepStates.filter((s) => s.completedAt).length;
   const progressPct = flat.length > 0 ? Math.round((completedCount / flat.length) * 100) : 0;
@@ -542,36 +562,43 @@ export function EngSopRunPanel({
   const allStepsDone = completedCount === flat.length && flat.length > 0;
 
   function completeCurrentStep() {
-    if (!currentStepId) return;
-    const result = completeEngSopRunStep(runState.runId, currentStepId, {
-      completedBy: runnerName,
+    if (!currentStepId || busy) return;
+    setBusy(true);
+    setError(null);
+    void completeEngineeringSopRunStepApi(runState.runId, currentStepId, {
       outcome,
       notes,
       evidenceRefs: evidenceRef.trim() ? [evidenceRef.trim()] : [],
-    });
-    if (!result.ok) {
-      setError(result.reason);
-      return;
-    }
-    setError(null);
-    setRunState(result.run);
-    setNotes("");
-    setEvidenceRef("");
-    setOutcome("pass");
-    if (result.run.stepStates.every((s) => s.completedAt)) {
-      setPhase("signoff");
-    }
+    })
+      .then((nextRun) => {
+        setRunState(nextRun);
+        setNotes("");
+        setEvidenceRef("");
+        setOutcome("pass");
+        if (nextRun.stepStates.every((s) => s.completedAt)) {
+          setPhase("signoff");
+        }
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to complete step.");
+      })
+      .finally(() => setBusy(false));
   }
 
   function submitSignOff() {
-    const result = signOffEngSopRun(runState.runId, { signedBy: runnerName, comment: signComment });
-    if (!result.ok) {
-      setError(result.reason);
-      return;
-    }
-    setFinishedRun(result.run);
-    setPhase("summary");
-    onComplete(result.run);
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    void completeEngineeringSopRunApi(runState.runId)
+      .then((nextRun) => {
+        setFinishedRun(nextRun);
+        setPhase("summary");
+        onComplete(nextRun);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to complete run.");
+      })
+      .finally(() => setBusy(false));
   }
 
   if (phase === "summary" && finishedRun) {
@@ -614,7 +641,7 @@ export function EngSopRunPanel({
             <button type="button" className={WsSecondaryButtonClass()} onClick={() => setPhase("steps")}>
               Back
             </button>
-            <button type="button" className={WsPrimaryButtonClass()} onClick={submitSignOff}>
+            <button type="button" className={WsPrimaryButtonClass(busy)} disabled={busy} onClick={submitSignOff}>
               <Check className="h-3.5 w-3.5" />
               Sign off & complete run
             </button>
@@ -629,8 +656,7 @@ export function EngSopRunPanel({
       title={sop.title}
       subtitle={`${sop.number} · v${sop.version} · Runner ${runnerName}`}
       onClose={() => {
-        if (window.confirm("Abandon this run? Progress will be saved as abandoned.")) {
-          abandonEngSopRun(runState.runId);
+        if (window.confirm("Close this run? You can resume it from Active Runs.")) {
           onClose();
         }
       }}
@@ -698,7 +724,7 @@ export function EngSopRunPanel({
 
             {error ? <p className="mt-2 text-sm text-rose-200">{error}</p> : null}
 
-            <button type="button" className={`${WsPrimaryButtonClass()} mt-4`} onClick={completeCurrentStep}>
+            <button type="button" className={`${WsPrimaryButtonClass(busy)} mt-4`} disabled={busy} onClick={completeCurrentStep}>
               Complete step
             </button>
           </article>

@@ -11,8 +11,7 @@ import {
   type EngSopRun,
   type EngSopStatus,
 } from "@/lib/engineering-sop-data";
-import { getLatestCompletedRun, startEngSopRun } from "@/lib/engineering-sop-store";
-import { useEngineeringSopStore } from "./useEngineeringSopStore";
+import { startEngineeringSopRunApi } from "@/lib/engineering-sop/client-api";
 import {
   DEFAULT_SOP_RUNNER,
   EngSopCreatePanel,
@@ -20,6 +19,7 @@ import {
   EngSopManagePanel,
   EngSopRunPanel,
 } from "./EngineeringSopPanels";
+import { useEngineeringSopLibrary } from "./useEngineeringSopLibrary";
 import {
   WsEmpty,
   WsInputClass,
@@ -41,7 +41,6 @@ function formatLastRun(run: EngSopRun | undefined) {
 }
 
 export default function EngineeringSopWorkspace() {
-  const store = useEngineeringSopStore();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<EngSopStatus | "All">("All");
   const [notice, setNotice] = useState<string | null>(null);
@@ -49,24 +48,16 @@ export default function EngineeringSopWorkspace() {
   const [manageSop, setManageSop] = useState<EngSop | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [activeRun, setActiveRun] = useState<{ sop: EngSop; run: EngSopRun } | null>(null);
+  const [runBusy, setRunBusy] = useState(false);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return store.sops.filter((sop) => {
-      if (statusFilter !== "All" && sop.status !== statusFilter) return false;
-      if (!q) return true;
-      return (
-        sop.number.toLowerCase().includes(q) ||
-        sop.title.toLowerCase().includes(q) ||
-        sop.owner.toLowerCase().includes(q) ||
-        sop.approver.toLowerCase().includes(q)
-      );
-    });
-  }, [store.sops, search, statusFilter]);
+  const { sops, completedRunsBySopId, loading, error, refresh } = useEngineeringSopLibrary({
+    search,
+    status: statusFilter,
+  });
 
   const catalogue = useMemo(() => {
     const byNumber = new Map<string, EngSop[]>();
-    for (const sop of filtered) {
+    for (const sop of sops) {
       const list = byNumber.get(sop.number) ?? [];
       list.push(sop);
       byNumber.set(sop.number, list);
@@ -78,7 +69,9 @@ export default function EngineeringSopWorkspace() {
       else rows.push(group[0]!);
     }
     return rows.sort((a, b) => a.title.localeCompare(b.title));
-  }, [filtered]);
+  }, [sops]);
+
+  const hasFilters = search.trim().length > 0 || statusFilter !== "All";
 
   async function handleRun(sop: EngSop) {
     if (!canRunEngSop(sop)) {
@@ -86,51 +79,15 @@ export default function EngineeringSopWorkspace() {
       return;
     }
     setNotice(null);
+    setRunBusy(true);
     try {
-      const response = await fetch(`/api/engineering/sops/${sop.id}/run`, {
-        method: "POST",
-        cache: "no-store",
-      });
-      const data = (await response.json()) as {
-        run?: {
-          id: string;
-          sopId: string;
-          sopVersion: string;
-          startedBy: string;
-          startedAt: string;
-          status: EngSopRun["status"];
-          stepStates: EngSopRun["stepStates"];
-        };
-        error?: string;
-      };
-      if (response.ok && data.run) {
-        setActiveRun({
-          sop,
-          run: {
-            runId: data.run.id,
-            id: data.run.id,
-            sopId: data.run.sopId,
-            sopVersion: data.run.sopVersion,
-            startedBy: data.run.startedBy,
-            startedAt: data.run.startedAt,
-            status: data.run.status,
-            stepStates: data.run.stepStates,
-            signOff: null,
-            completedAt: null,
-          },
-        });
-        return;
-      }
-    } catch {
-      // Fall through to local store when API unavailable.
+      const run = await startEngineeringSopRunApi(sop.id);
+      setActiveRun({ sop, run });
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not start run.");
+    } finally {
+      setRunBusy(false);
     }
-
-    const run = startEngSopRun(sop.id, DEFAULT_SOP_RUNNER);
-    if (!run) {
-      setNotice("Could not start run.");
-      return;
-    }
-    setActiveRun({ sop, run });
   }
 
   return (
@@ -139,6 +96,10 @@ export default function EngineeringSopWorkspace() {
         <p className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
           {notice}
         </p>
+      ) : null}
+
+      {error ? (
+        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{error}</p>
       ) : null}
 
       <WsSection
@@ -172,19 +133,29 @@ export default function EngineeringSopWorkspace() {
             <option value="Draft">Draft</option>
             <option value="In Review">In Review</option>
             <option value="Obsolete">Obsolete</option>
+            <option value="Retired">Retired</option>
           </select>
         </div>
 
-        {catalogue.length === 0 ? (
-          <WsEmpty message="No procedures match your filters." />
+        {loading ? (
+          <p className="text-sm text-white/55">Loading procedures…</p>
+        ) : catalogue.length === 0 ? (
+          <WsEmpty
+            message={
+              hasFilters
+                ? "No procedures match your filters."
+                : "No procedures yet. Create one to get started."
+            }
+          />
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             {catalogue.map((sop) => (
               <SopProcedureCard
                 key={sop.id}
                 sop={sop}
-                lastRun={getLatestCompletedRun(sop.id)}
-                onRun={() => handleRun(sop)}
+                lastRun={completedRunsBySopId.get(sop.id)}
+                runBusy={runBusy}
+                onRun={() => void handleRun(sop)}
                 onViewDefinition={() => setDefinitionSop(sop)}
                 onManage={() => setManageSop(sop)}
               />
@@ -201,16 +172,26 @@ export default function EngineeringSopWorkspace() {
         <EngSopManagePanel
           sop={manageSop}
           onClose={() => setManageSop(null)}
-          onSaved={(msg) => setNotice(msg)}
+          onSaved={(msg) => {
+            setNotice(msg);
+            void refresh();
+          }}
           onDraftCreated={(draft) => {
             setNotice(`Draft revision ${draft.version} created.`);
             setManageSop(draft);
+            void refresh();
           }}
         />
       ) : null}
 
       {createOpen ? (
-        <EngSopCreatePanel onClose={() => setCreateOpen(false)} onCreated={(msg) => setNotice(msg)} />
+        <EngSopCreatePanel
+          onClose={() => setCreateOpen(false)}
+          onCreated={(msg) => {
+            setNotice(msg);
+            void refresh();
+          }}
+        />
       ) : null}
 
       {activeRun ? (
@@ -219,7 +200,10 @@ export default function EngineeringSopWorkspace() {
           run={activeRun.run}
           runnerName={DEFAULT_SOP_RUNNER}
           onClose={() => setActiveRun(null)}
-          onComplete={() => setNotice(`${activeRun.sop.title} run recorded.`)}
+          onComplete={() => {
+            setNotice(`${activeRun.sop.title} run recorded.`);
+            void refresh();
+          }}
         />
       ) : null}
     </div>
@@ -229,12 +213,14 @@ export default function EngineeringSopWorkspace() {
 function SopProcedureCard({
   sop,
   lastRun,
+  runBusy,
   onRun,
   onViewDefinition,
   onManage,
 }: {
   sop: EngSop;
   lastRun: EngSopRun | undefined;
+  runBusy: boolean;
   onRun: () => void;
   onViewDefinition: () => void;
   onManage: () => void;
@@ -263,8 +249,8 @@ function SopProcedureCard({
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className={WsPrimaryButtonClass(!runnable)}
-          disabled={!runnable}
+          className={WsPrimaryButtonClass(!runnable || runBusy)}
+          disabled={!runnable || runBusy}
           onClick={onRun}
         >
           <Play className="h-3.5 w-3.5" />
