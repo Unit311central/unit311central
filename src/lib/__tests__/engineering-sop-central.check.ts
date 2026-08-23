@@ -6,11 +6,20 @@ import assert from "node:assert/strict";
 import { buildRunStepRows } from "@/lib/engineering-sop/mappers";
 import { buildNorthstarEngineeringSopCatalogue } from "@/lib/engineering-sop/northstar-seed";
 import { canRunEngSop, countSopSteps, createSeedEngineeringSops } from "@/lib/engineering-sop-data";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   getEngineeringSopSnapshot,
   resetEngineeringSopStoreForTests,
   startEngSopRun,
 } from "@/lib/engineering-sop-store";
+
+const libraryWorkspace = readFileSync(
+  join(process.cwd(), "src/components/testflighthub/EngineeringSopWorkspace.tsx"),
+  "utf8",
+);
+assert.doesNotMatch(libraryWorkspace, /useEngineeringSopStore/, "SOP Library must not use in-memory prototype store");
+assert.match(libraryWorkspace, /useEngineeringSopLibrary/, "SOP Library must load from workspace API hook");
 
 assert.equal(
   getEngineeringSopSnapshot().sops.length,
