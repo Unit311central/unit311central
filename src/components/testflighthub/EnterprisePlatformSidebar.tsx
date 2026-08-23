@@ -77,7 +77,7 @@ import { filterInternalNavSectionsByGrants, filterInternalNavSectionsForDemoSurf
 import { injectTestWorkspaceQaNav } from "@/lib/qa-workspace/nav";
 import { resolveWorkspaceNavBaseSections } from "@/lib/platform-workspaces/workspace-nav-resolver";
 import { resolveWorkspaceNavEnablement } from "@/lib/platform-workspaces/workspace-product-nav";
-import { isInternalDomainHost } from "@/lib/app-domains";
+import { parseClientPlatformSubdomainSafe, isInternalDomainHost } from "@/lib/app-domains";
 import { isAbsoluteHttpUrl } from "@/lib/clarity";
 import {
   resolveOnwardAirNavAccent,
@@ -272,25 +272,33 @@ export default function EnterprisePlatformSidebar({
 
   const { allowedViews, ready: entitlementsReady, workspaceSlug, workspaceType, enabledModules, enabledSubModules } = useOperatorEntitlements();
 
+  const hostWorkspaceSlug = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    return parseClientPlatformSubdomainSafe(window.location.hostname);
+  }, []);
+
+  const effectiveWorkspaceSlug = workspaceSlug ?? hostWorkspaceSlug;
+
   const workspaceNavEnablement = useMemo(
     () =>
       resolveWorkspaceNavEnablement({
-        workspaceSlug,
+        workspaceSlug: effectiveWorkspaceSlug,
         workspaceType,
         enabledModules,
         enabledSubModules,
+        allowDefaultFallback: entitlementsReady,
       }),
-    [workspaceSlug, workspaceType, enabledModules, enabledSubModules],
+    [effectiveWorkspaceSlug, workspaceType, enabledModules, enabledSubModules, entitlementsReady],
   );
 
   const workspaceNavBase = useMemo(
     () =>
       resolveWorkspaceNavBaseSections({
-        workspaceSlug,
+        workspaceSlug: effectiveWorkspaceSlug,
         workspaceType,
         enablement: workspaceNavEnablement,
       }),
-    [workspaceSlug, workspaceType, workspaceNavEnablement],
+    [effectiveWorkspaceSlug, workspaceType, workspaceNavEnablement],
   );
 
   // Only migrate / insert brand-new module keys. Do not rewrite storage when
@@ -785,8 +793,9 @@ export default function EnterprisePlatformSidebar({
   }, [allowedViews, entitlementsReady, hydrated, sectionOrderTick, workspaceNavBase, customerHostNav]);
 
   const pinSections = navSections.filter((section) => section.kind === "pin");
-  // Avoid flashing the generic (non-host) workspace list before OA/ABHI inject.
-  const workspaceSections = customerHostNav || hydrated
+  const showWorkspaceSections =
+    entitlementsReady || customerHostNav || Boolean(enabledModules?.length);
+  const workspaceSections = showWorkspaceSections
     ? navSections.filter((section) => section.kind === "workspace")
     : [];
 

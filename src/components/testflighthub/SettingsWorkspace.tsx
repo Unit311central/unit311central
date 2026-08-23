@@ -331,6 +331,7 @@ function buildLiveNavSections(
   workspaceType: string | null,
   enabledModules: string[] | null,
   enabledSubModules: string[] | null,
+  entitlementsReady: boolean,
 ): InternalNavSection[] {
   if (typeof window === "undefined") return [...internalSurveyNavSections];
   const enablement = resolveWorkspaceNavEnablement({
@@ -338,6 +339,7 @@ function buildLiveNavSections(
     workspaceType,
     enabledModules,
     enabledSubModules,
+    allowDefaultFallback: entitlementsReady,
   });
   const base = resolveWorkspaceNavBaseSections({
     workspaceSlug,
@@ -653,6 +655,7 @@ export default function SettingsWorkspace() {
             workspaceType,
             enabledModules,
             enabledSubModules,
+            entitlementsReady,
           )
         : [...internalSurveyNavSections],
     [hydrated, allowedViews, entitlementsReady, workspaceSlug, workspaceType, enabledModules, enabledSubModules],
