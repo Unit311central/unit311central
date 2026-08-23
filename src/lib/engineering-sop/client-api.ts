@@ -40,9 +40,17 @@ export async function fetchEngineeringSopRuns(activeOnly = false) {
   const response = await fetch(`/api/engineering/sops/runs?active=${activeOnly ? "true" : "false"}`, {
     cache: "no-store",
   });
-  const data = await parseJson<{ runs?: Array<{ id: string; sopId: string; status: string; completedAt?: string | null }> }>(
-    response,
-  );
+  const data = await parseJson<{
+    runs?: Array<{
+      id: string;
+      sopId: string;
+      version: string;
+      startedBy: string;
+      startedAt: string;
+      status: string;
+      completedAt?: string | null;
+    }>;
+  }>(response);
   if (!response.ok) throw new Error(data.error ?? "Failed to load runs.");
   return data.runs ?? [];
 }
