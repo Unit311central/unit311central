@@ -323,6 +323,7 @@ import {
   NorthstarEngineeringProgramsWorkspace,
   NorthstarEngineeringRisksWorkspace,
 } from "@/components/demo/NorthstarEngineeringWorkspaces";
+import WorkspaceBusinessCentralDashboard from "@/components/business-central/WorkspaceBusinessCentralDashboard";
 import OnwardAirBusinessCentralDashboard from "@/components/onwardair/OnwardAirBusinessCentralDashboard";
 
 const VIEWS_NEEDING_SIMULATOR = new Set<InternalOperationsView>([
@@ -956,8 +957,10 @@ export default function InternalOperationsDashboard({
           {activeView === "business-central-dashboard" &&
             (isBrowserDemoSurface() ? (
               <NorthstarBusinessCentralDashboard />
-            ) : (
+            ) : isBrowserOnwardAirSurface() ? (
               <OnwardAirBusinessCentralDashboard />
+            ) : (
+              <WorkspaceBusinessCentralDashboard />
             ))}
 
           {activeView === "recent-missions" && <RecentMissionsPanel />}
