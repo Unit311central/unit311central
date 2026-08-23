@@ -92,6 +92,22 @@ function resolveElementLabel(element: HTMLElement): string {
     if (labelText) return labelText;
   }
 
+  if (
+    (element.tagName.toLowerCase() === "div" || element.tagName.toLowerCase() === "section") &&
+    element.className.includes("rounded-[12px]") &&
+    /\bborder\b/.test(element.className)
+  ) {
+    const labelParagraph = element.querySelector("p");
+    const labelText = normalizeText(labelParagraph?.textContent);
+    if (labelText && labelText.length <= 80) return labelText;
+  }
+
+  if (element.tagName.toLowerCase() === "article" && /\brounded-xl\b/.test(element.className)) {
+    const labelParagraph = element.querySelector("p");
+    const labelText = normalizeText(labelParagraph?.textContent);
+    if (labelText && labelText.length <= 80) return labelText;
+  }
+
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
     const labelledBy = element.getAttribute("aria-labelledby");
     if (labelledBy) {
