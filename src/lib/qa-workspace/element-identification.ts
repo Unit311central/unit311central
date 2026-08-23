@@ -86,6 +86,12 @@ function resolveElementLabel(element: HTMLElement): string {
     element.getAttribute("title");
   if (explicit?.trim()) return normalizeText(explicit);
 
+  if (element.getAttribute("data-qa-target") === "dashboard-widget") {
+    const firstLabel = element.querySelector("p");
+    const labelText = normalizeText(firstLabel?.textContent);
+    if (labelText) return labelText;
+  }
+
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
     const labelledBy = element.getAttribute("aria-labelledby");
     if (labelledBy) {

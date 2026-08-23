@@ -3,11 +3,12 @@
 import { Clock3, Sparkles } from "lucide-react";
 
 import type { DashboardAiSummaryWidget } from "@/lib/dashboard-framework";
-import { widgetShellClass } from "./widget-shell";
+import { widgetShellClass, DASHBOARD_WIDGET_SHELL_ATTR, DASHBOARD_WIDGET_SHELL_VALUE } from "./widget-shell";
 
 export default function AiSummaryWidget({ widget }: { widget: DashboardAiSummaryWidget }) {
   return (
     <section
+      {...{ [DASHBOARD_WIDGET_SHELL_ATTR]: DASHBOARD_WIDGET_SHELL_VALUE }}
       className={widgetShellClass("relative overflow-hidden p-5 sm:p-6")}
       style={{
         background:

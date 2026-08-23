@@ -59,6 +59,26 @@ const homeClickChain = [cashLabel, cashAvailableTile, homeTilesWrapper];
 const homePick = pickBestQaCandidateIndex(homeClickChain);
 assert.equal(homePick, 1, "Cash Available click must resolve to KPI tile, not home-tiles wrapper");
 
+const dashboardWidget = snap({
+  tagName: "div",
+  dataQaTarget: "dashboard-widget",
+  className: "rounded-[12px] border p-4 px-3 py-3.5",
+  textContentLength: 42,
+  childElementCount: 3,
+});
+
+const homeClickChainWithMarker = [cashLabel, dashboardWidget, homeTilesWrapper];
+const homePickWithMarker = pickBestQaCandidateIndex(homeClickChainWithMarker);
+assert.equal(
+  homePickWithMarker,
+  1,
+  "Cash Available click must resolve to dashboard-widget shell when marked",
+);
+assert.ok(
+  qaElementSpecificityScore(dashboardWidget) > qaElementSpecificityScore(homeTilesWrapper),
+  "dashboard-widget must outrank broad layout wrappers",
+);
+
 // --- Business Central Clients: article tile vs inner label ---
 const bcTile = snap({
   tagName: "article",

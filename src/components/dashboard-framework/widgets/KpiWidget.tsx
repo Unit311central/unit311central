@@ -8,7 +8,7 @@ import type {
   DashboardKpiTone,
 } from "@/lib/dashboard-framework";
 import { cn } from "@/lib/utils";
-import { widgetShellClass } from "./widget-shell";
+import { widgetShellClass, DASHBOARD_WIDGET_SHELL_ATTR, DASHBOARD_WIDGET_SHELL_VALUE } from "./widget-shell";
 
 function toneClass(tone: DashboardKpiTone | undefined) {
   switch (tone) {
@@ -54,7 +54,10 @@ export function KpiWidget({ kpi }: { kpi: DashboardKpiItem }) {
   }, [kpi, periodId, periods]);
 
   return (
-    <div className={widgetShellClass("px-3 py-3.5")}>
+    <div
+      {...{ [DASHBOARD_WIDGET_SHELL_ATTR]: DASHBOARD_WIDGET_SHELL_VALUE }}
+      className={widgetShellClass("px-3 py-3.5")}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 text-[11px] font-medium text-white/45">{active.label}</p>
         {hasPeriods ? (

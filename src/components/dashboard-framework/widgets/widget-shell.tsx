@@ -8,6 +8,9 @@ export function widgetShellClass(className?: string) {
   );
 }
 
+export const DASHBOARD_WIDGET_SHELL_ATTR = "data-qa-target";
+export const DASHBOARD_WIDGET_SHELL_VALUE = "dashboard-widget";
+
 export function WidgetTitle({
   title,
   meta,
