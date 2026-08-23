@@ -8,6 +8,7 @@ import {
   isSupabaseConfigured,
   isSupabaseServiceRoleConfigured,
 } from "@/lib/supabase/server";
+import { createTenancyServerClient } from "@/lib/supabase/tenancy-server";
 import { userHasRole } from "@/lib/user-management-data";
 import { isDemoWorkspaceSlug, isUnit311GlobalAdminUsername } from "@/lib/demo/read-only";
 import {
@@ -212,7 +213,7 @@ export async function requireUsersModuleAdministratorSession(): Promise<
 
   // Customer tenant: session user must be an active workspace owner/admin.
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = createTenancyServerClient();
     const username = session.username.trim().toLowerCase();
     // Quote values so emails with @ work in PostgREST `.or(...)` filters.
     const escaped = username.replace(/"/g, '\\"');
